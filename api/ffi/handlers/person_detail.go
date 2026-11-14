@@ -97,7 +97,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 	}
 	out := &engine.GetPersonFamilyResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		family, siblings, summaries, err := persondetail.PersonFamily(c, entityID)
+		family, siblings, summaries, err := persondetail.PersonFamily(c, entityID, c.Graph().NoPageInputs())
 		if err != nil {
 			return err
 		}

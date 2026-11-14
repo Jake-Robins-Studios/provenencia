@@ -78,13 +78,13 @@ func (w *kinWorld) show(units []kinship.Unit) []string {
 
 func (w *kinWorld) family(id []byte) (persondetail.Family, error) {
 	w.t.Helper()
-	f, _, _, err := persondetail.PersonFamily(w.c, id)
+	f, _, _, err := persondetail.PersonFamily(w.c, id, w.c.Graph().PageInputs())
 	return f, err
 }
 
 func (w *kinWorld) expect(id []byte, want ...string) persondetail.Family {
 	w.t.Helper()
-	f, _, summaries, err := persondetail.PersonFamily(w.c, id)
+	f, _, summaries, err := persondetail.PersonFamily(w.c, id, w.c.Graph().PageInputs())
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -206,11 +206,11 @@ func TestPersonFamily(t *testing.T) {
 		w.k.Merge(merged, other)
 		w.k.Commit(merged, other)
 		for name, id := range map[string][]byte{"unknown": bytes.Repeat([]byte{7}, 16), "event": ev, "merged": merged, "malformed": {1, 2, 3}} {
-			if _, _, _, err := persondetail.PersonFamily(w.c, id); !errors.Is(err, conclusiondetails.ErrNotFound) {
+			if _, _, _, err := persondetail.PersonFamily(w.c, id, w.c.Graph().PageInputs()); !errors.Is(err, conclusiondetails.ErrNotFound) {
 				t.Errorf("%s: err %v, want ErrNotFound", name, err)
 			}
 		}
-		got, err := persondetail.Families(w.c, [][]byte{bytes.Repeat([]byte{7}, 16), ev, merged, {1, 2, 3}, pat})
+		got, err := persondetail.Families(w.c, [][]byte{bytes.Repeat([]byte{7}, 16), ev, merged, {1, 2, 3}, pat}, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -230,7 +230,7 @@ func TestPersonFamily(t *testing.T) {
 		w.k.Parent(pat, uma)
 		w.k.Parent(sam, uma)
 		ids := [][]byte{pat, sam, uma}
-		got, err := persondetail.Families(w.c, ids)
+		got, err := persondetail.Families(w.c, ids, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -241,7 +241,7 @@ func TestPersonFamily(t *testing.T) {
 			if !bytes.Equal(got[i].Person, id) {
 				t.Fatalf("family %d is for %s, want %s", i, w.name(got[i].Person), w.name(id))
 			}
-			one, _, _, err := persondetail.PersonFamily(w.c, id)
+			one, _, _, err := persondetail.PersonFamily(w.c, id, w.c.Graph().PageInputs())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -249,7 +249,7 @@ func TestPersonFamily(t *testing.T) {
 				t.Errorf("Families(%s) differs from PersonFamily:\n%v\n%v", w.name(id), w.show(got[i].Units), w.show(one.Units))
 			}
 		}
-		dup, err := persondetail.Families(w.c, [][]byte{pat, pat})
+		dup, err := persondetail.Families(w.c, [][]byte{pat, pat}, w.c.Graph().PageInputs())
 		if err != nil || len(dup) != 1 {
 			t.Fatalf("a repeated id gave %d families, err %v", len(dup), err)
 		}
@@ -281,7 +281,7 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 	origin := func(w *kinWorld, id []byte) []string {
 		t := w.t
 		t.Helper()
-		f, sibs, _, err := persondetail.PersonFamily(w.c, id)
+		f, sibs, _, err := persondetail.PersonFamily(w.c, id, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -324,7 +324,7 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		born(w, wil, 0, heinrich, anna)
 		born(w, marg, 1815, heinrich, anna)
 		check(t, origin(w, johann), "Margarethe[Anna+Heinrich]", "Johann[Anna+Heinrich]", "Friedrich[Anna+Heinrich]", "Wilhelm[Anna+Heinrich]")
-		f, _, _, err := persondetail.PersonFamily(w.c, johann)
+		f, _, _, err := persondetail.PersonFamily(w.c, johann, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -400,5 +400,56 @@ func TestPersonFamilyOriginSiblings(t *testing.T) {
 		anna, heinrich := w.person("Anna"), w.person("Heinrich")
 		w.k.Marriage(anna, heinrich)
 		check(t, origin(w, anna), "Anna[]")
+	})
+}
+
+// TestPersonFamilyRecordsInputs: the family read records every node the
+// kinship read derives from with its neighbours and links, every relative it
+// names, shown or not, and every summary it reads.
+func TestPersonFamilyRecordsInputs(t *testing.T) {
+	read := func(t *testing.T, w *kinWorld, id []byte) [][]byte {
+		t.Helper()
+		in := w.c.Graph().PageInputs()
+		if _, _, _, err := persondetail.PersonFamily(w.c, id, in); err != nil {
+			t.Fatal(err)
+		}
+		handles, graphs, srcs := in.Lists()
+		if len(graphs) != 0 || len(srcs) != 0 {
+			t.Errorf("graphs %x, sources %x: the Family shows no records", graphs, srcs)
+		}
+		return handles
+	}
+	t.Run("shown relatives, the marriage and the parent link", func(t *testing.T) {
+		w := newKinWorld(t)
+		pat, sam, tess, uma, wren, xan := w.person("Pat"), w.person("Sam"), w.person("Tess"), w.person("Uma"), w.person("Wren"), w.person("Xan")
+		m1, _ := w.k.Marriage(pat, sam)
+		w.k.Marriage(pat, tess)
+		patUma := w.k.Parent(pat, uma)
+		w.k.Parent(sam, uma)
+		w.k.Parent(pat, wren)
+		w.k.Parent(xan, wren)
+		holdsIDs(t, "handles", read(t, w, pat), false, pat, sam, tess, uma, wren, xan, m1, patUma)
+	})
+	t.Run("a marriage with no spouse filed", func(t *testing.T) {
+		w := newKinWorld(t)
+		pat := w.person("Pat")
+		m2, _ := w.k.Marriage(pat)
+		holdsIDs(t, "handles", read(t, w, pat), false, pat, m2)
+	})
+	t.Run("a provisional child that is not shown", func(t *testing.T) {
+		w := newKinWorld(t)
+		pat, vic := w.person("Pat"), w.person("Vic")
+		w.k.Parent(pat, vic)
+		w.k.Provisional(vic)
+		w.k.Commit(vic)
+		w.expect(pat)
+		holdsIDs(t, "handles", read(t, w, pat), false, pat, vic)
+	})
+	t.Run("a step person's marriage", func(t *testing.T) {
+		w := newKinWorld(t)
+		pat, quinn, rhea := w.person("Pat"), w.person("Quinn"), w.person("Rhea")
+		w.k.Parent(quinn, pat)
+		m3, _ := w.k.Marriage(quinn, rhea)
+		holdsIDs(t, "handles", read(t, w, pat), false, pat, quinn, m3)
 	})
 }

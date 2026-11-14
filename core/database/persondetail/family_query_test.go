@@ -33,15 +33,21 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 	t.Run("AC-2.1", func(t *testing.T) {
 		w := newKinWorld(t)
 		pat := w.shape("", 2, 2, true)
-		first, _, _, err := persondetail.PersonFamily(w.c, pat)
+		firstIn, secondIn := w.c.Graph().PageInputs(), w.c.Graph().PageInputs()
+		first, _, _, err := persondetail.PersonFamily(w.c, pat, firstIn)
 		if err != nil {
 			t.Fatal(err)
 		}
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		second, _, _, err := persondetail.PersonFamily(w.c, pat)
+		second, _, _, err := persondetail.PersonFamily(w.c, pat, secondIn)
 		if err != nil {
 			t.Fatal(err)
+		}
+		h1, g1, s1 := firstIn.Lists()
+		h2, g2, s2 := secondIn.Lists()
+		if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+			t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 		}
 		if queries != 0 {
 			t.Fatalf("a second read issued %d graph queries", queries)
@@ -59,7 +65,7 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 			pat := w.shape("", siblings, children, more)
 			var queries int
 			w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-			if _, _, _, err := persondetail.PersonFamily(w.c, pat); err != nil {
+			if _, _, _, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs()); err != nil {
 				t.Fatal(err)
 			}
 			return queries
@@ -81,7 +87,7 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 			}
 			var queries int
 			w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-			got, err := persondetail.Families(w.c, ids)
+			got, err := persondetail.Families(w.c, ids, w.c.Graph().PageInputs())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -102,14 +108,14 @@ func TestPersonFamilyQueryCount(t *testing.T) {
 		w := newKinWorld(t)
 		pat := w.shape("", 2, 2, true)
 		stranger := w.person("Stranger")
-		firstFamily, firstOrigin, firstSummaries, err := persondetail.PersonFamily(w.c, pat)
+		firstFamily, firstOrigin, firstSummaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
 		w.k.Commit(stranger)
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		family, origin, summaries, err := persondetail.PersonFamily(w.c, pat)
+		family, origin, summaries, err := persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}

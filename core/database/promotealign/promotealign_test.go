@@ -1276,7 +1276,7 @@ func TestProposeIgnoresPageSiblings(t *testing.T) {
 
 	reader, err := canonlinks.NewReader(f.c.Graph())
 	must(t, err)
-	all, err := reader.Relationships([][]byte{beaID, calID}, canonlinks.Options{Siblings: true})
+	all, err := reader.Relationships([][]byte{beaID, calID}, canonlinks.Options{Siblings: true}, f.c.Graph().NoPageInputs())
 	must(t, err)
 	if !slices.ContainsFunc(all[string(beaID)], func(l kinship.Link) bool {
 		return slices.ContainsFunc(l.Shapes, func(sh kinship.Shape) bool { return sh.Pattern == kinship.PatternSharedParent })

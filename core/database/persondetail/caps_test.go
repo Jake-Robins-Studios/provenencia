@@ -36,7 +36,7 @@ func TestCraftedFamily(t *testing.T) {
 	var f persondetail.Family
 	d := catalogsessiontest.Cold(w.t, w.c, 2, func() {
 		var err error
-		if f, _, _, err = persondetail.PersonFamily(w.c, pat); err != nil {
+		if f, _, _, err = persondetail.PersonFamily(w.c, pat, w.c.Graph().PageInputs()); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -52,7 +52,7 @@ func TestCraftedFamily(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	links, err := r.Relationships([][]byte{pat}, canonlinks.Options{Siblings: true})
+	links, err := r.Relationships([][]byte{pat}, canonlinks.Options{Siblings: true}, g.NoPageInputs())
 	if err != nil {
 		t.Fatal(err)
 	}
