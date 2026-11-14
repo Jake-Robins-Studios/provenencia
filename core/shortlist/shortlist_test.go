@@ -96,7 +96,7 @@ func billRules() valuecompare.Rules {
 	return rules
 }
 
-func TestLookup(t *testing.T) {
+func TestFind(t *testing.T) {
 	plain := matchregistry.Default().Value
 	events := []entry{
 		event(1, "birth", datevaluetest.YMD(1850, 0, 0)),
@@ -180,15 +180,31 @@ func TestLookup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.ac+"/"+tt.name, func(t *testing.T) {
-			got := ids(lookup(build(tt.rules, tt.kind, tt.entries...), tt.kind, tt.probe.v))
+			ix := build(tt.rules, tt.kind, tt.entries...)
+			got := ids(lookup(ix, tt.kind, tt.probe.v))
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("Lookup = %v, want %v", got, tt.want)
+				t.Errorf("Find = %v, want %v", got, tt.want)
+			}
+			keys := ix.LookupKeys(tt.kind, tt.probe.v)
+			found := map[byte]bool{}
+			for _, id := range ix.Find(tt.kind, keys) {
+				found[id[0]] = true
+			}
+			for _, e := range tt.entries {
+				_, filed, _ := ix.Filed([]byte{e.id})
+				meets := false
+				for _, k := range keys {
+					meets = meets || slices.Contains(filed, k)
+				}
+				if found[e.id] != meets {
+					t.Errorf("handle %d: found %v, a lookup key among its filed keys %v", e.id, found[e.id], meets)
+				}
 			}
 		})
 	}
 	var nilIndex *shortlist.Index
 	if got := lookup(nilIndex, vocabkey.Person, person(0, "James Robins").v); got != nil {
-		t.Errorf("nil index Lookup = %v, want nil", got)
+		t.Errorf("nil index Find = %v, want nil", got)
 	}
 }
 
@@ -293,11 +309,11 @@ func TestLookupKeys(t *testing.T) {
 	})
 }
 
-func TestLookupCopiesAndSorts(t *testing.T) {
+func TestFindCopiesAndSorts(t *testing.T) {
 	ix := build(matchregistry.Default().Value, vocabkey.Person, person(3, "Robins"), person(1, "Robins"), person(2, "James Robins"))
 	got := lookup(ix, vocabkey.Person, person(0, "Robins").v)
 	if want := []byte{1, 2, 3}; !slices.Equal(ids(got), want) {
-		t.Fatalf("Lookup = %v, want %v", ids(got), want)
+		t.Fatalf("Find = %v, want %v", ids(got), want)
 	}
 	got[0][0] = 99
 	if again := ids(lookup(ix, vocabkey.Person, person(0, "Robins").v)); !slices.Equal(again, []byte{1, 2, 3}) {
@@ -374,14 +390,14 @@ func TestIndexPut(t *testing.T) {
 	t.Run("a handle is refiled", func(t *testing.T) {
 		ix := build(rules, vocabkey.Person, person(1, "James Robins"), person(2, "Robins"))
 		if got := probe(ix, vocabkey.Person, person(0, "Robins")); !slices.Equal(got, []byte{1, 2}) {
-			t.Fatalf("Lookup Robins = %v, want [1 2]", got)
+			t.Fatalf("Find Robins = %v, want [1 2]", got)
 		}
 		ix.Put(vocabkey.Person, []byte{1}, person(1, "James Smith").v)
 		if got := probe(ix, vocabkey.Person, person(0, "Robins")); !slices.Equal(got, []byte{2}) {
-			t.Errorf("Lookup Robins after the refile = %v, want [2]", got)
+			t.Errorf("Find Robins after the refile = %v, want [2]", got)
 		}
 		if got := probe(ix, vocabkey.Person, person(0, "Smith")); !slices.Equal(got, []byte{1}) {
-			t.Errorf("Lookup Smith after the refile = %v, want [1]", got)
+			t.Errorf("Find Smith after the refile = %v, want [1]", got)
 		}
 	})
 	tests := []struct {
