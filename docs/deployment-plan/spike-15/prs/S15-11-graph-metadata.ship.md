@@ -99,3 +99,17 @@ Merged `origin/main` @ `b9b4cba14` (S16-21 plan docs only). Gate PASS against `b
 
 ## Result
 Gate PASS · CI green · open: MNT-out-2 (minor, to user) · follow-ups: none · to user: MNT-out-2
+
+## Fix plan 2 (user, 2026-11-14: "Yes, fix it (a)" for MNT-out-2)
+
+**F-8 — One page-wide "an owner form is open" fact, checked after every Add read** (from MNT-out-2, option a)
+Files: `macos/App/Features/Sources/SourcePageContext.swift`, `SourcePageModel.swift`, `SourceGraphsSection.swift`, `SourceArtifactsSection.swift`, tests in `SourcePageModelTests.swift` (and `SourceGraphFormModelTests.swift` if the graph Add tests live there), plan Landed note.
+Failing test first: `artifactPencilDuringGraphAddReadKeepsOneForm` — hold the graph Add's suggestion read open the way `anEditSheetOpenedDuringTheReadIsKept` (`SourcePageModelTests.swift` ~2335) holds the Artifact one; while it is held, `model.artifacts.openSheet(artifactID:)` opens the Artifact sheet; let the read finish → `graphs.openAdd()` answers nil, `model.graphs.form == nil`, `model.artifacts.sheet != nil`.
+Do:
+- `SourcePageContext` gets `var hasOpenOwnerForm: @MainActor () -> Bool = { false }` (doc: "True while any owner's form (Artifact sheet, graph form) is up; the page model supplies it"). `SourcePageModel.init` sets it once after the sections exist: `context.hasOpenOwnerForm = { [unowned self] in artifacts.sheet != nil || graphs.form != nil }` (use `weak` + `?? false` if `unowned` does not fit the file's style).
+- `readSuggestionsForAdd(level:)` returns nil when `hasOpenOwnerForm()` is true before the read, and again after the await (a form opened while it ran is not replaced, whichever section opened it). Update its doc comment.
+- Both sections' `openAdd()` drop their own post-await `guard form == nil` / `guard sheet == nil` and their pre-await own-form check (the helper now asks page-wide); keep `canAdd` in the graph one.
+- `acceptsArtifactPageDrop` replaces `graphs.form == nil` and `artifacts.sheet == nil` with `!context.hasOpenOwnerForm()`.
+- `anEditSheetOpenedDuringTheReadIsKept`, `secondAddWhileReadingOpensNothing`, `dropDuringGraphAddReadIsRefused`, `graphFormOpenRefusesDrop` keep passing unchanged.
+- Plan Landed note: replace the "Artifact pencil left unguarded" wording with one line: the page model supplies `hasOpenOwnerForm`, and `readSuggestionsForAdd` checks it before and after the read, so an edit opened during any Add read is kept and the Add opens nothing. While there, fix MNT-12 (the Landed line naming `isOpeningAdd` → `SourcePageContext.isOpeningForm`).
+Check: the new test fails first, then passes; `rg -n 'guard (form|sheet) == nil else \{ return nil \}' macos/App/Features/Sources` prints nothing; `rg -n 'graphs\.form == nil|artifacts\.sheet == nil' macos/App` prints only the `hasOpenOwnerForm` closure; scripts/check-pr.sh PASS.
