@@ -2354,6 +2354,23 @@ struct SourcePageModelTests {
         #expect(edit?.artifactID == "P3")
     }
 
+    @Test func artifactPencilDuringGraphAddReadKeepsOneForm() async throws {
+        let (model, store, _) = await makeCensus()
+        model.artifacts.sheet = nil
+        store.listTypeSuggestionsHold.isOn = true
+        let graphOpen = Task { await model.graphs.openAdd() }
+        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+
+        model.artifacts.openSheet(artifactID: "P3")
+        let edit = model.artifacts.sheet
+        #expect(edit != nil)
+        store.listTypeSuggestionsHold.release()
+
+        #expect(await graphOpen.value == nil)
+        #expect(model.graphs.form == nil)
+        #expect(model.artifacts.sheet === edit)
+    }
+
     @Test func sheetSavingDisablesSaveAndHoldsTheWrite() async {
         let (model, store, _) = await makeCensus()
         let sheet = await openSheet(model, "P3")

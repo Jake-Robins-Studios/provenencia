@@ -158,19 +158,24 @@ final class SourcePageContext {
         return MetadataDraftHost.unsavedRows(from: suggestions)
     }
 
+    /// True while any owner's form (Artifact sheet, graph form) is up; the page model supplies it.
+    var hasOpenOwnerForm: @MainActor () -> Bool = { false }
+
     /// True while an owner's Add form is reading its suggestions, whichever section started it: one
     /// read at a time, and no edit or drop opens a form meanwhile.
     private(set) var isOpeningForm = false
 
     /// The read-first half of every owner's Add: the suggestions the new owner's board starts
-    /// with. Nil when another form is already opening, or the read failed (the page banner shows
-    /// the message). The caller keeps its own checks before and after the await.
+    /// with. Nil when another form is already opening or any owner's form is open, before the
+    /// read and again after it (a form opened while it ran, from a pencil or "+n more", is not
+    /// replaced), or when the read failed (the page banner shows the message).
     func readSuggestionsForAdd(level: Level) async -> [CatalogMetadataEntry]? {
-        guard !isOpeningForm else { return nil }
+        guard !isOpeningForm, !hasOpenOwnerForm() else { return nil }
         isOpeningForm = true
         defer { isOpeningForm = false }
         do {
-            return try await unsavedMetadataRows(level: level)
+            let rows = try await unsavedMetadataRows(level: level)
+            return hasOpenOwnerForm() ? nil : rows
         } catch {
             showFailure(error)
             return nil

@@ -112,11 +112,7 @@ final class SourceArtifactsSection {
     /// opening, or the suggestion read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> ArtifactSheetModel? {
-        guard sheet == nil, let suggestions = await context.readSuggestionsForAdd(level: .artifact) else {
-            return nil
-        }
-        // A sheet opened while the read ran (an edit from a pencil) is not replaced.
-        guard sheet == nil else { return nil }
+        guard let suggestions = await context.readSuggestionsForAdd(level: .artifact) else { return nil }
         let created = ArtifactSheetModel(
             context: context,
             mode: .create(suggestions: suggestions),

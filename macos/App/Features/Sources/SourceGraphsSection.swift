@@ -68,11 +68,7 @@ final class SourceGraphsSection {
     /// suggestion read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> SourceGraphFormModel? {
-        guard canAdd, form == nil, let suggestions = await context.readSuggestionsForAdd(level: .graph) else {
-            return nil
-        }
-        // A form opened while the read ran (an edit from a pencil) is not replaced.
-        guard form == nil else { return nil }
+        guard canAdd, let suggestions = await context.readSuggestionsForAdd(level: .graph) else { return nil }
         let model = SourceGraphFormModel(context: context, mode: .create(suggestions: suggestions))
         form = model
         return model

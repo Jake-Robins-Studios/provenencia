@@ -59,6 +59,7 @@ final class SourcePageModel {
         notes = SourceNotesSection(context: context)
         artifacts = SourceArtifactsSection(context: context)
         graphs = SourceGraphsSection(context: context)
+        context.hasOpenOwnerForm = { [unowned self] in artifacts.sheet != nil || graphs.form != nil }
     }
 
     var workspace: CatalogSourceWorkspace? { context.workspace }
@@ -99,12 +100,11 @@ final class SourcePageModel {
     /// The content pane takes a file drop when no sheet is already up.
     var acceptsArtifactPageDrop: Bool {
         !context.isOpeningForm
-            && graphs.form == nil
+            && !context.hasOpenOwnerForm()
             && !artifacts.isAttaching
             && metadataDialogs.pendingDelete == nil
             && notes.pendingDelete == nil
             && pendingImpact == nil
-            && artifacts.sheet == nil
     }
 
     /// Loads the workspace and page vocabulary, then syncs section state
