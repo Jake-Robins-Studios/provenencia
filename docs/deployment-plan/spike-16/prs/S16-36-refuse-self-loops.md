@@ -212,8 +212,8 @@ Do: D-3's `NewGraph` change.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/recordlinks/...` passes.
 
 **STEP-5 — Delete `Edge.Readings`, `Edge.Ends` and the equal-ends check**
-Files: `core/kinship/kinship.go`, `core/kinship/kinship_test.go`. Skill: `add-match-rule`.
-Do: D-3's deletions (with them the doc lines `kinship.go` 64–67 and 79–80, and the now unused `iter` import), D-4 (doc lines 354 and 369), and T-6.
+Files: `core/kinship/kinship.go`, `core/kinship/kinship_test.go`, `core/kinship/families_test.go`, `core/database/canonlinks/reader_test.go`. Skill: `add-match-rule`.
+Do: D-3's deletions (with them the doc lines `kinship.go` 64–67 and 79–80, and the now unused `iter` import), D-4 (doc lines 354 and 369), T-6, T-12 and T-13.
 Check: `rg -n "\.Readings\(|\.Ends\(\)" core` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/kinship/... ./core/database/canonlinks/... ./core/database/evidencelayer/...` passes.
 
 **STEP-6 — Place pages follow only their parts**
@@ -243,6 +243,8 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-9 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestPlaceEntries`, `TestPlaceEntryInputsMatchReads` | Case "self-loop" deleted; `pageReads(id)` = `reads(id, hops.PartsOfPlace)`; page inputs of town, city, region and unknown match it | D-6, D-7 |
 | T-10 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestFiledPlaceLinks` | `loop`, `k.PartOf(loop, loop)` and row "a place part of itself" deleted; other rows unchanged | D-6, D-7 |
 | T-11 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdgeCap` *(amended 2026-11-14, ship round 0)* | The from-Subjects keep `id(i + 1)`; the to-Subjects (their `EvidenceSubject` and their `event` observation) take `id(1000 + i + 1)`, so no pair has one Subject at both ends. Expected values unchanged: under the cap `223*224` edges, over the cap none | D-1 |
+| T-12 | Go | `core/database/canonlinks/reader_test.go` `TestRelationshipsOptionsSiblings` "AC-1.9" *(amended 2026-11-14, ship round 0)* | Last case kept: `w.sibling("BB", bea, bea)` then `check(t, read(w, bea))` with no wanted entry (STEP-1's canon guard seen through `Relationships`); the earlier cases unchanged | D-1 |
+| T-13 | Go | `core/kinship/families_test.go` `TestKinOf` *(amended 2026-11-14, ship round 0)* | Subtest "a link to self" deleted; other subtests unchanged | D-4 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceEntryInputsMatchReads` (page inputs), the `graphalign` goldens (adjacency order), `TestDeriveInvariants` (its random stream changes with D-4).
 
