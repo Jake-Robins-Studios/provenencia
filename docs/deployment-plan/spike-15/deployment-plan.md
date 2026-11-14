@@ -144,7 +144,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D2 | Sources list | **S15-04** | The date on rows and as a sort |
 | S15-D3 | Person page Sources section | **S15-05** | The date on each Source. Split under "One brief, one PR": the grouping is S15-D15 |
 | S15-D4 | Adding an Artifact | — | **Descoped (2026-11-12):** folded into S15-D14, which draws the Artifact sheet in add mode |
-| S15-D5 | Evidence graph form | **S15-11** | The item's metadata board beside name and description |
+| [S15-D5](design/S15-D5-evidence-graph-form.md) | Evidence graph form, graph rows | **S15-11** | The graph's metadata board after Description; the form's body never scrolls, only its Artifacts checklist (user, 2026-11-14); each graph row shows its saved values read-only (user, 2026-11-14) |
 | S15-D6 | Source type page | **S15-12** | Suggestions at three levels. Split under "One brief, one PR": the format editor is S15-D16 |
 | S15-D7 | New Source type dialog | **S15-18** | Copy from |
 | S15-D8 | Citation composer | **S15-13** | The printed page beside the page in the file |
