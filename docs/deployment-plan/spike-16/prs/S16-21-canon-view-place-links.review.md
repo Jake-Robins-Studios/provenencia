@@ -57,3 +57,23 @@
 **Answer:** Fixed — D-10: `graphalign.Proposal{}, 0, err`.
 
 Also: the base checkout for D-13 is a `git worktree add` at `ba2d35a`.
+
+## Round 2
+
+### X-9 · blocker · T-1 contradicts D-1, D-3 and AC-2.2 on what `Links` returns
+**Answer:** Fixed — T-1 (a) and (b) expect the stored link, once; the Edges assumption reads "listed once and read twice, `A`'s end first".
+
+### X-10 · blocker · STEP-4's check cannot pass with `connections_test.go` still on `CanonEdge`
+**Answer:** Fixed — STEP-4 converts its literals to `kinship.Link` and changes nothing else there until STEP-5.
+
+### X-11 · major · STEP-2's T-7 cases call `FiledPlaceLinks`, which STEP-3 adds
+**Answer:** Fixed — STEP-2 tests through `FillPlaceSuccessionsForTest` and `AttachPlaceRelationships`; STEP-3 adds the `FiledPlaceLinks` calls.
+
+### X-12 · major · Fixtures for the bad-date and chain cases
+**Answer:** Fixed — the bad part date uses `breakDates` over a dated part link and an undated succession link (S16-18's "bad succession date" shape); AC-1.5 is held at the reader `Propose` uses (T-7), and the 2,000-part Promote case is dropped; T-8's trees are built with `f.Place`, `f.PlaceRel` and `f.promote` as `build` does.
+
+### X-13 · minor · Where registration runs
+**Answer:** Fixed — D-15: assigned in `init()`.
+
+### X-14 · nit · Stale comment at `align_test.go:92`
+**Answer:** Fixed — STEP-4's Do.
