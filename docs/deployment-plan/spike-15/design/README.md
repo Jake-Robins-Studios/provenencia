@@ -30,7 +30,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | — | S15-45 |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| S15-D26 | Add type dialog: label, icon, description, as Add Source | — | S15-47 |
+| [S15-D26](S15-D26-add-source-type-dialog.md) | Add type dialog: label, icon, description, as Add Source; how the icon is picked inside it | — (written 2026-11-14) | S15-47 |
 | S15-D27 | Source type page: the page from scratch (header, details, delete, locked types, the Source suggestions), with slots named for S15-12 and S15-17 | — | S15-48 |
 | S15-D28 | Source types list: columns and Wide without the side pane | — | S15-49 |
 

@@ -138,7 +138,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `validatePage`; `locator.Page` returns the mark | — | S15-14 | — | Scoped |
 | S15-45 | The composer marks and flags the printed page | 9 | Swift: Unknown and Supplied on the printed page (S15-41's control); flagged when the type needs `{citation.page}` | S15-D24 | S15-13, S15-38, S15-41, S15-44, S15-D24 | — | Scoped |
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
-| S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | S15-D26 | S15-D26 | — | Scoped |
+| S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Blocked — on board S15-D26 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | S15-D27 | S15-47, S15-D27 | — | Scoped |
 | S15-49 | The Source types list is redesigned | 2 | Swift: the list without a side pane, its columns and its Wide layout | S15-D28 | S15-48, S15-D28 | — | Scoped |
 
@@ -171,7 +171,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D23 | Source date dialog and header | **S15-42** | No date and Supplied; how the header shows them; the header's flag on an empty date |
 | S15-D24 | Citation composer | **S15-45** | Unknown, Supplied and the needed flag on the printed page |
 | S15-D25 | Metadata page | **S15-46** | A field's unknown text |
-| S15-D26 | Add type dialog | **S15-47** | Label, icon, description; Add type at the list's top right, as Add Source; how Icon is picked from inside a dialog (a sheet over it or an inline grid) |
+| [S15-D26](design/S15-D26-add-source-type-dialog.md) | Add type dialog | **S15-47** | Label, icon, description; Add type at the list's top right, as Add Source; how Icon is picked from inside a dialog (a sheet over it or an inline grid) |
 | S15-D27 | Source type page | **S15-48** | The page from scratch at Regular and Wide: header, details, delete, locked plugin types, today's Source suggestions; it names where S15-12's lists and S15-17's formats will sit (drawn by their own briefs); the list without its side pane as far as rows opening the page |
 | S15-D28 | Source types list | **S15-49** | The list's columns and Wide layout without the side pane |
 
