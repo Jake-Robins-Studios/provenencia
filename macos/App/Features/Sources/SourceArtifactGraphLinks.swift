@@ -41,7 +41,7 @@ extension CatalogEvidenceGraphUnlinkBlock {
     /// Artifact sheet and the graph form; no reason is decided here.
     var lockHint: String {
         citationCount > 0
-            ? PVDeleteImpactCopy.heading(via: reason.wire, kind: "citation", total: citationCount)
+            ? L10n.Sources.graphLockCitations(count: citationCount)
             : L10n.Errors.message(code: reason.wire)
     }
 }

@@ -205,8 +205,6 @@ struct PVDeleteImpactCopyTests {
             ("artifacts.file_id", "artifact", 1, "1 artifact uses this file"),
             ("subjects.graph_id", "subject", 1, "This graph has 1 subject"),
             ("subjects.graph_id", "subject", 3, "This graph has 3 subjects"),
-            ("evidencegraphs.artifact_in_use", "citation", 1, "1 citation in this graph uses this artifact"),
-            ("evidencegraphs.artifact_in_use", "citation", 2, "2 citations in this graph use this artifact"),
         ]
         for item in cases {
             #expect(PVDeleteImpactCopy.isKnownVia(item.0))

@@ -202,6 +202,13 @@ struct SourceGraphFormModelTests {
         #expect(lastOnly.composerLinkArtifactIDs.isEmpty)
     }
 
+    @Test func lockHintCountsCitations() {
+        #expect(L10n.Sources.graphLockCitations(count: 1) == "1 citation in this graph uses this artifact")
+        #expect(L10n.Sources.graphLockCitations(count: 3) == "3 citations in this graph use this artifact")
+        #expect(unlinkBlock("a1", graphID: "g1", citations: 1).lockHint == L10n.Sources.graphLockCitations(count: 1))
+        #expect(unlinkBlock("a1", graphID: "g1", citations: 3).lockHint == L10n.Sources.graphLockCitations(count: 3))
+    }
+
     @Test func createPrefillsTheArtifactsInNoGraph() async throws {
         let (model, _, _) = await makeModel(graphs: [
             evidenceGraph("g-default", name: "Default", artifactIDs: ["a1", "a2", "a3", "a4"]),

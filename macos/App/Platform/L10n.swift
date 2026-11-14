@@ -6495,10 +6495,19 @@ enum L10n {
             comment: "Line under the Artifact checklist when no Artifact is checked"
         )
 
+        static func graphLockCitations(count: Int) -> String {
+            let resource = LocalizedStringResource(
+                "sources.graphLock.citations",
+                defaultValue: "%lld citations in this graph use this artifact",
+                comment: "Hint under a locked Artifact row: how many of the graph's Citations are on the Artifact. Argument is the count."
+            )
+            return L10n.format(resource, count)
+        }
+
         static let graphFormLoading = LocalizedStringResource(
             "sources.graphForm.loading",
             defaultValue: "Reading the artifacts…",
-            comment: "Evidence graph form loading line while the kept links are read"
+            comment: "Evidence graph form loading line while the locked Artifacts are read"
         )
 
         static let graphFormLoadErrorTitle = LocalizedStringResource(
@@ -8961,11 +8970,6 @@ enum L10n {
                 "deleteImpact.via.subjectsGraphId",
                 defaultValue: "This graph has %lld subjects",
                 comment: "Inbound heading for subjects.graph_id; argument is how many"
-            ),
-            "evidencegraphs.artifact_in_use": LocalizedStringResource(
-                "deleteImpact.via.evidenceGraphsArtifactInUse",
-                defaultValue: "%lld citations in this graph use this artifact",
-                comment: "Heading over the Citations that keep an Artifact linked to a graph; argument is how many"
             ),
             "citations.artifact_id": LocalizedStringResource(
                 "deleteImpact.via.citationsArtifactId",
