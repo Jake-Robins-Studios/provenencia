@@ -233,3 +233,17 @@ Logged.
 
 ### K3-11 – K3-14 · nits
 **Answer:** K3-12, K3-13, K3-14 fixed. K3-11 declined: S15-03's plan is Landed and stays as written.
+
+## Map review — "A Source type has its own page" (S15-47 – S15-49), 2026-11-14
+
+**Verdict:** Fits with changes. **Reviewer:** maintainability (fresh context). One round; every finding Fixed in the map.
+
+- **K-1 · blocker · S15-48 does not decide the model shape.** Fixed — S15-48 **Shape** splits `SourceTypesModel` into the list model and `SourceTypePageModel` (the `SourcesModel` / `SourcePageModel` precedent); S15-47 keeps the add draft on the list model; S15-12's status re-homes D-4 onto the page model.
+- **K-2 · major · Leftover shared vocabulary chrome.** Fixed — S15-48 reuses `VocabularyPanelHeader`, `VocabularyLabeledSection`, `VocabularyFormActions` or moves them and `VocabularyPaneMode` into `Features/Metadata/`; S15-49 stays on `VocabularyListPane` or moves it; doc comments named.
+- **K-3 · major · Skills and docs the page makes false.** Fixed — S15-48 updates `add-workspace-place` and `add-workspace-location`; S15-49 updates `macos-client-patterns.md` § 9 and `wide-layout.md`.
+- **K-4 · major · Place details.** Fixed — `viewIdentity: typeId`, presentation `.sourceTypePage`, delete with `leavingPage:`, the three tests named.
+- **K-5 · major · Crumb label is carried, not resolved.** Fixed — verified `LocationNames` resolves only `sourceTitle` and `graphName`; S15-48 adds a type-label resolver; the rule names delete-impact rows as a route; the Check covers a rename.
+- **K-6 · major · Icon picker becomes two-caller.** Fixed — S15-47 moves it to its own file; S15-D26 decides sheet or inline grid.
+- **K-7 · minor · S15-18 stale.** Fixed — Context and Check rewritten; depends on S15-12.
+- **K-8 · minor · Back loses the list's scroll.** Fixed — verified `isListRoot` is false for `.sourceTypes`; S15-48 makes it a list root and restores the anchor.
+- **K-9 · nit · Wording and a location factory.** Fixed — S15-47 rewires `onAdd`; S15-48 adds `WorkspaceLocation.sourceTypePage(typeId:title:)`.
