@@ -36,6 +36,7 @@
 - `TestCandidatesFollowMovedKeys` does not assert the rows T-1 marks "—" (B's birth after "a John Smith filed", "the member merged" and "the member unpromoted").
 - `evidencelayer.layers`' size column in `catalog-caches.md` now reads the benchmark's `evidence-B` pair (7.7 / 7.8 MB), as STEP-8 says, in place of the 34.5 / 45.0 MB of the three entries together.
 - The first `scripts/check-pr.sh` run failed `TestLargeSourceBudgets` "warm at open" (5.2 s) and "cold" (2.8 s) under the full parallel run, with the Xcode build starting; both pass alone (1.06 s, 0.59 s) and the second full run passed. Neither reads code this PR changed.
+- `evidencegraphs.Index` and `sources.Records` also patch their held index in place, so their Applies now report with `Whole.Patched(g, nil)` instead of `Whole.Set`, making "patched in place" one way of saying it (round 1 F-1; the plan's Codebase fit named only `applyMatchIndex`). Behavior is unchanged: no reader of either narrows.
 
 ## 1. Objective
 

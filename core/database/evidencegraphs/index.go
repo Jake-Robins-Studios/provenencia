@@ -81,7 +81,8 @@ func (x *GraphIndex) AllProgress() []Progress {
 // Index is the Evidence-graph entry: every graph with its linked Artifacts
 // and counts, built on the first read of an open catalog and patched from the
 // reads of effects.Set: evidence_graphs re-lists the named Sources and
-// evidence_graph_progress recounts the named graphs.
+// evidence_graph_progress recounts the named graphs. Apply patches the held
+// index in place and reports that with Patched, not Set.
 var Index graphcache.Whole[*GraphIndex]
 
 func init() {
@@ -156,7 +157,7 @@ func init() {
 					idx.progress[id] = p
 				}
 			}
-			w.Set(g, idx)
+			w.Patched(g, nil)
 			return nil
 		},
 		Check: func(g *graphcache.Graph, stored *GraphIndex) error {
