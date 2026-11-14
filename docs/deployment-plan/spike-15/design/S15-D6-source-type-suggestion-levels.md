@@ -4,9 +4,9 @@
 **Spike:** Provenencia Spike 15, slice 2
 **View:** the Source types page's detail pane (a selected type, editable or locked), and the Associated fields column of its list
 **Implements later as:** PR **S15-12**
-**Board:** — (not drawn yet)
+**Board:** — not to be drawn yet. Written for the side pane; revisited and rewritten as an enhancement of S15-D27's Source type page once that board is agreed (user, 2026-11-14)
 **Review:** — (not reviewed yet)
-**Depends on:** S15-06 (landed): every suggestion has a level (`source`, `artifact`, `graph`), and each level is its own ordered list; S15-08 – S15-11 (landed): Artifacts and Evidence graphs hold metadata and show their type's suggestions at their level
+**Depends on:** S15-D27 and S15-48 (the Source type page these lists sit on); S15-06 (landed): every suggestion has a level (`source`, `artifact`, `graph`), and each level is its own ordered list; S15-08 – S15-11 (landed): Artifacts and Evidence graphs hold metadata and show their type's suggestions at their level
 **Related:** working rules "Metadata lives at three levels with one vocabulary", "Suggestions have a level" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`S15-D14-source-page-artifacts.md`](S15-D14-source-page-artifacts.md) (where Artifact suggestions show); [`archive/S15-D5-evidence-graph-form.md`](archive/S15-D5-evidence-graph-form.md) (where graph suggestions show); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 6.6; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (Source types row)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)

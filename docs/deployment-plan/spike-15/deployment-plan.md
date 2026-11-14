@@ -38,6 +38,7 @@ Spike 15 makes Sources carry what a standard genealogical citation needs and tur
 | [Rethink Source metadata](2026-10-25-rethink-source-metadata-and-type-suggestions.md) | Settled: metadata stays (map § 6.1); S15-06 – S15-12 build on it | — |
 | [Evidence Explained citation map](evidence-explained-citation-map.md) | S15-06 – S15-23 | S15-D1, S15-D3 – S15-D9 |
 | User review of the citation preview (2026-11-13): too much space for a rare copy; missing fields belong where they are fixed; unknown and supplied values | S15-23 (re-scoped), S15-37 – S15-46, S15-14 – S15-16, S15-19 | S15-D19 – S15-D25 |
+| User review of S15-12's brief (2026-11-14): the type's side pane has no room for three suggestion lists and three formats; a type gets its own page, the list loses its side pane, Add type becomes a dialog | S15-47, S15-48, S15-49, S15-12, S15-17, S15-18 | S15-D26, S15-D27, S15-D28, S15-D6, S15-D7 |
 | [Move an Artifact to another Source](move-artifact-between-sources.md) | S15-24, S15-25 | S15-D1, S15-D10, S15-D14 |
 | User review of S15-09 (2026-11-12): the Artifact cards grow too tall with their metadata; edit in a sheet; thumbnails pixelated | S15-33 – S15-36, S15-10 | S15-D14 |
 | [Provenance loading and drawing](provenance-loading.md), from `ideas/provenance.md` (retired 2026-11-09) | S15-27, S15-28, S15-29 | S15-D9 |
@@ -84,6 +85,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **The provenance table folds a page at a time.** `PVProvenanceRecordTable` folds with the kit's paged fold: S16-07's fold rule and fold state move to `macos/App/Platform/` and its Show more row becomes a kit component, `PVShowMoreRow`, so a recipe can use them (`docs/design-system-layers.md`: a recipe never names a `Features/` type). The fold counts citation groups (a group's full citation with its Citations), never splitting a group, 50 at a time. Binds S15-30, S15-27. Design: [`provenance-loading.md`](provenance-loading.md) "Cap". (K-25, K-33.)
 - **The Why accordion goes.** It is deprecated: Event and Place rows open the provenance sheet as Person rows do, and the Why and its code are deleted before records leave the page read (user, 2026-11-09). Binds S15-31. (K-30.)
 - **Records load when the sheet opens.** The detail page read stops carrying each value's records. It keeps what it already sends (`Support`, `Against`, the values and their state) and adds `FieldRecordCounts` per field (the record count and, for a mixed field, the distinct Source count), composed from the node's outcome rows and the records tier after S16-11 and S16-30, with no new SQL query. A sheet's records come from one read that takes the row's (owner, Property) pairs, mirroring `RecordsSource` (`.field`, `.spanning`, `.derived`), and returns them grouped by pair, each outcome carrying whether it denied a value and the denier's Source title; it reports its inputs as S16-24's reads do. The sheet's on-open call (S15-21's key) carries these records with their citations. Swift's `distinctSourceCount`, `recordCount` derivation, `deniedSomething` and denier search go. Binds S15-28, S15-29. Design: [`provenance-loading.md`](provenance-loading.md) "Load records when the sheet opens". (K-24, K-27, K-28, K-34.)
+- **A Source type has its own page.** The Source types list keeps no side pane: a row opens the type's own page, a deep place under Source types (`WorkspaceLocation.typeId`, today's breadcrumb "Source types › Census", Back and Forward, restore, and the omnibar's `source_type` hits, which already route by `typeId`), with room for the three suggestion lists (S15-12) and the three citation formats (S15-17) beside the name, icon, description and delete. **Add type** sits at the top right of the list and opens a short dialog (label, icon, description), as Add Source does; Save creates the type and opens its page, where suggestions and formats are added, all optional. S15-18's **Copy from** goes in that dialog. The Metadata page keeps its list and side pane: its fields gain no new data this spike (user, 2026-11-14). Binds S15-47 – S15-49, S15-12, S15-17, S15-18.
 - **Refused in this spike.** A shared Repository record; per-Source format overrides; a fourth citation form; source type packages ([idea](../../ideas/source-type-packages.md)); install on open; undo of a move; Merge Sources; moving to a new Source; filling the jurisdiction from the graph; a per-Artifact page map; a citation preview on the Source page (user, 2026-11-13); copying several Sources' list entries at once ([idea](../../ideas/copy-source-list-entries.md)). Each is recorded in the map (§ 7) or the move doc.
 
 ## PR map
@@ -101,13 +103,13 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-09 | Artifacts show their metadata on the Source page | 2 | Swift: a metadata board per Artifact; **trimmed before merge (user, 2026-11-12)** to the board write's cache patch and its fixes; the per-Artifact chrome moved to S15-34 | S15-D1 | S15-08, S15-26, S15-D1 | [plan](prs/S15-09-artifact-metadata-boards.md) | Landed [#802](https://github.com/mendahu/provenencia/pull/802) (trimmed) |
 | S15-10 | Adding an Artifact asks for its copy details | 2 | Swift: Add Artifact opens the Artifact sheet in add mode; copy details save with the new Artifact | S15-D14 | S15-34, S15-36, S15-D14 | [plan](prs/S15-10-artifact-sheet-add-mode.md) | Landed [#829](https://github.com/mendahu/provenencia/pull/829) |
 | S15-11 | Evidence graphs show their metadata | 2 | Go: the Source page read carries each graph's board; the graph write replies answer its rows. Swift: the graph form in two columns with a metadata board; each graph row shows its saved values read-only | S15-D5 | S15-36, S15-34, S15-35, S15-D5 | [plan](prs/S15-11-graph-metadata.md) | Landed [#834](https://github.com/mendahu/provenencia/pull/834) |
-| S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Blocked — on board S15-D6 |
+| S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-48, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Blocked — re-plan on S15-48 and S15-D6 |
 | S15-13 | The composer records the printed page | 3 | Swift: `page_label` on the page selector | S15-D8 | S15-D8 | — | Scoped |
 | S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | — | Scoped |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, type read and write; a typed mutation on a format write | — | S15-14 | — | Scoped |
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
-| S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings | S15-D16 | S15-16, S15-12, S15-D16 | — | Scoped |
-| S15-18 | A new type can copy another's formats and suggestions | 4 | Go and Swift: one write; **Copy from** in the new type dialog | S15-D7 | S15-15, S15-06, S15-D7 | — | Scoped |
+| S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings, on the Source type page | S15-D16 | S15-16, S15-12, S15-48, S15-D16 | — | Scoped |
+| S15-18 | A new type can copy another's formats and suggestions | 4 | Go and Swift: one write; **Copy from** in the Add type dialog (S15-47) | S15-D7 | S15-15, S15-06, S15-47, S15-D7 | — | Scoped |
 | S15-19 | Seed the citation types, fields and suggestions | 4 | Go: `sourcevocab` registry and Install for 26 types, 63 fields, levelled suggestions; `unknown_text` | — | S15-06, S15-37 | — | Scoped |
 | S15-20 | Seed the citation formats | 4 | Go: each seeded type's three formats; a render test per type | — | S15-19, S15-15 | — | Scoped |
 | S15-21 | The provenance sheet shows formatted citations | 6 | Swift: the sheet's on-open key renders and groups; Copy citation copies rich text | S15-D9 | S15-16, S16-30, S16-04, S15-D9 | — | Scoped |
@@ -136,6 +138,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `validatePage`; `locator.Page` returns the mark | — | S15-14 | — | Scoped |
 | S15-45 | The composer marks and flags the printed page | 9 | Swift: Unknown and Supplied on the printed page (S15-41's control); flagged when the type needs `{citation.page}` | S15-D24 | S15-13, S15-38, S15-41, S15-44, S15-D24 | — | Scoped |
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
+| S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | S15-D26 | S15-D26 | — | Scoped |
+| S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | S15-D27 | S15-47, S15-D27 | — | Scoped |
+| S15-49 | The Source types list is redesigned | 2 | Swift: the list without a side pane, its columns and its Wide layout | S15-D28 | S15-48, S15-D28 | — | Scoped |
 
 ## Design track
 
@@ -146,8 +151,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D3 | Person page Sources section | **S15-05** | The date on each Source. Split under "One brief, one PR": the grouping is S15-D15 |
 | S15-D4 | Adding an Artifact | — | **Descoped (2026-11-12):** folded into S15-D14, which draws the Artifact sheet in add mode |
 | [S15-D5](design/archive/S15-D5-evidence-graph-form.md) | Evidence graph form, graph rows | **S15-11** | A two-column form: Name, Description and the graph's metadata board beside the Artifacts checklist; a long Artifact list scrolls in its checklist, never the form (user, 2026-11-14); each graph row shows its saved values read-only (user, 2026-11-14) |
-| [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | Source type page | **S15-12** | Suggestions at three levels; the arrangement is the board's. Split under "One brief, one PR": the format editor is S15-D16 |
-| S15-D7 | New Source type dialog | **S15-18** | Copy from |
+| [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | Source type page | **S15-12** | Suggestions at three levels on the Source type page (S15-D27). Written for the old side pane; revisited once S15-D27's board is agreed (user, 2026-11-14). The format editor is S15-D16 |
+| S15-D7 | Add type dialog | **S15-18** | Copy from, in S15-D26's dialog |
 | S15-D8 | Citation composer | **S15-13** | The printed page beside the page in the file |
 | S15-D9 | Provenance sheet | **S15-21** | The formatted citation, grouped Citations, Copy citation; the loading and failed states of the on-open call. Split under "One brief, one PR": the fold is S15-D17, records on open S15-D18 |
 | S15-D10 | Move confirm | **S15-25** | The bundle, the target picker, the credibility note |
@@ -166,6 +171,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D23 | Source date dialog and header | **S15-42** | No date and Supplied; how the header shows them; the header's flag on an empty date |
 | S15-D24 | Citation composer | **S15-45** | Unknown, Supplied and the needed flag on the printed page |
 | S15-D25 | Metadata page | **S15-46** | A field's unknown text |
+| S15-D26 | Add type dialog | **S15-47** | Label, icon, description; Add type at the list's top right, as Add Source |
+| S15-D27 | Source type page | **S15-48** | The page from scratch at Regular and Wide: header, details, delete, locked plugin types, today's Source suggestions; it names where S15-12's lists and S15-17's formats will sit (drawn by their own briefs); the list without its side pane as far as rows opening the page |
+| S15-D28 | Source types list | **S15-49** | The list's columns and Wide layout without the side pane |
 
 ## Slices
 
@@ -192,8 +200,11 @@ SLICE 2 — Metadata at three levels                    (alongside Spike 16)
   S15-35  The Artifact list shows each Artifact's copy details   (S15-D14)
   S15-10  Adding an Artifact asks for its copy details           (S15-D14)
   ✎ S15-D5 ──▶ S15-11  Evidence graphs show their metadata
+  ✎ S15-D26 ──▶ S15-47  Adding a Source type opens a dialog
+  ✎ S15-D27 ──▶ S15-48  Source types open on their own page
+  ✎ S15-D28 ──▶ S15-49  The Source types list is redesigned
   ✎ S15-D6 ──▶ S15-12  Source types suggest fields at each level
-  Check: bar 3 except the composer.
+  Check: bar 3 except the composer; a Source type opens on its own page from the list, the omnibar and Back.
 
 SLICE 3 — Printed page                                (alongside Spike 16)
   ✎ S15-D8 ──▶ S15-13  The composer records the printed page
@@ -272,6 +283,9 @@ S15-19 ──▶ S15-20
 S15-16 ──▶ S15-17, S15-21, S15-22, S15-23
 S15-21 ──▶ S15-23
 S15-12 ──▶ S15-17
+S15-47 ──▶ S15-48 ──▶ S15-49
+S15-48 ──▶ S15-12, S15-17
+S15-47 ──▶ S15-18
 S15-05 ──▶ S15-22
 S15-24 ──▶ S15-25
 S15-21 ──▶ S15-27, S15-29
@@ -300,6 +314,7 @@ S15-D11, S15-D12 ──▶ S15-31
 S15-D15 ──▶ S15-22   S15-D16 ──▶ S15-17   S15-D17 ──▶ S15-27   S15-D18 ──▶ S15-29
 S15-D19 ──▶ S15-23   S15-D20 ──▶ S15-39   S15-D21 ──▶ S15-40   S15-D22 ──▶ S15-41   S15-D23 ──▶ S15-42
 S15-D24 ──▶ S15-45   S15-D25 ──▶ S15-46
+S15-D26 ──▶ S15-47   S15-D27 ──▶ S15-48   S15-D28 ──▶ S15-49
 ```
 
 ---
@@ -429,12 +444,33 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Check.** Bar 3's graph half: dwelling, family and line on a household graph, shown on its row after Save; a Source with 60 Artifacts opens the form without the body scrolling.
 **Context.** S15-D5; map § 6.9; `SourceGraphFormDialog.swift`, `SourceGraphFormModel.swift`, `SourceGraphsSection.swift`, `SourcePageGraphsView.swift`, `ArtifactCopyDetailsView.swift`, `api/ffi/handlers/sources.go` (`GetSourceWorkspace`), `api/ffi/handlers/metadata.go` (`artifactBoardsProto`), `api/ffi/handlers/evidence_graphs.go`; skills `add-ffi-handler`, `add-ui-component`, `add-localized-string`, `add-swift-test`.
 
+#### S15-47 — Adding a Source type opens a dialog
+
+**Ships.** **Add type** at the Source types list's top right opens a form dialog with Label (required), Icon and Description, as Add Source does from the Sources list; Save creates the type through today's `createSourceType` and opens its place (`WorkspaceLocation(section: .sourceTypes, typeId:)`), which shows the side pane until S15-48. The side pane's add mode, its add-suggestions note and `SourceTypesModel`'s `.adding` mode go. Rule "A Source type has its own page".
+**Not this PR.** The type's own page (S15-48); Copy from (S15-18).
+**Check.** Add type, type "Parish register", pick an icon, Save: the new type is selected; Cancel with text asks before discarding.
+**Context.** S15-D26; `SourceTypesView.swift` (`VocabularyHeader` add action), `SourceTypesModel.swift` (`openAdd`, `cancelAdd`, `submit`), `SourceTypesDetailPane.swift` (add mode, `SourceTypeIconPickerForm`); precedent the Sources list's Add Source dialog in `SourcesListView.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`.
+
+#### S15-48 — Source types open on their own page
+
+**Ships.** A Source type page: a new presentation in `PlaceRegistry` for `.sourceTypes` with a `typeId` (today's `.sourceTypesDetail` spec, which mounts the list), drawn from scratch on S15-D27's board with Page columns: the header (icon, label, key, origin, usage, delete through DeleteImpact), the details (label, icon, description, Save and Revert), the locked note on a plugin type, and today's Source suggestion list. The list's rows open the page; the list loses its side pane and otherwise looks as today until S15-49. Breadcrumbs ("Source types › Census"), Back and Forward, restore and the omnibar's `source_type` hits already route by `typeId`; the PR checks each lands on the page, and a missing `typeId` falls back to the list (`.missingDeepId`, as today). Delete on the page returns to the list.
+**Not this PR.** The three suggestion lists (S15-12); formats (S15-17); the list's columns and Wide (S15-49); the Metadata page (rule "A Source type has its own page").
+**Check.** Click Census in the list: its page opens, the breadcrumb reads "Source types › Census"; Back returns to the list; an omnibar search for "census" opens the page; relaunch restores it.
+**Context.** S15-D27; rule "A Source type has its own page"; `PlaceRegistry.swift` (`.sourceTypesDetail`), `WorkspaceDestinationHost.swift`, `WorkspaceToolbar.swift` (`breadcrumbItems`), `SourceTypesView.swift`, `SourceTypesDetailPane.swift`, `SourceTypesModel.swift`; precedent the Sources list → Source page (`.sourceDetail`, `.sourcePage`); skills `add-workspace-place`, `add-workspace-location`, `add-ui-component`, `add-localized-string`, `add-swift-test`.
+
+#### S15-49 — The Source types list is redesigned
+
+**Ships.** The Source types list drawn without a side pane on S15-D28's board: its columns (label, key, origin, associated fields, usage, and what the board adds, such as the description) and its Wide layout ([`macos-client-patterns.md` § 9](../../macos-client-patterns.md#9-window-widths-regular-and-wide): a list keeps a maximum width and centers when it has nothing more to show). Sort and selection behave as today.
+**Not this PR.** The type page (S15-48); the Metadata page's list.
+**Check.** The list at Regular and Wide matches the board; sorting by each column still works; a row opens its page.
+**Context.** S15-D28; `SourceTypesListPane.swift`, `SourceTypesView.swift`, `Features/CatalogVocabulary/` (`VocabularyListPane`); [`docs/ideas/wide-layout.md`](../../ideas/wide-layout.md) (Source types row); skills `add-ui-component`, `add-localized-string`.
+
 #### S15-12 — Source types suggest fields at each level
 
-**Ships.** The Source type page edits three suggestion lists (Source, Artifact, Evidence graph), each in its stored order; a new field goes last, with no reorder (user, 2026-11-14). The types list's Associated fields column counts all three lists (user, 2026-11-14). How the lists sit in the pane is the board's call (user, 2026-11-14).
+**Ships.** The Source type page edits three suggestion lists (Source, Artifact, Evidence graph), each in its stored order; a new field goes last, with no reorder (user, 2026-11-14). The types list's Associated fields column counts all three lists (user, 2026-11-14). How the lists sit on the Source type page (S15-48) is the board's call (user, 2026-11-14).
 **Not this PR.** Formats (S15-17); reordering suggestions (not planned).
 **Check.** Adding `line_number` to a type's graph list makes it a suggestion on that type's graphs.
-**Context.** S15-D6; `SourceTypesDetailPane.swift`, `SourceTypesModel.swift`.
+**Context.** S15-D6 (revisited on S15-D27's page); `SourceTypesModel.swift` and the page S15-48 adds.
 
 ### Slice 3 — Printed page
 
@@ -464,7 +500,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-18 — A new type can copy another's formats and suggestions
 
-**Ships.** One engine write creates a type as a copy of another's three formats and suggestions at every level; the new type dialog offers **Copy from**.
+**Ships.** One engine write creates a type as a copy of another's three formats and suggestions at every level; S15-47's Add type dialog offers **Copy from**.
 **Not this PR.** Copying Sources or metadata values.
 **Check.** Bar 5's Copy from: a new type copied from Census has its formats and its graph suggestions.
 **Context.** S15-D7; map § 6.3 "The editor"; `SourceTypesListPane.swift`, `SourceTypesModel.swift`.

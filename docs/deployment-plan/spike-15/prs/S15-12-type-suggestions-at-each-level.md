@@ -1,11 +1,11 @@
 # S15-12 — Source types suggest fields at each level
 
-**Status:** Blocked — on board S15-D6
+**Status:** Blocked — re-plan on S15-48 and S15-D6. The page this plan edits moves out of the side pane (rule "A Source type has its own page", user 2026-11-14); § 4 Current state, D-6, § 6 macOS and the manual check are redone against S15-48's page when it lands. D-1 – D-5, D-7 – D-10 (engine count, keys, mutation, model state, copy) do not depend on where the lists are drawn and stand
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D6](../design/S15-D6-source-type-suggestion-levels.md), board not drawn yet
 **Board:** — (record the link and the frame names here when the board is agreed; then fill the arrangement into D-6 and § 6 macOS)
-**Depends on:** S15-06 (landed), S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-11 (landed [#834](https://github.com/mendahu/provenencia/pull/834)), S15-D6
+**Depends on:** S15-48, S15-06 (landed), S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-11 (landed [#834](https://github.com/mendahu/provenencia/pull/834)), S15-D6
 **Blocks:** S15-17
 **Branch:** `s15-12-type-suggestions-at-each-level`
 **Version bump:** minor, 0.15.0 → **0.16.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a backward-compatible feature (the type page edits Artifact and graph suggestions); no wire shape changes ([`docs/versioning.md`](../../../versioning.md))
