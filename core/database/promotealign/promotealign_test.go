@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/mendahu/provenencia/core/connectrules"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/artifacts"
 	"github.com/mendahu/provenencia/core/database/artifacts/artifactstest"
@@ -1394,6 +1395,61 @@ func TestProposeReportsEachConnection(t *testing.T) {
 		return observations.Listed{}
 	}
 
+	// chain is a tree of places each filed `kind` the next (names[0] kind
+	// names[1] ...), promoted on Source A. Source B then records
+	// names[last] `kind` names[0] and puts both ends on the tree's records, so
+	// the closing link's loop runs through every filed link.
+	chain := func(t *testing.T, kind string, names ...string) tree {
+		f := newFixture(t)
+		var subs []subjects.Subject
+		for _, n := range names {
+			subs = append(subs, f.Place(f.source, f.artifact, n))
+		}
+		for i := 0; i+1 < len(subs); i++ {
+			f.PlaceRel(f.source, f.artifact, subs[i], subs[i+1], kind)
+		}
+		var handles [][]byte
+		for _, s := range subs {
+			handles = append(handles, f.promote(s).Entity.ID)
+		}
+		if n := f.placeRelationships(); n != len(names)-1 {
+			t.Fatalf("tree filed %d place relationships, want %d", n, len(names)-1)
+		}
+		srcB, artB := f.NewSource("Gazetteer")
+		first, last := f.Place(srcB, artB, names[0]), f.Place(srcB, artB, names[len(names)-1])
+		bridge := f.PlaceRel(srcB, artB, last, first, kind)
+		// The bridge reads from its from end: ont2 is the last place's record on
+		// Source B and york2 the first's, as in build.
+		return tree{
+			f: f, yorkH: handles[0], ontH: handles[len(handles)-1], srcB: srcB, artB: artB,
+			york2: first, ont2: last, bridge: bridge,
+			fixed: []graphalign.Fixed{
+				{SubjectID: last.ID, HandleID: handles[len(handles)-1]},
+				{SubjectID: first.ID, HandleID: handles[0]},
+			},
+			bridgeGraph: f.Graph(srcB),
+		}
+	}
+	t.Run("a loop through a filed chain", func(t *testing.T) {
+		agree(t, chain(t, "part_of", "Toronto", "York", "Ontario", "Canada"), graphalign.ConnectionOutcome("cycle"))
+	})
+	t.Run("a succession loop", func(t *testing.T) {
+		agree(t, chain(t, "succeeded_by", "Upper Canada", "Canada West", "Ontario"), graphalign.ConnectionOutcome("cycle"))
+	})
+	t.Run("the check reads the entries", func(t *testing.T) {
+		tr := chain(t, "part_of", "Toronto", "York", "Ontario", "Canada")
+		g := tr.f.c.Graph()
+		g.Drop()
+		conns, _ := tr.f.proposeConnections(tr.bridgeGraph, tr.fixed, nil)
+		if len(conns) != 1 || conns[0].Outcome != graphalign.ConnectionOutcome("cycle") {
+			t.Fatalf("connections %+v, want one cycle", conns)
+		}
+		// The loop is checked from Toronto up to Canada: Toronto, York and
+		// Ontario are read, Canada is found before it is.
+		if n := g.KeyCounts()["conclusionsummaries.places"]; n < 3 {
+			t.Fatalf("%d place entries held after the proposal, want the chain's 3", n)
+		}
+	})
 	t.Run("a loop with a filed link is refused", func(t *testing.T) {
 		agree(t, build(t, "part_of"), graphalign.ConnectionOutcome("cycle"))
 	})
@@ -1457,4 +1513,18 @@ func TestProposeReportsEachConnection(t *testing.T) {
 			t.Fatalf("proposal %q, Done minted %d", conns[0].Outcome, minted)
 		}
 	})
+}
+
+func TestPlaceLinksServeEveryAcyclicTerm(t *testing.T) {
+	f := newFixture(t)
+	read := promotealign.PlaceLinksForTest(f.c.Graph())
+	for _, b := range connectrules.Bridges() {
+		for _, term := range b.AcyclicTerms {
+			t.Run(b.BridgeTypeKey+"/"+string(term), func(t *testing.T) {
+				if _, err := read(vocabkey.SubjectType(b.BridgeTypeKey), term, nil); err != nil {
+					t.Fatalf("no reader for an acyclic term: %v", err)
+				}
+			})
+		}
+	}
 }
