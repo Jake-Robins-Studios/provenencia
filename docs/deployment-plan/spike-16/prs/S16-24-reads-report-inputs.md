@@ -15,7 +15,7 @@
 **Planned:** 2026-11-14 against `main` @ `43fd47e`
 **Review:** [`S16-24-reads-report-inputs.review.md`](S16-24-reads-report-inputs.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Ready with changes; every finding Fixed, nothing To user; Planned
 
-**Landed.** Differences from the plan: since the plan's base S16-21 split a place's succession links into their own entry (`placeSuccession`), so `AttachPlaceRelationships` also records that entry's `inputs` (D-4 named the page and own entries), which AC-1.3 needs for the succession association.
+**Landed.** Differences from the plan: since the plan's base S16-21 split a place's succession links into their own entry (`placeSuccession`), so `AttachPlaceRelationships` also records that entry's `inputs` (D-4 named the page and own entries), which AC-1.3 needs for the succession association. D-4 now records every part the page reads, not only the ones it lists, so a write to a part's dates that hides it still reaches the page (CON-1); test helpers pass `PageInputs()` where D-2 says `NoPageInputs()`, which changes no value (CON-3).
 
 ### Implementer — read this first
 

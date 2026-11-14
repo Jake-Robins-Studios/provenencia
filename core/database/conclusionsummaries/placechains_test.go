@@ -906,3 +906,28 @@ func TestAttachPlaceRelationshipsRecordsInputs(t *testing.T) {
 		t.Errorf("graphs %x, sources %x: the relationships show no records", graphs, srcs)
 	}
 }
+
+// TestAttachPlaceRelationshipsRecordsHiddenParts: a part the page reads but
+// hides (its own period ended, so Contains omits it) is still recorded, so a
+// write to its dates reaches the page.
+func TestAttachPlaceRelationshipsRecordsHiddenParts(t *testing.T) {
+	f := newFixture(t)
+	town := f.placeSubject("Town", nil, nil, 0, 0)
+	village := f.placeSubject("Village", year(1800), year(1900), 4, 0)
+	f.placeRel(village, town, propertyterms.KeyPartOf, nil, nil)
+	townID, villageID := f.promoteSubject(town), f.promoteSubject(village)
+	towns, err := conclusionsummaries.PlacesByIDs(f.C, [][]byte{townID})
+	must(t, err)
+	in := f.C.Graph().PageInputs()
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &towns[0], in))
+	if len(towns[0].Contains) != 0 {
+		t.Fatalf("Contains %v, want the ended village hidden", towns[0].Contains)
+	}
+	handles, _, _ := in.Lists()
+	for _, id := range handles {
+		if bytes.Equal(id, villageID) {
+			return
+		}
+	}
+	t.Errorf("handles %x lack the hidden village %x", handles, villageID)
+}
