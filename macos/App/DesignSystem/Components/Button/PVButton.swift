@@ -7,9 +7,12 @@ enum PVButtonVariant {
     case primary, secondary, ghost, danger, link
 }
 
-/// Shared control size for buttons, inputs, and selects.
+/// Shared control size for buttons, inputs, and selects. `.xs` is for the
+/// `link` variant only (micro text under a row); other controls treat it as
+/// `.sm` metrics.
 enum PVControlSize {
-    /// Micro text; the `link` variant's smallest size (a link under a row).
+    /// Micro text, for the `link` variant only (a link under a row); other
+    /// controls treat it as `.sm` metrics.
     case xs, sm, md, lg
 
     var height: CGFloat {
@@ -317,6 +320,7 @@ private struct PVButtonBody: View {
         PVButton("Saving", variant: .primary, loading: true) {}
         PVButton("Delete field", variant: .danger, icon: .trash) {}
         PVButton("Reset search", variant: .link) {}
+        PVButton("Open the artifact", variant: .link, size: .xs) {}
         PVButton("Open", variant: .secondary, size: .sm, icon: .externalLink, iconOnly: true) {}
     }
     .padding(PVSpacing.space9)

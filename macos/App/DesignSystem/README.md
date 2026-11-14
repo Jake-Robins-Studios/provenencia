@@ -207,7 +207,7 @@ red `Text`), plus `Badge`/`EmptyState`/`Callout` (added for the S2-02
 | ProvenanceSheet | `Recipes/ProvenanceSheet/PVProvenanceSheet.swift` (S13-36: the provenance sheet, the record table `PVProvenanceRecordTable`, one record row `PVProvenanceRecordRow` that stands alone, `PVProvenanceColumns` that line them up, and their parts; `PVProvenanceSheetContent` is the pure content, built from the wire records by its assembler, and a link reports `(Record, PVProvenanceLink)` for the caller to map to a place) |
 | DeleteImpact | `Recipes/DeleteImpact/PVDeleteImpact.swift` (S8-13: confirm when `GetDeleteImpact` is allowed, notice when blocked; composes `.pvConfirm`) |
 | UnpromoteConfirm | `Recipes/UnpromoteConfirm/PVUnpromoteConfirm.swift` (S13-17: the Unpromote confirm on `.pvConfirm`, shared by the Evidence graph and the Person page: the connection sentences that come off with the promotion, or the sentence that they could not be listed, then a write error; `PVUnpromoteConfirmContent` is its neutral props) |
-| ArtifactChecklist | `Recipes/ArtifactChecklist/PVArtifactChecklist.swift`, `PVChecklistRows.swift` (S12-12: a Source's Artifacts as a checklist with an All row, thumbnails, count and an optional caption; `locked` rows show the lock mark with a hint and survive the All row; `PVChecklistState` is the pure arithmetic of every id checklist; `PVChecklistFrame` is the bordered, capped, divided row list and `PVChecklistCheckbox` the row checkbox with its toggle and locked spoken value, both also composed by the artifact graph group in `SourceArtifactGraphLinks`; used by the Copy Source and Evidence graph forms) |
+| ArtifactChecklist | `Recipes/ArtifactChecklist/PVArtifactChecklist.swift`, `PVChecklistRows.swift` (S12-12: a Source's Artifacts as a checklist with an All row, thumbnails, count and an optional caption; `locked` rows show the lock mark with a hint and survive the All row, and `lockedLink` (a `PVChecklistLockedLink`) draws an `.xs` link under a locked row, outside its checkbox; `PVChecklistState` is the pure arithmetic of every id checklist; `PVChecklistFrame` is the bordered, capped, divided row list and `PVChecklistCheckbox` the row checkbox with its toggle and locked spoken value, both also composed by the artifact graph group in `SourceArtifactGraphLinks`; used by the Copy Source and Evidence graph forms) |
 | Breadcrumbs | `Components/Breadcrumbs/PVBreadcrumbs.swift` (added for S2-18 Source page trail; Sources → `SRC-…`) |
 | ReorderableList | `Components/ReorderableList/PVReorderableList.swift` (+ `PVReorderHandle`; added for S2-25 Metadata drag order) |
 
@@ -619,7 +619,8 @@ readme documents as the intended macOS port:
 
 - **Control heights**: `PVSpacing.controlHeightSmall/Medium/Large` are
   22/28/36pt (AppKit-native metrics), not the web `--control-h-sm/md/lg`
-  pixel values (28/34/42).
+  pixel values (28/34/42). `PVControlSize.xs` is for the `link` variant only
+  (micro text under a row); other controls treat it as `.sm` metrics.
 - **Icons**: `PVIcon` wraps SF Symbols, not the web's Lucide set — Lucide is
   itself a web-only substitution (no icon set was supplied to the original
   brief), so this is a second substitution, not a compromise.
