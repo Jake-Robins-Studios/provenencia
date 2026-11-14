@@ -251,3 +251,9 @@ Head `69ef1cf34`. Gate PASS (implementer). F-19 done: `SourceOwnerFormColumns` a
 Files: `ArtifactSheet.swift`, `SourceGraphFormDialog.swift`, `SourceOwnerFormColumns.swift`.
 Do: move `.id(ArtifactSheetModel.Section.top)` from the left column's inner `VStack` to the `SourceOwnerFormColumns(...)` view itself, as `SourceGraphForm` does (the inner `VStack` can go if it only existed for the id). Move the width to a non-generic home in the same file, `enum SourceOwnerForm { static let dialogWidth: CGFloat = 880 }` (doc: the width of the dialog holding owner-form columns), delete `SourceOwnerFormColumns.dialogWidth`, and both modifiers use `SourceOwnerForm.dialogWidth`.
 Check: `rg -n 'EmptyView, EmptyView' macos/App` prints nothing; `rg -n 'Section.top' macos/App/Features/Sources/ArtifactSheet.swift` shows it on the columns view; scripts/check-pr.sh PASS.
+
+## Round 7 — fix
+Head `118717abe`. Gate PASS (orchestrator run; `origin/main` unmoved). F-20 done: `.id(Section.top)` on the `SourceOwnerFormColumns` view (save error included); `SourceOwnerForm.dialogWidth`. ORC-3, ORC-4 **Resolved** (orchestrator read `ArtifactSheet.swift:88`). The two-column Artifact sheet (F-19, F-20) has had no reviewer; the user may ask for one.
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: none · to user: —
