@@ -573,7 +573,104 @@ func TestMatchIndexFollowsCommits(t *testing.T) {
 		if !promotealign.CandidatesHeldForTest(g, graphB) {
 			t.Error("a commit that changed no profile emptied the candidates")
 		}
+		if !promotealign.HeldSubjectsForTest(g, graphB)[string(w.bPerson.ID)] {
+			t.Error("a commit that changed no profile forgot a Subject")
+		}
 	})
+}
+
+// AC-1.1, AC-2.1 - AC-2.4: a commit that changes a handle forgets only the
+// Subjects whose lookup keys meet a key that handle was filed under, before or
+// after, and Verify finds every Subject left held equal to a fresh ranking.
+func TestCandidatesFollowMovedKeys(t *testing.T) {
+	t.Setenv("PROVENENCIA_GRAPH_VERIFY", "1")
+	// held is what a Subject's state should be after the write: kept, forgotten,
+	// or not asserted.
+	type held int8
+	const (
+		kept held = iota
+		forgotten
+		either
+	)
+	tests := []struct {
+		name                     string
+		write                    func(t *testing.T, e entriesWorld) (newHandle []byte)
+		bPerson, bBirth, cPerson held
+		wantNewHandle            bool
+	}{
+		{"an unrelated person filed", func(t *testing.T, e entriesWorld) []byte {
+			src, art := e.w.f.NewSource("Parish register")
+			e.w.f.filedBirth(src, art, "Zebedee Quarrington", 1790, nil, nil)
+			return nil
+		}, kept, kept, kept, false},
+		{"the member renamed", func(t *testing.T, e entriesWorld) []byte { e.w.renameMember(t, "Jon Smyth"); return nil },
+			forgotten, kept, kept, false},
+		{"the member's birth re-dated", func(t *testing.T, e entriesWorld) []byte {
+			e.w.f.Cite(e.w.f.artifact, e.w.memberBirth, observations.Input{
+				PropertyID: e.w.f.Prop("date").ID, Date: datevaluetest.YMD(1818, 0, 0),
+			})
+			return nil
+		}, forgotten, forgotten, kept, false},
+		{"a John Smith filed", func(t *testing.T, e entriesWorld) []byte {
+			src, art := e.w.f.NewSource("Parish register")
+			_, _, ph, _ := e.w.f.filedBirth(src, art, "John Smith", 1817, nil, nil)
+			return ph
+		}, forgotten, either, kept, true},
+		{"the member merged", func(t *testing.T, e entriesWorld) []byte { e.w.mergePerson(t); return nil },
+			forgotten, either, kept, false},
+		{"the member unpromoted", func(t *testing.T, e entriesWorld) []byte { e.w.f.unpromote(t, e.w.member); return nil },
+			forgotten, either, kept, false},
+		{"an undated event filed", func(t *testing.T, e entriesWorld) []byte {
+			src, art := e.w.f.NewSource("Parish register")
+			e.w.f.promote(e.w.f.EventOn(src, art, "burial", nil))
+			return nil
+		}, kept, kept, kept, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newEntriesWorld(t)
+			g := e.w.f.c.Graph()
+			var cPerson string
+			for id := range promotealign.HeldSubjectsForTest(g, e.b) {
+				cPerson = id
+			}
+			if cPerson == "" {
+				t.Fatal("setup: graph C holds no Subject")
+			}
+			newHandle := tc.write(t, e)
+			heldB := promotealign.HeldSubjectsForTest(g, e.a)
+			for _, c := range []struct {
+				what string
+				id   string
+				want held
+				got  bool
+			}{
+				{"B's person", string(e.w.bPerson.ID), tc.bPerson, heldB[string(e.w.bPerson.ID)]},
+				{"B's birth", string(e.w.bBirth.ID), tc.bBirth, heldB[string(e.w.bBirth.ID)]},
+				{"C's person", cPerson, tc.cPerson, promotealign.HeldSubjectsForTest(g, e.b)[cPerson]},
+			} {
+				if c.want != either && c.got != (c.want == kept) {
+					t.Errorf("%s held = %v, want %v", c.what, c.got, c.want == kept)
+				}
+			}
+			warm := e.w.f.propose(e.a, nil)
+			g.Drop()
+			fresh := e.w.f.propose(e.a, nil)
+			if !reflect.DeepEqual(warm, fresh) {
+				t.Errorf("the proposal after the write differs from one on a dropped graph:\nwarm  %+v\nfresh %+v", warm, fresh)
+			}
+			if tc.wantNewHandle {
+				row := rowFor(fresh, e.w.bPerson.ID)
+				found := row.Target == graphalign.TargetHandle && bytes.Equal(row.HandleID, newHandle)
+				for _, a := range row.Alternatives {
+					found = found || bytes.Equal(a.HandleID, newHandle)
+				}
+				if !found {
+					t.Errorf("the new handle %x is neither the row's target nor an alternative: %+v", newHandle, row)
+				}
+			}
+		})
+	}
 }
 
 // S11-21 D-8 (AC-4.1, AC-4.2, AC-4.3): a Subject's remembered candidates never

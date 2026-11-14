@@ -102,3 +102,13 @@ func HeldSubjectsForTest(g *graphcache.Graph, graphID []byte) map[string]bool {
 func SetCandidatesCapForTest(g *graphcache.Graph, n int) {
 	candidates.SetCapForTest(g, n)
 }
+
+// ForgetForTest narrows the candidates as a commit that moved keys in kind
+// would, through forgetCandidates.
+func ForgetForTest(g *graphcache.Graph, kind string, keys []string) {
+	moved := map[movedKey]bool{}
+	for _, k := range keys {
+		moved[movedKey{vocabkey.SubjectType(kind), k}] = true
+	}
+	forgetCandidates(g, candidates, moved)
+}

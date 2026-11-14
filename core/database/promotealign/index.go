@@ -21,6 +21,13 @@ import (
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
+// movedKey is a shortlist key a changed handle was filed under, before or after
+// a commit, in the kind it was filed in.
+type movedKey struct {
+	kind vocabkey.SubjectType
+	key  string
+}
+
 // matchIndex is what Promote derives from the whole catalog and keeps in the
 // MatchIndex entry: the profile of every unmerged person, event and place, and
 // the shortlist postings filed from those profiles. Readers treat it as
@@ -50,6 +57,7 @@ func init() {
 		Name:        "promotealign.candidates",
 		DerivedFrom: []graphcache.Source{MatchIndex},
 		Apply:       graphcache.DropNamedGraphs[candidatesMemo],
+		Narrow:      forgetCandidates,
 		Check:       checkCandidates,
 		Cap:         graphfill.MaxEvidenceGraphs,
 	})
@@ -106,8 +114,8 @@ func buildMatchIndex(g *graphcache.Graph) (*matchIndex, error) {
 // applyMatchIndex patches the held index after a commit: it re-profiles the
 // commit's roots and the people at the root events (readers), drops the handles
 // that left (a merged, deleted or non-primary node), and refiles only the
-// handles whose profile changed. It stores the index with Set, which empties
-// the candidates derived from it, only when something changed. A commit with no
+// handles whose profile changed. It reports the keys every changed handle was
+// filed under, before and after, to its readers with Patched. A commit with no
 // roots changes nothing a profile reads.
 func applyMatchIndex(g *graphcache.Graph, w graphcache.Whole[*matchIndex], roots [][]byte, _ effects.Set) error {
 	if len(roots) == 0 {
@@ -135,6 +143,15 @@ func applyMatchIndex(g *graphcache.Graph, w graphcache.Whole[*matchIndex], roots
 	var live []*graphcache.Node
 	liveIDs := map[string]bool{}
 	changed := false
+	moved := map[movedKey]bool{}
+	// addFiled adds the keys id is filed under now, if any.
+	addFiled := func(id []byte) {
+		if kind, keys, ok := m.shortlist.Filed(id); ok {
+			for _, k := range keys {
+				moved[movedKey{kind, k}] = true
+			}
+		}
+	}
 	for _, id := range append(slices.Clone(roots), more...) {
 		if liveIDs[string(id)] {
 			continue
@@ -145,6 +162,7 @@ func applyMatchIndex(g *graphcache.Graph, w graphcache.Whole[*matchIndex], roots
 		}
 		if !p.holds(n) {
 			if _, held := m.handles[string(id)]; held {
+				addFiled(id)
 				delete(m.handles, string(id))
 				m.shortlist.Remove(id)
 				changed = true
@@ -169,11 +187,13 @@ func applyMatchIndex(g *graphcache.Graph, w graphcache.Whole[*matchIndex], roots
 		if was, ok := old[string(n.ID)]; ok && reflect.DeepEqual(s, was) {
 			continue
 		}
+		addFiled(s.ID)
 		m.shortlist.Put(vocabkey.SubjectType(s.Kind), s.ID, s.Values)
+		addFiled(s.ID)
 		changed = true
 	}
 	if changed {
-		w.Set(g, m)
+		w.Patched(g, moved)
 	}
 	return nil
 }

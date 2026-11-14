@@ -35,10 +35,11 @@ type rankedSubject struct {
 }
 
 // candidates holds each Evidence graph's candidatesMemo, keyed by graph id. It
-// is derived from the match index (and so from the vocabulary, the alias index
-// and the name format), and a commit that moves the graph's rows
-// (Set.EvidenceGraphs) drops that graph's. It is registered in index.go's init,
-// after the match index.
+// is emptied when the match index is dropped (a vocabulary, alias or name format
+// change, or Drop); a commit that changes a handle forgets, through Narrow, the
+// Subjects whose lookup keys meet a key that handle was filed under; a write that
+// names a graph (Set.EvidenceGraphs) drops that graph's memo. It is registered
+// in index.go's init, after the match index.
 var candidates graphcache.Keyed[candidatesMemo]
 
 // loadCanon reads the open catalog's graph: fixed anchors, the candidates of
@@ -268,6 +269,50 @@ func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, laye
 	maps.Copy(stored, ranked)
 	candidates.Set(g, graphID, candidatesMemo{bySubject: stored})
 	return stored, nil
+}
+
+// forgetCandidates is the Narrow of candidates: after a commit that changed
+// handles it forgets every Subject with a lookup key among the moved keys the
+// match index reports, in its kind. The Subject is ranked again by
+// loadCandidatesMemo on its graph's next proposal. A change that is not the
+// match index's moved keys clears the entry; no moved key forgets nothing. A
+// stored memo is never changed: one that loses a Subject is replaced by a copy.
+func forgetCandidates(g *graphcache.Graph, k graphcache.Keyed[candidatesMemo], change any) {
+	moved, ok := change.(map[movedKey]bool)
+	if !ok {
+		k.Clear(g)
+		return
+	}
+	if len(moved) == 0 {
+		return
+	}
+	k.Update(g, func(_ []byte, memo candidatesMemo) candidatesMemo {
+		meets := func(r rankedSubject) bool {
+			for _, key := range r.keys {
+				if moved[movedKey{r.kind, key}] {
+					return true
+				}
+			}
+			return false
+		}
+		hit := false
+		for _, r := range memo.bySubject {
+			if meets(r) {
+				hit = true
+				break
+			}
+		}
+		if !hit {
+			return memo
+		}
+		kept := make(map[string]rankedSubject, len(memo.bySubject))
+		for id, r := range memo.bySubject {
+			if !meets(r) {
+				kept[id] = r
+			}
+		}
+		return candidatesMemo{bySubject: kept}
+	})
 }
 
 // rankCandidates is the ranked candidate ids of each Subject: the handles the
