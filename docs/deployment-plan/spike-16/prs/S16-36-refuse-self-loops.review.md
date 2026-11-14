@@ -1,7 +1,7 @@
 # Review — S16-36 A link from a record to itself is refused where links are read
 
-**Verdict:** pending round 2
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits — Ready with changes (two rounds; no open blocker)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - M-1 (answered 2026-11-14): two guards, one per `graphcache` link read, instead of the working rule's "once". The user chose two guards; the rule, the map row, the scope entry and its Check were reworded in the planning commit.
@@ -57,3 +57,15 @@ It came with the self hop (666da56); `finishLinks` dedupes `self|assoc|neighbor`
 
 ### M-5 · minor · D-9 records a rule for every reader only in Promote's doc
 **Answer:** Fixed — D-9 adds the sentence to `conclusion-layer-data-model.md` §2.7 beside the "reads as absent" precedent, and `promote-graph-alignment.md` line 198 points to it.
+
+## Round 2
+
+Maintainability: every round-1 answer holds against the code; no new blocker. Verdict Fits. Noted, not raised: `Canon.View`, `newState` and `NewGraph` each read both ends in their own words (two plain field reads, not a second mechanism).
+
+Executability: every round-1 answer holds; search 1 run against the tree, each hit accounted for. Verdict Ready with changes.
+
+### X-1 · minor · T-1 indexes `NodesOnBridges`' map with `[]byte`
+**Answer:** Fixed — `[string(loop)]`.
+
+### X-2 · minor · STEP-1's guard breaks two `conclusionsummaries` tests that STEP-6 deletes
+**Answer:** Fixed — `TestPlaceEntries` "self-loop" and `TestFiledPlaceLinks`' loop are deleted in STEP-1, whose check now runs `conclusionsummaries` and `promotealign` too; STEP-6 keeps the `pageReads` change.

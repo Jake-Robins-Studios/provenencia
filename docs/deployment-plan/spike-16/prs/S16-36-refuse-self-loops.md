@@ -1,6 +1,6 @@
 # S16-36 — A link from a record to itself is refused where links are read
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a hand-edited catalog's self-loop stops being read; no view the app can reach looks different)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table-driven tests), `.cursor/rules/match-rules.mdc` (`core/kinship`, `core/graphalign`, `core/recordlinks` and `core/connectrules` stay pure: no catalog I/O)
 **Context:** working rules "(Batch 2) A link with one record at both ends is crafted data, refused where links are read" (user, 2026-11-14) and "(Batch 2) The point of this batch is simpler code"; [S16-21 plan](S16-21-canon-view-place-links.md) D-1, D-3, D-14, D-16 (the self-loop readings this PR removes); [S16-21 ship log](S16-21-canon-view-place-links.ship.md) MNT-2b; [`promote-graph-alignment.md`](../../../promote-graph-alignment.md) line 198
 **Planned:** 2026-11-14 against `main` @ `1255b24`
-**Review:** [`S16-36-refuse-self-loops.review.md`](S16-36-refuse-self-loops.review.md) — round 1 answered; round 2 pending
+**Review:** [`S16-36-refuse-self-loops.review.md`](S16-36-refuse-self-loops.review.md) — Fits — Ready with changes, 2 rounds, no open blocker
 
 ### Implementer — read this first
 
@@ -192,9 +192,9 @@ None — no user-facing copy.
 ## 7. Steps
 
 **STEP-1 — Drop a self-loop where links are read**
-Files: `core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`, `core/database/graphcache/graph_test.go`, `core/database/graphcache/evidence_graph_walk_test.go`. Skill: `use-catalog-session`.
-Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2).
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/...` passes.
+Files: `core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`, `core/database/graphcache/graph_test.go`, `core/database/graphcache/evidence_graph_walk_test.go`, `core/database/conclusionsummaries/placeentries_test.go`. Skill: `use-catalog-session`.
+Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2). The guard makes two catalog-backed self-loop tests fail, so their deletions ride in this step: `TestPlaceEntries` case "self-loop" and `TestFiledPlaceLinks`' `loop` (T-9's and T-10's deletions; the rest of T-9 stays in STEP-6).
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/... ./core/database/conclusionsummaries/... ./core/database/promotealign/...` passes.
 
 **STEP-2 — Test the Source bridge's equal-ends refusal**
 Files: `core/database/connect/connect_test.go`.
@@ -218,7 +218,7 @@ Check: `rg -n "\.Readings\(|\.Ends\(\)" core` finds nothing; `CGO_ENABLED=1 go t
 
 **STEP-6 — Place pages follow only their parts**
 Files: `core/database/conclusionsummaries/placeentries.go`, `core/database/conclusionsummaries/placeentries_test.go`.
-Do: D-6 (the comment at `placeentries.go` 218–220, the doc sentence at 325, and the now unused `bytes` import) and T-9, T-10 (the `pageReads` comment at `placeentries_test.go` 496–499).
+Do: D-6 (the comment at `placeentries.go` 218–220, the doc sentence at 325, and the now unused `bytes` import) and the rest of T-9: `pageReads` and its comment at `placeentries_test.go` 496–499.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusionsummaries/...` passes; `rg -n "selfOnly|followHop|dedupePlaceLinks" core` finds nothing.
 
 **STEP-7 — Docs**
@@ -232,7 +232,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/graphcache/graph_test.go` `TestLinkFromARecordToItselfIsNotRead` *(new)* | `graphcachetest.OpenCatalog`, `NewCanon`; places `loop`, `town`, `city`; `k.PartOf(loop, loop)`, `k.PartOf(town, city)`; `k.Commit(loop, town, city)`; `g := c.Graph(); g.Drop()`. Subtests: "a self-loop is not read" → `g.Node(loop).Links` empty; "a link between two places is read" → `g.Node(town).Links` has one link with `Neighbor` = `city`; "NodesOnBridges" → `g.NodesOnBridges([][]byte{loop}, "place_relationship")[loop].Links` empty; "Verify agrees" → `g.Verify()` nil | AC-1.1, AC-1.2, AC-1.3, D-1, D-2 |
+| T-1 | Go | `core/database/graphcache/graph_test.go` `TestLinkFromARecordToItselfIsNotRead` *(new)* | `graphcachetest.OpenCatalog`, `NewCanon`; places `loop`, `town`, `city`; `k.PartOf(loop, loop)`, `k.PartOf(town, city)`; `k.Commit(loop, town, city)`; `g := c.Graph(); g.Drop()`. Subtests: "a self-loop is not read" → `g.Node(loop).Links` empty; "a link between two places is read" → `g.Node(town).Links` has one link with `Neighbor` = `city`; "NodesOnBridges" → `g.NodesOnBridges([][]byte{loop}, "place_relationship")[string(loop)].Links` empty; "Verify agrees" → `g.Verify()` nil | AC-1.1, AC-1.2, AC-1.3, D-1, D-2 |
 | T-2 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdges`, new rows | Setup goes after the "A to-end on another Source" `UPDATE` and before `g := f.C.Graph()`, so `eg` is built after it. In the fixture: `f.name["york-hull"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`; `f.name["york-york"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`, then `f.exec("UPDATE observations SET value_subject_id = ? WHERE subject_id = ? AND property_id = ?", york.ID, f.name["york-york"].ID, f.Prop("to").ID)`. Rows use names, as the table does (`from: []string{"york"}`, `want: [][3]string{…}`). Row "a link from a place to itself is not walked": `hops.ParentsOfPlace` from `york` → `{"york", "york-hull", "hull"}` only. Row "a self-loop has no far end": `hops.PartsOfPlace` from `york` → no edge. Existing rows unchanged | AC-2.1, AC-2.2, D-1 |
 | T-3 | Go | `core/database/connect/connect_test.go` `TestCreateCitedBridge` subtest "equal ends" *(new)*, placed after "person person relationship" | `s := mustSeed(t)`; `before := countBridges(t, s.c, "relationship")`; `writes.Call` of `CreateCitedBridge` with the "person person relationship" input, `ToSubjectID: s.person.ID` and `{PropertyID: s.related.ID, ValueSubjectID: s.person.ID}` (both ends one person; `BridgeTypeKey: "relationship"`, `personProp`, `relType`/`relTerm` and the Citation as in that subtest) → `errors.Is(err, ErrInvalid)` and `countBridges(t, s.c, "relationship") == before`. Person-to-person is a `relationship` rule (`subjectvocab.Connect`), so no later check refuses this input: deleting `connect.go` line 72 makes the subtest fail | AC-3.1 |
 | T-4 | Go | `core/graphalign/align_test.go` goldens, `core/graphalign/invariants_test.go` `TestAlignInvariants`, `core/database/promotealign` `TestProposeReportsEachConnection` | Unchanged expected values | AC-4.3, D-3 |
