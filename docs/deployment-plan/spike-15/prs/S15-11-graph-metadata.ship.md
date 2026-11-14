@@ -117,4 +117,4 @@ Check: the test passes; `rg -n 'frame\(maxHeight: Self.maxRowsHeight\)' macos/Ap
 Head `4bd647b52`. Gate PASS (orchestrator run; `origin/main` unmoved). F-21 done: new `DesignSystem/Components/FittedScroll/PVFittedScroll.swift` (`PVFittedScrollHeight.height(content:cap:)`, `PVFittedScrollView(maxHeight:onContentHeight:content:)`); `PVChecklistFrame` and `PVFormDialog.formBody` both use it; rows `VStack`; test `FittedScrollHeightTests.checklistHeightFitsItsRows`; README row. Same-pass search: three other height measurements (pinned column offset, timeline item heights, record-links header) are not capped scroll views; none moved. Orchestrator read the diff. Note: the dialog body now also has `.scrollBounceBehavior(.basedOnSize)` (a body that fits no longer bounces). Nit (logged): `ORC-5 · PVChecklistRows.swift:3-4 · re-wrapped doc comment runs past its neighbours' width`. Manual check of the five-graph box not run.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
