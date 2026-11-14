@@ -209,7 +209,8 @@ func (g *Graph) WalkEvidenceGraph(eg EvidenceGraph, h hops.Hop, from [][]byte) (
 		}
 		bridge := subjects[string(r.bridge)]
 		for _, to := range c.tos {
-			// A bridge from a Subject to itself is crafted data: connect.CreateCitedBridge refuses one, so it is not read.
+			// A bridge from a Subject to itself is crafted data:
+			// connect.CreateCitedBridge refuses one, so it is not read.
 			if bytes.Equal(r.from, to) {
 				continue
 			}

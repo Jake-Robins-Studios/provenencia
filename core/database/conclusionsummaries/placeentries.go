@@ -291,9 +291,10 @@ func orientPlaceLink(v vocab, id []byte, l graphcache.Link, assocs map[string]*g
 // FiledPlaceLinks returns, for each place in ids, the places its filed links of
 // term lead to, from the part to the whole (part_of) or from the predecessor to
 // the successor (succeeded_by), each list in link order with a repeated end kept
-// once. A place with no entity row, or no link, is absent from the answer. It reads the chain entries for
-// part_of and the succession entries for succeeded_by, and no date but the
-// ones those entries decode. Any other term is an error.
+// once. A place with no entity row, or no link, is absent from the answer. It
+// reads the chain entries for part_of and the succession entries for
+// succeeded_by, and no date but the ones those entries decode. Any other term is
+// an error.
 func FiledPlaceLinks(g *graphcache.Graph, term vocabkey.BridgeTerm, ids [][]byte) (map[string][][]byte, error) {
 	v, err := vocabulary(g)
 	if err != nil {
