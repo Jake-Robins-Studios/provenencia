@@ -1,7 +1,10 @@
 package promotealign
 
 import (
+	"fmt"
+
 	"github.com/mendahu/provenencia/core/connectrules"
+	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
 	"github.com/mendahu/provenencia/core/database/evidencelayer"
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/graphalign"
@@ -123,4 +126,16 @@ func endTarget(t graphalign.Target, handleID []byte) graphalign.EndTarget {
 		return graphalign.EndTarget{Waits: graphalign.ConnectionSkipped}
 	}
 	return graphalign.EndTarget{Waits: graphalign.ConnectionUnset}
+}
+
+// placeLinks reads the filed links of place relationships from the place
+// entries. Only place_relationship has an acyclic term, so any other bridge type
+// reaching the loop check has no reader and is an error.
+func placeLinks(g *graphcache.Graph) graphalign.FiledLinks {
+	return func(typeKey vocabkey.SubjectType, term vocabkey.BridgeTerm, handles [][]byte) (map[string][][]byte, error) {
+		if typeKey != vocabkey.BridgePlaceRelationship {
+			return nil, fmt.Errorf("promotealign: no filed-link reader for bridge %q", typeKey)
+		}
+		return conclusionsummaries.FiledPlaceLinks(g, term, handles)
+	}
 }

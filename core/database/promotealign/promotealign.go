@@ -70,7 +70,10 @@ func Propose(c *database.Catalog, graphID []byte, fixed []graphalign.Fixed, only
 	if err != nil {
 		return graphalign.Proposal{}, 0, err
 	}
-	prop.Connections = graphalign.Connections(pageBridges(eg, vocab), pageEnds(promoted, in.evidence, fixed, prop.Rows, only), canon.Edges)
+	prop.Connections, err = graphalign.Connections(pageBridges(eg, vocab), pageEnds(promoted, in.evidence, fixed, prop.Rows, only), placeLinks(c.Graph()))
+	if err != nil {
+		return graphalign.Proposal{}, 0, err
+	}
 	return prop, rev, nil
 }
 

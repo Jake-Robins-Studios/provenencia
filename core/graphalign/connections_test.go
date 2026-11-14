@@ -1,12 +1,12 @@
 package graphalign_test
 
 import (
+	"errors"
 	"fmt"
+	"slices"
 	"testing"
-	"time"
 
 	"github.com/mendahu/provenencia/core/graphalign"
-	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -24,16 +24,9 @@ func TestConnections(t *testing.T) {
 			Ends: [][][]byte{{id(from)}, {id(to)}},
 		}
 	}
-	// A canon edge York part_of Ontario, read from York's end (from).
-	york := kinship.Link{Edge: kinship.Edge{
-		A: id("H-york"), B: id("H-ont"),
-		KeyA: vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyFrom},
-		KeyB: vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyTo},
-	}}
-	// The same edge stored the other way round.
-	yorkReversed := kinship.Link{Edge: kinship.Edge{
-		A: id("H-ont"), B: id("H-york"), KeyA: york.KeyB, KeyB: york.KeyA,
-	}}
+	// The filed link York part_of Ontario, and York succeeded_by Ontario.
+	york := []filedLink{{vocabkey.TermPartOf, "H-york", "H-ont"}}
+	yorkSucceeded := []filedLink{{vocabkey.TermSucceededBy, "H-york", "H-ont"}}
 	person := graphalign.PageBridge{
 		ID: id("b1"), TypeKey: vocabkey.BridgeParticipation,
 		Ends: [][][]byte{{id("ann")}, {id("birth")}},
@@ -57,7 +50,7 @@ func TestConnections(t *testing.T) {
 		name    string
 		bridges []graphalign.PageBridge
 		ends    map[string]graphalign.EndTarget
-		canon   []kinship.Link
+		filed   []filedLink
 		want    []graphalign.Connection
 	}{
 		{"both ends on records", []graphalign.PageBridge{person},
@@ -91,13 +84,13 @@ func TestConnections(t *testing.T) {
 			ends("ann", handle("H-x"), "birth", handle("H-x")), nil,
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("self_link")}}},
 		{"a loop with the canon", []graphalign.PageBridge{place("b1", "ont", "york", partOf)},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{york},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), york,
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("cycle")}}},
-		{"a canon edge stored the other way", []graphalign.PageBridge{place("b1", "ont", "york", partOf)},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{yorkReversed},
+		{"a succeeded_by loop", []graphalign.PageBridge{place("b1", "ont", "york", []vocabkey.BridgeTerm{vocabkey.TermSucceededBy})},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), yorkSucceeded,
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("cycle")}}},
 		{"succeeded_by over the same places", []graphalign.PageBridge{place("b1", "ont", "york", []vocabkey.BridgeTerm{vocabkey.TermSucceededBy})},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{york},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), york,
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionFiles}}},
 		{"page links in id order", []graphalign.PageBridge{place("b2", "b", "a", partOf), place("b1", "a", "b", partOf)},
 			ends("a", isNew, "b", isNew), nil,
@@ -119,7 +112,10 @@ func TestConnections(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := graphalign.Connections(tc.bridges, tc.ends, tc.canon)
+			got, err := graphalign.Connections(tc.bridges, tc.ends, fakeFiled(tc.filed, nil))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if len(got) != len(tc.want) {
 				t.Fatalf("got %+v, want %+v", got, tc.want)
 			}
@@ -148,61 +144,118 @@ func TestConnectionOutcomesListEveryRefusal(t *testing.T) {
 	}
 }
 
-// TestConnectionsGrowsWithThePageNotPageTimesCanon: each place connection reads
-// the canon's links of its term, so the work must not be the page's bridges
-// times the canon's edges. At the map's Scale, four times the bridges over one
-// canon costs far less than four times the time.
-func TestConnectionsGrowsWithThePageNotPageTimesCanon(t *testing.T) {
-	const (
-		places    = 6000 // location edges on one place: the canon's bulk
-		hierarchy = 300  // part_of edges
-		bridges   = 50
-		factor    = 4
-		runs      = 5
-	)
-	key := func(typ vocabkey.SubjectType, term vocabkey.BridgeTerm, end vocabkey.PropertyKey) vocabkey.BridgeKey {
-		return vocabkey.BridgeKey{Type: typ, Term: term, End: end}
-	}
-	var canon []kinship.Link
-	for i := 0; i < places; i++ {
-		canon = append(canon, kinship.Link{Edge: kinship.Edge{
-			A: id(fmt.Sprintf("H-ev-%d", i)), B: id("H-place"),
-			KeyA: key(vocabkey.BridgeLocation, "", vocabkey.PropertyEvent),
-			KeyB: key(vocabkey.BridgeLocation, "", vocabkey.PropertyPlace),
-		}})
-	}
-	for i := 0; i < hierarchy; i++ {
-		canon = append(canon, kinship.Link{Edge: kinship.Edge{
-			A: id(fmt.Sprintf("H-p-%d", i)), B: id(fmt.Sprintf("H-p-%d", i+1)),
-			KeyA: key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyFrom),
-			KeyB: key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyTo),
-		}})
-	}
-	elapsed := func(n int) time.Duration {
-		var bs []graphalign.PageBridge
-		ends := map[string]graphalign.EndTarget{}
-		for i := 0; i < n; i++ {
-			from, to := fmt.Sprintf("a%d", i), fmt.Sprintf("b%d", i)
-			bs = append(bs, graphalign.PageBridge{
-				ID: id(fmt.Sprintf("b%06d", i)), TypeKey: vocabkey.BridgePlaceRelationship,
-				Terms: []vocabkey.BridgeTerm{vocabkey.TermPartOf},
-				Ends:  [][][]byte{{id(from)}, {id(to)}},
-			})
-			ends[from] = graphalign.EndTarget{Target: graphalign.TargetNew}
-			ends[to] = graphalign.EndTarget{Target: graphalign.TargetNew}
+// filedLink is one filed place link of a term, from a handle to a handle.
+type filedLink struct {
+	term     vocabkey.BridgeTerm
+	from, to string
+}
+
+// fakeFiled reads links as a catalog would, and records each call's type,
+// term and handles in calls.
+func fakeFiled(links []filedLink, calls *[]filedCall) graphalign.FiledLinks {
+	return func(typeKey vocabkey.SubjectType, term vocabkey.BridgeTerm, handles [][]byte) (map[string][][]byte, error) {
+		if calls != nil {
+			*calls = append(*calls, filedCall{typeKey, term, handles})
 		}
-		best := time.Duration(1<<63 - 1)
-		for r := 0; r < runs; r++ {
-			start := time.Now()
-			graphalign.Connections(bs, ends, canon)
-			best = min(best, time.Since(start))
+		out := map[string][][]byte{}
+		for _, h := range handles {
+			for _, l := range links {
+				if l.term == term && string(id(l.from)) == string(h) {
+					out[string(h)] = append(out[string(h)], id(l.to))
+				}
+			}
 		}
-		return best
+		return out, nil
 	}
-	small, large := elapsed(bridges), elapsed(factor*bridges)
-	// The canon is read once, so the larger page costs well under twice the
-	// factor of the smaller; reading it per bridge costs the full factor.
-	if large > small*factor*3/4 {
-		t.Fatalf("%d bridges took %v and %d took %v: the canon is read per bridge", bridges, small, factor*bridges, large)
+}
+
+type filedCall struct {
+	typeKey vocabkey.SubjectType
+	term    vocabkey.BridgeTerm
+	handles [][]byte
+}
+
+func TestConnectionsReaderIsAskedByTypeAndTerm(t *testing.T) {
+	var calls []filedCall
+	bridge := graphalign.PageBridge{
+		ID: id("b1"), TypeKey: vocabkey.BridgePlaceRelationship,
+		Terms: []vocabkey.BridgeTerm{vocabkey.TermPartOf}, Ends: [][][]byte{{id("a")}, {id("b")}},
+	}
+	ends := map[string]graphalign.EndTarget{
+		"a": {Target: graphalign.TargetHandle, HandleID: id("H-a")},
+		"b": {Target: graphalign.TargetHandle, HandleID: id("H-b")},
+	}
+	if _, err := graphalign.Connections([]graphalign.PageBridge{bridge}, ends, fakeFiled(nil, &calls)); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 1 || calls[0].typeKey != vocabkey.BridgePlaceRelationship || calls[0].term != vocabkey.TermPartOf ||
+		len(calls[0].handles) != 1 || string(calls[0].handles[0]) != string(id("H-b")) {
+		t.Fatalf("calls = %+v", calls)
+	}
+}
+
+func TestConnectionsReaderError(t *testing.T) {
+	boom := errors.New("boom")
+	bridge := graphalign.PageBridge{
+		ID: id("b1"), TypeKey: vocabkey.BridgePlaceRelationship,
+		Terms: []vocabkey.BridgeTerm{vocabkey.TermPartOf}, Ends: [][][]byte{{id("a")}, {id("b")}},
+	}
+	ends := map[string]graphalign.EndTarget{
+		"a": {Target: graphalign.TargetHandle, HandleID: id("H-a")},
+		"b": {Target: graphalign.TargetHandle, HandleID: id("H-b")},
+	}
+	got, err := graphalign.Connections([]graphalign.PageBridge{bridge}, ends,
+		func(vocabkey.SubjectType, vocabkey.BridgeTerm, [][]byte) (map[string][][]byte, error) {
+			return nil, boom
+		})
+	if !errors.Is(err, boom) || got != nil {
+		t.Fatalf("Connections = %+v, %v, want nil and boom", got, err)
+	}
+}
+
+// TestConnectionsReadOnlyWhatTheLoopReaches: 200 bridges between New records
+// read no filed link, and the one between two handles reads one level at a
+// time from its to end, whatever else is filed.
+func TestConnectionsReadOnlyWhatTheLoopReaches(t *testing.T) {
+	partOf := []vocabkey.BridgeTerm{vocabkey.TermPartOf}
+	ends := map[string]graphalign.EndTarget{
+		"h1": {Target: graphalign.TargetHandle, HandleID: id("H1")},
+		"h2": {Target: graphalign.TargetHandle, HandleID: id("H2")},
+	}
+	var bs []graphalign.PageBridge
+	for i := 0; i < 200; i++ {
+		from, to := fmt.Sprintf("a%d", i), fmt.Sprintf("b%d", i)
+		ends[from] = graphalign.EndTarget{Target: graphalign.TargetNew}
+		ends[to] = graphalign.EndTarget{Target: graphalign.TargetNew}
+		bs = append(bs, graphalign.PageBridge{
+			ID: id(fmt.Sprintf("b%06d", i)), TypeKey: vocabkey.BridgePlaceRelationship, Terms: partOf,
+			Ends: [][][]byte{{id(from)}, {id(to)}},
+		})
+	}
+	bs = append(bs, graphalign.PageBridge{
+		ID: id("c"), TypeKey: vocabkey.BridgePlaceRelationship, Terms: partOf,
+		Ends: [][][]byte{{id("h1")}, {id("h2")}},
+	})
+	links := []filedLink{{vocabkey.TermPartOf, "H2", "H3"}, {vocabkey.TermPartOf, "H3", "H4"}}
+	for i := 0; i < 1000; i++ {
+		links = append(links, filedLink{vocabkey.TermPartOf, fmt.Sprintf("U%d", i), fmt.Sprintf("U%d", i+1)})
+	}
+	var calls []filedCall
+	got, err := graphalign.Connections(bs, ends, fakeFiled(links, &calls))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 201 {
+		t.Fatalf("%d connections", len(got))
+	}
+	var read []string
+	for _, c := range calls {
+		for _, h := range c.handles {
+			read = append(read, string(h))
+		}
+	}
+	want := []string{string(id("H2")), string(id("H3")), string(id("H4"))}
+	if !slices.Equal(read, want) || len(calls) != 3 {
+		t.Fatalf("the reader was asked for %q in %d calls, want %q one level at a time", read, len(calls), want)
 	}
 }

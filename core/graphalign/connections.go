@@ -3,9 +3,9 @@ package graphalign
 import (
 	"bytes"
 	"slices"
+	"strings"
 
 	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -62,16 +62,42 @@ type Connection struct {
 	Waiting  []byte
 }
 
+// FiledLinks reads filed links: for each handle id, the handles its filed
+// links of one bridge type and term lead to, from the rule's first endpoint to
+// its second. A handle with no such link is absent from the answer.
+type FiledLinks func(typeKey vocabkey.SubjectType, term vocabkey.BridgeTerm, handles [][]byte) (map[string][][]byte, error)
+
 // Connections decides each bridge the way Done files it: in bridge id order,
-// through connectrules.Decide, with the canon's filed links and the page's
-// own earlier connections as the links a loop is checked against. A Subject
-// absent from ends is not on the page. A bridge of an unknown type is left out.
-func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []kinship.Link) []Connection {
+// through connectrules, with the filed links filed reads, only as far as a loop
+// check reaches, and the page's own earlier connections as the links a loop is
+// checked against. A Subject absent from ends is not on the page. A bridge of
+// an unknown type is left out. A read error stops the pass and is returned.
+func Connections(bridges []PageBridge, ends map[string]EndTarget, filed FiledLinks) ([]Connection, error) {
 	sorted := slices.Clone(bridges)
 	slices.SortStableFunc(sorted, func(a, b PageBridge) int { return bytes.Compare(a.ID, b.ID) })
-	canonByKey := canonLinks(canon)
-	pass := connectrules.NewFiled(func(b connectrules.Bridge, term vocabkey.BridgeTerm) (*connectrules.Links, error) {
-		return connectrules.NewLinks(canonByKey[linkKey(b.BridgeTypeKey, term)]), nil
+	pass := connectrules.NewFiled(func(rule connectrules.Bridge, term vocabkey.BridgeTerm) (*connectrules.Links, error) {
+		return connectrules.NewLinksReading(func(records []string) (map[string][]string, error) {
+			var handles [][]byte
+			for _, r := range records {
+				if id, ok := strings.CutPrefix(r, handlePrefix); ok {
+					handles = append(handles, []byte(id))
+				}
+			}
+			out := map[string][]string{}
+			if len(handles) == 0 {
+				return out, nil
+			}
+			got, err := filed(vocabkey.SubjectType(rule.BridgeTypeKey), term, handles)
+			if err != nil {
+				return nil, err
+			}
+			for from, tos := range got {
+				for _, to := range tos {
+					out[handlePrefix+from] = append(out[handlePrefix+from], handlePrefix+string(to))
+				}
+			}
+			return out, nil
+		}), nil
 	})
 	var out []Connection
 	for _, b := range sorted {
@@ -85,7 +111,10 @@ func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []kinshi
 				values[i] = append(values[i], endValue(id, ends))
 			}
 		}
-		res, _ := pass.Decide(rule, b.Terms, values)
+		res, err := pass.Decide(rule, b.Terms, values)
+		if err != nil {
+			return nil, err
+		}
 		c := Connection{BridgeID: b.ID}
 		switch res.Decision {
 		case connectrules.DecisionFiles:
@@ -100,13 +129,14 @@ func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []kinshi
 		}
 		out = append(out, c)
 	}
-	return out
+	return out, nil
 }
 
-// linkKey names one type and term's set of filed links.
-func linkKey(typeKey string, term vocabkey.BridgeTerm) string {
-	return typeKey + "|" + string(term)
-}
+// handlePrefix and newPrefix mark a record key as a handle or a New record.
+const (
+	handlePrefix = "h:"
+	newPrefix    = "n:"
+)
 
 // endValue is the record one Subject lands on, or why it has none. A handle
 // and a New record key apart.
@@ -118,33 +148,7 @@ func endValue(id []byte, ends map[string]EndTarget) connectrules.Value {
 	case e.Waits != "":
 		return connectrules.Value{Wait: string(e.Waits)}
 	case e.Target == TargetNew:
-		return connectrules.Value{Record: "n:" + string(id)}
+		return connectrules.Value{Record: newPrefix + string(id)}
 	}
-	return connectrules.Value{Record: "h:" + string(e.HandleID)}
-}
-
-// canonLinks reads the canon's links of registered bridge types in one pass,
-// by type and term, as directed links between records, from the end of the
-// rule's first endpoint.
-func canonLinks(canon []kinship.Link) map[string][]connectrules.Link {
-	rules := map[string]connectrules.Bridge{}
-	out := map[string][]connectrules.Link{}
-	for _, e := range canon {
-		typeKey := string(e.KeyA.Type)
-		rule, seen := rules[typeKey]
-		if !seen {
-			rule, _ = connectrules.LookupBridge(typeKey)
-			rules[typeKey] = rule
-		}
-		if len(rule.Endpoints) == 0 {
-			continue
-		}
-		from, to := "h:"+string(e.A), "h:"+string(e.B)
-		if string(e.KeyA.End) != rule.Endpoints[0].PropertyKey {
-			from, to = to, from
-		}
-		key := linkKey(typeKey, e.KeyA.Term)
-		out[key] = append(out[key], connectrules.Link{From: from, To: to})
-	}
-	return out
+	return connectrules.Value{Record: handlePrefix + string(e.HandleID)}
 }
