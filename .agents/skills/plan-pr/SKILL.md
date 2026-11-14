@@ -229,8 +229,8 @@ One PR is one behavior a reviewer can check. A plan has reached the limit when:
 - it changes **more than one view** plus that view's engine path, or
 - it needs **two migrations**.
 
-Then propose a split to the user: thinner vertical PRs that each still show
-something in the app, not an engine PR and a UI PR
+Then propose a split to the user. For a feature, prefer thinner vertical PRs
+that each still show something in the app over an engine PR and a UI PR
 ([`plan-spike`](../plan-spike/SKILL.md#vertical-slices)), and update the map
 with `plan-spike`. A big plan for a small model fails in the middle; two plans each land.
 

@@ -131,29 +131,33 @@ plan a smaller model can carry out (about 10 steps).
 
 ### Vertical slices
 
-Cut PRs **vertically**: each one carries every layer its behavior needs
-(migration, core, FFI, Swift) and the smallest chrome that lets a reviewer see
-it work. When a PR is ready for review, the reviewer opens the app and checks
-it by hand. A backend PR that waits for a later frontend PR before anyone can
-see it is the shape to avoid: it lands untested by eye, and its mistakes show
-up one PR later, under someone else's review.
+**Prefer vertical PRs.** Where a feature allows it, each PR carries every
+layer its behavior needs (migration, core, FFI, Swift) and the smallest chrome
+that lets a reviewer see it work, so the reviewer can open the app and check it
+by hand. This is a preference, not a law: backend-only PRs are fine when they
+are the natural shape of the work.
+
+The shape to avoid is a feature cut **horizontally**: several prep PRs that
+build the engine, then one large brief and one large UI PR that shows
+everything at once. The prep PRs land untested by eye, their mistakes show up
+only in the last PR, and the last brief is too big to review well.
 
 - **Thin the feature, not the stack.** When a vertical PR is too big, split it
   into thinner features, each still end to end: read before edit, one field
   before the rest, one view before the second, the common case before the
-  edge cases. Do not split it into an engine PR and a UI PR.
+  edge cases. Prefer that to an engine PR followed by a UI PR.
 - **More briefs, smaller ones.** Vertical PRs mean more gated PRs, so more
   briefs. That is intended: a small brief is quick to draw and quick to
   review. The second brief on a view iterates on the first one's board.
 - **The first chrome can be plain.** A slice's first PR may show its data in
   a plain list, a row, or an inspector field, and a later PR refines it with
   its own brief. Plain is still briefed when it changes how a view looks.
-- **Exceptions are named.** Two kinds of PR may have nothing new to see:
-  a behavior-preserving refactor ("Make the change easy first" below), whose
-  Check is "the app behaves the same" plus its tests; and engine work with no
-  view to show it in yet. The second kind is rare: its scope entry says why no
-  view can carry it, and its Check names what the reviewer runs to see it work.
-  The PR that first shows it follows straight after.
+- **Backend-only PRs are normal for some work.** Refactors ("Make the change
+  easy first" below), performance fixes, bug fixes, and engine work no view
+  can show yet often have nothing new to see. That is fine. Their Check says
+  what the reviewer runs or what stays the same. The thing to watch for is a
+  run of them building toward one feature that nobody can see until the end;
+  when a feature's engine work can ride with a first view, let it.
 
 Split rules:
 
@@ -163,10 +167,11 @@ Split rules:
   reshaping (a registry that should exist, logic in the wrong layer, a copy
   about to become a third), cut a preparatory refactor PR ahead of the feature.
   It is reviewed and landed on its own, and the feature PR stays simple.
-- **Engine rides with its first view.** A schema, core or FFI change lands in
-  the same PR as the first chrome that uses it, gated by that PR's brief. Do
-  not land it ahead, on its own, to wait for the UI. When the pair is too big
-  for one plan, thin the feature (above).
+- **Engine rides with its first view, where it can.** A feature's schema,
+  core or FFI change usually lands in the same PR as the first chrome that
+  uses it, gated by that PR's brief, rather than ahead of it to wait for the
+  UI. When the pair is too big for one plan, prefer thinning the feature
+  (above) to splitting by layer.
 - **One brief, one PR.** A PR that adds, changes or removes chrome waits on
   its own brief; a removal changes how the page looks and is gated too. Only a
   PR whose views look the same before and after is not gated. A brief gates
@@ -225,8 +230,9 @@ spike.
   status in prose; the Status section says only whether the spike is open and
   points at the table.
 - The **Plan** column is `—` until `plan-pr` writes the plan.
-- Each **scope entry** is short: Ships, Not this PR, Check, Context. The Check
-  is what a reviewer does and sees in the app, not "tests pass". It is the
+- Each **scope entry** is short: Ships, Not this PR, Check, Context. For a
+  feature PR the Check is what a reviewer does and sees in the app; for a
+  backend-only PR it is what they run or what stays the same. It is the
   input to `plan-pr`, not the plan. Enough that a later session knows what the
   PR is for and which rules and doc sections to read. Two to six lines.
 - Link, do not restate. A scope entry points at a working rule or a feature doc
@@ -238,8 +244,7 @@ spike.
 - [ ] Every bar outcome is made true by at least one PR, and every PR serves a bar outcome
 - [ ] Every PR has a one-line scope, a Check, Depends on, and a brief or "—"
 - [ ] Every PR that adds chrome names a brief for each view it touches
-- [ ] Every PR's Check is something a reviewer sees in the app; each exception is a behavior-preserving refactor or says why no view can carry it
-- [ ] No PR is an engine half waiting for a later UI PR; no pair of PRs is one feature split by layer
+- [ ] Feature work is cut vertically where it can be: no run of prep PRs ending in one large brief and UI PR that shows the whole feature at once
 - [ ] No PR fails the split rules; the largest PR could be planned in about 10 steps
 - [ ] Every Not-this-PR line and every refused idea has a home
 - [ ] Working rules hold every decision a scope entry relies on; no open question is written as a rule
