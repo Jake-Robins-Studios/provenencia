@@ -17,7 +17,6 @@ import (
 type PageInputs struct {
 	scope        *InputScope
 	graphs, srcs map[string][]byte
-	off          bool
 }
 
 // PageInputs returns a recorder for one page read. Only made on an open graph.
@@ -29,7 +28,7 @@ func (g *Graph) PageInputs() *PageInputs {
 // that does not report inputs. It is safe on a nil graph, which reads as one
 // does.
 func (g *Graph) NoPageInputs() *PageInputs {
-	return &PageInputs{scope: g.NoInputs(), off: true}
+	return &PageInputs{scope: g.NoInputs()}
 }
 
 // Node is InputScope.Node: Graph.Node, recording the node's values.
@@ -47,7 +46,7 @@ func (p *PageInputs) Nodes(ids [][]byte) error { return p.scope.Nodes(ids) }
 // Cached is Graph.Cached, which never loads, and records the id found or not.
 func (p *PageInputs) Cached(id []byte) (*Node, bool) {
 	n, ok := p.scope.g.Cached(id)
-	if !p.off {
+	if !p.scope.off {
 		p.scope.Add(NodeKey(id))
 	}
 	return n, ok
@@ -56,7 +55,7 @@ func (p *PageInputs) Cached(id []byte) (*Node, bool) {
 // AddHandles records the values of each id, for ids taken from rows already in
 // hand and never for a node the read looks up.
 func (p *PageInputs) AddHandles(ids ...[]byte) {
-	if p.off {
+	if p.scope.off {
 		return
 	}
 	keys := make([]InputKey, len(ids))
@@ -68,7 +67,7 @@ func (p *PageInputs) AddHandles(ids ...[]byte) {
 
 // AddKeys records keys handed in as they are, such as a place entry's.
 func (p *PageInputs) AddKeys(keys ...InputKey) {
-	if p.off {
+	if p.scope.off {
 		return
 	}
 	p.scope.Add(keys...)
@@ -76,7 +75,7 @@ func (p *PageInputs) AddKeys(keys ...InputKey) {
 
 // AddEvidenceGraphs records the Evidence graphs whose records the page shows.
 func (p *PageInputs) AddEvidenceGraphs(ids ...[]byte) {
-	if p.off {
+	if p.scope.off {
 		return
 	}
 	addIDs(p.graphs, ids)
@@ -84,7 +83,7 @@ func (p *PageInputs) AddEvidenceGraphs(ids ...[]byte) {
 
 // AddSources records the Sources whose words the page shows.
 func (p *PageInputs) AddSources(ids ...[]byte) {
-	if p.off {
+	if p.scope.off {
 		return
 	}
 	addIDs(p.srcs, ids)
@@ -101,7 +100,7 @@ func addIDs(into map[string][]byte, ids [][]byte) {
 // Lists returns each list distinct and in byte order, dropping any id that is
 // not 16 bytes. The handles are the distinct IDs of the recorded keys.
 func (p *PageInputs) Lists() (handles, evidenceGraphs, sources [][]byte) {
-	if p.off {
+	if p.scope.off {
 		return nil, nil, nil
 	}
 	seen := map[string][]byte{}
