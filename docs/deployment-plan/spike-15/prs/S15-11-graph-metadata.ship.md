@@ -129,3 +129,8 @@ Do:
 - If a Preview in `PVArtifactChecklist.swift` or `PVCheckbox.swift` shows a locked row, it needs no change beyond rendering.
 - Plan Landed note: one bullet — the kept-linked callout was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
 Check: `rg -n 'keptLinkedMessage' macos` prints nothing; `rg -n 'isLocked' macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift` shows the new branch; existing tests touching `keptLinked` still pass; scripts/check-pr.sh PASS (localizable included).
+
+## Round 3 — fix (user request)
+Head `7e14596ff`. Gate PASS (orchestrator run against `b9b4cba14`; `origin/main` unmoved). F-9 done: kept-linked `PVCallout` and its string removed (Citation lists kept); `PVCheckbox` draws a decorative 9pt muted lock before a locked box's reason, so the graph form checklist and the Artifact sheet's graph links both show it. Orchestrator read the diff. No review round (user-directed copy/visual change).
+
+Gate PASS · CI pending · open: none
