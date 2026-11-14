@@ -246,7 +246,8 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 
 // loadCandidatesMemo is the ranked candidate ids of each Subject in todo:
 // graphalign.Candidates over the handles the match index offers it, held in
-// the candidates entry until the match index changes. It reads the stored memo,
+// the candidates entry. A commit forgets only the Subjects whose lookup keys
+// it moved (forgetCandidates); a dropped match index empties the entry. It reads the stored memo,
 // ranks only the Subjects it lacks, and stores a new map, never changing the
 // stored one.
 func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, todo []graphalign.Subject, cfg graphalign.Config) (map[string]rankedSubject, error) {
