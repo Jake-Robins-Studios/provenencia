@@ -187,7 +187,7 @@ func TestPlaceEntries(t *testing.T) {
 			}
 			h := conclusionsummaries.PlaceSummary{}
 			h.Entity.ID = loop
-			must(t, conclusionsummaries.AttachPlaceRelationships(c, &h))
+			must(t, conclusionsummaries.AttachPlaceRelationships(c, &h, c.Graph().NoPageInputs()))
 			if len(h.PartOf) != 1 || len(h.Contains) != 1 {
 				t.Errorf("part of %d, contains %d, want one each", len(h.PartOf), len(h.Contains))
 			}
@@ -276,7 +276,7 @@ func TestPlaceEntries(t *testing.T) {
 			}
 			h := conclusionsummaries.PlaceSummary{}
 			h.Entity.ID = aID
-			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h); err == nil {
+			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h, f.C.Graph().NoPageInputs()); err == nil {
 				t.Error("AttachPlaceRelationships read a bad succession date without error")
 			}
 			if _, err := conclusionsummaries.FiledPlaceLinks(g, vocabkey.TermSucceededBy, [][]byte{aID}); err == nil {
@@ -314,7 +314,7 @@ func TestPlaceEntries(t *testing.T) {
 			}
 			h := conclusionsummaries.PlaceSummary{}
 			h.Entity.ID = w.city
-			must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &h))
+			must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &h, f.C.Graph().NoPageInputs()))
 			if n := g.KeyCounts()["conclusionsummaries.placePages"]; n != 1 {
 				t.Errorf("%d place pages held after the city's page, want 1", n)
 			}
@@ -349,7 +349,7 @@ func TestPlaceEntries(t *testing.T) {
 			}
 			h := conclusionsummaries.PlaceSummary{}
 			h.Entity.ID = w.city
-			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h); err == nil {
+			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h, f.C.Graph().NoPageInputs()); err == nil {
 				t.Error("the city's page read a bad part date without error")
 			}
 		}},
@@ -668,7 +668,7 @@ func BenchmarkPlaceMesh(b *testing.B) {
 		}
 		w.c.Graph().Drop()
 		b.ReportMetric(ms(databasetest.Since(func() {
-			if err := conclusionsummaries.AttachPlaceRelationships(w.c, &rows[0]); err != nil {
+			if err := conclusionsummaries.AttachPlaceRelationships(w.c, &rows[0], w.c.Graph().NoPageInputs()); err != nil {
 				b.Fatal(err)
 			}
 		})), "ms")

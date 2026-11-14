@@ -1801,7 +1801,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func listPersonClaims(projectDir: String, entityID: String) async throws -> [CatalogPersonClaimGroup] {
+    func listPersonClaims(projectDir: String, entityID: String) async throws -> CatalogPersonClaims {
         // A read: no `recordedCalls`.
         try withState {
             markCatalogSessionHeld(projectDir)
@@ -1809,7 +1809,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             guard let seeded = seededPersonClaims[entityID] else {
                 throw CoreInvokeError.coded(status: 1, code: "conclusiondetails.not_found", kind: .user, params: [])
             }
-            return seeded
+            return CatalogPersonClaims(groups: seeded)
         }
     }
 

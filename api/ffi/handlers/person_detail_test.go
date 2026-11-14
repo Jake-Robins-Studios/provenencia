@@ -29,6 +29,29 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// wantInputs fails naming each id missing from each list of got. It checks that
+// each list holds the given ids, not that it equals them.
+func wantInputs(t *testing.T, got *engine.PageInputs, handles, evidenceGraphs, sources []string) {
+	t.Helper()
+	check := func(what string, have, want []string) {
+		t.Helper()
+		for _, id := range want {
+			if !slices.Contains(have, id) {
+				t.Errorf("inputs.%s lacks %s (has %v)", what, id, have)
+			}
+		}
+		if !slices.IsSorted(have) {
+			t.Errorf("inputs.%s is not in order: %v", what, have)
+		}
+	}
+	if got == nil {
+		t.Fatal("the response carries no inputs")
+	}
+	check("handles", got.GetHandles(), handles)
+	check("evidence_graphs", got.GetEvidenceGraphs(), evidenceGraphs)
+	check("sources", got.GetSources(), sources)
+}
+
 // TestListPersonClaims: a Person with a claim on each of two Evidence graphs
 // of one Source (a likeness on each, a Subject-valued Observation on the
 // first) reads as one group of two claims, the second read touches no graph
@@ -126,6 +149,10 @@ func TestListPersonClaims(t *testing.T) {
 	if rows := second.Observations[0]; rows.GetPropertyValueType() != "depiction" || rows.GetDepiction().GetImageRelPath() == "" {
 		t.Fatalf("second claim Observation %+v", rows)
 	}
+	wantInputs(t, got.GetInputs(), []string{database.UUIDString(ada.Entity.ID)}, []string{baptisms, burials}, []string{sourceID})
+	if h := got.GetInputs().GetHandles(); len(h) != 1 {
+		t.Errorf("handles %v, want the person alone", h)
+	}
 
 	var n int
 	if err := catalogsession.Do(dir, func(c *database.Catalog) error {
@@ -218,6 +245,11 @@ func TestGetPersonFamily(t *testing.T) {
 	if xanUnit == nil || xanUnit.Partners[0].GetLink() != nil || len(xanUnit.Children) != 1 {
 		t.Fatalf("Xan's unit %+v", xanUnit)
 	}
+	var family []string
+	for _, id := range [][]byte{pat, sam, tess, uma, wren, xan, m1, patUma} {
+		family = append(family, database.UUIDString(id))
+	}
+	wantInputs(t, got.GetInputs(), family, nil, nil)
 
 	for _, id := range []string{"not-an-id", "00000000-0000-7000-8000-000000000000"} {
 		err := rpc(t, GetPersonFamily, &engine.GetPersonFamilyRequest{ProjectDir: dir, EntityId: id}, &engine.GetPersonFamilyResponse{})
@@ -363,6 +395,12 @@ func TestListPersonEvents(t *testing.T) {
 			t.Fatalf("B2 participant %s", id)
 		}
 	}
+
+	var timeline []string
+	for _, id := range [][]byte{pat, cs, u, kid, ned, sam, b1, mar} {
+		timeline = append(timeline, database.UUIDString(id))
+	}
+	wantInputs(t, got.GetInputs(), timeline, nil, nil)
 
 	if got.GetBirth().GetEventId() != database.UUIDString(b1) || got.GetBirth().GetPlace() != nil {
 		t.Errorf("birth marker %+v", got.GetBirth())
@@ -543,6 +581,11 @@ func TestGetPersonRecordLinks(t *testing.T) {
 			t.Errorf("graph %d = %+v, want the %s", i, g, r.title)
 		}
 	}
+	var graphIDs, sourceIDs []string
+	for _, g := range got.Graphs {
+		graphIDs, sourceIDs = append(graphIDs, g.GetGraphId()), append(sourceIDs, g.GetSourceId())
+	}
+	wantInputs(t, got.GetInputs(), []string{database.UUIDString(son)}, graphIDs, sourceIDs)
 	a, b, c := got.Graphs[0].GetGraphId(), got.Graphs[1].GetGraphId(), got.Graphs[2].GetGraphId()
 	type line struct {
 		entity   string

@@ -27,7 +27,7 @@ struct PersonSourcesSection: View {
         let typesHandle: QueryHandle<[CatalogSourceType]>? = ConclusionPageSection.sources
             .read(.supporting, project: session.projectKey, entityId: entityId)
             .flatMap { session.queryHandle($0) }
-        ConclusionPageSectionHost<[CatalogPersonClaimGroup], PersonSourcesContent, PersonSourcesList>(
+        ConclusionPageSectionHost<CatalogPersonClaims, PersonSourcesContent, PersonSourcesList>(
             section: .sources,
             entityId: entityId,
             accessibilityIdentifierRoot: root,
@@ -36,7 +36,7 @@ struct PersonSourcesSection: View {
             emptyMessage: L10n.string(L10n.Conclusions.sourcesEmptyMessage),
             make: {
                 PersonSourcesContent(
-                    groups: $0,
+                    groups: $0.groups,
                     sourceTypes: typesHandle?.value ?? [],
                     orders: orders,
                     folds: folds
@@ -591,7 +591,7 @@ private struct PersonSourcesPreview: View {
         guard claimsFailure else { return }
         let key = CatalogQueryKey.personClaims(project: session.projectKey, entityId: Self.entityId)
         await PersonSourcesPreviewData.failAfterFirstAnswer(
-            key, as: [CatalogPersonClaimGroup].self, session: session
+            key, as: CatalogPersonClaims.self, session: session
         ) { $0.listPersonClaimsError = PersonSourcesPreviewData.previewFailure }
     }
 }

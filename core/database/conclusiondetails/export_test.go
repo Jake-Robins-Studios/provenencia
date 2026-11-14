@@ -20,6 +20,6 @@ func FieldsOf(c *database.Catalog, ids [][]byte, only map[string]map[string]bool
 	if err != nil {
 		return nil, err
 	}
-	fields, _, err := fieldsOf(c.Graph(), v, nodes, nil, only)
+	fields, _, err := fieldsOf(c.Graph(), v, nodes, nil, only, c.Graph().NoPageInputs())
 	return fields, err
 }

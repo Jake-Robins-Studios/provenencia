@@ -82,7 +82,7 @@ func (w *kinWorld) eventOn(name string, typ vocabkey.EventType, d *datevalue.Val
 
 func (w *kinWorld) timeline(id []byte) (persondetail.Timeline, conclusionsummaries.Summaries) {
 	w.t.Helper()
-	tl, summaries, err := persondetail.PersonEvents(w.c, id)
+	tl, summaries, err := persondetail.PersonEvents(w.c, id, w.c.Graph().PageInputs())
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestPersonEvents(t *testing.T) {
 			"merged":    bea,
 			"malformed": {1, 2, 3},
 		} {
-			if _, _, err := persondetail.PersonEvents(w.c, id); !errors.Is(err, conclusiondetails.ErrNotFound) {
+			if _, _, err := persondetail.PersonEvents(w.c, id, w.c.Graph().NoPageInputs()); !errors.Is(err, conclusiondetails.ErrNotFound) {
 				t.Errorf("%s: err = %v", name, err)
 			}
 		}
@@ -353,15 +353,28 @@ func TestPersonEventsQueryCount(t *testing.T) {
 		u := w.event("U", vocabkey.EventBurial, 1890)
 		w.k.Join(ned, u, "subject")
 		w.k.Join(pat, u, "witness")
-		first, _ := w.events(pat)
+		firstIn, secondIn := w.c.Graph().PageInputs(), w.c.Graph().PageInputs()
+		firstTL, _, err := persondetail.PersonEvents(w.c, pat, firstIn)
+		if err != nil {
+			t.Fatal(err)
+		}
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		second, _ := w.events(pat)
+		secondTL, _, err := persondetail.PersonEvents(w.c, pat, secondIn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, second := firstTL.Events, secondTL.Events
 		if queries != 0 {
 			t.Fatalf("a second read issued %d graph queries", queries)
 		}
 		if len(first) != 2 || !reflect.DeepEqual(first, second) {
 			t.Fatalf("second read differs:\n%v\n%v", first, second)
+		}
+		h1, g1, s1 := firstIn.Lists()
+		h2, g2, s2 := secondIn.Lists()
+		if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+			t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 		}
 	})
 	t.Run("AC-2.2", func(t *testing.T) {
@@ -719,4 +732,33 @@ func TestPersonEventsFollowsParticipationWrites(t *testing.T) {
 		w.k.Commit(zed, u, witness, changed)
 		w.expectEvents(pat, "U(witness;Ned:subject,Zed:informant)")
 	})
+}
+
+// TestPersonEventsRecordsInputs: the Timeline records the person, each
+// participation association of the person, every event they reach and every
+// other participant on those events, including a provisional one it does not
+// show.
+func TestPersonEventsRecordsInputs(t *testing.T) {
+	w := newKinWorld(t)
+	pat, kid, ned, ghost := w.person("Pat"), w.person("Kid"), w.person("Ned"), w.person("Ghost")
+	cs := w.event("CS", vocabkey.EventType("census"), 1851)
+	u := w.event("U", vocabkey.EventBurial, 1890)
+	patCS := w.k.Join(pat, cs, "subject")
+	w.k.Join(kid, cs, "child")
+	w.k.Join(ned, u, "subject")
+	patU := w.k.Join(pat, u, "witness")
+	w.k.Join(ghost, u, "witness")
+	w.k.Provisional(ghost)
+	w.k.Commit(ghost)
+
+	in := w.c.Graph().PageInputs()
+	_, _, err := persondetail.PersonEvents(w.c, pat, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handles, graphs, srcs := in.Lists()
+	holdsIDs(t, "handles", handles, false, pat, cs, u, kid, ned, ghost, patCS, patU)
+	if len(graphs) != 0 || len(srcs) != 0 {
+		t.Errorf("graphs %x, sources %x: the Timeline shows no records", graphs, srcs)
+	}
 }

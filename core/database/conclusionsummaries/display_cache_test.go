@@ -80,7 +80,7 @@ func TestDisplayCacheFollowsAPlaceThreeStepsUp(t *testing.T) {
 	if len(towns) != 1 || !sameSet(towns[0].Parents, []string{"City", "Region", "Renamed"}) {
 		t.Fatalf("town chain %v", towns)
 	}
-	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &towns[0]))
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &towns[0], f.C.Graph().NoPageInputs()))
 	if len(towns[0].PartOf) != 1 || towns[0].PartOf[0].Title != "City" {
 		t.Fatalf("town part of %+v", towns[0].PartOf)
 	}

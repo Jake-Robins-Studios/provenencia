@@ -176,3 +176,126 @@ func TestAssociationInputs(t *testing.T) {
 	}
 	sameKeys(t, "rank 2 end", got[string(moved)], []graphcache.InputKey{keyOf(birth, "participation", "event")})
 }
+
+func idsEqual(got, want [][]byte) bool {
+	return slices.EqualFunc(got, want, bytes.Equal)
+}
+
+func TestPageInputs(t *testing.T) {
+	c := graphcachetest.OpenCatalog(t)
+	canon := graphcachetest.NewCanon(t, c)
+	person, other := canon.Person(), canon.Person()
+	birth := canon.Event(vocabkey.EventBirth)
+	subject := canon.Join(person, birth, "subject")
+	canon.Commit(person, other, birth, subject)
+	g := c.Graph()
+	graphA := bytes.Repeat([]byte{0xa1}, 16)
+	graphB := bytes.Repeat([]byte{0xa0}, 16)
+	srcA := bytes.Repeat([]byte{0xb1}, 16)
+	short := []byte{1, 2, 3}
+	sorted := func(ids ...[]byte) [][]byte {
+		out := slices.Clone(ids)
+		slices.SortFunc(out, bytes.Compare)
+		return out
+	}
+
+	t.Run("handles are distinct and in byte order", func(t *testing.T) {
+		in := g.PageInputs()
+		in.AddHandles(other, person, other)
+		in.AddKeys(keyOf(person, "participation", "person"), keyOf(birth, "", ""))
+		handles, graphs, sources := in.Lists()
+		if want := sorted(person, other, birth); !idsEqual(handles, want) {
+			t.Fatalf("handles %x, want %x", handles, want)
+		}
+		if len(graphs) != 0 || len(sources) != 0 {
+			t.Fatalf("graphs %x sources %x, want none", graphs, sources)
+		}
+	})
+	t.Run("Node and Follow record the handle and the follow's associations", func(t *testing.T) {
+		in := g.PageInputs()
+		if _, err := in.Node(other); err != nil {
+			t.Fatal(err)
+		}
+		links, err := in.Follow(person, hops.EventsOfSubject)
+		if err != nil || len(links) != 1 {
+			t.Fatalf("links %+v err %v", links, err)
+		}
+		handles, _, _ := in.Lists()
+		if want := sorted(other, person, subject); !idsEqual(handles, want) {
+			t.Fatalf("handles %x, want %x", handles, want)
+		}
+	})
+	t.Run("Cached records the id and never loads", func(t *testing.T) {
+		fresh := graphcache.Over(dbtest.MustDB(t, c))
+		in := fresh.PageInputs()
+		if n, ok := in.Cached(person); n != nil || ok {
+			t.Fatalf("Cached loaded: %v %v", n, ok)
+		}
+		if _, ok := fresh.Cached(person); ok {
+			t.Fatal("the node was loaded")
+		}
+		handles, _, _ := in.Lists()
+		if !idsEqual(handles, [][]byte{person}) {
+			t.Fatalf("handles %x, want the id", handles)
+		}
+	})
+	t.Run("Nodes records nothing", func(t *testing.T) {
+		in := g.PageInputs()
+		if err := in.Nodes([][]byte{person, other}); err != nil {
+			t.Fatal(err)
+		}
+		if handles, _, _ := in.Lists(); len(handles) != 0 {
+			t.Fatalf("handles %x, want none", handles)
+		}
+	})
+	t.Run("graphs and Sources are distinct, sorted and 16 bytes", func(t *testing.T) {
+		in := g.PageInputs()
+		in.AddEvidenceGraphs(graphA, graphB, graphA, short)
+		in.AddSources(srcA, srcA)
+		in.AddHandles(short)
+		handles, graphs, sources := in.Lists()
+		if want := sorted(graphA, graphB); !idsEqual(graphs, want) {
+			t.Fatalf("graphs %x, want %x", graphs, want)
+		}
+		if !idsEqual(sources, [][]byte{srcA}) {
+			t.Fatalf("sources %x, want one", sources)
+		}
+		if len(handles) != 0 {
+			t.Fatalf("handles %x, want the short id dropped", handles)
+		}
+	})
+	t.Run("a test recorder hears the adds", func(t *testing.T) {
+		var heard []graphcache.InputKey
+		g.SetInputRecorderForTest(func(k graphcache.InputKey) { heard = append(heard, k) })
+		defer g.SetInputRecorderForTest(nil)
+		g.PageInputs().AddHandles(person)
+		g.NoPageInputs().AddHandles(person)
+		if len(heard) != 1 {
+			t.Fatalf("heard %d keys, want the recording one only", len(heard))
+		}
+	})
+	t.Run("NoPageInputs reads and records nothing", func(t *testing.T) {
+		in := g.NoPageInputs()
+		n, err := in.Node(person)
+		if err != nil || n == nil {
+			t.Fatalf("Node %v err %v", n, err)
+		}
+		links, err := in.Follow(person, hops.EventsOfSubject)
+		if err != nil || len(links) != 1 {
+			t.Fatalf("links %+v err %v", links, err)
+		}
+		in.Cached(person)
+		in.AddHandles(person)
+		in.AddEvidenceGraphs(graphA)
+		in.AddSources(srcA)
+		handles, graphs, sources := in.Lists()
+		if handles != nil || graphs != nil || sources != nil {
+			t.Fatalf("recorded %x %x %x", handles, graphs, sources)
+		}
+		var nilGraph *graphcache.Graph
+		none := nilGraph.NoPageInputs()
+		if n, err := none.Node(person); n != nil || err != nil {
+			t.Fatalf("nil graph Node %v err %v", n, err)
+		}
+	})
+}

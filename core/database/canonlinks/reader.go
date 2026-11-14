@@ -66,7 +66,7 @@ func deps(g *graphcache.Graph, roots [][]byte) [][]byte {
 	for _, id := range roots {
 		out = append(out, id)
 		if n, ok := g.Cached(id); ok {
-			out = append(out, neighborsOf([]*graphcache.Node{n})...)
+			out = append(out, neighborsOf([]*graphcache.Node{n}, g.NoPageInputs())...)
 		}
 	}
 	return out
@@ -304,7 +304,7 @@ func (r *Reader) chain(id []byte) ([]kinship.Implied, error) {
 // pivots differ in Event or Through, so none is repeated. An id that is no node
 // has no links.
 func (r *Reader) For(id []byte) ([]kinship.Implied, error) {
-	steps, err := r.d.loadSteps([][]byte{id}, r.event)
+	steps, err := r.d.loadSteps([][]byte{id}, r.event, r.g.NoPageInputs())
 	if err != nil || len(steps) == 0 {
 		return nil, err
 	}
@@ -321,9 +321,10 @@ type Options struct{ Siblings bool }
 // through one kinship.LinkSet. It loads what it reads in a fixed number of
 // batches however many ids and relatives there are. An id that is no node has no
 // entry. The caller owns each slice and its bytes. Nothing is filtered: a link to
-// a merged person is returned, as For returns implied links to one.
-func (r *Reader) Relationships(ids [][]byte, opts Options) (map[string][]kinship.Link, error) {
-	steps, err := r.d.loadSteps(ids, r.event)
+// a merged person is returned, as For returns implied links to one. It records
+// on in what loadSteps loads.
+func (r *Reader) Relationships(ids [][]byte, opts Options, in *graphcache.PageInputs) (map[string][]kinship.Link, error) {
+	steps, err := r.d.loadSteps(ids, r.event, in)
 	if err != nil {
 		return nil, err
 	}
@@ -395,8 +396,9 @@ func stepPeople(id []byte, edges []kinship.Edge, terms segmentcompare.Terms) [][
 // neighbors, the people one parent step from each, and those people's
 // neighbors. It returns, per distinct id that is a node, its stepped; an id that
 // is no node is skipped. event gives an event's links. A person that is linked
-// but not cached is skipped by the caller that reads it.
-func (d *deriver) loadSteps(ids [][]byte, event func([]byte) ([]kinship.Implied, error)) ([]stepped, error) {
+// but not cached is skipped by the caller that reads it. The two neighbor loads
+// record on in each node they load around, its neighbors and their associations.
+func (d *deriver) loadSteps(ids [][]byte, event func([]byte) ([]kinship.Implied, error), in *graphcache.PageInputs) ([]stepped, error) {
 	var want [][]byte
 	seen := map[string]bool{}
 	for _, id := range ids {
@@ -414,7 +416,7 @@ func (d *deriver) loadSteps(ids [][]byte, event func([]byte) ([]kinship.Implied,
 			nodes = append(nodes, n)
 		}
 	}
-	if err := d.src.load(neighborsOf(nodes)); err != nil {
+	if err := d.src.load(neighborsOf(nodes, in)); err != nil {
 		return nil, err
 	}
 	out := make([]stepped, len(nodes))
@@ -438,7 +440,7 @@ func (d *deriver) loadSteps(ids [][]byte, event func([]byte) ([]kinship.Implied,
 			peopleNodes = append(peopleNodes, n)
 		}
 	}
-	if err := d.src.load(neighborsOf(peopleNodes)); err != nil {
+	if err := d.src.load(neighborsOf(peopleNodes, in)); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -504,12 +506,16 @@ func edgeKey(e kinship.Edge) string {
 	return string(key)
 }
 
-// neighborsOf names every neighbor of each node.
-func neighborsOf(nodes []*graphcache.Node) [][]byte {
+// neighborsOf names every neighbor of each node, and records on in each node,
+// each neighbor and each link's association: what the derivation reads around
+// the node.
+func neighborsOf(nodes []*graphcache.Node, in *graphcache.PageInputs) [][]byte {
 	var ids [][]byte
 	for _, n := range nodes {
+		in.AddHandles(n.ID)
 		for _, l := range n.Links {
 			ids = append(ids, l.Neighbor)
+			in.AddHandles(l.Neighbor, l.Association)
 		}
 	}
 	return ids

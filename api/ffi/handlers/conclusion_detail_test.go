@@ -82,6 +82,11 @@ func TestGetConclusionDetail(t *testing.T) {
 				if len(name.Outcomes) != 2 {
 					t.Fatalf("outcomes %+v", name.Outcomes)
 				}
+				var graphs, srcs []string
+				for _, o := range name.Outcomes {
+					graphs, srcs = append(graphs, o.GetGraphId()), append(srcs, o.GetSourceId())
+				}
+				wantInputs(t, d.GetInputs(), []string{d.Entity.GetId()}, graphs, srcs)
 				for _, o := range name.Outcomes {
 					if o.GetValueRank() != 1 || o.GetObservationRef() == "" || o.GetSubjectRef() == "" ||
 						o.GetSourceId() == "" || o.GetCitationId() == "" || o.GetArtifactId() == "" || o.GetRecorded().GetName() == nil ||
@@ -262,6 +267,7 @@ func TestGetConclusionDetailCarriesItsSummary(t *testing.T) {
 				t.Fatal(err)
 			}
 			tt.check(t, &d, id)
+			wantInputs(t, d.GetInputs(), []string{id}, nil, nil)
 			if d.GetSummary().GetPerson() == nil && len(d.GetDerivedRows()) != 0 {
 				t.Fatalf("derived rows on a non-Person: %+v", d.GetDerivedRows())
 			}
@@ -610,6 +616,7 @@ func TestGetConclusionDetailCarriesDerivedRows(t *testing.T) {
 	if len(rows) != 1 || rows[0].GetKind() != engine.DerivedRowKind_DERIVED_ROW_KIND_BIRTH_DATE || len(rows[0].GetOwners()) != 1 {
 		t.Fatalf("derived rows %+v", rows)
 	}
+	wantInputs(t, d.GetInputs(), []string{database.UUIDString(person.Entity.ID), database.UUIDString(event.Entity.ID)}, nil, nil)
 	owner := rows[0].GetOwners()[0]
 	if owner.GetEntity().GetId() != database.UUIDString(event.Entity.ID) || owner.GetEvent().GetEntity().GetId() != database.UUIDString(event.Entity.ID) {
 		t.Fatalf("owner %+v", owner)

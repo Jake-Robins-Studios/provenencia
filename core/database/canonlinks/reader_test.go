@@ -332,7 +332,7 @@ func (w *world) relShapes(links []kinship.Link) []relShape {
 
 func (w *world) relationships(id []byte) []kinship.Link {
 	w.t.Helper()
-	links, err := w.r.Relationships([][]byte{id}, Options{})
+	links, err := w.r.Relationships([][]byte{id}, Options{}, w.g.PageInputs())
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -677,7 +677,7 @@ func (w *world) sibling(name string, a, b []byte) []byte {
 func (w *world) siblings(id []byte) []kinship.Link {
 	w.t.Helper()
 	ka, kb := w.keys(vocabkey.BridgeRelationship, vocabkey.TermSibling)
-	links, err := w.r.Relationships([][]byte{id}, Options{Siblings: true})
+	links, err := w.r.Relationships([][]byte{id}, Options{Siblings: true}, w.g.PageInputs())
 	if err != nil {
 		w.t.Fatal(err)
 	}
@@ -824,7 +824,7 @@ func TestRelationshipsOptionsSiblings(t *testing.T) {
 		check(t, read(w, w.person("Ann")))
 		check(t, read(w, make([]byte, 16)))
 		check(t, read(w, []byte{1, 2, 3}))
-		got, err := w.r.Relationships([][]byte{{1, 2, 3}, make([]byte, 16)}, Options{Siblings: true})
+		got, err := w.r.Relationships([][]byte{{1, 2, 3}, make([]byte, 16)}, Options{Siblings: true}, w.g.PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -847,7 +847,7 @@ func TestRelationshipsOptionsSiblings(t *testing.T) {
 		// fromNames reads the names of the associations of Bea's sibling
 		// link's From edges, from the derivation itself.
 		fromNames := func(w *world, id []byte) []string {
-			steps, err := w.r.d.loadSteps([][]byte{id}, w.r.event)
+			steps, err := w.r.d.loadSteps([][]byte{id}, w.r.event, w.g.NoPageInputs())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -996,13 +996,13 @@ func TestRelationshipsQueryCount(t *testing.T) {
 		w := newWorld(t)
 		parent, first := family(w, "", 3)
 		ids := [][]byte{parent, first}
-		got, err := w.r.Relationships(ids, Options{Siblings: true})
+		got, err := w.r.Relationships(ids, Options{Siblings: true}, w.g.PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
 		var queries int
 		w.g.SetQueryCounterForTest(func() { queries++ })
-		again, err := w.r.Relationships(ids, Options{Siblings: true})
+		again, err := w.r.Relationships(ids, Options{Siblings: true}, w.g.PageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1019,7 +1019,7 @@ func TestRelationshipsQueryCount(t *testing.T) {
 			ids := build(w)
 			var queries int
 			w.g.SetQueryCounterForTest(func() { queries++ })
-			if _, err := w.r.Relationships(ids, Options{Siblings: true}); err != nil {
+			if _, err := w.r.Relationships(ids, Options{Siblings: true}, w.g.PageInputs()); err != nil {
 				t.Fatal(err)
 			}
 			return queries
@@ -1238,5 +1238,49 @@ func TestEdgeKey(t *testing.T) {
 				t.Fatalf("keys equal = %v, want %v", got, c.wantEqual)
 			}
 		})
+	}
+}
+
+// TestRelationshipsRecordInputs: Relationships records the nodes it loads
+// around each stepped node and each step person, and returns the same links
+// whatever the recorder.
+func TestRelationshipsRecordInputs(t *testing.T) {
+	w := newWorld(t)
+	pat, quinn, rhea := w.person("Pat"), w.person("Quinn"), w.person("Rhea")
+	parent := w.parent("QP", quinn, pat)
+	marriage := w.event("M", vocabkey.EventMarriage)
+	joinPat := w.join("JP", pat, marriage, "subject")
+	joinQuinn := w.join("JQ", quinn, marriage, "subject")
+	w.join("JR", rhea, marriage, "subject")
+	w.k.Commit(w.all...)
+	ids := [][]byte{pat}
+
+	none := w.g.NoPageInputs()
+	plain, err := w.r.Relationships(ids, Options{Siblings: true}, none)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h, g, s := none.Lists(); h != nil || g != nil || s != nil {
+		t.Fatalf("a NoPageInputs recorder holds %x %x %x", h, g, s)
+	}
+	in := w.g.PageInputs()
+	got, err := w.r.Relationships(ids, Options{Siblings: true}, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(plain, got) {
+		t.Fatalf("the links differ with a recorder:\n%+v\n%+v", plain, got)
+	}
+	handles, _, _ := in.Lists()
+	have := map[string]bool{}
+	for _, id := range handles {
+		have[string(id)] = true
+	}
+	// Pat's own links; Quinn is the step person, so his links and events count.
+	// Rhea is only an end of the marriage, which a write to her names through it.
+	for _, id := range [][]byte{pat, quinn, parent, marriage, joinPat, joinQuinn} {
+		if !have[string(id)] {
+			t.Errorf("handles lack %s (%x)", w.name(id), id)
+		}
 	}
 }

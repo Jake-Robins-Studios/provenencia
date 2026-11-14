@@ -21,7 +21,7 @@ func TestDetailBudgets(t *testing.T) {
 	f := newFixture(t)
 	son := households(f, 80)
 	read := func() conclusiondetails.Detail {
-		d, err := conclusiondetails.ForEntity(f.C, son)
+		d, err := conclusiondetails.ForEntity(f.C, son, f.C.Graph().PageInputs())
 		if err != nil {
 			f.T.Fatal(err)
 		}

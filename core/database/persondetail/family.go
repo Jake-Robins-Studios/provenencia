@@ -20,8 +20,10 @@ type Family struct {
 // Families reads the family of each id that is an unmerged Person, in ids
 // order, from the graph cache: canonical relatives only, a fixed number of
 // batched loads cold, no query warm. An id that is not a Person, is merged, or
-// is not 16 bytes is skipped, and an id repeated gives one Family.
-func Families(c *database.Catalog, ids [][]byte) ([]Family, error) {
+// is not 16 bytes is skipped, and an id repeated gives one Family. It records on
+// in what the kinship read loads and every relative it names or checks, shown or
+// not; over several ids in holds the union.
+func Families(c *database.Catalog, ids [][]byte, in *graphcache.PageInputs) ([]Family, error) {
 	if c == nil || c.Graph() == nil {
 		return nil, nil
 	}
@@ -43,16 +45,16 @@ func Families(c *database.Catalog, ids [][]byte) ([]Family, error) {
 	want := database.UniqueBlobIDs(ids)
 	// One batched load of the nodes, so an id that is no node costs no query of
 	// its own; only the people among them are read further.
-	if err := g.Nodes(want); err != nil {
+	if err := in.Nodes(want); err != nil {
 		return nil, err
 	}
 	var people [][]byte
 	for _, id := range want {
-		if n, _ := g.Cached(id); n.Is(typeID) {
+		if n, _ := in.Cached(id); n.Is(typeID) {
 			people = append(people, id)
 		}
 	}
-	links, err := r.Relationships(people, canonlinks.Options{Siblings: true})
+	links, err := r.Relationships(people, canonlinks.Options{Siblings: true}, in)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +72,7 @@ func Families(c *database.Catalog, ids [][]byte) ([]Family, error) {
 			}
 		}
 	}
-	if err := g.Nodes(named); err != nil {
+	if err := in.Nodes(named); err != nil {
 		return nil, err
 	}
 
@@ -78,17 +80,17 @@ func Families(c *database.Catalog, ids [][]byte) ([]Family, error) {
 	shown := map[string]kinship.Kin{}
 	var around [][]byte
 	for _, id := range people {
-		shown[string(id)] = shownKin(g, typeID, id, kin[string(id)])
+		shown[string(id)] = shownKin(in, typeID, id, kin[string(id)])
 		around = append(around, shown[string(id)].Around(id)...)
 	}
-	aroundLinks, err := r.Relationships(around, canonlinks.Options{})
+	aroundLinks, err := r.Relationships(around, canonlinks.Options{}, in)
 	if err != nil {
 		return nil, err
 	}
 	aroundKin := map[string]kinship.Kin{}
 	for id, ls := range aroundLinks {
 		other := []byte(id)
-		aroundKin[id] = shownKin(g, typeID, other, kinship.KinOf(other, ls, terms, rules))
+		aroundKin[id] = shownKin(in, typeID, other, kinship.KinOf(other, ls, terms, rules))
 	}
 
 	out := make([]Family, 0, len(people))
@@ -100,13 +102,14 @@ func Families(c *database.Catalog, ids [][]byte) ([]Family, error) {
 
 // shownKin is kin without the links to people who are not shown: a relative
 // who is not a canonical Person of typeID. The filter is per link, so each role
-// keeps its order.
-func shownKin(g *graphcache.Graph, typeID []byte, id []byte, kin kinship.Kin) kinship.Kin {
+// keeps its order. Each relative is checked through in, so it is recorded
+// whether or not it is shown.
+func shownKin(in *graphcache.PageInputs, typeID []byte, id []byte, kin kinship.Kin) kinship.Kin {
 	shown := kinship.Kin{}
 	for role, links := range kin {
 		for _, l := range links {
 			other, _, _ := l.From(id)
-			if n, _ := g.Cached(other); n.Canonical(typeID) {
+			if n, _ := in.Cached(other); n.Canonical(typeID) {
 				shown[role] = append(shown[role], l)
 			}
 		}
@@ -132,12 +135,13 @@ type OriginSibling struct {
 // undated last. The origin siblings are every child of the parents and siblings
 // units once, with the person among them, in the order the page draws them
 // (see originSiblings); the person is left out only when its summary was not
-// read.
-func PersonFamily(c *database.Catalog, entityID []byte) (Family, []OriginSibling, conclusionsummaries.Summaries, error) {
-	if _, err := personNode(c, entityID); err != nil {
+// read. It records on in what Families does, the person, and every id it reads
+// a summary of.
+func PersonFamily(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (Family, []OriginSibling, conclusionsummaries.Summaries, error) {
+	if _, err := personNode(c, entityID, in); err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
 	}
-	families, err := Families(c, [][]byte{entityID})
+	families, err := Families(c, [][]byte{entityID}, in)
 	if err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
 	}
@@ -150,9 +154,11 @@ func PersonFamily(c *database.Catalog, entityID []byte) (Family, []OriginSibling
 	for _, u := range family.Units {
 		for _, r := range u.Partners {
 			want.Add(vocabkey.Person, r.ID)
+			in.AddHandles(r.ID)
 		}
 		for _, r := range u.Children {
 			want.Add(vocabkey.Person, r.ID)
+			in.AddHandles(r.ID)
 		}
 	}
 	summaries, err := conclusionsummaries.ByIDs(c, want)

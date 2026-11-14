@@ -866,6 +866,16 @@ message WriteEffects {
   repeated WriteEffectsDeleted deleted = 16;
 }
 
+// PageInputs is what a page read was built from (S16-24), as UUID strings, each
+// list distinct and in byte order: handles, the canonical handles and
+// associations it read, its own included; evidence_graphs, the Evidence graphs
+// whose records it shows; sources, the Sources whose words it shows.
+message PageInputs {
+  repeated string handles = 1;
+  repeated string evidence_graphs = 2;
+  repeated string sources = 3;
+}
+
 message WriteEffectsDeleted {
   string entity = 1;
   repeated string ids = 2;
@@ -1636,6 +1646,8 @@ message ListPersonClaimsRequest {
 // ordered by Source title (ties by Source ref).
 message ListPersonClaimsResponse {
   repeated PersonClaimGroup groups = 1;
+  // inputs is what this value was built from.
+  PageInputs inputs = 2;
 }
 
 // PersonClaimGroup is the accepted claims that come from one Source.
@@ -1678,6 +1690,8 @@ message GetPersonFamilyResponse {
   repeated FamilyUnit units = 1;
   PersonSummary person = 2;
   repeated OriginSibling origin_siblings = 3;
+  // inputs is what this value was built from.
+  PageInputs inputs = 4;
 }
 
 // ListPersonEventsRequest asks for the events a canonical person took part in.
@@ -1709,6 +1723,8 @@ message ListPersonEventsResponse {
   repeated PersonEvent events = 1;
   LifeMarker birth = 2;
   LifeMarker death = 3;
+  // inputs is what this value was built from.
+  PageInputs inputs = 4;
 }
 
 // LifeMarker is where a timeline puts a birth or a death. Ids are UUID strings,
@@ -1782,6 +1798,8 @@ message GetPersonRecordLinksResponse {
   repeated RecordLinksPair pairs = 2;
   bool not_counted = 3;
   bool lines_dropped = 4;
+  // inputs is what this value was built from.
+  PageInputs inputs = 5;
 }
 
 // RecordLinksGraph is one Evidence graph of the person and its Source. Ids are
@@ -1909,6 +1927,8 @@ message ConclusionDetail {
   // reads off another handle, keyed by that handle (S13-06). Empty for every
   // other kind.
   repeated DerivedRow derived_rows = 8;
+  // inputs is what this value was built from.
+  PageInputs inputs = 9;
 }
 
 // DerivedRowKind names a Person life row.

@@ -632,7 +632,7 @@ private struct ThrowingStore: GenealogyStore {
     func getConclusionDetail(projectDir _: String, entityID _: String) async throws -> CatalogConclusionDetail {
         throw StoreBoom.boom
     }
-    func listPersonClaims(projectDir _: String, entityID _: String) async throws -> [CatalogPersonClaimGroup] {
+    func listPersonClaims(projectDir _: String, entityID _: String) async throws -> CatalogPersonClaims {
         throw StoreBoom.boom
     }
 

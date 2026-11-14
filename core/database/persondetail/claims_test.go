@@ -3,6 +3,7 @@ package persondetail_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/mendahu/provenencia/core/database"
@@ -96,7 +97,7 @@ func (f *fixture) provisional(s subjects.Subject, e canonicalentities.Entity) {
 
 func (f *fixture) claims(id []byte) []persondetail.ClaimGroup {
 	f.T.Helper()
-	groups, err := persondetail.Claims(f.C, id)
+	groups, err := persondetail.Claims(f.C, id, f.C.Graph().PageInputs())
 	must(f.T, err)
 	return groups
 }
@@ -263,7 +264,7 @@ func TestClaimsMissingAndEmpty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			groups, err := persondetail.Claims(f.C, tt.id)
+			groups, err := persondetail.Claims(f.C, tt.id, f.C.Graph().NoPageInputs())
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("error %v, want %v", err, tt.wantErr)
 			}
@@ -277,12 +278,20 @@ func TestClaimsMissingAndEmpty(t *testing.T) {
 func TestClaimsWarmReadIssuesNoQuery(t *testing.T) {
 	f := newFixture(t)
 	s := f.burialsAndBaptisms()
-	first := f.claims(s.person.ID)
+	firstIn, secondIn := f.C.Graph().PageInputs(), f.C.Graph().PageInputs()
+	first, err := persondetail.Claims(f.C, s.person.ID, firstIn)
+	must(t, err)
 	var n int
 	f.C.Graph().SetQueryCounterForTest(func() { n++ })
-	second := f.claims(s.person.ID)
+	second, err := persondetail.Claims(f.C, s.person.ID, secondIn)
+	must(t, err)
 	if n != 0 {
 		t.Fatalf("the warm read issued %d queries", n)
+	}
+	h1, g1, s1 := firstIn.Lists()
+	h2, g2, s2 := secondIn.Lists()
+	if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+		t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 	}
 	if len(second) != len(first) {
 		t.Fatalf("second read %d groups, first %d", len(second), len(first))
@@ -332,12 +341,12 @@ func TestClaimsSkipsWhatLeft(t *testing.T) {
 	}{
 		{"an empty graph's records", func(t *testing.T, f *fixture, s shape) *graphfill.GraphRecords {
 			empty := evidencegraphstest.SoleGraph(t, f.C, f.source("Empty").ID).ID
-			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{empty})
+			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{empty}, f.C.Graph().NoPageInputs())
 			must(t, err)
 			return got[string(empty)]
 		}},
 		{"records without the Subject", func(t *testing.T, f *fixture, s shape) *graphfill.GraphRecords {
-			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{s.baptisms.ID})
+			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{s.baptisms.ID}, f.C.Graph().NoPageInputs())
 			must(t, err)
 			return got[string(s.baptisms.ID)]
 		}},
@@ -379,7 +388,7 @@ func TestClaimsRecordsPerGraph(t *testing.T) {
 			pat := w.person("Pat")
 			w.k.Members(pat, tc.extra)
 			w.k.Commit(pat)
-			groups, err := persondetail.Claims(w.c, pat)
+			groups, err := persondetail.Claims(w.c, pat, w.c.Graph().PageInputs())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -403,4 +412,55 @@ func TestClaimsRecordsPerGraph(t *testing.T) {
 			}
 		})
 	}
+}
+
+// holdsIDs fails naming each id of want that list lacks, and, when exact, each
+// id of list that want does not name.
+func holdsIDs(t testing.TB, what string, list [][]byte, exact bool, want ...[]byte) {
+	t.Helper()
+	have := map[string]bool{}
+	for _, id := range list {
+		have[string(id)] = true
+	}
+	wanted := map[string]bool{}
+	for _, id := range want {
+		wanted[string(id)] = true
+		if !have[string(id)] {
+			t.Errorf("%s lacks %x (has %x)", what, id, list)
+		}
+	}
+	if exact {
+		for _, id := range list {
+			if !wanted[string(id)] {
+				t.Errorf("%s holds %x, which was not asked for", what, id)
+			}
+		}
+	}
+}
+
+// TestClaimsRecordInputs: the claims read records the person, the graphs it
+// asked the records of and the Source of each group, and nothing else.
+func TestClaimsRecordInputs(t *testing.T) {
+	f := newFixture(t)
+	baptisms, burials := f.source("St Mary"), f.source("St John")
+	var person canonicalentities.Entity
+	var graphs, srcs [][]byte
+	for i, src := range []sources.Source{baptisms, burials} {
+		graph := evidencegraphstest.SoleGraph(t, f.C, src.ID).ID
+		s := f.person(graph, "")
+		if i == 0 {
+			person = f.promote(s, nil)
+		} else {
+			f.promote(s, person.ID)
+		}
+		graphs, srcs = append(graphs, graph), append(srcs, src.ID)
+	}
+	in := f.C.Graph().PageInputs()
+	if _, err := persondetail.Claims(f.C, person.ID, in); err != nil {
+		t.Fatal(err)
+	}
+	gotHandles, gotGraphs, gotSources := in.Lists()
+	holdsIDs(t, "handles", gotHandles, true, person.ID)
+	holdsIDs(t, "graphs", gotGraphs, true, graphs...)
+	holdsIDs(t, "sources", gotSources, true, srcs...)
 }

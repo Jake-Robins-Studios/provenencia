@@ -17,7 +17,8 @@
 // composer lays an accepted claim over the auto-reconciled value here.
 // A Person's life rows read other handles' fields through PersonDerivedRows,
 // composed by the same steps. A place row reads the event–place link's place
-// end, each record as its Place's toponym.
+// end, each record as its Place's toponym. Each read records what it was built
+// from in the caller's graphcache.PageInputs.
 package conclusiondetails
 
 import (
@@ -129,12 +130,13 @@ type Detail struct {
 }
 
 // Handle returns the graph node of one unmerged handle. A nil catalog or
-// graph, a malformed id, and an unknown or merged handle are ErrNotFound.
-func Handle(c *database.Catalog, entityID []byte) (*graphcache.Node, error) {
+// graph, a malformed id, and an unknown or merged handle are ErrNotFound. It
+// records the handle on in.
+func Handle(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (*graphcache.Node, error) {
 	if c == nil || c.Graph() == nil || len(entityID) != 16 {
 		return nil, ErrNotFound
 	}
-	n, err := c.Graph().Node(entityID)
+	n, err := in.Node(entityID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +147,8 @@ func Handle(c *database.Catalog, entityID []byte) (*graphcache.Node, error) {
 }
 
 // ForEntity composes the detail of one unmerged handle.
-func ForEntity(c *database.Catalog, entityID []byte) (Detail, error) {
-	n, err := Handle(c, entityID)
+func ForEntity(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (Detail, error) {
+	n, err := Handle(c, entityID, in)
 	if err != nil {
 		return Detail{}, err
 	}
@@ -169,7 +171,7 @@ func ForEntity(c *database.Catalog, entityID []byte) (Detail, error) {
 			}
 		}
 	}
-	fields, leadOutcomes, err := fieldsOf(c.Graph(), vocab, []*graphcache.Node{n}, leadRows, nil)
+	fields, leadOutcomes, err := fieldsOf(c.Graph(), vocab, []*graphcache.Node{n}, leadRows, nil, in)
 	if err != nil {
 		return Detail{}, err
 	}
@@ -189,8 +191,9 @@ func ForEntity(c *database.Catalog, entityID []byte) (Detail, error) {
 // outcome rows), which belong to no field. only nil composes each node's
 // page fields: every Property but depiction and subject-valued ones. Non-nil,
 // it names the Properties to compose (any value type but depiction) under
-// each node's id; a node it does not name has no field.
-func fieldsOf(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.Node, leadRows []graphcache.Outcome, only map[string]map[string]bool) (map[string][]Field, map[string]Outcome, error) {
+// each node's id; a node it does not name has no field. The graphs and Sources
+// of the records it composes are recorded on in.
+func fieldsOf(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.Node, leadRows []graphcache.Outcome, only map[string]map[string]bool, in *graphcache.PageInputs) (map[string][]Field, map[string]Outcome, error) {
 	var use []*graphcache.Node
 	seen := map[string]bool{}
 	for _, n := range nodes {
@@ -232,7 +235,7 @@ func fieldsOf(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.
 		wanted = append(wanted, want{nil, row})
 		rows = append(rows, row)
 	}
-	reader, err := newRecordReader(g, v, use, rows)
+	reader, err := newRecordReader(g, v, use, rows, in)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -432,16 +435,20 @@ type recordReader struct {
 	terms    map[string]graphcache.VocabTerm
 	toponym  []byte
 	toponyms map[string]string // value Subject id -> first toponym
+	in       *graphcache.PageInputs
 }
 
 // newRecordReader holds the records of every graph the rows' Subjects are on,
-// found among the members of nodes: one fill, and the Source records.
-func newRecordReader(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.Node, rows []graphcache.Outcome) (*recordReader, error) {
+// found among the members of nodes: one fill, and the Source records. The
+// graphs are recorded on in as they are asked for, and each Source an outcome
+// composes as it is read.
+func newRecordReader(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.Node, rows []graphcache.Outcome, in *graphcache.PageInputs) (*recordReader, error) {
 	r := &recordReader{
 		graphOf:  map[string][]byte{},
 		terms:    v.TermsByID(),
 		toponym:  v.PropertyID(vocabkey.PropertyToponym, vocabkey.OriginProvenencia),
 		toponyms: map[string]string{},
+		in:       in,
 	}
 	for _, n := range nodes {
 		for _, m := range n.Members {
@@ -458,7 +465,7 @@ func newRecordReader(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*grap
 		}
 	}
 	var err error
-	if r.graphs, err = graphfill.RecordsOf(g, database.UniqueBlobIDs(graphIDs)); err != nil {
+	if r.graphs, err = graphfill.RecordsOf(g, database.UniqueBlobIDs(graphIDs), in); err != nil {
 		return nil, err
 	}
 	if r.recs, err = sources.RecordsOf(g); err != nil {
@@ -487,6 +494,7 @@ func (r *recordReader) outcome(row graphcache.Outcome) (Outcome, bool, error) {
 	if !found {
 		return Outcome{}, false, fmt.Errorf("conclusiondetails: Artifact %x has no Source record", obs.ArtifactID)
 	}
+	r.in.AddSources(src.ID)
 	recorded, err := valueOf(obs.Scalar, obs.TermID, obs.DateID, obs.Date, obs.NameID, obs.Name, r.terms)
 	if err != nil {
 		return Outcome{}, false, err
@@ -558,8 +566,9 @@ type DerivedRow struct {
 // PersonDerivedRows returns the records behind a Person's birth date, birth
 // place, death date and death place rows, in that order. The owners come from
 // the Person's summary row. A row with no owners is not returned. An owner
-// merged or gone, or without the field the row reads, is dropped.
-func PersonDerivedRows(c *database.Catalog, personID []byte) ([]DerivedRow, error) {
+// merged or gone, or without the field the row reads, is dropped. It records
+// on in each owner it reads and the place a place owner holds.
+func PersonDerivedRows(c *database.Catalog, personID []byte, in *graphcache.PageInputs) ([]DerivedRow, error) {
 	if c == nil || c.Graph() == nil || len(personID) != 16 {
 		return nil, nil
 	}
@@ -583,6 +592,9 @@ func PersonDerivedRows(c *database.Catalog, personID []byte) ([]DerivedRow, erro
 	for _, l := range lists {
 		for _, o := range l.owners {
 			all = append(all, o.ID)
+			if o.Place != nil {
+				in.AddHandles(o.Place.Entity.ID)
+			}
 			if l.events {
 				eventIDs = append(eventIDs, o.ID)
 			}
@@ -599,7 +611,7 @@ func PersonDerivedRows(c *database.Catalog, personID []byte) ([]DerivedRow, erro
 	nodes := make([]*graphcache.Node, 0, len(ids))
 	nodeOf := map[string]*graphcache.Node{}
 	for _, id := range ids {
-		n, err := g.Node(id)
+		n, err := in.Node(id)
 		if err != nil {
 			return nil, err
 		}
@@ -619,7 +631,7 @@ func PersonDerivedRows(c *database.Catalog, personID []byte) ([]DerivedRow, erro
 			only[string(o.ID)][string(o.PropertyID)] = true
 		}
 	}
-	fields, _, err := fieldsOf(g, v, nodes, nil, only)
+	fields, _, err := fieldsOf(g, v, nodes, nil, only, in)
 	if err != nil {
 		return nil, err
 	}
