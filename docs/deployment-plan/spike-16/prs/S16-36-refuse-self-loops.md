@@ -57,14 +57,14 @@ No genealogical link joins a record to itself, and the app never writes one: `co
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-3.1 | `connect.CreateCitedBridge` with `FromSubjectID` = `ToSubjectID` = the seed's place | `errors.Is(err, connect.ErrInvalid)`; the write rolls back |
+| AC-3.1 | `connect.CreateCitedBridge` with the input of the "person person relationship" subtest, `s.personB` replaced by `s.person` (`ToSubjectID` and the `related_to` Observation) | `errors.Is(err, connect.ErrInvalid)`; the count of `relationship` bridges is unchanged |
 
 **US-4.** As a contributor, no reader above the graph cache handles a self-loop.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-4.1 | `rg -n -i "self-loop\|selfOnly\|to itself\|part of itself" core` | Hits only: the two guard comments (`core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`), their tests (`graph_test.go` `TestLinkFromARecordToItselfIsNotRead`, `evidence_graph_walk_test.go` case "a link from a place to itself is not walked"), and three lines that are not about a stored link: `core/kinship/kinship_test.go` "joins a Subject to itself" (`TestDeriveInvariants`: no implied link has one person at both ends), `core/segmentcompare/segmentcompare_test.go` "a link does not correspond to itself" (a key corresponds to itself), `core/database/conclusionsummaries/placechains_test.go` "Toronto itself" |
-| AC-4.2 | `rg -n "\.Readings\(\|\.Ends\(\)\|selfOnly\|followHop" core` | No hit |
+| AC-4.1 | Search 1 in §10 | Hits only: the two guard comments (`core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`), their tests (`graph_test.go` `TestLinkFromARecordToItselfIsNotRead`, `evidence_graph_walk_test.go` case "a link from a place to itself is not walked"), the `DecisionSelfLink` filing test row `core/connectrules/filing_test.go` "a link to itself" (D-8), and three lines that are not about a stored link: `core/kinship/kinship_test.go` "joins a Subject to itself" (`TestDeriveInvariants`: no implied link has one person at both ends), `core/segmentcompare/segmentcompare_test.go` "a link does not correspond to itself" (a key corresponds to itself), `core/database/conclusionsummaries/placechains_test.go` "Toronto itself" |
+| AC-4.2 | Search 2 in §10 | No hit |
 | AC-4.3 | The goldens in `core/graphalign/align_test.go`, `TestAlignInvariants`, `TestProposeReportsEachConnection`, the place entry tests, `core/recordlinks` tests | Pass with no expected value changed, except the rows §8 T-6 – T-10 delete or rewrite |
 
 ## 3. Scope
@@ -213,17 +213,17 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/recordlinks/...` passes.
 
 **STEP-5 — Delete `Edge.Readings`, `Edge.Ends` and the equal-ends check**
 Files: `core/kinship/kinship.go`, `core/kinship/kinship_test.go`. Skill: `add-match-rule`.
-Do: D-3's deletions, D-4, and T-6.
+Do: D-3's deletions (with them the doc lines `kinship.go` 64–67 and 79–80, and the now unused `iter` import), D-4 (doc lines 354 and 369), and T-6.
 Check: `rg -n "\.Readings\(|\.Ends\(\)" core` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/kinship/... ./core/database/canonlinks/... ./core/database/evidencelayer/...` passes.
 
 **STEP-6 — Place pages follow only their parts**
 Files: `core/database/conclusionsummaries/placeentries.go`, `core/database/conclusionsummaries/placeentries_test.go`.
-Do: D-6 and T-9, T-10.
+Do: D-6 (the comment at `placeentries.go` 218–220, the doc sentence at 325, and the now unused `bytes` import) and T-9, T-10 (the `pageReads` comment at `placeentries_test.go` 496–499).
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/conclusionsummaries/...` passes; `rg -n "selfOnly|followHop" core` finds nothing.
 
 **STEP-7 — Docs**
 Files: `docs/promote-graph-alignment.md` (D-9), `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan (status, Landed note).
-Do: per the Definition of done; run the AC-4.1 `rg` and compare with its list.
+Do: per the Definition of done; run search 1 and search 2 (§10) and compare with AC-4.1 and AC-4.2.
 Check: `scripts/check-pr.sh` prints `check-pr: PASS`.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
@@ -233,8 +233,8 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `core/database/graphcache/graph_test.go` `TestLinkFromARecordToItselfIsNotRead` *(new)* | `graphcachetest.OpenCatalog`, `NewCanon`; places `loop`, `town`, `city`; `k.PartOf(loop, loop)`, `k.PartOf(town, city)`; `k.Commit(loop, town, city)`; `g := c.Graph(); g.Drop()`. Subtests: "a self-loop is not read" → `g.Node(loop).Links` empty; "a link between two places is read" → `g.Node(town).Links` has one link with `Neighbor` = `city`; "NodesOnBridges" → `g.NodesOnBridges([][]byte{loop}, "place_relationship")[loop].Links` empty; "Verify agrees" → `g.Verify()` nil | AC-1.1, AC-1.2, AC-1.3, D-1, D-2 |
-| T-2 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdges`, new rows | In the fixture: `f.name["york-hull"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`; `f.name["york-york"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`, then `f.exec("UPDATE observations SET value_subject_id = ? WHERE subject_id = ? AND property_id = ?", york.ID, f.name["york-york"].ID, f.Prop("to").ID)`. Row "a link from a place to itself is not walked": `hops.ParentsOfPlace` from `york` → `{york, york-hull, hull}` only. Row "a self-loop has no far end": `hops.PartsOfPlace` from `york` → no edge. Existing rows unchanged | AC-2.1, AC-2.2, D-1 |
-| T-3 | Go | `core/database/connect/connect_test.go` `TestCreateCitedBridge` subtest "equal ends" *(new)* | `s := mustSeed(t)`; `writes.Call(… CreateCitedBridge(tx, userID, CreateInput{FromSubjectID: s.place.ID, ToSubjectID: s.place.ID, BridgeTypeKey: "location", Citation: citations.CreateInput{ArtifactID: s.artifact.ID, LocatorJSON: validLocator}, Observations: []observations.Input{{PropertyID: s.placeProp.ID, ValueSubjectID: s.place.ID}}}))` → `errors.Is(err, ErrInvalid)` | AC-3.1 |
+| T-2 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdges`, new rows | Setup goes after the "A to-end on another Source" `UPDATE` and before `g := f.C.Graph()`, so `eg` is built after it. In the fixture: `f.name["york-hull"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`; `f.name["york-york"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")`, then `f.exec("UPDATE observations SET value_subject_id = ? WHERE subject_id = ? AND property_id = ?", york.ID, f.name["york-york"].ID, f.Prop("to").ID)`. Rows use names, as the table does (`from: []string{"york"}`, `want: [][3]string{…}`). Row "a link from a place to itself is not walked": `hops.ParentsOfPlace` from `york` → `{"york", "york-hull", "hull"}` only. Row "a self-loop has no far end": `hops.PartsOfPlace` from `york` → no edge. Existing rows unchanged | AC-2.1, AC-2.2, D-1 |
+| T-3 | Go | `core/database/connect/connect_test.go` `TestCreateCitedBridge` subtest "equal ends" *(new)*, placed after "person person relationship" | `s := mustSeed(t)`; `before := countBridges(t, s.c, "relationship")`; `writes.Call` of `CreateCitedBridge` with the "person person relationship" input, `ToSubjectID: s.person.ID` and `{PropertyID: s.related.ID, ValueSubjectID: s.person.ID}` (both ends one person; `BridgeTypeKey: "relationship"`, `personProp`, `relType`/`relTerm` and the Citation as in that subtest) → `errors.Is(err, ErrInvalid)` and `countBridges(t, s.c, "relationship") == before`. Person-to-person is a `relationship` rule (`subjectvocab.Connect`), so no later check refuses this input: deleting `connect.go` line 72 makes the subtest fail | AC-3.1 |
 | T-4 | Go | `core/graphalign/align_test.go` goldens, `core/graphalign/invariants_test.go` `TestAlignInvariants`, `core/database/promotealign` `TestProposeReportsEachConnection` | Unchanged expected values | AC-4.3, D-3 |
 | T-5 | Go | `core/recordlinks/*_test.go` | Unchanged | AC-4.3, D-3 |
 | T-6 | Go | `core/kinship/kinship_test.go` | `TestEdgeEnds`, `TestEdgeReadings` deleted; `TestParentStep` row "self link" deleted; `TestDeriveInvariants` draws distinct `rel` ends (D-4) and keeps its "joins a Subject to itself" assertion | D-3, D-4, D-8 |
@@ -253,7 +253,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left — none
-- [ ] Sweep: `rg -n "Edge.Readings|Edge.Ends|\.Readings\(|\.Ends\(\)|followHop|selfOnly" .agents .cursor/rules docs/*.md core` has no hit, and the AC-4.1 rg matches its list; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `rg -n "Edge.Readings|Edge.Ends|\.Readings\(|\.Ends\(\)|followHop|selfOnly" .agents .cursor/rules docs/*.md core` has no hit, and search 1 (§10) matches AC-4.1; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — no UI
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — none
@@ -266,7 +266,25 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 ## 10. Manual check
 
-None in the app — no view the app can reach changes (§6 Reach). The reviewer runs the AC-4.1 and AC-4.2 `rg` commands and reads their output against the lists, and runs `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/ -run 'TestLinkFromARecordToItselfIsNotRead|TestWalkEvidenceGraphEdges' -v`.
+None in the app — no view the app can reach changes (§6 Reach). The reviewer runs the two searches and reads their output against AC-4.1 and AC-4.2, then runs the guard tests.
+
+Search 1 (AC-4.1):
+
+```bash
+rg -n -i "self-loop|selfOnly|to itself|part of itself" core
+```
+
+Search 2 (AC-4.2):
+
+```bash
+rg -n "\.Readings\(|\.Ends\(\)|selfOnly|followHop" core
+```
+
+Guard tests:
+
+```bash
+CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/ -run 'TestLinkFromARecordToItselfIsNotRead|TestWalkEvidenceGraphEdges' -v
+```
 
 ## 11. Risks and stop conditions
 
@@ -282,7 +300,8 @@ None in the app — no view the app can reach changes (§6 Reach). The reviewer 
 - A `graphalign` golden or `TestAlignInvariants` row changes its expected value in STEP-3.
 - `TestDeriveInvariants` fails after D-4 with an implied link whose two ends are one person.
 - `Verify` reports a link mismatch in any test after STEP-1 (D-2 assumes `Verify` reads through the guard).
-- The AC-4.1 `rg` finds a hit not in its list and not in a file this plan names.
+- The AC-4.1 search finds a hit not in its list.
+- `graphcachetest.Canon.PartOf(loop, loop)` or `k.Commit` fails in T-1 (`Canon.Link` writes one Observation per endpoint property, `from` and `to`, so it is expected to succeed).
 
 ## 12. Open questions
 
