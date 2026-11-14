@@ -47,7 +47,7 @@ func newFamily(t *testing.T) family {
 
 func (f family) records(t *testing.T) *graphfill.GraphRecords {
 	t.Helper()
-	got, err := graphfill.RecordsOf(f.r.C.Graph(), [][]byte{f.graph})
+	got, err := graphfill.RecordsOf(f.r.C.Graph(), [][]byte{f.graph}, f.r.C.Graph().NoPageInputs())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestGraphRecordsFill(t *testing.T) {
 		if _, err := rand.Read(id); err != nil {
 			t.Fatal(err)
 		}
-		got, err := graphfill.RecordsOf(f.r.C.Graph(), [][]byte{id})
+		got, err := graphfill.RecordsOf(f.r.C.Graph(), [][]byte{id}, f.r.C.Graph().NoPageInputs())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -141,7 +141,7 @@ func TestGraphRecordsFill(t *testing.T) {
 	})
 
 	t.Run("a nil graph is closed", func(t *testing.T) {
-		if _, err := graphfill.RecordsOf(nil, [][]byte{make([]byte, 16)}); err != database.ErrClosed {
+		if _, err := graphfill.RecordsOf(nil, [][]byte{make([]byte, 16)}, (*graphcache.Graph)(nil).NoPageInputs()); err != database.ErrClosed {
 			t.Errorf("err = %v, want database.ErrClosed", err)
 		}
 	})
@@ -158,7 +158,7 @@ func TestGraphRecordsFollowCommits(t *testing.T) {
 		b := f.r.Graph(srcB)
 		f.r.Person(srcB, artB, "Cy Day")
 		g := f.r.C.Graph()
-		got, err := graphfill.RecordsOf(g, [][]byte{f.graph, b})
+		got, err := graphfill.RecordsOf(g, [][]byte{f.graph, b}, g.NoPageInputs())
 		if err != nil || len(got) != 2 {
 			t.Fatalf("RecordsOf = %v, %v", got, err)
 		}
@@ -180,7 +180,7 @@ func TestGraphRecordsFollowCommits(t *testing.T) {
 		f := newFamily(t)
 		empty := evidencegraphstest.Create(t, f.r.C, evidencelayertest.UserID, f.r.Source.ID, "Empty", f.r.Artifact.ID)
 		g := f.r.C.Graph()
-		if _, err := graphfill.RecordsOf(g, [][]byte{empty.ID}); err != nil {
+		if _, err := graphfill.RecordsOf(g, [][]byte{empty.ID}, g.NoPageInputs()); err != nil {
 			t.Fatal(err)
 		}
 		if _, _, err := writes.Run(f.r.C, writes.Op{Action: "delete_evidence_graph", UserID: evidencelayertest.UserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
@@ -378,5 +378,29 @@ func TestGraphRecordsObservation(t *testing.T) {
 	var none *graphfill.GraphRecords
 	if _, _, ok := none.Observation(want.ID); ok {
 		t.Error("a nil records found an Observation")
+	}
+}
+
+// TestRecordsOfRecordsGraphs: RecordsOf records the graphs it is asked for on
+// the caller's recorder, and none on a recorder that records nothing.
+func TestRecordsOfRecordsGraphs(t *testing.T) {
+	f := newFamily(t)
+	srcB, _ := f.r.NewSource("Second")
+	b := f.r.Graph(srcB)
+	g := f.r.C.Graph()
+	in := g.PageInputs()
+	if _, err := graphfill.RecordsOf(g, [][]byte{f.graph, b}, in); err != nil {
+		t.Fatal(err)
+	}
+	_, graphs, _ := in.Lists()
+	if len(graphs) != 2 || !(bytes.Equal(graphs[0], f.graph) || bytes.Equal(graphs[1], f.graph)) || !(bytes.Equal(graphs[0], b) || bytes.Equal(graphs[1], b)) {
+		t.Fatalf("recorded graphs %x, want %x and %x", graphs, f.graph, b)
+	}
+	none := g.NoPageInputs()
+	if _, err := graphfill.RecordsOf(g, [][]byte{f.graph, b}, none); err != nil {
+		t.Fatal(err)
+	}
+	if _, graphs, _ := none.Lists(); len(graphs) != 0 {
+		t.Fatalf("a NoPageInputs recorder holds %x", graphs)
 	}
 }

@@ -613,7 +613,7 @@ func BenchmarkCacheSizes(b *testing.B) {
 				idx, err := evidencegraphs.IndexOf(g)
 				must(b, err)
 				for _, gr := range idx.All() {
-					_, err := graphfill.RecordsOf(g, [][]byte{gr.ID})
+					_, err := graphfill.RecordsOf(g, [][]byte{gr.ID}, g.NoPageInputs())
 					must(b, err)
 				}
 			})

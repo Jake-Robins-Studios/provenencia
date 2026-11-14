@@ -126,11 +126,13 @@ func init() {
 }
 
 // RecordsOf returns the records of each graph in graphIDs, keyed by graph id,
-// filling those not held in one fill. A nil graph is database.ErrClosed.
-func RecordsOf(g *graphcache.Graph, graphIDs [][]byte) (map[string]*GraphRecords, error) {
+// filling those not held in one fill, and records on in the graphs it was asked
+// for. A nil graph is database.ErrClosed.
+func RecordsOf(g *graphcache.Graph, graphIDs [][]byte, in *graphcache.PageInputs) (map[string]*GraphRecords, error) {
 	if g == nil {
 		return nil, database.ErrClosed
 	}
+	in.AddEvidenceGraphs(graphIDs...)
 	return Records.GetMany(g, graphIDs, func(missing [][]byte) (map[string]*GraphRecords, error) {
 		out := make(map[string]*GraphRecords, len(missing))
 		for _, id := range missing {

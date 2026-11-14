@@ -332,12 +332,12 @@ func TestClaimsSkipsWhatLeft(t *testing.T) {
 	}{
 		{"an empty graph's records", func(t *testing.T, f *fixture, s shape) *graphfill.GraphRecords {
 			empty := evidencegraphstest.SoleGraph(t, f.C, f.source("Empty").ID).ID
-			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{empty})
+			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{empty}, f.C.Graph().NoPageInputs())
 			must(t, err)
 			return got[string(empty)]
 		}},
 		{"records without the Subject", func(t *testing.T, f *fixture, s shape) *graphfill.GraphRecords {
-			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{s.baptisms.ID})
+			got, err := graphfill.RecordsOf(f.C.Graph(), [][]byte{s.baptisms.ID}, f.C.Graph().NoPageInputs())
 			must(t, err)
 			return got[string(s.baptisms.ID)]
 		}},

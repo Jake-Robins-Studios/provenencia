@@ -458,7 +458,7 @@ func newRecordReader(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*grap
 		}
 	}
 	var err error
-	if r.graphs, err = graphfill.RecordsOf(g, database.UniqueBlobIDs(graphIDs)); err != nil {
+	if r.graphs, err = graphfill.RecordsOf(g, database.UniqueBlobIDs(graphIDs), g.NoPageInputs()); err != nil {
 		return nil, err
 	}
 	if r.recs, err = sources.RecordsOf(g); err != nil {

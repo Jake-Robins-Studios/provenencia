@@ -320,7 +320,7 @@ func TestVerifyLeavesEntriesAlone(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if _, err := graphfill.RecordsOf(g, ids); err != nil {
+			if _, err := graphfill.RecordsOf(g, ids, g.NoPageInputs()); err != nil {
 				t.Fatal(err)
 			}
 			for _, id := range ids {

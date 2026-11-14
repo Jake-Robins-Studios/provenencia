@@ -92,7 +92,7 @@ func claims(c *database.Catalog, n *graphcache.Node) ([]ClaimGroup, error) {
 			graphIDs = append(graphIDs, m.GraphID)
 		}
 	}
-	records, err := graphfill.RecordsOf(g, graphIDs)
+	records, err := graphfill.RecordsOf(g, graphIDs, g.NoPageInputs())
 	if err != nil {
 		return nil, err
 	}

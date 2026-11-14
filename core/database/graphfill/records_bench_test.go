@@ -32,7 +32,7 @@ func BenchmarkGraphRecords(b *testing.B) {
 	heap := databasetest.HeapDelta(func() {
 		start := time.Now()
 		for i := 1; i <= evidencegraphstest.ScaleGraphs; i++ {
-			if _, err := graphfill.RecordsOf(g, [][]byte{databasetest.BenchID(3, i)}); err != nil {
+			if _, err := graphfill.RecordsOf(g, [][]byte{databasetest.BenchID(3, i)}, g.NoPageInputs()); err != nil {
 				b.Fatal(err)
 			}
 		}
