@@ -98,10 +98,10 @@ const (
 	ceilingEditEventOf500   = 250 * time.Millisecond
 	ceilingEditFatherOf2000 = 250 * time.Millisecond
 	// decided: S16-32 D-8. A commit that moves a key scans every held Subject's
-	// lookup keys once: 64 graphs, one of 10,000 Subjects, 7 keys each is about
-	// 200 ms by the scratch program of the plan's Current state at the planning
-	// machine's rate and a few milliseconds here; the ceiling catches a slip to
-	// a scan per moved key.
+	// lookup keys once. The tested shape is 63 graphs of 100 Subjects and one of
+	// 10,000, 7 keys each: about 5 ms at the planning machine's rate (64 graphs
+	// of 10,000 would be about 200 ms). The ceiling catches a slip to a scan per
+	// moved key.
 	ceilingForgetCandidates = 100 * time.Millisecond
 )
 
