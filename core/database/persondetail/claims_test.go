@@ -3,6 +3,7 @@ package persondetail_test
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/mendahu/provenencia/core/database"
@@ -277,12 +278,20 @@ func TestClaimsMissingAndEmpty(t *testing.T) {
 func TestClaimsWarmReadIssuesNoQuery(t *testing.T) {
 	f := newFixture(t)
 	s := f.burialsAndBaptisms()
-	first := f.claims(s.person.ID)
+	firstIn, secondIn := f.C.Graph().PageInputs(), f.C.Graph().PageInputs()
+	first, err := persondetail.Claims(f.C, s.person.ID, firstIn)
+	must(t, err)
 	var n int
 	f.C.Graph().SetQueryCounterForTest(func() { n++ })
-	second := f.claims(s.person.ID)
+	second, err := persondetail.Claims(f.C, s.person.ID, secondIn)
+	must(t, err)
 	if n != 0 {
 		t.Fatalf("the warm read issued %d queries", n)
+	}
+	h1, g1, s1 := firstIn.Lists()
+	h2, g2, s2 := secondIn.Lists()
+	if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+		t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 	}
 	if len(second) != len(first) {
 		t.Fatalf("second read %d groups, first %d", len(second), len(first))

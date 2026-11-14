@@ -556,7 +556,8 @@ func TestForEntityQueryCountIsConstant(t *testing.T) {
 	}
 	var n int
 	g.SetQueryCounterForTest(func() { n++ })
-	_, err := conclusiondetails.ForEntity(f.C, hs, f.C.Graph().PageInputs())
+	smallIn := f.C.Graph().PageInputs()
+	_, err := conclusiondetails.ForEntity(f.C, hs, smallIn)
 	must(t, err)
 	smallN := n
 	n = 0
@@ -566,12 +567,22 @@ func TestForEntityQueryCountIsConstant(t *testing.T) {
 		t.Fatalf("graph queries: %d for a small Person, %d for a big one", smallN, n)
 	}
 	selects := databasetest.CountSelects(t, f.C)
+	warmIn := f.C.Graph().PageInputs()
 	for _, h := range [][]byte{hs, hb} {
-		_, err = conclusiondetails.ForEntity(f.C, h, f.C.Graph().PageInputs())
+		in := f.C.Graph().PageInputs()
+		if bytes.Equal(h, hs) {
+			in = warmIn
+		}
+		_, err = conclusiondetails.ForEntity(f.C, h, in)
 		must(t, err)
 	}
 	if selects.N() != 0 {
 		t.Fatalf("a second read prepared %d SELECTs", selects.N())
+	}
+	h1, g1, s1 := smallIn.Lists()
+	h2, g2, s2 := warmIn.Lists()
+	if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+		t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 	}
 }
 

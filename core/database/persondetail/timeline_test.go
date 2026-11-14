@@ -353,15 +353,28 @@ func TestPersonEventsQueryCount(t *testing.T) {
 		u := w.event("U", vocabkey.EventBurial, 1890)
 		w.k.Join(ned, u, "subject")
 		w.k.Join(pat, u, "witness")
-		first, _ := w.events(pat)
+		firstIn, secondIn := w.c.Graph().PageInputs(), w.c.Graph().PageInputs()
+		firstTL, _, err := persondetail.PersonEvents(w.c, pat, firstIn)
+		if err != nil {
+			t.Fatal(err)
+		}
 		var queries int
 		w.c.Graph().SetQueryCounterForTest(func() { queries++ })
-		second, _ := w.events(pat)
+		secondTL, _, err := persondetail.PersonEvents(w.c, pat, secondIn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, second := firstTL.Events, secondTL.Events
 		if queries != 0 {
 			t.Fatalf("a second read issued %d graph queries", queries)
 		}
 		if len(first) != 2 || !reflect.DeepEqual(first, second) {
 			t.Fatalf("second read differs:\n%v\n%v", first, second)
+		}
+		h1, g1, s1 := firstIn.Lists()
+		h2, g2, s2 := secondIn.Lists()
+		if !reflect.DeepEqual(h1, h2) || !reflect.DeepEqual(g1, g2) || !reflect.DeepEqual(s1, s2) {
+			t.Fatalf("the warm read's inputs differ from the first's:\n%x\n%x", h1, h2)
 		}
 	})
 	t.Run("AC-2.2", func(t *testing.T) {
