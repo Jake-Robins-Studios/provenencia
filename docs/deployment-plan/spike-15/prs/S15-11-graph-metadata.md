@@ -1,9 +1,9 @@
 # S15-11 — Evidence graphs show their metadata
 
-**Status:** Planned
+**Status:** Landed in [#834](https://github.com/mendahu/provenencia/pull/834) (2026-11-14)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/S15-D5-evidence-graph-form.review.md)), board agreed 2026-11-14
+**Brief:** [S15-D5](../design/archive/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/archive/S15-D5-evidence-graph-form.review.md)), board agreed 2026-11-14
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, rows "Evidence graphs" (g-values, g-values-wide, g-read-failed) and "Evidence graph form" (gf-meta-*). Frame map: brief 1a/1b → g-values/g-values-wide; 2 → gf-meta-add; 3a → gf-meta-edit; 3b → gf-meta-addrow; 4 → gf-meta-nosugg; 5 → gf-meta-discard; 6 → gf-meta-saving, gf-meta-refused, gf-meta-openfield; 7a → gf-meta-sixty; 7b → gf-meta-long; 8 → g-read-failed. **gf-meta-narrow is not built** (no one-column fallback, user 2026-11-14). Open the link in a browser; if you cannot, §6 macOS and D-9 describe every frame
 **Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-36 (landed #810), S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-D5
 **Blocks:** S15-39
@@ -337,3 +337,13 @@ None.
 
 **Title:** S15-11 — Evidence graphs show their metadata
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-11-graph-metadata.md`.
+
+## Landed
+
+- `CatalogQueryRegistryTests.metadataBoardPatchIgnoresOwnersItCannotPlace` listed a graph owner as one the page cannot place, which D-3 reverses (a graph's rows are always stored). The test now lists an unknown Artifact and a Citation owner, and `metadataBoardPatchStoresAGraphsRows` pins D-3's graph case.
+- `SourcePageModel.metadataRows(for:)` is a one-line pass to `SourcePageContext.metadataRows(for:)`, so the Artifact row can read its rows now that `SourceArtifactsSection.copyDetails(for:)` is gone (the section's context is private); the graph row reads `model.graphs.details(for:)`, as D-12 says.
+- `FakeStore.createEvidenceGraphRows` (new) scripts the rows a create answers, because the fake makes the new graph's id and a test cannot script `metadataWriteResults` for it beforehand (T-5).
+- The graph form's name-required stop also asks the body to scroll to the top (D-5 names only the save-error stops).
+- `SourceGraphsSection.openEdit(id:at:)` returns while `isOpeningAdd`, as D-10 says; `SourceGraphsSection.openAdd()` also returns nil when the Source has no Artifact (`canAdd`).
+- The brief's review log moved to `design/archive/` with the brief; the links inside both files were rebased.
+- The manual check (section 10) was not run by the implementer; the Swift and Go checks and `scripts/check-pr.sh` pass.
