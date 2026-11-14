@@ -109,14 +109,23 @@ final class SourceGraphFormModel {
     /// `SourceArtifactGraphLinks.swift`.
     var locked: [String: String] { locks.locked(by: \.artifactID) }
 
-    /// The locked Artifacts that Citations need, with those Citations, in page
-    /// order: the Kept linked group lists Citations, so a lock with none (the
-    /// graph's last Artifact) shows only on its row.
-    var keptLinked: [(artifact: CatalogArtifact, block: CatalogEvidenceGraphUnlinkBlock)] {
-        artifacts.compactMap { artifact in
-            blocks.first { $0.artifactID == artifact.id && $0.citations.total > 0 }
-                .map { (artifact, $0) }
-        }
+    /// The locked Artifacts that Citations need: each gets an "Open in citation
+    /// composer" link under its row. A lock with none (the graph's last
+    /// Artifact) shows only its reason.
+    var composerLinkArtifactIDs: Set<String> {
+        Set(blocks.filter { $0.citations.total > 0 }.map(\.artifactID))
+            .intersection(artifacts.map(\.id))
+    }
+
+    /// This graph's citation composer with the Artifact selected. Nil on Add: no graph yet.
+    func composerLocation(artifactID: String) -> WorkspaceLocation? {
+        guard let graph else { return nil }
+        return .citationComposer(
+            sourceId: context.sourceID,
+            graphId: graph.id,
+            artifactId: artifactID,
+            sourceTitle: context.source?.title
+        )
     }
 
     /// The ids a save sends: the checked Artifacts in page order.

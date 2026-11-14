@@ -349,3 +349,4 @@ None.
 - The brief's review log moved to `design/archive/` with the brief; the links inside both files were rebased.
 - The manual check (section 10) was not run by the implementer; the Swift and Go checks and `scripts/check-pr.sh` pass.
 - The kept-linked callout above the graph form's Citation lists was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
+- The Kept linked list is replaced by a per-row "Open in citation composer" link under each locked row whose graph Citations use the Artifact (user, board, 2026-11-14); `PVControlSize.xs` (micro) is new for it, and the checklist cap is 352pt.

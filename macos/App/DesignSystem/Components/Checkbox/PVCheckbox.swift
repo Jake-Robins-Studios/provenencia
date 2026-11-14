@@ -144,6 +144,9 @@ struct PVCheckboxMark: View {
     var isIndeterminate: Bool = false
     var isLocked: Bool = false
 
+    /// The box's side, for content that lines up under a label beside it.
+    static let size: CGFloat = 16
+
     private var isOn: Bool { isChecked || isIndeterminate || isLocked }
 
     var body: some View {
@@ -157,7 +160,7 @@ struct PVCheckboxMark: View {
                 .foregroundStyle(PVColor.accentForeground)
                 .opacity(isOn ? 1 : 0)
         }
-        .frame(width: 16, height: 16)
+        .frame(width: Self.size, height: Self.size)
         .accessibilityHidden(true)
     }
 

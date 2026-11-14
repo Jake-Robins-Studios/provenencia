@@ -6421,6 +6421,20 @@ enum L10n {
             comment: "Caption under the Artifacts heading in the evidence graph form"
         )
 
+        static let graphFormOpenInComposer = LocalizedStringResource(
+            "sources.graphForm.openInComposer",
+            defaultValue: "Open in citation composer",
+            comment: "Link under a locked artifact row in the evidence graph form; closes the form and opens the graph's citation composer on that artifact"
+        )
+
+        static func graphFormOpenInComposerLabel(artifact: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.graphForm.openInComposerLabel",
+                defaultValue: "Open %@ in citation composer",
+                comment: "VoiceOver label of the Open in citation composer link; argument is the artifact's label"
+            ), artifact)
+        }
+
         static let graphFormMetadataLabel = LocalizedStringResource(
             "sources.graphForm.metadataLabel",
             defaultValue: "Evidence graph metadata",

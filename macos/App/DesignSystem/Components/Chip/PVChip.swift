@@ -177,6 +177,7 @@ private extension PVControlSize {
     /// Glyph beside a chip's label.
     var chipGlyphSize: CGFloat {
         switch self {
+        case .xs: return 11
         case .sm: return 12
         case .md: return 13
         case .lg: return 14

@@ -159,8 +159,26 @@ struct SourceGraphFormModelTests {
         #expect(form.draft.excludedArtifactIDs == ["a1", "a2", "a5", "a6"])
         #expect(form.locked == ["a3": "2 citations in this graph use this artifact"])
         #expect(form.blocks.count == 1)
-        #expect(form.keptLinked.map(\.artifact.id) == ["a3"])
+        #expect(form.composerLinkArtifactIDs == ["a3"])
         #expect(form.loadState == .ready)
+    }
+
+    @Test func composerLinkOpensTheArtifact() async throws {
+        let (model, store, _) = await makeModel(graphs: [smith()])
+        let form = try #require(await openSmithEdit(store: store, model: model))
+        #expect(form.composerLinkArtifactIDs == ["a3"])
+        let location = try #require(form.composerLocation(artifactID: "a3"))
+        #expect(location == .citationComposer(
+            sourceId: sourceID,
+            graphId: "g-smith",
+            artifactId: "a3",
+            sourceTitle: "1851 census"
+        ))
+
+        let (other, _, _) = await makeModel(graphs: [smith()])
+        await other.graphs.openAdd()
+        let add = try #require(other.graphs.form)
+        #expect(add.composerLocation(artifactID: "a3") == nil)
     }
 
     @Test func editLocksEveryBlock() async throws {
@@ -173,7 +191,7 @@ struct SourceGraphFormModelTests {
             "a3": "1 citation in this graph uses this artifact",
             "a4": "An evidence graph needs at least one artifact.",
         ])
-        #expect(form.keptLinked.map(\.artifact.id) == ["a3"])
+        #expect(form.composerLinkArtifactIDs == ["a3"])
         #expect(form.checkedArtifactIDs == ["a3", "a4"])
 
         let (other, otherStore, _) = await makeModel(graphs: [smith()])
@@ -181,7 +199,7 @@ struct SourceGraphFormModelTests {
             unlinkBlock("a4", graphID: "g-smith", citations: 0, reason: .lastArtifact),
         ]))
         #expect(lastOnly.locked.keys.sorted() == ["a4"])
-        #expect(lastOnly.keptLinked.isEmpty)
+        #expect(lastOnly.composerLinkArtifactIDs.isEmpty)
     }
 
     @Test func createPrefillsTheArtifactsInNoGraph() async throws {

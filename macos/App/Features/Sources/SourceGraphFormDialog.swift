@@ -10,7 +10,6 @@ extension View {
 }
 
 private struct SourceGraphFormDialogModifier: ViewModifier {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Binding var model: SourceGraphFormModel?
 
     private var copy: PVFormDialogCopy {
@@ -44,21 +43,19 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
             scrollRequest: model.map { AnyHashable($0.scrollRequest) },
             onConfirm: { await $0.save() },
             form: { current in
-                SourceGraphForm(
-                    model: current,
-                    onNavigate: { navigation.go(to: $0) }
-                )
+                SourceGraphForm(model: current)
             }
         )
     }
 }
 
 /// The form body: the save error across the top, then two columns. Left: name,
-/// description and the metadata board. Right: the Artifacts the graph links and,
-/// on an edit, the Citations that keep some of them linked.
+/// description and the metadata board. Right: the Artifacts the graph links; a
+/// locked one that Citations use links to the citation composer.
 private struct SourceGraphForm: View {
     @Bindable var model: SourceGraphFormModel
-    let onNavigate: (WorkspaceLocation) -> Void
+    @Environment(WorkspaceNavigation.self) private var navigation
+    @Environment(\.pvSheetClose) private var close
 
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
@@ -88,9 +85,6 @@ private struct SourceGraphForm: View {
                         accessibilityIdentifierPrefix: "sources.graphForm"
                     ) {
                         checklist
-                    }
-                    if model.loadState == .ready, !model.keptLinked.isEmpty {
-                        keptLinked
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -156,6 +150,15 @@ private struct SourceGraphForm: View {
                 isDisabled: model.isSaving,
                 locked: model.locked,
                 description: L10n.Sources.graphFormArtifactsHint,
+                lockedLink: PVChecklistLockedLink(
+                    title: L10n.Sources.graphFormOpenInComposer,
+                    accessibilityLabel: { L10n.Sources.graphFormOpenInComposerLabel(artifact: $0) },
+                    shows: { model.composerLinkArtifactIDs.contains($0) },
+                    action: { id in
+                        guard let location = model.composerLocation(artifactID: id) else { return }
+                        close(then: { navigation.go(to: location) })
+                    }
+                ),
                 accessibilityIdentifierPrefix: "sources.graphForm.artifacts"
             )
             if model.needsArtifact {
@@ -165,19 +168,5 @@ private struct SourceGraphForm: View {
                     .accessibilityIdentifier("sources.graphForm.noneChecked")
             }
         }
-    }
-
-    private var keptLinked: some View {
-        PVDeleteImpactGroupStack {
-            ForEach(model.keptLinked, id: \.artifact.id) { kept in
-                PVDeleteImpactGroupList(
-                    title: kept.artifact.displayTitle,
-                    group: kept.block.citations,
-                    onNavigate: onNavigate
-                )
-            }
-        }
-        .disabled(model.isSaving)
-        .accessibilityIdentifier("sources.graphForm.keptLinked")
     }
 }

@@ -22817,6 +22817,30 @@
         }
       }
     },
+    "sources.graphForm.openInComposer": {
+      "comment": "Link under a locked artifact row in the evidence graph form; closes the form and opens the graph's citation composer on that artifact",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in citation composer"
+          }
+        }
+      }
+    },
+    "sources.graphForm.openInComposerLabel": {
+      "comment": "VoiceOver label of the Open in citation composer link; argument is the artifact's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open %@ in citation composer"
+          }
+        }
+      }
+    },
     "sources.graphForm.metadataLabel": {
       "comment": "Label of the metadata board in the evidence graph form",
       "extractionState": "manual",

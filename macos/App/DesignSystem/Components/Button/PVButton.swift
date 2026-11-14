@@ -9,11 +9,12 @@ enum PVButtonVariant {
 
 /// Shared control size for buttons, inputs, and selects.
 enum PVControlSize {
-    case sm, md, lg
+    /// Micro text; the `link` variant's smallest size (a link under a row).
+    case xs, sm, md, lg
 
     var height: CGFloat {
         switch self {
-        case .sm: return PVSpacing.controlHeightSmall
+        case .xs, .sm: return PVSpacing.controlHeightSmall
         case .md: return PVSpacing.controlHeightMedium
         case .lg: return PVSpacing.controlHeightLarge
         }
@@ -21,6 +22,7 @@ enum PVControlSize {
 
     var horizontalPadding: CGFloat {
         switch self {
+        case .xs: return 8
         case .sm: return 10
         case .md: return 14
         case .lg: return 20
@@ -28,11 +30,16 @@ enum PVControlSize {
     }
 
     var font: Font {
-        self == .sm ? PVFont.body(size: PVTypeScale.caption) : PVFont.body(size: PVTypeScale.bodySmall)
+        switch self {
+        case .xs: return PVFont.body(size: PVTypeScale.micro)
+        case .sm: return PVFont.body(size: PVTypeScale.caption)
+        case .md, .lg: return PVFont.body(size: PVTypeScale.bodySmall)
+        }
     }
 
     var buttonFont: Font {
         switch self {
+        case .xs: return PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.medium)
         case .sm: return PVFont.body(size: PVTypeScale.caption, weight: PVFontWeight.medium)
         case .md: return PVFont.body(size: PVTypeScale.bodySmall, weight: PVFontWeight.medium)
         case .lg: return PVFont.body(size: PVTypeScale.body, weight: PVFontWeight.medium)
@@ -42,6 +49,7 @@ enum PVControlSize {
     /// SF Symbol point size for leading / icon-only glyphs on this control size.
     var iconGlyphSize: CGFloat {
         switch self {
+        case .xs: 11
         case .sm: 13
         case .md: 15
         case .lg: 17
