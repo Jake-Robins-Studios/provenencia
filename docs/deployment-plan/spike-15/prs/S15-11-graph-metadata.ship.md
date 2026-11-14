@@ -100,160 +100,18 @@ Merged `origin/main` @ `b9b4cba14` (S16-21 plan docs only). Gate PASS against `b
 ## Round 2 — fix (user-approved)
 Head `b4148fecb`. Gate PASS (orchestrator run against `b9b4cba14`; `origin/main` unmoved). F-8 done: `artifactPencilDuringGraphAddReadKeepsOneForm` failed first (graph form opened beside the Artifact sheet), passes now. Orchestrator read the diff: `SourcePageContext.hasOpenOwnerForm` (supplied by `SourcePageModel.init`) is checked by `readSuggestionsForAdd` before and after the read; both `openAdd`s dropped their own form checks; `acceptsArtifactPageDrop` reads it. MNT-out-2 **Resolved**. MNT-12 nit fixed in the Landed note. No review round 3 (user approved the fix only).
 
-## Result
-Gate PASS · CI green · open: none · follow-ups: none · to user: — (MNT-out-2 answered: option a, fixed in F-8)
+## Fix plan 8 (user, 2026-11-14, manual check with screenshot)
+User: "The big container is vertically larger than the space that the 5 rows take up… The height of the container should be the height of its content, up to the maximum." Cause, read by the orchestrator: `PVChecklistFrame` (`PVChecklistRows.swift`) wraps its rows in a `ScrollView` with `.frame(maxHeight: 352)`; a `ScrollView` takes all the height offered, so every checklist (graph form Artifacts, Artifact sheet graphs, Copy Source) is 352pt tall whatever its row count. `PVFormDialog.formBody` (`PVFormDialog.swift:187-193`) already sizes its scroll view to its measured content with a cap.
 
-## Fix plan 2 (user, 2026-11-14: "Yes, fix it (a)" for MNT-out-2)
-
-**F-8 — One page-wide "an owner form is open" fact, checked after every Add read** (from MNT-out-2, option a)
-Files: `macos/App/Features/Sources/SourcePageContext.swift`, `SourcePageModel.swift`, `SourceGraphsSection.swift`, `SourceArtifactsSection.swift`, tests in `SourcePageModelTests.swift` (and `SourceGraphFormModelTests.swift` if the graph Add tests live there), plan Landed note.
-Failing test first: `artifactPencilDuringGraphAddReadKeepsOneForm` — hold the graph Add's suggestion read open the way `anEditSheetOpenedDuringTheReadIsKept` (`SourcePageModelTests.swift` ~2335) holds the Artifact one; while it is held, `model.artifacts.openSheet(artifactID:)` opens the Artifact sheet; let the read finish → `graphs.openAdd()` answers nil, `model.graphs.form == nil`, `model.artifacts.sheet != nil`.
+**F-21 — A checklist's box is as tall as its rows, up to 352pt** (user)
+Files: `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVChecklistRows.swift`, `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift`, one new small file under `macos/App/DesignSystem/` for the shared modifier (place it beside the closest existing scroll helper, e.g. where `pvScrollsRowIntoView` lives), README line for it, a test file. Skills: `add-ui-component`, `add-swift-test`.
+Failing test first: `checklistHeightFitsItsRows` — a pure function the frame uses, `PVFittedScrollHeight.height(content: CGFloat, cap: CGFloat) -> CGFloat` (or the helper's own name): content 180 / cap 352 → 180; 500 / 352 → 352; 0 / 352 → 0.
 Do:
-- `SourcePageContext` gets `var hasOpenOwnerForm: @MainActor () -> Bool = { false }` (doc: "True while any owner's form (Artifact sheet, graph form) is up; the page model supplies it"). `SourcePageModel.init` sets it once after the sections exist: `context.hasOpenOwnerForm = { [unowned self] in artifacts.sheet != nil || graphs.form != nil }` (use `weak` + `?? false` if `unowned` does not fit the file's style).
-- `readSuggestionsForAdd(level:)` returns nil when `hasOpenOwnerForm()` is true before the read, and again after the await (a form opened while it ran is not replaced, whichever section opened it). Update its doc comment.
-- Both sections' `openAdd()` drop their own post-await `guard form == nil` / `guard sheet == nil` and their pre-await own-form check (the helper now asks page-wide); keep `canAdd` in the graph one.
-- `acceptsArtifactPageDrop` replaces `graphs.form == nil` and `artifacts.sheet == nil` with `!context.hasOpenOwnerForm()`.
-- `anEditSheetOpenedDuringTheReadIsKept`, `secondAddWhileReadingOpensNothing`, `dropDuringGraphAddReadIsRefused`, `graphFormOpenRefusesDrop` keep passing unchanged.
-- Plan Landed note: replace the "Artifact pencil left unguarded" wording with one line: the page model supplies `hasOpenOwnerForm`, and `readSuggestionsForAdd` checks it before and after the read, so an edit opened during any Add read is kept and the Add opens nothing. While there, fix MNT-12 (the Landed line naming `isOpeningAdd` → `SourcePageContext.isOpeningForm`).
-Check: the new test fails first, then passes; `rg -n 'guard (form|sheet) == nil else \{ return nil \}' macos/App/Features/Sources` prints nothing; `rg -n 'graphs\.form == nil|artifacts\.sheet == nil' macos/App` prints only the `hasOpenOwnerForm` closure; scripts/check-pr.sh PASS.
-
-## Fix plan 3 (user, 2026-11-14, from the manual check)
-The user, looking at the Evidence graph form: the callout between the Artifact checklist and the Citation lists ("These artifacts stay linked: citations need them in this evidence graph.") is redundant with each locked row's reason ("N citations in this graph use this artifact"); remove it and put a small lock icon next to the reason text.
-
-**F-9 — Drop the kept-linked callout; the locked row's reason carries a lock** (user)
-Files: `macos/App/Features/Sources/SourceGraphFormDialog.swift`, `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, plan Landed note. Skills: `add-ui-component`, `add-localized-string`.
-Do:
-- `SourceGraphForm.keptLinked`: delete the `PVCallout(tone: .neutral, icon: .lock, message: …graphFormKeptLinkedMessage…)`. Keep the `PVDeleteImpactGroupStack` of Citation lists, the `.disabled(model.isSaving)` and the `sources.graphForm.keptLinked` identifier; drop the wrapping `VStack` if only the stack is left in it.
-- Delete `L10n.Sources.graphFormKeptLinkedMessage` and the `sources.graphForm.keptLinkedMessage` entry in `Localizable.xcstrings`.
-- `PVCheckbox.body`: when `isLocked` and there is a description, draw the description as an `HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space2)` (or the file's nearest small spacing token) of `PVIcon(.lock, size:)` sized to the micro caption (about 9pt; match how other components size an icon beside `PVTypeScale.micro` text if one does) in `PVColor.textMuted`, then the existing description text. The icon is decorative: `.accessibilityHidden(true)` (the box already speaks "Locked, <ref>"). Unlocked rows are unchanged. This is a design-system change: every locked checkbox gets it (the graph form's checklist and the Artifact sheet's graph links), which is the intent. Update the `PVCheckbox` doc comment's `isLocked` sentence to say the reason carries the lock too.
-- If a Preview in `PVArtifactChecklist.swift` or `PVCheckbox.swift` shows a locked row, it needs no change beyond rendering.
-- Plan Landed note: one bullet — the kept-linked callout was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
-Check: `rg -n 'keptLinkedMessage' macos` prints nothing; `rg -n 'isLocked' macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift` shows the new branch; existing tests touching `keptLinked` still pass; scripts/check-pr.sh PASS (localizable included).
-
-## Round 3 — fix (user request)
-Head `7e14596ff`. Gate PASS (orchestrator run against `b9b4cba14`; `origin/main` unmoved). F-9 done: kept-linked `PVCallout` and its string removed (Citation lists kept); `PVCheckbox` draws a decorative 9pt muted lock before a locked box's reason, so the graph form checklist and the Artifact sheet's graph links both show it. Orchestrator read the diff. No review round (user-directed copy/visual change).
-
-Gate PASS · CI green · open: none
-
-## Fix plan 4 (user, 2026-11-14: board updated after the manual check)
-Board: [Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), `project/Source.dc.html`, frame `gf-kept` (`dGf`, "10 · Graph form, Kept linked") and the S15-D5 decision note. Read by the orchestrator at board version `1794681071-6f49`:
-- No Kept linked list. A locked row whose graph Citations use the Artifact keeps its reason with the lock and gets an **"Open in citation composer"** link under it: kit link button, small, micro text, accent colour, no padding, indented to the label (`16 + space5`), its own element after the row (clicking never toggles the row). VoiceOver label "Open <artifact label> in citation composer".
-- Clicking it closes the form without saving, after the standard discard confirm when the form changed, then opens this graph's citation composer with that Artifact selected.
-- "The checklist scrolls in its own 352pt list (the board's one checklist cap, raised from 264pt; the Artifact sheet's graph list and Copy Source's Artifact list use it too)."
-(The same decision note still mentions a one-column fallback below 960pt; that stays unbuilt, per the user on 2026-11-14.)
-
-**F-10 — A locked row links to the citation composer; the Kept linked list goes** (user, board)
-Files: `macos/App/Features/Sources/SourceGraphFormDialog.swift`, `SourceGraphFormModel.swift`, `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVArtifactChecklist.swift` (and `PVChecklistRows.swift` if the row view lives there), `macos/App/Platform/L10n.swift`, `Localizable.xcstrings`, tests in `SourceGraphFormModelTests.swift`, plan Landed note. Skills: `add-ui-component`, `add-localized-string`, `add-swift-test`.
-Failing test first: `composerLinkOpensTheArtifact` (model level) — a graph form on an edit with a cited, locked Artifact `a3`: `form.composerLocation(artifactID: "a3")` is `.citationComposer(sourceId: <source>, graphId: <graph>, artifactId: "a3", …)` (fill `ref`/`title`/`sourceTitle` the way other callers of `WorkspaceLocation.citationComposer` in `Features/Sources` or `Features/EvidenceGraph` do); and `form.composerLinkArtifactIDs == ["a3"]` (only locked Artifacts with Citations, the set `keptLinked` already computes; an Artifact locked for another reason gets no link).
-Do:
-- `SourceGraphFormModel`: replace `keptLinked` with `composerLinkArtifactIDs: Set<String>` (same predicate: a block for the Artifact with `citations.total > 0`) and add `composerLocation(artifactID:) -> WorkspaceLocation?` (nil on Add, where there is no graph). Update the three existing tests that read `keptLinked` to read `composerLinkArtifactIDs`.
-- `PVArtifactChecklist`: one optional parameter for a per-row link under a locked row, e.g. `lockedLink: PVChecklistLockedLink? = nil` with `title: LocalizedStringResource`, `accessibilityLabel: (String) -> String` (artifact display title → spoken label), `shows: (String) -> Bool` (artifact id) and `action: (String) -> Void`. Render it after the locked row's checkbox, outside the checkbox's button: `PVButton(title, variant: .link, size: .sm)` at the micro size and accent tone the board shows, leading padding equal to the checkbox mark width + `PVSpacing.space5` so it lines up under the label. Rows without a link, and every existing caller (Copy Source, the Artifact sheet's graph links via `SourceArtifactGraphLinks`), are unchanged. If `PVButton` has no micro/zero-padding link style, add the smallest option to it rather than a local button.
-- `SourceGraphForm`: delete the `keptLinked` view and its `if model.loadState == .ready, !model.keptLinked.isEmpty` block, and drop `onNavigate` from `SourceGraphForm` if nothing else uses it. Pass `lockedLink` with `shows: { model.composerLinkArtifactIDs.contains($0) }` and an action that reads `@Environment(\.pvSheetClose)` and calls `close(then: { navigation.go(to: location) })` with `model.composerLocation(artifactID:)`, so a dirty form asks "Discard changes?" first (this is `PVSheetClose`'s contract). Update the `SourceGraphForm` doc comment (no more "the Citations that keep some of them linked").
-- Strings: `L10n.Sources.graphFormOpenInComposer` "Open in citation composer" and `graphFormOpenInComposerLabel(artifact:)` "Open %@ in citation composer", with comments.
-- `PVDeleteImpactGroupList` / `PVDeleteImpactGroupStack`: the form was their only caller outside `PVDeleteImpact.swift`. Per `add-ui-component`, take them back to private views of `PVDeleteImpact.swift` if no other caller is left, and remove "for in-form refusal lists" from `macos/App/DesignSystem/README.md:208`.
-- Plan Landed note: one bullet — the Kept linked list is replaced by a per-row "Open in citation composer" link (user, board, 2026-11-14).
-Check: test passes after failing first; `rg -n 'keptLinked' macos/App` prints nothing; `rg -n 'PVDeleteImpactGroupList' macos/App` prints only `PVDeleteImpact.swift`; scripts/check-pr.sh PASS.
-
-**F-11 — The checklist cap is 352pt** (user, board)
-Files: `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVChecklistRows.swift`.
-Do: `maxRowsHeight` 264 → 352, and the doc comment's "264pt cap" → "352pt cap". This one cap serves the graph form, the Artifact sheet's graph links and Copy Source, which the board wants.
-Check: `rg -n '264' macos/App/DesignSystem/Recipes/ArtifactChecklist` prints nothing; scripts/check-pr.sh PASS.
-
-**F-12 — An unlink block carries a Citation count, not Citation rows** (user, 2026-11-14: "check for any unused code that we can clean up")
-Sent to the round-4 implementer by message while it worked. Go `UnlinkBlock.Citations deleteimpact.Group` → `CitationCount int`; proto `EvidenceGraphUnlinkBlock` `citations = 2` → `int32 citation_count = 5` with `reserved 2; reserved "citations";`; Swift `CatalogEvidenceGraphUnlinkBlock.citationCount`; same hint wording through the existing resource; sweep for anything else that only served the list. Stop if any other caller reads the block's Citation rows.
-
-## Round 4 — fix (user request, board)
-Head `914f7b54d` (F-11 `4785a406a`, F-10 `e6e6b8844`, F-12 `914f7b54d`). Gate PASS; merged `origin/main` @ `3f1770056` (docs only), gate PASS again. Orchestrator read the diff.
-- F-10: `PVChecklistLockedLink` on `PVArtifactChecklist`; the graph form passes it, and its action is `pvSheetClose` then `navigation.go(to:)` (discard confirm when dirty; ignored while saving). `composerLinkArtifactIDs`, `composerLocation(artifactID:)`; test `composerLinkOpensTheArtifact`. `PVDeleteImpactGroupList`/`Stack` private again; README line trimmed. Deviation: `PVControlSize.xs` (micro text) added for the link, `PVCheckboxMark.size` shared, `PVChip` handles `.xs`. Failing-test-first not run separately for F-10.
-- F-11: `PVChecklistRows.maxRowsHeight` 352.
-- F-12: done as sent. Removed `UnlinkVia`, `CitationsUsingArtifactTx`, `queryCitationRows`, `citationRowsExist`, a `TestMembership` block and unused handler-test fixture fields. Kept with a caller: `deleteimpact.ListedGroup` (unpromote impact), `GoStore.mapDeleteImpactGroup`, `PVDeleteImpactPreviewData.listed`, `PVDeleteImpactCopy.heading(_:)`. No other reader of the rows.
-Nits (logged): `ORC-1 · core/database/evidencegraphs/evidencegraphs.go:65 · sqlCitationsUsing comment still says "The ref is selected for the order and dropped"` · `ORC-2 · Unlink's write-time check is now COUNT(*) where it was EXISTS; same index, negligible at Scale`
-No review round (user-directed; no round 3 without the user).
-
-Gate PASS · CI green · open: none
-
-## Round 3 — review (user, 2026-11-14: "Yes, review round 4")
-Scope `ea7e3184f...914f7b54d` (fix rounds 3's tail and 4: F-10, F-11, F-12). Reviewers: CON, MNT, UX (`macos/App/**`, strings), SEC+PRF (`api/ffi/**`, proto, `core/database/**` query). Skipped: none.
-
-SEC+PRF: no findings (bound, indexed count; field 2 reserved; no new sink). UX: Clean (one minor). MNT, CON: Changes needed. Process note: the MNT reviewer briefly ran `git checkout 914f7b54d` and back; the orchestrator confirmed the branch clean at `9f4f611a2`.
-
-| ID | Lens | Severity | Title | Decision | Evidence / reason |
-| --- | --- | --- | --- | --- | --- |
-| CON-1 | CON | major | `docs/catalog-deletes.md:91` still says the unlink preflight returns a `DeleteImpactGroup` of Citations; `source-layer-data-model.md:466` omits the count | Fix now → F-13 | verified both lines; F-12 changed the reply |
-| MNT-1 | MNT | major | `lockHint` gets its wording through a DeleteImpact via (`evidencegraphs.artifact_in_use`) that no group carries after F-12 | Fix now → F-14 | verified `SourceArtifactGraphLinks.swift:44`, `L10n.swift:8965`, `PVDeleteImpactTests.swift:208-209`; `UnlinkVia` removed in F-12 |
-| UX-1, MNT-out | UX | minor | "Open in citation composer" link stays enabled while saving and does nothing | Fix now → F-15 | verified: no `.disabled(isDisabled)` on the link; the old Kept linked stack had `.disabled(model.isSaving)` |
-| MNT-2 | MNT | minor | `PVControlSize.xs` is link-only but every sized control accepts it, undocumented | Fix now → F-16 | verified one caller (`PVArtifactChecklist.swift:162`); defect in code this PR adds |
-| MNT-3 | MNT | minor | Link indent copies `PVCheckbox`'s mark-to-label spacing | Fix now → F-17 | verified `PVCheckbox.swift:99` vs `PVArtifactChecklist.swift:156` |
-
-Nits (logged; MNT-4, MNT-5/CON-2/ORC-1, MNT-6, UX-2 ride along in F-16–F-18): `MNT-4 · DesignSystem/README.md:471 · ArtifactChecklist row omits PVChecklistLockedLink` · `MNT-5 · evidencegraphs.go:65-68 · stale "ref is selected" comment, unused c alias` · `CON-2 · evidencegraphs.go:64 · sqlCitationsUsing is now a count` · `MNT-6 · evidencegraphs_test.go:669 · _, _ = can be a bare call` · `UX-2 · L10n.swift:6501 · loading comment says "kept links"` · `CON-3 · S15-11 plan:37,119,143,209 · body still says 264pt / kept-linked list (Landed note covers; left as the plan's history)`
-
-### Fix plan 5
-
-**F-13 — The domain docs describe the count** (from CON-1)
-Files: `docs/catalog-deletes.md`, `docs/source-layer-data-model.md`.
-Do: `catalog-deletes.md:91` → "…returns one block per refused pair, with its graph, a reason code and, for `artifact_in_use`, how many of the graph's Citations are on the Artifact (`citation_count`; 0 for the graph's last link)." `source-layer-data-model.md:466`: in the `UnlinkImpact` clause, after "with its graph and reason", add "and, for a Citation reason, their count".
-Check: `rg -n 'DeleteImpactGroup. of Citations' docs` prints nothing; scripts/check-pr.sh PASS.
-
-**F-14 — The lock hint has its own count string** (from MNT-1)
-Files: `macos/App/Features/Sources/SourceArtifactGraphLinks.swift`, `macos/App/Platform/L10n.swift`, `Localizable.xcstrings`, `macos/ProvenenciaTests/PVDeleteImpactTests.swift`, a Sources test file. Skill: `add-localized-string`.
-Failing test first: `lockHintCountsCitations` (in the test file that already covers `lockHint`, or `SourcePageModelTests.swift`) — a block with `reason: .artifactInUse, citationCount: 1` → "1 citation in this graph uses this artifact"; 3 → "3 citations in this graph use this artifact". It passes today through the via table, so make it fail first by calling the new `L10n.Sources.graphLockCitations(count:)` that does not exist yet (compile failure counts).
-Do: add `L10n.Sources.graphLockCitations(count: Int) -> String`, a plural resource with the same English wording, following the file's existing plural-count helpers (e.g. how `badgeMoreCount` or another `%lld` plural is built). Key: `sources.graphLock.citations` (new key in the catalog with the one/other variations copied from `deleteImpact.via.evidenceGraphsArtifactInUse`). `lockHint` calls it when `citationCount > 0`. Remove the `"evidencegraphs.artifact_in_use"` entry from `viaFormats`, its catalog key `deleteImpact.via.evidenceGraphsArtifactInUse`, and its two rows in `PVDeleteImpactTests`. Check nothing else reads that via (`rg -n 'evidencegraphs.artifact_in_use|evidenceGraphsArtifactInUse' macos` — the apperr error-code mapping for the refusal message stays).
-Check: the new test passes; `rg -n 'evidenceGraphsArtifactInUse' macos` prints nothing; `rg -n 'heading\(via:' macos/App/Features` prints nothing; scripts/check-pr.sh PASS (localizable included).
-
-**F-15 — The composer link dims while the form saves** (from UX-1)
-Files: `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVArtifactChecklist.swift`.
-Do: add `.disabled(isDisabled)` on the locked-row link, as its neighbours are.
-Check: scripts/check-pr.sh PASS.
-
-**F-16 — `.xs` is documented as the link-only size** (from MNT-2, MNT-4)
-Files: `macos/App/DesignSystem/Components/Button/PVButton.swift`, `macos/App/DesignSystem/README.md`.
-Do: the `PVControlSize` doc and the `.xs` case doc say `.xs` is for the `link` variant only (micro text under a row); other controls treat it as `.sm` metrics. Add an `.xs` link to `PVButton`'s `#Preview`. README: in the control-size notes, the `.xs` rule; in the ArtifactChecklist row (line ~471), add `PVChecklistLockedLink` / `lockedLink`.
-Check: `rg -n '\.xs' macos/App/DesignSystem/README.md` shows the rule; scripts/check-pr.sh PASS.
-
-**F-17 — The checkbox publishes where its label starts** (from MNT-3)
-Files: `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift`, `PVArtifactChecklist.swift`.
-Do: add `static let labelLeading: CGFloat = PVCheckboxMark.size + PVSpacing.space5` on `PVCheckbox` (doc: "Where the label starts, from the box's leading edge"); the body's mark–label `HStack` uses `PVSpacing.space5` as before (the constant states the sum, it does not replace the spacing). The link's indent becomes `Self.thumbnailSize + PVSpacing.space5 + PVCheckbox.labelLeading`; fix the comment ("Thumbnail + gap + the checkbox's label start"). If `PVCheckboxMark.size` was made non-private only for this, make it private again.
-Check: `rg -n 'PVCheckboxMark.size' macos/App/DesignSystem/Recipes` prints nothing; scripts/check-pr.sh PASS.
-
-**F-18 — Nits riding along** (MNT-5, CON-2, MNT-6, UX-2)
-Files: `core/database/evidencegraphs/evidencegraphs.go`, `evidencegraphs_test.go`, `macos/App/Platform/L10n.swift`.
-Do: rename `sqlCitationsUsing` → `sqlCitationCount`, comment "How many of a graph's Citations are on an Artifact, with or without Observations.", drop the `c` alias. `evidencegraphs_test.go:669`: bare call. `L10n.swift:6501` loading comment → "while the locked Artifacts are read".
-Check: `rg -n 'sqlCitationsUsing' core` prints nothing; scripts/check-pr.sh PASS.
-
-## Round 5 — fix
-Head `435acceb2` (F-14 `8b13f6549`, F-13 `f86fbe018`, F-15+F-17 `977cac5ad`, F-16 `d0445f544`, F-18 `435acceb2`). Gate PASS (orchestrator run). All six done. Deviations: `PVCheckboxMark.size` is `fileprivate` (the constant's struct shares the file); `evidenceGraphsArtifactInUse` remains only as the apperr refusal message, as planned; F-14's test failed by compile error, not a separate run. CON-1 and MNT-1 **Resolved** (orchestrator read `catalog-deletes.md:91`, `lockHint`, and the removed via entry); UX-1, MNT-2, MNT-3 **Resolved**. No further review round: the user's next request follows.
-
-## Fix plan 6 (user, 2026-11-14: Artifact sheet in the graph form's two-column format)
-User: "I would like to swap the artifact one to use the same format… Can you add that scope to this PR and implement it as well? I hope we can unify some code." Then: "Just use the existing look exactly, and I'll update the board independently." No board frame; the graph form at head is the spec.
-
-**F-19 — The Artifact sheet is the graph form's two-column form; both share one layout**
-Files: `macos/App/Features/Sources/ArtifactSheet.swift`, `SourceGraphFormDialog.swift`, a new `macos/App/Features/Sources/SourceOwnerFormColumns.swift` (add it to the Xcode project the way the repo adds Swift files), plan Landed note and Scope, `completed.md` paragraph if it describes the Artifact sheet's width. Skills: `add-ui-component` (feature-private recipe with two callers).
-Do:
-- New `SourceOwnerFormColumns<Left: View, Right: View>`: the body both forms share. `static let dialogWidth: CGFloat = 880`. Init takes `saveError: String?`, `saveErrorTitle: LocalizedStringResource`, `saveErrorIdentifier: String`, `isSaving: Bool`, `@ViewBuilder left`, `@ViewBuilder right`. Body is exactly what `SourceGraphForm.body` draws today: `VStack(spacing: space6)` with the danger `PVCallout(announces: true)` when `saveError` is set, then `HStack(alignment: .top, spacing: space8)` of the left `VStack(spacing: space6)` (`.disabled(isSaving)`, `.frame(maxWidth: .infinity, alignment: .topLeading)`) and the right `VStack(spacing: space6)` (`.frame(maxWidth: .infinity, alignment: .topLeading)`). Doc comment: owner forms (Artifact sheet, Evidence graph form), two equal columns at every width, no fallback (user, 2026-11-14).
-- New `DraftMetadataBoardField` in the same file: `PVField(label:)` around `MetadataBoardView(board:, placement: .form, accessibilityIdentifierPrefix:, onClear: { id in Task { _ = await board.requestClear(fieldID: id) } })` with the "A draft board clears with no confirm." comment. Both `SourceGraphForm.metadata` and `ArtifactSheetForm.copyDetails` use it (each keeps its own `.id(...)` and label).
-- `SourceGraphForm.body` uses `SourceOwnerFormColumns` (left: fields, metadata; right: the load area and checklist) and the dialog uses `SourceOwnerFormColumns.dialogWidth`. No visible change.
-- `ArtifactSheet`: `width: SourceOwnerFormColumns.dialogWidth`. Body: `SourceOwnerFormColumns(saveError: model.saveError, saveErrorTitle: L10n.Sources.artifactCardSaveErrorTitle, saveErrorIdentifier: "\(prefix).saveError", isSaving: model.isSaving)`. Left: the file field (Add only), the label/description fields, then Copy details (`DraftMetadataBoardField`). Right: `graphLinks`. Drop the per-section `.disabled(model.isSaving)` the left column now covers (graph links keep their own `isDisabled`). Keep the scroll ids: `.top` on the left column's first block (file or fields), `.graphs` on `graphLinks`, `.copyDetails` on the copy details field; `opensAt`/`scrollTarget` behave as before. The right column is drawn even when `graphLinks` shows nothing (two columns always). Keep each form's own labels, hints, markers and line limits.
-- Update both forms' doc comments (the Artifact sheet's body: two columns; left file/label/description/copy details, right its Evidence graphs).
-- Same-pass: if any other code path still reads the old 560 width for the Artifact sheet, or a doc names the Artifact sheet as 560pt (`rg -n '560' macos/App/Features/Sources docs/*.md .agents`), update it; report what you found.
-- Plan: add the Artifact sheet layout to the Landed note as user-added scope (2026-11-14), and a Manual check line: open Add artifact and Edit on an Artifact; two columns at 880pt; Copy details "+n more" scrolls to Copy details; the pencil on the graph count scrolls to Evidence graphs.
-Check: `rg -n 'width: 560' macos/App/Features/Sources` prints nothing; `rg -n 'MetadataBoardView\(' macos/App/Features/Sources` prints only `SourceOwnerFormColumns.swift` and `SourcePage*` (the Source's own live board); `rg -n 'HStack\(alignment: .top, spacing: PVSpacing.space8\)' macos/App/Features/Sources` prints only the new file; existing `ArtifactSheetModelTests`/`SourceGraphFormModelTests` pass; scripts/check-pr.sh PASS.
-
-## Round 6 — fix
-Head `69ef1cf34`. Gate PASS (implementer). F-19 done: `SourceOwnerFormColumns` and `DraftMetadataBoardField` in `SourceOwnerFormColumns.swift`; both forms use them; Artifact sheet 880pt two columns. No project edit needed (synchronized folder). Orchestrator read the diff and found two defects in it:
-
-| ID | Lens | Severity | Title | Decision | Evidence / reason |
-| --- | --- | --- | --- | --- | --- |
-| ORC-3 | UX | major | Artifact sheet's `.top` scroll id now marks only the file/fields block, below the save-error callout; `scrollToTop()` on a save stop can leave the callout above the visible area | Fix now → F-20 | `ArtifactSheet.swift`: `.id(Section.top)` on the inner left `VStack`; `ArtifactSheetModel.scrollToTop()` at lines 282–333; before F-19 the callout sat inside the `.top` block; the graph form marks the whole body |
-| ORC-4 | MNT | minor | `dialogWidth` on a generic type forces `SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth` at both callers | Fix now → F-20 | both modifiers |
-
-### Fix plan 7
-**F-20 — The Artifact sheet's top target includes its save error; the width lives on a plain type** (from ORC-3, ORC-4)
-Files: `ArtifactSheet.swift`, `SourceGraphFormDialog.swift`, `SourceOwnerFormColumns.swift`.
-Do: move `.id(ArtifactSheetModel.Section.top)` from the left column's inner `VStack` to the `SourceOwnerFormColumns(...)` view itself, as `SourceGraphForm` does (the inner `VStack` can go if it only existed for the id). Move the width to a non-generic home in the same file, `enum SourceOwnerForm { static let dialogWidth: CGFloat = 880 }` (doc: the width of the dialog holding owner-form columns), delete `SourceOwnerFormColumns.dialogWidth`, and both modifiers use `SourceOwnerForm.dialogWidth`.
-Check: `rg -n 'EmptyView, EmptyView' macos/App` prints nothing; `rg -n 'Section.top' macos/App/Features/Sources/ArtifactSheet.swift` shows it on the columns view; scripts/check-pr.sh PASS.
-
-## Round 7 — fix
-Head `118717abe`. Gate PASS (orchestrator run; `origin/main` unmoved). F-20 done: `.id(Section.top)` on the `SourceOwnerFormColumns` view (save error included); `SourceOwnerForm.dialogWidth`. ORC-3, ORC-4 **Resolved** (orchestrator read `ArtifactSheet.swift:88`). The two-column Artifact sheet (F-19, F-20) has had no reviewer; the user may ask for one.
+- Extract the dialog body's sizing into one modifier, e.g. `View.pvScrollFittingContent(maxHeight:)` applied to a `ScrollView` whose content reports its height: it measures the content with `.onGeometryChange(for: CGFloat.self) { $0.size.height }` and sets `.frame(height: min(measured, maxHeight))`. Because the measurement sits on the content inside the ScrollView, shape the API so the caller hands it the content (e.g. a `PVFittedScrollView(maxHeight:) { content }` view that returns the ScrollView, plus a binding or callback for callers that need the measured height). `PVFormDialog.formBody` keeps its `bodyHeight` (its first-scroll gate reads it), so it may need the variant that reports the height out; keep its behaviour identical.
+- `PVChecklistFrame`: its rows use the shared piece with `maxHeight: Self.maxRowsHeight`. The rows' `LazyVStack` becomes a `VStack` if a lazy stack does not report its full height (a checklist is at most a Source's Artifacts or graphs; at Scale 60 rows, cheap). Add `.scrollBounceBehavior(.basedOnSize)` so a list that fits does not bounce.
+- Same-pass: search for other `ScrollView` + measured-height + `min(` caps by body (`rg -n 'onGeometryChange\(for: CGFloat.self\) \{ \$0.size.height \}' macos/App`) and move each that matches the shape onto the shared piece; report each hit and whether it moved.
+- No visible change to the dialog body. Every checklist is now as tall as its rows up to 352pt.
+Check: the test passes; `rg -n 'frame\(maxHeight: Self.maxRowsHeight\)' macos/App` prints nothing; scripts/check-pr.sh PASS. Manual: the Artifact sheet with five graphs shows a box that ends under the fifth row.
 
 ## Result
-Gate PASS · CI green · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: F-21 · follow-ups: none · to user: —
