@@ -42,7 +42,7 @@ private struct ArtifactSheetModifier: ViewModifier {
         content.pvFormDialog(
             item: $model,
             copy: copy,
-            width: SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth,
+            width: SourceOwnerForm.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
@@ -71,13 +71,10 @@ private struct ArtifactSheetForm: View {
             saveErrorIdentifier: "\(prefix).saveError",
             isSaving: model.isSaving
         ) {
-            VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                if model.isCreate {
-                    fileField
-                }
-                fields
+            if model.isCreate {
+                fileField
             }
-            .id(ArtifactSheetModel.Section.top)
+            fields
             DraftMetadataBoardField(
                 label: L10n.Sources.artifactCopyDetailsLabel,
                 board: model.board,
@@ -88,6 +85,7 @@ private struct ArtifactSheetForm: View {
             graphLinks
                 .id(ArtifactSheetModel.Section.graphs)
         }
+        .id(ArtifactSheetModel.Section.top)
     }
 
     private var fileField: some View {

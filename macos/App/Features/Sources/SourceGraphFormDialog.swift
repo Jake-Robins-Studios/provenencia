@@ -33,7 +33,7 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
         content.pvFormDialog(
             item: $model,
             copy: copy,
-            width: SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth,
+            width: SourceOwnerForm.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),

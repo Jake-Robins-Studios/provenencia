@@ -1,13 +1,16 @@
 import SwiftUI
 
+/// Constants the owner forms share.
+enum SourceOwnerForm {
+    /// The width of the dialog holding owner-form columns.
+    static let dialogWidth: CGFloat = 880
+}
+
 /// The body both owner forms share (the Artifact sheet and the Evidence graph form): the save
 /// error across the top, then two equal columns at every width, with no fallback (user,
 /// 2026-11-14). The left column is disabled while the form saves; a caller disables its right
 /// column's controls itself.
 struct SourceOwnerFormColumns<Left: View, Right: View>: View {
-    /// The width of the dialog that holds the two columns.
-    static var dialogWidth: CGFloat { 880 }
-
     let saveError: String?
     let saveErrorTitle: LocalizedStringResource
     let saveErrorIdentifier: String
