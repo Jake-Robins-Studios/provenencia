@@ -26,7 +26,7 @@ func GetConclusionDetail(in []byte) ([]byte, error) {
 	}
 	out := &engine.ConclusionDetail{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		inputs := c.Graph().NoPageInputs()
+		inputs := c.Graph().PageInputs()
 		d, err := conclusiondetails.ForEntity(c, entityID, inputs)
 		if err != nil {
 			return err
@@ -36,7 +36,11 @@ func GetConclusionDetail(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		return attachPictures(c, d, lead, out)
+		if err := attachPictures(c, d, lead, out); err != nil {
+			return err
+		}
+		out.Inputs = pageInputsProto(inputs)
+		return nil
 	})
 	if err != nil {
 		return nil, err

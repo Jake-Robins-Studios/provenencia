@@ -27,7 +27,8 @@ func ListPersonClaims(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPersonClaimsResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		groups, err := persondetail.Claims(c, entityID, c.Graph().NoPageInputs())
+		inputs := c.Graph().PageInputs()
+		groups, err := persondetail.Claims(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
@@ -76,6 +77,7 @@ func ListPersonClaims(in []byte) ([]byte, error) {
 			}
 			out.Groups = append(out.Groups, group)
 		}
+		out.Inputs = pageInputsProto(inputs)
 		return nil
 	})
 	if err != nil {
@@ -97,7 +99,8 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 	}
 	out := &engine.GetPersonFamilyResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		family, siblings, summaries, err := persondetail.PersonFamily(c, entityID, c.Graph().NoPageInputs())
+		inputs := c.Graph().PageInputs()
+		family, siblings, summaries, err := persondetail.PersonFamily(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
@@ -145,6 +148,7 @@ func GetPersonFamily(in []byte) ([]byte, error) {
 			}
 			out.OriginSiblings = append(out.OriginSiblings, o)
 		}
+		out.Inputs = pageInputsProto(inputs)
 		return nil
 	})
 	if err != nil {
@@ -167,7 +171,8 @@ func ListPersonEvents(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPersonEventsResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		timeline, summaries, err := persondetail.PersonEvents(c, entityID, c.Graph().NoPageInputs())
+		inputs := c.Graph().PageInputs()
+		timeline, summaries, err := persondetail.PersonEvents(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
@@ -183,6 +188,7 @@ func ListPersonEvents(in []byte) ([]byte, error) {
 			out.Events = append(out.Events, e)
 		}
 		out.Birth, out.Death = lifeMarkerProto(timeline.Birth), lifeMarkerProto(timeline.Death)
+		out.Inputs = pageInputsProto(inputs)
 		return nil
 	})
 	if err != nil {
@@ -205,11 +211,13 @@ func GetPersonRecordLinks(in []byte) ([]byte, error) {
 	}
 	out := &engine.GetPersonRecordLinksResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		links, err := persondetail.RecordLinks(c, entityID, c.Graph().NoPageInputs())
+		inputs := c.Graph().PageInputs()
+		links, err := persondetail.RecordLinks(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
 		out = recordLinksProto(links)
+		out.Inputs = pageInputsProto(inputs)
 		return nil
 	})
 	if err != nil {
