@@ -162,8 +162,9 @@ struct PVArtifactChecklist: View {
                 PVButton(lockedLink.title, variant: .link, size: .xs) { lockedLink.action(artifact.id) }
                     .accessibilityLabel(Text(verbatim: lockedLink.accessibilityLabel(artifact.displayTitle)))
                     .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(artifact.id).link")
-                    // Row padding + thumbnail + gap + box + gap: under the label.
-                    .padding(.leading, Self.thumbnailSize + PVSpacing.space5 + PVCheckboxMark.size + PVSpacing.space5)
+                    .disabled(isDisabled)
+                    // Thumbnail + gap + the checkbox's label start.
+                    .padding(.leading, Self.thumbnailSize + PVSpacing.space5 + PVCheckbox.labelLeading)
                     .padding(.top, PVSpacing.space2)
             }
         }

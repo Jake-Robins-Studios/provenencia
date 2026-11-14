@@ -92,6 +92,9 @@ struct PVCheckbox: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Where the label starts, from the box's leading edge.
+    static let labelLeading: CGFloat = PVCheckboxMark.size + PVSpacing.space5
+
     var body: some View {
         Button {
             isChecked.toggle()
@@ -145,7 +148,7 @@ struct PVCheckboxMark: View {
     var isLocked: Bool = false
 
     /// The box's side, for content that lines up under a label beside it.
-    static let size: CGFloat = 16
+    fileprivate static let size: CGFloat = 16
 
     private var isOn: Bool { isChecked || isIndeterminate || isLocked }
 
