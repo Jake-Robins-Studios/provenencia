@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-24 — Person, Event and Place reads report their inputs
+
+**Landed 2026-11-14** in [#839](https://github.com/mendahu/provenencia/pull/839). Nothing a researcher sees changes. The detail of a Person, Event or Place, and a Person's claims, family, timeline and record links, return `inputs` beside their value: the handles they read, the Evidence graphs whose records they show and the Sources whose words they show, as three wire lists. A read records through the new `graphcache.PageInputs` (handles through an `InputScope`, so `Node`, `Follow` and `Cached` record what they read; `graphfill.RecordsOf` records the graphs it is asked for), and adds only ids taken from rows it holds; the kinship read records at its two neighbour loads. `GoStore` decodes the lists onto each value (`CatalogPageInputs`; the claims value is `CatalogPersonClaims`); nothing reads them until S16-25.
+
 ## S16-21 — Promote's alignment reads a canon view and the place entries
 
 **Landed 2026-11-14** in [#836](https://github.com/mendahu/provenencia/pull/836). Nothing a researcher sees changes. `Align` reads the canon through `graphalign.CanonView` with `kinship.Link`s (`CanonEdge` is gone), and Promote's place loop check reads the filed `part_of` and `succeeded_by` links from the place entries (succession in its own `conclusionsummaries.placeSuccessions` entry) one level at a time instead of from the canon walk's edges; warm proposals are unchanged at 4,000 and 16,000 persons.

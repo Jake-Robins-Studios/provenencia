@@ -1,6 +1,6 @@
 # S16-24 — Person, Event and Place reads report their inputs
 
-**Status:** Planned
+**Status:** Landed in [#839](https://github.com/mendahu/provenencia/pull/839) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every page draws the same values; the reads only gain a list the app does not read yet)
@@ -14,6 +14,8 @@
 **Context:** [design § Swift](../cache-architecture.md#swift) ("Values report their inputs"); [design § A cache a composer reads hands its inputs to the row](../cache-architecture.md#a-cache-a-composer-reads-hands-its-inputs-to-the-row); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Conclusion keys"; working rules: "(Batch 2) The point of this batch is simpler code" (as clarified 2026-11-13), "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 2) Every cache names the signal that updates it, and updates exactly", "(Batch 2) Orders are defined and results do not move"; goal bar 14
 **Planned:** 2026-11-14 against `main` @ `43fd47e`
 **Review:** [`S16-24-reads-report-inputs.review.md`](S16-24-reads-report-inputs.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Ready with changes; every finding Fixed, nothing To user; Planned
+
+**Landed.** Differences from the plan: since the plan's base S16-21 split a place's succession links into their own entry (`placeSuccession`), so `AttachPlaceRelationships` also records that entry's `inputs` (D-4 named the page and own entries), which AC-1.3 needs for the succession association.
 
 ### Implementer — read this first
 
