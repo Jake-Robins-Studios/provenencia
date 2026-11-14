@@ -122,11 +122,7 @@ func newState(layer Layer, canon CanonView, fixed []Fixed, cfg Config) *state {
 		st.subjects[string(s.ID)] = s
 	}
 	for _, b := range layer.Bridges {
-		ends := [][]byte{b.A}
-		if !bytes.Equal(b.A, b.B) {
-			ends = append(ends, b.B)
-		}
-		for _, end := range ends {
+		for end := range b.Ends() {
 			for other, key := range b.Readings(end) {
 				st.layerAdj[string(end)] = append(st.layerAdj[string(end)], adjLink{neighbor: other, key: key, Recording: b.Recording})
 			}

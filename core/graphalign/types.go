@@ -4,7 +4,6 @@
 package graphalign
 
 import (
-	"bytes"
 
 	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/subjectcompare"
@@ -205,9 +204,8 @@ func (c Canon) View() CanonView {
 		ix.handles[string(h.ID)] = h
 	}
 	for _, e := range c.Edges {
-		ix.links[string(e.A)] = append(ix.links[string(e.A)], e)
-		if !bytes.Equal(e.A, e.B) {
-			ix.links[string(e.B)] = append(ix.links[string(e.B)], e)
+		for end := range e.Ends() {
+			ix.links[string(end)] = append(ix.links[string(end)], e)
 		}
 	}
 	return ix

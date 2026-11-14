@@ -76,6 +76,19 @@ func (e Edge) Readings(id []byte) iter.Seq2[[]byte, vocabkey.BridgeKey] {
 	}
 }
 
+// Ends yields each distinct end of the edge, A first: a link between two
+// handles yields A then B, a link from a handle to itself yields it once.
+func (e Edge) Ends() iter.Seq[[]byte] {
+	return func(yield func([]byte) bool) {
+		if !yield(e.A) {
+			return
+		}
+		if !bytes.Equal(e.A, e.B) {
+			yield(e.B)
+		}
+	}
+}
+
 // Clone returns a copy of e that shares no bytes with it: its ends and every
 // association are copied.
 func (e Edge) Clone() Edge {

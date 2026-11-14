@@ -672,6 +672,29 @@ func TestEdgeFrom(t *testing.T) {
 	}
 }
 
+func TestEdgeEnds(t *testing.T) {
+	a, b := []byte("a"), []byte("b")
+	tests := []struct {
+		name string
+		edge kinship.Edge
+		want [][]byte
+	}{
+		{"a link between two handles yields A then B", kinship.Edge{A: a, B: b}, [][]byte{a, b}},
+		{"a link to itself yields its end once", kinship.Edge{A: a, B: a}, [][]byte{a}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got [][]byte
+			for end := range tc.edge.Ends() {
+				got = append(got, end)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("Ends = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestEdgeReadings(t *testing.T) {
 	a, b, c := []byte("a"), []byte("b"), []byte("c")
 	ka := vocabkey.BridgeKey{Type: vocabkey.BridgeRelationship, Term: vocabkey.TermSpouse, End: vocabkey.PropertyRelatedTo}
