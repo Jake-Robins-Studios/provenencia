@@ -42,7 +42,7 @@ private struct ArtifactSheetModifier: ViewModifier {
         content.pvFormDialog(
             item: $model,
             copy: copy,
-            width: 560,
+            width: SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
@@ -56,38 +56,37 @@ private struct ArtifactSheetModifier: ViewModifier {
     }
 }
 
-/// The sheet's body: save error, in add mode the file, label and description, the Evidence
-/// graphs the Artifact is in, and its copy details. Each section carries its `.id` for the
-/// scroll target.
+/// The sheet's body, in `SourceOwnerFormColumns`: the save error, then two columns. Left: in add
+/// mode the file, then label, description and copy details. Right: the Evidence graphs the
+/// Artifact is in. Each section carries its `.id` for the scroll target.
 private struct ArtifactSheetForm: View {
     @Bindable var model: ArtifactSheetModel
 
     private let prefix = "sources.page.artifactSheet"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space6) {
+        SourceOwnerFormColumns(
+            saveError: model.saveError,
+            saveErrorTitle: L10n.Sources.artifactCardSaveErrorTitle,
+            saveErrorIdentifier: "\(prefix).saveError",
+            isSaving: model.isSaving
+        ) {
             VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                if let saveError = model.saveError {
-                    PVCallout(
-                        tone: .danger,
-                        title: L10n.Sources.artifactCardSaveErrorTitle,
-                        message: saveError,
-                        announces: true
-                    )
-                    .accessibilityIdentifier("\(prefix).saveError")
-                }
                 if model.isCreate {
                     fileField
-                        .disabled(model.isSaving)
                 }
                 fields
-                    .disabled(model.isSaving)
             }
             .id(ArtifactSheetModel.Section.top)
+            DraftMetadataBoardField(
+                label: L10n.Sources.artifactCopyDetailsLabel,
+                board: model.board,
+                accessibilityIdentifierPrefix: "\(prefix).copyDetails"
+            )
+            .id(ArtifactSheetModel.Section.copyDetails)
+        } right: {
             graphLinks
                 .id(ArtifactSheetModel.Section.graphs)
-            copyDetails
-                .id(ArtifactSheetModel.Section.copyDetails)
         }
     }
 
@@ -182,21 +181,6 @@ private struct ArtifactSheetForm: View {
         }
         .onChange(of: model.visibleGraphs?.map(\.id)) { _, _ in
             model.graphsChanged()
-        }
-    }
-
-    private var copyDetails: some View {
-        PVField(label: L10n.Sources.artifactCopyDetailsLabel) {
-            MetadataBoardView(
-                board: model.board,
-                placement: .form,
-                accessibilityIdentifierPrefix: "\(prefix).copyDetails",
-                onClear: { id in
-                    // A draft board clears with no confirm.
-                    Task { _ = await model.board.requestClear(fieldID: id) }
-                }
-            )
-            .disabled(model.isSaving)
         }
     }
 }

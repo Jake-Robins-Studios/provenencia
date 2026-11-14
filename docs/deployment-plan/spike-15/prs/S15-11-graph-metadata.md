@@ -87,6 +87,7 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | Owner-neutral read-only values view and its width; owner-neutral keys (D-7, D-8) | STEP-5 |
 | The board in the graph form, both modes; two columns at 880pt; scrolling body; Add reads first (EG-1 – EG-7, EG-10) | STEP-6, STEP-7, US-1, US-2 |
 | Values on each graph row (EG-8, EG-9, EG-W1) | STEP-8, US-3 |
+| The Artifact sheet in the same two-column form at 880pt (user-added, 2026-11-14, Fix plan 6) | F-19 |
 
 | Out | Home |
 | --- | --- |
@@ -313,6 +314,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 2. Edit the graph, add Folio inline, change Line, click outside: the discard confirm. Keep editing, Save: the row shows the new values; the page does not flash a reload.
 3. On a Source with 60 Artifacts, open the form: the checklist scrolls in its box; the body does not scroll. Add eight values: the body scrolls between the fixed title and buttons, both columns together.
 4. Resize the window across 1600pt: the values column is 320pt, then 440pt (AC-3.4).
+5. Open Add artifact and Edit on an Artifact: two columns at 880pt; Copy details "+n more" scrolls to Copy details; the pencil on the graph count scrolls to Evidence graphs.
 
 ## 11. Risks and stop conditions
 
@@ -350,3 +352,4 @@ None.
 - The manual check (section 10) was not run by the implementer; the Swift and Go checks and `scripts/check-pr.sh` pass.
 - The kept-linked callout above the graph form's Citation lists was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
 - The Kept linked list is replaced by a per-row "Open in citation composer" link under each locked row whose graph Citations use the Artifact (user, board, 2026-11-14); `PVControlSize.xs` (micro) is new for it, and the checklist cap is 352pt.
+- User-added scope (2026-11-14, Fix plan 6): the Artifact sheet uses the graph form's two-column layout at 880pt (was 560pt, one column). `SourceOwnerFormColumns` and `DraftMetadataBoardField` hold the body both forms share; the Artifact sheet's left column is the file (Add), label, description and Copy details, its right column the Evidence graphs.

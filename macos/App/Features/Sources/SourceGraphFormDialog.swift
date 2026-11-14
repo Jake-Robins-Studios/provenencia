@@ -33,7 +33,7 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
         content.pvFormDialog(
             item: $model,
             copy: copy,
-            width: 880,
+            width: SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
@@ -49,7 +49,7 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
     }
 }
 
-/// The form body: the save error across the top, then two columns. Left: name,
+/// The form body, in `SourceOwnerFormColumns`: the save error across the top, then two columns. Left: name,
 /// description and the metadata board. Right: the Artifacts the graph links; a
 /// locked one that Citations use links to the citation composer.
 private struct SourceGraphForm: View {
@@ -58,53 +58,35 @@ private struct SourceGraphForm: View {
     @Environment(\.pvSheetClose) private var close
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space6) {
-            if let saveError = model.saveError {
-                PVCallout(
-                    tone: .danger,
-                    title: L10n.Sources.graphFormSaveErrorTitle,
-                    message: saveError,
-                    announces: true
-                )
-                .accessibilityIdentifier("sources.graphForm.error")
-            }
-            HStack(alignment: .top, spacing: PVSpacing.space8) {
-                VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                    fields
-                    metadata
-                }
-                .disabled(model.isSaving)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                    SourceFormLoadArea(
-                        state: model.loadState,
-                        loadingText: L10n.Sources.graphFormLoading,
-                        errorTitle: L10n.Sources.graphFormLoadErrorTitle,
-                        errorMessage: L10n.Sources.graphFormLoadErrorMessage,
-                        onReadAgain: { Task { await model.loadKeptLinks() } },
-                        accessibilityIdentifierPrefix: "sources.graphForm"
-                    ) {
-                        checklist
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+        SourceOwnerFormColumns(
+            saveError: model.saveError,
+            saveErrorTitle: L10n.Sources.graphFormSaveErrorTitle,
+            saveErrorIdentifier: "sources.graphForm.error",
+            isSaving: model.isSaving
+        ) {
+            fields
+            metadata
+        } right: {
+            SourceFormLoadArea(
+                state: model.loadState,
+                loadingText: L10n.Sources.graphFormLoading,
+                errorTitle: L10n.Sources.graphFormLoadErrorTitle,
+                errorMessage: L10n.Sources.graphFormLoadErrorMessage,
+                onReadAgain: { Task { await model.loadKeptLinks() } },
+                accessibilityIdentifierPrefix: "sources.graphForm"
+            ) {
+                checklist
             }
         }
         .id(SourceGraphFormModel.Section.top)
     }
 
     private var metadata: some View {
-        PVField(label: L10n.Sources.graphFormMetadataLabel) {
-            MetadataBoardView(
-                board: model.board,
-                placement: .form,
-                accessibilityIdentifierPrefix: "sources.graphForm.metadata",
-                onClear: { id in
-                    // A draft board clears with no confirm.
-                    Task { _ = await model.board.requestClear(fieldID: id) }
-                }
-            )
-        }
+        DraftMetadataBoardField(
+            label: L10n.Sources.graphFormMetadataLabel,
+            board: model.board,
+            accessibilityIdentifierPrefix: "sources.graphForm.metadata"
+        )
         .id(SourceGraphFormModel.Section.metadata)
     }
 
