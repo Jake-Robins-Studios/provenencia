@@ -69,7 +69,9 @@ func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []CanonE
 	sorted := slices.Clone(bridges)
 	slices.SortStableFunc(sorted, func(a, b PageBridge) int { return bytes.Compare(a.ID, b.ID) })
 	canonByKey := canonLinks(canon)
-	links := map[string]*connectrules.Links{}
+	pass := connectrules.NewFiled(func(b connectrules.Bridge, term vocabkey.BridgeTerm) (*connectrules.Links, error) {
+		return connectrules.NewLinks(canonByKey[linkKey(b.BridgeTypeKey, term)]), nil
+	})
 	var out []Connection
 	for _, b := range sorted {
 		rule, ok := connectrules.LookupBridge(string(b.TypeKey))
@@ -82,21 +84,11 @@ func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []CanonE
 				values[i] = append(values[i], endValue(id, ends))
 			}
 		}
-		key := linkKey(string(b.TypeKey), connectrules.Term(b.Terms))
-		filed := func() (*connectrules.Links, error) {
-			if links[key] == nil {
-				links[key] = connectrules.NewLinks(canonByKey[key])
-			}
-			return links[key], nil
-		}
-		res, _ := connectrules.Decide(rule, b.Terms, values, filed)
+		res, _ := pass.Decide(rule, b.Terms, values)
 		c := Connection{BridgeID: b.ID}
 		switch res.Decision {
 		case connectrules.DecisionFiles:
 			c.Outcome = ConnectionFiles
-			if res.Link != nil {
-				links[key].Add(*res.Link)
-			}
 		case connectrules.DecisionWaits:
 			c.Outcome = ConnectionOutcome(res.Wait)
 			c.Waiting = b.Ends[res.Endpoint][res.Value]

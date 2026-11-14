@@ -8,6 +8,22 @@ import (
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
+// readerOf is a reader over links that records each call's records.
+func readerOf(links []Link, calls *[][]string) func([]string) (map[string][]string, error) {
+	return func(records []string) (map[string][]string, error) {
+		*calls = append(*calls, slices.Clone(records))
+		out := map[string][]string{}
+		for _, r := range records {
+			for _, l := range links {
+				if l.From == r {
+					out[r] = append(out[r], l.To)
+				}
+			}
+		}
+		return out, nil
+	}
+}
+
 func TestLinksClosesCycle(t *testing.T) {
 	chain := []Link{{"a", "b"}, {"b", "c"}}
 	split := []Link{{"a", "b"}, {"a", "c"}}
@@ -25,16 +41,101 @@ func TestLinksClosesCycle(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := NewLinks(tc.edges).ClosesCycle(tc.from, tc.to); got != tc.want {
-				t.Fatalf("ClosesCycle = %v, want %v", got, tc.want)
+			got, err := NewLinks(tc.edges).ClosesCycle(tc.from, tc.to)
+			if err != nil || got != tc.want {
+				t.Fatalf("ClosesCycle = %v, %v, want %v", got, err, tc.want)
+			}
+		})
+		t.Run(tc.name+" through a reader", func(t *testing.T) {
+			var calls [][]string
+			got, err := NewLinksReading(readerOf(tc.edges, &calls)).ClosesCycle(tc.from, tc.to)
+			if err != nil || got != tc.want {
+				t.Fatalf("ClosesCycle = %v, %v, want %v", got, err, tc.want)
 			}
 		})
 	}
 	t.Run("an added link counts", func(t *testing.T) {
 		s := NewLinks(nil)
 		s.Add(Link{"a", "b"})
-		if !s.ClosesCycle("b", "a") {
+		if got, _ := s.ClosesCycle("b", "a"); !got {
 			t.Fatal("a→b was added, so b→a closes a loop")
+		}
+	})
+	t.Run("an added link counts with a reader", func(t *testing.T) {
+		var calls [][]string
+		s := NewLinksReading(readerOf(nil, &calls))
+		s.Add(Link{"a", "b"})
+		if got, _ := s.ClosesCycle("b", "a"); !got {
+			t.Fatal("a→b was added, so b→a closes a loop")
+		}
+	})
+	t.Run("reads a level at a time", func(t *testing.T) {
+		var calls [][]string
+		s := NewLinksReading(readerOf([]Link{{"a", "b"}, {"b", "c"}, {"c", "d"}}, &calls))
+		if got, err := s.ClosesCycle("d", "a"); err != nil || !got {
+			t.Fatalf("ClosesCycle = %v, %v", got, err)
+		}
+		want := [][]string{{"a"}, {"b"}, {"c"}}
+		if !slices.EqualFunc(calls, want, slices.Equal) {
+			t.Fatalf("read calls = %v, want %v", calls, want)
+		}
+	})
+	t.Run("reads each record once", func(t *testing.T) {
+		var calls [][]string
+		s := NewLinksReading(readerOf([]Link{{"a", "b"}, {"b", "c"}, {"a", "e"}}, &calls))
+		if got, _ := s.ClosesCycle("x", "a"); got {
+			t.Fatal("x is not reachable")
+		}
+		n := len(calls)
+		if got, _ := s.ClosesCycle("y", "b"); got {
+			t.Fatal("y is not reachable")
+		}
+		if len(calls) != n {
+			t.Fatalf("a second check re-read %v", calls[n:])
+		}
+	})
+	t.Run("a reader error", func(t *testing.T) {
+		boom := errors.New("boom")
+		s := NewLinksReading(func([]string) (map[string][]string, error) { return nil, boom })
+		got, err := s.ClosesCycle("b", "a")
+		if got || !errors.Is(err, boom) {
+			t.Fatalf("ClosesCycle = %v, %v, want false, boom", got, err)
+		}
+	})
+}
+
+func TestFiled(t *testing.T) {
+	place, _ := LookupBridge("place_relationship")
+	rec := func(r string) []Value { return []Value{{Record: r}} }
+	partOf := []vocabkey.BridgeTerm{vocabkey.TermPartOf}
+	succ := []vocabkey.BridgeTerm{vocabkey.TermSucceededBy}
+	t.Run("opens once per type and term, and a filing counts for the next bridge", func(t *testing.T) {
+		opened := map[string]int{}
+		f := NewFiled(func(b Bridge, term vocabkey.BridgeTerm) (*Links, error) {
+			opened[b.BridgeTypeKey+"|"+string(term)]++
+			return NewLinks(nil), nil
+		})
+		first, err := f.Decide(place, partOf, [][]Value{rec("a"), rec("b")})
+		if err != nil || first.Decision != DecisionFiles {
+			t.Fatalf("first = %+v, %v", first, err)
+		}
+		second, err := f.Decide(place, partOf, [][]Value{rec("b"), rec("a")})
+		if err != nil || second.Decision != DecisionCycle {
+			t.Fatalf("second = %+v, %v, want a cycle through the first", second, err)
+		}
+		other, err := f.Decide(place, succ, [][]Value{rec("b"), rec("a")})
+		if err != nil || other.Decision != DecisionFiles {
+			t.Fatalf("another term = %+v, %v", other, err)
+		}
+		if opened["place_relationship|part_of"] != 1 || opened["place_relationship|succeeded_by"] != 1 {
+			t.Fatalf("opened = %v", opened)
+		}
+	})
+	t.Run("an open error is returned", func(t *testing.T) {
+		boom := errors.New("boom")
+		f := NewFiled(func(Bridge, vocabkey.BridgeTerm) (*Links, error) { return nil, boom })
+		if _, err := f.Decide(place, partOf, [][]Value{rec("a"), rec("b")}); !errors.Is(err, boom) {
+			t.Fatalf("err = %v", err)
 		}
 	})
 }
@@ -91,17 +192,21 @@ func TestDecide(t *testing.T) {
 			[][]Value{rec("a"), rec("b")}, edges(), Result{Decision: DecisionFiles, Records: []string{"a", "b"}, Link: &Link{From: "a", To: "b"}}, nil},
 		{"spouse is not loop-checked", rel, []vocabkey.BridgeTerm{vocabkey.TermSpouse},
 			[][]Value{rec("a"), rec("b")}, never, Result{Decision: DecisionFiles, Records: []string{"a", "b"}}, nil},
+		{"loop check error", place, partOf, [][]Value{rec("a"), rec("b")},
+			func() (*Links, error) {
+				return NewLinksReading(func([]string) (map[string][]string, error) { return nil, boom }), nil
+			}, Result{}, boom},
 		{"filed fails", place, partOf, [][]Value{rec("a"), rec("b")},
 			func() (*Links, error) { return nil, boom }, Result{}, boom},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := Decide(tc.b, tc.terms, tc.ends, tc.filed)
+			got, err := decide(tc.b, tc.terms, tc.ends, tc.filed)
 			if !errors.Is(err, tc.err) {
 				t.Fatalf("err = %v, want %v", err, tc.err)
 			}
 			if !sameResult(got, tc.want) {
-				t.Fatalf("Decide = %+v, want %+v", got, tc.want)
+				t.Fatalf("decide = %+v, want %+v", got, tc.want)
 			}
 		})
 	}
