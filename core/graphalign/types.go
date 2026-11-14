@@ -4,7 +4,6 @@
 package graphalign
 
 import (
-
 	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/subjectcompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
