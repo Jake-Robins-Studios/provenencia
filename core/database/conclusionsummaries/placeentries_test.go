@@ -438,21 +438,6 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 		}
 		return in.Keys()
 	}
-	// pageReads is reads(id, PartsOfPlace) and the from end of the place's
-	// place_relationship links: the page follows ParentsOfPlace for the link
-	// from the place to itself and keeps no other link of it. These worlds have
-	// no self link, so the from end adds only its key.
-	pageReads := func(id []byte) []graphcache.InputKey {
-		keys := reads(id, hops.PartsOfPlace)
-		if n, err := graphcache.Over(db).Inputs(nil).Node(id); err != nil || n == nil {
-			return keys
-		}
-		from := graphcache.InputKey{ID: id, Bridge: "place_relationship", Endpoint: "from"}
-		if !slices.ContainsFunc(keys, from.Equal) {
-			keys = append(keys, from)
-		}
-		return keys
-	}
 	for name, id := range map[string][]byte{"town": w.town, "city": w.city, "region": w.region, "unknown": unknown} {
 		t.Run(name, func(t *testing.T) {
 			held, _, inputs := conclusionsummaries.PlaceEntryForTest(g, id)
@@ -468,7 +453,7 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 				}
 			}
 			same("inputs", inputs, reads(id, hops.ParentsOfPlace))
-			same("page inputs", sortedKeys(pageInputs), sortedKeys(pageReads(id)))
+			same("page inputs", sortedKeys(pageInputs), sortedKeys(reads(id, hops.PartsOfPlace)))
 			same("succession inputs", succInputs, reads(id, hops.SuccessorsOfPlace, hops.PredecessorsOfPlace))
 		})
 	}
