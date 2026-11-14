@@ -95,7 +95,11 @@ func CreateEvidenceGraph(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		out = &engine.CreateEvidenceGraphResponse{Graph: evidenceGraphProto(g), Effects: writeEffectsProto(wrote)}
+		entries, err := ownerBoardProto(c, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: g.ID})
+		if err != nil {
+			return err
+		}
+		out = &engine.CreateEvidenceGraphResponse{Graph: evidenceGraphProto(g), Effects: writeEffectsProto(wrote), Metadata: entries}
 		return nil
 	})
 	if err != nil {
@@ -143,7 +147,11 @@ func UpdateEvidenceGraph(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		out = &engine.UpdateEvidenceGraphResponse{Effects: writeEffectsProto(wrote)}
+		entries, err := ownerBoardProto(c, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: graphID})
+		if err != nil {
+			return err
+		}
+		out = &engine.UpdateEvidenceGraphResponse{Effects: writeEffectsProto(wrote), Metadata: entries}
 		return nil
 	})
 	if err != nil {

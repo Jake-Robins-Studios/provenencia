@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/mendahu/provenencia/api/proto/engine"
 	"github.com/mendahu/provenencia/core/database"
+	"github.com/mendahu/provenencia/core/database/evidencegraphs"
 	"github.com/mendahu/provenencia/core/database/files"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcecopy"
@@ -67,15 +68,30 @@ func GetSourceWorkspace(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		meta, err := ownerBoardProto(c, owner)
-		if err != nil {
-			return err
-		}
 		arts, artIDs, err := listArtifactsProto(c, sourceID, pass)
 		if err != nil {
 			return err
 		}
 		cred, err := credibilityForSource(c, sourceID)
+		if err != nil {
+			return err
+		}
+
+		graphs, err := evidencegraphs.List(c, sourceID)
+		if err != nil {
+			return err
+		}
+		// One read for the whole page: the Source, its Artifacts in page
+		// order, then its graphs in list order.
+		owners := make([]sourcemetadata.Owner, 0, 1+len(artIDs)+len(graphs))
+		owners = append(owners, owner)
+		for _, id := range artIDs {
+			owners = append(owners, sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: id})
+		}
+		for _, g := range graphs {
+			owners = append(owners, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: g.ID})
+		}
+		boards, err := ownerBoardsProto(c, owners)
 		if err != nil {
 			return err
 		}
@@ -88,13 +104,10 @@ func GetSourceWorkspace(in []byte) ([]byte, error) {
 		for _, n := range notes {
 			out.Notes = append(out.Notes, noteProto(n))
 		}
-		out.Metadata = meta
-		boards, err := artifactBoardsProto(c, artIDs)
-		if err != nil {
-			return err
-		}
 		out.Artifacts = arts
-		out.ArtifactMetadata = boards
+		out.Metadata = boards[0].GetEntries()
+		out.ArtifactMetadata = boards[1 : 1+len(artIDs)]
+		out.GraphMetadata = boards[1+len(artIDs):]
 		out.Credibility = cred
 		return nil
 	})
