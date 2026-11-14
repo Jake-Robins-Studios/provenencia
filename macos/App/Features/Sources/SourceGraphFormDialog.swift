@@ -127,7 +127,7 @@ private struct SourceGraphForm: View {
                         prompt: L10n.Sources.graphFormNamePlaceholder,
                         isInvalid: model.nameError != nil,
                         focus: name,
-                        activateOnAppear: true
+                        activateOnAppear: model.opensAt == .top
                     )
                     .accessibilityIdentifier("sources.graphForm.name")
                     .onChange(of: model.draft.name) { _, _ in
