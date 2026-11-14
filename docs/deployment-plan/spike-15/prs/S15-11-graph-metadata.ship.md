@@ -256,4 +256,4 @@ Check: `rg -n 'EmptyView, EmptyView' macos/App` prints nothing; `rg -n 'Section.
 Head `118717abe`. Gate PASS (orchestrator run; `origin/main` unmoved). F-20 done: `.id(Section.top)` on the `SourceOwnerFormColumns` view (save error included); `SourceOwnerForm.dialogWidth`. ORC-3, ORC-4 **Resolved** (orchestrator read `ArtifactSheet.swift:88`). The two-column Artifact sheet (F-19, F-20) has had no reviewer; the user may ask for one.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
