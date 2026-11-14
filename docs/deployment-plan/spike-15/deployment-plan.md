@@ -101,7 +101,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-09 | Artifacts show their metadata on the Source page | 2 | Swift: a metadata board per Artifact; **trimmed before merge (user, 2026-11-12)** to the board write's cache patch and its fixes; the per-Artifact chrome moved to S15-34 | S15-D1 | S15-08, S15-26, S15-D1 | [plan](prs/S15-09-artifact-metadata-boards.md) | Landed [#802](https://github.com/mendahu/provenencia/pull/802) (trimmed) |
 | S15-10 | Adding an Artifact asks for its copy details | 2 | Swift: Add Artifact opens the Artifact sheet in add mode; copy details save with the new Artifact | S15-D14 | S15-34, S15-36, S15-D14 | [plan](prs/S15-10-artifact-sheet-add-mode.md) | Landed [#829](https://github.com/mendahu/provenencia/pull/829) |
 | S15-11 | Evidence graphs show their metadata | 2 | Go: the Source page read carries each graph's board; the graph write replies answer its rows. Swift: the graph form in two columns with a metadata board; each graph row shows its saved values read-only | S15-D5 | S15-36, S15-34, S15-35, S15-D5 | [plan](prs/S15-11-graph-metadata.md) | Landed [#834](https://github.com/mendahu/provenencia/pull/834) |
-| S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists | S15-D6 | S15-06, S15-D6 | — | Scoped |
+| S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Blocked — on board S15-D6 |
 | S15-13 | The composer records the printed page | 3 | Swift: `page_label` on the page selector | S15-D8 | S15-D8 | — | Scoped |
 | S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | — | Scoped |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, type read and write; a typed mutation on a format write | — | S15-14 | — | Scoped |
@@ -146,7 +146,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D3 | Person page Sources section | **S15-05** | The date on each Source. Split under "One brief, one PR": the grouping is S15-D15 |
 | S15-D4 | Adding an Artifact | — | **Descoped (2026-11-12):** folded into S15-D14, which draws the Artifact sheet in add mode |
 | [S15-D5](design/archive/S15-D5-evidence-graph-form.md) | Evidence graph form, graph rows | **S15-11** | A two-column form: Name, Description and the graph's metadata board beside the Artifacts checklist; a long Artifact list scrolls in its checklist, never the form (user, 2026-11-14); each graph row shows its saved values read-only (user, 2026-11-14) |
-| S15-D6 | Source type page | **S15-12** | Suggestions at three levels. Split under "One brief, one PR": the format editor is S15-D16 |
+| [S15-D6](design/S15-D6-source-type-suggestion-levels.md) | Source type page | **S15-12** | Suggestions at three levels; the arrangement is the board's. Split under "One brief, one PR": the format editor is S15-D16 |
 | S15-D7 | New Source type dialog | **S15-18** | Copy from |
 | S15-D8 | Citation composer | **S15-13** | The printed page beside the page in the file |
 | S15-D9 | Provenance sheet | **S15-21** | The formatted citation, grouped Citations, Copy citation; the loading and failed states of the on-open call. Split under "One brief, one PR": the fold is S15-D17, records on open S15-D18 |
@@ -431,8 +431,8 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-12 — Source types suggest fields at each level
 
-**Ships.** The Source type page edits three suggestion lists (Source, Artifact, Evidence graph), each ordered.
-**Not this PR.** Formats (S15-17).
+**Ships.** The Source type page edits three suggestion lists (Source, Artifact, Evidence graph), each in its stored order; a new field goes last, with no reorder (user, 2026-11-14). The types list's Associated fields column counts all three lists (user, 2026-11-14). How the lists sit in the pane is the board's call (user, 2026-11-14).
+**Not this PR.** Formats (S15-17); reordering suggestions (not planned).
 **Check.** Adding `line_number` to a type's graph list makes it a suggestion on that type's graphs.
 **Context.** S15-D6; `SourceTypesDetailPane.swift`, `SourceTypesModel.swift`.
 
