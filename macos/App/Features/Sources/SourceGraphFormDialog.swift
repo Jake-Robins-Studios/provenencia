@@ -168,24 +168,16 @@ private struct SourceGraphForm: View {
     }
 
     private var keptLinked: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            PVCallout(
-                tone: .neutral,
-                icon: .lock,
-                message: L10n.string(L10n.Sources.graphFormKeptLinkedMessage),
-                compact: true
-            )
-            PVDeleteImpactGroupStack {
-                ForEach(model.keptLinked, id: \.artifact.id) { kept in
-                    PVDeleteImpactGroupList(
-                        title: kept.artifact.displayTitle,
-                        group: kept.block.citations,
-                        onNavigate: onNavigate
-                    )
-                }
+        PVDeleteImpactGroupStack {
+            ForEach(model.keptLinked, id: \.artifact.id) { kept in
+                PVDeleteImpactGroupList(
+                    title: kept.artifact.displayTitle,
+                    group: kept.block.citations,
+                    onNavigate: onNavigate
+                )
             }
-            .disabled(model.isSaving)
         }
+        .disabled(model.isSaving)
         .accessibilityIdentifier("sources.graphForm.keptLinked")
     }
 }

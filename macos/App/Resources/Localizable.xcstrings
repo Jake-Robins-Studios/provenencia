@@ -22937,18 +22937,6 @@
         }
       }
     },
-    "sources.graphForm.keptLinkedMessage": {
-      "comment": "Callout above the Citations that keep an Artifact linked to the graph",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "These artifacts stay linked: citations need them in this evidence graph."
-          }
-        }
-      }
-    },
     "sources.graphForm.loading": {
       "comment": "Evidence graph form loading line while the kept links are read",
       "extractionState": "manual",

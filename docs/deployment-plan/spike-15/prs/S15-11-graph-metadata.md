@@ -348,3 +348,4 @@ None.
 - `SourceGraphsSection.openEdit(id:at:)` returns while `SourcePageContext.isOpeningForm`, as D-10 says; `SourceGraphsSection.openAdd()` also returns nil when the Source has no Artifact (`canAdd`).
 - The brief's review log moved to `design/archive/` with the brief; the links inside both files were rebased.
 - The manual check (section 10) was not run by the implementer; the Swift and Go checks and `scripts/check-pr.sh` pass.
+- The kept-linked callout above the graph form's Citation lists was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.

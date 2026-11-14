@@ -6481,12 +6481,6 @@ enum L10n {
             comment: "Line under the Artifact checklist when no Artifact is checked"
         )
 
-        static let graphFormKeptLinkedMessage = LocalizedStringResource(
-            "sources.graphForm.keptLinkedMessage",
-            defaultValue: "These artifacts stay linked: citations need them in this evidence graph.",
-            comment: "Callout above the Citations that keep an Artifact linked to the graph"
-        )
-
         static let graphFormLoading = LocalizedStringResource(
             "sources.graphForm.loading",
             defaultValue: "Reading the artifacts…",
