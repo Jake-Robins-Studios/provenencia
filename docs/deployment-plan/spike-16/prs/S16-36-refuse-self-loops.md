@@ -1,6 +1,6 @@
 # S16-36 — A link from a record to itself is refused where links are read
 
-**Status:** Planned
+**Status:** Landed in [#841](https://github.com/mendahu/provenencia/pull/841) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a hand-edited catalog's self-loop stops being read; no view the app can reach looks different)
@@ -14,6 +14,8 @@
 **Context:** working rules "(Batch 2) A link with one record at both ends is crafted data, refused where links are read" (user, 2026-11-14) and "(Batch 2) The point of this batch is simpler code"; [S16-21 plan](S16-21-canon-view-place-links.md) D-1, D-3, D-14, D-16 (the self-loop readings this PR removes); [S16-21 ship log](S16-21-canon-view-place-links.ship.md) MNT-2b; [`promote-graph-alignment.md`](../../../promote-graph-alignment.md) line 198
 **Planned:** 2026-11-14 against `main` @ `1255b24`
 **Review:** [`S16-36-refuse-self-loops.review.md`](S16-36-refuse-self-loops.review.md) — Fits — Ready with changes, 2 rounds, no open blocker
+
+**Landed.** Differences from the plan: T-1 commits `k.Commit(loop, town, city, self, part)` with the association ids; T-3 sits inside `TestCreateCitedBridge` because `countBridges` is a closure there; `TestPlaceEntryInputsMatchReads` reads `reads(id, hops.PartsOfPlace)` inline and the `pageReads` helper is gone. T-11 to T-13 came from the two plan amendments.
 
 ### Implementer — read this first
 
