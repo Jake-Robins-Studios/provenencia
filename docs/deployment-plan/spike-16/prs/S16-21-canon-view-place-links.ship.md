@@ -1,7 +1,7 @@
 # Ship log — S16-21 Promote's alignment reads a canon view and the place entries
 
 **Plan:** [`S16-21-canon-view-place-links.md`](S16-21-canon-view-place-links.md) · **Branch:** `s16-21-canon-view-place-links` · **PR:** #836
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `68754cdee` (base `43fd47e79`). PR #836 (draft). Gate PASS (orchestrator run). Report deviations:
@@ -47,3 +47,20 @@ Check: `rg -n 'bytes.Equal\(\w+\.A, \w+\.B\)' core` prints only the line inside 
 Files: `core/database/conclusionsummaries/placeentries.go`, `placechains.go`, `docs/catalog-caches.md`, `core/database/promotealign/bench_test.go`, `core/connectrules/filing.go`, and any test or doc naming the old key (the plan's Landed note, `completed.md`).
 Do: rename the registered cache `conclusionsummaries.placeSuccession` → `conclusionsummaries.placeSuccessions`, field `placeGraph.succession` → `successions`, the bench measure `placeSuccession` → `placeSuccessions`, and the doc row. In `filing.go:30` name `Filed.Decide` in place of "it".
 Check: `rg -n 'placeSuccession\b|"placeSuccession"|\.succession\b' core docs` prints nothing but the type name `placeSuccession` (the per-key value type stays singular). scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `c1d4ab670`. Gate PASS (orchestrator run; the implementer's first run failed gofmt, fixed in `c1d4ab670`, and two timing budgets under load 17–24 that passed on rerun). F-1 done (`placeInputs`; one `FollowKeys` caller outside graphcache). F-2 done (`kinship.Edge.Ends`, `TestEdgeEnds`; one `bytes.Equal(A, B)` left, inside `Ends`). F-3 done (`placeSuccessions` cache, field, measure, doc row; `filing.go` names `Filed.Decide`). The plan's own Scope and Decision text keeps the old singular name as its record.
+
+## Round 2 — review
+Reviewers: MNT (had the Fix-now majors). CON and SEC+PRF had no Fix-now blocker or major, so they do not return.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | major | (round 1) | Resolved | `placeInputs` at `placeentries.go:271-282`; one `FollowKeys` caller outside graphcache |
+| MNT-2 | MNT | major | (round 1) | Resolved | `kinship.Edge.Ends`; one `bytes.Equal(A, B)` left, in `Ends` |
+| MNT-3, MNT-5 | MNT | minor, nit | (round 1) | Resolved | orchestrator read `00aa7dc1e`: cache, field, measure, doc row plural; `filing.go` names `Filed.Decide` |
+
+No new blockers. Nits (logged): `MNT-6 · placeentries.go:221,246,269 · entryHops is a package var while pageHops/succHops are locals; hop list passed twice` · `MNT-7 · placechains.go:48 · comment still says "succession" after the field became successions`
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: MNT-2b · to user: CON-2 (manual check, routine)
