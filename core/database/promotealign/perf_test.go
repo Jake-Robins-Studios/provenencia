@@ -1,6 +1,8 @@
 package promotealign_test
 
 import (
+	"encoding/binary"
+	"fmt"
 	"math/rand/v2"
 	"reflect"
 	"testing"
@@ -95,6 +97,12 @@ const (
 	// milliseconds; the ceiling catches only a quadratic slip.
 	ceilingEditEventOf500   = 250 * time.Millisecond
 	ceilingEditFatherOf2000 = 250 * time.Millisecond
+	// decided: S16-32 D-8. A commit that moves a key scans every held Subject's
+	// lookup keys once: 64 graphs, one of 10,000 Subjects, 7 keys each is about
+	// 200 ms by the scratch program of the plan's Current state at the planning
+	// machine's rate and a few milliseconds here; the ceiling catches a slip to
+	// a scan per moved key.
+	ceilingForgetCandidates = 100 * time.Millisecond
 )
 
 // largeFixture is a realistic large catalog (largeShape) and the Sources the
@@ -525,4 +533,46 @@ func TestMatchIndexApplyFanOut(t *testing.T) {
 		databasetest.WithinBudget(t, "retype a father of 2,000 births", d, ceilingEditFatherOf2000)
 		must(t, g.Verify())
 	})
+}
+
+// D-8 (rule "Apply states its fan-out"): the candidates' forget scans the held
+// Subjects' lookup keys once per commit that moves a key. Crafted at bar 2's
+// sizes: 63 graphs of 100 Subjects and one of 10,000, 7 keys each, and 20 moved
+// keys, of which 10 meet Subjects of the large graph.
+func TestCandidatesForgetFanOut(t *testing.T) {
+	g := graphcachetest.OpenCatalog(t).Graph()
+	promotealign.SetCandidatesCapForTest(g, 64)
+	graphID := func(n int) []byte {
+		id := make([]byte, 16)
+		binary.BigEndian.PutUint32(id, uint32(n))
+		return id
+	}
+	hold := func() {
+		promotealign.HoldCandidatesForTest(g, graphID(0), 10000, 7)
+		for n := 1; n < 64; n++ {
+			promotealign.HoldCandidatesForTest(g, graphID(n), 100, 7)
+		}
+	}
+	var moved []string
+	for i := 0; i < 10; i++ {
+		moved = append(moved, fmt.Sprintf("name|w:%x-%d-0", graphID(0)[:4], i), fmt.Sprintf("name|w:none-%d", i))
+	}
+	d := databasetest.Collected(3, hold, func() { promotealign.ForgetForTest(g, "person", moved) })
+	t.Logf("forget 20 moved keys over 63 graphs of 100 Subjects and one of 10,000: %v", d)
+	databasetest.WithinBudget(t, "forget candidates", d, ceilingForgetCandidates)
+	large := promotealign.HeldSubjectsForTest(g, graphID(0))
+	if len(large) != 9990 {
+		t.Errorf("the large graph holds %d Subjects, want 9990", len(large))
+	}
+	for i := 0; i < 10; i++ {
+		id := string(binary.BigEndian.AppendUint64(graphID(0)[:8], uint64(i)))
+		if large[id] {
+			t.Errorf("Subject %d of the large graph is still held", i)
+		}
+	}
+	for n := 1; n < 64; n++ {
+		if got := len(promotealign.HeldSubjectsForTest(g, graphID(n))); got != 100 {
+			t.Errorf("graph %d holds %d Subjects, want 100", n, got)
+		}
+	}
 }
