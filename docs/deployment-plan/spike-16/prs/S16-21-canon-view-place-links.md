@@ -1,6 +1,6 @@
 # S16-21 — Promote's alignment reads a canon view and the place entries
 
-**Status:** Planned
+**Status:** Landed in [#836](https://github.com/mendahu/provenencia/pull/836) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; every Promote row, connection subrow and footer count reads as today)
@@ -14,6 +14,8 @@
 **Context:** [design § Promote](../cache-architecture.md#promote) ("Neighbourhoods instead of the whole canon"), [`docs/catalog-caches.md`](../../../catalog-caches.md), [`promote-graph-alignment.md`](../../../promote-graph-alignment.md) §5, §7 and the filing rule (line 199), [S16-18 plan](S16-18-place-entries.md) (its **Landed** note, D-1's round 1 split, **Next adds**), [S16-20 plan](S16-20-match-index-apply.md) (its Out row on the event-type lookup), S14-22 plan D-1 and D-7 (in git history since Spike 14 closed: `git show baa25e76a^:docs/deployment-plan/spike-14/prs/S14-22-promote-wire-says-what-go-decided.md`), working rules: "The point of this batch is simpler code", "Cache entities and results per key; compose answers", "One cache registry, two ways to fill", "Every cache names the signal that updates it, and updates exactly", "Apply states its fan-out", "Orders are defined and results do not move", "Memory is budgeted", "Measure growth"
 **Planned:** 2026-11-14 against `main` @ `ba2d35a`
 **Review:** [`S16-21-canon-view-place-links.review.md`](S16-21-canon-view-place-links.review.md) — Fits with changes / Ready with changes, two rounds; no open blocker
+
+**Landed.** Differences from the plan: a link at a place drops both its page entry and its succession entry, because an input key names a bridge end and not a term (the predecessor end a succession entry follows is the whole end a page follows), so `TestPlaceEntriesFollowLinkMoves` and the Scale line "a part filed under a hub drops the hub's page entry, not its succession entry" read the other way; the page's inputs also hold the place's `from` end key (its self `part_of` read), so `TestPlaceEntryInputsMatchReads` compares the page as a set; `rg "canon\.Edges\)" core` still hits `invariants_test.go` (`slices.Clone(canon.Edges)`, unrelated).
 
 ### Implementer — read this first
 
