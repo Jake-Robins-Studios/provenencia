@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mendahu/provenencia/core/graphalign"
+	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -24,15 +25,15 @@ func TestConnections(t *testing.T) {
 		}
 	}
 	// A canon edge York part_of Ontario, read from York's end (from).
-	york := graphalign.CanonEdge{
-		From: id("H-york"), To: id("H-ont"),
-		KeyFrom: vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyFrom},
-		KeyTo:   vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyTo},
-	}
+	york := kinship.Link{Edge: kinship.Edge{
+		A: id("H-york"), B: id("H-ont"),
+		KeyA: vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyFrom},
+		KeyB: vocabkey.BridgeKey{Type: vocabkey.BridgePlaceRelationship, Term: vocabkey.TermPartOf, End: vocabkey.PropertyTo},
+	}}
 	// The same edge stored the other way round.
-	yorkReversed := graphalign.CanonEdge{
-		From: id("H-ont"), To: id("H-york"), KeyFrom: york.KeyTo, KeyTo: york.KeyFrom,
-	}
+	yorkReversed := kinship.Link{Edge: kinship.Edge{
+		A: id("H-ont"), B: id("H-york"), KeyA: york.KeyB, KeyB: york.KeyA,
+	}}
 	person := graphalign.PageBridge{
 		ID: id("b1"), TypeKey: vocabkey.BridgeParticipation,
 		Ends: [][][]byte{{id("ann")}, {id("birth")}},
@@ -56,7 +57,7 @@ func TestConnections(t *testing.T) {
 		name    string
 		bridges []graphalign.PageBridge
 		ends    map[string]graphalign.EndTarget
-		canon   []graphalign.CanonEdge
+		canon   []kinship.Link
 		want    []graphalign.Connection
 	}{
 		{"both ends on records", []graphalign.PageBridge{person},
@@ -90,13 +91,13 @@ func TestConnections(t *testing.T) {
 			ends("ann", handle("H-x"), "birth", handle("H-x")), nil,
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("self_link")}}},
 		{"a loop with the canon", []graphalign.PageBridge{place("b1", "ont", "york", partOf)},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []graphalign.CanonEdge{york},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{york},
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("cycle")}}},
 		{"a canon edge stored the other way", []graphalign.PageBridge{place("b1", "ont", "york", partOf)},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []graphalign.CanonEdge{yorkReversed},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{yorkReversed},
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionOutcome("cycle")}}},
 		{"succeeded_by over the same places", []graphalign.PageBridge{place("b1", "ont", "york", []vocabkey.BridgeTerm{vocabkey.TermSucceededBy})},
-			ends("ont", handle("H-ont"), "york", handle("H-york")), []graphalign.CanonEdge{york},
+			ends("ont", handle("H-ont"), "york", handle("H-york")), []kinship.Link{york},
 			[]graphalign.Connection{{BridgeID: id("b1"), Outcome: graphalign.ConnectionFiles}}},
 		{"page links in id order", []graphalign.PageBridge{place("b2", "b", "a", partOf), place("b1", "a", "b", partOf)},
 			ends("a", isNew, "b", isNew), nil,
@@ -162,20 +163,20 @@ func TestConnectionsGrowsWithThePageNotPageTimesCanon(t *testing.T) {
 	key := func(typ vocabkey.SubjectType, term vocabkey.BridgeTerm, end vocabkey.PropertyKey) vocabkey.BridgeKey {
 		return vocabkey.BridgeKey{Type: typ, Term: term, End: end}
 	}
-	var canon []graphalign.CanonEdge
+	var canon []kinship.Link
 	for i := 0; i < places; i++ {
-		canon = append(canon, graphalign.CanonEdge{
-			From: id(fmt.Sprintf("H-ev-%d", i)), To: id("H-place"),
-			KeyFrom: key(vocabkey.BridgeLocation, "", vocabkey.PropertyEvent),
-			KeyTo:   key(vocabkey.BridgeLocation, "", vocabkey.PropertyPlace),
-		})
+		canon = append(canon, kinship.Link{Edge: kinship.Edge{
+			A: id(fmt.Sprintf("H-ev-%d", i)), B: id("H-place"),
+			KeyA: key(vocabkey.BridgeLocation, "", vocabkey.PropertyEvent),
+			KeyB: key(vocabkey.BridgeLocation, "", vocabkey.PropertyPlace),
+		}})
 	}
 	for i := 0; i < hierarchy; i++ {
-		canon = append(canon, graphalign.CanonEdge{
-			From: id(fmt.Sprintf("H-p-%d", i)), To: id(fmt.Sprintf("H-p-%d", i+1)),
-			KeyFrom: key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyFrom),
-			KeyTo:   key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyTo),
-		})
+		canon = append(canon, kinship.Link{Edge: kinship.Edge{
+			A: id(fmt.Sprintf("H-p-%d", i)), B: id(fmt.Sprintf("H-p-%d", i+1)),
+			KeyA: key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyFrom),
+			KeyB: key(vocabkey.BridgePlaceRelationship, vocabkey.TermPartOf, vocabkey.PropertyTo),
+		}})
 	}
 	elapsed := func(n int) time.Duration {
 		var bs []graphalign.PageBridge

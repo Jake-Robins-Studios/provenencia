@@ -89,15 +89,15 @@ func mergeMetas(ms ...subjectcompare.Metas) subjectcompare.Metas {
 }
 
 // link is one bridge read from both ends: a is the key at the first end
-// (Link.A, CanonEdge.From), b at the second.
+// (Link.A), b at the second.
 type link struct{ a, b vocabkey.BridgeKey }
 
 func bridge(a, b []byte, l link) kinship.Link {
 	return kinship.Link{Edge: kinship.Edge{A: a, B: b, KeyA: l.a, KeyB: l.b}}
 }
 
-func edge(from, to []byte, l link) graphalign.CanonEdge {
-	return graphalign.CanonEdge{From: from, To: to, KeyFrom: l.a, KeyTo: l.b}
+func edge(from, to []byte, l link) kinship.Link {
+	return kinship.Link{Edge: kinship.Edge{A: from, B: to, KeyA: l.a, KeyB: l.b}}
 }
 
 // partOfKeys are part_of read from the part's end (from) and the whole's (to).
@@ -161,7 +161,7 @@ func TestSeedFromAlreadyPromotedNeighbor(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: vals(np, nv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: evSub, HandleID: evH}}
 	p := alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig())
@@ -197,7 +197,7 @@ func TestSeedFromNewlyFixedIntoUnpromoted(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: vals(np, nv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: perSub, HandleID: perH}}
 	p := alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig())
@@ -226,7 +226,7 @@ func TestBothUnpromotedOnceOneFixed(t *testing.T) {
 			{ID: ha, Ref: "PER-1", Kind: "person", Values: vals(na, va)},
 			{ID: hb, Ref: "PER-2", Kind: "person", Values: vals(nb, vb)},
 		},
-		Edges: []graphalign.CanonEdge{edge(ha, hb, sig)},
+		Edges: []kinship.Link{edge(ha, hb, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: a, HandleID: ha}}
 	p := alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig())
@@ -388,7 +388,7 @@ func TestConfigOverrideWithoutEditingRegistry(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: vals(np, nv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: evSub, HandleID: evH}}
 	p := alignWith(layer, canon, fixed, cfg)
@@ -464,7 +464,7 @@ func gracieObituary() (graphalign.Layer, graphalign.Canon) {
 			{ID: hChild1, Ref: "PER-A", Kind: "person", Values: vals(c1n, c1v)},
 			{ID: hChild2, Ref: "PER-B", Kind: "person", Values: vals(c2n, c2v)},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(hGracie, hBirth, birthSig),
 			edge(hGracie, hDeath, deathSig),
 			edge(hGracie, hBurial, burialSig),
@@ -885,7 +885,7 @@ func TestEdgeSupportCountsTheSeedingNeighborOnce(t *testing.T) {
 	}
 	canon := graphalign.Canon{
 		Handles: []graphalign.Handle{{ID: evH, Ref: "EVT-1", Kind: "event"}, {ID: perH, Ref: "PER-1", Kind: "person"}},
-		Edges:   []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges:   []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: evSub, HandleID: evH}}
 	row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), perSub)
@@ -914,7 +914,7 @@ func TestExactNameCreditsTheNeighborOnce(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event"},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: nameVals("Ann", "Ames")},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: perSub, HandleID: perH}}
 	row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), evSub)
@@ -943,7 +943,7 @@ func TestOtherLinkCreditStaysUnderTheBar(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event"},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: nameVals("Ann", "Ames")},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: perSub, HandleID: perH}}
 	row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), evSub)
@@ -971,7 +971,7 @@ func TestConflictingNeighborLowersTheScore(t *testing.T) {
 			{ID: evH, Ref: "EVT-1", Kind: "event"},
 			{ID: perH, Ref: "PER-1", Kind: "person", Values: nameVals("James", "Robins")},
 		},
-		Edges: []graphalign.CanonEdge{edge(perH, evH, sig)},
+		Edges: []kinship.Link{edge(perH, evH, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: perSub, HandleID: perH}}
 	row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), evSub)
@@ -1024,7 +1024,7 @@ func TestAcceptedPropertyMatchNominatesItsNeighbor(t *testing.T) {
 			{ID: hMid, Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 			{ID: hWrong, Ref: "EVT-9", Kind: "event", Values: vals(et, etv)},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(ha, hMid, sig),
 			edge(hb, hMid, sig),
 			edge(ha, hWrong, other),
@@ -1071,7 +1071,7 @@ func TestCandidateLoserDoesNotNominate(t *testing.T) {
 			{ID: lose, Ref: "PER-9", Kind: "person", Values: lesser},
 			{ID: hMid, Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(lose, hMid, sig)},
+		Edges: []kinship.Link{edge(lose, hMid, sig)},
 	}
 	p := alignWith(layer, canon, nil, matchregistry.Default().AlignConfig())
 	personRow := rowBySubject(p, person)
@@ -1119,7 +1119,7 @@ func TestNeighborCreditStopsAtOneHop(t *testing.T) {
 			{ID: hm, Ref: "EVT-2", Kind: "event"},
 			{ID: hf, Ref: "PLC-3", Kind: "place"},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(hp, hm, birth),
 			edge(hm, hf, loc),
 		},
@@ -1195,7 +1195,7 @@ func TestHeldNewAndSkipDecisions(t *testing.T) {
 					{ID: id("h-x"), Ref: "PER-2", Kind: "person", Values: nameVals("Xavier", "Xu")},
 					{ID: id("h-z"), Ref: "PER-3", Kind: "person"},
 				},
-				Edges: []graphalign.CanonEdge{
+				Edges: []kinship.Link{
 					edge(id("h-a"), id("h-x"), sig),
 					edge(id("h-x"), id("h-z"), sig),
 				},
@@ -1226,7 +1226,7 @@ func TestDecidedRowTheNeighborsContradict(t *testing.T) {
 			{ID: id("h-gracie"), Ref: "PER-2", Kind: "person", Values: nameVals("Gracie", "Gates")},
 			{ID: id("h-birth"), Ref: "EVT-1", Kind: "event", Values: vals(et, etv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(id("h-gracie"), id("h-birth"), sig)},
+		Edges: []kinship.Link{edge(id("h-gracie"), id("h-birth"), sig)},
 	}
 	fixed := []graphalign.Fixed{
 		{SubjectID: id("s-person"), HandleID: id("h-chosen")},
@@ -1378,7 +1378,7 @@ func TestRowReasons(t *testing.T) {
 		layer      []graphalign.Subject
 		handles    []graphalign.Handle
 		bridges    []kinship.Link
-		edges      []graphalign.CanonEdge
+		edges      []kinship.Link
 		fixed      []graphalign.Fixed
 		subject    string
 		wantTarget graphalign.Target
@@ -1401,7 +1401,7 @@ func TestRowReasons(t *testing.T) {
 				{ID: id("h-e"), Ref: "EVT-1", Kind: "event", Values: vals(termProp("event_type", "residence"))},
 			},
 			bridges: []kinship.Link{bridge(id("s-a"), id("s-e"), partLink("subject", "residence"))},
-			edges:   []graphalign.CanonEdge{edge(id("h-a"), id("h-e"), partLink("subject", "residence"))},
+			edges:   []kinship.Link{edge(id("h-a"), id("h-e"), partLink("subject", "residence"))},
 			fixed:   []graphalign.Fixed{{SubjectID: id("s-a"), HandleID: id("h-a")}},
 			subject: "s-e", wantTarget: "", want: graphalign.ReasonUnplaced,
 		},
@@ -1432,7 +1432,7 @@ func TestRowReasons(t *testing.T) {
 				{ID: id("h-b"), Ref: "PER-2", Kind: "person", Values: nameVals("Bob", "Ames")},
 			},
 			bridges: []kinship.Link{bridge(id("s-a"), id("s-b"), sig)},
-			edges:   []graphalign.CanonEdge{edge(id("h-a"), id("h-b"), sig)},
+			edges:   []kinship.Link{edge(id("h-a"), id("h-b"), sig)},
 			fixed:   []graphalign.Fixed{{SubjectID: id("s-a"), HandleID: id("h-a")}},
 			subject: "s-b", wantTarget: graphalign.TargetHandle, want: graphalign.ReasonVia,
 		},
@@ -1495,7 +1495,7 @@ func partOfChain() (graphalign.Layer, graphalign.Canon) {
 			{ID: hState, Ref: "PLC-S", Kind: "place", Values: vals(sn, sv)},
 			{ID: hCountry, Ref: "PLC-U", Kind: "place", Values: vals(un, uv)},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(hCity, hState, sig),
 			edge(hState, hCountry, sig),
 		},
@@ -1546,7 +1546,7 @@ func TestPartOfDoesNotFileADifferentToponym(t *testing.T) {
 			{ID: hSibling, Ref: "PLC-E", Kind: "place", Values: vals(sn, sv)},
 			{ID: hParent, Ref: "PLC-A", Kind: "place", Values: vals(pn, pv)},
 		},
-		Edges: []graphalign.CanonEdge{edge(hSibling, hParent, sig)},
+		Edges: []kinship.Link{edge(hSibling, hParent, sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: parent, HandleID: hParent}}
 	row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), child)
@@ -1582,7 +1582,7 @@ func TestPartOfBreaksASharedToponym(t *testing.T) {
 			{ID: hIll, Ref: "PLC-I", Kind: "place", Values: vals(in, iv)},
 			{ID: hOhio, Ref: "PLC-O", Kind: "place", Values: vals(on, ov)},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(hWrong, hOhio, sig),
 			edge(hRight, hIll, sig),
 		},
@@ -1640,7 +1640,7 @@ func TestDirectedRelationshipsMatchFromTheSameEnd(t *testing.T) {
 					{ID: id("h-parent"), Ref: "PER-0", Kind: "person", Values: nameVals("Bob", "Ames")},
 					{ID: id("h-child"), Ref: "PER-9", Kind: "person", Values: nameVals("Bob", "Ames")},
 				},
-				Edges: []graphalign.CanonEdge{
+				Edges: []kinship.Link{
 					edge(id("h-parent"), id("h-a"), l), // PER-0 is Ann's term
 					edge(id("h-a"), id("h-child"), l),  // Ann is PER-9's term
 				},
@@ -1699,7 +1699,7 @@ func TestSettlingDropsSupportFromAMovedNeighbor(t *testing.T) {
 			{ID: hCarl, Ref: "D", Kind: "person", Values: nameVals("Carl", "Lee")},
 			{ID: hDora, Ref: "E", Kind: "person", Values: nameVals("Dora", "Lee")},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(annA, bob, spouse),
 			edge(annB, hCarl, sibling),
 			edge(annB, hDora, sibling),
@@ -1877,7 +1877,7 @@ func TestBirthIsNeverProposedOnADeath(t *testing.T) {
 				{ID: hp, Ref: "PER-1", Kind: "person", Values: vals(nameProp("Ann Ames"))},
 				{ID: hd, Ref: "EVT-1", Kind: "event", Values: eventVals("death", 1850)},
 			},
-			Edges: []graphalign.CanonEdge{edge(hp, hd, sig)},
+			Edges: []kinship.Link{edge(hp, hd, sig)},
 		}
 		fixed := []graphalign.Fixed{{SubjectID: p, HandleID: hp}}
 		row := rowBySubject(alignWith(layer, canon, fixed, matchregistry.Default().AlignConfig()), e)
@@ -1999,7 +1999,7 @@ func placedApart(t *testing.T, eventType string) (person, event float64) {
 			{ID: id("h-evt-1"), Ref: "EVT-1", Kind: "event", Values: vals(et, etv, dp, dv)},
 			{ID: id("h-evt-2"), Ref: "EVT-2", Kind: "event", Values: vals(et, etv, dp, dv)},
 		},
-		Edges: []graphalign.CanonEdge{
+		Edges: []kinship.Link{
 			edge(id("h-ann-1"), id("h-evt-1"), link),
 			edge(id("h-ann-2"), id("h-evt-2"), link),
 		},
@@ -2049,7 +2049,7 @@ func TestSpouseNeverCorrespondsToSibling(t *testing.T) {
 			{ID: hAnn, Ref: "PER-1", Kind: "person", Values: nameVals("Ann", "Ames")},
 			{ID: hBob, Ref: "PER-B", Kind: "person", Values: nameVals("Bob", "Ames")},
 		},
-		Edges: []graphalign.CanonEdge{edge(hAnn, hBob, relLink("sibling"))},
+		Edges: []kinship.Link{edge(hAnn, hBob, relLink("sibling"))},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: ann, HandleID: hAnn}}
 	cfg := matchregistry.Default().AlignConfig()
@@ -2075,7 +2075,7 @@ func withCandidates(layer graphalign.Layer, canon graphalign.Canon, cfg graphali
 
 // alignWith is Align on a canon whose Candidates the loader would have filled.
 func alignWith(layer graphalign.Layer, canon graphalign.Canon, fixed []graphalign.Fixed, cfg graphalign.Config) graphalign.Proposal {
-	return graphalign.Align(layer, withCandidates(layer, canon, cfg), fixed, cfg)
+	return graphalign.Align(layer, withCandidates(layer, canon, cfg).View(), fixed, cfg)
 }
 
 // withSex adds a sex_at_birth term to values.
@@ -2102,7 +2102,7 @@ func TestOnlyCandidatesOrNominatedHandlesAreCompared(t *testing.T) {
 			Handles:    []graphalign.Handle{{ID: id("h"), Ref: "PER-1", Kind: "person", Values: nameVals("Rob", "Robins")}},
 			Candidates: map[string][][]byte{},
 		}
-		row := rowBySubject(graphalign.Align(layer, canon, nil, cfg), id("s"))
+		row := rowBySubject(graphalign.Align(layer, canon.View(), nil, cfg), id("s"))
 		if row.Target != "" || row.Reason != graphalign.ReasonUnplaced || len(row.Alternatives) != 0 {
 			t.Fatalf("want unplaced with no alternatives, got %+v", row)
 		}
@@ -2125,11 +2125,11 @@ func TestOnlyCandidatesOrNominatedHandlesAreCompared(t *testing.T) {
 				{ID: id("h"), Ref: "PER-1", Kind: "person", Values: nameVals("Rob", "Robins")},
 				{ID: id("he"), Ref: "EVT-1", Kind: "event", Values: vals(et, birth, date, y1817)},
 			},
-			Edges:      []graphalign.CanonEdge{edge(id("h"), id("he"), sig)},
+			Edges:      []kinship.Link{edge(id("h"), id("he"), sig)},
 			Candidates: map[string][][]byte{},
 		}
 		fixed := []graphalign.Fixed{{SubjectID: id("e"), HandleID: id("he")}}
-		row := rowBySubject(graphalign.Align(layer, canon, fixed, cfg), id("s"))
+		row := rowBySubject(graphalign.Align(layer, canon.View(), fixed, cfg), id("s"))
 		if row.Target != graphalign.TargetHandle || !bytes.Equal(row.HandleID, id("h")) ||
 			row.Reason != graphalign.ReasonVia || row.Via == nil || !bytes.Equal(row.Via.NeighborSubjectID, id("e")) {
 			t.Fatalf("want PER-1 via the birth row, got %+v", row)
@@ -2165,7 +2165,7 @@ func TestSettlingMovesAPairAndSaysWhy(t *testing.T) {
 			{ID: id("h2"), Ref: "PER-2", Kind: "person", Values: nameVals("Ann", "Ames")},
 			{ID: id("h3"), Ref: "PER-3", Kind: "person", Values: nameVals("John", "Ames")},
 		},
-		Edges: []graphalign.CanonEdge{edge(id("h2"), id("h3"), spouse)},
+		Edges: []kinship.Link{edge(id("h2"), id("h3"), spouse)},
 	}
 	base := matchregistry.Default().AlignConfig()
 	settle := base
@@ -2233,7 +2233,7 @@ func TestAConflictCountsAgainstAPlacedPair(t *testing.T) {
 			{ID: id("h"), Ref: "PER-1", Kind: "person", Values: withSex(nameVals("Ann", "Ames"), "female")},
 			{ID: id("he"), Ref: "EVT-1", Kind: "event", Values: ev},
 		},
-		Edges: []graphalign.CanonEdge{edge(id("h"), id("he"), sig)},
+		Edges: []kinship.Link{edge(id("h"), id("he"), sig)},
 	}
 	fixed := []graphalign.Fixed{{SubjectID: id("k"), Target: graphalign.TargetSkip}}
 	p := alignWith(layer, canon, fixed, cfg)
@@ -2307,7 +2307,7 @@ func TestPlacedPairNominatesTopK(t *testing.T) {
 			if tc.candidates != nil {
 				canon.Candidates = map[string][][]byte{string(kidK): tc.candidates}
 			}
-			got := graphalign.NominatedForTest(layer, canon, []graphalign.Fixed{{SubjectID: placeK, HandleID: placeH}}, cfg, kidK)
+			got := graphalign.NominatedForTest(layer, canon.View(), []graphalign.Fixed{{SubjectID: placeK, HandleID: placeH}}, cfg, kidK)
 			if len(got) != tc.want {
 				t.Fatalf("%d nominated candidates, want %d", len(got), tc.want)
 			}
@@ -2327,11 +2327,12 @@ func implied(b kinship.Link, p kinship.Pattern, pivot []byte, onlyImplied bool) 
 }
 
 // canonOf is the canon's edges of a layer's bridges, associations dropped.
-func canonOf(bs []kinship.Link) []graphalign.CanonEdge {
-	var out []graphalign.CanonEdge
+func canonOf(bs []kinship.Link) []kinship.Link {
+	var out []kinship.Link
 	for _, b := range bs {
-		out = append(out, graphalign.CanonEdge{
-			From: b.A, To: b.B, KeyFrom: b.KeyA, KeyTo: b.KeyB, Recording: b.Recording,
+		out = append(out, kinship.Link{
+			Edge:      kinship.Edge{A: b.A, B: b.B, KeyA: b.KeyA, KeyB: b.KeyB},
+			Recording: b.Recording,
 		})
 	}
 	return out
@@ -2451,4 +2452,80 @@ func TestRowStart(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCanonView(t *testing.T) {
+	sig := partOfLink()
+	york, ont, x, other := id("H-york"), id("H-ont"), id("H-x"), id("H-other")
+	handles := []graphalign.Handle{
+		{ID: york, Ref: "PLC-Y", Kind: "place"},
+		{ID: ont, Ref: "PLC-O", Kind: "place"},
+		{ID: x, Ref: "PLC-X", Kind: "place"},
+	}
+	cand := map[string][][]byte{"s-1": {york, ont}}
+	tests := []struct {
+		name  string
+		edges []kinship.Link
+		id    []byte
+		want  []kinship.Link
+	}{
+		{"the part's end", []kinship.Link{edge(york, ont, sig)}, york, []kinship.Link{edge(york, ont, sig)}},
+		{"the whole's end", []kinship.Link{edge(york, ont, sig)}, ont, []kinship.Link{edge(york, ont, sig)}},
+		{"a link from a handle to itself is listed once", []kinship.Link{edge(x, x, sig)}, x, []kinship.Link{edge(x, x, sig)}},
+		{"links in edge order", []kinship.Link{edge(york, ont, sig), edge(x, york, sig), edge(york, other, sig)}, york,
+			[]kinship.Link{edge(york, ont, sig), edge(x, york, sig), edge(york, other, sig)}},
+		{"a handle with no link", []kinship.Link{edge(york, ont, sig)}, x, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			v := graphalign.Canon{Handles: handles, Edges: tc.edges, Candidates: cand}.View()
+			got := v.Links(tc.id)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("Links = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+	v := graphalign.Canon{Handles: handles, Candidates: cand}.View()
+	t.Run("handles", func(t *testing.T) {
+		if h := v.Handle(york); h == nil || h.Ref != "PLC-Y" {
+			t.Fatalf("Handle(york) = %+v", h)
+		}
+		if h := v.Handle(id("H-unknown")); h != nil {
+			t.Fatalf("Handle(unknown) = %+v, want nil", h)
+		}
+	})
+	t.Run("candidates", func(t *testing.T) {
+		if got := v.Candidates([]byte("s-1")); !reflect.DeepEqual(got, cand["s-1"]) {
+			t.Fatalf("Candidates = %x", got)
+		}
+		if got := v.Candidates([]byte("s-2")); got != nil {
+			t.Fatalf("Candidates of a Subject with none = %x", got)
+		}
+	})
+	t.Run("readings of the stored links", func(t *testing.T) {
+		type reading struct {
+			other []byte
+			key   vocabkey.BridgeKey
+		}
+		read := func(edges []kinship.Link, at []byte) []reading {
+			var out []reading
+			view := graphalign.Canon{Edges: edges}.View()
+			for _, l := range view.Links(at) {
+				for o, k := range l.Readings(at) {
+					out = append(out, reading{o, k})
+				}
+			}
+			return out
+		}
+		both := []kinship.Link{edge(york, ont, sig)}
+		if got := read(both, york); !reflect.DeepEqual(got, []reading{{ont, sig.a}}) {
+			t.Fatalf("york reads %+v", got)
+		}
+		if got := read(both, ont); !reflect.DeepEqual(got, []reading{{york, sig.b}}) {
+			t.Fatalf("ontario reads %+v", got)
+		}
+		if got := read([]kinship.Link{edge(x, x, sig)}, x); !reflect.DeepEqual(got, []reading{{x, sig.a}, {x, sig.b}}) {
+			t.Fatalf("a self-loop reads %+v, want the from key then the to key", got)
+		}
+	})
 }

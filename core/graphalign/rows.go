@@ -19,7 +19,7 @@ func (st *state) proposal() Proposal {
 			row.Target = TargetHandle
 			row.HandleID = append([]byte(nil), hid...)
 			sc := st.cands[sk][string(hid)]
-			row.HandleRef = st.handles[string(hid)].Ref
+			row.HandleRef = st.canon.Handle(hid).Ref
 			row.Score = sc.score
 			via, viaKey := st.viaOf(sk, sc)
 			switch {

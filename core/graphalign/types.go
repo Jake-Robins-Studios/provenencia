@@ -4,6 +4,8 @@
 package graphalign
 
 import (
+	"bytes"
+
 	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/subjectcompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -15,15 +17,6 @@ type Subject = subjectcompare.Subject
 // Handle is one canonical entity in the canon: a Subject whose ID is a handle's.
 type Handle = subjectcompare.Subject
 
-// CanonEdge is one filed association hop, or a link the kinship patterns
-// imply, between handles.
-type CanonEdge struct {
-	From, To       []byte
-	KeyFrom, KeyTo vocabkey.BridgeKey // the edge read from From's end and from To's
-	// Recording is as on kinship.Link.
-	kinship.Recording
-}
-
 // Layer is one Source's primary Subjects and bridges, recorded or implied by
 // the kinship patterns. A bridge is a kinship.Link; its Edge's Associations are
 // the bridge Subjects behind it, which the layers never read.
@@ -33,10 +26,28 @@ type Layer struct {
 	Metas    subjectcompare.Metas
 }
 
-// Canon is the part of the canonical graph reachable from the seed handles.
+// CanonView is what Align reads of the canonical graph: a handle's profile, the
+// links at it and a Subject's shortlisted candidates. Results are the view's
+// own and read-only.
+type CanonView interface {
+	// Handle is the handle's profile, nil when the view does not hold it.
+	Handle(id []byte) *Handle
+	// Links is every link with id at an end, as stored (not turned to face id),
+	// in the view's link order. A link from a handle to itself is listed once.
+	// Read a link from id through kinship.Edge.Readings.
+	Links(id []byte) []kinship.Link
+	// Candidates are the Subject's shortlisted candidate handle ids, in
+	// Candidates order.
+	Candidates(subjectID []byte) [][]byte
+}
+
+// Canon is the part of the canonical graph reachable from the seed handles, as
+// lists. View reads it as a CanonView.
 type Canon struct {
 	Handles []Handle
-	Edges   []CanonEdge
+	// Edges are the filed links and the links the kinship patterns imply
+	// between handles; each Edges entry's Associations are ignored.
+	Edges []kinship.Link
 	// Candidates are each Subject's shortlisted candidates, by Subject id, in
 	// Candidates order; the loader fills them.
 	Candidates map[string][][]byte
@@ -180,3 +191,35 @@ func (r Row) Start() RowStart {
 	}
 	return RowStart{}
 }
+
+// View is the canon as a CanonView. The index is built once; a later change to
+// c does not reach it.
+func (c Canon) View() CanonView {
+	ix := &canonIndex{
+		handles:    make(map[string]*Handle, len(c.Handles)),
+		links:      map[string][]kinship.Link{},
+		candidates: c.Candidates,
+	}
+	for i := range c.Handles {
+		h := &c.Handles[i]
+		ix.handles[string(h.ID)] = h
+	}
+	for _, e := range c.Edges {
+		ix.links[string(e.A)] = append(ix.links[string(e.A)], e)
+		if !bytes.Equal(e.A, e.B) {
+			ix.links[string(e.B)] = append(ix.links[string(e.B)], e)
+		}
+	}
+	return ix
+}
+
+// canonIndex is a Canon's handles by id and its links by handle, in edge order.
+type canonIndex struct {
+	handles    map[string]*Handle
+	links      map[string][]kinship.Link
+	candidates map[string][][]byte
+}
+
+func (ix *canonIndex) Handle(id []byte) *Handle       { return ix.handles[string(id)] }
+func (ix *canonIndex) Links(id []byte) []kinship.Link { return ix.links[string(id)] }
+func (ix *canonIndex) Candidates(id []byte) [][]byte  { return ix.candidates[string(id)] }

@@ -13,17 +13,17 @@ import (
 
 // Align proposes a handle or nothing for every primary Subject on layer,
 // holding fixed pairs as anchors. It is the layer 6 procedure: fixed pairs are
-// placed; each Subject's candidates (Canon.Candidates, plus the handles a
+// placed; each Subject's candidates (CanonView.Candidates, plus the handles a
 // placed pair's links nominate) enter one best-first queue; a placed pair
 // re-scores only its neighbors; and when the queue empties, only the pairs
 // whose neighbors moved are settled again.
-func Align(layer Layer, canon Canon, fixed []Fixed, cfg Config) Proposal {
+func Align(layer Layer, canon CanonView, fixed []Fixed, cfg Config) Proposal {
 	return run(layer, canon, fixed, cfg).proposal()
 }
 
 // run is the procedure up to the proposal, so a test can read the state it ends
 // on.
-func run(layer Layer, canon Canon, fixed []Fixed, cfg Config) *state {
+func run(layer Layer, canon CanonView, fixed []Fixed, cfg Config) *state {
 	st := newState(layer, canon, fixed, cfg)
 	st.anchor()
 	st.seed()
@@ -36,15 +36,12 @@ func run(layer Layer, canon Canon, fixed []Fixed, cfg Config) *state {
 type state struct {
 	cfg   Config
 	layer Layer
-	canon Canon
+	canon CanonView
 	metas subjectcompare.Metas
 
 	subjects map[string]*Subject
-	handles  map[string]*Handle
 	// undirected neighbors on the layer: subjectID → []neighborID
 	layerAdj map[string][]adjLink
-	// canon adjacency: handleID → []adjLink
-	canonAdj map[string][]adjLink
 
 	// placed maps subjectID → handleID for fixed and accepted pairs
 	placed   map[string][]byte
@@ -101,16 +98,14 @@ type mark struct {
 	neighbor []byte
 }
 
-func newState(layer Layer, canon Canon, fixed []Fixed, cfg Config) *state {
+func newState(layer Layer, canon CanonView, fixed []Fixed, cfg Config) *state {
 	st := &state{
 		cfg:          cfg,
 		layer:        layer,
 		canon:        canon,
 		metas:        layer.Metas,
 		subjects:     map[string]*Subject{},
-		handles:      map[string]*Handle{},
 		layerAdj:     map[string][]adjLink{},
-		canonAdj:     map[string][]adjLink{},
 		placed:       map[string][]byte{},
 		fixedSet:     map[string]bool{},
 		owner:        map[string]string{},
@@ -126,20 +121,16 @@ func newState(layer Layer, canon Canon, fixed []Fixed, cfg Config) *state {
 		s := &layer.Subjects[i]
 		st.subjects[string(s.ID)] = s
 	}
-	for i := range canon.Handles {
-		h := &canon.Handles[i]
-		st.handles[string(h.ID)] = h
-	}
 	for _, b := range layer.Bridges {
-		for _, end := range [][]byte{b.A, b.B} {
-			other, key, _ := b.From(end)
-			st.layerAdj[string(end)] = append(st.layerAdj[string(end)], adjLink{neighbor: other, key: key, Recording: b.Recording})
+		ends := [][]byte{b.A}
+		if !bytes.Equal(b.A, b.B) {
+			ends = append(ends, b.B)
 		}
-	}
-	for _, e := range canon.Edges {
-		f, t := string(e.From), string(e.To)
-		st.canonAdj[f] = append(st.canonAdj[f], adjLink{neighbor: e.To, key: e.KeyFrom, Recording: e.Recording})
-		st.canonAdj[t] = append(st.canonAdj[t], adjLink{neighbor: e.From, key: e.KeyTo, Recording: e.Recording})
+		for _, end := range ends {
+			for other, key := range b.Readings(end) {
+				st.layerAdj[string(end)] = append(st.layerAdj[string(end)], adjLink{neighbor: other, key: key, Recording: b.Recording})
+			}
+		}
 	}
 	for _, f := range fixed {
 		sk, hk := string(f.SubjectID), string(f.HandleID)
@@ -150,7 +141,7 @@ func newState(layer Layer, canon Canon, fixed []Fixed, cfg Config) *state {
 			st.held[sk] = f.Target
 			continue
 		}
-		if _, ok := st.handles[hk]; !ok {
+		if st.canon.Handle(f.HandleID) == nil {
 			continue
 		}
 		st.placed[sk] = append([]byte(nil), f.HandleID...)
@@ -185,7 +176,7 @@ func (st *state) anchor() {
 		if !st.fixedSet[sk] {
 			continue
 		}
-		st.candidate(sk, st.handles[string(st.placed[sk])])
+		st.candidate(sk, st.canon.Handle(st.placed[sk]))
 	}
 	for _, s := range st.sortedSubjects() {
 		sk := string(s.ID)
@@ -209,8 +200,8 @@ func (st *state) seed() {
 		if _, ok := st.cfg.Subject.Weights[vocabkey.SubjectType(s.Kind)]; !ok {
 			continue
 		}
-		for _, hid := range st.canon.Candidates[sk] {
-			h := st.handles[string(hid)]
+		for _, hid := range st.canon.Candidates(s.ID) {
+			h := st.canon.Handle(hid)
 			if h == nil || h.Kind != s.Kind {
 				continue
 			}
@@ -257,7 +248,7 @@ func (st *state) score(sk string, h *Handle, c *cand) {
 // rescore re-scores every candidate of sk, pushing each when push is true.
 func (st *state) rescore(sk string, push bool) {
 	for _, c := range st.sortedCands(sk) {
-		st.score(sk, st.handles[string(c.handleID)], c)
+		st.score(sk, st.canon.Handle(c.handleID), c)
 		if push {
 			st.push(sk, c)
 		}
@@ -315,10 +306,13 @@ func (st *state) markDirty(nk string, m mark) {
 // through.
 func (st *state) corresponding(link adjLink, hid []byte) []adjLink {
 	var out []adjLink
-	for _, ce := range st.canonAdj[string(hid)] {
-		if segmentcompare.Corresponds(link.key, ce.key) &&
-			!kinship.CountedOnce(link.Recording, ce.Recording, st.placedOf) {
-			out = append(out, ce)
+	for _, l := range st.canon.Links(hid) {
+		for other, key := range l.Readings(hid) {
+			ce := adjLink{neighbor: other, key: key, Recording: l.Recording}
+			if segmentcompare.Corresponds(link.key, ce.key) &&
+				!kinship.CountedOnce(link.Recording, ce.Recording, st.placedOf) {
+				out = append(out, ce)
+			}
 		}
 	}
 	return out
@@ -352,7 +346,7 @@ func (st *state) place(sk string, hid []byte) {
 		var fresh []scored
 		seen := map[string]bool{}
 		for _, ce := range st.corresponding(link, hid) {
-			g := st.handles[string(ce.neighbor)]
+			g := st.canon.Handle(ce.neighbor)
 			if g == nil || g.Kind != ns.Kind || seen[string(g.ID)] {
 				continue
 			}
@@ -368,7 +362,7 @@ func (st *state) place(sk string, hid []byte) {
 		}
 		for _, h := range keepTop(fresh, st.cfg.Alignment) {
 			// An unplaced neighbor is re-scored below, with the rest.
-			c := st.candidate(nk, st.handles[string(h.ID)])
+			c := st.candidate(nk, st.canon.Handle(h.ID))
 			c.via, c.viaKey = append([]byte(nil), s.ID...), link.key
 		}
 		if st.fixedSet[nk] || done[nk] {
@@ -564,7 +558,7 @@ func (st *state) segments(subjectID []byte, h *Handle, own float64, placedOf fun
 		if !isPlaced {
 			var best *segmentcompare.Result
 			for _, ce := range st.corresponding(link, h.ID) {
-				nh := st.handles[string(ce.neighbor)]
+				nh := st.canon.Handle(ce.neighbor)
 				if nh == nil || nh.Kind != ns.Kind {
 					continue
 				}
@@ -600,7 +594,7 @@ func (st *state) segments(subjectID []byte, h *Handle, own float64, placedOf fun
 		if ce == nil {
 			continue
 		}
-		nh := st.handles[string(ce.neighbor)]
+		nh := st.canon.Handle(ce.neighbor)
 		if nh == nil {
 			continue
 		}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/mendahu/provenencia/core/database/canonlinks"
@@ -209,13 +210,7 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 	// Walked links first, in walk order. An implied link that shares ends and
 	// keys with a walked or earlier implied one merges into it; the rest follow
 	// in order. The implied links are the cache's, so an edge copies what it keeps.
-	links := set.Links()
-	edges := make([]graphalign.CanonEdge, len(links), len(links)+len(implied))
-	for i, l := range links {
-		edges[i] = graphalign.CanonEdge{
-			From: l.A, To: l.B, KeyFrom: l.KeyA, KeyTo: l.KeyB, Recording: l.Recording,
-		}
-	}
+	edges := slices.Clone(set.Links())
 	for i, at := range set.PlaceImplied(implied) {
 		imp := implied[i]
 		rec := imp.Recording()
@@ -223,8 +218,8 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 			edges[at].Recording.Merge(rec)
 			continue
 		}
-		edges = append(edges, graphalign.CanonEdge{
-			From: bytes.Clone(imp.A), To: bytes.Clone(imp.B), KeyFrom: imp.KeyA, KeyTo: imp.KeyB,
+		edges = append(edges, kinship.Link{
+			Edge:      kinship.Edge{A: bytes.Clone(imp.A), B: bytes.Clone(imp.B), KeyA: imp.KeyA, KeyB: imp.KeyB},
 			Recording: rec.Clone(),
 		})
 	}

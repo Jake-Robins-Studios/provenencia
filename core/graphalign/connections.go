@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/mendahu/provenencia/core/connectrules"
+	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -65,7 +66,7 @@ type Connection struct {
 // through connectrules.Decide, with the canon's filed links and the page's
 // own earlier connections as the links a loop is checked against. A Subject
 // absent from ends is not on the page. A bridge of an unknown type is left out.
-func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []CanonEdge) []Connection {
+func Connections(bridges []PageBridge, ends map[string]EndTarget, canon []kinship.Link) []Connection {
 	sorted := slices.Clone(bridges)
 	slices.SortStableFunc(sorted, func(a, b PageBridge) int { return bytes.Compare(a.ID, b.ID) })
 	canonByKey := canonLinks(canon)
@@ -125,11 +126,11 @@ func endValue(id []byte, ends map[string]EndTarget) connectrules.Value {
 // canonLinks reads the canon's links of registered bridge types in one pass,
 // by type and term, as directed links between records, from the end of the
 // rule's first endpoint.
-func canonLinks(canon []CanonEdge) map[string][]connectrules.Link {
+func canonLinks(canon []kinship.Link) map[string][]connectrules.Link {
 	rules := map[string]connectrules.Bridge{}
 	out := map[string][]connectrules.Link{}
 	for _, e := range canon {
-		typeKey := string(e.KeyFrom.Type)
+		typeKey := string(e.KeyA.Type)
 		rule, seen := rules[typeKey]
 		if !seen {
 			rule, _ = connectrules.LookupBridge(typeKey)
@@ -138,11 +139,11 @@ func canonLinks(canon []CanonEdge) map[string][]connectrules.Link {
 		if len(rule.Endpoints) == 0 {
 			continue
 		}
-		from, to := "h:"+string(e.From), "h:"+string(e.To)
-		if string(e.KeyFrom.End) != rule.Endpoints[0].PropertyKey {
+		from, to := "h:"+string(e.A), "h:"+string(e.B)
+		if string(e.KeyA.End) != rule.Endpoints[0].PropertyKey {
 			from, to = to, from
 		}
-		key := linkKey(typeKey, e.KeyFrom.Term)
+		key := linkKey(typeKey, e.KeyA.Term)
 		out[key] = append(out[key], connectrules.Link{From: from, To: to})
 	}
 	return out

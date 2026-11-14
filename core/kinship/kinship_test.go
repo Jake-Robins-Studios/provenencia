@@ -671,3 +671,35 @@ func TestEdgeFrom(t *testing.T) {
 		t.Errorf("From(neither) ok")
 	}
 }
+
+func TestEdgeReadings(t *testing.T) {
+	a, b, c := []byte("a"), []byte("b"), []byte("c")
+	ka := vocabkey.BridgeKey{Type: vocabkey.BridgeRelationship, Term: vocabkey.TermSpouse, End: vocabkey.PropertyRelatedTo}
+	kb := vocabkey.BridgeKey{Type: vocabkey.BridgeRelationship, Term: vocabkey.TermSpouse, End: vocabkey.PropertyPerson}
+	type reading struct {
+		other []byte
+		key   vocabkey.BridgeKey
+	}
+	tests := []struct {
+		name string
+		edge kinship.Edge
+		from []byte
+		want []reading
+	}{
+		{"from the first end", kinship.Edge{A: a, B: b, KeyA: ka, KeyB: kb}, a, []reading{{b, ka}}},
+		{"from the second end", kinship.Edge{A: a, B: b, KeyA: ka, KeyB: kb}, b, []reading{{a, kb}}},
+		{"from neither end", kinship.Edge{A: a, B: b, KeyA: ka, KeyB: kb}, c, nil},
+		{"a link to itself reads both ends, the first end first", kinship.Edge{A: a, B: a, KeyA: ka, KeyB: kb}, a, []reading{{a, ka}, {a, kb}}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got []reading
+			for o, k := range tc.edge.Readings(tc.from) {
+				got = append(got, reading{o, k})
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("Readings = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}

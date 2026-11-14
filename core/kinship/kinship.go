@@ -10,6 +10,7 @@ package kinship
 
 import (
 	"bytes"
+	"iter"
 	"slices"
 
 	"github.com/mendahu/provenencia/core/connectrules"
@@ -58,6 +59,21 @@ func (e Edge) From(id []byte) (other []byte, key vocabkey.BridgeKey, ok bool) {
 		return e.A, e.KeyB, true
 	}
 	return nil, vocabkey.BridgeKey{}, false
+}
+
+// Readings yields the edge read from id: the Subject at the other end and the
+// link as seen from id, A's end first. A link from id to itself yields both
+// ends, so a reader that walks links sees the self-loop through each key. It
+// yields nothing when id is neither end. From is its first reading.
+func (e Edge) Readings(id []byte) iter.Seq2[[]byte, vocabkey.BridgeKey] {
+	return func(yield func([]byte, vocabkey.BridgeKey) bool) {
+		if bytes.Equal(e.A, id) && !yield(e.B, e.KeyA) {
+			return
+		}
+		if bytes.Equal(e.B, id) {
+			yield(e.A, e.KeyB)
+		}
+	}
 }
 
 // Clone returns a copy of e that shares no bytes with it: its ends and every
