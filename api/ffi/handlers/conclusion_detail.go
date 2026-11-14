@@ -7,6 +7,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/conclusiondetails"
 	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
 	"github.com/mendahu/provenencia/core/database/files"
+	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/valuecodec"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -25,12 +26,13 @@ func GetConclusionDetail(in []byte) ([]byte, error) {
 	}
 	out := &engine.ConclusionDetail{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		d, err := conclusiondetails.ForEntity(c, entityID)
+		inputs := c.Graph().NoPageInputs()
+		d, err := conclusiondetails.ForEntity(c, entityID, inputs)
 		if err != nil {
 			return err
 		}
 		out = conclusionDetailProto(d)
-		lead, err := attachSummary(c, d, out)
+		lead, err := attachSummary(c, d, out, inputs)
 		if err != nil {
 			return err
 		}
@@ -200,7 +202,7 @@ func conclusionValueProto(v conclusiondetails.Value, depiction *engine.Depiction
 
 // attachSummary reads the handle's summary for its kind beside the detail. It
 // returns the summary's picture lead File id (nil when none).
-func attachSummary(c *database.Catalog, d conclusiondetails.Detail, out *engine.ConclusionDetail) ([]byte, error) {
+func attachSummary(c *database.Catalog, d conclusiondetails.Detail, out *engine.ConclusionDetail, inputs *graphcache.PageInputs) ([]byte, error) {
 	vocab, err := c.Graph().Vocabulary()
 	if err != nil {
 		return nil, err
@@ -214,7 +216,7 @@ func attachSummary(c *database.Catalog, d conclusiondetails.Detail, out *engine.
 			return nil, err
 		}
 		out.Summary = &engine.ConclusionSummary{Kind: &engine.ConclusionSummary_Person{Person: personSummaryProto(h[0], nil)}}
-		rows, err := conclusiondetails.PersonDerivedRows(c, d.Entity.ID)
+		rows, err := conclusiondetails.PersonDerivedRows(c, d.Entity.ID, inputs)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +234,7 @@ func attachSummary(c *database.Catalog, d conclusiondetails.Detail, out *engine.
 		if err != nil || len(h) != 1 {
 			return nil, err
 		}
-		if err := conclusionsummaries.AttachPlaceRelationships(c, &h[0]); err != nil {
+		if err := conclusionsummaries.AttachPlaceRelationships(c, &h[0], inputs); err != nil {
 			return nil, err
 		}
 		out.Summary = &engine.ConclusionSummary{Kind: &engine.ConclusionSummary_Place{Place: placeSummaryProto(h[0], nil)}}

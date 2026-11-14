@@ -407,8 +407,10 @@ func placeNeighborhood(c *database.Catalog, ids [][]byte) (*placeGraph, error) {
 
 // AttachPlaceRelationships fills PartOf / Contains / Predecessors /
 // Successors on a Place detail header (every part_of parent with its
-// membership span; children that hold today; succession both ways).
-func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
+// membership span; children that hold today; succession both ways). It records
+// on in the inputs of the place's page, succession and own entries and the id
+// of every place it lists.
+func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary, in *graphcache.PageInputs) error {
 	if h == nil || len(h.Entity.ID) == 0 {
 		return nil
 	}
@@ -417,6 +419,10 @@ func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
 		return err
 	}
 	today := TodayDate()
+	self := string(h.Entity.ID)
+	in.AddKeys(g.places[self].inputs...)
+	in.AddKeys(g.pages[self].inputs...)
+	in.AddKeys(g.successions[self].inputs...)
 
 	seenPart := map[string]bool{}
 	for _, l := range g.places[string(h.Entity.ID)].partFrom {
@@ -430,6 +436,7 @@ func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
 		seenPart[key] = true
 		rel := g.relationship(l.to, RelPartOf)
 		rel.StartDate, rel.EndDate = g.membership(l)
+		in.AddHandles(rel.Entity.ID)
 		h.PartOf = append(h.PartOf, rel)
 	}
 	sort.SliceStable(h.PartOf, func(i, j int) bool {
@@ -444,6 +451,7 @@ func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
 				break
 			}
 		}
+		in.AddHandles(rel.Entity.ID)
 		h.Contains = append(h.Contains, rel)
 	}
 
@@ -452,6 +460,7 @@ func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
 		if other, ok := g.shell(id); ok {
 			rel.StartDate, rel.EndDate = other.StartDate, other.EndDate
 		}
+		in.AddHandles(rel.Entity.ID)
 		h.Predecessors = append(h.Predecessors, rel)
 	}
 	for _, id := range g.Successors(h.Entity.ID) {
@@ -459,6 +468,7 @@ func AttachPlaceRelationships(c *database.Catalog, h *PlaceSummary) error {
 		if other, ok := g.shell(id); ok {
 			rel.StartDate, rel.EndDate = other.StartDate, other.EndDate
 		}
+		in.AddHandles(rel.Entity.ID)
 		h.Successors = append(h.Successors, rel)
 	}
 	return nil

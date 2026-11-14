@@ -639,7 +639,7 @@ func BenchmarkCacheSizes(b *testing.B) {
 			})
 			measure("placePages", func() {
 				for i := range places {
-					must(b, conclusionsummaries.AttachPlaceRelationships(c, &places[i]))
+					must(b, conclusionsummaries.AttachPlaceRelationships(c, &places[i], c.Graph().NoPageInputs()))
 				}
 			})
 			start = time.Now()

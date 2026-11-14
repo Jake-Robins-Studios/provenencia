@@ -377,7 +377,7 @@ func TestAttachPlaceRelationships(t *testing.T) {
 		t.Fatalf("%d", len(summaries))
 	}
 	h := summaries[0]
-	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &h))
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &h, f.C.Graph().NoPageInputs()))
 	if len(h.PartOf) != 2 {
 		t.Fatalf("part_of %+v", h.PartOf)
 	}
@@ -400,7 +400,7 @@ func TestAttachPlaceRelationships(t *testing.T) {
 	// York → Toronto succession both ways; successor shows Toronto's period.
 	yh, err := conclusionsummaries.PlacesByIDs(f.C, [][]byte{yorkID})
 	must(t, err)
-	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &yh[0]))
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &yh[0], f.C.Graph().NoPageInputs()))
 	if len(yh[0].Successors) != 1 || yh[0].Successors[0].Title != "Toronto" {
 		t.Fatalf("york successors %+v", yh[0].Successors)
 	}
@@ -419,7 +419,7 @@ func TestAttachPlaceRelationshipsIrelandMembershipSpan(t *testing.T) {
 	ukID := f.promoteSubject(uk)
 	ih, err := conclusionsummaries.PlacesByIDs(f.C, [][]byte{irelandID})
 	must(t, err)
-	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &ih[0]))
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &ih[0], f.C.Graph().NoPageInputs()))
 	if len(ih[0].PartOf) != 1 || ih[0].PartOf[0].Title != "United Kingdom" {
 		t.Fatalf("ireland part_of %+v", ih[0].PartOf)
 	}
@@ -429,7 +429,7 @@ func TestAttachPlaceRelationshipsIrelandMembershipSpan(t *testing.T) {
 	}
 	uh, err := conclusionsummaries.PlacesByIDs(f.C, [][]byte{ukID})
 	must(t, err)
-	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &uh[0]))
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &uh[0], f.C.Graph().NoPageInputs()))
 	// Contains is "today"; a membership that ended in 1922 is not listed.
 	for _, c := range uh[0].Contains {
 		if c.Title == "Ireland" {
@@ -712,14 +712,14 @@ func TestPersonDerivedRows(t *testing.T) {
 			id := f.promoteSubject(p)
 			f.promoteSubject(birth)
 			f.promoteSubject(york)
-			if _, err := conclusiondetails.PersonDerivedRows(f.C, id); err != nil {
+			if _, err := conclusiondetails.PersonDerivedRows(f.C, id, f.C.Graph().NoPageInputs()); err != nil {
 				t.Fatal(err)
 			}
 			f.Cite(f.Artifact, york, observations.Input{PropertyID: f.Prop("toponym").ID, Scalar: propertymeta.TextScalar("Upper York")})
 			if !database.ContainsBlobID(f.Reported, id) {
 				t.Fatalf("a toponym cited on the birth place did not report the person (%d ids)", len(f.Reported))
 			}
-			rows, err := conclusiondetails.PersonDerivedRows(f.C, id)
+			rows, err := conclusiondetails.PersonDerivedRows(f.C, id, f.C.Graph().NoPageInputs())
 			must(t, err)
 			var place *conclusionsummaries.ChainedPlace
 			for _, r := range rows {
@@ -743,7 +743,7 @@ func TestPersonDerivedRows(t *testing.T) {
 				c  *database.Catalog
 				id []byte
 			}{"merged": {c, merged}, "place": {c, place}, "unknown": {c, bytes16(0x7a)}, "nil catalog": {nil, merged}} {
-				rows, err := conclusiondetails.PersonDerivedRows(tc.c, tc.id)
+				rows, err := conclusiondetails.PersonDerivedRows(tc.c, tc.id, tc.c.Graph().NoPageInputs())
 				if err != nil || len(rows) != 0 {
 					t.Errorf("%s: rows %+v, err %v, want none", name, rows, err)
 				}
@@ -783,7 +783,7 @@ func TestPersonDerivedRows(t *testing.T) {
 				n := 0
 				g.SetQueryCounterForTest(func() { n++ })
 				defer g.SetQueryCounterForTest(nil)
-				rows, err := conclusiondetails.PersonDerivedRows(f.C, id)
+				rows, err := conclusiondetails.PersonDerivedRows(f.C, id, f.C.Graph().NoPageInputs())
 				must(t, err)
 				return n, rows
 			}
@@ -809,7 +809,7 @@ func TestPersonDerivedRows(t *testing.T) {
 			f.promoteSubject(birth)
 			f.promoteSubject(death)
 			yorkID := f.promoteSubject(york)
-			rows, err := conclusiondetails.PersonDerivedRows(f.C, id)
+			rows, err := conclusiondetails.PersonDerivedRows(f.C, id, f.C.Graph().NoPageInputs())
 			must(t, err)
 			kinds := map[conclusiondetails.DerivedRowKind]conclusiondetails.DerivedRow{}
 			for _, r := range rows {
@@ -840,7 +840,7 @@ func TestPersonDerivedRows(t *testing.T) {
 			f.deniedDate(ev, 1817)
 			id := f.promoteSubject(p)
 			evID := f.promoteSubject(ev)
-			rows, err := conclusiondetails.PersonDerivedRows(f.C, id)
+			rows, err := conclusiondetails.PersonDerivedRows(f.C, id, f.C.Graph().NoPageInputs())
 			must(t, err)
 			if len(rows) != 1 || rows[0].Kind != conclusiondetails.DerivedRowBirthDate || len(rows[0].Owners) != 1 {
 				t.Fatalf("rows %+v, want one birth date owner", rows)
@@ -859,5 +859,50 @@ func TestPersonDerivedRows(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { tc.run(t, newFixture(t)) })
+	}
+}
+
+// TestAttachPlaceRelationshipsRecordsInputs: the relationships record the
+// place, each place they list and the associations of the links they read.
+func TestAttachPlaceRelationshipsRecordsInputs(t *testing.T) {
+	f := newFixture(t)
+	town := f.placeSubject("Town", nil, nil, 0, 0)
+	county := f.placeSubject("County", nil, nil, 2, 0)
+	village := f.placeSubject("Village", nil, nil, 4, 0)
+	newTown := f.placeSubject("NewTown", nil, nil, 6, 0)
+	f.placeRel(town, county, propertyterms.KeyPartOf, nil, nil)
+	f.placeRel(village, town, propertyterms.KeyPartOf, nil, nil)
+	f.placeRel(town, newTown, propertyterms.KeySucceededBy, nil, nil)
+	townID, countyID := f.promoteSubject(town), f.promoteSubject(county)
+	villageID, newTownID := f.promoteSubject(village), f.promoteSubject(newTown)
+	g := f.C.Graph()
+	var assocs [][]byte
+	for _, hop := range []hops.Hop{hops.ParentsOfPlace, hops.PartsOfPlace, hops.SuccessorsOfPlace} {
+		links, err := g.Follow(townID, hop)
+		must(t, err)
+		for _, l := range links {
+			assocs = append(assocs, l.Association)
+		}
+	}
+	if len(assocs) != 3 {
+		t.Fatalf("associations %x, want one per link", assocs)
+	}
+	towns, err := conclusionsummaries.PlacesByIDs(f.C, [][]byte{townID})
+	must(t, err)
+	in := g.PageInputs()
+	must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &towns[0], in))
+	handles, graphs, srcs := in.Lists()
+	have := map[string]bool{}
+	for _, id := range handles {
+		have[string(id)] = true
+	}
+	want := append([][]byte{townID, countyID, villageID, newTownID}, assocs...)
+	for _, id := range want {
+		if !have[string(id)] {
+			t.Errorf("handles lack %x (have %x)", id, handles)
+		}
+	}
+	if len(graphs) != 0 || len(srcs) != 0 {
+		t.Errorf("graphs %x, sources %x: the relationships show no records", graphs, srcs)
 	}
 }

@@ -2087,7 +2087,7 @@ func TestOutOfDomainBooleanReadsAbsent(t *testing.T) {
 	if _, err := observations.ListByCitation(f.C, cited[0].CitationID); err != nil {
 		t.Fatalf("citation Observation list: %v", err)
 	}
-	if _, err := conclusiondetails.ForEntity(f.C, h); err != nil {
+	if _, err := conclusiondetails.ForEntity(f.C, h, f.C.Graph().NoPageInputs()); err != nil {
 		t.Fatalf("conclusion detail: %v", err)
 	}
 }

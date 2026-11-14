@@ -7,6 +7,7 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/conclusiondetails"
 	"github.com/mendahu/provenencia/core/database/databasetest"
+	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/mendahu/provenencia/core/database/observations"
 	"github.com/mendahu/provenencia/core/database/properties"
 	"github.com/mendahu/provenencia/core/database/rowchange"
@@ -14,6 +15,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/subjectpositions"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
+	"github.com/mendahu/provenencia/core/hops"
 	"github.com/mendahu/provenencia/core/propertymeta"
 	"github.com/mendahu/provenencia/core/writes"
 )
@@ -55,13 +57,30 @@ func (f *fixture) birthAt(src sources.Source, toponyms ...observations.Input) ([
 	return h, place
 }
 
+// datedBirth dates the birth event of the Person born through birthAt and
+// returns the event's handle.
+func (f *fixture) datedBirth(person []byte, src sources.Source, year int) []byte {
+	f.T.Helper()
+	links, err := f.C.Graph().Follow(person, hops.EventsOfParticipant)
+	must(f.T, err)
+	if len(links) != 1 {
+		f.T.Fatalf("links %+v, want the one birth", links)
+	}
+	event := links[0].Neighbor
+	n, err := f.C.Graph().Node(event)
+	must(f.T, err)
+	m := n.Members[0]
+	f.cite(subjects.Subject{ID: m.SubjectID, GraphID: m.GraphID, SourceID: src.ID}, f.dateIn(subjects.Subject{ID: m.SubjectID}, year))
+	return event
+}
+
 const blankMarker = "BLANK"
 
 func text(s string) observations.Input { return observations.Input{Scalar: propertymeta.TextScalar(s)} }
 
 func (f *fixture) placeRows(person []byte) []conclusiondetails.OwnerField {
 	f.T.Helper()
-	rows, err := conclusiondetails.PersonDerivedRows(f.C, person)
+	rows, err := conclusiondetails.PersonDerivedRows(f.C, person, f.C.Graph().NoPageInputs())
 	must(f.T, err)
 	for _, r := range rows {
 		if r.Kind == conclusiondetails.DerivedRowBirthPlace {
@@ -136,12 +155,12 @@ func TestLinkRecordReadsKeepQueriesConstant(t *testing.T) {
 		n := 0
 		g.SetQueryCounterForTest(func() { n++ })
 		defer g.SetQueryCounterForTest(nil)
-		_, err = conclusiondetails.PersonDerivedRows(f.C, h)
+		_, err = conclusiondetails.PersonDerivedRows(f.C, h, f.C.Graph().NoPageInputs())
 		must(t, err)
 		first := n
 		n = 0
 		selects := databasetest.CountSelects(t, f.C)
-		_, err = conclusiondetails.PersonDerivedRows(f.C, h)
+		_, err = conclusiondetails.PersonDerivedRows(f.C, h, f.C.Graph().NoPageInputs())
 		must(t, err)
 		if n != 0 || selects.N() != 0 {
 			t.Fatalf("a second read issued %d graph queries and %d SELECTs", n, selects.N())
@@ -171,4 +190,33 @@ func TestForEntityDropsSubjectValuedFields(t *testing.T) {
 			t.Fatalf("field %q of value type subject returned for a Person", fld.PropertyKey)
 		}
 	}
+}
+
+// TestPersonDerivedRowsRecordInputs: the life rows record each owner they read
+// and the place a place owner holds, with the graphs and Sources of the
+// records they show.
+func TestPersonDerivedRowsRecordInputs(t *testing.T) {
+	f := newFixture(t)
+	src := f.source("Register")
+	person, _ := f.birthAt(src, text("York"))
+	f.datedBirth(person, src, 1820)
+	in := f.C.Graph().PageInputs()
+	rows, err := conclusiondetails.PersonDerivedRows(f.C, person, in)
+	must(t, err)
+	var want [][]byte
+	for _, r := range rows {
+		for _, o := range r.Owners {
+			want = append(want, o.Entity.ID)
+			if o.Place != nil {
+				want = append(want, o.Place.Entity.ID)
+			}
+		}
+	}
+	if len(want) < 3 {
+		t.Fatalf("expected the birth event, the link and the place among %+v", rows)
+	}
+	handles, graphs, srcs := in.Lists()
+	holdsIDs(t, "handles", handles, false, want...)
+	holdsIDs(t, "graphs", graphs, true, evidencegraphstest.SoleGraph(t, f.C, src.ID).ID)
+	holdsIDs(t, "sources", srcs, true, src.ID)
 }

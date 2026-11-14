@@ -130,7 +130,7 @@ func (f *fixture) promote(s subjects.Subject, onto []byte) []byte {
 
 func (f *fixture) detail(h []byte) conclusiondetails.Detail {
 	f.T.Helper()
-	d, err := conclusiondetails.ForEntity(f.C, h)
+	d, err := conclusiondetails.ForEntity(f.C, h, f.C.Graph().NoPageInputs())
 	must(f.T, err)
 	return d
 }
@@ -514,7 +514,7 @@ func TestForEntityEvidence(t *testing.T) {
 func TestForEntityNotFound(t *testing.T) {
 	f := newFixture(t)
 	for _, id := range [][]byte{nil, []byte("short"), bytes.Repeat([]byte{9}, 16)} {
-		if _, err := conclusiondetails.ForEntity(f.C, id); !errors.Is(err, conclusiondetails.ErrNotFound) {
+		if _, err := conclusiondetails.ForEntity(f.C, id, f.C.Graph().NoPageInputs()); !errors.Is(err, conclusiondetails.ErrNotFound) {
 			t.Fatalf("%x: %v", id, err)
 		}
 	}
@@ -527,7 +527,7 @@ func TestForEntityNotFound(t *testing.T) {
 	must(t, err)
 	// The update skipped the write path, so the open graph still has the old node.
 	f.C.Graph().Drop()
-	if _, err := conclusiondetails.ForEntity(f.C, h); !errors.Is(err, conclusiondetails.ErrNotFound) {
+	if _, err := conclusiondetails.ForEntity(f.C, h, f.C.Graph().NoPageInputs()); !errors.Is(err, conclusiondetails.ErrNotFound) {
 		t.Fatalf("merged: %v", err)
 	}
 }
@@ -556,18 +556,18 @@ func TestForEntityQueryCountIsConstant(t *testing.T) {
 	}
 	var n int
 	g.SetQueryCounterForTest(func() { n++ })
-	_, err := conclusiondetails.ForEntity(f.C, hs)
+	_, err := conclusiondetails.ForEntity(f.C, hs, f.C.Graph().PageInputs())
 	must(t, err)
 	smallN := n
 	n = 0
-	_, err = conclusiondetails.ForEntity(f.C, hb)
+	_, err = conclusiondetails.ForEntity(f.C, hb, f.C.Graph().PageInputs())
 	must(t, err)
 	if smallN == 0 || smallN != n {
 		t.Fatalf("graph queries: %d for a small Person, %d for a big one", smallN, n)
 	}
 	selects := databasetest.CountSelects(t, f.C)
 	for _, h := range [][]byte{hs, hb} {
-		_, err = conclusiondetails.ForEntity(f.C, h)
+		_, err = conclusiondetails.ForEntity(f.C, h, f.C.Graph().PageInputs())
 		must(t, err)
 	}
 	if selects.N() != 0 {
@@ -830,4 +830,67 @@ func TestForEntityBoolean(t *testing.T) {
 			}
 		})
 	}
+}
+
+// holdsIDs fails naming each id of want that list lacks, or each id of list
+// that want does not name when exact.
+func holdsIDs(t *testing.T, what string, list [][]byte, exact bool, want ...[]byte) {
+	t.Helper()
+	have := map[string]bool{}
+	for _, id := range list {
+		have[string(id)] = true
+	}
+	wanted := map[string]bool{}
+	for _, id := range want {
+		wanted[string(id)] = true
+		if !have[string(id)] {
+			t.Errorf("%s lacks %x (has %x)", what, id, list)
+		}
+	}
+	if exact {
+		for _, id := range list {
+			if !wanted[string(id)] {
+				t.Errorf("%s holds %x, which was not asked for", what, id)
+			}
+		}
+	}
+}
+
+// TestForEntityRecordsInputs: the detail records its handle, the graphs and
+// Sources of the records it shows, and records nothing on NoPageInputs.
+func TestForEntityRecordsInputs(t *testing.T) {
+	t.Run("a Person with records on two graphs of two Sources", func(t *testing.T) {
+		f := newFixture(t)
+		baptisms, burials := f.source("Baptisms"), f.source("Burials")
+		a, b := f.personOn(baptisms), f.personOn(burials)
+		f.cite(a, f.nameIn(a, "given=Ada|surname=Lee"))
+		f.cite(b, f.nameIn(b, "given=Ada|surname=Lee"))
+		h := f.promote(a, nil)
+		f.promote(b, h)
+		in := f.C.Graph().PageInputs()
+		d, err := conclusiondetails.ForEntity(f.C, h, in)
+		must(t, err)
+		handles, graphs, srcs := in.Lists()
+		holdsIDs(t, "handles", handles, true, h)
+		holdsIDs(t, "graphs", graphs, true, a.GraphID, b.GraphID)
+		holdsIDs(t, "sources", srcs, true, baptisms.ID, burials.ID)
+		none, err := conclusiondetails.ForEntity(f.C, h, f.C.Graph().NoPageInputs())
+		must(t, err)
+		if !reflect.DeepEqual(d, none) {
+			t.Fatalf("the detail differs with a NoPageInputs recorder")
+		}
+	})
+	t.Run("an Event", func(t *testing.T) {
+		f := newFixture(t)
+		src := f.source("Register")
+		person, _ := f.birthAt(src, text("York"))
+		event := f.datedBirth(person, src, 1820)
+		in := f.C.Graph().PageInputs()
+		_, err := conclusiondetails.ForEntity(f.C, event, in)
+		must(t, err)
+		handles, graphs, srcs := in.Lists()
+		holdsIDs(t, "handles", handles, true, event)
+		holdsIDs(t, "graphs", graphs, true, evidencegraphstest.SoleGraph(t, f.C, src.ID).ID)
+		holdsIDs(t, "sources", srcs, true, src.ID)
+	})
 }

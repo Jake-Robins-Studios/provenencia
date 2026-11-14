@@ -53,7 +53,7 @@ func Claims(c *database.Catalog, entityID []byte) ([]ClaimGroup, error) {
 // decides whether an id is a Person page's. An unknown or merged handle, or one
 // that is no Person, is conclusiondetails.ErrNotFound.
 func personNode(c *database.Catalog, entityID []byte) (*graphcache.Node, error) {
-	n, err := conclusiondetails.Handle(c, entityID)
+	n, err := conclusiondetails.Handle(c, entityID, c.Graph().NoPageInputs())
 	if err != nil {
 		return nil, err
 	}
