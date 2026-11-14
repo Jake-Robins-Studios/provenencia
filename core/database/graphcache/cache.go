@@ -106,7 +106,7 @@ type entry struct {
 	// narrow is the typed Narrow of a keyed entry, nil without one.
 	narrow func(g *Graph, change any)
 	held   func(g *Graph) bool
-	count     func(g *Graph) int
+	count  func(g *Graph) int
 }
 
 // registry holds every entry in registration order. An entry's id is its

@@ -184,11 +184,11 @@ func (lf *largeFixture) warmProposal() time.Duration {
 // added, so a name is never repeated across calls.
 func (lf *largeFixture) proposalAfterCommit(n *int) time.Duration {
 	g := lf.Graph(lf.a)
-	return databasetest.Fastest(2, func() time.Duration {
+	commit := func() {
 		*n++
 		lf.promote(lf.Person(lf.other, lf.otherA, "Added "+letters(*n)+" Person"))
-		return databasetest.Since(func() { lf.propose(g, nil) })
-	})
+	}
+	return databasetest.Collected(3, commit, func() { lf.propose(g, nil) })
 }
 
 // TestLargeSourceBudgets holds Promote to the times of S11-21 D-1 on a catalog

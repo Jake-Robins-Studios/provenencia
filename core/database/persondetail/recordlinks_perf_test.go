@@ -3,7 +3,6 @@ package persondetail_test
 import (
 	"fmt"
 	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -107,10 +106,7 @@ func TestRecordLinksBudgets(t *testing.T) {
 			t.Fatal("the read at 65 graphs differs from the read after dropping the cache")
 		}
 		threeStrong(t, first, 65)
-		d := databasetest.Fastest(2, func() time.Duration {
-			runtime.GC()
-			return databasetest.Since(func() { g.recordLinks(son) })
-		})
+		d := databasetest.Collected(2, nil, func() { g.recordLinks(son) })
 		databasetest.WithinBudget(t, "repeat read at 65 graphs", d, budgetLinksPast)
 	})
 
@@ -118,10 +114,7 @@ func TestRecordLinksBudgets(t *testing.T) {
 		g := newFixture(t)
 		son := households(g, 80)
 		threeStrong(t, g.recordLinks(son), 80)
-		d := databasetest.Fastest(2, func() time.Duration {
-			runtime.GC()
-			return databasetest.Since(func() { g.recordLinks(son) })
-		})
+		d := databasetest.Collected(2, nil, func() { g.recordLinks(son) })
 		databasetest.WithinBudget(t, "repeat read at 80 graphs", d, budgetLinks80)
 	})
 }
