@@ -53,36 +53,36 @@ func SetInputKeyCapForTest(n int) (restore func()) {
 
 // HeldPlaceEntryForTest reports whether g holds an entry for the place.
 func HeldPlaceEntryForTest(g *graphcache.Graph, id []byte) bool {
-	_, ok := placeEntries.Peek(g, id)
+	_, ok := placeEntries.k.Peek(g, id)
 	return ok
 }
 
 // PlaceEntryForTest returns whether the chain entry for the place is held and
 // found, and the keys it is dropped by (the keys a summary row records for it).
 func PlaceEntryForTest(g *graphcache.Graph, id []byte) (held, found bool, inputs []graphcache.InputKey) {
-	e, ok := placeEntries.Peek(g, id)
+	e, ok := placeEntries.k.Peek(g, id)
 	return ok, e.found, e.inputs
 }
 
 // PlacePageForTest returns whether the page entry for the place is held and the
 // keys it is dropped by.
 func PlacePageForTest(g *graphcache.Graph, id []byte) (held bool, inputs []graphcache.InputKey) {
-	p, ok := placePages.Peek(g, id)
+	p, ok := placePages.k.Peek(g, id)
 	return ok, p.inputs
 }
 
 // SetPlaceEntryCapForTest lowers the place entries g holds to n.
-func SetPlaceEntryCapForTest(g *graphcache.Graph, n int) { placeEntries.SetCapForTest(g, n) }
+func SetPlaceEntryCapForTest(g *graphcache.Graph, n int) { placeEntries.k.SetCapForTest(g, n) }
 
 // CorruptPlaceEntryForTest replaces the held entry's names so it no longer
 // matches a fresh load.
 func CorruptPlaceEntryForTest(g *graphcache.Graph, id []byte) {
-	e, ok := placeEntries.Peek(g, id)
+	e, ok := placeEntries.k.Peek(g, id)
 	if !ok {
 		return
 	}
 	e.shell.Names = []string{"corrupt"}
-	placeEntries.Set(g, id, e)
+	placeEntries.k.Set(g, id, e)
 }
 
 // FillPlaceEntriesForTest holds the entries of ids on g, as a chain read does.
@@ -91,7 +91,7 @@ func FillPlaceEntriesForTest(g *graphcache.Graph, ids ...[]byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = placeEntriesOf(g, v, ids)
+	_, err = placeEntries.of(g, v, ids)
 	return err
 }
 
@@ -101,6 +101,24 @@ func FillPlacePagesForTest(g *graphcache.Graph, ids ...[]byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = placePagesOf(g, v, ids)
+	_, err = placePages.of(g, v, ids)
+	return err
+}
+
+// PlaceSuccessionForTest returns whether the succession entry for the place is
+// held and the keys it is dropped by.
+func PlaceSuccessionForTest(g *graphcache.Graph, id []byte) (held bool, inputs []graphcache.InputKey) {
+	s, ok := placeSuccessions.k.Peek(g, id)
+	return ok, s.inputs
+}
+
+// FillPlaceSuccessionsForTest holds the succession entries of ids on g, as a
+// succession read does.
+func FillPlaceSuccessionsForTest(g *graphcache.Graph, ids ...[]byte) error {
+	v, err := vocabulary(g)
+	if err != nil {
+		return err
+	}
+	_, err = placeSuccessions.of(g, v, ids)
 	return err
 }

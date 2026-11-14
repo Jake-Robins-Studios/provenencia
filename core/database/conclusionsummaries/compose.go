@@ -1231,7 +1231,7 @@ func buildPlaceGraph(g *graphcache.Graph, v vocab, seeds [][]byte) (*placeGraph,
 		seen[string(id)] = true
 	}
 	for round := 0; round < summaryChainDepth && len(frontier) > 0; round++ {
-		entries, err := placeEntriesOf(g, v, frontier)
+		entries, err := placeEntries.of(g, v, frontier)
 		if err != nil {
 			return nil, err
 		}
@@ -1266,7 +1266,11 @@ func placeStep(c *database.Catalog, id []byte) (*placeGraph, error) {
 	if err != nil {
 		return nil, err
 	}
-	pages, err := placePagesOf(g, v, [][]byte{id})
+	pages, err := placePages.of(g, v, [][]byte{id})
+	if err != nil {
+		return nil, err
+	}
+	successions, err := placeSuccessions.of(g, v, [][]byte{id})
 	if err != nil {
 		return nil, err
 	}
@@ -1274,21 +1278,23 @@ func placeStep(c *database.Catalog, id []byte) (*placeGraph, error) {
 	if !ok {
 		return pg, nil
 	}
+	succession := successions[string(id)]
 	pg.pages[string(id)] = page
+	pg.succession[string(id)] = succession
 	neighbors := [][]byte{id}
-	for _, links := range [][]placeLink{page.partTo, page.succFrom, page.succTo} {
+	for _, links := range [][]placeLink{page.partTo, succession.succFrom, succession.succTo} {
 		for _, l := range links {
 			neighbors = append(neighbors, l.from, l.to)
 		}
 	}
-	own, err := placeEntriesOf(g, v, [][]byte{id})
+	own, err := placeEntries.of(g, v, [][]byte{id})
 	if err != nil {
 		return nil, err
 	}
 	for _, l := range own[string(id)].partFrom {
 		neighbors = append(neighbors, l.to)
 	}
-	entries, err := placeEntriesOf(g, v, neighbors)
+	entries, err := placeEntries.of(g, v, neighbors)
 	if err != nil {
 		return nil, err
 	}

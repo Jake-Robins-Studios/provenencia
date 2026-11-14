@@ -215,11 +215,15 @@ func TestPlaceEntries(t *testing.T) {
 			}
 			_, _, chain := conclusionsummaries.PlaceEntryForTest(g, loop)
 			_, page := conclusionsummaries.PlacePageForTest(g, loop)
+			_, succession := conclusionsummaries.PlaceSuccessionForTest(g, loop)
 			if want := reads(hops.ParentsOfPlace); !slices.EqualFunc(chain, want, graphcache.InputKey.Equal) {
 				t.Errorf("chain inputs %+v, want %+v", chain, want)
 			}
-			if want := reads(hops.PartsOfPlace, hops.SuccessorsOfPlace, hops.PredecessorsOfPlace, hops.ParentsOfPlace); !slices.EqualFunc(page, want, graphcache.InputKey.Equal) {
+			if want := reads(hops.PartsOfPlace, hops.ParentsOfPlace); !slices.EqualFunc(page, want, graphcache.InputKey.Equal) {
 				t.Errorf("page inputs %+v, want %+v", page, want)
+			}
+			if want := reads(hops.SuccessorsOfPlace, hops.PredecessorsOfPlace); !slices.EqualFunc(succession, want, graphcache.InputKey.Equal) {
+				t.Errorf("succession inputs %+v, want %+v", succession, want)
 			}
 			if err := g.Verify(); err != nil {
 				t.Errorf("Verify: %v", err)
@@ -310,6 +314,37 @@ func TestPlaceEntries(t *testing.T) {
 			must(t, conclusionsummaries.AttachPlaceRelationships(f.C, &h))
 			if n := g.KeyCounts()["conclusionsummaries.placePages"]; n != 1 {
 				t.Errorf("%d place pages held after the city's page, want 1", n)
+			}
+		}},
+		{"succession fills no page", func(t *testing.T, f *fixture, w *chainWorld) {
+			g := f.C.Graph()
+			g.Drop()
+			must(t, conclusionsummaries.FillPlaceSuccessionsForTest(g, w.city))
+			if held, _ := conclusionsummaries.PlaceSuccessionForTest(g, w.city); !held {
+				t.Error("the city's succession entry is not held")
+			}
+			if n := g.KeyCounts()["conclusionsummaries.placePages"]; n != 0 {
+				t.Errorf("%d place pages held after a succession read, want 0", n)
+			}
+		}},
+		{"bad part date leaves succession", func(t *testing.T, f *fixture, w *chainWorld) {
+			g := f.C.Graph()
+			start := 1800
+			hill := f.placeSubject("Hill", nil, nil, 14, 0)
+			f.placeRel(hill, w.citySubject, propertyterms.KeyPartOf, &start, nil)
+			f.promoteSubject(hill)
+			beta := f.placeSubject("Beta", nil, nil, 16, 0)
+			f.placeRel(beta, w.citySubject, propertyterms.KeySucceededBy, nil, nil)
+			f.promoteSubject(beta)
+			f.breakDates()
+			g.Drop()
+			if err := conclusionsummaries.FillPlaceSuccessionsForTest(g, w.city); err != nil {
+				t.Errorf("the city's succession read a part link's date: %v", err)
+			}
+			h := conclusionsummaries.PlaceSummary{}
+			h.Entity.ID = w.city
+			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h); err == nil {
+				t.Error("the city's page read a bad part date without error")
 			}
 		}},
 		{"missing place", func(t *testing.T, f *fixture, w *chainWorld) {
@@ -416,6 +451,7 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 	g.Drop()
 	must(t, conclusionsummaries.FillPlaceEntriesForTest(g, w.town, w.city, w.region, unknown))
 	must(t, conclusionsummaries.FillPlacePagesForTest(g, w.town, w.city, w.region, unknown))
+	must(t, conclusionsummaries.FillPlaceSuccessionsForTest(g, w.town, w.city, w.region, unknown))
 	db, err := f.C.DB()
 	must(t, err)
 	// reads is what a scope records reading id and following hopList.
@@ -441,12 +477,28 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 		}
 		return in.Keys()
 	}
+	// pageReads is reads(id, PartsOfPlace) and the from end of the place's
+	// place_relationship links: the page follows ParentsOfPlace for the link
+	// from the place to itself and keeps no other link of it. These worlds have
+	// no self link, so the from end adds only its key.
+	pageReads := func(id []byte) []graphcache.InputKey {
+		keys := reads(id, hops.PartsOfPlace)
+		if n, err := graphcache.Over(db).Inputs(nil).Node(id); err != nil || n == nil {
+			return keys
+		}
+		from := graphcache.InputKey{ID: id, Bridge: "place_relationship", Endpoint: "from"}
+		if !slices.ContainsFunc(keys, from.Equal) {
+			keys = append(keys, from)
+		}
+		return keys
+	}
 	for name, id := range map[string][]byte{"town": w.town, "city": w.city, "region": w.region, "unknown": unknown} {
 		t.Run(name, func(t *testing.T) {
 			held, _, inputs := conclusionsummaries.PlaceEntryForTest(g, id)
 			pageHeld, pageInputs := conclusionsummaries.PlacePageForTest(g, id)
-			if !held || !pageHeld {
-				t.Fatalf("entry held %v, page held %v", held, pageHeld)
+			succHeld, succInputs := conclusionsummaries.PlaceSuccessionForTest(g, id)
+			if !held || !pageHeld || !succHeld {
+				t.Fatalf("entry held %v, page held %v, succession held %v", held, pageHeld, succHeld)
 			}
 			same := func(what string, got, want []graphcache.InputKey) {
 				t.Helper()
@@ -455,9 +507,19 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 				}
 			}
 			same("inputs", inputs, reads(id, hops.ParentsOfPlace))
-			same("page inputs", pageInputs, reads(id, hops.PartsOfPlace, hops.SuccessorsOfPlace, hops.PredecessorsOfPlace))
+			same("page inputs", sortedKeys(pageInputs), sortedKeys(pageReads(id)))
+			same("succession inputs", succInputs, reads(id, hops.SuccessorsOfPlace, hops.PredecessorsOfPlace))
 		})
 	}
+}
+
+// sortedKeys is keys in a fixed order, for comparing two lists as sets.
+func sortedKeys(keys []graphcache.InputKey) []graphcache.InputKey {
+	out := slices.Clone(keys)
+	slices.SortFunc(out, func(a, b graphcache.InputKey) int {
+		return strings.Compare(fmt.Sprintf("%x|%s|%s", a.ID, a.Bridge, a.Endpoint), fmt.Sprintf("%x|%s|%s", b.ID, b.Bridge, b.Endpoint))
+	})
+	return out
 }
 
 // meshWorld is the crafted part_of mesh BenchmarkPlaceMesh reads: a hub with
