@@ -20,7 +20,7 @@ Reviewers: CON, MNT, SEC+PRF (core/graphalign, core/kinship, core/database/**). 
 | --- | --- | --- | --- | --- | --- |
 | MNT-1 | MNT | major | The three place fills each build the same inputs by hand | Fix now → F-1 | verified: `placeentries.go:208`, `:230-238`, `:259-267`; `rg 'FollowKeys\(' core` outside graphcache prints exactly these three. Same-pass cleanup: this PR adds the third copy |
 | MNT-2 | MNT | major | "Each distinct end of a link" written out in three places | Fix now → F-2 | verified: `rg 'bytes.Equal\(\w+\.A, \w+\.B\)' core` prints `recordlinks.go:125`, `types.go:209`, `align.go:126`. Same-pass cleanup: this PR adds two copies; the `recordlinks` copy moves too |
-| MNT-2b | MNT | — | `recordlinks.addLink` reads a self-loop through `Edge.From(end)` (only `KeyA`), unlike D-16's layer reading | Follow-up | older than this PR; changes what record-link pages read for a self-loop, so not a same-pass cleanup |
+| MNT-2b | MNT | — | `recordlinks.addLink` reads a self-loop through `Edge.From(end)` (only `KeyA`), unlike D-16's layer reading | Rejected (user, 2026-11-14) | the app never writes a link from a record to itself (`connect.go:72` refuses equal ends), so only a hand-edited catalog holds one; the user made that a working rule: refuse it where links are read, read it nowhere. The removal of every self-loop reader, this one's premise included, is S16-36 on the map |
 | MNT-3 | MNT | minor | New cache named singular beside plural siblings | Fix now → F-3 | minor in code this PR adds |
 | CON-1 | CON | minor | D-13 medians missing from the ship log | Fixed (orchestrator) | copied into Round 0 above |
 | CON-2 | CON | minor | Plan §10 manual check not run | To user (routine) | the user runs §10 at hand-off (ship-pr step 8); no Swift or strings change |
@@ -63,4 +63,4 @@ Reviewers: MNT (had the Fix-now majors). CON and SEC+PRF had no Fix-now blocker 
 No new blockers. Nits (logged): `MNT-6 · placeentries.go:221,246,269 · entryHops is a package var while pageHops/succHops are locals; hop list passed twice` · `MNT-7 · placechains.go:48 · comment still says "succession" after the field became successions`
 
 ## Result
-Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: MNT-2b · to user: CON-2 (manual check, routine)
+Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: none (MNT-2b rejected by the self-loop rule → S16-36) · to user: CON-2 (manual check, routine)

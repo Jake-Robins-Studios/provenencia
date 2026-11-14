@@ -151,6 +151,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing.** Per-entity Conclusion keys go from `.evict` to `.markStale`, and only ids in `effects.deleted` are evicted, with a cap of 50 hidden entities. Each per-entity read reports the handles, graphs and Sources it was built from as three wire lists; `graphcache.InputKey`, which the persisted input index stores, keeps its one kind (map review K-28). One `.followsInputs` refresh replaces the hand-written selectors. Swift derives nothing the engine knows; one `session.derived` primitive builds what it derives for display once per change of its inputs. Binds S16-09, S16-24 – S16-27, S16-29.
 - **(Batch 2) No Go cache for a view that is one query.** The Source workspace lists, source types, metadata fields, Citations by Artifact and subject positions keep their single reads; Swift's per-view key is enough. Binds S16-10 – S16-32.
 - **(Batch 2) No new persisted projections, and no stored answer without a measurement.** Stored summary rows, a canonical links table and stored shortlist keys are refused for now ([design](cache-architecture.md#not-this-batch)). A composed answer is memoised only after it measures slow at the batch's Scale. Binds S16-10 – S16-32.
+- **(Batch 2) A link with one record at both ends is crafted data, refused where links are read** (user, 2026-11-14). No genealogical link joins a record to itself, and the app never writes one: `connect.CreateCitedBridge` refuses equal ends, and filing refuses a link whose two ends are one handle (`connectrules` `DecisionSelfLink`, which stays: two Source records claimed onto one handle are real data). So a stored link from a record to itself only comes from a hand-edited catalog. It is refused once, where the catalog's links are read, and no reader handles it: `kinship.Edge.Readings` and `Ends`, `graphalign`'s view and layer, the place entries' pages and chains and their tests stop reading self-loops (S16-21 D-14, D-16 and its self-loop tests were written before this rule). Binds S16-36, S16-22.
 - **(Batch 2) Measure growth.** A PR that claims speed adds a budget at 4,000 and 16,000 persons on the large fixture (or at the input it grows with), and records today's figure on the same machine in its ship log. Binds S16-11 – S16-32.
 
 ### Batch 3 — Test infrastructure
@@ -185,8 +186,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-20 | One match index that Apply keeps current | 2d | Go: profiles, each handle's filed keys and the shortlist postings in one registry entry built at open; The match index's drop-on-any-handle Apply goes: Apply re-profiles the commit's roots and their events' people once and patches the postings; `graphalign.Handle` folds onto `subjectcompare.Subject` | — | S16-10 | [plan](prs/S16-20-match-index-apply.md) | Landed #827 |
 | S16-32 | Promote re-ranks only the Subjects a write moved | 2d | Go: each Subject's candidates, in their keyed entry (S16-13), keep its lookup keys and re-rank only when a key a changed handle was filed under, before or after the commit, meets one of them | — | S16-20, S16-13 | [plan](prs/S16-32-narrow-candidate-rerank.md) | Landed #832 |
 | S16-21 | Promote's alignment reads a canon view and the place entries | 2d | Go: `graphalign` reads a `CanonView` interface served by today's `Canon`, and `graphalign.CanonEdge` folds onto `kinship.Link`; `Connections` takes the filed `part_of` and `succeeded_by` links from the place entries instead of every canon edge; goldens unchanged | — | S16-18 | [plan](prs/S16-21-canon-view-place-links.md) | Landed #836 |
+| S16-36 | A link from a record to itself is refused where links are read | 2d | Go: one guard where the catalog's links are read refuses a stored self-loop (working rule, user 2026-11-14); the self-loop readings in `kinship.Edge`, `graphalign`'s view and layer and the place entries' pages and chains go with their tests; `connect.CreateCitedBridge`'s equal-ends refusal gets its test | — | S16-21 | — | Scoped |
 | S16-33 | `Align` reads a canon view | 2d | Merged into S16-21 to cut a review cycle (user, 2026-11-08) | — | — | — | Descoped (2026-11-08) → S16-21 |
-| S16-22 | Promote reads each handle's neighbourhood instead of walking the catalog | 2d | Go: the session-graph view serves profiles and links per handle from the match index and the kinship pivots; `loadCanon`'s walk and its link merge go; results held equal on the large fixture | — | S16-16, S16-20, S16-21 | — | Scoped |
+| S16-22 | Promote reads each handle's neighbourhood instead of walking the catalog | 2d | Go: the session-graph view serves profiles and links per handle from the match index and the kinship pivots; `loadCanon`'s walk and its link merge go; results held equal on the large fixture | — | S16-16, S16-20, S16-21, S16-36 | — | Scoped |
 | S16-23 | Conclusion pages show their last value while they refresh | 2e | Merged into S16-09 to cut a review cycle (user, 2026-11-08) | — | — | — | Descoped (2026-11-08) → S16-09 |
 | S16-28 | Cache keys as plain values | 2e | Merged into S16-25 to cut a review cycle (user, 2026-11-08) | — | — | — | Descoped (2026-11-08) → S16-25 |
 | S16-24 | Person, Event and Place reads report their inputs | 2e | Go: the detail and section reads return the handles, graphs and Sources they were built from, as three wire lists | — | S16-16, S16-30, S16-13, S16-19, S14-42 (Spike 14, landed #748) | — | Scoped |
@@ -252,6 +254,7 @@ SLICE 2d — Promote
   S16-20  One match index that Apply keeps current
   S16-32  Promote re-ranks only the Subjects a write moved
   S16-21  Promote's alignment reads a canon view and the place entries
+  S16-36  A link from a record to itself is refused where links are read
   S16-22  Promote reads each handle's neighbourhood instead of walking the catalog
   Check: bar 9 and 10.
 
@@ -304,7 +307,7 @@ S16-01 ──▶ S16-19
 S16-02 ──▶ S16-19
 S16-10 ──▶ S16-20 ──▶ S16-32
 S16-13 ──▶ S16-32
-S16-18 ──▶ S16-21 ──▶ S16-22
+S16-18 ──▶ S16-21 ──▶ S16-36 ──▶ S16-22
 S16-16 ──▶ S16-22
 S16-20 ──▶ S16-22
 S16-16 ──▶ S16-24 ──▶ S16-25 ──▶ S16-29
@@ -481,6 +484,13 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Not this PR.** The session-graph view and the walk's removal (S16-22); the bridge filer's `filedLinks`, which must read its own transaction.
 **Check.** The goldens, `TestAlignInvariants`, Promote's connection and loop tests and its budgets unchanged; a proposal's connections read no canon edge for place links.
 **Context.** `core/graphalign/align.go`, `connections.go`, `core/database/promotealign/canon.go`, `connections.go`; S14-22 D-7 (why the check needs every filed link); the [`structural-debt.md`](../../ideas/structural-debt.md) row on `CanonEdge` (moved here). Makes false and updates [`add-match-rule`](../../../.agents/skills/add-match-rule/SKILL.md) line 33 (`CanonEdge`).
+
+#### S16-36 — A link from a record to itself is refused where links are read
+
+**Ships.** The working rule "A link with one record at both ends is crafted data" (user, 2026-11-14): one guard, where the catalog's links are read, refuses a stored link whose two ends are the same record; the plan names the place and whether the read fails or drops the link. Every reader that handles a self-loop today stops: `kinship.Edge.Readings` and `Ends` (S16-21 D-14), `graphalign`'s `Canon.View` and layer reading (D-16), the place entries' `selfOnly` page hop and the chain's "leads to itself" case, and their self-loop tests (`TestEdgeReadings`, `TestEdgeEnds`, `TestCanonView`, the "a place part of itself" cases in `invariants_test.go` and `placeentries_test.go`). `connect.CreateCitedBridge`'s equal-ends refusal (`connect.go:72`) gets the test it lacks. Closes S16-21 MNT-2b (`recordlinks.addLink`'s one-sided self-loop reading), which needs no change once no self-loop is read.
+**Not this PR.** `connectrules`' `DecisionSelfLink`: two different Source records claimed onto one handle is real data, and filing keeps refusing that link.
+**Check.** A catalog fixture holding a hand-written self-loop is refused at the guard; `rg -n -i "self-loop|selfOnly|to itself|part of itself" core` finds only the guard, its test and `DecisionSelfLink`; the goldens, `TestAlignInvariants` and the place entries' tests otherwise unchanged.
+**Context.** `core/kinship/kinship.go`, `core/graphalign/types.go`, `align.go`, `core/database/conclusionsummaries/placeentries.go`, `placechains.go`, `core/database/connect/connect.go`, `core/connectrules/filing.go`; the S16-21 ship log (MNT-2b); [`promote-graph-alignment.md`](../../promote-graph-alignment.md) line 198. Lands before S16-22, so the session-graph view does not add another self-loop reader.
 
 #### S16-22 — Promote reads each handle's neighbourhood instead of walking the catalog
 
