@@ -237,3 +237,17 @@ Do:
 - Same-pass: if any other code path still reads the old 560 width for the Artifact sheet, or a doc names the Artifact sheet as 560pt (`rg -n '560' macos/App/Features/Sources docs/*.md .agents`), update it; report what you found.
 - Plan: add the Artifact sheet layout to the Landed note as user-added scope (2026-11-14), and a Manual check line: open Add artifact and Edit on an Artifact; two columns at 880pt; Copy details "+n more" scrolls to Copy details; the pencil on the graph count scrolls to Evidence graphs.
 Check: `rg -n 'width: 560' macos/App/Features/Sources` prints nothing; `rg -n 'MetadataBoardView\(' macos/App/Features/Sources` prints only `SourceOwnerFormColumns.swift` and `SourcePage*` (the Source's own live board); `rg -n 'HStack\(alignment: .top, spacing: PVSpacing.space8\)' macos/App/Features/Sources` prints only the new file; existing `ArtifactSheetModelTests`/`SourceGraphFormModelTests` pass; scripts/check-pr.sh PASS.
+
+## Round 6 — fix
+Head `69ef1cf34`. Gate PASS (implementer). F-19 done: `SourceOwnerFormColumns` and `DraftMetadataBoardField` in `SourceOwnerFormColumns.swift`; both forms use them; Artifact sheet 880pt two columns. No project edit needed (synchronized folder). Orchestrator read the diff and found two defects in it:
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| ORC-3 | UX | major | Artifact sheet's `.top` scroll id now marks only the file/fields block, below the save-error callout; `scrollToTop()` on a save stop can leave the callout above the visible area | Fix now → F-20 | `ArtifactSheet.swift`: `.id(Section.top)` on the inner left `VStack`; `ArtifactSheetModel.scrollToTop()` at lines 282–333; before F-19 the callout sat inside the `.top` block; the graph form marks the whole body |
+| ORC-4 | MNT | minor | `dialogWidth` on a generic type forces `SourceOwnerFormColumns<EmptyView, EmptyView>.dialogWidth` at both callers | Fix now → F-20 | both modifiers |
+
+### Fix plan 7
+**F-20 — The Artifact sheet's top target includes its save error; the width lives on a plain type** (from ORC-3, ORC-4)
+Files: `ArtifactSheet.swift`, `SourceGraphFormDialog.swift`, `SourceOwnerFormColumns.swift`.
+Do: move `.id(ArtifactSheetModel.Section.top)` from the left column's inner `VStack` to the `SourceOwnerFormColumns(...)` view itself, as `SourceGraphForm` does (the inner `VStack` can go if it only existed for the id). Move the width to a non-generic home in the same file, `enum SourceOwnerForm { static let dialogWidth: CGFloat = 880 }` (doc: the width of the dialog holding owner-form columns), delete `SourceOwnerFormColumns.dialogWidth`, and both modifiers use `SourceOwnerForm.dialogWidth`.
+Check: `rg -n 'EmptyView, EmptyView' macos/App` prints nothing; `rg -n 'Section.top' macos/App/Features/Sources/ArtifactSheet.swift` shows it on the columns view; scripts/check-pr.sh PASS.
