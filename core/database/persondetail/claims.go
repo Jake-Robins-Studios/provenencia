@@ -40,20 +40,21 @@ type Claim struct {
 // the ref as the tie-break. An unknown or merged handle, or one that is no
 // Person, is conclusiondetails.ErrNotFound; a handle with no accepted claim has
 // no groups. A Person's records in one Evidence graph are capped at the
-// registry's recordlinks MaxEntityMembers (see boundedMembers).
-func Claims(c *database.Catalog, entityID []byte) ([]ClaimGroup, error) {
-	n, err := personNode(c, entityID)
+// registry's recordlinks MaxEntityMembers (see boundedMembers). It records on
+// in the person, the graphs it asked the records of and the Source of each group.
+func Claims(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) ([]ClaimGroup, error) {
+	n, err := personNode(c, entityID, in)
 	if err != nil {
 		return nil, err
 	}
-	return claims(c, n)
+	return claims(c, n, in)
 }
 
 // personNode is the handle's node when it is a Person, the one place that
 // decides whether an id is a Person page's. An unknown or merged handle, or one
 // that is no Person, is conclusiondetails.ErrNotFound.
-func personNode(c *database.Catalog, entityID []byte) (*graphcache.Node, error) {
-	n, err := conclusiondetails.Handle(c, entityID, c.Graph().NoPageInputs())
+func personNode(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (*graphcache.Node, error) {
+	n, err := conclusiondetails.Handle(c, entityID, in)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func personNode(c *database.Catalog, entityID []byte) (*graphcache.Node, error) 
 // index, or whose Subject or claim is missing from the records or names
 // another entity, is skipped: it names a graph dropped mid-read, and the next
 // read is right.
-func claims(c *database.Catalog, n *graphcache.Node) ([]ClaimGroup, error) {
+func claims(c *database.Catalog, n *graphcache.Node, in *graphcache.PageInputs) ([]ClaimGroup, error) {
 	g := c.Graph()
 	members := boundedMembers(n)
 	idx, err := evidencegraphs.IndexOf(g)
@@ -92,7 +93,7 @@ func claims(c *database.Catalog, n *graphcache.Node) ([]ClaimGroup, error) {
 			graphIDs = append(graphIDs, m.GraphID)
 		}
 	}
-	records, err := graphfill.RecordsOf(g, graphIDs, g.NoPageInputs())
+	records, err := graphfill.RecordsOf(g, graphIDs, in)
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +115,7 @@ func claims(c *database.Catalog, n *graphcache.Node) ([]ClaimGroup, error) {
 			if !found {
 				return nil, fmt.Errorf("persondetail: graph %x names Source %x, which has no record", shell.ID, shell.SourceID)
 			}
+			in.AddSources(shell.SourceID)
 			i = len(groups)
 			bySource[string(shell.SourceID)] = i
 			groups = append(groups, ClaimGroup{Source: source})

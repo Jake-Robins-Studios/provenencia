@@ -96,7 +96,7 @@ func (f *fixture) provisional(s subjects.Subject, e canonicalentities.Entity) {
 
 func (f *fixture) claims(id []byte) []persondetail.ClaimGroup {
 	f.T.Helper()
-	groups, err := persondetail.Claims(f.C, id)
+	groups, err := persondetail.Claims(f.C, id, f.C.Graph().PageInputs())
 	must(f.T, err)
 	return groups
 }
@@ -263,7 +263,7 @@ func TestClaimsMissingAndEmpty(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			groups, err := persondetail.Claims(f.C, tt.id)
+			groups, err := persondetail.Claims(f.C, tt.id, f.C.Graph().NoPageInputs())
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("error %v, want %v", err, tt.wantErr)
 			}
@@ -379,7 +379,7 @@ func TestClaimsRecordsPerGraph(t *testing.T) {
 			pat := w.person("Pat")
 			w.k.Members(pat, tc.extra)
 			w.k.Commit(pat)
-			groups, err := persondetail.Claims(w.c, pat)
+			groups, err := persondetail.Claims(w.c, pat, w.c.Graph().PageInputs())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -403,4 +403,55 @@ func TestClaimsRecordsPerGraph(t *testing.T) {
 			}
 		})
 	}
+}
+
+// holdsIDs fails naming each id of want that list lacks, and, when exact, each
+// id of list that want does not name.
+func holdsIDs(t testing.TB, what string, list [][]byte, exact bool, want ...[]byte) {
+	t.Helper()
+	have := map[string]bool{}
+	for _, id := range list {
+		have[string(id)] = true
+	}
+	wanted := map[string]bool{}
+	for _, id := range want {
+		wanted[string(id)] = true
+		if !have[string(id)] {
+			t.Errorf("%s lacks %x (has %x)", what, id, list)
+		}
+	}
+	if exact {
+		for _, id := range list {
+			if !wanted[string(id)] {
+				t.Errorf("%s holds %x, which was not asked for", what, id)
+			}
+		}
+	}
+}
+
+// TestClaimsRecordInputs: the claims read records the person, the graphs it
+// asked the records of and the Source of each group, and nothing else.
+func TestClaimsRecordInputs(t *testing.T) {
+	f := newFixture(t)
+	baptisms, burials := f.source("St Mary"), f.source("St John")
+	var person canonicalentities.Entity
+	var graphs, srcs [][]byte
+	for i, src := range []sources.Source{baptisms, burials} {
+		graph := evidencegraphstest.SoleGraph(t, f.C, src.ID).ID
+		s := f.person(graph, "")
+		if i == 0 {
+			person = f.promote(s, nil)
+		} else {
+			f.promote(s, person.ID)
+		}
+		graphs, srcs = append(graphs, graph), append(srcs, src.ID)
+	}
+	in := f.C.Graph().PageInputs()
+	if _, err := persondetail.Claims(f.C, person.ID, in); err != nil {
+		t.Fatal(err)
+	}
+	gotHandles, gotGraphs, gotSources := in.Lists()
+	holdsIDs(t, "handles", gotHandles, true, person.ID)
+	holdsIDs(t, "graphs", gotGraphs, true, graphs...)
+	holdsIDs(t, "sources", gotSources, true, srcs...)
 }

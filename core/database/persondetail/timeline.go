@@ -41,7 +41,7 @@ type Timeline struct {
 // that is no Person, is conclusiondetails.ErrNotFound.
 func PersonEvents(c *database.Catalog, entityID []byte) (Timeline, conclusionsummaries.Summaries, error) {
 	none := conclusionsummaries.Summaries{}
-	if _, err := personNode(c, entityID); err != nil {
+	if _, err := personNode(c, entityID, c.Graph().NoPageInputs()); err != nil {
 		return Timeline{}, none, err
 	}
 	g := c.Graph()

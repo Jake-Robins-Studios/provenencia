@@ -27,7 +27,7 @@ func ListPersonClaims(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPersonClaimsResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		groups, err := persondetail.Claims(c, entityID)
+		groups, err := persondetail.Claims(c, entityID, c.Graph().NoPageInputs())
 		if err != nil {
 			return err
 		}
@@ -205,7 +205,7 @@ func GetPersonRecordLinks(in []byte) ([]byte, error) {
 	}
 	out := &engine.GetPersonRecordLinksResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		links, err := persondetail.RecordLinks(c, entityID)
+		links, err := persondetail.RecordLinks(c, entityID, c.Graph().NoPageInputs())
 		if err != nil {
 			return err
 		}

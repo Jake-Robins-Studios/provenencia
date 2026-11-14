@@ -4,6 +4,7 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/evidencegraphs"
 	"github.com/mendahu/provenencia/core/database/evidencelayer"
+	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/database/graphfill"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/valuerules"
@@ -46,18 +47,22 @@ const maxRecordLinkLines = 75_000
 //
 // It sends at most maxRecordLinkLines lines, strong first, and says in
 // NotCounted and LinesDropped when it did not count or dropped lines.
-func RecordLinks(c *database.Catalog, entityID []byte) (PersonRecordLinks, error) {
-	return recordLinks(c, entityID, matchregistry.Default().RecordLinksConfig(), maxRecordLinkLines)
+//
+// It records on in what Claims records: the person, the graphs and the Sources
+// of the records the lines are drawn from. A line's other entity is not shown,
+// so it is not recorded.
+func RecordLinks(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (PersonRecordLinks, error) {
+	return recordLinks(c, entityID, matchregistry.Default().RecordLinksConfig(), maxRecordLinkLines, in)
 }
 
 // recordLinks is RecordLinks over a config and a line cap, for the tests that
 // reach the bounds on a few graphs.
-func recordLinks(c *database.Catalog, entityID []byte, cfg recordlinks.Config, most int) (PersonRecordLinks, error) {
-	n, err := personNode(c, entityID)
+func recordLinks(c *database.Catalog, entityID []byte, cfg recordlinks.Config, most int, in *graphcache.PageInputs) (PersonRecordLinks, error) {
+	n, err := personNode(c, entityID, in)
 	if err != nil {
 		return PersonRecordLinks{}, err
 	}
-	groups, err := claims(c, n)
+	groups, err := claims(c, n, in)
 	if err != nil {
 		return PersonRecordLinks{}, err
 	}

@@ -134,7 +134,7 @@ type OriginSibling struct {
 // (see originSiblings); the person is left out only when its summary was not
 // read.
 func PersonFamily(c *database.Catalog, entityID []byte) (Family, []OriginSibling, conclusionsummaries.Summaries, error) {
-	if _, err := personNode(c, entityID); err != nil {
+	if _, err := personNode(c, entityID, c.Graph().NoPageInputs()); err != nil {
 		return Family{}, nil, conclusionsummaries.Summaries{}, err
 	}
 	families, err := Families(c, [][]byte{entityID})

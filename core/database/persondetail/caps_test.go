@@ -87,7 +87,7 @@ func TestCraftedClaims(t *testing.T) {
 	var groups []persondetail.ClaimGroup
 	d := catalogsessiontest.Cold(w.t, w.c, 2, func() {
 		var err error
-		if groups, err = persondetail.Claims(w.c, pat); err != nil {
+		if groups, err = persondetail.Claims(w.c, pat, w.c.Graph().PageInputs()); err != nil {
 			t.Fatal(err)
 		}
 	})

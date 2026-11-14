@@ -65,7 +65,7 @@ func summary(rl persondetail.PersonRecordLinks, names map[string]string) (graphs
 
 func (f *fixture) recordLinks(id []byte) persondetail.PersonRecordLinks {
 	f.T.Helper()
-	rl, err := persondetail.RecordLinks(f.C, id)
+	rl, err := persondetail.RecordLinks(f.C, id, f.C.Graph().PageInputs())
 	must(f.T, err)
 	return rl
 }
@@ -151,7 +151,7 @@ func TestRecordLinks(t *testing.T) {
 				"unknown nil":   nil,
 				"merged person": mergedHandle(t, f),
 			} {
-				if _, err := persondetail.RecordLinks(f.C, id); !errors.Is(err, conclusiondetails.ErrNotFound) {
+				if _, err := persondetail.RecordLinks(f.C, id, f.C.Graph().PageInputs()); !errors.Is(err, conclusiondetails.ErrNotFound) {
 					t.Errorf("%s: error %v, want ErrNotFound", name, err)
 				}
 			}
@@ -251,7 +251,7 @@ func TestRecordLinksSaysWhenPartial(t *testing.T) {
 		if maxReadWork > 0 {
 			cfg.RecordLinks.MaxReadWork = maxReadWork
 		}
-		rl, err := persondetail.RecordLinksWith(f.C, son, cfg, most)
+		rl, err := persondetail.RecordLinksWith(f.C, son, cfg, most, f.C.Graph().PageInputs())
 		must(t, err)
 		return rl
 	}
@@ -290,4 +290,25 @@ func TestRecordLinksSaysWhenPartial(t *testing.T) {
 			t.Fatalf("not counted %v, dropped %v, %d lines", rl.NotCounted, rl.LinesDropped, n)
 		}
 	})
+}
+
+// TestRecordLinksRecordInputs: the record links read records the person, and
+// the graphs and Sources of the graphs it lists.
+func TestRecordLinksRecordInputs(t *testing.T) {
+	f := newFixture(t)
+	w := newWorld(f)
+	in := f.C.Graph().PageInputs()
+	rl, err := persondetail.RecordLinks(f.C, w.s.ID, in)
+	must(t, err)
+	var graphs, srcs [][]byte
+	for _, g := range rl.Graphs {
+		graphs, srcs = append(graphs, g.Graph.ID), append(srcs, g.Source.ID)
+	}
+	if len(graphs) != 4 {
+		t.Fatalf("%d graphs, want the four registers", len(graphs))
+	}
+	handles, gotGraphs, gotSources := in.Lists()
+	holdsIDs(t, "handles", handles, true, w.s.ID)
+	holdsIDs(t, "graphs", gotGraphs, true, graphs...)
+	holdsIDs(t, "sources", gotSources, true, srcs...)
 }
