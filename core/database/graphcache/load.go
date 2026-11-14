@@ -331,8 +331,9 @@ func (g *Graph) loadLinks(ids [][]byte, bridges []string) (map[string][]Link, er
 	return g.finishLinks(raws, assocIDs)
 }
 
-// linkRaws runs the link query for ids and keeps the rows a registered
-// bridge accepts. It does not read disambiguation.
+// linkRaws runs the link query for ids and keeps the rows a registered bridge
+// accepts, dropping a link from a record to itself. It does not read
+// disambiguation.
 func (g *Graph) linkRaws(ids [][]byte, bridges []string) ([]linkRaw, error) {
 	q, args := linkLoadSQL(g.valueTable, g.entityTable, ids, bridges)
 	rows, err := g.query(q, args...)
@@ -351,7 +352,8 @@ func (g *Graph) linkRaws(ids [][]byte, bridges []string) ([]linkRaw, error) {
 		if !ok || !bridgeEndpoints(b, r.selfPropKey, r.otherPropKey) {
 			continue
 		}
-		// A link from a record to itself is crafted data: the app never files one (connectrules.DecisionSelfLink), so it is not read.
+		// A link from a record to itself is crafted data: the app never files one
+		// (connectrules.DecisionSelfLink), so it is not read.
 		if bytes.Equal(r.self, r.neighbor) {
 			continue
 		}
@@ -463,24 +465,21 @@ type termMark struct {
 	key    string
 }
 
+// finishLinks gives each (self, association) at most one row: a bridge has two
+// endpoints and a rank-1 value is one per property, and linkRaws drops a link
+// from a record to itself.
 func (g *Graph) finishLinks(raws []linkRaw, assocIDs [][]byte) (map[string][]Link, error) {
 	marks, err := g.disambiguation(uniqueIDs(assocIDs))
 	if err != nil {
 		return nil, err
 	}
 	out := map[string][]Link{}
-	seen := map[string]bool{}
 	for _, r := range raws {
 		b, ok := connectrules.LookupBridge(r.bridgeKey)
 		if !ok {
 			continue
 		}
 		mark := marks[string(r.assoc)+"|"+b.Disambiguation]
-		key := string(r.self) + "|" + string(r.assoc) + "|" + string(r.neighbor)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
 		out[string(r.self)] = append(out[string(r.self)], Link{
 			Neighbor:                 cloneID(r.neighbor),
 			NeighborRef:              r.neighborRef,

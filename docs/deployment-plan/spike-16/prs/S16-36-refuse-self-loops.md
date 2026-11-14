@@ -15,7 +15,7 @@
 **Planned:** 2026-11-14 against `main` @ `1255b24`
 **Review:** [`S16-36-refuse-self-loops.review.md`](S16-36-refuse-self-loops.review.md) — Fits — Ready with changes, 2 rounds, no open blocker
 
-**Landed.** Differences from the plan: T-1 commits `k.Commit(loop, town, city, self, part)` with the association ids; T-3 sits inside `TestCreateCitedBridge` because `countBridges` is a closure there; `TestPlaceEntryInputsMatchReads` reads `reads(id, hops.PartsOfPlace)` inline and the `pageReads` helper is gone. T-11 to T-13 came from the two plan amendments.
+**Landed.** Differences from the plan: T-1 commits `k.Commit(loop, town, city, self, part)` with the association ids; T-3 sits inside `TestCreateCitedBridge` because `countBridges` is a closure there; `TestPlaceEntryInputsMatchReads` reads `reads(id, hops.PartsOfPlace)` inline and the `pageReads` helper is gone. T-11 to T-13 came from the two plan amendments. The `finishLinks` dedupe went with the guard (D-6's rationale now rests on the schema and the guard).
 
 ### Implementer — read this first
 
