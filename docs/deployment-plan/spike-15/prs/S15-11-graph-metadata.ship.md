@@ -98,4 +98,4 @@ Nits (logged): `MNT-8 · MetadataDetailsColumn.swift:46-77 · content(shown:more
 Merged `origin/main` @ `b9b4cba14` (S16-21 plan docs only). Gate PASS against `b9b4cba14`.
 
 ## Result
-Gate PASS · CI pending · open: MNT-out-2 (minor, to user) · follow-ups: none · to user: MNT-out-2
+Gate PASS · CI green · open: MNT-out-2 (minor, to user) · follow-ups: none · to user: MNT-out-2
