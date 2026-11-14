@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The bordered, divided, height-capped list that every id checklist draws its
-/// rows in: an optional `header` row above the scrolling rows (the All row),
+/// The bordered, divided list that every id checklist draws its rows in, as
+/// tall as its rows up to a cap: an optional `header` row above the scrolling rows (the All row),
 /// then one row per item with a divider between rows. Owns the 352pt cap, so
 /// a Source with many Artifacts or graphs scrolls inside the form.
 struct PVChecklistFrame<Item, Header: View, Row: View>: View {
@@ -29,15 +29,14 @@ struct PVChecklistFrame<Item, Header: View, Row: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             if showsHeader { header }
-            ScrollView {
-                LazyVStack(spacing: 0) {
+            PVFittedScrollView(maxHeight: Self.maxRowsHeight) {
+                VStack(spacing: 0) {
                     ForEach(items, id: id) { item in
                         if showsHeader || item[keyPath: id] != items.first?[keyPath: id] { PVDivider() }
                         row(item)
                     }
                 }
             }
-            .frame(maxHeight: Self.maxRowsHeight)
         }
         .clipShape(RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous))
         .overlay {

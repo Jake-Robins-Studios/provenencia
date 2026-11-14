@@ -185,12 +185,10 @@ extension PVFormDialogContent {
     @ViewBuilder
     fileprivate var formBody: some View {
         if scrollsBody {
-            ScrollView(.vertical) {
+            PVFittedScrollView(maxHeight: Self.maxScrollingBodyHeight, onContentHeight: { bodyHeight = $0 }) {
                 form()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bodyHeight = $0 }
             }
-            .frame(height: min(bodyHeight, Self.maxScrollingBodyHeight))
             // The first scroll waits for the body's first measured height: before
             // it the scroll view is 0pt tall and a scroll lands nowhere.
             .pvScrollsRowIntoView(
