@@ -90,15 +90,18 @@ MNT: **Clean (no blocker or major).** MNT-1 to MNT-5 Resolved. MNT-out-2 **Not r
 
 | ID | Lens | Severity | Title | Decision | Evidence / reason |
 | --- | --- | --- | --- | --- | --- |
-| MNT-out-2 | CON | minor | The Artifact pencil (or its "+n more") during a graph Add read leaves an Artifact sheet and the graph form both bound; `SourceGraphsSection.openAdd`'s post-await re-check asks only about its own form | To user | round 2 adds blockers only, so no Fix plan 2; the window is a local suggestion read. Fix options: (a) a page-wide "owner form open" fact read by both post-await re-checks and `acceptsArtifactPageDrop` (keeps S15-10's tested edit-during-read behavior); (b) guard `openSheet` on `isOpeningForm`, reversing `anEditSheetOpenedDuringTheReadIsKept` |
+| MNT-out-2 | CON | minor | The Artifact pencil (or its "+n more") during a graph Add read leaves an Artifact sheet and the graph form both bound; `SourceGraphsSection.openAdd`'s post-await re-check asks only about its own form | To user → user chose (a) → F-8 | round 2 adds blockers only, so no Fix plan 2; the window is a local suggestion read. Fix options: (a) a page-wide "owner form open" fact read by both post-await re-checks and `acceptsArtifactPageDrop` (keeps S15-10's tested edit-during-read behavior); (b) guard `openSheet` on `isOpeningForm`, reversing `anEditSheetOpenedDuringTheReadIsKept` |
 
 Nits (logged): `MNT-8 · MetadataDetailsColumn.swift:46-77 · content(shown:more:) over-indented` · `MNT-9 · FakeStore.swift:3385 · nextEvidenceGraphID consumed in appendGraph, which insertSource also calls` · `MNT-10 · SourcePageGraphsView.swift:68-69 · double blank line` · `MNT-11 · SourcePageGraphsView.swift:104-105 · graph MetadataOwner built twice` · `MNT-12 · S15-11 plan:348 · Landed line still names isOpeningAdd`
 
 ## Finish
 Merged `origin/main` @ `b9b4cba14` (S16-21 plan docs only). Gate PASS against `b9b4cba14`.
 
+## Round 2 — fix (user-approved)
+Head `b4148fecb`. Gate PASS (orchestrator run against `b9b4cba14`; `origin/main` unmoved). F-8 done: `artifactPencilDuringGraphAddReadKeepsOneForm` failed first (graph form opened beside the Artifact sheet), passes now. Orchestrator read the diff: `SourcePageContext.hasOpenOwnerForm` (supplied by `SourcePageModel.init`) is checked by `readSuggestionsForAdd` before and after the read; both `openAdd`s dropped their own form checks; `acceptsArtifactPageDrop` reads it. MNT-out-2 **Resolved**. MNT-12 nit fixed in the Landed note. No review round 3 (user approved the fix only).
+
 ## Result
-Gate PASS · CI green · open: MNT-out-2 (minor, to user) · follow-ups: none · to user: MNT-out-2
+Gate PASS · CI green · open: none · follow-ups: none · to user: — (MNT-out-2 answered: option a, fixed in F-8)
 
 ## Fix plan 2 (user, 2026-11-14: "Yes, fix it (a)" for MNT-out-2)
 
