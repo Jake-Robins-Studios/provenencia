@@ -31,8 +31,7 @@ type CanonView interface {
 	// Handle is the handle's profile, nil when the view does not hold it.
 	Handle(id []byte) *Handle
 	// Links is every link with id at an end, as stored (not turned to face id),
-	// in the view's link order. A link from a handle to itself is listed once.
-	// Read a link from id through kinship.Edge.Readings.
+	// in the view's link order. Read a link from id through kinship.Edge.From.
 	Links(id []byte) []kinship.Link
 	// Candidates are the Subject's shortlisted candidate handle ids, in
 	// Candidates order.
@@ -203,9 +202,8 @@ func (c Canon) View() CanonView {
 		ix.handles[string(h.ID)] = h
 	}
 	for _, e := range c.Edges {
-		for end := range e.Ends() {
-			ix.links[string(end)] = append(ix.links[string(end)], e)
-		}
+		ix.links[string(e.A)] = append(ix.links[string(e.A)], e)
+		ix.links[string(e.B)] = append(ix.links[string(e.B)], e)
 	}
 	return ix
 }
