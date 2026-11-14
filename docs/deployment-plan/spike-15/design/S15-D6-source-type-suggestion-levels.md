@@ -179,13 +179,14 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | SL-1, SL-2, SL-8, SL-W1 | The page with Census selected: the list (Census shows 11 under Associated fields) and the detail pane with its three lists |
+| 1a / 1b | SL-1, SL-2, SL-8, SL-W1 | The page with Census selected: the list (Census shows 11 under Associated fields; a type with no suggestions at any level, such as "Diary", shows the dash) and the detail pane with its three lists. In 1b, a pick in progress in one list's picker, to show it survives the resize |
 | 2 | SL-3 | Census, the Evidence graph list's picker open with "fol" typed (Folio shown; Line absent because the list has it), then the plus enabled |
 | 3 | SL-3 | Right after adding Folio to the Evidence graph list: it is fifth in that list, the count reads 5, the toast shows |
 | 4 | SL-3 | The Artifact list's picker offering Page while Page is already in the Source list |
 | 5 | SL-4 | After removing URL from the Artifact list: the toast with today's values clause ("…and the 6 Sources, Artifacts and graphs already carrying a value keep it") |
 | 6 | SL-5 | Letter: Source list with two rows, Artifact and Evidence graph lists empty with their own copy |
-| 7 | SL-5 | Census with the Artifact list still reading (spinner) and a failure Callout in the Evidence graph list only |
+| 7 | SL-5 | Census with the Artifact list still reading (spinner) and a read-failure Callout in place of the Evidence graph list's rows |
+| 7b | SL-3, SL-4, SL-5 | A write failure: an add to the Artifact list refused, its Callout above that list's rows and its pick kept; and, separately, a remove in progress with every remove and plus disabled |
 | 8 | SL-6 | Grave memorial: three read-only lists (one empty) under the locked note |
 | 9 | SL-7 | The new-type form with the note in place of the lists |
 | 10 | SL-10 | A type with 20 Source fields and 12 in each other list, the pane scrolled to its middle |
@@ -196,7 +197,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Detail pane | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `SourceTypesDetailPane` | Header, form, locked note and add note unchanged; the suggested-fields part composes three lists |
+| Detail pane | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `SourceTypesDetailPane`; its 380pt width in `SourceTypesView.detailPaneWidth` | Header, form, locked note and add note unchanged; the suggested-fields part composes three lists; the section header keeps its label and hint and drops its single count (each list has its own). If the board widens the pane at Wide (SL-W1), the width changes here and the lists sit side by side; nothing else in the pane changes |
 | One level's suggestion list | Snowflake | Rethink (one per level) | today `SourceTypesDetailPane.suggestedFields(isLocked:)`, `suggestionRows`, `assignControl` | One view drawn three times with a level, not three copies. Rows inside a Card, as today |
 | List title and count | Component | Ship | `pvMicroCaps` label + mono count, as today's section header | Not a new header control. If the board shows one list at a time, the chooser is the Segmented control (ChipGroup segmented), not a local tab bar |
 | Data type badge | Snowflake | Ship | `CatalogFieldDataTypeBadge` | As today |
