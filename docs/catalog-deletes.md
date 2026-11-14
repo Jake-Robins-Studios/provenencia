@@ -88,7 +88,7 @@ Impact
 - `via` / `kind` are machine keys. **DeleteImpact recipe** L10n writes headings and overflow. Unknown `via` still lists refs.
 - Title and `WorkspaceLocation` come from **per-kind projectors** registered by the domain package.
 - The **report proto is only on `GetDeleteImpact`** (preflight fetch). `Delete` re-runs `Impact` in-tx as a safety net; refuse is a generic `*.in_use` / extra-gate code — not the report on `Error`, not refs in `apperr` params. The UI must not call `Delete` when preflight is blocked.
-- An Evidence graph unlink is refused with a plain code too; its preflight is `GetEvidenceGraphUnlinkImpact`, which takes (graph, Artifact) pairs and returns one block per refused pair, with its graph, a reason code and (except for the graph's last link) a `DeleteImpactGroup` of Citations.
+- An Evidence graph unlink is refused with a plain code too; its preflight is `GetEvidenceGraphUnlinkImpact`, which takes (graph, Artifact) pairs and returns one block per refused pair, with its graph, a reason code and, for `artifact_in_use`, how many of the graph's Citations are on the Artifact (`citation_count`; 0 for the graph's last link).
 
 ## New table (same PR)
 

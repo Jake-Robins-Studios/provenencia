@@ -133,15 +133,53 @@ final class SourcePageContext {
         return handle?.value ?? []
     }
 
+    /// The rows the page holds for an owner's board, empty when it holds none: the one reader
+    /// every section and board host uses.
+    func metadataRows(for owner: MetadataOwner) -> [CatalogMetadataEntry] {
+        workspace?.metadataRows(for: owner) ?? []
+    }
+
+    /// Puts a Save's rows for an owner on the page, then applies its effects with the cache
+    /// patch that carries the same rows, so no reload follows: the one apply every owner's
+    /// metadata write uses (the Artifact sheet, the graph form, the Source's live board).
+    func applySavedMetadata(_ rows: [CatalogMetadataEntry], owner: MetadataOwner, effects: CatalogWriteEffects) {
+        workspace?.setMetadataRows(rows, for: owner)
+        session.apply(effects, .wroteMetadataBoard(sourceId: sourceID, owner: owner, entries: rows))
+    }
+
     /// The rows a new owner's form starts its copy details board with: each suggestion the Source's
     /// type makes at `level`, empty. Read once when the form opens, so it is not a cached query
     /// (a form's rows live as long as the form). A Source with no type has no suggestions.
-    func unsavedMetadataRows(level: Level) async throws -> [CatalogMetadataEntry] {
+    private func unsavedMetadataRows(level: Level) async throws -> [CatalogMetadataEntry] {
         guard let typeID = source?.sourceTypeID, !typeID.isEmpty else { return [] }
         let suggestions = try await store.listTypeSuggestions(
             projectDir: projectDir, typeID: typeID, level: level
         )
         return MetadataDraftHost.unsavedRows(from: suggestions)
+    }
+
+    /// True while any owner's form (Artifact sheet, graph form) is up; the page model supplies it.
+    var hasOpenOwnerForm: @MainActor () -> Bool = { false }
+
+    /// True while an owner's Add form is reading its suggestions, whichever section started it: one
+    /// read at a time, and no edit or drop opens a form meanwhile.
+    private(set) var isOpeningForm = false
+
+    /// The read-first half of every owner's Add: the suggestions the new owner's board starts
+    /// with. Nil when another form is already opening or any owner's form is open, before the
+    /// read and again after it (a form opened while it ran, from a pencil or "+n more", is not
+    /// replaced), or when the read failed (the page banner shows the message).
+    func readSuggestionsForAdd(level: Level) async -> [CatalogMetadataEntry]? {
+        guard !isOpeningForm, !hasOpenOwnerForm() else { return nil }
+        isOpeningForm = true
+        defer { isOpeningForm = false }
+        do {
+            let rows = try await unsavedMetadataRows(level: level)
+            return hasOpenOwnerForm() ? nil : rows
+        } catch {
+            showFailure(error)
+            return nil
+        }
     }
 
     /// Applies an enriched Source (cover fields included) to the workspace and

@@ -98,6 +98,12 @@ final class MetadataBoardModel {
             || !row.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// The Save-stopping message while text is typed and not yet confirmed, else nil: a form that
+    /// holds this board shows it and writes nothing.
+    var unconfirmedInputMessage: String? {
+        hasUnconfirmedInput ? L10n.string(L10n.Sources.metadataFinishOpenField) : nil
+    }
+
     /// What a draft form's dirty flag reads: a changed draft, or text not yet confirmed into it.
     var hasUnsavedChanges: Bool { host.isChanged || hasUnconfirmedInput }
 

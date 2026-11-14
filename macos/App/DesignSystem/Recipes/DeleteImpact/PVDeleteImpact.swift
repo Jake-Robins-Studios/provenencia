@@ -223,8 +223,8 @@ struct PVDeleteImpactNotice: View {
 
 /// The scrolling stack of DeleteImpact groups, capped at
 /// ``PVDeleteImpactLayout/listMaxHeight`` so a long list never pushes a footer
-/// off its panel. The notice and a form's kept-linked lists both draw through it.
-struct PVDeleteImpactGroupStack<Content: View>: View {
+/// off its panel.
+private struct PVDeleteImpactGroupStack<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -238,12 +238,11 @@ struct PVDeleteImpactGroupStack<Content: View>: View {
 }
 
 /// One DeleteImpact group: a title line (with the raw `via` when it is not a
-/// known one), the listed rows as buttons, and an "and N more" line. The notice
-/// titles each group with its heading; a form that lists what blocks a change
-/// titles it with what the rows block. A row closes the sheet through
+/// known one), the listed rows as buttons, and an "and N more" line, titled with
+/// the group's heading. A row closes the sheet through
 /// `pvSheetClose`, then navigates
 /// (``PVDeleteImpactControls/activate(_:onNavigate:close:)``).
-struct PVDeleteImpactGroupList: View {
+private struct PVDeleteImpactGroupList: View {
     let title: String
     let group: CatalogDeleteImpactGroup
     let onNavigate: (WorkspaceLocation) -> Void

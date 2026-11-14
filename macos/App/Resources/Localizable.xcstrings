@@ -2988,30 +2988,6 @@
         }
       }
     },
-    "deleteImpact.via.evidenceGraphsArtifactInUse": {
-      "comment": "Heading over the Citations that keep an Artifact linked to a graph; argument is how many",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld citation in this graph uses this artifact"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld citations in this graph use this artifact"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "deleteImpact.via.subjectsGraphId": {
       "comment": "Inbound heading for subjects.graph_id; argument is how many",
       "extractionState": "manual",
@@ -7658,6 +7634,30 @@
         }
       }
     },
+    "sources.graphLock.citations": {
+      "comment": "Hint under a locked Artifact row: how many of the graph's Citations are on the Artifact. Argument is the count.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citation in this graph uses this artifact"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citations in this graph use this artifact"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "sources.list.accessibilityLabel": {
       "comment": "Accessibility label for the Sources list",
       "extractionState": "manual",
@@ -9960,8 +9960,8 @@
         }
       }
     },
-    "sources.page.artifactCopyDetailsMore": {
-      "comment": "Button on an Artifact row after its first copy details; argument is how many more it holds",
+    "sources.page.metadataDetailsMore": {
+      "comment": "Button on an Artifact or Evidence graph row after its first metadata values; argument is how many more it holds",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9972,8 +9972,8 @@
         }
       }
     },
-    "sources.page.artifactCopyDetailsMoreLabel": {
-      "comment": "VoiceOver label of the more button on an Artifact row; %1$lld is how many more, %2$@ is the ART- ref",
+    "sources.page.metadataDetailsMoreLabel": {
+      "comment": "VoiceOver label of the more button on an Artifact or Evidence graph row; %1$lld is how many more, %2$@ is the ART- or GPH- ref",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9990,13 +9990,13 @@
                   "one": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg more copy detail"
+                      "value": "%arg more detail"
                     }
                   },
                   "other": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg more copy details"
+                      "value": "%arg more details"
                     }
                   }
                 }
@@ -10054,8 +10054,8 @@
         }
       }
     },
-    "sources.page.artifactSheetFinishOpenField": {
-      "comment": "Callout on the Artifact sheet when Save is pressed while a copy-details field holds text not yet confirmed",
+    "sources.page.metadataFinishOpenField": {
+      "comment": "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -22817,6 +22817,42 @@
         }
       }
     },
+    "sources.graphForm.openInComposer": {
+      "comment": "Link under a locked artifact row in the evidence graph form; closes the form and opens the graph's citation composer on that artifact",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open in citation composer"
+          }
+        }
+      }
+    },
+    "sources.graphForm.openInComposerLabel": {
+      "comment": "VoiceOver label of the Open in citation composer link; argument is the artifact's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open %@ in citation composer"
+          }
+        }
+      }
+    },
+    "sources.graphForm.metadataLabel": {
+      "comment": "Label of the metadata board in the evidence graph form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evidence graph metadata"
+          }
+        }
+      }
+    },
     "sources.graphForm.addConfirm": {
       "comment": "Confirm button of the Add evidence graph form",
       "extractionState": "manual",
@@ -22925,20 +22961,8 @@
         }
       }
     },
-    "sources.graphForm.keptLinkedMessage": {
-      "comment": "Callout above the Citations that keep an Artifact linked to the graph",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "These artifacts stay linked: citations need them in this evidence graph."
-          }
-        }
-      }
-    },
     "sources.graphForm.loading": {
-      "comment": "Evidence graph form loading line while the kept links are read",
+      "comment": "Evidence graph form loading line while the locked Artifacts are read",
       "extractionState": "manual",
       "localizations": {
         "en": {

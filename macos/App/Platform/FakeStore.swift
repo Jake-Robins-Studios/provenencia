@@ -184,6 +184,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The id the next `createArtifact` gives the new Artifact (then cleared), so a test can
     /// script `metadataWriteResults` for its reply rows.
     var nextArtifactID: String?
+    /// The id the next `createEvidenceGraph` gives the new graph (then cleared), so a test can
+    /// script `metadataWriteResults` for its reply rows.
+    var nextEvidenceGraphID: String?
     /// When set, `listTypeSuggestions` throws it.
     var listTypeSuggestionsError: Error?
     /// The level of each `listTypeSuggestions` call, in order.
@@ -499,6 +502,12 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 artifactMetadata: Dictionary(
                     (artifactsBySource[sourceID] ?? []).map {
                         ($0.id, metadataByOwner[MetadataOwner(level: .artifact, id: $0.id)] ?? [])
+                    },
+                    uniquingKeysWith: { _, last in last }
+                ),
+                graphMetadata: Dictionary(
+                    (evidenceGraphsByProject[projectDir] ?? []).filter { $0.sourceID == sourceID }.map {
+                        ($0.id, metadataByOwner[MetadataOwner(level: .graph, id: $0.id)] ?? [])
                     },
                     uniquingKeysWith: { _, last in last }
                 )
@@ -922,7 +931,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> (CatalogEvidenceGraph, CatalogWriteEffects) {
+    ) async throws -> (graph: CatalogEvidenceGraph, metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) {
         try withState {
             createEvidenceGraphCalls += 1
             createEvidenceGraphMetadata.append(metadata)
@@ -933,7 +942,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 projectDir: projectDir, sourceID: sourceID, name: trimmed, description: description,
                 artifactIDs: artifactIDs
             )
-            return (graph, nextWriteEffects)
+            let owner = MetadataOwner(level: .graph, id: graph.id)
+            return (graph, scriptedMetadataRows(owner), nextWriteEffects)
         }
     }
 
@@ -945,7 +955,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> CatalogWriteEffects {
+    ) async throws -> (metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) {
         try withState {
             updateEvidenceGraphCalls += 1
             updateEvidenceGraphMetadata.append(metadata)
@@ -959,7 +969,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             if !artifactIDs.isEmpty {
                 evidenceGraphsByProject[projectDir]?[idx].artifactIDs = artifactIDs
             }
-            return nextWriteEffects
+            return (scriptedMetadataRows(MetadataOwner(level: .graph, id: graphID)), nextWriteEffects)
         }
     }
 
@@ -3372,8 +3382,10 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         description: String,
         artifactIDs: [String]
     ) -> CatalogEvidenceGraph {
+        let newID = nextEvidenceGraphID ?? UUID().uuidString.lowercased()
+        nextEvidenceGraphID = nil
         let graph = CatalogEvidenceGraph(
-            id: UUID().uuidString.lowercased(),
+            id: newID,
             ref: "GPH-FAKE1",
             sourceID: sourceID,
             name: name,

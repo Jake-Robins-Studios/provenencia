@@ -59,20 +59,17 @@ func applyDraft(tx *database.Tx, userID []byte, owner sourcemetadata.Owner, d *s
 	return sourcemetadata.Apply(tx, userID, owner, *d)
 }
 
-// artifactBoardsProto reads every Artifact's board in one batch, in the order
-// of ids (the raw Artifact ids, as stored).
-func artifactBoardsProto(c *database.Catalog, ids [][]byte) ([]*engine.MetadataBoard, error) {
-	owners := make([]sourcemetadata.Owner, len(ids))
-	for i, id := range ids {
-		owners[i] = sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: id}
-	}
+// ownerBoardsProto reads every owner's board in one batch, in the order of
+// owners; an Owner carries its level, so one call serves a page's Source,
+// Artifacts and Evidence graphs in one read snapshot.
+func ownerBoardsProto(c *database.Catalog, owners []sourcemetadata.Owner) ([]*engine.MetadataBoard, error) {
 	lists, err := sourcemetadata.ListWorkspaces(c, owners)
 	if err != nil {
 		return nil, err
 	}
-	boards := make([]*engine.MetadataBoard, len(ids))
-	for i, id := range ids {
-		boards[i] = &engine.MetadataBoard{OwnerId: database.UUIDString(id), Entries: metadataEntriesProto(lists[i])}
+	boards := make([]*engine.MetadataBoard, len(owners))
+	for i, o := range owners {
+		boards[i] = &engine.MetadataBoard{OwnerId: database.UUIDString(o.ID), Entries: metadataEntriesProto(lists[i])}
 	}
 	return boards, nil
 }

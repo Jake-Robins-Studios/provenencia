@@ -433,6 +433,9 @@ message GetSourceWorkspaceResponse {
   // One board per Artifact, in the order of artifacts: its type's artifact-level
   // suggestions plus extras, by its layout.
   repeated MetadataBoard artifact_metadata = 9;
+  // One board per Evidence graph of the Source, in graph list order: its type's
+  // graph-level suggestions plus extras, by its layout.
+  repeated MetadataBoard graph_metadata = 10;
 }
 
 message CreateSourceRequest {
@@ -500,6 +503,8 @@ message CreateEvidenceGraphRequest {
 message CreateEvidenceGraphResponse {
   EvidenceGraph graph = 1;
   WriteEffects effects = 2;
+  // The new graph's board after the write.
+  repeated MetadataWorkspaceEntry metadata = 3;
 }
 
 message UpdateEvidenceGraphRequest {
@@ -514,6 +519,8 @@ message UpdateEvidenceGraphRequest {
 
 message UpdateEvidenceGraphResponse {
   WriteEffects effects = 1;
+  // The graph's board after the write; the stored board when no draft was sent.
+  repeated MetadataWorkspaceEntry metadata = 2;
 }
 
 message DeleteEvidenceGraphRequest {
@@ -541,9 +548,11 @@ message GetEvidenceGraphUnlinkImpactRequest {
 
 message EvidenceGraphUnlinkBlock {
   string artifact_id = 1;
-  DeleteImpactGroup citations = 2; // empty for last_artifact
+  reserved 2;
+  reserved "citations";
   string graph_id = 3;
   string reason_code = 4; // the refusal's apperr code
+  int32 citation_count = 5; // the graph's Citations on the Artifact; 0 for last_artifact
 }
 
 message GetEvidenceGraphUnlinkImpactResponse {

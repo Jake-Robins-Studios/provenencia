@@ -1366,7 +1366,7 @@ struct SourcePageModelTests {
         await bare.warmFromSession()
         #expect(!bare.graphs.canAdd)
         #expect(bare.graphs.addBlockedReason == "Add an artifact before you add an evidence graph")
-        bare.graphs.openAdd()
+        await bare.graphs.openAdd()
         #expect(bare.graphs.form == nil)
 
         let withArtifact = makeModel(store: makeStore(artifacts: [
@@ -1375,7 +1375,7 @@ struct SourcePageModelTests {
         await withArtifact.warmFromSession()
         #expect(withArtifact.graphs.canAdd)
         #expect(withArtifact.graphs.addBlockedReason == nil)
-        withArtifact.graphs.openAdd()
+        await withArtifact.graphs.openAdd()
         #expect(withArtifact.graphs.form != nil)
     }
 
@@ -1793,7 +1793,7 @@ struct SourcePageModelTests {
         #expect(sent.values.map(\.fieldID) == ["provider", "url"])
         #expect(store.updateArtifactCalls == 0)
         #expect(model.artifacts.items.contains { $0.id == "a-new" && $0.label == "Sheet 26 (image 13)" })
-        #expect(model.artifacts.copyDetails(for: "a-new") == rows)
+        #expect(model.metadataRows(for: MetadataOwner(level: .artifact, id: "a-new")) == rows)
         let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: sourceID)
         let cached: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(key)
         #expect(cached?.value?.metadataRows(for: owner) == rows)
@@ -1809,7 +1809,7 @@ struct SourcePageModelTests {
         let saved = await sheet.save()
         #expect(saved)
         #expect(store.createArtifactMetadata == [nil])
-        #expect(model.artifacts.copyDetails(for: "a-new").map(\.field.id) == ["provider", "url", "accessed"])
+        #expect(model.metadataRows(for: MetadataOwner(level: .artifact, id: "a-new")).map(\.field.id) == ["provider", "url", "accessed"])
 
         // A dismissed suggestion is a change: the draft lists it as a dismissed layout row.
         model.artifacts.sheet = nil
@@ -2007,7 +2007,7 @@ struct SourcePageModelTests {
         sheet.board.setTyped(true, fieldID: "image")
         #expect(sheet.isDirty)
         #expect(await sheet.save() == false)
-        #expect(sheet.saveError == L10n.string(L10n.Sources.artifactSheetFinishOpenField))
+        #expect(sheet.saveError == L10n.string(L10n.Sources.metadataFinishOpenField))
         #expect(store.updateArtifactCalls == 0)
         sheet.board.setTyped(false, fieldID: "image")
         #expect(await sheet.save() == true)
@@ -2076,7 +2076,7 @@ struct SourcePageModelTests {
         #expect(draft.values.map(\.fieldID) == ["url", "provider", "image", "film"])
         #expect(draft.values.map(\.valueText) == ["https://example.org/p3", "FamilySearch", "p3.png", "F-7"])
         #expect(model.artifacts.items.first { $0.id == "P3" }?.label == "Page P3, recto")
-        #expect(model.artifacts.copyDetails(for: "P3").map(\.field.id) == ["url", "provider", "image", "film"])
+        #expect(model.metadataRows(for: MetadataOwner(level: .artifact, id: "P3")).map(\.field.id) == ["url", "provider", "image", "film"])
         #expect(store.recordedCalls.filter { $0.contains("getSourceWorkspace") }.count == getBefore)
     }
 
@@ -2293,7 +2293,7 @@ struct SourcePageModelTests {
         let (model, store, session) = await makeCensus()
         let sheet = await openSheet(model, "P3")
         store.nextWriteEffects = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: [sourceID])])
-        let (created, effects) = try await store.createEvidenceGraph(
+        let (created, _, effects) = try await store.createEvidenceGraph(
             projectDir: projectDir, userID: userID, sourceID: sourceID,
             name: "Walker household", description: "", artifactIDs: ["P3"], metadata: nil
         )
@@ -2352,6 +2352,23 @@ struct SourcePageModelTests {
         #expect(await firstOpen.value == nil)
         #expect(model.artifacts.sheet === edit)
         #expect(edit?.artifactID == "P3")
+    }
+
+    @Test func artifactPencilDuringGraphAddReadKeepsOneForm() async throws {
+        let (model, store, _) = await makeCensus()
+        model.artifacts.sheet = nil
+        store.listTypeSuggestionsHold.isOn = true
+        let graphOpen = Task { await model.graphs.openAdd() }
+        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+
+        model.artifacts.openSheet(artifactID: "P3")
+        let edit = model.artifacts.sheet
+        #expect(edit != nil)
+        store.listTypeSuggestionsHold.release()
+
+        #expect(await graphOpen.value == nil)
+        #expect(model.graphs.form == nil)
+        #expect(model.artifacts.sheet === edit)
     }
 
     @Test func sheetSavingDisablesSaveAndHoldsTheWrite() async {
@@ -2451,14 +2468,45 @@ struct SourcePageModelTests {
         func rows(_ n: Int) -> [CatalogMetadataEntry] {
             (0..<n).map { catalogMetadataEntry(fields[$0], "v\($0)", order: Int32($0)) }
         }
-        let none = ArtifactCopyDetailsView.shown([])
+        let none = MetadataDetailsColumn.shown([])
         #expect(none.shown.isEmpty && none.more == 0)
-        let three = ArtifactCopyDetailsView.shown(rows(3))
+        let three = MetadataDetailsColumn.shown(rows(3))
         #expect(three.shown.count == 3 && three.more == 0)
-        let eight = ArtifactCopyDetailsView.shown(rows(8))
+        let eight = MetadataDetailsColumn.shown(rows(8))
         #expect(eight.shown.map(\.field.id) == ["f0", "f1", "f2", "f3"] && eight.more == 4)
-        let withSuggestion = ArtifactCopyDetailsView.shown([catalogMetadataEntry(fields[0], suggested: true)] + rows(2).dropFirst())
+        let withSuggestion = MetadataDetailsColumn.shown([catalogMetadataEntry(fields[0], suggested: true)] + rows(2).dropFirst())
         #expect(withSuggestion.shown.map(\.field.id) == ["f1"] && withSuggestion.more == 0)
+    }
+
+    @Test func graphBoardsInWorkspace() async throws {
+        let (model, _, _) = await makeCensus()
+        var workspace = try #require(model.workspace)
+        #expect(workspace.metadataRows(for: MetadataOwner(level: .graph, id: "g-unknown")) == [])
+        let rows = [catalogMetadataEntry(catalogMetadataField("line", label: "Line"), "14")]
+        let setGraph = workspace.setMetadataRows(rows, for: MetadataOwner(level: .graph, id: "g-unknown"))
+        #expect(setGraph)
+        #expect(workspace.metadataRows(for: MetadataOwner(level: .graph, id: "g-unknown")) == rows)
+        let setArtifact = workspace.setMetadataRows(rows, for: MetadataOwner(level: .artifact, id: "nope"))
+        #expect(!setArtifact)
+        #expect(workspace.metadataRows(for: MetadataOwner(level: .artifact, id: "nope")) == nil)
+    }
+
+    @Test func graphRowDetails() async {
+        let line = catalogMetadataField("line", label: "Line")
+        let fields = (0..<7).map { catalogMetadataField("f\($0)", label: "Field \($0)") }
+        let (model, store, _) = await makeCensus(fields: [line] + fields)
+        store.metadataByOwner[MetadataOwner(level: .graph, id: "g-j")] =
+            (0..<4).map { catalogMetadataEntry(fields[$0], "v\($0)", order: Int32($0)) }
+        store.metadataByOwner[MetadataOwner(level: .graph, id: "g-s")] =
+            (0..<7).map { catalogMetadataEntry(fields[$0], "v\($0)", order: Int32($0)) }
+        store.metadataByOwner[MetadataOwner(level: .graph, id: "g-b")] = [catalogMetadataEntry(line, suggested: true)]
+        await model.warmFromSession()
+        let none = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-b")))
+        #expect(none.shown.isEmpty && none.more == 0)
+        let four = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-j")))
+        #expect(four.shown.count == 4 && four.more == 0)
+        let seven = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-s")))
+        #expect(seven.shown.count == 4 && seven.more == 3)
     }
 
     @Test func restingRowMarksAnArtifactInNoGraph() async {
@@ -2495,8 +2543,8 @@ struct SourcePageModelTests {
         #expect(L10n.string(ArtifactRowAction.edit.title) == "Edit…")
         #expect(L10n.string(ArtifactRowAction.delete.title) == "Delete…")
         #expect(L10n.string(ArtifactRowAction.setCover.title) == "Set cover")
-        #expect(SourcePageArtifactRow.copyDetailsWidth(.regular) == 320)
-        #expect(SourcePageArtifactRow.copyDetailsWidth(.wide) == 440)
+        #expect(MetadataDetailsColumn.width(.regular) == 320)
+        #expect(MetadataDetailsColumn.width(.wide) == 440)
     }
 
     @Test func artifactThumbnailFallsBackToTheSourceType() async {

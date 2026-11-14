@@ -484,7 +484,9 @@ private struct ThrowingStore: GenealogyStore {
         description _: String,
         artifactIDs _: [String],
         metadata _: CatalogMetadataDraft?
-    ) async throws -> (CatalogEvidenceGraph, CatalogWriteEffects) { throw StoreBoom.boom }
+    ) async throws -> (graph: CatalogEvidenceGraph, metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) {
+        throw StoreBoom.boom
+    }
     func updateEvidenceGraph(
         projectDir _: String,
         userID _: String,
@@ -493,7 +495,7 @@ private struct ThrowingStore: GenealogyStore {
         description _: String,
         artifactIDs _: [String],
         metadata _: CatalogMetadataDraft?
-    ) async throws -> CatalogWriteEffects { throw StoreBoom.boom }
+    ) async throws -> (metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) { throw StoreBoom.boom }
     func deleteEvidenceGraph(projectDir _: String, userID _: String, graphID _: String) async throws -> CatalogWriteEffects {
         throw StoreBoom.boom
     }

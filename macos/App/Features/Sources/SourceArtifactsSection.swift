@@ -19,11 +19,6 @@ final class SourceArtifactsSection {
         var file = IngestFileChoice()
     }
 
-    // MARK: Artifact sheet
-
-    /// True while `openAdd` reads the type's suggestions, so a second click or drop opens nothing.
-    private(set) var isOpeningAdd = false
-
     // MARK: Add file dialog
 
     var isAttaching = false
@@ -88,11 +83,6 @@ final class SourceArtifactsSection {
         art.thumbnailTypeIconKey(sourceTypeIconKey: context.sourceTypeIconKey)
     }
 
-    /// The Artifact's saved copy details, read from the workspace the page already holds.
-    func copyDetails(for artifactID: String) -> [CatalogMetadataEntry] {
-        context.workspace?.metadataRows(for: MetadataOwner(level: .artifact, id: artifactID)) ?? []
-    }
-
     /// The page's workspace changed: a sheet whose Artifact is no longer on the
     /// page closes with its draft and says so. An Artifact still there keeps its draft.
     func workspaceChanged() {
@@ -122,18 +112,7 @@ final class SourceArtifactsSection {
     /// opening, or the suggestion read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> ArtifactSheetModel? {
-        guard sheet == nil, !isOpeningAdd else { return nil }
-        isOpeningAdd = true
-        defer { isOpeningAdd = false }
-        let suggestions: [CatalogMetadataEntry]
-        do {
-            suggestions = try await context.unsavedMetadataRows(level: .artifact)
-        } catch {
-            context.showFailure(error)
-            return nil
-        }
-        // A sheet opened while the read ran (an edit from a pencil) is not replaced.
-        guard sheet == nil else { return nil }
+        guard let suggestions = await context.readSuggestionsForAdd(level: .artifact) else { return nil }
         let created = ArtifactSheetModel(
             context: context,
             mode: .create(suggestions: suggestions),
@@ -146,7 +125,7 @@ final class SourceArtifactsSection {
 
     /// Opens the Artifact sheet in add mode with the dropped file staged. Nothing is stored until Save.
     func stagePageDrop(_ urls: [URL]) async {
-        guard !urls.isEmpty, sheet == nil, !isOpeningAdd else { return }
+        guard !urls.isEmpty, sheet == nil, !context.isOpeningForm else { return }
         guard let sheet = await openAdd() else { return }
         sheet.file.choose(urls)
     }
@@ -258,8 +237,8 @@ final class SourceArtifactsSection {
     /// Puts a written Artifact on the page, appended when new: the one apply
     /// path for every Artifact write. The list is patched here (the page and the
     /// cached workspace; no slot patches the Artifact list). A write that carried
-    /// the Artifact's copy details also puts its rows on the page, and the
-    /// `.wroteMetadataBoard` slot writes them into the cache, with no reload.
+    /// the Artifact's copy details also puts its rows on the page and in the cache
+    /// (`SourcePageContext.applySavedMetadata`), with no reload.
     private func show(
         _ art: CatalogArtifact,
         metadata: [CatalogMetadataEntry]? = nil,
@@ -272,13 +251,8 @@ final class SourceArtifactsSection {
             workspace.artifacts.append(art)
         }
         context.setWorkspace(workspace)
-        let owner = MetadataOwner(level: .artifact, id: art.id)
         if let metadata {
-            // The page only: the slot below writes the rows into the cached key once.
-            context.workspace?.setMetadataRows(metadata, for: owner)
-            context.session.apply(
-                effects, .wroteMetadataBoard(sourceId: context.sourceID, owner: owner, entries: metadata)
-            )
+            context.applySavedMetadata(metadata, owner: MetadataOwner(level: .artifact, id: art.id), effects: effects)
         } else {
             context.session.apply(effects)
         }

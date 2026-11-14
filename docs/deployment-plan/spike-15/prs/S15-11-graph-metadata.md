@@ -1,9 +1,9 @@
 # S15-11 — Evidence graphs show their metadata
 
-**Status:** Planned
+**Status:** Landed in [#834](https://github.com/mendahu/provenencia/pull/834) (2026-11-14)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/S15-D5-evidence-graph-form.review.md)), board agreed 2026-11-14
+**Brief:** [S15-D5](../design/archive/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/archive/S15-D5-evidence-graph-form.review.md)), board agreed 2026-11-14
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, rows "Evidence graphs" (g-values, g-values-wide, g-read-failed) and "Evidence graph form" (gf-meta-*). Frame map: brief 1a/1b → g-values/g-values-wide; 2 → gf-meta-add; 3a → gf-meta-edit; 3b → gf-meta-addrow; 4 → gf-meta-nosugg; 5 → gf-meta-discard; 6 → gf-meta-saving, gf-meta-refused, gf-meta-openfield; 7a → gf-meta-sixty; 7b → gf-meta-long; 8 → g-read-failed. **gf-meta-narrow is not built** (no one-column fallback, user 2026-11-14). Open the link in a browser; if you cannot, §6 macOS and D-9 describe every frame
 **Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-36 (landed #810), S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-D5
 **Blocks:** S15-39
@@ -87,6 +87,7 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | Owner-neutral read-only values view and its width; owner-neutral keys (D-7, D-8) | STEP-5 |
 | The board in the graph form, both modes; two columns at 880pt; scrolling body; Add reads first (EG-1 – EG-7, EG-10) | STEP-6, STEP-7, US-1, US-2 |
 | Values on each graph row (EG-8, EG-9, EG-W1) | STEP-8, US-3 |
+| The Artifact sheet in the same two-column form at 880pt (user-added, 2026-11-14, Fix plan 6) | F-19 |
 
 | Out | Home |
 | --- | --- |
@@ -313,6 +314,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 2. Edit the graph, add Folio inline, change Line, click outside: the discard confirm. Keep editing, Save: the row shows the new values; the page does not flash a reload.
 3. On a Source with 60 Artifacts, open the form: the checklist scrolls in its box; the body does not scroll. Add eight values: the body scrolls between the fixed title and buttons, both columns together.
 4. Resize the window across 1600pt: the values column is 320pt, then 440pt (AC-3.4).
+5. Open Add artifact and Edit on an Artifact: two columns at 880pt; Copy details "+n more" scrolls to Copy details; the pencil on the graph count scrolls to Evidence graphs.
 
 ## 11. Risks and stop conditions
 
@@ -337,3 +339,17 @@ None.
 
 **Title:** S15-11 — Evidence graphs show their metadata
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-11-graph-metadata.md`.
+
+## Landed
+
+- `CatalogQueryRegistryTests.metadataBoardPatchIgnoresOwnersItCannotPlace` listed a graph owner as one the page cannot place, which D-3 reverses (a graph's rows are always stored). The test now lists an unknown Artifact and a Citation owner, and `metadataBoardPatchStoresAGraphsRows` pins D-3's graph case.
+- `SourcePageModel.metadataRows(for:)` is a one-line pass to `SourcePageContext.metadataRows(for:)`, so the Artifact row can read its rows now that `SourceArtifactsSection.copyDetails(for:)` is gone (the section's context is private); both rows read `SourcePageModel.metadataRows(for:)`; this supersedes D-12's `model.graphs.details(for:)` (same-pass cleanup, MNT-1). D-12's row-side wrapper and width frame now live in `MetadataDetailsColumn`, which both rows place bare (MNT-2).
+- `FakeStore.nextEvidenceGraphID` (new, as `nextArtifactID`) names the next created graph, so a test scripts `metadataWriteResults` for its reply rows (T-5).
+- `SourcePageContext.readSuggestionsForAdd(level:)` and `isOpeningForm` are the one read-first open for the Artifact and graph Add; a page drop is refused while it runs or any owner form is open. The page model supplies `hasOpenOwnerForm`, and `readSuggestionsForAdd` checks it before and after the read, so an edit opened during any Add read is kept and the Add opens nothing.
+- The graph form's name-required stop also asks the body to scroll to the top (D-5 names only the save-error stops).
+- `SourceGraphsSection.openEdit(id:at:)` returns while `SourcePageContext.isOpeningForm`, as D-10 says; `SourceGraphsSection.openAdd()` also returns nil when the Source has no Artifact (`canAdd`).
+- The brief's review log moved to `design/archive/` with the brief; the links inside both files were rebased.
+- The manual check (section 10) was not run by the implementer; the Swift and Go checks and `scripts/check-pr.sh` pass.
+- The kept-linked callout above the graph form's Citation lists was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
+- The Kept linked list is replaced by a per-row "Open in citation composer" link under each locked row whose graph Citations use the Artifact (user, board, 2026-11-14); `PVControlSize.xs` (micro) is new for it, and the checklist cap is 352pt.
+- User-added scope (2026-11-14, Fix plan 6): the Artifact sheet uses the graph form's two-column layout at 880pt (was 560pt, one column). `SourceOwnerFormColumns` and `DraftMetadataBoardField` hold the body both forms share; the Artifact sheet's left column is the file (Add), label, description and Copy details, its right column the Evidence graphs.

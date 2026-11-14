@@ -63,9 +63,15 @@ final class SourceGraphsSection {
         return L10n.string(L10n.Sources.addEvidenceGraphNeedsArtifact)
     }
 
-    func openAdd() {
-        guard canAdd else { return }
-        form = SourceGraphFormModel(context: context, mode: .create)
+    /// Opens the Add form, its metadata board starting as the Source type's `graph` suggestions,
+    /// empty. Answers the form, or nil when none opened: one is open or opening, or the
+    /// suggestion read failed (the page banner shows the message).
+    @discardableResult
+    func openAdd() async -> SourceGraphFormModel? {
+        guard canAdd, let suggestions = await context.readSuggestionsForAdd(level: .graph) else { return nil }
+        let model = SourceGraphFormModel(context: context, mode: .create(suggestions: suggestions))
+        form = model
+        return model
     }
 
     /// The graph with `id` when it belongs to this page's Source.
@@ -74,9 +80,9 @@ final class SourceGraphsSection {
         return graph
     }
 
-    func openEdit(id: String) {
-        guard context.workspace != nil, let graph = ownGraph(id: id) else { return }
-        let model = SourceGraphFormModel(context: context, mode: .edit(graph))
+    func openEdit(id: String, at section: SourceGraphFormModel.Section = .top) {
+        guard !context.isOpeningForm, context.workspace != nil, let graph = ownGraph(id: id) else { return }
+        let model = SourceGraphFormModel(context: context, mode: .edit(graph), opensAt: section)
         form = model
         formLoad = Task { await model.loadKeptLinks() }
     }

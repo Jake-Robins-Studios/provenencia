@@ -6421,6 +6421,26 @@ enum L10n {
             comment: "Caption under the Artifacts heading in the evidence graph form"
         )
 
+        static let graphFormOpenInComposer = LocalizedStringResource(
+            "sources.graphForm.openInComposer",
+            defaultValue: "Open in citation composer",
+            comment: "Link under a locked artifact row in the evidence graph form; closes the form and opens the graph's citation composer on that artifact"
+        )
+
+        static func graphFormOpenInComposerLabel(artifact: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.graphForm.openInComposerLabel",
+                defaultValue: "Open %@ in citation composer",
+                comment: "VoiceOver label of the Open in citation composer link; argument is the artifact's label"
+            ), artifact)
+        }
+
+        static let graphFormMetadataLabel = LocalizedStringResource(
+            "sources.graphForm.metadataLabel",
+            defaultValue: "Evidence graph metadata",
+            comment: "Label of the metadata board in the evidence graph form"
+        )
+
         static let graphFormAddConfirm = LocalizedStringResource(
             "sources.graphForm.addConfirm",
             defaultValue: "Add",
@@ -6475,16 +6495,19 @@ enum L10n {
             comment: "Line under the Artifact checklist when no Artifact is checked"
         )
 
-        static let graphFormKeptLinkedMessage = LocalizedStringResource(
-            "sources.graphForm.keptLinkedMessage",
-            defaultValue: "These artifacts stay linked: citations need them in this evidence graph.",
-            comment: "Callout above the Citations that keep an Artifact linked to the graph"
-        )
+        static func graphLockCitations(count: Int) -> String {
+            let resource = LocalizedStringResource(
+                "sources.graphLock.citations",
+                defaultValue: "%lld citations in this graph use this artifact",
+                comment: "Hint under a locked Artifact row: how many of the graph's Citations are on the Artifact. Argument is the count."
+            )
+            return L10n.format(resource, count)
+        }
 
         static let graphFormLoading = LocalizedStringResource(
             "sources.graphForm.loading",
             defaultValue: "Reading the artifacts…",
-            comment: "Evidence graph form loading line while the kept links are read"
+            comment: "Evidence graph form loading line while the locked Artifacts are read"
         )
 
         static let graphFormLoadErrorTitle = LocalizedStringResource(
@@ -6813,19 +6836,19 @@ enum L10n {
             comment: "Label of the Artifact metadata section of the Artifact sheet"
         )
 
-        static func artifactCopyDetailsMore(count: Int) -> String {
+        static func metadataDetailsMore(count: Int) -> String {
             L10n.format(LocalizedStringResource(
-                "sources.page.artifactCopyDetailsMore",
+                "sources.page.metadataDetailsMore",
                 defaultValue: "+%lld more",
-                comment: "Button on an Artifact row after its first copy details; argument is how many more it holds"
+                comment: "Button on an Artifact or Evidence graph row after its first metadata values; argument is how many more it holds"
             ), count)
         }
 
-        static func artifactCopyDetailsMoreLabel(count: Int, ref: String) -> String {
+        static func metadataDetailsMoreLabel(count: Int, ref: String) -> String {
             L10n.format(LocalizedStringResource(
-                "sources.page.artifactCopyDetailsMoreLabel",
+                "sources.page.metadataDetailsMoreLabel",
                 defaultValue: "%#@details@ of %2$@",
-                comment: "VoiceOver label of the more button on an Artifact row; %1$lld is how many more, %2$@ is the ART- ref"
+                comment: "VoiceOver label of the more button on an Artifact or Evidence graph row; %1$lld is how many more, %2$@ is the ART- or GPH- ref"
             ), count, ref)
         }
 
@@ -6843,10 +6866,10 @@ enum L10n {
             ), error)
         }
 
-        static let artifactSheetFinishOpenField = LocalizedStringResource(
-            "sources.page.artifactSheetFinishOpenField",
+        static let metadataFinishOpenField = LocalizedStringResource(
+            "sources.page.metadataFinishOpenField",
             defaultValue: "Finish the open field first: save its value or clear it.",
-            comment: "Callout on the Artifact sheet when Save is pressed while a copy-details field holds text not yet confirmed"
+            comment: "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed"
         )
 
         static let toastArtifactGoneTitle = LocalizedStringResource(
@@ -8947,11 +8970,6 @@ enum L10n {
                 "deleteImpact.via.subjectsGraphId",
                 defaultValue: "This graph has %lld subjects",
                 comment: "Inbound heading for subjects.graph_id; argument is how many"
-            ),
-            "evidencegraphs.artifact_in_use": LocalizedStringResource(
-                "deleteImpact.via.evidenceGraphsArtifactInUse",
-                defaultValue: "%lld citations in this graph use this artifact",
-                comment: "Heading over the Citations that keep an Artifact linked to a graph; argument is how many"
             ),
             "citations.artifact_id": LocalizedStringResource(
                 "deleteImpact.via.citationsArtifactId",

@@ -1738,6 +1738,13 @@ public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceResponse: @unc
     set {_uniqueStorage()._artifactMetadata = newValue}
   }
 
+  /// One board per Evidence graph of the Source, in graph list order: its type's
+  /// graph-level suggestions plus extras, by its layout.
+  public var graphMetadata: [Provenencia_Engine_V1_MetadataBoard] {
+    get {_storage._graphMetadata}
+    set {_uniqueStorage()._graphMetadata = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -1972,6 +1979,12 @@ public nonisolated struct Provenencia_Engine_V1_CreateEvidenceGraphResponse: @un
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
   public mutating func clearEffects() {_uniqueStorage()._effects = nil}
 
+  /// The new graph's board after the write.
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] {
+    get {_storage._metadata}
+    set {_uniqueStorage()._metadata = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -2027,6 +2040,9 @@ public nonisolated struct Provenencia_Engine_V1_UpdateEvidenceGraphResponse: Sen
   public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
   public mutating func clearEffects() {self._effects = nil}
+
+  /// The graph's board after the write; the stored board when no draft was sent.
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -2108,26 +2124,17 @@ public nonisolated struct Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: Sendab
 
   public var artifactID: String = String()
 
-  /// empty for last_artifact
-  public var citations: Provenencia_Engine_V1_DeleteImpactGroup {
-    get {_citations ?? Provenencia_Engine_V1_DeleteImpactGroup()}
-    set {_citations = newValue}
-  }
-  /// Returns true if `citations` has been explicitly set.
-  public var hasCitations: Bool {self._citations != nil}
-  /// Clears the value of `citations`. Subsequent reads from it will return its default value.
-  public mutating func clearCitations() {self._citations = nil}
-
   public var graphID: String = String()
 
   /// the refusal's apperr code
   public var reasonCode: String = String()
 
+  /// the graph's Citations on the Artifact; 0 for last_artifact
+  public var citationCount: Int32 = 0
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _citations: Provenencia_Engine_V1_DeleteImpactGroup? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResponse: Sendable {
@@ -10043,7 +10050,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceRequest: SwiftProt
 
 nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetSourceWorkspaceResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}notes\0\u{1}metadata\0\u{1}artifacts\0\u{1}credibility\0\u{4}\u{4}artifact_metadata\0\u{c}\u{6}\u{1}\u{c}\u{7}\u{1}\u{c}\u{8}\u{1}")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}notes\0\u{1}metadata\0\u{1}artifacts\0\u{1}credibility\0\u{4}\u{4}artifact_metadata\0\u{3}graph_metadata\0\u{c}\u{6}\u{1}\u{c}\u{7}\u{1}\u{c}\u{8}\u{1}")
 
   fileprivate class _StorageClass {
     var _source: Provenencia_Engine_V1_Source? = nil
@@ -10052,6 +10059,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
     var _artifacts: [Provenencia_Engine_V1_Artifact] = []
     var _credibility: Provenencia_Engine_V1_SourceCredibilityAssessment? = nil
     var _artifactMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
+    var _graphMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -10068,6 +10076,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
       _artifacts = source._artifacts
       _credibility = source._credibility
       _artifactMetadata = source._artifactMetadata
+      _graphMetadata = source._graphMetadata
     }
   }
 
@@ -10092,6 +10101,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
         case 4: try { try decoder.decodeRepeatedMessageField(value: &_storage._artifacts) }()
         case 5: try { try decoder.decodeSingularMessageField(value: &_storage._credibility) }()
         case 9: try { try decoder.decodeRepeatedMessageField(value: &_storage._artifactMetadata) }()
+        case 10: try { try decoder.decodeRepeatedMessageField(value: &_storage._graphMetadata) }()
         default: break
         }
       }
@@ -10122,6 +10132,9 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
       if !_storage._artifactMetadata.isEmpty {
         try visitor.visitRepeatedMessageField(value: _storage._artifactMetadata, fieldNumber: 9)
       }
+      if !_storage._graphMetadata.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._graphMetadata, fieldNumber: 10)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -10137,6 +10150,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
         if _storage._artifacts != rhs_storage._artifacts {return false}
         if _storage._credibility != rhs_storage._credibility {return false}
         if _storage._artifactMetadata != rhs_storage._artifactMetadata {return false}
+        if _storage._graphMetadata != rhs_storage._graphMetadata {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -10611,11 +10625,12 @@ nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphRequest: SwiftPro
 
 nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateEvidenceGraphResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}graph\0\u{1}effects\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}graph\0\u{1}effects\0\u{1}metadata\0")
 
   fileprivate class _StorageClass {
     var _graph: Provenencia_Engine_V1_EvidenceGraph? = nil
     var _effects: Provenencia_Engine_V1_WriteEffects? = nil
+    var _metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -10628,6 +10643,7 @@ nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphResponse: SwiftPr
     init(copying source: _StorageClass) {
       _graph = source._graph
       _effects = source._effects
+      _metadata = source._metadata
     }
   }
 
@@ -10648,6 +10664,7 @@ nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphResponse: SwiftPr
         switch fieldNumber {
         case 1: try { try decoder.decodeSingularMessageField(value: &_storage._graph) }()
         case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
+        case 3: try { try decoder.decodeRepeatedMessageField(value: &_storage._metadata) }()
         default: break
         }
       }
@@ -10666,6 +10683,9 @@ nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphResponse: SwiftPr
       try { if let v = _storage._effects {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
       } }()
+      if !_storage._metadata.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._metadata, fieldNumber: 3)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -10677,6 +10697,7 @@ nonisolated extension Provenencia_Engine_V1_CreateEvidenceGraphResponse: SwiftPr
         let rhs_storage = _args.1
         if _storage._graph != rhs_storage._graph {return false}
         if _storage._effects != rhs_storage._effects {return false}
+        if _storage._metadata != rhs_storage._metadata {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -10752,7 +10773,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateEvidenceGraphRequest: SwiftPro
 
 nonisolated extension Provenencia_Engine_V1_UpdateEvidenceGraphResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UpdateEvidenceGraphResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}effects\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}effects\0\u{1}metadata\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -10761,6 +10782,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateEvidenceGraphResponse: SwiftPr
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.metadata) }()
       default: break
       }
     }
@@ -10774,11 +10796,15 @@ nonisolated extension Provenencia_Engine_V1_UpdateEvidenceGraphResponse: SwiftPr
     try { if let v = self._effects {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
     } }()
+    if !self.metadata.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.metadata, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_UpdateEvidenceGraphResponse, rhs: Provenencia_Engine_V1_UpdateEvidenceGraphResponse) -> Bool {
     if lhs._effects != rhs._effects {return false}
+    if lhs.metadata != rhs.metadata {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -10930,7 +10956,7 @@ nonisolated extension Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactRequest:
 
 nonisolated extension Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EvidenceGraphUnlinkBlock"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}artifact_id\0\u{1}citations\0\u{3}graph_id\0\u{3}reason_code\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}artifact_id\0\u{4}\u{2}graph_id\0\u{3}reason_code\0\u{3}citation_count\0\u{b}citations\0\u{c}\u{2}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -10939,39 +10965,35 @@ nonisolated extension Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: SwiftProto
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.artifactID) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._citations) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.graphID) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.reasonCode) }()
+      case 5: try { try decoder.decodeSingularInt32Field(value: &self.citationCount) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.artifactID.isEmpty {
       try visitor.visitSingularStringField(value: self.artifactID, fieldNumber: 1)
     }
-    try { if let v = self._citations {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
     if !self.graphID.isEmpty {
       try visitor.visitSingularStringField(value: self.graphID, fieldNumber: 3)
     }
     if !self.reasonCode.isEmpty {
       try visitor.visitSingularStringField(value: self.reasonCode, fieldNumber: 4)
     }
+    if self.citationCount != 0 {
+      try visitor.visitSingularInt32Field(value: self.citationCount, fieldNumber: 5)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_EvidenceGraphUnlinkBlock, rhs: Provenencia_Engine_V1_EvidenceGraphUnlinkBlock) -> Bool {
     if lhs.artifactID != rhs.artifactID {return false}
-    if lhs._citations != rhs._citations {return false}
     if lhs.graphID != rhs.graphID {return false}
     if lhs.reasonCode != rhs.reasonCode {return false}
+    if lhs.citationCount != rhs.citationCount {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

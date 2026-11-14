@@ -42,6 +42,16 @@ enum PVChecklistState {
     }
 }
 
+/// A link drawn under a locked row of ``PVArtifactChecklist``, outside the
+/// row's checkbox so clicking it never toggles the row. `shows` takes an
+/// Artifact id; `accessibilityLabel` takes the Artifact's display title.
+struct PVChecklistLockedLink {
+    let title: LocalizedStringResource
+    let accessibilityLabel: (String) -> String
+    let shows: (String) -> Bool
+    let action: (String) -> Void
+}
+
 /// A Source's Artifacts as a checklist: an "All Artifacts" row and one row per
 /// Artifact, each with its thumbnail, label and ref. Used by the Copy Source
 /// form and the Evidence graph form.
@@ -50,7 +60,8 @@ enum PVChecklistState {
 /// checked, shows the lock mark and cannot be cleared, by its own box or by the
 /// All row. `description` is a caption line under the heading.
 /// `accessibilityIdentifierPrefix` roots the ids: `<prefix>`, `.all`, `.empty`,
-/// `.<artifact id>`.
+/// `.<artifact id>`. `lockedLink` adds a small link under each locked row it
+/// `shows`, indented to the label.
 struct PVArtifactChecklist: View {
     let artifacts: [CatalogArtifact]
     @Binding var excluded: Set<String>
@@ -59,6 +70,7 @@ struct PVArtifactChecklist: View {
     let isDisabled: Bool
     var locked: [String: String] = [:]
     var description: LocalizedStringResource?
+    var lockedLink: PVChecklistLockedLink?
     let accessibilityIdentifierPrefix: String
 
     private static let thumbnailSize: CGFloat = 32
@@ -127,23 +139,34 @@ struct PVArtifactChecklist: View {
     }
 
     private func row(_ artifact: CatalogArtifact) -> some View {
-        HStack(spacing: PVSpacing.space5) {
-            CachedThumbnail(
-                projectDir: projectDir,
-                relPath: artifact.thumbnailRelPath,
-                mediaType: artifact.file?.mediaType ?? "",
-                originalFilename: artifact.file?.originalFilename ?? "",
-                typeIconKey: artifact.thumbnailTypeIconKey(sourceTypeIconKey: sourceTypeIconKey),
-                size: Self.thumbnailSize
-            )
-            .accessibilityHidden(true)
-            rowCheckbox(artifact)
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(artifact.id)")
-            Spacer(minLength: 0)
-            Text(verbatim: artifact.ref)
-                .font(PVFont.mono(size: PVTypeScale.micro))
-                .foregroundStyle(PVColor.textMuted)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: PVSpacing.space5) {
+                CachedThumbnail(
+                    projectDir: projectDir,
+                    relPath: artifact.thumbnailRelPath,
+                    mediaType: artifact.file?.mediaType ?? "",
+                    originalFilename: artifact.file?.originalFilename ?? "",
+                    typeIconKey: artifact.thumbnailTypeIconKey(sourceTypeIconKey: sourceTypeIconKey),
+                    size: Self.thumbnailSize
+                )
                 .accessibilityHidden(true)
+                rowCheckbox(artifact)
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(artifact.id)")
+                Spacer(minLength: 0)
+                Text(verbatim: artifact.ref)
+                    .font(PVFont.mono(size: PVTypeScale.micro))
+                    .foregroundStyle(PVColor.textMuted)
+                    .accessibilityHidden(true)
+            }
+            if let lockedLink, locked[artifact.id] != nil, lockedLink.shows(artifact.id) {
+                PVButton(lockedLink.title, variant: .link, size: .xs) { lockedLink.action(artifact.id) }
+                    .accessibilityLabel(Text(verbatim: lockedLink.accessibilityLabel(artifact.displayTitle)))
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(artifact.id).link")
+                    .disabled(isDisabled)
+                    // Thumbnail + gap + the checkbox's label start.
+                    .padding(.leading, Self.thumbnailSize + PVSpacing.space5 + PVCheckbox.labelLeading)
+                    .padding(.top, PVSpacing.space2)
+            }
         }
         .padding(.vertical, PVSpacing.space2)
         .padding(.horizontal, PVSpacing.space5)

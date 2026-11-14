@@ -93,7 +93,7 @@ final class ArtifactSheetModel {
         case .edit(let artifact):
             openedLabel = artifact.label
             initial = ArtifactSheetDraft(label: artifact.label, description: artifact.description)
-            let rows = context.workspace?.metadataRows(for: MetadataOwner(level: .artifact, id: artifact.id)) ?? []
+            let rows = context.metadataRows(for: MetadataOwner(level: .artifact, id: artifact.id))
             host = MetadataDraftHost(entries: rows, fields: context.fields)
             locks = UnlinkLocks()
         case .create(let suggestions):
@@ -277,8 +277,8 @@ final class ArtifactSheetModel {
         guard !isSaving else { return false }
         saveError = nil
         labelError = nil
-        if board.hasUnconfirmedInput {
-            saveError = L10n.string(L10n.Sources.artifactSheetFinishOpenField)
+        if let message = board.unconfirmedInputMessage {
+            saveError = message
             scrollToTop()
             return false
         }

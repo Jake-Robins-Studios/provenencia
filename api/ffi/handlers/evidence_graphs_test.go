@@ -8,16 +8,17 @@ import (
 
 	"github.com/mendahu/provenencia/api/proto/engine"
 	"github.com/mendahu/provenencia/core/database/evidencegraphs"
+	"google.golang.org/protobuf/proto"
 )
 
 // graphFixture is citationFixture plus a second Artifact on the same Source, a
 // Citation on the first Artifact with one Observation on the place Subject, and
 // the Source's Default graph.
 type graphFixture struct {
-	dir, userID, typeID                string
-	sourceID, page1, page2             string
-	subjectID, citationID, citationRef string
-	defaultGraphID                     string
+	dir, userID, typeID    string
+	sourceID, page1, page2 string
+	subjectID              string
+	defaultGraphID         string
 }
 
 func newGraphFixture(t *testing.T) graphFixture {
@@ -30,8 +31,6 @@ func newGraphFixture(t *testing.T) graphFixture {
 		ProjectDir: dir, UserId: userID, ArtifactId: page1, GraphId: graphLinking(t, dir, page1), LocatorJson: validLocatorJSON,
 		Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: toponymID, ValueText: "Boston"}},
 	}, &cit)
-	f.citationID = cit.GetCitation().GetId()
-	f.citationRef = cit.GetCitation().GetRef()
 	graphs := f.graphsOf(t, sourceID)
 	if len(graphs) != 1 {
 		t.Fatalf("graphs %+v", graphs)
@@ -218,6 +217,17 @@ func TestCreateEvidenceGraph(t *testing.T) {
 			t.Fatalf("board %+v", board)
 		}
 	})
+	t.Run("answers its board", func(t *testing.T) {
+		line := newUserField(t, f.dir, f.userID, "Dwelling")
+		var resp engine.CreateEvidenceGraphResponse
+		mustRPC(t, CreateEvidenceGraph, &engine.CreateEvidenceGraphRequest{
+			ProjectDir: f.dir, UserId: f.userID, SourceId: f.sourceID, Name: "Brown", ArtifactIds: []string{f.page1},
+			Metadata: draftOf(line, "112"),
+		}, &resp)
+		if got := metadataByField(resp.GetMetadata(), line); got == nil || got.GetValueText() != "112" {
+			t.Fatalf("reply metadata %+v", resp.GetMetadata())
+		}
+	})
 	_, foreign := f.otherSource(t)
 	before := len(f.list(t))
 	for name, ids := range map[string][]string{"no artifacts": nil, "another source's artifact": {foreign}} {
@@ -289,6 +299,27 @@ func TestUpdateEvidenceGraph(t *testing.T) {
 		}, &engine.UpdateEvidenceGraphResponse{})
 		if held() != 0 {
 			t.Fatalf("an empty draft left %d values", held())
+		}
+	})
+	t.Run("answers its board", func(t *testing.T) {
+		field := newUserField(t, f.dir, f.userID, "Family")
+		var resp engine.UpdateEvidenceGraphResponse
+		mustRPC(t, UpdateEvidenceGraph, &engine.UpdateEvidenceGraphRequest{
+			ProjectDir: f.dir, UserId: f.userID, GraphId: id, Name: "Jones family",
+			Metadata: draftOf(field, "7"),
+		}, &resp)
+		if got := metadataByField(resp.GetMetadata(), field); got == nil || got.GetValueText() != "7" {
+			t.Fatalf("reply metadata %+v", resp.GetMetadata())
+		}
+	})
+	t.Run("no draft answers the stored board", func(t *testing.T) {
+		var resp engine.UpdateEvidenceGraphResponse
+		mustRPC(t, UpdateEvidenceGraph, &engine.UpdateEvidenceGraphRequest{
+			ProjectDir: f.dir, UserId: f.userID, GraphId: id, Name: "Jones family",
+		}, &resp)
+		stored := boardEntries(t, f.dir, &engine.MetadataOwner{Level: "graph", Id: id})
+		if len(stored) == 0 || !proto.Equal(&engine.MetadataBoard{Entries: stored}, &engine.MetadataBoard{Entries: resp.GetMetadata()}) {
+			t.Fatalf("reply %+v, stored %+v", resp.GetMetadata(), stored)
 		}
 	})
 	t.Run("a graph's Citations keep their Artifact linked", func(t *testing.T) {
@@ -370,21 +401,15 @@ func TestGetEvidenceGraphUnlinkImpact(t *testing.T) {
 	}
 	inUse, last, need := resp.GetBlocked()[0], resp.GetBlocked()[1], resp.GetBlocked()[2]
 
-	g := inUse.GetCitations()
 	if inUse.GetGraphId() != f.defaultGraphID || inUse.GetArtifactId() != f.page1 || inUse.GetReasonCode() != "evidencegraphs.artifact_in_use" ||
-		g.GetVia() != evidencegraphs.UnlinkVia || g.GetKind() != "citation" || g.GetTotal() != 1 || len(g.GetListed()) != 1 {
+		inUse.GetCitationCount() != 1 {
 		t.Fatalf("in use %+v", inUse)
 	}
-	if l := g.GetListed()[0]; l.GetId() != f.citationID || l.GetRef() != f.citationRef || l.GetLocation().GetSourceSurface() != "citationComposer" {
-		t.Fatalf("listed %+v", l)
-	}
-	if last.GetGraphId() != solo || last.GetArtifactId() != lone || last.GetReasonCode() != "evidencegraphs.last_artifact" || last.GetCitations() != nil {
+	if last.GetGraphId() != solo || last.GetArtifactId() != lone || last.GetReasonCode() != "evidencegraphs.last_artifact" || last.GetCitationCount() != 0 {
 		t.Fatalf("last artifact %+v", last)
 	}
-	ng := need.GetCitations()
 	if need.GetGraphId() != f.defaultGraphID || need.GetArtifactId() != needy || need.GetReasonCode() != "evidencegraphs.artifact_in_use" ||
-		ng.GetVia() != evidencegraphs.UnlinkVia || ng.GetKind() != "citation" || ng.GetTotal() != 1 ||
-		len(ng.GetListed()) != 1 || ng.GetListed()[0].GetId() != needyCit.GetCitation().GetId() {
+		need.GetCitationCount() != 1 {
 		t.Fatalf("empty Citation in use %+v", need)
 	}
 

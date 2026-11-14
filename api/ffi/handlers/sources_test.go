@@ -364,7 +364,8 @@ func unmarshalSetMetadataEntry(t *testing.T, raw []byte) *engine.MetadataWorkspa
 }
 
 func TestGetSourceWorkspace(t *testing.T) {
-	var artifactBoardOwner string // the Artifact the "artifact boards" case valued
+	var artifactBoardOwner string                   // the Artifact the "artifact boards" case valued
+	var graphBoardOwner, graphBoardSuggested string // the graph and field the "graph boards" case valued
 	runRPC(t, GetSourceWorkspace, []rpcTest{
 		{
 			name: "unknown source is not found",
@@ -436,6 +437,56 @@ func TestGetSourceWorkspace(t *testing.T) {
 					if holds := board.GetOwnerId() == artifactBoardOwner; entry.GetHasValue() != holds || (holds && entry.GetValueText() != "FamilySearch") {
 						t.Fatalf("board %d entry %+v, holds value = %v", i, entry, holds)
 					}
+				}
+			},
+		},
+		{
+			name: "graph boards",
+			reqFn: func(t *testing.T) proto.Message {
+				m := newMetadataOwners(t)
+				var ws engine.GetSourceWorkspaceResponse
+				mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &ws)
+				sourceType := ws.GetSource().GetSourceTypeId()
+				second := newUserField(t, m.dir, m.userID, "Dwelling")
+				mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
+					ProjectDir: m.dir, TypeId: sourceType, FieldId: second, Level: "graph",
+				}, &engine.AssignTypeFieldResponse{})
+				m.createGraph(t, "Jones", m.page1)
+				m.createGraph(t, "Smith", m.page2)
+				mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+					ProjectDir: m.dir, UserId: m.userID, Owner: m.graph, FieldId: m.suggested, ValueText: "FamilySearch",
+				}, &engine.SetMetadataResponse{})
+				graphBoardOwner = m.defaultGraphID
+				graphBoardSuggested = m.suggested
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}
+			},
+			after: func(t *testing.T, raw []byte, req proto.Message) {
+				var resp engine.GetSourceWorkspaceResponse
+				if err := proto.Unmarshal(raw, &resp); err != nil {
+					t.Fatal(err)
+				}
+				var listed engine.ListEvidenceGraphsResponse
+				mustRPC(t, ListEvidenceGraphs, &engine.ListEvidenceGraphsRequest{
+					ProjectDir: req.(*engine.GetSourceWorkspaceRequest).GetProjectDir(),
+					SourceId:   req.(*engine.GetSourceWorkspaceRequest).GetSourceId(),
+				}, &listed)
+				if len(resp.GraphMetadata) != 3 || len(listed.GetGraphs()) != 3 {
+					t.Fatalf("%d boards for %d graphs", len(resp.GraphMetadata), len(listed.GetGraphs()))
+				}
+				for i, board := range resp.GraphMetadata {
+					if board.GetOwnerId() != listed.GetGraphs()[i].GetId() {
+						t.Fatalf("board %d is for %s, want the graph at that index, %s", i, board.GetOwnerId(), listed.GetGraphs()[i].GetId())
+					}
+					if len(board.GetEntries()) != 2 {
+						t.Fatalf("board %d = %+v, want both graph-level suggestions", i, board)
+					}
+					entry := metadataByField(board.GetEntries(), graphBoardSuggested)
+					if holds := board.GetOwnerId() == graphBoardOwner; entry == nil || entry.GetHasValue() != holds || (holds && entry.GetValueText() != "FamilySearch") {
+						t.Fatalf("board %d entry %+v, holds value = %v", i, entry, holds)
+					}
+				}
+				if len(resp.ArtifactMetadata) != 2 || len(resp.Metadata) == 0 {
+					t.Fatalf("artifact boards %d, source rows %d", len(resp.ArtifactMetadata), len(resp.Metadata))
 				}
 			},
 		},

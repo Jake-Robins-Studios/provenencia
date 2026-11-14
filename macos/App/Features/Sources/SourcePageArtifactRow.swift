@@ -32,22 +32,13 @@ enum ArtifactRowAction: CaseIterable {
 struct SourcePageArtifactRow: View {
     static let thumbnailSize: CGFloat = 64
 
-    /// The copy-details column: 320pt at Regular, 440pt at Wide.
-    static func copyDetailsWidth(_ widthClass: PVWidthClass) -> CGFloat {
-        switch widthClass {
-        case .regular: 320
-        case .wide: 440
-        }
-    }
-
     let art: CatalogArtifact
     let model: SourcePageModel
     /// Nil while the graph list is not loaded: no graph line and no no-graph line.
     let graphLine: ArtifactGraphLine?
 
-    @Environment(\.pvWidthClass) private var widthClass
-
     private var id: String { art.id }
+    private var owner: MetadataOwner { MetadataOwner(level: .artifact, id: art.id) }
 
     var body: some View {
         let canSetCover = model.artifacts.canUseAsThumbnail(art)
@@ -55,16 +46,12 @@ struct SourcePageArtifactRow: View {
             thumbnail
             textColumn
                 .frame(maxWidth: .infinity, alignment: .leading)
-            // The wrapper keeps the column when the details draw nothing; a bare empty view has nothing to size.
-            VStack(alignment: .leading, spacing: 0) {
-                ArtifactCopyDetailsView(
-                    rows: model.artifacts.copyDetails(for: art.id),
-                    ref: art.ref,
-                    artifactID: art.id,
-                    onMore: { model.artifacts.openSheet(artifactID: art.id, at: .copyDetails) }
-                )
-            }
-            .frame(minWidth: 0, maxWidth: Self.copyDetailsWidth(widthClass), alignment: .topLeading)
+            MetadataDetailsColumn(
+                rows: model.metadataRows(for: owner),
+                owner: owner,
+                ref: art.ref,
+                onMore: { model.artifacts.openSheet(artifactID: art.id, at: .copyDetails) }
+            )
             actions(canSetCover: canSetCover)
         }
         .padding(.vertical, PVSpacing.space6)

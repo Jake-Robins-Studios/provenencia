@@ -7,7 +7,8 @@ import SwiftUI
 ///
 /// `PVCheckboxMark` is the bare box for rows that are themselves the
 /// control. `isLocked` is the lock drawn in that same box for a link or
-/// binding the researcher cannot clear: a filled square with a lock, not a check.
+/// binding the researcher cannot clear: a filled square with a lock, not a check;
+/// its description (the reason) carries a small lock too.
 /// The row carries the accessibility; the mark is decoration.
 struct PVCheckbox: View {
     private let label: Text?
@@ -84,6 +85,16 @@ struct PVCheckbox: View {
         self.accessibilityLabelText = Text(verbatim: accessibilitySpokenLabel)
     }
 
+    private func descriptionText(_ text: Text) -> some View {
+        text
+            .font(PVFont.body(size: PVTypeScale.micro))
+            .foregroundStyle(PVColor.textMuted)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Where the label starts, from the box's leading edge.
+    static let labelLeading: CGFloat = PVCheckboxMark.size + PVSpacing.space5
+
     var body: some View {
         Button {
             isChecked.toggle()
@@ -96,10 +107,18 @@ struct PVCheckbox: View {
                         label?
                             .font(PVFont.body(size: PVTypeScale.bodySmall))
                             .foregroundStyle(PVColor.textPrimary)
-                        description?
-                            .font(PVFont.body(size: PVTypeScale.micro))
-                            .foregroundStyle(PVColor.textMuted)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let description {
+                            if isLocked {
+                                HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space2) {
+                                    PVIcon(.lock, size: 9)
+                                        .foregroundStyle(PVColor.textMuted)
+                                        .accessibilityHidden(true)
+                                    descriptionText(description)
+                                }
+                            } else {
+                                descriptionText(description)
+                            }
+                        }
                     }
                 }
             }
@@ -128,6 +147,9 @@ struct PVCheckboxMark: View {
     var isIndeterminate: Bool = false
     var isLocked: Bool = false
 
+    /// The box's side, for content that lines up under a label beside it.
+    fileprivate static let size: CGFloat = 16
+
     private var isOn: Bool { isChecked || isIndeterminate || isLocked }
 
     var body: some View {
@@ -141,7 +163,7 @@ struct PVCheckboxMark: View {
                 .foregroundStyle(PVColor.accentForeground)
                 .opacity(isOn ? 1 : 0)
         }
-        .frame(width: 16, height: 16)
+        .frame(width: Self.size, height: Self.size)
         .accessibilityHidden(true)
     }
 
