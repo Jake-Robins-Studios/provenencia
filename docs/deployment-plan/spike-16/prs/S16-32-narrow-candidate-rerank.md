@@ -1,6 +1,6 @@
 # S16-32 — Promote re-ranks only the Subjects a write moved
 
-**Status:** Planned
+**Status:** Landed in [#832](https://github.com/mendahu/provenencia/pull/832) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine change; Promote's suggestions read the same as today)
@@ -27,6 +27,16 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- The ship log was not edited by the implementer (the orchestrator owns it), so the figures are in the PR description, from `Jakes-M1-Macbook-Pro.local` (Apple M1), `PROVENENCIA_GRAPH_VERIFY` unset, before and after at 4,000 / 16,000 persons: `warm-ms` 225.8 / 233.1 and 157.2 / 179.6; `after-commit-ms` 643.4 / 1057 and 160.2 / 244.8; `after-commit-x` 2.849 / 4.533 and 1.019 / 1.363; `evidence-B` 7,747,072 / 7,723,568 and 7,747,760 / 7,806,528 bytes (at most +83 KB). The warm figure moves between runs with the machine's load; the ratio is taken within one run.
+- `main` had moved from the Planned commit to `08d03b04f`; no **Current state** row changed.
+- `shortlist.Index.Filed`'s doc reads "A Find in kind finds a handle when one of the keys asked for is among the keys the handle is Filed under in that kind", because `Lookup` is gone.
+- `TestCandidatesFollowMovedKeys` does not assert the rows T-1 marks "—" (B's birth after "a John Smith filed", "the member merged" and "the member unpromoted").
+- `evidencelayer.layers`' size column in `catalog-caches.md` now reads the benchmark's `evidence-B` pair (7.7 / 7.8 MB), as STEP-8 says, in place of the 34.5 / 45.0 MB of the three entries together.
+- The first `scripts/check-pr.sh` run failed `TestLargeSourceBudgets` "warm at open" (5.2 s) and "cold" (2.8 s) under the full parallel run, with the Xcode build starting; both pass alone (1.06 s, 0.59 s) and the second full run passed. Neither reads code this PR changed.
+- `evidencegraphs.Index` and `sources.Records` also patch their held index in place, so their Applies now report with `Whole.Patched(g, nil)` instead of `Whole.Set`, making "patched in place" one way of saying it (round 1 F-1; the plan's Codebase fit named only `applyMatchIndex`). Behavior is unchanged: no reader of either narrows.
 
 ## 1. Objective
 

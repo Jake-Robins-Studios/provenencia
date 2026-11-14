@@ -1,6 +1,10 @@
 package promotealign
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/shortlist"
@@ -29,14 +33,15 @@ func HandleForTest(g *graphcache.Graph, id []byte) (subjectcompare.Subject, bool
 	return s, ok
 }
 
-// IndexedForTest is the held shortlist index's Lookup of probe, nil when the
-// graph holds no match index.
+// IndexedForTest is the held shortlist index's Find of probe's lookup keys, nil
+// when the graph holds no match index.
 func IndexedForTest(g *graphcache.Graph, kind string, probe subjectcompare.Values) [][]byte {
 	m, ok := MatchIndex.Peek(g)
 	if !ok {
 		return nil
 	}
-	return m.shortlist.Lookup(vocabkey.SubjectType(kind), probe)
+	k := vocabkey.SubjectType(kind)
+	return m.shortlist.Find(k, m.shortlist.LookupKeys(k, probe))
 }
 
 // EmptyShortlistForTest replaces the stored shortlist index with one that
@@ -64,12 +69,46 @@ func CandidatesHeldForTest(g *graphcache.Graph, graphID []byte) bool {
 	return ok
 }
 
-// HoldCandidatesForTest stores an empty candidates memo for the graph.
-func HoldCandidatesForTest(g *graphcache.Graph, graphID []byte) {
-	candidates.Set(g, graphID, candidatesMemo{})
+// HoldCandidatesForTest stores a candidates memo of subjects person Subjects
+// for the graph. Subject i's id is the graph id's first 8 bytes followed by i as
+// 8 bytes big-endian; its keys are keysEach strings unique to the graph and the
+// Subject; its ranked ids are none. With 0, 0 the memo holds no Subject.
+func HoldCandidatesForTest(g *graphcache.Graph, graphID []byte, subjects, keysEach int) {
+	by := make(map[string]rankedSubject, subjects)
+	for i := 0; i < subjects; i++ {
+		id := binary.BigEndian.AppendUint64(bytes.Clone(graphID[:8]), uint64(i))
+		keys := make([]string, keysEach)
+		for j := range keys {
+			keys[j] = fmt.Sprintf("name|w:%x-%d-%d", graphID[:4], i, j)
+		}
+		by[string(id)] = rankedSubject{kind: vocabkey.Person, keys: keys, ids: [][]byte{}}
+	}
+	candidates.Set(g, graphID, candidatesMemo{bySubject: by})
+}
+
+// HeldSubjectsForTest is the Subject ids the graph's candidates memo holds, an
+// empty map when it holds none.
+func HeldSubjectsForTest(g *graphcache.Graph, graphID []byte) map[string]bool {
+	out := map[string]bool{}
+	if memo, ok := candidates.Peek(g, graphID); ok {
+		for id := range memo.bySubject {
+			out[id] = true
+		}
+	}
+	return out
 }
 
 // SetCandidatesCapForTest overrides the candidates entry's Cap on g.
 func SetCandidatesCapForTest(g *graphcache.Graph, n int) {
 	candidates.SetCapForTest(g, n)
+}
+
+// ForgetForTest narrows the candidates as a commit that moved keys in kind
+// would, through forgetCandidates.
+func ForgetForTest(g *graphcache.Graph, kind string, keys []string) {
+	moved := map[movedKey]bool{}
+	for _, k := range keys {
+		moved[movedKey{vocabkey.SubjectType(kind), k}] = true
+	}
+	forgetCandidates(g, candidates, moved)
 }

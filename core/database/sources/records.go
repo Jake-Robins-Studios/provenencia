@@ -63,6 +63,7 @@ const sqlRecordArtifacts = `SELECT id, source_id, label FROM artifacts`
 
 // Records is the Source records entry: one Record per Source, built on the
 // first read of an open catalog and patched from effects.Set.SourceScopes.
+// Apply patches the held index in place and reports that with Patched, not Set.
 var Records graphcache.Whole[*RecordIndex]
 
 func init() {
@@ -106,7 +107,7 @@ func init() {
 					}
 				}
 			}
-			w.Set(g, idx)
+			w.Patched(g, nil)
 			return nil
 		},
 		Check: func(g *graphcache.Graph, stored *RecordIndex) error {

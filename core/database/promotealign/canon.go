@@ -17,19 +17,29 @@ import (
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
-// candidatesMemo is the candidates (handle ids, in order) of each Subject the
-// graph's Evidence graph has had ranked. Candidates depend on the Subject's
-// values, the handles' profiles and the shortlist index, which the match index
-// holds, so the entry is derived from it. A stored memo is never changed.
+// candidatesMemo is the ranking of each Subject the graph's Evidence graph has
+// had ranked. Candidates depend on the Subject's values, the handles' profiles
+// and the shortlist index, which the match index holds, so the entry is derived
+// from it. A stored memo is never changed.
 type candidatesMemo struct {
-	bySubject map[string][][]byte
+	bySubject map[string]rankedSubject
+}
+
+// rankedSubject is one ranked Subject: its kind, the shortlist lookup keys the
+// ranking read (a commit that moves one of them forgets the Subject), and the
+// candidate handle ids, in order ([][]byte{} for none).
+type rankedSubject struct {
+	kind vocabkey.SubjectType
+	keys []string // Index.LookupKeys
+	ids  [][]byte
 }
 
 // candidates holds each Evidence graph's candidatesMemo, keyed by graph id. It
-// is derived from the match index (and so from the vocabulary, the alias index
-// and the name format), and a commit that moves the graph's rows
-// (Set.EvidenceGraphs) drops that graph's. It is registered in index.go's init,
-// after the match index.
+// is emptied when the match index is dropped (a vocabulary, alias or name format
+// change, or Drop); a commit that changes a handle forgets, through Narrow, the
+// Subjects whose lookup keys meet a key that handle was filed under; a write that
+// names a graph (Set.EvidenceGraphs) drops that graph's memo. It is registered
+// in index.go's init, after the match index.
 var candidates graphcache.Keyed[candidatesMemo]
 
 // loadCanon reads the open catalog's graph: fixed anchors, the candidates of
@@ -99,7 +109,7 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 			return graphalign.Canon{}, err
 		}
 		for _, s := range todo {
-			for _, id := range known[string(s.ID)] {
+			for _, id := range known[string(s.ID)].ids {
 				candidates[string(s.ID)] = append(candidates[string(s.ID)], id)
 				if err := add(id); err != nil {
 					return graphalign.Canon{}, err
@@ -236,11 +246,12 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 
 // loadCandidatesMemo is the ranked candidate ids of each Subject in todo:
 // graphalign.Candidates over the handles the match index offers it, held in
-// the candidates entry until the match index changes. It reads the stored memo,
+// the candidates entry. A commit forgets only the Subjects whose lookup keys
+// it moved (forgetCandidates); a dropped match index empties the entry. It reads the stored memo,
 // ranks only the Subjects it lacks, and stores a new map, never changing the
 // stored one.
-func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, todo []graphalign.Subject, cfg graphalign.Config) (map[string][][]byte, error) {
-	var known map[string][][]byte
+func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, todo []graphalign.Subject, cfg graphalign.Config) (map[string]rankedSubject, error) {
+	var known map[string]rankedSubject
 	if memo, ok := candidates.Peek(g, graphID); ok {
 		known = memo.bySubject
 	}
@@ -254,25 +265,70 @@ func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, laye
 		return known, nil
 	}
 	ranked := rankCandidates(m, layer, missing, cfg)
-	stored := make(map[string][][]byte, len(known)+len(missing))
+	stored := make(map[string]rankedSubject, len(known)+len(missing))
 	maps.Copy(stored, known)
 	maps.Copy(stored, ranked)
 	candidates.Set(g, graphID, candidatesMemo{bySubject: stored})
 	return stored, nil
 }
 
+// forgetCandidates is the Narrow of candidates: after a commit that changed
+// handles it forgets every Subject with a lookup key among the moved keys the
+// match index reports, in its kind. The Subject is ranked again by
+// loadCandidatesMemo on its graph's next proposal. A change that is not the
+// match index's moved keys clears the entry; no moved key forgets nothing. A
+// stored memo is never changed: one that loses a Subject is replaced by a copy.
+func forgetCandidates(g *graphcache.Graph, k graphcache.Keyed[candidatesMemo], change any) {
+	moved, ok := change.(map[movedKey]bool)
+	if !ok {
+		k.Clear(g)
+		return
+	}
+	if len(moved) == 0 {
+		return
+	}
+	k.Update(g, func(_ []byte, memo candidatesMemo) candidatesMemo {
+		meets := func(r rankedSubject) bool {
+			for _, key := range r.keys {
+				if moved[movedKey{r.kind, key}] {
+					return true
+				}
+			}
+			return false
+		}
+		hit := false
+		for _, r := range memo.bySubject {
+			if meets(r) {
+				hit = true
+				break
+			}
+		}
+		if !hit {
+			return memo
+		}
+		kept := make(map[string]rankedSubject, len(memo.bySubject))
+		for id, r := range memo.bySubject {
+			if !meets(r) {
+				kept[id] = r
+			}
+		}
+		return candidatesMemo{bySubject: kept}
+	})
+}
+
 // rankCandidates is the ranked candidate ids of each Subject: the handles the
-// shortlist index offers it, ordered by graphalign.Candidates. Every Subject has
-// an entry, an empty list for none.
-func rankCandidates(m *matchIndex, layer graphalign.Layer, subjects []graphalign.Subject, cfg graphalign.Config) map[string][][]byte {
-	shortlisted := seedHandles(m, subjects)
-	out := make(map[string][][]byte, len(subjects))
-	for i, s := range subjects {
+// shortlist index offers it, ordered by graphalign.Candidates, with the kind and
+// lookup keys it read. Every Subject has an entry, an empty list for none.
+func rankCandidates(m *matchIndex, layer graphalign.Layer, subjects []graphalign.Subject, cfg graphalign.Config) map[string]rankedSubject {
+	out := make(map[string]rankedSubject, len(subjects))
+	for _, s := range subjects {
+		kind := vocabkey.SubjectType(s.Kind)
+		keys := m.shortlist.LookupKeys(kind, s.Values)
 		ranked := [][]byte{}
-		for _, h := range graphalign.Candidates(s.Kind, s.Values, shortlisted[i], layer.Metas, cfg) {
+		for _, h := range graphalign.Candidates(s.Kind, s.Values, seedHandles(m, kind, keys), layer.Metas, cfg) {
 			ranked = append(ranked, h.ID)
 		}
-		out[string(s.ID)] = ranked
+		out[string(s.ID)] = rankedSubject{kind: kind, keys: keys, ids: ranked}
 	}
 	return out
 }

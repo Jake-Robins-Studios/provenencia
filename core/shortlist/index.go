@@ -12,7 +12,7 @@ import (
 // Index maps shortlist keys to handle ids, per kind. It keeps the rules it was
 // built with, so a lookup never keys differently from the build, and the keys
 // each handle is filed under, so a handle can be refiled. It is patched by Put
-// and Remove; the caller serializes them with Lookup. Postings are sorted by
+// and Remove; the caller serializes them with Find. Postings are sorted by
 // bytes.Compare, so an index patched to a state equals one built to it.
 type Index struct {
 	rules   Rules
@@ -122,14 +122,35 @@ func (x *Index) unfile(kind vocabkey.SubjectType, key string, id []byte) {
 	x.byKey[kind][post.key] = post
 }
 
-// Lookup is the ids filed under any lookup key of v: deduplicated, sorted by
-// bytes.Compare, each a copy. It is nil for a kind with no entry and for a nil
-// index.
-func (x *Index) Lookup(kind vocabkey.SubjectType, v subjectcompare.Values) [][]byte {
-	if x == nil || x.byKey[kind] == nil {
+// Filed is the kind and the sorted index keys id is filed under; ok is false
+// when it is filed nowhere or x is nil. The keys are the index's own strings and
+// the caller must not change them. A Find in kind finds a handle when one of
+// the keys asked for is among the keys the handle is Filed under in that kind.
+func (x *Index) Filed(id []byte) (kind vocabkey.SubjectType, keys []string, ok bool) {
+	if x == nil {
+		return "", nil, false
+	}
+	f, ok := x.filed[string(id)]
+	return f.kind, f.keys, ok
+}
+
+// LookupKeys is the lookup keys of v under the rules the index was built with,
+// sorted and unique; nil for a nil index.
+func (x *Index) LookupKeys(kind vocabkey.SubjectType, v subjectcompare.Values) []string {
+	if x == nil {
 		return nil
 	}
 	_, keys := Keys(kind, v, x.metas, x.rules, x.subject, x.value)
+	return keys
+}
+
+// Find is the ids filed under any of keys in kind: deduplicated, sorted by
+// bytes.Compare, each a copy. It is nil for a kind with no entry and for a nil
+// index.
+func (x *Index) Find(kind vocabkey.SubjectType, keys []string) [][]byte {
+	if x == nil || x.byKey[kind] == nil {
+		return nil
+	}
 	seen := map[string]bool{}
 	var out [][]byte
 	for _, k := range keys {

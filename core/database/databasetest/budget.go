@@ -29,16 +29,24 @@ func Since(call func()) time.Duration {
 	return time.Since(start)
 }
 
-// Warm is the fastest of five timed calls of read after one warm-up call. Each
-// timed call is preceded by a collection, so a run pays for its own garbage and
-// not for what the runs before it left; five runs take the noise of a loaded
-// CI runner.
-func Warm(read func()) time.Duration {
-	read()
-	return Fastest(5, func() time.Duration {
+// Collected is the fastest of n timed calls of read. Each run calls setup first
+// (nil: none), outside the time, then collects, so a run pays for its own
+// garbage and not for what the runs before it left; several runs take the noise
+// of a loaded CI runner.
+func Collected(n int, setup, read func()) time.Duration {
+	return Fastest(n, func() time.Duration {
+		if setup != nil {
+			setup()
+		}
 		runtime.GC()
 		return Since(read)
 	})
+}
+
+// Warm is the fastest of five collected calls of read after one warm-up call.
+func Warm(read func()) time.Duration {
+	read()
+	return Collected(5, nil, read)
 }
 
 // WithinBudget logs what took got and fails the test when it is over budget.

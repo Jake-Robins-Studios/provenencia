@@ -661,9 +661,12 @@ func BenchmarkLargeSourcePropose(b *testing.B) {
 		b.Run(fmt.Sprintf("persons=%d", persons), func(b *testing.B) {
 			lf := newLargeFixture(b, persons)
 			ms := func(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
-			b.ReportMetric(ms(lf.warmProposal()), "warm-ms")
+			warm := lf.warmProposal()
 			n := 0
-			b.ReportMetric(ms(lf.proposalAfterCommit(&n)), "after-commit-ms")
+			after := lf.proposalAfterCommit(&n)
+			b.ReportMetric(ms(warm), "warm-ms")
+			b.ReportMetric(ms(after), "after-commit-ms")
+			b.ReportMetric(float64(after)/float64(warm), "after-commit-x")
 		})
 	}
 }
