@@ -49,7 +49,7 @@ What someone will ask about, and where it lives instead.
 ````markdown
 # Deployment plan — Spike N
 
-One paragraph: what this spike pulls in (dogfood notes, [ideas](../../ideas/…), leftovers) and the PR rule (one note, one PR, unless two edit the same part of one view or the same comparer).
+One paragraph: what this spike pulls in (dogfood notes, [ideas](../../ideas/…), leftovers) and the PR rules (one note, one PR, unless two edit the same part of one view or the same comparer; each PR is a vertical slice with something to see in the app).
 
 **A brief covers one view.** A PR that adds, changes or removes chrome waits on a brief for each view it touches; a removal is gated too. Briefs and PR plans are written just before the PR ([`add-design-brief`](../../../.agents/skills/add-design-brief/SKILL.md), [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md)). Only a PR whose views look the same before and after is not gated.
 
@@ -142,7 +142,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 **Ships.** One to three sentences of behavior.
 **Not this PR.** … (S#-NN), … ([idea](../../ideas/….md)).
-**Check.** What a reviewer sees.
+**Check.** What a reviewer does and sees in the app. <!-- Not "tests pass", unless the PR is a named exception (plan-spike, Vertical slices). -->
 **Context.** Working rule "…"; [feature doc §](feature.md#section); [domain doc §](../../model.md#section).
 ````
 

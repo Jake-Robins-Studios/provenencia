@@ -306,7 +306,7 @@ the rule; do not restate it.
 - Invalidating a list to move one field the write already reported — Q9.
 - A private decoder beside the package's exported validator for the same format (S10-32 `locator.parse` beside `Validate`) — Q14.
 - One result field per value type, each with its own append, when the map names more types (S10-32 `DateChange` / `NameChange` / `DepictionChanges`) — Q8.
-- A PR scoped to one layer that leaves a multi-write user action or a domain rule in the client: S12-13 saved a card's graph links as several transactions with a Swift copy of the engine's last-link rule — Q3, [`plan-spike`](../../plan-spike/SKILL.md) "Engine before a client-only PR".
+- A PR scoped to one layer that leaves a multi-write user action or a domain rule in the client: S12-13 saved a card's graph links as several transactions with a Swift copy of the engine's last-link rule — Q3, [`plan-spike`](../../plan-spike/SKILL.md) "No client-side copy of an engine rule".
 - FakeStore re-implementing an engine rule (order, membership, effects, refusals) — `.cursor/rules/swift-tests.mdc`.
 - A Source-keyed field kept beside its graph-keyed replacement (S12-10's citation effects, S12-14's progress Source id) against the spike's "replace, not beside" rule — Q14.
 - One more entry in hand-kept parallel lists (eight for a cache key, four switches for a search kind): the registry is due before the next entry — Q2.

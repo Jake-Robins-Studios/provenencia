@@ -121,7 +121,7 @@ should not be empty is a finding at the severity the class carries.
 | Removed inputs | §6 **Edges** | When an input is decided, excluded, deleted, merged or held by something else, does the result keep what that input contributed (a conflict, a constraint, a count)? "Skipped" is not "neutral". Does every cached or queued result that depends on that state get recomputed when it changes? |
 | Real data | §6 **Edges** | A rule driven by a table, seed or configuration: was it run over the whole shipped table, and are its counts and odd outputs in the plan? Do its tests run with that table, not only a minimal fixture? |
 | Untrusted size | §6 **Edges** | For each list, map or graph from data the app did not write: is every dimension that multiplies cost bounded (items, per key, per item, duplicates, depth), and is the bound checked before the work? A key built by joining values: can a value contain the separator? |
-| Engine first | §3, §5 | Is a PR scoped to one layer carrying a multi-write user action, a refusal or a rule the other layer owns? The owning layer's change comes first |
+| Engine with its view | §3, §5 | Does the PR leave a multi-write user action, a refusal or a rule the other layer owns in the client? The owning layer's change rides in this PR. Is it an engine half whose UI comes in a later PR? It should carry its first view ([`plan-spike`](../plan-spike/SKILL.md#vertical-slices)) |
 | Replace, not beside | §6 **Deletes** | Does each new mechanism retire the one it replaces (the old key, field, list, preflight, patch path)? Is every callee whose last caller the PR removes in **Deletes**? |
 | Sweep | §6 **Strings**, §9 | Does the DoD `rg` each renamed or deleted name, qualified, across skills, rules, docs and copy? When the PR changes what an action covers, does **Strings** list the copy that names the old scope? |
 | Imports and locks | §7 | Does a Step move a type or call into another package (check the import graph), or take a lock, slot or session a caller may already hold? |
@@ -234,9 +234,11 @@ review gate, with these questions in addition to the rubric:
 - **Scale.** Does the map name the sizes its work must stay fast at (its
   **Scale** line), and does each scope entry that adds a write or a list say
   its fan-out at that size?
-- **Engine before client-only.** Is a PR scoped to one layer carrying a
-  multi-write user action or a rule the other layer owns? Cut the owning
-  layer's change first.
+- **Vertical slices.** Is any PR an engine half whose UI lands in a later PR,
+  or are two PRs one feature split by layer? Merge them, or thin the feature
+  into PRs that each show something in the app
+  ([`plan-spike`](../plan-spike/SKILL.md#vertical-slices)). Does any PR leave
+  a multi-write user action or a rule the other layer owns in the client?
 - **Another spike's code.** Does a PR change code that a PR in another open
   spike's map also changes? Name the dependency in both maps.
 - **One brief, one PR.** Does any brief ID gate more than one PR in the map?

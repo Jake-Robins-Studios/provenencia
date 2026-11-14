@@ -126,8 +126,34 @@ stack choices, what was refused. `plan-pr` treats them as binding.
 
 ## 4. Cut PRs
 
-**One PR is one behavior a reviewer can check**, in the app or in a test. It
-must also fit one plan a smaller model can carry out (about 10 steps).
+**One PR is one behavior a reviewer can see in the app.** It must also fit one
+plan a smaller model can carry out (about 10 steps).
+
+### Vertical slices
+
+Cut PRs **vertically**: each one carries every layer its behavior needs
+(migration, core, FFI, Swift) and the smallest chrome that lets a reviewer see
+it work. When a PR is ready for review, the reviewer opens the app and checks
+it by hand. A backend PR that waits for a later frontend PR before anyone can
+see it is the shape to avoid: it lands untested by eye, and its mistakes show
+up one PR later, under someone else's review.
+
+- **Thin the feature, not the stack.** When a vertical PR is too big, split it
+  into thinner features, each still end to end: read before edit, one field
+  before the rest, one view before the second, the common case before the
+  edge cases. Do not split it into an engine PR and a UI PR.
+- **More briefs, smaller ones.** Vertical PRs mean more gated PRs, so more
+  briefs. That is intended: a small brief is quick to draw and quick to
+  review. The second brief on a view iterates on the first one's board.
+- **The first chrome can be plain.** A slice's first PR may show its data in
+  a plain list, a row, or an inspector field, and a later PR refines it with
+  its own brief. Plain is still briefed when it changes how a view looks.
+- **Exceptions are named.** Two kinds of PR may have nothing new to see:
+  a behavior-preserving refactor ("Make the change easy first" below), whose
+  Check is "the app behaves the same" plus its tests; and engine work with no
+  view to show it in yet. The second kind is rare: its scope entry says why no
+  view can carry it, and its Check names what the reviewer runs to see it work.
+  The PR that first shows it follows straight after.
 
 Split rules:
 
@@ -137,24 +163,27 @@ Split rules:
   reshaping (a registry that should exist, logic in the wrong layer, a copy
   about to become a third), cut a preparatory refactor PR ahead of the feature.
   It is reviewed and landed on its own, and the feature PR stays simple.
-- **Engine before chrome.** A schema or core change the UI needs lands first,
-  as its own PR, when the UI waits on a brief. A small engine change with no
-  brief can ride with its UI.
+- **Engine rides with its first view.** A schema, core or FFI change lands in
+  the same PR as the first chrome that uses it, gated by that PR's brief. Do
+  not land it ahead, on its own, to wait for the UI. When the pair is too big
+  for one plan, thin the feature (above).
 - **One brief, one PR.** A PR that adds, changes or removes chrome waits on
   its own brief; a removal changes how the page looks and is gated too. Only a
   PR whose views look the same before and after is not gated. A brief gates
   exactly one PR: two PRs that change the same view get two briefs, the later
   one written just before its PR. Note the brief IDs (`S#-D#`), one per gated
   PR; they are written later, just before the PR.
-- **Split** a PR that changes more than one view plus its engine path, needs two
-  migrations, or would have a migration and a large briefed UI change together.
+- **Split** a PR that changes more than one view plus its engine path, or
+  needs two migrations. Split it into thinner vertical PRs, each with its own
+  view change and brief, not into layers.
 - **Seeded vocabulary, migrations, and FFI** each have their own skill; a PR
   that needs several is a sign it is two PRs.
-- **Engine before a client-only PR.** A PR scoped to Swift (or to Go) that
-  needs more than one write for one user action, a refusal, or a rule the
-  other layer owns gets the owning layer's change first. S12-13 saved an
-  Artifact card's links as several transactions with a Swift copy of an
-  engine rule.
+- **No client-side copy of an engine rule.** A PR whose user action needs
+  more than one write, a refusal, or a rule the other layer owns carries the
+  owning layer's change in the same PR (or in an earlier PR that is itself
+  visible). It does not do the work in Swift because the PR was scoped to one
+  layer. S12-13 saved an Artifact card's links as several transactions with a
+  Swift copy of an engine rule.
 - **Another open spike.** A PR that changes code a PR in another open spike's
   map also changes names it in **Depends on**, in both maps.
 - **Mark the quick ones.** A PR that passes the fit list in [`quick-pr`](../quick-pr/SKILL.md#fits-a-quick-pr)
@@ -178,8 +207,10 @@ IDs:
 ## 5. Sequence
 
 - **Slices** group PRs a reviewer checks together. Each slice has a **Check**:
-  what you can see in the app when its last PR lands. Order slices so review
-  stays one stream; say which PRs can run in parallel.
+  what you can see in the app when its last PR lands. Each PR inside it also
+  leaves something to see (its own Check), so the slice Check is the sum of
+  steps already checked, not the first moment anything is visible. Order
+  slices so review stays one stream; say which PRs can run in parallel.
 - **Dependencies** are real ones: code that must exist, or a board that must be
   agreed. Draw the graph in a `text` block. Ordering by preference is not a
   dependency.
@@ -194,7 +225,8 @@ spike.
   status in prose; the Status section says only whether the spike is open and
   points at the table.
 - The **Plan** column is `—` until `plan-pr` writes the plan.
-- Each **scope entry** is short: Ships, Not this PR, Check, Context. It is the
+- Each **scope entry** is short: Ships, Not this PR, Check, Context. The Check
+  is what a reviewer does and sees in the app, not "tests pass". It is the
   input to `plan-pr`, not the plan. Enough that a later session knows what the
   PR is for and which rules and doc sections to read. Two to six lines.
 - Link, do not restate. A scope entry points at a working rule or a feature doc
@@ -206,6 +238,8 @@ spike.
 - [ ] Every bar outcome is made true by at least one PR, and every PR serves a bar outcome
 - [ ] Every PR has a one-line scope, a Check, Depends on, and a brief or "—"
 - [ ] Every PR that adds chrome names a brief for each view it touches
+- [ ] Every PR's Check is something a reviewer sees in the app; each exception is a behavior-preserving refactor or says why no view can carry it
+- [ ] No PR is an engine half waiting for a later UI PR; no pair of PRs is one feature split by layer
 - [ ] No PR fails the split rules; the largest PR could be planned in about 10 steps
 - [ ] Every Not-this-PR line and every refused idea has a home
 - [ ] Working rules hold every decision a scope entry relies on; no open question is written as a rule
@@ -213,7 +247,7 @@ spike.
 - [ ] Every pulled-in dogfood note or idea is in "Where the notes went"
 - [ ] The map has a **Scale** line, and each scope entry that adds a write or a list says its fan-out at that scale
 - [ ] Each PR that renames, re-keys or retires a pattern names the docs and skills it updates
-- [ ] No PR scoped to one layer carries a multi-write action or a rule the other layer owns
+- [ ] No PR leaves a multi-write action or a rule the other layer owns in the client
 - [ ] Every PR that passes the quick-pr fit list says `quick-pr` in its Plan column, and no `quick-pr` row fails it
 ```
 
