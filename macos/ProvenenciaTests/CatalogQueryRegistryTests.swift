@@ -698,7 +698,7 @@ struct CatalogQueryRegistryTests {
         let handle: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s1"))
         await waitForQuery(handle)
         let before = handle.value
-        for owner in [MetadataOwner(level: .graph, id: "g1"), MetadataOwner(level: .artifact, id: "a9")] {
+        for owner in [MetadataOwner(level: .artifact, id: "a9"), MetadataOwner(level: .citation, id: "c1")] {
             let mutation = CatalogMutation.wroteMetadataBoard(
                 sourceId: "s1", owner: owner, entries: [catalogMetadataEntry(author, "x")]
             )
@@ -707,6 +707,25 @@ struct CatalogQueryRegistryTests {
             #expect(handle.value == before)
             #expect(CatalogQueryRegistry.standard.invalidations(by: mutation, project: project).isEmpty)
         }
+    }
+
+    /// An Evidence graph's rows are stored whatever graphs the workspace lists (it lists none),
+    /// and invalidate nothing.
+    @Test func metadataBoardPatchStoresAGraphsRows() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let handle: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s1"))
+        await waitForQuery(handle)
+        let rows = [catalogMetadataEntry(author, "x")]
+        let mutation = CatalogMutation.wroteMetadataBoard(
+            sourceId: "s1", owner: MetadataOwner(level: .graph, id: "g1"), entries: rows
+        )
+        session.apply(.empty, mutation)
+        await session.settleWrites()
+        #expect(handle.value?.graphMetadata["g1"] == rows)
+        #expect(CatalogQueryRegistry.standard.invalidations(by: mutation, project: project).isEmpty)
     }
 
     @Test func applyCreatedSourceInsertsRow() async {
