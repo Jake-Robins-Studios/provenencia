@@ -1,7 +1,7 @@
 # Review — S16-24 Person, Event and Place reads report their inputs
 
-**Verdict:** round 1: Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** round 1: Fits with changes — Ready with changes; round 2: Fits with changes — Ready with changes; every finding Fixed, nothing To user; Planned
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
@@ -57,3 +57,26 @@ None.
 
 ### X-8 · minor · Pictures and derived-row owner timing
 **Answer:** Fixed — D-4 says pictures go through the same reader and owners are read before any is dropped.
+
+## Round 2
+
+The round 1 answers were checked against the code: M-1, M-3, M-4 and X-1 – X-8 hold; M-2 held for `Node` and `Follow` and left the two gaps below.
+
+### M-5 · blocker · Timeline and Family hand-write `Add…` beside the node lookups they mirror
+`PersonEvents`' event filter and `canonicalPerson`, and `shownKin` in both Family passes, read each id with `g.Cached`; the plan added the same ids by hand (the M-1 class again).
+**Answer:** Fixed — D-1: `PageInputs` gains `Nodes` (loads, records nothing) and `Cached` (never loads, records the id found or not). D-3, D-6, D-7: those lookups read through `in.Cached` and batch loads through `in.Nodes`; the Timeline's and Family's `Add` lines are gone (the `PersonsByIDs` add with them). `Cached`, not `Node`, so no lookup starts loading. T-1 covers both methods; STEP-9's rule sentence names them.
+
+### M-6 · major · `Options.Inputs` brought back a nil "records nothing" convention
+**Answer:** Fixed — `Reader.Relationships(ids, opts, in)` takes the recorder as its last parameter like every other read in D-2; `Options` is unchanged; `For` and `deps` pass `g.NoPageInputs()`.
+
+### X-9 · major · `personNode` callers outside STEP-4's files
+**Answer:** Fixed — STEP-4 lists `timeline.go` and `family.go` (their `personNode` calls pass `c.Graph().NoPageInputs()` until STEP-5 and STEP-6); STEP-2 lists `claims.go`.
+
+### X-10 · major · Nil graph in `RecordsOf`'s test
+**Answer:** Fixed — D-1: `NoPageInputs` on a nil `*Graph` is safe and records nothing; STEP-1 says `records_test.go`'s nil-graph case passes `(*graphcache.Graph)(nil).NoPageInputs()` and still expects `database.ErrClosed`.
+
+### X-11 · minor · `InputScope.Add` fires the test hook on an off scope
+**Answer:** Fixed — D-1: a `NoPageInputs` recorder returns before calling `Add`.
+
+### Nits
+**Answer:** Fixed — §6 FFI sets `out.Inputs` after `attachSummary` and `attachPictures`; T-8's M3 case names `loadSteps`' second neighbour load; the DoD grep is `\.PageInputs\(\)`.
