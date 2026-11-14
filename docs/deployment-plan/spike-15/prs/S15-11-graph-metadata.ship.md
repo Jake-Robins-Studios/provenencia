@@ -133,4 +133,4 @@ Check: `rg -n 'keptLinkedMessage' macos` prints nothing; `rg -n 'isLocked' macos
 ## Round 3 — fix (user request)
 Head `7e14596ff`. Gate PASS (orchestrator run against `b9b4cba14`; `origin/main` unmoved). F-9 done: kept-linked `PVCallout` and its string removed (Citation lists kept); `PVCheckbox` draws a decorative 9pt muted lock before a locked box's reason, so the graph form checklist and the Artifact sheet's graph links both show it. Orchestrator read the diff. No review round (user-directed copy/visual change).
 
-Gate PASS · CI pending · open: none
+Gate PASS · CI green · open: none
