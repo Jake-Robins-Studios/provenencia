@@ -187,6 +187,107 @@ func TestLookup(t *testing.T) {
 	}
 }
 
+// TestIndexFiled: Filed reports the kind and sorted index keys a handle is filed
+// under, and false once it is filed nowhere.
+func TestIndexFiled(t *testing.T) {
+	r := matchregistry.Default()
+	wantKeys := func(kind vocabkey.SubjectType, v subjectcompare.Values) []string {
+		index, _ := shortlist.Keys(kind, v, subjectcomparetest.Metas(), r.Alignment.Shortlist, r.Subject, r.Value)
+		return index
+	}
+	t.Run("a filed handle", func(t *testing.T) {
+		ix := build(r.Value, vocabkey.Person, person(1, "John Smith"))
+		kind, keys, ok := ix.Filed([]byte{1})
+		if !ok || kind != vocabkey.Person {
+			t.Fatalf("Filed = %q, %v, want person, true", kind, ok)
+		}
+		want := wantKeys(vocabkey.Person, person(1, "John Smith").v)
+		if len(want) == 0 || !slices.Equal(keys, want) || !slices.IsSorted(keys) {
+			t.Errorf("keys = %q, want %q (sorted)", keys, want)
+		}
+	})
+	t.Run("a Put with no name", func(t *testing.T) {
+		ix := build(r.Value, vocabkey.Person, person(1, "John Smith"))
+		ix.Put(vocabkey.Person, []byte{1}, subjectcompare.Values{})
+		if _, _, ok := ix.Filed([]byte{1}); ok {
+			t.Error("a handle with no keys is still filed")
+		}
+	})
+	t.Run("a removed handle", func(t *testing.T) {
+		ix := build(r.Value, vocabkey.Person, person(1, "John Smith"))
+		ix.Remove([]byte{1})
+		if _, _, ok := ix.Filed([]byte{1}); ok {
+			t.Error("a removed handle is still filed")
+		}
+	})
+	t.Run("a nil index", func(t *testing.T) {
+		var nilIndex *shortlist.Index
+		if _, _, ok := nilIndex.Filed([]byte{1}); ok {
+			t.Error("a nil index files a handle")
+		}
+	})
+	t.Run("a Put under another kind", func(t *testing.T) {
+		ix := build(r.Value, vocabkey.Person, person(1, "John Smith"))
+		ix.Put(vocabkey.Place, []byte{1}, place(1, "York").v)
+		kind, keys, ok := ix.Filed([]byte{1})
+		if !ok || kind != vocabkey.Place || !slices.Equal(keys, wantKeys(vocabkey.Place, place(1, "York").v)) {
+			t.Errorf("Filed = %q, %q, %v, want place and York's keys", kind, keys, ok)
+		}
+	})
+}
+
+// TestLookupKeys: LookupKeys is the lookup list of Keys under the index's rules,
+// and Find returns a handle exactly when one of those keys is among the keys it
+// is Filed under.
+func TestLookupKeys(t *testing.T) {
+	r := matchregistry.Default()
+	probes := []struct {
+		name    string
+		kind    vocabkey.SubjectType
+		entries []entry
+		probe   entry
+	}{
+		{"a person", vocabkey.Person,
+			[]entry{person(1, "James Robins"), person(2, "Robins"), person(3, "Mary Robins"), person(4, "Ann Ames")}, person(0, "J. Robins")},
+		{"a dated event", vocabkey.Event,
+			[]entry{event(1, "birth", datevaluetest.YMD(1850, 0, 0)), event(2, "birth", datevaluetest.YMD(1870, 0, 0)), event(3, "death", datevaluetest.YMD(1850, 0, 0))},
+			event(0, "birth", datevaluetest.YMD(1851, 0, 0))},
+	}
+	for _, tt := range probes {
+		t.Run(tt.name, func(t *testing.T) {
+			ix := build(r.Value, tt.kind, tt.entries...)
+			keys := ix.LookupKeys(tt.kind, tt.probe.v)
+			_, want := shortlist.Keys(tt.kind, tt.probe.v, subjectcomparetest.Metas(), r.Alignment.Shortlist, r.Subject, r.Value)
+			if len(keys) == 0 || !slices.Equal(keys, want) {
+				t.Fatalf("LookupKeys = %q, want %q", keys, want)
+			}
+			found := map[byte]bool{}
+			for _, id := range ix.Find(tt.kind, keys) {
+				found[id[0]] = true
+			}
+			for _, e := range tt.entries {
+				_, filed, _ := ix.Filed([]byte{e.id})
+				meets := false
+				for _, k := range keys {
+					meets = meets || slices.Contains(filed, k)
+				}
+				if found[e.id] != meets {
+					t.Errorf("handle %d: found %v, a lookup key among its filed keys %v", e.id, found[e.id], meets)
+				}
+			}
+		})
+	}
+	t.Run("a nil index", func(t *testing.T) {
+		var nilIndex *shortlist.Index
+		if got := nilIndex.LookupKeys(vocabkey.Person, person(0, "James Robins").v); got != nil {
+			t.Errorf("LookupKeys of a nil index = %q, want nil", got)
+		}
+		if got := nilIndex.Find(vocabkey.Person, []string{"x"}); got != nil {
+			t.Errorf("Find of a nil index = %v, want nil", got)
+		}
+	})
+}
+
 func TestLookupCopiesAndSorts(t *testing.T) {
 	ix := build(matchregistry.Default().Value, vocabkey.Person, person(3, "Robins"), person(1, "Robins"), person(2, "James Robins"))
 	got := ix.Lookup(vocabkey.Person, person(0, "Robins").v)
