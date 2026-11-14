@@ -174,3 +174,48 @@ Gate PASS · CI green · open: none
 
 ## Round 3 — review (user, 2026-11-14: "Yes, review round 4")
 Scope `ea7e3184f...914f7b54d` (fix rounds 3's tail and 4: F-10, F-11, F-12). Reviewers: CON, MNT, UX (`macos/App/**`, strings), SEC+PRF (`api/ffi/**`, proto, `core/database/**` query). Skipped: none.
+
+SEC+PRF: no findings (bound, indexed count; field 2 reserved; no new sink). UX: Clean (one minor). MNT, CON: Changes needed. Process note: the MNT reviewer briefly ran `git checkout 914f7b54d` and back; the orchestrator confirmed the branch clean at `9f4f611a2`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1 | CON | major | `docs/catalog-deletes.md:91` still says the unlink preflight returns a `DeleteImpactGroup` of Citations; `source-layer-data-model.md:466` omits the count | Fix now → F-13 | verified both lines; F-12 changed the reply |
+| MNT-1 | MNT | major | `lockHint` gets its wording through a DeleteImpact via (`evidencegraphs.artifact_in_use`) that no group carries after F-12 | Fix now → F-14 | verified `SourceArtifactGraphLinks.swift:44`, `L10n.swift:8965`, `PVDeleteImpactTests.swift:208-209`; `UnlinkVia` removed in F-12 |
+| UX-1, MNT-out | UX | minor | "Open in citation composer" link stays enabled while saving and does nothing | Fix now → F-15 | verified: no `.disabled(isDisabled)` on the link; the old Kept linked stack had `.disabled(model.isSaving)` |
+| MNT-2 | MNT | minor | `PVControlSize.xs` is link-only but every sized control accepts it, undocumented | Fix now → F-16 | verified one caller (`PVArtifactChecklist.swift:162`); defect in code this PR adds |
+| MNT-3 | MNT | minor | Link indent copies `PVCheckbox`'s mark-to-label spacing | Fix now → F-17 | verified `PVCheckbox.swift:99` vs `PVArtifactChecklist.swift:156` |
+
+Nits (logged; MNT-4, MNT-5/CON-2/ORC-1, MNT-6, UX-2 ride along in F-16–F-18): `MNT-4 · DesignSystem/README.md:471 · ArtifactChecklist row omits PVChecklistLockedLink` · `MNT-5 · evidencegraphs.go:65-68 · stale "ref is selected" comment, unused c alias` · `CON-2 · evidencegraphs.go:64 · sqlCitationsUsing is now a count` · `MNT-6 · evidencegraphs_test.go:669 · _, _ = can be a bare call` · `UX-2 · L10n.swift:6501 · loading comment says "kept links"` · `CON-3 · S15-11 plan:37,119,143,209 · body still says 264pt / kept-linked list (Landed note covers; left as the plan's history)`
+
+### Fix plan 5
+
+**F-13 — The domain docs describe the count** (from CON-1)
+Files: `docs/catalog-deletes.md`, `docs/source-layer-data-model.md`.
+Do: `catalog-deletes.md:91` → "…returns one block per refused pair, with its graph, a reason code and, for `artifact_in_use`, how many of the graph's Citations are on the Artifact (`citation_count`; 0 for the graph's last link)." `source-layer-data-model.md:466`: in the `UnlinkImpact` clause, after "with its graph and reason", add "and, for a Citation reason, their count".
+Check: `rg -n 'DeleteImpactGroup. of Citations' docs` prints nothing; scripts/check-pr.sh PASS.
+
+**F-14 — The lock hint has its own count string** (from MNT-1)
+Files: `macos/App/Features/Sources/SourceArtifactGraphLinks.swift`, `macos/App/Platform/L10n.swift`, `Localizable.xcstrings`, `macos/ProvenenciaTests/PVDeleteImpactTests.swift`, a Sources test file. Skill: `add-localized-string`.
+Failing test first: `lockHintCountsCitations` (in the test file that already covers `lockHint`, or `SourcePageModelTests.swift`) — a block with `reason: .artifactInUse, citationCount: 1` → "1 citation in this graph uses this artifact"; 3 → "3 citations in this graph use this artifact". It passes today through the via table, so make it fail first by calling the new `L10n.Sources.graphLockCitations(count:)` that does not exist yet (compile failure counts).
+Do: add `L10n.Sources.graphLockCitations(count: Int) -> String`, a plural resource with the same English wording, following the file's existing plural-count helpers (e.g. how `badgeMoreCount` or another `%lld` plural is built). Key: `sources.graphLock.citations` (new key in the catalog with the one/other variations copied from `deleteImpact.via.evidenceGraphsArtifactInUse`). `lockHint` calls it when `citationCount > 0`. Remove the `"evidencegraphs.artifact_in_use"` entry from `viaFormats`, its catalog key `deleteImpact.via.evidenceGraphsArtifactInUse`, and its two rows in `PVDeleteImpactTests`. Check nothing else reads that via (`rg -n 'evidencegraphs.artifact_in_use|evidenceGraphsArtifactInUse' macos` — the apperr error-code mapping for the refusal message stays).
+Check: the new test passes; `rg -n 'evidenceGraphsArtifactInUse' macos` prints nothing; `rg -n 'heading\(via:' macos/App/Features` prints nothing; scripts/check-pr.sh PASS (localizable included).
+
+**F-15 — The composer link dims while the form saves** (from UX-1)
+Files: `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVArtifactChecklist.swift`.
+Do: add `.disabled(isDisabled)` on the locked-row link, as its neighbours are.
+Check: scripts/check-pr.sh PASS.
+
+**F-16 — `.xs` is documented as the link-only size** (from MNT-2, MNT-4)
+Files: `macos/App/DesignSystem/Components/Button/PVButton.swift`, `macos/App/DesignSystem/README.md`.
+Do: the `PVControlSize` doc and the `.xs` case doc say `.xs` is for the `link` variant only (micro text under a row); other controls treat it as `.sm` metrics. Add an `.xs` link to `PVButton`'s `#Preview`. README: in the control-size notes, the `.xs` rule; in the ArtifactChecklist row (line ~471), add `PVChecklistLockedLink` / `lockedLink`.
+Check: `rg -n '\.xs' macos/App/DesignSystem/README.md` shows the rule; scripts/check-pr.sh PASS.
+
+**F-17 — The checkbox publishes where its label starts** (from MNT-3)
+Files: `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift`, `PVArtifactChecklist.swift`.
+Do: add `static let labelLeading: CGFloat = PVCheckboxMark.size + PVSpacing.space5` on `PVCheckbox` (doc: "Where the label starts, from the box's leading edge"); the body's mark–label `HStack` uses `PVSpacing.space5` as before (the constant states the sum, it does not replace the spacing). The link's indent becomes `Self.thumbnailSize + PVSpacing.space5 + PVCheckbox.labelLeading`; fix the comment ("Thumbnail + gap + the checkbox's label start"). If `PVCheckboxMark.size` was made non-private only for this, make it private again.
+Check: `rg -n 'PVCheckboxMark.size' macos/App/DesignSystem/Recipes` prints nothing; scripts/check-pr.sh PASS.
+
+**F-18 — Nits riding along** (MNT-5, CON-2, MNT-6, UX-2)
+Files: `core/database/evidencegraphs/evidencegraphs.go`, `evidencegraphs_test.go`, `macos/App/Platform/L10n.swift`.
+Do: rename `sqlCitationsUsing` → `sqlCitationCount`, comment "How many of a graph's Citations are on an Artifact, with or without Observations.", drop the `c` alias. `evidencegraphs_test.go:669`: bare call. `L10n.swift:6501` loading comment → "while the locked Artifacts are read".
+Check: `rg -n 'sqlCitationsUsing' core` prints nothing; scripts/check-pr.sh PASS.
