@@ -162,6 +162,8 @@ final class SourceGraphFormModel {
     /// returns true for the host to close the form; on failure the form keeps every choice.
     func save() async -> Bool {
         guard !isSaving else { return false }
+        saveError = nil
+        nameError = nil
         if let message = board.unconfirmedInputMessage {
             saveError = message
             scrollToTop()
@@ -177,7 +179,6 @@ final class SourceGraphFormModel {
 
         isSaving = true
         defer { isSaving = false }
-        saveError = nil
         let description = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
         let metadata = host.draft
         do {

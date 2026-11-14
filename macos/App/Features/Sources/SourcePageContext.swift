@@ -150,12 +150,31 @@ final class SourcePageContext {
     /// The rows a new owner's form starts its copy details board with: each suggestion the Source's
     /// type makes at `level`, empty. Read once when the form opens, so it is not a cached query
     /// (a form's rows live as long as the form). A Source with no type has no suggestions.
-    func unsavedMetadataRows(level: Level) async throws -> [CatalogMetadataEntry] {
+    private func unsavedMetadataRows(level: Level) async throws -> [CatalogMetadataEntry] {
         guard let typeID = source?.sourceTypeID, !typeID.isEmpty else { return [] }
         let suggestions = try await store.listTypeSuggestions(
             projectDir: projectDir, typeID: typeID, level: level
         )
         return MetadataDraftHost.unsavedRows(from: suggestions)
+    }
+
+    /// True while an owner's Add form is reading its suggestions, whichever section started it: one
+    /// read at a time, and no edit or drop opens a form meanwhile.
+    private(set) var isOpeningForm = false
+
+    /// The read-first half of every owner's Add: the suggestions the new owner's board starts
+    /// with. Nil when another form is already opening, or the read failed (the page banner shows
+    /// the message). The caller keeps its own checks before and after the await.
+    func readSuggestionsForAdd(level: Level) async -> [CatalogMetadataEntry]? {
+        guard !isOpeningForm else { return nil }
+        isOpeningForm = true
+        defer { isOpeningForm = false }
+        do {
+            return try await unsavedMetadataRows(level: level)
+        } catch {
+            showFailure(error)
+            return nil
+        }
     }
 
     /// Applies an enriched Source (cover fields included) to the workspace and

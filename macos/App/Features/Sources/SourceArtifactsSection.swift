@@ -19,11 +19,6 @@ final class SourceArtifactsSection {
         var file = IngestFileChoice()
     }
 
-    // MARK: Artifact sheet
-
-    /// True while `openAdd` reads the type's suggestions, so a second click or drop opens nothing.
-    private(set) var isOpeningAdd = false
-
     // MARK: Add file dialog
 
     var isAttaching = false
@@ -117,14 +112,7 @@ final class SourceArtifactsSection {
     /// opening, or the suggestion read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> ArtifactSheetModel? {
-        guard sheet == nil, !isOpeningAdd else { return nil }
-        isOpeningAdd = true
-        defer { isOpeningAdd = false }
-        let suggestions: [CatalogMetadataEntry]
-        do {
-            suggestions = try await context.unsavedMetadataRows(level: .artifact)
-        } catch {
-            context.showFailure(error)
+        guard sheet == nil, let suggestions = await context.readSuggestionsForAdd(level: .artifact) else {
             return nil
         }
         // A sheet opened while the read ran (an edit from a pencil) is not replaced.
@@ -141,7 +129,7 @@ final class SourceArtifactsSection {
 
     /// Opens the Artifact sheet in add mode with the dropped file staged. Nothing is stored until Save.
     func stagePageDrop(_ urls: [URL]) async {
-        guard !urls.isEmpty, sheet == nil, !isOpeningAdd else { return }
+        guard !urls.isEmpty, sheet == nil, !context.isOpeningForm else { return }
         guard let sheet = await openAdd() else { return }
         sheet.file.choose(urls)
     }

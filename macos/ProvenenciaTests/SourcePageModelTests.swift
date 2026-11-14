@@ -2484,11 +2484,11 @@ struct SourcePageModelTests {
             (0..<7).map { catalogMetadataEntry(fields[$0], "v\($0)", order: Int32($0)) }
         store.metadataByOwner[MetadataOwner(level: .graph, id: "g-b")] = [catalogMetadataEntry(line, suggested: true)]
         await model.warmFromSession()
-        let none = MetadataDetailsColumn.shown(model.graphs.details(for: "g-b"))
+        let none = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-b")))
         #expect(none.shown.isEmpty && none.more == 0)
-        let four = MetadataDetailsColumn.shown(model.graphs.details(for: "g-j"))
+        let four = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-j")))
         #expect(four.shown.count == 4 && four.more == 0)
-        let seven = MetadataDetailsColumn.shown(model.graphs.details(for: "g-s"))
+        let seven = MetadataDetailsColumn.shown(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-s")))
         #expect(seven.shown.count == 4 && seven.more == 3)
     }
 

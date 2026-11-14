@@ -37,9 +37,8 @@ struct SourcePageArtifactRow: View {
     /// Nil while the graph list is not loaded: no graph line and no no-graph line.
     let graphLine: ArtifactGraphLine?
 
-    @Environment(\.pvWidthClass) private var widthClass
-
     private var id: String { art.id }
+    private var owner: MetadataOwner { MetadataOwner(level: .artifact, id: art.id) }
 
     var body: some View {
         let canSetCover = model.artifacts.canUseAsThumbnail(art)
@@ -47,16 +46,12 @@ struct SourcePageArtifactRow: View {
             thumbnail
             textColumn
                 .frame(maxWidth: .infinity, alignment: .leading)
-            // The wrapper keeps the column when the details draw nothing; a bare empty view has nothing to size.
-            VStack(alignment: .leading, spacing: 0) {
-                MetadataDetailsColumn(
-                    rows: model.metadataRows(for: MetadataOwner(level: .artifact, id: art.id)),
-                    owner: MetadataOwner(level: .artifact, id: art.id),
-                    ref: art.ref,
-                    onMore: { model.artifacts.openSheet(artifactID: art.id, at: .copyDetails) }
-                )
-            }
-            .frame(minWidth: 0, maxWidth: MetadataDetailsColumn.width(widthClass), alignment: .topLeading)
+            MetadataDetailsColumn(
+                rows: model.metadataRows(for: owner),
+                owner: owner,
+                ref: art.ref,
+                onMore: { model.artifacts.openSheet(artifactID: art.id, at: .copyDetails) }
+            )
             actions(canSetCover: canSetCover)
         }
         .padding(.vertical, PVSpacing.space6)

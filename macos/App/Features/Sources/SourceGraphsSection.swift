@@ -15,9 +15,6 @@ final class SourceGraphsSection {
     @ObservationIgnored
     private var formLoad: Task<Void, Never>?
 
-    /// True while `openAdd` reads the type's suggestions, so a second click opens nothing.
-    private(set) var isOpeningAdd = false
-
     init(context: SourcePageContext) {
         self.context = context
     }
@@ -66,24 +63,12 @@ final class SourceGraphsSection {
         return L10n.string(L10n.Sources.addEvidenceGraphNeedsArtifact)
     }
 
-    /// One graph's saved metadata rows, for its row's values column.
-    func details(for graphID: String) -> [CatalogMetadataEntry] {
-        context.metadataRows(for: MetadataOwner(level: .graph, id: graphID))
-    }
-
     /// Opens the Add form, its metadata board starting as the Source type's `graph` suggestions,
     /// empty. Answers the form, or nil when none opened: one is open or opening, or the
     /// suggestion read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> SourceGraphFormModel? {
-        guard canAdd, form == nil, !isOpeningAdd else { return nil }
-        isOpeningAdd = true
-        defer { isOpeningAdd = false }
-        let suggestions: [CatalogMetadataEntry]
-        do {
-            suggestions = try await context.unsavedMetadataRows(level: .graph)
-        } catch {
-            context.showFailure(error)
+        guard canAdd, form == nil, let suggestions = await context.readSuggestionsForAdd(level: .graph) else {
             return nil
         }
         // A form opened while the read ran (an edit from a pencil) is not replaced.
@@ -100,7 +85,7 @@ final class SourceGraphsSection {
     }
 
     func openEdit(id: String, at section: SourceGraphFormModel.Section = .top) {
-        guard !isOpeningAdd, context.workspace != nil, let graph = ownGraph(id: id) else { return }
+        guard !context.isOpeningForm, context.workspace != nil, let graph = ownGraph(id: id) else { return }
         let model = SourceGraphFormModel(context: context, mode: .edit(graph), opensAt: section)
         form = model
         formLoad = Task { await model.loadKeptLinks() }

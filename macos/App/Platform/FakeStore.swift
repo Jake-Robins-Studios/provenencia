@@ -175,9 +175,6 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var updateArtifactMetadata: [CatalogMetadataDraft?] = []
     /// The `metadata` of each `createEvidenceGraph` call, in order. The fake applies none.
     var createEvidenceGraphMetadata: [CatalogMetadataDraft?] = []
-    /// The rows a `createEvidenceGraph` answers for its new graph, whose id the test cannot know
-    /// beforehand; it also stores them as that graph's board.
-    var createEvidenceGraphRows: [CatalogMetadataEntry] = []
     /// The `metadata` of each `updateEvidenceGraph` call, in order. The fake applies none.
     var updateEvidenceGraphMetadata: [CatalogMetadataDraft?] = []
     /// When set, `updateArtifact` throws.
@@ -187,6 +184,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The id the next `createArtifact` gives the new Artifact (then cleared), so a test can
     /// script `metadataWriteResults` for its reply rows.
     var nextArtifactID: String?
+    /// The id the next `createEvidenceGraph` gives the new graph (then cleared), so a test can
+    /// script `metadataWriteResults` for its reply rows.
+    var nextEvidenceGraphID: String?
     /// When set, `listTypeSuggestions` throws it.
     var listTypeSuggestionsError: Error?
     /// The level of each `listTypeSuggestions` call, in order.
@@ -943,7 +943,6 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 artifactIDs: artifactIDs
             )
             let owner = MetadataOwner(level: .graph, id: graph.id)
-            if !createEvidenceGraphRows.isEmpty { metadataByOwner[owner] = createEvidenceGraphRows }
             return (graph, scriptedMetadataRows(owner), nextWriteEffects)
         }
     }
@@ -3383,8 +3382,10 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         description: String,
         artifactIDs: [String]
     ) -> CatalogEvidenceGraph {
+        let newID = nextEvidenceGraphID ?? UUID().uuidString.lowercased()
+        nextEvidenceGraphID = nil
         let graph = CatalogEvidenceGraph(
-            id: UUID().uuidString.lowercased(),
+            id: newID,
             ref: "GPH-FAKE1",
             sourceID: sourceID,
             name: name,

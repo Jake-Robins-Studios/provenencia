@@ -98,7 +98,8 @@ final class SourcePageModel {
 
     /// The content pane takes a file drop when no sheet is already up.
     var acceptsArtifactPageDrop: Bool {
-        !artifacts.isOpeningAdd
+        !context.isOpeningForm
+            && graphs.form == nil
             && !artifacts.isAttaching
             && metadataDialogs.pendingDelete == nil
             && notes.pendingDelete == nil

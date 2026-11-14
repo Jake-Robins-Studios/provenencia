@@ -376,6 +376,25 @@ struct SourceGraphFormModelTests {
         #expect(store.listTypeSuggestionsLevels == [.graph])
     }
 
+    @Test func dropDuringGraphAddReadIsRefused() async throws {
+        let (model, store, _) = await makeSuggestingModel()
+        store.listTypeSuggestionsHold.isOn = true
+        let first = Task { await model.graphs.openAdd() }
+        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+        #expect(!model.acceptsArtifactPageDrop)
+        store.listTypeSuggestionsHold.release()
+        #expect(await first.value != nil)
+    }
+
+    @Test func graphFormOpenRefusesDrop() async throws {
+        let (model, store, _) = await makeSuggestingModel(graphs: [smith()])
+        store.unlinkImpactBlocks = []
+        #expect(model.acceptsArtifactPageDrop)
+        model.graphs.openEdit(id: "g-smith")
+        #expect(model.graphs.form != nil)
+        #expect(!model.acceptsArtifactPageDrop)
+    }
+
     @Test func typelessSourceOpensWithNoSuggestions() async throws {
         let (model, store, _) = await makeSuggestingModel()
         store.sourcesByProject[projectDir] = [
@@ -399,7 +418,8 @@ struct SourceGraphFormModelTests {
             catalogMetadataEntry(lineField, "14", suggested: true, order: 1),
             catalogMetadataEntry(dwellingField, "112", suggested: true, order: 2),
         ]
-        store.createEvidenceGraphRows = rows
+        store.nextEvidenceGraphID = "g-made"
+        store.metadataWriteResults[MetadataOwner(level: .graph, id: "g-made")] = rows
         let getBefore = store.getSourceWorkspaceCalls
         #expect(form.isDirty)
 
@@ -410,7 +430,7 @@ struct SourceGraphFormModelTests {
         #expect(sent.layout.count == 4)
         let made = try #require(store.evidenceGraphsByProject[projectDir]?.last)
         let owner = MetadataOwner(level: .graph, id: made.id)
-        #expect(model.graphs.details(for: made.id) == rows)
+        #expect(model.metadataRows(for: MetadataOwner(level: .graph, id: made.id)) == rows)
         let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: sourceID)
         let cached: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(key)
         #expect(cached?.value?.metadataRows(for: owner) == rows)
@@ -447,7 +467,7 @@ struct SourceGraphFormModelTests {
         #expect(store.updateEvidenceGraphCalls == 1)
         let sent = try #require(store.updateEvidenceGraphMetadata.last ?? nil)
         #expect(sent.values.map(\.fieldID).contains("folio"))
-        #expect(model.graphs.details(for: "g-smith") == written)
+        #expect(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-smith")) == written)
         #expect(store.getSourceWorkspaceCalls == getBefore)
     }
 
@@ -467,7 +487,7 @@ struct SourceGraphFormModelTests {
 
         #expect(store.updateEvidenceGraphMetadata.count == 1)
         #expect(store.updateEvidenceGraphMetadata[0] == nil)
-        #expect(model.graphs.details(for: "g-smith") == reply)
+        #expect(model.metadataRows(for: MetadataOwner(level: .graph, id: "g-smith")) == reply)
     }
 
     @Test func openFieldBlocksSave() async throws {
@@ -488,6 +508,26 @@ struct SourceGraphFormModelTests {
         #expect(form.scrollTarget == .top)
         #expect(form.scrollRequest != opened)
         #expect(store.updateEvidenceGraphCalls == 0)
+    }
+
+    @Test func nameStopClearsAnOldOpenFieldMessage() async throws {
+        let (model, store, _) = await makeSuggestingModel(graphs: [smith()])
+        store.unlinkImpactBlocks = []
+        model.graphs.openEdit(id: "g-smith")
+        let form = try #require(model.graphs.form)
+        await model.graphs.settleFormLoad()
+        form.board.openAddRow()
+        form.board.pickAddRowField("folio")
+        form.board.setAddRowValue("236")
+        #expect(await form.save() == false)
+        #expect(form.saveError != nil)
+
+        form.board.closeAddRow()
+        form.draft.name = " "
+        #expect(await form.save() == false)
+
+        #expect(form.nameError != nil)
+        #expect(form.saveError == nil)
     }
 
     @Test func refusedValueLandsOnItsRow() async throws {

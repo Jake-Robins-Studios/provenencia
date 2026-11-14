@@ -28,12 +28,21 @@ struct MetadataDetailsColumn: View {
         return (Array(valued.prefix(shownCount)), max(0, valued.count - shownCount))
     }
 
+    @Environment(\.pvWidthClass) private var widthClass
+
     private var idPrefix: String { "sources.page.\(owner.level.rawValue).\(owner.id).details" }
 
     var body: some View {
         let (shown, more) = Self.shown(rows)
-        if !shown.isEmpty {
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
+        // The wrapper keeps the column when the values draw nothing; a bare empty view has nothing to size.
+        VStack(alignment: .leading, spacing: 0) {
+            if !shown.isEmpty { content(shown: shown, more: more) }
+        }
+        .frame(minWidth: 0, maxWidth: Self.width(widthClass), alignment: .topLeading)
+    }
+
+    private func content(shown: [CatalogMetadataEntry], more: Int) -> some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space2) {
                 Grid(alignment: .topLeading, horizontalSpacing: PVSpacing.space5, verticalSpacing: PVSpacing.space1) {
                     ForEach(shown) { entry in
                         GridRow {
@@ -67,6 +76,5 @@ struct MetadataDetailsColumn: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier(idPrefix)
-        }
     }
 }

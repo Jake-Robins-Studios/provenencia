@@ -341,8 +341,9 @@ None.
 ## Landed
 
 - `CatalogQueryRegistryTests.metadataBoardPatchIgnoresOwnersItCannotPlace` listed a graph owner as one the page cannot place, which D-3 reverses (a graph's rows are always stored). The test now lists an unknown Artifact and a Citation owner, and `metadataBoardPatchStoresAGraphsRows` pins D-3's graph case.
-- `SourcePageModel.metadataRows(for:)` is a one-line pass to `SourcePageContext.metadataRows(for:)`, so the Artifact row can read its rows now that `SourceArtifactsSection.copyDetails(for:)` is gone (the section's context is private); the graph row reads `model.graphs.details(for:)`, as D-12 says.
-- `FakeStore.createEvidenceGraphRows` (new) scripts the rows a create answers, because the fake makes the new graph's id and a test cannot script `metadataWriteResults` for it beforehand (T-5).
+- `SourcePageModel.metadataRows(for:)` is a one-line pass to `SourcePageContext.metadataRows(for:)`, so the Artifact row can read its rows now that `SourceArtifactsSection.copyDetails(for:)` is gone (the section's context is private); both rows read `SourcePageModel.metadataRows(for:)`; this supersedes D-12's `model.graphs.details(for:)` (same-pass cleanup, MNT-1). D-12's row-side wrapper and width frame now live in `MetadataDetailsColumn`, which both rows place bare (MNT-2).
+- `FakeStore.nextEvidenceGraphID` (new, as `nextArtifactID`) names the next created graph, so a test scripts `metadataWriteResults` for its reply rows (T-5).
+- `SourcePageContext.readSuggestionsForAdd(level:)` and `isOpeningForm` are the one read-first open for the Artifact and graph Add; a page drop is refused while it runs or a graph form is open.
 - The graph form's name-required stop also asks the body to scroll to the top (D-5 names only the save-error stops).
 - `SourceGraphsSection.openEdit(id:at:)` returns while `isOpeningAdd`, as D-10 says; `SourceGraphsSection.openAdd()` also returns nil when the Source has no Artifact (`canAdd`).
 - The brief's review log moved to `design/archive/` with the brief; the links inside both files were rebased.
