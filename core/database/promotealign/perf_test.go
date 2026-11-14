@@ -262,7 +262,11 @@ func TestLargeSourceBudgets(t *testing.T) {
 
 	t.Run("after a handle commit", func(t *testing.T) {
 		n := 0
-		databasetest.WithinBudget(t, "proposal after a handle commit", lf.proposalAfterCommit(&n), budgetAfterCommit)
+		warm := lf.warmProposal()
+		after := lf.proposalAfterCommit(&n)
+		databasetest.WithinBudget(t, "proposal after a handle commit", after, budgetAfterCommit)
+		// decided: bar 10 (deployment-plan.md), moved to S16-32 by the user on 2026-11-13
+		databasetest.WithinBudget(t, "proposal after a handle commit, against 1.5 times a warm one", after, warm*3/2)
 	})
 
 	t.Run("warm queries", func(t *testing.T) {
