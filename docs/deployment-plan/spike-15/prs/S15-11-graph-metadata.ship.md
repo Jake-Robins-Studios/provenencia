@@ -170,4 +170,4 @@ Head `914f7b54d` (F-11 `4785a406a`, F-10 `e6e6b8844`, F-12 `914f7b54d`). Gate PA
 Nits (logged): `ORC-1 · core/database/evidencegraphs/evidencegraphs.go:65 · sqlCitationsUsing comment still says "The ref is selected for the order and dropped"` · `ORC-2 · Unlink's write-time check is now COUNT(*) where it was EXISTS; same index, negligible at Scale`
 No review round (user-directed; no round 3 without the user).
 
-Gate PASS · CI pending · open: none
+Gate PASS · CI green · open: none
