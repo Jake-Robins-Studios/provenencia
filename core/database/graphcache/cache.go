@@ -13,7 +13,9 @@ import (
 // the reader) or whole (one value, built lazily or stored by the owner). Each
 // entry says what a commit does to it (Apply), what it is derived from
 // (DerivedFrom), how long it lives (Lifetime), how Verify checks it (Check)
-// and, for a keyed entry, how many keys it may hold (Cap).
+// and, for a keyed entry, how many keys it may hold (Cap). For a keyed entry
+// derived from a whole entry, it also says how a change that entry reports with
+// Patched narrows it (Narrow).
 
 // Lifetime says how long an entry's value lives.
 type Lifetime int
@@ -59,6 +61,11 @@ type KeyedEntry[T any] struct {
 	// Cap is the most keys held; past it the least recently used leaves.
 	// Required, > 0.
 	Cap int
+	// Narrow runs, when the entry holds data, for a change a whole entry it is
+	// derived from reports with Patched; it updates only what the change
+	// reaches. Nil: Patched empties the entry, as Set does. Needs a whole entry
+	// in DerivedFrom.
+	Narrow func(g *Graph, k Keyed[T], change any)
 }
 
 // WholeEntry registers a cache with one value of type T.
@@ -96,7 +103,9 @@ type entry struct {
 	// dropMoved drops the keys whose declared inputs moved.
 	dropMoved func(g *Graph, moved []InputKey)
 	check     func(g *Graph) error
-	held      func(g *Graph) bool
+	// narrow is the typed Narrow of a keyed entry, nil without one.
+	narrow func(g *Graph, change any)
+	held   func(g *Graph) bool
 	count     func(g *Graph) int
 }
 
@@ -145,6 +154,17 @@ func RegisterKeyed[T any](e KeyedEntry[T]) Keyed[T] {
 	if e.Apply == nil && e.Inputs == nil {
 		panic("graphcache: keyed entry " + e.Name + " needs an Apply or Inputs")
 	}
+	if e.Narrow != nil {
+		fromWhole := false
+		for _, s := range e.DerivedFrom {
+			if s != nil && s.source() != vocabularySource {
+				fromWhole = true
+			}
+		}
+		if !fromWhole {
+			panic("graphcache: keyed entry " + e.Name + " declares Narrow with no whole entry in DerivedFrom")
+		}
+	}
 	info := &entry{name: e.Name, life: LifeGraph, cap: e.Cap}
 	if e.Inputs != nil {
 		info.inputs = e.Inputs
@@ -157,6 +177,9 @@ func RegisterKeyed[T any](e KeyedEntry[T]) Keyed[T] {
 	}
 	if e.Inputs != nil {
 		info.dropMoved = func(g *Graph, moved []InputKey) { k.dropMoved(g, moved) }
+	}
+	if e.Narrow != nil {
+		info.narrow = func(g *Graph, change any) { e.Narrow(g, k, change) }
 	}
 	info.held = func(g *Graph) bool { return k.data(g).len() > 0 }
 	info.count = func(g *Graph) int { return k.data(g).len() }
@@ -493,6 +516,24 @@ func (k Keyed[T]) Peek(g *Graph, id []byte) (T, bool) {
 // bytes stores nothing.
 func (k Keyed[T]) Set(g *Graph, id []byte, v T) { k.store(g, id, v) }
 
+// Update replaces each held value with fn's result for it, from the most to
+// the least recently used key, in place: it counts no use and keeps the use
+// order. fn must not read or write this entry. A nil graph or an entry that
+// holds nothing does nothing.
+func (k Keyed[T]) Update(g *Graph, fn func(id []byte, v T) T) {
+	if g == nil {
+		return
+	}
+	kv := k.data(g)
+	if kv == nil {
+		return
+	}
+	for it := kv.front; it != nil; it = it.next {
+		it.v = fn([]byte(it.key), it.v)
+		kv.index(it.key, it.v)
+	}
+}
+
 // Drop forgets the values held for ids.
 func (k Keyed[T]) Drop(g *Graph, ids [][]byte) {
 	if g == nil {
@@ -603,7 +644,19 @@ func (w Whole[T]) Set(g *Graph, v T) {
 		return
 	}
 	w.put(g, v)
-	g.dropReaders(w.id)
+	g.readers(w.id, nil, false)
+}
+
+// Patched reports that the held value was patched in place, and what changed.
+// Each entry derived from this one, in registration order, is emptied with its
+// own readers, except a held keyed entry that declares Narrow: that one runs it
+// with change and keeps its values. It stores nothing; on a write's graph a
+// graph-lifetime entry does nothing, as Set.
+func (w Whole[T]) Patched(g *Graph, change any) {
+	if g == nil || (g.alt != nil && registry[w.id-1].life == LifeGraph) {
+		return
+	}
+	g.readers(w.id, change, true)
 }
 
 // Drop empties the entry and every entry derived from it.
@@ -612,19 +665,28 @@ func (w Whole[T]) Drop(g *Graph) {
 		return
 	}
 	delete(g.entries, w.id)
-	g.dropReaders(w.id)
+	g.readers(w.id, nil, false)
 }
 
 // --- graph side ---
 
-// dropReaders empties every entry derived from src, then those derived from
-// them. A slot derives only from earlier ones, so it ends.
-func (g *Graph) dropReaders(src int) {
+// readers empties every entry derived from src, then those derived from them.
+// With narrow, a held entry that declares Narrow runs it with change instead of
+// being emptied; a keyed entry is never a Source, so nothing further is walked
+// from it. A slot derives only from earlier ones, so it ends.
+func (g *Graph) readers(src int, change any, narrow bool) {
 	for i, e := range registry {
-		if slices.Contains(e.from, src) {
-			delete(g.entries, i+1)
-			g.dropReaders(i + 1)
+		if !slices.Contains(e.from, src) {
+			continue
 		}
+		if narrow && e.narrow != nil {
+			if e.held(g) {
+				e.narrow(g, change)
+			}
+			continue
+		}
+		delete(g.entries, i+1)
+		g.readers(i+1, nil, false)
 	}
 }
 

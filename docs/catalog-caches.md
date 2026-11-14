@@ -2,7 +2,7 @@
 
 Every cache the app keeps over the catalog, with what fills it, what updates it and what it costs. The Go caches are one registry (`core/database/graphcache/cache.go`): an owner registers a typed handle in `init()` and reads and writes only through it. `TestCacheDocListsEveryEntry` (`core/catalogsession/cache_doc_test.go`) holds the first table to the registry, so a PR that registers a cache adds its row here in the same change. `BenchmarkCacheSizes` (`core/database/promotealign/bench_test.go`) measures the sizes; a PR that adds an entry adds its fill to the benchmark.
 
-Rule: every cache names the signal that updates it, and updates exactly. The signal is a field of `effects.Set` that the entry's Apply reads (`Handles` through the commit's roots, as the map's rule says), a moved key among its declared `Inputs` (the `InputKey`s summary rows use), or a `DerivedFrom` declaration (the vocabulary, or an earlier whole entry). A cache that empties itself on any write would be a known exception, listed below.
+Rule: every cache names the signal that updates it, and updates exactly. The signal is a field of `effects.Set` that the entry's Apply reads (`Handles` through the commit's roots, as the map's rule says), a moved key among its declared `Inputs` (the `InputKey`s summary rows use), a `DerivedFrom` declaration (the vocabulary, or an earlier whole entry), or, for a keyed entry derived from a whole entry patched in place, the change that entry reports with `Whole.Patched`, read by the reader's declared `Narrow`. A cache that empties itself on any write would be a known exception, listed below.
 
 ## Registry entries
 

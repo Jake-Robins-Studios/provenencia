@@ -109,6 +109,116 @@ func TestEntryDerivedFrom(t *testing.T) {
 	})
 }
 
+// TestKeyedUpdate: Update replaces every held value, counts no use and keeps
+// the use order, so the key least recently used before it is still the one that
+// leaves.
+func TestKeyedUpdate(t *testing.T) {
+	defer graphcache.SnapshotRegistryForTest()()
+	k := graphcache.RegisterKeyed(graphcache.KeyedEntry[int]{Name: "t.update", Apply: noApply[int], Cap: 3})
+	g := graphcachetest.OpenCatalog(t).Graph()
+	idD := []byte{4, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	k.Update(nil, func([]byte, int) int { t.Fatal("fn ran on a nil graph"); return 0 })
+	k.Update(g, func([]byte, int) int { t.Fatal("fn ran on an empty entry"); return 0 })
+	k.Set(g, idA, 1)
+	k.Set(g, idB, 2)
+	k.Set(g, idC, 3)
+	visited := 0
+	k.Update(g, func(_ []byte, v int) int { visited++; return v * 2 })
+	if visited != 3 {
+		t.Fatalf("Update visited %d keys, want 3", visited)
+	}
+	k.Set(g, idD, 4)
+	if _, ok := k.Peek(g, idA); ok {
+		t.Error("A, the least recently used before Update, is still held")
+	}
+	if v, ok := k.Peek(g, idB); !ok || v != 4 {
+		t.Errorf("B = %d, %v, want 4", v, ok)
+	}
+	if v, ok := k.Peek(g, idC); !ok || v != 6 {
+		t.Errorf("C = %d, %v, want 6", v, ok)
+	}
+}
+
+// TestWholePatchedNarrowsReaders: Patched keeps the value, runs a held keyed
+// reader's Narrow with the change, and empties every other reader.
+func TestWholePatchedNarrowsReaders(t *testing.T) {
+	defer graphcache.SnapshotRegistryForTest()()
+	var seen []any
+	w := graphcache.RegisterWhole(graphcache.WholeEntry[string]{Name: "t.pw"})
+	r1 := graphcache.RegisterKeyed(graphcache.KeyedEntry[string]{
+		Name: "t.pr1", Apply: noApply[string], Cap: 4, DerivedFrom: []graphcache.Source{w},
+		Narrow: func(_ *graphcache.Graph, _ graphcache.Keyed[string], change any) { seen = append(seen, change) },
+	})
+	r2 := graphcache.RegisterWhole(graphcache.WholeEntry[string]{Name: "t.pr2", DerivedFrom: []graphcache.Source{w}})
+	r3 := graphcache.RegisterKeyed(graphcache.KeyedEntry[string]{
+		Name: "t.pr3", Apply: noApply[string], Cap: 4, DerivedFrom: []graphcache.Source{r2},
+	})
+	g := graphcachetest.OpenCatalog(t).Graph()
+	fill := func() {
+		seen = nil
+		w.Set(g, "w")
+		r2.Set(g, "r2")
+		r1.Set(g, idA, "r1")
+		r3.Set(g, idA, "r3")
+	}
+	held := func() string {
+		var out []byte
+		if _, ok := r1.Peek(g, idA); ok {
+			out = append(out, '1')
+		}
+		if _, ok := r2.Peek(g); ok {
+			out = append(out, '2')
+		}
+		if _, ok := r3.Peek(g, idA); ok {
+			out = append(out, '3')
+		}
+		return string(out)
+	}
+	t.Run("Patched narrows R1 and empties R2 and R3", func(t *testing.T) {
+		fill()
+		w.Patched(g, "x")
+		if len(seen) != 1 || seen[0] != "x" {
+			t.Errorf("Narrow saw %v, want [x]", seen)
+		}
+		if got := held(); got != "1" {
+			t.Errorf("held = %q, want 1", got)
+		}
+		if v, ok := w.Peek(g); !ok || v != "w" {
+			t.Errorf("W = %q, %v, want the same value", v, ok)
+		}
+	})
+	t.Run("an empty change still reports a change", func(t *testing.T) {
+		fill()
+		w.Patched(g, nil)
+		if got := held(); got != "1" || len(seen) != 1 {
+			t.Errorf("held = %q, Narrow ran %d times", got, len(seen))
+		}
+	})
+	t.Run("an entry not held is not narrowed", func(t *testing.T) {
+		fill()
+		r1.Clear(g)
+		w.Patched(g, "x")
+		if len(seen) != 0 {
+			t.Errorf("Narrow ran for an entry that holds nothing: %v", seen)
+		}
+	})
+	t.Run("a nil graph does nothing", func(t *testing.T) {
+		w.Patched(nil, "x")
+	})
+	t.Run("Set and Drop empty every reader", func(t *testing.T) {
+		fill()
+		w.Set(g, "w2")
+		if got := held(); got != "" || len(seen) != 0 {
+			t.Errorf("after Set held = %q, Narrow ran %d times", got, len(seen))
+		}
+		fill()
+		w.Drop(g)
+		if got := held(); got != "" || len(seen) != 0 {
+			t.Errorf("after Drop held = %q, Narrow ran %d times", got, len(seen))
+		}
+	})
+}
+
 // TestKeyedEvictsLeastRecentlyUsed: a keyed entry at its Cap drops the key used
 // least recently; a Get hit, a Peek, a Set and a store are uses; a Check and
 // KeyCounts are not.
@@ -490,6 +600,13 @@ func TestRegisterRejects(t *testing.T) {
 		}},
 		{"a repeated Name", func() {
 			graphcache.RegisterWhole(graphcache.WholeEntry[string]{Name: "t.dup"})
+		}},
+		{"Narrow with no whole entry in DerivedFrom", func() {
+			graphcache.RegisterKeyed(graphcache.KeyedEntry[string]{
+				Name: "t.narrowless", Apply: noApply[string], Cap: 1,
+				DerivedFrom: []graphcache.Source{graphcache.Vocabulary{}},
+				Narrow:      func(*graphcache.Graph, graphcache.Keyed[string], any) {},
+			})
 		}},
 	}
 	for _, tt := range tests {
