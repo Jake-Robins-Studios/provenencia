@@ -158,3 +158,16 @@ Check: test passes after failing first; `rg -n 'keptLinked' macos/App` prints no
 Files: `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVChecklistRows.swift`.
 Do: `maxRowsHeight` 264 → 352, and the doc comment's "264pt cap" → "352pt cap". This one cap serves the graph form, the Artifact sheet's graph links and Copy Source, which the board wants.
 Check: `rg -n '264' macos/App/DesignSystem/Recipes/ArtifactChecklist` prints nothing; scripts/check-pr.sh PASS.
+
+**F-12 — An unlink block carries a Citation count, not Citation rows** (user, 2026-11-14: "check for any unused code that we can clean up")
+Sent to the round-4 implementer by message while it worked. Go `UnlinkBlock.Citations deleteimpact.Group` → `CitationCount int`; proto `EvidenceGraphUnlinkBlock` `citations = 2` → `int32 citation_count = 5` with `reserved 2; reserved "citations";`; Swift `CatalogEvidenceGraphUnlinkBlock.citationCount`; same hint wording through the existing resource; sweep for anything else that only served the list. Stop if any other caller reads the block's Citation rows.
+
+## Round 4 — fix (user request, board)
+Head `914f7b54d` (F-11 `4785a406a`, F-10 `e6e6b8844`, F-12 `914f7b54d`). Gate PASS; merged `origin/main` @ `3f1770056` (docs only), gate PASS again. Orchestrator read the diff.
+- F-10: `PVChecklistLockedLink` on `PVArtifactChecklist`; the graph form passes it, and its action is `pvSheetClose` then `navigation.go(to:)` (discard confirm when dirty; ignored while saving). `composerLinkArtifactIDs`, `composerLocation(artifactID:)`; test `composerLinkOpensTheArtifact`. `PVDeleteImpactGroupList`/`Stack` private again; README line trimmed. Deviation: `PVControlSize.xs` (micro text) added for the link, `PVCheckboxMark.size` shared, `PVChip` handles `.xs`. Failing-test-first not run separately for F-10.
+- F-11: `PVChecklistRows.maxRowsHeight` 352.
+- F-12: done as sent. Removed `UnlinkVia`, `CitationsUsingArtifactTx`, `queryCitationRows`, `citationRowsExist`, a `TestMembership` block and unused handler-test fixture fields. Kept with a caller: `deleteimpact.ListedGroup` (unpromote impact), `GoStore.mapDeleteImpactGroup`, `PVDeleteImpactPreviewData.listed`, `PVDeleteImpactCopy.heading(_:)`. No other reader of the rows.
+Nits (logged): `ORC-1 · core/database/evidencegraphs/evidencegraphs.go:65 · sqlCitationsUsing comment still says "The ref is selected for the order and dropped"` · `ORC-2 · Unlink's write-time check is now COUNT(*) where it was EXISTS; same index, negligible at Scale`
+No review round (user-directed; no round 3 without the user).
+
+Gate PASS · CI pending · open: none
