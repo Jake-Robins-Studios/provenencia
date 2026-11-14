@@ -7,6 +7,7 @@ import (
 
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/mendahu/provenencia/core/graphalign"
 	"github.com/mendahu/provenencia/core/shortlist"
 	"github.com/mendahu/provenencia/core/subjectcompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -112,3 +113,6 @@ func ForgetForTest(g *graphcache.Graph, kind string, keys []string) {
 	}
 	forgetCandidates(g, candidates, moved)
 }
+
+// PlaceLinksForTest is the filed-link reader Propose gives Connections.
+func PlaceLinksForTest(g *graphcache.Graph) graphalign.FiledLinks { return placeLinks(g) }

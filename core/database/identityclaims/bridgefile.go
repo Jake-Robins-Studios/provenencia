@@ -51,7 +51,7 @@ func FileEvidenceGraphBridgesTx(tx *sql.Tx, graphID []byte) (assocIDs [][]byte, 
 
 func fileHeads(tx *sql.Tx, bridges []bridgeHead) (assocIDs [][]byte, changes []rowchange.Change, err error) {
 	seen := map[string]bool{}
-	pass := &filePass{tx: tx, links: map[string]*connectrules.Links{}, terms: map[string]*bridgeTerm{}}
+	pass := newFilePass(tx)
 	for _, b := range bridges {
 		id, ch, filed, err := pass.fileBridge(b)
 		if err != nil {
@@ -231,14 +231,30 @@ func countRead() {
 // term row by id.
 type filePass struct {
 	tx    *sql.Tx
-	links map[string]*connectrules.Links
+	links *connectrules.Filed
 	// terms holds a term row by id; nil for an id with no row.
 	terms map[string]*bridgeTerm
 }
 
+// newFilePass is a pass whose filed links of a type and term are read from tx
+// on first need.
+func newFilePass(tx *sql.Tx) *filePass {
+	return &filePass{
+		tx: tx,
+		links: connectrules.NewFiled(func(rule connectrules.Bridge, term vocabkey.BridgeTerm) (*connectrules.Links, error) {
+			filed, err := filedLinks(tx, rule, string(term))
+			if err != nil {
+				return nil, err
+			}
+			return connectrules.NewLinks(filed), nil
+		}),
+		terms: map[string]*bridgeTerm{},
+	}
+}
+
 // fileBridge claims one bridge onto its association. filed is false when the
 // bridge waits (an end is unpromoted, or it is already filed) or when
-// connectrules.Decide refuses it (a self-link, a loop, an incomplete bridge).
+// connectrules.Filed refuses it (a self-link, a loop, an incomplete bridge).
 func (p *filePass) fileBridge(b bridgeHead) (assocID []byte, changes []rowchange.Change, filed bool, err error) {
 	tx := p.tx
 	rule, ok := connectrules.LookupBridge(b.typeKey)
@@ -276,26 +292,12 @@ func (p *filePass) fileBridge(b bridgeHead) (assocID []byte, changes []rowchange
 	}
 	term := connectrules.Term(keys)
 
-	linkKey := b.typeKey + "|" + string(term)
-	res, err := connectrules.Decide(rule, keys, values, func() (*connectrules.Links, error) {
-		if p.links[linkKey] == nil {
-			filed, err := filedLinks(tx, rule, string(term))
-			if err != nil {
-				return nil, err
-			}
-			p.links[linkKey] = connectrules.NewLinks(filed)
-		}
-		return p.links[linkKey], nil
-	})
+	res, err := p.links.Decide(rule, keys, values)
 	if err != nil {
 		return nil, nil, false, err
 	}
 	if res.Decision != connectrules.DecisionFiles {
 		return nil, nil, false, nil
-	}
-	if res.Link != nil {
-		// A later bridge of this pass is checked against the link filed here.
-		p.links[linkKey].Add(*res.Link)
 	}
 
 	ends := make([]endpoint, 0, len(rule.Endpoints))

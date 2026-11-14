@@ -45,11 +45,14 @@ type placeLink struct {
 // does not scan every other place's edges.
 type placeGraph struct {
 	places map[string]placeEntry
-	pages  map[string]placePage // only placeStep fills it, for its own place
+	// pages and succession hold the page and succession entries of the one
+	// place placeStep reads; nothing else fills them.
+	pages       map[string]placePage
+	successions map[string]placeSuccession
 }
 
 func newPlaceGraph() *placeGraph {
-	return &placeGraph{places: map[string]placeEntry{}, pages: map[string]placePage{}}
+	return &placeGraph{places: map[string]placeEntry{}, pages: map[string]placePage{}, successions: map[string]placeSuccession{}}
 }
 
 // shell is the summary shell of a place the graph holds, and whether it does.
@@ -223,9 +226,9 @@ func (g *placeGraph) Predecessors(placeID []byte) [][]byte {
 func (g *placeGraph) succNeighbors(placeID []byte, forward bool) [][]byte {
 	seen := map[string]bool{}
 	var out [][]byte
-	links := g.pages[string(placeID)].succTo
+	links := g.successions[string(placeID)].succTo
 	if forward {
-		links = g.pages[string(placeID)].succFrom
+		links = g.successions[string(placeID)].succFrom
 	}
 	for _, l := range links {
 		other := l.from

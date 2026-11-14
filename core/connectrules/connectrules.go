@@ -1,5 +1,5 @@
 // Package connectrules is the Interpretation connect matrix and the filing
-// rule that sits beside it (Decide, Bridge.AcyclicTerms in filing.go).
+// rule that sits beside it (Filed.Decide, Bridge.AcyclicTerms in filing.go).
 //
 // This is the only product table of “this property on this bridge type is an
 // endpoint or a disambiguation.” subjectvocab Install derives bridge bindings

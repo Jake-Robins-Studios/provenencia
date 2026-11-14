@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-21 — Promote's alignment reads a canon view and the place entries
+
+**Landed 2026-11-14** in [#836](https://github.com/mendahu/provenencia/pull/836). Nothing a researcher sees changes. `Align` reads the canon through `graphalign.CanonView` with `kinship.Link`s (`CanonEdge` is gone), and Promote's place loop check reads the filed `part_of` and `succeeded_by` links from the place entries (succession in its own `conclusionsummaries.placeSuccessions` entry) one level at a time instead of from the canon walk's edges; warm proposals are unchanged at 4,000 and 16,000 persons.
+
 ## S16-16 — Kinship answers are composed from the pivots, and the Family read is one pass
 
 **Landed 2026-11-13** in [#814](https://github.com/mendahu/provenencia/pull/814). Nothing a researcher sees changes. A person's implied links and siblings are composed from the cached kinship pivots at each read, so a commit no longer empties two catalog-wide caches: only the pivots one hop from what it touched are recomputed. The Family section reads each person's kin in one batched `Relationships` call and the `LoadRelationships` and `LoadSiblings` loaders are gone; `edgeKey` length-prefixes its parts. A warm Promote proposal costs more (1.56–1.74× the base at 4,000 persons and 1.68–2.27× at 16,000, run to run on a loaded M1; the ship log has the tables), and the proposal after a commit is unchanged within noise. The user accepted the warm cost: `budgetWarm` is 950 ms and memoising `For` is parked in `docs/ideas/promote-ranking.md`.
