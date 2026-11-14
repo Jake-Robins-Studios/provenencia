@@ -63,4 +63,4 @@ Reviewers: MNT (had the Fix-now majors). CON and SEC+PRF had no Fix-now blocker 
 No new blockers. Nits (logged): `MNT-6 · placeentries.go:221,246,269 · entryHops is a package var while pageHops/succHops are locals; hop list passed twice` · `MNT-7 · placechains.go:48 · comment still says "succession" after the field became successions`
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: MNT-2b · to user: CON-2 (manual check, routine)
+Gate PASS · CI green (Go tests, macOS tests) · open: none · follow-ups: MNT-2b · to user: CON-2 (manual check, routine)
