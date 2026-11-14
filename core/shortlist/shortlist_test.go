@@ -72,6 +72,11 @@ func build(rules valuecompare.Rules, kind vocabkey.SubjectType, entries ...entry
 	return ix
 }
 
+// lookup is the ids Find returns for v's lookup keys.
+func lookup(ix *shortlist.Index, kind vocabkey.SubjectType, v subjectcompare.Values) [][]byte {
+	return ix.Find(kind, ix.LookupKeys(kind, v))
+}
+
 func ids(got [][]byte) []byte {
 	var out []byte
 	for _, id := range got {
@@ -175,14 +180,14 @@ func TestLookup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.ac+"/"+tt.name, func(t *testing.T) {
-			got := ids(build(tt.rules, tt.kind, tt.entries...).Lookup(tt.kind, tt.probe.v))
+			got := ids(lookup(build(tt.rules, tt.kind, tt.entries...), tt.kind, tt.probe.v))
 			if !slices.Equal(got, tt.want) {
 				t.Errorf("Lookup = %v, want %v", got, tt.want)
 			}
 		})
 	}
 	var nilIndex *shortlist.Index
-	if got := nilIndex.Lookup(vocabkey.Person, person(0, "James Robins").v); got != nil {
+	if got := lookup(nilIndex, vocabkey.Person, person(0, "James Robins").v); got != nil {
 		t.Errorf("nil index Lookup = %v, want nil", got)
 	}
 }
@@ -290,12 +295,12 @@ func TestLookupKeys(t *testing.T) {
 
 func TestLookupCopiesAndSorts(t *testing.T) {
 	ix := build(matchregistry.Default().Value, vocabkey.Person, person(3, "Robins"), person(1, "Robins"), person(2, "James Robins"))
-	got := ix.Lookup(vocabkey.Person, person(0, "Robins").v)
+	got := lookup(ix, vocabkey.Person, person(0, "Robins").v)
 	if want := []byte{1, 2, 3}; !slices.Equal(ids(got), want) {
 		t.Fatalf("Lookup = %v, want %v", ids(got), want)
 	}
 	got[0][0] = 99
-	if again := ids(ix.Lookup(vocabkey.Person, person(0, "Robins").v)); !slices.Equal(again, []byte{1, 2, 3}) {
+	if again := ids(lookup(ix, vocabkey.Person, person(0, "Robins").v)); !slices.Equal(again, []byte{1, 2, 3}) {
 		t.Errorf("a changed result changed the index: %v", again)
 	}
 }
@@ -364,7 +369,7 @@ func TestKeys(t *testing.T) {
 func TestIndexPut(t *testing.T) {
 	rules := matchregistry.Default().Value
 	probe := func(ix *shortlist.Index, kind vocabkey.SubjectType, e entry) []byte {
-		return ids(ix.Lookup(kind, e.v))
+		return ids(lookup(ix, kind, e.v))
 	}
 	t.Run("a handle is refiled", func(t *testing.T) {
 		ix := build(rules, vocabkey.Person, person(1, "James Robins"), person(2, "Robins"))

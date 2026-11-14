@@ -17,12 +17,21 @@ import (
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
-// candidatesMemo is the candidates (handle ids, in order) of each Subject the
-// graph's Evidence graph has had ranked. Candidates depend on the Subject's
-// values, the handles' profiles and the shortlist index, which the match index
-// holds, so the entry is derived from it. A stored memo is never changed.
+// candidatesMemo is the ranking of each Subject the graph's Evidence graph has
+// had ranked. Candidates depend on the Subject's values, the handles' profiles
+// and the shortlist index, which the match index holds, so the entry is derived
+// from it. A stored memo is never changed.
 type candidatesMemo struct {
-	bySubject map[string][][]byte
+	bySubject map[string]rankedSubject
+}
+
+// rankedSubject is one ranked Subject: its kind, the shortlist lookup keys the
+// ranking read (a commit that moves one of them forgets the Subject), and the
+// candidate handle ids, in order ([][]byte{} for none).
+type rankedSubject struct {
+	kind vocabkey.SubjectType
+	keys []string // Index.LookupKeys
+	ids  [][]byte
 }
 
 // candidates holds each Evidence graph's candidatesMemo, keyed by graph id. It
@@ -99,7 +108,7 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 			return graphalign.Canon{}, err
 		}
 		for _, s := range todo {
-			for _, id := range known[string(s.ID)] {
+			for _, id := range known[string(s.ID)].ids {
 				candidates[string(s.ID)] = append(candidates[string(s.ID)], id)
 				if err := add(id); err != nil {
 					return graphalign.Canon{}, err
@@ -239,8 +248,8 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 // the candidates entry until the match index changes. It reads the stored memo,
 // ranks only the Subjects it lacks, and stores a new map, never changing the
 // stored one.
-func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, todo []graphalign.Subject, cfg graphalign.Config) (map[string][][]byte, error) {
-	var known map[string][][]byte
+func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, todo []graphalign.Subject, cfg graphalign.Config) (map[string]rankedSubject, error) {
+	var known map[string]rankedSubject
 	if memo, ok := candidates.Peek(g, graphID); ok {
 		known = memo.bySubject
 	}
@@ -254,7 +263,7 @@ func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, laye
 		return known, nil
 	}
 	ranked := rankCandidates(m, layer, missing, cfg)
-	stored := make(map[string][][]byte, len(known)+len(missing))
+	stored := make(map[string]rankedSubject, len(known)+len(missing))
 	maps.Copy(stored, known)
 	maps.Copy(stored, ranked)
 	candidates.Set(g, graphID, candidatesMemo{bySubject: stored})
@@ -262,17 +271,18 @@ func loadCandidatesMemo(g *graphcache.Graph, graphID []byte, m *matchIndex, laye
 }
 
 // rankCandidates is the ranked candidate ids of each Subject: the handles the
-// shortlist index offers it, ordered by graphalign.Candidates. Every Subject has
-// an entry, an empty list for none.
-func rankCandidates(m *matchIndex, layer graphalign.Layer, subjects []graphalign.Subject, cfg graphalign.Config) map[string][][]byte {
-	shortlisted := seedHandles(m, subjects)
-	out := make(map[string][][]byte, len(subjects))
-	for i, s := range subjects {
+// shortlist index offers it, ordered by graphalign.Candidates, with the kind and
+// lookup keys it read. Every Subject has an entry, an empty list for none.
+func rankCandidates(m *matchIndex, layer graphalign.Layer, subjects []graphalign.Subject, cfg graphalign.Config) map[string]rankedSubject {
+	out := make(map[string]rankedSubject, len(subjects))
+	for _, s := range subjects {
+		kind := vocabkey.SubjectType(s.Kind)
+		keys := m.shortlist.LookupKeys(kind, s.Values)
 		ranked := [][]byte{}
-		for _, h := range graphalign.Candidates(s.Kind, s.Values, shortlisted[i], layer.Metas, cfg) {
+		for _, h := range graphalign.Candidates(s.Kind, s.Values, seedHandles(m, kind, keys), layer.Metas, cfg) {
 			ranked = append(ranked, h.ID)
 		}
-		out[string(s.ID)] = ranked
+		out[string(s.ID)] = rankedSubject{kind: kind, keys: keys, ids: ranked}
 	}
 	return out
 }

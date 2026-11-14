@@ -203,19 +203,17 @@ func Warm(c *database.Catalog) error {
 	return err
 }
 
-// seedHandles is the handles the index offers each Subject, read from the match
-// index. Entry i is subject i's handles, in Ref then ID order.
-func seedHandles(m *matchIndex, subjects []graphalign.Subject) [][]graphalign.Handle {
-	out := make([][]graphalign.Handle, len(subjects))
-	for i, s := range subjects {
-		for _, id := range m.shortlist.Lookup(vocabkey.SubjectType(s.Kind), s.Values) {
-			if h, ok := m.handles[string(id)]; ok {
-				out[i] = append(out[i], h)
-			}
+// seedHandles is the handles the index offers one Subject, read from the match
+// index: those filed under any of its lookup keys, in Ref then ID order.
+func seedHandles(m *matchIndex, kind vocabkey.SubjectType, keys []string) []graphalign.Handle {
+	var out []graphalign.Handle
+	for _, id := range m.shortlist.Find(kind, keys) {
+		if h, ok := m.handles[string(id)]; ok {
+			out = append(out, h)
 		}
-		slices.SortFunc(out[i], func(a, b graphalign.Handle) int {
-			return cmp.Or(strings.Compare(a.Ref, b.Ref), bytes.Compare(a.ID, b.ID))
-		})
 	}
+	slices.SortFunc(out, func(a, b graphalign.Handle) int {
+		return cmp.Or(strings.Compare(a.Ref, b.Ref), bytes.Compare(a.ID, b.ID))
+	})
 	return out
 }

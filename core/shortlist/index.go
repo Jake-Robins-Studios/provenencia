@@ -12,7 +12,7 @@ import (
 // Index maps shortlist keys to handle ids, per kind. It keeps the rules it was
 // built with, so a lookup never keys differently from the build, and the keys
 // each handle is filed under, so a handle can be refiled. It is patched by Put
-// and Remove; the caller serializes them with Lookup. Postings are sorted by
+// and Remove; the caller serializes them with Find. Postings are sorted by
 // bytes.Compare, so an index patched to a state equals one built to it.
 type Index struct {
 	rules   Rules
@@ -124,8 +124,8 @@ func (x *Index) unfile(kind vocabkey.SubjectType, key string, id []byte) {
 
 // Filed is the kind and the sorted index keys id is filed under; ok is false
 // when it is filed nowhere or x is nil. The keys are the index's own strings and
-// the caller must not change them. A Lookup of kind finds a handle when one of
-// its LookupKeys is among the keys the handle is Filed under in that kind.
+// the caller must not change them. A Find in kind finds a handle when one of
+// the keys asked for is among the keys the handle is Filed under in that kind.
 func (x *Index) Filed(id []byte) (kind vocabkey.SubjectType, keys []string, ok bool) {
 	if x == nil {
 		return "", nil, false
@@ -163,9 +163,4 @@ func (x *Index) Find(kind vocabkey.SubjectType, keys []string) [][]byte {
 	}
 	slices.SortFunc(out, bytes.Compare)
 	return out
-}
-
-// Lookup is the ids filed under any lookup key of v.
-func (x *Index) Lookup(kind vocabkey.SubjectType, v subjectcompare.Values) [][]byte {
-	return x.Find(kind, x.LookupKeys(kind, v))
 }

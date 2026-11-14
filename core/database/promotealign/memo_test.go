@@ -354,7 +354,7 @@ func TestVerifyLeavesEntriesAlone(t *testing.T) {
 			evidencelayer.Layers.Set(g, c, evidencelayer.Layer{})
 			graphfill.Graphs.Set(g, c, graphcache.EvidenceGraph{})
 			graphfill.Records.Set(g, c, nil)
-			promotealign.HoldCandidatesForTest(g, c)
+			promotealign.HoldCandidatesForTest(g, c, 0, 0)
 			for name, got := range map[string][2]bool{
 				"graphs":     held(ids, func(id []byte) bool { return peekGraph(g, id) }),
 				"records":    held(ids, func(id []byte) bool { return peekRecords(g, id) }),
