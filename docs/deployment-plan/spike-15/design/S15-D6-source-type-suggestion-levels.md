@@ -116,6 +116,7 @@ The board may refine wording; the PR copies what the board shows.
 | Artifact list title / meaning | "On each Artifact" / "The copy you used: an image, a scan, a transcript" |
 | Evidence graph list title / meaning | "On each Evidence graph" / "One item in the record: a household, an entry" |
 | Count beside a list | "3 fields" (as today, per list) |
+| A list's read failed | "These suggestions couldn’t be read", the error, "Try again" |
 | Empty Source list | "No Source fields yet. Assign the fields these records usually carry." |
 | Empty Artifact list | "No Artifact fields yet. Assign what you note about each copy, such as its provider or URL." |
 | Empty Evidence graph list | "No Evidence graph fields yet. Assign what you note about each item, such as its line or household." |
@@ -155,7 +156,7 @@ The board may refine wording; the PR copies what the board shows.
 | SL-2 | **A list's rows.** As today: ordinal (its place in the list, from 1), field label over mono key, data type badge, and on an editable type a remove IconButton. Rows show in the list's stored order. No drag handle and no reorder control. |
 | SL-3 | **Adding.** Each list has its own picker (the ComboBox over the project's metadata fields, label and key both searchable) and its own plus IconButton, which stays disabled until a field is picked, with today's tooltips. A list's picker leaves out the fields already in **that** list only: Page in the Source list is still offered in the Artifact list. The added field appears last in its list, its count goes up by one, the list's picker clears, and the toast names the field, the list and the type. Picking in one list does not change another list's pick. |
 | SL-4 | **Removing.** A row's remove button takes it out of that list only, at once and with no confirm (as today); the other lists keep the field. The toast says the field stays in the vocabulary, and, when values were typed, that they stay. While one remove runs, every list's remove buttons are disabled. |
-| SL-5 | **Empty, loading and failure, per list.** A list with no fields shows its own empty copy (§ 2.1) in today's dashed sunken card. A list still reading shows today's small spinner in its place. A failed read or write shows a danger Callout inside the list it belongs to, never across all three; the other lists keep working. |
+| SL-5 | **Empty, loading and failure, per list.** A list with no fields shows its own empty copy (§ 2.1) in today's dashed sunken card. A list still reading shows today's small spinner in its place. A failed read shows the kit's retry Callout (title "These suggestions couldn’t be read", the error, and Try again) in place of that list's rows; a failed add or remove shows a danger Callout above that list's rows. Never across all three; the other lists keep working. |
 | SL-6 | **Locked (plugin) type.** The three lists show their rows read-only: no picker, no plus, no remove, no hint; counts and empty copy still show. |
 | SL-7 | **Adding a type.** While the pane holds the new-type form, the lists do not show; today's note shows in their place. After Add type the pane shows the three lists, all empty. |
 | SL-8 | **The list's Associated fields column** shows the total of the three lists for each type (Census with 3 + 4 + 4 shows 11), and sorts by that total. A type with none shows today's dash. |
@@ -185,7 +186,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | 4 | SL-3 | The Artifact list's picker offering Page while Page is already in the Source list |
 | 5 | SL-4 | After removing URL from the Artifact list: the toast with today's values clause ("…and the 6 Sources, Artifacts and graphs already carrying a value keep it") |
 | 6 | SL-5 | Letter: Source list with two rows, Artifact and Evidence graph lists empty with their own copy |
-| 7 | SL-5 | Census with the Artifact list still reading (spinner) and a read-failure Callout in place of the Evidence graph list's rows |
+| 7 | SL-5 | Census with the Artifact list still reading (spinner) and the retry Callout in place of the Evidence graph list's rows |
 | 7b | SL-3, SL-4, SL-5 | A write failure: an add to the Artifact list refused, its Callout above that list's rows and its pick kept; and, separately, a remove in progress with every remove and plus disabled |
 | 8 | SL-6 | Grave memorial: three read-only lists (one empty) under the locked note |
 | 9 | SL-7 | The new-type form with the note in place of the lists |
@@ -197,7 +198,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Detail pane | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `SourceTypesDetailPane`; its 380pt width in `SourceTypesView.detailPaneWidth` | Header, form, locked note and add note unchanged; the suggested-fields part composes three lists; the section header keeps its label and hint and drops its single count (each list has its own). If the board widens the pane at Wide (SL-W1), the width changes here and the lists sit side by side; nothing else in the pane changes |
+| Detail pane | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `SourceTypesDetailPane`; its 380pt width in `SourceTypesView.detailPaneWidth` | Header, form, locked note and add note unchanged; the suggested-fields part composes three lists; the section header keeps its label and hint and drops its single count (each list has its own). If the board widens the pane at Wide (SL-W1), the Metadata page's identical 380pt pane is a near-copy shell, so the width rule moves to the shared vocabulary shell (`macos/App/Features/CatalogVocabulary/`) rather than a second copy here |
 | One level's suggestion list | Snowflake | Rethink (one per level) | today `SourceTypesDetailPane.suggestedFields(isLocked:)`, `suggestionRows`, `assignControl` | One view drawn three times with a level, not three copies. Rows inside a Card, as today |
 | List title and count | Component | Ship | `pvMicroCaps` label + mono count, as today's section header | Not a new header control. If the board shows one list at a time, the chooser is the Segmented control (ChipGroup segmented), not a local tab bar |
 | Data type badge | Snowflake | Ship | `CatalogFieldDataTypeBadge` | As today |
@@ -205,7 +206,8 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Add / remove | Component | Ship | `PVIconButton` `.plus` / `.dismiss` | Tooltips name the list (§ 2.1) |
 | Empty list | Component | Ship | `PVCard` tone sunken, border dashed | Per list, its own copy; not EmptyState (the pane is not empty) |
 | Loading | Platform | Ship | `ProgressView` | Per list, as today |
-| Failure | Component | Ship | `PVCallout` tone danger | Inside the list it belongs to |
+| Failure (read) | Component | Ship | `macos/App/DesignSystem/Components/Callout/PVRetryCallout.swift` `PVRetryCallout` | The app's failed-read notice with Try again; in place of the list's rows |
+| Failure (write) | Component | Ship | `PVCallout` tone danger | Above the list's rows |
 | Toast | Snowflake | Ship | `VocabularyToast` / `vocabularyToastOverlay` | Copy names the list |
 | Associated fields column | Snowflake | Ship (number changes) | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | The engine's total over three lists |
 | Disclosure (only if the board folds lists) | Component | Ship | `macos/App/DesignSystem/Components/Disclosure/PVDisclosureButton.swift` `PVDisclosureButton` | No local chevron control |
