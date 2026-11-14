@@ -116,3 +116,16 @@ Do:
 - `anEditSheetOpenedDuringTheReadIsKept`, `secondAddWhileReadingOpensNothing`, `dropDuringGraphAddReadIsRefused`, `graphFormOpenRefusesDrop` keep passing unchanged.
 - Plan Landed note: replace the "Artifact pencil left unguarded" wording with one line: the page model supplies `hasOpenOwnerForm`, and `readSuggestionsForAdd` checks it before and after the read, so an edit opened during any Add read is kept and the Add opens nothing. While there, fix MNT-12 (the Landed line naming `isOpeningAdd` → `SourcePageContext.isOpeningForm`).
 Check: the new test fails first, then passes; `rg -n 'guard (form|sheet) == nil else \{ return nil \}' macos/App/Features/Sources` prints nothing; `rg -n 'graphs\.form == nil|artifacts\.sheet == nil' macos/App` prints only the `hasOpenOwnerForm` closure; scripts/check-pr.sh PASS.
+
+## Fix plan 3 (user, 2026-11-14, from the manual check)
+The user, looking at the Evidence graph form: the callout between the Artifact checklist and the Citation lists ("These artifacts stay linked: citations need them in this evidence graph.") is redundant with each locked row's reason ("N citations in this graph use this artifact"); remove it and put a small lock icon next to the reason text.
+
+**F-9 — Drop the kept-linked callout; the locked row's reason carries a lock** (user)
+Files: `macos/App/Features/Sources/SourceGraphFormDialog.swift`, `macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, plan Landed note. Skills: `add-ui-component`, `add-localized-string`.
+Do:
+- `SourceGraphForm.keptLinked`: delete the `PVCallout(tone: .neutral, icon: .lock, message: …graphFormKeptLinkedMessage…)`. Keep the `PVDeleteImpactGroupStack` of Citation lists, the `.disabled(model.isSaving)` and the `sources.graphForm.keptLinked` identifier; drop the wrapping `VStack` if only the stack is left in it.
+- Delete `L10n.Sources.graphFormKeptLinkedMessage` and the `sources.graphForm.keptLinkedMessage` entry in `Localizable.xcstrings`.
+- `PVCheckbox.body`: when `isLocked` and there is a description, draw the description as an `HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space2)` (or the file's nearest small spacing token) of `PVIcon(.lock, size:)` sized to the micro caption (about 9pt; match how other components size an icon beside `PVTypeScale.micro` text if one does) in `PVColor.textMuted`, then the existing description text. The icon is decorative: `.accessibilityHidden(true)` (the box already speaks "Locked, <ref>"). Unlocked rows are unchanged. This is a design-system change: every locked checkbox gets it (the graph form's checklist and the Artifact sheet's graph links), which is the intent. Update the `PVCheckbox` doc comment's `isLocked` sentence to say the reason carries the lock too.
+- If a Preview in `PVArtifactChecklist.swift` or `PVCheckbox.swift` shows a locked row, it needs no change beyond rendering.
+- Plan Landed note: one bullet — the kept-linked callout was removed after the manual check (user, 2026-11-14); each locked row's reason carries a lock.
+Check: `rg -n 'keptLinkedMessage' macos` prints nothing; `rg -n 'isLocked' macos/App/DesignSystem/Components/Checkbox/PVCheckbox.swift` shows the new branch; existing tests touching `keptLinked` still pass; scripts/check-pr.sh PASS (localizable included).
