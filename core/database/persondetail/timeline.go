@@ -6,6 +6,7 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/canonicalentities"
 	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
+	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/hops"
 	"github.com/mendahu/provenencia/core/valuecompare"
@@ -39,9 +40,13 @@ type Timeline struct {
 // when they are among the events, else placed after or before a dated event), and the
 // summary of every event and participant it names. An unknown or merged handle, or one
 // that is no Person, is conclusiondetails.ErrNotFound.
-func PersonEvents(c *database.Catalog, entityID []byte) (Timeline, conclusionsummaries.Summaries, error) {
+//
+// It records on in the person, its participation links, every event they reach
+// and every other participant on the event rows, whether or not it shows them: a
+// provisional event or participant turning canonical must reach the read.
+func PersonEvents(c *database.Catalog, entityID []byte, in *graphcache.PageInputs) (Timeline, conclusionsummaries.Summaries, error) {
 	none := conclusionsummaries.Summaries{}
-	if _, err := personNode(c, entityID, c.Graph().NoPageInputs()); err != nil {
+	if _, err := personNode(c, entityID, in); err != nil {
 		return Timeline{}, none, err
 	}
 	g := c.Graph()
@@ -55,7 +60,7 @@ func PersonEvents(c *database.Catalog, entityID []byte) (Timeline, conclusionsum
 	if err != nil {
 		return Timeline{}, none, err
 	}
-	links, err := g.Follow(entityID, hops.EventsOfParticipant)
+	links, err := in.Follow(entityID, hops.EventsOfParticipant)
 	if err != nil {
 		return Timeline{}, none, err
 	}
@@ -64,12 +69,12 @@ func PersonEvents(c *database.Catalog, entityID []byte) (Timeline, conclusionsum
 		ids[i] = l.Neighbor
 	}
 	eventIDs := database.UniqueBlobIDs(ids)
-	if err := g.Nodes(eventIDs); err != nil {
+	if err := in.Nodes(eventIDs); err != nil {
 		return Timeline{}, none, err
 	}
 	var events [][]byte
 	for _, id := range eventIDs {
-		if e, _ := g.Cached(id); e.Canonical(eventType) {
+		if e, _ := in.Cached(id); e.Canonical(eventType) {
 			events = append(events, id)
 		}
 	}
@@ -86,11 +91,11 @@ func PersonEvents(c *database.Catalog, entityID []byte) (Timeline, conclusionsum
 			}
 		}
 	}
-	if err := g.Nodes(others); err != nil {
+	if err := in.Nodes(others); err != nil {
 		return Timeline{}, none, err
 	}
 	canonicalPerson := func(id []byte) bool {
-		p, _ := g.Cached(id)
+		p, _ := in.Cached(id)
 		return p.Canonical(personType)
 	}
 	// Roles are labelled on copies: the stored row's slices stay as composed.

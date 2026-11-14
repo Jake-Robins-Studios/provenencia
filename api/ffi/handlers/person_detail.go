@@ -167,7 +167,7 @@ func ListPersonEvents(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPersonEventsResponse{}
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		timeline, summaries, err := persondetail.PersonEvents(c, entityID)
+		timeline, summaries, err := persondetail.PersonEvents(c, entityID, c.Graph().NoPageInputs())
 		if err != nil {
 			return err
 		}
