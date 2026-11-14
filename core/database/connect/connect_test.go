@@ -237,6 +237,33 @@ func TestCreateCitedBridge(t *testing.T) {
 		}
 	})
 
+	t.Run("equal ends", func(t *testing.T) {
+		s := mustSeed(t)
+		before := countBridges(t, s.c, "relationship")
+		_, err := writes.Call(s.c, writes.Op{Action: "create_cited_bridge", UserID: userID}, func(tx *database.Tx) (Result, []rowchange.Change, error) {
+			return CreateCitedBridge(tx, userID, CreateInput{
+				FromSubjectID: s.person.ID,
+				ToSubjectID:   s.person.ID,
+				BridgeTypeKey: "relationship",
+				Citation: citations.CreateInput{
+					ArtifactID:  s.artifact.ID,
+					LocatorJSON: validLocator,
+				},
+				Observations: []observations.Input{
+					{PropertyID: s.personProp.ID, ValueSubjectID: s.person.ID},
+					{PropertyID: s.related.ID, ValueSubjectID: s.person.ID},
+					{PropertyID: s.relType.ID, ValueTermID: s.relTerm.ID},
+				},
+			})
+		})
+		if !errors.Is(err, ErrInvalid) {
+			t.Fatalf("err = %v, want ErrInvalid", err)
+		}
+		if n := countBridges(t, s.c, "relationship"); n != before {
+			t.Fatalf("relationship bridges %d, want %d", n, before)
+		}
+	})
+
 	t.Run("event place location", func(t *testing.T) {
 		s := mustSeed(t)
 		_, err := writes.Call(s.c, writes.Op{Action: "create_cited_bridge", UserID: userID}, func(tx *database.Tx) (Result, []rowchange.Change, error) {
