@@ -666,7 +666,7 @@ func TestUnlinkImpact(t *testing.T) {
 		f.link(t, def, a)
 	}
 	// subjectAndCitation reads the Source's sole graph, so it runs first.
-	_, _ = f.subjectAndCitation(t, src, u)
+	f.subjectAndCitation(t, src, u)
 	jones, _, err := f.createGraph(t, evidencegraphs.CreateInput{SourceID: src.ID, Name: "Jones", ArtifactIDs: [][]byte{u, x}})
 	if err != nil {
 		t.Fatal(err)

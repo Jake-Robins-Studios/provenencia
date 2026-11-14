@@ -62,10 +62,9 @@ const (
 	// sqlArtifactGraphs reads one Artifact's links inside a write.
 	sqlArtifactGraphs = `SELECT graph_id FROM evidence_graph_artifacts
 		WHERE artifact_id = ? ORDER BY graph_id`
-	// A graph's Citations on an Artifact, with or without Observations. The ref
-	// is selected for the order and dropped.
-	sqlCitationsUsing = `SELECT COUNT(*) FROM citations c
-		WHERE c.artifact_id = ? AND c.graph_id = ?`
+	// How many of a graph's Citations are on an Artifact, with or without Observations.
+	sqlCitationCount = `SELECT COUNT(*) FROM citations
+		WHERE artifact_id = ? AND graph_id = ?`
 	sqlMissingRef = `SELECT id FROM evidence_graphs WHERE ref IS NULL`
 	sqlSetRef     = `UPDATE evidence_graphs SET ref = ? WHERE id = ?`
 )
@@ -561,7 +560,7 @@ func checkUnlink(tx *sql.Tx, p Pair) (*UnlinkBlock, error) {
 		}
 	}
 	var using int
-	if err := tx.QueryRow(sqlCitationsUsing, p.ArtifactID, p.GraphID).Scan(&using); err != nil {
+	if err := tx.QueryRow(sqlCitationCount, p.ArtifactID, p.GraphID).Scan(&using); err != nil {
 		return nil, err
 	}
 	if using > 0 {
