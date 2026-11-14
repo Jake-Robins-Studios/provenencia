@@ -1,6 +1,7 @@
 package graphcache
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"slices"
@@ -348,6 +349,10 @@ func (g *Graph) linkRaws(ids [][]byte, bridges []string) ([]linkRaw, error) {
 		}
 		b, ok := connectrules.LookupBridge(r.bridgeKey)
 		if !ok || !bridgeEndpoints(b, r.selfPropKey, r.otherPropKey) {
+			continue
+		}
+		// A link from a record to itself is crafted data: the app never files one (connectrules.DecisionSelfLink), so it is not read.
+		if bytes.Equal(r.self, r.neighbor) {
 			continue
 		}
 		r.self = cloneID(r.self)
