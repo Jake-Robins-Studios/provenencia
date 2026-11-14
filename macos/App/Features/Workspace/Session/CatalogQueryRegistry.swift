@@ -571,10 +571,10 @@ extension CatalogQueryKey.Kind {
             // are on.
             return .personGraphsSection(
                 kind: self,
-                graphIDs: { (groups: [CatalogPersonClaimGroup]) in
-                    Set(groups.flatMap(\.claims).map(\.graphID))
+                graphIDs: { (claims: CatalogPersonClaims) in
+                    Set(claims.groups.flatMap(\.claims).map(\.graphID))
                 },
-                sourceIDs: { (groups: [CatalogPersonClaimGroup]) in Set(groups.map(\.sourceID)) },
+                sourceIDs: { (claims: CatalogPersonClaims) in Set(claims.groups.map(\.sourceID)) },
                 load: { key, store in
                     guard case .personClaims(let project, let entityId) = key else {
                         mismatchedCatalogKey(key, .personClaims)

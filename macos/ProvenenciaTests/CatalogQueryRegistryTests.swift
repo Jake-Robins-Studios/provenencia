@@ -1391,7 +1391,7 @@ struct CatalogQueryRegistryTests {
         session.setQueryValue(keys["eventsList"]!, value: [CatalogEventSummary]())
         session.setQueryValue(keys["placesList"]!, value: [CatalogPlaceSummary]())
         session.setQueryValue(keys["conclusionDetail"]!, value: CatalogConclusionDetail(entity: entity("e1"), fields: []))
-        session.setQueryValue(keys["personClaims"]!, value: [CatalogPersonClaimGroup]())
+        session.setQueryValue(keys["personClaims"]!, value: CatalogPersonClaims())
         session.setQueryValue(keys["personFamily"]!, value: CatalogPersonFamily(units: []))
         session.setQueryValue(keys["personEvents"]!, value: CatalogPersonTimeline())
         session.setQueryValue(keys["personRecordLinks"]!, value: CatalogPersonRecordLinks())
@@ -1509,7 +1509,7 @@ struct CatalogQueryRegistryTests {
         let session = makeSession()
         let project = session.projectKey
         let key = CatalogQueryKey.personClaims(project: project, entityId: "e1")
-        session.setQueryValue(key, value: [CatalogPersonClaimGroup]())
+        session.setQueryValue(key, value: CatalogPersonClaims())
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(handles: ["e1"])) == [key])
         #expect(key.kind == .personClaims)
         #expect(key.project == project)
@@ -1525,13 +1525,13 @@ struct CatalogQueryRegistryTests {
         )
         store.seededPersonClaims = ["e1": [group], "e2": []]
         let session = makeSession(store: store)
-        let handle: QueryHandle<[CatalogPersonClaimGroup]> = session.query(
+        let handle: QueryHandle<CatalogPersonClaims> = session.query(
             .personClaims(project: session.projectKey, entityId: "e1")
         )
         await waitForQuery(handle)
-        #expect(handle.value == [group])
+        #expect(handle.value?.groups == [group])
         let none = try await store.listPersonClaims(projectDir: projectDir, entityID: "e2")
-        #expect(none.isEmpty)
+        #expect(none.groups.isEmpty)
         await #expect(throws: CoreInvokeError.coded(status: 1, code: "conclusiondetails.not_found", kind: .user, params: [])) {
             _ = try await store.listPersonClaims(projectDir: projectDir, entityID: "e9")
         }

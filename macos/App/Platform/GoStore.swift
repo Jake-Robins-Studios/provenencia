@@ -1268,7 +1268,7 @@ struct GoStore: GenealogyStore {
         )
     }
 
-    func listPersonClaims(projectDir: String, entityID: String) async throws -> [CatalogPersonClaimGroup] {
+    func listPersonClaims(projectDir: String, entityID: String) async throws -> CatalogPersonClaims {
         var req = Provenencia_Engine_V1_ListPersonClaimsRequest()
         req.projectDir = projectDir
         req.entityID = entityID
@@ -1276,7 +1276,7 @@ struct GoStore: GenealogyStore {
             method: CoreMethod.listPersonClaims,
             request: req
         )
-        return resp.groups.map { group in
+        let groups = resp.groups.map { group in
             CatalogPersonClaimGroup(
                 sourceID: group.sourceID,
                 sourceRef: group.sourceRef,
@@ -1294,6 +1294,16 @@ struct GoStore: GenealogyStore {
                 }
             )
         }
+        return CatalogPersonClaims(groups: groups, inputs: Self.mapPageInputs(resp.inputs))
+    }
+
+    /// The wire's id lists as sets: S16-25 tests membership.
+    static func mapPageInputs(_ inputs: Provenencia_Engine_V1_PageInputs) -> CatalogPageInputs {
+        CatalogPageInputs(
+            handles: Set(inputs.handles),
+            evidenceGraphs: Set(inputs.evidenceGraphs),
+            sources: Set(inputs.sources)
+        )
     }
 
     func getPersonFamily(projectDir: String, entityID: String) async throws -> CatalogPersonFamily {
@@ -1309,7 +1319,8 @@ struct GoStore: GenealogyStore {
             person: resp.hasPerson ? Self.mapPersonSummary(resp.person) : nil,
             originSiblings: resp.originSiblings.map {
                 CatalogOriginSibling(member: Self.mapFamilyMember($0.member), parentSets: $0.parentSets.map(Int.init))
-            }
+            },
+            inputs: Self.mapPageInputs(resp.inputs)
         )
     }
 
@@ -1337,7 +1348,8 @@ struct GoStore: GenealogyStore {
         return CatalogPersonTimeline(
             events: events,
             birth: Self.mapLifeMarker(resp.birth),
-            death: Self.mapLifeMarker(resp.death)
+            death: Self.mapLifeMarker(resp.death),
+            inputs: Self.mapPageInputs(resp.inputs)
         )
     }
 
@@ -1367,7 +1379,8 @@ struct GoStore: GenealogyStore {
                 CatalogRecordLinksPair(graphAID: $0.graphAID, graphBID: $0.graphBID, lines: $0.lines.compactMap(Self.mapRecordLink))
             },
             notCounted: resp.notCounted,
-            linesDropped: resp.linesDropped
+            linesDropped: resp.linesDropped,
+            inputs: mapPageInputs(resp.inputs)
         )
     }
 
@@ -1454,7 +1467,8 @@ struct GoStore: GenealogyStore {
                     leads: $0.leads
                 )
             },
-            derivedRows: resp.derivedRows.compactMap(Self.mapDerivedRow)
+            derivedRows: resp.derivedRows.compactMap(Self.mapDerivedRow),
+            inputs: Self.mapPageInputs(resp.inputs)
         )
     }
 

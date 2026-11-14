@@ -272,7 +272,7 @@ struct WorkspaceSessionTests {
     /// rows it kept: the seeded rows, the session, the key and the handle.
     private func sourcesWithAFailedReload() async -> (
         seeded: [CatalogPersonClaimGroup], session: WorkspaceSession, key: CatalogQueryKey,
-        handle: QueryHandle<[CatalogPersonClaimGroup]>
+        handle: QueryHandle<CatalogPersonClaims>
     ) {
         let store = FakeStore()
         let seeded = claims(onGraph: "g1")
@@ -281,7 +281,7 @@ struct WorkspaceSessionTests {
         let session = makeSession(store: store)
         session.apply(location: .personDetail(entityId: "per-1", ref: "PER-1", title: nil).withPageSection(.sources))
         let key = CatalogQueryKey.personClaims(project: session.projectKey, entityId: "per-1")
-        let handle: QueryHandle<[CatalogPersonClaimGroup]> = session.query(key)
+        let handle: QueryHandle<CatalogPersonClaims> = session.query(key)
         await waitForQuery(handle)
         if case .loaded(_, let clean) = handle.reading {
             #expect(clean == nil)
@@ -303,12 +303,12 @@ struct WorkspaceSessionTests {
             Issue.record("expected the rows to stay")
             return
         }
-        #expect(rows == seeded)
+        #expect(rows.groups == seeded)
         #expect(refreshFailure is ReloadFailure)
         #expect(handle.failureRevision == 1)
 
         (session.store as? FakeStore)?.listPersonClaimsError = nil
-        let _: QueryHandle<[CatalogPersonClaimGroup]> = session.reread(key)
+        let _: QueryHandle<CatalogPersonClaims> = session.reread(key)
         await session.settleWrites()
         guard case .loaded(_, let after) = handle.reading else {
             Issue.record("expected .loaded after Try again")
@@ -322,14 +322,14 @@ struct WorkspaceSessionTests {
         let (seeded, session, key, handle) = await sourcesWithAFailedReload()
         #expect(handle.failureRevision == 1)
 
-        let _: QueryHandle<[CatalogPersonClaimGroup]> = session.reread(key)
+        let _: QueryHandle<CatalogPersonClaims> = session.reread(key)
         await session.settleWrites()
         #expect(handle.failureRevision == 2)
         guard case .loaded(let rows, let refreshFailure) = handle.reading else {
             Issue.record("expected the rows to stay")
             return
         }
-        #expect(rows == seeded)
+        #expect(rows.groups == seeded)
         #expect(refreshFailure != nil)
     }
 
@@ -1189,13 +1189,13 @@ struct WorkspaceSessionTests {
         let bClaims = CatalogQueryKey.personClaims(project: session.projectKey, entityId: b.id)
 
         let bDetailHandle: QueryHandle<CatalogConclusionDetail> = session.query(bDetail)
-        let bClaimsHandle: QueryHandle<[CatalogPersonClaimGroup]> = session.query(bClaims)
+        let bClaimsHandle: QueryHandle<CatalogPersonClaims> = session.query(bClaims)
         await waitForQuery(bDetailHandle)
         await waitForQuery(bClaimsHandle)
         session.apply(location: .personDetail(entityId: a.id, ref: a.ref, title: nil))
         let aDetailHandle: QueryHandle<CatalogConclusionDetail> = try #require(session.queryHandle(aDetail))
         await waitForQuery(aDetailHandle)
-        let aClaimsHandle: QueryHandle<[CatalogPersonClaimGroup]> = session.query(aClaims)
+        let aClaimsHandle: QueryHandle<CatalogPersonClaims> = session.query(aClaims)
         await waitForQuery(aClaimsHandle)
 
         let effects = CatalogWriteEffects(handles: [a.id])
@@ -1208,7 +1208,7 @@ struct WorkspaceSessionTests {
         #expect(bDetailHandle.value != nil && !bDetailHandle.isStale && !bDetailHandle.isFetching)
         #expect(bClaimsHandle.value != nil && !bClaimsHandle.isStale && !bClaimsHandle.isFetching)
         #expect(session.queryHandle(bDetail) as QueryHandle<CatalogConclusionDetail>? != nil)
-        #expect(session.queryHandle(bClaims) as QueryHandle<[CatalogPersonClaimGroup]>? != nil)
+        #expect(session.queryHandle(bClaims) as QueryHandle<CatalogPersonClaims>? != nil)
     }
 
     /// T-8 (AC-2.6): a key that two refreshes and a mutation all name is
@@ -1220,13 +1220,13 @@ struct WorkspaceSessionTests {
         let session = makeSession(store: store)
         let project = session.projectKey
         let key = CatalogQueryKey.personClaims(project: project, entityId: "e1")
-        session.setQueryValue(key, value: claims(onGraph: "g1"))
+        session.setQueryValue(key, value: CatalogPersonClaims(groups: claims(onGraph: "g1")))
         let effects = CatalogWriteEffects(handles: ["e1"], evidenceGraphs: ["g1"], lists: [.propertyVocabulary])
 
         #expect(session.revalidatedKeys(for: effects) == [key])
         session.apply(effects)
         await session.settleWrites()
-        let hidden: QueryHandle<[CatalogPersonClaimGroup]>? = session.queryHandle(key)
+        let hidden: QueryHandle<CatalogPersonClaims>? = session.queryHandle(key)
         #expect(hidden?.value != nil && hidden?.isStale == true && hidden?.isFetching == false)
     }
 
@@ -1238,7 +1238,7 @@ struct WorkspaceSessionTests {
         let project = session.projectKey
         let claimsKey = CatalogQueryKey.personClaims(project: project, entityId: "e1")
         let detailKey = CatalogQueryKey.conclusionDetail(project: project, entityId: "e1")
-        session.setQueryValue(claimsKey, value: claims(onGraph: "g1"))
+        session.setQueryValue(claimsKey, value: CatalogPersonClaims(groups: claims(onGraph: "g1")))
         session.setQueryValue(detailKey, value: detail("e1"))
 
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g1"])) == [claimsKey])
@@ -1269,7 +1269,7 @@ struct WorkspaceSessionTests {
         let sourceKey = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "e1")
         session.setQueryValue(detail1, value: detail("e1"))
         session.setQueryValue(family1, value: CatalogPersonFamily(units: []))
-        session.setQueryValue(claims1, value: claims(onGraph: "g1"))
+        session.setQueryValue(claims1, value: CatalogPersonClaims(groups: claims(onGraph: "g1")))
         session.setQueryValue(detail3, value: detail("e3"))
         session.setQueryValue(sourceKey, value: CatalogSourceWorkspace(
             source: CatalogSource(id: "e1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: ""),
@@ -1280,7 +1280,7 @@ struct WorkspaceSessionTests {
         session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .handle, ids: ["e1"])]))
         #expect(session.queryHandle(detail1) as QueryHandle<CatalogConclusionDetail>? == nil)
         #expect(session.queryHandle(family1) as QueryHandle<CatalogPersonFamily>? == nil)
-        #expect(session.queryHandle(claims1) as QueryHandle<[CatalogPersonClaimGroup]>? == nil)
+        #expect(session.queryHandle(claims1) as QueryHandle<CatalogPersonClaims>? == nil)
         let untouched: QueryHandle<CatalogConclusionDetail>? = session.queryHandle(detail3)
         #expect(untouched != nil && untouched?.isStale == false)
         #expect(session.queryHandle(sourceKey) as QueryHandle<CatalogSourceWorkspace>? != nil)
@@ -1486,11 +1486,11 @@ struct WorkspaceSessionTests {
         let session = makeSession()
         let project = session.projectKey
         let key = CatalogQueryKey.personClaims(project: project, entityId: "e1")
-        let _: QueryHandle<[CatalogPersonClaimGroup]> = session.query(key)
-        #expect((session.queryHandle(key) as QueryHandle<[CatalogPersonClaimGroup]>?)?.value == nil)
+        let _: QueryHandle<CatalogPersonClaims> = session.query(key)
+        #expect((session.queryHandle(key) as QueryHandle<CatalogPersonClaims>?)?.value == nil)
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g9"])) == [key])
 
-        session.setQueryValue(key, value: claims(onGraph: "g1"))
+        session.setQueryValue(key, value: CatalogPersonClaims(groups: claims(onGraph: "g1")))
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g9"])).isEmpty)
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g1"])) == [key])
     }

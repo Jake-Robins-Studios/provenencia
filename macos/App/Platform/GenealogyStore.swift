@@ -692,6 +692,22 @@ struct CatalogPicture: Sendable, Equatable, Identifiable {
     var id: String { record.observationID }
 }
 
+/// What a per-entity read was built from (S16-24), as the ids the app's write
+/// effects name: the canonical handles and associations it read (its own
+/// included), the Evidence graphs whose records it shows, and the Sources whose
+/// words it shows. Nothing reads it yet.
+struct CatalogPageInputs: Sendable, Equatable {
+    var handles: Set<String> = []
+    var evidenceGraphs: Set<String> = []
+    var sources: Set<String> = []
+}
+
+/// A Person's accepted claims grouped by Source, and what the read was built from.
+struct CatalogPersonClaims: Sendable, Equatable {
+    var groups: [CatalogPersonClaimGroup] = []
+    var inputs = CatalogPageInputs()
+}
+
 /// The accepted claims of one Person that come from one Source. The Source's
 /// type is its id; the app resolves the label from the source types list.
 struct CatalogPersonClaimGroup: Sendable, Equatable {
@@ -725,6 +741,7 @@ struct CatalogPersonFamily: Sendable, Equatable {
     /// Every sibling once with the person among them, in the order the page
     /// draws them.
     var originSiblings: [CatalogOriginSibling] = []
+    var inputs = CatalogPageInputs()
 }
 
 /// One event of a Person's timeline (S13-05): an event the person took part in
@@ -782,6 +799,7 @@ struct CatalogPersonTimeline: Sendable, Equatable {
     var events: [CatalogPersonEvent] = []
     var birth = CatalogLifeMarker()
     var death = CatalogLifeMarker()
+    var inputs = CatalogPageInputs()
 }
 
 /// How heavily a record link weighs. Facts are not sent.
@@ -826,6 +844,7 @@ struct CatalogPersonRecordLinks: Sendable, Equatable {
     var notCounted = false
     /// More lines were found than Go sends (`persondetail.maxRecordLinkLines`), strong lines first.
     var linesDropped = false
+    var inputs = CatalogPageInputs()
 }
 
 /// One other canonical person on an event and their role terms.
@@ -904,6 +923,7 @@ struct CatalogConclusionDetail: Sendable, Equatable {
     /// A Person's life rows: the records of each field a row reads off another
     /// handle, keyed by that handle (S13-06). Empty for every other kind.
     var derivedRows: [CatalogDerivedRow] = []
+    var inputs = CatalogPageInputs()
 }
 
 /// A Person life row whose value is read off other handles.
@@ -1719,7 +1739,7 @@ protocol GenealogyStore: Sendable {
     /// A Person's accepted claims grouped by Source, in Go's order (Source title,
     /// then Source ref; claims by Evidence graph name, then ref). Throws
     /// `conclusiondetails.not_found` for an unknown or merged handle.
-    func listPersonClaims(projectDir: String, entityID: String) async throws -> [CatalogPersonClaimGroup]
+    func listPersonClaims(projectDir: String, entityID: String) async throws -> CatalogPersonClaims
     /// A Person's family units (S13-04). Throws `conclusiondetails.not_found`
     /// for an unknown or merged handle.
     func getPersonFamily(projectDir: String, entityID: String) async throws -> CatalogPersonFamily
