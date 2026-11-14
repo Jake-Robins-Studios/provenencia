@@ -15,10 +15,10 @@ import (
 // Citation on the first Artifact with one Observation on the place Subject, and
 // the Source's Default graph.
 type graphFixture struct {
-	dir, userID, typeID                string
-	sourceID, page1, page2             string
-	subjectID, citationID, citationRef string
-	defaultGraphID                     string
+	dir, userID, typeID    string
+	sourceID, page1, page2 string
+	subjectID              string
+	defaultGraphID         string
 }
 
 func newGraphFixture(t *testing.T) graphFixture {
@@ -31,8 +31,6 @@ func newGraphFixture(t *testing.T) graphFixture {
 		ProjectDir: dir, UserId: userID, ArtifactId: page1, GraphId: graphLinking(t, dir, page1), LocatorJson: validLocatorJSON,
 		Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: toponymID, ValueText: "Boston"}},
 	}, &cit)
-	f.citationID = cit.GetCitation().GetId()
-	f.citationRef = cit.GetCitation().GetRef()
 	graphs := f.graphsOf(t, sourceID)
 	if len(graphs) != 1 {
 		t.Fatalf("graphs %+v", graphs)
@@ -403,21 +401,15 @@ func TestGetEvidenceGraphUnlinkImpact(t *testing.T) {
 	}
 	inUse, last, need := resp.GetBlocked()[0], resp.GetBlocked()[1], resp.GetBlocked()[2]
 
-	g := inUse.GetCitations()
 	if inUse.GetGraphId() != f.defaultGraphID || inUse.GetArtifactId() != f.page1 || inUse.GetReasonCode() != "evidencegraphs.artifact_in_use" ||
-		g.GetVia() != evidencegraphs.UnlinkVia || g.GetKind() != "citation" || g.GetTotal() != 1 || len(g.GetListed()) != 1 {
+		inUse.GetCitationCount() != 1 {
 		t.Fatalf("in use %+v", inUse)
 	}
-	if l := g.GetListed()[0]; l.GetId() != f.citationID || l.GetRef() != f.citationRef || l.GetLocation().GetSourceSurface() != "citationComposer" {
-		t.Fatalf("listed %+v", l)
-	}
-	if last.GetGraphId() != solo || last.GetArtifactId() != lone || last.GetReasonCode() != "evidencegraphs.last_artifact" || last.GetCitations() != nil {
+	if last.GetGraphId() != solo || last.GetArtifactId() != lone || last.GetReasonCode() != "evidencegraphs.last_artifact" || last.GetCitationCount() != 0 {
 		t.Fatalf("last artifact %+v", last)
 	}
-	ng := need.GetCitations()
 	if need.GetGraphId() != f.defaultGraphID || need.GetArtifactId() != needy || need.GetReasonCode() != "evidencegraphs.artifact_in_use" ||
-		ng.GetVia() != evidencegraphs.UnlinkVia || ng.GetKind() != "citation" || ng.GetTotal() != 1 ||
-		len(ng.GetListed()) != 1 || ng.GetListed()[0].GetId() != needyCit.GetCitation().GetId() {
+		need.GetCitationCount() != 1 {
 		t.Fatalf("empty Citation in use %+v", need)
 	}
 

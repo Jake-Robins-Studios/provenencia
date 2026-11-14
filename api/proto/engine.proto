@@ -548,9 +548,11 @@ message GetEvidenceGraphUnlinkImpactRequest {
 
 message EvidenceGraphUnlinkBlock {
   string artifact_id = 1;
-  DeleteImpactGroup citations = 2; // empty for last_artifact
+  reserved 2;
+  reserved "citations";
   string graph_id = 3;
   string reason_code = 4; // the refusal's apperr code
+  int32 citation_count = 5; // the graph's Citations on the Artifact; 0 for last_artifact
 }
 
 message GetEvidenceGraphUnlinkImpactResponse {

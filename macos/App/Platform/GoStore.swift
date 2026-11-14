@@ -604,7 +604,7 @@ struct GoStore: GenealogyStore {
                 graphID: $0.graphID,
                 artifactID: $0.artifactID,
                 reason: EvidenceGraphUnlinkReason(wire: $0.reasonCode),
-                citations: Self.mapDeleteImpactGroup($0.citations)
+                citationCount: Int($0.citationCount)
             )
         }
     }

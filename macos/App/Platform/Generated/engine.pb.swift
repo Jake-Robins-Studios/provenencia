@@ -2124,26 +2124,17 @@ public nonisolated struct Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: Sendab
 
   public var artifactID: String = String()
 
-  /// empty for last_artifact
-  public var citations: Provenencia_Engine_V1_DeleteImpactGroup {
-    get {_citations ?? Provenencia_Engine_V1_DeleteImpactGroup()}
-    set {_citations = newValue}
-  }
-  /// Returns true if `citations` has been explicitly set.
-  public var hasCitations: Bool {self._citations != nil}
-  /// Clears the value of `citations`. Subsequent reads from it will return its default value.
-  public mutating func clearCitations() {self._citations = nil}
-
   public var graphID: String = String()
 
   /// the refusal's apperr code
   public var reasonCode: String = String()
 
+  /// the graph's Citations on the Artifact; 0 for last_artifact
+  public var citationCount: Int32 = 0
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
-
-  fileprivate var _citations: Provenencia_Engine_V1_DeleteImpactGroup? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResponse: Sendable {
@@ -10965,7 +10956,7 @@ nonisolated extension Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactRequest:
 
 nonisolated extension Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EvidenceGraphUnlinkBlock"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}artifact_id\0\u{1}citations\0\u{3}graph_id\0\u{3}reason_code\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}artifact_id\0\u{4}\u{2}graph_id\0\u{3}reason_code\0\u{3}citation_count\0\u{b}citations\0\u{c}\u{2}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -10974,39 +10965,35 @@ nonisolated extension Provenencia_Engine_V1_EvidenceGraphUnlinkBlock: SwiftProto
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.artifactID) }()
-      case 2: try { try decoder.decodeSingularMessageField(value: &self._citations) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.graphID) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.reasonCode) }()
+      case 5: try { try decoder.decodeSingularInt32Field(value: &self.citationCount) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.artifactID.isEmpty {
       try visitor.visitSingularStringField(value: self.artifactID, fieldNumber: 1)
     }
-    try { if let v = self._citations {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-    } }()
     if !self.graphID.isEmpty {
       try visitor.visitSingularStringField(value: self.graphID, fieldNumber: 3)
     }
     if !self.reasonCode.isEmpty {
       try visitor.visitSingularStringField(value: self.reasonCode, fieldNumber: 4)
     }
+    if self.citationCount != 0 {
+      try visitor.visitSingularInt32Field(value: self.citationCount, fieldNumber: 5)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_EvidenceGraphUnlinkBlock, rhs: Provenencia_Engine_V1_EvidenceGraphUnlinkBlock) -> Bool {
     if lhs.artifactID != rhs.artifactID {return false}
-    if lhs._citations != rhs._citations {return false}
     if lhs.graphID != rhs.graphID {return false}
     if lhs.reasonCode != rhs.reasonCode {return false}
+    if lhs.citationCount != rhs.citationCount {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

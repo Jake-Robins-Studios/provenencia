@@ -113,7 +113,7 @@ final class SourceGraphFormModel {
     /// composer" link under its row. A lock with none (the graph's last
     /// Artifact) shows only its reason.
     var composerLinkArtifactIDs: Set<String> {
-        Set(blocks.filter { $0.citations.total > 0 }.map(\.artifactID))
+        Set(blocks.filter { $0.citationCount > 0 }.map(\.artifactID))
             .intersection(artifacts.map(\.id))
     }
 

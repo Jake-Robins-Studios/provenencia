@@ -607,10 +607,7 @@ func TestMembership(t *testing.T) {
 	b := f.newArtifact(t, src, "Page 2")
 	f.link(t, graph, a)
 	f.link(t, graph, b)
-	subject, cit := f.subjectAndCitation(t, src, a)
-	// A second Citation on the same Artifact with no Observation is in the
-	// graph it was made in, like the first.
-	bare := f.bareCitation(t, graph, a)
+	subject, _ := f.subjectAndCitation(t, src, a)
 
 	db, err := f.c.DB()
 	if err != nil {
@@ -635,26 +632,6 @@ func TestMembership(t *testing.T) {
 	}
 	if ok, err := evidencegraphs.IsLinkedTx(tx, graph, unknown); err != nil || ok {
 		t.Fatalf("IsLinkedTx unlinked %v %v", ok, err)
-	}
-	ids, err := evidencegraphs.CitationsUsingArtifactTx(tx, graph, a)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ids) != 2 {
-		t.Fatalf("citations %+v want two", ids)
-	}
-	got := map[string]string{}
-	for _, l := range ids {
-		got[string(l.ID)] = l.Ref
-	}
-	if got[string(cit.ID)] != cit.Ref || got[string(bare.ID)] != bare.Ref {
-		t.Fatalf("citations %+v want %q and %q", ids, cit.Ref, bare.Ref)
-	}
-	if ids, err := evidencegraphs.CitationsUsingArtifactTx(tx, graph, b); err != nil || len(ids) != 0 {
-		t.Fatalf("other Artifact: %v %x", err, ids)
-	}
-	if _, err := evidencegraphs.CitationsUsingArtifactTx(tx, graph[:15], a); !errors.Is(err, evidencegraphs.ErrInvalid) {
-		t.Fatalf("short id: %v", err)
 	}
 	if err := tx.Rollback(); err != nil {
 		t.Fatal(err)
@@ -689,7 +666,7 @@ func TestUnlinkImpact(t *testing.T) {
 		f.link(t, def, a)
 	}
 	// subjectAndCitation reads the Source's sole graph, so it runs first.
-	_, citU := f.subjectAndCitation(t, src, u)
+	_, _ = f.subjectAndCitation(t, src, u)
 	jones, _, err := f.createGraph(t, evidencegraphs.CreateInput{SourceID: src.ID, Name: "Jones", ArtifactIDs: [][]byte{u, x}})
 	if err != nil {
 		t.Fatal(err)
@@ -698,8 +675,9 @@ func TestUnlinkImpact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	citW := f.bareCitation(t, def, w)
-	citX := f.bareCitation(t, jones.ID, x)
+	f.bareCitation(t, def, u) // a second Citation on Default,U
+	f.bareCitation(t, def, w)
+	f.bareCitation(t, jones.ID, x)
 
 	// Default,U: a Citation with an Observation is in Default on U. Solo,P:
 	// Solo's only link. Default,W: a Citation with no Observation is in Default
@@ -725,32 +703,20 @@ func TestUnlinkImpact(t *testing.T) {
 		want := []struct {
 			graph, artifact []byte
 			reason          error
-			via             string
-			cit             []byte
-			locGraph        []byte
+			citations       int
 		}{
-			{def, u, evidencegraphs.ErrArtifactInUse, evidencegraphs.UnlinkVia, citU.ID, def},
-			{solo.ID, p, evidencegraphs.ErrLastArtifact, "", nil, nil},
-			{def, w, evidencegraphs.ErrArtifactInUse, evidencegraphs.UnlinkVia, citW.ID, def},
-			{jones.ID, x, evidencegraphs.ErrArtifactInUse, evidencegraphs.UnlinkVia, citX.ID, jones.ID},
+			{def, u, evidencegraphs.ErrArtifactInUse, 2},
+			{solo.ID, p, evidencegraphs.ErrLastArtifact, 0},
+			{def, w, evidencegraphs.ErrArtifactInUse, 1},
+			{jones.ID, x, evidencegraphs.ErrArtifactInUse, 1},
 		}
 		for i, w := range want {
 			b := blocks[i]
 			if !bytes.Equal(b.GraphID, w.graph) || !bytes.Equal(b.ArtifactID, w.artifact) || b.Reason != w.reason {
 				t.Fatalf("block %d: %+v", i, b)
 			}
-			g := b.Citations
-			if w.via == "" {
-				if g.Via != "" || g.Total != 0 || len(g.Listed) != 0 {
-					t.Fatalf("block %d: last_artifact group %+v", i, g)
-				}
-				continue
-			}
-			if g.Via != w.via || g.Kind != catalogmodel.KindCitation || g.Total != 1 || len(g.Listed) != 1 || !bytes.Equal(g.Listed[0].ID, w.cit) {
-				t.Fatalf("block %d: group %+v", i, g)
-			}
-			if l := g.Listed[0]; l.Title == "" || l.Location.SourceSurface != "citationComposer" || l.Location.GraphID != uuid.Must(uuid.FromBytes(w.locGraph)).String() {
-				t.Fatalf("block %d: listed %+v, want graph %x", i, l, w.locGraph)
+			if b.CitationCount != w.citations {
+				t.Fatalf("block %d: %d Citations, want %d", i, b.CitationCount, w.citations)
 			}
 		}
 	})

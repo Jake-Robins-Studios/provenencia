@@ -220,12 +220,10 @@ func GetEvidenceGraphUnlinkImpact(in []byte) ([]byte, error) {
 		out = &engine.GetEvidenceGraphUnlinkImpactResponse{}
 		for _, b := range blocks {
 			block := &engine.EvidenceGraphUnlinkBlock{
-				GraphId:    database.UUIDString(b.GraphID),
-				ArtifactId: database.UUIDString(b.ArtifactID),
-				ReasonCode: apperr.From(b.Reason).Code(),
-			}
-			if b.Citations.Via != "" {
-				block.Citations = groupToProto(b.Citations)
+				GraphId:       database.UUIDString(b.GraphID),
+				ArtifactId:    database.UUIDString(b.ArtifactID),
+				ReasonCode:    apperr.From(b.Reason).Code(),
+				CitationCount: int32(b.CitationCount),
 			}
 			out.Blocked = append(out.Blocked, block)
 		}

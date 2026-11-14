@@ -127,14 +127,13 @@ struct CatalogEvidenceGraphArtifactPair: Sendable, Equatable {
     var artifactID: String
 }
 
-/// A pair whose unlink the engine refuses, with why and, for a Citation
-/// reason, those Citations shaped for the DeleteImpact recipe (empty for
-/// `.lastArtifact`).
+/// A pair whose unlink the engine refuses, with why and, for `.artifactInUse`,
+/// how many of the graph's Citations are on the Artifact (0 for `.lastArtifact`).
 struct CatalogEvidenceGraphUnlinkBlock: Sendable, Equatable {
     var graphID: String
     var artifactID: String
     var reason: EvidenceGraphUnlinkReason
-    var citations: CatalogDeleteImpactGroup
+    var citationCount: Int
 }
 
 extension CatalogArtifact {
