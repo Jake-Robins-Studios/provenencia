@@ -171,3 +171,6 @@ Nits (logged): `ORC-1 · core/database/evidencegraphs/evidencegraphs.go:65 · sq
 No review round (user-directed; no round 3 without the user).
 
 Gate PASS · CI green · open: none
+
+## Round 3 — review (user, 2026-11-14: "Yes, review round 4")
+Scope `ea7e3184f...914f7b54d` (fix rounds 3's tail and 4: F-10, F-11, F-12). Reviewers: CON, MNT, UX (`macos/App/**`, strings), SEC+PRF (`api/ffi/**`, proto, `core/database/**` query). Skipped: none.
