@@ -629,6 +629,14 @@ func BenchmarkCacheSizes(b *testing.B) {
 				places, err = conclusionsummaries.ListPlaces(c)
 				must(b, err)
 			})
+			measure("placeSuccession", func() {
+				ids := make([][]byte, len(places))
+				for i := range places {
+					ids[i] = places[i].Entity.ID
+				}
+				_, err := conclusionsummaries.FiledPlaceLinks(g, vocabkey.TermSucceededBy, ids)
+				must(b, err)
+			})
 			measure("placePages", func() {
 				for i := range places {
 					must(b, conclusionsummaries.AttachPlaceRelationships(c, &places[i]))

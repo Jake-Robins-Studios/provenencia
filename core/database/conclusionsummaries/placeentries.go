@@ -8,6 +8,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/hops"
 	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
 // maxPlaceEntries caps the place entries one graph holds. It matches the other
@@ -308,4 +309,51 @@ func orientPlaceLink(v vocab, id []byte, l graphcache.Link, assocs map[string]*g
 		from: append([]byte(nil), from...), to: append([]byte(nil), to...),
 		association: append([]byte(nil), l.Association...), start: d.start, end: d.end,
 	}, nil
+}
+
+// FiledPlaceLinks returns, for each place in ids, the places its filed links of
+// term lead to, from the part to the whole (part_of) or from the predecessor to
+// the successor (succeeded_by), each list in link order with a repeated end kept
+// once. A place with no entity row, or no link, is absent from the answer. A
+// place that is part of itself leads to itself. It reads the chain entries for
+// part_of and the succession entries for succeeded_by, and no date but the
+// ones those entries decode. Any other term is an error.
+func FiledPlaceLinks(g *graphcache.Graph, term vocabkey.BridgeTerm, ids [][]byte) (map[string][][]byte, error) {
+	v, err := vocabulary(g)
+	if err != nil {
+		return nil, err
+	}
+	links := map[string][]placeLink{}
+	switch term {
+	case vocabkey.TermPartOf:
+		entries, err := placeEntries.of(g, v, ids)
+		if err != nil {
+			return nil, err
+		}
+		for id, e := range entries {
+			links[id] = e.partFrom
+		}
+	case vocabkey.TermSucceededBy:
+		successions, err := placeSuccessions.of(g, v, ids)
+		if err != nil {
+			return nil, err
+		}
+		for id, s := range successions {
+			links[id] = s.succFrom
+		}
+	default:
+		return nil, fmt.Errorf("conclusionsummaries: no filed place links of term %q", term)
+	}
+	out := make(map[string][][]byte, len(links))
+	for id, ls := range links {
+		seen := map[string]bool{}
+		for _, l := range ls {
+			if seen[string(l.to)] {
+				continue
+			}
+			seen[string(l.to)] = true
+			out[id] = append(out[id], l.to)
+		}
+	}
+	return out, nil
 }

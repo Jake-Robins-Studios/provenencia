@@ -279,6 +279,9 @@ func TestPlaceEntries(t *testing.T) {
 			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h); err == nil {
 				t.Error("AttachPlaceRelationships read a bad succession date without error")
 			}
+			if _, err := conclusionsummaries.FiledPlaceLinks(g, vocabkey.TermSucceededBy, [][]byte{aID}); err == nil {
+				t.Error("FiledPlaceLinks read a bad succession date without error")
+			}
 		}},
 		{"bad part date", func(t *testing.T, f *fixture, w *chainWorld) {
 			g := f.C.Graph()
@@ -341,6 +344,9 @@ func TestPlaceEntries(t *testing.T) {
 			if err := conclusionsummaries.FillPlaceSuccessionsForTest(g, w.city); err != nil {
 				t.Errorf("the city's succession read a part link's date: %v", err)
 			}
+			if _, err := conclusionsummaries.FiledPlaceLinks(g, vocabkey.TermSucceededBy, [][]byte{w.city}); err != nil {
+				t.Errorf("FiledPlaceLinks of the city's successors read a part link's date: %v", err)
+			}
 			h := conclusionsummaries.PlaceSummary{}
 			h.Entity.ID = w.city
 			if err := conclusionsummaries.AttachPlaceRelationships(f.C, &h); err == nil {
@@ -397,27 +403,33 @@ func TestPlaceEntries(t *testing.T) {
 	})
 }
 
-// TestPlaceEntriesFollowLinkMoves holds the three cases whose commits move a
-// place's links without writing the place. The city's page is held too, and a
-// link at it drops the page.
+// TestPlaceEntriesFollowLinkMoves holds the cases whose commits move a
+// place's links without writing the place. The city's page and succession
+// entry are held too. An input key names a bridge end, not a term, so a link at
+// the city drops both entries: the predecessor end a succession entry follows is
+// the whole end a page follows.
 func TestPlaceEntriesFollowLinkMoves(t *testing.T) {
 	tests := []struct {
 		name string
 		move func(k *graphcachetest.Canon, town, city, region []byte)
 		held [3]bool // town, city, region
 		page bool    // the city's page is held
+		succ bool    // the city's succession entry is held
 	}{
 		{"a location at the city", func(k *graphcachetest.Canon, town, city, region []byte) {
 			k.Commit(k.Location(k.Event(vocabkey.EventBirth), city))
-		}, [3]bool{true, true, true}, true},
+		}, [3]bool{true, true, true}, true, true},
 		{"a new part_of link at the city", func(k *graphcachetest.Canon, town, city, region []byte) {
 			k.Commit(k.PartOf(k.Entity("place"), city))
-		}, [3]bool{true, false, true}, false},
+		}, [3]bool{true, false, true}, false, false},
+		{"a new succeeded_by link at the city", func(k *graphcachetest.Canon, town, city, region []byte) {
+			k.Commit(k.Link("place_relationship", map[string][]byte{"from": city, "to": k.Entity("place")}, "place_relationship_type", "succeeded_by"))
+		}, [3]bool{true, false, true}, false, false},
 		{"a merge of the region", func(k *graphcachetest.Canon, town, city, region []byte) {
 			into := k.Entity("place")
 			k.Merge(region, into)
 			k.Commit(region, into)
-		}, [3]bool{true, false, false}, false},
+		}, [3]bool{true, false, false}, false, false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -430,6 +442,7 @@ func TestPlaceEntriesFollowLinkMoves(t *testing.T) {
 			g := c.Graph()
 			must(t, conclusionsummaries.FillPlaceEntriesForTest(g, town, city, region))
 			must(t, conclusionsummaries.FillPlacePagesForTest(g, city))
+			must(t, conclusionsummaries.FillPlaceSuccessionsForTest(g, city))
 			tc.move(k, town, city, region)
 			for i, id := range [][]byte{town, city, region} {
 				if got := conclusionsummaries.HeldPlaceEntryForTest(g, id); got != tc.held[i] {
@@ -438,6 +451,9 @@ func TestPlaceEntriesFollowLinkMoves(t *testing.T) {
 			}
 			if held, _ := conclusionsummaries.PlacePageForTest(g, city); held != tc.page {
 				t.Errorf("the city's page held %v, want %v", held, tc.page)
+			}
+			if held, _ := conclusionsummaries.PlaceSuccessionForTest(g, city); held != tc.succ {
+				t.Errorf("the city's succession entry held %v, want %v", held, tc.succ)
 			}
 		})
 	}
@@ -520,6 +536,65 @@ func sortedKeys(keys []graphcache.InputKey) []graphcache.InputKey {
 		return strings.Compare(fmt.Sprintf("%x|%s|%s", a.ID, a.Bridge, a.Endpoint), fmt.Sprintf("%x|%s|%s", b.ID, b.Bridge, b.Endpoint))
 	})
 	return out
+}
+
+func TestFiledPlaceLinks(t *testing.T) {
+	c := graphcachetest.OpenCatalog(t)
+	k := graphcachetest.NewCanon(t, c)
+	town, city, region, loop := k.Entity("place"), k.Entity("place"), k.Entity("place"), k.Entity("place")
+	upper, west, unknown := k.Entity("place"), k.Entity("place"), bytes.Repeat([]byte{0xee}, 16)
+	townRel := k.PartOf(town, city)
+	k.PartOf(city, region)
+	k.PartOf(loop, loop)
+	succ := func(from, to []byte) []byte {
+		return k.Link("place_relationship", map[string][]byte{"from": from, "to": to}, "place_relationship_type", "succeeded_by")
+	}
+	succ(upper, west)
+	k.Commit(town, city, region, loop, upper, west)
+	g := c.Graph()
+	g.Drop()
+	read := func(term vocabkey.BridgeTerm, id []byte) ([][]byte, error) {
+		got, err := conclusionsummaries.FiledPlaceLinks(g, term, [][]byte{id})
+		return got[string(id)], err
+	}
+	tests := []struct {
+		name string
+		term vocabkey.BridgeTerm
+		id   []byte
+		want [][]byte
+	}{
+		{"part_of of the town", vocabkey.TermPartOf, town, [][]byte{city}},
+		{"part_of of the city", vocabkey.TermPartOf, city, [][]byte{region}},
+		{"part_of of a place with no wholes", vocabkey.TermPartOf, region, nil},
+		{"a place part of itself", vocabkey.TermPartOf, loop, [][]byte{loop}},
+		{"succeeded_by of the predecessor", vocabkey.TermSucceededBy, upper, [][]byte{west}},
+		{"succeeded_by of the successor", vocabkey.TermSucceededBy, west, nil},
+		{"a place with no entity row", vocabkey.TermPartOf, unknown, nil},
+		{"succeeded_by of a place with no entity row", vocabkey.TermSucceededBy, unknown, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := read(tc.term, tc.id)
+			must(t, err)
+			if !slices.EqualFunc(got, tc.want, bytes.Equal) {
+				t.Fatalf("links = %x, want %x", got, tc.want)
+			}
+		})
+	}
+	t.Run("a removed link reads gone", func(t *testing.T) {
+		k.Remove(townRel)
+		k.Commit(town, city, townRel)
+		got, err := read(vocabkey.TermPartOf, town)
+		must(t, err)
+		if len(got) != 0 {
+			t.Fatalf("links = %x after the link was removed", got)
+		}
+	})
+	t.Run("an unknown term", func(t *testing.T) {
+		if _, err := read(vocabkey.TermSpouse, town); err == nil {
+			t.Fatal("a term with no place entry read without error")
+		}
+	})
 }
 
 // meshWorld is the crafted part_of mesh BenchmarkPlaceMesh reads: a hub with
