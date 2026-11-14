@@ -3,8 +3,8 @@
 **Status:** Blocked — on board S15-D5
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/S15-D5-evidence-graph-form.review.md)), board not agreed yet
-**Board:** — (the agreed board's link and frame names are copied here from the brief's **Board** line when the user agrees it)
+**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/S15-D5-evidence-graph-form.review.md)), board agreed 2026-11-14
+**Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, rows "Evidence graphs" (g-values, g-values-wide, g-read-failed) and "Evidence graph form" (gf-meta-*). Frame map: brief 1a/1b → g-values/g-values-wide; 2 → gf-meta-add; 3a → gf-meta-edit; 3b → gf-meta-addrow; 4 → gf-meta-nosugg; 5 → gf-meta-discard; 6 → gf-meta-saving, gf-meta-refused, gf-meta-openfield; 7a → gf-meta-sixty; 7b → gf-meta-long; 7c → gf-meta-narrow; 8 → g-read-failed. Open the link in a browser; if you cannot, §6 macOS and D-9 describe every frame
 **Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-36 (landed #810), S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-D5
 **Blocks:** S15-39
 **Branch:** `s15-11-graph-metadata`
