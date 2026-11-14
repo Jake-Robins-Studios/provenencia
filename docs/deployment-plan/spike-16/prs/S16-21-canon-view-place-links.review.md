@@ -1,7 +1,7 @@
 # Review — S16-21 Promote's alignment reads a canon view and the place entries
 
-**Verdict:** Fits with changes — Ready with changes (round 1; round 2 pending)
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (two rounds; no open blocker)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - None.
@@ -11,6 +11,7 @@
 - D-11: a `part_of` link with an unreadable date that the loop check reaches fails the proposal, as it fails that place's chain everywhere else.
 - D-10: `promotealign` imports `conclusionsummaries` in production (S16-18 review M-8).
 - The event-type property lookup S16-20 deferred to this PR goes to S16-22, whose walk removal deletes one of the two lookups.
+- D-16: a layer self-loop (a Source place `part_of` itself) now reads both keys in Align, as the canon side does; no test held the old reading.
 - M-2's fix widens the PR into the filer (`identityclaims.fileBridge`): it keeps reading its own transaction, but decides through `connectrules.Filed`.
 
 ## Round 1
@@ -77,3 +78,15 @@ Also: the base checkout for D-13 is a `git worktree add` at `ba2d35a`.
 
 ### X-14 · nit · Stale comment at `align_test.go:92`
 **Answer:** Fixed — STEP-4's Do.
+
+### M-6 · blocker · T-1 and §6 Edges still pin the rejected turned-link contract
+**Answer:** Fixed — same fix as X-9.
+
+### M-7 · blocker · `newState` keeps a second end-reading rule, deferred on an unchecked premise
+The reviewer searched the `graphalign` and `promotealign` tests: no golden or invariant holds a layer self-loop.
+**Answer:** Fixed — D-16 moves the layer loop onto `Edge.Readings`; T-12 adds a self-loop case to `TestAlignInvariants`; the Out row and the planned debt row are withdrawn. A Source place `part_of` itself now reads both keys, as the canon side does (listed under Writer's own calls).
+
+### Below blocker (taken)
+- The exported `connectrules.Decide` would have no caller beside `Filed.Decide`: D-6 unexports it.
+- §6 Neighbors' "one `linkKey` each" → "one `Filed` key each".
+- Not taken: deleting `align_test.go`'s `edge` and `canonOf` helpers (test tidying the plan does not need).
