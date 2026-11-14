@@ -1280,7 +1280,7 @@ func placeStep(c *database.Catalog, id []byte) (*placeGraph, error) {
 	}
 	succession := successions[string(id)]
 	pg.pages[string(id)] = page
-	pg.succession[string(id)] = succession
+	pg.successions[string(id)] = succession
 	neighbors := [][]byte{id}
 	for _, links := range [][]placeLink{page.partTo, succession.succFrom, succession.succTo} {
 		for _, l := range links {

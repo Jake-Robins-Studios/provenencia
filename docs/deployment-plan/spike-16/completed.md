@@ -4,7 +4,7 @@ One short paragraph per landed PR, newest first. Written by the PR that lands it
 
 ## S16-21 — Promote's alignment reads a canon view and the place entries
 
-**Landed 2026-11-14** in [#836](https://github.com/mendahu/provenencia/pull/836). Nothing a researcher sees changes. `Align` reads the canon through `graphalign.CanonView` with `kinship.Link`s (`CanonEdge` is gone), and Promote's place loop check reads the filed `part_of` and `succeeded_by` links from the place entries (succession in its own `conclusionsummaries.placeSuccession` entry) one level at a time instead of from the canon walk's edges; warm proposals are unchanged at 4,000 and 16,000 persons.
+**Landed 2026-11-14** in [#836](https://github.com/mendahu/provenencia/pull/836). Nothing a researcher sees changes. `Align` reads the canon through `graphalign.CanonView` with `kinship.Link`s (`CanonEdge` is gone), and Promote's place loop check reads the filed `part_of` and `succeeded_by` links from the place entries (succession in its own `conclusionsummaries.placeSuccessions` entry) one level at a time instead of from the canon walk's edges; warm proposals are unchanged at 4,000 and 16,000 persons.
 
 ## S16-16 — Kinship answers are composed from the pivots, and the Family read is one pass
 

@@ -8,7 +8,7 @@ import (
 
 // This file is the filing rule: whether a bridge Subject is filed onto an
 // association, and if not, why. Done's filer (identityclaims) and Promote's
-// proposal (graphalign) both decide through it, so the page says what Done does and
+// proposal (graphalign) both decide through Filed.Decide, so the page says what Done does and
 // a new refusal is one rung here.
 
 // Link is one filed link of an acyclic term, from a record key to a record key.

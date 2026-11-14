@@ -629,7 +629,7 @@ func BenchmarkCacheSizes(b *testing.B) {
 				places, err = conclusionsummaries.ListPlaces(c)
 				must(b, err)
 			})
-			measure("placeSuccession", func() {
+			measure("placeSuccessions", func() {
 				ids := make([][]byte, len(places))
 				for i := range places {
 					ids[i] = places[i].Entity.ID

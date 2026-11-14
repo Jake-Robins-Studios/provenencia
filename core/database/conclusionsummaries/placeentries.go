@@ -114,7 +114,7 @@ func init() {
 		func(e placeEntry) []graphcache.InputKey { return e.inputs })
 	placePages = registerPlaceKeyed("conclusionsummaries.placePages", "place page", fillPlacePages,
 		func(p placePage) []graphcache.InputKey { return p.inputs })
-	placeSuccessions = registerPlaceKeyed("conclusionsummaries.placeSuccession", "place succession", fillPlaceSuccessions,
+	placeSuccessions = registerPlaceKeyed("conclusionsummaries.placeSuccessions", "place succession", fillPlaceSuccessions,
 		func(s placeSuccession) []graphcache.InputKey { return s.inputs })
 }
 
@@ -187,7 +187,7 @@ func followPlaces(g *graphcache.Graph, v vocab, ids [][]byte, hopList ...followH
 // entry whose only input is its own values, so a commit that creates it drops
 // the entry.
 func fillPlaceEntries(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]placeEntry, error) {
-	have, err := followPlaces(g, v, ids, followHop{hop: hops.ParentsOfPlace})
+	have, err := followPlaces(g, v, ids, entryHops...)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func fillPlaceEntries(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]pl
 		id = append([]byte(nil), id...)
 		f := have[string(id)]
 		if f == nil {
-			out[string(id)] = placeEntry{inputs: []graphcache.InputKey{graphcache.NodeKey(id)}}
+			out[string(id)] = placeEntry{inputs: placeInputs(id, nil, entryHops)}
 			continue
 		}
 		shell, err := placeShell(f.n, v)
@@ -205,8 +205,7 @@ func fillPlaceEntries(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]pl
 		}
 		e := placeEntry{found: true, shell: shell, period: periodWindow(shell.StartDate, shell.EndDate)}
 		e.partFrom = dedupePlaceLinks(f.oriented[0])
-		keys := append([]graphcache.InputKey{graphcache.NodeKey(id)}, graphcache.FollowKeys(id, hops.ParentsOfPlace, f.links[0])...)
-		e.inputs = graphcache.UniqueInputKeys(keys)
+		e.inputs = placeInputs(id, f, entryHops)
 		out[string(id)] = e
 	}
 	return out, nil
@@ -228,17 +227,13 @@ func fillPlacePages(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]plac
 	for _, id := range ids {
 		id = append([]byte(nil), id...)
 		f := have[string(id)]
-		keys := []graphcache.InputKey{graphcache.NodeKey(id)}
 		if f == nil {
-			out[string(id)] = placePage{inputs: keys}
+			out[string(id)] = placePage{inputs: placeInputs(id, nil, pageHops)}
 			continue
-		}
-		for i, h := range pageHops {
-			keys = append(keys, graphcache.FollowKeys(id, h.hop, f.links[i])...)
 		}
 		out[string(id)] = placePage{
 			partTo: dedupePlaceLinks(append(f.oriented[0], f.oriented[1]...)),
-			inputs: graphcache.UniqueInputKeys(keys),
+			inputs: placeInputs(id, f, pageHops),
 		}
 	}
 	return out, nil
@@ -257,21 +252,33 @@ func fillPlaceSuccessions(g *graphcache.Graph, v vocab, ids [][]byte) (map[strin
 	for _, id := range ids {
 		id = append([]byte(nil), id...)
 		f := have[string(id)]
-		keys := []graphcache.InputKey{graphcache.NodeKey(id)}
 		if f == nil {
-			out[string(id)] = placeSuccession{inputs: keys}
+			out[string(id)] = placeSuccession{inputs: placeInputs(id, nil, succHops)}
 			continue
-		}
-		for i, h := range succHops {
-			keys = append(keys, graphcache.FollowKeys(id, h.hop, f.links[i])...)
 		}
 		out[string(id)] = placeSuccession{
 			succFrom: dedupePlaceLinks(f.oriented[0]),
 			succTo:   dedupePlaceLinks(f.oriented[1]),
-			inputs:   graphcache.UniqueInputKeys(keys),
+			inputs:   placeInputs(id, f, succHops),
 		}
 	}
 	return out, nil
+}
+
+// entryHops is the one hop an entry follows: the places each place is part of.
+var entryHops = []followHop{{hop: hops.ParentsOfPlace}}
+
+// placeInputs is the one inputs rule of the place fills: the place's node and
+// the keys of each link it followed along hopList. A place that was not found
+// (f nil) has only its node.
+func placeInputs(id []byte, f *followedPlace, hopList []followHop) []graphcache.InputKey {
+	keys := []graphcache.InputKey{graphcache.NodeKey(id)}
+	if f != nil {
+		for i, h := range hopList {
+			keys = append(keys, graphcache.FollowKeys(id, h.hop, f.links[i])...)
+		}
+	}
+	return graphcache.UniqueInputKeys(keys)
 }
 
 // dedupePlaceLinks drops a link repeated on from, to and association, keeping
