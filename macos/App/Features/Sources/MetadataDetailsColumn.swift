@@ -1,16 +1,25 @@
 import SwiftUI
 
-/// An Artifact row's saved copy details, read-only: the first four rows with a
-/// value as field name and value, and "+n more" past them, which opens the
-/// Artifact sheet at its copy details. An Artifact with none draws nothing inside its column.
-struct ArtifactCopyDetailsView: View {
+/// An owner's saved metadata values on its Source page row, read-only: the first four rows with
+/// a value as field name and value, and "+n more" past them, which opens the owner's form at
+/// its metadata. An owner with none draws nothing inside its column. One view for an Artifact
+/// row and an Evidence graph row; the owner decides only its ids.
+struct MetadataDetailsColumn: View {
     static let shownCount = 4
     /// The field-name column.
     static let labelWidth: CGFloat = 96
 
+    /// The column's width: 320pt at Regular, 440pt at Wide.
+    static func width(_ widthClass: PVWidthClass) -> CGFloat {
+        switch widthClass {
+        case .regular: 320
+        case .wide: 440
+        }
+    }
+
     let rows: [CatalogMetadataEntry]
+    let owner: MetadataOwner
     let ref: String
-    let artifactID: String
     let onMore: () -> Void
 
     /// The rows with a value, in saved order: the first four and how many follow.
@@ -18,6 +27,8 @@ struct ArtifactCopyDetailsView: View {
         let valued = rows.filter(\.hasValue)
         return (Array(valued.prefix(shownCount)), max(0, valued.count - shownCount))
     }
+
+    private var idPrefix: String { "sources.page.\(owner.level.rawValue).\(owner.id).details" }
 
     var body: some View {
         let (shown, more) = Self.shown(rows)
@@ -36,7 +47,7 @@ struct ArtifactCopyDetailsView: View {
                                 .gridColumnAlignment(.leading)
                             MetadataValueText(
                                 entry: entry,
-                                accessibilityIdentifier: "sources.page.artifact.\(artifactID).copyDetails.\(entry.field.id)",
+                                accessibilityIdentifier: "\(idPrefix).\(entry.field.id)",
                                 lineLimit: 1,
                                 chrome: false
                             )
@@ -47,15 +58,15 @@ struct ArtifactCopyDetailsView: View {
                     }
                 }
                 if more > 0 {
-                    PVButton(L10n.Sources.artifactCopyDetailsMore(count: more), variant: .link, size: .sm) {
+                    PVButton(L10n.Sources.metadataDetailsMore(count: more), variant: .link, size: .sm) {
                         onMore()
                     }
-                    .accessibilityLabel(L10n.Sources.artifactCopyDetailsMoreLabel(count: more, ref: ref))
-                    .accessibilityIdentifier("sources.page.artifact.\(artifactID).copyDetails.more")
+                    .accessibilityLabel(L10n.Sources.metadataDetailsMoreLabel(count: more, ref: ref))
+                    .accessibilityIdentifier("\(idPrefix).more")
                 }
             }
             .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("sources.page.artifact.\(artifactID).copyDetails")
+            .accessibilityIdentifier(idPrefix)
         }
     }
 }

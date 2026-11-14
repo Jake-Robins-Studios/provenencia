@@ -22,7 +22,7 @@ struct EvidenceGraphStoreTests {
             projectDir: projectDir, userID: userID, sourceID: sourceID,
             name: "Smith", description: "", artifactIDs: ["a1"], metadata: nil
         )
-        let (jones, _) = try await store.createEvidenceGraph(
+        let (jones, _, _) = try await store.createEvidenceGraph(
             projectDir: projectDir, userID: userID, sourceID: sourceID,
             name: " Jones ", description: "Household 12", artifactIDs: ["a1"], metadata: nil
         )
@@ -50,11 +50,11 @@ struct EvidenceGraphStoreTests {
         let store = seededStore()
         store.nextWriteEffects = CatalogWriteEffects(lists: [.propertyVocabulary])
         let expected: Set<CatalogList> = [.propertyVocabulary]
-        let (made, created) = try await store.createEvidenceGraph(
+        let (made, _, created) = try await store.createEvidenceGraph(
             projectDir: projectDir, userID: userID, sourceID: sourceID,
             name: "Jones", description: "", artifactIDs: ["a1"], metadata: nil
         )
-        let updated = try await store.updateEvidenceGraph(
+        let (_, updated) = try await store.updateEvidenceGraph(
             projectDir: projectDir, userID: userID, graphID: made.id,
             name: "Jones family", description: "", artifactIDs: ["a2"], metadata: nil
         )

@@ -47,7 +47,7 @@ final class SourcePageMetadataHost: MetadataBoardHost {
     }
 
     var entries: [CatalogMetadataEntry] {
-        get { context.workspace?.metadataRows(for: owner) ?? [] }
+        get { context.metadataRows(for: owner) }
         set {
             guard var workspace = context.workspace else { return }
             workspace.setMetadataRows(newValue, for: owner)
@@ -85,9 +85,7 @@ final class SourcePageMetadataHost: MetadataBoardHost {
     }
 
     func didWrite(_ effects: CatalogWriteEffects) {
-        context.session.apply(
-            effects, .wroteMetadataBoard(sourceId: context.sourceID, owner: owner, entries: entries)
-        )
+        context.applySavedMetadata(entries, owner: owner, effects: effects)
     }
     func clearFailure() { context.clearPageError() }
     func failureMessage(for error: Error) -> String? { context.fail(error) }

@@ -12,23 +12,39 @@ struct SourceGraphFormDraft: Equatable {
 }
 
 /// State of the Evidence graph form, for one new graph or one existing one:
-/// the draft, the Artifacts the engine says the graph must keep linked (read
-/// when an edit opens), and the one write that saves it. The Source page presents
+/// the draft, its metadata board, the Artifacts the engine says the graph must
+/// keep linked (read when an edit opens), and the one write that saves it. The Source page presents
 /// it through `View.sourceGraphFormDialog`.
 @MainActor
 @Observable
 final class SourceGraphFormModel {
     enum Mode {
-        case create
+        /// A new graph; `suggestions` are the Source type's `graph`-level rows, empty.
+        case create(suggestions: [CatalogMetadataEntry])
         case edit(CatalogEvidenceGraph)
     }
 
+    /// Which part of the form its scrolling body opens at the top of.
+    enum Section: Hashable {
+        case top
+        case metadata
+    }
+
     let mode: Mode
+    let opensAt: Section
     var draft: SourceGraphFormDraft
     let prefill: SourceGraphFormDraft
     var nameError: String?
     var saveError: String?
     private(set) var isSaving = false
+    /// The section the scrolling body is asked to scroll to: where the form
+    /// opened (nil at the top), then the top when a Save stops with a message.
+    private(set) var scrollTarget: Section?
+    /// Changes each time a Save asks the body to scroll to `scrollTarget` again.
+    private(set) var scrollRequest = 0
+    /// The graph's metadata draft and the board that edits it.
+    let host: MetadataDraftHost
+    let board: MetadataBoardModel
     /// The linked Artifacts the engine refuses to unlink, with why.
     private let locks: UnlinkLocks
     var loadState: SourceFormLoadState { locks.state }
@@ -36,12 +52,15 @@ final class SourceGraphFormModel {
 
     private let context: SourcePageContext
 
-    init(context: SourcePageContext, mode: Mode) {
+    init(context: SourcePageContext, mode: Mode, opensAt: Section = .top) {
         self.context = context
         self.mode = mode
+        self.opensAt = opensAt
+        scrollTarget = opensAt == .top ? nil : opensAt
         let artifactIDs = (context.workspace?.artifacts ?? []).map(\.id)
         switch mode {
-        case .create:
+        case .create(let suggestions):
+            host = MetadataDraftHost(entries: suggestions, fields: context.fields)
             // A new graph starts with the Artifacts in no graph checked; when
             // the session cannot say, or every Artifact is in a graph, all are.
             var excluded: Set<String> = []
@@ -60,8 +79,13 @@ final class SourceGraphFormModel {
                 excludedArtifactIDs: Set(artifactIDs.filter { !linked.contains($0) })
             )
             locks = UnlinkLocks(state: graph.hasArtifact ? .loading : .ready)
+            host = MetadataDraftHost(
+                entries: context.metadataRows(for: MetadataOwner(level: .graph, id: graph.id)),
+                fields: context.fields
+            )
         }
         draft = prefill
+        board = MetadataBoardModel(host: host)
     }
 
     // MARK: Reads
@@ -109,7 +133,7 @@ final class SourceGraphFormModel {
 
     var canSave: Bool { loadState == .ready && !isSaving && !needsArtifact }
 
-    var isDirty: Bool { draft != prefill }
+    var isDirty: Bool { draft != prefill || board.hasUnsavedChanges }
 
     // MARK: Actions
 
@@ -128,13 +152,25 @@ final class SourceGraphFormModel {
         )
     }
 
-    /// One write. On success returns true for the host to close the form; on
-    /// failure the form keeps every choice.
+    /// A message sits at the top of the body (the save error, the name's error): ask for it.
+    private func scrollToTop() {
+        scrollTarget = .top
+        scrollRequest += 1
+    }
+
+    /// One write: the name, description, links and the metadata draft together. On success
+    /// returns true for the host to close the form; on failure the form keeps every choice.
     func save() async -> Bool {
         guard !isSaving else { return false }
+        if let message = board.unconfirmedInputMessage {
+            saveError = message
+            scrollToTop()
+            return false
+        }
         let name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else {
             nameError = L10n.string(L10n.Sources.graphFormNameRequired)
+            scrollToTop()
             return false
         }
         guard canSave else { return false }
@@ -143,19 +179,20 @@ final class SourceGraphFormModel {
         defer { isSaving = false }
         saveError = nil
         let description = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let metadata = host.draft
         do {
             switch mode {
             case .create:
-                let (graph, effects) = try await context.store.createEvidenceGraph(
+                let (graph, rows, effects) = try await context.store.createEvidenceGraph(
                     projectDir: context.projectDir,
                     userID: context.userID,
                     sourceID: context.sourceID,
                     name: name,
                     description: description,
                     artifactIDs: checkedArtifactIDs,
-                    metadata: nil
+                    metadata: metadata
                 )
-                context.session.apply(effects)
+                context.applySavedMetadata(rows, owner: MetadataOwner(level: .graph, id: graph.id), effects: effects)
                 context.toast = VocabularyToast(
                     title: L10n.string(L10n.Sources.toastGraphAddedTitle),
                     body: L10n.Sources.toastGraphAddedBody(ref: graph.ref),
@@ -163,21 +200,24 @@ final class SourceGraphFormModel {
                 )
             case .edit(let graph):
                 // Empty ids (a Source with no Artifacts) leave the links unchanged.
-                let effects = try await context.store.updateEvidenceGraph(
+                let (rows, effects) = try await context.store.updateEvidenceGraph(
                     projectDir: context.projectDir,
                     userID: context.userID,
                     graphID: graph.id,
                     name: name,
                     description: description,
                     artifactIDs: checkedArtifactIDs,
-                    metadata: nil
+                    metadata: metadata
                 )
-                context.session.apply(effects)
+                context.applySavedMetadata(rows, owner: MetadataOwner(level: .graph, id: graph.id), effects: effects)
             }
+            host.markSaved()
             return true
         } catch {
+            if board.showRefusal(error) { return false }
             let message = L10n.Sources.graphFormSaveErrorMessage(L10n.Errors.message(for: error))
             saveError = message
+            scrollToTop()
             // Any refusal of an edit: the engine's locks may have moved since
             // the form opened (a Citation took an Artifact), so read them again
             // and keep the refusal in view.

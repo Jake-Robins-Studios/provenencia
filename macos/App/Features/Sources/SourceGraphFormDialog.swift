@@ -34,11 +34,14 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
         content.pvFormDialog(
             item: $model,
             copy: copy,
-            width: 520,
+            width: 880,
             isRunning: model?.isSaving ?? false,
             isDirty: model?.isDirty ?? false,
             confirmDisabled: !(model?.canSave ?? false),
             accessibilityIdentifierPrefix: "sources.graphForm",
+            scrollsBody: true,
+            scrollTarget: model?.scrollTarget.map { AnyHashable($0) },
+            scrollRequest: model.map { AnyHashable($0.scrollRequest) },
             onConfirm: { await $0.save() },
             form: { current in
                 SourceGraphForm(
@@ -50,8 +53,9 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
     }
 }
 
-/// The form body: save error, name, description, then the Artifacts the graph
-/// links and, on an edit, the Citations that keep some of them linked.
+/// The form body: the save error across the top, then two columns. Left: name,
+/// description and the metadata board. Right: the Artifacts the graph links and,
+/// on an edit, the Citations that keep some of them linked.
 private struct SourceGraphForm: View {
     @Bindable var model: SourceGraphFormModel
     let onNavigate: (WorkspaceLocation) -> Void
@@ -67,25 +71,47 @@ private struct SourceGraphForm: View {
                 )
                 .accessibilityIdentifier("sources.graphForm.error")
             }
-            fields
+            HStack(alignment: .top, spacing: PVSpacing.space8) {
+                VStack(alignment: .leading, spacing: PVSpacing.space6) {
+                    fields
+                    metadata
+                }
                 .disabled(model.isSaving)
-            PVDivider()
-            VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                SourceFormLoadArea(
-                    state: model.loadState,
-                    loadingText: L10n.Sources.graphFormLoading,
-                    errorTitle: L10n.Sources.graphFormLoadErrorTitle,
-                    errorMessage: L10n.Sources.graphFormLoadErrorMessage,
-                    onReadAgain: { Task { await model.loadKeptLinks() } },
-                    accessibilityIdentifierPrefix: "sources.graphForm"
-                ) {
-                    checklist
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                VStack(alignment: .leading, spacing: PVSpacing.space6) {
+                    SourceFormLoadArea(
+                        state: model.loadState,
+                        loadingText: L10n.Sources.graphFormLoading,
+                        errorTitle: L10n.Sources.graphFormLoadErrorTitle,
+                        errorMessage: L10n.Sources.graphFormLoadErrorMessage,
+                        onReadAgain: { Task { await model.loadKeptLinks() } },
+                        accessibilityIdentifierPrefix: "sources.graphForm"
+                    ) {
+                        checklist
+                    }
+                    if model.loadState == .ready, !model.keptLinked.isEmpty {
+                        keptLinked
+                    }
                 }
-                if model.loadState == .ready, !model.keptLinked.isEmpty {
-                    keptLinked
-                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
+        .id(SourceGraphFormModel.Section.top)
+    }
+
+    private var metadata: some View {
+        PVField(label: L10n.Sources.graphFormMetadataLabel) {
+            MetadataBoardView(
+                board: model.board,
+                placement: .form,
+                accessibilityIdentifierPrefix: "sources.graphForm.metadata",
+                onClear: { id in
+                    // A draft board clears with no confirm.
+                    Task { _ = await model.board.requestClear(fieldID: id) }
+                }
+            )
+        }
+        .id(SourceGraphFormModel.Section.metadata)
     }
 
     private var fields: some View {

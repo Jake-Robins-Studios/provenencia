@@ -15,6 +15,9 @@ final class SourceGraphsSection {
     @ObservationIgnored
     private var formLoad: Task<Void, Never>?
 
+    /// True while `openAdd` reads the type's suggestions, so a second click opens nothing.
+    private(set) var isOpeningAdd = false
+
     init(context: SourcePageContext) {
         self.context = context
     }
@@ -63,9 +66,31 @@ final class SourceGraphsSection {
         return L10n.string(L10n.Sources.addEvidenceGraphNeedsArtifact)
     }
 
-    func openAdd() {
-        guard canAdd else { return }
-        form = SourceGraphFormModel(context: context, mode: .create)
+    /// One graph's saved metadata rows, for its row's values column.
+    func details(for graphID: String) -> [CatalogMetadataEntry] {
+        context.metadataRows(for: MetadataOwner(level: .graph, id: graphID))
+    }
+
+    /// Opens the Add form, its metadata board starting as the Source type's `graph` suggestions,
+    /// empty. Answers the form, or nil when none opened: one is open or opening, or the
+    /// suggestion read failed (the page banner shows the message).
+    @discardableResult
+    func openAdd() async -> SourceGraphFormModel? {
+        guard canAdd, form == nil, !isOpeningAdd else { return nil }
+        isOpeningAdd = true
+        defer { isOpeningAdd = false }
+        let suggestions: [CatalogMetadataEntry]
+        do {
+            suggestions = try await context.unsavedMetadataRows(level: .graph)
+        } catch {
+            context.showFailure(error)
+            return nil
+        }
+        // A form opened while the read ran (an edit from a pencil) is not replaced.
+        guard form == nil else { return nil }
+        let model = SourceGraphFormModel(context: context, mode: .create(suggestions: suggestions))
+        form = model
+        return model
     }
 
     /// The graph with `id` when it belongs to this page's Source.
@@ -74,9 +99,9 @@ final class SourceGraphsSection {
         return graph
     }
 
-    func openEdit(id: String) {
-        guard context.workspace != nil, let graph = ownGraph(id: id) else { return }
-        let model = SourceGraphFormModel(context: context, mode: .edit(graph))
+    func openEdit(id: String, at section: SourceGraphFormModel.Section = .top) {
+        guard !isOpeningAdd, context.workspace != nil, let graph = ownGraph(id: id) else { return }
+        let model = SourceGraphFormModel(context: context, mode: .edit(graph), opensAt: section)
         form = model
         formLoad = Task { await model.loadKeptLinks() }
     }

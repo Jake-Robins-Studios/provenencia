@@ -133,6 +133,20 @@ final class SourcePageContext {
         return handle?.value ?? []
     }
 
+    /// The rows the page holds for an owner's board, empty when it holds none: the one reader
+    /// every section and board host uses.
+    func metadataRows(for owner: MetadataOwner) -> [CatalogMetadataEntry] {
+        workspace?.metadataRows(for: owner) ?? []
+    }
+
+    /// Puts a Save's rows for an owner on the page, then applies its effects with the cache
+    /// patch that carries the same rows, so no reload follows: the one apply every owner's
+    /// metadata write uses (the Artifact sheet, the graph form, the Source's live board).
+    func applySavedMetadata(_ rows: [CatalogMetadataEntry], owner: MetadataOwner, effects: CatalogWriteEffects) {
+        workspace?.setMetadataRows(rows, for: owner)
+        session.apply(effects, .wroteMetadataBoard(sourceId: sourceID, owner: owner, entries: rows))
+    }
+
     /// The rows a new owner's form starts its copy details board with: each suggestion the Source's
     /// type makes at `level`, empty. Read once when the form opens, so it is not a cached query
     /// (a form's rows live as long as the form). A Source with no type has no suggestions.

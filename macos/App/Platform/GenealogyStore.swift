@@ -1303,32 +1303,41 @@ struct CatalogSourceWorkspace: Sendable, Equatable {
     var credibility: CatalogCredibilityAssessment?
     /// Each Artifact's copy details, keyed by Artifact id.
     var artifactMetadata: [String: [CatalogMetadataEntry]] = [:]
+    /// Each Evidence graph's metadata, keyed by graph id.
+    var graphMetadata: [String: [CatalogMetadataEntry]] = [:]
 
     /// The rows an owner's board shows from this workspace, or nil when the
     /// workspace holds no board for that owner (another Source, an Artifact not
-    /// on this Source, an Evidence graph).
+    /// on this Source). The workspace does not list graphs (the graph list
+    /// does), so every graph id has a board here, empty when the read predates it.
     func metadataRows(for owner: MetadataOwner) -> [CatalogMetadataEntry]? {
         switch owner.level {
         case .source:
             return owner.id == source.id ? metadata : nil
         case .artifact:
             return artifacts.contains { $0.id == owner.id } ? (artifactMetadata[owner.id] ?? []) : nil
-        case .graph, .citation:
+        case .graph:
+            return graphMetadata[owner.id] ?? []
+        case .citation:
             return nil
         }
     }
 
-    /// Replaces an owner's rows. Returns false and writes nothing when the
-    /// workspace holds no board for that owner.
+    /// Replaces an owner's rows. Returns false and writes nothing for a Source
+    /// or Artifact this workspace does not hold; an Evidence graph's rows are
+    /// always stored (the graph list says which graphs the Source has).
     @discardableResult
     mutating func setMetadataRows(_ rows: [CatalogMetadataEntry], for owner: MetadataOwner) -> Bool {
-        guard metadataRows(for: owner) != nil else { return false }
         switch owner.level {
         case .source:
+            guard owner.id == source.id else { return false }
             metadata = rows
         case .artifact:
+            guard artifacts.contains(where: { $0.id == owner.id }) else { return false }
             artifactMetadata[owner.id] = rows
-        case .graph, .citation:
+        case .graph:
+            graphMetadata[owner.id] = rows
+        case .citation:
             return false
         }
         return true
@@ -1517,7 +1526,7 @@ protocol GenealogyStore: Sendable {
     /// The project's graphs, or one Source's when `sourceID` is set.
     func listEvidenceGraphs(projectDir: String, sourceID: String?) async throws -> [CatalogEvidenceGraph]
     /// `metadata` nil sends none (a new graph holds none); otherwise the graph's stored values and
-    /// listed layout rows become it, in the same write.
+    /// listed layout rows become it, in the same write. The reply's rows are the new graph's board.
     func createEvidenceGraph(
         projectDir: String,
         userID: String,
@@ -1526,10 +1535,11 @@ protocol GenealogyStore: Sendable {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> (CatalogEvidenceGraph, CatalogWriteEffects)
+    ) async throws -> (graph: CatalogEvidenceGraph, metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects)
     /// Empty `artifactIDs` leaves the links unchanged; otherwise it is the full set. `metadata` nil
     /// sends none (the write leaves metadata as it is); otherwise the graph's stored values and
-    /// listed layout rows become it, in the same write.
+    /// listed layout rows become it, in the same write. The reply's rows are the graph's board after
+    /// the write, the stored one when none was sent.
     func updateEvidenceGraph(
         projectDir: String,
         userID: String,
@@ -1538,7 +1548,7 @@ protocol GenealogyStore: Sendable {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> CatalogWriteEffects
+    ) async throws -> (metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects)
     func deleteEvidenceGraph(projectDir: String, userID: String, graphID: String) async throws -> CatalogWriteEffects
     /// Which of `pairs` an edit would unlink that the engine refuses, in pair order.
     func getEvidenceGraphUnlinkImpact(

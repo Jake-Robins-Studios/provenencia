@@ -32,14 +32,6 @@ enum ArtifactRowAction: CaseIterable {
 struct SourcePageArtifactRow: View {
     static let thumbnailSize: CGFloat = 64
 
-    /// The copy-details column: 320pt at Regular, 440pt at Wide.
-    static func copyDetailsWidth(_ widthClass: PVWidthClass) -> CGFloat {
-        switch widthClass {
-        case .regular: 320
-        case .wide: 440
-        }
-    }
-
     let art: CatalogArtifact
     let model: SourcePageModel
     /// Nil while the graph list is not loaded: no graph line and no no-graph line.
@@ -57,14 +49,14 @@ struct SourcePageArtifactRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             // The wrapper keeps the column when the details draw nothing; a bare empty view has nothing to size.
             VStack(alignment: .leading, spacing: 0) {
-                ArtifactCopyDetailsView(
-                    rows: model.artifacts.copyDetails(for: art.id),
+                MetadataDetailsColumn(
+                    rows: model.metadataRows(for: MetadataOwner(level: .artifact, id: art.id)),
+                    owner: MetadataOwner(level: .artifact, id: art.id),
                     ref: art.ref,
-                    artifactID: art.id,
                     onMore: { model.artifacts.openSheet(artifactID: art.id, at: .copyDetails) }
                 )
             }
-            .frame(minWidth: 0, maxWidth: Self.copyDetailsWidth(widthClass), alignment: .topLeading)
+            .frame(minWidth: 0, maxWidth: MetadataDetailsColumn.width(widthClass), alignment: .topLeading)
             actions(canSetCover: canSetCover)
         }
         .padding(.vertical, PVSpacing.space6)

@@ -12,7 +12,7 @@ struct SourcePageGraphsView: View {
                 meta: rows.map { L10n.Sources.graphsCount($0.count) },
                 actions: {
                     PVButton(L10n.Sources.addEvidenceGraph, variant: .primary, size: .sm, icon: .plus) {
-                        model.graphs.openAdd()
+                        Task { await model.graphs.openAdd() }
                     }
                     .disabled(!model.graphs.canAdd)
                     .help(model.graphs.addBlockedReason ?? L10n.string(L10n.Sources.addEvidenceGraph))
@@ -66,6 +66,8 @@ private struct SourcePageGraphRow: View {
     @Bindable var model: SourcePageModel
     let graph: CatalogEvidenceGraph
 
+    @Environment(\.pvWidthClass) private var widthClass
+
     var body: some View {
         let location = model.graphs.location(for: graph)
         let reason = model.graphs.blockedReason(for: graph)
@@ -97,8 +99,18 @@ private struct SourcePageGraphRow: View {
                             .help(description)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
-                Spacer(minLength: PVSpacing.space6)
+                // The wrapper keeps the column when the values draw nothing; a bare empty view has nothing to size.
+                VStack(alignment: .leading, spacing: 0) {
+                    MetadataDetailsColumn(
+                        rows: model.graphs.details(for: graph.id),
+                        owner: MetadataOwner(level: .graph, id: graph.id),
+                        ref: graph.ref,
+                        onMore: { model.graphs.openEdit(id: graph.id, at: .metadata) }
+                    )
+                }
+                .frame(minWidth: 0, maxWidth: MetadataDetailsColumn.width(widthClass), alignment: .topLeading)
                 HStack(spacing: PVSpacing.space4) {
                     PVButton(L10n.Sources.openEvidenceGraph, variant: .secondary, size: .sm, icon: .gitBranch) {
                         if let location {

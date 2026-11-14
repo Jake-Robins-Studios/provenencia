@@ -88,11 +88,6 @@ final class SourceArtifactsSection {
         art.thumbnailTypeIconKey(sourceTypeIconKey: context.sourceTypeIconKey)
     }
 
-    /// The Artifact's saved copy details, read from the workspace the page already holds.
-    func copyDetails(for artifactID: String) -> [CatalogMetadataEntry] {
-        context.workspace?.metadataRows(for: MetadataOwner(level: .artifact, id: artifactID)) ?? []
-    }
-
     /// The page's workspace changed: a sheet whose Artifact is no longer on the
     /// page closes with its draft and says so. An Artifact still there keeps its draft.
     func workspaceChanged() {
@@ -258,8 +253,8 @@ final class SourceArtifactsSection {
     /// Puts a written Artifact on the page, appended when new: the one apply
     /// path for every Artifact write. The list is patched here (the page and the
     /// cached workspace; no slot patches the Artifact list). A write that carried
-    /// the Artifact's copy details also puts its rows on the page, and the
-    /// `.wroteMetadataBoard` slot writes them into the cache, with no reload.
+    /// the Artifact's copy details also puts its rows on the page and in the cache
+    /// (`SourcePageContext.applySavedMetadata`), with no reload.
     private func show(
         _ art: CatalogArtifact,
         metadata: [CatalogMetadataEntry]? = nil,
@@ -272,13 +267,8 @@ final class SourceArtifactsSection {
             workspace.artifacts.append(art)
         }
         context.setWorkspace(workspace)
-        let owner = MetadataOwner(level: .artifact, id: art.id)
         if let metadata {
-            // The page only: the slot below writes the rows into the cached key once.
-            context.workspace?.setMetadataRows(metadata, for: owner)
-            context.session.apply(
-                effects, .wroteMetadataBoard(sourceId: context.sourceID, owner: owner, entries: metadata)
-            )
+            context.applySavedMetadata(metadata, owner: MetadataOwner(level: .artifact, id: art.id), effects: effects)
         } else {
             context.session.apply(effects)
         }

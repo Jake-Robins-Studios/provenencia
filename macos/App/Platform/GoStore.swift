@@ -151,6 +151,10 @@ struct GoStore: GenealogyStore {
             artifactMetadata: Dictionary(
                 resp.artifactMetadata.map { ($0.ownerID, $0.entries.map(Self.mapMetadataEntry)) },
                 uniquingKeysWith: { _, last in last }
+            ),
+            graphMetadata: Dictionary(
+                resp.graphMetadata.map { ($0.ownerID, $0.entries.map(Self.mapMetadataEntry)) },
+                uniquingKeysWith: { _, last in last }
             )
         )
     }
@@ -524,7 +528,7 @@ struct GoStore: GenealogyStore {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> (CatalogEvidenceGraph, CatalogWriteEffects) {
+    ) async throws -> (graph: CatalogEvidenceGraph, metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_CreateEvidenceGraphRequest()
         req.projectDir = projectDir
         req.userID = userID
@@ -537,7 +541,10 @@ struct GoStore: GenealogyStore {
             method: CoreMethod.createEvidenceGraph,
             request: req
         )
-        return (Self.mapEvidenceGraph(resp.graph), Self.mapWriteEffects(resp.effects))
+        return (
+            Self.mapEvidenceGraph(resp.graph), resp.metadata.map(Self.mapMetadataEntry),
+            Self.mapWriteEffects(resp.effects)
+        )
     }
 
     func updateEvidenceGraph(
@@ -548,7 +555,7 @@ struct GoStore: GenealogyStore {
         description: String,
         artifactIDs: [String],
         metadata: CatalogMetadataDraft?
-    ) async throws -> CatalogWriteEffects {
+    ) async throws -> (metadata: [CatalogMetadataEntry], effects: CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_UpdateEvidenceGraphRequest()
         req.projectDir = projectDir
         req.userID = userID
@@ -561,7 +568,7 @@ struct GoStore: GenealogyStore {
             method: CoreMethod.updateEvidenceGraph,
             request: req
         )
-        return Self.mapWriteEffects(resp.effects)
+        return (resp.metadata.map(Self.mapMetadataEntry), Self.mapWriteEffects(resp.effects))
     }
 
     func deleteEvidenceGraph(projectDir: String, userID: String, graphID: String) async throws -> CatalogWriteEffects {

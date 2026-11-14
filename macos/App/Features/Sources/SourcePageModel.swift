@@ -63,6 +63,9 @@ final class SourcePageModel {
 
     var workspace: CatalogSourceWorkspace? { context.workspace }
 
+    /// The saved rows the page holds for an owner's board (the Artifact rows' details column).
+    func metadataRows(for owner: MetadataOwner) -> [CatalogMetadataEntry] { context.metadataRows(for: owner) }
+
     var source: CatalogSource? { context.source }
 
     /// Project folder for resolving `objects/…` thumbnail paths.

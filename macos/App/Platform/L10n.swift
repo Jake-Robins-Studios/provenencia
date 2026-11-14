@@ -6421,6 +6421,12 @@ enum L10n {
             comment: "Caption under the Artifacts heading in the evidence graph form"
         )
 
+        static let graphFormMetadataLabel = LocalizedStringResource(
+            "sources.graphForm.metadataLabel",
+            defaultValue: "Evidence graph metadata",
+            comment: "Label of the metadata board in the evidence graph form"
+        )
+
         static let graphFormAddConfirm = LocalizedStringResource(
             "sources.graphForm.addConfirm",
             defaultValue: "Add",
@@ -6813,19 +6819,19 @@ enum L10n {
             comment: "Label of the Artifact metadata section of the Artifact sheet"
         )
 
-        static func artifactCopyDetailsMore(count: Int) -> String {
+        static func metadataDetailsMore(count: Int) -> String {
             L10n.format(LocalizedStringResource(
-                "sources.page.artifactCopyDetailsMore",
+                "sources.page.metadataDetailsMore",
                 defaultValue: "+%lld more",
-                comment: "Button on an Artifact row after its first copy details; argument is how many more it holds"
+                comment: "Button on an Artifact or Evidence graph row after its first metadata values; argument is how many more it holds"
             ), count)
         }
 
-        static func artifactCopyDetailsMoreLabel(count: Int, ref: String) -> String {
+        static func metadataDetailsMoreLabel(count: Int, ref: String) -> String {
             L10n.format(LocalizedStringResource(
-                "sources.page.artifactCopyDetailsMoreLabel",
+                "sources.page.metadataDetailsMoreLabel",
                 defaultValue: "%#@details@ of %2$@",
-                comment: "VoiceOver label of the more button on an Artifact row; %1$lld is how many more, %2$@ is the ART- ref"
+                comment: "VoiceOver label of the more button on an Artifact or Evidence graph row; %1$lld is how many more, %2$@ is the ART- or GPH- ref"
             ), count, ref)
         }
 
@@ -6843,10 +6849,10 @@ enum L10n {
             ), error)
         }
 
-        static let artifactSheetFinishOpenField = LocalizedStringResource(
-            "sources.page.artifactSheetFinishOpenField",
+        static let metadataFinishOpenField = LocalizedStringResource(
+            "sources.page.metadataFinishOpenField",
             defaultValue: "Finish the open field first: save its value or clear it.",
-            comment: "Callout on the Artifact sheet when Save is pressed while a copy-details field holds text not yet confirmed"
+            comment: "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed"
         )
 
         static let toastArtifactGoneTitle = LocalizedStringResource(
