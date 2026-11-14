@@ -74,13 +74,13 @@ One pure function, called on open and after every decision:
 ```go
 // Align proposes a handle or nothing for every primary Subject on one
 // Evidence layer (graph alignment), holding the fixed pairs as given.
-func Align(layer Layer, canon Canon, fixed []Fixed, cfg Config) Proposal
+func Align(layer Layer, canon CanonView, fixed []Fixed, cfg Config) Proposal
 ```
 
 | Input | Holds |
 | --- | --- |
 | `layer` | One Evidence graph: Subjects, bridges, Observations with values and provenance |
-| `canon` | The part of the canonical graph reachable from the seed handles: handles, their links, and their auto-reconciled values (every rank) |
+| `canon` | A `CanonView` of the canonical graph: a handle's profile (its auto-reconciled values, every rank), the links at it, and each Subject's candidates. Today `Canon.View()` serves it over the part of the graph the loader walked from the seed handles |
 | `fixed` | Decided rows, plus every already-promoted Subject on the layer, whose existing claim is a free anchor |
 
 `Proposal` is one row per Subject:
@@ -102,7 +102,7 @@ func Align(layer Layer, canon Canon, fixed []Fixed, cfg Config) Proposal
 
 This is collective entity resolution: graph alignment by propagation (cf. PARIS, similarity flooding). The walk is **best-first, not recursive**. A depth-first walk commits to whatever it reaches first; a priority queue lets the strongest matches settle first, so the weaker ones are decided with the most context.
 
-1. **Handles.** A Subject's handles come from its shortlist or from a link to an accepted pair. The loader shortlists by cheap keys and `graphalign.Candidates` keeps the handles with similarity at least `alignment.MinSimilarity`, the best K by similarity and every handle tied with the K-th, up to the tie cap. `Align` runs no shortlist of its own; it reads the loader's lists (`Canon.Candidates`). A handle reached through a corresponding link of an accepted pair is nominated at any score; one placed pair nominates at most the most similar `TopK` plus ties, up to `TieCap`, for each neighbor (S11-21).
+1. **Handles.** A Subject's handles come from its shortlist or from a link to an accepted pair. The loader shortlists by cheap keys and `graphalign.Candidates` keeps the handles with similarity at least `alignment.MinSimilarity`, the best K by similarity and every handle tied with the K-th, up to the tie cap. `Align` runs no shortlist of its own; it reads the loader's lists (`CanonView.Candidates`). A handle reached through a corresponding link of an accepted pair is nominated at any score; one placed pair nominates at most the most similar `TopK` plus ties, up to `TieCap`, for each neighbor (S11-21).
 2. **One queue.** Every fixed pair is placed first. Each candidate is scored (entity compare, then the segments around it) and enters one best-first queue. A pair is popped best first, and placed when it clears the accept bar and its handle is free (one-to-one: within one layer a handle takes at most one Subject). A handle another Subject holds records who took it, so a loser can read `taken`.
 3. **Unplaced neighbors.** A link whose neighbor is not placed yet is judged by entity compare on the neighbor's own properties: alike counts as lined up, a differing one counts against the pair from the start, and an unsure one adds nothing. Once the neighbor is placed on that canon neighbor the same number follows, so a score does not depend on which pair the walk placed first.
 4. **Placing a pair** nominates, for each neighbor, the most similar of the handles its links point at (as step 1 bounds them), re-scores the neighbors that are not placed, and marks the placed ones dirty. A candidate a free neighbor already had keeps its own reason; only a fixed row's existing candidate gains the nominating `via`, so a decided row has the handles its neighbors point at.
@@ -151,7 +151,7 @@ There are no database calls during the walk. Everything it reads is loaded first
 2. **Seed handles:**
    - the fixed pairs;
    - the handles of already-promoted Subjects;
-   - the candidates `graphalign.Candidates` keeps for each unpromoted Subject (`alignment.MinSimilarity`, the best `TopK`, ties up to `TieCap`; see the knob inventory in [`matching-model.md`](matching-model.md)), passed to `Align` in `Canon.Candidates`, ranked over the handles the shortlist index offers (`core/shortlist`, held in the match index), not every handle of the kind.
+   - the candidates `graphalign.Candidates` keeps for each unpromoted Subject (`alignment.MinSimilarity`, the best `TopK`, ties up to `TieCap`; see the knob inventory in [`matching-model.md`](matching-model.md)), served to `Align` by `CanonView.Candidates`, ranked over the handles the shortlist index offers (`core/shortlist`, held in the match index), not every handle of the kind.
 3. **Walk the in-memory catalog graph** from the seeds through every link to a person, event or place, with no hop limit. A node not yet in memory loads in one batched read per wave of the walk; a warm one costs nothing. Handles carry the profiles the match index holds.
 Every read is batched (`sqlbatch`, 500 ids per IN list), so the query count follows the waves of the walk, not the size of the layer or the catalog.
 
@@ -195,8 +195,8 @@ A bridge (participation, relationship, location, place relationship) has **no id
 
 - **Direction:** directed types ("A parent of B", "part of") match only in the same direction. Symmetric types (spouse) ignore order. Whether a type is directed is a property of the type (term or bridge kind), not a list in code.
 - **Inverse terms:** a directed term can name its inverse (`property_terms.inverse_key`: parent ↔ child, grandparent ↔ grandchild, pibling ↔ nibling, guardian ↔ ward). Matching reads a term and its inverse under one key, the one that sorts first, with the ends swapped, so "Mary parent of John" and "John child of Mary" correspond. Filing still keys an association on the recorded term: joining the two readings onto one association needs the auto-reconciler to swap a member's ends too, which it does not yet.
-- **A link from a handle to itself** (both ends on one handle: a duplicate on the graph, or a wrong match) is refused. The filer and the proposal decide it through one function, `connectrules.Decide`; the proposal reports each connection's outcome (`graphalign.Connections`), and the page words it under the connection and leaves it out of the footer's count.
-- **Refused filings don't fail the claim or the connect.** A place relationship that would close a loop among filed links of its term (`part_of` or `succeeded_by`, each checked apart; `connectrules.Bridge.AcyclicTerms`, S9-38), or a self-link, leaves the bridge unfiled. `connectrules.Decide` decides both for the filer and for the proposal, which reports the outcome of each connection (`graphalign.Connections`); the page words it ("Not promoted · these places would form a loop") and does not count it, so the batch never fails on it.
+- **A link from a handle to itself** (both ends on one handle: a duplicate on the graph, or a wrong match) is refused. The filer and the proposal decide it through one rule, `connectrules.Filed.Decide`; the proposal reports each connection's outcome (`graphalign.Connections`), and the page words it under the connection and leaves it out of the footer's count.
+- **Refused filings don't fail the claim or the connect.** A place relationship that would close a loop among filed links of its term (`part_of` or `succeeded_by`, each checked apart; `connectrules.Bridge.AcyclicTerms`, S9-38), or a self-link, leaves the bridge unfiled. `connectrules.Filed.Decide` decides both for the filer and for the proposal, which reports the outcome of each connection (`graphalign.Connections`); the proposal's loop check reads the filed links from the place entries (`conclusionsummaries.FiledPlaceLinks`), a level at a time and only as far as the loop reaches; the page words it ("Not promoted · these places would form a loop") and does not count it, so the batch never fails on it.
 - **An end that leaves later** (its member deleted) leaves the bridge's claim in place. The association loses that end's evidence, and the reconciler shows it. Nothing else is rewritten ([`conclusion-layer-data-model.md`](conclusion-layer-data-model.md) §5.2).
 
 ---
