@@ -1,7 +1,7 @@
 # Review — S15-47 Adding a Source type opens a dialog (with brief S15-D26)
 
-**Verdict:** round 1: Fits with changes — Ready with changes; round 2 pending
-**Rounds:** 1. **Reviewers:** maintainability (strongest available model), executability (implementing model)
+**Verdict:** Fits — Ready with changes (round 1: Fits with changes — Ready with changes; round 2: Fits — Ready with changes, both majors fixed)
+**Rounds:** 2. **Reviewers:** maintainability (strongest available model), executability (implementing model)
 
 ## To user
 - M-3: the dialog gets its own model, like Copy Source. **Answered** (user, 2026-11-14): own dialog model; the map's S15-47 line reworded.
@@ -85,3 +85,16 @@
 
 ### X-13 · nit · Mac-only boxes
 **Answer:** Fixed — § 10 says the evidence comes from a Mac run.
+
+## Round 2 (both lenses, one reviewer): no new blocker
+
+### R2-1 · major · STEP-3 writes T-6, which needs `adding` from STEP-5
+**Answer:** Fixed — STEP-3 writes T-1 – T-5 and T-7; T-6 lands in STEP-5.
+
+### R2-2 · major · `sourceTypePage`'s `title` should be optional
+**Answer:** Fixed — D-7 `title: String? = nil`, as `sourcePage`.
+
+Below the bar, all taken: T-10 asserts `!handle.isFetching` (FakeStore has no list counter); STEP-7's map edit was already made; D-9's `canSubmit` guards a nil draft.
+
+## Open before Planned
+- Board S15-D26 agreed; D-6 filled from its AT-3 answer; a short re-review of that part.
