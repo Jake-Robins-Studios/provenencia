@@ -1,7 +1,7 @@
 # Review — S15-12 Source types suggest fields at each level (with brief S15-D6)
 
-**Verdict:** round 1: Fits with changes — Not ready; round 2: see below
-**Rounds:** 1 (round 2 pending). **Reviewers:** maintainability (strongest available model), executability (implementing model)
+**Verdict:** Fits — Ready with changes (round 1: Fits with changes — Not ready; round 2: Fits — Not ready on X2-1, fixed)
+**Rounds:** 2. **Reviewers:** maintainability (strongest available model), executability (implementing model)
 
 ## To user
 - None. The three product calls were answered before review (user, 2026-11-14): append only, no reorder; the Associated fields column counts all three lists; the arrangement of the three lists is the board's call.
@@ -98,3 +98,23 @@ Apply invalidates the visible key; `setQueryValue` → `WorkspaceSession.replace
 
 ### X-18 · nit · Rows verified true
 Logged.
+
+## Round 2
+
+### X2-1 · blocker · A patch-only mutation cannot invalidate `.sourceWorkspace`
+`CatalogMutation.invalidationKind` is nil for patch-only cases, and `CatalogQueryRegistry.invalidations(by:project:)` returns `[]` for nil.
+**Answer:** Fixed — verified (`CatalogMutation.swift` ~155, `CatalogQueryRegistry.swift` ~138). D-2 gives `.wroteTypeSuggestions` its own `CatalogMutationKind`, lists it in `.sourceWorkspace.invalidateOn`, and drops both `invalidateOn` and `invalidation` from `.typeSuggestions`; T-8 asserts the kind.
+
+### X2-2 · major · STEP-2 touches tests STEP-3 owns; old-mutation test sites unnamed
+**Answer:** Fixed — STEP-2 now carries the `makeModel` port and the `SourceTypesModelTests` call sites the alias removal forces, and names the five `CatalogQueryRegistryTests` sites; the 13/14 count is consistent (alias + 13 uses).
+
+### X2-3 · minor · Type of `phrase:`
+**Answer:** Fixed — D-9: `phrase: String` from one private `SourceTypesModel.levelPhrase(_:type:)`.
+
+### Round 2 maintainability: Fits, no new blockers
+Two notes below the bar, both taken:
+- "Patch-only" means nil-kind in the code (`CatalogMutation.invalidationKind`); D-2 and STEP-7 now say "patch the two keys, then bust `.sourceWorkspace`". **Answer:** Fixed.
+- The handle-taking `PVRetryCallout` extension uses `L10n.Conclusions.readNoticeTryAgain`. **Answer:** Fixed — § 6 States use the kit init with `sourceTypes.suggested.tryAgain`.
+
+## Open before Planned
+- Board S15-D6 agreed; D-6, § 6 macOS and § 6 Strings filled from it; a short re-review of those parts.
