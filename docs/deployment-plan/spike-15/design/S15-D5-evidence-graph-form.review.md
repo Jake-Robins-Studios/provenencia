@@ -1,17 +1,19 @@
 # Review — S15-D5 Evidence graph form and graph rows
 
-**Verdict:** Fits with changes — Not ready → fixed in round 1 (round 2 below)
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 2's findings Fixed or Declined; no open blocker)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
 - **The form's body and scrolling (X-4).** A body that never scrolls cannot fit: the fixed parts reach about 980pt and the window can be 460pt tall. **Answered (user, 2026-11-14):** the whole body may scroll when everything does not fit; a long Artifact list must not be the cause. The checklist keeps its 264pt cap and the form uses the kit's scrolling body (EG-6).
 
+- **The kit's scrolling body is capped at 560pt (X2-1).** With it the one-column form scrolls almost always. **Answered (user, 2026-11-14):** make the form two columns (880pt: fields and board left, Artifacts right), the app's first; if it works, the other sheets follow (`docs/ideas/wide-layout.md` "Two-column form sheets").
+
 ## Writer's own calls
 
-- The form is 560pt wide, as the Artifact sheet (EG-7).
-- Graph values ride the Source page's read and the graph write replies answer the graph's rows (M-1); the edit form opens from the page's values, with no store read of its own. The map's S15-11 entry is re-cut to match.
-- "+n more" on a graph row reads the graph's ref, as the Artifact row reads its ref (M-2).
+- Two equal columns at 880pt; one 560pt column when the Source page pane is below 960pt, chosen when the form opens (EG-7).
+- Graph values ride the Source page's read and the graph write replies answer the graph's rows (M-1); Edit reads the graph's board through `GetMetadataBoard` before the form opens, because `sourcemetadata.Apply` deletes any value a draft leaves out and each window has its own `WorkspaceSession` (`WorkspaceView.swift`), so a stale page cache could erase another window's values. The map's S15-11 entry is re-cut to match.
+- "+n more" reads one owner-neutral string, "3 more details of <ref>", on both rows; the Artifact row loses the word "copy" (M2-3).
 
 ## Round 1
 
@@ -65,3 +67,31 @@ Nothing in Swift holds a graph's rows: `CatalogSourceWorkspace.metadataRows(for:
 
 ### M-6 · minor · Reuse the Artifact add path's suggestion read
 **Answer:** Fixed — §2; the plan calls `SourcePageContext.unsavedMetadataRows(level: .graph)`.
+
+## Round 2
+
+### X2-1 · blocker · The kit's scrolling body is capped at 560pt, not the window
+`PVFormDialogContent.maxScrollingBodyHeight` is 560; a one-column form is about 800pt.
+**Answer:** To user, answered — two columns (EG-1, EG-6, EG-7; frames 7a – 7c).
+
+### X2-2 · major · Where "+n more" lands
+**Answer:** Fixed — EG-8: scrolled to Evidence graph metadata when the body scrolls; the plan passes `scrollTarget`.
+
+### X2-3 · minor · Frame 5 contradicts EG-4
+**Answer:** Fixed — frame 5 is after a click outside.
+
+### X2-4 · minor · Opening has no requirement
+**Answer:** Fixed — EG-10.
+
+### X2-5 · minor · The shared view's name and keys
+**Answer:** Fixed — inventory names `MetadataDetailsColumn`; the plan's D-7 names the keys and ids.
+
+### M2-1 · blocker · The workspace does not list the Source's graphs
+**Answer:** Fixed — §2: membership stays with the graph list; the page read adds values keyed by graph. The plan's D-3 makes `setMetadataRows` write a graph's rows without a membership check. A deleted graph's entry is left: rows are read by the graph list's ids, which are never reused (Declined only for the cleanup, with that evidence).
+
+### M2-2 · blocker · M-3 and M-4 rest on a plan that did not exist
+**Answer:** Fixed — the plan exists (`prs/S15-11-graph-metadata.md` D-6, D-8) and the map's S15-11 entry names both. `MetadataBoardHost.didWrite` stays out of the helper: it applies the mutation only and never sets the page's rows (its live board owns them), so it is not a copy of the two lines.
+
+### M2-3 · blocker · EG-9's text contradicts the shared view
+The Artifact label reads "3 more copy details of ART-…".
+**Answer:** Fixed — EG-9: one owner-neutral string for both rows; the Artifact row's label changes.

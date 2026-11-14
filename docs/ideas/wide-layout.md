@@ -15,6 +15,10 @@ Spike 14's Batch 6 gives every page a Regular / Wide width class (1600pt of pane
 
 Promote widened in S13-23: its list goes to 1600 pt and its target menu to 460 pt at Wide (S13-D11 frame 27W).
 
+## Two-column form sheets
+
+S15-11 makes the Evidence graph form the app's first two-column form sheet (880pt; one 560pt column below a 960pt pane), so a long list beside the fields never makes the form scroll ([S15-D5](../deployment-plan/spike-15/design/S15-D5-evidence-graph-form.md)). If the user likes it, the other form sheets follow (the Artifact sheet first), each in its own brief; the second sheet promotes the two-column layout into the kit's FormDialog (user, 2026-11-14).
+
 ## Narrow panes
 
 The window can be as narrow as 700pt (a pane of about 436pt). Pages are drawn at Regular and Wide; below the Regular frame some do not fit:

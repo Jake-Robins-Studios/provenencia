@@ -3,7 +3,7 @@
 **Status:** Blocked — on board S15-D5
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md), board not agreed yet
+**Brief:** [S15-D5](../design/S15-D5-evidence-graph-form.md) (reviewed, [log](../design/S15-D5-evidence-graph-form.review.md)), board not agreed yet
 **Board:** — (the agreed board's link and frame names are copied here from the brief's **Board** line when the user agrees it)
 **Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-36 (landed #810), S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-D5
 **Blocks:** S15-39
@@ -30,11 +30,11 @@
 
 ## 1. Objective
 
-A researcher who files a census page as one Source makes one Evidence graph per household, and each household has its own item details: the item, line, dwelling and family. Today the graph form has nowhere to type them, though the engine stores them since S15-08. After this PR the graph form holds them on the same draft metadata board the Artifact sheet uses, saved with the form's one write, and each graph row on the Source page shows them read-only, as each Artifact row shows its copy details. It makes bar 3's graph half true.
+A researcher who files a census page as one Source makes one Evidence graph per household, and each household has its own item details: the item, line, dwelling and family. Today the graph form has nowhere to type them, though the engine stores them since S15-08. After this PR the graph form, now the app's first two-column form, holds them on the same draft metadata board the Artifact sheet uses, beside the Artifacts checklist, saved with the form's one write, and each graph row on the Source page shows them read-only, as each Artifact row shows its copy details. It makes bar 3's graph half true.
 
 **Why now.** S15-36 (the draft board), S15-34 (the inline Add field row, the kit's scrolling body and key order) and S15-35 (the Artifact row's read-only column) have landed; S15-39 flags needed fields on every board, the graph form's included, and waits on this one.
 
-**What stays.** The form's title, subtitle, Name, Description, Artifacts checklist with its 264pt cap, locks and kept-linked list; the graph row's name, ref, counts, description and actions; the Artifact sheet's behavior; the Source's own Metadata section.
+**What stays.** The form's title, subtitle, Name, Description, Artifacts checklist with its 264pt cap, locks and kept-linked list (rearranged into two columns); the graph row's name, ref, counts, description and actions; the Artifact sheet's behavior; the Source's own Metadata section.
 
 ## 2. User stories
 
@@ -42,9 +42,10 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | A Census Source whose type suggests Item, Line, Dwelling, Family at `graph` level; Add evidence graph | The form opens with the four suggestions empty under "Evidence graph metadata", after Description (EG-1, EG-2) |
+| AC-1.1 | A Census Source whose type suggests Item, Line, Dwelling, Family at `graph` level; Add evidence graph on a 1102pt pane | The 880pt two-column form opens: Name, Description and the four suggestions empty under "Evidence graph metadata" on the left; the checklist on the right (EG-1, EG-2, EG-7) |
+| AC-1.5 | The same on a 900pt pane | The 560pt one-column form, in EG-1's fallback order (frame 7c) |
 | AC-1.2 | Fill Line "14" and Dwelling "112", Add | One `createEvidenceGraph` call carrying a draft with both values and the four rows' layout; the form closes; the new graph's row shows "Line 14", "Dwelling 112" with no workspace reload (EG-5, EG-8) |
-| AC-1.3 | The type's suggestion read fails | No form opens; the page banner shows the error (frame 8) |
+| AC-1.3 | The type's suggestion read fails | No form opens; the page banner shows the error (EG-10, frame 8) |
 | AC-1.4 | A Source with no type | The form opens; the board shows only Add field (frame 4) |
 
 **US-2.** As a researcher editing a graph, I change its values in the form and nothing saves until Save.
@@ -64,7 +65,7 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-3.1 | Graphs with 0, 4 and 7 values | No column content; four rows; four rows and "+3 more" (EG-8) |
-| AC-3.2 | "+3 more" | Opens the graph's edit form (D-4 read first) |
+| AC-3.2 | "+3 more" | Opens the graph's edit form (D-4 read first) scrolled to Evidence graph metadata when the body scrolls |
 | AC-3.3 | A suggested field with no value | Not shown on the row |
 | AC-3.4 | Pane at Wide | The values column is 440pt; at Regular 320pt (EG-W1) |
 
@@ -85,7 +86,7 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | Swift store: the workspace's graph boards, the graph writes' rows, `getMetadataBoard` (D-3, D-4) | STEP-3 |
 | One page helper for a Save's rows (D-6) | STEP-4 |
 | Owner-neutral read-only values view and its width; the open-field message key (D-7, D-8) | STEP-5 |
-| The board in the graph form, both modes; 560pt; scrolling body (EG-1 – EG-7) | STEP-6, STEP-7, US-1, US-2 |
+| The board in the graph form, both modes; two columns at 880pt, one-column fallback; scrolling body; opening reads (EG-1 – EG-7, EG-10) | STEP-6, STEP-7, US-1, US-2 |
 | Values on each graph row (EG-8, EG-9, EG-W1) | STEP-8, US-3 |
 
 | Out | Home |
@@ -94,7 +95,8 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | Unknown and Supplied on a graph row | S15-41 |
 | The type page's graph suggestion list | S15-12 |
 | Closing the form when another window deletes its graph | not planned (the form reports the failed Save, as today; brief § 2.2) |
-| A fresh board read when the Artifact sheet opens (its page cache can be stale across windows, D-4) | [`ideas/structural-debt.md`](../../../ideas/structural-debt.md) (a row this PR adds) |
+| A fresh board read when the Artifact sheet opens (its page cache can be stale across windows, D-4) | [`structural-debt.md`](../../../ideas/structural-debt.md) (a row this PR adds) |
+| Two columns on the other form sheets; a kit two-column FormDialog layout | [`wide-layout.md`](../../../ideas/wide-layout.md) "Two-column form sheets" |
 | Metadata on the evidence graph canvas | not planned |
 | Nudging toward one graph per household | map § 7 |
 
@@ -129,14 +131,14 @@ A researcher who files a census page as one Source makes one Evidence graph per 
 | --- | --- | --- | --- |
 | D-1 | `GetSourceWorkspaceResponse` gains `repeated MetadataBoard graph_metadata = 10;` — one board per graph of the Source in `evidencegraphs.List(c, sourceID)` order. `artifactBoardsProto(c, ids)` becomes `ownerBoardsProto(c, level vocabkey.Level, ids [][]byte)` *(renamed)*, called with `LevelArtifact` and `LevelGraph` | Graph rows need every graph's values in one read (60 graphs at Scale); the Artifact boards ride the same read (brief review M-1) | A metadata field on the graph list read (`ListEvidenceGraphs` serves the whole project); a read per graph row |
 | D-2 | `CreateEvidenceGraphResponse` gains `repeated MetadataWorkspaceEntry metadata = 3;` and `UpdateEvidenceGraphResponse` `metadata = 2;`: the graph's board after the write, from `ownerBoardProto`, with or without a draft | A Save patches the page with `.wroteMetadataBoard` and never reloads the workspace, as the Artifact writes since S15-33 (S15-33 review M-6 settled) | Reloading the workspace on a graph Save (60 Artifact and 60 graph boards per Save) |
-| D-3 | `CatalogSourceWorkspace.graphMetadata: [String: [CatalogMetadataEntry]]` *(new)*. `metadataRows(for:)` answers `graphMetadata[owner.id]` for `.graph` (nil when absent); `setMetadataRows` for `.graph` always writes and answers true (a graph made after the read gets its board; the patch slot already matches the key's Source) | The page cannot list a Source's graphs from the workspace (they live in the graph list key), so membership is not checked | Checking membership against `context.evidenceGraphs` inside a value type |
-| D-4 | Edit reads the graph's board fresh before the form opens: `GenealogyStore.getMetadataBoard(projectDir:owner:) async throws -> [CatalogMetadataEntry]` *(new)* over the existing RPC. Add reads `context.unsavedMetadataRows(level: .graph)`. `SourceGraphsSection.openAdd()` and `openEdit(id:)` become `async`, share one `isOpening` guard (a second click while a read runs opens nothing), re-check `form == nil` after the read, and on a failure open nothing and call `context.showFailure(error)` | `sourcemetadata.Apply` deletes every value the draft leaves out, and each window has its own `WorkspaceSession` (`WorkspaceView.swift`), so a form built from a stale page cache would erase values another window saved. S15-08 D-13 built `GetMetadataBoard` for this read | Reading the page's rows (the Artifact sheet's way; its staleness goes to `structural-debt.md`, Out); a loading state inside the form |
+| D-3 | `CatalogSourceWorkspace.graphMetadata: [String: [CatalogMetadataEntry]]` *(new)*. `metadataRows(for:)` answers `graphMetadata[owner.id]` for `.graph` (nil when absent); `setMetadataRows` for `.graph` always writes and answers true (a graph made after the read gets its board; the patch slot already matches the key's Source). Which graphs the Source has stays with the graph list key; the workspace holds values keyed by graph only | The workspace does not list graphs (`SourceGraphsSection.rows` reads `context.evidenceGraphs`); copying membership into it is the duplication `GetSourceWorkspaceResponse`'s comment warns against (brief review M2-1) | Checking membership against `context.evidenceGraphs` inside a value type; a graph list in the workspace |
+| D-4 | Edit reads the graph's board fresh before the form opens: `GenealogyStore.getMetadataBoard(projectDir:owner:) async throws -> [CatalogMetadataEntry]` *(new)* over the existing RPC. Add reads `context.unsavedMetadataRows(level: .graph)`. `SourceGraphsSection.openAdd()` and `openEdit(id:at:)` (`at: SourceGraphFormModel.Section? = nil`, D-9) become `async`, share one `isOpening` guard (a second click while a read runs opens nothing), re-check `form == nil` after the read, and on a failure open nothing and call `context.showFailure(error)` | `sourcemetadata.Apply` deletes every value the draft leaves out, and each window has its own `WorkspaceSession` (`WorkspaceView.swift`), so a form built from a stale page cache would erase values another window saved. S15-08 D-13 built `GetMetadataBoard` for this read | Reading the page's rows (the Artifact sheet's way; its staleness goes to `structural-debt.md`, Out); a loading state inside the form |
 | D-5 | `SourceGraphFormModel.Mode` becomes `.create(suggestions: [CatalogMetadataEntry])` and `.edit(CatalogEvidenceGraph, rows: [CatalogMetadataEntry])`. The model holds `let host: MetadataDraftHost` and `let board: MetadataBoardModel`, built as `ArtifactSheetModel` builds them. `isDirty = draft != prefill || board.hasUnsavedChanges`. `save()`: when `board.hasUnconfirmedInput`, sets `saveError` to the open-field message and writes nothing; sends `metadata: host.draft`; on a refusal, `board.showRefusal(error)` answers first, as in `ArtifactSheetModel.save()`; on success applies the reply rows through D-6 | One board for every form (rule "One metadata board"); the Artifact sheet is the precedent | A graph-specific board model |
 | D-6 | `SourcePageContext.applySavedMetadata(_ rows: [CatalogMetadataEntry], owner: MetadataOwner, effects: CatalogWriteEffects)` *(new)*: sets the page's rows, then `session.apply(effects, .wroteMetadataBoard(sourceId:owner:entries:))`. `SourceArtifactsSection.show` calls it in place of its two lines; the graph form calls it. `MetadataBoardHost.didWrite` stays (its board owns its rows) | Two Save paths share one apply (brief review M-3) | A copy in the graph model |
-| D-7 | `ArtifactCopyDetailsView` becomes `MetadataDetailsColumn` *(renamed file and type)*: `init(rows:, owner: MetadataOwner, ref: String, onMore:)`; ids `sources.page.\(owner.level.rawValue).\(owner.id).details…`; `static func width(_ widthClass: PVWidthClass) -> CGFloat` (320 / 440) moves from `SourcePageArtifactRow.copyDetailsWidth`. Keys `sources.page.artifactCopyDetailsMore` → `sources.page.metadataDetailsMore`, `artifactCopyDetailsMoreLabel` → `metadataDetailsMoreLabel` (same English: "+%lld more", "%#@details@ of %2$@"). Both rows read the ref (EG-9) | One read-only view for two owners (brief review M-2) | A graph copy of the view |
+| D-7 | `ArtifactCopyDetailsView` becomes `MetadataDetailsColumn` *(renamed file and type)*: `init(rows:, owner: MetadataOwner, ref: String, onMore:)`; ids `sources.page.\(owner.level.rawValue).\(owner.id).details…`; `static func width(_ widthClass: PVWidthClass) -> CGFloat` (320 / 440) moves from `SourcePageArtifactRow.copyDetailsWidth`. Keys `sources.page.artifactCopyDetailsMore` → `sources.page.metadataDetailsMore` ("+%lld more"); `artifactCopyDetailsMoreLabel` → `metadataDetailsMoreLabel`, whose plural changes from "%arg more copy detail(s)" to "%arg more detail(s)", "of %2$@" kept, so both rows read "3 more details of <ref>" (EG-9) | One read-only view for two owners, with no switch on owner kind (brief review M-2, M2-3) | A graph copy of the view; a label passed by each caller |
 | D-8 | `L10n.Sources.artifactSheetFinishOpenField` → `L10n.Sources.metadataFinishOpenField` (`sources.page.metadataFinishOpenField`, same English); the comment says any form holding a board | One string for one board rule (brief review M-4) | A second key |
-| D-9 | The form passes `width: 560`, `scrollsBody: true` (no `scrollTarget`). The board sits in `PVField(label: L10n.Sources.graphFormMetadataLabel)` *(new key, "Evidence graph metadata")* after Description, inside the top `VStack`, before `PVDivider()`; `MetadataBoardView(board:, placement: .form, accessibilityIdentifierPrefix: "sources.graphForm.metadata", onClear:)` clears with no confirm, as the Artifact sheet | EG-1, EG-6, EG-7; user 2026-11-14: the body may scroll when everything does not fit; the checklist keeps its own cap | A checklist cap of the form's own |
-| D-10 | The graph row places `MetadataDetailsColumn` between the name block and the actions in a `VStack` framed `minWidth: 0, maxWidth: MetadataDetailsColumn.width(widthClass)`, reading `@Environment(\.pvWidthClass)`, as `SourcePageArtifactRow`. Rows: `context.workspace?.metadataRows(for: graph owner) ?? []`, exposed as `SourceGraphsSection.details(for:)` *(new)*. "+n more" calls `openEdit(id:)` | EG-8, EG-W1 | — |
+| D-9 | **Two columns.** `SourceGraphFormDialogModifier` measures the content it modifies (the Source page pane) with `.onGeometryChange(for: CGFloat.self) { $0.size.width }` into `@State paneWidth`, and when `model` goes from nil to a model sets `@State twoColumns = paneWidth >= 960`, kept while that model is open. Two columns: `width: 880`; `SourceGraphForm` draws the save-error Callout full width, then `HStack(alignment: .top, spacing: PVSpacing.space8)` of a left `VStack` (Name, Description, the board) and a right `VStack` (the checklist area and kept-linked list), each `.frame(maxWidth: .infinity, alignment: .topLeading)` so the two share the width equally, no divider. One column: `width: 560`, today's order with the board after Description and before `PVDivider()`. Both: `scrollsBody: true`; `scrollTarget` is `SourceGraphFormModel.Section.metadata` *(new)* when opened from "+n more", nil otherwise, and the board's `PVField` carries `.id(Section.metadata)`. The board: `PVField(label: L10n.Sources.graphFormMetadataLabel)` *(new key, "Evidence graph metadata")* holding `MetadataBoardView(board:, placement: .form, accessibilityIdentifierPrefix: "sources.graphForm.metadata", onClear:)`, clearing with no confirm as the Artifact sheet | EG-1, EG-6, EG-7, EG-8; user 2026-11-14 (two columns; the body may scroll when a column is too tall). | A kit two-column FormDialog for one caller (brief non-goal); a window-relative scroll cap (a kit change the user did not take) |
+| D-10 | The graph row places `MetadataDetailsColumn` between the name block and the actions in a `VStack` framed `minWidth: 0, maxWidth: MetadataDetailsColumn.width(widthClass)`, reading `@Environment(\.pvWidthClass)`, as `SourcePageArtifactRow`. Rows: `context.workspace?.metadataRows(for: graph owner) ?? []`, exposed as `SourceGraphsSection.details(for:)` *(new)*. "+n more" calls `openEdit(id:, at: .metadata)`; the pencil calls `openEdit(id:)` (top) | EG-8, EG-W1 | — |
 
 **Rules this plan bends.** None.
 
@@ -196,7 +198,7 @@ None — `api/ffi/handlers` only.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Graph form | `pvFormDialog` 560pt, `scrollsBody: true` | `SourceGraphFormDialog.swift` | D-9 |
+| Graph form | `pvFormDialog` 880pt two columns (560pt one column), `scrollsBody: true` | `SourceGraphFormDialog.swift` | D-9 |
 | Board | `MetadataBoardView` `.form` in `PVField` | `MetadataBoardView.swift` | D-9 |
 | Checklist | `PVArtifactChecklist` | unchanged | 264pt cap |
 | Graph row values | `MetadataDetailsColumn` | `SourcePageGraphsView.swift` | D-10 |
@@ -243,7 +245,7 @@ Check: T-5 – T-8 pass.
 **STEP-7 — Opening and drawing the form.**
 Files: `SourceGraphsSection.swift`, `SourceGraphFormDialog.swift`, `SourcePageGraphsView.swift` (call sites in `Task {}`), `L10n.swift`, `Localizable.xcstrings`, tests calling `openAdd` / `openEdit` (`await`). Skills: `add-ui-component`, `add-localized-string`.
 Do: D-4's opening, D-9.
-Check: T-9 passes; the form matches frames 2, 3a, 3b, 4, 7a, 7b.
+Check: T-9 and T-11 pass; the form matches frames 2, 3a, 3b, 4, 5, 7a – 7c.
 
 **STEP-8 — Values on graph rows.**
 Files: `SourcePageGraphsView.swift`, `SourceGraphsSection.swift`.
@@ -273,6 +275,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-7 | Swift | `nameOnlyEditSendsNoMetadata` *(new)* | → `updateEvidenceGraphMetadata.last == nil` (as `Optional<CatalogMetadataDraft>.none`) | AC-2.7 |
 | T-8 | Swift | `openFieldBlocksSave`, `refusedValueLandsOnItsRow` *(new)* | → no store call and the open-field message; the refusal on the board row and the form open | AC-2.4, AC-2.5 |
 | T-9 | Swift | `openAddReadsSuggestions`, `openEditReadsTheBoard`, `openFailureShowsBanner`, `secondClickWhileOpeningOpensNothing`, `graphGoneDuringReadOpensNothing` *(new)* | per name | AC-1.1, AC-1.3, AC-2.1, AC-2.6, D-4 |
+| T-11 | Swift | `SourceGraphFormModelTests.swift` `typelessSourceOpensWithNoSuggestions`, `escapeAsksCancelDoesNot` *(new; the second through `PVSheetDismiss.action` and the dialog's cancel path as S15-34's sheet tests drive them)*, `moreOpensAtMetadata` *(new)* | → empty board; dirty Escape answers the discard question and Cancel closes with no store call; `openEdit(id:at: .metadata)` sets the form's scroll target | AC-1.4, AC-2.3, AC-3.2 |
 | T-10 | Swift | `SourcePageModelTests.swift` `graphRowDetails` *(new)*; `MetadataDetailsColumn.shown` tests (renamed) | 0 / 4 / 7 values and an empty suggestion → shown counts 0 / 4 / 4+3; suggestion hidden | AC-3.1, AC-3.3 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `SourceGraphFormModelTests`, the graph tests in `SourcePageModelTests`, `EvidenceGraphStoreTests` (new tuples), the Artifact sheet tests (renamed keys).
@@ -302,7 +305,8 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 1. On a census Source with 12 Artifacts and a type with graph suggestions (add them on the Source type page's data or through `sourcevocab` test data), Add evidence graph: the four suggestions show after Description; fill Line, Dwelling, Family; Add. The new graph's row shows the three values.
 2. Edit the graph, add Folio inline, change Line, Escape: the discard confirm. Keep editing, Save: the row shows the new values; the page does not flash a reload.
 3. On a Source with 60 Artifacts, open the form: the checklist scrolls in its box; the body does not scroll. Add eight values: the body scrolls between the fixed title and buttons.
-4. Resize the window across 1600pt: the values column is 320pt, then 440pt.
+4. Resize the window across 1600pt: the values column is 320pt, then 440pt (AC-3.4).
+5. Narrow the window so the pane is under 960pt and open the form: one 560pt column (AC-1.5).
 
 ## 11. Risks and stop conditions
 
@@ -316,7 +320,8 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 - `GetMetadataBoard` no longer exists or answers something other than one owner's board.
 - `CatalogQueryPatch.metadataBoard()` no longer matches on the key's Source id (D-3 would then write another Source's page).
 - `pvFormDialog`'s `scrollsBody` scrolls the body when it fits (frame 7a).
-- The agreed board contradicts EG-1 – EG-9 or D-9.
+- The agreed board contradicts EG-1 – EG-10 or D-9.
+- The sheet cannot be 880pt wide over a 1102pt pane (it clips or the system narrows it).
 
 ## 12. Open questions
 
