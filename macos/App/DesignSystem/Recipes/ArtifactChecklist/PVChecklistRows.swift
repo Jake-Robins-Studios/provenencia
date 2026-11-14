@@ -2,10 +2,10 @@ import SwiftUI
 
 /// The bordered, divided, height-capped list that every id checklist draws its
 /// rows in: an optional `header` row above the scrolling rows (the All row),
-/// then one row per item with a divider between rows. Owns the 264pt cap, so
+/// then one row per item with a divider between rows. Owns the 352pt cap, so
 /// a Source with many Artifacts or graphs scrolls inside the form.
 struct PVChecklistFrame<Item, Header: View, Row: View>: View {
-    private static var maxRowsHeight: CGFloat { 264 }
+    private static var maxRowsHeight: CGFloat { 352 }
 
     let items: [Item]
     let id: KeyPath<Item, String>
