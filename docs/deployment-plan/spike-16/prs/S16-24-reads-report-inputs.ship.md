@@ -57,4 +57,4 @@ No Fix plan 2: no confirmed round-2 blocker.
 Merged `origin/main` @ `8245d2d35` (docs only); gate PASS (orchestrator run).
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
