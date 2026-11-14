@@ -111,7 +111,7 @@ Today **Add type** turns the side pane into a "New type" form: the selected type
 | Dialog title | "Add source type" |
 | Dialog subtitle | "A kind of record. Suggested fields and citation formats are added on the type afterwards." |
 | Label | "Label" (required); placeholder "Parish register" |
-| Key preview | "Key: parish-register"; hint "Provenencia mints the key from the label when the type is added" (today's) |
+| Key | A read-only field "Key" showing "parish-register"; placeholder "Minted from the label"; hint "Provenencia mints the key from the label when the type is added" (today's) |
 | Icon | "Icon"; hint "The mark that stands for this type wherever a source of it is listed" (today's) |
 | Description | "Description"; hint "What kind of record belongs to this type, in your own words"; placeholder "A bound register of baptisms, marriages or burials kept by a parish" (today's) |
 | Buttons | "Add type" / "Cancel" |
@@ -142,14 +142,14 @@ Today **Add type** turns the side pane into a "New type" form: the selected type
 | ID | Requirement |
 | --- | --- |
 | AT-1 | **Opening.** Add type, at the header's top right as today, opens a FormDialog over the page with the title and subtitle of § 2.1. The side pane behind it keeps the selected type (or its empty prompt). |
-| AT-2 | **Fields, in order:** Label (required, placeholder), the key preview under it in mono, updated as the label is typed ("Key: —" while blank), Icon, Description. Width as the Sources list's Add source dialog. |
+| AT-2 | **Fields, in order:** Label (required, placeholder), Key (a read-only mono field, as the Create Property dialog shows its minted key, updated as the label is typed; its placeholder while blank), Icon, Description. Width as the Sources list's Add source dialog. |
 | AT-3 | **Icon.** The icon field shows the chosen mark, its name and key, and a Change link, as the side pane's Icon field does today. It starts on the default mark. **The board decides how the 23 marks are picked from inside this dialog:** today's "Choose an icon" picker as a sheet over the dialog (its grid, its meaning line, "Use icon" and Cancel), or the grid inline in the dialog under a disclosure. Whichever it picks is the one icon field the type page reuses (S15-48); draw it once. The dialog never scrolls the whole form for the grid: if inline, the grid is folded until opened and the dialog's body scrolls only between its fixed title and buttons. |
-| AT-4 | **Add.** The primary button reads "Add type", is disabled while Label is blank, and shows its loading state while saving, with the fields disabled. |
+| AT-4 | **Add.** The primary button reads "Add type", is disabled while Label is blank, and shows its loading state while saving, with every field (the icon field included) disabled. |
 | AT-5 | **Errors.** A blank label, a label with no letter or number, and a duplicate key show under Label; any other failure shows a danger Callout at the top of the dialog. The dialog stays open with everything typed. |
 | AT-6 | **Leaving.** Cancel closes at once and keeps nothing, as every dialog's Cancel does. Escape or a click outside asks with the kit's standard discard confirm when anything was typed or a mark other than the default was chosen. |
-| AT-7 | **After Add.** The dialog closes; the new type is selected in the list (scrolled into view) and shown in the side pane in its edit mode with its empty Suggested fields; the "Type added" toast shows. |
-| AT-8 | **No add mode in the side pane.** The pane never shows "New type", the add note or the add-mode Cancel. While the dialog is open, Add type is disabled. |
-| AT-9 | **Keys and VoiceOver.** Return in Label or Description adds when Add is enabled; the key preview reads "Key, parish-register"; the icon field reads "Icon, Parish register mark, change". |
+| AT-7 | **After Add.** The dialog closes; the new type is selected in the list and shown in the side pane in its edit mode with its empty Suggested fields; the "Type added" toast shows. An unsaved edit in the side pane is replaced, as selecting another type replaces it today. |
+| AT-8 | **No add mode in the side pane.** The pane never shows "New type", the add note or the add-mode Cancel. While the dialog is open, the list keeps its selection highlighted and the pane keeps what it showed, unsaved edits included; Add type is disabled. |
+| AT-9 | **Keys and VoiceOver.** Return in Label or Description adds when Add is enabled; the Key field reads by its label and value; the icon field reads as today ("Icon: <mark name> — choose a different one"). |
 | AT-W1 | **Wide.** The dialog is the same at both widths (a sheet does not change with the window). The page behind it is today's at both widths; this board draws it at both so the dialog's place is seen. |
 
 ### 4.1 Wide layout
@@ -185,7 +185,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Add type button | Snowflake | Ship | `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift` `VocabularyHeader` | Where it is; it now opens the dialog |
 | Add type dialog | Component | Ship (a new caller) | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` `pvFormDialog` | As the Sources list's Add source (`SourcesListView`): `isDirty`, `confirmDisabled`, `isRunning` |
 | Label, Description | Component | Ship | Field + Input | As the side pane's today |
-| Key preview | Component | Ship | Field hint / mono Text | Not an Input: the key is not editable |
+| Key | Component | Ship | Field + Input (read-only, mono) | As the Create Property dialog (`PropertiesView` create form) shows its minted key |
 | Icon field | Snowflake | Extend (second caller; moves to its own file) | today `SourceTypesDetailPane.iconFieldButton(selection:)` | One icon field for the dialog now and the type page (S15-48) |
 | Icon grid | Snowflake | Ship or Extend (per AT-3) | today `SourceTypesDetailPane.swift` `SourceTypeIconPickerForm` in its own `pvFormDialog` | `docs/design-system-layers.md` names it as its snowflake example; if the board puts it inline, it is the same grid under a Disclosure (`PVDisclosureButton`) |
 | Errors | Component | Ship | Field error; `PVCallout` tone danger | AT-5 |
