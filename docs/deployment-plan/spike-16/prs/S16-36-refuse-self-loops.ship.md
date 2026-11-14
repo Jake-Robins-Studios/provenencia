@@ -78,4 +78,4 @@ Scope `a22201fe0...a901ac28c`. Reviewers: MNT (had MNT-1 major). Not re-sent: CO
 No new findings. MNT-2 (minor, F-2) read by the orchestrator in `f65ccfcf7`: Resolved.
 
 ## Result
-Gate PASS · `origin/main` unmoved since `2c84a7a9a` · open: none · follow-ups: none (CON-2, MNT-5 logged nits) · to user: — (two plan stops, both answered: amend and resume)
+Gate PASS · CI green · `origin/main` unmoved since `2c84a7a9a` · open: none · follow-ups: none (CON-2, MNT-5 logged nits) · to user: — (two plan stops, both answered: amend and resume)
