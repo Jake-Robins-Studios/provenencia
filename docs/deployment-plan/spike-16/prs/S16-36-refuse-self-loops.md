@@ -193,7 +193,7 @@ None — no user-facing copy.
 
 **STEP-1 — Drop a self-loop where links are read**
 Files: `core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`, `core/database/graphcache/graph_test.go`, `core/database/graphcache/evidence_graph_walk_test.go`, `core/database/conclusionsummaries/placeentries_test.go`. Skill: `use-catalog-session`.
-Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2). The guard makes two catalog-backed self-loop tests fail, so their deletions ride in this step: `TestPlaceEntries` case "self-loop" and `TestFiledPlaceLinks`' `loop` (T-9's and T-10's deletions; the rest of T-9 stays in STEP-6).
+Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2). The guard makes two catalog-backed self-loop tests fail, so their deletions ride in this step: `TestPlaceEntries` case "self-loop" and `TestFiledPlaceLinks`' `loop` (T-9's and T-10's deletions; the rest of T-9 stays in STEP-6). The Evidence guard also drops 223 accidental self-loops in `TestWalkEvidenceGraphEdgeCap`'s fixture, so T-11 rides in this step too.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/... ./core/database/conclusionsummaries/... ./core/database/promotealign/...` passes.
 
 **STEP-2 — Test the Source bridge's equal-ends refusal**
@@ -242,6 +242,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-8 | Go | `core/graphalign/invariants_test.go` | `placePartOfItself`, `TestPlacePartOfItselfPlaces` and the `TestAlignInvariants` row "a place part of itself on both sides" deleted | D-7 |
 | T-9 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestPlaceEntries`, `TestPlaceEntryInputsMatchReads` | Case "self-loop" deleted; `pageReads(id)` = `reads(id, hops.PartsOfPlace)`; page inputs of town, city, region and unknown match it | D-6, D-7 |
 | T-10 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestFiledPlaceLinks` | `loop`, `k.PartOf(loop, loop)` and row "a place part of itself" deleted; other rows unchanged | D-6, D-7 |
+| T-11 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdgeCap` *(amended 2026-11-14, ship round 0)* | The from-Subjects keep `id(i + 1)`; the to-Subjects (their `EvidenceSubject` and their `event` observation) take `id(1000 + i + 1)`, so no pair has one Subject at both ends. Expected values unchanged: under the cap `223*224` edges, over the cap none | D-1 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceEntryInputsMatchReads` (page inputs), the `graphalign` goldens (adjacency order), `TestDeriveInvariants` (its random stream changes with D-4).
 
