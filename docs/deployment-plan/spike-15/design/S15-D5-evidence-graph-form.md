@@ -5,8 +5,8 @@
 **View:** the Evidence graph form (add and edit), and the graph rows in the Source page's Evidence graphs section
 **Implements later as:** PR **S15-11**
 **Board:** not drawn yet
-**Review:** —
-**Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)): every Evidence graph holds its own metadata; S15-36: a metadata board can hold a draft; S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)): the inline Add field row, the kit's key order in a sheet, the read-only metadata value view; S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)): the Artifact row's read-only copy-details column; S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)): a new owner's form opens with its type's suggestions
+**Review:** [`S15-D5-evidence-graph-form.review.md`](S15-D5-evidence-graph-form.review.md)
+**Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)): every Evidence graph holds its own metadata; S15-36 (landed #810): a metadata board can hold a draft; S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)): the inline Add field row, the kit's key order in a sheet, the read-only metadata value view; S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)): the Artifact row's read-only copy-details column; S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)): a new owner's form opens with its type's suggestions
 **Related:** working rules "Metadata lives at three levels with one vocabulary", "One metadata board", "A board adds a field in an inline row", "Metadata saves with its owner's write", "The item is a graph field" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`S15-D14-source-page-artifacts.md`](S15-D14-source-page-artifacts.md) (the Artifact sheet and the Artifact row this board follows: SA-4, SA-6, SA-8, SA-9, SA-13, SA-15); [`S15-D1-source-page.md`](S15-D1-source-page.md) (SD-W1's columns); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) §§ 6.5, 6.6, 6.9; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
@@ -83,8 +83,8 @@ A researcher who files a whole census page as one Source makes one Evidence grap
 
 **What changes.**
 
-- **The graph form** gains "Evidence graph metadata" between Description and the Artifacts checklist: the graph's saved values to edit, clear and reorder, the Source type's graph suggestions to fill or dismiss, and the inline Add field row. Nothing saves until Save; Cancel discards.
-- **The form's body does not scroll as a whole.** Name, Description and the metadata board stay in view; the Artifacts checklist scrolls inside its own capped list, as it does today, and so does the kept-linked list.
+- **The graph form** gains "Evidence graph metadata" between Description and the Artifacts checklist: the graph's saved values to edit, clear and reorder, the Source type's graph suggestions to fill or dismiss, and the inline Add field row. Nothing saves until Save.
+- **A long Artifact list never makes the form scroll.** The Artifacts checklist scrolls inside its own capped list, as it does today, and so does the kept-linked list. The form's body scrolls between its fixed title and buttons only when the rest does not fit the window (many metadata values, a short window), as the Artifact sheet's does (user, 2026-11-14).
 - **The form is 560pt wide**, as the Artifact sheet is (today 520pt), so the board has the room it has in the Artifact sheet.
 - **Each graph row** shows the graph's saved values read-only in a column, as the Artifact row does.
 
@@ -101,7 +101,8 @@ A researcher who files a whole census page as one Source makes one Evidence grap
 | Suggestions | The Source's type suggests fields for its graphs. On the board's Census type they are Item, Line, Dwelling and Family, in that order. Suggestions show only in the form, to fill or dismiss; the graph row shows saved values only, never an empty suggested field. A type with no graph suggestions shows none: the board is only its Add field row. |
 | Item | The graph-level field `item`: what the graph is about, as a citation wants it ("Ada Robins", "household of Thomas Hale", "baptism of Ada Smith, 3 March 1830"). It is typed, never derived from the graph's Subjects. |
 | Other fields | Any field from the project's field list can be added to a graph with Add field (for example Folio, Entry, Schedule). |
-| Opening the form | Add: the form opens with the type's graph suggestions, empty. If they cannot be read, the form does not open and the page's error banner says why (as Add artifact does). Edit: the graph's saved values are already on the page, so the form opens with them; it has no loading state for them. |
+| Where the values come from | S15-11 makes the Source page's read carry each graph's saved values with its suggestions, as it already carries each Artifact's; today nothing on the page holds them. A Save answers the graph's rows, and the page shows them with no reload, as an Artifact Save does. |
+| Opening the form | Add: the form opens with the type's graph suggestions, empty; a typeless Source has none. While they are read, a second click on Add evidence graph opens nothing; if they cannot be read, the form does not open and the page's error banner shows the error, with the same guard and message as Add artifact. Edit: the form opens with the graph's values as the page holds them; it has no loading state for them. |
 | Writes | Nothing saves until Save. One Save writes the name, description, Artifact links and metadata together, in add mode and in edit mode. The engine judges each value: a refused value comes back naming its field. |
 | Scale | Up to 60 graphs on one Source and 60 Artifacts in the form's checklist. The graph rows stay scannable at 60. |
 
@@ -113,7 +114,7 @@ A researcher who files a whole census page as one Source makes one Evidence grap
 | Board | "Suggested by this type"; "Add field" (as in the Artifact sheet) |
 | Form titles, subtitle, buttons | As today: "Add evidence graph" / "Edit evidence graph" with the ref; "Add" / "Save"; "Cancel" |
 | Refused value | "This metadata change can't be saved." under its row (as in the Artifact sheet) |
-| A field left open at Save | "Finish the open field first: save its value or clear it." in the top Callout (as in the Artifact sheet) |
+| A field left open at Save | "Finish the open field first: save its value or clear it." in the top Callout: the board's open-field message, one string for every form that holds a board |
 | Graph row, past four values | "+n more" (as on the Artifact row) |
 
 ### 2.2 What this board is not
@@ -132,7 +133,7 @@ A researcher who files a whole census page as one Source makes one Evidence grap
 
 | PR | Ships | Not that PR |
 | --- | --- | --- |
-| **S15-11** | EG-1 – EG-9, EG-W1: the board in the graph form in both modes, the form's width and fixed body, the read-only values on each graph row | Needed-field marks (S15-39); Unknown and Supplied (S15-41); the type page's graph list (S15-12) |
+| **S15-11** | EG-1 – EG-9, EG-W1: the board in the graph form in both modes, the form's width and body, the read-only values on each graph row | Needed-field marks (S15-39); Unknown and Supplied (S15-41); the type page's graph list (S15-12) |
 
 ---
 
@@ -142,14 +143,14 @@ A researcher who files a whole census page as one Source makes one Evidence grap
 | --- | --- |
 | EG-1 | **Where the board sits.** In the form, in order: the save error Callout (when there is one), Name (required), Description, **Evidence graph metadata**, the divider, the Artifacts checklist, and on an edit the kept-linked list. The board is a Field labeled "Evidence graph metadata" holding the same metadata board as the Artifact sheet's "Artifact metadata". |
 | EG-2 | **The board in the form.** The same board as the Artifact sheet (S15-D14 SA-6, SA-13): saved rows to edit, clear (the row's trash, no confirm) and reorder by drag, where a row being edited cannot be confirmed empty; "Suggested by this type" to fill or dismiss; the inline Add field row (a field ComboBox of the fields not on the board, a mono value Input, ✓ and ✕; ✓ disabled until a field is picked and a value typed). Draw add mode with the four Census suggestions empty; edit mode with Item, Line and Dwelling saved and Family suggested; and a type with no graph suggestions, where only Add field shows. |
-| EG-3 | **Nothing saves until Save.** As SA-8: confirming a row, filling or dismissing a suggestion, clearing, reordering and adding change the draft and write nothing. Cancel, Escape or a click outside asks with the kit's standard discard confirm when anything differs from what opened; a value typed and then put back counts as unchanged. |
+| EG-3 | **Nothing saves until Save.** As SA-8: confirming a row, filling or dismissing a suggestion, clearing, reordering and adding change the draft and write nothing. Cancel closes the form at once and keeps nothing, as every dialog's Cancel does; Escape or a click outside asks with the kit's standard discard confirm when anything differs from what opened; a value typed and then put back counts as unchanged. |
 | EG-4 | **Keys.** As SA-15: Escape closes an open row edit or the open Add field row first, then the form; Return in a row confirms the row, never the form's Add or Save. The kit already does this. |
 | EG-5 | **Saving and failure.** While saving, the primary button shows its loading state and the fields and board are disabled. A refused value shows "This metadata change can't be saved." under its row; a field left open shows "Finish the open field first: save its value or clear it." in the top Callout; a missing name shows under Name, as today; any other failure shows today's top Callout. The form stays open with everything typed. After a save it closes and the graph row shows the new values. |
-| EG-6 | **The body holds still.** The form's body never scrolls as a whole: the Callout, Name, Description and the board stay in view. The Artifacts checklist scrolls inside its own list (the All row stays above it), capped as today at 264pt, and the kept-linked list inside its own cap of 320pt, as today. Draw the tallest case at a 900pt-tall window: an edit with five saved values and an open Add field row, 60 Artifacts, and three kept-linked Artifacts. If it does not fit, lower the checklist's cap for this form and say the height on the board; do not scroll the body. |
+| EG-6 | **Only the lists scroll for length.** The Artifacts checklist scrolls inside its own list (the All row stays above it), capped as today at 264pt, and the kept-linked list inside its own cap of 320pt, as today, so 60 Artifacts never lengthen the form. The body scrolls between the fixed title and buttons only when the rest does not fit (the kit's scrolling body, as the Artifact sheet uses it). Draw an edit with three values and 60 Artifacts at a 900pt-tall window, where the body does not scroll, and the same form with eight values, an open Add field row and three kept-linked Artifacts, where it does. |
 | EG-7 | **The form's width.** 560pt, as the Artifact sheet. The checklist's rows and the kept-linked list take the width they are given. |
-| EG-8 | **Graph row values, read-only.** Each graph row on the Source page shows its saved values only, in their saved order, as field name (muted caption, one 96pt column) and value (mono, one line, truncated; a URL is a link), in a column between the name block and the actions, laid out as the Artifact row's copy-details column. At most four values, then "+n more", which opens the graph's edit form. A graph with none shows nothing there, and its row keeps today's height. Draw 0, 3 and 7 values (7 shows four and "+3 more"). |
-| EG-9 | **VoiceOver.** A graph row's values read after its name block, each as "Line, 14". "+n more" reads "3 more details of Robins household, dwelling 112". The board in the form reads as it does in the Artifact sheet. |
-| EG-W1 | **Wide.** The Evidence graphs section stays in the Source page's main column (S15-D1 SD-W1: 1180pt beside the 480pt Metadata side column at a 2296 pane). The values column is 320pt at Regular and 440pt at Wide, as the Artifact row's copy-details column, so the two sections line up. The form is the same at both widths. |
+| EG-8 | **Graph row values, read-only.** Each graph row on the Source page shows its saved values only, in their saved order, as field name (muted caption, one 96pt column) and value (mono, one line, truncated; a URL is a link), in a column between the name block and the actions, drawn by the same read-only view as the Artifact row's copy-details column, at its width. At most four values, then "+n more", which opens the graph's edit form. A graph with none shows nothing there, and its row keeps today's height. Draw 0, 4 and 7 values (7 shows four and "+3 more"). |
+| EG-9 | **VoiceOver.** A graph row's values read after its name block, each as "Line, 14". "+n more" reads as the Artifact row's does, with the graph's ref: "3 more details of GPH-7QD2K". The board in the form reads as it does in the Artifact sheet. |
+| EG-W1 | **Wide.** The Evidence graphs section stays in the Source page's main column (S15-D1 SD-W1: 1180pt beside the 480pt Metadata side column at a 2296 pane). The values column is 320pt at Regular and 440pt at Wide, the same width as the Artifact row's copy-details column. The form is the same at both widths. |
 
 ### 4.1 Wide layout
 
@@ -170,12 +171,14 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | --- | --- | --- |
 | 1a / 1b | EG-8, EG-W1 | The Source page scrolled to the Evidence graphs section, the three graphs as rows (four values and "+3 more" on Hale, none on Ostrander), with the Artifacts section below as S15-D14 drew it |
 | 2 | EG-1, EG-2, EG-7 | The form in add mode: Name "Ostrander household, dwelling 114", the four suggestions empty, twelve Artifacts checked |
-| 3 | EG-1, EG-2 | The form in edit mode for `GPH-3MW8R`: Item, Line and Dwelling saved, Family suggested, Line being edited, the Add field row open on "Folio" |
+| 3a | EG-1, EG-2 | The form in edit mode for `GPH-3MW8R` before its Family was saved: Item, Line and Dwelling saved, Family suggested, the Line row being edited |
+| 3b | EG-2 | The same form with the Add field row open on "Folio" (opening it ends the row edit) |
 | 4 | EG-2 | Add mode on a type with no graph suggestions: the board is only its Add field button |
-| 5 | EG-3 | The discard confirm after Cancel on frame 3's form |
+| 5 | EG-3 | The discard confirm after Escape on frame 3b's form |
 | 6 | EG-5 | The form saving; then "This metadata change can't be saved." under the Line row; then the top Callout with "Finish the open field first: save its value or clear it." |
-| 7 | EG-6 | The tallest case of EG-6 at a 900pt-tall window, with the checklist scrolled to its middle |
-| 8 | — | The page's error banner when Add evidence graph cannot read the type's suggestions (no form opens) |
+| 7a | EG-6 | Three values and 60 Artifacts at a 900pt-tall window, the checklist scrolled to its middle, the body still |
+| 7b | EG-6 | Eight values, the Add field row open and three kept-linked Artifacts: the body scrolled between the fixed title and buttons |
+| 8 | EG-1 | The page's error banner when Add evidence graph cannot read the type's suggestions (no form opens) |
 
 ---
 
@@ -183,23 +186,23 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Evidence graph form | Component | Ship | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` `pvFormDialog`; `macos/App/Features/Sources/SourceGraphFormDialog.swift` | FormDialog with `isDirty`, now 560pt. No scrolling body (`scrollsBody` stays off): the form holds still (EG-6) |
+| Evidence graph form | Component | Ship | `macos/App/DesignSystem/Components/FormDialog/PVFormDialog.swift` `pvFormDialog`; `macos/App/Features/Sources/SourceGraphFormDialog.swift` | FormDialog with `isDirty`, now 560pt, with the kit's opt-in scrolling body (`scrollsBody: true`), its second caller after the Artifact sheet (EG-6) |
 | Name, Description | Component | Ship | Field + Input; Field + TextArea | As today |
 | Evidence graph metadata board | Snowflake | Ship (second form caller) | `macos/App/Features/Sources/MetadataBoardView.swift` `MetadataBoardView` placement `.form` | The same board as the Artifact sheet's "Artifact metadata", in a Field. Not a second board design |
 | Inline Add field row | Snowflake | Ship | `macos/App/Features/Sources/MetadataBoardView.swift` | ComboBox (field) + Input (value) + IconButtons ✓ ✕, as S15-34 drew it |
-| Artifacts checklist | Recipe | Ship | `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVArtifactChecklist.swift`, `PVChecklistRows.swift` `PVChecklistFrame` | Already scrolls its rows inside a 264pt cap under a fixed All row; that is the only place the form scrolls. A lower cap, if EG-6 needs one, is an opt-in on the recipe, not a local ScrollView |
+| Artifacts checklist | Recipe | Ship | `macos/App/DesignSystem/Recipes/ArtifactChecklist/PVArtifactChecklist.swift`, `PVChecklistRows.swift` `PVChecklistFrame` | Already scrolls its rows inside a 264pt cap under a fixed All row (`PVChecklistFrame.maxRowsHeight`, one cap for every checklist); unchanged |
 | Kept-linked list | Recipe | Ship | `macos/App/DesignSystem/Recipes/DeleteImpact/PVDeleteImpact.swift` `PVDeleteImpactGroupStack` | As today, capped at 320pt |
 | Load and failure lines | Snowflake | Ship | `macos/App/Features/Sources/SourceFormLoadArea.swift` | As today, for the kept-linked read only |
 | Errors | Component | Ship | `macos/App/DesignSystem/Components/Callout/`; Field error | EG-5 |
 | Discard confirm | Component | Ship | The kit's standard discard confirm in `PVSheet` | As today |
 | Graph row | Snowflake | Extend (a values column) | `macos/App/Features/Sources/SourcePageGraphsView.swift` `SourcePageGraphRow` | Card as today; the values column sits between the name block and the actions, sized as the Artifact row's |
-| Read-only values | Snowflake | Extend (second caller) | `macos/App/Features/Sources/ArtifactCopyDetailsView.swift` `ArtifactCopyDetailsView`; `MetadataValueText` in `MetadataBoardView.swift` | The Artifact row's copy-details view, reused for a graph: field name Text + the metadata value view; "+n more" is a Button `.link`. Not a Table, not the board |
-| Page error banner | Component | Ship | The Source page's banner, as Add artifact uses it | Frame 8 |
+| Read-only values | Snowflake | Extend (second caller; S15-11 gives it an owner-neutral name, takes the owner and ref, and owns its 320 / 440pt width, which today sits on `SourcePageArtifactRow.copyDetailsWidth`) | `macos/App/Features/Sources/ArtifactCopyDetailsView.swift` `ArtifactCopyDetailsView`; `MetadataValueText` in `MetadataBoardView.swift` | One view for the Artifact row and the graph row: field name Text + the metadata value view; "+n more" is a Button `.link`. Not a Table, not the board, not a copy |
+| Page error banner | Component | Ship | The Source page's banner (`SourcePageContext.showFailure`), as Add artifact uses it | Frame 8; the engine's error message, no new copy |
 
-**Non-goals.** No new kit primitive: the board, the inline Add field row and the read-only values are the ones the Artifact sheet and the Artifact row already use. No second metadata board design and no second read-only values view. No scrolling form body. No metadata on the evidence graph canvas.
+**Non-goals.** No new kit primitive: the board, the inline Add field row and the read-only values are the ones the Artifact sheet and the Artifact row already use. No second metadata board design and no second read-only values view. No checklist cap of its own for this form. No metadata on the evidence graph canvas.
 
 ---
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and the board's decisions (the form's width, the checklist's cap if EG-6 lowered it, the values column) on the **Board** line here and in [`README.md`](README.md). S15-11's plan copies EG-1 – EG-9, EG-W1 and the inventory and moves from `Blocked — on board S15-D5` to `Planned`. When S15-11 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the frames and the board's decisions (the form's width, the values column) on the **Board** line here and in [`README.md`](README.md). S15-11's plan copies EG-1 – EG-9, EG-W1 and the inventory and moves from `Blocked — on board S15-D5` to `Planned`. When S15-11 lands, the brief moves to the spike's design archive.
