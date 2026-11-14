@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 15, slice 2
 **View:** the Source types page (its header's Add type), the new Add type dialog over it, and the side pane after a type is added
 **Implements later as:** PR **S15-47**
-**Board:** — (not drawn yet)
+**Board:** drawn 2026-11-14, under review — [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga), page *S2-03 Source Types Board*, section 05 "Add a type — a dialog, not a pane mode": frames 1a (Regular, empty dialog), 1b (Wide), 2 (key minted live), 3 (Choose an icon over the dialog), 4 (duplicate key under Label), 4b (danger Callout "The type was not added"), 5 (saving), 6 (discard confirm), 7 (after Add); the dialog's markup is in the component page *Source Types Pane*. Board decision AT-3: today's "Choose an icon" picker as a sheet over the dialog. Description is a 3-to-6-row text area; Return in it is a new line (the kit's behavior), not Add
 **Review:** — (not reviewed yet)
 **Depends on:** — (today's Source types page and its create write)
 **Related:** working rule "A Source type has its own page" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); the Sources list's Add source dialog (the model for this one); S15-D27 (the Source type page, S15-48, which opens after Add once it exists); S15-D7 (Copy from, S15-18, which joins this dialog later); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
