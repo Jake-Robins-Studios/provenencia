@@ -1,7 +1,7 @@
 # Ship log — S15-47 Adding a Source type opens a dialog
 
 **Plan:** [`S15-47-add-source-type-dialog.md`](S15-47-add-source-type-dialog.md) · **Branch:** `s15-47-add-source-type-dialog` · **PR:** #843
-**State:** review 2
+**State:** ready
 
 Base: `origin/main` @ `44944d6`. The branch was cut before round 0 and carries the plan commit `2230bce` (the plan docs ride on the PR branch); the implementer switches to it instead of creating it.
 
@@ -88,3 +88,19 @@ Head `d2165c6`. Gate PASS (orchestrator). F-1 – F-10 done. Deviations: the F-1
 
 ## Round 2 — review
 Scope `0c6e183...d2165c6`. Reviewers: CON (CON-1 major), MNT (MNT-1 blocker, MNT-2, MNT-3 majors), UX (UX-1 – UX-3 majors). SEC+PRF had no findings and does not return.
+
+| ID | Lens | Round-1 severity | Round 2 |
+| --- | --- | --- | --- |
+| CON-1 | CON | major | Resolved — `addingCarriesThePickedIconAndToasts` fails if the icon or the toast is lost |
+| MNT-1 | MNT | blocker | Resolved — one generic `CatalogQueryPatch.row`; append only on create; `aNonCreateSourceTypeMutationForAMissingRowAddsNothing` |
+| MNT-2 | MNT | major | Resolved — `submit()` returns `Void`; the pane's `navigation` is gone |
+| MNT-3 | MNT | major | Resolved — `docs/macos-client-patterns.md` ~89, ~92 and `add-workspace-place` name the patch |
+| UX-1 | UX | major | Resolved — `activateOnAppear: true` on Label |
+| UX-2 | UX | major | Resolved — `editLabel` re-runs the rule after each edit; `editingTheLabelShowsAndClearsItsError` |
+| UX-3 | UX | major | Resolved — `PVField(announcesError:)` on the write's error only |
+| MNT-4, MNT-5, UX-4 | MNT, UX | minor | Resolved — checked by the MNT and UX round-2 reviewers (F-8, F-10, F-9) |
+
+New blockers: none (CON, MNT, UX all Clean).
+
+## Result
+Gate PASS (`d2165c6`; later commits are the ship log only; `main` unmoved since the cut) · CI pending · open: none · follow-ups: none · to user: UX-5 answered (keep the board's subtitle); CON-2 → the user's § 10 manual check
