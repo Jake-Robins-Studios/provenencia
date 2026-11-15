@@ -1,20 +1,16 @@
 package promotealign
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"maps"
 	"reflect"
-	"slices"
-	"sort"
 
 	"github.com/mendahu/provenencia/core/database/canonlinks"
 	"github.com/mendahu/provenencia/core/database/evidencelayer"
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/graphalign"
 	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/segmentcompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -42,202 +38,6 @@ type rankedSubject struct {
 // names a graph (Set.EvidenceGraphs) drops that graph's memo. It is registered
 // in index.go's init, after the match index.
 var candidates graphcache.Keyed[candidatesMemo]
-
-// loadCanon reads the open catalog's graph: fixed anchors, the candidates of
-// each unfixed Subject (loadCandidatesMemo), then every link those handles
-// have. Link order is association ref, then the neighbor's ref, which is the
-// order the walk used to break ties. Every handle's profile is the match
-// index's, so nothing is built here. Recorded
-// links come from the walk and implied ones from canonlinks.Reader.For, which
-// composes them from the graph cache's kinship pivots for each walked person; both go
-// through one kinship.LinkSet, so a link read from either end or recorded
-// both ways merges, and the implied links follow the recorded ones in walk
-// order.
-func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, fixed []graphalign.Fixed, cfg graphalign.Config, terms segmentcompare.Terms) (graphalign.Canon, error) {
-	vocab, err := g.Vocabulary()
-	if err != nil {
-		return graphalign.Canon{}, err
-	}
-	eventTypeProp := vocab.PropertyID(vocabkey.PropertyEventType, vocabkey.OriginProvenencia)
-	handles := map[string]*graphcache.Node{}
-	var seeds [][]byte
-	candidates := map[string][][]byte{}
-	add := func(id []byte) error {
-		if len(id) != 16 {
-			return nil
-		}
-		if _, ok := handles[string(id)]; ok {
-			seeds = append(seeds, id)
-			return nil
-		}
-		n, err := g.Node(id)
-		if err != nil || n == nil || n.Merged {
-			return err
-		}
-		if _, ok := m.handles[string(id)]; !ok {
-			return nil
-		}
-		handles[string(id)] = n
-		seeds = append(seeds, id)
-		return nil
-	}
-
-	for _, f := range fixed {
-		if len(f.HandleID) == 16 {
-			if err := add(f.HandleID); err != nil {
-				return graphalign.Canon{}, err
-			}
-		}
-	}
-
-	fixedSubjects := map[string]bool{}
-	for _, f := range fixed {
-		fixedSubjects[string(f.SubjectID)] = true
-	}
-	var todo []graphalign.Subject
-	for _, s := range layer.Subjects {
-		if fixedSubjects[string(s.ID)] {
-			continue
-		}
-		if _, ok := cfg.Subject.Weights[vocabkey.SubjectType(s.Kind)]; !ok {
-			continue
-		}
-		todo = append(todo, s)
-	}
-	if len(todo) > 0 {
-		known, err := loadCandidatesMemo(g, graphID, m, layer, todo, cfg)
-		if err != nil {
-			return graphalign.Canon{}, err
-		}
-		for _, s := range todo {
-			for _, id := range known[string(s.ID)].ids {
-				candidates[string(s.ID)] = append(candidates[string(s.ID)], id)
-				if err := add(id); err != nil {
-					return graphalign.Canon{}, err
-				}
-			}
-		}
-	}
-
-	sort.SliceStable(seeds, func(i, j int) bool {
-		return handles[string(seeds[i])].Ref < handles[string(seeds[j])].Ref
-	})
-
-	reader, err := canonlinks.NewReader(g)
-	if err != nil {
-		return graphalign.Canon{}, err
-	}
-	set := kinship.NewLinkSet()
-	var walkedPeople [][]byte
-	walked := map[string]bool{}
-	queue := append([][]byte(nil), seeds...)
-	for len(queue) > 0 {
-		wave := queue
-		queue = nil
-		type reached struct {
-			id []byte
-			n  *graphcache.Node
-		}
-		var ready []reached
-		var prefetch [][]byte
-		for _, id := range wave {
-			if walked[string(id)] {
-				continue
-			}
-			walked[string(id)] = true
-			if m.handles[string(id)].Kind == vocabkey.Person {
-				walkedPeople = append(walkedPeople, id)
-			}
-			n, err := g.Node(id)
-			if err != nil {
-				return graphalign.Canon{}, err
-			}
-			if n == nil {
-				continue
-			}
-			ready = append(ready, reached{id, n})
-			for _, l := range n.Links {
-				prefetch = append(prefetch, l.Neighbor)
-			}
-		}
-		if err := g.Nodes(prefetch); err != nil {
-			return graphalign.Canon{}, err
-		}
-		for _, item := range ready {
-			id, n := item.id, item.n
-			for _, l := range n.Links {
-				neighbor, err := g.Node(l.Neighbor)
-				if err != nil {
-					return graphalign.Canon{}, err
-				}
-				if neighbor == nil || neighbor.Merged {
-					continue
-				}
-				if _, primary := m.handles[string(neighbor.ID)]; !primary {
-					continue
-				}
-				if from, to, keyFrom, keyTo, ok := canonlinks.EdgeOf(id, n, l, neighbor, eventTypeProp, terms); ok {
-					set.Add(kinship.Link{Edge: kinship.Edge{A: from, B: to, KeyA: keyFrom, KeyB: keyTo}})
-				}
-				if _, ok := handles[string(neighbor.ID)]; !ok {
-					handles[string(neighbor.ID)] = neighbor
-					queue = append(queue, neighbor.ID)
-				}
-			}
-		}
-	}
-
-	// The implied links are collected before any edge is built. Every link is
-	// walked from both ends and each end's call returns it, so only the call
-	// of its A end adds it.
-	var implied []kinship.Implied
-	for _, id := range walkedPeople {
-		links, err := reader.For(id)
-		if err != nil {
-			return graphalign.Canon{}, err
-		}
-		for _, imp := range links {
-			if !bytes.Equal(imp.A, id) {
-				continue
-			}
-			_, aOK := handles[string(imp.A)]
-			_, bOK := handles[string(imp.B)]
-			if aOK && bOK {
-				implied = append(implied, imp)
-			}
-		}
-	}
-	// Walked links first, in walk order. An implied link that shares ends and
-	// keys with a walked or earlier implied one merges into it; the rest follow
-	// in order. The implied links are the cache's, so an edge copies what it keeps.
-	edges := slices.Clone(set.Links())
-	for i, at := range set.PlaceImplied(implied) {
-		imp := implied[i]
-		rec := imp.Recording()
-		if at < len(edges) {
-			edges[at].Recording.Merge(rec)
-			continue
-		}
-		edges = append(edges, kinship.Link{
-			Edge:      kinship.Edge{A: bytes.Clone(imp.A), B: bytes.Clone(imp.B), KeyA: imp.KeyA, KeyB: imp.KeyB},
-			Recording: rec.Clone(),
-		})
-	}
-
-	// The handles are the entry's Subjects, shared: graphalign reads a Handle
-	// and never writes it.
-	out := graphalign.Canon{Edges: edges, Candidates: candidates}
-	for id := range handles {
-		out.Handles = append(out.Handles, m.handles[id])
-	}
-	sort.Slice(out.Handles, func(i, j int) bool {
-		if out.Handles[i].Ref != out.Handles[j].Ref {
-			return out.Handles[i].Ref < out.Handles[j].Ref
-		}
-		return bytes.Compare(out.Handles[i].ID, out.Handles[j].ID) < 0
-	})
-	return out, nil
-}
 
 // canonView is the canon one proposal reads, one handle at a time (S16-22): a
 // handle's profile from the match index, its links from the canonlinks.Reader

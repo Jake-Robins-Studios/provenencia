@@ -3,7 +3,6 @@ package kinship_test
 import (
 	"bytes"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/mendahu/provenencia/core/kinship"
@@ -90,17 +89,6 @@ func TestLinkSet(t *testing.T) {
 		in[0].A[0], in[1].A[0] = 0xff, 0xff
 		if !bytes.Equal(imp.A, want) {
 			t.Fatalf("implied A %x changed with the input, want %x", imp.A, want)
-		}
-	})
-	t.Run("PlaceImplied places without growing the set", func(t *testing.T) {
-		impliedSpouse := func(p, q, m byte) kinship.Implied {
-			return kinship.Implied{Edge: spouse(p, q, m).Edge, Pattern: kinship.PatternMarriageSpouses, Event: event(m)}
-		}
-		s := kinship.NewLinkSet()
-		s.Add(spouse(1, 2, 1))
-		got := s.PlaceImplied([]kinship.Implied{impliedSpouse(1, 2, 1), impliedSpouse(3, 4, 2), impliedSpouse(4, 3, 3)})
-		if !slices.Equal(got, []int{0, 1, 1}) || len(s.Links()) != 1 {
-			t.Fatalf("placed %v over %d links, want [0 1 1] over 1", got, len(s.Links()))
 		}
 	})
 	t.Run("an added implied link records as Implied.Recording", func(t *testing.T) {

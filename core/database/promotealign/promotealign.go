@@ -7,7 +7,6 @@ import (
 	"sort"
 
 	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/canonlinks"
 	"github.com/mendahu/provenencia/core/database/evidencelayer"
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/database/graphfill"
@@ -15,7 +14,6 @@ import (
 	"github.com/mendahu/provenencia/core/database/valuerules"
 	"github.com/mendahu/provenencia/core/graphalign"
 	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/segmentcompare"
 )
 
 // Propose loads the Evidence layer of graphID and runs graphalign.Align over a
@@ -93,7 +91,6 @@ func alignRows(c *database.Catalog, in inputs, fixed []graphalign.Fixed) (grapha
 type inputs struct {
 	graphID  []byte
 	cfg      graphalign.Config
-	terms    segmentcompare.Terms
 	evidence evidencelayer.Layer
 	layer    graphalign.Layer
 }
@@ -134,10 +131,6 @@ func loadInputs(c *database.Catalog, graphID []byte) (inputs, error) {
 		return inputs{}, err
 	}
 
-	terms, err := canonlinks.LoadTerms(c.Graph())
-	if err != nil {
-		return inputs{}, err
-	}
 	evidence, err := evidencelayer.Load(c.Graph(), graphID)
 	if err != nil {
 		return inputs{}, err
@@ -146,7 +139,7 @@ func loadInputs(c *database.Catalog, graphID []byte) (inputs, error) {
 	if err != nil {
 		return inputs{}, err
 	}
-	return inputs{graphID: graphID, cfg: cfg, terms: terms, evidence: evidence, layer: layer}, nil
+	return inputs{graphID: graphID, cfg: cfg, evidence: evidence, layer: layer}, nil
 }
 
 // alignLayer is the evidence layer with the value metas graphalign compares by.

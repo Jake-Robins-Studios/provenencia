@@ -616,30 +616,3 @@ func TestCandidatesForgetFanOut(t *testing.T) {
 		}
 	}
 }
-
-// TestViewProposesAsTheWalk holds the canon view to today's walk: the rows of
-// Source A and of the one-place Source are equal. Temporary: STEP-4 deletes it
-// with the walk (S16-22).
-func TestViewProposesAsTheWalk(t *testing.T) {
-	for _, persons := range []int{4000, 16000} {
-		t.Run(fmt.Sprintf("persons=%d", persons), func(t *testing.T) {
-			lf := newLargeFixture(t, persons)
-			for name, src := range map[string]sources.Source{"Source A": lf.a, "one-place Source": lf.onePlace} {
-				g := lf.Graph(src)
-				walk, err := promotealign.WalkRowsForTest(lf.c, g)
-				must(t, err)
-				view := lf.propose(g, nil).Rows
-				t.Logf("%s at %d persons: %d rows through the view, %d through the walk", name, persons, len(view), len(walk))
-				if !reflect.DeepEqual(view, walk) {
-					for i := range view {
-						if i >= len(walk) || !reflect.DeepEqual(view[i], walk[i]) {
-							t.Errorf("%s row %d differs:\nview %+v\nwalk %+v", name, i, view[i], walk[min(i, len(walk)-1)])
-							break
-						}
-					}
-					t.Fatalf("%s: the view's rows are not the walk's", name)
-				}
-			}
-		})
-	}
-}

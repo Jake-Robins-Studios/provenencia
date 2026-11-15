@@ -1,8 +1,8 @@
-// Package canonlinks reads the canon's links: each filed link as an edge
-// between its two ends with the key it has from each (EdgeOf), the catalog's
-// bridge terms (LoadTerms), the links the kinship patterns imply for one person
-// (Reader.For, which composes them from the pivot results at each call), and
-// each person's relationship links, recorded and implied, merged through
+// Package canonlinks reads the canon's links: every link a node has, filed and
+// implied, as edges with the key each has from each end (Reader.Links), the
+// catalog's bridge terms (LoadTerms), the links the kinship patterns imply for
+// one person (Reader.For, which composes them from the pivot results at each
+// call), and each person's relationship links, recorded and implied, merged through
 // kinship.LinkSet (Reader.Relationships), with, on request, the siblings a
 // shared parent implies (Options{Siblings: true}). Relationships reads many
 // people at once and loads what it reads in a fixed number of batches. Matching
@@ -45,27 +45,26 @@ func LoadTerms(g *graphcache.Graph) (segmentcompare.Terms, error) {
 	return out, nil
 }
 
-// EdgeOf reads one filed link of self as an edge between its two ends,
-// ordered as recorded, with the key it has from each. neighbor is read only
-// when it is the event end; nil is allowed otherwise. ok is false for an
-// unregistered bridge.
-func EdgeOf(self []byte, n *graphcache.Node, l graphcache.Link, neighbor *graphcache.Node,
+// edgeOf reads one filed link of n as an edge between its two ends, ordered as
+// recorded, with the key it has from each. neighbor is read only when it is the
+// event end; nil is allowed otherwise. ok is false for an unregistered bridge.
+func edgeOf(n *graphcache.Node, l graphcache.Link, neighbor *graphcache.Node,
 	eventTypeProp []byte, terms segmentcompare.Terms) (from, to []byte, keyFrom, keyTo vocabkey.BridgeKey, ok bool) {
 	b, ok := connectrules.LookupBridge(l.BridgeTypeKey)
 	if !ok || len(b.Endpoints) != 2 {
 		return nil, nil, vocabkey.BridgeKey{}, vocabkey.BridgeKey{}, false
 	}
 	if l.FromEnd {
-		from, to = self, l.Neighbor
+		from, to = n.ID, l.Neighbor
 	} else {
-		from, to = l.Neighbor, self
+		from, to = l.Neighbor, n.ID
 	}
 	// The event type comes from whichever end is an event; `segmentcompare.Keys` alone
 	// decides whether the key keeps it.
 	var eventType string
 	if first, has := segmentcompare.EventEndpoint(b); has {
-		// The first endpoint is the edge's from end; self is that end when
-		// the link was filed from it.
+		// The first endpoint is the edge's from end; n is that end when the
+		// link was filed from it.
 		end := neighbor
 		if first == l.FromEnd {
 			end = n

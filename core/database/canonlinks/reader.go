@@ -163,7 +163,7 @@ func (d *deriver) edge(n *graphcache.Node, l graphcache.Link) (kinship.Edge, boo
 			return kinship.Edge{}, false, err
 		}
 	}
-	from, to, keyFrom, keyTo, ok := EdgeOf(n.ID, n, l, nb, d.eventTypeProp, d.terms)
+	from, to, keyFrom, keyTo, ok := edgeOf(n, l, nb, d.eventTypeProp, d.terms)
 	if !ok {
 		return kinship.Edge{}, false, nil
 	}

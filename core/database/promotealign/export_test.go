@@ -119,31 +119,6 @@ func ForgetForTest(g *graphcache.Graph, kind string, keys []string) {
 // PlaceLinksForTest is the filed-link reader Propose gives Connections.
 func PlaceLinksForTest(g *graphcache.Graph) graphalign.FiledLinks { return placeLinks(g) }
 
-// WalkRowsForTest is the rows today's walk proposes for the graph, with no
-// fixed pair: the walk branch only, for TestViewProposesAsTheWalk. Temporary.
-func WalkRowsForTest(c *database.Catalog, graphID []byte) ([]graphalign.Row, error) {
-	in, err := loadInputs(c, graphID)
-	if err != nil {
-		return nil, err
-	}
-	if len(in.layer.Subjects) == 0 {
-		return nil, nil
-	}
-	anchors, _, err := mergeFixed(c.Graph(), in.graphID, in.evidence, nil)
-	if err != nil {
-		return nil, err
-	}
-	m, err := matchIndexOf(c.Graph())
-	if err != nil {
-		return nil, err
-	}
-	canon, err := loadCanon(c.Graph(), in.graphID, m, in.layer, anchors, in.cfg, in.terms)
-	if err != nil {
-		return nil, err
-	}
-	return graphalign.Align(in.layer, canon.View(), anchors, in.cfg).Rows, nil
-}
-
 // ViewLinksForTest is the links the canon view served one proposal of the
 // graph: one entry for each handle Align asked Links for, whatever its length.
 func ViewLinksForTest(c *database.Catalog, graphID []byte) (map[string][]kinship.Link, error) {
