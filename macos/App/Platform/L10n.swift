@@ -8055,6 +8055,24 @@ enum L10n {
             comment: "Eyebrow label above an existing type's detail panel"
         )
 
+        static let detailsSectionLabel = LocalizedStringResource(
+            "sourceTypes.detail.detailsSection",
+            defaultValue: "Details",
+            comment: "Section title over a Source type page's Label, Icon and Description form"
+        )
+
+        static let pageLoadErrorTitle = LocalizedStringResource(
+            "sourceTypes.page.loadErrorTitle",
+            defaultValue: "The source type could not be loaded",
+            comment: "Title of the retry notice on a Source type's page when the types list could not be read"
+        )
+
+        static let suggestionsLoadErrorTitle = LocalizedStringResource(
+            "sourceTypes.suggested.loadErrorTitle",
+            defaultValue: "Suggested fields could not be loaded",
+            comment: "Title of the retry notice in a Source type page's suggested fields when they could not be read"
+        )
+
         static let keyHintAdd = LocalizedStringResource(
             "sourceTypes.detail.keyHintAdd",
             defaultValue: "Provenencia mints the key from the label when the type is added",
@@ -8082,18 +8100,6 @@ enum L10n {
             "sourceTypes.detail.usageNone",
             defaultValue: "no sources yet",
             comment: "Line under a type's title when no source is classified as it"
-        )
-
-        static let panelEmptyTitle = LocalizedStringResource(
-            "sourceTypes.detail.panelEmptyTitle",
-            defaultValue: "No type selected",
-            comment: "Title of the empty state shown in the detail panel before any type is selected"
-        )
-
-        static let panelEmptyBody = LocalizedStringResource(
-            "sourceTypes.detail.panelEmptyBody",
-            defaultValue: "Select a type to read its description and the fields it suggests. Types seeded by Provenencia are yours to edit; only plugin-owned types are fixed.",
-            comment: "Body of the empty state shown in the detail panel before any type is selected"
         )
 
         static func lockedNotePlugin(pluginID: String) -> String {
@@ -8160,7 +8166,7 @@ enum L10n {
 
         static let formIconChange = LocalizedStringResource(
             "sourceTypes.form.iconChange",
-            defaultValue: "Change",
+            defaultValue: "Change icon",
             comment: "Link-styled control that opens the icon picker dialog"
         )
 
@@ -8180,7 +8186,7 @@ enum L10n {
 
         static let iconPickerSubtitle = LocalizedStringResource(
             "sourceTypes.iconPicker.subtitle",
-            defaultValue: "The mark that stands for this type wherever a source of it is listed. Twenty-one marks name a kind of record, not a file format.",
+            defaultValue: "The mark that stands for this type wherever a source of it is listed. Each mark names a kind of record, not a file format.",
             comment: "Subtitle of the Source-type icon picker dialog"
         )
 
@@ -8377,20 +8383,6 @@ enum L10n {
             comment: "Toast body after detaching a field that Sources, Artifacts or graphs still carry values for; arguments are the field label, the type label, then how many Sources, Artifacts and graphs hold a value"
         )
 
-        static let toastAddedTitle = LocalizedStringResource(
-            "sourceTypes.toast.addedTitle",
-            defaultValue: "Type added",
-            comment: "Success toast title after creating a Source type"
-        )
-
-        static func toastAddedBody(label: String, key: String) -> String {
-            return L10n.format(LocalizedStringResource(
-                "sourceTypes.toast.addedBody",
-                defaultValue: "%1$@ is in this project’s vocabulary as %2$@. Assign the fields it should suggest.",
-                comment: "Success toast body after creating a Source type; arguments are label then minted key"
-            ), label, key)
-        }
-
         static let toastUpdatedTitle = LocalizedStringResource(
             "sourceTypes.toast.updatedTitle",
             defaultValue: "Type updated",
@@ -8416,20 +8408,6 @@ enum L10n {
                 "sourceTypes.delete.accessibility",
                 defaultValue: "Delete type %@",
                 comment: "VoiceOver for Source types trash; argument is the type label"
-            ), label)
-        }
-
-        static let toastDeletedTitle = LocalizedStringResource(
-            "sourceTypes.toast.deletedTitle",
-            defaultValue: "Type deleted",
-            comment: "Toast title after a source type is deleted"
-        )
-
-        static func toastDeletedBody(label: String) -> String {
-            return L10n.format(LocalizedStringResource(
-                "sourceTypes.toast.deletedBody",
-                defaultValue: "%@ is no longer in this project’s vocabulary. Its field suggestions went with it; the fields did not.",
-                comment: "Toast body after a source type is deleted; argument is the type label"
             ), label)
         }
     }

@@ -6620,6 +6620,18 @@
         }
       }
     },
+    "sourceTypes.detail.detailsSection": {
+      "comment": "Section title over a Source type page's Label, Icon and Description form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details"
+          }
+        }
+      }
+    },
     "sourceTypes.detail.eyebrowType": {
       "comment": "Eyebrow label above an existing type's detail panel",
       "extractionState": "manual",
@@ -6664,30 +6676,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supplied by the %@ plugin. The plugin owns this type, its description and the fields it suggests — Provenencia will not edit or delete them."
-          }
-        }
-      }
-    },
-    "sourceTypes.detail.panelEmptyBody": {
-      "comment": "Body of the empty state shown in the detail panel before any type is selected",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Select a type to read its description and the fields it suggests. Types seeded by Provenencia are yours to edit; only plugin-owned types are fixed."
-          }
-        }
-      }
-    },
-    "sourceTypes.detail.panelEmptyTitle": {
-      "comment": "Title of the empty state shown in the detail panel before any type is selected",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No type selected"
           }
         }
       }
@@ -6843,7 +6831,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Change"
+            "value": "Change icon"
           }
         }
       }
@@ -6975,7 +6963,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The mark that stands for this type wherever a source of it is listed. Twenty-one marks name a kind of record, not a file format."
+            "value": "The mark that stands for this type wherever a source of it is listed. Each mark names a kind of record, not a file format."
           }
         }
       }
@@ -7156,6 +7144,18 @@
         }
       }
     },
+    "sourceTypes.page.loadErrorTitle": {
+      "comment": "Title of the retry notice on a Source type's page when the types list could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source type could not be loaded"
+          }
+        }
+      }
+    },
     "sourceTypes.suggested.assignField": {
       "comment": "Button that attaches the picked field to the selected type",
       "extractionState": "manual",
@@ -7288,6 +7288,18 @@
         }
       }
     },
+    "sourceTypes.suggested.loadErrorTitle": {
+      "comment": "Title of the retry notice in a Source type page's suggested fields when they could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested fields could not be loaded"
+          }
+        }
+      }
+    },
     "sourceTypes.suggested.noneBody": {
       "comment": "Body of the panel shown when a type suggests no fields yet",
       "extractionState": "manual",
@@ -7348,30 +7360,6 @@
         }
       }
     },
-    "sourceTypes.toast.addedBody": {
-      "comment": "Success toast body after creating a Source type; arguments are label then minted key",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ is in this project’s vocabulary as %2$@. Assign the fields it should suggest."
-          }
-        }
-      }
-    },
-    "sourceTypes.toast.addedTitle": {
-      "comment": "Success toast title after creating a Source type",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Type added"
-          }
-        }
-      }
-    },
     "sourceTypes.toast.assignedBody": {
       "comment": "Toast body after attaching a field to a type; arguments are the field label then the type label",
       "extractionState": "manual",
@@ -7392,30 +7380,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Field assigned"
-          }
-        }
-      }
-    },
-    "sourceTypes.toast.deletedBody": {
-      "comment": "Toast body after a source type is deleted; argument is the type label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ is no longer in this project’s vocabulary. Its field suggestions went with it; the fields did not."
-          }
-        }
-      }
-    },
-    "sourceTypes.toast.deletedTitle": {
-      "comment": "Toast title after a source type is deleted",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Type deleted"
           }
         }
       }

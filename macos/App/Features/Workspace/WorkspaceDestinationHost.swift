@@ -84,8 +84,9 @@ struct WorkspaceDestinationHost: View {
                 store: store
             )
         case .sourceTypePage:
-            if navigation.currentLocation.typeId != nil {
-                SourceTypesView(
+            if let typeID = navigation.currentLocation.typeId {
+                SourceTypePageView(
+                    typeID: typeID,
                     session: session,
                     userID: userID,
                     store: store
