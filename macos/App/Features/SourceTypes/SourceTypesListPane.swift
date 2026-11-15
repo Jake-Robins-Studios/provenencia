@@ -81,7 +81,7 @@ struct SourceTypesListPane: View {
                 .foregroundStyle(PVColor.textMuted)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .help(type.description)
+                .help(type.description.isEmpty ? "" : type.description)
         }
         let key = PVTableColumn<CatalogSourceType>(
             id: SourceTypesModel.SortColumn.key.rawValue,
@@ -101,7 +101,7 @@ struct SourceTypesListPane: View {
             width: fieldsColumnWidth,
             sortable: true
         ) { type in
-            countCell(type.suggestedFieldCount)
+            countCell(type.suggestedFieldCount, spoken: L10n.SourceTypes.suggestedFieldsSpoken(count: type.suggestedFieldCount))
         }
         let usedBy = PVTableColumn<CatalogSourceType>(
             id: SourceTypesModel.SortColumn.usedBy.rawValue,
@@ -109,7 +109,7 @@ struct SourceTypesListPane: View {
             width: usedByColumnWidth,
             sortable: true
         ) { type in
-            countCell(type.usedBy)
+            countCell(type.usedBy, spoken: L10n.SourceTypes.usage(count: type.usedBy))
         }
         switch widthClass {
         case .regular: return [label, key, fields, usedBy]
@@ -118,9 +118,10 @@ struct SourceTypesListPane: View {
     }
 
     /// One count look for both count columns; 0 reads as the dash.
-    private static func countCell(_ count: Int) -> some View {
+    private static func countCell(_ count: Int, spoken: String) -> some View {
         Text(count > 0 ? "\(count)" : L10n.string(L10n.SourceTypes.countNone))
             .font(PVFont.mono(size: PVTypeScale.micro))
             .foregroundStyle(count > 0 ? PVColor.textSecondary : PVColor.textFaint)
+            .accessibilityLabel(Text(verbatim: spoken))
     }
 }

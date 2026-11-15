@@ -7132,6 +7132,42 @@
         }
       }
     },
+    "sourceTypes.list.suggestedFields": {
+      "comment": "VoiceOver label for the Associated fields count in the Source types list; argument is the count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld suggested field"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld suggested fields"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sourceTypes.list.suggestedFieldsNone": {
+      "comment": "VoiceOver label for the Associated fields count in the Source types list when the count is 0",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no suggested fields"
+          }
+        }
+      }
+    },
     "sourceTypes.list.description": {
       "comment": "Explanatory copy under the Source types page title",
       "extractionState": "manual",

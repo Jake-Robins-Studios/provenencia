@@ -8041,6 +8041,23 @@ enum L10n {
             comment: "Shown in a count column (Associated fields, Used by) when the count is 0"
         )
 
+        static func suggestedFieldsSpoken(count: Int) -> String {
+            switch count {
+            case 0: L10n.string(suggestedFieldsNone)
+            default: L10n.format(LocalizedStringResource(
+                "sourceTypes.list.suggestedFields",
+                defaultValue: "%lld suggested fields",
+                comment: "VoiceOver label for the Associated fields count in the Source types list; argument is the count"
+            ), count)
+            }
+        }
+
+        private static let suggestedFieldsNone = LocalizedStringResource(
+            "sourceTypes.list.suggestedFieldsNone",
+            defaultValue: "no suggested fields",
+            comment: "VoiceOver label for the Associated fields count in the Source types list when the count is 0"
+        )
+
         static func resultLine(shown: Int, total: Int) -> String {
             return L10n.format(LocalizedStringResource(
                 "sourceTypes.list.resultLineAll",
