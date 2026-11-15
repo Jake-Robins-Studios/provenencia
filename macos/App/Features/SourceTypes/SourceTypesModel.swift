@@ -11,6 +11,7 @@ final class SourceTypesModel {
         case label
         case key
         case fields
+        case usedBy
     }
 
     private(set) var sortColumn: SortColumn = .label
@@ -97,10 +98,21 @@ final class SourceTypesModel {
         case .key:
             return a.key.localizedCaseInsensitiveCompare(b.key)
         case .fields:
-            if a.suggestedFieldCount == b.suggestedFieldCount {
-                return a.label.localizedCaseInsensitiveCompare(b.label)
-            }
-            return a.suggestedFieldCount < b.suggestedFieldCount ? .orderedAscending : .orderedDescending
+            return compareCount(a, b, by: \.suggestedFieldCount)
+        case .usedBy:
+            return compareCount(a, b, by: \.usedBy)
         }
+    }
+
+    /// Equal counts fall back to the label, so the order is strict and ties follow the direction.
+    private func compareCount(
+        _ a: CatalogSourceType,
+        _ b: CatalogSourceType,
+        by count: KeyPath<CatalogSourceType, Int>
+    ) -> ComparisonResult {
+        if a[keyPath: count] == b[keyPath: count] {
+            return a.label.localizedCaseInsensitiveCompare(b.label)
+        }
+        return a[keyPath: count] < b[keyPath: count] ? .orderedAscending : .orderedDescending
     }
 }

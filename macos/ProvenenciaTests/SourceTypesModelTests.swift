@@ -74,6 +74,29 @@ struct SourceTypesModelTests {
         #expect(model.visibleTypes.map(\.id) == ["t1", "t2"])
     }
 
+    /// T-1 (AC-1.2, AC-1.3, AC-1.4): Used by orders by count, ties by label in the column's direction.
+    @Test func sortingByUsedByOrdersByCountThenLabel() async {
+        let (model, session) = makeModel(types: [
+            catalogSourceType("a", label: "Atlas", origin: "user", usedBy: 5),
+            catalogSourceType("b", label: "Book", origin: "user", usedBy: 0),
+            catalogSourceType("c", label: "Census", origin: "user", usedBy: 5),
+        ])
+        await warm(model, session: session)
+
+        model.sortBy("usedBy")
+        #expect(model.sortColumn == .usedBy)
+        #expect(model.sortAscending)
+        #expect(model.visibleTypes.map(\.id) == ["b", "a", "c"])
+
+        model.sortBy("usedBy")
+        #expect(model.visibleTypes.map(\.id) == ["c", "a", "b"])
+
+        model.sortBy("label")
+        #expect(model.sortColumn == .label)
+        #expect(model.sortAscending)
+        #expect(model.visibleTypes.map(\.id) == ["a", "b", "c"])
+    }
+
     /// T-12 (AC-4.1): the header counts the rows the page shows.
     @Test func countLineCountsTheRowsShown() async {
         let (model, session) = makeModel(types: [
