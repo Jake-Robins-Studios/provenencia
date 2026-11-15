@@ -134,3 +134,13 @@ Follow-up candidate (ask user): MNT outside-diff note — `SourcesListColumns.co
 Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`, `macos/App/Features/SourceTypes/SourceTypesListPane.swift`, the plan.
 Do: `minTableWidth` doc → "…never a column that sorts or filters, or holds the row's name." `PVTable` measures `[String]` shown ids (Equatable) with `onGeometryChange(for: [String].self) { Self.shownColumns(columns, tableWidth: $0.size.width).map(\.id) }` into `@State private var shownIDs: [String]?`; `shownColumns` filters `columns` by those ids, and until the first measure (`nil`) shows the columns with no `minTableWidth` (keep the static `shownColumns(_:tableWidth:)` and its test). Add one Contract bullet at the top of `PVTable.swift`: columns also decide whether they show (`minTableWidth`), so header and rows always agree. `SourceTypesListPane` comment "~360pt" → "~330pt". Plan line 133: "a later optional column is one more entry with a `minTableWidth`".
 Check: `scripts/check-pr.sh` PASS.
+
+## Round 4 — fix
+Head `23d546417`. Orchestrator gate PASS (xcode-test 72 s). F-10 done; deviation: `PVTableColumnGate.shownIDs(gates:tableWidth:)` holds the rule as plain values so the Sendable geometry closure captures no generic `columns` (swift-warnings); `shownColumns` delegates to it. Read by orchestrator: UX-4, MNT-R3-1, MNT-R3-2, CON-1, CON-2 **Resolved**.
+Orchestrator finding on the read — **ORC-2 · minor · Fix now:** `shownColumns` filters *every* column by the measured `shownIDs`, which only update on a geometry change. A caller whose column set changes while the width holds (a new always-on column) would hide that column until the next resize. No caller does this today (Properties, Metadata, Source types build fixed column lists), but it is a kit contract this PR adds. Also a stray double blank line after `shownColumns(_:tableWidth:)`.
+
+### Fix plan 5
+**F-11 — Only gated columns read the measure** (ORC-2)
+Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`.
+Do: the private `shownColumns` → `columns.filter { $0.minTableWidth == nil || shownIDs?.contains($0.id) == true }` (one expression; drop the `guard`). Remove the extra blank line. Doc on `shownIDs`: "Gated columns only consult it; a column with no `minTableWidth` always shows."
+Check: `scripts/check-pr.sh` PASS.
