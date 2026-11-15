@@ -94,6 +94,7 @@ extension CatalogQueryDescriptor {
             whenHidden: .markStale,
             deletedWith: .handle,
             refreshes: CatalogQueryRefresh.followsInputs(Value.self) + [
+                // Kept beside `followsInputs`: a value's inputs are empty until it loads (FakeStore), so its own handle still reaches it.
                 .applyHiddenPolicy(followsOwnId: .touchedHandles),
                 .followsPropertyLabels,
             ],
