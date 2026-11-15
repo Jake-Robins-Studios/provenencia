@@ -200,6 +200,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-38 | An empty list shows its empty state while a merge runs | 2e | Swift: `ConclusionListPresentation` shows `PVEmptyState` for an empty list whose merge is in flight, instead of a blank body (S16-26 UX-1; predates S16-26) | — | S16-26 | quick-pr | Scoped |
 | S16-34 | Tests run without showing a window or opening the researcher's project | 3a | Swift, tests only: the test host launches a `Settings`-only app (no window, no identity or project read, no Dock icon); test windows are never shown and one `.hostedWindows` trait closes them when each test ends, replacing every `withExtendedLifetime` hold; `add-swift-test` teaches it | — | — | [plan](prs/S16-34-hidden-test-windows.md) | Landed #772 |
 | S16-35 | Layout tests compute their frames instead of waiting on a window | 3a | Swift, tests only: `SourcePageOverviewLayout` and `PVPageColumnsLayout` place through static functions tested with made-up sizes; `PVWidthClassTests` force layout and assert at once; `WorkspaceDestinationHostTests`' three whole-workspace tests go, with a plain test of the leave action; `add-swift-test` teaches it | — | S16-34 | [plan](prs/S16-35-layout-tests-without-waits.md) | Landed #775 |
+| S16-39 | One container measures its own width and tells its content which layout fits | 4a | Swift, kit: a design-system modifier that measures the view it is on (a filling container, never one sized by its content) and publishes a breakpoint result to its subtree, as `pvMeasuresWidthClass` does for the pane, reporting only when a breakpoint is crossed; `PVTable`'s `minTableWidth` gate (S15-49) and the Sources list's `SourcesListColumns.compactBelow` move onto it, and every other view that turns a measured width into a layout choice is surveyed and moved or named as not one; § 9 and `add-ui-component` teach it | — | S15-49 (#852) | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -277,6 +278,12 @@ SLICE 3a — Quiet test runs
   S16-35  Layout tests compute their frames instead of waiting on a window
   Check: ⌘U shows no window or Dock icon and opens no project file; the full suite passes five runs in a row.
 
+BATCH 4 — Follow-ups from Spike 15
+
+SLICE 4a — Layout by a container's own width
+  S16-39  One container measures its own width and tells its content which layout fits
+  Check: the Source types list's Description and the Sources list's compact rows switch at the same widths as before, with no frame late on first open.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -328,6 +335,7 @@ S14-42 ──▶ S16-26 ──▶ S16-37
 S16-26 ──▶ S16-38
 S16-03 ──▶ S16-27
 S16-07 ──▶ S16-27
+S15-49 ──▶ S16-39
 ```
 
 ---
@@ -572,3 +580,14 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Not this PR.** `waitUntil` and the model tests that wait on async store work; `ArtifactPDFViewportPageTests`; laying out inside `hostInBorderlessWindow`; parallelism settings or CI.
 **Check.** No `waitUntil` and no hosted window in the four suites; the full suite, five runs one at a time under ordinary load, fails in none of them, with before-and-after tables and load averages in the PR body.
 **Context.** Rule "(Batch 3) A test run shows no window and touches no install"; the S15-04 ship log on [#774](https://github.com/mendahu/provenencia/pull/774) (`main` passed 3 of 5 runs at load 15–53); [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).
+
+### Batch 4 — Follow-ups from Spike 15
+
+### Slice 4a — Layout by a container's own width
+
+#### S16-39 — One container measures its own width and tells its content which layout fits
+
+**Ships.** A design-system modifier, beside `pvMeasuresWidthClass`, that measures the view it is applied to and publishes to its subtree which of the caller's breakpoints the width meets, reporting only when one is crossed (the shape `PVTable` reached in S15-49 round 4: measure the result, not the raw width). Its doc and § 9 state the rule it depends on: apply it only to a container that fills the space it is given, never one sized by its content, or a layout change can change the width that chose it. `PVTable`'s `minTableWidth` gate (`PVTableColumnGate`) and the Sources list's `SourcesListColumns.compactBelow` (measured at `SourcesListView.swift:313`) move onto it. The other views that measure a width with `onGeometryChange` or `GeometryReader` (`PersonFamilySection`, `PersonRecordLinksColumn`, `PersonTimelineSection`, `WorkspaceContent`, and the kit's) are surveyed: each that turns a width into a layout choice moves onto it; each that uses the width as geometry (a diagram's size, a scroll offset) is named in the plan as not one. `add-ui-component` names the modifier.
+**Not this PR.** The pane's width class (`pvMeasuresWidthClass`, measured once at `WorkspaceDestinationHost`) and its 1600pt breakpoint; any change to a breakpoint's value; `ViewThatFits` or a custom `Layout` in place of measuring.
+**Check.** The Source types list shows Description from a 1200pt table and the Sources list goes compact below 880pt, as before; no measured-width breakpoint is left outside the modifier (`rg -n "onGeometryChange|GeometryReader" macos/App` prints only the modifier and the geometry uses the plan names); a test drives the breakpoint result with made-up widths (S16-35's pattern).
+**Context.** User, 2026-11-15, on S15-49 ([#852](https://github.com/mendahu/provenencia/pull/852)): unify the table's own-width breakpoint into a general-purpose tool; the S15-49 ship log (MNT round 3 note on `compactBelow`, F-7, F-10, F-11); [§ 9 of macos-client-patterns.md](../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3; `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift`, `Table/PVTable.swift`, `macos/App/Features/Sources/SourcesListColumns.swift`.

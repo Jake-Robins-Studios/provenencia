@@ -1,7 +1,7 @@
 # Ship log — S15-49 The Source types list is redesigned
 
 **Plan:** [`S15-49-source-types-list.md`](S15-49-source-types-list.md) · **Branch:** `s15-49-source-types-list` · **PR:** #852
-**State:** ready
+**State:** fixing 6 (user request after ready)
 
 ## Round 0 — implement
 Base `main` @ `1f52b6080`. Note to the implementer: T-1's `sortColumn == .usage` is a typo for `.usedBy` (D-6, review M-2).
@@ -150,3 +150,21 @@ Head `5135fb8ac`. Orchestrator gate PASS. F-11 read by orchestrator: **Resolved*
 
 ## Result (final)
 Gate PASS · CI pending on `5135fb8ac`+ · open: none · follow-ups: one candidate for the user (`SourcesListColumns.compactBelow` vs `PVTableColumn.minTableWidth`) · to user: — (D-1 amended by the user 2026-11-15)
+
+## After ready — user request 2 (2026-11-15)
+User, from the running app at ~1440pt: Label takes half the free width but holds short text, so Description truncates too soon; give Description more room. Amends D-3's "sharing the free width equally with Label" (and the board's 562pt each) by the user's decision. Ratio chosen by the orchestrator: **Label 1 : Description 2** (at a 1200pt table about 220 / 440pt; at ~1540pt about 333 / 667pt).
+User also asked for a Spike 16 PR to unify own-width breakpoints into one tool: **S16-39** added to the Spike 16 map (row, slice 4a, scope entry) on this branch.
+
+### Fix plan 6
+**F-12 — Flexible table columns share the free width by weight** (user request)
+Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`, `macos/ProvenenciaTests/PVTableTests.swift` (or the `PVTableShownColumnsTests` file). Skills: `add-ui-component`, `add-swift-test`.
+Failing test first: `PVTableColumnsLayoutTests.flexibleColumnsShareTheFreeWidthByWeight` — `PVTableColumnsLayout.widths(fixed: [nil, nil, 100], flex: [1, 2, 1], total: 1000, spacing: 0) == [300, 600, 100]`; with `spacing: 10` and three columns the free width is `1000 − 100 − 20`; all-fixed columns keep their widths; a flex of 0 is treated as 1.
+Do: `PVTableColumn` gains `flex: CGFloat = 1` (after `minTableWidth`; doc: "A flexible column's share of the width the fixed columns leave; ignored when `width` is set"). Add `struct PVTableColumnsLayout: Layout` (spacing, per-subview fixed width and flex) with a `static func widths(fixed:flex:total:spacing:) -> [CGFloat]` that the layout calls (S16-35's pattern: placement through a static function tests drive with made-up sizes). The header's and `rowView`'s `HStack(spacing: PVSpacing.space6) { ForEach(shownColumns) … }` become `PVTableColumnsLayout(…) { ForEach(shownColumns) … }` built from `shownColumns`; each cell keeps its `.frame(maxWidth:…, alignment: .leading)` so its content stays leading in the slot it is given; heights as today (the row's tallest cell). Existing callers pass no `flex`, so equal shares as before. Update the Contract bullet on widths.
+Check: the new test passes; `PVTableTests`, `MetadataModelTests`, `SourceTypesModelTests` green.
+
+**F-13 — Description takes twice Label's share**
+Files: `macos/App/Features/SourceTypes/SourceTypesListPane.swift`, `SourceTypesModelTests.swift`, the plan (D-3 cell and Landed), `docs/deployment-plan/spike-15/completed.md` if it states the split.
+Do: the Description column passes `flex: 2` from `static let descriptionFlex: CGFloat = 2` beside the width constants (doc: user, 2026-11-15: labels are short, so Description takes twice Label's share). Fix the "~330pt each" comment to the new split (about 220 / 440pt at a 1200pt table). T-2 also asserts `description` has flex 2 and every other flexible column flex 1. Plan: append to D-3's Decision cell "*(amended by the user 2026-11-15 after review: Description takes twice Label's share, `PVTableColumn.flex`; see Landed)*" and a Landed bullet.
+Check: tests pass; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-49-source-types-list.md` 0 errors.
+
+Whole round Check: `scripts/check-pr.sh` PASS.
