@@ -87,6 +87,12 @@ func TestWalkEvidenceGraphEdges(t *testing.T) {
 	away := f.subject(other, "away", "place")
 	f.exec(`UPDATE observations SET value_subject_id = ? WHERE subject_id = ? AND property_id = ?`,
 		away.ID, f.name["wedding-hull"].ID, f.Prop("place").ID)
+	// A bridge from a place to itself: York part of Hull, then a second one whose
+	// to-end is set to York.
+	f.name["york-hull"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")
+	f.name["york-york"] = f.PlaceRel(f.Source, f.Artifact, york, hull, "part_of")
+	f.exec(`UPDATE observations SET value_subject_id = ? WHERE subject_id = ? AND property_id = ?`,
+		york.ID, f.name["york-york"].ID, f.Prop("to").ID)
 
 	participates := hops.MustHop("participation", "person", "event", nil)
 	asSubject := hops.MustHop("participation", "person", "event", &hops.TermFilter{PropertyKey: "role", TermKey: "subject"})
@@ -114,6 +120,10 @@ func TestWalkEvidenceGraphEdges(t *testing.T) {
 			{"york", "birth-york", "birth"},
 		}},
 		{name: "no from Subjects", hop: participates},
+		{name: "a link from a place to itself is not walked", hop: hops.ParentsOfPlace, from: []string{"york"}, want: [][3]string{
+			{"york", "york-hull", "hull"},
+		}},
+		{name: "a self-loop has no far end", hop: hops.PartsOfPlace, from: []string{"york"}},
 	}
 	g := f.C.Graph()
 	eg, err := graphfill.EvidenceGraph(g, evidencegraphstest.SoleGraph(t, f.C, f.Source.ID).ID)
@@ -177,7 +187,7 @@ func TestWalkEvidenceGraphEdgeCap(t *testing.T) {
 		eg := graphcache.EvidenceGraph{Found: true, Subjects: []graphcache.EvidenceSubject{{ID: bridge, SubjectTypeID: bridgeType, Ref: "SUB-B"}}}
 		var from [][]byte
 		for i := 0; i < tos; i++ {
-			eg.Subjects = append(eg.Subjects, graphcache.EvidenceSubject{ID: id(i + 1), Ref: "SUB-P"})
+			eg.Subjects = append(eg.Subjects, graphcache.EvidenceSubject{ID: id(1000 + i + 1), Ref: "SUB-P"})
 		}
 		for i := 0; i < froms; i++ {
 			from = append(from, id(i+1))
@@ -186,7 +196,7 @@ func TestWalkEvidenceGraphEdgeCap(t *testing.T) {
 		}
 		for i := 0; i < tos; i++ {
 			eg.Observations = append(eg.Observations, graphcache.EvidenceObservation{
-				SubjectID: bridge, PropertyID: f.Prop("event").ID, ValueSubjectID: id(i + 1), Polarity: "positive"})
+				SubjectID: bridge, PropertyID: f.Prop("event").ID, ValueSubjectID: id(1000 + i + 1), Polarity: "positive"})
 		}
 		edges, err := g.WalkEvidenceGraph(eg, hops.MustHop("participation", "person", "event", nil), from)
 		if err != nil {

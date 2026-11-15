@@ -44,32 +44,6 @@ func sparseAnnAmes() (graphalign.Layer, graphalign.Canon) {
 	return layer, canon
 }
 
-// placePartOfItself is a Source place and a canon place that are each part of
-// themselves.
-func placePartOfItself() (graphalign.Layer, graphalign.Canon) {
-	sig := partOfLink()
-	place, handle := id("s-place"), id("h-place")
-	tn, tv := textProp("toponym", "Gumptiontown")
-	layer := graphalign.Layer{
-		Subjects: []graphalign.Subject{{ID: place, Ref: "CPL-P", Kind: "place", Values: vals(tn, tv)}},
-		Bridges:  []kinship.Link{bridge(place, place, sig)},
-		Metas:    placeMetas(),
-	}
-	canon := graphalign.Canon{
-		Handles: []graphalign.Handle{{ID: handle, Ref: "PLC-P", Kind: "place", Values: vals(tn, tv)}},
-		Edges:   []kinship.Link{edge(handle, handle, sig)},
-	}
-	return layer, canon
-}
-
-func TestPlacePartOfItselfPlaces(t *testing.T) {
-	layer, canon := placePartOfItself()
-	p := alignWith(layer, canon, nil, matchregistry.Default().AlignConfig())
-	if row := rowBySubject(p, id("s-place")); row.Target != graphalign.TargetHandle || !bytes.Equal(row.HandleID, id("h-place")) {
-		t.Fatalf("a place part of itself on both sides: %+v", row)
-	}
-}
-
 func sortedRows(p graphalign.Proposal) []graphalign.Row {
 	rows := slices.Clone(p.Rows)
 	slices.SortFunc(rows, func(a, b graphalign.Row) int { return bytes.Compare(a.SubjectID, b.SubjectID) })
@@ -86,7 +60,6 @@ func TestAlignInvariants(t *testing.T) {
 		{"obituary", gracieObituary, []graphalign.Fixed{{SubjectID: id("s-gracie"), HandleID: id("h-gracie")}}},
 		{"sparse name and birth", sparseAnnAmes, nil},
 		{"part-of chain", partOfChain, nil},
-		{"a place part of itself on both sides", placePartOfItself, nil},
 		{"marriage on both sides", func() (graphalign.Layer, graphalign.Canon) {
 			return marriageFixture("marriage", "marriage", true)
 		}, []graphalign.Fixed{{SubjectID: id("s-ann"), HandleID: id("h-ann")}}},

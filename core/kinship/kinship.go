@@ -10,7 +10,6 @@ package kinship
 
 import (
 	"bytes"
-	"iter"
 	"slices"
 
 	"github.com/mendahu/provenencia/core/connectrules"
@@ -59,34 +58,6 @@ func (e Edge) From(id []byte) (other []byte, key vocabkey.BridgeKey, ok bool) {
 		return e.A, e.KeyB, true
 	}
 	return nil, vocabkey.BridgeKey{}, false
-}
-
-// Readings yields the edge read from id: the Subject at the other end and the
-// link as seen from id, A's end first. A link from id to itself yields both
-// ends, so a reader that walks links sees the self-loop through each key. It
-// yields nothing when id is neither end. From is its first reading.
-func (e Edge) Readings(id []byte) iter.Seq2[[]byte, vocabkey.BridgeKey] {
-	return func(yield func([]byte, vocabkey.BridgeKey) bool) {
-		if bytes.Equal(e.A, id) && !yield(e.B, e.KeyA) {
-			return
-		}
-		if bytes.Equal(e.B, id) {
-			yield(e.A, e.KeyB)
-		}
-	}
-}
-
-// Ends yields each distinct end of the edge, A first: a link between two
-// handles yields A then B, a link from a handle to itself yields it once.
-func (e Edge) Ends() iter.Seq[[]byte] {
-	return func(yield func([]byte) bool) {
-		if !yield(e.A) {
-			return
-		}
-		if !bytes.Equal(e.A, e.B) {
-			yield(e.B)
-		}
-	}
 }
 
 // Clone returns a copy of e that shares no bytes with it: its ends and every
@@ -350,24 +321,24 @@ func relationshipKeys(term vocabkey.BridgeTerm, terms segmentcompare.Terms) (fir
 
 // readsTerm reads an edge as one relationship term from either end: first is
 // the end that reads the term's first key (the parent, for TermParent), second
-// the end that reads its second. It is false for any other link, and for a link
-// that joins a Subject to itself. It is the one reader of a relationship link.
+// the end that reads its second. It is false for any other link. It is the one
+// reader of a relationship link.
 func readsTerm(e Edge, term vocabkey.BridgeTerm, terms segmentcompare.Terms) (first, second []byte, ok bool) {
 	keyFirst, keySecond, found := relationshipKeys(term, terms)
 	if !found {
 		return nil, nil, false
 	}
 	first, second, ok = e.reads(keyFirst, keySecond)
-	if !ok || bytes.Equal(first, second) {
+	if !ok {
 		return nil, nil, false
 	}
 	return first, second, true
 }
 
 // ParentStep reads an edge as one parent step: parent is child's parent, from
-// whichever end the link is read. It is false for any other link, and for a
-// link that joins a Subject to itself. It is the one rule for what a parent
-// step is, shared by Derive and the readers of its inputs.
+// whichever end the link is read. It is false for any other link. It is the one
+// rule for what a parent step is, shared by Derive and the readers of its
+// inputs.
 func ParentStep(e Edge, terms segmentcompare.Terms) (parent, child []byte, ok bool) {
 	return readsTerm(e, vocabkey.TermParent, terms)
 }

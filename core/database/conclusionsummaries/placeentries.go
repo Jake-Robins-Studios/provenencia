@@ -1,7 +1,6 @@
 package conclusionsummaries
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 
@@ -128,14 +127,7 @@ type followedPlace struct {
 	oriented [][]placeLink
 }
 
-// followHop is one hop followPlaces follows; selfOnly keeps only the links from
-// the place to itself.
-type followHop struct {
-	hop      hops.Hop
-	selfOnly bool
-}
-
-func followPlaces(g *graphcache.Graph, v vocab, ids [][]byte, hopList ...followHop) (map[string]*followedPlace, error) {
+func followPlaces(g *graphcache.Graph, v vocab, ids [][]byte, hopList ...hops.Hop) (map[string]*followedPlace, error) {
 	nodes, err := g.NodesOnBridges(ids, "place_relationship")
 	if err != nil {
 		return nil, err
@@ -149,14 +141,11 @@ func followPlaces(g *graphcache.Graph, v vocab, ids [][]byte, hopList ...followH
 		}
 		f := &followedPlace{n: n, links: make([][]graphcache.Link, len(hopList)), oriented: make([][]placeLink, len(hopList))}
 		for i, h := range hopList {
-			links, err := n.Follow(h.hop)
+			links, err := n.Follow(h)
 			if err != nil {
 				return nil, err
 			}
 			for _, l := range links {
-				if h.selfOnly && !bytes.Equal(l.Neighbor, id) {
-					continue
-				}
 				f.links[i] = append(f.links[i], l)
 				assocIDs = append(assocIDs, l.Association)
 			}
@@ -204,7 +193,7 @@ func fillPlaceEntries(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]pl
 			return nil, err
 		}
 		e := placeEntry{found: true, shell: shell, period: periodWindow(shell.StartDate, shell.EndDate)}
-		e.partFrom = dedupePlaceLinks(f.oriented[0])
+		e.partFrom = f.oriented[0]
 		e.inputs = placeInputs(id, f, entryHops)
 		out[string(id)] = e
 	}
@@ -215,10 +204,7 @@ func fillPlaceEntries(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]pl
 // entries, over the links where each place is the whole. Its inputs come from
 // the links it followed.
 func fillPlacePages(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]placePage, error) {
-	// A place that is part of itself sits in its own list of parts as well as of
-	// wholes, and the graph follows that link from only one end: the page takes
-	// it from the part_of hop, and no other link of that hop.
-	pageHops := []followHop{{hop: hops.PartsOfPlace}, {hop: hops.ParentsOfPlace, selfOnly: true}}
+	pageHops := []hops.Hop{hops.PartsOfPlace}
 	have, err := followPlaces(g, v, ids, pageHops...)
 	if err != nil {
 		return nil, err
@@ -232,7 +218,7 @@ func fillPlacePages(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]plac
 			continue
 		}
 		out[string(id)] = placePage{
-			partTo: dedupePlaceLinks(append(f.oriented[0], f.oriented[1]...)),
+			partTo: f.oriented[0],
 			inputs: placeInputs(id, f, pageHops),
 		}
 	}
@@ -243,7 +229,7 @@ func fillPlacePages(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]plac
 // fillPlacePages reads pages, over the links where each place is the
 // predecessor and the successor.
 func fillPlaceSuccessions(g *graphcache.Graph, v vocab, ids [][]byte) (map[string]placeSuccession, error) {
-	succHops := []followHop{{hop: hops.SuccessorsOfPlace}, {hop: hops.PredecessorsOfPlace}}
+	succHops := []hops.Hop{hops.SuccessorsOfPlace, hops.PredecessorsOfPlace}
 	have, err := followPlaces(g, v, ids, succHops...)
 	if err != nil {
 		return nil, err
@@ -257,8 +243,8 @@ func fillPlaceSuccessions(g *graphcache.Graph, v vocab, ids [][]byte) (map[strin
 			continue
 		}
 		out[string(id)] = placeSuccession{
-			succFrom: dedupePlaceLinks(f.oriented[0]),
-			succTo:   dedupePlaceLinks(f.oriented[1]),
+			succFrom: f.oriented[0],
+			succTo:   f.oriented[1],
 			inputs:   placeInputs(id, f, succHops),
 		}
 	}
@@ -266,35 +252,19 @@ func fillPlaceSuccessions(g *graphcache.Graph, v vocab, ids [][]byte) (map[strin
 }
 
 // entryHops is the one hop an entry follows: the places each place is part of.
-var entryHops = []followHop{{hop: hops.ParentsOfPlace}}
+var entryHops = []hops.Hop{hops.ParentsOfPlace}
 
 // placeInputs is the one inputs rule of the place fills: the place's node and
 // the keys of each link it followed along hopList. A place that was not found
 // (f nil) has only its node.
-func placeInputs(id []byte, f *followedPlace, hopList []followHop) []graphcache.InputKey {
+func placeInputs(id []byte, f *followedPlace, hopList []hops.Hop) []graphcache.InputKey {
 	keys := []graphcache.InputKey{graphcache.NodeKey(id)}
 	if f != nil {
 		for i, h := range hopList {
-			keys = append(keys, graphcache.FollowKeys(id, h.hop, f.links[i])...)
+			keys = append(keys, graphcache.FollowKeys(id, h, f.links[i])...)
 		}
 	}
 	return graphcache.UniqueInputKeys(keys)
-}
-
-// dedupePlaceLinks drops a link repeated on from, to and association, keeping
-// the first.
-func dedupePlaceLinks(links []placeLink) []placeLink {
-	seen := map[string]bool{}
-	var out []placeLink
-	for _, l := range links {
-		key := string(l.from) + "\x00" + string(l.to) + "\x00" + string(l.association)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		out = append(out, l)
-	}
-	return out
 }
 
 // orientPlaceLink makes the link l of place id a placeLink, from its part or
@@ -321,10 +291,10 @@ func orientPlaceLink(v vocab, id []byte, l graphcache.Link, assocs map[string]*g
 // FiledPlaceLinks returns, for each place in ids, the places its filed links of
 // term lead to, from the part to the whole (part_of) or from the predecessor to
 // the successor (succeeded_by), each list in link order with a repeated end kept
-// once. A place with no entity row, or no link, is absent from the answer. A
-// place that is part of itself leads to itself. It reads the chain entries for
-// part_of and the succession entries for succeeded_by, and no date but the
-// ones those entries decode. Any other term is an error.
+// once. A place with no entity row, or no link, is absent from the answer. It
+// reads the chain entries for part_of and the succession entries for
+// succeeded_by, and no date but the ones those entries decode. Any other term is
+// an error.
 func FiledPlaceLinks(g *graphcache.Graph, term vocabkey.BridgeTerm, ids [][]byte) (map[string][][]byte, error) {
 	v, err := vocabulary(g)
 	if err != nil {

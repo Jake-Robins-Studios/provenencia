@@ -1,6 +1,6 @@
 # S16-36 — A link from a record to itself is refused where links are read
 
-**Status:** Planned
+**Status:** Landed in [#841](https://github.com/mendahu/provenencia/pull/841) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a hand-edited catalog's self-loop stops being read; no view the app can reach looks different)
@@ -14,6 +14,8 @@
 **Context:** working rules "(Batch 2) A link with one record at both ends is crafted data, refused where links are read" (user, 2026-11-14) and "(Batch 2) The point of this batch is simpler code"; [S16-21 plan](S16-21-canon-view-place-links.md) D-1, D-3, D-14, D-16 (the self-loop readings this PR removes); [S16-21 ship log](S16-21-canon-view-place-links.ship.md) MNT-2b; [`promote-graph-alignment.md`](../../../promote-graph-alignment.md) line 198
 **Planned:** 2026-11-14 against `main` @ `1255b24`
 **Review:** [`S16-36-refuse-self-loops.review.md`](S16-36-refuse-self-loops.review.md) — Fits — Ready with changes, 2 rounds, no open blocker
+
+**Landed.** Differences from the plan: T-1 commits `k.Commit(loop, town, city, self, part)` with the association ids; T-3 sits inside `TestCreateCitedBridge` because `countBridges` is a closure there; `TestPlaceEntryInputsMatchReads` reads `reads(id, hops.PartsOfPlace)` inline and the `pageReads` helper is gone. T-11 to T-13 came from the two plan amendments. The `finishLinks` dedupe went with the guard (D-6's rationale now rests on the schema and the guard).
 
 ### Implementer — read this first
 
@@ -193,7 +195,7 @@ None — no user-facing copy.
 
 **STEP-1 — Drop a self-loop where links are read**
 Files: `core/database/graphcache/load.go`, `core/database/graphcache/evidence_graph.go`, `core/database/graphcache/graph_test.go`, `core/database/graphcache/evidence_graph_walk_test.go`, `core/database/conclusionsummaries/placeentries_test.go`. Skill: `use-catalog-session`.
-Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2). The guard makes two catalog-backed self-loop tests fail, so their deletions ride in this step: `TestPlaceEntries` case "self-loop" and `TestFiledPlaceLinks`' `loop` (T-9's and T-10's deletions; the rest of T-9 stays in STEP-6).
+Do: write T-1 and T-2 first and see them fail; add the two guards (D-1, D-2). The guard makes two catalog-backed self-loop tests fail, so their deletions ride in this step: `TestPlaceEntries` case "self-loop" and `TestFiledPlaceLinks`' `loop` (T-9's and T-10's deletions; the rest of T-9 stays in STEP-6). The Evidence guard also drops 223 accidental self-loops in `TestWalkEvidenceGraphEdgeCap`'s fixture, so T-11 rides in this step too.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/graphcache/... ./core/database/conclusionsummaries/... ./core/database/promotealign/...` passes.
 
 **STEP-2 — Test the Source bridge's equal-ends refusal**
@@ -212,8 +214,8 @@ Do: D-3's `NewGraph` change.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/recordlinks/...` passes.
 
 **STEP-5 — Delete `Edge.Readings`, `Edge.Ends` and the equal-ends check**
-Files: `core/kinship/kinship.go`, `core/kinship/kinship_test.go`. Skill: `add-match-rule`.
-Do: D-3's deletions (with them the doc lines `kinship.go` 64–67 and 79–80, and the now unused `iter` import), D-4 (doc lines 354 and 369), and T-6.
+Files: `core/kinship/kinship.go`, `core/kinship/kinship_test.go`, `core/kinship/families_test.go`, `core/database/canonlinks/reader_test.go`. Skill: `add-match-rule`.
+Do: D-3's deletions (with them the doc lines `kinship.go` 64–67 and 79–80, and the now unused `iter` import), D-4 (doc lines 354 and 369), T-6, T-12 and T-13.
 Check: `rg -n "\.Readings\(|\.Ends\(\)" core` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/kinship/... ./core/database/canonlinks/... ./core/database/evidencelayer/...` passes.
 
 **STEP-6 — Place pages follow only their parts**
@@ -242,6 +244,9 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-8 | Go | `core/graphalign/invariants_test.go` | `placePartOfItself`, `TestPlacePartOfItselfPlaces` and the `TestAlignInvariants` row "a place part of itself on both sides" deleted | D-7 |
 | T-9 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestPlaceEntries`, `TestPlaceEntryInputsMatchReads` | Case "self-loop" deleted; `pageReads(id)` = `reads(id, hops.PartsOfPlace)`; page inputs of town, city, region and unknown match it | D-6, D-7 |
 | T-10 | Go | `core/database/conclusionsummaries/placeentries_test.go` `TestFiledPlaceLinks` | `loop`, `k.PartOf(loop, loop)` and row "a place part of itself" deleted; other rows unchanged | D-6, D-7 |
+| T-11 | Go | `core/database/graphcache/evidence_graph_walk_test.go` `TestWalkEvidenceGraphEdgeCap` *(amended 2026-11-14, ship round 0)* | The from-Subjects keep `id(i + 1)`; the to-Subjects (their `EvidenceSubject` and their `event` observation) take `id(1000 + i + 1)`, so no pair has one Subject at both ends. Expected values unchanged: under the cap `223*224` edges, over the cap none | D-1 |
+| T-12 | Go | `core/database/canonlinks/reader_test.go` `TestRelationshipsOptionsSiblings` "AC-1.9" *(amended 2026-11-14, ship round 0)* | Last case kept: `w.sibling("BB", bea, bea)` then `check(t, read(w, bea))` with no wanted entry (STEP-1's canon guard seen through `Relationships`); the earlier cases unchanged | D-1 |
+| T-13 | Go | `core/kinship/families_test.go` `TestKinOf` *(amended 2026-11-14, ship round 0)* | Subtest "a link to self" deleted; other subtests unchanged | D-4 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestPlaceEntryInputsMatchReads` (page inputs), the `graphalign` goldens (adjacency order), `TestDeriveInvariants` (its random stream changes with D-4).
 

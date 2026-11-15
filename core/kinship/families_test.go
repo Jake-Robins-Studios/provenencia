@@ -218,12 +218,6 @@ func TestKinOf(t *testing.T) {
 			}
 		})
 	}
-	t.Run("a link to self", func(t *testing.T) {
-		l := kinship.Link{Edge: rel(1, 1, vocabkey.TermParent, 1)}
-		if kin := kinship.KinOf(p(1), []kinship.Link{l}, terms, rules); len(kin) != 0 {
-			t.Fatalf("got %v", kin)
-		}
-	})
 	t.Run("a stranger", func(t *testing.T) {
 		l := kinship.Link{Edge: rel(1, 2, vocabkey.TermSpouse, 1)}
 		if kin := kinship.KinOf(p(3), []kinship.Link{l}, terms, rules); len(kin) != 0 {

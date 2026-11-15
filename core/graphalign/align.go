@@ -122,10 +122,9 @@ func newState(layer Layer, canon CanonView, fixed []Fixed, cfg Config) *state {
 		st.subjects[string(s.ID)] = s
 	}
 	for _, b := range layer.Bridges {
-		for end := range b.Ends() {
-			for other, key := range b.Readings(end) {
-				st.layerAdj[string(end)] = append(st.layerAdj[string(end)], adjLink{neighbor: other, key: key, Recording: b.Recording})
-			}
+		for _, end := range [][]byte{b.A, b.B} {
+			other, key, _ := b.From(end)
+			st.layerAdj[string(end)] = append(st.layerAdj[string(end)], adjLink{neighbor: other, key: key, Recording: b.Recording})
 		}
 	}
 	for _, f := range fixed {
@@ -303,12 +302,14 @@ func (st *state) markDirty(nk string, m mark) {
 func (st *state) corresponding(link adjLink, hid []byte) []adjLink {
 	var out []adjLink
 	for _, l := range st.canon.Links(hid) {
-		for other, key := range l.Readings(hid) {
-			ce := adjLink{neighbor: other, key: key, Recording: l.Recording}
-			if segmentcompare.Corresponds(link.key, ce.key) &&
-				!kinship.CountedOnce(link.Recording, ce.Recording, st.placedOf) {
-				out = append(out, ce)
-			}
+		other, key, ok := l.From(hid)
+		if !ok {
+			continue
+		}
+		ce := adjLink{neighbor: other, key: key, Recording: l.Recording}
+		if segmentcompare.Corresponds(link.key, ce.key) &&
+			!kinship.CountedOnce(link.Recording, ce.Recording, st.placedOf) {
+			out = append(out, ce)
 		}
 	}
 	return out

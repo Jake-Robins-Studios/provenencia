@@ -833,7 +833,7 @@ func TestRelationshipsOptionsSiblings(t *testing.T) {
 		}
 		bea := w.person("Bea")
 		w.sibling("BB", bea, bea)
-		check(t, read(w, bea), want(w, "Bea", "Bea", []string{"BB"}))
+		check(t, read(w, bea))
 	})
 	t.Run("AC-1.10", func(t *testing.T) {
 		w := newWorld(t)

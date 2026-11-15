@@ -121,9 +121,8 @@ func NewGraph(members []Member, links []kinship.Link) Graph {
 		}
 	}
 	for _, l := range links {
-		for end := range l.Ends() {
-			g.addLink(l, end)
-		}
+		g.addLink(l, l.A)
+		g.addLink(l, l.B)
 	}
 	return g
 }

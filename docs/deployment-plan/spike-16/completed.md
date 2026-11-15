@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-36 — A link from a record to itself is refused where links are read
+
+**Landed 2026-11-14** in [#841](https://github.com/mendahu/provenencia/pull/841). Nothing a researcher sees changes. The graph cache drops a stored link whose two ends are one record where it reads the catalog's links (`linkRaws`) and an Evidence graph's bridges (`WalkEvidenceGraph`); only a hand-edited catalog holds one. `kinship.Edge.Readings` and `Ends`, `readsTerm`'s equal-ends check, `graphalign`'s and `recordlinks`' self-loop reads and the place pages' self hop (`followHop`, `dedupePlaceLinks`) are deleted with their tests, so S16-22's session-graph view adds no self-loop reader. `connect.CreateCitedBridge`'s equal-ends refusal now has a test.
+
 ## S16-24 — Person, Event and Place reads report their inputs
 
 **Landed 2026-11-14** in [#839](https://github.com/mendahu/provenencia/pull/839). Nothing a researcher sees changes. The detail of a Person, Event or Place, and a Person's claims, family, timeline and record links, return `inputs` beside their value: the handles they read, the Evidence graphs whose records they show and the Sources whose words they show, as three wire lists. A read records through the new `graphcache.PageInputs` (handles through an `InputScope`, so `Node`, `Follow` and `Cached` record what they read; `graphfill.RecordsOf` records the graphs it is asked for), and adds only ids taken from rows it holds; the kinship read records at its two neighbour loads. A Place page records every part it reads, including one its period hides. `GoStore` decodes the lists onto each value (`CatalogPageInputs`; the claims value is `CatalogPersonClaims`); nothing reads them until S16-25.

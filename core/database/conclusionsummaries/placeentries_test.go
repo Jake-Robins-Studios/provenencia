@@ -174,61 +174,6 @@ func TestPlaceEntries(t *testing.T) {
 				t.Errorf("chain %v after the link was removed, want none", got)
 			}
 		}},
-		{"self-loop", func(t *testing.T, _ *fixture, _ *chainWorld) {
-			c := graphcachetest.OpenCatalog(t)
-			k := graphcachetest.NewCanon(t, c)
-			loop := k.Entity("place")
-			k.PartOf(loop, loop)
-			k.Commit(loop)
-			g := c.Graph()
-			g.Drop()
-			if got, err := conclusionsummaries.ParentsAtDate(c, loop, conclusionsummaries.TodayDate()); err != nil || len(got) != 0 {
-				t.Errorf("chain of a place that is part of itself: %v, %v", got, err)
-			}
-			h := conclusionsummaries.PlaceSummary{}
-			h.Entity.ID = loop
-			must(t, conclusionsummaries.AttachPlaceRelationships(c, &h, c.Graph().NoPageInputs()))
-			if len(h.PartOf) != 1 || len(h.Contains) != 1 {
-				t.Errorf("part of %d, contains %d, want one each", len(h.PartOf), len(h.Contains))
-			}
-			db, err := c.DB()
-			must(t, err)
-			in := graphcache.Over(db).Inputs(nil)
-			if _, err := in.Node(loop); err != nil {
-				t.Fatal(err)
-			}
-			reads := func(hopList ...hops.Hop) []graphcache.InputKey {
-				in := graphcache.Over(db).Inputs(nil)
-				if _, err := in.Node(loop); err != nil {
-					t.Fatal(err)
-				}
-				for _, hop := range hopList {
-					links, err := in.Follow(loop, hop)
-					must(t, err)
-					for _, l := range links {
-						if _, err := in.Node(l.Association); err != nil {
-							t.Fatal(err)
-						}
-					}
-				}
-				return in.Keys()
-			}
-			_, _, chain := conclusionsummaries.PlaceEntryForTest(g, loop)
-			_, page := conclusionsummaries.PlacePageForTest(g, loop)
-			_, succession := conclusionsummaries.PlaceSuccessionForTest(g, loop)
-			if want := reads(hops.ParentsOfPlace); !slices.EqualFunc(chain, want, graphcache.InputKey.Equal) {
-				t.Errorf("chain inputs %+v, want %+v", chain, want)
-			}
-			if want := reads(hops.PartsOfPlace, hops.ParentsOfPlace); !slices.EqualFunc(page, want, graphcache.InputKey.Equal) {
-				t.Errorf("page inputs %+v, want %+v", page, want)
-			}
-			if want := reads(hops.SuccessorsOfPlace, hops.PredecessorsOfPlace); !slices.EqualFunc(succession, want, graphcache.InputKey.Equal) {
-				t.Errorf("succession inputs %+v, want %+v", succession, want)
-			}
-			if err := g.Verify(); err != nil {
-				t.Errorf("Verify: %v", err)
-			}
-		}},
 		{"vocabulary", func(t *testing.T, f *fixture, w *chainWorld) {
 			graphcachetest.NewCanon(t, f.C).CommitVocabulary()
 			if n := f.C.Graph().KeyCounts()["conclusionsummaries.places"]; n != 0 {
@@ -493,21 +438,6 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 		}
 		return in.Keys()
 	}
-	// pageReads is reads(id, PartsOfPlace) and the from end of the place's
-	// place_relationship links: the page follows ParentsOfPlace for the link
-	// from the place to itself and keeps no other link of it. These worlds have
-	// no self link, so the from end adds only its key.
-	pageReads := func(id []byte) []graphcache.InputKey {
-		keys := reads(id, hops.PartsOfPlace)
-		if n, err := graphcache.Over(db).Inputs(nil).Node(id); err != nil || n == nil {
-			return keys
-		}
-		from := graphcache.InputKey{ID: id, Bridge: "place_relationship", Endpoint: "from"}
-		if !slices.ContainsFunc(keys, from.Equal) {
-			keys = append(keys, from)
-		}
-		return keys
-	}
 	for name, id := range map[string][]byte{"town": w.town, "city": w.city, "region": w.region, "unknown": unknown} {
 		t.Run(name, func(t *testing.T) {
 			held, _, inputs := conclusionsummaries.PlaceEntryForTest(g, id)
@@ -523,7 +453,7 @@ func TestPlaceEntryInputsMatchReads(t *testing.T) {
 				}
 			}
 			same("inputs", inputs, reads(id, hops.ParentsOfPlace))
-			same("page inputs", sortedKeys(pageInputs), sortedKeys(pageReads(id)))
+			same("page inputs", sortedKeys(pageInputs), sortedKeys(reads(id, hops.PartsOfPlace)))
 			same("succession inputs", succInputs, reads(id, hops.SuccessorsOfPlace, hops.PredecessorsOfPlace))
 		})
 	}
@@ -541,16 +471,15 @@ func sortedKeys(keys []graphcache.InputKey) []graphcache.InputKey {
 func TestFiledPlaceLinks(t *testing.T) {
 	c := graphcachetest.OpenCatalog(t)
 	k := graphcachetest.NewCanon(t, c)
-	town, city, region, loop := k.Entity("place"), k.Entity("place"), k.Entity("place"), k.Entity("place")
+	town, city, region := k.Entity("place"), k.Entity("place"), k.Entity("place")
 	upper, west, unknown := k.Entity("place"), k.Entity("place"), bytes.Repeat([]byte{0xee}, 16)
 	townRel := k.PartOf(town, city)
 	k.PartOf(city, region)
-	k.PartOf(loop, loop)
 	succ := func(from, to []byte) []byte {
 		return k.Link("place_relationship", map[string][]byte{"from": from, "to": to}, "place_relationship_type", "succeeded_by")
 	}
 	succ(upper, west)
-	k.Commit(town, city, region, loop, upper, west)
+	k.Commit(town, city, region, upper, west)
 	g := c.Graph()
 	g.Drop()
 	read := func(term vocabkey.BridgeTerm, id []byte) ([][]byte, error) {
@@ -566,7 +495,6 @@ func TestFiledPlaceLinks(t *testing.T) {
 		{"part_of of the town", vocabkey.TermPartOf, town, [][]byte{city}},
 		{"part_of of the city", vocabkey.TermPartOf, city, [][]byte{region}},
 		{"part_of of a place with no wholes", vocabkey.TermPartOf, region, nil},
-		{"a place part of itself", vocabkey.TermPartOf, loop, [][]byte{loop}},
 		{"succeeded_by of the predecessor", vocabkey.TermSucceededBy, upper, [][]byte{west}},
 		{"succeeded_by of the successor", vocabkey.TermSucceededBy, west, nil},
 		{"a place with no entity row", vocabkey.TermPartOf, unknown, nil},

@@ -2471,7 +2471,6 @@ func TestCanonView(t *testing.T) {
 	}{
 		{"the part's end", []kinship.Link{edge(york, ont, sig)}, york, []kinship.Link{edge(york, ont, sig)}},
 		{"the whole's end", []kinship.Link{edge(york, ont, sig)}, ont, []kinship.Link{edge(york, ont, sig)}},
-		{"a link from a handle to itself is listed once", []kinship.Link{edge(x, x, sig)}, x, []kinship.Link{edge(x, x, sig)}},
 		{"links in edge order", []kinship.Link{edge(york, ont, sig), edge(x, york, sig), edge(york, other, sig)}, york,
 			[]kinship.Link{edge(york, ont, sig), edge(x, york, sig), edge(york, other, sig)}},
 		{"a handle with no link", []kinship.Link{edge(york, ont, sig)}, x, nil},
@@ -2511,7 +2510,7 @@ func TestCanonView(t *testing.T) {
 			var out []reading
 			view := graphalign.Canon{Edges: edges}.View()
 			for _, l := range view.Links(at) {
-				for o, k := range l.Readings(at) {
+				if o, k, ok := l.From(at); ok {
 					out = append(out, reading{o, k})
 				}
 			}
@@ -2523,9 +2522,6 @@ func TestCanonView(t *testing.T) {
 		}
 		if got := read(both, ont); !reflect.DeepEqual(got, []reading{{york, sig.b}}) {
 			t.Fatalf("ontario reads %+v", got)
-		}
-		if got := read([]kinship.Link{edge(x, x, sig)}, x); !reflect.DeepEqual(got, []reading{{x, sig.a}, {x, sig.b}}) {
-			t.Fatalf("a self-loop reads %+v, want the from key then the to key", got)
 		}
 	})
 }

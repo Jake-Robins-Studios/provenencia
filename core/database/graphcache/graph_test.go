@@ -783,3 +783,47 @@ func TestNodesOnBridges(t *testing.T) {
 		}
 	})
 }
+
+func TestLinkFromARecordToItselfIsNotRead(t *testing.T) {
+	c := graphcachetest.OpenCatalog(t)
+	k := graphcachetest.NewCanon(t, c)
+	loop, town, city := k.Entity("place"), k.Entity("place"), k.Entity("place")
+	self := k.PartOf(loop, loop)
+	part := k.PartOf(town, city)
+	k.Commit(loop, town, city, self, part)
+	g := c.Graph()
+	g.Drop()
+
+	t.Run("a self-loop is not read", func(t *testing.T) {
+		n, err := g.Node(loop)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(n.Links) != 0 {
+			t.Fatalf("links %+v, want none", n.Links)
+		}
+	})
+	t.Run("a link between two places is read", func(t *testing.T) {
+		n, err := g.Node(town)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(n.Links) != 1 || !bytes.Equal(n.Links[0].Neighbor, city) {
+			t.Fatalf("links %+v, want one to the city", n.Links)
+		}
+	})
+	t.Run("NodesOnBridges", func(t *testing.T) {
+		got, err := g.NodesOnBridges([][]byte{loop}, "place_relationship")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n := got[string(loop)]; n == nil || len(n.Links) != 0 {
+			t.Fatalf("node %+v, want no links", n)
+		}
+	})
+	t.Run("Verify agrees", func(t *testing.T) {
+		if err := g.Verify(); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
