@@ -239,6 +239,106 @@ func loadCanon(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphal
 	return out, nil
 }
 
+// canonView is the canon one proposal reads, one handle at a time (S16-22): a
+// handle's profile from the match index, its links from the canonlinks.Reader
+// over the graph cache's nodes and kinship pivots, and each unfixed Subject's
+// candidates from the candidates entry. It lives for one proposal and holds no
+// answer past it. A read error is held in err and serves nothing after it;
+// Propose returns it.
+type canonView struct {
+	m       *matchIndex
+	reader  *canonlinks.Reader
+	ranked  map[string][][]byte
+	handles map[string]*graphalign.Handle
+	links   map[string][]kinship.Link
+	err     error
+}
+
+// newCanonView ranks the candidates of each layer Subject that is not fixed
+// (loadCandidatesMemo) and opens the link reader. evidencelayer.Load keeps only
+// Subjects of a kind the rules weigh, and Align's seed checks again.
+func newCanonView(g *graphcache.Graph, graphID []byte, m *matchIndex, layer graphalign.Layer, fixed []graphalign.Fixed, cfg graphalign.Config) (*canonView, error) {
+	fixedSubjects := map[string]bool{}
+	for _, f := range fixed {
+		fixedSubjects[string(f.SubjectID)] = true
+	}
+	var todo []graphalign.Subject
+	for _, s := range layer.Subjects {
+		if !fixedSubjects[string(s.ID)] {
+			todo = append(todo, s)
+		}
+	}
+	ranked := map[string][][]byte{}
+	if len(todo) > 0 {
+		known, err := loadCandidatesMemo(g, graphID, m, layer, todo, cfg)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range todo {
+			if r, ok := known[string(s.ID)]; ok && len(r.ids) > 0 {
+				ranked[string(s.ID)] = r.ids
+			}
+		}
+	}
+	reader, err := canonlinks.NewReader(g)
+	if err != nil {
+		return nil, err
+	}
+	return &canonView{
+		m: m, reader: reader, ranked: ranked,
+		handles: map[string]*graphalign.Handle{},
+		links:   map[string][]kinship.Link{},
+	}, nil
+}
+
+// Handle is the match index's profile of an unmerged primary handle, nil for
+// any other id. Align reads a handle by pointer and never writes it.
+func (v *canonView) Handle(id []byte) *graphalign.Handle {
+	if h, ok := v.handles[string(id)]; ok {
+		return h
+	}
+	s, ok := v.m.handles[string(id)]
+	if !ok {
+		return nil
+	}
+	h := s
+	v.handles[string(id)] = &h
+	return &h
+}
+
+// Links is every link at the handle id whose far end is a handle, in
+// canonlinks.Reader.Links order, read once per proposal. An id the match index
+// does not hold has none. Once a read has failed it serves nothing.
+func (v *canonView) Links(id []byte) []kinship.Link {
+	if v.err != nil {
+		return nil
+	}
+	if ls, ok := v.links[string(id)]; ok {
+		return ls
+	}
+	if _, ok := v.m.handles[string(id)]; !ok {
+		return nil
+	}
+	all, err := v.reader.Links(id)
+	if err != nil {
+		v.err = err
+		return nil
+	}
+	kept := []kinship.Link{}
+	for _, l := range all {
+		if other, _, ok := l.From(id); ok {
+			if _, held := v.m.handles[string(other)]; held {
+				kept = append(kept, l)
+			}
+		}
+	}
+	v.links[string(id)] = kept
+	return kept
+}
+
+// Candidates is the Subject's ranked candidate handle ids.
+func (v *canonView) Candidates(subjectID []byte) [][]byte { return v.ranked[string(subjectID)] }
+
 // loadCandidatesMemo is the ranked candidate ids of each Subject in todo:
 // graphalign.Candidates over the handles the match index offers it, held in
 // the candidates entry. A commit forgets only the Subjects whose lookup keys

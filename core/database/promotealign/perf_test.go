@@ -284,6 +284,42 @@ func TestLargeSourceBudgets(t *testing.T) {
 		}
 	})
 
+	t.Run("the view reads the Source's neighbourhood", func(t *testing.T) {
+		links, err := promotealign.ViewLinksForTest(f.c, aGraph)
+		must(t, err)
+		t.Logf("the view read the links of %d handles", len(links))
+		if len(links) >= 1500 {
+			t.Fatalf("the view read the links of %d handles, want fewer than 1,500", len(links))
+		}
+		g := f.c.Graph()
+		for id, ls := range links {
+			for _, l := range ls {
+				b, _, ok := l.From([]byte(id))
+				if !ok {
+					t.Fatalf("a link served for %x has no end there", id)
+				}
+				if _, held := promotealign.HandleForTest(g, b); !held {
+					t.Fatalf("a link served for %x ends at %x, which is no handle", id, b)
+				}
+				far, ok := links[string(b)]
+				if !ok {
+					continue
+				}
+				found := false
+				for _, back := range far {
+					if reflect.DeepEqual(back.Edge.A, l.Edge.A) && reflect.DeepEqual(back.Edge.B, l.Edge.B) &&
+						back.KeyA == l.KeyA && back.KeyB == l.KeyB && reflect.DeepEqual(back.Recording, l.Recording) {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("the link %x - %x read from %x is not the link served at %x", l.A, l.B, id, b)
+				}
+			}
+		}
+	})
+
 	onePlaceGraph := f.Graph(lf.onePlace)
 	proposeOnePlace := func() { f.propose(onePlaceGraph, nil) }
 
@@ -578,5 +614,32 @@ func TestCandidatesForgetFanOut(t *testing.T) {
 		if got := len(promotealign.HeldSubjectsForTest(g, graphID(n))); got != 100 {
 			t.Errorf("graph %d holds %d Subjects, want 100", n, got)
 		}
+	}
+}
+
+// TestViewProposesAsTheWalk holds the canon view to today's walk: the rows of
+// Source A and of the one-place Source are equal. Temporary: STEP-4 deletes it
+// with the walk (S16-22).
+func TestViewProposesAsTheWalk(t *testing.T) {
+	for _, persons := range []int{4000, 16000} {
+		t.Run(fmt.Sprintf("persons=%d", persons), func(t *testing.T) {
+			lf := newLargeFixture(t, persons)
+			for name, src := range map[string]sources.Source{"Source A": lf.a, "one-place Source": lf.onePlace} {
+				g := lf.Graph(src)
+				walk, err := promotealign.WalkRowsForTest(lf.c, g)
+				must(t, err)
+				view := lf.propose(g, nil).Rows
+				t.Logf("%s at %d persons: %d rows through the view, %d through the walk", name, persons, len(view), len(walk))
+				if !reflect.DeepEqual(view, walk) {
+					for i := range view {
+						if i >= len(walk) || !reflect.DeepEqual(view[i], walk[i]) {
+							t.Errorf("%s row %d differs:\nview %+v\nwalk %+v", name, i, view[i], walk[min(i, len(walk)-1)])
+							break
+						}
+					}
+					t.Fatalf("%s: the view's rows are not the walk's", name)
+				}
+			}
+		})
 	}
 }

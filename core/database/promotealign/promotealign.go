@@ -18,14 +18,13 @@ import (
 	"github.com/mendahu/provenencia/core/segmentcompare"
 )
 
-// Propose loads the Evidence layer of graphID, walks the catalog's canonical
-// graph from the fixed anchors and each unfixed kind's top property matches,
-// and runs graphalign.Align. The int64 is MAX(audit_transactions.revision) at
-// load time, the stamp Done sends back. only, when set, is the one Subject
-// the page is open on: every other unpromoted Subject is off the page, as
-// Done will not send it, and the proposal's connections wait for it. An
-// unknown or empty graphID is promote.ErrInvalid. A graph read error is
-// returned instead of a proposal.
+// Propose loads the Evidence layer of graphID and runs graphalign.Align over a
+// canon view that reads each handle's links when Align asks for them. The int64
+// is MAX(audit_transactions.revision) at load time, the stamp Done sends back.
+// only, when set, is the one Subject the page is open on: every other
+// unpromoted Subject is off the page, as Done will not send it, and the
+// proposal's connections wait for it. An unknown or empty graphID is
+// promote.ErrInvalid. A graph read error is returned instead of a proposal.
 func Propose(c *database.Catalog, graphID []byte, fixed []graphalign.Fixed, only []byte) (graphalign.Proposal, int64, error) {
 	if c == nil || len(graphID) != 16 {
 		return graphalign.Proposal{}, 0, promote.ErrInvalid
@@ -42,26 +41,15 @@ func Propose(c *database.Catalog, graphID []byte, fixed []graphalign.Fixed, only
 	if err != nil {
 		return graphalign.Proposal{}, 0, err
 	}
-	cfg, terms, layer := in.cfg, in.terms, in.layer
+	layer := in.layer
 	if len(layer.Subjects) == 0 {
 		return graphalign.Proposal{Rows: nil}, rev, nil
 	}
 
-	anchors, promoted, err := mergeFixed(c.Graph(), in.graphID, in.evidence, fixed)
+	prop, promoted, _, err := alignRows(c, in, fixed)
 	if err != nil {
 		return graphalign.Proposal{}, 0, err
 	}
-
-	m, err := matchIndexOf(c.Graph())
-	if err != nil {
-		return graphalign.Proposal{}, 0, err
-	}
-	canon, err := loadCanon(c.Graph(), in.graphID, m, layer, anchors, cfg, terms)
-	if err != nil {
-		return graphalign.Proposal{}, 0, err
-	}
-
-	prop := graphalign.Align(layer, canon.View(), anchors, cfg)
 	eg, err := graphfill.EvidenceGraph(c.Graph(), in.graphID)
 	if err != nil {
 		return graphalign.Proposal{}, 0, err
@@ -75,6 +63,29 @@ func Propose(c *database.Catalog, graphID []byte, fixed []graphalign.Fixed, only
 		return graphalign.Proposal{}, 0, err
 	}
 	return prop, rev, nil
+}
+
+// alignRows is Propose's middle: the anchors, the match index, the canon view
+// and Align. It returns the proposal, the handle of each already-promoted
+// Subject, and the view, whose read error it returns instead of a proposal.
+func alignRows(c *database.Catalog, in inputs, fixed []graphalign.Fixed) (graphalign.Proposal, map[string][]byte, *canonView, error) {
+	anchors, promoted, err := mergeFixed(c.Graph(), in.graphID, in.evidence, fixed)
+	if err != nil {
+		return graphalign.Proposal{}, nil, nil, err
+	}
+	m, err := matchIndexOf(c.Graph())
+	if err != nil {
+		return graphalign.Proposal{}, nil, nil, err
+	}
+	view, err := newCanonView(c.Graph(), in.graphID, m, in.layer, anchors, in.cfg)
+	if err != nil {
+		return graphalign.Proposal{}, nil, nil, err
+	}
+	prop := graphalign.Align(in.layer, view, anchors, in.cfg)
+	if view.err != nil {
+		return graphalign.Proposal{}, nil, nil, view.err
+	}
+	return prop, promoted, view, nil
 }
 
 // inputs is what a proposal reads first: the Evidence graph's layer and the
