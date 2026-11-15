@@ -2,6 +2,8 @@ import Foundation
 import Testing
 @testable import Provenencia
 
+private enum AddFailure: Error { case boom }
+
 @Suite
 @MainActor
 struct SourceTypesModelTests {
@@ -301,23 +303,30 @@ struct SourceTypesModelTests {
 
     // MARK: Add
 
-    @Test func addingMintsTheKeyFromTheLabelAndLandsOnTheNewType() async {
-        let (model, session) = makeModel(types: [seededType()])
+    private func makeAddModel(_ session: WorkspaceSession, store: FakeStore) -> SourceTypeAddModel {
+        SourceTypeAddModel(session: session, userID: userID, store: store)
+    }
+
+    @Test func addingMintsTheKeyFromTheLabelAndLandsOnTheNewType() async throws {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store, types: [seededType()])
         await warm(model, session: session)
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "  Parish register "
+        #expect(add.key == "parish-register")
+        #expect(add.canAdd)
 
-        model.openAdd()
-        #expect(model.isAdding)
-        model.draft?.label = "Parish register"
-        #expect(model.draftKey == "parish-register")
+        let created = try #require(await add.create())
 
-        await model.submit()
-
-        #expect(!model.isAdding)
+        #expect(created.key == "parish-register")
+        #expect(created.label == "Parish register")
+        #expect(created.origin == "user")
+        #expect(created.iconKey == PVMarkKey.defaultTypeMark.rawValue)
+        // The declared patch put the row in the list before anything settles.
+        #expect(model.types.contains { $0.id == created.id })
+        #expect(model.syncSelection(from: .sourceTypePage(typeId: created.id, title: created.label)) == .applied)
         #expect(model.selectedType?.key == "parish-register")
-        #expect(model.selectedType?.origin == "user")
-        #expect(model.selectedType?.iconKey == PVMarkKey.defaultTypeMark.rawValue)
         #expect(model.suggestions.isEmpty)
-        #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastAddedTitle))
     }
 
     /// T-7 (AC-1.3): a type create reloads the Source vocabulary lists from its
@@ -344,10 +353,11 @@ struct SourceTypesModelTests {
         store.fieldsByProject[projectDir] = [field(id: "f9", label: "Unseen")]
 
         store.nextWriteEffects = CatalogWriteEffects(lists: [.sourceVocabulary])
-        model.openAdd()
-        model.draft?.label = "Diary"
-        await model.submit()
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Diary"
+        let created = try #require(await add.create())
         await session.settleWrites()
+        #expect(model.syncSelection(from: .sourceTypePage(typeId: created.id, title: created.label)) == .applied)
 
         #expect(model.selectedType?.key == "diary")
         #expect(typesHandle.value?.contains { $0.key == "diary" } == true)
@@ -357,69 +367,111 @@ struct SourceTypesModelTests {
 
         store.fieldsByProject[projectDir] = [field(id: "f10", label: "Later")]
         store.nextWriteEffects = .empty
+        model.draft?.description = "edited"
         await model.submit()
         await session.settleWrites()
         #expect(fieldsHandle.value?.map(\.id) == ["f9"])
     }
 
-    @Test func addingReturnsLocationForWorkspaceNavigation() async {
-        let (model, session) = makeModel(types: [seededType()])
+    @Test func addingReturnsTheTypeTheDialogOpens() async throws {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store, types: [seededType()])
         await warm(model, session: session)
-        model.openAdd()
-        model.draft?.label = "Parish register"
-        let location = await model.submit()
-        #expect(location?.section == .sourceTypes)
-        #expect(location?.typeId == model.selectedType?.id)
-        #expect(location?.title == "Parish register")
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Parish register"
+        let created = try #require(await add.create())
+        let location = WorkspaceLocation.sourceTypePage(typeId: created.id, title: created.label)
+        #expect(location.section == .sourceTypes)
+        #expect(location.typeId == created.id)
+        #expect(location.title == "Parish register")
     }
 
     @Test func addingRefusesABlankLabelWithoutCallingTheStore() async {
-        let (model, session) = makeModel()
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store)
         await warm(model, session: session)
-        model.openAdd()
-        model.draft?.label = "   "
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "   "
 
-        #expect(!model.canSubmit)
-        await model.submit()
+        #expect(!add.canAdd)
+        #expect(await add.create() == nil)
 
-        #expect(model.formError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(model.types.isEmpty)
     }
 
     @Test func addingRefusesALabelThatCannotBeSlugged() async {
-        let (model, session) = makeModel()
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store)
         await warm(model, session: session)
-        model.openAdd()
-        model.draft?.label = "—"
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "—"
 
-        await model.submit()
+        #expect(await add.create() == nil)
 
-        #expect(model.formError == L10n.string(L10n.SourceTypes.errorUnslugifiable))
+        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorUnslugifiable))
         #expect(model.types.isEmpty)
     }
 
-    @Test func addingADuplicateUserKeySurfacesTheErrorAndKeepsTheForm() async {
-        let (model, session) = makeModel(types: [userType(id: "t2", label: "Family scrapbook")])
+    @Test func addingADuplicateUserKeySurfacesTheErrorUnderTheLabel() async {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store, types: [userType(id: "t2", label: "Family scrapbook")])
         await warm(model, session: session)
-        model.openAdd()
-        model.draft?.label = "Family scrapbook"
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Family scrapbook"
 
-        await model.submit()
+        #expect(await add.create() == nil)
 
-        #expect(model.isAdding)
-        #expect(model.formError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+        #expect(add.labelError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+        #expect(add.createError == nil)
         #expect(model.types.count == 1)
     }
 
-    @Test func cancellingAddRestoresThePreviouslySelectedType() async {
+    @Test func anotherCreateFailureShowsInTheDialog() async {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store)
+        await warm(model, session: session)
+        store.createSourceTypeError = AddFailure.boom
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Diary"
+
+        #expect(await add.create() == nil)
+
+        #expect(add.createError != nil)
+        #expect(add.labelError == nil)
+    }
+
+    @Test func openingAndCancellingAddKeepsTheSelectionAndEdit() async {
         let (model, session) = makeModel(types: [seededType(), userType()])
         await warm(model, session: session)
         model.select("t2")
-        model.openAdd()
-        model.cancelAdd()
+        model.draft?.description = "edited"
 
+        model.openAdd()
+        #expect(model.adding != nil)
+        #expect(model.selectedType?.id == "t2")
+        #expect(model.draft?.description == "edited")
+
+        model.adding = nil
         #expect(!model.isAdding)
         #expect(model.selectedType?.id == "t2")
+        #expect(model.draft?.description == "edited")
+        #expect(model.types.count == 2)
+    }
+
+    @Test func addIsDirtyFollowsWhatWasTyped() {
+        let store = FakeStore()
+        let (_, session) = makeModel(store: store)
+        let add = makeAddModel(session, store: store)
+        #expect(!add.isDirty)
+        add.draft.label = "  "
+        #expect(!add.isDirty)
+        add.draft.label = "P"
+        #expect(add.isDirty)
+
+        let other = makeAddModel(session, store: store)
+        other.draft.iconKey = "type_photograph"
+        #expect(other.isDirty)
     }
 
     // MARK: Edit
@@ -635,17 +687,19 @@ struct SourceTypesModelTests {
         #expect(model.selectedType == nil)
     }
 
-    @Test func syncSelectionIgnoredWhileAdding() async {
+    @Test func syncSelectionFollowsTheLocationWhileAdding() async {
         let (model, session) = makeModel(types: [
             CatalogSourceType(id: "t1", key: "book", origin: "provenencia", label: "Book", description: ""),
         ])
         await warm(model, session: session)
         model.openAdd()
+        model.adding?.draft.label = "Diary"
         let outcome = model.syncSelection(
-            from: WorkspaceLocation(section: .sourceTypes, typeId: "t1", title: "Book")
+            from: .sourceTypePage(typeId: "t1", title: "Book")
         )
-        #expect(outcome == .ignored)
-        #expect(model.isAdding)
+        #expect(outcome == .applied)
+        #expect(model.selectedType?.id == "t1")
+        #expect(model.adding?.draft.label == "Diary")
     }
 
     @Test func createAndDeleteCommitThroughWorkspaceNavigation() async throws {
@@ -657,14 +711,16 @@ struct SourceTypesModelTests {
         navigation.attachProject(uuid: "00000000-0000-7000-8000-0000000000cc", fileURL: url)
         navigation.go(to: .sectionRoot(.sourceTypes))
 
-        let (model, session) = makeModel()
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store)
         await warm(model, session: session)
-        model.openAdd()
-        model.draft?.label = "Parish register"
-        if let location = await model.submit() {
-            navigation.go(to: location)
-        }
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Parish register"
+        let created = try #require(await add.create())
+        navigation.go(to: .sourceTypePage(typeId: created.id, title: created.label))
+        model.syncSelection(from: navigation.currentLocation)
         #expect(navigation.currentLocation.typeId == model.selectedType?.id)
+        #expect(model.selectedType?.id == created.id)
 
         await model.askDelete()
         #expect(await model.confirmPendingImpact())

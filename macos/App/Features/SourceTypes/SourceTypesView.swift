@@ -74,6 +74,7 @@ private struct SourceTypesContent: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
         .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.toast")
+        .sourceTypeAddDialog($model.adding) { model.showAdded($0) }
         .pvDeleteImpact(
             flow: model.deleteImpact,
             accessibilityIdentifierPrefix: "sourceTypes.deleteImpact",

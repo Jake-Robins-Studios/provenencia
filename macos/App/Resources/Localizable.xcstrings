@@ -6260,6 +6260,78 @@
         }
       }
     },
+    "sourceTypes.add.errorTitle": {
+      "comment": "Title of the error callout in the Add type dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The type was not added"
+          }
+        }
+      }
+    },
+    "sourceTypes.add.iconGroup": {
+      "comment": "VoiceOver group label of the icon grid in the Add type dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon for the new source type"
+          }
+        }
+      }
+    },
+    "sourceTypes.add.key": {
+      "comment": "Label of the read-only key field in the Add type dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key"
+          }
+        }
+      }
+    },
+    "sourceTypes.add.keyPlaceholder": {
+      "comment": "Placeholder of the Add type dialog's key field before a label is typed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minted from the label"
+          }
+        }
+      }
+    },
+    "sourceTypes.add.subtitle": {
+      "comment": "Subtitle of the Add type dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A kind of record. Suggested fields and citation formats are added on the type afterwards."
+          }
+        }
+      }
+    },
+    "sourceTypes.add.title": {
+      "comment": "Title of the Add type dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add source type"
+          }
+        }
+      }
+    },
     "sources.copy.confirm": {
       "comment": "Confirm button on the Copy Source dialog",
       "extractionState": "manual",
@@ -6548,18 +6620,6 @@
         }
       }
     },
-    "sourceTypes.detail.eyebrowNewType": {
-      "comment": "Eyebrow label above the add-type panel",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New type"
-          }
-        }
-      }
-    },
     "sourceTypes.detail.eyebrowType": {
       "comment": "Eyebrow label above an existing type's detail panel",
       "extractionState": "manual",
@@ -6688,18 +6748,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No source types yet"
-          }
-        }
-      }
-    },
-    "sourceTypes.form.addSuggestionsNote": {
-      "comment": "Callout in the add-type form explaining that associations come later",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggested fields are assigned after the type is saved."
           }
         }
       }
