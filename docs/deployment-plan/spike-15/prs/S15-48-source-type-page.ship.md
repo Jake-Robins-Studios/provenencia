@@ -100,7 +100,7 @@ Reviewers: UX (UX-1, UX-2), MNT (MNT-1 – MNT-3). Not sent: CON (CON-1 rejected
 Nits (logged): `MNT-11 · SourcesModel.swift:139,190 · use session.sourceTypesHandle` · `MNT-12 · SourcesModelTests.swift:517 · use session.sourceTypesKey`
 
 ## Result
-Gate PASS at `662fb2801` (main unmoved since branch cut) · CI <pending> · open: UX-8 (minor, to user) · to user: UX-4 (leave during Save, contradicts D-8), UX-8, CON-1 (§ 10 manual check incl. AC-1.4 scroll restore Stop condition) · follow-ups: none
+Gate PASS at `baa6aab6d` (main unmoved since branch cut) · CI green at `676d87bfe` after one CI fix (F-10) · open: UX-8 (minor, to user) · to user: UX-4 (leave during Save, contradicts D-8), UX-8, CON-1 (§ 10 manual check incl. AC-1.4 scroll restore Stop condition) · follow-ups: none
 
 ## CI — gate failure 1
 Head `3e0177e26`. Go tests PASS. macOS tests FAIL on CI (passed locally in check-pr): `WorkspaceLeaveGuardInstallTests.leaveGuardModifierInstallsAndClears` — `WorkspaceNavigationTests.swift:964` expected `navigation.leaveGuard == nil` after `shown.isShown = false; host.layoutSubtreeIfNeeded()`. Timing in a hosted window: the `onDisappear` had not run on the CI runner. One fix round (F-10).
