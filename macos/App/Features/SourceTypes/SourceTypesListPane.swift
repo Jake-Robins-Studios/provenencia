@@ -6,6 +6,8 @@ import SwiftUI
 struct SourceTypesListPane: View {
     @Bindable var model: SourceTypesModel
     @Environment(WorkspaceNavigation.self) private var navigation
+    /// The row the table highlights; arrow keys move it without leaving the list.
+    @State private var highlighted: String?
 
     /// Column widths live only here; `PVTable` shares them between the
     /// header and every row, so they are never restated.
@@ -18,7 +20,7 @@ struct SourceTypesListPane: View {
             rows: model.visibleTypes,
             isLoading: model.isLoading,
             columns: columns,
-            selection: selection,
+            selection: $highlighted,
             sort: PVTableSort(
                 columnID: model.sortColumn.rawValue,
                 direction: model.sortAscending ? .ascending : .descending
@@ -31,8 +33,16 @@ struct SourceTypesListPane: View {
                 emptyBody: L10n.SourceTypes.emptyProjectBody,
                 resultLine: { L10n.SourceTypes.resultLine(shown: $0, total: $1) }
             ),
+            onActivate: { id in
+                navigation.go(to: .sourceTypePage(typeId: id, title: model.types.label(forTypeID: id)))
+            },
             identifierPrefix: "sourceTypes"
         )
+        .modifier(ListScrollAnchorModifier(
+            anchor: navigation.currentLocation.listScrollAnchor,
+            rowIDs: model.visibleTypes.map(\.id),
+            isLoaded: !model.isLoading
+        ))
     }
 
     private var columns: [PVTableColumn<CatalogSourceType>] {
@@ -82,17 +92,5 @@ struct SourceTypesListPane: View {
                 .foregroundStyle(type.suggestedFieldCount > 0 ? PVColor.textSecondary : PVColor.textFaint)
             },
         ]
-    }
-
-    /// Selection is the table's; workspace history owns committed place.
-    private var selection: Binding<String?> {
-        Binding(
-            get: { model.selectedType?.id },
-            set: { id in
-                guard let id else { return }
-                let type = model.types.first(where: { $0.id == id })
-                navigation.go(to: .sourceTypePage(typeId: id, title: type?.label))
-            }
-        )
     }
 }

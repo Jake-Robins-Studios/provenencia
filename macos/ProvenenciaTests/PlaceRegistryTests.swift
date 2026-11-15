@@ -31,10 +31,7 @@ struct PlaceRegistryTests {
         let types = resolve(.sectionRoot(.sourceTypes))
         #expect(types?.placeID == .sourceTypes)
         #expect(types?.presentation == .sourceTypes)
-        #expect(types?.queryKeys == [
-            .sourceTypesList(project: project),
-            .metadataFieldsList(project: project),
-        ])
+        #expect(types?.queryKeys == [.sourceTypesList(project: project)])
 
         let properties = resolve(.sectionRoot(.properties))
         #expect(properties?.placeID == .properties)
@@ -86,7 +83,8 @@ struct PlaceRegistryTests {
         let location = WorkspaceLocation(section: .sourceTypes, typeId: "typ-1", title: "Book")
         let place = resolve(location)
         #expect(place?.placeID == .sourceTypesDetail)
-        #expect(place?.presentation == .sourceTypes)
+        #expect(place?.presentation == .sourceTypePage)
+        #expect(place?.viewIdentity == "typ-1")
         #expect(place?.queryKeys == [
             .sourceTypesList(project: project),
             .metadataFieldsList(project: project),
@@ -192,7 +190,7 @@ struct PlaceRegistryTests {
             (
                 .sectionRoot(.sourceTypes),
                 .sourceTypes,
-                [.sourceTypesList(project: project), .metadataFieldsList(project: project)]
+                [.sourceTypesList(project: project)]
             ),
             (
                 WorkspaceLocation(section: .sourceTypes, typeId: "t1"),
@@ -372,7 +370,8 @@ struct PlaceRegistryTests {
         #expect(identity(.placeDetail(entityId: "e1", ref: "PLC-1", title: "York")) == "e1")
 
         #expect(identity(WorkspaceLocation(section: .metadata, fieldId: "fld-1", title: "Author")) == nil)
-        #expect(identity(WorkspaceLocation(section: .sourceTypes, typeId: "typ-1", title: "Book")) == nil)
+        #expect(identity(WorkspaceLocation(section: .sourceTypes, typeId: "typ-1", title: "Book")) == "typ-1")
+        #expect(identity(.sectionRoot(.sourceTypes)) == nil)
         #expect(identity(.sectionRoot(.sources)) == nil)
         #expect(identity(.sectionRoot(.properties)) == nil)
     }

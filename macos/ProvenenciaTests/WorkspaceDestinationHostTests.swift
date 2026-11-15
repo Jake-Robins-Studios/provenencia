@@ -94,8 +94,10 @@ struct WorkspaceDestinationHostTests {
         #expect(presentation(for: .sectionRoot(.sourceTypes)) == .sourceTypes)
         #expect(
             presentation(for: WorkspaceLocation(section: .sourceTypes, typeId: "typ-1", title: "Book"))
-                == .sourceTypes
+                == .sourceTypePage
         )
+        #expect(WorkspaceDestinationHost.destinationKind(for: .sourceTypes) == .sourceTypes)
+        #expect(WorkspaceDestinationHost.destinationKind(for: .sourceTypePage) == .sourceTypes)
     }
 
     @Test func presentationProperties() {
@@ -162,6 +164,6 @@ struct WorkspaceDestinationHostTests {
             }
             #expect(known.contains(place.presentation))
         }
-        #expect(known.count == 14)
+        #expect(known.count == 15)
     }
 }

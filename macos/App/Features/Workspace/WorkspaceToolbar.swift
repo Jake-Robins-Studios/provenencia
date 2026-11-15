@@ -262,6 +262,8 @@ struct WorkspaceToolbar: View {
         let leaf: String
         if location.sourceSurface == .graph, location.sourceId != nil {
             leaf = L10n.string(L10n.Workspace.evidenceGraphTitle)
+        } else if location.typeId != nil {
+            leaf = WorkspaceLocationLabels.labels(for: location, names: names).leaf ?? "…"
         } else if location.entityId != nil {
             let labels = WorkspaceLocationLabels.labels(for: location)
             leaf = labels.leaf ?? "…"

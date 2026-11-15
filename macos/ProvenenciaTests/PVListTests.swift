@@ -39,6 +39,14 @@ struct PVListTests {
         #expect(action(.return, at: 0, of: 0) == .ignore)
     }
 
+    /// T-11 (D-9, AC-1.3): a table that opens rows reads Return and Space through `PVListKeyboard`.
+    @Test func returnAndSpaceActivateForATable() {
+        #expect(action(.return, at: -1, of: 3) == .activate(0))
+        #expect(action(.space, at: 1, of: 3) == .activate(1))
+        #expect(action(.return, at: 2, of: 3) == .activate(2))
+        #expect(action(.return, at: 0, of: 0) == .ignore)
+    }
+
     @Test func densityPaddingMatchesTheKit() {
         #expect(PVListDensity.comfortable.vertical == 11)
         #expect(PVListDensity.comfortable.horizontal == 16)

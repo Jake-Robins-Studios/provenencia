@@ -19,16 +19,25 @@ enum CatalogMutation: Sendable, Equatable {
     /// (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
     case createdSourceType(CatalogSourceType)
 
+    /// Save on a Source type's page: the row the engine returned, which the cached types list
+    /// takes in place of its row (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
+    case updatedSourceType(CatalogSourceType)
+
+    /// Delete on a Source type's page: the types list drops the row with this id. Patch-only.
+    case deletedSourceType(id: String)
+
     /// A field was relabelled or deleted. Each Source page restates the
     /// field's derived rows, which `source_vocabulary` cannot tell from a field
     /// create, so these two name the Source pages.
     case updatedMetadataField(id: String)
     case deletedMetadataField(id: String)
 
-    /// The type–field join is not audited and reports no effects, so these
-    /// name the type's suggestions key.
-    case assignedTypeSuggestion(typeId: String)
-    case removedTypeSuggestion(typeId: String)
+    /// Add or remove a suggested field on a type's page. The join is not audited and
+    /// reports no effects, so the mutation carries the reply: the type's Source-level
+    /// suggestions and their count, which `CatalogQueryPatch.typeSuggestions()` and
+    /// `.typeSuggestionCount()` write into the cache with no reload. Every cached Source
+    /// page derives its suggested rows from the type, so each is marked stale.
+    case wroteTypeSuggestions(typeId: String, edit: CatalogTypeSuggestionEdit)
 
     /// Bust-only: non-identity source page edits (notes, artifacts, credibility).
     case mutatedSourceWorkspace(sourceId: String)
@@ -153,8 +162,7 @@ enum CatalogMutationKind: Hashable, Sendable {
     case deletedSource
     case updatedMetadataField
     case deletedMetadataField
-    case assignedTypeSuggestion
-    case removedTypeSuggestion
+    case wroteTypeSuggestions
     case mutatedSourceWorkspace
 }
 
@@ -162,7 +170,7 @@ extension CatalogMutation {
     /// Kind tag for registry `invalidateOn` lookup. Nil for patch-only mutations.
     var invalidationKind: CatalogMutationKind? {
         switch self {
-        case .updatedSource, .wroteMetadataBoard, .createdSourceType:
+        case .updatedSource, .wroteMetadataBoard, .createdSourceType, .updatedSourceType, .deletedSourceType:
             return nil
         case .changedSourceType:
             return .changedSourceType
@@ -174,10 +182,8 @@ extension CatalogMutation {
             return .updatedMetadataField
         case .deletedMetadataField:
             return .deletedMetadataField
-        case .assignedTypeSuggestion:
-            return .assignedTypeSuggestion
-        case .removedTypeSuggestion:
-            return .removedTypeSuggestion
+        case .wroteTypeSuggestions:
+            return .wroteTypeSuggestions
         case .mutatedSourceWorkspace:
             return .mutatedSourceWorkspace
         }
@@ -195,7 +201,11 @@ extension CatalogMutation {
 
     /// The Source type row to patch into the cached types list, if any.
     var patchedSourceType: CatalogSourceType? {
-        if case .createdSourceType(let type) = self { return type }
-        return nil
+        switch self {
+        case .createdSourceType(let type), .updatedSourceType(let type):
+            return type
+        default:
+            return nil
+        }
     }
 }

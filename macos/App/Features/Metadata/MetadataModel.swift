@@ -1,6 +1,18 @@
 import Foundation
 import Observation
 
+/// The Metadata detail pane's mode: illegal
+/// combinations of "adding" plus "a row is selected" are unrepresentable.
+/// The model keeps its `draft` set for `.adding` / `.editing` (form
+/// bindings) and also for `.viewing`, so tearing down `Binding($model.draft)`
+/// projections when leaving the form does not trap.
+enum VocabularyPaneMode: Equatable {
+    case empty
+    case viewing(id: String)
+    case adding(resumeID: String?)
+    case editing(id: String)
+}
+
 /// State for the **Metadata** workspace destination (S2-02 board /
 /// S2-15 PR): browse/search/sort the project's `source_metadata_fields`
 /// vocabulary, and create or edit project rows (`user` and create-time

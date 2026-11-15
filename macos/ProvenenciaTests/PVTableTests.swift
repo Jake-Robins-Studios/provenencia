@@ -11,6 +11,14 @@ struct PVTableSelectionTests {
         #expect(PVTableSelection.moveIndex(3, delta: -1, count: 5) == 2)
     }
 
+    /// T-11 (D-9, AC-1.3): Return and Space open the selected row only when the table has an activate handler.
+    @Test func returnActivatesOnlyWithOnActivate() {
+        #expect(PVTableSelection.activationTarget(for: .return, index: 1, count: 3, canActivate: true) == 1)
+        #expect(PVTableSelection.activationTarget(for: .space, index: -1, count: 3, canActivate: true) == 0)
+        #expect(PVTableSelection.activationTarget(for: .return, index: 1, count: 3, canActivate: false) == nil)
+        #expect(PVTableSelection.activationTarget(for: .return, index: 0, count: 0, canActivate: true) == nil)
+    }
+
     @Test func clampsAtBothEndsRatherThanWrapping() {
         #expect(PVTableSelection.moveIndex(4, delta: 1, count: 5) == 4)
         #expect(PVTableSelection.moveIndex(0, delta: -1, count: 5) == 0)

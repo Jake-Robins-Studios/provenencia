@@ -909,7 +909,9 @@ struct CatalogQueryRegistryTests {
         #expect(fieldsHandle.value?.first?.label == "Place")
     }
 
-    @Test func applySuggestionMutationsInvalidateTypeKey() async {
+    /// STEP-3 (D-7): a suggestion write patches its type's suggestions and the list's count, and
+    /// invalidates only the Source pages; no other key reloads.
+    @Test func wroteTypeSuggestionsInvalidatesOnlySourcePages() async {
         let store = FakeStore()
         seedStore(store)
         let session = makeSession(store: store)
@@ -926,32 +928,22 @@ struct CatalogQueryRegistryTests {
         await waitForQuery(suggestionsHandle)
         await waitForQuery(otherHandle)
         await waitForQuery(typesHandle)
+        let loads = store.listTypeSuggestionsLevels.count
 
-        store.suggestionsByType["t1"] = []
-        store.suggestionsByType["t2"] = [
-            CatalogTypeSuggestion(
-                field: CatalogMetadataField(
-                    id: "f2", key: "date", origin: "user", label: "Date", dataType: "date", description: ""
-                ),
-                sortOrder: 0
-            ),
-        ]
-        store.sourceTypesByProject[projectDir] = [
-            CatalogSourceType(id: "t9", key: "map", origin: "user", label: "Map", description: ""),
-        ]
+        let date = CatalogMetadataField(
+            id: "f2", key: "date", origin: "user", label: "Date", dataType: "date", description: ""
+        )
+        let edit = CatalogTypeSuggestionEdit(
+            suggestions: [CatalogTypeSuggestion(field: date, sortOrder: 0)], suggestedFieldCount: 1
+        )
+        session.apply(.wroteTypeSuggestions(typeId: "t1", edit: edit))
+        await session.settleWrites()
 
-        session.apply(.assignedTypeSuggestion(typeId: "t1"))
-        let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestionsKey)
-        await waitForQuery(suggestionsHandle)
-        #expect(suggestionsHandle.value?.isEmpty == true)
-
-        let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(otherSuggestionsKey)
-        await Task.yield()
+        #expect(suggestionsHandle.value == edit.suggestions)
         #expect(otherHandle.value?.isEmpty == true)
-
-        let _: QueryHandle<[CatalogSourceType]> = session.query(typesKey)
-        await Task.yield()
         #expect(typesHandle.value?.first?.label == "Book")
+        #expect(store.listTypeSuggestionsLevels.count == loads)
+        #expect(!suggestionsHandle.isStale && !otherHandle.isStale && !typesHandle.isStale)
     }
 
     @Test func sessionUsesStandardRegistryByDefault() {
@@ -986,10 +978,10 @@ struct CatalogQueryRegistryTests {
         #expect(registry.invalidations(by: .updatedMetadataField(id: "f1"), project: project) == [
             .allCached(.sourceWorkspace),
         ])
-        #expect(registry.invalidations(by: .assignedTypeSuggestion(typeId: "t1"), project: project) == [
-            .allCached(.sourceWorkspace),
-            .key(.typeSuggestions(project: project, typeId: "t1")),
-        ])
+        #expect(registry.invalidations(
+            by: .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
+            project: project
+        ) == [.allCached(.sourceWorkspace)])
         // A mutation names no graph key: the graph is reached through each kind's
         // `refreshes` (pinned by `propertyUsageAndGraphEffectsReloadEachOnce`).
         let updated = registry.invalidations(by: .updatedMetadataField(id: "f1"), project: project)
@@ -1032,7 +1024,7 @@ struct CatalogQueryRegistryTests {
         let everyMutation: [CatalogMutation] = [
             .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
-            .assignedTypeSuggestion(typeId: "t1"), .removedTypeSuggestion(typeId: "t1"),
+            .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),
             .wroteMetadataBoard(sourceId: "s1", owner: MetadataOwner(level: .source, id: "s1"), entries: []),
         ]
@@ -1244,6 +1236,81 @@ struct CatalogQueryRegistryTests {
 
         session.apply(.empty, .createdSourceType(row))
         #expect(handle.value?.filter { $0.id == "t-new" }.count == 1)
+    }
+
+    /// T-5 (D-3): a saved type replaces its row, a deleted type drops it, an unknown id is not
+    /// appended, and neither write invalidates a key.
+    @Test func updatedAndDeletedSourceTypePatchTheTypesList() async {
+        let store = FakeStore()
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
+        let book = CatalogSourceType(id: "t-book", key: "book", origin: "user", label: "Book", description: "")
+        let census = CatalogSourceType(id: "t-census", key: "census", origin: "user", label: "Census", description: "")
+        store.sourceTypesByProject[projectDir] = [book, census]
+        let handle: QueryHandle<[CatalogSourceType]> = session.query(key)
+        await waitForQuery(handle)
+        #expect(handle.value == [book, census])
+
+        var renamed = census
+        renamed.label = "Population census"
+        session.apply(.empty, .updatedSourceType(renamed))
+        #expect(handle.value == [book, renamed])
+
+        let stranger = CatalogSourceType(id: "t-new", key: "map", origin: "user", label: "Map", description: "")
+        session.apply(.empty, .updatedSourceType(stranger))
+        #expect(handle.value == [book, renamed])
+
+        session.apply(.empty, .deletedSourceType(id: "t-book"))
+        #expect(handle.value == [renamed])
+        session.apply(.empty, .deletedSourceType(id: "t-book"))
+        #expect(handle.value == [renamed])
+        #expect(!handle.isFetching)
+        #expect(!handle.isStale)
+        let registry = CatalogQueryRegistry.standard
+        #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
+        #expect(registry.invalidations(by: .deletedSourceType(id: "t-book"), project: session.projectKey).isEmpty)
+    }
+
+    /// T-7 (AC-3.1, AC-3.3, D-7): a suggestion write patches the type's suggestions and the row's
+    /// count with no load, and marks a cached Source page stale.
+    @Test func wroteTypeSuggestionsPatchesTheListAndTheCount() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let publisher = CatalogMetadataField(
+            id: "f2", key: "publisher", origin: "user", label: "Publisher", dataType: "text", description: ""
+        )
+        store.fieldsByProject[projectDir]?.append(publisher)
+        store.sourceTypesByProject[projectDir] = [
+            CatalogSourceType(id: "t1", key: "book", origin: "user", label: "Book", description: ""),
+        ]
+        let suggestions: QueryHandle<[CatalogTypeSuggestion]> = session.query(
+            .typeSuggestions(project: project, typeId: "t1")
+        )
+        let types: QueryHandle<[CatalogSourceType]> = session.query(.sourceTypesList(project: project))
+        let page: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s1"))
+        await waitForQuery(suggestions)
+        await waitForQuery(types)
+        await waitForQuery(page)
+        #expect(suggestions.value?.map(\.field.id) == ["f1"])
+        #expect(types.value?.first?.suggestedFieldCount == 1)
+        let loads = store.listTypeSuggestionsLevels.count
+        #expect(!page.isStale)
+        // A reload of the list would now read no types.
+        store.sourceTypesByProject[projectDir] = []
+
+        let author = suggestions.value![0]
+        let edit = CatalogTypeSuggestionEdit(
+            suggestions: [author, CatalogTypeSuggestion(field: publisher, sortOrder: 1)], suggestedFieldCount: 2
+        )
+        session.apply(.wroteTypeSuggestions(typeId: "t1", edit: edit))
+        await session.settleWrites()
+
+        #expect(suggestions.value == edit.suggestions)
+        #expect(types.value?.first?.suggestedFieldCount == 2)
+        #expect(store.listTypeSuggestionsLevels.count == loads)
+        #expect(page.isStale)
     }
 
     /// F-1: the generic row patch appends a row the list lacks only when `appendsOn` says so.
@@ -1525,7 +1592,7 @@ struct CatalogQueryRegistryTests {
         let mutations: [CatalogMutation] = [
             .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
-            .assignedTypeSuggestion(typeId: "t1"), .removedTypeSuggestion(typeId: "t1"),
+            .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),
             .wroteMetadataBoard(sourceId: "s1", owner: MetadataOwner(level: .source, id: "s1"), entries: []),
         ]

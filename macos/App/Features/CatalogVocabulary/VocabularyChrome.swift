@@ -81,20 +81,15 @@ private struct VocabularyToastOverlay: ViewModifier {
     }
 }
 
-/// The detail panel's header, shared by add / locked / editable states of
-/// both destinations: eyebrow with the delete affordance, display title,
-/// origin badge beside the mono key (and, when the caller has one, a usage
-/// line), then the key hint. Mints `<prefix>.detail.key`,
-/// `<prefix>.detail.usage` and `<prefix>.delete`.
+/// The Metadata detail pane's header, shared by its add / locked / editable
+/// states: eyebrow with the delete affordance, display title, origin badge
+/// beside the mono key, then the key hint. Mints `<prefix>.detail.key` and
+/// `<prefix>.delete`.
 struct VocabularyPanelHeader: View {
     let eyebrow: LocalizedStringResource
     let title: String
     let origin: String
     let keyText: String
-    /// Optional evidence `type_*` key — Source types show a 22pt mark beside the title.
-    var iconKey: String? = nil
-    /// The "used by N sources" line — only Source types carries one so far.
-    var usageLine: String?
     let keyHint: LocalizedStringResource
     /// Hidden when there is no selection. `canDelete` still disables trash
     /// when GetDeleteImpact reports the row is in use.
@@ -124,23 +119,6 @@ struct VocabularyPanelHeader: View {
                 }
             }
             HStack(alignment: .center, spacing: PVSpacing.space5) {
-                if let iconKey, !iconKey.isEmpty {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                            .fill(PVColor.surfaceSunken)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                                    .stroke(PVColor.borderSubtle, lineWidth: 1)
-                            )
-                        PVMark(
-                            PVMarkKey(catalogKey: iconKey),
-                            size: 22,
-                            decorative: true
-                        )
-                    }
-                    .frame(width: 36, height: 36)
-                    .accessibilityIdentifier("\(identifierPrefix).detail.icon")
-                }
                 Text(title)
                     .font(PVFont.display(size: PVTypeScale.h2))
                     .foregroundStyle(PVColor.textDisplay)
@@ -152,12 +130,6 @@ struct VocabularyPanelHeader: View {
                     .font(PVFont.mono(size: PVTypeScale.micro))
                     .foregroundStyle(PVColor.textSecondary)
                     .accessibilityIdentifier("\(identifierPrefix).detail.key")
-                if let usageLine {
-                    Text(usageLine)
-                        .font(PVFont.mono(size: PVTypeScale.micro))
-                        .foregroundStyle(PVColor.textFaint)
-                        .accessibilityIdentifier("\(identifierPrefix).detail.usage")
-                }
             }
             Text(keyHint)
                 .font(PVFont.body(size: PVTypeScale.micro, italic: true))

@@ -47,6 +47,32 @@ struct WorkspaceSessionTests {
         #expect(session.evidenceGraphsBySource.keys.sorted() == ["s1"])
     }
 
+    /// T-6 (D-5, AC-1.7): a type is gone only once a settled list lacks it.
+    @Test func sourceTypePresenceWaitsForASettledList() {
+        let session = makeSession()
+        let census = CatalogSourceType(id: "typ-1", key: "census", origin: "user", label: "Census", description: "")
+        let book = CatalogSourceType(id: "typ-2", key: "book", origin: "user", label: "Book", description: "")
+        if case .unknown = session.sourceTypePresence(id: "typ-1") {} else {
+            Issue.record("expected .unknown before the list is warmed")
+        }
+        session.setQueryValue(session.sourceTypesKey, value: [census, book])
+        if case .present(let row) = session.sourceTypePresence(id: "typ-1") {
+            #expect(row == census)
+        } else {
+            Issue.record("expected .present")
+        }
+        session.setQueryValue(session.sourceTypesKey, value: [book])
+        if case .gone = session.sourceTypePresence(id: "typ-1") {} else {
+            Issue.record("expected .gone once the settled list lacks the type")
+        }
+        #expect(session.sourceType(id: "typ-1") == nil)
+        #expect(session.sourceType(id: "typ-2") == book)
+        session.sourceTypesHandle?.markStale()
+        if case .unknown = session.sourceTypePresence(id: "typ-1") {} else {
+            Issue.record("expected .unknown while the list is stale")
+        }
+    }
+
     @Test func evidenceGraphSnapshotReadsTheThreeKeys() async throws {
         let store = FakeStore()
         store.subjectTypesByProject[projectDir] = [

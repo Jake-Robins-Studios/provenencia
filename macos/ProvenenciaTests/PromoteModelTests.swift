@@ -242,7 +242,7 @@ struct PromoteModelTests {
         #expect(model.sourceHeader.mark == .defaultTypeMark)
 
         let sources: QueryHandle<[CatalogSource]> = model.session.query(model.sourcesKey)
-        let types: QueryHandle<[CatalogSourceType]> = model.session.query(model.sourceTypesKey)
+        let types: QueryHandle<[CatalogSourceType]> = model.session.query(model.session.sourceTypesKey)
         await waitForQuery(sources)
         await waitForQuery(types)
         #expect(model.sourceHeader.title == "Census 1851")

@@ -1,4 +1,7 @@
+import AppKit
 import Foundation
+import Observation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -428,6 +431,22 @@ struct WorkspaceNavigationTests {
         )
         #expect(decoded.listScrollAnchor == "src-1")
         #expect(decoded == location)
+    }
+
+    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not,
+    /// and a noted scroll survives the page and Back.
+    @Test func sourceTypesListIsAListRoot() throws {
+        #expect(WorkspaceLocation.sectionRoot(.sourceTypes).isListRoot)
+        #expect(!WorkspaceLocation.sourceTypePage(typeId: "typ-1", title: "Census").isListRoot)
+        #expect(!WorkspaceLocation.sectionRoot(.metadata).isListRoot)
+
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.sourceTypes))
+        navigation.noteListScroll("typ-7")
+        navigation.go(to: .sourceTypePage(typeId: "typ-1", title: "Census"))
+        navigation.goBack()
+        #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
+        #expect(navigation.currentLocation.listScrollAnchor == "typ-7")
     }
 
     @Test func notingListScrollDoesNotPushHistory() throws {
@@ -894,8 +913,94 @@ struct WorkspaceNavigationTests {
 }
 
 @MainActor
-private final class HoldGuard: WorkspaceLeaveGuard {
+fileprivate final class HoldGuard: WorkspaceLeaveGuard {
+    weak var navigation: WorkspaceNavigation?
+
     func shouldHoldNavigation(_ pending: PendingNavigation) -> Bool {
         true
+    }
+}
+
+@MainActor
+@Observable
+private final class PageShown {
+    var isShown = true
+    var disappeared = false
+}
+
+private struct GuardedPage<Guard: WorkspaceLeaveGuard>: View {
+    let shown: PageShown
+    let leaveGuard: Guard
+
+    var body: some View {
+        if shown.isShown {
+            Text(verbatim: "page").workspaceLeaveGuard(leaveGuard)
+                .onDisappear { shown.disappeared = true }
+        }
+    }
+}
+
+/// T-9 (D-8): the one install modifier every guarded page uses.
+@Suite(.hostedWindows)
+@MainActor
+struct WorkspaceLeaveGuardInstallTests {
+    private func host(
+        _ leaveGuard: HoldGuard, shown: PageShown, navigation: WorkspaceNavigation
+    ) -> NSHostingView<some View> {
+        let view = GuardedPage(shown: shown, leaveGuard: leaveGuard).environment(navigation)
+        let (_, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 200, height: 100))
+        host.layoutSubtreeIfNeeded()
+        return host
+    }
+
+    /// Lays out until the hidden page's `onDisappear` has run; a hosted window delivers it
+    /// on a later run-loop turn on a slow runner.
+    private func hidePage(_ shown: PageShown, in host: NSHostingView<some View>) async {
+        shown.isShown = false
+        _ = await waitUntil(timeout: .seconds(10)) {
+            host.layoutSubtreeIfNeeded()
+            return shown.disappeared
+        }
+        await Task.yield()
+    }
+
+    @Test func leaveGuardModifierInstallsAndClears() async {
+        let navigation = WorkspaceNavigation()
+        let leaveGuard = HoldGuard()
+        let shown = PageShown()
+        let host = host(leaveGuard, shown: shown, navigation: navigation)
+        #expect(navigation.leaveGuard === leaveGuard)
+        #expect(leaveGuard.navigation === navigation)
+
+        await hidePage(shown, in: host)
+        #expect(shown.disappeared)
+        #expect(navigation.leaveGuard == nil)
+    }
+
+    @Test func leaveGuardModifierLeavesAnotherGuardInPlace() async {
+        let navigation = WorkspaceNavigation()
+        let leaveGuard = HoldGuard()
+        let other = HoldGuard()
+        let shown = PageShown()
+        let host = host(leaveGuard, shown: shown, navigation: navigation)
+        #expect(navigation.leaveGuard === leaveGuard)
+
+        navigation.leaveGuard = other
+        await hidePage(shown, in: host)
+        #expect(shown.disappeared)
+        #expect(navigation.leaveGuard === other)
+    }
+
+    @Test func confirmCancelKeepsEditing() {
+        var kept = 0
+        let ask: WorkspaceLeaveAsk? = WorkspaceLeaveAsk()
+        let binding = WorkspaceLeaveConfirm.binding(pending: { ask }, keepEditing: { kept += 1 })
+        #expect(binding.wrappedValue == ask)
+
+        binding.wrappedValue = nil
+        #expect(kept == 1)
+
+        binding.wrappedValue = WorkspaceLeaveAsk()
+        #expect(kept == 1)
     }
 }

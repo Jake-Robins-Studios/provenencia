@@ -82,7 +82,7 @@ struct SourcesModelTests {
             await waitForQuery(sourcesHandle)
         }
         if let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-            SourcesModel.sourceTypesListKey(for: session)
+            session.sourceTypesKey
         ) {
             await waitForQuery(typesHandle)
         }
@@ -517,7 +517,7 @@ struct SourcesModelTests {
         session.invalidate(CatalogQueryKey.sourceTypesList(project: session.projectKey))
         model.refreshTypes()
         if let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-            SourcesModel.sourceTypesListKey(for: session)
+            session.sourceTypesKey
         ) {
             await waitForQuery(typesHandle)
         }

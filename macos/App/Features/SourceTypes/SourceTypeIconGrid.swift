@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The Source-type icon grid and the chosen mark's meaning under it: inline in the Add type
-/// dialog (5 columns) and the body of the side pane's "Choose an icon" sheet (6 columns).
+/// dialog (5 columns) and the body of the type page's "Choose an icon" sheet (6 columns).
 /// One Tab stop; ← → ↑ ↓ choose a mark. A snowflake: the marks are Source-type vocabulary.
 struct SourceTypeIconGrid: View {
     @Binding var selection: String

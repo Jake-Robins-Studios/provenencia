@@ -176,7 +176,7 @@ A view that centers instead of adding a column says why in one clause. An
 enhancement brief on a view that has no Wide frame yet adds one.
 
 Wide reuses the Regular frame's kit pieces. It is not a reason for a new kit
-primitive. Reach for Page columns (`PVPageColumns`) for a record page's primary
+primitive. Reach for Page columns (`PVPageColumns`, with the page's own column widths and wrap rule) for a record page's primary
 and secondary columns.
 
 **A brief cannot waive a safety rule.** The board decides layout and wording.

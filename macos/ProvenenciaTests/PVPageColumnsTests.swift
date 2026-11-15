@@ -40,6 +40,51 @@ struct PVPageColumnsTests {
         #expect(widths == PVPageSideColumnWidths(main: main, side: side, group: group, stacked: stacked))
     }
 
+    /// T-13 (D-16): a split sets the columns beside or stacked; `.standard` keeps today's widths.
+    @Test func columnSplitSetsTheColumnsBesideOrStacked() {
+        let sourceType = PVColumnSplit(mainMin: 440, mainMax: 560, sideMin: 340, sideMax: 480, stacking: .whenNarrow)
+        func layout(_ pane: CGFloat, _ widthClass: PVWidthClass, _ split: PVColumnSplit) -> PVPageSideColumnWidths {
+            PVPageColumnsMetrics.layoutWidths(
+                proposal: ProposedViewSize(width: pane, height: nil), widthClass: widthClass, hasSecondary: true,
+                primaryFill: false, fillSplitSideMax: nil, split: split
+            )
+        }
+
+        // `.standard` is today's widths at Regular and Wide.
+        for (pane, widthClass) in [(1102, PVWidthClass.regular), (1600, .wide), (2296, .wide)] as [(CGFloat, PVWidthClass)] {
+            let today = PVPageColumnsMetrics.columnWidths(pane: pane, widthClass: widthClass, hasSecondary: true)
+            let standard = layout(pane, widthClass, .standard)
+            #expect(standard.main == today.primary && standard.side == today.secondary)
+            #expect(standard.group == today.group)
+            #expect(standard.stacked == (widthClass != .wide))
+            #expect(layout(pane, widthClass, .standard) == PVPageColumnsMetrics.layoutWidths(
+                proposal: ProposedViewSize(width: pane, height: nil), widthClass: widthClass, hasSecondary: true,
+                primaryFill: false, fillSplitSideMax: nil
+            ))
+        }
+
+        // The Source type page: side by side at Regular, centred pair at Wide, stacked when narrow.
+        let regular = layout(1102, .regular, sourceType)
+        #expect(regular == PVPageSideColumnWidths(main: 560, side: 446, group: 1038, stacked: false))
+        let wide = layout(2296, .wide, sourceType)
+        #expect(wide == PVPageSideColumnWidths(main: 560, side: 480, group: 1072, stacked: false))
+        let narrow = layout(840, .regular, sourceType)
+        #expect(narrow == PVPageSideColumnWidths(main: 776, side: 480, group: 776, stacked: true))
+        // The same split reports what `columnWidths` gives the page and the band.
+        let columns = PVPageColumnsMetrics.columnWidths(pane: 1102, widthClass: .regular, hasSecondary: true, split: sourceType)
+        #expect(columns.primary == 560 && columns.secondary == 446 && columns.group == 1038 && columns.band == 1038)
+
+        // A page with no secondary ignores the split.
+        let alone = PVPageColumnsMetrics.columnWidths(pane: 1102, widthClass: .regular, hasSecondary: false, split: sourceType)
+        #expect(alone.primary == 1038 && alone.secondary == nil)
+
+        // The side-column helper keeps today's values.
+        #expect(PVPageColumnsMetrics.sideColumnWidths(available: 1038, mainMin: 642)
+            == PVPageSideColumnWidths(main: 666, side: 340, group: 1038, stacked: false))
+        #expect(PVPageColumnsMetrics.sideColumnWidths(available: 1013, mainMin: 642)
+            == PVPageSideColumnWidths(main: 1013, side: 720, group: 1013, stacked: true))
+    }
+
     @Test func sideColumnWidthsFromAProposal() {
         let mainMin = PersonSourcesColumns.minWidth
         let fallback = PVPageColumnsMetrics.fallbackPane - 2 * PVSpacing.gutterPage

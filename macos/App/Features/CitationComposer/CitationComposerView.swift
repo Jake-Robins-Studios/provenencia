@@ -51,15 +51,7 @@ struct CitationComposerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .onAppear {
-            model.navigation = navigation
-            navigation.leaveGuard = model
-        }
-        .onDisappear {
-            if navigation.leaveGuard === model {
-                navigation.leaveGuard = nil
-            }
-        }
+        .workspaceLeaveGuard(model)
         .accessibilityIdentifier("workspace.destination.citationComposer")
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(L10n.CitationComposer.accessibilityTitle))
@@ -161,8 +153,8 @@ struct CitationComposerView: View {
                 navigation.go(to: location)
             }
         )
-        .pvConfirm(
-            item: leaveBinding,
+        .workspaceLeaveConfirm(
+            pending: { model.pendingLeave },
             copy: { _ in
                 PVConfirmCopy(
                     title: L10n.string(L10n.CitationComposer.leaveTitle),
@@ -171,10 +163,9 @@ struct CitationComposerView: View {
                     cancel: L10n.CitationComposer.leaveKeepEditing
                 )
             },
-            tone: .danger,
             accessibilityIdentifierPrefix: "citationComposer.leave",
-            onConfirm: { model.discardLeaveChanges() },
-            detail: { _ in EmptyView() }
+            onDiscard: { model.discardLeaveChanges() },
+            onKeepEditing: { model.keepEditingAfterLeave() }
         )
         .pvConfirm(
             item: autoTranscribeConfirmBinding,
@@ -195,19 +186,6 @@ struct CitationComposerView: View {
             accessibilityIdentifierPrefix: "citationComposer.pasteTranscription.confirm",
             onConfirm: { model.confirmPasteTranscription() },
             detail: { _ in EmptyView() }
-        )
-    }
-
-    private var leaveBinding: Binding<CitationComposerModel.PendingLeave?> {
-        Binding(
-            get: { model.pendingLeave },
-            set: { newValue in
-                if newValue == nil {
-                    model.keepEditingAfterLeave()
-                } else {
-                    model.pendingLeave = newValue
-                }
-            }
         )
     }
 

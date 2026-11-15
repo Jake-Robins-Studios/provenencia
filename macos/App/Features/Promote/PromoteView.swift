@@ -3,7 +3,6 @@ import SwiftUI
 /// The Promote place (S9-44): one page, laid out as the S9-D16 board.
 struct PromoteView: View {
     static let noticesAnchor = "promote.notices"
-    @Environment(WorkspaceNavigation.self) private var navigation
     @State private var model: PromoteModel
     @FocusState private var loadRetryFocused: Bool
     @Environment(\.pvWidthClass) private var widthClass
@@ -49,25 +48,17 @@ struct PromoteView: View {
             footer
         }
         .background(PVColor.surfacePage)
-        .onAppear {
-            model.navigation = navigation
-            navigation.leaveGuard = model
-        }
-        .onDisappear {
-            if navigation.leaveGuard === model {
-                navigation.leaveGuard = nil
-            }
-        }
+        .workspaceLeaveGuard(model)
         .task {
             let _: QueryHandle<EvidenceGraphRows> = model.session.query(model.graphKey)
             let _: QueryHandle<PropertiesSnapshot> = model.session.query(model.propertiesKey)
             let _: QueryHandle<[CatalogConnectRule]> = model.session.query(model.rulesKey)
             let _: QueryHandle<[CatalogSource]> = model.session.query(model.sourcesKey)
-            let _: QueryHandle<[CatalogSourceType]> = model.session.query(model.sourceTypesKey)
+            let _: QueryHandle<[CatalogSourceType]> = model.session.query(model.session.sourceTypesKey)
             await model.load()
         }
-        .pvConfirm(
-            item: leaveBinding,
+        .workspaceLeaveConfirm(
+            pending: { model.pendingLeave },
             copy: { _ in
                 PVConfirmCopy(
                     title: L10n.string(L10n.Promote.leaveTitle),
@@ -76,10 +67,9 @@ struct PromoteView: View {
                     cancel: L10n.Promote.leaveCancel
                 )
             },
-            tone: .danger,
             accessibilityIdentifierPrefix: "promote.leave",
-            onConfirm: { model.leave() },
-            detail: { _ in EmptyView() }
+            onDiscard: { model.leave() },
+            onKeepEditing: { model.keepPromoting() }
         )
     }
 
@@ -249,13 +239,6 @@ struct PromoteView: View {
             ? L10n.Promote.sectionCount(total)
             : L10n.Promote.sectionCountPromoted(rows: total, promoted: promoted.count)
         return Section(id: id, title: title, meta: meta, rows: rows, anchors: promoted)
-    }
-
-    private var leaveBinding: Binding<PromoteModel.PendingLeave?> {
-        Binding(
-            get: { model.pendingLeave },
-            set: { if $0 == nil { model.keepPromoting() } }
-        )
     }
 }
 

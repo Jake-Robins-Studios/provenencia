@@ -156,10 +156,10 @@ private struct ListContent: View {
 - Sidebar badges: they come only from the recount (Sources, Persons, Events, Places); Configure rows have none.
 - A write that changes a sidebar count reports `counts` in `WriteEffects.lists` (Go `effects.ListCounts` on its table's registry entry); `WorkspaceSession.apply` recounts, and the newest recount wins. Features never call `CatalogCounts.refreshAll()`.
 
-**Master–detail selection** (fields/types): `reconcileSelection(for:)` on
+**Master–detail selection** (fields): `reconcileSelection(for:)` on
 `onChange(of: navigation.currentLocation)` + `onChange(of: handle.status/value)` —
 sync apply from history after list is ready; `fallbackToSectionRoot()` if deep id missing.
-A page whose read reports its entity gone applies `.leavesForSectionRoot(when:notice:)`, with `notice:` for the toast that says why; a write that deletes the shown entity applies its effects with `session.apply(_:_:leavingPage:)`. That is for a page the deleted entity is the whole of (the Person page, the Source page); a master–detail page keeps its list on screen and applies as usual.
+A page whose read reports its entity gone applies `.leavesForSectionRoot(when:notice:)`, with `notice:` for the toast that says why; a write that deletes the shown entity applies its effects with `session.apply(_:_:leavingPage:)`. That is for a page the deleted entity is the whole of (the Person page, the Source page, the Source type page, whose gone read is `CatalogRowPresence` through `sourceTypePresence(id:)`); a master–detail page keeps its list on screen and applies as usual.
 
 **Source-style detail:** `SourcePageView` pattern — the host remounts it per Source through `viewIdentity`; a plain `.task` warms the workspace key;
 `@Bindable workspaceHandle` syncs into section models; fingerprint skips redundant section resets.
@@ -167,6 +167,7 @@ A page whose read reports its entity gone applies `.leavesForSectionRoot(when:no
 ### 6. Mutations from section models
 
 - Identity/cover/title: `context.applySource(updated, effects:, typeChanged:)` → `session.apply(effects, .updatedSource(source))` (patches list + workspace; the effects name the Source's graphs).
+- A Source type's page applies `.updatedSourceType(type)` on Save and `.deletedSourceType(id:)` on Delete (both patch-only, the row patch `sourceTypeRow()`; a delete leaves with `leavingPage:`), and a suggestion add or remove applies `.wroteTypeSuggestions(typeId:edit:)`, whose reply `typeSuggestions()` and `typeSuggestionCount()` patch into the cache with no reload while every cached Source page is marked stale.
 - Source type moved: `context.applySource(updated, effects: effects, typeChanged: true)` — patches the row, then refetches the page because the engine derives suggested rows from the type.
 - A Source delete applies `apply(effects, .deletedSource(id:))`; a Promote Done applies `apply(effects)`.
 - Metadata values: a live board's host applies the write's effects with `.wroteMetadataBoard(sourceId:owner:entries:)`, which patches the owner's rows into the cached Source page with no reload (`SourcePageMetadataHost.didWrite`); a draft board (`MetadataDraftHost`) writes nothing, and its owner's Save applies the write's reply rows: every Save, live or draft, reaches the page and the cache through `SourcePageContext.applySavedMetadata(_:owner:effects:)` (the Artifact sheet through `SourceArtifactsSection.show(_:metadata:effects:)`, the graph form's Save, the Source's live board through `SourcePageMetadataHost.didWrite`); a value created or released on a Source, Artifact or Evidence graph reports `metadata_field_usage`, which the field list's `usedBy` follows.

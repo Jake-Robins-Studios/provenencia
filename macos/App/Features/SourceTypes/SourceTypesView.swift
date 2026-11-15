@@ -1,13 +1,10 @@
 import SwiftUI
 
-/// The **Source types** workspace destination (S2-03 board / S2-16 PR):
-/// browse the project's `source_types` vocabulary, edit or delete
-/// a type, and assign or remove the metadata fields it suggests.
+/// The **Source types** list (S2-03 board / S2-16 PR): browse the project's `source_types`
+/// vocabulary and add a type. A row opens the type's own page (`SourceTypePageView`).
 struct SourceTypesView: View {
     @Environment(WorkspaceSession.self) private var session
     @State private var model: SourceTypesModel
-
-    private let detailPaneWidth: CGFloat = 380
 
     init(
         session: WorkspaceSession,
@@ -25,13 +22,10 @@ struct SourceTypesView: View {
 
     var body: some View {
         Group {
-            if let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-                SourceTypesModel.typesListKey(for: session)
-            ) {
+            if let typesHandle = session.sourceTypesHandle {
                 SourceTypesContent(
                     typesHandle: typesHandle,
-                    model: model,
-                    detailPaneWidth: detailPaneWidth
+                    model: model
                 )
             } else {
                 ProgressView()
@@ -45,71 +39,28 @@ struct SourceTypesView: View {
 }
 
 private struct SourceTypesContent: View {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourceTypesModel
-    let detailPaneWidth: CGFloat
 
     var body: some View {
         VStack(spacing: 0) {
             header
             PVDivider()
             if let loadError = model.loadError, model.types.isEmpty {
-                PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
+                PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError), announces: true)
                     .padding(.horizontal, PVSpacing.gutterPage)
                     .padding(.top, PVSpacing.space8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .accessibilityIdentifier("sourceTypes.loadError")
             } else {
-                HStack(spacing: 0) {
-                    SourceTypesListPane(model: model)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    PVDivider(axis: .vertical)
-                    SourceTypesDetailPane(model: model)
-                        .frame(width: detailPaneWidth)
-                        .frame(maxHeight: .infinity)
-                }
+                SourceTypesListPane(model: model)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.toast")
-        .sourceTypeAddDialog($model.adding) { model.showAdded($0) }
-        .pvDeleteImpact(
-            flow: model.deleteImpact,
-            accessibilityIdentifierPrefix: "sourceTypes.deleteImpact",
-            onConfirm: {
-                Task {
-                    if await model.confirmPendingImpact() {
-                        navigation.fallbackToSectionRoot()
-                    }
-                }
-            },
-            onNavigate: { location in
-                navigation.go(to: location)
-            }
-        )
-        .onChange(of: navigation.currentLocation) { _, location in
-            reconcileSelection(for: location)
-        }
-        .onChange(of: typesHandle.status) { _, _ in
-            reconcileSelection(for: navigation.currentLocation)
-        }
-        .onChange(of: typesHandle.value) { _, _ in
-            reconcileSelection(for: navigation.currentLocation)
-        }
-        .onAppear {
-            reconcileSelection(for: navigation.currentLocation)
-        }
+        .sourceTypeAddDialog($model.adding)
         .accessibilityIdentifier("sourceTypes")
-    }
-
-    private func reconcileSelection(for location: WorkspaceLocation) {
-        guard typesHandle.status == .ready || !(typesHandle.value ?? []).isEmpty else { return }
-        let outcome = model.syncSelection(from: location)
-        if outcome == .missingDeepId {
-            navigation.fallbackToSectionRoot()
-        }
     }
 
     private var header: some View {

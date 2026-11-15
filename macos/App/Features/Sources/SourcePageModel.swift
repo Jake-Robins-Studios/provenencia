@@ -113,9 +113,7 @@ final class SourcePageModel {
         let session = context.session
         let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: context.sourceID)
         let handle: QueryHandle<CatalogSourceWorkspace> = session.reread(key)
-        let types: QueryHandle<[CatalogSourceType]> = session.query(
-            .sourceTypesList(project: session.projectKey)
-        )
+        let types: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         let grades: QueryHandle<[CatalogCredibilityGrade]> = session.query(
             .credibilityGradesList(project: session.projectKey)
         )
