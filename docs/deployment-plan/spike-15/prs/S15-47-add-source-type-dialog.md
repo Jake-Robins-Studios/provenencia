@@ -32,6 +32,7 @@
 
 - The Source types icon grid's tests are `@MainActor` (the grid is a SwiftUI view, so its static `arrowTarget` is main-actor-isolated).
 - Moving `SourceOwnerFormColumns.swift` leaves § 4's "Current state" naming a path that no longer exists; `scripts/check-plan-docs.py` stops checking paths once the plan is Landed.
+- D-8's "no explicit initial focus" was reversed in review (UX-1, user 2026-11-14): Label takes `activateOnAppear: true`, as `SourceTitleTypeFields`.
 - Not run: the manual check (section 10) and the board comparison of frames 1a to 7, including Full Keyboard Access Tab order into the grid and the focus ring (AC-1.5); this build was verified by the Go and Xcode tests only.
 
 ## 1. Objective
