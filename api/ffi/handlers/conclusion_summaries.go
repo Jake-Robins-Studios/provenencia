@@ -101,12 +101,12 @@ func personSummaryProto(h conclusionsummaries.PersonSummary, paths map[string]st
 	return ph
 }
 
-// termProto is the one Go mapper of a summary term onto the wire; nil gives nil.
 // listKeyProto is a list row's key on the wire.
 func listKeyProto(k conclusionsummaries.ListKey) *engine.ListKey {
 	return &engine.ListKey{Last: k.Last, Primary: k.Primary, Ref: k.Ref}
 }
 
+// termProto is the one Go mapper of a summary term onto the wire; nil gives nil.
 func termProto(t *conclusionsummaries.Term) *engine.ConclusionTerm {
 	if t == nil {
 		return nil
