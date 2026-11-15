@@ -1,7 +1,7 @@
 # Ship log — S15-49 The Source types list is redesigned
 
 **Plan:** [`S15-49-source-types-list.md`](S15-49-source-types-list.md) · **Branch:** `s15-49-source-types-list` · **PR:** #852
-**State:** ready
+**State:** fixing 3 (user request after ready)
 
 ## Round 0 — implement
 Base `main` @ `1f52b6080`. Note to the implementer: T-1's `sortColumn == .usage` is a typo for `.usedBy` (D-6, review M-2).
@@ -92,3 +92,35 @@ Merged `origin/main` @ `ce1dbf761` (S16-27 plan docs only) → `8c21d62cc`. Orch
 
 ## Result
 Gate PASS · CI pending · open: none · follow-ups: none · nits open: ORC-1 (`.help` ternary is a no-op) · to user: —
+
+## After ready — user request (2026-11-15)
+User, from the running app at a ~1540pt pane: Description should come in earlier; there is plenty of room below Wide. Asked and answered:
+- **Approach:** the table's own breakpoint (not always-on: at the 700pt window floor Label and Description would share ~150pt each; not a lower global `widthWideBreakpoint`: every page's Wide layout would move). Amends D-1, D-3's "at Wide", AC-2.2 / AC-2.4 and TL-W2 by the user's decision; the band (D-4, AC-2.1) stays at Wide.
+- **Threshold:** Description shows when the table is at least **1200pt** wide.
+
+### Fix plan 3
+**F-7 — A table column can show only from a table width** (user request)
+Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`, `macos/ProvenenciaTests/PVTableTests.swift`. Skill: `add-ui-component`, `add-swift-test`.
+Failing test first: `PVTableTests.optionalColumnShowsFromItsMinimumTableWidth` — three columns, the middle with `minTableWidth: 1200`; `PVTable.shownColumns(columns, tableWidth: 1199).map(\.id) == ["a","c"]`, at `1200` → `["a","b","c"]`, at `0` → `["a","c"]`.
+Do: `PVTableColumn` gains `let minTableWidth: CGFloat?` (init parameter `minTableWidth: CGFloat? = nil`, after `width`), doc: "The column shows only while the table is at least this wide; nil always shows. For a column that only adds context (a description), never one that sorts by default or holds the row's name." `PVTable` measures its own width once with `onGeometryChange` (into `@State private var tableWidth: CGFloat = 0`) on the outer container, and a `static func shownColumns(_ columns: [PVTableColumn<Row>], tableWidth: CGFloat) -> [PVTableColumn<Row>]` filters; the header's and `rowView`'s `ForEach(columns)` use the shown list. Nothing else in `PVTable` changes. Existing callers pass nothing (default nil).
+Check: the test passes; `PVTableTests` and `MetadataModelTests` stay green.
+
+**F-8 — Description shows from a 1200pt table, at any width class** (user request)
+Files: `macos/App/Features/SourceTypes/SourceTypesListPane.swift`, `macos/ProvenenciaTests/SourceTypesModelTests.swift`.
+Do: `columns(_ widthClass:)` → `static func columns() -> [PVTableColumn<CatalogSourceType>]`, always `label, description, key, fields, usedBy`; Description gets `minTableWidth: descriptionMinTableWidth` with `static let descriptionMinTableWidth: CGFloat = 1200` beside the other width constants (doc: user, 2026-11-15: the Label and Description share ~360pt each at that width). The pane drops `@Environment(\.pvWidthClass)` (the band in `SourceTypesContent` keeps its own read). Update the struct and `columns()` doc comments ("Description once the table is 1200pt wide"). T-2 `listColumnsFollowTheWidthClass` → rename `listColumnsShowDescriptionFromATableWidth`: ids `["label","description","key","fields","usedBy"]`; only `description` has a `minTableWidth`, equal to 1200; only `description` is not sortable; widths as before.
+Check: tests pass; `rg -n 'columns\(\.(regular|wide)\)|pvWidthClass' macos/App/Features/SourceTypes/SourceTypesListPane.swift` prints nothing.
+
+**F-9 — Docs and the plan record the amendment**
+Files: `docs/macos-client-patterns.md` § 9, `docs/ideas/wide-layout.md`, the plan (D-1 row and § Landed), `docs/deployment-plan/spike-15/completed.md` (S15-49 paragraph).
+Do: § 9: one sentence under rule 3 — a table may show an optional column only from its own width (`PVTableColumn.minTableWidth`), as the Source types list's Description does from 1200pt; the width class still decides bands and page layout. The "List → detail page" row's "the Source types list's Description column" and the rule-3 / wide-layout wording that says Description is "at Wide" → "from a 1200pt table". Plan: add "*(amended by the user 2026-11-15 after review: Description shows from a 1200pt table at any width class, `PVTableColumn.minTableWidth`; see Landed)*" at the end of D-1's Decision cell, and a Landed bullet saying the same with AC-2.2 / AC-2.4 now read against the table width. completed.md: the same change in its paragraph.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-49-source-types-list.md` 0 errors; `rg -n 'Description (column )?at Wide' docs/macos-client-patterns.md docs/ideas/wide-layout.md docs/deployment-plan/spike-15/completed.md` prints nothing.
+
+**ORC-1 rides along:** `SourceTypesListPane.swift` description cell: `.help(type.description.isEmpty ? "" : type.description)` → `.help(type.description)` (empty help shows nothing; precedent `SourcesListRow.swift:300`).
+
+Whole round Check: `scripts/check-pr.sh` PASS.
+
+## Round 3 — fix (user request)
+Head `04a804a03`. Orchestrator gate PASS (xcode-test 69 s). F-7, F-8, F-9, ORC-1 done. Deviations: F-7 test written with the code in one pass (it could not compile first); `PVTableShownColumnsTests` is `@MainActor` (swift-warnings).
+
+## Round 3 — review (user-requested change; outside the two-round cap by the user's request)
+Scope `ec971b2cd...04a804a03`. Reviewers: CON, MNT, UX (kit change to `PVTable`, `macos/App/**`). Not sent: SEC+PRF — one `onGeometryChange` per table and a filter over ≤ 5 columns; no catalog input.
