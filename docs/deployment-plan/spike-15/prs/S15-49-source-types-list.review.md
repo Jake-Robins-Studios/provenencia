@@ -1,6 +1,6 @@
 # Review — S15-49 The Source types list is redesigned
 
-Plan: [`S15-49-source-types-list.md`](S15-49-source-types-list.md). Brief: [`../design/S15-D28-source-types-list.md`](../design/S15-D28-source-types-list.md). Both reviewed together.
+Plan: [`S15-49-source-types-list.md`](S15-49-source-types-list.md). Brief: [`../design/archive/S15-D28-source-types-list.md`](../design/S15-D28-source-types-list.md). Both reviewed together.
 
 ## Round 1 — 2026-11-15
 

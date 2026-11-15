@@ -1,9 +1,9 @@
 # S15-49 — The Source types list is redesigned
 
-**Status:** Planned
+**Status:** Landed in [#852](https://github.com/mendahu/provenencia/pull/852) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D28](../design/S15-D28-source-types-list.md), board agreed 2026-11-15 (user)
+**Brief:** [S15-D28](../design/archive/S15-D28-source-types-list.md), board agreed 2026-11-15 (user)
 **Board:** [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): page *S2-03 Source Types Board*, section "01 Columns, sort and the Wide band" (frames L1a / L1b, L2a / L2b, L3, L4a / L4b and its notes on TL-1, TL-W1, TL-W2), drawn by the component *Source Types List* (`Source Types List.dc.html`, its `columns`). The board confirms D-1 – D-4 as written (Used by 120pt with Associated fields' count cell; Description a flexible column splitting the free width evenly with Label, 562pt each in the band; the band; no sort on Description) and adds one thing: the full description as a hover tooltip (D-3). Section 02 is S15-D26's Add type dialog, already built. Open the link in a browser; if you cannot, D-1 – D-4 and § 6 macOS describe each frame
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D28
 **Blocks:** —
@@ -271,3 +271,9 @@ None.
 
 **Title:** S15-49 — The Source types list is redesigned
 **Body:** objective in one sentence; what shipped against US-1 and US-2; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-49-source-types-list.md`.
+
+## Landed
+
+- The base had moved (`VERSION` was already 0.15.4), so the version is 0.15.5.
+- T-1 asserts `sortColumn == .usedBy`, the case D-6 names (the plan's `.usage` was a typo).
+- Not run: the manual check (section 10) and the board comparison in a browser.
