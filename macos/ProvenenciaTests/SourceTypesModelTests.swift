@@ -97,6 +97,20 @@ struct SourceTypesModelTests {
         #expect(model.visibleTypes.map(\.id) == ["a", "b", "c"])
     }
 
+    /// T-2 (AC-1.1, AC-2.2, AC-2.3, AC-2.4): Description exists only at Wide and never sorts.
+    @Test func listColumnsFollowTheWidthClass() {
+        let regular = SourceTypesListPane.columns(.regular)
+        #expect(regular.map(\.id) == ["label", "key", "fields", "usedBy"])
+
+        let wide = SourceTypesListPane.columns(.wide)
+        #expect(wide.map(\.id) == ["label", "description", "key", "fields", "usedBy"])
+        #expect(wide.filter { !$0.sortable }.map(\.id) == [SourceTypesListPane.descriptionColumnID])
+        #expect(wide.first { $0.id == "usedBy" }?.width == SourceTypesListPane.usedByColumnWidth)
+        #expect(SourceTypesListPane.usedByColumnWidth == 120)
+        #expect(wide.first { $0.id == "description" }?.width == nil)
+        #expect(wide.first { $0.id == "label" }?.width == nil)
+    }
+
     /// T-12 (AC-4.1): the header counts the rows the page shows.
     @Test func countLineCountsTheRowsShown() async {
         let (model, session) = makeModel(types: [

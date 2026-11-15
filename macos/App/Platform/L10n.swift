@@ -8023,10 +8023,22 @@ enum L10n {
             comment: "Source types list column header: how many metadata fields the type suggests"
         )
 
-        static let fieldCountNone = LocalizedStringResource(
-            "sourceTypes.list.fieldCountNone",
+        static let columnUsedBy = LocalizedStringResource(
+            "sourceTypes.list.columnUsedBy",
+            defaultValue: "Used by",
+            comment: "Source types list column header: how many sources are classified as the type"
+        )
+
+        static let columnDescription = LocalizedStringResource(
+            "sourceTypes.list.columnDescription",
+            defaultValue: "Description",
+            comment: "Source types list column header, shown on wide windows: the type's description"
+        )
+
+        static let countNone = LocalizedStringResource(
+            "sourceTypes.list.countNone",
             defaultValue: "—",
-            comment: "Shown in the associated-fields column when a type suggests no fields"
+            comment: "Shown in a count column (Associated fields, Used by) when the count is 0"
         )
 
         static func resultLine(shown: Int, total: Int) -> String {
