@@ -51,15 +51,7 @@ struct CitationComposerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .onAppear {
-            model.navigation = navigation
-            navigation.leaveGuard = model
-        }
-        .onDisappear {
-            if navigation.leaveGuard === model {
-                navigation.leaveGuard = nil
-            }
-        }
+        .workspaceLeaveGuard(model)
         .accessibilityIdentifier("workspace.destination.citationComposer")
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(L10n.CitationComposer.accessibilityTitle))

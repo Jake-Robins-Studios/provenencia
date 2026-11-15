@@ -11,6 +11,10 @@ enum PendingNavigation: Equatable, Sendable {
 
 @MainActor
 protocol WorkspaceLeaveGuard: AnyObject {
+    /// The navigation the guard holds and resumes; `workspaceLeaveGuard(_:)` sets it while the
+    /// guard's page is on screen.
+    var navigation: WorkspaceNavigation? { get set }
+
     /// Return true to hold this navigation. The guard must later call
     /// `resumeHeldNavigation()` or `cancelHeldNavigation()`.
     func shouldHoldNavigation(_ pending: PendingNavigation) -> Bool
@@ -348,7 +352,34 @@ struct LeavesForSectionRoot: ViewModifier {
     }
 }
 
+/// Installs a page's leave guard while the page is on screen: sets the guard's `navigation` and the
+/// navigation's `leaveGuard`, and clears `leaveGuard` on disappear when it is still this guard's.
+struct WorkspaceLeaveGuardInstall<Guard: WorkspaceLeaveGuard>: ViewModifier {
+    let leaveGuard: Guard
+    @Environment(WorkspaceNavigation.self) private var navigation
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear {
+                leaveGuard.navigation = navigation
+                navigation.leaveGuard = leaveGuard
+            }
+            .onDisappear {
+                if navigation.leaveGuard === leaveGuard {
+                    navigation.leaveGuard = nil
+                }
+            }
+    }
+}
+
 extension View {
+    /// Makes `leaveGuard` the navigation's guard while this page is on screen, so a move away
+    /// asks it first (`go(to:)`, Back, Forward and the history menu; `fallbackToSectionRoot` does
+    /// not ask). One install for every page that holds unsaved work.
+    func workspaceLeaveGuard(_ leaveGuard: some WorkspaceLeaveGuard) -> some View {
+        modifier(WorkspaceLeaveGuardInstall(leaveGuard: leaveGuard))
+    }
+
     /// Leaves for the section's list when `gone` is true (the entity the page shows no longer exists),
     /// first showing `notice` as the session's notice toast when it is non-nil.
     func leavesForSectionRoot(when gone: Bool, notice: String? = nil) -> some View {

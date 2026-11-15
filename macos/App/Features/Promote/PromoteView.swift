@@ -3,7 +3,6 @@ import SwiftUI
 /// The Promote place (S9-44): one page, laid out as the S9-D16 board.
 struct PromoteView: View {
     static let noticesAnchor = "promote.notices"
-    @Environment(WorkspaceNavigation.self) private var navigation
     @State private var model: PromoteModel
     @FocusState private var loadRetryFocused: Bool
     @Environment(\.pvWidthClass) private var widthClass
@@ -49,15 +48,7 @@ struct PromoteView: View {
             footer
         }
         .background(PVColor.surfacePage)
-        .onAppear {
-            model.navigation = navigation
-            navigation.leaveGuard = model
-        }
-        .onDisappear {
-            if navigation.leaveGuard === model {
-                navigation.leaveGuard = nil
-            }
-        }
+        .workspaceLeaveGuard(model)
         .task {
             let _: QueryHandle<EvidenceGraphRows> = model.session.query(model.graphKey)
             let _: QueryHandle<PropertiesSnapshot> = model.session.query(model.propertiesKey)

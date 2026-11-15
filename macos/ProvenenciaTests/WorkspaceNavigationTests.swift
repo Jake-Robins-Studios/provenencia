@@ -1,4 +1,7 @@
+import AppKit
 import Foundation
+import Observation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -910,8 +913,68 @@ struct WorkspaceNavigationTests {
 }
 
 @MainActor
-private final class HoldGuard: WorkspaceLeaveGuard {
+fileprivate final class HoldGuard: WorkspaceLeaveGuard {
+    weak var navigation: WorkspaceNavigation?
+
     func shouldHoldNavigation(_ pending: PendingNavigation) -> Bool {
         true
+    }
+}
+
+@MainActor
+@Observable
+private final class PageShown {
+    var isShown = true
+}
+
+private struct GuardedPage<Guard: WorkspaceLeaveGuard>: View {
+    let shown: PageShown
+    let leaveGuard: Guard
+
+    var body: some View {
+        if shown.isShown {
+            Text(verbatim: "page").workspaceLeaveGuard(leaveGuard)
+        }
+    }
+}
+
+/// T-9 (D-8): the one install modifier every guarded page uses.
+@Suite(.hostedWindows)
+@MainActor
+struct WorkspaceLeaveGuardInstallTests {
+    private func host(
+        _ leaveGuard: HoldGuard, shown: PageShown, navigation: WorkspaceNavigation
+    ) -> NSHostingView<some View> {
+        let view = GuardedPage(shown: shown, leaveGuard: leaveGuard).environment(navigation)
+        let (_, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 200, height: 100))
+        host.layoutSubtreeIfNeeded()
+        return host
+    }
+
+    @Test func leaveGuardModifierInstallsAndClears() {
+        let navigation = WorkspaceNavigation()
+        let leaveGuard = HoldGuard()
+        let shown = PageShown()
+        let host = host(leaveGuard, shown: shown, navigation: navigation)
+        #expect(navigation.leaveGuard === leaveGuard)
+        #expect(leaveGuard.navigation === navigation)
+
+        shown.isShown = false
+        host.layoutSubtreeIfNeeded()
+        #expect(navigation.leaveGuard == nil)
+    }
+
+    @Test func leaveGuardModifierLeavesAnotherGuardInPlace() {
+        let navigation = WorkspaceNavigation()
+        let leaveGuard = HoldGuard()
+        let other = HoldGuard()
+        let shown = PageShown()
+        let host = host(leaveGuard, shown: shown, navigation: navigation)
+        #expect(navigation.leaveGuard === leaveGuard)
+
+        navigation.leaveGuard = other
+        shown.isShown = false
+        host.layoutSubtreeIfNeeded()
+        #expect(navigation.leaveGuard === other)
     }
 }
