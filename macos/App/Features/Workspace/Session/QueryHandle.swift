@@ -138,6 +138,23 @@ final class QueryHandle<Value> {
 
     func applySuccess(_ value: Value) {
         self.value = value
+        markReplaced()
+    }
+
+    /// Changes the cached value where it sits. The handle lets go of its reference first, so the
+    /// local is the only one and `change` can mutate without copying a large value. Returns what
+    /// `change` returned; only `true` counts as a replace (status, error and `revision`), and
+    /// `false` puts the value back as it was. No reader runs between: this is one main-actor turn.
+    func modifyValue(_ change: (inout Value) -> Bool) -> Bool {
+        guard var value = self.value else { return false }
+        self.value = nil
+        let changed = change(&value)
+        self.value = value
+        if changed { markReplaced() }
+        return changed
+    }
+
+    private func markReplaced() {
         error = nil
         status = .ready
         refetching = false

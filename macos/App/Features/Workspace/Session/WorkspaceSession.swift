@@ -120,19 +120,27 @@ final class WorkspaceSession {
     /// If a load was in flight, the patch wins immediately and that load is
     /// restarted so a later refetch is not dropped.
     func setQueryValue<Value>(_ key: CatalogQueryKey, value: Value) {
-        replaceValue(key, value, clearStale: true)
+        replaceValue(key, clearStale: true) { (handle: QueryHandle<Value>) in
+            handle.applySuccess(value)
+            return true
+        }
     }
 
     /// The one patch primitive: replaces the cached value now. An in-flight
     /// load is cancelled and restarted, so an older response cannot overwrite
     /// the patch. `clearStale` says whether the patch makes the key current.
-    private func replaceValue<Value>(_ key: CatalogQueryKey, _ value: Value, clearStale: Bool) {
+    @discardableResult
+    private func replaceValue<Value>(
+        _ key: CatalogQueryKey,
+        clearStale: Bool,
+        install: (QueryHandle<Value>) -> Bool
+    ) -> Bool {
+        let handle = typedHandle(for: key, as: Value.self)
         let hadInFlight = inFlight[key] != nil
+        guard install(handle) else { return false }
         bumpGeneration(key)
         inFlight[key]?.task.cancel()
         inFlight[key] = nil
-        let handle = typedHandle(for: key, as: Value.self)
-        handle.applySuccess(value)
         if clearStale {
             handle.clearStale()
         }
@@ -140,6 +148,7 @@ final class WorkspaceSession {
             handle.markStale()
             revalidate(key)
         }
+        return true
     }
 
     /// Edits the cached value in place. `change` returns whether it changed
@@ -155,10 +164,11 @@ final class WorkspaceSession {
         _ change: (inout Value) -> Bool
     ) -> CatalogPatchResult {
         if awaitsFirstValue(key) { return .awaitingFirstValue }
-        guard let handle: QueryHandle<Value> = queryHandle(key), var value = handle.value else { return .unchanged }
-        guard change(&value) else { return .unchanged }
-        replaceValue(key, value, clearStale: false)
-        return .applied
+        guard let existing: QueryHandle<Value> = queryHandle(key), existing.hasValue else { return .unchanged }
+        let changed = replaceValue(key, clearStale: false) { (handle: QueryHandle<Value>) in
+            handle.modifyValue(change)
+        }
+        return changed ? .applied : .unchanged
     }
 
     /// Re-reads part of a warmed value and merges it in: `read` runs once with every id, and its

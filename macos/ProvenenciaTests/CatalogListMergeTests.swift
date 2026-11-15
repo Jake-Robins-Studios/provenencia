@@ -205,6 +205,41 @@ struct CatalogListMergeTests {
         #expect(indexed < ceilingMilliseconds)
     }
 
+    /// F-8: a patch through the session works on the cached rows in place, so a write costs the
+    /// rows it touched, not a copy of the list: the rows keep their buffer.
+    @MainActor
+    @Test func sessionPatchKeepsTheCachedRowsBuffer() {
+        let session = WorkspaceSession(
+            projectKey: ProjectKey(projectDir: "/tmp/list-merge-buffer.provenencia"),
+            store: FakeStore()
+        )
+        let key = CatalogQueryKey.personsList(project: session.projectKey)
+        let count = 20_115
+        let dropped: [String]
+        do {
+            // The cached list is the only holder of its rows once this scope ends.
+            let rows = (0..<count).map { Self.personRow(UUID().uuidString, $0 * 2) }
+            dropped = [rows[count / 3].id, rows[count / 2].id]
+            session.setQueryValue(key, value: CatalogListRows(rows))
+        }
+        let fresh = [Self.personRow(dropped[0], count / 2 * 2 + 1)]
+        let handle: QueryHandle<CatalogListRows<CatalogPersonSummary>>? = session.queryHandle(key)
+        func address() -> Int? {
+            handle?.value?.rows.withUnsafeBufferPointer { Int(bitPattern: $0.baseAddress) }
+        }
+        let before = address()
+        let started = ContinuousClock.now
+        let result = session.patchCached(key, as: CatalogListRows<CatalogPersonSummary>.self) { value in
+            value.merge(fresh, replacing: dropped) // two removed, one inserted: capacity holds
+            return true
+        }
+        print("session patch at 20115 rows: \(Self.milliseconds(ContinuousClock.now - started)) ms")
+        #expect(result == .applied)
+        #expect(handle?.value?.count == count - 1)
+        // decided: S16-26 F-8 (a copy of the cached value would move the buffer)
+        #expect(before != nil && address() == before)
+    }
+
     private static func personRow(_ id: String, _ n: Int) -> CatalogPersonSummary {
         var bytes = [UInt8](repeating: 0x20, count: 24)
         withUnsafeBytes(of: UInt64(n).bigEndian) { bytes.replaceSubrange(0..<8, with: $0) }
