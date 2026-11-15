@@ -33,7 +33,11 @@ struct SourceTypesDetailPane: View {
                 iconPickerOpen = false
             }
         ) {
-            SourceTypeIconPickerForm(selection: $pendingIconKey)
+            SourceTypeIconGrid(
+                selection: $pendingIconKey,
+                columns: 6,
+                groupLabel: L10n.SourceTypes.iconPickerGroupLabel
+            )
         }
         .onChange(of: panelIdentity) { _, _ in
             iconPickerOpen = false
@@ -488,81 +492,5 @@ struct SourceTypesDetailPane: View {
     /// option's subtext rather than being flattened into the label.
     private var poolOptions: [PVComboBoxOption] {
         model.assignPool.map { PVComboBoxOption(value: $0.id, label: $0.label, subtext: $0.key) }
-    }
-}
-
-/// Icon grid + metaphor for the Source-type icon ``pvFormDialog`` body.
-/// Selection is local until the form dialog confirms.
-private struct SourceTypeIconPickerForm: View {
-    @Binding var selection: String
-
-    private let columns = [GridItem(.adaptive(minimum: 108), spacing: PVSpacing.space4)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space7) {
-            LazyVGrid(columns: columns, spacing: PVSpacing.space4) {
-                ForEach(PVMarkKey.typeKeys, id: \.rawValue) { key in
-                    iconCell(key)
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text(L10n.SourceTypes.iconPickerGroupLabel))
-            .accessibilityIdentifier("sourceTypes.iconPicker")
-
-            Text(selectedKey.typeMetaphor)
-                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                .foregroundStyle(PVColor.textMuted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var selectedKey: PVMarkKey {
-        PVMarkKey(catalogKey: selection)
-    }
-
-    private func iconCell(_ key: PVMarkKey) -> some View {
-        let selected = selection == key.rawValue
-        return Button {
-            selection = key.rawValue
-        } label: {
-            VStack(spacing: PVSpacing.space4) {
-                PVMark(key, size: 40, decorative: true)
-                Text(key.typePickerTitle)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, PVSpacing.space4)
-            .padding(.vertical, PVSpacing.space5)
-            .foregroundStyle(selected ? PVColor.accent : PVColor.textSecondary)
-            .background(
-                RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                    .fill(selected ? PVColor.surfaceActive : PVColor.surfaceCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                    .stroke(selected ? PVColor.accent : PVColor.borderSubtle, lineWidth: 1)
-            )
-            .modifier(SelectedIconShadow(selected: selected))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(key.typePickerTitle))
-        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityIdentifier("sourceTypes.iconPicker.\(key.rawValue)")
-    }
-}
-
-private struct SelectedIconShadow: ViewModifier {
-    let selected: Bool
-
-    func body(content: Content) -> some View {
-        if selected {
-            content.pvShadow(PVElevation.sm)
-        } else {
-            content
-        }
     }
 }
