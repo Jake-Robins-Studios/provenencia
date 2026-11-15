@@ -31,15 +31,15 @@ final class WorkspaceSession {
     /// Evidence-graph pan and zoom, keyed by graph id. Not catalog data; quit drops it.
     @ObservationIgnored
     private var graphCameras: [String: GraphCanvasCamera] = [:]
-    /// The Evidence graph list indexed by id and by Source, rebuilt when the
-    /// list handle's revision moves (`WorkspaceSession+EvidenceGraphs.swift`).
-    /// Not observed: filling it while a view reads must not invalidate that view.
+    /// Derived values, their build counts and, in debug builds, the keys each
+    /// running build reads (`WorkspaceSession+Derived.swift`). Not observed:
+    /// filling them while a view reads must not invalidate that view.
     @ObservationIgnored
-    var evidenceGraphIndex: EvidenceGraphIndex?
-    /// How many times the index was built in full (a test hook: a merged
-    /// re-read splices instead).
+    var derivedEntries: [DerivedValueID: DerivedEntry] = [:]
     @ObservationIgnored
-    var evidenceGraphIndexBuildCount = 0
+    var derivedBuilds: [DerivedValueID: Int] = [:]
+    @ObservationIgnored
+    var derivedReads: [Set<CatalogQueryKey>] = []
 
     init(
         projectKey: ProjectKey,
@@ -70,7 +70,17 @@ final class WorkspaceSession {
 
     /// Returns an existing handle without starting a load.
     func queryHandle<Value>(_ key: CatalogQueryKey) -> QueryHandle<Value>? {
-        handles[key] as? QueryHandle<Value>
+        #if DEBUG
+        if !derivedReads.isEmpty { derivedReads[derivedReads.count - 1].insert(key) }
+        #endif
+        return handles[key] as? QueryHandle<Value>
+    }
+
+    /// The key's handle revision, or -1 when it has no handle: what a derived
+    /// value stamps for an input. Reads `handles`, so a view that reads a
+    /// derived value observes its inputs.
+    func inputRevision(_ key: CatalogQueryKey) -> Int {
+        handles[key]?.revision ?? -1
     }
 
     /// True while the key's handle holds a value and is reloading it behind
@@ -536,6 +546,7 @@ final class WorkspaceSession {
         inFlight[key] = nil
         handles[key] = nil
         valueTypes[key] = nil
+        dropDerived(reading: key)
     }
 
     @discardableResult

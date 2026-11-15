@@ -2322,7 +2322,7 @@ struct WorkspaceSessionTests {
             visible: true
         )
         #expect(session.evidenceGraph(id: "s-jones") != nil)
-        let builds = session.evidenceGraphIndexBuildCount
+        let builds = session.derivedBuildCount(.evidenceGraphIndex)
         store.evidenceGraphsByProject[projectDir] = [
             evidenceGraph("s-default", sourceID: "S", name: "Default"),
             evidenceGraph("s-smith", sourceID: "S", name: "Smith", artifactIDs: ["s-page"]),
@@ -2337,7 +2337,7 @@ struct WorkspaceSessionTests {
         #expect(session.evidenceGraphs(sourceID: "T")?.map(\.id) == ["t-default"])
         #expect(session.artifactIDsInNoGraph(sourceID: "T", artifactIDs: ["t-page", "x"]) == ["x"])
         #expect(session.artifactIDsInNoGraph(sourceID: "S", artifactIDs: ["s-page", "x"]) == ["x"])
-        #expect(session.evidenceGraphIndexBuildCount == builds)
+        #expect(session.derivedBuildCount(.evidenceGraphIndex) == builds)
     }
 
     /// T-7 (a): while the re-read waits the list reads as refetching, and a

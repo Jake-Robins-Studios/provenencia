@@ -204,6 +204,7 @@ protocol AnyQueryHandle: AnyObject {
     var isStale: Bool { get }
     var hasValue: Bool { get }
     var isFetching: Bool { get }
+    var revision: Int { get }
     func markStale()
     func clearStale()
     func beginRefresh()

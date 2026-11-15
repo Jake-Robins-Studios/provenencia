@@ -2,27 +2,23 @@ import Foundation
 
 /// The graph list indexed for reads: by graph id and grouped by Source, each
 /// Source's graphs in list order (sorted by name), plus the Artifact ids each
-/// Source's graphs link. Valid for one handle revision.
+/// Source's graphs link. Built from one value of the graph list.
 struct EvidenceGraphIndex {
-    let revision: Int
     let byID: [String: CatalogEvidenceGraph]
     let bySource: [String: [CatalogEvidenceGraph]]
     let linkedArtifactIDsBySource: [String: Set<String>]
 
-    init(revision: Int, rows: [CatalogEvidenceGraph]) {
-        self.revision = revision
+    init(rows: [CatalogEvidenceGraph]) {
         byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         bySource = Dictionary(grouping: rows, by: \.sourceID)
         linkedArtifactIDsBySource = bySource.mapValues { Set($0.flatMap(\.artifactIDs)) }
     }
 
     private init(
-        revision: Int,
         byID: [String: CatalogEvidenceGraph],
         bySource: [String: [CatalogEvidenceGraph]],
         linkedArtifactIDsBySource: [String: Set<String>]
     ) {
-        self.revision = revision
         self.byID = byID
         self.bySource = bySource
         self.linkedArtifactIDsBySource = linkedArtifactIDsBySource
@@ -30,7 +26,7 @@ struct EvidenceGraphIndex {
 
     /// The index after each given Source's graphs were replaced by the listed
     /// ones (in that order); no other Source is touched.
-    func replacing(sources: [String: [CatalogEvidenceGraph]], revision: Int) -> EvidenceGraphIndex {
+    func replacing(sources: [String: [CatalogEvidenceGraph]]) -> EvidenceGraphIndex {
         var byID = byID
         var bySource = bySource
         var linked = linkedArtifactIDsBySource
@@ -44,7 +40,7 @@ struct EvidenceGraphIndex {
             bySource[sourceID] = graphs.isEmpty ? nil : graphs
             linked[sourceID] = graphs.isEmpty ? nil : Set(graphs.flatMap(\.artifactIDs))
         }
-        return EvidenceGraphIndex(revision: revision, byID: byID, bySource: bySource, linkedArtifactIDsBySource: linked)
+        return EvidenceGraphIndex(byID: byID, bySource: bySource, linkedArtifactIDsBySource: linked)
     }
 }
 
@@ -94,15 +90,13 @@ extension WorkspaceSession {
         return evidenceGraph(id: graphID)?.linkedArtifacts(artifacts) ?? []
     }
 
-    /// The index of the list's current value, rebuilt only when the handle's
-    /// revision moved; `nil` while the list has no value.
+    /// The index of the list's current value, rebuilt only when the list moved;
+    /// `nil` while the list has no value.
     private var currentEvidenceGraphIndex: EvidenceGraphIndex? {
-        guard let handle = evidenceGraphsHandle, let rows = handle.value else { return nil }
-        if let index = evidenceGraphIndex, index.revision == handle.revision { return index }
-        let index = EvidenceGraphIndex(revision: handle.revision, rows: rows)
-        evidenceGraphIndex = index
-        evidenceGraphIndexBuildCount += 1
-        return index
+        guard let rows = evidenceGraphsHandle?.value else { return nil }
+        return derived(.evidenceGraphIndex, inputs: [.key(evidenceGraphsKey)]) {
+            EvidenceGraphIndex(rows: rows)
+        }
     }
 
     /// Carries the stored index across a merged re-read of some Sources'
@@ -111,10 +105,9 @@ extension WorkspaceSession {
     /// graphs in place. Otherwise nothing happens and the next read builds in
     /// full.
     func spliceEvidenceGraphIndex(_ parts: [String: [CatalogEvidenceGraph]], previousRevision: Int) {
-        guard let index = evidenceGraphIndex, index.revision == previousRevision,
-              let handle = evidenceGraphsHandle, handle.revision == previousRevision + 1
-        else { return }
-        evidenceGraphIndex = index.replacing(sources: parts, revision: handle.revision)
+        carryDerived(.evidenceGraphIndex, across: evidenceGraphsKey, from: previousRevision) { (index: EvidenceGraphIndex) in
+            index.replacing(sources: parts)
+        }
     }
 
     /// One graph by id; `nil` while the graph list has no value or has no such graph.
