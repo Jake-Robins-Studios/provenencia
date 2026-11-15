@@ -256,40 +256,24 @@ final class SourcesModel {
         return Set(graphs.map { EvidenceStatus(progress?[$0.id]) })
     }
 
-    /// Every input `visibleSources` reads: the handles' revisions, the settings
-    /// and the locale. A hit means the build would return the same rows.
-    private struct VisibleRowsToken: Equatable {
-        let sources: Int
-        let types: Int
+    /// The plain inputs `visibleSources` reads beside its handles: the
+    /// settings and the locale.
+    private struct VisibleRowsInputs: Equatable {
         let settings: SourcesListSettings
         let locale: String
-        /// The graph list and progress revisions, read only under a status filter.
-        let graphs: Int
-        let progress: Int
     }
 
-    @ObservationIgnored private var visibleRowsMemo = Memo<VisibleRowsToken, [CatalogSource]>()
-    /// How many times `visibleSources` built its rows (a test hook).
-    @ObservationIgnored private(set) var visibleSourcesBuildCount = 0
-
     /// The filtered, sorted rows. Built once per change of an input; typing in
-    /// Add Source or reading it again changes none. Reading the revisions here
-    /// keeps the view observing them.
+    /// Add Source or reading it again changes none.
     var visibleSources: [CatalogSource] {
-        let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
-        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.sourceTypesHandle
         let filtersByStatus = settings.status != nil
-        let token = VisibleRowsToken(
-            sources: sourcesHandle?.revision ?? -1,
-            types: typesHandle?.revision ?? -1,
-            settings: settings,
-            locale: Locale.autoupdatingCurrent.identifier,
-            graphs: filtersByStatus ? graphsHandle?.revision ?? -1 : -1,
-            progress: filtersByStatus ? session.evidenceGraphProgressHandle?.revision ?? -1 : -1
-        )
-        return visibleRowsMemo.value(for: token) {
-            visibleSourcesBuildCount += 1
-            return buildVisibleSources()
+        let statusKeys = filtersByStatus ? [session.evidenceGraphsKey, session.evidenceGraphProgressKey] : []
+        return session.derived(
+            .visibleSources,
+            inputs: ([Self.sourcesListKey(for: session), session.sourceTypesKey] + statusKeys).map(DerivedInput.key),
+            extra: VisibleRowsInputs(settings: settings, locale: Locale.autoupdatingCurrent.identifier)
+        ) {
+            buildVisibleSources()
         }
     }
 
