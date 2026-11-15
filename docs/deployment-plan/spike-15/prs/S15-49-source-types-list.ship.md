@@ -200,3 +200,12 @@ Seen, not this PR: `check-plan-docs.py` run over every doc errors on `design/S15
 
 ## Round 7 — review
 Scope `4e2714e70...6e4cf084a`. Reviewers: CON (CON-1), MNT (MNT-1), UX (UX-1). Not sent: SEC+PRF (clean in round 6; F-14 keeps the per-row cost).
+
+Round 7 review: CON, MNT, UX all **Clean**; CON-1, UX-1, MNT-1 **Resolved** (composer widths and positions identical whenever a width is offered, which every host does).
+Nits: `MNT-2 · PVWeightedColumns.swift:78 · with no proposed width it reports ideal widths but places by weight` · `MNT-3 · PVWeightedColumns.swift:45 · any alignment but .center lays out as top` · `CON-N1 · PVWeightedColumns.swift:66 · nil-width rule untested`
+
+### Fix plan 8 (nits in code this PR adds)
+**F-16 — The no-width rule and the alignment say what they do** (MNT-2, MNT-3, CON-N1)
+Files: `PVWeightedColumns.swift`, `PVTable.swift`, `CitationComposerEvidenceColumn.swift`, `PVWeightedColumnsTests.swift`.
+Do: `placeSubviews` resolves widths from `proposal.width` (nil → the ideal widths, the same as `sizeThatFits` reported), not `proposal.width ?? bounds.width`. Replace `VerticalAlignment` with `enum Alignment { case top, center }` on `PVWeightedColumns`; `cellY` switches on it; callers pass `.center` / `.top`. Move the ideal-width sum into `static func idealTotal(fixed:idealWidths:spacing:)` (or similar) and test it with made-up widths (CON-N1), so the rule has a test without a mounted view.
+Check: `scripts/check-pr.sh` PASS.
