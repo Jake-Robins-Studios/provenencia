@@ -1105,7 +1105,7 @@ struct WorkspaceSessionTests {
     /// place, the three conclusion lists are neither reloaded nor re-read unless
     /// the write reports handles (then each merges just those rows), and the
     /// page's own workspace follows the mutation.
-    @Test func sourceWriteEffectsPatchSourcesAndLeaveListsAlone() async throws {
+    @Test func sourceWriteEffectsPatchSourcesAndMergeOnlyTouchedListRows() async throws {
         let store = FakeStore()
         seedStore(store)
         let session = makeSession(store: store)
@@ -1156,7 +1156,10 @@ struct WorkspaceSessionTests {
         )
         #expect(sourcesHandle.value?.first?.updated == second)
         await session.settleWrites()
+        #expect(listsAreQuiet())
         #expect(store.listPersonSummariesEntityIDs.last == .some(["e1"]))
+        #expect(store.listEventSummariesEntityIDs.last == .some(["e1"]))
+        #expect(store.listPlaceSummariesEntityIDs.last == .some(["e1"]))
         #expect(!peopleHandle.isStale && !eventsHandle.isStale && !placesHandle.isStale)
         let _: QueryHandle<[CatalogPersonSummary]> = session.query(people)
         #expect(!peopleHandle.isFetching)
