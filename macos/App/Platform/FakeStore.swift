@@ -158,7 +158,6 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The graph id of each `listSubjects` call, in order.
     var listSubjectsGraphIDs: [String] = []
     var getSourceWorkspaceCalls = 0
-    var listPersonSummariesCalls = 0
     /// The `entityIDs` of each list-summaries call, in order (nil: the whole read).
     var listPersonSummariesEntityIDs: [[String]?] = []
     var listEventSummariesEntityIDs: [[String]?] = []
@@ -1768,7 +1767,6 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     func listPersonSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPersonSummary] {
         // A read: no `recordedCalls`.
         try withState {
-            listPersonSummariesCalls += 1
             listPersonSummariesEntityIDs.append(entityIDs)
             if let listPersonSummariesError { throw listPersonSummariesError }
             markCatalogSessionHeld(projectDir)

@@ -986,7 +986,7 @@ struct WorkspaceSessionTests {
         #expect(left)
         let list: QueryHandle<CatalogListRows<CatalogPersonSummary>> = try #require(session.queryHandle(people))
         await waitForQuery(list)
-        #expect(store.listPersonSummariesCalls == 1)
+        #expect(store.listPersonSummariesEntityIDs == [nil])
         let evicted: QueryHandle<CatalogConclusionDetail>? = session.queryHandle(detail)
         #expect(evicted == nil)
     }
