@@ -62,7 +62,7 @@ var sqlRecordSources = `SELECT s.id, s.ref, s.title, s.source_type_id, COALESCE(
 const sqlRecordArtifacts = `SELECT id, source_id, label FROM artifacts`
 
 // Records is the Source records entry: one Record per Source, built on the
-// first read of an open catalog and patched from effects.Set.SourceScopes.
+// first read of an open catalog and patched from the source_records read (effects.ReadSourceRecords).
 // Apply patches the held index in place and reports that with Patched, not Set.
 var Records graphcache.Whole[*RecordIndex]
 
@@ -78,20 +78,21 @@ func init() {
 			return newRecordIndex(recs), nil
 		},
 		Apply: func(g *graphcache.Graph, w graphcache.Whole[*RecordIndex], _ [][]byte, set effects.Set) error {
-			if len(set.SourceScopes) == 0 {
+			ids := set.IDsOf(effects.ReadSourceRecords)
+			if len(ids) == 0 {
 				return nil
 			}
 			idx, ok, err := w.Get(g)
 			if err != nil || !ok {
 				return err
 			}
-			fresh, err := loadRecords(g, set.SourceScopes)
+			fresh, err := loadRecords(g, ids)
 			if err != nil {
 				return err
 			}
 			// Every named Source leaves before any returns, so an Artifact that
 			// moved between two named Sources keeps its new mapping.
-			for _, id := range set.SourceScopes {
+			for _, id := range ids {
 				if old, ok := idx.bySource[string(id)]; ok {
 					for aid := range old.ArtifactLabels {
 						delete(idx.sourceOfArtifact, aid)
@@ -99,7 +100,7 @@ func init() {
 					delete(idx.bySource, string(id))
 				}
 			}
-			for _, id := range set.SourceScopes {
+			for _, id := range ids {
 				if rec, ok := fresh[string(id)]; ok {
 					idx.bySource[string(id)] = rec
 					for aid := range rec.ArtifactLabels {

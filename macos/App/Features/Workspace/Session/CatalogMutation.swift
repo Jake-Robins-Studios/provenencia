@@ -62,7 +62,7 @@ enum CatalogList: String, Sendable, CaseIterable {
 
 /// A keyed partial read a write moved, per id of the read's key table
 /// (Evidence graphs for `citations` and `evidence_graph_progress`, Sources for
-/// `evidence_graphs`). The raw values are
+/// `evidence_graphs` and `source_records`). The raw values are
 /// Go's `effects.Read` wire keys (`WriteEffects.reads`); a key this build does
 /// not know is dropped when the effects are decoded.
 enum CatalogRead: String, Sendable, CaseIterable {
@@ -74,10 +74,12 @@ enum CatalogRead: String, Sendable, CaseIterable {
     case evidenceGraphs = "evidence_graphs"
     /// The terms of a Property (the term list).
     case propertyTerms = "property_terms"
+    /// A Source's words: its row, its Artifacts' labels, its credibility.
+    case sourceRecords = "source_records"
 }
 
 /// One keyed read and the key ids (Evidence graphs, Sources for
-/// `evidence_graphs`, Properties for `property_terms`) it moved for.
+/// `evidence_graphs` and `source_records`, Properties for `property_terms`) it moved for.
 struct CatalogWriteEffectsRead: Sendable, Equatable {
     var read: CatalogRead
     var ids: [String]
@@ -104,10 +106,12 @@ struct CatalogWriteEffectsDeleted: Sendable, Equatable {
 struct CatalogWriteEffects: Sendable, Equatable {
     var handles: [String] = []
     /// Evidence graphs whose loaded rows changed (graphcache drops each). A
-    /// note, metadata, or credibility change is only in `sourceScopes`.
+    /// note, metadata, or credibility change is not in it; a credibility change
+    /// names its Source in `reads` (`source_records`).
     var evidenceGraphs: [String] = []
     /// Keyed partial reads this write moved, each with the key ids it moved
-    /// them for: citation counts, citations by Artifact and graph progress.
+    /// them for: citation counts, citations by Artifact, graph progress, the graph
+    /// list, Property terms and Source words.
     var reads: [CatalogWriteEffectsRead] = []
     /// Catalog-wide lists this write changed. A key that holds one follows it
     /// through its descriptor `refreshes`.
@@ -119,8 +123,8 @@ struct CatalogWriteEffects: Sendable, Equatable {
     /// pages) does not include them.
     var handleScopes: [String] = []
     /// Sources whose last-updated time this write moved. The session patches
-    /// those rows in the cached Sources list with `activity`, and the detail
-    /// keys whose records cite one of those Sources follow it through `.source`.
+    /// those rows in the cached Sources list with `activity`. Pages follow a
+    /// Source's words through `reads` (`source_records`), not this scope.
     var sourceScopes: [String] = []
     /// Ids this write deleted, by entity. `apply` evicts the hidden keys whose
     /// descriptor's `deletedWith` names the entity; a page that shows a deleted id applies the

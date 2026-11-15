@@ -148,15 +148,21 @@ func TestRecordsApply(t *testing.T) {
 	evidencelayertest.Must(t, err)
 	var extra artifacts.Artifact
 
-	check := func(t *testing.T, write func()) {
+	// check runs a write; moves says whether it changes a Source's words, so
+	// that the derived entry is emptied (true) or left held (false).
+	check := func(t *testing.T, moves bool, write func()) {
 		t.Helper()
 		derivedFromRecords.Set(g, "held")
 		write()
 		if err := g.Verify(); err != nil {
 			t.Fatalf("Verify after the write: %v", err)
 		}
-		if _, ok, _ := derivedFromRecords.Get(g); ok {
-			t.Fatal("the derived entry survived a commit that names a Source")
+		_, held, _ := derivedFromRecords.Get(g)
+		if moves && held {
+			t.Fatal("the derived entry survived a commit that moves a Source's words")
+		}
+		if !moves && !held {
+			t.Fatal("the derived entry was emptied by a commit that moves no Source's words")
 		}
 	}
 	current := func(t *testing.T) sources.Record {
@@ -174,19 +180,19 @@ func TestRecordsApply(t *testing.T) {
 	}
 
 	t.Run("rename", func(t *testing.T) {
-		check(t, func() { src.Title = "Parish register"; update(src) })
+		check(t, true, func() { src.Title = "Parish register"; update(src) })
 		if current(t).Title != "Parish register" {
 			t.Fatal("title not updated")
 		}
 	})
 	t.Run("type change", func(t *testing.T) {
-		check(t, func() { src.SourceTypeID = letter; update(src) })
+		check(t, true, func() { src.SourceTypeID = letter; update(src) })
 		if !bytes.Equal(current(t).SourceTypeID, letter) {
 			t.Fatal("type not updated")
 		}
 	})
 	t.Run("artifact create", func(t *testing.T) {
-		check(t, func() {
+		check(t, true, func() {
 			var err error
 			extra, err = artifactstest.Create(r.C, evidencelayertest.UserID, artifacts.CreateInput{SourceID: src.ID, Label: "Page 1"})
 			evidencelayertest.Must(t, err)
@@ -196,7 +202,7 @@ func TestRecordsApply(t *testing.T) {
 		}
 	})
 	t.Run("artifact relabel", func(t *testing.T) {
-		check(t, func() {
+		check(t, true, func() {
 			extra.Label = "Folio 1"
 			r.Run("update_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
 				return artifacts.Update(tx, evidencelayertest.UserID, extra, evidencegraphs.GraphLinks{})
@@ -207,16 +213,16 @@ func TestRecordsApply(t *testing.T) {
 		}
 	})
 	t.Run("credibility set", func(t *testing.T) {
-		check(t, func() { setGrade(t, r, src, "high_trust") })
+		check(t, true, func() { setGrade(t, r, src, "high_trust") })
 		if rec := current(t); rec.CredibilityKey != "high_trust" || rec.Credibility != 1 {
 			t.Fatalf("credibility %q %d", rec.CredibilityKey, rec.Credibility)
 		}
 	})
 	t.Run("observation edit", func(t *testing.T) {
-		check(t, func() { r.Person(src, r.Artifact, "Ada") })
+		check(t, false, func() { r.Person(src, r.Artifact, "Ada") })
 	})
 	t.Run("artifact delete", func(t *testing.T) {
-		check(t, func() {
+		check(t, true, func() {
 			r.Run("delete_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
 				return artifacts.Delete(tx, evidencelayertest.UserID, extra.ID)
 			})
@@ -229,7 +235,7 @@ func TestRecordsApply(t *testing.T) {
 		var second sources.Source
 		evidencelayertest.Must(t, writesCreate(r, &second))
 		records(t, r)
-		check(t, func() {
+		check(t, true, func() {
 			r.Run("delete_source", func(tx *database.Tx) ([]rowchange.Change, error) {
 				return sources.Delete(tx, evidencelayertest.UserID, second.ID)
 			})
@@ -260,7 +266,7 @@ func TestRecordsApplySwap(t *testing.T) {
 			evidencelayertest.Must(t, err)
 			_, err = db.Exec(`UPDATE artifacts SET source_id = CASE id WHEN ? THEN ? ELSE ? END WHERE id IN (?, ?)`, a.ID, s2.ID, s1.ID, a.ID, b.ID)
 			evidencelayertest.Must(t, err)
-			evidencelayertest.Must(t, g.OnCommit(effects.Commit{Effects: effects.Set{SourceScopes: tc.order(s1.ID, s2.ID)}}))
+			evidencelayertest.Must(t, g.OnCommit(effects.Commit{Effects: effects.Set{Reads: []effects.ReadIDs{{Read: effects.ReadSourceRecords, IDs: tc.order(s1.ID, s2.ID)}}}}))
 			if rec, _, ok := records(t, r).Artifact(b.ID); !ok || !bytes.Equal(rec.ID, s1.ID) {
 				t.Fatalf("Artifact(B) = %x %v, want the first Source", rec.ID, ok)
 			}

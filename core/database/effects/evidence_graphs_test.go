@@ -135,20 +135,10 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	linkChange := onlyEntity(t, artChanges, "evidence_graph_artifact")
 	def := graphChange.EntityID
 
-	// readIDs is the key ids a batch moved one keyed read for.
-	readIDs := func(set effects.Set, read effects.Read) [][]byte {
-		for _, r := range set.Reads {
-			if r.Read == read {
-				return r.IDs
-			}
-		}
-		return nil
-	}
-
 	// A Source create reports its Default graph; the link row alone reports
 	// none, and both report the graph list read for the Source.
 	set := resolve("graph and link", []rowchange.Change{graphChange, linkChange})
-	sameIDs("graph and link reads", readIDs(set, effects.ReadEvidenceGraphs), src.ID)
+	sameIDs("graph and link reads", set.IDsOf(effects.ReadEvidenceGraphs), src.ID)
 	if len(set.Lists) != 0 {
 		t.Fatalf("graph and link changes flagged lists %v", set.Lists)
 	}
@@ -157,7 +147,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	}
 	sameIDs("source create", set.EvidenceGraphs, def)
 	linkSet := resolve("link", []rowchange.Change{linkChange})
-	sameIDs("link reads", readIDs(linkSet, effects.ReadEvidenceGraphs), src.ID)
+	sameIDs("link reads", linkSet.IDsOf(effects.ReadEvidenceGraphs), src.ID)
 	if len(linkSet.EvidenceGraphs) != 0 {
 		t.Fatalf("a link row alone named graphs %x", linkSet.EvidenceGraphs)
 	}
@@ -193,7 +183,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 		"graph delete": {deleteChanges, smith.ID},
 	} {
 		got := resolve(name, tc.changes)
-		sameIDs(name+" reads", readIDs(got, effects.ReadEvidenceGraphs), src.ID)
+		sameIDs(name+" reads", got.IDsOf(effects.ReadEvidenceGraphs), src.ID)
 		if len(got.SourceScopes) != 1 || !bytes.Equal(got.SourceScopes[0], src.ID) {
 			t.Fatalf("%s source scopes %x", name, got.SourceScopes)
 		}
@@ -224,15 +214,15 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	sameIDs("citation", resolve("citation", only(citChanges, "citation")).EvidenceGraphs, jones.ID)
 
 	citSet := resolve("citation create", citChanges)
-	sameIDs("citation create reads", readIDs(citSet, effects.ReadCitations), jones.ID)
+	sameIDs("citation create reads", citSet.IDsOf(effects.ReadCitations), jones.ID)
 	sameIDs("citation create graphs", citSet.EvidenceGraphs, jones.ID)
-	sameIDs("subject create progress", readIDs(resolve("subject", subjChange), effects.ReadEvidenceGraphProgress), jones.ID)
+	sameIDs("subject create progress", resolve("subject", subjChange).IDsOf(effects.ReadEvidenceGraphProgress), jones.ID)
 	claim := rowchange.Change{
 		EntityType: "identity_claim", EntityID: []byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9},
 		Action: rowchange.ActionCreate,
 		Fields: rowchange.FullRow(map[string]any{"subject_id": subjectID}),
 	}
-	sameIDs("claim create progress", readIDs(resolve("claim", []rowchange.Change{claim}), effects.ReadEvidenceGraphProgress), jones.ID)
+	sameIDs("claim create progress", resolve("claim", []rowchange.Change{claim}).IDsOf(effects.ReadEvidenceGraphProgress), jones.ID)
 
 	// A Source title edit names no graph (the Source records hold its words),
 	// names the Source, and still reprojects every graph's search document; an
@@ -249,17 +239,17 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 			sameIDs("title edit graph search docs", doc.IDs, def, jones.ID)
 		}
 	}
-	sameIDs("title edit graph reads", readIDs(titleSet, effects.ReadEvidenceGraphs))
+	sameIDs("title edit graph reads", titleSet.IDsOf(effects.ReadEvidenceGraphs))
 	_, newArtChanges, err := artifacts.Create(tx, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Page 2"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	artSet := resolve("artifact create", only(newArtChanges, "artifact"))
 	sameIDs("artifact create", artSet.EvidenceGraphs)
-	sameIDs("artifact create progress", readIDs(artSet, effects.ReadEvidenceGraphProgress))
-	sameIDs("artifact create reads", readIDs(artSet, effects.ReadCitations))
-	sameIDs("artifact create graph reads", readIDs(artSet, effects.ReadEvidenceGraphs))
-	sameIDs("artifact create with links", readIDs(resolve("artifact create with links", newArtChanges), effects.ReadEvidenceGraphs), src.ID)
+	sameIDs("artifact create progress", artSet.IDsOf(effects.ReadEvidenceGraphProgress))
+	sameIDs("artifact create reads", artSet.IDsOf(effects.ReadCitations))
+	sameIDs("artifact create graph reads", artSet.IDsOf(effects.ReadEvidenceGraphs))
+	sameIDs("artifact create with links", resolve("artifact create with links", newArtChanges).IDsOf(effects.ReadEvidenceGraphs), src.ID)
 	labelChanges, err := artifacts.Update(tx, userID, artifacts.Artifact{
 		ID: srcArt.ID, SourceID: src.ID, Label: "Page one",
 	}, evidencegraphs.GraphLinks{})
@@ -268,10 +258,11 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	}
 	labelSet := resolve("artifact label", only(labelChanges, "artifact"))
 	sameIDs("artifact label", labelSet.EvidenceGraphs)
-	sameIDs("artifact label graph reads", readIDs(labelSet, effects.ReadEvidenceGraphs))
-	if len(labelSet.Reads) != 0 {
-		t.Fatalf("artifact label moved reads %v", labelSet.Reads)
+	sameIDs("artifact label graph reads", labelSet.IDsOf(effects.ReadEvidenceGraphs))
+	if len(labelSet.Reads) != 1 {
+		t.Fatalf("artifact label moved reads %v, want only source_records", labelSet.Reads)
 	}
+	sameIDs("artifact label source records", labelSet.IDsOf(effects.ReadSourceRecords), src.ID)
 
 	// No other write reports the graph list read.
 	_, otherChanges, err := subjects.Create(tx, userID, subjects.CreateInput{
@@ -298,7 +289,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 		"citation create": baseCit,
 		"title edit":      baseTitle,
 	} {
-		if got := readIDs(resolve(name, changes), effects.ReadEvidenceGraphs); len(got) != 0 {
+		if got := resolve(name, changes).IDsOf(effects.ReadEvidenceGraphs); len(got) != 0 {
 			t.Fatalf("%s reported the graph list read %x", name, got)
 		}
 	}

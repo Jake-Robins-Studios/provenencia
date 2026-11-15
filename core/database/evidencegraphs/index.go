@@ -93,15 +93,8 @@ func init() {
 			return buildIndex(g)
 		},
 		Apply: func(g *graphcache.Graph, w graphcache.Whole[*GraphIndex], _ [][]byte, set effects.Set) error {
-			var sourceIDs, graphIDs [][]byte
-			for _, r := range set.Reads {
-				switch r.Read {
-				case effects.ReadEvidenceGraphs:
-					sourceIDs = append(sourceIDs, r.IDs...)
-				case effects.ReadEvidenceGraphProgress:
-					graphIDs = append(graphIDs, r.IDs...)
-				}
-			}
+			sourceIDs := set.IDsOf(effects.ReadEvidenceGraphs)
+			graphIDs := set.IDsOf(effects.ReadEvidenceGraphProgress)
 			if len(sourceIDs) == 0 && len(graphIDs) == 0 {
 				return nil
 			}

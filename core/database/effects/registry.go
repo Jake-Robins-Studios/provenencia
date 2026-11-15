@@ -45,16 +45,20 @@ const (
 	ReadEvidenceGraphs Read = "evidence_graphs"
 	// ReadPropertyTerms: the terms of a Property (the term list).
 	ReadPropertyTerms Read = "property_terms"
+	// ReadSourceRecords: the words of a Source: its row, its Artifacts'
+	// labels, its credibility (the Source records entry and the app's page
+	// inputs). A table the record gains adds its path here.
+	ReadSourceRecords Read = "source_records"
 )
 
 // KeyTable is the table whose ids key the read: Evidence graphs for
-// citations and evidence_graph_progress, Sources for evidence_graphs,
-// Properties for property_terms. "" for an unknown read.
+// citations and evidence_graph_progress, Sources for evidence_graphs and
+// source_records, Properties for property_terms. "" for an unknown read.
 func (r Read) KeyTable() string {
 	switch r {
 	case ReadCitations, ReadEvidenceGraphProgress:
 		return "evidence_graphs"
-	case ReadEvidenceGraphs:
+	case ReadEvidenceGraphs, ReadSourceRecords:
 		return "sources"
 	case ReadPropertyTerms:
 		return "properties"
@@ -63,7 +67,7 @@ func (r Read) KeyTable() string {
 }
 
 // Reads is every keyed read, in the order Set.Reads reports them.
-var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadPropertyTerms}
+var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadPropertyTerms, ReadSourceRecords}
 
 // DeletedEntities is every Entity that reports deleted ids (an entry with a
 // non-zero Effect.Deleted), sorted: the wire keys of Set.Deleted.
@@ -206,6 +210,17 @@ func (s Set) Has(l List) bool {
 	return false
 }
 
+// IDsOf is the ids of every entry whose Read is r, in order.
+func (s Set) IDsOf(r Read) [][]byte {
+	var ids [][]byte
+	for _, got := range s.Reads {
+		if got.Read == r {
+			ids = append(ids, got.IDs...)
+		}
+	}
+	return ids
+}
+
 // Handle queries mirror autoreconciler. They stay here so the registry can
 // name them before anything calls Handles.
 const (
@@ -316,6 +331,7 @@ var observers = chain(
 var registry = map[string]Effect{
 	"sources": {
 		Entity:      "source",
+		Reads:       []ReadPath{{ReadSourceRecords, self()}},
 		SourceScope: self(),
 		Search: []SearchDoc{
 			{Kind: DocSource, Path: self()},
@@ -340,6 +356,7 @@ var registry = map[string]Effect{
 	},
 	"source_credibility_assessments": {
 		Entity:      "source_credibility_assessment",
+		Reads:       []ReadPath{{ReadSourceRecords, field("source_id")}},
 		SourceScope: field("source_id"),
 		Handles:     onField("credibility_grade_id", from("source_id", sqlPath(sqlHandlesForSource))),
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
@@ -375,6 +392,7 @@ var registry = map[string]Effect{
 	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {
 		Entity:      "artifact",
+		Reads:       []ReadPath{{ReadSourceRecords, field("source_id")}},
 		SourceScope: field("source_id"),
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
