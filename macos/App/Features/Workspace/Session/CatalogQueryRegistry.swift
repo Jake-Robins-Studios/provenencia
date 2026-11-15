@@ -192,6 +192,7 @@ extension CatalogQueryKey.Kind {
                 kind: self,
                 invalidateOn: [.createdSource, .deletedSource, .changedSourceType],
                 invalidation: { project, _ in .key(.sourceTypesList(project: project)) },
+                patches: [.sourceTypeRow()],
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
                     guard case .sourceTypesList(let project) = key else {

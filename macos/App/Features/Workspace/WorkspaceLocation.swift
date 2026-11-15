@@ -202,6 +202,11 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         WorkspaceLocation(section: .sources, sourceId: sourceId, sourceSurface: .page, ref: ref, title: title)
     }
 
+    /// One Source type, selected on the Source types page.
+    static func sourceTypePage(typeId: String, title: String? = nil) -> WorkspaceLocation {
+        WorkspaceLocation(section: .sourceTypes, typeId: typeId, title: title)
+    }
+
     /// An Evidence graph's canvas.
     static func evidenceGraph(
         sourceId: String,

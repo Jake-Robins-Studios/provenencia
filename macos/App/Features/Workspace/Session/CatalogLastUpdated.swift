@@ -130,6 +130,23 @@ struct CatalogQueryPatch: Sendable {
         }
     }
 
+    /// Writes the mutation's Source type onto the cached types list: replaces the row with the
+    /// same id, and a `.createdSourceType` appends its row when the list lacks it (the list sorts
+    /// for display). Leaves any stale flag.
+    static func sourceTypeRow() -> Self {
+        Self(follows: nil) { session, key, _, _, mutation in
+            guard let type = mutation?.patchedSourceType else { return .unchanged }
+            return session.patchCached(key, as: [CatalogSourceType].self) { types in
+                if let index = types.firstIndex(where: { $0.id == type.id }) {
+                    types[index] = type
+                    return true
+                }
+                types.append(type)
+                return true
+            }
+        }
+    }
+
     /// Writes the mutation's Source onto the cached page shell. A partial
     /// patch: a page marked stale stays stale and reloads on its next visit.
     static func updatedSourceShell() -> Self {
