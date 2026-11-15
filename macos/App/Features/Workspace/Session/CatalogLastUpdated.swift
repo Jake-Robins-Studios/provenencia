@@ -413,7 +413,7 @@ struct CatalogQueryRefresh: Sendable {
     }
 
     /// A refresh that re-applies the hidden policy to a warmed key whenever the
-    /// write names any id. It is the only constructor for a catalog-wide slot
+    /// write reports the catalog-wide slot. It is the only constructor for a catalog-wide slot
     /// (`.list(_:)`, `.structure`).
     static func applyHiddenPolicyOnAny(follows: CatalogQueryFollows) -> CatalogQueryRefresh {
         precondition(follows.isCatalogWide, "a row slot names ids; use applyHiddenPolicy(follows:ids:)")
