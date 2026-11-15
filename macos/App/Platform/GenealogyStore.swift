@@ -478,6 +478,11 @@ struct CatalogListKey: Sendable, Equatable, Comparable {
     var primary = Data()
     var ref = ""
 
+    /// Bytewise on `ref`, as `<` is: Swift's `String ==` treats canonically equivalent refs as equal.
+    static func == (a: Self, b: Self) -> Bool {
+        a.last == b.last && a.primary == b.primary && a.ref.utf8.elementsEqual(b.ref.utf8)
+    }
+
     static func < (a: Self, b: Self) -> Bool {
         if a.last != b.last { return !a.last }
         if a.primary != b.primary { return a.primary.lexicographicallyPrecedes(b.primary) }
