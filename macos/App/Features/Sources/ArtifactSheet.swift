@@ -56,7 +56,7 @@ private struct ArtifactSheetModifier: ViewModifier {
     }
 }
 
-/// The sheet's body, in `SourceOwnerFormColumns`: the save error, then two columns. Left: in add
+/// The sheet's body, in `PVFormColumns`: the save error, then two columns. Left: in add
 /// mode the file, then label, description and copy details. Right: the Evidence graphs the
 /// Artifact is in. Each section carries its `.id` for the scroll target.
 private struct ArtifactSheetForm: View {
@@ -65,7 +65,7 @@ private struct ArtifactSheetForm: View {
     private let prefix = "sources.page.artifactSheet"
 
     var body: some View {
-        SourceOwnerFormColumns(
+        PVFormColumns(
             saveError: model.saveError,
             saveErrorTitle: L10n.Sources.artifactCardSaveErrorTitle,
             saveErrorIdentifier: "\(prefix).saveError",
