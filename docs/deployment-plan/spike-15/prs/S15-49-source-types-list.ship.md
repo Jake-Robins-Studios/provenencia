@@ -168,3 +168,9 @@ Do: the Description column passes `flex: 2` from `static let descriptionFlex: CG
 Check: tests pass; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-49-source-types-list.md` 0 errors.
 
 Whole round Check: `scripts/check-pr.sh` PASS.
+
+## Round 6 — fix (user request 2)
+Head `2460c1c7b`. Orchestrator gate PASS (xcode-test 71 s; the implementer's run took 140 s). F-12, F-13 done; deviation: the D-1 cell also got an amendment note.
+
+## Round 6 — review
+Scope `38c81349c...2460c1c7b`. Reviewers: CON, MNT, UX, SEC+PRF (performance: `PVTableColumnsLayout` now lays out every row of every `PVTable`, and the header). Orchestrator notes for the reviewers to weigh, not findings yet: `sizeThatFits` reads a nil proposal width as 0; a subview-count mismatch silently gives zero widths.
