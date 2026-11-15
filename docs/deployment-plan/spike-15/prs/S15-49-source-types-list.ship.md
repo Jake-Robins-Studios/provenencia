@@ -1,7 +1,7 @@
 # Ship log — S15-49 The Source types list is redesigned
 
 **Plan:** [`S15-49-source-types-list.md`](S15-49-source-types-list.md) · **Branch:** `s15-49-source-types-list` · **PR:** #852
-**State:** fixing 7
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `1f52b6080`. Note to the implementer: T-1's `sortColumn == .usage` is a typo for `.usedBy` (D-6, review M-2).
@@ -209,3 +209,9 @@ Nits: `MNT-2 · PVWeightedColumns.swift:78 · with no proposed width it reports 
 Files: `PVWeightedColumns.swift`, `PVTable.swift`, `CitationComposerEvidenceColumn.swift`, `PVWeightedColumnsTests.swift`.
 Do: `placeSubviews` resolves widths from `proposal.width` (nil → the ideal widths, the same as `sizeThatFits` reported), not `proposal.width ?? bounds.width`. Replace `VerticalAlignment` with `enum Alignment { case top, center }` on `PVWeightedColumns`; `cellY` switches on it; callers pass `.center` / `.top`. Move the ideal-width sum into `static func idealTotal(fixed:idealWidths:spacing:)` (or similar) and test it with made-up widths (CON-N1), so the rule has a test without a mounted view.
 Check: `scripts/check-pr.sh` PASS.
+
+## Round 8 — fix
+Head `069db3032`. Orchestrator gate PASS; diff read: MNT-2, MNT-3, CON-N1 **Resolved**. `main` unchanged since `ce1dbf761`.
+
+## Result (final, after user requests 1 and 2)
+Gate PASS · CI pending on the final head · open: none · follow-ups: S16-39 mapped (user asked) · to user: — (D-1 and D-3 amended by the user 2026-11-15) · logged, not this PR: S15-D6 brief names a deleted file (S15-12's re-plan)
