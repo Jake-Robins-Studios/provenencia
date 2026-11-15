@@ -1,10 +1,10 @@
 # S15-48 — Source types open on their own page
 
-**Status:** Blocked — on board S15-D27 (OQ-1 is answered by the board)
+**Status:** Draft
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D27](../design/S15-D27-source-type-page.md), board not drawn yet
-**Board:** — (to be drawn on [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga), page *S2-03 Source Types Board*, section 06 "A type's own page"; filled in when the board is agreed)
+**Brief:** [S15-D27](../design/S15-D27-source-type-page.md), board agreed 2026-11-15 (user)
+**Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): artboard *S15-D27 · Source type page board* (frames 2, 2b, 3 – 13 and its decision notes), the component *Source type page · component* (`Source-Type-Page.dc.html`) and *Source type icon grid* (`Source-Type-Icon-Grid.dc.html`). Board decisions: TP-4 is today's Change icon button opening the "Choose an icon" sheet; TP-3 is a new `SourceTypePageHeader`; TP-W1 is one layout at every width (Details 560pt beside Suggested fields, the pair centred). Agreed without Wide, failure or list frames (user, 2026-11-15): Wide is the same centred pair; failures use the existing field error, Callouts and retry callout; the list is today's minus its side pane. Open the link in a browser; if you cannot, D-11, D-13, D-15, D-16 and § 6 macOS describe each frame
 **Depends on:** S15-47 (landed [#843](https://github.com/mendahu/provenencia/pull/843)), S15-D27
 **Blocks:** S15-49, S15-12, S15-17, S15-18 (`SourceTypeDraft`)
 **Branch:** `s15-48-source-type-page`
@@ -99,13 +99,14 @@ A Source type opens on its own page instead of in a 380pt side pane beside the l
 | Type row writes on the declared row patch; `patchTypesList` deleted | STEP-2, AC-2.2, AC-5.1 |
 | Suggestion writes on one mutation and two descriptor patches; `.typeSuggestions` marks stale when hidden (S15-12 D-1 half, D-2, D-5 at the Source level; user, 2026-11-15) | STEP-3, AC-3.1, AC-3.2, AC-3.3 |
 | The model split: `SourceTypesModel` (list), `SourceTypePageModel` *(new)*, `SourceTypeDraft` hoisted | STEP-4 |
-| The leave guard, with one install modifier shared with the composer and Promote (TP-8) | STEP-5, AC-4.1 – AC-4.5 |
-| The page view on Page columns: its header, Details, locked note, one suggestion list (TP-3 – TP-7, TP-W1) | STEP-6, AC-2.1, AC-2.5, AC-3.1 |
-| Delete from the page (TP-9) | STEP-4, STEP-6, AC-5.1 – AC-5.3 |
-| The list without its side pane; rows open on click or Return; scroll on Back (TP-1, TP-W2) | STEP-7, AC-1.1 – AC-1.4 |
-| No "Type added" / "Type deleted" toasts (user, 2026-11-15) | STEP-4, STEP-7, AC-5.1, AC-5.4 |
-| `VocabularyPanelHeader` loses its Source-type-only parameters; `VocabularyPaneMode` moves to Metadata | STEP-8 |
-| Strings, docs, version | STEP-9, STEP-10 |
+| The leave guard, with one install modifier shared with the composer and Promote (TP-8) | STEP-5, STEP-7, AC-4.1 – AC-4.5 |
+| `PVColumnSplit`: the page container takes its column widths and wrapping as parameters (user, 2026-11-15) | STEP-6, T-13 |
+| The page view on Page columns: its header, Details, locked note, one suggestion list (TP-3 – TP-7, TP-W1) | STEP-7, AC-2.1, AC-2.5, AC-3.1 |
+| Delete from the page (TP-9) | STEP-4, STEP-7, AC-5.1 – AC-5.3 |
+| The list without its side pane; rows open on click or Return; scroll on Back (TP-1, TP-W2) | STEP-8, AC-1.1 – AC-1.4 |
+| No "Type added" / "Type deleted" toasts (user, 2026-11-15) | STEP-4, STEP-8, AC-5.1, AC-5.4 |
+| `VocabularyPanelHeader` loses its Source-type-only parameters; `VocabularyPaneMode` moves to Metadata | STEP-9 |
+| Strings, docs, version | STEP-7, STEP-10 |
 
 | Out | Home |
 | --- | --- |
@@ -117,6 +118,7 @@ A Source type opens on its own page instead of in a 380pt side pane beside the l
 | The Metadata page's list and side pane | not planned (working rule "A Source type has its own page") |
 | Routing `PVTable`'s arrow keys through `PVListKeyboard` (only Return / Space are, D-9) | not planned (the clamping rules differ; `PVTableSelectionTests` pin today's) |
 | Guarding window close, sign-out or a project switch with unsaved details | not planned (no page guards them) |
+| Moving `SourcePageOverviewLayout` and `ConclusionPinnedSideColumn` onto `PVColumnSplit` | not planned here; offered to the user as a separate task (2026-11-15) |
 | Reordering suggestions | not planned (map S15-12) |
 
 ## 4. Current state
@@ -163,11 +165,12 @@ A Source type opens on its own page instead of in a 380pt side pane beside the l
 | D-8 | **The leave guard** (user, 2026-11-15). `WorkspaceLeaveGuard` gains `var navigation: WorkspaceNavigation? { get set }` (both conformers already have `weak var navigation`). `View.workspaceLeaveGuard(_ guard: some WorkspaceLeaveGuard)` *(new)* in `WorkspaceNavigation.swift` beside `leavesForSectionRoot`: on appear sets `guard.navigation` and `navigation.leaveGuard`; on disappear clears `leaveGuard` when it is still `guard`. `CitationComposerView` and `PromoteView` use it in place of their lines. `SourceTypePageModel: WorkspaceLeaveGuard`: `shouldHoldNavigation(_:)` is false unless `isDirty && !isSaving`, then sets `pendingLeave = PendingLeave()` (nested `Identifiable` struct) and returns true; `discardAndLeave()` reverts, clears `pendingLeave`, `navigation?.resumeHeldNavigation()`; `keepEditing()` clears it, `navigation?.cancelHeldNavigation()`. The view: `pvConfirm(item:copy: { _ in .discardChanges }, tone: .danger, accessibilityIdentifierPrefix: "sourceTypes.page.leave", onConfirm:)` | Review M-4: the third copy of the install; `PVConfirmCopy.discardChanges` is the kit copy | Silent drop (user chose ask) |
 | D-9 | **Rows open on click or Return.** `PVTable` gains `onActivate: ((Row.ID) -> Void)? = nil` *(new)*. When set: a click selects, then activates; in `handleKey`, `.return` and `.space` go through `PVListKeyboard.action(for:option:index:count:)` and its `.activate(index)` activates `rows[index]` (with nothing selected that is the first row, as `PVList`); every other key behaves as today. When nil, nothing changes (Metadata, Properties). `VocabularyListPane` gains `onActivate` *(new, default nil)*. `SourceTypesListPane` holds the highlight in `@State private var highlighted: String?` and passes `onActivate: { id in navigation.go(to: .sourceTypePage(typeId: id, title: model.types.label(forTypeID: id))) }` | AC-1.2; one keyboard contract (review M-3) | `PVTableSelection.activationIndex` — a second Return rule |
 | D-10 | **Scroll on Back.** `isListRoot` is `typeId == nil` for `.sourceTypes`. `PVTable`'s row `LazyVStack` gains `.scrollTargetLayout()`. `SourceTypesListPane` applies `ListScrollAnchorModifier(anchor: navigation.currentLocation.listScrollAnchor, rowIDs: model.visibleTypes.map(\.id), isLoaded: !model.isLoading)` | Map Shape; the one anchor mechanism | A table-specific anchor |
-| D-11 | **Chrome.** The page header is `SourceTypePageHeader` *(new snowflake)* in `macos/App/Features/SourceTypes/SourceTypePageHeader.swift` *(new)*, laid out from the board, its mark in `PVThumbnail` (mark state). `VocabularyPanelHeader` loses `iconKey` and `usageLine` and their doc lines (only Metadata calls it). `VocabularyPaneMode` moves from `VocabularyPane.swift` into `macos/App/Features/Metadata/MetadataModel.swift` unchanged. The page reuses `VocabularyFormActions` and `VocabularyLabeledSection`. Doc comments in `VocabularyPane.swift` and `VocabularyChrome.swift` stop naming the Source types pane | Brief TP-3, review M-6 / brief M-6 | Reusing `VocabularyPanelHeader` at page width |
+| D-11 | **Chrome.** The page header is `SourceTypePageHeader` *(new snowflake)* in `macos/App/Features/SourceTypes/SourceTypePageHeader.swift` *(new)*, as the board: the eyebrow "Source type" with the trash `PVIconButton` trailing; the saved mark in `PVThumbnail(.init(glyph: .mark(PVMarkKey(catalogKey: type.iconKey))), size: 52)` (the board hand-draws the same tile) beside the saved label in `PVFont.display(size: PVTypeScale.display3)`, one line, truncated at the tail; the origin `PVBadge`-style `OriginBadge`, the mono key, "·", the usage line; the key hint; the delete-failure `PVCallout` under it. The header shows saved values; the draft shows only in Details. `VocabularyPanelHeader` loses `iconKey` and `usageLine` and their doc lines (only Metadata calls it). `VocabularyPaneMode` moves from `VocabularyPane.swift` into `macos/App/Features/Metadata/MetadataModel.swift` unchanged. The page reuses `VocabularyFormActions` and `VocabularyLabeledSection`. Doc comments in `VocabularyPane.swift` and `VocabularyChrome.swift` stop naming the Source types pane | Brief TP-3, review M-6 / brief M-6 | Reusing `VocabularyPanelHeader` at page width |
 | D-12 | **One suggestion list.** `SourceTypeSuggestionList` *(new)*, `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` *(new)*, taking `model: SourceTypePageModel` and `isLocked`: title, count, hint, rows, empty card, picker. Today's `suggestedFields(isLocked:)`, `emptySuggestions`, `suggestionRows`, `assignControl`, `poolRow`, `poolOptions`, `assignListMaxHeight` move into it. Loading and failure come from `model.suggestionsHandle?.reading` (`.loading` → spinner; `.failed` → `PVRetryCallout(title:message:handle:id:onRetry: model.rereadSuggestions)`); `isLoadingSuggestions` goes. S15-12 adds `level` | Brief TP-6; S15-12 D-6 names this file; review M-5 | Moving the section into the page view and again in S15-12 |
-| D-13 | **Details form.** Label `PVInput`; Description `PVTextArea` as `SourceTypeAddForm` uses it; Icon per OQ-1. Identifiers keep `sourceTypes.form.*` | Brief TP-4, brief M-9 | — |
+| D-13 | **Details form** (board, TP-4). Label `PVInput`; Icon a row (the draft's mark in `PVThumbnail(.init(glyph: .mark(PVMarkKey(catalogKey: draft.iconKey))))` (its 44pt default), its name over its mono key, then `PVButton("Change icon", variant: .secondary, size: .sm)`) that opens today's "Choose an icon" `pvFormDialog` (width 660, `SourceTypeIconGrid(columns: 6)`, Use icon / Cancel) with `@State pendingIconKey`; Use icon calls `model.applyDraftIconKey(_:)`, so the icon is a draft like Label (Save, Revert and the leave confirm cover it); Description `PVTextArea` as `SourceTypeAddForm` uses it. Details is one column, 560pt at most. Identifiers keep `sourceTypes.form.*` and `sourceTypes.iconPicker` | Brief TP-4, brief M-9; the board's TP-4 decision | The grid inline — the board chose the sheet |
 | D-14 | **Toasts** (user, 2026-11-15). The page owns "Type updated", "Field assigned", "Suggestion removed" (`vocabularyToastOverlay(_, identifier: "sourceTypes.page.toast")`). Delete sets none. `SourceTypesModel.showAdded` goes; `sourceTypeAddDialog(_:onAdded:)` becomes `sourceTypeAddDialog(_:)` | Sources precedent | Carrying toasts across places |
-| D-15 | **Loading and errors.** Before the types handle has a value the page draws `PVPageColumns(headerPinned: true)` with a spinner, as `SourcePageLoadingShell`. A types-list failure with no value shows `PVRetryCallout(title:message:handle:id: "sourceTypes.page.loadError", onRetry:)` rereading `sourceTypesList`. Page layout: `PVPageColumns(headerPinned: true, scrollResetKey: typeID, header:primary:secondary:)`, no `primaryFill`; primary Details, secondary `SourceTypeSuggestionList` | Brief TP-7, TP-10, TP-W1; brief M-8 | A plain `PVCallout` |
+| D-15 | **Loading and errors.** Before the types handle has a value the page draws `PVPageColumns(headerPinned: true)` with a spinner, as `SourcePageLoadingShell`. A types-list failure with no value shows `PVRetryCallout(title:message:handle:id: "sourceTypes.page.loadError", onRetry:)` rereading `sourceTypesList`. Page layout: `PVPageColumns(headerPinned: true, scrollResetKey: typeID, split: .sourceTypePage, header:primary:secondary:)` (D-16); primary Details, secondary `SourceTypeSuggestionList` | Brief TP-7, TP-10; the board's TP-W1 | A plain `PVCallout` |
+| D-16 | **A two-column split the page sets** (user, 2026-11-15: a general kit container, the page passes its widths and when it wraps). `PVColumnSplit` *(new)*, `Sendable, Equatable` struct in `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift`: `mainMin`, `mainMax`, `sideMin`, `sideMax: CGFloat`, `stacking: Stacking` (`enum Stacking { case belowWide, whenNarrow }`). `static let standard` = `mainMin: 0, mainMax: PVSpacing.widthContentMax, sideMin: PVSpacing.widthInspector, sideMax: PVSpacing.widthSecondaryMax, stacking: .belowWide`: today's arithmetic, unchanged for every caller. `PVPageColumns` and `PVPageColumnsMetrics.columnWidths(…)` gain `split: PVColumnSplit = .standard`; `split(available:sideMax:)` becomes `split(available:using:)`: `main = min(mainMax, room − sideMin)`, `side = min(sideMax, max(sideMin, room − main))`, `room = available − PVSpacing.space9`. `.belowWide` stacks at Regular as today; `.whenNarrow` sets the columns beside each other at any width class while `available ≥ mainMin + space9 + sideMin`, and otherwise stacks them, each `min(mainMax, available)` wide. The group is centred; the header band is the group. `extension PVColumnSplit { static let sourceTypePage = PVColumnSplit(mainMin: 440, mainMax: 560, sideMin: 340, sideMax: 480, stacking: .whenNarrow) }` lives in `SourceTypePageView.swift`. At the board's panes: 1102 → main 560, side 446, group 1038; 2296 → 560 + 32 + 480 = 1072, centred | The board's one layout; the kit stays general (the page passes numbers, not a mode named for it); `.standard` keeps every caller's widths | A page-local `Layout` (a third two-column layout beside `SourcePageOverviewLayout` and `ConclusionPinnedSideColumn`); a Source-type-only flag on `PVPageColumns` |
 
 **Rules this plan bends.** None. D-5 and D-8 follow `add-workspace-place` and `add-workspace-location`; D-7 is S15-12's decision moved forward (user, 2026-11-15; the map's S15-12 scope entry says so).
 
@@ -188,11 +191,12 @@ A Source type opens on its own page instead of in a 380pt side pane beside the l
 | `CatalogQueryPatch.typeSuggestions()`, `typeSuggestionCount()` *(new)* | funcs | `metadataBoard()` | S15-12 D-2 |
 | `LocationNames.sourceTypeLabel` *(new)*; `liveLabel(live:carried:)` *(renamed)* | member / func | `sourceTitle(live:carried:)` | D-6 |
 | `View.workspaceLeaveGuard(_:)` *(new)*; `WorkspaceLeaveGuard.navigation` *(new requirement)* | modifier | the composer's and Promote's `onAppear` / `onDisappear` lines | D-8 replaces both copies |
+| `PVColumnSplit` *(new)*; `PVPageColumns(split:)` *(new parameter)* | type / parameter | `PVPageColumnsMetrics.split(available:sideMax:)`, `sideColumnWidths(available:mainMin:)`; `SourcePageOverviewLayout`, `ConclusionPinnedSideColumn` | D-16: the page container takes its split as data; the two feature layouts are not moved here (Out) |
 | `PVTable(onActivate:)`, `VocabularyListPane(onActivate:)` *(new parameters)* | parameters | `PVList(onActivate:)`, `PVListKeyboard` | D-9 |
 | `SourceTypePageModelTests.swift` *(new)* | tests | `SourceTypesModelTests.swift` | The page's tests move with its model |
 
 **Builds on.** `add-workspace-place` (place registry, `viewIdentity`, declared patches, cache rule 2, the page's gone mechanism), `add-workspace-location` (deep id, crumbs, `isListRoot`, leave guard), S15-47's `.sourceTypeRow()` and `sourceTypePage(typeId:title:)`, S15-12's D-2.
-**Deletes.** `SourceTypesDetailPane.swift`; from `SourceTypesModel` every member D-2 does not keep (`mode`, `draft`, the save, suggestion and delete members, `selectedTypeID`, `selectedType`, `isSelectedTypeLocked`, `applyDraftIconKey` (if OQ-1 is inline), `syncSelection`, `select`, `applySelection`, `clearHistorySelection`, `showAdded`, `patchTypesList`, `patchSuggestions`, `fieldsListKey`, `suggestionsKey`, `warmSuggestions`, `fields`, `Draft`); `SourceTypesContent.reconcileSelection(for:)` and its `onChange` hooks; `SourceTypesView.detailPaneWidth`; `sourceTypeAddDialog`'s `onAdded`; `CatalogMutation.assignedTypeSuggestion`, `.removedTypeSuggestion` and their kinds; `.typeSuggestions`' `invalidation` closure; `isLoadingSuggestions`; `VocabularyPanelHeader.iconKey`, `usageLine`; the composer's and Promote's guard install lines; `WorkspaceLocationLabels.sourceTitle(live:carried:)` (renamed). If OQ-1 is inline: `iconFieldButton(selection:)`, the "Choose an icon" sheet, `pendingIconKey`, and `L10n.SourceTypes.iconPickerTitle`, `iconPickerSubtitle`, `iconPickerConfirm`, `iconPickerCancel`, `iconPickerGroupLabel`, `formIconChange`, `formIconChangeAccessibility`. Strings: `L10n.SourceTypes.panelEmptyTitle`, `panelEmptyBody`, `toastAddedTitle`, `toastAddedBody`, `toastDeletedTitle`, `toastDeletedBody`. Tests that move rather than go: § 8.
+**Deletes.** `SourceTypesDetailPane.swift`; from `SourceTypesModel` every member D-2 does not keep (`mode`, `draft`, the save, suggestion and delete members, `selectedTypeID`, `selectedType`, `isSelectedTypeLocked`, `syncSelection`, `select`, `applySelection`, `clearHistorySelection`, `showAdded`, `patchTypesList`, `patchSuggestions`, `fieldsListKey`, `suggestionsKey`, `warmSuggestions`, `fields`, `Draft`); `SourceTypesContent.reconcileSelection(for:)` and its `onChange` hooks; `SourceTypesView.detailPaneWidth`; `sourceTypeAddDialog`'s `onAdded`; `CatalogMutation.assignedTypeSuggestion`, `.removedTypeSuggestion` and their kinds; `.typeSuggestions`' `invalidation` closure; `isLoadingSuggestions`; `VocabularyPanelHeader.iconKey`, `usageLine`; the composer's and Promote's guard install lines; `WorkspaceLocationLabels.sourceTitle(live:carried:)` (renamed). `iconFieldButton(selection:)`'s hand-drawn field (the Change icon row and `PVThumbnail` replace it; the sheet and `pendingIconKey` move to the page view). Strings: `L10n.SourceTypes.panelEmptyTitle`, `panelEmptyBody`, `toastAddedTitle`, `toastAddedBody`, `toastDeletedTitle`, `toastDeletedBody`. Tests that move rather than go: § 8.
 **Next adds.** S15-12 adds `level` to `.typeSuggestions`, `.wroteTypeSuggestions` and `typeSuggestions()`, two more `SourceTypeSuggestionList` instances in the page's secondary column, and the per-level state on `SourceTypePageModel`. S15-17 adds the formats section to the primary column. S15-18 adds Copy from to `SourceTypeAddModel` with `SourceTypeDraft`. S15-49 changes only `SourceTypesListPane`'s columns. A later list → page vocabulary passes `onActivate` and `.workspaceLeaveGuard`.
 
 ### Reach
@@ -236,10 +240,10 @@ From the brief's inventory (S15-D27 § 6); frames are filled in from the board.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Page layout | `PVPageColumns(headerPinned:scrollResetKey:header:primary:secondary:)` | `SourceTypePageView` | D-15; Regular stacks the secondary below |
+| Page layout | `PVPageColumns(headerPinned:scrollResetKey:split:header:primary:secondary:)` | `SourceTypePageView` | D-15, D-16; side by side at every width while both fit |
 | Header | `SourceTypePageHeader` + `PVThumbnail` (mark) + `PVIconButton` (trash) | `SourceTypePageHeader.swift` | D-11; the board's layout |
 | Section titles | `PVSectionHeader` | page view, suggestion list | "Details" (`L10n.SourceTypes.detailsSectionLabel` *(new)*), "Suggested fields" |
-| Details | `PVField` + `PVInput` / `PVTextArea`; icon per OQ-1; `VocabularyFormActions` | page view | D-13 |
+| Details | `PVField` + `PVInput` / `PVTextArea`; icon row + "Choose an icon" `pvFormDialog` with `SourceTypeIconGrid`; `VocabularyFormActions` | page view | D-13 |
 | Locked note | `PVCallout(tone: .neutral, icon: .lock)` + `VocabularyLabeledSection` | page view | Today's |
 | Suggested fields | `SourceTypeSuggestionList` | its file | D-12 |
 | Delete | `pvDeleteImpact(flow:accessibilityIdentifierPrefix:onConfirm:onNavigate:)` | page view | `onConfirm` awaits `model.confirmDelete(leaving: navigation.fallbackToSectionRoot)` |
@@ -252,7 +256,7 @@ States: loading and list failure (D-15), gone (D-5), suggestions loading and fai
 
 ### Strings
 
-L10n keys *(new)*: `L10n.SourceTypes.detailsSectionLabel` = "Details" (`sourceTypes.detail.detailsSection`). The leave confirm uses `PVConfirmCopy.discardChanges`. Removed: § 6 Deletes' strings and their `Localizable.xcstrings` entries.
+L10n keys *(new)*: `L10n.SourceTypes.detailsSectionLabel` = "Details" (`sourceTypes.detail.detailsSection`). Changed: `L10n.SourceTypes.formIconChange` "Change" → "Change icon" (its one caller is this row); `iconPickerSubtitle` → "The mark that stands for this type wherever a source of it is listed. Each mark names a kind of record, not a file format." (the board; today's says "Twenty-one", which no longer matches the marks). The leave confirm uses `PVConfirmCopy.discardChanges`. Removed: § 6 Deletes' strings and their `Localizable.xcstrings` entries.
 
 ## 7. Steps
 
@@ -281,28 +285,28 @@ Files: `WorkspaceNavigation.swift`, `CitationComposerView.swift`, `CitationCompo
 Do: D-8's protocol, modifier, both callers moved, the page model's conformance.
 Check: T-9 passes; `CitationComposerModelTests` and `PromoteModelTests` pass.
 
-**STEP-6 — The page view**
-Files: `SourceTypePageView.swift` *(new)*, `SourceTypePageHeader.swift` *(new)*, `SourceTypeSuggestionList.swift` *(new)*, `WorkspaceDestinationHost.swift`. Skills: `add-ui-component`, `add-localized-string`.
-Do: § 6 macOS and the board's frames; D-8's view half, D-11's header, D-12, D-13, D-14, D-15, OQ-1's icon field.
-Check: build passes; the page matches frames 2a / 2b, 7a / 7b, 13, 13b in the app.
+**STEP-6 — The column split in the kit**
+Files: `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift`, `macos/ProvenenciaTests/PVPageColumnsTests.swift`. Skill: `add-ui-component`.
+Do: D-16.
+Check: T-13 passes; every existing `PVPageColumnsTests` case passes unchanged.
 
-**STEP-7 — The list opens pages**
+**STEP-7 — The page view**
+Files: `SourceTypePageView.swift` *(new)*, `SourceTypePageHeader.swift` *(new)*, `SourceTypeSuggestionList.swift` *(new)*, `WorkspaceDestinationHost.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skills: `add-ui-component`, `add-localized-string`.
+Do: § 6 macOS and the board's frames; D-8's view half, D-11's header, D-12, D-13, D-14, D-15; § 6 Strings.
+Check: build passes; the page matches frames 2 – 13 at pane 1102 and at 2296 (the same pair, centred); `rg "SourceTypes\.(panelEmpty|toastAdded|toastDeleted)" macos` finds nothing; `L10nResolutionTests` passes.
+
+**STEP-8 — The list opens pages**
 Files: `PVTable.swift`, `PVListTests.swift`, `VocabularyListPane.swift`, `SourceTypesListPane.swift`, `SourceTypesView.swift`. Skill: `add-ui-component`.
 Do: D-9, D-10.
 Check: T-11 passes; in the app ↓ moves the highlight without leaving, Return opens, Back restores the scroll.
 
-**STEP-8 — Vocabulary chrome**
+**STEP-9 — Vocabulary chrome**
 Files: `VocabularyChrome.swift`, `VocabularyPane.swift`, `MetadataModel.swift`, `MetadataDetailPane.swift`.
 Do: D-11's `VocabularyPanelHeader` and `VocabularyPaneMode` lines.
 Check: build passes; `MetadataModelTests` passes.
 
-**STEP-9 — Strings**
-Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skill: `add-localized-string`.
-Do: § 6 Strings.
-Check: `rg "SourceTypes\.(panelEmpty|toastAdded|toastDeleted)" macos` finds nothing; `L10nResolutionTests` passes.
-
 **STEP-10 — Docs and version**
-Files: `.agents/skills/add-workspace-place/SKILL.md` (§ 5 "Master–detail selection (fields/types)" → "(fields)"; the leaving-page sentence names the Source type page; § 6's type-suggestion writes), `.agents/skills/add-workspace-location/SKILL.md` (the "fields/types pattern" row → "fields pattern"; "(Metadata, Source types, Properties)" → "(Metadata, Properties)"; the `syncSelection(from:)` citation; the leave guard names `.workspaceLeaveGuard`), `docs/macos-client-patterns.md` (the mutation list: `.updatedSourceType`, `.deletedSourceType`, `.wroteTypeSuggestions` in place of the two suggestion mutations; drop the clause that `patchTypesList` still serves update, assign, remove and delete; cache rule 4: `row` also removes), `macos/App/DesignSystem/README.md` ("The table tradeoff": the activate contract; "table → detail pane"), `docs/design-system-layers.md` (the icon grid's callers), `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`; `completed.md`, `deployment-plan.md` (map row), this plan, `design/` (brief → `design/archive/`, `design/README.md`).
+Files: `.agents/skills/add-workspace-place/SKILL.md` (§ 5 "Master–detail selection (fields/types)" → "(fields)"; the leaving-page sentence names the Source type page; § 6's type-suggestion writes), `.agents/skills/add-workspace-location/SKILL.md` (the "fields/types pattern" row → "fields pattern"; "(Metadata, Source types, Properties)" → "(Metadata, Properties)"; the `syncSelection(from:)` citation; the leave guard names `.workspaceLeaveGuard`), `docs/macos-client-patterns.md` (the mutation list: `.updatedSourceType`, `.deletedSourceType`, `.wroteTypeSuggestions` in place of the two suggestion mutations; drop the clause that `patchTypesList` still serves update, assign, remove and delete; cache rule 4: `row` also removes), `macos/App/DesignSystem/README.md` ("The table tradeoff": the activate contract; "table → detail pane"), `docs/design-system-layers.md` (the icon grid's callers), `macos/App/DesignSystem/README.md`'s Page columns row (`split:` and `PVColumnSplit`), `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`; `completed.md`, `deployment-plan.md` (map row), this plan, `design/` (brief → `design/archive/`, `design/README.md`).
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-48-source-type-page.md` and `scripts/check-guidance-names.py` pass; links resolve.
 
@@ -323,6 +327,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-9 | Swift | `SourceTypePageModelTests.swift` `leavingAsksOnlyWhileDirty` *(new)*; `WorkspaceNavigationTests.swift` `leaveGuardModifierInstallsAndClears` *(new)* | clean → not held; dirty → held, `pendingLeave` set; `keepEditing()` → cleared, place unchanged; `discardAndLeave()` → reverted, Back performed; saving → not held; a suggestion write keeps a clean draft clean; the modifier sets `leaveGuard` and `navigation`, and leaves another guard in place on disappear | D-8, AC-4.1, AC-4.2, AC-4.3, AC-4.4, AC-4.5 |
 | T-10 | Swift | `SourceTypePageModelTests.swift` `deletingLeavesAndDropsTheRow`, `typeUsedByTwoSourcesShowsInboundNotice` (moved) | unused → `confirmDelete(leaving:)` true, `leave` once, row gone, `toast == nil`; with a dirty draft the same, no `pendingLeave`; used → inbound rows | AC-5.1, AC-5.2, AC-5.3, D-14 |
 | T-11 | Swift | `PVListTests.swift` `returnAndSpaceActivateForATable` *(new)* | `PVListKeyboard.action(for: .return, option: false, index: -1, count: 3)` → `.activate(0)`; `.space` at 1 → `.activate(1)`; count 0 → `.ignore` | D-9, AC-1.3 |
+| T-13 | Swift | `PVPageColumnsTests.swift` `columnSplitSetsTheColumnsBesideOrStacked` *(new)* | `.standard` at Regular and Wide → today's widths; `.sourceTypePage` at available 1038 → main 560, side 446, not stacked; at 2232 → 560 / 480, group 1072; at 780 → stacked, each 560 | D-16 |
 | T-12 | Swift | `SourceTypesModelTests.swift` `createAndDeleteCommitThroughWorkspaceNavigation` (changed) | add → `go(to: .sourceTypePage(typeId:title:))` → current `typeId` is the new id; the list model has no toast | AC-5.4 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `SourceTypesModelTests`, `PlaceRegistryTests`, `WorkspaceDestinationHostTests`, `CatalogQueryRegistryTests`, `CitationComposerModelTests`, `PromoteModelTests`, `MetadataModelTests`, `PVTableTests`.
@@ -359,7 +364,7 @@ Use a project with the seed's types, Census used by Sources, and the plugin fixt
 7. Omnibar "census" → the page (AC-1.5). Quit and relaunch on the page → restored (AC-1.6).
 8. Add type "Parish register" → its page, no toast (AC-5.4). Change its label, Delete → the list without it, no toast, no discard confirm (AC-5.1, AC-5.3). Delete on Census → blocked notice (AC-5.2).
 9. Metadata page: delete a field a type suggests → its impact link opens the type's page (AC-1.8).
-10. Resize across 1600pt on Census with an unsaved edit: Regular one column, Wide two columns, the edit kept (TP-W1). Open the composer and leave it with unsaved work: its own confirm still shows (D-8).
+10. Resize Census's page from 900pt to 2300pt with an unsaved edit: Details and Suggested fields stay side by side and centred, stacking only when the pane is too narrow for both; the edit is kept (D-16). Open the composer and leave it with unsaved work: its own confirm still shows (D-8).
 
 ## 11. Risks and stop conditions
 
@@ -373,7 +378,7 @@ Use a project with the seed's types, Census used by Sources, and the plugin fixt
 **Stop and report if:**
 
 - A **Current state** row is no longer true at your base.
-- The agreed board draws something D-1 – D-15 contradict (a side pane, an inspector, toasts after Add or Delete, the side pane's header reused).
+- The agreed board draws something D-1 – D-16 contradict (a side pane, an inspector, toasts after Add or Delete, the side pane's header reused).
 - `ListScrollAnchorModifier` on `SourceTypesListPane` does not restore the scroll with `scrollTargetLayout` on `PVTable`'s rows: do not add a second anchor mechanism.
 - `WorkspaceNavigation.hold` does not see a sidebar or omnibar move: report the path.
 - `.allCached(.sourceWorkspace)` does not mark a visited Source page stale after `.wroteTypeSuggestions` (T-7).
@@ -381,7 +386,7 @@ Use a project with the seed's types, Census used by Sources, and the plugin fixt
 
 ## 12. Open questions
 
-- **OQ-1 — The icon field (board, TP-4).** The grid inline in Details (the brief's recommendation, the Add dialog's composition) or today's button + "Choose an icon" sheet. § 6 Deletes lists what goes with the inline answer. Answered by the agreed board.
+None.
 
 ## 13. PR
 

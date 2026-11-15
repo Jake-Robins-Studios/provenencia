@@ -139,7 +139,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-45 | The composer marks and flags the printed page | 9 | Swift: Unknown and Supplied on the printed page (S15-41's control); flagged when the type needs `{citation.page}` | S15-D24 | S15-13, S15-38, S15-41, S15-44, S15-D24 | — | Scoped |
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
-| S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Blocked — on board S15-D27 |
+| S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Draft |
 | S15-49 | The Source types list is redesigned | 2 | Swift: the list without a side pane, its columns and its Wide layout | S15-D28 | S15-48, S15-D28 | — | Scoped |
 
 ## Design track

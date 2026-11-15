@@ -30,7 +30,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | — | S15-45 |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| [S15-D27](S15-D27-source-type-page.md) | Source type page: the page from scratch (header, details, delete, locked types, the Source suggestions), with slots named for S15-12 and S15-17; the list without its side pane; leaving with unsaved details asks; no toast after Add or Delete (user, 2026-11-15) | — (written 2026-11-15; to draw on the Source Types board, section 06) | S15-48 |
+| [S15-D27](S15-D27-source-type-page.md) | Source type page: the page from scratch (header, details, delete, locked types, the Source suggestions), with slots named for S15-12 and S15-17; the list without its side pane; leaving with unsaved details asks; no toast after Add or Delete (user, 2026-11-15) | [agreed 2026-11-15](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): sheet icon picker, new page header, Details beside Suggested fields at every width | S15-48 |
 | S15-D28 | Source types list: columns and Wide without the side pane | — | S15-49 |
 
 ## Archived
