@@ -63,3 +63,36 @@ struct PVFormColumns<Left: View, Right: View>: View {
         }
     }
 }
+
+#Preview("Equal columns, save error") {
+    PVFormColumns(
+        saveError: "The type was not added.",
+        saveErrorTitle: "Could not add",
+        saveErrorIdentifier: "preview.error",
+        isSaving: false
+    ) {
+        Text(verbatim: "Left column")
+    } right: {
+        Text(verbatim: "Right column")
+    }
+    .padding(PVSpacing.space9)
+    .frame(width: 640)
+    .background(PVColor.surfacePage)
+}
+
+#Preview("Fixed right column") {
+    PVFormColumns(
+        saveError: nil,
+        saveErrorTitle: "Could not add",
+        saveErrorIdentifier: "preview.error",
+        isSaving: false,
+        rightWidth: 432
+    ) {
+        Text(verbatim: "Left column")
+    } right: {
+        Text(verbatim: "Right column")
+    }
+    .padding(PVSpacing.space9)
+    .frame(width: 840)
+    .background(PVColor.surfacePage)
+}
