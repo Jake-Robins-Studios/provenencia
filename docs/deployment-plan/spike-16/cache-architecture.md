@@ -71,7 +71,7 @@ S14-40 records each summary row's inputs through `graphcache.InputScope` (`Node`
 
 - **Stale while refreshing (S16-09, in Batch 1 with the Source follow on the same keys).** The per-entity Conclusion keys go from `.evict` to `.markStale`; `apply` evicts only the ids in `effects.deleted`; a not-found reload over a stale value reads as gone (S16-04's reading). Back to a page shows its last value at once. A cap of 50 hidden entities bounds memory.
 - **Values report their inputs (S16-24, S16-25).** Each per-entity read returns the handles (from `InputScope` and the kinship pivots), graphs and Sources it was built from, as three wire lists; `graphcache.InputKey`, which the persisted input index stores, keeps its one kind. Swift has one `followsInputs` declaration (a `followsValue` refresh per slot; Sources on the `source_records` read, S16-25) in place of `personSection`, `personGraphsSection`, the per-kind id closures, S16-09's Source follow and S16-12's. Cache keys become plain values in the same PR, so the selector is written once (S16-25).
-- **Lists merge the touched rows (S16-26)** through the existing `.merged` read, by an id filter and a sort key from Go.
+- **Lists merge the touched rows (S16-26)**: one read of the touched ids, rows placed by a list key from Go, on screen or not ([plan](prs/S16-26-lists-merge-touched-rows.md)).
 - **One primitive for derived values (S16-27):** `session.derived(...)`, rebuilt only when an input's revision changes, replacing four hand memos and building a section's content once per value.
 - **Prefetch last (S16-29):** a `prefetch` tag in S16-03's list of section reads, for Family and Timeline, and a hovered person's page, once S16-09 and S16-25 stop the next write throwing them away.
 

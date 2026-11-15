@@ -61,6 +61,9 @@ type EventSummary struct {
 	// Updated is the handle's latest canonical_entity revision and its time.
 	// Filled by List only; zero means none.
 	Updated effects.Activity
+	// ListKey is the key the row's list sorts by. The list reads fill it onto
+	// the rows they return, after composing; the finished rows never hold it.
+	ListKey ListKey
 }
 
 // EventSubject is one person on an event through a subject-role participation.

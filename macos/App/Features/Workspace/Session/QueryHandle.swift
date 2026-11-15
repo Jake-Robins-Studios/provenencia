@@ -17,6 +17,15 @@ enum QueryRead<Value> {
         if case .failed = self { return true }
         return false
     }
+
+    /// The same read with a loaded value changed by `transform`.
+    func map<Other>(_ transform: (Value) -> Other) -> QueryRead<Other> {
+        switch self {
+        case .loading: .loading
+        case .failed(let error): .failed(error)
+        case .loaded(let value): .loaded(transform(value))
+        }
+    }
 }
 
 /// What a reader that shows a refresh failure beside its value sees: nothing
@@ -43,7 +52,18 @@ enum QueryReading<Value> {
 @Observable
 final class QueryHandle<Value> {
     private(set) var status: QueryStatus = .idle
-    private(set) var value: Value?
+    /// The cached value. Reads and writes notify observers by hand, so `modifyValue` can take the
+    /// value out and put it back without telling anyone when its change did nothing.
+    private(set) var value: Value? {
+        get {
+            access(keyPath: \.value)
+            return storedValue
+        }
+        set {
+            withMutation(keyPath: \.value) { storedValue = newValue }
+        }
+    }
+    @ObservationIgnored private var storedValue: Value?
     private(set) var error: Error?
     /// True while a load is refetching with prior `value` still visible
     /// (stale-while-revalidate), or a partial re-read of part of `value` is
@@ -129,6 +149,28 @@ final class QueryHandle<Value> {
 
     func applySuccess(_ value: Value) {
         self.value = value
+        markReplaced()
+    }
+
+    /// Changes the cached value where it sits. The handle lets go of its reference first, so the
+    /// local is the only one and `change` can mutate without copying a large value. Returns what
+    /// `change` returned; only `true` counts as a replace (status, error and `revision`) and tells
+    /// observers of `value`, and `false` puts the value back as it was, unobserved. No reader runs
+    /// between: this is one main-actor turn.
+    func modifyValue(_ change: (inout Value) -> Bool) -> Bool {
+        guard var value = storedValue else { return false }
+        storedValue = nil
+        let changed = change(&value)
+        if changed {
+            withMutation(keyPath: \.value) { storedValue = value }
+            markReplaced()
+        } else {
+            storedValue = value
+        }
+        return changed
+    }
+
+    private func markReplaced() {
         error = nil
         status = .ready
         refetching = false

@@ -120,19 +120,27 @@ final class WorkspaceSession {
     /// If a load was in flight, the patch wins immediately and that load is
     /// restarted so a later refetch is not dropped.
     func setQueryValue<Value>(_ key: CatalogQueryKey, value: Value) {
-        replaceValue(key, value, clearStale: true)
+        replaceValue(key, clearStale: true) { (handle: QueryHandle<Value>) in
+            handle.applySuccess(value)
+            return true
+        }
     }
 
     /// The one patch primitive: replaces the cached value now. An in-flight
     /// load is cancelled and restarted, so an older response cannot overwrite
     /// the patch. `clearStale` says whether the patch makes the key current.
-    private func replaceValue<Value>(_ key: CatalogQueryKey, _ value: Value, clearStale: Bool) {
+    @discardableResult
+    private func replaceValue<Value>(
+        _ key: CatalogQueryKey,
+        clearStale: Bool,
+        install: (QueryHandle<Value>) -> Bool
+    ) -> Bool {
+        let handle = typedHandle(for: key, as: Value.self)
         let hadInFlight = inFlight[key] != nil
+        guard install(handle) else { return false }
         bumpGeneration(key)
         inFlight[key]?.task.cancel()
         inFlight[key] = nil
-        let handle = typedHandle(for: key, as: Value.self)
-        handle.applySuccess(value)
         if clearStale {
             handle.clearStale()
         }
@@ -140,6 +148,7 @@ final class WorkspaceSession {
             handle.markStale()
             revalidate(key)
         }
+        return true
     }
 
     /// Edits the cached value in place. `change` returns whether it changed
@@ -155,50 +164,45 @@ final class WorkspaceSession {
         _ change: (inout Value) -> Bool
     ) -> CatalogPatchResult {
         if awaitsFirstValue(key) { return .awaitingFirstValue }
-        guard let handle: QueryHandle<Value> = queryHandle(key), var value = handle.value else { return .unchanged }
-        guard change(&value) else { return .unchanged }
-        replaceValue(key, value, clearStale: false)
-        return .applied
+        guard let existing: QueryHandle<Value> = queryHandle(key), existing.hasValue else { return .unchanged }
+        let changed = replaceValue(key, clearStale: false) { (handle: QueryHandle<Value>) in
+            handle.modifyValue(change)
+        }
+        return changed ? .applied : .unchanged
     }
 
-    /// Re-reads part of a warmed value and merges it in: `read` runs once per
-    /// id, in order, and every part is merged in one `patchCached`. A failed
-    /// read falls back to the key's hidden policy (a reload) and merges
-    /// nothing. Nothing happens for a key evicted before it starts. `apply`
-    /// holds the handle's `isFetching` count for the whole run. After an
-    /// applied merge, `afterMerge` gets the parts by id and the handle
-    /// revision from just before the patch.
+    /// Re-reads part of a warmed value and merges it in: `read` runs once with every id, and its
+    /// part is merged in one `patchCached`. A failed read falls back to the key's hidden policy (a
+    /// reload) and merges nothing. Nothing happens for a key evicted before it starts. `apply`
+    /// holds the handle's `isFetching` count for the whole run. After an applied merge,
+    /// `afterMerge` gets the part and the handle revision from just before the patch.
     ///
-    /// Called only by `CatalogQueryRefresh.merged`, inside `apply`'s gate and
+    /// Called only by `CatalogQueryRefresh.merged` and `.mergedRows`, inside `apply`'s gate and
     /// count; it is not a feature API.
     func refreshCached<Value, Part>(
         _ key: CatalogQueryKey,
         as _: Value.Type,
         ids: [String],
-        read: @MainActor (String) async throws -> Part,
-        merge: @MainActor (inout Value, String, Part) -> Void,
-        afterMerge: (@MainActor ([String: Part], _ previousRevision: Int) -> Void)? = nil
+        read: @MainActor ([String]) async throws -> Part,
+        merge: @MainActor (inout Value, Part) -> Void,
+        afterMerge: (@MainActor (Part, _ previousRevision: Int) -> Void)? = nil
     ) async {
         guard let _: QueryHandle<Value> = queryHandle(key) else { return }
-        var parts: [(String, Part)] = []
-        for id in ids {
-            do {
-                parts.append((id, try await read(id)))
-            } catch {
-                applyHiddenPolicy(to: key)
-                return
-            }
+        let part: Part
+        do {
+            part = try await read(ids)
+        } catch {
+            applyHiddenPolicy(to: key)
+            return
         }
         let previousRevision = queryHandle(key).map { (handle: QueryHandle<Value>) in handle.revision }
         let result = patchCached(key, as: Value.self) { value in
-            for (id, part) in parts {
-                merge(&value, id, part)
-            }
+            merge(&value, part)
             return true
         }
         // Any other result (awaiting a first value, unchanged) is `apply`'s to settle.
         if case .applied = result, let previousRevision, let afterMerge {
-            afterMerge(Dictionary(parts, uniquingKeysWith: { _, last in last }), previousRevision)
+            afterMerge(part, previousRevision)
         }
     }
 
@@ -267,10 +271,10 @@ final class WorkspaceSession {
     /// refresh cannot run for. Keys the registry marks stale when
     /// hidden are not loaded unless on screen. Last, it starts each warmed
     /// key's `.run` refreshes for the ids the effects reported (graph
-    /// progress per graph, the graph list per Source, only the ids named),
-    /// gated per key: one runs only for a key that would revalidate (visible,
-    /// or `whenHidden: .revalidate`), holds a value and is not stale, and
-    /// holds a count on the handle's `isFetching` until it ends. Any other
+    /// progress per graph, the graph list per Source, the Persons, Events and
+    /// Places lists' touched rows, only the ids named), gated per key: one
+    /// runs for a key that holds a value and is not stale, on screen or not,
+    /// and holds a count on the handle's `isFetching` until it ends. Any other
     /// warmed key such an entry names joins the dedupe pass instead (reloaded
     /// when visible, marked stale when hidden), and a key in that pass starts
     /// no `.run`. It also runs `onNavCountsMoved`
@@ -292,7 +296,7 @@ final class WorkspaceSession {
                 guard case .run(let run) = refresh.action else { continue }
                 let ids = refresh.follows.ids(in: effects)
                 if ids.isEmpty { continue }
-                if effectivePolicy(for: key) == .revalidate, !handle.isStale, handle.hasValue {
+                if !handle.isStale, handle.hasValue {
                     running.append((key, run, ids))
                 } else {
                     fallbacks.append(key)
@@ -316,10 +320,10 @@ final class WorkspaceSession {
         }
     }
 
-    /// A write that deleted the entity the page shows. Every key is hidden first so no list loads;
+    /// A write that deleted the entity the page shows. Every key is hidden first so no page or list loads whole;
     /// each leaving key then follows `apply` (evicted when `effects.deleted` names its entity for
     /// its kind, else its hidden policy), then `leave` runs, which moves to the next place and
-    /// loads its keys once. Nothing reads the deleted id in between.
+    /// loads its keys once. Nothing reads the deleted id whole in between; a hidden list may re-read it by id and drop its row.
     func apply(
         _ effects: CatalogWriteEffects,
         _ mutation: CatalogMutation? = nil,

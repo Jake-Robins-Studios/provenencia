@@ -112,6 +112,66 @@ func TestListPersonSummaries(t *testing.T) {
 			},
 		},
 		{
+			name: "every row carries a list key in list order",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, _ := namedPerson(t)
+				return &engine.ListPersonSummariesRequest{ProjectDir: dir}
+			},
+			after: func(t *testing.T, out []byte, _ proto.Message) {
+				var resp engine.ListPersonSummariesResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if len(resp.Summaries) == 0 {
+					t.Fatal("no rows")
+				}
+				for i, h := range resp.Summaries {
+					if h.GetListKey().GetRef() == "" || strings.ToLower(h.GetEntity().GetRef()) != h.GetListKey().GetRef() {
+						t.Fatalf("row %d: list key %+v", i, h.GetListKey())
+					}
+					if i > 0 && !listKeyBefore(resp.Summaries[i-1].GetListKey(), h.GetListKey()) {
+						t.Fatalf("keys do not increase at row %d", i)
+					}
+				}
+			},
+		},
+		{
+			name: "filtered to one person",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, id := namedPersonID(t)
+				return &engine.ListPersonSummariesRequest{ProjectDir: dir, EntityIds: []string{id, uuid.Must(uuid.NewV7()).String()}}
+			},
+			after: func(t *testing.T, out []byte, req proto.Message) {
+				var resp engine.ListPersonSummariesResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if len(resp.Summaries) != 1 {
+					t.Fatalf("%+v", resp.Summaries)
+				}
+				dir := req.(*engine.ListPersonSummariesRequest).GetProjectDir()
+				raw, err := ListPersonSummaries(marshalProto(t, &engine.ListPersonSummariesRequest{ProjectDir: dir}))
+				if err != nil {
+					t.Fatal(err)
+				}
+				var all engine.ListPersonSummariesResponse
+				if err := proto.Unmarshal(raw, &all); err != nil {
+					t.Fatal(err)
+				}
+				if len(all.Summaries) != 1 || !proto.Equal(all.Summaries[0], resp.Summaries[0]) || resp.Summaries[0].GetListKey().GetRef() == "" {
+					t.Fatalf("filtered %+v, whole %+v", resp.Summaries, all.Summaries)
+				}
+			},
+		},
+		{
+			name: "a malformed id is an error",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, _ := namedPerson(t)
+				return &engine.ListPersonSummariesRequest{ProjectDir: dir, EntityIds: []string{"not-an-id"}}
+			},
+			wantErr: true,
+		},
+		{
 			name: "a Person with a likeness carries its image path",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _, artifactID, personID, likenessID := likenessFixture(t)
@@ -190,6 +250,24 @@ func TestListEventSummaries(t *testing.T) {
 				}
 				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" || h.GetDate().GetStartYear() != 1849 {
 					t.Fatalf("type %v date %v", h.GetEventType(), h.GetDate())
+				}
+			},
+		},
+		{
+			name: "filtered to one event",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, _ := citedEvent(t)
+				all := listedEvents(t, &engine.ListEventSummariesRequest{ProjectDir: dir})
+				return &engine.ListEventSummariesRequest{ProjectDir: dir, EntityIds: []string{all[0].GetEntity().GetId(), uuid.Must(uuid.NewV7()).String()}}
+			},
+			after: func(t *testing.T, out []byte, req proto.Message) {
+				var resp engine.ListEventSummariesResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				whole := listedEvents(t, &engine.ListEventSummariesRequest{ProjectDir: req.(*engine.ListEventSummariesRequest).GetProjectDir()})
+				if len(resp.Summaries) != 1 || len(whole) != 1 || !proto.Equal(whole[0], resp.Summaries[0]) || resp.Summaries[0].GetListKey().GetLast() || len(resp.Summaries[0].GetListKey().GetPrimary()) != 8 {
+					t.Fatalf("filtered %+v, whole %+v", resp.Summaries, whole)
 				}
 			},
 		},
@@ -281,6 +359,24 @@ func TestListPlaceSummaries(t *testing.T) {
 				}
 				if h := resp.Summaries[0]; h.GetUpdatedRevision() <= 0 || h.GetUpdatedAt() == "" {
 					t.Fatalf("updated %d %q", h.GetUpdatedRevision(), h.GetUpdatedAt())
+				}
+			},
+		},
+		{
+			name: "filtered to one place",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, _ := citedPlace(t)
+				all := listedPlaces(t, &engine.ListPlaceSummariesRequest{ProjectDir: dir})
+				return &engine.ListPlaceSummariesRequest{ProjectDir: dir, EntityIds: []string{all[0].GetEntity().GetId(), uuid.Must(uuid.NewV7()).String()}}
+			},
+			after: func(t *testing.T, out []byte, req proto.Message) {
+				var resp engine.ListPlaceSummariesResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				whole := listedPlaces(t, &engine.ListPlaceSummariesRequest{ProjectDir: req.(*engine.ListPlaceSummariesRequest).GetProjectDir()})
+				if len(resp.Summaries) != 1 || len(whole) != 1 || !proto.Equal(whole[0], resp.Summaries[0]) || len(resp.Summaries[0].GetListKey().GetPrimary()) == 0 {
+					t.Fatalf("filtered %+v, whole %+v", resp.Summaries, whole)
 				}
 			},
 		},
@@ -556,4 +652,36 @@ func TestEventTitleProtoCarriesTheTypeOrigin(t *testing.T) {
 	if got.GetTypeKey() != "birth" || got.GetTypeOrigin() != "user" {
 		t.Fatalf("type = %q (%q)", got.GetTypeKey(), got.GetTypeOrigin())
 	}
+}
+
+// listKeyBefore is whether a sorts before b on the wire.
+func listKeyBefore(a, b *engine.ListKey) bool {
+	return conclusionsummaries.ListKey{Last: a.GetLast(), Primary: a.GetPrimary(), Ref: a.GetRef()}.
+		Less(conclusionsummaries.ListKey{Last: b.GetLast(), Primary: b.GetPrimary(), Ref: b.GetRef()})
+}
+
+func listedEvents(t *testing.T, req *engine.ListEventSummariesRequest) []*engine.EventSummary {
+	t.Helper()
+	raw, err := ListEventSummaries(marshalProto(t, req))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var resp engine.ListEventSummariesResponse
+	if err := proto.Unmarshal(raw, &resp); err != nil {
+		t.Fatal(err)
+	}
+	return resp.Summaries
+}
+
+func listedPlaces(t *testing.T, req *engine.ListPlaceSummariesRequest) []*engine.PlaceSummary {
+	t.Helper()
+	raw, err := ListPlaceSummaries(marshalProto(t, req))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var resp engine.ListPlaceSummariesResponse
+	if err := proto.Unmarshal(raw, &resp); err != nil {
+		t.Fatal(err)
+	}
+	return resp.Summaries
 }

@@ -2,6 +2,7 @@ package conclusionsummaries
 
 import (
 	"bytes"
+	"encoding/binary"
 	"maps"
 	"strings"
 
@@ -232,12 +233,35 @@ func ListPersons(c *database.Catalog) ([]PersonSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range out {
-		if out[i].Updated, err = handleActivity(c, out[i].Entity.ID); err != nil {
-			return nil, err
+	return out, finishPersonList(c, out)
+}
+
+// ListPersonsOf is PersonsByIDs with Updated and ListKey, as ListPersons gives
+// each row. No ids reads nothing.
+func ListPersonsOf(c *database.Catalog, ids [][]byte) ([]PersonSummary, error) {
+	out, err := PersonsByIDs(c, ids)
+	if err != nil {
+		return nil, err
+	}
+	return out, finishPersonList(c, out)
+}
+
+// finishPersonList fills the list-only fields of rows: ListKey and Updated.
+func finishPersonList(c *database.Catalog, rows []PersonSummary) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	loaded, err := nameformats.LoadFor(c.Graph())
+	if err != nil {
+		return err
+	}
+	for i := range rows {
+		rows[i].ListKey = personListKey(rows[i], loaded.Profile)
+		if rows[i].Updated, err = handleActivity(c, rows[i].Entity.ID); err != nil {
+			return err
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // handleActivity is a handle's newest canonical_entity revision, from the
@@ -398,12 +422,29 @@ func ListEvents(c *database.Catalog) ([]EventSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range out {
-		if out[i].Updated, err = handleActivity(c, out[i].Entity.ID); err != nil {
-			return nil, err
+	return out, finishEventList(c, out)
+}
+
+// ListEventsOf is EventsByIDs with Updated and ListKey, as ListEvents gives
+// each row. No ids reads nothing.
+func ListEventsOf(c *database.Catalog, ids [][]byte) ([]EventSummary, error) {
+	out, err := EventsByIDs(c, ids)
+	if err != nil {
+		return nil, err
+	}
+	return out, finishEventList(c, out)
+}
+
+// finishEventList fills the list-only fields of rows: ListKey and Updated.
+func finishEventList(c *database.Catalog, rows []EventSummary) error {
+	var err error
+	for i := range rows {
+		rows[i].ListKey = eventListKey(rows[i])
+		if rows[i].Updated, err = handleActivity(c, rows[i].Entity.ID); err != nil {
+			return err
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // EventsByIDs returns the summaries of the given unmerged Events in list order.
@@ -476,12 +517,29 @@ func ListPlaces(c *database.Catalog) ([]PlaceSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := range out {
-		if out[i].Updated, err = handleActivity(c, out[i].Entity.ID); err != nil {
-			return nil, err
+	return out, finishPlaceList(c, out)
+}
+
+// ListPlacesOf is PlacesByIDs with Updated and ListKey, as ListPlaces gives
+// each row. No ids reads nothing.
+func ListPlacesOf(c *database.Catalog, ids [][]byte) ([]PlaceSummary, error) {
+	out, err := PlacesByIDs(c, ids)
+	if err != nil {
+		return nil, err
+	}
+	return out, finishPlaceList(c, out)
+}
+
+// finishPlaceList fills the list-only fields of rows: ListKey and Updated.
+func finishPlaceList(c *database.Catalog, rows []PlaceSummary) error {
+	var err error
+	for i := range rows {
+		rows[i].ListKey = placeListKey(rows[i])
+		if rows[i].Updated, err = handleActivity(c, rows[i].Entity.ID); err != nil {
+			return err
 		}
 	}
-	return out, nil
+	return nil
 }
 
 // PlacesByIDs returns the summaries of the given unmerged Places in list order.
@@ -1030,17 +1088,22 @@ func (k dateKey) withRef(ref string) dateKey {
 }
 
 func sortEvents(rows []EventSummary) {
-	sortByDateKey(rows, eventKeyOf)
+	sortByKey(rows, eventListKey)
 }
 
-func dateKeyLess(a, b dateKey) bool {
-	if a.ok != b.ok {
-		return a.ok
+// listKey is k as a ListKey: undated last; else the date's order integer with
+// its sign flipped so it compares bytewise, then the ref.
+func (k dateKey) listKey() ListKey {
+	if !k.ok {
+		return ListKey{Last: true, Ref: k.ref}
 	}
-	if c := a.at.Compare(b.at); c != 0 {
-		return c < 0
-	}
-	return a.ref < b.ref
+	primary := binary.BigEndian.AppendUint64(nil, uint64(k.at.Int64())^(1<<63))
+	return ListKey{Primary: primary, Ref: k.ref}
+}
+
+// eventListKey is an Event row's place in the Events list.
+func eventListKey(h EventSummary) ListKey {
+	return eventKeyOf(h).listKey()
 }
 
 // AgeRange is the whole years of age a person had on a day: Lo to Hi, equal

@@ -21,9 +21,9 @@ enum CatalogHiddenPolicy: Sendable, Equatable {
 struct CatalogQueryDescriptor: Sendable {
     let kind: CatalogQueryKey.Kind
     let invalidateOn: Set<CatalogMutationKind>
-    /// What an invalidated key that isn't on screen does. The exception
-    /// to cache rule 2 for lists and per-handle pages, so one trigger
-    /// doesn't reload every list or page the researcher has opened.
+    /// What an invalidated key that isn't on screen does when it reloads whole. The exception to
+    /// cache rule 2 for lists and per-handle pages, so one trigger doesn't reload every list or
+    /// page the researcher has opened. A `.run` refresh merges into a hidden key whatever this says.
     var whenHidden: CatalogHiddenPolicy = .revalidate
     /// The entity whose id `ownId` is. Its deletion evicts the hidden key
     /// (`apply`), and `.handle` keys are the pages the hidden-entity cap counts
@@ -148,7 +148,7 @@ extension CatalogQueryKey.Kind {
                 whenHidden: .markStale,
                 invalidation: { project, _ in .key(.sourcesList(project: project)) },
                 patches: [
-                    .lastUpdated(CatalogSource.self, follows: .source),
+                    .lastUpdated([CatalogSource].self, follows: .source),
                     .sourceRow(),
                 ],
                 load: { key, store in
@@ -384,7 +384,8 @@ extension CatalogQueryKey.Kind {
             // Graph and link writes report the `evidence_graphs` read for their
             // Source (`WriteEffects.reads`), and the arm re-reads that Source's
             // graphs and merges them into the warmed list; `deleteSource` reports
-            // it for the deleted Source too. A hidden list goes stale until it is shown again.
+            // it for the deleted Source too. A hidden list merges too; a whole reload of a hidden list waits
+            // until it is shown.
             return .make(
                 kind: self,
                 whenHidden: .markStale,
@@ -413,39 +414,45 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogPersonSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogPersonSummary>.self, follows: .handle)],
                 refreshes: [
-                    .applyHiddenPolicyOnAny(follows: .touchedHandles),
+                    .mergedRows(CatalogPersonSummary.self, follows: .touchedHandles) { session, key, ids in
+                        try await session.store.listPersonSummaries(projectDir: key.project.projectDir, entityIDs: ids)
+                    },
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listPersonSummaries(projectDir: key.project.projectDir)
+                    return CatalogListRows(try await store.listPersonSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .eventsList:
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogEventSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogEventSummary>.self, follows: .handle)],
                 refreshes: [
-                    .applyHiddenPolicyOnAny(follows: .touchedHandles),
+                    .mergedRows(CatalogEventSummary.self, follows: .touchedHandles) { session, key, ids in
+                        try await session.store.listEventSummaries(projectDir: key.project.projectDir, entityIDs: ids)
+                    },
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listEventSummaries(projectDir: key.project.projectDir)
+                    return CatalogListRows(try await store.listEventSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .placesList:
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogPlaceSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogPlaceSummary>.self, follows: .handle)],
                 refreshes: [
-                    .applyHiddenPolicyOnAny(follows: .touchedHandles),
+                    .mergedRows(CatalogPlaceSummary.self, follows: .touchedHandles) { session, key, ids in
+                        try await session.store.listPlaceSummaries(projectDir: key.project.projectDir, entityIDs: ids)
+                    },
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listPlaceSummaries(projectDir: key.project.projectDir)
+                    return CatalogListRows(try await store.listPlaceSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .conclusionDetail:

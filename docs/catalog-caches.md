@@ -50,7 +50,7 @@ Sizes are not measured. S16-24 – S16-29 reshape these.
 
 | Cache | Owner (path · symbol) | Key | Fill | Updated by | Lifetime | Cap |
 | --- | --- | --- | --- | --- | --- | --- |
-| Per-view query results | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` · `CatalogQueryKey.Kind.descriptor` (the source of truth for each kind's key, fill and invalidation) | `CatalogQueryKey` | the descriptor's loader | the descriptor's `invalidateOn` mutation kinds and `refreshes`; per-entity keys `followsInputs` | the session | 50 hidden entities (`WorkspaceSession.maxHiddenEntities`) |
+| Per-view query results | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` · `CatalogQueryKey.Kind.descriptor` (the source of truth for each kind's key, fill and invalidation) | `CatalogQueryKey` | the descriptor's loader | the descriptor's `invalidateOn` mutation kinds and `refreshes`; per-entity keys `followsInputs`; the Conclusion lists merge `touchedHandles` rows (`mergedRows`) | the session | 50 hidden entities (`WorkspaceSession.maxHiddenEntities`) |
 | Evidence-graph index (Swift) | `WorkspaceSession.evidenceGraphIndex` | catalog revision | built on first read, patched per Source | `WriteEffects`' revision | the session | none |
 | Name format | `WorkspaceSession.nameFormat` | one value | loaded at open | a name format write | the session | none |
 | Sidebar counts | `CatalogCounts` | section | `refreshAll` | `WriteEffects.lists` with `counts` | the workspace | none |

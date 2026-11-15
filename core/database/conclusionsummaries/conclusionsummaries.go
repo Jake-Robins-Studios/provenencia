@@ -51,6 +51,9 @@ type PersonSummary struct {
 	// Updated is the handle's latest canonical_entity revision and its time.
 	// Filled by List only; zero means none.
 	Updated effects.Activity
+	// ListKey is the key the row's list sorts by. The list reads fill it onto
+	// the rows they return, after composing; the finished rows never hold it.
+	ListKey ListKey
 }
 
 // TermFacts is one term-valued Property of a summary. Term is the rank-1 kept

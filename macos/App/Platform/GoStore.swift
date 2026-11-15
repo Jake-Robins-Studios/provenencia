@@ -1121,34 +1121,56 @@ struct GoStore: GenealogyStore {
         }
     }
 
-    func listPersonSummaries(projectDir: String) async throws -> [CatalogPersonSummary] {
+    func listPersonSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPersonSummary] {
+        if entityIDs?.isEmpty == true { return [] }
         var req = Provenencia_Engine_V1_ListPersonSummariesRequest()
         req.projectDir = projectDir
+        req.entityIds = entityIDs ?? []
         let resp: Provenencia_Engine_V1_ListPersonSummariesResponse = try await provenenciaCall(
             method: CoreMethod.listPersonSummaries,
             request: req
         )
-        return resp.summaries.map(Self.mapPersonSummary)
+        return resp.summaries.map { proto in
+            var row = Self.mapPersonSummary(proto)
+            row.listKey = Self.mapListKey(proto.listKey)
+            return row
+        }
     }
 
-    func listEventSummaries(projectDir: String) async throws -> [CatalogEventSummary] {
+    func listEventSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogEventSummary] {
+        if entityIDs?.isEmpty == true { return [] }
         var req = Provenencia_Engine_V1_ListEventSummariesRequest()
         req.projectDir = projectDir
+        req.entityIds = entityIDs ?? []
         let resp: Provenencia_Engine_V1_ListEventSummariesResponse = try await provenenciaCall(
             method: CoreMethod.listEventSummaries,
             request: req
         )
-        return resp.summaries.map(Self.mapEventSummary)
+        return resp.summaries.map { proto in
+            var row = Self.mapEventSummary(proto)
+            row.listKey = Self.mapListKey(proto.listKey)
+            return row
+        }
     }
 
-    func listPlaceSummaries(projectDir: String) async throws -> [CatalogPlaceSummary] {
+    func listPlaceSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPlaceSummary] {
+        if entityIDs?.isEmpty == true { return [] }
         var req = Provenencia_Engine_V1_ListPlaceSummariesRequest()
         req.projectDir = projectDir
+        req.entityIds = entityIDs ?? []
         let resp: Provenencia_Engine_V1_ListPlaceSummariesResponse = try await provenenciaCall(
             method: CoreMethod.listPlaceSummaries,
             request: req
         )
-        return resp.summaries.map(Self.mapPlaceSummary)
+        return resp.summaries.map { proto in
+            var row = Self.mapPlaceSummary(proto)
+            row.listKey = Self.mapListKey(proto.listKey)
+            return row
+        }
+    }
+
+    private static func mapListKey(_ key: Provenencia_Engine_V1_ListKey) -> CatalogListKey {
+        CatalogListKey(last: key.last, primary: key.primary, ref: key.ref)
     }
 
     private static func mapConclusionSummary(
