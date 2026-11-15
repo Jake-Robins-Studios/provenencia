@@ -30,7 +30,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | — | S15-45 |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| [S15-D28](S15-D28-source-types-list.md) | Source types list: a sortable Used by column; at Wide the Sources list's band and a Description column | — (written 2026-11-15) | S15-49 |
+| [S15-D28](S15-D28-source-types-list.md) | Source types list: a sortable Used by column; at Wide the Sources list's band and a Description column | [agreed 2026-11-15](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): section 01 of the S2-03 Source Types Board; Description cut with a full-text tooltip | S15-49 |
 
 ## Archived
 

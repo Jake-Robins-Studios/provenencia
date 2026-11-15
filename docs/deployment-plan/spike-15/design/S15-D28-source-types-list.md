@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 15, slice 2
 **View:** the Source types list (the workspace's Source types destination: header, table, result footer)
 **Implements later as:** PR **S15-49**
-**Board:** — (not drawn yet). Draw on the S15-D27 board ([Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG)), beside its page frames, so the list and the page it opens are one surface
+**Board:** agreed 2026-11-15 (user) — [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): page *S2-03 Source Types Board*, section "01 Columns, sort and the Wide band" (frames L1a – L4b with notes), component *Source Types List*. As the brief asked, with one addition: the full description is a hover tooltip on its cell
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)): the list has no side pane, and a click or Return on a row opens the type's own page
 **Related:** working rule "A Source type has its own page" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); S15-D2 (the Sources list's Wide frame, [archived](archive/S15-D2-sources-list.md)), the nearest list of this kind; S15-D27 (the type's page, [archived](archive/S15-D27-source-type-page.md)); S15-D6 (S15-12 makes Associated fields count all three suggestion levels; its header and cells are unchanged); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S15-49-source-types-list.md`](../prs/S15-49-source-types-list.md)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)

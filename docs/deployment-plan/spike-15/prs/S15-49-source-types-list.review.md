@@ -36,4 +36,4 @@ No round 2: round 1 raised no blocker on the plan's shape (X-1 is the board gate
 
 ## Verdict
 
-Fits with changes; Ready with changes once the board is agreed. Open: **To user** X-1, draw and agree S15-D28, then check D-1 – D-4 against the frames and set status Planned.
+Fits with changes; Ready with changes. X-1 answered 2026-11-15: the user gave the board ([section 01 of the S2-03 Source Types Board](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga)). Checked against its frames and its *Source Types List* component: D-1 – D-4 hold as written (same ids, widths, count cell, band, Description unsortable and flexible at 562pt); D-3 gains the description's hover tooltip, the board's one addition. Status Planned.
