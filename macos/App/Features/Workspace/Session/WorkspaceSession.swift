@@ -334,8 +334,7 @@ final class WorkspaceSession {
     /// descriptor `refreshes`: a `.revalidate` refresh names a key once when the
     /// ids its `follows` slot reports meet the ids the key depends on, or, for a
     /// key that depends on any id, when the slot reports one. Each slot's
-    /// reported ids are read once per write, and a key's ids are met by looking
-    /// up the smaller of the two sets. Synchronous, so a key declared here is
+    /// reported ids are read once per write. Synchronous, so a key declared here is
     /// revalidated in the same pass as the registry's invalidations.
     func revalidatedKeys(for effects: CatalogWriteEffects) -> [CatalogQueryKey] {
         var named: [CatalogQueryKey] = []
@@ -352,9 +351,7 @@ final class WorkspaceSession {
                     reportedBySlot[refresh.follows] = reported
                 }
                 if reported.isEmpty { continue }
-                let meets = dependsOn(self, key).map { deps in
-                    deps.count <= reported.count ? !deps.isDisjoint(with: reported) : !reported.isDisjoint(with: deps)
-                } ?? true
+                let meets = dependsOn(self, key).map { !$0.isDisjoint(with: reported) } ?? true
                 if meets, seen.insert(key).inserted {
                     named.append(key)
                 }
