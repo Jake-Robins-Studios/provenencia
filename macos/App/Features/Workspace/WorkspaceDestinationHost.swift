@@ -83,6 +83,14 @@ struct WorkspaceDestinationHost: View {
                 userID: userID,
                 store: store
             )
+        case .sourceTypePage:
+            if navigation.currentLocation.typeId != nil {
+                SourceTypesView(
+                    session: session,
+                    userID: userID,
+                    store: store
+                )
+            }
         case .properties:
             PropertiesView(
                 session: session,
@@ -127,7 +135,7 @@ struct WorkspaceDestinationHost: View {
             return .sources
         case .metadata:
             return .metadata
-        case .sourceTypes:
+        case .sourceTypes, .sourceTypePage:
             return .sourceTypes
         case .properties:
             return .properties

@@ -113,6 +113,28 @@ struct WorkspaceToolbarBreadcrumbTests {
         #expect(wentTo?.title == "1851 census")
     }
 
+    /// T-3 (AC-2.2, D-6): a Source type's crumb and history label read the live label.
+    @Test func sourceTypeLeafReadsTheLiveLabel() {
+        let typeNames = LocationNames(
+            sourceTitle: { _ in nil },
+            graphName: { _ in nil },
+            sourceTypeLabel: { $0 == "typ-1" ? "Population census" : nil }
+        )
+        let location = WorkspaceLocation.sourceTypePage(typeId: "typ-1", title: "Census")
+        let live = WorkspaceToolbar.breadcrumbItems(for: location, names: typeNames, goTo: { _ in })
+        #expect(live.map(\.label) == [L10n.string(L10n.Workspace.sourceTypesTitle), "Population census"])
+        let carried = WorkspaceToolbar.breadcrumbItems(for: location, goTo: { _ in })
+        #expect(carried.last?.label == "Census")
+        let blankNames = LocationNames(
+            sourceTitle: { _ in nil }, graphName: { _ in nil }, sourceTypeLabel: { _ in "  " }
+        )
+        let blank = WorkspaceToolbar.breadcrumbItems(for: location, names: blankNames, goTo: { _ in })
+        #expect(blank.last?.label == "Census")
+        #expect(WorkspaceLocationLabels.labels(for: location, names: typeNames).leaf == "Population census")
+        #expect(WorkspaceLocationLabels.labels(for: location).leaf == "Census")
+        #expect(WorkspaceLocationLabels.labels(for: location, names: blankNames).leaf == "Census")
+    }
+
     /// A blank session title does not hide the title the location carries.
     @Test func blankSessionTitleFallsBackToTheCarriedOne() {
         let blank = LocationNames(sourceTitle: { _ in "  " }, graphName: { _ in nil })

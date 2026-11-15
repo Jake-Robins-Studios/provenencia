@@ -5,6 +5,7 @@ import Foundation
 struct LocationNames {
     var sourceTitle: @MainActor (String) -> String?
     var graphName: @MainActor (String) -> String?
+    var sourceTypeLabel: @MainActor (String) -> String?
 
     static var none: LocationNames {
         LocationNames(sourceTitle: { _ in nil }, graphName: { _ in nil })
@@ -12,17 +13,20 @@ struct LocationNames {
 
     init(
         sourceTitle: @escaping @MainActor (String) -> String?,
-        graphName: @escaping @MainActor (String) -> String?
+        graphName: @escaping @MainActor (String) -> String?,
+        sourceTypeLabel: @escaping @MainActor (String) -> String? = { _ in nil }
     ) {
         self.sourceTitle = sourceTitle
         self.graphName = graphName
+        self.sourceTypeLabel = sourceTypeLabel
     }
 
     @MainActor
     init(session: WorkspaceSession) {
         self.init(
             sourceTitle: { session.source(id: $0)?.title },
-            graphName: { session.evidenceGraph(id: $0)?.name }
+            graphName: { session.evidenceGraph(id: $0)?.name },
+            sourceTypeLabel: { session.sourceType(id: $0)?.label }
         )
     }
 }
@@ -41,6 +45,9 @@ enum WorkspaceLocationLabels {
         if let graphID = location.graphSurfaceID {
             return (graphLabel(graphID: graphID, names: names), surfaceLabel(for: location))
         }
+        if let typeID = location.typeId {
+            return (liveLabel(live: names.sourceTypeLabel(typeID), carried: location.title), nil)
+        }
         return (
             location.title?.trimmedNonEmpty ?? location.ref?.trimmedNonEmpty,
             location.openPageSection.map { L10n.string($0.label) }
@@ -55,12 +62,12 @@ enum WorkspaceLocationLabels {
     /// The Source's title, when the session knows one, else the title the
     /// location carries. Blank titles count as none.
     static func sourceTitle(sourceID: String, carried: String?, names: LocationNames) -> String? {
-        sourceTitle(live: names.sourceTitle(sourceID), carried: carried)
+        liveLabel(live: names.sourceTitle(sourceID), carried: carried)
     }
 
-    /// The one rule for a Source's displayed title: the live title, else the carried
-    /// one. Blank titles count as none.
-    static func sourceTitle(live: String?, carried: String?) -> String? {
+    /// The one rule for a record's displayed name: the live one, else the carried
+    /// one. Blank names count as none.
+    static func liveLabel(live: String?, carried: String?) -> String? {
         live?.trimmedNonEmpty ?? carried?.trimmedNonEmpty
     }
 

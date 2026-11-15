@@ -430,6 +430,22 @@ struct WorkspaceNavigationTests {
         #expect(decoded == location)
     }
 
+    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not,
+    /// and a noted scroll survives the page and Back.
+    @Test func sourceTypesListIsAListRoot() throws {
+        #expect(WorkspaceLocation.sectionRoot(.sourceTypes).isListRoot)
+        #expect(!WorkspaceLocation.sourceTypePage(typeId: "typ-1", title: "Census").isListRoot)
+        #expect(!WorkspaceLocation.sectionRoot(.metadata).isListRoot)
+
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.sourceTypes))
+        navigation.noteListScroll("typ-7")
+        navigation.go(to: .sourceTypePage(typeId: "typ-1", title: "Census"))
+        navigation.goBack()
+        #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
+        #expect(navigation.currentLocation.listScrollAnchor == "typ-7")
+    }
+
     @Test func notingListScrollDoesNotPushHistory() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))

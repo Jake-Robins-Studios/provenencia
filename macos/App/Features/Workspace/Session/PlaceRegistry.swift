@@ -119,7 +119,7 @@ struct PlaceRegistry: Sendable {
         ),
         Spec(
             id: .sourceTypesDetail,
-            presentation: .sourceTypes,
+            presentation: .sourceTypePage,
             priority: 90,
             matches: { $0.section == .sourceTypes && $0.typeId != nil },
             queryKeys: { project, location in
@@ -130,7 +130,7 @@ struct PlaceRegistry: Sendable {
                     .typeSuggestions(project: project, typeId: typeId),
                 ]
             },
-            viewIdentity: { _ in nil }
+            viewIdentity: { $0.typeId }
         ),
         Spec(
             id: .metadata,
@@ -173,10 +173,7 @@ struct PlaceRegistry: Sendable {
             priority: 10,
             matches: { $0.section == .sourceTypes && $0.typeId == nil },
             queryKeys: { project, _ in
-                [
-                    .sourceTypesList(project: project),
-                    .metadataFieldsList(project: project),
-                ]
+                [.sourceTypesList(project: project)]
             },
             viewIdentity: { _ in nil }
         ),

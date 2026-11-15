@@ -118,7 +118,7 @@ final class PromoteModel {
         let types: QueryHandle<[CatalogSourceType]>? = session.queryHandle(sourceTypesKey)
         let mark = types?.value?.iconKey(forTypeID: row?.sourceTypeID).map { PVMarkKey(catalogKey: $0) }
         return PromoteSourceHeader(
-            title: WorkspaceLocationLabels.sourceTitle(live: row?.title, carried: entry.sourceTitle),
+            title: WorkspaceLocationLabels.liveLabel(live: row?.title, carried: entry.sourceTitle),
             ref: row?.ref ?? "",
             mark: mark ?? .defaultTypeMark
         )

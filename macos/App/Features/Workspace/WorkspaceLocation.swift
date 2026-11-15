@@ -202,7 +202,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         WorkspaceLocation(section: .sources, sourceId: sourceId, sourceSurface: .page, ref: ref, title: title)
     }
 
-    /// One Source type, selected on the Source types page.
+    /// One Source type's page.
     static func sourceTypePage(typeId: String, title: String? = nil) -> WorkspaceLocation {
         WorkspaceLocation(section: .sourceTypes, typeId: typeId, title: title)
     }
@@ -292,14 +292,16 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         )
     }
 
-    /// The Sources, People, Events, or Places list. Detail places are not lists.
+    /// The Sources, Source types, People, Events, or Places list. Detail places are not lists.
     var isListRoot: Bool {
         switch section {
         case .sources:
             return sourceId == nil
         case .persons, .events, .places:
             return entityId == nil
-        case .sourceTypes, .metadata, .properties:
+        case .sourceTypes:
+            return typeId == nil
+        case .metadata, .properties:
             return false
         }
     }
