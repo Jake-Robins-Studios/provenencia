@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-22 — Promote reads each handle's neighbourhood instead of walking the catalog
+
+**Landed 2026-11-14** in [#844](https://github.com/mendahu/provenencia/pull/844). A proposal no longer walks the whole connected canon before `Align` reads a handle. `promotealign.canonView` serves `Align` one handle at a time: the profile from the match index, and the handle's links from the new `canonlinks.Reader.Links` (its filed links, then, for a person, the links the kinship pivots imply, merged through one `kinship.LinkSet`), kept when the far end is a handle. A proposal of Source A reads the links of 543 of 18,233 handles. A warm proposal takes 17 ms and 18 ms against 181 ms and 251 ms, and one after a handle commit 17 ms and 18 ms against 160 ms and 227 ms, at 4,000 and 16,000 persons (Apple M1); `budgetWarm` drops from 950 ms to 150 ms and `TestLargeSourceBudgets` holds 16,000 persons within twice the 4,000 figure. The rows of Source A and the one-place Source were equal to the walk's at both sizes. `loadCanon`, `kinship.LinkSet.PlaceImplied` and `canonlinks.EdgeOf`'s export are gone, and `graphalign.Canon` lives in the tests. A proposal fills 0.7 MB of kinship pivots instead of 7.8 MB. No change a researcher can see, so no version bump.
+
 ## S16-36 — A link from a record to itself is refused where links are read
 
 **Landed 2026-11-14** in [#841](https://github.com/mendahu/provenencia/pull/841). Nothing a researcher sees changes. The graph cache drops a stored link whose two ends are one record where it reads the catalog's links (`linkRaws`) and an Evidence graph's bridges (`WalkEvidenceGraph`); only a hand-edited catalog holds one. `kinship.Edge.Readings` and `Ends`, `readsTerm`'s equal-ends check, `graphalign`'s and `recordlinks`' self-loop reads and the place pages' self hop (`followHop`, `dedupePlaceLinks`) are deleted with their tests, so S16-22's session-graph view adds no self-loop reader. `connect.CreateCitedBridge`'s equal-ends refusal now has a test.
