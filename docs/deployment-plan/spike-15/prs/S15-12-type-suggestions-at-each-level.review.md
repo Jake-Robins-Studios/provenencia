@@ -1,7 +1,7 @@
 # Review — S15-12 Source types suggest fields at each level (with brief S15-D6)
 
-**Verdict (re-plan, 2026-11-15):** round 1: Fits with changes — Ready with changes; all findings answered below. Round 2 pending (round 1 had a blocker, X-1)
-**Rounds:** 1 of the re-plan. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict (re-plan, 2026-11-15):** Fits with changes — Ready with changes. Round 1 and round 2 findings all answered Fixed (M-5 Declined); no open blocker. The board-dependent parts (D-6, § 6 Strings) get a short re-review when S15-D6's board is agreed
+**Rounds:** 2 of the re-plan. **Reviewers:** maintainability (opus), executability (sonnet)
 
 The plan was rewritten against S15-48's landed type page (#848) and S15-49's list (#852); the brief was rewritten as an enhancement of S15-D27's page board. The side-pane plan's two rounds are kept below under "Side-pane plan (superseded)".
 
@@ -81,6 +81,12 @@ Logged; the board's copy settles it.
 
 ### X2-3 · nit · Line numbers, T-5's phrase, an empty pick
 **Answer:** Fixed — § 4 line numbers; T-5 builds the phrase with `L10n.format`; an empty pick is `assignPicks[level, default: ""] == ""`.
+
+### M2-1 · blocker · The M-1 fix only half in the plan
+**Answer:** Fixed — STEP-3 says "scripted" and rewrites the `withSuggestedFieldCount` doc; D-7 says four hooks and seeds the `SourceTypesModelTests` fields-sort test (t2 = 1) beside T-8's seed (X2-1).
+
+### M2-2 · blocker · The level phrase's article agrees with the type label
+**Answer:** Fixed — phrases are "on each %@ Source", "on each Artifact of %@ Sources", "on each Evidence graph of %@ Sources", with no article that agrees with the label; D-9 cites "Whole phrases" accordingly; the brief's § 2.1, SL-9 and frames follow. Notes taken: `removeLabel(for:at:)` on the model; `assignedCount`'s comment updated; `listLabel` plurals (X2-2); the brief's Review line links this log.
 
 ## Side-pane plan (superseded)
 

@@ -5,7 +5,7 @@
 **View:** the Source type page's side column (Suggested fields), on an editable and on a locked type; the Source types list's Associated fields number
 **Implements later as:** PR **S15-12**
 **Board:** — (record the board link, the section and its frame names here when the board is agreed). Draw on S15-D27's board, [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), beside its frame 2b
-**Review:** — (not reviewed yet)
+**Review:** with the plan, in [`../prs/S15-12-type-suggestions-at-each-level.review.md`](../prs/S15-12-type-suggestions-at-each-level.review.md) — Fits with changes, rounds 1 – 2
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)): the Source type page, with Details beside one Suggested fields list (S15-D27, [archived](archive/S15-D27-source-type-page.md)); S15-49 (landed [#852](https://github.com/mendahu/provenencia/pull/852)): the list's columns; S15-06 (landed): every suggestion has a level (`source`, `artifact`, `graph`), and each level is its own ordered list; S15-08 – S15-11 (landed): Artifacts and Evidence graphs hold metadata and show their type's suggestions at their level
 **Related:** working rules "Metadata lives at three levels with one vocabulary", "Suggestions have a level", "A Source type has its own page" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); S15-D27 TP-6 and TP-7 (one list drawn as a block that this board repeats; the S15-12 lists go under Suggested fields in the side column); [`archive/S15-D5-evidence-graph-form.md`](archive/S15-D5-evidence-graph-form.md) (where graph suggestions show); [`S15-D14-source-page-artifacts.md`](S15-D14-source-page-artifacts.md) (where Artifact suggestions show); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 6.6; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -87,7 +87,7 @@ A Source type suggests the fields its records usually carry, so a new Source of 
 - **A field can be in more than one list.** Page can be suggested on the Source and on each Artifact. Adding a field to one list leaves the other lists alone, and each list's picker offers every field not already in that list.
 - **Return adds.** In a list's picker, Return on a highlighted field picks it (as today), and a second Return adds it, as the plus button does; the picker is then empty and still focused, so the next field takes only typing and two Returns (user, 2026-11-15).
 - **The list's Associated fields number** counts the fields in all three lists (user, 2026-11-14).
-- **Copy names the list.** Toasts, tooltips and spoken labels say which list: "Line is now suggested on each Evidence graph of a Census Source."
+- **Copy names the list.** Toasts, tooltips and spoken labels say which list: "Line is now suggested on each Evidence graph of Census Sources."
 
 **What stays.** Each list's rows look as today's do: ordinal, label over mono key, data type badge, and the remove button on an editable type. A new field goes last in its list; there is no reorder (user, 2026-11-14). The picker is today's searchable ComboBox over the project's metadata fields with the plus button beside it; it never creates a field. A plugin's type shows the three lists read only. Details beside Suggested fields, the pair centred, at every width (S15-D27 TP-W1).
 
@@ -124,11 +124,11 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | Empty Evidence graph list | "No Evidence graph fields yet. Assign what you note about each item, such as its line or household." |
 | Picker placeholder, no-match | "Field label or key", "No field in the vocabulary matches that — add it in Metadata first" *(today)* |
 | Pool hint | "The pool is the Metadata vocabulary — add a new field there first if it is missing" *(today)*; when the list already holds every field, "Every field in the vocabulary is already in this list" |
-| Add button tooltip | Before a pick "Choose a field to assign" *(today)*; with a pick "Suggest Line on each Evidence graph of a Census Source"; when the list holds every field "Every field is already in this list" |
-| Remove button | "Stop suggesting Line on each Evidence graph of a Census Source" |
-| How a list is named in a sentence | Source: "on each Census Source"; Artifact: "on each Artifact of a Census Source"; Evidence graph: "on each Evidence graph of a Census Source" |
-| Toast after add | "Field assigned" / "Line is now suggested on each Evidence graph of a Census Source." |
-| Toast after remove | "Suggestion removed" / "Line is no longer suggested on each Evidence graph of a Census Source. The field stays in this project’s vocabulary." (plus today's clause on values already typed, when there are any) |
+| Add button tooltip | Before a pick "Choose a field to assign" *(today)*; with a pick "Suggest Line on each Evidence graph of Census Sources"; when the list holds every field "Every field is already in this list" |
+| Remove button | "Stop suggesting Line on each Evidence graph of Census Sources" |
+| How a list is named in a sentence | Source: "on each Census Source"; Artifact: "on each Artifact of Census Sources"; Evidence graph: "on each Evidence graph of Census Sources" |
+| Toast after add | "Field assigned" / "Line is now suggested on each Evidence graph of Census Sources." |
+| Toast after remove | "Suggestion removed" / "Line is no longer suggested on each Evidence graph of Census Sources. The field stays in this project’s vocabulary." (plus today's clause on values already typed, when there are any) |
 | List column header | "Associated fields" *(today)*; its value counts all three lists |
 
 ### 2.2 What this board is not
@@ -163,7 +163,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | SL-6 | **Empty, loading and failure, per list.** A list with no fields shows its own empty copy (§ 2.1) in today's dashed sunken Card. A list still reading shows today's small spinner in its place. A failed read shows the kit's retry Callout ("Suggested fields could not be loaded", the error, Try again) in place of that list's rows. A failed add or remove shows a danger Callout above that list's rows, and the pick stays. A failure is never shown across all three; the other lists keep working. |
 | SL-7 | **A plugin's type.** The three lists show their rows read only: no picker, no plus, no remove, no hint; titles, meanings, counts and empty copy still show. |
 | SL-8 | **The list's Associated fields column** shows the total of the three lists for each type (Census with 3 + 4 + 4 shows 11), and sorts by that total. A type with none shows today's dash. |
-| SL-9 | **VoiceOver.** Each list is a group whose label is its title and count ("On each Evidence graph, 4 fields"). A row reads "2, Line, line, Text". Each picker's label names its list ("Metadata field to assign on each Evidence graph"). The plus and remove buttons name the field and the list: "Suggest Line on each Evidence graph of a Census Source", "Stop suggesting Line on each Evidence graph of a Census Source". |
+| SL-9 | **VoiceOver.** Each list is a group whose label is its title and count ("On each Evidence graph, 4 fields"). A row reads "2, Line, line, Text". Each picker's label names its list ("Metadata field to assign on each Evidence graph"). The plus and remove buttons name the field and the list: "Suggest Line on each Evidence graph of Census Sources", "Stop suggesting Line on each Evidence graph of Census Sources". |
 | SL-10 | **Length.** A list of 20 fields and two lists of 12 still read: the page scrolls as one; no list scrolls inside itself. |
 | SL-W1 | **Wide.** The side column keeps S15-D27's width (340 – 480pt) at Wide and the three lists stay stacked in it; Details and Suggested fields stay the centred pair (TP-W1, rule 6): the lists are narrow rows that read best in one column, and side-by-side lists would need a column of their own wider than the side column. A pick in progress and the page's scroll survive a resize across 1600pt. |
 
