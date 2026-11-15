@@ -1,6 +1,6 @@
 # S16-26 — Conclusion lists merge the rows a write touched
 
-**Status:** Planned
+**Status:** Landed in [#851](https://github.com/mendahu/provenencia/pull/851) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the three lists draw the same rows in the same order; only how a write reaches them changes)
@@ -14,6 +14,8 @@
 **Context:** [design § Swift](../cache-architecture.md#swift) ("Lists merge the touched rows"); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) rule 2 and "Conclusion keys"; working rules: "(Batch 2) The point of this batch is simpler code", "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 2) Orders are defined and results do not move", "(Batch 2) Measure growth"; goal bar 12 ("a write updates only the rows it touched in the Persons, Events and Places lists")
 **Planned:** 2026-11-15 against `main` @ `3667125`
 **Review:** [`S16-26-lists-merge-touched-rows.review.md`](S16-26-lists-merge-touched-rows.review.md) — round 1: Fits with changes / Not ready; round 2: Fits with changes / Ready with changes; every finding Fixed
+
+**Landed.** Differences from the plan: D-14's second commit landed as two (STEP-2, then STEP-3), and STEP-5 to STEP-7 landed in one commit with their tests, because the store signature change breaks every Swift test until they are rewritten; the docs commit also carries the version bump (0.15.4). `TestListKeysFollowListOrder` and `TestListKeysFile` reach the key functions through `export_test.go` (`SortEvents`, `PlaceListKey`, `EventListKey`, `TitleListKey`, `DateListKey`); `list_keys.json` also holds each row's input (`title`, `year`, `side`) so Go's test can regenerate it. Beyond T-10, `mergeSortedKeepsFreshRowsInKeyOrder` pins several fresh rows and an equal key. T-14's hidden half runs on a second session in the same test. `BenchmarkListRowsOfWrite` reports the first read after each write (not the best of three), whole lists at 4,000 and 16,000 persons beside each write's filtered reads; the figures are in the PR description. The Go filtered reads were at most 0.86 ms at 4,000 persons and 0.78 ms at 16,000.
 
 **Tools.** STEP-1 to STEP-3 need only Go. STEP-4 needs `protoc`, `protoc-gen-go` and `protoc-gen-swift` (`scripts/generate-proto.sh`). STEP-5 to STEP-7 and the Xcode half of `scripts/check-pr.sh` need Xcode. On a machine without them, do STEP-1 to STEP-3 and the Go checks, then stop and report which tool the next step needs.
 
