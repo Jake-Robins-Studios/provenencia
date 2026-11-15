@@ -925,6 +925,7 @@ fileprivate final class HoldGuard: WorkspaceLeaveGuard {
 @Observable
 private final class PageShown {
     var isShown = true
+    var disappeared = false
 }
 
 private struct GuardedPage<Guard: WorkspaceLeaveGuard>: View {
@@ -934,6 +935,7 @@ private struct GuardedPage<Guard: WorkspaceLeaveGuard>: View {
     var body: some View {
         if shown.isShown {
             Text(verbatim: "page").workspaceLeaveGuard(leaveGuard)
+                .onDisappear { shown.disappeared = true }
         }
     }
 }
@@ -951,7 +953,18 @@ struct WorkspaceLeaveGuardInstallTests {
         return host
     }
 
-    @Test func leaveGuardModifierInstallsAndClears() {
+    /// Lays out until the hidden page's `onDisappear` has run; a hosted window delivers it
+    /// on a later run-loop turn on a slow runner.
+    private func hidePage(_ shown: PageShown, in host: NSHostingView<some View>) async {
+        shown.isShown = false
+        _ = await waitUntil(timeout: .seconds(10)) {
+            host.layoutSubtreeIfNeeded()
+            return shown.disappeared
+        }
+        await Task.yield()
+    }
+
+    @Test func leaveGuardModifierInstallsAndClears() async {
         let navigation = WorkspaceNavigation()
         let leaveGuard = HoldGuard()
         let shown = PageShown()
@@ -959,12 +972,12 @@ struct WorkspaceLeaveGuardInstallTests {
         #expect(navigation.leaveGuard === leaveGuard)
         #expect(leaveGuard.navigation === navigation)
 
-        shown.isShown = false
-        host.layoutSubtreeIfNeeded()
+        await hidePage(shown, in: host)
+        #expect(shown.disappeared)
         #expect(navigation.leaveGuard == nil)
     }
 
-    @Test func leaveGuardModifierLeavesAnotherGuardInPlace() {
+    @Test func leaveGuardModifierLeavesAnotherGuardInPlace() async {
         let navigation = WorkspaceNavigation()
         let leaveGuard = HoldGuard()
         let other = HoldGuard()
@@ -973,8 +986,8 @@ struct WorkspaceLeaveGuardInstallTests {
         #expect(navigation.leaveGuard === leaveGuard)
 
         navigation.leaveGuard = other
-        shown.isShown = false
-        host.layoutSubtreeIfNeeded()
+        await hidePage(shown, in: host)
+        #expect(shown.disappeared)
         #expect(navigation.leaveGuard === other)
     }
 
