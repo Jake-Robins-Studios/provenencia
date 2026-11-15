@@ -1,6 +1,6 @@
 # S16-25 — Swift keys become plain values and follow their inputs
 
-**Status:** Planned
+**Status:** Landed in [#847](https://github.com/mendahu/provenencia/pull/847) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every page draws the same values; only when a cached value reloads changes)
