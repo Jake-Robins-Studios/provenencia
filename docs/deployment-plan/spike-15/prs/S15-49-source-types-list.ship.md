@@ -193,3 +193,10 @@ Check: `rg -n ": Layout \{" macos/App` no longer lists `WeightedColumns` or `PVT
 Failing test first: `PVWeightedColumnsTests.shorterCellsCenterInTheRow` — `PVWeightedColumns.cellY(height: 18, rowHeight: 30, alignment: .center) == 6`; `.top` → 0.
 Do: `placeSubviews` places each child at `bounds.minY + cellY(height: child's measured height at its width, rowHeight: bounds.height, alignment:)`, anchor `.topLeading`. Add Properties to the plan's manual check (§ 10 step 9: "Properties: the Value type pill and the checkbox centre against the two-line Property cell, as before this PR").
 Check: tests pass; `PVTableTests`, the composer's tests and `scripts/check-pr.sh` PASS.
+
+## Round 7 — fix
+Head `6e4cf084a`. Orchestrator gate PASS. F-14, F-15 done; deviations: nil-width rule has no test (needs a mounted view); width test moved to `PVWeightedColumnsTests.swift`; Landed note renamed to `PVWeightedColumns`.
+Seen, not this PR: `check-plan-docs.py` run over every doc errors on `design/S15-D6-source-type-suggestion-levels.md:201` (`SourceTypesDetailPane.swift`, deleted by S15-48 on `main`); S15-12's re-plan on S15-48 owns that brief (map row "Blocked — re-plan on S15-48 and S15-D6"). The gate checks changed docs only.
+
+## Round 7 — review
+Scope `4e2714e70...6e4cf084a`. Reviewers: CON (CON-1), MNT (MNT-1), UX (UX-1). Not sent: SEC+PRF (clean in round 6; F-14 keeps the per-row cost).
