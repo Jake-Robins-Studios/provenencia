@@ -112,3 +112,12 @@ Check: the suite passes locally repeated (`-test-iterations 20` or a loop); scri
 
 ## CI — fix
 Head `baa6aab6d`. Gate PASS (orchestrator). F-10 done: both install tests wait with `waitUntil` for the page's `onDisappear` before asserting; assertions unchanged; 20 local iterations pass. Not reproduced locally (timing hardening).
+
+## After round 2 — UX-8 (user, 2026-11-15: "Yes, fix UX-8")
+UX-8 moves from To user to **Fix now → F-11**. A minor after the round cap, fixed at the user's word; no review round 3. The orchestrator reads the fix.
+
+**F-11 — A gone type the page never named gets a label-free notice** (from UX-8)
+Files: `macos/App/Features/SourceTypes/SourceTypePageModel.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/ProvenenciaTests/SourceTypePageModelTests.swift`. Skill: `add-localized-string`.
+Failing test first: `SourceTypePageModelTests.aTypeGoneBeforeItWasShownGetsAnUnnamedNotice`. Open the page on a type id that is not in a settled list, so `noteLabel` never saw a label. `goneNotice` must equal the new unnamed string and must not contain `“”`.
+Do: add `L10n.SourceTypes.goneNoticeUnnamed`, defaultValue "This source type no longer exists.", key `sourceTypes.page.goneNoticeUnnamed`, beside `goneNotice(label:)`. Word it like `conclusions.person.gone`. In `goneNotice`, use it when `lastLabel` is empty after trimming. Otherwise keep `goneNotice(label:)`. `goneTypeNamesItselfInTheNotice` still passes.
+Check: both tests pass; `L10nResolutionTests` and the xcstrings lint pass; scripts/check-pr.sh PASS.
