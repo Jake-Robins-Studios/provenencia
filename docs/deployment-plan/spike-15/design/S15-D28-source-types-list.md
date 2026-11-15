@@ -137,7 +137,7 @@ Every string is today's unless marked *(new)*.
 | TL-1 | **Columns at Regular.** Label (the mark, the label, the origin pill; fills what is left), Key (about 160pt, mono), Associated fields (about 132pt, mono number or "—"), Used by *(new)* (about 120pt, mono number or "—"), in that order. Used by is the last column. |
 | TL-2 | **Used by sorts.** Its header sorts like the others: first click ascending (least used first), second click descending; types with the same count by label, in the same direction (Associated fields' rule today). The header's sort arrow sits on Used by while it is the sort. |
 | TL-3 | **Description is not a sort.** Its header has no sort arrow and does not respond to a click. |
-| TL-4 | **States.** The empty project (no types yet), loading and a failed load keep today's frames; at Wide they sit inside the band (TL-W1). |
+| TL-4 | **States.** The empty project (no types yet), loading and a failed load keep today's look; at Wide they sit inside the band (TL-W1). Draw the empty project only (frames 4a / 4b): loading is a centered spinner and a failed load today's danger Callout under the header, neither redrawn. |
 | TL-W1 | **Wide, the band.** At Wide the header, the table and the footer center at 1600pt of content plus the page gutters, with a hairline down each side of the band (the Sources list's band). Nothing stretches past it. |
 | TL-W2 | **Wide, Description.** At Wide a Description column sits between Label and Key, sharing the free width with Label. One line, muted, cut with "…"; empty when the type has none. At Regular there is no Description column and nothing replaces it (the page shows the description). |
 
@@ -157,7 +157,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | TL-1, TL-W1, TL-W2 | The list sorted by Label, Book highlighted by the keyboard |
+| 1a / 1b | TL-1, TL-W1, TL-W2 | The list sorted by Label, Book highlighted by the keyboard; include Grave memorial (plugin pill) with a long description, so Label and Description share the width |
 | 2a / 2b | TL-2 | Sorted by Used by, descending: Census first; Parish register and Letter last, in that order (ties follow the direction) |
 | 3 | TL-3 | Wide: the pointer over the Description header, with no sort affordance |
 | 4a / 4b | TL-4 | The empty project, at both widths |
@@ -173,7 +173,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | List shell and footer | Snowflake | Ship | `VocabularyListPane` in `macos/App/Features/CatalogVocabulary/VocabularyListPane.swift` | Its columns are parameters; the Metadata page shares it unchanged |
 | Columns | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | Used by, and Description at Wide |
 | Label cell | Component | Ship | `PVMark` + `OriginPill` (`macos/App/Features/Catalog/OriginMarkers.swift`) | As today; origin is not a column |
-| Count cells | Snowflake | Ship | mono micro text, as the Associated fields cell | Used by copies it; "—" for 0 |
+| Count cells | Snowflake | Ship | the Associated fields cell's text: the kit's mono type at the micro size (`PVFont.mono`, `PVTypeScale.micro`), secondary color, faint for "—" | Used by copies it; "—" for 0 |
 | Wide band | Component | Ship (a second caller) | `.pvListBand(_:)` in `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift`, `PVSpacing.widthListWideMax` | TL-W1; the Sources list is the first caller |
 | Empty state | Component | Ship | `PVEmptyState` | As today |
 | Load failure | Component | Ship | `PVCallout` (danger) | As today |
