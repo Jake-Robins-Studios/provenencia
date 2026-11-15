@@ -101,3 +101,14 @@ Nits (logged): `MNT-11 · SourcesModel.swift:139,190 · use session.sourceTypesH
 
 ## Result
 Gate PASS at `662fb2801` (main unmoved since branch cut) · CI <pending> · open: UX-8 (minor, to user) · to user: UX-4 (leave during Save, contradicts D-8), UX-8, CON-1 (§ 10 manual check incl. AC-1.4 scroll restore Stop condition) · follow-ups: none
+
+## CI — gate failure 1
+Head `3e0177e26`. Go tests PASS. macOS tests FAIL on CI (passed locally in check-pr): `WorkspaceLeaveGuardInstallTests.leaveGuardModifierInstallsAndClears` — `WorkspaceNavigationTests.swift:964` expected `navigation.leaveGuard == nil` after `shown.isShown = false; host.layoutSubtreeIfNeeded()`. Timing in a hosted window: the `onDisappear` had not run on the CI runner. One fix round (F-10).
+
+**F-10 — The T-9 install test waits for the page to go before it checks** (CI)
+Files: `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` (and the modifier only if the test shows a real defect). Skill: `add-swift-test`.
+Do: find how the other `.hostedWindows` suites settle a view change (a run-loop pump or helper in `HostedWindow.swift` or neighbouring tests) and use it after hiding the page, in both `leaveGuardModifierInstallsAndClears` and `leaveGuardModifierLeavesAnotherGuardInPlace`. No sleeps with fixed long waits; no weakening the assertion.
+Check: the suite passes locally repeated (`-test-iterations 20` or a loop); scripts/check-pr.sh PASS; CI macOS tests green.
+
+## CI — fix
+Head `baa6aab6d`. Gate PASS (orchestrator). F-10 done: both install tests wait with `waitUntil` for the page's `onDisappear` before asserting; assertions unchanged; 20 local iterations pass. Not reproduced locally (timing hardening).
