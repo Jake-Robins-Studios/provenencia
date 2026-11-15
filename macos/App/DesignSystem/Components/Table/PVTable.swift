@@ -182,6 +182,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     @FocusState private var isFocused: Bool
     @State private var matcher = PVTableTypeSelectMatcher()
     /// The ids of the columns that show at the table's measured width; nil until the first measure.
+    /// Gated columns only consult it; a column with no `minTableWidth` always shows.
     @State private var shownIDs: [String]?
 
     init(
@@ -224,10 +225,8 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         return columns.filter { ids.contains($0.id) }
     }
 
-
     private var shownColumns: [PVTableColumn<Row>] {
-        guard let shownIDs else { return columns.filter { $0.minTableWidth == nil } }
-        return columns.filter { shownIDs.contains($0.id) }
+        columns.filter { $0.minTableWidth == nil || shownIDs?.contains($0.id) == true }
     }
 
     var body: some View {
