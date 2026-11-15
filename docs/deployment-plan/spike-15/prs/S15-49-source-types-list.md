@@ -277,3 +277,4 @@ None.
 - The base had moved (`VERSION` was already 0.15.4), so the version is 0.15.5.
 - T-1 asserts `sortColumn == .usedBy`, the case D-6 names (the plan's `.usage` was a typo).
 - Not run: the manual check (section 10) and the board comparison in a browser.
+- On the user's request (2026-11-15) this PR adds `FakeHold.untilSuspended(_:)` and moves every positive hold wait onto it, fixing a full-suite hang in `SourceTypePageModelTests.aSaveInFlightIsNotHeld` (landed in S15-48); the count cells also carry spoken labels for VoiceOver (on-screen text unchanged).
