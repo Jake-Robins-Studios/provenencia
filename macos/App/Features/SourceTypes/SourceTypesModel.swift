@@ -13,11 +13,15 @@ final class SourceTypesModel {
         var description: String
         var iconKey: String = PVMarkKey.defaultTypeMark.rawValue
 
+        var trimmedLabel: String { label.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        /// The key the engine mints from the label.
+        var key: String { FieldSlug.kebab(trimmedLabel) }
+
         /// Why the label cannot be saved, or nil. One rule for the Add dialog and the side pane.
         var labelError: String? {
-            let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty { return L10n.string(L10n.SourceTypes.errorLabelRequired) }
-            if FieldSlug.kebab(trimmed).isEmpty { return L10n.string(L10n.SourceTypes.errorUnslugifiable) }
+            if trimmedLabel.isEmpty { return L10n.string(L10n.SourceTypes.errorLabelRequired) }
+            if key.isEmpty { return L10n.string(L10n.SourceTypes.errorUnslugifiable) }
             return nil
         }
     }
@@ -307,14 +311,13 @@ final class SourceTypesModel {
         formError = nil
     }
 
-    @discardableResult
-    func submit() async -> WorkspaceLocation? {
-        guard let draft else { return nil }
+    func submit() async {
+        guard let draft else { return }
         guard draft.labelError == nil else {
             formError = draft.labelError
-            return nil
+            return
         }
-        let label = draft.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        let label = draft.trimmedLabel
         isSaving = true
         formError = nil
         defer { isSaving = false }
@@ -338,13 +341,13 @@ final class SourceTypesModel {
                     body: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key),
                     tone: .success
                 )
-                return nil
+                return
             case .empty, .viewing, .adding:
-                return nil
+                return
             }
         } catch {
             formError = L10n.Errors.message(for: error)
-            return nil
+            return
         }
     }
 
