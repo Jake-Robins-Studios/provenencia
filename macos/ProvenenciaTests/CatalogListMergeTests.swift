@@ -102,4 +102,53 @@ struct CatalogListMergeTests {
             }
         }
     }
+
+    /// F-3: `==` agrees with `<`: refs that Swift's `String` calls equal but whose bytes differ
+    /// are different keys, and exactly one is less.
+    @Test func listKeyEqualityIsByteWise() {
+        let a = CatalogListKey(last: false, primary: Data(), ref: "\u{e9}")
+        let b = CatalogListKey(last: false, primary: Data(), ref: "e\u{301}")
+        #expect(!(a == b))
+        #expect((a < b) != (b < a))
+    }
+
+    /// F-4, Scale: one merge of one fresh row replacing two ids over a Person list as large as the
+    /// large fixture's (20,115 rows) stays linear. The rule "Measure growth": the ceiling catches a
+    /// slip to O(n * k); the 80,000-row run only prints.
+    @Test func mergeSortedAtScaleStaysUnderCeiling() {
+        let small = Self.bestMergeMilliseconds(rows: 20_115)
+        let large = Self.bestMergeMilliseconds(rows: 80_000)
+        print("mergeSorted best of 5: 20115 rows \(small) ms, 80000 rows \(large) ms")
+        // decided: S16-26 F-4 (Debug measured 23 ms at 20,115 rows)
+        let ceilingMilliseconds = 120.0
+        #expect(small < ceilingMilliseconds)
+    }
+
+    private static func bestMergeMilliseconds(rows count: Int) -> Double {
+        func key(_ n: Int) -> CatalogListKey {
+            var bytes = [UInt8](repeating: 0x20, count: 24)
+            withUnsafeBytes(of: UInt64(n).bigEndian) { bytes.replaceSubrange(0..<8, with: $0) }
+            return CatalogListKey(last: false, primary: Data(bytes), ref: "PRS-\(n)")
+        }
+        func person(_ id: String, _ n: Int) -> CatalogPersonSummary {
+            var row = CatalogPersonSummary(
+                entity: CatalogCanonicalEntity(id: id, ref: "PRS-\(n)", subjectTypeID: "t", label: ""),
+                name: nil,
+                nameValueCount: 0
+            )
+            row.listKey = key(n)
+            return row
+        }
+        let list = (0..<count).map { person(UUID().uuidString, $0 * 2) }
+        let dropped = [list[count / 3].id, list[count / 2].id]
+        let fresh = [person(dropped[0], count / 2 * 2 + 1)]
+        var best = Double.infinity
+        for _ in 0..<5 {
+            var copy = list
+            let elapsed = ContinuousClock().measure { copy.mergeSorted(fresh, replacing: dropped) }
+            best = min(best, Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1e3)
+            #expect(copy.count == count - 1)
+        }
+        return best
+    }
 }
