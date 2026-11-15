@@ -1,7 +1,7 @@
 # Review — S16-27 One primitive for values derived from cached data
 
 **Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -75,3 +75,53 @@ Verified: `evict(_ key:)` (`WorkspaceSession.swift` line 537) is the only remova
 
 ### X-11 · nit
 Logged. D-17 names `session.sourceTypesKey`, `evidenceGraphsKey`, `evidenceGraphProgressKey`; D-16 sorts Property ids as strings; the header names 0.15.4 → 0.15.5; D-5's fallback is the Stop condition.
+
+## Round 2
+
+The cap is reached: these answers are new plan text no reviewer has read. Round-2 verdicts: maintainability Fits with changes; executability Not ready (X-1, X-2 blockers), Ready with changes once X-1 – X-5 are resolved.
+
+### M-9 · blocker · Each content site lists its inputs twice, and D-10 sees neither list
+D-19 hand-listed each site's extras beside a closure that captured the same values in `body`, outside any build, so the debug check covered none of them.
+**Answer:** Fixed — D-19: `make` takes `(Value, Extra)` and reads nothing else but handles it fetches inside the closure; the section host gains a generic `Extra: Equatable`; Timeline, Family and Sources get one `Inputs` struct each; record links pass `graphLocations`; the detail page's `make` takes `NameFormatOrders`, passed by the page. D-1 and D-5: `extra` is one `(any Equatable)?`, no array. The Stop condition and D-19's list of captured values are gone.
+
+### M-10 · blocker · `private(set)` the new file cannot write; four parallel dictionaries
+**Answer:** Fixed — D-9: one `derivedEntries: [DerivedValueID: DerivedEntry]` with `DerivedEntry { memo, inputs, version }`; `derivedBuilds` and `derivedReads` internal with internal setters. Also X-2.
+
+### M-3 recheck · `typedHandle` replaces a handle on a type mismatch
+**Answer:** Fixed — D-3 and the Stop condition name it as a programming error, not an eviction.
+
+### Below blocker (not raised): the snapshot's key list twice in one file
+**Answer:** Fixed — D-13 adds `evidenceGraphSnapshotKeys(graphID:)`, read by the async and the cached call. The copies in `EvidenceGraphModel.prepare`, `CitationComposerContext` and `PromoteModel` warm other keys too and stay.
+
+### Below blocker (not raised): `DerivedValueID` as an enum
+**Answer:** Declined — nothing switches on it; D-7 records why S16-25's struct shape is not needed here.
+
+### X-1 · blocker · When the stamp is taken; an absent `.derived` input
+**Answer:** Fixed — D-1: the stamp is taken after the build. D-2: a missing or invalid child is a miss for the parent; validation re-stamps the child's stored inputs recursively; a worked example gives T-6's counts.
+
+### X-2 · blocker · `private(set)` contradiction
+**Answer:** Fixed — see M-10.
+
+### X-3 · major · The eviction drop and `derivedInputs`
+**Answer:** Fixed — D-6 names `dropDerived(reading:)`, its home, the fixpoint over `.derived` dependants and the call from `evict`; D-9 holds the inputs in the entry; the build counter is not reset.
+
+### X-4 · major · Test ids
+**Answer:** Fixed — D-20 maps each primitive test to a real id.
+
+### X-5 · major · `currentSnapshot()` and missing handles
+**Answer:** Fixed — D-15: `currentSnapshot()` keeps its nil guard; `displaySnapshot` with no handle is the empty snapshot, as today; the model's `connectRules` and `fieldsSnapshot` stay.
+
+### X-6 · minor · Which key the hosts use
+**Answer:** Fixed — D-18: each host's existing `key`.
+
+### X-7 · minor · AC-1.7 has no runnable check
+**Answer:** Fixed — §10 step 8 removes an input in a Debug build and reads the assertion; T-15 points to it.
+
+### X-8 · check · No `xcodebuild` here
+Logged; the plan's "Runs on macOS" line covers it.
+
+### X-9 · minor · The planned commit is not on local `main`
+**Answer:** Fixed — a **Base** line says to compare against `origin/main`.
+
+### X-10 · minor · Draft with one To user item
+Logged; it waits on the user.
