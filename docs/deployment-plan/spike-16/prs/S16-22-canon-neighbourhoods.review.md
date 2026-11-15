@@ -1,7 +1,7 @@
 # Review — S16-22 Promote reads each handle's neighbourhood instead of walking the catalog
 
-**Verdict:** pending round 2 (round 1: Fits with changes — Ready with changes)
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes; no open blocker
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -81,3 +81,12 @@ None.
 
 ### X-4 · minor · "non-nil entries" ambiguous
 **Answer:** Fixed — D-5 memoises handles only; `ViewLinksForTest` copies every memo entry.
+
+### M-9 · blocker · `Reader.Links` inlines `For`'s body, so a memo of `For` would not reach Promote
+**Answer:** Fixed — D-1: `Links` calls `r.For(id)` for a person; the inlined `loadSteps` + `forLinks` and `n = steps[0].node` are gone; Codebase fit says `Links` calls `For`. D-10's reason for keeping `For` exported holds again.
+
+### Round 2 note on M-1 / M-2 wording (D-1's `Relationships` call, `kinEdges` / `parentEdges` errors)
+**Answer:** Fixed with X-2 above.
+
+### Minor: `alignRows` returns the view only for the test helper
+**Answer:** Declined — the alternative is a test helper that copies `Propose`'s steps (round-1 M-3); one unexported return value is the smaller cost.
