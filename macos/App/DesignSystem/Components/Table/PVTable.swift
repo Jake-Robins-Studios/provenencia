@@ -98,6 +98,10 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
     let id: String
     let title: LocalizedStringResource
     let width: CGFloat?
+    /// The column shows only while the table is at least this wide; nil always shows. For a
+    /// column that only adds context (a description), never one that sorts by default or
+    /// holds the row's name.
+    let minTableWidth: CGFloat?
     let sortable: Bool
     let filter: PVTableColumnFilter?
     let cell: (Row) -> AnyView
@@ -106,6 +110,7 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
         id: String,
         title: LocalizedStringResource,
         width: CGFloat? = nil,
+        minTableWidth: CGFloat? = nil,
         sortable: Bool = false,
         filter: PVTableColumnFilter? = nil,
         @ViewBuilder cell: @escaping (Row) -> Cell
@@ -113,6 +118,7 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
         self.id = id
         self.title = title
         self.width = width
+        self.minTableWidth = minTableWidth
         self.sortable = sortable
         self.filter = filter
         self.cell = { AnyView(cell($0)) }
@@ -166,6 +172,8 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     @FocusState private var isFocused: Bool
     @State private var matcher = PVTableTypeSelectMatcher()
+    /// The table's own width, measured once on the outer container.
+    @State private var tableWidth: CGFloat = 0
 
     init(
         rows: [Row],
@@ -201,11 +209,21 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         rows.firstIndex { $0.id == selection } ?? -1
     }
 
+    /// The columns that show at a table width: those with no `minTableWidth`, or one the table meets.
+    static func shownColumns(_ columns: [PVTableColumn<Row>], tableWidth: CGFloat) -> [PVTableColumn<Row>] {
+        columns.filter { $0.minTableWidth.map { tableWidth >= $0 } ?? true }
+    }
+
+    private var shownColumns: [PVTableColumn<Row>] {
+        Self.shownColumns(columns, tableWidth: tableWidth)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             rowList
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { tableWidth = $0 }
     }
 
     /// The scrolling row list: one focus stop, list-like semantics.
@@ -237,7 +255,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     private var header: some View {
         HStack(spacing: PVSpacing.space6) {
-            ForEach(columns) { column in
+            ForEach(shownColumns) { column in
                 HStack(spacing: PVSpacing.space1) {
                     if column.sortable, let onSortChange {
                         Button { onSortChange(column.id) } label: { headerLabel(column) }
@@ -316,7 +334,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         let isSelected = row.id == selection
         return PVHoverEffect(isPressed: false, hoverAnimation: PVMotion.fastStandard) { showHover in
             HStack(spacing: PVSpacing.space6) {
-                ForEach(columns) { column in
+                ForEach(shownColumns) { column in
                     column.cell(row)
                         .frame(maxWidth: column.width == nil ? .infinity : nil, alignment: .leading)
                         .frame(width: column.width, alignment: .leading)
