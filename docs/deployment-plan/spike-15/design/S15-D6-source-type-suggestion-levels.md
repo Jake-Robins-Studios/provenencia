@@ -1,13 +1,13 @@
 # S15-D6 — Source type page: suggested fields at three levels
 
-**Kind:** Claude Design board (**enhancement** of the Source types page: a type's one "Suggested fields" list becomes three lists, one per level. Extend the existing frames; the types list, the header, the type form and the delete flow are unchanged)
+**Kind:** Claude Design board (**enhancement** of S15-D27's Source type page: the one "Suggested fields" list in the page's side column becomes three lists, one per level. Extend the existing page frames; the header, Details, the locked note, Delete, the list and the Add type dialog are unchanged)
 **Spike:** Provenencia Spike 15, slice 2
-**View:** the Source types page's detail pane (a selected type, editable or locked), and the Associated fields column of its list
+**View:** the Source type page's side column (Suggested fields), on an editable and on a locked type; the Source types list's Associated fields number
 **Implements later as:** PR **S15-12**
-**Board:** — not to be drawn yet. Written for the side pane; revisited and rewritten as an enhancement of S15-D27's Source type page once that board is agreed (user, 2026-11-14)
+**Board:** — (record the board link, the section and its frame names here when the board is agreed). Draw on S15-D27's board, [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), beside its frame 2b
 **Review:** — (not reviewed yet)
-**Depends on:** S15-D27 and S15-48 (the Source type page these lists sit on); S15-06 (landed): every suggestion has a level (`source`, `artifact`, `graph`), and each level is its own ordered list; S15-08 – S15-11 (landed): Artifacts and Evidence graphs hold metadata and show their type's suggestions at their level
-**Related:** working rules "Metadata lives at three levels with one vocabulary", "Suggestions have a level" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`S15-D14-source-page-artifacts.md`](S15-D14-source-page-artifacts.md) (where Artifact suggestions show); [`archive/S15-D5-evidence-graph-form.md`](archive/S15-D5-evidence-graph-form.md) (where graph suggestions show); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 6.6; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (Source types row)
+**Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)): the Source type page, with Details beside one Suggested fields list (S15-D27, [archived](archive/S15-D27-source-type-page.md)); S15-49 (landed [#852](https://github.com/mendahu/provenencia/pull/852)): the list's columns; S15-06 (landed): every suggestion has a level (`source`, `artifact`, `graph`), and each level is its own ordered list; S15-08 – S15-11 (landed): Artifacts and Evidence graphs hold metadata and show their type's suggestions at their level
+**Related:** working rules "Metadata lives at three levels with one vocabulary", "Suggestions have a level", "A Source type has its own page" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); S15-D27 TP-6 and TP-7 (one list drawn as a block that this board repeats; the S15-12 lists go under Suggested fields in the side column); [`archive/S15-D5-evidence-graph-form.md`](archive/S15-D5-evidence-graph-form.md) (where graph suggestions show); [`S15-D14-source-page-artifacts.md`](S15-D14-source-page-artifacts.md) (where Artifact suggestions show); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 6.6; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
 
@@ -73,22 +73,23 @@ Draw the **Regular** and **Wide** frame of each view side by side, using the sam
 
 ### This brief is an enhancement
 
-Add to the Source types page frames on this board. The page header, the types list (label, key, origin, Associated fields, usage), the detail pane's header, the type form (Label, Icon, Description, Save and Revert), the locked note on a plugin type, the add-type note and the delete flow stay as they are. Only the "Suggested fields" part of the detail pane is redrawn, and the Associated fields number in the list changes meaning (SL-8). **How the three lists sit in the pane is the board's call** (stacked sections, a segmented control over one list, disclosures, or another arrangement built from kit pieces): the requirements below say what each list must show and do, not where it goes.
+Add to S15-D27's Source type page frames on this board (frame 2b and the page component). The page header, Details (Label, Icon, Description, Save and Revert), the locked note, Delete, the leave confirm, the types list and the Add type dialog stay as they are. Only the side column's "Suggested fields" is redrawn: S15-D27 drew it as one block for the Source level (TP-6) and named the place of the other two (TP-7: under it, in the side column). This board draws that block three times, once per level, and the states each list has on its own.
 
 ---
 
 ## 1. Objective
 
-A Source type suggests the fields its records usually carry, so a new Source of that type opens with them on its metadata board. Since S15-08 a type also suggests fields for each **Artifact** (the copy used: provider, URL, accessed date) and each **Evidence graph** (the item cited: who it is about, line, dwelling, family). Those suggestions already show on the Artifact sheet and the Evidence graph form, but the Source types page can only edit the Source's list, so today no researcher can set them. After this board, a researcher picks a type and edits three lists, one per level, the same way they edit the one list today.
+A Source type suggests the fields its records usually carry, so a new Source of that type opens with them on its metadata board. Since S15-08 a type also suggests fields for each **Artifact** (the copy used: provider, URL, accessed date) and each **Evidence graph** (the item cited: who it is about, line, dwelling, family). The Artifact sheet and the Evidence graph form already show those suggestions, but the Source type page edits only the Source's list, so no researcher can set them. After this board, a type's page shows three lists in its Suggested fields column, one per level, each edited the way the one list is today.
 
 **What changes.**
 
-- **Three lists.** "Suggested fields" holds a Source list, an Artifact list and an Evidence graph list. Each is its own ordered list with its own count, its own add control and its own empty, loading and failure states.
-- **A field can be in more than one list.** `page` can be suggested on the Source and on each Artifact. Adding a field to one list does not remove it from another, and each list's picker offers every field not already in that list.
+- **Three lists.** Suggested fields holds a Source list, an Artifact list and an Evidence graph list, stacked in that order in the side column. Each is its own ordered list with its own title, meaning, count, picker, and empty, loading and failure states.
+- **A field can be in more than one list.** Page can be suggested on the Source and on each Artifact. Adding a field to one list leaves the other lists alone, and each list's picker offers every field not already in that list.
+- **Return adds.** In a list's picker, Return on a highlighted field picks it (as today), and a second Return adds it, as the plus button does; the picker is then empty and still focused, so the next field takes only typing and two Returns (user, 2026-11-15).
 - **The list's Associated fields number** counts the fields in all three lists (user, 2026-11-14).
-- **Toasts name the list.** "Line is now suggested on each Evidence graph of a Census Source."
+- **Copy names the list.** Toasts, tooltips and spoken labels say which list: "Line is now suggested on each Evidence graph of a Census Source."
 
-**What stays.** Each list's rows look as today's do: ordinal, label over mono key, data type badge, and the remove button on an editable type. New fields go at the end of their list; there is no reorder control (user, 2026-11-14). The picker is today's searchable ComboBox over the project's metadata fields with the plus button beside it; it never creates a field. A plugin type shows the lists read-only. While adding a new type, the pane shows today's note instead of the lists ("Suggested fields are assigned after the type is saved.").
+**What stays.** Each list's rows look as today's do: ordinal, label over mono key, data type badge, and the remove button on an editable type. A new field goes last in its list; there is no reorder (user, 2026-11-14). The picker is today's searchable ComboBox over the project's metadata fields with the plus button beside it; it never creates a field. A plugin's type shows the three lists read only. Details beside Suggested fields, the pair centred, at every width (S15-D27 TP-W1).
 
 ---
 
@@ -96,47 +97,49 @@ A Source type suggests the fields its records usually carry, so a new Source of 
 
 | Fact | What it means on this board |
 | --- | --- |
-| Source type | A kind of record (Census, Book, Letter, Grave memorial). Seeded types and the project's own are editable; a plugin's type is locked and read-only. A project has about 30 types. |
+| Source type | A kind of record (Census, Book, Letter, Grave memorial). Seeded types and the project's own are editable; a plugin's type is locked and read only. A project has about 30 types. |
 | Level | Where a field's value lives. **Source**: the record as a whole (jurisdiction, schedule, roll number). **Artifact**: one copy of it the researcher used (provider, URL, accessed date, image number). **Evidence graph**: one item in it (who it is about, line, dwelling, family). The fields come from one project vocabulary; the level is only where a type suggests them. |
-| Suggested field | A field the type offers, empty, on every Source (or Artifact, or graph) of that type. A suggestion is not required: the researcher may leave it blank or dismiss it. Removing a suggestion never deletes the field or any value already typed. |
-| Order | Each list has its own order, which is the order the board rows show on the Source page, the Artifact sheet and the graph form. A new suggestion goes last. There is no way to reorder on this page. |
-| Sizes | A list holds 0 to about 12 fields; the vocabulary has about 60 fields. A list of 20 must still read. |
+| Suggested field | A field the type offers, empty, on every Source (or Artifact, or graph) of that type. Not required: the researcher may leave it blank or dismiss it. Removing a suggestion never deletes the field or a value already typed. |
+| Order | Each list has its own order, which is the order the rows show on the Source page, the Artifact sheet and the graph form. A new suggestion goes last. There is no way to reorder here. |
+| Sizes | A list holds 0 to about 12 fields; the vocabulary has about 60. A list of 20 must still read. |
 | Where the suggestions show | Source list: the Source page's Metadata section. Artifact list: the Artifact sheet's copy details (add and edit). Evidence graph list: the Evidence graph form's metadata. An open Source page picks the change up when it is next shown; a sheet or form already open keeps what it opened with. |
-| Writes | Adding and removing save at once, one field at a time, as today. Nothing else on the page is a draft for them: they do not wait for the type form's Save. |
+| Writes | Adding and removing save at once, one field at a time, as today. They are not part of the Details draft: they never wait for Save changes and never trigger the leave confirm. |
+| The side column | 340 – 480pt wide beside Details (560pt), the pair centred; below about 880pt of pane it goes under Details (S15-D27 TP-W1). The page scrolls as one. |
 
 ### 2.1 Copy
 
-The board may refine wording; the PR copies what the board shows.
+The board may refine wording; the PR copies what the board shows. Strings marked *(today)* exist and stay.
 
 | Where | Text |
 | --- | --- |
-| Section label | "Suggested fields" (as today) |
-| Section hint (editable type) | "Suggestions, not a schema — a record may leave any of them blank" |
+| Section title | "Suggested fields" *(today)* |
+| Section hint (editable type) | "Suggestions, not a schema — a record may leave any of them blank" (today's says "a source of this type") |
 | Source list title / meaning | "On the Source" / "The record as a whole" |
 | Artifact list title / meaning | "On each Artifact" / "The copy you used: an image, a scan, a transcript" |
 | Evidence graph list title / meaning | "On each Evidence graph" / "One item in the record: a household, an entry" |
-| Count beside a list | "3 fields" (as today, per list) |
-| A list's read failed | "These suggestions couldn’t be read", the error, "Try again" |
+| Count beside a list | "3 fields" *(today's string, now per list)* |
+| A list's read failed | "Suggested fields could not be loaded", the error, "Try again" *(today, now per list)* |
 | Empty Source list | "No Source fields yet. Assign the fields these records usually carry." |
 | Empty Artifact list | "No Artifact fields yet. Assign what you note about each copy, such as its provider or URL." |
 | Empty Evidence graph list | "No Evidence graph fields yet. Assign what you note about each item, such as its line or household." |
-| Picker placeholder, no-match, pool hints | As today |
-| Add button tooltip and spoken label | "Suggest Line on each Evidence graph of a Census Source" (names the field and the list); before a pick, today's "Choose a field to assign" |
+| Picker placeholder, no-match | "Field label or key", "No field in the vocabulary matches that — add it in Metadata first" *(today)* |
+| Pool hint | "The pool is the Metadata vocabulary — add a new field there first if it is missing" *(today)*; when the list already holds every field, "Every field in the vocabulary is already in this list" |
+| Add button tooltip | Before a pick "Choose a field to assign" *(today)*; with a pick "Suggest Line on each Evidence graph of a Census Source"; when the list holds every field "Every field is already in this list" |
 | Remove button | "Stop suggesting Line on each Evidence graph of a Census Source" |
 | How a list is named in a sentence | Source: "on each Census Source"; Artifact: "on each Artifact of a Census Source"; Evidence graph: "on each Evidence graph of a Census Source" |
 | Toast after add | "Field assigned" / "Line is now suggested on each Evidence graph of a Census Source." |
 | Toast after remove | "Suggestion removed" / "Line is no longer suggested on each Evidence graph of a Census Source. The field stays in this project’s vocabulary." (plus today's clause on values already typed, when there are any) |
-| List column header | "Associated fields" (as today); its value counts all three lists |
+| List column header | "Associated fields" *(today)*; its value counts all three lists |
 
 ### 2.2 What this board is not
 
-- Citation formats and Insert field (S15-D16, S15-17).
+- Citation formats and Insert field (S15-D16 → S15-17).
 - Reordering suggestions (not planned: user, 2026-11-14).
-- Copying another type's suggestions to a new type (S15-D7, S15-18).
+- Copy from another type in the Add type dialog (S15-D7 → S15-18).
 - The seeded suggestions themselves (S15-19 seeds them; this board draws invented data).
 - Creating a metadata field from the picker: fields are made on the Metadata page, as today.
-- Needed and used marks (S15-D20).
-- The types list's own Wide layout beyond the Associated fields number (the list keeps today's columns).
+- Needed and used marks (S15-D20 → S15-39).
+- The page's header, Details, Delete, the leave confirm, the types list and the Add type dialog: unchanged.
 
 ---
 
@@ -144,7 +147,7 @@ The board may refine wording; the PR copies what the board shows.
 
 | PR | Ships | Not that PR |
 | --- | --- | --- |
-| **S15-12** | SL-1 – SL-10, SL-W1: the three lists on an editable and a locked type, their states, the toasts, the Associated fields count over all three | Formats (S15-17); reorder (not planned); Copy from (S15-18) |
+| **S15-12** | SL-1 – SL-10, SL-W1: the three lists on an editable and a locked type, their states, Return to add, the copy, the Associated fields count over all three | Formats (S15-17); reorder (not planned); Copy from (S15-18) |
 
 ---
 
@@ -152,45 +155,47 @@ The board may refine wording; the PR copies what the board shows.
 
 | ID | Requirement |
 | --- | --- |
-| SL-1 | **Three lists.** A selected type's "Suggested fields" shows three lists in the order Source, Artifact, Evidence graph, each with its title, its one-line meaning and its count. The board decides how they sit in the 380pt pane (all visible, one at a time, or folded), with one rule: a researcher can see which list they are adding to before they add, and can reach every list without leaving the type. When the board shows one list at a time, the chosen list survives a type switch and a resize (SL-W1). |
+| SL-1 | **Three lists.** The page's Suggested fields column shows the section title and hint once, then three lists stacked in the order Source, Artifact, Evidence graph. Each list has its title, its one-line meaning and its own count. The board decides how a list's title, meaning and count sit (a sub-header per list built from the kit, a Card per list, or rules between them) and whether the section title keeps a count of its own; each list must read as one group, so a researcher always sees which list a picker adds to. No list is hidden behind a tab or a fold: all three are visible on the page. |
 | SL-2 | **A list's rows.** As today: ordinal (its place in the list, from 1), field label over mono key, data type badge, and on an editable type a remove IconButton. Rows show in the list's stored order. No drag handle and no reorder control. |
-| SL-3 | **Adding.** Each list has its own picker (the ComboBox over the project's metadata fields, label and key both searchable) and its own plus IconButton, which stays disabled until a field is picked, with today's tooltips. A list's picker leaves out the fields already in **that** list only: Page in the Source list is still offered in the Artifact list. The added field appears last in its list, its count goes up by one, the list's picker clears, and the toast names the field, the list and the type. Picking in one list does not change another list's pick. |
-| SL-4 | **Removing.** A row's remove button takes it out of that list only, at once and with no confirm (as today); the other lists keep the field. The toast says the field stays in the vocabulary, and, when values were typed, that they stay. While one remove runs, every list's remove buttons are disabled. |
-| SL-5 | **Empty, loading and failure, per list.** A list with no fields shows its own empty copy (§ 2.1) in today's dashed sunken card. A list still reading shows today's small spinner in its place. A failed read shows the kit's retry Callout (title "These suggestions couldn’t be read", the error, and Try again) in place of that list's rows; a failed add or remove shows a danger Callout above that list's rows. Never across all three; the other lists keep working. |
-| SL-6 | **Locked (plugin) type.** The three lists show their rows read-only: no picker, no plus, no remove, no hint; counts and empty copy still show. |
-| SL-7 | **Adding a type.** While the pane holds the new-type form, the lists do not show; today's note shows in their place. After Add type the pane shows the three lists, all empty. |
+| SL-3 | **Adding.** Each list has its own picker (the ComboBox over the project's metadata fields; label and key both searchable) and its own plus IconButton, disabled until a field is picked. A list's picker leaves out only the fields already in **that** list: Page in the Source list is still offered in the Artifact list. The added field appears last in its list, the list's count goes up by one, the list's picker clears, and the toast names the field, the list and the type. Picking in one list does not change another list's pick. The board decides whether each list carries the pool hint or the section carries it once. |
+| SL-4 | **Return adds.** With a field highlighted in a picker's open list, Return picks it (today's ComboBox behaviour). Return again, with the list closed and a field picked, adds it, exactly as the plus button. The picker is then empty and keeps focus. Return in an empty picker adds nothing. Draw one frame showing the picker focused and empty right after a Return add, the new row last in its list. |
+| SL-5 | **Removing.** A row's remove button takes it out of that list only, at once and with no confirm (as today); the other lists keep the field. The toast says the field stays in the vocabulary, and, when values were typed, that they stay. While one add or remove runs, every list's plus and remove buttons are disabled. |
+| SL-6 | **Empty, loading and failure, per list.** A list with no fields shows its own empty copy (§ 2.1) in today's dashed sunken Card. A list still reading shows today's small spinner in its place. A failed read shows the kit's retry Callout ("Suggested fields could not be loaded", the error, Try again) in place of that list's rows. A failed add or remove shows a danger Callout above that list's rows, and the pick stays. A failure is never shown across all three; the other lists keep working. |
+| SL-7 | **A plugin's type.** The three lists show their rows read only: no picker, no plus, no remove, no hint; titles, meanings, counts and empty copy still show. |
 | SL-8 | **The list's Associated fields column** shows the total of the three lists for each type (Census with 3 + 4 + 4 shows 11), and sorts by that total. A type with none shows today's dash. |
-| SL-9 | **VoiceOver.** Each list is a group whose label is its title ("On each Evidence graph, 4 fields"). A row reads "2, Line, line, Text". The plus and remove buttons name the field and the list: "Suggest Line on each Evidence graph of a Census Source", "Stop suggesting Line on each Evidence graph of a Census Source". |
-| SL-10 | **Length.** A list of 20 fields and two lists of 12 still read: the detail pane scrolls as one; no list scrolls inside itself. |
-| SL-W1 | **Wide.** Today the detail pane is 380pt at both widths and the types list takes the rest. The board decides whether at Wide the pane widens so the three lists sit side by side (each list keeps its Regular row width), or stays 380pt and says why in one clause on the board. The types list keeps its columns and its maximum width either way. Whatever the arrangement, a pick in progress, the chosen list (when one list shows at a time) and the pane's scroll survive a resize across 1600pt. |
+| SL-9 | **VoiceOver.** Each list is a group whose label is its title and count ("On each Evidence graph, 4 fields"). A row reads "2, Line, line, Text". Each picker's label names its list ("Metadata field to assign, On each Evidence graph"). The plus and remove buttons name the field and the list: "Suggest Line on each Evidence graph of a Census Source", "Stop suggesting Line on each Evidence graph of a Census Source". |
+| SL-10 | **Length.** A list of 20 fields and two lists of 12 still read: the page scrolls as one; no list scrolls inside itself. |
+| SL-W1 | **Wide.** The side column keeps S15-D27's width (340 – 480pt) at Wide and the three lists stay stacked in it; Details and Suggested fields stay the centred pair (TP-W1, rule 6): the lists are narrow rows that read best in one column, and side-by-side lists would need a column of their own wider than the side column. A pick in progress and the page's scroll survive a resize across 1600pt. |
 
 ### 4.1 Wide layout
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Source types page | Types list beside a 380pt detail pane; the three lists inside the pane in the board's arrangement | The board's call (SL-W1): the pane widens for three side-by-side lists, or stays 380pt | At most the three lists move from stacked to side by side; nothing moves out of the pane |
+| Source type page | Details (560pt) beside Suggested fields (340 – 480pt), centred; the three lists stacked in Suggested fields; the side column under Details below about 880pt | The same centred pair | Nothing |
+| Source types list | As S15-D28 drew it; only the Associated fields number changes meaning | As S15-D28 drew it | Nothing |
 
 ---
 
 ## 5. Suggested frames
 
-Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440); the others at Regular.
+Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440), each with the toolbar above; the others at Regular. Draw them beside S15-D27's frame 2b, from its page component.
 
-**Data.** Types (invent every record): **Census** (seeded, `census`, used by 14 Sources) with Source list Jurisdiction, Schedule, Roll number; Artifact list Provider, URL, Accessed, Image; Evidence graph list Item, Line, Dwelling, Family. **Letter** (yours, `letter`, used by 0) with Source list Author, Recipient and nothing at the other two levels. **Grave memorial** (plugin `memorial-kit`, locked) with Source list Cemetery, Plot and Artifact list Photographer. Vocabulary: about 60 fields, including Page, Folio, Entry, Accessed, Provider and Line.
+**Data.** Types (invent every record): **Census** (Provenencia, `census`, used by 14 Sources) with Source list Jurisdiction, Schedule, Roll number; Artifact list Provider, URL, Accessed, Image; Evidence graph list Item, Line, Dwelling, Family. **Letter** (yours, `letter`, used by 0) with Source list Author, Recipient and nothing at the other two levels. **Grave memorial** (plugin `findagrave`, locked) with Source list Cemetery, Plot and Artifact list Photographer. Vocabulary: about 60 fields, including Page, Folio, Entry, Accessed, Provider and Line.
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | SL-1, SL-2, SL-8, SL-W1 | The page with Census selected: the list (Census shows 11 under Associated fields; a type with no suggestions at any level, such as "Diary", shows the dash) and the detail pane with its three lists. In 1b, a pick in progress in one list's picker, to show it survives the resize |
-| 2 | SL-3 | Census, the Evidence graph list's picker open with "fol" typed (Folio shown; Line absent because the list has it), then the plus enabled |
-| 3 | SL-3 | Right after adding Folio to the Evidence graph list: it is fifth in that list, the count reads 5, the toast shows |
-| 4 | SL-3 | The Artifact list's picker offering Page while Page is already in the Source list |
-| 5 | SL-4 | After removing URL from the Artifact list: the toast with today's values clause ("…and the 6 Sources, Artifacts and graphs already carrying a value keep it") |
-| 6 | SL-5 | Letter: Source list with two rows, Artifact and Evidence graph lists empty with their own copy |
-| 7 | SL-5 | Census with the Artifact list still reading (spinner) and the retry Callout in place of the Evidence graph list's rows |
-| 7b | SL-3, SL-4, SL-5 | A write failure: an add to the Artifact list refused, its Callout above that list's rows and its pick kept; and, separately, a remove in progress with every remove and plus disabled |
-| 8 | SL-6 | Grave memorial: three read-only lists (one empty) under the locked note |
-| 9 | SL-7 | The new-type form with the note in place of the lists |
-| 10 | SL-10 | A type with 20 Source fields and 12 in each other list, the pane scrolled to its middle |
+| 1a / 1b | SL-1, SL-2, SL-W1 | Census's page, nothing changed: Details beside Suggested fields with its three lists. In 1b, a pick in progress in the Artifact list's picker, to show it survives the resize |
+| 2 | SL-3 | Census, the Evidence graph list's picker open with "fol" typed (Folio highlighted; Line absent because the list has it) |
+| 3 | SL-3, SL-4 | Right after adding Folio to the Evidence graph list by Return: Folio fifth in that list, the count "5 fields", the picker empty and focused, the toast showing |
+| 4 | SL-3 | The Artifact list's picker offering Page while Page is in the Source list |
+| 5 | SL-5 | After removing URL from the Artifact list: the toast with today's values clause ("…and the 6 Sources, Artifacts and graphs already carrying a value keep it") |
+| 6 | SL-6 | Letter: the Source list with two rows; the Artifact and Evidence graph lists empty, each with its own copy |
+| 7 | SL-6 | Census with the Artifact list still reading (spinner) and the retry Callout in place of the Evidence graph list's rows; the Source list's rows unaffected |
+| 7b | SL-5, SL-6 | An add to the Artifact list refused: its danger Callout above that list's rows, its pick kept; and, separately, a remove in progress with every plus and remove disabled |
+| 8a / 8b | SL-7 | Grave memorial: the locked note in Details; three read-only lists (the Evidence graph list empty) |
+| 9 | SL-8 | The types list with Census's Associated fields reading 11 and a type with none showing the dash (S15-D28's list, the number only) |
+| 10 | SL-10 | A type with 20 Source fields and 12 in each other list, the page scrolled to the Evidence graph list |
+| 11 | SL-1, SL-W1 | Census at a pane of 860pt: Suggested fields under Details, the three lists stacked |
 
 ---
 
@@ -198,24 +203,25 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Detail pane | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `SourceTypesDetailPane`; its 380pt width in `SourceTypesView.detailPaneWidth` | Header, form, locked note and add note unchanged; the suggested-fields part composes three lists; the section header keeps its label and hint and drops its single count (each list has its own). If the board widens the pane at Wide (SL-W1), the Metadata page's identical 380pt pane is a near-copy shell, so the width rule moves to the shared vocabulary shell (`macos/App/Features/CatalogVocabulary/`) rather than a second copy here |
-| One level's suggestion list | Snowflake | Rethink (one per level) | today `SourceTypesDetailPane.suggestedFields(isLocked:)`, `suggestionRows`, `assignControl` | One view drawn three times with a level, not three copies. Rows inside a Card, as today |
-| List title and count | Component | Ship | `pvMicroCaps` label + mono count, as today's section header | Not a new header control. If the board shows one list at a time, the chooser is the Segmented control (ChipGroup segmented), not a local tab bar |
-| Data type badge | Snowflake | Ship | `CatalogFieldDataTypeBadge` | As today |
-| Field picker | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/` `PVComboBox` | One per list; today's row (label, key, badge) and list height |
-| Add / remove | Component | Ship | `PVIconButton` `.plus` / `.dismiss` | Tooltips name the list (§ 2.1) |
-| Empty list | Component | Ship | `PVCard` tone sunken, border dashed | Per list, its own copy; not EmptyState (the pane is not empty) |
+| Page and its columns | Component | Ship | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` with `PVColumnSplit.sourceTypePage` (`macos/App/Features/SourceTypes/SourceTypePageView.swift`) | Unchanged widths; the side column holds the three lists |
+| Suggested fields section | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` | Today one list with the section's title, count and hint. It splits: the section (title, hint) once, then one list view drawn per level |
+| One level's list | Snowflake | Extend (one view, three instances) | `SourceTypeSuggestionList` in the same file, given a level | Title, meaning, count, rows, empty, spinner, retry, error, picker. One view drawn three times, not three copies |
+| Section title | Component | Ship | `PVSectionHeader` | "Suggested fields", as today |
+| A list's title and count | Component | Ship | `PVSectionHeader` (its `meta` carries the count) or `pvMicroCaps` text with a mono count | The board picks one; not a new header control |
+| Rows | Component | Ship | `PVCard` + `PVDivider`, `CatalogFieldDataTypeBadge` | As today |
+| Field picker | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` `PVComboBox` | One per list; today's row (label, key, badge) and list height. Return to add is the form's submit around it, not a new ComboBox behaviour |
+| Add / remove | Component | Ship | `PVIconButton` `.plus` / `.dismiss` | Tooltips and spoken labels name the list (§ 2.1) |
+| Empty list | Component | Ship | `PVCard` tone sunken, border dashed | Per list, its own copy; not EmptyState (the page is not empty) |
 | Loading | Platform | Ship | `ProgressView` | Per list, as today |
-| Failure (read) | Component | Ship | `macos/App/DesignSystem/Components/Callout/PVRetryCallout.swift` `PVRetryCallout` | The app's failed-read notice with Try again; in place of the list's rows |
-| Failure (write) | Component | Ship | `PVCallout` tone danger | Above the list's rows |
+| Failure (read) | Component | Ship | `macos/App/DesignSystem/Components/Callout/PVRetryCallout.swift` `PVRetryCallout` | Per list, in place of its rows |
+| Failure (write) | Component | Ship | `PVCallout` tone danger | Above that list's rows |
 | Toast | Snowflake | Ship | `VocabularyToast` / `vocabularyToastOverlay` | Copy names the list |
-| Associated fields column | Snowflake | Ship (number changes) | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | The engine's total over three lists |
-| Disclosure (only if the board folds lists) | Component | Ship | `macos/App/DesignSystem/Components/Disclosure/PVDisclosureButton.swift` `PVDisclosureButton` | No local chevron control |
+| Associated fields column | Snowflake | Ship (number changes) | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | The engine's total over three lists; no layout change |
 
-**Non-goals.** No new kit primitive. No reorder control or drag handle. No second picker design. No field creation from the picker. No per-list scroll. No change to the types list's columns or the type form.
+**Non-goals.** No new kit primitive. No tab, segmented chooser or fold over the lists (SL-1). No reorder control or drag handle. No second picker design. No field creation from the picker. No per-list scroll. No change to the header, Details, Delete, the leave confirm, the list's columns or the Add type dialog. No change to the page's column widths.
 
 ---
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and the board's decisions (the arrangement of the three lists, the Wide answer, any copy change) on the **Board** line here and in [`README.md`](README.md). S15-12's plan copies SL-1 – SL-10, SL-W1, the copy and the inventory, and moves from `Blocked — on board S15-D6` to `Planned`. When S15-12 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the section, its frames and the board's decisions (how a list's title, meaning and count sit; whether the section keeps a count; where the pool hint sits; any copy change) on the **Board** line here and in [`README.md`](README.md). S15-12's plan copies SL-1 – SL-10, SL-W1, the copy and the inventory, fills D-6 and § 6 Strings from the board, and moves from `Blocked — on board S15-D6` to `Planned`. When S15-12 lands, this brief moves to the spike's design archive.
