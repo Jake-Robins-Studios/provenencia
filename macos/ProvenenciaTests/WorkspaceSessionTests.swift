@@ -1403,7 +1403,7 @@ struct WorkspaceSessionTests {
         #expect(holds(detailKey("e3")))
     }
 
-    /// One write names `effects` and `keys` are the ones it revalidates.
+    /// The keys that a write with these `effects` revalidates.
     private func named(_ session: WorkspaceSession, _ effects: CatalogWriteEffects) -> Set<CatalogQueryKey> {
         Set(session.revalidatedKeys(for: effects))
     }
@@ -1437,20 +1437,11 @@ struct WorkspaceSessionTests {
         #expect(named(session, CatalogWriteEffects(handles: ["x9"])).isEmpty)
     }
 
-    /// The detail with a name field citing "s-field", a birth row whose owner's
-    /// field cites "s-owner", and a picture whose record cites "s-pic", built
-    /// from graph "g1" and Source "src1".
-    private func citedDetail(_ id: String) -> CatalogConclusionDetail {
-        typealias Display = ReconciledValueDisplayTests
-        var cited = detail(id)
-        cited.fields = [Display.field("kept", outcomes: [Display.outcome("o1", "kept", source: "s-field")])]
-        cited.derivedRows = [CatalogDerivedRow(kind: .birthDate, owners: [CatalogOwnerField(
-            entity: CatalogCanonicalEntity(id: "ev1", ref: "EVT-1", subjectTypeID: "t", label: ""),
-            field: Display.field("kept", key: "date", outcomes: [Display.outcome("o2", "kept", source: "s-owner")])
-        )])]
-        cited.pictures = [CatalogPicture(imageRelPath: "objects/p", record: Display.outcome("o3", "kept", source: "s-pic"))]
-        cited.inputs = CatalogPageInputs(handles: ["e1"], evidenceGraphs: ["g1"], sources: ["src1"])
-        return cited
+    /// The detail for `id`, built from its own handle, graph "g1" and Source "src1".
+    private func detailWithInputs(_ id: String) -> CatalogConclusionDetail {
+        var built = detail(id)
+        built.inputs = CatalogPageInputs(handles: [id], evidenceGraphs: ["g1"], sources: ["src1"])
+        return built
     }
 
     /// T-8 (AC-1.3, AC-1.4, AC-2.2, AC-2.3): a Source's words reload the claims,
@@ -1458,7 +1449,7 @@ struct WorkspaceSessionTests {
     /// inside another graph of the Source, do not.
     @Test func sourceWordsNotSourceActivityReloadThePage() async {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": citedDetail("e1")]
+        store.seededConclusionDetails = ["e1": detailWithInputs("e1")]
         let session = makeSession(store: store)
         let project = session.projectKey
         let claimsKey = CatalogQueryKey.personClaims(project: project, entityId: "e1")
@@ -1467,7 +1458,7 @@ struct WorkspaceSessionTests {
         let inputs = CatalogPageInputs(evidenceGraphs: ["g1"], sources: ["src1"])
         session.setQueryValue(claimsKey, value: CatalogPersonClaims(groups: claims(onGraph: "g1"), inputs: inputs))
         session.setQueryValue(linksKey, value: CatalogPersonRecordLinks(inputs: inputs))
-        session.setQueryValue(detailKey, value: citedDetail("e1"))
+        session.setQueryValue(detailKey, value: detailWithInputs("e1"))
         let all: Set = [claimsKey, linksKey, detailKey]
 
         let words = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["src1"])])
@@ -1485,19 +1476,20 @@ struct WorkspaceSessionTests {
         session.apply(location: .personDetail(entityId: "e1", ref: "PER-e1", title: nil))
         await session.settleWrites()
         let handle: QueryHandle<CatalogConclusionDetail> = session.query(detailKey)
-        var renamed = citedDetail("e1")
+        var renamed = detailWithInputs("e1")
         renamed.memberCount = 2
         store.seededConclusionDetails = ["e1": renamed]
         session.apply(words)
         #expect(handle.isFetching)
         await session.settleWrites()
-        #expect(handle.value?.memberCount == 2)
+        #expect(handle.value == renamed)
         #expect(!handle.isStale)
 
         session.apply(location: .sectionRoot(.persons))
         session.apply(words)
         #expect(handle.isStale)
         #expect(!handle.isFetching)
+        #expect(handle.value == renamed)
     }
 
     /// T-9 (AC-1.5, AC-1.7): a per-entity key always follows its own handle, and

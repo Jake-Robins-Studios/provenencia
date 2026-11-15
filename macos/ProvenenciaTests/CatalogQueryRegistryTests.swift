@@ -1602,7 +1602,7 @@ struct CatalogQueryRegistryTests {
         }
     }
 
-    /// A write that touches a handle revalidates the cached `personFamily` key through `touchedHandles`;
+    /// A write that touches a handle revalidates the cached `personFamily` key through its own handle;
     /// the key is marked stale while hidden.
     @Test func personFamilyRevalidateOnTouchedHandle() {
         let session = makeSession()
@@ -1649,7 +1649,7 @@ struct CatalogQueryRegistryTests {
         }
     }
 
-    /// A write that touches a handle revalidates the cached `personEvents` key through `touchedHandles`;
+    /// A write that touches a handle revalidates the cached `personEvents` key through its own handle;
     /// the key is marked stale while hidden.
     @Test func personEventsRevalidateOnTouchedHandle() {
         let session = makeSession()
