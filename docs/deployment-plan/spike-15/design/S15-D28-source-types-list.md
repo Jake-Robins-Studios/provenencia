@@ -173,7 +173,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | List shell and footer | Snowflake | Ship | `VocabularyListPane` in `macos/App/Features/CatalogVocabulary/VocabularyListPane.swift` | Its columns are parameters; the Metadata page shares it unchanged |
 | Columns | Snowflake | Extend | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | Used by, and Description at Wide |
 | Label cell | Component | Ship | `PVMark` + `OriginPill` (`macos/App/Features/Catalog/OriginMarkers.swift`) | As today; origin is not a column |
-| Count cells | Snowflake | Ship | the Associated fields cell's text: the kit's mono type at the micro size (`PVFont.mono`, `PVTypeScale.micro`), secondary color, faint for "—" | Used by copies it; "—" for 0 |
+| Count cells | Snowflake | Extend (one cell for both count columns) | the Associated fields cell's text: the kit's mono type at the micro size (`PVFont.mono`, `PVTypeScale.micro`), secondary color, faint for "—" | Used by and Associated fields share one count cell; "—" for 0 |
 | Wide band | Component | Ship (a second caller) | `.pvListBand(_:)` in `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift`, `PVSpacing.widthListWideMax` | TL-W1; the Sources list is the first caller |
 | Empty state | Component | Ship | `PVEmptyState` | As today |
 | Load failure | Component | Ship | `PVCallout` (danger) | As today |

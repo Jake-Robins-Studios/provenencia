@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/swift-tests.mdc`, `.cursor/rules/macos-client.mdc`
 **Context:** working rule "A Source type has its own page" ([map](../deployment-plan.md#working-rules)); [`docs/macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide) (rule 3 and `pvListBand`); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (Properties, Metadata row); [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Planned:** 2026-11-15 against `main` @ `887339a`
-**Review:** — (not reviewed yet)
+**Review:** [`S15-49-source-types-list.review.md`](S15-49-source-types-list.review.md) — Fits with changes / Not ready (board undrawn), round 1; no open blocker but the board
 
 ### Implementer — read this first
 
@@ -79,6 +79,7 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 | A detail beside the list at Wide (§ 9 "List → detail page" long term) | not planned for Source types: the page opens in place of the list |
 | The Metadata page's list, its columns and Wide | [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) Properties, Metadata row |
 | Column filters, resizing, search in the list | not planned (the omnibar finds a type) |
+| Keeping `usedBy` fresh by a reported usage read or a row patch, as `.metadataFieldsList` does, instead of reloading the list on a Source write | not planned (review M-3: about 30 rows reload on `.createdSource`, `.deletedSource`, `.changedSourceType`) |
 | Remembering the sort across launches | not planned (today's sort lives on the model; S15-04 saved the Sources list's because its board asked) |
 
 ## 4. Current state
@@ -104,12 +105,12 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | **Columns.** `SourceTypesListPane.columns(_ widthClass: PVWidthClass) -> [PVTableColumn<CatalogSourceType>]` *(new, `static`)* replaces the private instance `columns`; it, `usageColumnWidth` and `descriptionColumnID` are internal (no `private`) so T-2 reads them. Regular: `label` (flexible), `key` (160), `fields` (132), `usage` (120) *(new)*. Wide: `label` (flexible), `description` *(new, flexible, `sortable: false`)*, `key`, `fields`, `usage`. Every column but `description` is `sortable: true`. Column ids are `SourceTypesModel.SortColumn` raw values, except `description`, a `static let descriptionColumnID = "description"` on the pane | TL-1, TL-W2, TL-3; static so the order is tested without a view (T-2); the cells read only the row | An `isWide` flag on the model — width is a view concern; a `SourceTypesListColumns` type like the Sources list's — `PVTable` already owns the widths |
-| D-2 | **Used by cell.** A copy of the Fields cell reading `usedBy`: `Text(type.usedBy > 0 ? "\(type.usedBy)" : L10n.string(L10n.SourceTypes.countNone))`, `PVFont.mono(size: PVTypeScale.micro)`, `PVColor.textSecondary`, `PVColor.textFaint` at 0. No identifier beyond what `PVTable` gives the header (`sortAccessibilityIdentifier`, `sourceTypes.sortBy.usage`); the row stays one combined element. Width `usageColumnWidth: CGFloat = 120` *(new)* beside the two width constants | TL-1; one look for both count columns | A "41 sources" phrase — the header names the unit and the Fields column is bare too |
+| D-1 | **Columns.** `SourceTypesListPane.columns(_ widthClass: PVWidthClass) -> [PVTableColumn<CatalogSourceType>]` *(new, `static`)* replaces the private instance `columns`; it, `usedByColumnWidth` and `descriptionColumnID` are internal (no `private`) so T-2 reads them. Regular: `label` (flexible), `key` (160), `fields` (132), `usedBy` (120) *(new)*. Wide: `label` (flexible), `description` *(new, flexible, `sortable: false`)*, `key`, `fields`, `usedBy`. Every column but `description` is `sortable: true`. Column ids are `SourceTypesModel.SortColumn` raw values, except `description`, a `static let descriptionColumnID = "description"` on the pane, with a doc comment saying a column that does not sort takes a pane constant | TL-1, TL-W2, TL-3; static so the order is tested without a view (T-2); the cells read only the row | An `isWide` flag on the model — width is a view concern; a `SourceTypesListColumns` type like the Sources list's — `PVTable` already owns the widths |
+| D-2 | **One count cell.** `private static func countCell(_ count: Int) -> some View` *(new)* on `SourceTypesListPane` holds today's Fields cell (`Text(count > 0 ? "\(count)" : L10n.string(L10n.SourceTypes.countNone))`, `PVFont.mono(size: PVTypeScale.micro)`, `PVColor.textSecondary`, `PVColor.textFaint` at 0); the `fields` column calls it with `suggestedFieldCount`, the `usedBy` column with `usedBy`. Width `usedByColumnWidth: CGFloat = 120` *(new)* beside the two width constants. No identifier beyond what `PVTable` gives the header (`sourceTypes.sortBy.usedBy`); the row stays one combined element | TL-1; one count look in one place (review M-1), with D-5's one dash | A copy of the Fields cell — two copies of one rule; a "41 sources" phrase — the header names the unit |
 | D-3 | **Description cell.** `Text(type.description)`, `PVFont.body(size: PVTypeScale.bodySmall)`, `PVColor.textMuted`, `.lineLimit(1)`, `.truncationMode(.tail)`; an empty description draws the empty `Text`. Flexible width, sharing the free width equally with Label (D-1). If the agreed board gives Label a fixed width at Wide, that width goes on the `label` column at `.wide` only and this row is updated before Planned | TL-W2; `PVTable` already splits flexible columns | A wrapped two-line cell — rows would change height between widths and between types |
 | D-4 | **Band.** `SourceTypesContent` reads `@Environment(\.pvWidthClass) private var widthClass` and applies `.pvListBand(widthClass)` right after the `VStack`'s `.frame(maxWidth: .infinity, maxHeight: .infinity)` and before `.background(PVColor.surfacePage)`, as `SourcesListView` does. The spinner `SourceTypesView.body` shows before the handle exists stays outside the band: it is a centered `ProgressView` filling the pane, so it sits in the same place banded or not. Header, divider, callout and list sit inside the band; background and the Add dialog stay full width. `SourceTypesListPane` reads the same environment value for D-1 | TL-W1, TL-4; the kit modifier's second caller; one structure at both widths keeps highlight and scroll (AC-2.5) | A frame in `VocabularyListPane` — Metadata would change too (Out) |
 | D-5 | **One dash key.** `L10n.SourceTypes.fieldCountNone` (`sourceTypes.list.fieldCountNone`) is renamed `countNone` (`sourceTypes.list.countNone`, "—", comment "Shown in a count column (Associated fields, Used by) when the count is 0"); the old key leaves `Localizable.xcstrings` | Two columns, one meaning; a second "—" key is a copy | Keeping the field-named key for both — its name and comment would lie |
-| D-6 | **Sort.** `SourceTypesModel.SortColumn` gains `case usage`. `compare` for `.usage` is the `.fields` branch on `usedBy`: equal counts → `label.localizedCaseInsensitiveCompare`, else by count. `sortBy` is unchanged (a new column starts ascending) | TL-2 and "Sort behaves as today" (map scope); ties follow the direction as Fields' do (brief § 2) | Ties always A→Z — would change the Fields column's behavior too |
+| D-6 | **Sort.** `SourceTypesModel.SortColumn` gains `case usedBy`. `compare` routes `.fields` and `.usedBy` through `private func compareCount(_ a: CatalogSourceType, _ b: CatalogSourceType, by count: KeyPath<CatalogSourceType, Int>) -> ComparisonResult` *(new)*: equal counts → `label.localizedCaseInsensitiveCompare`, else by count; today's `.fields` branch becomes that call. `sortBy` is unchanged (a new column starts ascending) | TL-2 and "Sort behaves as today" (map scope); ties follow the direction as Fields' do (brief § 2); one count compare (review M-1) | A second copy of the `.fields` branch; ties always A→Z — would change the Fields column too |
 | D-7 | **Shell stays shared.** `VocabularyListPane` keeps its shape; only its doc comment changes ("The list both vocabulary destinations share" — no "left pane"). No move into `Features/Metadata/` | Map scope: the list stays on it while its columns are parameters, which D-1 – D-4 need no more than | Moving the shell — nothing in this PR needs it |
 
 **Rules this plan bends.** None.
@@ -121,9 +122,10 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
 | `SourceTypesListPane.columns(_:)` *(new, static; replaces the instance `columns`)* | func | `SourceTypesListPane.columns` (instance) | It is that property, given the width class (D-1) |
-| `SourceTypesListPane.usageColumnWidth`, `descriptionColumnID` *(new)* | constants | `keyColumnWidth`, `fieldsColumnWidth` | Same home, same pattern |
-| `SourceTypesModel.SortColumn.usage` *(new)* | case | `.fields` | A new case of the existing sort, not a second sort |
-| `L10n.SourceTypes.columnUsage`, `columnDescription` *(new)*; `countNone` *(renamed from `fieldCountNone`)* | keys | `columnFields`, `fieldCountNone`; searched `L10n.swift` for "Description": every hit is a form label in another namespace (`sources.add.formDescription` and the detail forms), none a list column header; keys stay in the feature's namespace (`VocabularyListStrings`' rule) | New headers; the dash is shared (D-5) |
+| `SourceTypesListPane.usedByColumnWidth`, `descriptionColumnID` *(new)* | constants | `keyColumnWidth`, `fieldsColumnWidth` | Same home, same pattern |
+| `SourceTypesModel.SortColumn.usedBy` *(new)* | case | `.fields` | A new case of the existing sort, not a second sort |
+| `SourceTypesListPane.countCell(_:)`, `SourceTypesModel.compareCount(_:_:by:)` *(new, private)* | funcs | the Fields cell; `compare`'s `.fields` branch | They are those, shared by the two count columns (D-2, D-6) |
+| `L10n.SourceTypes.columnUsedBy`, `columnDescription` *(new)*; `countNone` *(renamed from `fieldCountNone`)* | keys | `columnFields`, `fieldCountNone`; searched `L10n.swift` for "Description": every hit is a form label in another namespace (`sources.add.formDescription` and the detail forms), none a list column header; keys stay in the feature's namespace (`VocabularyListStrings`' rule) | New headers; the dash is shared (D-5) |
 | `.pvListBand` caller | kit call | `SourcesListView` | Reused as is |
 
 **Builds on.** `PVTable` columns as the one source of widths; `pvListBand` and `PVSpacing.widthListWideMax` (S15-04); `\.pvWidthClass`; the `.sourceTypesList` key's existing invalidation.
@@ -134,7 +136,7 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
-| Sort by `usage` | `SourceTypesModel.visibleTypes` | A gone or new type is a row change of the cached list; the sort recomputes from `types` |
+| Sort by `usedBy` | `SourceTypesModel.visibleTypes` | A gone or new type is a row change of the cached list; the sort recomputes from `types` |
 | The list inside the band at Wide | `SourceTypesContent` | Loading, empty and failed states draw inside it (TL-4); the Add dialog is attached outside it |
 
 ### Scale
@@ -143,7 +145,7 @@ At the map's Scale (about 30 types; a seeded project has 26): two more cells per
 
 ### Edges
 
-- **Assumptions.** `compare` returns a strict order: `usage` falls back to label, as `fields` does. Two types with the same label and the same count compare equal; their relative order is whatever `sorted(by:)` gives, as for `fields` today, and no test pins it.
+- **Assumptions.** `compare` returns a strict order: `usedBy` falls back to label, as `fields` does. Two types with the same label and the same count compare equal; their relative order is whatever `sorted(by:)` gives, as for `fields` today, and no test pins it.
 - **Neighbors.** `usedBy` 0 → "—" (not "0"); 1 → "1". Description empty → empty cell (no "—": a dash would read as a count). Pane exactly 1600pt → Wide (`PVWidthClass(paneWidth:)` uses `>=`, unchanged).
 - **Removed inputs.** A Source deleted or retyped elsewhere: `.deletedSource` and `.changedSourceType` invalidate the list (AC-1.5 for create); the count is never derived in Swift.
 - **Real data.** None — no table-driven rule.
@@ -176,18 +178,18 @@ Frames (until the board link is on the **Board** line): 1a Regular — header, t
 
 ### Strings
 
-L10n keys *(new)*: `L10n.SourceTypes.columnUsage` (`sourceTypes.list.columnUsage`) = "Used by", comment "Source types list column header: how many sources are classified as the type"; `L10n.SourceTypes.columnDescription` (`sourceTypes.list.columnDescription`) = "Description", comment "Source types list column header, shown on wide windows: the type's description". Renamed: `fieldCountNone` → `countNone` (D-5). No copy names an old scope.
+L10n keys *(new)*: `L10n.SourceTypes.columnUsedBy` (`sourceTypes.list.columnUsedBy`) = "Used by", comment "Source types list column header: how many sources are classified as the type"; `L10n.SourceTypes.columnDescription` (`sourceTypes.list.columnDescription`) = "Description", comment "Source types list column header, shown on wide windows: the type's description". Renamed: `fieldCountNone` → `countNone` (D-5). No copy names an old scope.
 
 ## 7. Steps
 
-**STEP-1 — Sort by usage**
+**STEP-1 — Sort by Used by**
 Files: `macos/App/Features/SourceTypes/SourceTypesModel.swift`, `macos/ProvenenciaTests/SourceTypesModelTests.swift`. Skill: `add-swift-test`.
-Do: D-6; T-1.
+Do: D-6 (with `compareCount`); T-1.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'` passes `SourceTypesModelTests`.
 
 **STEP-2 — Columns by width class**
 Files: `SourceTypesListPane.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `SourceTypesModelTests.swift`. Skills: `add-ui-component`, `add-localized-string`.
-Do: D-1, D-2, D-3, D-5; the pane reads `@Environment(\.pvWidthClass)` and passes `Self.columns(widthClass)`; its doc comment reads "The Source types list's table (S15-D28 TL-1 – TL-W2): the shared `VocabularyListPane` around this destination's columns — label with origin pill, Description at Wide, mono key, suggested-field count, usage — sortable by all but Description." T-2.
+Do: D-1, D-2 (with `countCell`), D-3, D-5; the pane reads `@Environment(\.pvWidthClass)` and passes `Self.columns(widthClass)`; its doc comment reads "The Source types list's table (S15-D28 TL-1 – TL-W2): the shared `VocabularyListPane` around this destination's columns — label with origin pill, Description at Wide, mono key, suggested-field count, usage — sortable by all but Description." T-2.
 Check: `xcodebuild test` passes T-2; `rg -n 'fieldCountNone' macos .agents .cursor docs/*.md` prints nothing (this plan keeps the old name). The new xcstrings entries go where Xcode sorts them (by key); the old `sourceTypes.list.fieldCountNone` entry is removed.
 
 **STEP-3 — The Wide band**
@@ -206,8 +208,8 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `macos/ProvenenciaTests/SourceTypesModelTests.swift` `sortingByUsageOrdersByCountThenLabel` *(new)* | `catalogSourceType("a", label: "Atlas", origin: "user", usedBy: 5)`, `catalogSourceType("b", label: "Book", origin: "user", usedBy: 0)`, `catalogSourceType("c", label: "Census", origin: "user", usedBy: 5)`, through `makeModel(store:types:)` and `warm`; `sortBy("usage")` → `sortColumn == .usage`, ascending, ids `["b","a","c"]`; `sortBy("usage")` → `["c","a","b"]`; `sortBy("label")` → ascending, `["a","b","c"]` | AC-1.2, AC-1.3, AC-1.4, D-6 |
-| T-2 | Swift | `SourceTypesModelTests.swift` `listColumnsFollowTheWidthClass` *(new)* | `SourceTypesListPane.columns(.regular).map(\.id) == ["label","key","fields","usage"]`; `.columns(.wide).map(\.id) == ["label","description","key","fields","usage"]`; in `.wide`, `sortable` is false only for `"description"`; widths: `usage` 120, `description` nil, `label` nil | AC-1.1, AC-2.2, AC-2.3, AC-2.4, D-1 |
+| T-1 | Swift | `macos/ProvenenciaTests/SourceTypesModelTests.swift` `sortingByUsedByOrdersByCountThenLabel` *(new)* | `catalogSourceType("a", label: "Atlas", origin: "user", usedBy: 5)`, `catalogSourceType("b", label: "Book", origin: "user", usedBy: 0)`, `catalogSourceType("c", label: "Census", origin: "user", usedBy: 5)`, through `makeModel(store:types:)` and `warm`; `sortBy("usedBy")` → `sortColumn == .usage`, ascending, ids `["b","a","c"]`; `sortBy("usedBy")` → `["c","a","b"]`; `sortBy("label")` → ascending, `["a","b","c"]` | AC-1.2, AC-1.3, AC-1.4, D-6 |
+| T-2 | Swift | `SourceTypesModelTests.swift` `listColumnsFollowTheWidthClass` *(new)* | `SourceTypesListPane.columns(.regular).map(\.id) == ["label","key","fields","usedBy"]`; `.columns(.wide).map(\.id) == ["label","description","key","fields","usedBy"]`; in `.wide`, `sortable` is false only for `"description"`; widths: `usedBy` 120, `description` nil, `label` nil | AC-1.1, AC-2.2, AC-2.3, AC-2.4, D-1 |
 
 **Where checks run.** `xcodebuild`, `scripts/check-pr.sh` and the manual check need a Mac with Xcode; `rg`, `python3 scripts/check-plan-docs.py` and `python3 scripts/check-guidance-names.py` run anywhere.
 
