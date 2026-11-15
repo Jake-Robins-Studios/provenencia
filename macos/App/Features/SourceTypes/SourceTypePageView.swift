@@ -49,13 +49,12 @@ struct SourceTypePageView: View {
         .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.page.toast")
         .workspaceLeaveGuard(model)
         .leavesForSectionRoot(when: model.isGone)
-        .pvConfirm(
-            item: leaveBinding,
+        .workspaceLeaveConfirm(
+            pending: { model.pendingLeave },
             copy: { _ in .discardChanges },
-            tone: .danger,
             accessibilityIdentifierPrefix: "sourceTypes.page.leave",
-            onConfirm: { model.discardAndLeave() },
-            detail: { _ in EmptyView() }
+            onDiscard: { model.discardAndLeave() },
+            onKeepEditing: { model.keepEditing() }
         )
         .pvDeleteImpact(
             flow: model.deleteImpact,
@@ -69,20 +68,6 @@ struct SourceTypePageView: View {
         )
         .task { model.warm() }
         .accessibilityIdentifier("sourceTypes.page")
-    }
-
-    /// Cancel and Escape on the discard confirm keep the edit and drop the held move.
-    private var leaveBinding: Binding<SourceTypePageModel.PendingLeave?> {
-        Binding(
-            get: { model.pendingLeave },
-            set: { newValue in
-                if newValue == nil {
-                    model.keepEditing()
-                } else {
-                    model.pendingLeave = newValue
-                }
-            }
-        )
     }
 }
 

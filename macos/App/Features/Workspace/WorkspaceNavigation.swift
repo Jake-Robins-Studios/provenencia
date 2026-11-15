@@ -352,6 +352,28 @@ struct LeavesForSectionRoot: ViewModifier {
     }
 }
 
+/// The ask a guarded page raises when a move away is held and the page has nothing to say about
+/// it beyond "discard or keep editing". A page whose ask carries a payload uses its own item type.
+struct WorkspaceLeaveAsk: Identifiable, Equatable {
+    let id = UUID()
+}
+
+/// The binding under a guarded page's discard confirm: it reads the page's ask, and clearing it
+/// (Cancel, Escape, a click outside) is the page's keep-editing answer.
+enum WorkspaceLeaveConfirm {
+    static func binding<Item>(
+        pending: @escaping () -> Item?,
+        keepEditing: @escaping () -> Void
+    ) -> Binding<Item?> {
+        Binding(
+            get: pending,
+            set: { newValue in
+                if newValue == nil { keepEditing() }
+            }
+        )
+    }
+}
+
 /// Installs a page's leave guard while the page is on screen: sets the guard's `navigation` and the
 /// navigation's `leaveGuard`, and clears `leaveGuard` on disappear when it is still this guard's.
 struct WorkspaceLeaveGuardInstall<Guard: WorkspaceLeaveGuard>: ViewModifier {
@@ -378,6 +400,26 @@ extension View {
     /// not ask). One install for every page that holds unsaved work.
     func workspaceLeaveGuard(_ leaveGuard: some WorkspaceLeaveGuard) -> some View {
         modifier(WorkspaceLeaveGuardInstall(leaveGuard: leaveGuard))
+    }
+
+    /// The discard confirm of a guarded page: shown while `pending` is non-nil, Discard runs
+    /// `onDiscard`, and every other way out of it runs `onKeepEditing`. One confirm for every page
+    /// that installs `workspaceLeaveGuard(_:)`.
+    func workspaceLeaveConfirm<Item: Identifiable>(
+        pending: @escaping () -> Item?,
+        copy: @escaping (Item) -> PVConfirmCopy,
+        accessibilityIdentifierPrefix: String,
+        onDiscard: @escaping () -> Void,
+        onKeepEditing: @escaping () -> Void
+    ) -> some View {
+        pvConfirm(
+            item: WorkspaceLeaveConfirm.binding(pending: pending, keepEditing: onKeepEditing),
+            copy: copy,
+            tone: .danger,
+            accessibilityIdentifierPrefix: accessibilityIdentifierPrefix,
+            onConfirm: onDiscard,
+            detail: { _ in EmptyView() }
+        )
     }
 
     /// Leaves for the section's list when `gone` is true (the entity the page shows no longer exists),

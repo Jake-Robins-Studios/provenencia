@@ -57,8 +57,8 @@ struct PromoteView: View {
             let _: QueryHandle<[CatalogSourceType]> = model.session.query(model.sourceTypesKey)
             await model.load()
         }
-        .pvConfirm(
-            item: leaveBinding,
+        .workspaceLeaveConfirm(
+            pending: { model.pendingLeave },
             copy: { _ in
                 PVConfirmCopy(
                     title: L10n.string(L10n.Promote.leaveTitle),
@@ -67,10 +67,9 @@ struct PromoteView: View {
                     cancel: L10n.Promote.leaveCancel
                 )
             },
-            tone: .danger,
             accessibilityIdentifierPrefix: "promote.leave",
-            onConfirm: { model.leave() },
-            detail: { _ in EmptyView() }
+            onDiscard: { model.leave() },
+            onKeepEditing: { model.keepPromoting() }
         )
     }
 
@@ -240,13 +239,6 @@ struct PromoteView: View {
             ? L10n.Promote.sectionCount(total)
             : L10n.Promote.sectionCountPromoted(rows: total, promoted: promoted.count)
         return Section(id: id, title: title, meta: meta, rows: rows, anchors: promoted)
-    }
-
-    private var leaveBinding: Binding<PromoteModel.PendingLeave?> {
-        Binding(
-            get: { model.pendingLeave },
-            set: { if $0 == nil { model.keepPromoting() } }
-        )
     }
 }
 

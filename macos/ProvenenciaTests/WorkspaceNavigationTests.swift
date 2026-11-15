@@ -977,4 +977,17 @@ struct WorkspaceLeaveGuardInstallTests {
         host.layoutSubtreeIfNeeded()
         #expect(navigation.leaveGuard === other)
     }
+
+    @Test func confirmCancelKeepsEditing() {
+        var kept = 0
+        let ask: WorkspaceLeaveAsk? = WorkspaceLeaveAsk()
+        let binding = WorkspaceLeaveConfirm.binding(pending: { ask }, keepEditing: { kept += 1 })
+        #expect(binding.wrappedValue == ask)
+
+        binding.wrappedValue = nil
+        #expect(kept == 1)
+
+        binding.wrappedValue = WorkspaceLeaveAsk()
+        #expect(kept == 1)
+    }
 }

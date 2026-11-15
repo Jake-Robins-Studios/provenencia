@@ -9,11 +9,6 @@ import Observation
 @MainActor
 @Observable
 final class SourceTypePageModel {
-    /// A leave the researcher is asked about while Details hold unsaved edits.
-    struct PendingLeave: Identifiable, Equatable {
-        let id = UUID()
-    }
-
     let typeID: String
 
     /// The Details form's values; set from the saved type once it is known (`syncDraft()`).
@@ -36,7 +31,7 @@ final class SourceTypePageModel {
     var deleteError: String? { deleteImpact.error }
 
     /// Set while a leave waits on the discard confirm.
-    var pendingLeave: PendingLeave?
+    var pendingLeave: WorkspaceLeaveAsk?
     /// The navigation this page guards (`.workspaceLeaveGuard(_:)` sets it).
     @ObservationIgnored
     weak var navigation: WorkspaceNavigation?
@@ -308,7 +303,7 @@ extension SourceTypePageModel: WorkspaceLeaveGuard {
     func shouldHoldNavigation(_ pending: PendingNavigation) -> Bool {
         _ = pending
         guard isDirty, !isSaving else { return false }
-        pendingLeave = PendingLeave()
+        pendingLeave = WorkspaceLeaveAsk()
         return true
     }
 
