@@ -70,4 +70,4 @@ No new blockers. No Fix plan 2.
 Merged `origin/main` @ `2fa6bc6ef` (S15-D27 brief and S15-48 plan, docs only; no reference to the old key enum or `.source` follows). Gate PASS against `2fa6bc6ef`.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: MNT-1 (answered: drop D-7's smaller-set branch, 2026-11-15)
+Gate PASS · CI green · open: none · follow-ups: none · to user: MNT-1 (answered: drop D-7's smaller-set branch, 2026-11-15)
