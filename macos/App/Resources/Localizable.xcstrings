@@ -7156,6 +7156,18 @@
         }
       }
     },
+    "sourceTypes.page.goneNoticeUnnamed": {
+      "comment": "Notice after leaving a Source type page whose type is gone before the page ever showed its label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This source type no longer exists."
+          }
+        }
+      }
+    },
     "sourceTypes.page.loadErrorTitle": {
       "comment": "Title of the retry notice on a Source type's page when the types list could not be read",
       "extractionState": "manual",

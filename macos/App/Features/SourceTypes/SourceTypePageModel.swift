@@ -105,7 +105,11 @@ final class SourceTypePageModel {
 
     /// The notice to show as the page leaves for the list: nil unless the type is gone.
     var goneNotice: String? {
-        isGone ? L10n.SourceTypes.goneNotice(label: lastLabel) : nil
+        guard isGone else { return nil }
+        let label = lastLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return label.isEmpty
+            ? L10n.string(L10n.SourceTypes.goneNoticeUnnamed)
+            : L10n.SourceTypes.goneNotice(label: lastLabel)
     }
 
     /// A plugin's type: read only.

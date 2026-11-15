@@ -141,6 +141,15 @@ struct SourceTypePageModelTests {
         #expect(model.goneNotice == L10n.SourceTypes.goneNotice(label: "Book"))
     }
 
+    /// UX-8: a type gone before the page ever named it gets a notice without an empty label.
+    @Test func aTypeGoneBeforeItWasShownGetsAnUnnamedNotice() async {
+        let (model, _) = await makePageModel(typeID: "missing", types: [seededSourceType()])
+        model.noteLabel(model.type?.label)
+        #expect(model.isGone)
+        #expect(model.goneNotice == L10n.string(L10n.SourceTypes.goneNoticeUnnamed))
+        #expect(model.goneNotice?.contains("“”") == false)
+    }
+
     @Test func changingIconMarksDirtyAndPersists() async {
         let (model, _) = await makePageModel(typeID: "t2", types: [userSourceType()])
         #expect(model.draft?.iconKey == PVMarkKey.defaultTypeMark.rawValue)

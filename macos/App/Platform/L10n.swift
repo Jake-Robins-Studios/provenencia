@@ -8069,6 +8069,12 @@ enum L10n {
             ), label)
         }
 
+        static let goneNoticeUnnamed = LocalizedStringResource(
+            "sourceTypes.page.goneNoticeUnnamed",
+            defaultValue: "This source type no longer exists.",
+            comment: "Notice after leaving a Source type page whose type is gone before the page ever showed its label"
+        )
+
         static let pageLoadErrorTitle = LocalizedStringResource(
             "sourceTypes.page.loadErrorTitle",
             defaultValue: "The source type could not be loaded",
