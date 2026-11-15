@@ -11,7 +11,7 @@ struct VocabularyListStrings {
     let resultLine: (_ shown: Int, _ total: Int) -> String
 }
 
-/// The left pane both vocabulary destinations share: a `PVTable` of the rows
+/// The list both vocabulary destinations share: a `PVTable` of the rows
 /// with a result-count footer. Find lives in the workspace omnibar (S3-10).
 struct VocabularyListPane<Row: CatalogVocabularyRow>: View {
     /// The vocabulary size — decides empty-project vs loaded table.

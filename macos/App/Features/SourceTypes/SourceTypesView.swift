@@ -41,6 +41,7 @@ struct SourceTypesView: View {
 private struct SourceTypesContent: View {
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourceTypesModel
+    @Environment(\.pvWidthClass) private var widthClass
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,6 +59,7 @@ private struct SourceTypesContent: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .pvListBand(widthClass)
         .background(PVColor.surfacePage)
         .sourceTypeAddDialog($model.adding)
         .accessibilityIdentifier("sourceTypes")
