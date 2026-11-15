@@ -19,6 +19,13 @@ enum CatalogMutation: Sendable, Equatable {
     /// (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
     case createdSourceType(CatalogSourceType)
 
+    /// Save on a Source type's page: the row the engine returned, which the cached types list
+    /// takes in place of its row (`CatalogQueryPatch.sourceTypeRow()`). Patch-only.
+    case updatedSourceType(CatalogSourceType)
+
+    /// Delete on a Source type's page: the types list drops the row with this id. Patch-only.
+    case deletedSourceType(id: String)
+
     /// A field was relabelled or deleted. Each Source page restates the
     /// field's derived rows, which `source_vocabulary` cannot tell from a field
     /// create, so these two name the Source pages.
@@ -162,7 +169,7 @@ extension CatalogMutation {
     /// Kind tag for registry `invalidateOn` lookup. Nil for patch-only mutations.
     var invalidationKind: CatalogMutationKind? {
         switch self {
-        case .updatedSource, .wroteMetadataBoard, .createdSourceType:
+        case .updatedSource, .wroteMetadataBoard, .createdSourceType, .updatedSourceType, .deletedSourceType:
             return nil
         case .changedSourceType:
             return .changedSourceType
@@ -195,7 +202,11 @@ extension CatalogMutation {
 
     /// The Source type row to patch into the cached types list, if any.
     var patchedSourceType: CatalogSourceType? {
-        if case .createdSourceType(let type) = self { return type }
-        return nil
+        switch self {
+        case .createdSourceType(let type), .updatedSourceType(let type):
+            return type
+        default:
+            return nil
+        }
     }
 }

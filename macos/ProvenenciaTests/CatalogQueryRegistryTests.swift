@@ -1246,6 +1246,39 @@ struct CatalogQueryRegistryTests {
         #expect(handle.value?.filter { $0.id == "t-new" }.count == 1)
     }
 
+    /// T-5 (D-3): a saved type replaces its row, a deleted type drops it, an unknown id is not
+    /// appended, and neither write invalidates a key.
+    @Test func updatedAndDeletedSourceTypePatchTheTypesList() async {
+        let store = FakeStore()
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
+        let book = CatalogSourceType(id: "t-book", key: "book", origin: "user", label: "Book", description: "")
+        let census = CatalogSourceType(id: "t-census", key: "census", origin: "user", label: "Census", description: "")
+        store.sourceTypesByProject[projectDir] = [book, census]
+        let handle: QueryHandle<[CatalogSourceType]> = session.query(key)
+        await waitForQuery(handle)
+        #expect(handle.value == [book, census])
+
+        var renamed = census
+        renamed.label = "Population census"
+        session.apply(.empty, .updatedSourceType(renamed))
+        #expect(handle.value == [book, renamed])
+
+        let stranger = CatalogSourceType(id: "t-new", key: "map", origin: "user", label: "Map", description: "")
+        session.apply(.empty, .updatedSourceType(stranger))
+        #expect(handle.value == [book, renamed])
+
+        session.apply(.empty, .deletedSourceType(id: "t-book"))
+        #expect(handle.value == [renamed])
+        session.apply(.empty, .deletedSourceType(id: "t-book"))
+        #expect(handle.value == [renamed])
+        #expect(!handle.isFetching)
+        #expect(!handle.isStale)
+        let registry = CatalogQueryRegistry.standard
+        #expect(registry.invalidations(by: .updatedSourceType(renamed), project: session.projectKey).isEmpty)
+        #expect(registry.invalidations(by: .deletedSourceType(id: "t-book"), project: session.projectKey).isEmpty)
+    }
+
     /// F-1: the generic row patch appends a row the list lacks only when `appendsOn` says so.
     @Test func aNonCreateSourceTypeMutationForAMissingRowAddsNothing() async {
         let store = FakeStore()
