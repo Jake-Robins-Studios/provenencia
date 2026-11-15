@@ -30,8 +30,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | — | S15-45 |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| [S15-D27](archive/S15-D27-source-type-page.md) | Source type page: the page from scratch (header, details, delete, locked types, the Source suggestions), with slots named for S15-12 and S15-17; the list without its side pane; leaving with unsaved details asks; no toast after Add or Delete (user, 2026-11-15) | [agreed 2026-11-15](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): sheet icon picker, new page header, Details beside Suggested fields at every width | S15-48 (#848) |
-| S15-D28 | Source types list: columns and Wide without the side pane | — | S15-49 |
+| [S15-D28](S15-D28-source-types-list.md) | Source types list: a sortable Used by column; at Wide the Sources list's band and a Description column | — (written 2026-11-15) | S15-49 |
 
 ## Archived
 
@@ -41,3 +40,4 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | [S15-D2](archive/S15-D2-sources-list.md) | Sources list: the date on rows and as a sort | [agreed 2026-11-10](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm) | S15-04 (#774) |
 | [S15-D5](archive/S15-D5-evidence-graph-form.md) | Evidence graph form: its metadata board (two columns at 880pt, the app's first); the graph rows show saved values read-only | [agreed 2026-11-14](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): rows "Evidence graphs" (g-values …) and "Evidence graph form" (gf-meta-*) | S15-11 (#834) |
 | [S15-D26](archive/S15-D26-add-source-type-dialog.md) | Add type dialog: label, icon, description in two columns, the icon grid inline | [agreed 2026-11-14](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga) | S15-47 (#843) |
+| [S15-D27](archive/S15-D27-source-type-page.md) | Source type page: the page from scratch (header, details, delete, locked types, the Source suggestions), with slots named for S15-12 and S15-17; the list without its side pane; leaving with unsaved details asks; no toast after Add or Delete (user, 2026-11-15) | [agreed 2026-11-15](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): sheet icon picker, new page header, Details beside Suggested fields at every width | S15-48 (#848) |

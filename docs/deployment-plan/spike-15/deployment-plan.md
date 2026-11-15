@@ -140,7 +140,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
-| S15-49 | The Source types list is redesigned | 2 | Swift: the list without a side pane, its columns and its Wide layout | S15-D28 | S15-48, S15-D28 | — | Scoped |
+| S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Blocked — on board S15-D28 |
 
 ## Design track
 
@@ -173,7 +173,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D25 | Metadata page | **S15-46** | A field's unknown text |
 | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | Add type dialog | **S15-47** | Label, icon, description; Add type at the list's top right, as Add Source; how Icon is picked from inside a dialog (a sheet over it or an inline grid) |
 | [S15-D27](design/archive/S15-D27-source-type-page.md) | Source type page | **S15-48** | The page from scratch at Regular and Wide: header, details, delete, locked plugin types, today's Source suggestions; it names where S15-12's lists and S15-17's formats will sit (drawn by their own briefs); the list without its side pane as far as rows opening the page |
-| S15-D28 | Source types list | **S15-49** | The list's columns and Wide layout without the side pane |
+| [S15-D28](design/S15-D28-source-types-list.md) | Source types list | **S15-49** | A sortable Used by column at every width; at Wide the Sources list's band and a Description column; the origin stays a pill (user, 2026-11-15) |
 
 ## Slices
 
@@ -461,7 +461,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-49 — The Source types list is redesigned
 
-**Ships.** The Source types list drawn without a side pane on S15-D28's board: its columns (label, key, origin, associated fields, usage, and what the board adds, such as the description) and its Wide layout ([`macos-client-patterns.md` § 9](../../macos-client-patterns.md#9-window-widths-regular-and-wide): a list keeps a maximum width and centers when it has nothing more to show). Sort behaves as today. The list stays on `VocabularyListPane` (its columns are parameters), so the shell stays shared with Metadata; if the board needs more than parameters, the list leaves it and `VocabularyListPane` and `CatalogVocabularyRow` move into `Features/Metadata/`, and `VocabularyListPane.swift`'s doc comment is corrected.
+**Ships.** The Source types list drawn without a side pane on S15-D28's board: a Used by column at every width, sortable; the origin stays a pill in the Label cell, with no column of its own; at Wide the list centers at `widthListWideMax` with hairlines (`pvListBand`, as the Sources list) and adds a one-line Description column ([`macos-client-patterns.md` § 9](../../macos-client-patterns.md#9-window-widths-regular-and-wide)) (user, 2026-11-15). Sort behaves as today. The list stays on `VocabularyListPane` (its columns are parameters), so the shell stays shared with Metadata; if the board needs more than parameters, the list leaves it and `VocabularyListPane` and `CatalogVocabularyRow` move into `Features/Metadata/`, and `VocabularyListPane.swift`'s doc comment is corrected.
 **Not this PR.** The type page (S15-48); the Metadata page's list.
 **Check.** The list at Regular and Wide matches the board; sorting by each column still works; a row opens its page.
 **Context.** S15-D28; `SourceTypesListPane.swift`, `SourceTypesView.swift`, `Features/CatalogVocabulary/` (`VocabularyListPane`); [`docs/ideas/wide-layout.md`](../../ideas/wide-layout.md) (Source types row); skills `add-ui-component`, `add-localized-string`. Updates `macos-client-patterns.md` § 9 (Source types moves from "List with a side pane" to "List → detail page") and marks the `wide-layout.md` row landed.
