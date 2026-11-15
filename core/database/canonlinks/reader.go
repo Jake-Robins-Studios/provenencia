@@ -163,7 +163,7 @@ func (d *deriver) edge(n *graphcache.Node, l graphcache.Link) (kinship.Edge, boo
 			return kinship.Edge{}, false, err
 		}
 	}
-	from, to, keyFrom, keyTo, ok := edgeOf(n, l, nb, d.eventTypeProp, d.terms)
+	from, to, keyFrom, keyTo, ok := d.edgeOf(n, l, nb)
 	if !ok {
 		return kinship.Edge{}, false, nil
 	}
@@ -172,25 +172,21 @@ func (d *deriver) edge(n *graphcache.Node, l graphcache.Link) (kinship.Edge, boo
 
 // filedEdges reads each link filed on n that edge reads, in n.Links order.
 func (d *deriver) filedEdges(n *graphcache.Node) ([]kinship.Edge, error) {
-	var out []kinship.Edge
-	for _, l := range n.Links {
-		e, ok, err := d.edge(n, l)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			out = append(out, e)
-		}
-	}
-	return out, nil
+	return d.edgesOf(n, "")
 }
 
 // relationshipEdges reads each relationship link of n that edge reads, in
 // n.Links order: the links that are kin.
 func (d *deriver) relationshipEdges(n *graphcache.Node) ([]kinship.Edge, error) {
+	return d.edgesOf(n, vocabkey.BridgeRelationship)
+}
+
+// edgesOf reads each link filed on n that edge reads, in n.Links order, of the
+// bridge type key; an empty key is every bridge.
+func (d *deriver) edgesOf(n *graphcache.Node, bridge string) ([]kinship.Edge, error) {
 	var out []kinship.Edge
 	for _, l := range n.Links {
-		if l.BridgeTypeKey != vocabkey.BridgeRelationship {
+		if bridge != "" && l.BridgeTypeKey != bridge {
 			continue
 		}
 		e, ok, err := d.edge(n, l)

@@ -46,10 +46,10 @@ func LoadTerms(g *graphcache.Graph) (segmentcompare.Terms, error) {
 }
 
 // edgeOf reads one filed link of n as an edge between its two ends, ordered as
-// recorded, with the key it has from each. neighbor is read only when it is the
-// event end; nil is allowed otherwise. ok is false for an unregistered bridge.
-func edgeOf(n *graphcache.Node, l graphcache.Link, neighbor *graphcache.Node,
-	eventTypeProp []byte, terms segmentcompare.Terms) (from, to []byte, keyFrom, keyTo vocabkey.BridgeKey, ok bool) {
+// recorded, with the key it has from each. neighbor is the link's other end,
+// read for its event type when it is the event end. ok is false for an
+// unregistered bridge.
+func (d *deriver) edgeOf(n *graphcache.Node, l graphcache.Link, neighbor *graphcache.Node) (from, to []byte, keyFrom, keyTo vocabkey.BridgeKey, ok bool) {
 	b, ok := connectrules.LookupBridge(l.BridgeTypeKey)
 	if !ok || len(b.Endpoints) != 2 {
 		return nil, nil, vocabkey.BridgeKey{}, vocabkey.BridgeKey{}, false
@@ -69,10 +69,10 @@ func edgeOf(n *graphcache.Node, l graphcache.Link, neighbor *graphcache.Node,
 		if first == l.FromEnd {
 			end = n
 		}
-		if row, ok := graphcache.Rank1(end.Kept(eventTypeProp)); ok {
+		if row, ok := graphcache.Rank1(end.Kept(d.eventTypeProp)); ok {
 			eventType = row.TermKey
 		}
 	}
-	keyFrom, keyTo = segmentcompare.Keys(b, vocabkey.BridgeTerm(l.TermKey), vocabkey.EventType(eventType), terms)
+	keyFrom, keyTo = segmentcompare.Keys(b, vocabkey.BridgeTerm(l.TermKey), vocabkey.EventType(eventType), d.terms)
 	return from, to, keyFrom, keyTo, true
 }
