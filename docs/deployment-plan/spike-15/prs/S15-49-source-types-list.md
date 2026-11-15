@@ -130,7 +130,7 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 
 **Builds on.** `PVTable` columns as the one source of widths; `pvListBand` and `PVSpacing.widthListWideMax` (S15-04); `\.pvWidthClass`; the `.sourceTypesList` key's existing invalidation.
 **Deletes.** `L10n.SourceTypes.fieldCountNone` and its xcstrings entry (renamed, D-5); the instance `columns` property (replaced, D-1). The "left pane" wording in the two doc comments; Source types in § 9's "List with a side pane" row.
-**Next adds.** S15-12 changes what `suggestedFieldCount` counts: the `fields` column is unchanged. A later Wide-only column is one more entry in `columns(.wide)`.
+**Next adds.** S15-12 changes what `suggestedFieldCount` counts: the `fields` column is unchanged. A later optional column is one more entry with a `minTableWidth`.
 
 ### Reach
 

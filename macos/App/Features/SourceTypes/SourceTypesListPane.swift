@@ -18,7 +18,7 @@ struct SourceTypesListPane: View {
     /// A column that does not sort takes a pane constant, not a `SortColumn` raw value.
     static let descriptionColumnID = "description"
     /// Description shows from this table width (user, 2026-11-15: the Label and Description
-    /// share ~360pt each at 1200pt), at any width class.
+    /// share ~330pt each at 1200pt), at any width class.
     static let descriptionMinTableWidth: CGFloat = 1200
 
     var body: some View {

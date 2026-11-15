@@ -17,6 +17,8 @@ import SwiftUI
 /// - **Column definitions are the single source of truth for width** — the
 ///   header and the rows share them, so widths are never restated at the
 ///   call site.
+/// - Columns also decide whether they show (`minTableWidth`), so the header and
+///   the rows always agree.
 /// - Search bars and result footers are feature chrome, not table chrome;
 ///   they stay in the pane, above and below the table.
 ///
@@ -24,6 +26,13 @@ import SwiftUI
 /// multi-select, column resize/reorder, drag-and-drop, inline editing.
 
 // MARK: - Pure helpers (unit-testable without UI)
+
+enum PVTableColumnGate {
+    /// The ids of the columns that show at a table width; plain values so the geometry closure stays Sendable.
+    static func shownIDs(gates: [(id: String, minTableWidth: CGFloat?)], tableWidth: CGFloat) -> [String] {
+        gates.filter { $0.minTableWidth.map { tableWidth >= $0 } ?? true }.map(\.id)
+    }
+}
 
 enum PVTableSelection {
     /// Clamped selection movement — never wraps, matching a native macOS table.
@@ -99,7 +108,7 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
     let title: LocalizedStringResource
     let width: CGFloat?
     /// The column shows only while the table is at least this wide; nil always shows. For a
-    /// column that only adds context (a description), never one that sorts by default or
+    /// column that only adds context (a description), never a column that sorts or filters, or
     /// holds the row's name.
     let minTableWidth: CGFloat?
     let sortable: Bool
@@ -172,8 +181,8 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     @FocusState private var isFocused: Bool
     @State private var matcher = PVTableTypeSelectMatcher()
-    /// The table's own width, measured once on the outer container.
-    @State private var tableWidth: CGFloat = 0
+    /// The ids of the columns that show at the table's measured width; nil until the first measure.
+    @State private var shownIDs: [String]?
 
     init(
         rows: [Row],
@@ -211,11 +220,14 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     /// The columns that show at a table width: those with no `minTableWidth`, or one the table meets.
     static func shownColumns(_ columns: [PVTableColumn<Row>], tableWidth: CGFloat) -> [PVTableColumn<Row>] {
-        columns.filter { $0.minTableWidth.map { tableWidth >= $0 } ?? true }
+        let ids = PVTableColumnGate.shownIDs(gates: columns.map { ($0.id, $0.minTableWidth) }, tableWidth: tableWidth)
+        return columns.filter { ids.contains($0.id) }
     }
 
+
     private var shownColumns: [PVTableColumn<Row>] {
-        Self.shownColumns(columns, tableWidth: tableWidth)
+        guard let shownIDs else { return columns.filter { $0.minTableWidth == nil } }
+        return columns.filter { shownIDs.contains($0.id) }
     }
 
     var body: some View {
@@ -223,7 +235,11 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             header
             rowList
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { tableWidth = $0 }
+        .onGeometryChange(for: [String].self) { [gates = columns.map { ($0.id, $0.minTableWidth) }] proxy in
+            PVTableColumnGate.shownIDs(gates: gates, tableWidth: proxy.size.width)
+        } action: {
+            shownIDs = $0
+        }
     }
 
     /// The scrolling row list: one focus stop, list-like semantics.
