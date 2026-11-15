@@ -1,6 +1,6 @@
 # S15-12 — Source types suggest fields at each level
 
-**Status:** Blocked — re-plan on S15-48 and S15-D6. S15-48 lands D-1's `whenHidden: .markStale`, D-2 and D-5 at the Source level (`.wroteTypeSuggestions(typeId:edit:)`, `CatalogQueryPatch.typeSuggestions()` and `typeSuggestionCount()`) and D-6's `SourceTypeSuggestionList` (user, 2026-11-15); the re-plan adds `level` to them. The page this plan edits moves out of the side pane (rule "A Source type has its own page", user 2026-11-14); § 4 Current state, D-6, § 6 macOS and the manual check are redone against S15-48's page when it lands. D-1 – D-3, D-5, D-7 – D-10 (engine count, keys, mutation, copy) do not depend on where the lists are drawn and stand; D-4's per-level state moves onto S15-48's `SourceTypePageModel` and loses its clears in `applySelection`, `clearHistorySelection` and `openAdd`, which S15-47 and S15-48 delete (map review K-1); D-1 names the place by its id `.sourceTypesDetail`
+**Status:** Blocked — re-plan on S15-48 and S15-D6. S15-48 lands D-1's `whenHidden: .markStale`, D-2 and D-5 at the Source level (`.wroteTypeSuggestions(typeId:edit:)`, `CatalogQueryPatch.typeSuggestions()` and `typeSuggestionCount()`) and D-6's `SourceTypeSuggestionList` (user, 2026-11-15); the re-plan adds `level` to them. The page this plan edits moves out of the side pane (rule "A Source type has its own page", user 2026-11-14); § 4 Current state, D-6, § 6 macOS and the manual check are redone against S15-48's page when it lands. D-1 – D-3, D-5, D-7 – D-10 (engine count, keys, mutation, copy) do not depend on where the lists are drawn and stand; D-4's per-level state moves onto S15-48's `SourceTypePageModel` and loses its clears in `applySelection`, `clearHistorySelection` and `openAdd`, which S15-47 and S15-48 delete (map review K-1); D-1 names the place by its id `.sourceTypesDetail`. The re-plan also covers AC-2.6, Return adding a field and focus going back to the picker (user, 2026-11-15, S15-48 review). It needs a T-row and a manual-check step
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D6](../design/S15-D6-source-type-suggestion-levels.md), board not drawn yet
@@ -56,6 +56,7 @@ The Source types page edits three suggestion lists for the selected type, one pe
 | AC-2.3 | Page is in the Source and the Artifact lists. Remove Page from the Artifact list | `removeTypeField(level: .artifact)` once; Page leaves the Artifact list and stays in the Source list (SL-4) |
 | AC-2.4 | An assign fails at the Artifact level | The error shows in the Artifact list's Callout; the pick stays; no other list shows an error (SL-5) |
 | AC-2.5 | Add Line to Census's graph list, then open the Source page of a Census Source and Add evidence graph | The form's board offers Line (slice Check) |
+| AC-2.6 | Focus a list's picker. Type "fol", press Return, press Return again, then type "lin" and press Return twice | The first Return picks Folio in the picker's list (the combo box's own behaviour). The second Return adds Folio, as plus does. Focus goes back to the same list's picker, now empty, so the next field needs only typing and two Returns. Return with nothing picked adds nothing (user, 2026-11-15) |
 
 **US-3.** As a researcher, the types list's Associated fields column counts a type's suggestions at all three levels.
 
@@ -70,6 +71,7 @@ The Source types page edits three suggestion lists for the selected type, one pe
 | In | Covered by |
 | --- | --- |
 | Three lists on an editable type, each with its own rows, count, picker, plus, remove, empty, loading and failure (SL-1 – SL-5, SL-9, SL-10) | STEP-3 – STEP-5, AC-1.1 – AC-1.3, AC-2.1 – AC-2.4 |
+| Return adds the picked field and puts focus back in that list's empty picker. The picker and plus act as a small form, and Return submits it, as Return submits any form. The form's submit handles Return, so `PVComboBox` stays an input and gains no key handling (user, 2026-11-15) | STEP-5, AC-2.6 |
 | Read-only lists on a plugin type (SL-6); the add-type note unchanged (SL-7) | STEP-5, AC-1.4 |
 | The board's arrangement and Wide answer (SL-1, SL-W1) | STEP-5 |
 | `CatalogQueryKey.typeSuggestions` and the two type–field mutations gain a level (S15-06 D-11 Out row) | STEP-2, D-1, D-2 |
@@ -102,7 +104,7 @@ The Source types page edits three suggestion lists for the selected type, one pe
 | Mutations | `macos/App/Features/Workspace/Session/CatalogMutation.swift` `assignedTypeSuggestion(typeId:)`, `removedTypeSuggestion(typeId:)` and their `Kind` arms | No level. `.sourceWorkspace` invalidates `.allCached(.sourceWorkspace)` on both (its `default:` arm), which is what makes AC-2.5 true; it stays |
 | Place | `macos/App/Features/Workspace/Session/PlaceRegistry.swift` spec `.sourceTypesDetail` `queryKeys` | Warms one `typeSuggestions` key |
 | Model | `macos/App/Features/SourceTypes/SourceTypesModel.swift` `suggestionsKey(for:typeID:)`, `warmSuggestions(for:)`, `suggestions`, `isLoadingSuggestions`, `suggestionError`, `assignPick`, `isAssigning`, `removingFieldID`, `assignPool`, `canAssign`, `pickedField`, `assignTooltip`, `assignAccessibilityLabel`, `assignPickedField()`, `removeSuggestion(fieldID:)`, `patchSuggestions(_:typeID:)`, `applySelection`, `clearHistorySelection`, `openAdd` | One list, every call `level: .source`; one pick, one error |
-| View | `macos/App/Features/SourceTypes/SourceTypesDetailPane.swift` `suggestedFields(isLocked:)`, `emptySuggestions`, `suggestionRows(isLocked:)`, `assignControl`, `assignListMaxHeight`, `poolRow`, `poolOptions` | One section; a failed read shows nothing |
+| View | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` (S15-48 moved the side pane's suggestion section here; re-verify its members on re-plan) `assignControl`, `assignListMaxHeight`, `poolRow`, `poolOptions` | One section; a failed read shows nothing |
 | List column | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` (column `L10n.SourceTypes.columnFields`) | Shows `suggestedFieldCount`; no change needed |
 | Preview | `macos/App/Features/SourceTypes/SourceTypesView.swift` `#Preview` | Seeds `store.suggestionsByType["t2"]`, `["t4"]` |
 | Fake | `macos/App/Platform/FakeStore.swift` `suggestionsByLevel`, `suggestionsByType` (alias), `suggestedFieldCount(typeID:)`, `suggestedFieldCountOverride` | Count reads the `.source` level only |
@@ -308,6 +310,7 @@ Run on a Mac with the app built (the `run` skill), at Regular and with the windo
 3. In the Artifact list add Page (also in the Source list if seeded there). Remove it from the Artifact list; the Source list keeps it.
 4. Select a plugin type (the app's FakeStore preview `SourceTypesView` `#Preview` has one, t5 Grave memorial; a dogfood project may have none): read-only lists with counts and empty copy, no picker, plus or remove (AC-1.4). Add a type: the note shows instead of the lists. Stretch the window past 1600pt of pane: the board's Wide arrangement; a pick in progress survives.
 5. Slice Check: open a Census Source, Add evidence graph — Item and Line are offered on the form's board. Open an existing graph's Edit — Line shows as a suggestion.
+6. In the Evidence graph list's picker type "fol", press Return, then Return again: Folio is added and focus is back in the empty picker. Type "lin", press Return twice: Line is added. Press Return in the empty picker: nothing is added (AC-2.6).
 
 ## 11. Risks and stop conditions
 
