@@ -17,6 +17,8 @@
 
 **Runs on macOS.** STEP-3 to STEP-5 and the Xcode half of `scripts/check-pr.sh` need Xcode. On a machine without `xcodebuild`, do STEP-1 and STEP-2 and the Go checks, then stop and report that the Swift steps need a macOS runner.
 
+**Landed.** Differences from the plan: D-11's STEP-3 to STEP-6 landed in one commit (`b88d0b651`) because the registry, `CatalogLastUpdated.swift` and `WorkspaceSession.swift` edits interleave. D-7's smaller-set swap is dropped: `Set.isDisjoint` already iterates the smaller set, so `revalidatedKeys` calls it once (user, 2026-11-15). `core/database/effects/evidence_graphs_test.go` now expects an Artifact label edit to move `source_records`. The `CatalogQueryRegistryTests` `personFamilyRevalidateOnTouchedHandle` and `personEventsRevalidateOnTouchedHandle` declared-follows lists are updated (their reload expectations are unchanged). The five old follow tests are replaced by T-6 to T-9, and `personClaimsFollowHandlesAndGraphs` is rewritten without its `.source` half. T-8's final assertions compare the whole refreshed value (`handle.value == renamed`).
+
 ### Implementer — read this first
 
 1. **This file is the whole task.** Read it top to bottom before you change code. Then read every file under **Current state** and load every skill under **Skills to load**.
