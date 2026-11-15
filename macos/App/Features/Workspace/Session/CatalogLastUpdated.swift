@@ -51,6 +51,15 @@ extension CatalogPersonSummary: CatalogListRow {}
 extension CatalogEventSummary: CatalogListRow {}
 extension CatalogPlaceSummary: CatalogListRow {}
 
+/// `rows` in key order; rows with an equal key keep their given order.
+fileprivate func sortedByListKey<Row: CatalogListRow>(_ rows: [Row]) -> [Row] {
+    rows.enumerated()
+        .sorted { a, b in
+            a.element.listKey == b.element.listKey ? a.offset < b.offset : a.element.listKey < b.element.listKey
+        }
+        .map(\.element)
+}
+
 extension Array where Element: CatalogListRow {
     /// Drops the rows of `ids` and of `fresh`, then puts each `fresh` row where its key falls. The
     /// list was in key order and stays so: one pass drops, `fresh` is sorted (stably) by key, and
@@ -59,11 +68,7 @@ extension Array where Element: CatalogListRow {
         var dropped = Set(ids)
         for row in fresh { dropped.insert(row.id) }
         let kept = filter { !dropped.contains($0.id) }
-        let added = fresh.enumerated()
-            .sorted { a, b in
-                a.element.listKey == b.element.listKey ? a.offset < b.offset : a.element.listKey < b.element.listKey
-            }
-            .map(\.element)
+        let added = sortedByListKey(fresh)
         var merged: [Element] = []
         merged.reserveCapacity(kept.count + added.count)
         var k = 0
@@ -143,11 +148,7 @@ struct CatalogListRows<Row: CatalogListRow>: Sendable, RandomAccessCollection, E
             keys = Dictionary(rows.map { ($0.id, $0.listKey) }, uniquingKeysWith: { _, last in last })
             return
         }
-        let added = fresh.enumerated()
-            .sorted { a, b in
-                a.element.listKey == b.element.listKey ? a.offset < b.offset : a.element.listKey < b.element.listKey
-            }
-            .map(\.element)
+        let added = sortedByListKey(fresh)
         for row in added {
             let key = row.listKey
             rows.insert(row, at: upperBound(of: key))
