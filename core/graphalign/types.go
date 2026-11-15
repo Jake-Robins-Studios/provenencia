@@ -1,5 +1,5 @@
 // Package graphalign proposes a handle, New, or Skip for every primary
-// Subject on one Evidence layer (S9-41). Pure: no catalog I/O. S9-42 loads
+// Subject on one Evidence layer (S9-41). Pure: no catalog I/O. Promote loads
 // a Layer and serves a CanonView, then calls Align.
 package graphalign
 
@@ -26,7 +26,8 @@ type Layer struct {
 
 // CanonView is what Align reads of the canonical graph: a handle's profile, the
 // links at it and a Subject's shortlisted candidates. Results are the view's
-// own and read-only.
+// own and read-only. A view that reads lazily and can fail holds its first
+// error for its caller and serves nothing after it; Align does not see errors.
 type CanonView interface {
 	// Handle is the handle's profile, nil when the view does not hold it.
 	Handle(id []byte) *Handle
