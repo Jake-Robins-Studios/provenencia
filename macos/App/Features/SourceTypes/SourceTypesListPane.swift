@@ -17,9 +17,11 @@ struct SourceTypesListPane: View {
     static let usedByColumnWidth: CGFloat = 120
     /// A column that does not sort takes a pane constant, not a `SortColumn` raw value.
     static let descriptionColumnID = "description"
-    /// Description shows from this table width (user, 2026-11-15: the Label and Description
-    /// share ~330pt each at 1200pt), at any width class.
+    /// Description shows from this table width (user, 2026-11-15), at any width class.
     static let descriptionMinTableWidth: CGFloat = 1200
+    /// User, 2026-11-15: labels are short, so Description takes twice Label's share (about 220 /
+    /// 440pt at a 1200pt table).
+    static let descriptionFlex: CGFloat = 2
 
     var body: some View {
         VocabularyListPane(
@@ -77,6 +79,7 @@ struct SourceTypesListPane: View {
             id: descriptionColumnID,
             title: L10n.SourceTypes.columnDescription,
             minTableWidth: descriptionMinTableWidth,
+            flex: descriptionFlex,
             sortable: false
         ) { type in
             Text(type.description)

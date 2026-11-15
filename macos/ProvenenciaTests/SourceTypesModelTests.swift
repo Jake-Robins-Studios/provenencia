@@ -108,6 +108,8 @@ struct SourceTypesModelTests {
         #expect(SourceTypesListPane.usedByColumnWidth == 120)
         #expect(columns.first { $0.id == "description" }?.width == nil)
         #expect(columns.first { $0.id == "label" }?.width == nil)
+        #expect(columns.first { $0.id == "description" }?.flex == 2)
+        #expect(columns.filter { $0.width == nil && $0.id != "description" }.allSatisfy { $0.flex == 1 })
     }
 
     /// T-12 (AC-4.1): the header counts the rows the page shows.
