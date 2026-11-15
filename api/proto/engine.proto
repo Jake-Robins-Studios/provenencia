@@ -1396,6 +1396,15 @@ message TermFacts {
   string property_label = 3;
 }
 
+// ListKey is a row's place in its list (conclusionsummaries.ListKey): rows
+// with last false first, then primary bytewise, then ref bytewise. The app
+// inserts a re-read row where its key falls.
+message ListKey {
+  bool last = 1;
+  bytes primary = 2;
+  string ref = 3;
+}
+
 // PersonSummary is one Person as a row, composed from the auto-reconciler's
 // cache. Structures only: the app formats the title (name, else entity
 // label, else ref). name is the displayed auto-reconciled name, absent when
@@ -1423,6 +1432,8 @@ message PersonSummary {
   // Properties; the app chooses the colors (gender first). Always set.
   TermFacts gender = 9;
   TermFacts sex_at_birth = 10;
+  // The key the row's list sorts by. Filled on the List*Summaries responses only.
+  ListKey list_key = 11;
 }
 
 // ListPersonSummaries returns every unmerged Person in list order: by the name
@@ -1430,6 +1441,9 @@ message PersonSummary {
 // diacritics, then ref-only rows by ref. The app shows rows as given.
 message ListPersonSummariesRequest {
   string project_dir = 1;
+  // When set, only these handles' rows, in list order; an unknown, merged or
+  // other-kind id is absent (S16-26). Empty lists every row.
+  repeated string entity_ids = 2;
 }
 
 message ListPersonSummariesResponse {
@@ -1470,12 +1484,17 @@ message EventSummary {
   // leads with; empty when none. Filled on ListEventSummaries and
   // GetConclusionDetail only.
   string picture_image_rel_path = 17;
+  // The key the row's list sorts by. Filled on the List*Summaries responses only.
+  ListKey list_key = 18;
 }
 
 // ListEventSummaries returns every unmerged Event in list order: dated
 // events by the date window, else the start date, then the rest by ref.
 message ListEventSummariesRequest {
   string project_dir = 1;
+  // When set, only these handles' rows, in list order; an unknown, merged or
+  // other-kind id is absent (S16-26). Empty lists every row.
+  repeated string entity_ids = 2;
 }
 
 message ListEventSummariesResponse {
@@ -1522,6 +1541,8 @@ message PlaceSummary {
   // leads with; empty when none. Filled on ListPlaceSummaries and
   // GetConclusionDetail only.
   string picture_image_rel_path = 14;
+  // The key the row's list sorts by. Filled on the List*Summaries responses only.
+  ListKey list_key = 15;
 }
 
 // ConclusionSummary is one handle's summary, by kind. A message that carries a
@@ -1540,6 +1561,9 @@ message ConclusionSummary {
 // diacritics, then ref-only rows by ref. The app shows rows as given.
 message ListPlaceSummariesRequest {
   string project_dir = 1;
+  // When set, only these handles' rows, in list order; an unknown, merged or
+  // other-kind id is absent (S16-26). Empty lists every row.
+  repeated string entity_ids = 2;
 }
 
 message ListPlaceSummariesResponse {

@@ -8,6 +8,11 @@
 // For information on using the generated types, please see the documentation:
 //   https://github.com/apple/swift-protobuf/
 
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
 import SwiftProtobuf
 
 // If the compiler emits an error on this type, it is because this file
@@ -4740,6 +4745,25 @@ public nonisolated struct Provenencia_Engine_V1_TermFacts: Sendable {
   fileprivate var _term: Provenencia_Engine_V1_ConclusionTerm? = nil
 }
 
+/// ListKey is a row's place in its list (conclusionsummaries.ListKey): rows
+/// with last false first, then primary bytewise, then ref bytewise. The app
+/// inserts a re-read row where its key falls.
+public nonisolated struct Provenencia_Engine_V1_ListKey: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var last: Bool = false
+
+  public var primary: Data = Data()
+
+  public var ref: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 /// PersonSummary is one Person as a row, composed from the auto-reconciler's
 /// cache. Structures only: the app formats the title (name, else entity
 /// label, else ref). name is the displayed auto-reconciled name, absent when
@@ -4835,6 +4859,16 @@ public nonisolated struct Provenencia_Engine_V1_PersonSummary: @unchecked Sendab
   /// Clears the value of `sexAtBirth`. Subsequent reads from it will return its default value.
   public mutating func clearSexAtBirth() {_uniqueStorage()._sexAtBirth = nil}
 
+  /// The key the row's list sorts by. Filled on the List*Summaries responses only.
+  public var listKey: Provenencia_Engine_V1_ListKey {
+    get {_storage._listKey ?? Provenencia_Engine_V1_ListKey()}
+    set {_uniqueStorage()._listKey = newValue}
+  }
+  /// Returns true if `listKey` has been explicitly set.
+  public var hasListKey: Bool {_storage._listKey != nil}
+  /// Clears the value of `listKey`. Subsequent reads from it will return its default value.
+  public mutating func clearListKey() {_uniqueStorage()._listKey = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -4851,6 +4885,10 @@ public nonisolated struct Provenencia_Engine_V1_ListPersonSummariesRequest: Send
   // methods supported on all messages.
 
   public var projectDir: String = String()
+
+  /// When set, only these handles' rows, in list order; an unknown, merged or
+  /// other-kind id is absent (S16-26). Empty lists every row.
+  public var entityIds: [String] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -4999,6 +5037,16 @@ public nonisolated struct Provenencia_Engine_V1_EventSummary: @unchecked Sendabl
     set {_uniqueStorage()._pictureImageRelPath = newValue}
   }
 
+  /// The key the row's list sorts by. Filled on the List*Summaries responses only.
+  public var listKey: Provenencia_Engine_V1_ListKey {
+    get {_storage._listKey ?? Provenencia_Engine_V1_ListKey()}
+    set {_uniqueStorage()._listKey = newValue}
+  }
+  /// Returns true if `listKey` has been explicitly set.
+  public var hasListKey: Bool {_storage._listKey != nil}
+  /// Clears the value of `listKey`. Subsequent reads from it will return its default value.
+  public mutating func clearListKey() {_uniqueStorage()._listKey = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -5014,6 +5062,10 @@ public nonisolated struct Provenencia_Engine_V1_ListEventSummariesRequest: Senda
   // methods supported on all messages.
 
   public var projectDir: String = String()
+
+  /// When set, only these handles' rows, in list order; an unknown, merged or
+  /// other-kind id is absent (S16-26). Empty lists every row.
+  public var entityIds: [String] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -5181,6 +5233,16 @@ public nonisolated struct Provenencia_Engine_V1_PlaceSummary: @unchecked Sendabl
     set {_uniqueStorage()._pictureImageRelPath = newValue}
   }
 
+  /// The key the row's list sorts by. Filled on the List*Summaries responses only.
+  public var listKey: Provenencia_Engine_V1_ListKey {
+    get {_storage._listKey ?? Provenencia_Engine_V1_ListKey()}
+    set {_uniqueStorage()._listKey = newValue}
+  }
+  /// Returns true if `listKey` has been explicitly set.
+  public var hasListKey: Bool {_storage._listKey != nil}
+  /// Clears the value of `listKey`. Subsequent reads from it will return its default value.
+  public mutating func clearListKey() {_uniqueStorage()._listKey = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -5243,6 +5305,10 @@ public nonisolated struct Provenencia_Engine_V1_ListPlaceSummariesRequest: Senda
   // methods supported on all messages.
 
   public var projectDir: String = String()
+
+  /// When set, only these handles' rows, in list order; an unknown, merged or
+  /// other-kind id is absent (S16-26). Empty lists every row.
+  public var entityIds: [String] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -16334,9 +16400,49 @@ nonisolated extension Provenencia_Engine_V1_TermFacts: SwiftProtobuf.Message, Sw
   }
 }
 
+nonisolated extension Provenencia_Engine_V1_ListKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ListKey"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}last\0\u{1}primary\0\u{1}ref\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularBoolField(value: &self.last) }()
+      case 2: try { try decoder.decodeSingularBytesField(value: &self.primary) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.ref) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if self.last != false {
+      try visitor.visitSingularBoolField(value: self.last, fieldNumber: 1)
+    }
+    if !self.primary.isEmpty {
+      try visitor.visitSingularBytesField(value: self.primary, fieldNumber: 2)
+    }
+    if !self.ref.isEmpty {
+      try visitor.visitSingularStringField(value: self.ref, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_ListKey, rhs: Provenencia_Engine_V1_ListKey) -> Bool {
+    if lhs.last != rhs.last {return false}
+    if lhs.primary != rhs.primary {return false}
+    if lhs.ref != rhs.ref {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".PersonSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{1}name\0\u{3}name_value_count\0\u{1}birth\0\u{1}death\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{1}gender\0\u{3}sex_at_birth\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{1}name\0\u{3}name_value_count\0\u{1}birth\0\u{1}death\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{1}gender\0\u{3}sex_at_birth\0\u{3}list_key\0")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -16349,6 +16455,7 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
     var _pictureImageRelPath: String = String()
     var _gender: Provenencia_Engine_V1_TermFacts? = nil
     var _sexAtBirth: Provenencia_Engine_V1_TermFacts? = nil
+    var _listKey: Provenencia_Engine_V1_ListKey? = nil
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -16369,6 +16476,7 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
       _pictureImageRelPath = source._pictureImageRelPath
       _gender = source._gender
       _sexAtBirth = source._sexAtBirth
+      _listKey = source._listKey
     }
   }
 
@@ -16397,6 +16505,7 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
         case 8: try { try decoder.decodeSingularStringField(value: &_storage._pictureImageRelPath) }()
         case 9: try { try decoder.decodeSingularMessageField(value: &_storage._gender) }()
         case 10: try { try decoder.decodeSingularMessageField(value: &_storage._sexAtBirth) }()
+        case 11: try { try decoder.decodeSingularMessageField(value: &_storage._listKey) }()
         default: break
         }
       }
@@ -16439,6 +16548,9 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
       try { if let v = _storage._sexAtBirth {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 10)
       } }()
+      try { if let v = _storage._listKey {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -16458,6 +16570,7 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
         if _storage._pictureImageRelPath != rhs_storage._pictureImageRelPath {return false}
         if _storage._gender != rhs_storage._gender {return false}
         if _storage._sexAtBirth != rhs_storage._sexAtBirth {return false}
+        if _storage._listKey != rhs_storage._listKey {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -16469,7 +16582,7 @@ nonisolated extension Provenencia_Engine_V1_PersonSummary: SwiftProtobuf.Message
 
 nonisolated extension Provenencia_Engine_V1_ListPersonSummariesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListPersonSummariesRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}entity_ids\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16478,6 +16591,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesRequest: SwiftPro
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.entityIds) }()
       default: break
       }
     }
@@ -16487,11 +16601,15 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesRequest: SwiftPro
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
+    if !self.entityIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.entityIds, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_ListPersonSummariesRequest, rhs: Provenencia_Engine_V1_ListPersonSummariesRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.entityIds != rhs.entityIds {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -16529,7 +16647,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesResponse: SwiftPr
 
 nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EventSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -16549,6 +16667,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
     var _updatedRevision: Int64 = 0
     var _updatedAt: String = String()
     var _pictureImageRelPath: String = String()
+    var _listKey: Provenencia_Engine_V1_ListKey? = nil
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -16576,6 +16695,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       _updatedRevision = source._updatedRevision
       _updatedAt = source._updatedAt
       _pictureImageRelPath = source._pictureImageRelPath
+      _listKey = source._listKey
     }
   }
 
@@ -16611,6 +16731,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         case 15: try { try decoder.decodeSingularInt64Field(value: &_storage._updatedRevision) }()
         case 16: try { try decoder.decodeSingularStringField(value: &_storage._updatedAt) }()
         case 17: try { try decoder.decodeSingularStringField(value: &_storage._pictureImageRelPath) }()
+        case 18: try { try decoder.decodeSingularMessageField(value: &_storage._listKey) }()
         default: break
         }
       }
@@ -16674,6 +16795,9 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       if !_storage._pictureImageRelPath.isEmpty {
         try visitor.visitSingularStringField(value: _storage._pictureImageRelPath, fieldNumber: 17)
       }
+      try { if let v = _storage._listKey {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 18)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -16700,6 +16824,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         if _storage._updatedRevision != rhs_storage._updatedRevision {return false}
         if _storage._updatedAt != rhs_storage._updatedAt {return false}
         if _storage._pictureImageRelPath != rhs_storage._pictureImageRelPath {return false}
+        if _storage._listKey != rhs_storage._listKey {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -16711,7 +16836,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
 
 nonisolated extension Provenencia_Engine_V1_ListEventSummariesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListEventSummariesRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}entity_ids\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16720,6 +16845,7 @@ nonisolated extension Provenencia_Engine_V1_ListEventSummariesRequest: SwiftProt
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.entityIds) }()
       default: break
       }
     }
@@ -16729,11 +16855,15 @@ nonisolated extension Provenencia_Engine_V1_ListEventSummariesRequest: SwiftProt
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
+    if !self.entityIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.entityIds, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_ListEventSummariesRequest, rhs: Provenencia_Engine_V1_ListEventSummariesRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.entityIds != rhs.entityIds {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -16825,7 +16955,7 @@ nonisolated extension Provenencia_Engine_V1_PlaceRelationship: SwiftProtobuf.Mes
 
 nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".PlaceSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{1}names\0\u{3}start_date\0\u{3}end_date\0\u{1}kind\0\u{1}parents\0\u{3}parents_are_candidates\0\u{3}part_of\0\u{1}contains\0\u{1}predecessors\0\u{1}successors\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{1}names\0\u{3}start_date\0\u{3}end_date\0\u{1}kind\0\u{1}parents\0\u{3}parents_are_candidates\0\u{3}part_of\0\u{1}contains\0\u{1}predecessors\0\u{1}successors\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -16842,6 +16972,7 @@ nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message,
     var _updatedRevision: Int64 = 0
     var _updatedAt: String = String()
     var _pictureImageRelPath: String = String()
+    var _listKey: Provenencia_Engine_V1_ListKey? = nil
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -16866,6 +16997,7 @@ nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message,
       _updatedRevision = source._updatedRevision
       _updatedAt = source._updatedAt
       _pictureImageRelPath = source._pictureImageRelPath
+      _listKey = source._listKey
     }
   }
 
@@ -16898,6 +17030,7 @@ nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message,
         case 12: try { try decoder.decodeSingularInt64Field(value: &_storage._updatedRevision) }()
         case 13: try { try decoder.decodeSingularStringField(value: &_storage._updatedAt) }()
         case 14: try { try decoder.decodeSingularStringField(value: &_storage._pictureImageRelPath) }()
+        case 15: try { try decoder.decodeSingularMessageField(value: &_storage._listKey) }()
         default: break
         }
       }
@@ -16952,6 +17085,9 @@ nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message,
       if !_storage._pictureImageRelPath.isEmpty {
         try visitor.visitSingularStringField(value: _storage._pictureImageRelPath, fieldNumber: 14)
       }
+      try { if let v = _storage._listKey {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 15)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -16975,6 +17111,7 @@ nonisolated extension Provenencia_Engine_V1_PlaceSummary: SwiftProtobuf.Message,
         if _storage._updatedRevision != rhs_storage._updatedRevision {return false}
         if _storage._updatedAt != rhs_storage._updatedAt {return false}
         if _storage._pictureImageRelPath != rhs_storage._pictureImageRelPath {return false}
+        if _storage._listKey != rhs_storage._listKey {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -17070,7 +17207,7 @@ nonisolated extension Provenencia_Engine_V1_ConclusionSummary: SwiftProtobuf.Mes
 
 nonisolated extension Provenencia_Engine_V1_ListPlaceSummariesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListPlaceSummariesRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}entity_ids\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -17079,6 +17216,7 @@ nonisolated extension Provenencia_Engine_V1_ListPlaceSummariesRequest: SwiftProt
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.entityIds) }()
       default: break
       }
     }
@@ -17088,11 +17226,15 @@ nonisolated extension Provenencia_Engine_V1_ListPlaceSummariesRequest: SwiftProt
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
+    if !self.entityIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.entityIds, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_ListPlaceSummariesRequest, rhs: Provenencia_Engine_V1_ListPlaceSummariesRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.entityIds != rhs.entityIds {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

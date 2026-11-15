@@ -17,7 +17,16 @@ func ListPersonSummaries(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPersonSummariesResponse{}
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		summaries, err := conclusionsummaries.ListPersons(c)
+		ids, err := parseIDs(req.GetEntityIds())
+		if err != nil {
+			return err
+		}
+		var summaries []conclusionsummaries.PersonSummary
+		if len(ids) > 0 {
+			summaries, err = conclusionsummaries.ListPersonsOf(c, ids)
+		} else {
+			summaries, err = conclusionsummaries.ListPersons(c)
+		}
 		if err != nil {
 			return err
 		}
@@ -26,7 +35,9 @@ func ListPersonSummaries(in []byte) ([]byte, error) {
 			return err
 		}
 		for _, h := range summaries {
-			out.Summaries = append(out.Summaries, personSummaryProto(h, paths))
+			p := personSummaryProto(h, paths)
+			p.ListKey = listKeyProto(h.ListKey)
+			out.Summaries = append(out.Summaries, p)
 		}
 		return nil
 	})
@@ -91,6 +102,11 @@ func personSummaryProto(h conclusionsummaries.PersonSummary, paths map[string]st
 }
 
 // termProto is the one Go mapper of a summary term onto the wire; nil gives nil.
+// listKeyProto is a list row's key on the wire.
+func listKeyProto(k conclusionsummaries.ListKey) *engine.ListKey {
+	return &engine.ListKey{Last: k.Last, Primary: k.Primary, Ref: k.Ref}
+}
+
 func termProto(t *conclusionsummaries.Term) *engine.ConclusionTerm {
 	if t == nil {
 		return nil
@@ -146,7 +162,16 @@ func ListEventSummaries(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListEventSummariesResponse{}
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		summaries, err := conclusionsummaries.ListEvents(c)
+		ids, err := parseIDs(req.GetEntityIds())
+		if err != nil {
+			return err
+		}
+		var summaries []conclusionsummaries.EventSummary
+		if len(ids) > 0 {
+			summaries, err = conclusionsummaries.ListEventsOf(c, ids)
+		} else {
+			summaries, err = conclusionsummaries.ListEvents(c)
+		}
 		if err != nil {
 			return err
 		}
@@ -155,7 +180,9 @@ func ListEventSummaries(in []byte) ([]byte, error) {
 			return err
 		}
 		for _, h := range summaries {
-			out.Summaries = append(out.Summaries, eventSummaryProto(h, paths))
+			p := eventSummaryProto(h, paths)
+			p.ListKey = listKeyProto(h.ListKey)
+			out.Summaries = append(out.Summaries, p)
 		}
 		return nil
 	})
@@ -214,7 +241,16 @@ func ListPlaceSummaries(in []byte) ([]byte, error) {
 	}
 	out := &engine.ListPlaceSummariesResponse{}
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		summaries, err := conclusionsummaries.ListPlaces(c)
+		ids, err := parseIDs(req.GetEntityIds())
+		if err != nil {
+			return err
+		}
+		var summaries []conclusionsummaries.PlaceSummary
+		if len(ids) > 0 {
+			summaries, err = conclusionsummaries.ListPlacesOf(c, ids)
+		} else {
+			summaries, err = conclusionsummaries.ListPlaces(c)
+		}
 		if err != nil {
 			return err
 		}
@@ -223,7 +259,9 @@ func ListPlaceSummaries(in []byte) ([]byte, error) {
 			return err
 		}
 		for _, h := range summaries {
-			out.Summaries = append(out.Summaries, placeSummaryProto(h, paths))
+			p := placeSummaryProto(h, paths)
+			p.ListKey = listKeyProto(h.ListKey)
+			out.Summaries = append(out.Summaries, p)
 		}
 		return nil
 	})
