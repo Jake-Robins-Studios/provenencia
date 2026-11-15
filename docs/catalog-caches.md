@@ -51,15 +51,12 @@ Sizes are not measured. S16-24 – S16-29 reshape these.
 | Cache | Owner (path · symbol) | Key | Fill | Updated by | Lifetime | Cap |
 | --- | --- | --- | --- | --- | --- | --- |
 | Per-view query results | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` · `CatalogQueryKey.Kind.descriptor` (the source of truth for each kind's key, fill and invalidation) | `CatalogQueryKey` | the descriptor's loader | the descriptor's `invalidateOn` mutation kinds and `refreshes`; per-entity keys `followsInputs`; the Conclusion lists merge `touchedHandles` rows (`mergedRows`) | the session | 50 hidden entities (`WorkspaceSession.maxHiddenEntities`) |
-| Evidence-graph index (Swift) | `WorkspaceSession.evidenceGraphIndex` | catalog revision | built on first read, patched per Source | `WriteEffects`' revision | the session | none |
+| Derived values | `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` · `derived` | `DerivedValueID` | the caller's build | its inputs (key revisions, the versions of the derived values it reads) and its `extra`; the Evidence graph index is carried across a merged re-read (`carryDerived`) | its inputs' handles (an evicted key drops them) | none of its own |
 | Name format | `WorkspaceSession.nameFormat` | one value | loaded at open | a name format write | the session | none |
 | Sidebar counts | `CatalogCounts` | section | `refreshAll` | `WriteEffects.lists` with `counts` | the workspace | none |
 | Thumbnails | `ThumbnailCache.shared` | artifact and size | decoded on first draw | none (immutable files) | the process | 100 entries, LRU |
-| Visible Sources | `SourcesModel.visibleRowsMemo` | filter and sort token | the model's filter | the token | the model | one entry |
-| Citation composer snapshot | `CitationComposerContext.memo` | memo token | the composer's load | the token | the composer | one entry |
 | Depiction preview | `CitationComposerModel.depictionPreviewMemo` | cut key | the preview render | the key | the composer | one entry |
 | Source search keys | `SourcesModel.searchKeyCache` | row id, with its revision | built per row | the row's revision | the model | one per row |
-| Evidence-graph snapshot | `EvidenceGraphModel.snapshotMemo` | rows, types and rules | the snapshot builder | the key | the model | one entry |
 
 ## Known exceptions
 

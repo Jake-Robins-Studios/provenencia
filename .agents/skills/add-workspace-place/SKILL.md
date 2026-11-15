@@ -152,6 +152,7 @@ private struct ListContent: View {
 
 - `warmListQueries()` calls `session.query(key)` — **only** from `.task`, actions, or tests.
 - Display arrays read `session.queryHandle(key)?.value ?? []`.
+- A value derived from cached reads for display is built through `session.derived(_:inputs:extra:build:)`, which names the keys and derived values it reads and its plain extras and writes no revision token; a new one is one `DerivedValueID` case and one call (`WorkspaceSession+Derived.swift`).
 - CRUD: `session.apply(effects)`, with a `CatalogMutation` only where cache rule 2 keeps one. Optional `setQueryValue` overlay; never `query` after `apply`.
 - Sidebar badges: they come only from the recount (Sources, Persons, Events, Places); Configure rows have none.
 - A write that changes a sidebar count reports `counts` in `WriteEffects.lists` (Go `effects.ListCounts` on its table's registry entry); `WorkspaceSession.apply` recounts, and the newest recount wins. Features never call `CatalogCounts.refreshAll()`.
