@@ -457,7 +457,8 @@ struct CatalogQueryRegistryTests {
         #expect(CatalogQueryKey.evidenceGraph(project: project, graphId: "g1").ownId == "g1")
         #expect(CatalogQueryKey.citationCounts(project: project, graphId: "g1").ownId == "g1")
         #expect(CatalogQueryKey.propertyTerms(project: project, propertyId: "p1").ownId == "p1")
-        #expect(CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1").ownId == nil)
+        #expect(CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1").ownId == "s1")
+        #expect(CatalogQueryKey.typeSuggestions(project: project, typeId: "t1").ownId == "t1")
         #expect(CatalogQueryKey.personsList(project: project).ownId == nil)
         #expect(CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "a1").ownId == nil)
 
@@ -471,6 +472,23 @@ struct CatalogQueryRegistryTests {
             #expect(key.kind.descriptor.deletedWith == .handle)
         }
         #expect(CatalogQueryKey.Kind.sourceWorkspace.descriptor.deletedWith == nil)
+    }
+
+    /// T-4 (AC-3.1): a key is a value: kind, project and the factory's ids.
+    @Test func keysAreValues() {
+        let project = ProjectKey(projectDir: projectDir)
+        let key = CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "a1")
+        #expect(key.kind == .citationsByArtifact)
+        #expect(key.project == project)
+        #expect(key.ids == ["g1", "a1"])
+        #expect(key.ownId == nil)
+        #expect(key.citationGraphId == "g1" && key.citationArtifactId == "a1")
+        let same = CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "a1")
+        #expect(key == same)
+        #expect(key.hashValue == same.hashValue)
+        #expect(key != CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "a2"))
+        #expect(CatalogQueryKey.conclusionDetail(project: project, entityId: "e1").id == "e1")
+        #expect(CatalogQueryKey.personsList(project: project).ids.isEmpty)
     }
 
     @Test func everyKindHasOneDescriptor() {
@@ -992,14 +1010,19 @@ struct CatalogQueryRegistryTests {
         for kind in [CatalogQueryKey.Kind.personsList, .eventsList, .placesList] {
             #expect(kind.descriptor.refreshes.map(\.follows) == [.touchedHandles, .list(.propertyVocabulary)], "\(kind)")
         }
-        #expect(
-            CatalogQueryKey.Kind.conclusionDetail.descriptor.refreshes.map(\.follows)
-                == [.touchedHandles, .source, .list(.propertyVocabulary)]
-        )
-        #expect(
-            CatalogQueryKey.Kind.personClaims.descriptor.refreshes.map(\.follows)
-                == [.touchedHandles, .evidenceGraphs, .source, .list(.propertyVocabulary)]
-        )
+        // T-5 (AC-3.3): the five per-entity kinds follow their inputs and their own handle.
+        for kind in [
+            CatalogQueryKey.Kind.conclusionDetail, .personClaims, .personFamily, .personEvents, .personRecordLinks,
+        ] {
+            let descriptor = kind.descriptor
+            #expect(
+                descriptor.refreshes.map(\.follows)
+                    == [.touchedHandles, .evidenceGraphs, .reads(.sourceRecords), .touchedHandles, .list(.propertyVocabulary)],
+                "\(kind)"
+            )
+            #expect(descriptor.whenHidden == .markStale, "\(kind)")
+            #expect(descriptor.deletedWith == .handle, "\(kind)")
+        }
         // A read follows only its own entry of the effects.
         let reads = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .citations, ids: ["g-1"])])
         #expect(CatalogQueryFollows.reads(.citations).ids(in: reads) == ["g-1"])
@@ -1579,7 +1602,7 @@ struct CatalogQueryRegistryTests {
         }
     }
 
-    /// A write that touches a handle revalidates the cached `personFamily` key through `touchedHandles`;
+    /// A write that touches a handle revalidates the cached `personFamily` key through its own handle;
     /// the key is marked stale while hidden.
     @Test func personFamilyRevalidateOnTouchedHandle() {
         let session = makeSession()
@@ -1590,7 +1613,9 @@ struct CatalogQueryRegistryTests {
         #expect(key.kind == .personFamily)
         #expect(key.project == project)
         #expect(CatalogQueryRegistry.standard.hiddenPolicy(key) == .markStale)
-        #expect(CatalogQueryKey.Kind.personFamily.descriptor.refreshes.map(\.follows) == [.touchedHandles, .list(.propertyVocabulary)])
+        #expect(CatalogQueryKey.Kind.personFamily.descriptor.refreshes.map(\.follows) == [
+            .touchedHandles, .evidenceGraphs, .reads(.sourceRecords), .touchedHandles, .list(.propertyVocabulary),
+        ])
     }
 
     /// T-7 (AC-4.1): the key loads through the store; an unseeded handle is
@@ -1624,7 +1649,7 @@ struct CatalogQueryRegistryTests {
         }
     }
 
-    /// A write that touches a handle revalidates the cached `personEvents` key through `touchedHandles`;
+    /// A write that touches a handle revalidates the cached `personEvents` key through its own handle;
     /// the key is marked stale while hidden.
     @Test func personEventsRevalidateOnTouchedHandle() {
         let session = makeSession()
@@ -1635,33 +1660,41 @@ struct CatalogQueryRegistryTests {
         #expect(key.kind == .personEvents)
         #expect(key.project == project)
         #expect(CatalogQueryRegistry.standard.hiddenPolicy(key) == .markStale)
-        #expect(CatalogQueryKey.Kind.personEvents.descriptor.refreshes.map(\.follows) == [.touchedHandles, .list(.propertyVocabulary)])
+        #expect(CatalogQueryKey.Kind.personEvents.descriptor.refreshes.map(\.follows) == [
+            .touchedHandles, .evidenceGraphs, .reads(.sourceRecords), .touchedHandles, .list(.propertyVocabulary),
+        ])
     }
 
     /// A write that names a graph or Source the value holds, or the Person's own handle,
     /// revalidates the cached `personRecordLinks` key; a write that names only a
-    /// handle and a graph it does not hold does not. The key is marked stale
-    /// while hidden.
+    /// handle and a graph it does not hold does not, and a Source's activity
+    /// without its words does not either. The key is marked stale while hidden.
     @Test func personRecordLinksRevalidate() {
         let session = makeSession()
         let project = session.projectKey
         let key = CatalogQueryKey.personRecordLinks(project: project, entityId: "e1")
-        session.setQueryValue(key, value: CatalogPersonRecordLinks(graphs: [
-            CatalogRecordLinksGraph(graphID: "g1", graphRef: "", graphName: "", sourceID: "s1", sourceTitle: ""),
-            CatalogRecordLinksGraph(graphID: "g2", graphRef: "", graphName: "", sourceID: "s2", sourceTitle: ""),
-        ]))
+        session.setQueryValue(key, value: CatalogPersonRecordLinks(
+            graphs: [
+                CatalogRecordLinksGraph(graphID: "g1", graphRef: "", graphName: "", sourceID: "s1", sourceTitle: ""),
+                CatalogRecordLinksGraph(graphID: "g2", graphRef: "", graphName: "", sourceID: "s2", sourceTitle: ""),
+            ],
+            inputs: CatalogPageInputs(handles: ["e1"], evidenceGraphs: ["g1", "g2"], sources: ["s1", "s2"])
+        ))
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g1"])) == [key])
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(handles: ["e1"])) == [key])
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(handles: ["e7"], evidenceGraphs: ["g9"])).isEmpty)
-        #expect(session.revalidatedKeys(for: CatalogWriteEffects(sourceScopes: ["s1"])) == [key])
-        #expect(session.revalidatedKeys(for: CatalogWriteEffects(sourceScopes: ["s9"])).isEmpty)
+        let words = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["s1"])])
+        #expect(session.revalidatedKeys(for: words) == [key])
+        let otherWords = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["s9"])])
+        #expect(session.revalidatedKeys(for: otherWords).isEmpty)
+        #expect(session.revalidatedKeys(for: CatalogWriteEffects(sourceScopes: ["s1"])).isEmpty)
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(lists: [.propertyVocabulary])).contains(key))
         #expect(key.kind == .personRecordLinks)
         #expect(key.project == project)
         #expect(CatalogQueryRegistry.standard.hiddenPolicy(key) == .markStale)
         #expect(
             CatalogQueryKey.Kind.personRecordLinks.descriptor.refreshes.map(\.follows)
-                == [.touchedHandles, .evidenceGraphs, .source, .list(.propertyVocabulary)]
+                == [.touchedHandles, .evidenceGraphs, .reads(.sourceRecords), .touchedHandles, .list(.propertyVocabulary)]
         )
     }
 

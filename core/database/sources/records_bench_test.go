@@ -97,7 +97,7 @@ func BenchmarkSourceRecords(b *testing.B) {
 	apply := func(metric string, id []byte) {
 		start := time.Now()
 		for i := 0; i < b.N; i++ {
-			if err := g.OnCommit(effects.Commit{Effects: effects.Set{SourceScopes: [][]byte{id}}}); err != nil {
+			if err := g.OnCommit(effects.Commit{Effects: effects.Set{Reads: []effects.ReadIDs{{Read: effects.ReadSourceRecords, IDs: [][]byte{id}}}}}); err != nil {
 				b.Fatal(err)
 			}
 		}

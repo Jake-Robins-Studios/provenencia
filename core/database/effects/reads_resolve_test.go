@@ -30,12 +30,7 @@ func citationReads(t *testing.T, tx *database.Tx, changes []rowchange.Change) []
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, r := range set.Reads {
-		if r.Read == effects.ReadCitations {
-			return r.IDs
-		}
-	}
-	return nil
+	return set.IDsOf(effects.ReadCitations)
 }
 
 func only(changes []rowchange.Change, entity string) []rowchange.Change {

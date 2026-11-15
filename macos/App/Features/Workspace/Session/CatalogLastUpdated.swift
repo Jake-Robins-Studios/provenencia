@@ -21,9 +21,21 @@ extension CatalogEventSummary: CatalogLastUpdatedRow {}
 extension CatalogPlaceSummary: CatalogLastUpdatedRow {}
 extension CatalogSource: CatalogLastUpdatedRow {}
 
+/// A per-entity page value that reports what it was built from (S16-24), so a
+/// key holding one follows those ids (`CatalogQueryRefresh.followsInputs`).
+protocol CatalogPageValue: Sendable {
+    var inputs: CatalogPageInputs { get }
+}
+
+extension CatalogConclusionDetail: CatalogPageValue {}
+extension CatalogPersonClaims: CatalogPageValue {}
+extension CatalogPersonFamily: CatalogPageValue {}
+extension CatalogPersonTimeline: CatalogPageValue {}
+extension CatalogPersonRecordLinks: CatalogPageValue {}
+
 /// Which ids of a write a patch or refresh follows: row or key ids, or one
 /// token for a catalog-wide slot. Each slot carries its own.
-enum CatalogQueryFollows: Sendable, Equatable {
+enum CatalogQueryFollows: Sendable, Hashable {
     /// `CatalogWriteEffects.handleScopes`: Person, Event, and Place handles.
     case handle
     /// `CatalogWriteEffects.sourceScopes`.
@@ -160,7 +172,7 @@ struct CatalogQueryPatch: Sendable {
     static func updatedSourceShell() -> Self {
         Self(follows: nil) { session, key, _, _, mutation in
             guard let source = mutation?.patchedSource else { return .unchanged }
-            guard case .sourceWorkspace(_, let sourceId) = key, sourceId == source.id else { return .unchanged }
+            guard key.kind == .sourceWorkspace, key.ownId == source.id else { return .unchanged }
             return session.patchCached(key, as: CatalogSourceWorkspace.self) { workspace in
                 workspace.source = source
                 return true
@@ -174,7 +186,7 @@ struct CatalogQueryPatch: Sendable {
     static func metadataBoard() -> Self {
         Self(follows: nil) { session, key, _, _, mutation in
             guard case .wroteMetadataBoard(let sourceId, let owner, let entries)? = mutation else { return .unchanged }
-            guard case .sourceWorkspace(_, let keySource) = key, keySource == sourceId else { return .unchanged }
+            guard key.kind == .sourceWorkspace, key.ownId == sourceId else { return .unchanged }
             return session.patchCached(key, as: CatalogSourceWorkspace.self) { workspace in
                 workspace.setMetadataRows(entries, for: owner)
             }
@@ -270,6 +282,18 @@ struct CatalogQueryRefresh: Sendable {
             let value: Value? = session.queryHandle(key)?.value
             return value.map(ids)
         })
+    }
+
+    /// The refreshes of a key whose cached value reports its inputs: one per
+    /// slot of `inputs` (handles on `.touchedHandles`, Evidence graphs on
+    /// `.evidenceGraphs`, Sources on `.reads(.sourceRecords)`). Until the key
+    /// holds a value its inputs are unknown, so each follows any id of its slot.
+    static func followsInputs<Value: CatalogPageValue>(_: Value.Type) -> [CatalogQueryRefresh] {
+        [
+            .applyHiddenPolicy(followsValue: .touchedHandles) { (value: Value) in value.inputs.handles },
+            .applyHiddenPolicy(followsValue: .evidenceGraphs) { (value: Value) in value.inputs.evidenceGraphs },
+            .applyHiddenPolicy(followsValue: .reads(.sourceRecords)) { (value: Value) in value.inputs.sources },
+        ]
     }
 
     /// A refresh that re-applies the hidden policy to a warmed key whenever the

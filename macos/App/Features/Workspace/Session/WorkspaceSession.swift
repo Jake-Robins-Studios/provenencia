@@ -333,16 +333,23 @@ final class WorkspaceSession {
     /// The warmed keys of this project that a write revalidates through their
     /// descriptor `refreshes`: a `.revalidate` refresh names a key once when the
     /// ids its `follows` slot reports meet the ids the key depends on, or, for a
-    /// key that depends on any id, when the slot reports one. Synchronous, so a
-    /// key declared here is revalidated in the same pass as the registry's
-    /// invalidations.
+    /// key that depends on any id, when the slot reports one. Each slot's
+    /// reported ids are read once per write. Synchronous, so a key declared here is
+    /// revalidated in the same pass as the registry's invalidations.
     func revalidatedKeys(for effects: CatalogWriteEffects) -> [CatalogQueryKey] {
         var named: [CatalogQueryKey] = []
         var seen = Set<CatalogQueryKey>()
+        var reportedBySlot: [CatalogQueryFollows: Set<String>] = [:]
         for key in Array(handles.keys) where key.project == projectKey {
             for refresh in key.kind.descriptor.refreshes {
                 guard case .revalidate(let dependsOn) = refresh.action else { continue }
-                let reported = Set(refresh.follows.ids(in: effects))
+                let reported: Set<String>
+                if let known = reportedBySlot[refresh.follows] {
+                    reported = known
+                } else {
+                    reported = Set(refresh.follows.ids(in: effects))
+                    reportedBySlot[refresh.follows] = reported
+                }
                 if reported.isEmpty { continue }
                 let meets = dependsOn(self, key).map { !$0.isDisjoint(with: reported) } ?? true
                 if meets, seen.insert(key).inserted {

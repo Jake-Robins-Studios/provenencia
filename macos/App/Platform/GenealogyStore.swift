@@ -695,7 +695,7 @@ struct CatalogPicture: Sendable, Equatable, Identifiable {
 /// What a per-entity read was built from (S16-24), as the ids the app's write
 /// effects name: the canonical handles and associations it read (its own
 /// included), the Evidence graphs whose records it shows, and the Sources whose
-/// words it shows. Nothing reads it yet.
+/// words it shows. The session follows them (`CatalogQueryRefresh.followsInputs`).
 struct CatalogPageInputs: Sendable, Equatable {
     var handles: Set<String> = []
     var evidenceGraphs: Set<String> = []

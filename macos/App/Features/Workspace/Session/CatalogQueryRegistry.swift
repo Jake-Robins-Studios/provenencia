@@ -1,9 +1,5 @@
 import Foundation
 
-private func mismatchedCatalogKey(_ key: CatalogQueryKey, _ kind: CatalogQueryKey.Kind) -> Never {
-    preconditionFailure("CatalogQueryKey \(key) is not \(kind)")
-}
-
 /// One cache effect of a mutation. Keys carrying an id resolve to `allCached`
 /// when the write names no single owner — a new metadata field belongs to every
 /// cached Source page, not one of them.
@@ -51,8 +47,8 @@ struct CatalogQueryDescriptor: Sendable {
 
 extension CatalogQueryDescriptor {
     /// One factory per kind so the loader and the warm path share `Value`.
-    /// `load` `guard case`s the key; a mismatch is unreachable when warm runs
-    /// from `key.kind.descriptor`.
+    /// `load` reads `key.project` and the key's ids; warm runs only from
+    /// `key.kind.descriptor`, so the key is the kind's own.
     static func make<Value>(
         kind: CatalogQueryKey.Kind,
         invalidateOn: Set<CatalogMutationKind> = [],
@@ -86,10 +82,10 @@ extension CatalogQueryDescriptor {
 }
 
 extension CatalogQueryDescriptor {
-    /// A per-person section key that a relative's or co-participant's change
-    /// reaches: that change touches their id, not the Person's, so any touched
-    /// handle reloads it.
-    static func personSection<Value>(
+    /// A per-entity page key (the detail and the Person sections): it follows
+    /// what its value was built from (`followsInputs`: handles, Evidence graphs
+    /// and Sources) and its own handle, and is marked stale while off screen.
+    static func entityPage<Value: CatalogPageValue>(
         kind: CatalogQueryKey.Kind,
         load: @escaping @Sendable (CatalogQueryKey, any GenealogyStore) async throws -> Value
     ) -> CatalogQueryDescriptor {
@@ -97,31 +93,9 @@ extension CatalogQueryDescriptor {
             kind: kind,
             whenHidden: .markStale,
             deletedWith: .handle,
-            refreshes: [
-                .applyHiddenPolicyOnAny(follows: .touchedHandles),
-                .followsPropertyLabels,
-            ],
-            load: load
-        )
-    }
-
-    /// A per-person section key read from the Person's Evidence graphs: it
-    /// reloads when its own handle, one of the graphs its value holds, or one
-    /// of the Sources they are on is written.
-    static func personGraphsSection<Value>(
-        kind: CatalogQueryKey.Kind,
-        graphIDs: @escaping @Sendable (Value) -> Set<String>,
-        sourceIDs: @escaping @Sendable (Value) -> Set<String>,
-        load: @escaping @Sendable (CatalogQueryKey, any GenealogyStore) async throws -> Value
-    ) -> CatalogQueryDescriptor {
-        .make(
-            kind: kind,
-            whenHidden: .markStale,
-            deletedWith: .handle,
-            refreshes: [
+            refreshes: CatalogQueryRefresh.followsInputs(Value.self) + [
+                // Kept beside `followsInputs`: a value's inputs are empty until it loads (FakeStore), so its own handle still reaches it.
                 .applyHiddenPolicy(followsOwnId: .touchedHandles),
-                .applyHiddenPolicy(followsValue: .evidenceGraphs, ids: graphIDs),
-                .applyHiddenPolicy(followsValue: .source, ids: sourceIDs),
                 .followsPropertyLabels,
             ],
             load: load
@@ -178,10 +152,7 @@ extension CatalogQueryKey.Kind {
                     .sourceRow(),
                 ],
                 load: { key, store in
-                    guard case .sourcesList(let project) = key else {
-                        mismatchedCatalogKey(key, .sourcesList)
-                    }
-                    return try await store.listSources(projectDir: project.projectDir)
+                    return try await store.listSources(projectDir: key.project.projectDir)
                 }
             )
         case .sourceTypesList:
@@ -195,10 +166,7 @@ extension CatalogQueryKey.Kind {
                 patches: [.sourceTypeRow()],
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
-                    guard case .sourceTypesList(let project) = key else {
-                        mismatchedCatalogKey(key, .sourceTypesList)
-                    }
-                    return try await store.listSourceTypes(projectDir: project.projectDir)
+                    return try await store.listSourceTypes(projectDir: key.project.projectDir)
                 }
             )
         case .metadataFieldsList:
@@ -213,10 +181,7 @@ extension CatalogQueryKey.Kind {
                     .applyHiddenPolicyOnAny(follows: .list(.metadataFieldUsage)),
                 ],
                 load: { key, store in
-                    guard case .metadataFieldsList(let project) = key else {
-                        mismatchedCatalogKey(key, .metadataFieldsList)
-                    }
-                    return try await store.listMetadataFields(projectDir: project.projectDir)
+                    return try await store.listMetadataFields(projectDir: key.project.projectDir)
                 }
             )
         case .credibilityGradesList:
@@ -224,10 +189,7 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 load: { key, store in
-                    guard case .credibilityGradesList(let project) = key else {
-                        mismatchedCatalogKey(key, .credibilityGradesList)
-                    }
-                    return try await store.listSourceCredibilityGrades(projectDir: project.projectDir)
+                    return try await store.listSourceCredibilityGrades(projectDir: key.project.projectDir)
                 }
             )
         case .sourceWorkspace:
@@ -258,10 +220,7 @@ extension CatalogQueryKey.Kind {
                 },
                 patches: [.updatedSourceShell(), .metadataBoard()],
                 load: { key, store in
-                    guard case .sourceWorkspace(let project, let sourceId) = key else {
-                        mismatchedCatalogKey(key, .sourceWorkspace)
-                    }
-                    return try await store.getSourceWorkspace(projectDir: project.projectDir, sourceID: sourceId)
+                    return try await store.getSourceWorkspace(projectDir: key.project.projectDir, sourceID: key.id)
                 }
             )
         case .evidenceGraph:
@@ -274,31 +233,28 @@ extension CatalogQueryKey.Kind {
                 whenHidden: .markStale,
                 refreshes: [.applyHiddenPolicy(followsOwnId: .evidenceGraphs)],
                 load: { key, store in
-                    guard case .evidenceGraph(let project, let graphId) = key else {
-                        mismatchedCatalogKey(key, .evidenceGraph)
-                    }
                     async let subjects = store.listSubjects(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                     async let positions = store.listSubjectPositions(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                     async let observations = store.listObservationsByEvidenceGraph(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                     async let memberships = store.listSubjectMemberships(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                     async let eventTitles = store.listEvidenceGraphEventTitles(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                     return EvidenceGraphRows(
-                        graphId: graphId,
+                        graphId: key.id,
                         subjects: try await subjects,
                         positions: try await positions,
                         observations: try await observations,
@@ -314,12 +270,9 @@ extension CatalogQueryKey.Kind {
                 whenHidden: .markStale,
                 refreshes: [.applyHiddenPolicy(followsOwnId: .reads(.citations))],
                 load: { key, store in
-                    guard case .citationCounts(let project, let graphId) = key else {
-                        mismatchedCatalogKey(key, .citationCounts)
-                    }
                     return try await store.citationCountsByEvidenceGraph(
-                        projectDir: project.projectDir,
-                        graphID: graphId
+                        projectDir: key.project.projectDir,
+                        graphID: key.id
                     )
                 }
             )
@@ -341,11 +294,8 @@ extension CatalogQueryKey.Kind {
                 },
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
-                    guard case .typeSuggestions(let project, let typeId) = key else {
-                        mismatchedCatalogKey(key, .typeSuggestions)
-                    }
                     return try await store.listTypeSuggestions(
-                        projectDir: project.projectDir, typeID: typeId, level: .source
+                        projectDir: key.project.projectDir, typeID: key.id, level: .source
                     )
                 }
             )
@@ -363,10 +313,7 @@ extension CatalogQueryKey.Kind {
                     .applyHiddenPolicyOnAny(follows: .structure),
                 ],
                 load: { key, store in
-                    guard case .propertiesWorkspace(let project) = key else {
-                        mismatchedCatalogKey(key, .propertiesWorkspace)
-                    }
-                    return try await store.getPropertiesWorkspace(projectDir: project.projectDir)
+                    return try await store.getPropertiesWorkspace(projectDir: key.project.projectDir)
                 }
             )
         case .connectRules:
@@ -374,9 +321,6 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 load: { key, store in
-                    guard case .connectRules = key else {
-                        mismatchedCatalogKey(key, .connectRules)
-                    }
                     return try await store.listConnectRules()
                 }
             )
@@ -388,12 +332,9 @@ extension CatalogQueryKey.Kind {
                 // follows no vocabulary list.
                 refreshes: [.applyHiddenPolicy(followsOwnId: .reads(.propertyTerms))],
                 load: { key, store in
-                    guard case .propertyTerms(let project, let propertyId) = key else {
-                        mismatchedCatalogKey(key, .propertyTerms)
-                    }
                     return try await store.listPropertyTerms(
-                        projectDir: project.projectDir,
-                        propertyID: propertyId
+                        projectDir: key.project.projectDir,
+                        propertyID: key.id
                     )
                 }
             )
@@ -402,18 +343,12 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                refreshes: [.applyHiddenPolicy(follows: .reads(.citations)) { _, key in
-                    guard case .citationsByArtifact(_, let graphId, _) = key else { return [] }
-                    return [graphId]
-                }],
+                refreshes: [.applyHiddenPolicy(follows: .reads(.citations)) { _, key in [key.citationGraphId] }],
                 load: { key, store in
-                    guard case .citationsByArtifact(let project, let graphId, let artifactId) = key else {
-                        mismatchedCatalogKey(key, .citationsByArtifact)
-                    }
                     return try await store.listCitationsByArtifact(
-                        projectDir: project.projectDir,
-                        graphID: graphId,
-                        artifactID: artifactId
+                        projectDir: key.project.projectDir,
+                        graphID: key.citationGraphId,
+                        artifactID: key.citationArtifactId
                     )
                 }
             )
@@ -441,10 +376,7 @@ extension CatalogQueryKey.Kind {
                     }
                 )],
                 load: { key, store in
-                    guard case .evidenceGraphProgress(let project) = key else {
-                        mismatchedCatalogKey(key, .evidenceGraphProgress)
-                    }
-                    let rows = try await store.listEvidenceGraphProgress(projectDir: project.projectDir)
+                    let rows = try await store.listEvidenceGraphProgress(projectDir: key.project.projectDir)
                     var map: [String: EvidenceGraphProgress] = [:]
                     for row in rows {
                         map[row.graphId] = row
@@ -478,10 +410,7 @@ extension CatalogQueryKey.Kind {
                     }
                 )],
                 load: { key, store in
-                    guard case .evidenceGraphsList(let project) = key else {
-                        mismatchedCatalogKey(key, .evidenceGraphsList)
-                    }
-                    return try await store.listEvidenceGraphs(projectDir: project.projectDir, sourceID: nil)
+                    return try await store.listEvidenceGraphs(projectDir: key.project.projectDir, sourceID: nil)
                 }
             )
         case .personsList:
@@ -494,10 +423,7 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    guard case .personsList(let project) = key else {
-                        mismatchedCatalogKey(key, .personsList)
-                    }
-                    return try await store.listPersonSummaries(projectDir: project.projectDir)
+                    return try await store.listPersonSummaries(projectDir: key.project.projectDir)
                 }
             )
         case .eventsList:
@@ -510,10 +436,7 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    guard case .eventsList(let project) = key else {
-                        mismatchedCatalogKey(key, .eventsList)
-                    }
-                    return try await store.listEventSummaries(projectDir: project.projectDir)
+                    return try await store.listEventSummaries(projectDir: key.project.projectDir)
                 }
             )
         case .placesList:
@@ -526,105 +449,41 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    guard case .placesList(let project) = key else {
-                        mismatchedCatalogKey(key, .placesList)
-                    }
-                    return try await store.listPlaceSummaries(projectDir: project.projectDir)
+                    return try await store.listPlaceSummaries(projectDir: key.project.projectDir)
                 }
             )
         case .conclusionDetail:
-            return .make(
-                kind: self,
-                whenHidden: .markStale,
-                deletedWith: .handle,
-                refreshes: [
-                    .applyHiddenPolicy(followsOwnId: .touchedHandles),
-                    // The Sources its records cite: a rename or a Citation or
-                    // Artifact label fix reaches the provenance sheet, the
-                    // Gallery captions and the viewer's record row.
-                    .applyHiddenPolicy(followsValue: .source) { (detail: CatalogConclusionDetail) in
-                        var ids = Set<String>()
-                        for field in detail.fields {
-                            ids.formUnion(field.outcomes.map(\.sourceID))
-                        }
-                        for row in detail.derivedRows {
-                            for owner in row.owners {
-                                ids.formUnion(owner.field.outcomes.map(\.sourceID))
-                            }
-                        }
-                        ids.formUnion(detail.pictures.map(\.record.sourceID))
-                        return ids
-                    },
-                    .followsPropertyLabels,
-                ],
-                load: { key, store in
-                    guard case .conclusionDetail(let project, let entityId) = key else {
-                        mismatchedCatalogKey(key, .conclusionDetail)
-                    }
-                    return try await store.getConclusionDetail(projectDir: project.projectDir, entityID: entityId)
-                }
-            )
+            // A rename or a Citation or Artifact label fix reaches the
+            // provenance sheet, the Gallery captions and the viewer's record
+            // row through the Sources and graphs its records cite.
+            return .entityPage(kind: self) { (key, store) -> CatalogConclusionDetail in
+                try await store.getConclusionDetail(projectDir: key.project.projectDir, entityID: key.id)
+            }
         case .personClaims:
-            // A Person's claims by Source (S13-01). Any Conclusion edit can
-            // change who a claim belongs to, so every cached key is stale on a
-            // trigger. Otherwise a write reloads it for its own handle, for the
-            // Evidence graphs it holds a claim on, and for the Sources they
-            // are on.
-            return .personGraphsSection(
-                kind: self,
-                graphIDs: { (claims: CatalogPersonClaims) in
-                    Set(claims.groups.flatMap(\.claims).map(\.graphID))
-                },
-                sourceIDs: { (claims: CatalogPersonClaims) in Set(claims.groups.map(\.sourceID)) },
-                load: { key, store in
-                    guard case .personClaims(let project, let entityId) = key else {
-                        mismatchedCatalogKey(key, .personClaims)
-                    }
-                    return try await store.listPersonClaims(projectDir: project.projectDir, entityID: entityId)
-                }
-            )
+            // A Person's claims by Source (S13-01): its graphs and Sources, and
+            // its own handle.
+            return .entityPage(kind: self) { (key, store) -> CatalogPersonClaims in
+                try await store.listPersonClaims(projectDir: key.project.projectDir, entityID: key.id)
+            }
         case .personFamily:
-            // A Person's family units (S13-04). A relative's change touches the
-            // relative's id, not this Person's, and the relatives are up to two
-            // hops away, so any write that names a handle reloads a visible
-            // Family section; the read is cheap warm. A newly filed relative is
-            // not in the cached value, so the key cannot follow the ids it names.
-            return .personSection(kind: self) { key, store in
-                guard case .personFamily(let project, let entityId) = key else {
-                    mismatchedCatalogKey(key, .personFamily)
-                }
-                return try await store.getPersonFamily(projectDir: project.projectDir, entityID: entityId)
+            // A Person's family units (S13-04): the relatives and the events
+            // the read was built from, and its own handle (a newly filed
+            // relative names the Person).
+            return .entityPage(kind: self) { (key, store) -> CatalogPersonFamily in
+                try await store.getPersonFamily(projectDir: key.project.projectDir, entityID: key.id)
             }
         case .personEvents:
-            // A Person's timeline (S13-05). An edit to an event or a
-            // co-participant touches their id, not this Person's, and a newly
-            // filed participation is not in the cached value, so any write that
-            // names a handle reloads a visible Timeline section; the read is
-            // cheap warm.
-            return .personSection(kind: self) { key, store in
-                guard case .personEvents(let project, let entityId) = key else {
-                    mismatchedCatalogKey(key, .personEvents)
-                }
-                return try await store.listPersonEvents(projectDir: project.projectDir, entityID: entityId)
+            // A Person's timeline (S13-05): the events and co-participants the
+            // read was built from, and its own handle.
+            return .entityPage(kind: self) { (key, store) -> CatalogPersonTimeline in
+                try await store.listPersonEvents(projectDir: key.project.projectDir, entityID: key.id)
             }
         case .personRecordLinks:
-            // A Person's Evidence graphs and the lines between them (S13-27).
-            // Every write that can change a line names a graph the value holds
-            // (a neighbor's claim names its graph; a Subject or Observation
-            // write names its graph), the Person's own handle (a graph gained
-            // or lost) or a Source the graphs are on (a Source write names the
-            // Source), so a write elsewhere does not reload the pairs.
-            return .personGraphsSection(
-                kind: self,
-                graphIDs: { (links: CatalogPersonRecordLinks) in Set(links.graphs.map(\.graphID)) },
-                sourceIDs: { (links: CatalogPersonRecordLinks) in Set(links.graphs.map(\.sourceID)) },
-                load: { key, store in
-                    guard case .personRecordLinks(let project, let entityId) = key else {
-                        mismatchedCatalogKey(key, .personRecordLinks)
-                    }
-                    return try await store.getPersonRecordLinks(projectDir: project.projectDir, entityID: entityId)
-                }
-            )
+            // A Person's Evidence graphs and the lines between them (S13-27):
+            // the graphs and Sources the read was built from, and its own handle.
+            return .entityPage(kind: self) { (key, store) -> CatalogPersonRecordLinks in
+                try await store.getPersonRecordLinks(projectDir: key.project.projectDir, entityID: key.id)
+            }
         }
     }
 }
