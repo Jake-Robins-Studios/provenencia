@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -1725,5 +1726,86 @@ func TestListKeysFile(t *testing.T) {
 	if err != nil || !slices.Equal(got.Titles, want.Titles) || !slices.Equal(got.Dates, want.Dates) {
 		wantJSON, _ := json.MarshalIndent(want, "", "  ")
 		t.Fatalf("testdata/list_keys.json (%v) is not Go's keys; it should be:\n%s\n", err, wantJSON)
+	}
+}
+
+// listRowOf is the row of the whole list with id.
+func listRowOf[T any](t *testing.T, rows []T, id []byte, idOf func(T) []byte) T {
+	t.Helper()
+	for _, r := range rows {
+		if bytes.Equal(idOf(r), id) {
+			return r
+		}
+	}
+	t.Fatalf("no row %x in the list", id)
+	panic("unreachable")
+}
+
+func TestListPersonsOf(t *testing.T) {
+	f := newFixture(t)
+	_, _, mary := f.person("Mary Smith")
+	_, _, james := f.person("James Robins")
+	f.person("Ada Lovelace")
+	place := f.place(f.Artifact, "York")
+
+	all, err := conclusionsummaries.ListPersons(f.C)
+	must(t, err)
+	got, err := conclusionsummaries.ListPersonsOf(f.C, [][]byte{mary, james, mary, place, make([]byte, 16)})
+	must(t, err)
+	id := func(h conclusionsummaries.PersonSummary) []byte { return h.Entity.ID }
+	if len(got) != 2 || !bytes.Equal(got[0].Entity.ID, james) || !bytes.Equal(got[1].Entity.ID, mary) {
+		t.Fatalf("want James, Mary in list order: %+v", got)
+	}
+	for _, h := range got {
+		want := listRowOf(t, all, h.Entity.ID, id)
+		if !reflect.DeepEqual(h, want) {
+			t.Fatalf("row %s differs from the list's:\n got %+v\nwant %+v", h.Entity.Ref, h, want)
+		}
+		if h.Updated.Revision == 0 || h.ListKey.Ref == "" {
+			t.Fatalf("list fields missing: %+v", h)
+		}
+	}
+	if got, err := conclusionsummaries.ListPersonsOf(f.C, nil); err != nil || got != nil {
+		t.Fatalf("no ids: %v %+v", err, got)
+	}
+	plain, err := conclusionsummaries.PersonsByIDs(f.C, [][]byte{mary})
+	must(t, err)
+	if len(plain) != 1 || plain[0].ListKey.Ref != "" || plain[0].ListKey.Primary != nil || plain[0].ListKey.Last {
+		t.Fatalf("PersonsByIDs row carries a list key: %+v", plain)
+	}
+}
+
+func TestListEventsOf(t *testing.T) {
+	f := newFixture(t)
+	date := f.Prop("date")
+	fire := f.event(observations.Input{PropertyID: date.ID, Date: datevaluetest.YMD(1849, 0, 0)})
+	f.event()
+	_, _, person := f.person("Ada Lovelace")
+	all := f.events()
+	got, err := conclusionsummaries.ListEventsOf(f.C, [][]byte{fire, person})
+	must(t, err)
+	if len(got) != 1 || !bytes.Equal(got[0].Entity.ID, fire) {
+		t.Fatalf("want the Event only: %+v", got)
+	}
+	want := listRowOf(t, all, fire, func(h conclusionsummaries.EventSummary) []byte { return h.Entity.ID })
+	if !reflect.DeepEqual(got[0], want) || got[0].ListKey.Last {
+		t.Fatalf("row differs from the list's:\n got %+v\nwant %+v", got[0], want)
+	}
+}
+
+func TestListPlacesOf(t *testing.T) {
+	f := newFixture(t)
+	york := f.place(f.Artifact, "York")
+	f.place(f.Artifact, "Toronto")
+	event := f.event()
+	all := f.places()
+	got, err := conclusionsummaries.ListPlacesOf(f.C, [][]byte{york, event})
+	must(t, err)
+	if len(got) != 1 || !bytes.Equal(got[0].Entity.ID, york) {
+		t.Fatalf("want the Place only: %+v", got)
+	}
+	want := listRowOf(t, all, york, func(h conclusionsummaries.PlaceSummary) []byte { return h.Entity.ID })
+	if !reflect.DeepEqual(got[0], want) || got[0].ListKey.Last {
+		t.Fatalf("row differs from the list's:\n got %+v\nwant %+v", got[0], want)
 	}
 }

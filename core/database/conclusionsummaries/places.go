@@ -50,6 +50,9 @@ type PlaceSummary struct {
 	// Updated is the handle's latest canonical_entity revision and its time.
 	// Filled by List only; zero means none.
 	Updated effects.Activity
+	// ListKey is the key the row's list sorts by. The list reads fill it onto
+	// the rows they return, after composing; the finished rows never hold it.
+	ListKey ListKey
 }
 
 // TodayDate is a Gregorian point for "today's chain" on Place rows.
