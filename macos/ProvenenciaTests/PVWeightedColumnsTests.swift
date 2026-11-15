@@ -32,4 +32,10 @@ struct PVWeightedColumnsTests {
         #expect(PVWeightedColumns.cellY(height: 18, rowHeight: 30, alignment: .top) == 0)
         #expect(PVWeightedColumns.cellY(height: 40, rowHeight: 30, alignment: .center) == 0)
     }
+
+    @Test func withNoProposedWidthTheTotalIsFixedWidthsIdealsAndGaps() {
+        // Column 0 is fixed at 50 (its measured 80 is ignored); 1 and 2 use their ideals; two gaps of 10.
+        #expect(PVWeightedColumns.idealTotal(fixed: [50], idealWidths: [80, 30, 20], spacing: 10) == 120)
+        #expect(PVWeightedColumns.idealTotal(fixed: [], idealWidths: [], spacing: 10) == 0)
+    }
 }

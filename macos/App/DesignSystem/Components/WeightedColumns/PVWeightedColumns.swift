@@ -12,9 +12,12 @@ struct PVWeightedColumns: Layout {
     let fixed: [CGFloat?]
     let weights: [CGFloat]
     let spacing: CGFloat
-    let alignment: VerticalAlignment
+    let alignment: Alignment
 
-    init(fixed: [CGFloat?] = [], weights: [CGFloat] = [], spacing: CGFloat, alignment: VerticalAlignment = .center) {
+    /// Where a cell shorter than its row sits.
+    enum Alignment { case top, center }
+
+    init(fixed: [CGFloat?] = [], weights: [CGFloat] = [], spacing: CGFloat, alignment: Alignment = .center) {
         self.fixed = fixed
         self.weights = weights
         self.spacing = spacing
@@ -42,8 +45,11 @@ struct PVWeightedColumns: Layout {
     }
 
     /// Where a cell of `height` starts inside a row of `rowHeight`.
-    static func cellY(height: CGFloat, rowHeight: CGFloat, alignment: VerticalAlignment) -> CGFloat {
-        alignment == .center ? max(0, (rowHeight - height) / 2) : 0
+    static func cellY(height: CGFloat, rowHeight: CGFloat, alignment: Alignment) -> CGFloat {
+        switch alignment {
+        case .top: 0
+        case .center: max(0, (rowHeight - height) / 2)
+        }
     }
 
     private func columnWidths(_ subviews: Subviews, total: CGFloat) -> [CGFloat] {
@@ -54,12 +60,21 @@ struct PVWeightedColumns: Layout {
         return Self.widths(fixed: paddedFixed, weights: paddedWeights, total: total, spacing: spacing)
     }
 
-    /// With no proposed width: fixed widths and gaps plus each flexible child's ideal width.
-    private func idealWidths(_ subviews: Subviews) -> [CGFloat] {
-        subviews.enumerated().map { index, subview in
+    /// With no proposed width each column is its fixed width, else the child's ideal width.
+    static func columnIdeals(fixed: [CGFloat?], idealWidths: [CGFloat]) -> [CGFloat] {
+        idealWidths.enumerated().map { index, ideal in
             if index < fixed.count, let width = fixed[index] { return width }
-            return subview.sizeThatFits(.unspecified).width
+            return ideal
         }
+    }
+
+    /// The width reported with no proposed width: the column ideals plus the gaps.
+    static func idealTotal(fixed: [CGFloat?], idealWidths: [CGFloat], spacing: CGFloat) -> CGFloat {
+        columnIdeals(fixed: fixed, idealWidths: idealWidths).reduce(0, +) + spacing * CGFloat(max(0, idealWidths.count - 1))
+    }
+
+    private func idealWidths(_ subviews: Subviews) -> [CGFloat] {
+        Self.columnIdeals(fixed: fixed, idealWidths: subviews.map { $0.sizeThatFits(.unspecified).width })
     }
 
     private func resolvedWidths(_ subviews: Subviews, proposedWidth: CGFloat?) -> [CGFloat] {
@@ -70,12 +85,12 @@ struct PVWeightedColumns: Layout {
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let widths = resolvedWidths(subviews, proposedWidth: proposal.width)
         let height = zip(subviews, widths).map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }.max() ?? 0
-        let total = proposal.width ?? (widths.reduce(0, +) + spacing * CGFloat(max(0, subviews.count - 1)))
+        let total = proposal.width ?? Self.idealTotal(fixed: fixed, idealWidths: widths, spacing: spacing)
         return CGSize(width: total, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let widths = resolvedWidths(subviews, proposedWidth: proposal.width ?? bounds.width)
+        let widths = resolvedWidths(subviews, proposedWidth: proposal.width)
         var x = bounds.minX
         for (subview, width) in zip(subviews, widths) {
             let size = ProposedViewSize(width: width, height: nil)
