@@ -27,9 +27,15 @@ struct CatalogQueryKey: Hashable, Sendable {
     }
 
     /// The graph of a `citationsByArtifact` key.
-    var citationGraphId: String { ids[0] }
+    var citationGraphId: String {
+        precondition(kind == .citationsByArtifact, "\(kind) has no graph id")
+        return ids[0]
+    }
     /// The Artifact of a `citationsByArtifact` key.
-    var citationArtifactId: String { ids[1] }
+    var citationArtifactId: String {
+        precondition(kind == .citationsByArtifact, "\(kind) has no Artifact id")
+        return ids[1]
+    }
 
     /// What a key reads. Each kind has one
     /// `CatalogQueryDescriptor` (`Kind.descriptor`).
