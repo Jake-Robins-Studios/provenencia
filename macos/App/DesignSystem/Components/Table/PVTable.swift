@@ -148,6 +148,9 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     let label: LocalizedStringResource
     let rowAccessibilityIdentifier: ((Row) -> String)?
     let sortAccessibilityIdentifier: ((String) -> String)?
+    /// Opens a row: a click, and Return or Space on the highlighted row (`PVListKeyboard`'s
+    /// contract). Nil keeps a table that only selects.
+    let onActivate: ((Row.ID) -> Void)?
     /// Rendered inside the scroller after the rows — an empty state, a
     /// pending/unsaved row. Mirrors the web component's `children`.
     let content: Content
@@ -167,6 +170,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         label: LocalizedStringResource,
         rowAccessibilityIdentifier: ((Row) -> String)? = nil,
         sortAccessibilityIdentifier: ((String) -> String)? = nil,
+        onActivate: ((Row.ID) -> Void)? = nil,
         @ViewBuilder content: () -> Content = { EmptyView() }
     ) {
         self.rows = rows
@@ -180,6 +184,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         self.label = label
         self.rowAccessibilityIdentifier = rowAccessibilityIdentifier
         self.sortAccessibilityIdentifier = sortAccessibilityIdentifier
+        self.onActivate = onActivate
         self.content = content()
     }
 
@@ -203,6 +208,8 @@ struct PVTable<Row: Identifiable, Content: View>: View {
                 }
                 content
             }
+            // Lets a list's scroll anchor (`ListScrollAnchorModifier`) find the top row.
+            .scrollTargetLayout()
         }
         .pvScrollsRowIntoView(selection)
         .focusable()
@@ -322,10 +329,16 @@ struct PVTable<Row: Identifiable, Content: View>: View {
                 PVDivider()
             }
         }
-        .onTapGesture { selection = row.id }
+        .onTapGesture {
+            selection = row.id
+            onActivate?(row.id)
+        }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityAction(.default) { selection = row.id }
+        .accessibilityAction(.default) {
+            selection = row.id
+            onActivate?(row.id)
+        }
         .accessibilityIdentifier(rowAccessibilityIdentifier?(row) ?? "")
     }
 
@@ -364,6 +377,15 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             return .handled
         case .pageDown, .pageUp:
             select(at: PVTableSelection.moveIndex(index, delta: press.key == .pageDown ? 10 : -10, count: rows.count))
+            return .handled
+        case .return, .space:
+            guard let onActivate,
+                  case .activate(let target) = PVListKeyboard.action(
+                      for: press.key, option: false, index: index, count: rows.count
+                  )
+            else { return .ignored }
+            select(at: target)
+            onActivate(rows[target].id)
             return .handled
         case .escape:
             matcher.reset()

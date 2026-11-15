@@ -6,7 +6,7 @@ import SwiftUI
 struct SourceTypesListPane: View {
     @Bindable var model: SourceTypesModel
     @Environment(WorkspaceNavigation.self) private var navigation
-    /// The row the table highlights. Opening a row is separate (S15-48 STEP-8).
+    /// The row the table highlights; arrow keys move it without leaving the list.
     @State private var highlighted: String?
 
     /// Column widths live only here; `PVTable` shares them between the
@@ -33,8 +33,16 @@ struct SourceTypesListPane: View {
                 emptyBody: L10n.SourceTypes.emptyProjectBody,
                 resultLine: { L10n.SourceTypes.resultLine(shown: $0, total: $1) }
             ),
+            onActivate: { id in
+                navigation.go(to: .sourceTypePage(typeId: id, title: model.types.label(forTypeID: id)))
+            },
             identifierPrefix: "sourceTypes"
         )
+        .modifier(ListScrollAnchorModifier(
+            anchor: navigation.currentLocation.listScrollAnchor,
+            rowIDs: model.visibleTypes.map(\.id),
+            isLoaded: !model.isLoading
+        ))
     }
 
     private var columns: [PVTableColumn<CatalogSourceType>] {
@@ -86,16 +94,8 @@ struct SourceTypesListPane: View {
         ]
     }
 
-    /// Selection is the table's; workspace history owns committed place.
+    /// The highlight is the table's; opening a row is `onActivate`'s.
     private var selection: Binding<String?> {
-        Binding(
-            get: { highlighted },
-            set: { id in
-                highlighted = id
-                guard let id else { return }
-                let type = model.types.first(where: { $0.id == id })
-                navigation.go(to: .sourceTypePage(typeId: id, title: type?.label))
-            }
-        )
+        Binding(get: { highlighted }, set: { highlighted = $0 })
     }
 }

@@ -24,6 +24,8 @@ struct VocabularyListPane<Row: CatalogVocabularyRow>: View {
     let sort: PVTableSort
     let onSortChange: (String) -> Void
     let strings: VocabularyListStrings
+    /// Opens a row on a click or Return; nil keeps a list that only selects.
+    var onActivate: ((String) -> Void)? = nil
     /// Prefixes every identifier this pane mints: `.list`, `.row.<id>`,
     /// `.sortBy.<column>`.
     let identifierPrefix: String
@@ -45,7 +47,8 @@ struct VocabularyListPane<Row: CatalogVocabularyRow>: View {
             onSortChange: onSortChange,
             label: strings.tableLabel,
             rowAccessibilityIdentifier: { "\(identifierPrefix).row.\($0.id)" },
-            sortAccessibilityIdentifier: { "\(identifierPrefix).sortBy.\($0)" }
+            sortAccessibilityIdentifier: { "\(identifierPrefix).sortBy.\($0)" },
+            onActivate: onActivate
         ) {
             placeholder
         }

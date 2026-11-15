@@ -203,8 +203,9 @@ struct MetadataModelTests {
     }
 
     /// T-8 (AC-1.2): a field relabel reports `source_vocabulary`; the Metadata
-    /// list and every type's suggestions reload, and the visited Source page is
-    /// marked stale through `.updatedMetadataField`.
+    /// list reloads, every type's hidden suggestions are marked stale and reload
+    /// when next read (S15-48 D-7), and the visited Source page is marked stale
+    /// through `.updatedMetadataField`.
     @Test func renamingAFieldReloadsItsDependents() async throws {
         let store = FakeStore()
         let (model, session) = makeModel(store: store, fields: [userField()])
@@ -232,7 +233,10 @@ struct MetadataModelTests {
         await session.settleWrites()
 
         #expect(model.fields.first?.label == "Book")
-        let reloaded: QueryHandle<[CatalogTypeSuggestion]> = try #require(session.queryHandle(suggestionsKey))
+        let hidden: QueryHandle<[CatalogTypeSuggestion]> = try #require(session.queryHandle(suggestionsKey))
+        #expect(hidden.isStale)
+        let reloaded: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestionsKey)
+        await waitForQuery(reloaded)
         #expect(reloaded.value?.first?.field.label == "Book")
         let page: QueryHandle<CatalogSourceWorkspace> = try #require(session.queryHandle(workspaceKey))
         #expect(page.isStale)
