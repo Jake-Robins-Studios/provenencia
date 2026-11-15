@@ -1422,6 +1422,46 @@ struct CitationComposerModelTests {
         #expect(store.propertyTermsByProperty[occupationPropertyID]?.contains { $0.label == "Weaver" } == true)
     }
 
+    /// AC-2.5: a term added to a term-valued Property rebuilds the vocabulary
+    /// once and offers it; a write to an unrelated key rebuilds nothing.
+    @Test func aTermWriteRebuildsTheVocabularyOnce() async throws {
+        let store = makeStore()
+        seedArtifact(store)
+        let model = makeModel(store: store)
+        await model.prepare()
+        let session = model.session
+        let termsKey = CatalogQueryKey.propertyTerms(project: session.projectKey, propertyId: rolePropertyID)
+        let _: QueryHandle<[CatalogPropertyTerm]> = session.query(termsKey)
+        _ = await session.readyValue(termsKey) as [CatalogPropertyTerm]?
+        let id = DerivedValueID.citationComposerVocabulary(graphID: graphID)
+        _ = model.vocabulary
+        _ = model.vocabulary
+        let before = session.derivedBuildCount(id)
+        #expect(before >= 1)
+        _ = model.vocabulary
+        #expect(session.derivedBuildCount(id) == before)
+
+        model.beginPropertyDraft(subjectID: subjectID)
+        model.mutateProperty { $0.values.propertyID = rolePropertyID }
+        model.beginAddCustomTerm(propertyID: rolePropertyID)
+        model.customTermDraft?.label = "Weaver"
+        store.nextWriteEffects = CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .propertyTerms, ids: [rolePropertyID])]
+        )
+        await model.confirmCustomTerm()
+        await session.settleWrites()
+        let rebuilt = model.vocabulary
+        #expect(session.derivedBuildCount(id) == before + 1)
+        #expect(rebuilt.termsByPropertyID[rolePropertyID]?.contains { $0.label == "Weaver" } == true)
+        _ = model.vocabulary
+        #expect(session.derivedBuildCount(id) == before + 1)
+
+        session.apply(CatalogWriteEffects(handles: ["unrelated"]))
+        await session.settleWrites()
+        _ = model.vocabulary
+        #expect(session.derivedBuildCount(id) == before + 1)
+    }
+
     /// T-10 (AC-1.4): a custom term reports `property_vocabulary` and its
     /// Property's `property_terms` read. That Property's term list reloads; no
     /// other term list, Source page or canvas does, and the draft keeps the term.

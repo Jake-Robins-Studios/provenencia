@@ -1,19 +1,10 @@
 import Foundation
 import Observation
 
-/// Shared write surface and memoized catalog snapshot for composer children.
+/// Shared write surface and catalog snapshot for composer children.
 @MainActor
 @Observable
 final class CitationComposerContext {
-    /// Revisions of the queries the memo was built from. Comparing these
-    /// avoids walking the source graph on every vocabulary read.
-    private struct MemoToken: Equatable {
-        var graph: Int
-        var fields: Int
-        var rules: Int
-        var terms: [String: Int]
-    }
-
     let store: any GenealogyStore
     let session: WorkspaceSession
     let userID: String
@@ -25,8 +16,6 @@ final class CitationComposerContext {
     var citationID: String?
     var artifactID: String?
 
-    @ObservationIgnored
-    private var memo = Memo<MemoToken, (snapshot: EvidenceGraphSnapshot, vocabulary: CitationComposerVocabulary)>()
     @ObservationIgnored
     private var isCreatingCitation = false
     @ObservationIgnored
@@ -57,11 +46,33 @@ final class CitationComposerContext {
     }
 
     var graphSnapshot: EvidenceGraphSnapshot {
-        built.snapshot
+        session.cachedEvidenceGraphSnapshot(graphID: graphID)
     }
 
+    /// The composer's vocabulary, built once per change of the graph snapshot,
+    /// the fields, the connect rules and each term list.
     var vocabulary: CitationComposerVocabulary {
-        built.vocabulary
+        let fields = fieldsSnapshot
+        let termIDs = termPropertyIDs(in: fields)
+        let inputs: [DerivedInput] = [
+            .derived(.evidenceGraphSnapshot(graphID: graphID)), .key(fieldsKey), .key(connectRulesKey),
+        ] + termKeys(in: fields).map(DerivedInput.key)
+        return session.derived(.citationComposerVocabulary(graphID: graphID), inputs: inputs) {
+            let rulesHandle: QueryHandle<[CatalogConnectRule]>? = session.queryHandle(connectRulesKey)
+            var termLists: [String: [CatalogPropertyTerm]] = [:]
+            for propertyID in termIDs {
+                let handle: QueryHandle<[CatalogPropertyTerm]>? = session.queryHandle(termsKey(propertyID: propertyID))
+                if let value = handle?.value {
+                    termLists[propertyID] = value
+                }
+            }
+            return CitationComposerVocabulary.make(
+                fields: fields,
+                snapshot: graphSnapshot,
+                rules: rulesHandle?.value ?? [],
+                termsByPropertyID: termLists
+            )
+        }
     }
 
     /// The one funnel for composer writes. The location names the selected
@@ -149,44 +160,8 @@ final class CitationComposerContext {
         .propertyTerms(project: session.projectKey, propertyId: propertyID)
     }
 
-    /// The snapshot and vocabulary for the current revisions, built once per
-    /// change of any of them.
-    private var built: (snapshot: EvidenceGraphSnapshot, vocabulary: CitationComposerVocabulary) {
-        let fieldsHandle: QueryHandle<PropertiesSnapshot>? = session.queryHandle(fieldsKey)
-        let rowsHandle: QueryHandle<EvidenceGraphRows>? = session.queryHandle(graphKey)
-        let rulesHandle: QueryHandle<[CatalogConnectRule]>? = session.queryHandle(connectRulesKey)
-        let fields = fieldsHandle?.value ?? .empty
-        let terms = termRevisions(in: fields)
-        let token = MemoToken(
-            graph: rowsHandle?.revision ?? 0,
-            fields: fieldsHandle?.revision ?? 0,
-            rules: rulesHandle?.revision ?? 0,
-            terms: terms
-        )
-        return memo.value(for: token) {
-            let rows = rowsHandle?.value ?? EvidenceGraphRows(graphId: graphID)
-            let rules = rulesHandle?.value ?? []
-            var termLists: [String: [CatalogPropertyTerm]] = [:]
-            for propertyID in terms.keys {
-                let handle: QueryHandle<[CatalogPropertyTerm]>? = session.queryHandle(
-                    termsKey(propertyID: propertyID)
-                )
-                if let value = handle?.value {
-                    termLists[propertyID] = value
-                }
-            }
-            let snapshot = EvidenceGraphSnapshot.build(rows: rows, types: fields.types, rules: rules)
-            let vocabulary = CitationComposerVocabulary.make(
-                fields: fields,
-                snapshot: snapshot,
-                rules: rules,
-                termsByPropertyID: termLists
-            )
-            return (snapshot, vocabulary)
-        }
-    }
-
-    private func termRevisions(in fields: PropertiesSnapshot) -> [String: Int] {
+    /// The term-valued Property ids of `fields`, sorted.
+    private func termPropertyIDs(in fields: PropertiesSnapshot) -> [String] {
         var ids = Set(
             fields.properties
                 .filter { $0.valueType == PropertyValueType.term.rawValue }
@@ -197,14 +172,12 @@ final class CitationComposerContext {
                 ids.insert(field.property.id)
             }
         }
-        var revisions: [String: Int] = [:]
-        for propertyID in ids {
-            let handle: QueryHandle<[CatalogPropertyTerm]>? = session.queryHandle(
-                termsKey(propertyID: propertyID)
-            )
-            revisions[propertyID] = handle?.revision ?? 0
-        }
-        return revisions
+        return ids.sorted()
+    }
+
+    /// The term-list key of each term-valued Property, in id order.
+    private func termKeys(in fields: PropertiesSnapshot) -> [CatalogQueryKey] {
+        termPropertyIDs(in: fields).map { termsKey(propertyID: $0) }
     }
 }
 
