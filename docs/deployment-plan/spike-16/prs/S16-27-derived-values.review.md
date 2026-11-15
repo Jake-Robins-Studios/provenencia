@@ -5,7 +5,8 @@
 
 ## To user
 
-- **The three vocabulary lists' sorts (M-2, second half).** `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes` and `MetadataModel.visibleFields` sort a cached vocabulary list on each read with no memo. Bar 15 reads "every value", so they are in its letter. Recommendation: leave them out (not planned). Each list holds tens of rows, and a memo there adds a call and an id each and deletes nothing. The plan stays Draft until this is answered.
+- **The three vocabulary lists' sorts (M-2, second half).** `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes` and `MetadataModel.visibleFields` sort a cached vocabulary list on each read with no memo. Bar 15 reads "every value", so they are in its letter. Recommendation: leave them out (not planned). Each list holds tens of rows, and a memo there adds a call and an id each and deletes nothing.
+  **Answer (user, 2026-11-15):** agreed — not planned; those tables won't have many rows in practice. Out row updated; plan Planned.
 
 ## Writer's own calls
 
@@ -124,4 +125,4 @@ Logged; the plan's "Runs on macOS" line covers it.
 **Answer:** Fixed — a **Base** line says to compare against `origin/main`.
 
 ### X-10 · minor · Draft with one To user item
-Logged; it waits on the user.
+Answered by the user (2026-11-15); plan Planned.

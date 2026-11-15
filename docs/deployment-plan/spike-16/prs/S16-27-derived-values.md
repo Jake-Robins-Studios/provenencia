@@ -1,6 +1,6 @@
 # S16-27 — One primitive for values derived from cached data
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view draws the same content; only how often the app builds it changes)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** [design § Swift](../cache-architecture.md#swift) ("One primitive for derived values"); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Cache contract" rule 5; [`docs/catalog-caches.md`](../../../catalog-caches.md) "Swift caches"; working rules: "(Batch 2) The point of this batch is simpler code", "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 1) Refused: memoising and re-shaping for speed" (its Batch 2 clause names this PR), "(Batch 2) No new persisted projections, and no stored answer without a measurement"; goal bar 15's last clause
 **Planned:** 2026-11-15 against `main` @ `1f52b60`
-**Review:** [`S16-27-derived-values.review.md`](S16-27-derived-values.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Not ready, every finding Fixed; one To user item open
+**Review:** [`S16-27-derived-values.review.md`](S16-27-derived-values.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Not ready, every finding Fixed; To user answered (2026-11-15); Planned
 
 **Base.** Compare against `origin/main` (fetch it first); `1f52b60` is the planned commit.
 
@@ -82,7 +82,7 @@ The app derives display values from cached reads in four hand-written ways (the 
 | Out | Home |
 | --- | --- |
 | Engine-side memos | not planned (map scope entry: "Not this PR") |
-| `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes`, `MetadataModel.visibleFields` (sort a vocabulary list on each read; no memo today) | To user (review log); recommended not planned |
+| `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes`, `MetadataModel.visibleFields` (sort a vocabulary list on each read; no memo today) | not planned: each list holds tens of rows in practice (user, 2026-11-15) |
 | `SourcesModel.searchKeyCache` (per-row keys by row revision) | not planned: a per-row cache, not a derived value of whole reads |
 | Prefetching sections | S16-29 |
 | Lazy Timeline cards, participants sent once (P-7, P-8) | [person page performance idea](../../../ideas/person-page-performance.md) |
@@ -356,7 +356,7 @@ Run a Debug build (D-10's check is on).
 
 ## 12. Open questions
 
-- **The three vocabulary lists' sorts.** `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes` and `MetadataModel.visibleFields` sort a cached vocabulary list on each read with no memo. Recommendation: leave them out (not planned): each list holds tens of rows, and a memo there adds a call and an id each and removes nothing. Moving them is three more sites in STEP-5. Asked in the review log (To user).
+None.
 
 ## 13. PR
 
