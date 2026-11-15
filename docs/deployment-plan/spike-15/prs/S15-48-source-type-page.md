@@ -1,9 +1,9 @@
 # S15-48 — Source types open on their own page
 
-**Status:** Planned
+**Status:** Landed in [#848](https://github.com/mendahu/provenencia/pull/848) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D27](../design/S15-D27-source-type-page.md), board agreed 2026-11-15 (user)
+**Brief:** [S15-D27](../design/archive/S15-D27-source-type-page.md), board agreed 2026-11-15 (user)
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): artboard *S15-D27 · Source type page board* (frames 2, 2b, 3 – 13 and its decision notes), the component *Source type page · component* (`Source-Type-Page.dc.html`) and *Source type icon grid* (`Source-Type-Icon-Grid.dc.html`). Board decisions: TP-4 is today's Change icon button opening the "Choose an icon" sheet; TP-3 is a new `SourceTypePageHeader`; TP-W1 is one layout at every width (Details 560pt beside Suggested fields, the pair centred). Agreed without Wide, failure or list frames (user, 2026-11-15): Wide is the same centred pair; failures use the existing field error, Callouts and retry callout; the list is today's minus its side pane. Open the link in a browser; if you cannot, D-11, D-13, D-15, D-16 and § 6 macOS describe each frame
 **Depends on:** S15-47 (landed [#843](https://github.com/mendahu/provenencia/pull/843)), S15-D27
 **Blocks:** S15-49, S15-12, S15-17, S15-18 (`SourceTypeDraft`)
@@ -394,3 +394,12 @@ None.
 
 **Title:** S15-48 — Source types open on their own page
 **Body:** objective in one sentence; what shipped against US-1 – US-5; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-48-source-type-page.md`.
+
+## Landed
+
+- The base had moved (the S16 cache-key refactor; `VERSION` was already 0.15.2), so the version is 0.15.3. Cache keys are read as `key.kind` / `key.ownId`, so the new patches `typeSuggestions()` and `typeSuggestionCount()` check those, not an enum case. § 4's rows held.
+- `CatalogRowPresence.of` is `@MainActor` (it reads a `QueryHandle`). `WorkspaceSession` also gained `sourceTypesKey`, beside `sourceTypesHandle`.
+- `MetadataModelTests.renamingAFieldReloadsItsDependents` now expects a hidden type's suggestions to be stale and to reload when read, which D-7's `whenHidden: .markStale` decides.
+- `FakeStore.updateSourceTypeHold` was added so T-9 can look at the page mid-Save. T-9's modifier test is a second suite in `WorkspaceNavigationTests.swift` (`WorkspaceLeaveGuardInstallTests`, hosted windows).
+- `aSaveWithNoEffectsReloadsNothing` (new) keeps the old "an update with no effects reloads nothing" case, which moved with the Save.
+- Not run: the manual check (section 10) and the board comparison in a browser. The page was rendered once from a hosted window at 1102, 2296 and 840 pt and read by eye; the frames' failure, saving and discard states were not drawn.
