@@ -1,20 +1,16 @@
 import SwiftUI
 
 extension View {
-    /// The Add type dialog, presented while `model` is non-nil. A successful create clears `model`,
-    /// reports the new type to `onAdded` and opens the type's place.
-    func sourceTypeAddDialog(
-        _ model: Binding<SourceTypeAddModel?>,
-        onAdded: @escaping (CatalogSourceType) -> Void
-    ) -> some View {
-        modifier(SourceTypeAddDialogModifier(model: model, onAdded: onAdded))
+    /// The Add type dialog, presented while `model` is non-nil. A successful create clears `model`
+    /// and opens the new type's page.
+    func sourceTypeAddDialog(_ model: Binding<SourceTypeAddModel?>) -> some View {
+        modifier(SourceTypeAddDialogModifier(model: model))
     }
 }
 
 private struct SourceTypeAddDialogModifier: ViewModifier {
     @Environment(WorkspaceNavigation.self) private var navigation
     @Binding var model: SourceTypeAddModel?
-    let onAdded: (CatalogSourceType) -> Void
 
     func body(content: Content) -> some View {
         content.pvFormDialog(
@@ -32,7 +28,6 @@ private struct SourceTypeAddDialogModifier: ViewModifier {
             accessibilityIdentifierPrefix: "sourceTypes.add",
             onConfirm: { current in
                 guard let created = await current.create() else { return false }
-                onAdded(created)
                 navigation.go(to: .sourceTypePage(typeId: created.id, title: created.label))
                 return true
             },

@@ -1,31 +1,12 @@
 import Foundation
 import Observation
 
-/// State for the **Source types** workspace destination (S2-03 board /
-/// S2-16 PR): browse/search/sort the project's `source_types` vocabulary,
-/// create or edit project rows, delete via DeleteImpact, and assign or remove
-/// `source_type_metadata_fields` suggestions each type carries.
+/// State for the **Source types** list (S2-03 board / S2-16 PR): browse and sort the project's
+/// `source_types` vocabulary and open the Add type dialog. A type's own page edits it
+/// (`SourceTypePageModel`).
 @MainActor
 @Observable
 final class SourceTypesModel {
-    struct Draft: Equatable {
-        var label: String
-        var description: String
-        var iconKey: String = PVMarkKey.defaultTypeMark.rawValue
-
-        var trimmedLabel: String { label.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-        /// The key the engine mints from the label.
-        var key: String { FieldSlug.kebab(trimmedLabel) }
-
-        /// Why the label cannot be saved, or nil. One rule for the Add dialog and the side pane.
-        var labelError: String? {
-            if trimmedLabel.isEmpty { return L10n.string(L10n.SourceTypes.errorLabelRequired) }
-            if key.isEmpty { return L10n.string(L10n.SourceTypes.errorUnslugifiable) }
-            return nil
-        }
-    }
-
     enum SortColumn: String {
         case label
         case key
@@ -35,26 +16,8 @@ final class SourceTypesModel {
     private(set) var sortColumn: SortColumn = .label
     private(set) var sortAscending = true
 
-    private(set) var mode: VocabularyPaneMode = .empty
     /// The Add type dialog's model while it is open; a fresh one per open.
     var adding: SourceTypeAddModel?
-    var draft: Draft?
-    private(set) var isSaving = false
-    var formError: String?
-    var toast: VocabularyToast?
-
-    var suggestionError: String?
-    var assignPick = ""
-    private(set) var isAssigning = false
-    private(set) var removingFieldID: String?
-
-    let deleteImpact = DeleteImpactFlow()
-    var pendingImpact: PVDeleteImpactRequest? {
-        get { deleteImpact.request }
-        set { deleteImpact.applyRequest(newValue) }
-    }
-    var isDeleting: Bool { deleteImpact.isRunning }
-    var deleteError: String? { deleteImpact.error }
 
     private let userID: String
     private let store: any GenealogyStore
@@ -76,29 +39,12 @@ final class SourceTypesModel {
         CatalogQueryKey.sourceTypesList(project: session.projectKey)
     }
 
-    static func fieldsListKey(for session: WorkspaceSession) -> CatalogQueryKey {
-        CatalogQueryKey.metadataFieldsList(project: session.projectKey)
-    }
-
-    static func suggestionsKey(for session: WorkspaceSession, typeID: String) -> CatalogQueryKey {
-        CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: typeID)
-    }
-
     func warmListQueries() {
         let _: QueryHandle<[CatalogSourceType]> = session.query(Self.typesListKey(for: session))
-        let _: QueryHandle<[CatalogMetadataField]> = session.query(Self.fieldsListKey(for: session))
-    }
-
-    func warmSuggestions(for typeID: String) {
-        let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(Self.suggestionsKey(for: session, typeID: typeID))
     }
 
     var types: [CatalogSourceType] {
         session.queryHandle(Self.typesListKey(for: session))?.value ?? []
-    }
-
-    var fields: [CatalogMetadataField] {
-        session.queryHandle(Self.fieldsListKey(for: session))?.value ?? []
     }
 
     var isLoading: Bool {
@@ -110,28 +56,7 @@ final class SourceTypesModel {
     var loadError: Error? {
         guard types.isEmpty else { return nil }
         let typesHandle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.typesListKey(for: session))
-        let fieldsHandle: QueryHandle<[CatalogMetadataField]>? = session.queryHandle(Self.fieldsListKey(for: session))
-        return typesHandle?.failure ?? fieldsHandle?.failure
-    }
-
-    var selectedTypeID: String? {
-        switch mode {
-        case .viewing(let id), .editing(let id): id
-        case .empty, .adding: nil
-        }
-    }
-
-    var suggestions: [CatalogTypeSuggestion] {
-        guard let typeID = selectedTypeID else { return [] }
-        return session.queryHandle(Self.suggestionsKey(for: session, typeID: typeID))?.value ?? []
-    }
-
-    var isLoadingSuggestions: Bool {
-        guard let typeID = selectedTypeID else { return false }
-        guard let handle: QueryHandle<[CatalogTypeSuggestion]> = session.queryHandle(
-            Self.suggestionsKey(for: session, typeID: typeID)
-        ) else { return false }
-        return handle.status == .loading && handle.value == nil
+        return typesHandle?.failure
     }
 
     // MARK: Derived
@@ -145,90 +70,6 @@ final class SourceTypesModel {
 
     var isAdding: Bool { adding != nil }
 
-    var selectedType: CatalogSourceType? {
-        switch mode {
-        case .viewing(let id), .editing(let id):
-            return types.first { $0.id == id }
-        case .empty, .adding:
-            return nil
-        }
-    }
-
-    var isSelectedTypeLocked: Bool {
-        if case .viewing = mode { return true }
-        return false
-    }
-
-    /// Writes a pending icon pick into the draft (form-dialog confirm path).
-    func applyDraftIconKey(_ key: String) {
-        guard var draft else { return }
-        draft.iconKey = key
-        self.draft = draft
-    }
-
-    var isDirty: Bool {
-        guard case .editing = mode, let type = selectedType, let draft else { return false }
-        return draft.label != type.label
-            || draft.description != type.description
-            || draft.iconKey != type.iconKey
-    }
-
-    var canSubmit: Bool {
-        guard let draft else { return false }
-        return draft.labelError == nil && !isSaving && isDirty
-    }
-
-    var canEditAssociations: Bool {
-        guard let type = selectedType else { return false }
-        return !CatalogOrigin.isPlugin(type.origin)
-    }
-
-    var assignPool: [CatalogMetadataField] {
-        let assigned = Set(suggestions.map(\.field.id))
-        return fields
-            .filter { !assigned.contains($0.id) }
-            .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
-    }
-
-    var canAssign: Bool {
-        !assignPick.isEmpty && !isAssigning && canEditAssociations
-    }
-
-    var pickedField: CatalogMetadataField? {
-        assignPool.first { $0.id == assignPick }
-    }
-
-    var assignTooltip: String {
-        if assignPool.isEmpty { return L10n.string(L10n.SourceTypes.assignTipPoolEmpty) }
-        guard let field = pickedField else { return L10n.string(L10n.SourceTypes.assignTipChoose) }
-        return L10n.SourceTypes.assignTipField(label: field.label)
-    }
-
-    var assignAccessibilityLabel: String {
-        guard let field = pickedField, let type = selectedType else {
-            return L10n.string(L10n.SourceTypes.assignField)
-        }
-        return L10n.SourceTypes.assignFieldNamed(field: field.label, type: type.label)
-    }
-
-    var showsDelete: Bool { selectedType != nil }
-
-    var canDeleteSelectedType: Bool { selectedType != nil }
-
-    var deleteTooltip: LocalizedStringResource { L10n.SourceTypes.deleteType }
-
-    var deleteAccessibilityLabel: String {
-        guard let type = selectedType else {
-            return L10n.string(L10n.SourceTypes.deleteType)
-        }
-        return L10n.SourceTypes.deleteTypeAccessibility(label: type.label)
-    }
-
-    var pendingDeleteType: CatalogSourceType? {
-        guard let id = deleteImpact.request?.target.id else { return nil }
-        return types.first { $0.id == id }
-    }
-
     /// Nil until the list has a value, so the header shows no zero counts.
     var countLine: String? {
         let handle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.typesListKey(for: session))
@@ -241,25 +82,6 @@ final class SourceTypesModel {
         return L10n.SourceTypes.countLine(total: types.count, seeded: types.seededCount, user: types.userCount)
     }
 
-    // MARK: Selection
-
-    @discardableResult
-    func syncSelection(from location: WorkspaceLocation) -> WorkspaceLocationReconcile {
-        guard location.section == .sourceTypes else { return .ignored }
-        guard let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(Self.typesListKey(for: session)),
-              typesHandle.status == .ready || !types.isEmpty else { return .ignored }
-        if let typeId = location.typeId {
-            guard applySelection(typeId) else {
-                clearHistorySelection()
-                return .missingDeepId
-            }
-            warmSuggestions(for: typeId)
-            return .applied
-        }
-        clearHistorySelection()
-        return .applied
-    }
-
     func sortBy(_ columnID: String) {
         guard let column = SortColumn(rawValue: columnID) else { return }
         if column == sortColumn {
@@ -270,181 +92,8 @@ final class SourceTypesModel {
         }
     }
 
-    func select(_ id: String) {
-        guard applySelection(id) else { return }
-        warmSuggestions(for: id)
-    }
-
-    @discardableResult
-    private func applySelection(_ id: String) -> Bool {
-        guard let type = types.first(where: { $0.id == id }) else { return false }
-        formError = nil
-        suggestionError = nil
-        assignPick = ""
-        draft = Draft(label: type.label, description: type.description, iconKey: type.iconKey)
-        mode = CatalogOrigin.isPlugin(type.origin) ? .viewing(id: id) : .editing(id: id)
-        return true
-    }
-
-    func clearHistorySelection() {
-        mode = .empty
-        suggestionError = nil
-        assignPick = ""
-    }
-
     func openAdd() {
         adding = SourceTypeAddModel(session: session, userID: userID, store: store)
-    }
-
-    /// The "Type added" toast, after the dialog's create.
-    func showAdded(_ type: CatalogSourceType) {
-        toast = VocabularyToast(
-            title: L10n.string(L10n.SourceTypes.toastAddedTitle),
-            body: L10n.SourceTypes.toastAddedBody(label: type.label, key: type.key),
-            tone: .success
-        )
-    }
-
-    func revertEdit() {
-        guard case .editing(let id) = mode, let type = types.first(where: { $0.id == id }) else { return }
-        draft = Draft(label: type.label, description: type.description, iconKey: type.iconKey)
-        formError = nil
-    }
-
-    func submit() async {
-        guard let draft else { return }
-        guard draft.labelError == nil else {
-            formError = draft.labelError
-            return
-        }
-        let label = draft.trimmedLabel
-        isSaving = true
-        formError = nil
-        defer { isSaving = false }
-        do {
-            switch mode {
-            case .editing(let id):
-                let (updated, effects) = try await store.updateSourceType(
-                    projectDir: session.projectKey.projectDir, userID: userID, typeID: id,
-                    label: label, description: draft.description, iconKey: draft.iconKey
-                )
-                session.apply(effects)
-                patchTypesList { rows in
-                    if let idx = rows.firstIndex(where: { $0.id == updated.id }) {
-                        rows[idx] = updated
-                    }
-                }
-                mode = .editing(id: updated.id)
-                self.draft = Draft(label: updated.label, description: updated.description, iconKey: updated.iconKey)
-                toast = VocabularyToast(
-                    title: L10n.string(L10n.SourceTypes.toastUpdatedTitle),
-                    body: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key),
-                    tone: .success
-                )
-                return
-            case .empty, .viewing, .adding:
-                return
-            }
-        } catch {
-            formError = L10n.Errors.message(for: error)
-            return
-        }
-    }
-
-    func assignPickedField() async {
-        guard canAssign, let type = selectedType else { return }
-        let fieldID = assignPick
-        guard let field = fields.first(where: { $0.id == fieldID }) else { return }
-        isAssigning = true
-        suggestionError = nil
-        defer { isAssigning = false }
-        do {
-            let updated = try await store.assignTypeField(
-                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
-            )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
-            assignPick = ""
-            toast = VocabularyToast(
-                title: L10n.string(L10n.SourceTypes.toastAssignedTitle),
-                body: L10n.SourceTypes.toastAssignedBody(field: field.label, type: type.label),
-                tone: .success
-            )
-        } catch {
-            suggestionError = L10n.Errors.message(for: error)
-        }
-    }
-
-    func removeSuggestion(fieldID: String) async {
-        guard canEditAssociations, removingFieldID == nil, let type = selectedType else { return }
-        guard let field = suggestions.first(where: { $0.field.id == fieldID })?.field else { return }
-        removingFieldID = fieldID
-        suggestionError = nil
-        defer { removingFieldID = nil }
-        do {
-            let updated = try await store.removeTypeField(
-                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
-            )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
-            toast = VocabularyToast(
-                title: L10n.string(L10n.SourceTypes.toastRemovedTitle),
-                body: L10n.SourceTypes.toastRemovedBody(
-                    field: field.label, type: type.label, valueCount: field.usedBy
-                ),
-                tone: .info
-            )
-        } catch {
-            suggestionError = L10n.Errors.message(for: error)
-        }
-    }
-
-    func askDelete() async {
-        guard let type = selectedType else { return }
-        await deleteImpact.ask(
-            kind: "source_type",
-            id: type.id,
-            ref: type.key,
-            title: type.label
-        ) {
-            try await self.store.getDeleteImpact(
-                projectDir: self.session.projectKey.projectDir,
-                kind: "source_type",
-                id: type.id
-            )
-        }
-    }
-
-    func cancelDelete() {
-        deleteImpact.cancel()
-    }
-
-    @discardableResult
-    func confirmPendingImpact() async -> Bool {
-        guard let type = pendingDeleteType else { return false }
-        return await deleteImpact.confirm { target in
-            let effects = try await store.deleteSourceType(
-                projectDir: session.projectKey.projectDir, userID: userID, typeID: target.id
-            )
-            session.apply(effects)
-            patchTypesList { rows in rows.removeAll { $0.id == target.id } }
-            formError = nil
-            suggestionError = nil
-            mode = .empty
-            toast = VocabularyToast(
-                title: L10n.string(L10n.SourceTypes.toastDeletedTitle),
-                body: L10n.SourceTypes.toastDeletedBody(label: type.label),
-                tone: .success
-            )
-        }
-    }
-
-    // MARK: Helpers
-
-    private func patchTypesList(_ mutate: (inout [CatalogSourceType]) -> Void) {
-        let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
-        guard let handle: QueryHandle<[CatalogSourceType]> = session.queryHandle(key) else { return }
-        var rows = handle.value ?? []
-        mutate(&rows)
-        session.setQueryValue(key, value: rows)
     }
 
     private func compare(_ a: CatalogSourceType, _ b: CatalogSourceType) -> ComparisonResult {

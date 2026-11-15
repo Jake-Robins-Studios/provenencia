@@ -195,6 +195,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// throws or writes, so a test can act mid-save.
     let updateArtifactHold = FakeHold()
     let listTypeSuggestionsHold = FakeHold()
+    /// Suspends `updateSourceType` while on, so a test can look at the page mid-Save.
+    let updateSourceTypeHold = FakeHold()
     var deleteEvidenceGraphCalls = 0
     var createEvidenceGraphCalls = 0
     var updateEvidenceGraphCalls = 0
@@ -1178,6 +1180,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         description: String,
         iconKey: String
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
+        await updateSourceTypeHold.wait()
         return try withState {
             var list = sourceTypesByProject[projectDir] ?? []
             guard let idx = list.firstIndex(where: { $0.id == typeID }) else {

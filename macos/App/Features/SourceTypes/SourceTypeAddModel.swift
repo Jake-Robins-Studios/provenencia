@@ -3,11 +3,11 @@ import Observation
 
 /// State of the Add type dialog: the draft, the errors it shows and the create. A fresh model per
 /// open, held by `SourceTypesModel.adding` as one optional, as `SourceCopyModel` is. It writes
-/// nothing on `SourceTypesModel`: selection follows the navigation to the new type.
+/// nothing on `SourceTypesModel`: the host opens the new type's page.
 @MainActor
 @Observable
 final class SourceTypeAddModel {
-    var draft = SourceTypesModel.Draft(label: "", description: "")
+    var draft = SourceTypeDraft(label: "", description: "")
     private(set) var labelError: String?
     /// Whether `labelError` came from the engine's refusal of an Add, which the dialog announces;
     /// an error that follows typing is not announced.
