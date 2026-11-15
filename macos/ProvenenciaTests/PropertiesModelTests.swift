@@ -345,7 +345,7 @@ struct PropertiesModelTests {
         session.setQueryValue(detailKey, value: CatalogConclusionDetail(
             entity: CatalogCanonicalEntity(id: "e1", ref: "PER-1", subjectTypeID: "t", label: ""), fields: []
         ))
-        session.setQueryValue(listKey, value: [CatalogPersonSummary]())
+        session.setQueryValue(listKey, value: CatalogListRows<CatalogPersonSummary>())
         _ = await showProperties(model, session: session)
         let baseline = store.getPropertiesWorkspaceCalls
 
@@ -356,7 +356,7 @@ struct PropertiesModelTests {
 
         let detail: QueryHandle<CatalogConclusionDetail>? = session.queryHandle(detailKey)
         #expect(detail?.isStale == true)
-        let list: QueryHandle<[CatalogPersonSummary]>? = session.queryHandle(listKey)
+        let list: QueryHandle<CatalogListRows<CatalogPersonSummary>>? = session.queryHandle(listKey)
         #expect(list?.isStale == true)
         #expect(store.getPropertiesWorkspaceCalls == baseline + 1)
     }

@@ -17,6 +17,15 @@ enum QueryRead<Value> {
         if case .failed = self { return true }
         return false
     }
+
+    /// The same read with a loaded value changed by `transform`.
+    func map<Other>(_ transform: (Value) -> Other) -> QueryRead<Other> {
+        switch self {
+        case .loading: .loading
+        case .failed(let error): .failed(error)
+        case .loaded(let value): .loaded(transform(value))
+        }
+    }
 }
 
 /// What a reader that shows a refresh failure beside its value sees: nothing

@@ -148,7 +148,7 @@ extension CatalogQueryKey.Kind {
                 whenHidden: .markStale,
                 invalidation: { project, _ in .key(.sourcesList(project: project)) },
                 patches: [
-                    .lastUpdated(CatalogSource.self, follows: .source),
+                    .lastUpdated([CatalogSource].self, follows: .source),
                     .sourceRow(),
                 ],
                 load: { key, store in
@@ -414,7 +414,7 @@ extension CatalogQueryKey.Kind {
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogPersonSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogPersonSummary>.self, follows: .handle)],
                 refreshes: [
                     .mergedRows(CatalogPersonSummary.self, follows: .touchedHandles) { session, key, ids in
                         try await session.store.listPersonSummaries(projectDir: key.project.projectDir, entityIDs: ids)
@@ -422,14 +422,14 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listPersonSummaries(projectDir: key.project.projectDir, entityIDs: nil)
+                    return CatalogListRows(try await store.listPersonSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .eventsList:
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogEventSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogEventSummary>.self, follows: .handle)],
                 refreshes: [
                     .mergedRows(CatalogEventSummary.self, follows: .touchedHandles) { session, key, ids in
                         try await session.store.listEventSummaries(projectDir: key.project.projectDir, entityIDs: ids)
@@ -437,14 +437,14 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listEventSummaries(projectDir: key.project.projectDir, entityIDs: nil)
+                    return CatalogListRows(try await store.listEventSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .placesList:
             return .make(
                 kind: self,
                 whenHidden: .markStale,
-                patches: [.lastUpdated(CatalogPlaceSummary.self, follows: .handle)],
+                patches: [.lastUpdated(CatalogListRows<CatalogPlaceSummary>.self, follows: .handle)],
                 refreshes: [
                     .mergedRows(CatalogPlaceSummary.self, follows: .touchedHandles) { session, key, ids in
                         try await session.store.listPlaceSummaries(projectDir: key.project.projectDir, entityIDs: ids)
@@ -452,7 +452,7 @@ extension CatalogQueryKey.Kind {
                     .followsPropertyLabels,
                 ],
                 load: { key, store in
-                    return try await store.listPlaceSummaries(projectDir: key.project.projectDir, entityIDs: nil)
+                    return CatalogListRows(try await store.listPlaceSummaries(projectDir: key.project.projectDir, entityIDs: nil))
                 }
             )
         case .conclusionDetail:

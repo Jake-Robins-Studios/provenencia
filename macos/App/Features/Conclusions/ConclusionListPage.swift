@@ -37,7 +37,7 @@ enum ConclusionListPresentation<Row: Equatable>: Equatable {
 /// the query handle, and navigation. Each kind stays its own place: its
 /// query key and the location a row opens.
 protocol ConclusionListKind {
-    associatedtype Row: Identifiable & Equatable
+    associatedtype Row: CatalogListRow & Equatable
     associatedtype Secondary: View
 
     static func key(project: ProjectKey) -> CatalogQueryKey
@@ -91,7 +91,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
 
     var body: some View {
         Group {
-            if let handle: QueryHandle<[Kind.Row]> = session.queryHandle(key) {
+            if let handle: QueryHandle<CatalogListRows<Kind.Row>> = session.queryHandle(key) {
                 ConclusionListBody<Kind>(handle: handle)
             } else {
                 Self.page(meta: nil) {
@@ -100,7 +100,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
             }
         }
         .task {
-            let _: QueryHandle<[Kind.Row]> = session.query(key)
+            let _: QueryHandle<CatalogListRows<Kind.Row>> = session.query(key)
         }
     }
 
@@ -128,12 +128,12 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
 }
 
 private struct ConclusionListBody<Kind: ConclusionListKind>: View {
-    @Bindable var handle: QueryHandle<[Kind.Row]>
+    @Bindable var handle: QueryHandle<CatalogListRows<Kind.Row>>
     @Environment(WorkspaceNavigation.self) private var navigation
     @Environment(WorkspaceSession.self) private var session
 
     private var presentation: ConclusionListPresentation<Kind.Row> {
-        ConclusionListPresentation(handle.read, isFetching: handle.isFetching)
+        ConclusionListPresentation(handle.read.map(\.rows), isFetching: handle.isFetching)
     }
 
     private var headerMeta: String? {
@@ -199,6 +199,6 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
 
     private var scrollRowIDs: [String] {
         guard case .rows(let rows, _) = presentation else { return [] }
-        return rows.compactMap { $0.id as? String }
+        return rows.map(\.id)
     }
 }

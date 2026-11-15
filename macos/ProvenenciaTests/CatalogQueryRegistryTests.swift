@@ -341,7 +341,7 @@ struct CatalogQueryRegistryTests {
         let bare = store.seedPromotion(projectDir: projectDir, subjectID: "sub-2")
 
         let session = makeSession(store: store)
-        let handle: QueryHandle<[CatalogPersonSummary]> = session.query(
+        let handle: QueryHandle<CatalogListRows<CatalogPersonSummary>> = session.query(
             CatalogQueryKey.personsList(project: session.projectKey)
         )
         await waitForQuery(handle)
@@ -377,7 +377,7 @@ struct CatalogQueryRegistryTests {
         _ = store.seedPromotion(projectDir: projectDir, subjectID: "sub-1")
 
         let session = makeSession(store: store)
-        let handle: QueryHandle<[CatalogPersonSummary]> = session.query(
+        let handle: QueryHandle<CatalogListRows<CatalogPersonSummary>> = session.query(
             CatalogQueryKey.personsList(project: session.projectKey)
         )
         await waitForQuery(handle)
@@ -555,8 +555,8 @@ struct CatalogQueryRegistryTests {
         store.seededConclusionDetails = [early.entity.id: detail]
         let session = makeSession(store: store)
 
-        let events: QueryHandle<[CatalogEventSummary]> = session.query(.eventsList(project: session.projectKey))
-        let places: QueryHandle<[CatalogPlaceSummary]> = session.query(.placesList(project: session.projectKey))
+        let events: QueryHandle<CatalogListRows<CatalogEventSummary>> = session.query(.eventsList(project: session.projectKey))
+        let places: QueryHandle<CatalogListRows<CatalogPlaceSummary>> = session.query(.placesList(project: session.projectKey))
         let page: QueryHandle<CatalogConclusionDetail> = session.query(
             .conclusionDetail(project: session.projectKey, entityId: early.entity.id)
         )
@@ -1054,9 +1054,9 @@ struct CatalogQueryRegistryTests {
     @Test func handleScopesInvalidateNothing() {
         let project = ProjectKey(projectDir: projectDir)
         let session = makeSession()
-        session.setQueryValue(CatalogQueryKey.personsList(project: project), value: [CatalogPersonSummary]())
-        session.setQueryValue(CatalogQueryKey.eventsList(project: project), value: [CatalogEventSummary]())
-        session.setQueryValue(CatalogQueryKey.placesList(project: project), value: [CatalogPlaceSummary]())
+        session.setQueryValue(CatalogQueryKey.personsList(project: project), value: CatalogListRows<CatalogPersonSummary>())
+        session.setQueryValue(CatalogQueryKey.eventsList(project: project), value: CatalogListRows<CatalogEventSummary>())
+        session.setQueryValue(CatalogQueryKey.placesList(project: project), value: CatalogListRows<CatalogPlaceSummary>())
         let detailKey = CatalogQueryKey.conclusionDetail(project: project, entityId: "e1")
         let otherKey = CatalogQueryKey.conclusionDetail(project: project, entityId: "e2")
         session.setQueryValue(detailKey, value: CatalogConclusionDetail(entity: entity("e1"), fields: []))
@@ -1522,9 +1522,9 @@ struct CatalogQueryRegistryTests {
         session.setQueryValue(keys["metadataFieldsList"]!, value: [CatalogMetadataField]())
         session.setQueryValue(keys["typeSuggestions"]!, value: [CatalogTypeSuggestion]())
         session.setQueryValue(keys["propertiesWorkspace"]!, value: PropertiesSnapshot.empty)
-        session.setQueryValue(keys["personsList"]!, value: [CatalogPersonSummary]())
-        session.setQueryValue(keys["eventsList"]!, value: [CatalogEventSummary]())
-        session.setQueryValue(keys["placesList"]!, value: [CatalogPlaceSummary]())
+        session.setQueryValue(keys["personsList"]!, value: CatalogListRows<CatalogPersonSummary>())
+        session.setQueryValue(keys["eventsList"]!, value: CatalogListRows<CatalogEventSummary>())
+        session.setQueryValue(keys["placesList"]!, value: CatalogListRows<CatalogPlaceSummary>())
         session.setQueryValue(keys["conclusionDetail"]!, value: CatalogConclusionDetail(entity: entity("e1"), fields: []))
         session.setQueryValue(keys["personClaims"]!, value: CatalogPersonClaims())
         session.setQueryValue(keys["personFamily"]!, value: CatalogPersonFamily(units: []))

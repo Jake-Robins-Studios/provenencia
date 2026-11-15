@@ -124,31 +124,147 @@ struct CatalogListMergeTests {
         #expect(small < ceilingMilliseconds)
     }
 
-    private static func bestMergeMilliseconds(rows count: Int) -> Double {
-        func key(_ n: Int) -> CatalogListKey {
-            var bytes = [UInt8](repeating: 0x20, count: 24)
-            withUnsafeBytes(of: UInt64(n).bigEndian) { bytes.replaceSubrange(0..<8, with: $0) }
-            return CatalogListKey(last: false, primary: Data(bytes), ref: "PRS-\(n)")
+    /// F-6: `CatalogListRows.merge` is `mergeSorted` on both paths: random sorted lists with equal
+    /// keys, random dropped and fresh ids (overlapping, unknown), the indexed path and the full pass
+    /// each forced.
+    @Test func listRowsMergeMatchesMergeSorted() {
+        var random = SplitMix(seed: 0x5016_26F6)
+        for _ in 0..<500 {
+            let count = random.next(in: 0...200)
+            var rows: [Row] = []
+            for n in 0..<count { rows.append(Row("r\(n)", UInt8(random.next(in: 0...40) * 2))) }
+            rows.sort { $0.listKey == $1.listKey ? $0.id < $1.id : $0.listKey < $1.listKey }
+            let known = rows.map(\.id)
+            var ids: [String] = []
+            for _ in 0..<random.next(in: 0...20) { ids.append(Self.pickID(known, &random)) }
+            var freshIDs: [String] = []
+            for _ in 0..<random.next(in: 0...20) {
+                let id = Self.pickID(known, &random)
+                if !freshIDs.contains(id) { freshIDs.append(id) }
+            }
+            let fresh = freshIDs.map { Row($0, UInt8(random.next(in: 0...80)), note: "fresh") }
+            var expected = rows
+            expected.mergeSorted(fresh, replacing: ids)
+            let list = CatalogListRows(rows)
+            #expect(list.merging(fresh, replacing: ids, indexedLimit: Int.max).rows == expected)
+            #expect(list.merging(fresh, replacing: ids, indexedLimit: 0).rows == expected)
+            #expect(list.merging(fresh, replacing: ids).rows == expected)
+            // The index follows the merge: a second merge on the result still matches.
+            var again = expected
+            again.mergeSorted(rows, replacing: ids)
+            #expect(list.merging(fresh, replacing: ids, indexedLimit: Int.max)
+                .merging(rows, replacing: ids, indexedLimit: Int.max).rows == again)
         }
-        func person(_ id: String, _ n: Int) -> CatalogPersonSummary {
+    }
+
+    private static func pickID(_ known: [String], _ random: inout SplitMix) -> String {
+        let n = random.next(in: 0..<(known.count + 5))
+        return n < known.count ? known[n] : "u\(n - known.count)"
+    }
+
+    /// F-6: `moveActivity` moves only the named rows with an older revision, as the array scan does.
+    @Test func listRowsMoveActivityTouchesOnlyNamedRows() {
+        func person(_ id: String, _ n: Int, revision: Int64) -> CatalogPersonSummary {
             var row = CatalogPersonSummary(
-                entity: CatalogCanonicalEntity(id: id, ref: "PRS-\(n)", subjectTypeID: "t", label: ""),
+                entity: CatalogCanonicalEntity(id: id, ref: id, subjectTypeID: "t", label: ""),
                 name: nil,
                 nameValueCount: 0
             )
-            row.listKey = key(n)
+            row.listKey = CatalogListKey(last: false, primary: Data([UInt8(n)]), ref: id)
+            row.updated = CatalogActivity(revision: revision, at: "then")
             return row
         }
-        let list = (0..<count).map { person(UUID().uuidString, $0 * 2) }
+        // Rows b and c share a key, so the walk over the equal run is exercised.
+        let rows = [person("a", 1, revision: 1), person("b", 2, revision: 1), person("c", 2, revision: 9), person("d", 3, revision: 1)]
+        let activity = CatalogActivity(revision: 5, at: "now")
+        let ids: Set<String> = ["b", "c", "zz"]
+        var list = CatalogListRows(rows)
+        var scanned = rows
+        let moved = list.moveActivity(ids: ids, activity: activity)
+        let scanMoved = scanned.moveActivity(ids: ids, activity: activity)
+        #expect(moved && scanMoved)
+        #expect(list.rows == scanned)
+        let revisions: [Int64] = list.rows.map { $0.updated.revision }
+        #expect(revisions == [1, 5, 9, 1])
+        let again = list.moveActivity(ids: ids, activity: activity)
+        let unknown = list.moveActivity(ids: ["zz"], activity: activity)
+        #expect(!again && !unknown)
+    }
+
+    /// F-6, Scale: one fresh row replacing two ids over 20,115 rows costs the rows it touched. The
+    /// ceiling catches a slip back to the whole list; the 80,000-row and full-pass runs only print.
+    @Test func listRowsAtScaleStaysUnderCeiling() {
+        let indexed = Self.bestMilliseconds(rows: 20_115, indexed: true)
+        let large = Self.bestMilliseconds(rows: 80_000, indexed: true)
+        let fallback = Self.bestMilliseconds(rows: 20_115, indexed: false)
+        let fallbackLarge = Self.bestMilliseconds(rows: 80_000, indexed: false)
+        print("CatalogListRows.merge best of 5: indexed 20115 rows \(indexed) ms, 80000 rows \(large) ms; "
+            + "fallback 20115 rows \(fallback) ms, 80000 rows \(fallbackLarge) ms")
+        // decided: S16-26 F-6 (Debug measured 10 ms at 20,115 rows)
+        let ceilingMilliseconds = 50.0
+        #expect(indexed < ceilingMilliseconds)
+    }
+
+    private static func personRow(_ id: String, _ n: Int) -> CatalogPersonSummary {
+        var bytes = [UInt8](repeating: 0x20, count: 24)
+        withUnsafeBytes(of: UInt64(n).bigEndian) { bytes.replaceSubrange(0..<8, with: $0) }
+        var row = CatalogPersonSummary(
+            entity: CatalogCanonicalEntity(id: id, ref: "PRS-\(n)", subjectTypeID: "t", label: ""),
+            name: nil,
+            nameValueCount: 0
+        )
+        row.listKey = CatalogListKey(last: false, primary: Data(bytes), ref: "PRS-\(n)")
+        return row
+    }
+
+    private static func bestMergeMilliseconds(rows count: Int) -> Double {
+        let list = (0..<count).map { personRow(UUID().uuidString, $0 * 2) }
         let dropped = [list[count / 3].id, list[count / 2].id]
-        let fresh = [person(dropped[0], count / 2 * 2 + 1)]
+        let fresh = [personRow(dropped[0], count / 2 * 2 + 1)]
         var best = Double.infinity
         for _ in 0..<5 {
             var copy = list
             let elapsed = ContinuousClock().measure { copy.mergeSorted(fresh, replacing: dropped) }
-            best = min(best, Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1e3)
+            best = min(best, milliseconds(elapsed))
             #expect(copy.count == count - 1)
         }
         return best
+    }
+
+    /// The write as the session applies it: the cached value is shared with the handle, so the
+    /// merge works on a copy, and the copy is timed with it.
+    private static func bestMilliseconds(rows count: Int, indexed: Bool) -> Double {
+        let list = CatalogListRows((0..<count).map { personRow(UUID().uuidString, $0 * 2) } as [CatalogPersonSummary])
+        let dropped = [list[count / 3].id, list[count / 2].id]
+        let fresh = [personRow(dropped[0], count / 2 * 2 + 1)]
+        var best = Double.infinity
+        for _ in 0..<5 {
+            var copy = list
+            let elapsed = ContinuousClock().measure {
+                copy.merge(fresh, replacing: dropped, indexedLimit: indexed ? Int.max : 0)
+            }
+            best = min(best, milliseconds(elapsed))
+            #expect(copy.count == count - 1)
+        }
+        return best
+    }
+
+    private static func milliseconds(_ duration: Duration) -> Double {
+        Double(duration.components.attoseconds) / 1e15 + Double(duration.components.seconds) * 1e3
+    }
+
+    /// A fixed-seed generator, so the random cases repeat.
+    private struct SplitMix {
+        var state: UInt64
+        init(seed: UInt64) { state = seed }
+        mutating func next(in range: ClosedRange<Int>) -> Int {
+            state &+= 0x9E37_79B9_7F4A_7C15
+            var z = state
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            z ^= z >> 31
+            return range.lowerBound + Int(z % UInt64(range.count))
+        }
+        mutating func next(in range: Range<Int>) -> Int { next(in: range.lowerBound...(range.upperBound - 1)) }
     }
 }
