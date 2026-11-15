@@ -1,6 +1,6 @@
 # S16-27 — One primitive for values derived from cached data
 
-**Status:** Planned
+**Status:** Landed in [#854](https://github.com/mendahu/provenencia/pull/854) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view draws the same content; only how often the app builds it changes)
@@ -8,12 +8,14 @@
 **Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769): one list of section reads), S16-07 (landed [#761](https://github.com/mendahu/provenencia/pull/761): `ConclusionFoldState`, one fold state per section)
 **Blocks:** —
 **Branch:** `s16-27-derived-values`
-**Version bump:** patch, 0.15.4 → 0.15.5 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
+**Version bump:** patch, 0.15.5 → 0.15.6 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** [design § Swift](../cache-architecture.md#swift) ("One primitive for derived values"); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Cache contract" rule 5; [`docs/catalog-caches.md`](../../../catalog-caches.md) "Swift caches"; working rules: "(Batch 2) The point of this batch is simpler code", "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 1) Refused: memoising and re-shaping for speed" (its Batch 2 clause names this PR), "(Batch 2) No new persisted projections, and no stored answer without a measurement"; goal bar 15's last clause
 **Planned:** 2026-11-15 against `main` @ `1f52b60`
 **Review:** [`S16-27-derived-values.review.md`](S16-27-derived-values.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Not ready, every finding Fixed; To user answered (2026-11-15); Planned
+
+**Landed.** Differences from the plan: the version bump is 0.15.5 → 0.15.6, because `main` already stood at 0.15.5 (S15-49); STEP-1 and STEP-2 landed as one commit (the primitive and the index's move share `WorkspaceSession.swift`'s storage); the T-10 test (`aTermWriteRebuildsTheVocabularyOnce`) writes the term through `confirmCustomTerm` with `nextWriteEffects`, because a bare `apply` only marks a hidden term key stale, and uses the term-valued `role` Property; T-7 sets the rows and the Subject types with `setQueryValue`.
 
 **Base.** Compare against `origin/main` (fetch it first); `1f52b60` is the planned commit.
 
