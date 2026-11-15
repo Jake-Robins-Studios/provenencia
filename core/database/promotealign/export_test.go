@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"slices"
 
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/graphalign"
+	"github.com/mendahu/provenencia/core/kinship"
 	"github.com/mendahu/provenencia/core/shortlist"
 	"github.com/mendahu/provenencia/core/subjectcompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -116,3 +118,21 @@ func ForgetForTest(g *graphcache.Graph, kind string, keys []string) {
 
 // PlaceLinksForTest is the filed-link reader Propose gives Connections.
 func PlaceLinksForTest(g *graphcache.Graph) graphalign.FiledLinks { return placeLinks(g) }
+
+// ViewLinksForTest is the links the canon view served one proposal of the
+// graph: one entry for each handle Align asked Links for, whatever its length.
+func ViewLinksForTest(c *database.Catalog, graphID []byte) (map[string][]kinship.Link, error) {
+	in, err := loadInputs(c, graphID)
+	if err != nil {
+		return nil, err
+	}
+	_, _, view, err := alignRows(c, in, nil)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]kinship.Link, len(view.links))
+	for id, ls := range view.links {
+		out[id] = slices.Clone(ls)
+	}
+	return out, nil
+}

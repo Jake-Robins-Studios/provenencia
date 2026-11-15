@@ -1,6 +1,6 @@
 // Package graphalign proposes a handle, New, or Skip for every primary
-// Subject on one Evidence layer (S9-41). Pure: no catalog I/O. S9-42 loads
-// Layer / Canon and calls Align.
+// Subject on one Evidence layer (S9-41). Pure: no catalog I/O. Promote loads
+// a Layer and serves a CanonView, then calls Align.
 package graphalign
 
 import (
@@ -26,7 +26,8 @@ type Layer struct {
 
 // CanonView is what Align reads of the canonical graph: a handle's profile, the
 // links at it and a Subject's shortlisted candidates. Results are the view's
-// own and read-only.
+// own and read-only. A view that reads lazily and can fail holds its first
+// error for its caller and serves nothing after it; Align does not see errors.
 type CanonView interface {
 	// Handle is the handle's profile, nil when the view does not hold it.
 	Handle(id []byte) *Handle
@@ -36,18 +37,6 @@ type CanonView interface {
 	// Candidates are the Subject's shortlisted candidate handle ids, in
 	// Candidates order.
 	Candidates(subjectID []byte) [][]byte
-}
-
-// Canon is the part of the canonical graph reachable from the seed handles, as
-// lists. View reads it as a CanonView.
-type Canon struct {
-	Handles []Handle
-	// Edges are the filed links and the links the kinship patterns imply
-	// between handles; each Edges entry's Associations are ignored.
-	Edges []kinship.Link
-	// Candidates are each Subject's shortlisted candidates, by Subject id, in
-	// Candidates order; the loader fills them.
-	Candidates map[string][][]byte
 }
 
 // Fixed is a decided or already-promoted row Align holds as given. Target
@@ -188,33 +177,3 @@ func (r Row) Start() RowStart {
 	}
 	return RowStart{}
 }
-
-// View is the canon as a CanonView. The index is built once; a later change to
-// c does not reach it.
-func (c Canon) View() CanonView {
-	ix := &canonIndex{
-		handles:    make(map[string]*Handle, len(c.Handles)),
-		links:      map[string][]kinship.Link{},
-		candidates: c.Candidates,
-	}
-	for i := range c.Handles {
-		h := &c.Handles[i]
-		ix.handles[string(h.ID)] = h
-	}
-	for _, e := range c.Edges {
-		ix.links[string(e.A)] = append(ix.links[string(e.A)], e)
-		ix.links[string(e.B)] = append(ix.links[string(e.B)], e)
-	}
-	return ix
-}
-
-// canonIndex is a Canon's handles by id and its links by handle, in edge order.
-type canonIndex struct {
-	handles    map[string]*Handle
-	links      map[string][]kinship.Link
-	candidates map[string][][]byte
-}
-
-func (ix *canonIndex) Handle(id []byte) *Handle       { return ix.handles[string(id)] }
-func (ix *canonIndex) Links(id []byte) []kinship.Link { return ix.links[string(id)] }
-func (ix *canonIndex) Candidates(id []byte) [][]byte  { return ix.candidates[string(id)] }

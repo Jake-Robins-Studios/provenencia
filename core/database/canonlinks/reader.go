@@ -131,6 +131,7 @@ type deriver struct {
 	rules         kinship.Rules
 	terms         segmentcompare.Terms
 	eventTypeProp []byte
+	personType    []byte
 }
 
 func newDeriver(g *graphcache.Graph, rules kinship.Rules, src nodeSource) (*deriver, error) {
@@ -142,43 +143,76 @@ func newDeriver(g *graphcache.Graph, rules kinship.Rules, src nodeSource) (*deri
 	if err != nil {
 		return nil, err
 	}
-	return &deriver{g: g, src: src, rules: rules, terms: terms, eventTypeProp: v.PropertyID(vocabkey.PropertyEventType, vocabkey.OriginProvenencia)}, nil
+	return &deriver{
+		g: g, src: src, rules: rules, terms: terms,
+		eventTypeProp: v.PropertyID(vocabkey.PropertyEventType, vocabkey.OriginProvenencia),
+		personType:    v.TypeIDsByKey()[string(vocabkey.Person)],
+	}, nil
 }
 
-// edge reads one link of n as an edge that stands for that link alone.
-func (d *deriver) edge(n *graphcache.Node, l graphcache.Link) (kinship.Edge, bool) {
-	from, to, keyFrom, keyTo, ok := EdgeOf(n.ID, n, l, nil, d.eventTypeProp, d.terms)
-	if !ok {
-		return kinship.Edge{}, false
+// edge reads one link of n as an edge that stands for that link alone. It
+// reads the neighbor when the neighbor is an event, which is where the event
+// type may be; ok is false for an unregistered bridge or a neighbor that is no
+// node.
+func (d *deriver) edge(n *graphcache.Node, l graphcache.Link) (kinship.Edge, bool, error) {
+	var nb *graphcache.Node
+	if l.NeighborTypeKey == vocabkey.Event {
+		var err error
+		nb, err = d.src.node(l.Neighbor)
+		if err != nil || nb == nil {
+			return kinship.Edge{}, false, err
+		}
 	}
-	return kinship.Edge{A: from, B: to, KeyA: keyFrom, KeyB: keyTo, Associations: [][]byte{l.Association}}, true
+	from, to, keyFrom, keyTo, ok := d.edgeOf(n, l, nb)
+	if !ok {
+		return kinship.Edge{}, false, nil
+	}
+	return kinship.Edge{A: from, B: to, KeyA: keyFrom, KeyB: keyTo, Associations: [][]byte{l.Association}}, true, nil
+}
+
+// filedEdges reads each link filed on n that edge reads, in n.Links order.
+func (d *deriver) filedEdges(n *graphcache.Node) ([]kinship.Edge, error) {
+	return d.edgesOf(n, "")
 }
 
 // relationshipEdges reads each relationship link of n that edge reads, in
 // n.Links order: the links that are kin.
-func (d *deriver) relationshipEdges(n *graphcache.Node) []kinship.Edge {
+func (d *deriver) relationshipEdges(n *graphcache.Node) ([]kinship.Edge, error) {
+	return d.edgesOf(n, vocabkey.BridgeRelationship)
+}
+
+// edgesOf reads each link filed on n that edge reads, in n.Links order, of the
+// bridge type key; an empty key is every bridge.
+func (d *deriver) edgesOf(n *graphcache.Node, bridge string) ([]kinship.Edge, error) {
 	var out []kinship.Edge
 	for _, l := range n.Links {
-		if l.BridgeTypeKey != vocabkey.BridgeRelationship {
+		if bridge != "" && l.BridgeTypeKey != bridge {
 			continue
 		}
-		if e, ok := d.edge(n, l); ok {
+		e, ok, err := d.edge(n, l)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			out = append(out, e)
 		}
 	}
-	return out
+	return out, nil
 }
 
 // kinEdges is n's parent links for a canon read: each relationship link filed
 // on n, then the edge of each birth link in atEnd (n's event links).
-func (d *deriver) kinEdges(n *graphcache.Node, atEnd []kinship.Implied) []kinship.Edge {
-	edges := d.relationshipEdges(n)
+func (d *deriver) kinEdges(n *graphcache.Node, atEnd []kinship.Implied) ([]kinship.Edge, error) {
+	edges, err := d.relationshipEdges(n)
+	if err != nil {
+		return nil, err
+	}
 	for _, imp := range atEnd {
 		if imp.Pattern == kinship.PatternBirthParents {
 			edges = append(edges, imp.Edge)
 		}
 	}
-	return edges
+	return edges, nil
 }
 
 // parentEdges is n's parent links for a canon read: the links of the events n
@@ -188,7 +222,11 @@ func (d *deriver) parentEdges(n *graphcache.Node, event func([]byte) ([]kinship.
 	if err != nil {
 		return nil, nil, err
 	}
-	return atEnd, d.kinEdges(n, atEnd), nil
+	edges, err = d.kinEdges(n, atEnd)
+	if err != nil {
+		return nil, nil, err
+	}
+	return atEnd, edges, nil
 }
 
 // eventLinks is what the event patterns imply over one event's links.
@@ -197,11 +235,9 @@ func (d *deriver) eventLinks(id []byte) ([]kinship.Implied, error) {
 	if err != nil || n == nil {
 		return nil, err
 	}
-	var edges []kinship.Edge
-	for _, l := range n.Links {
-		if e, ok := d.edge(n, l); ok {
-			edges = append(edges, e)
-		}
+	edges, err := d.filedEdges(n)
+	if err != nil {
+		return nil, err
 	}
 	// Derive also chains parents among the event's own links; a chain is a
 	// person's result, not an event's.
@@ -337,23 +373,55 @@ func (r *Reader) Relationships(ids [][]byte, opts Options, in *graphcache.PageIn
 	}
 	out := make(map[string][]kinship.Link, len(steps))
 	for _, s := range steps {
-		set := kinship.NewLinkSet()
-		for _, e := range r.d.relationshipEdges(s.node) {
-			set.Add(kinship.Link{Edge: e})
+		edges, err := r.d.relationshipEdges(s.node)
+		if err != nil {
+			return nil, err
 		}
 		implied, err := r.d.forLinks(s, r.chain)
 		if err != nil {
 			return nil, err
 		}
-		for _, imp := range implied {
-			set.AddImplied(imp)
-		}
-		for _, imp := range siblings[string(s.node.ID)] {
-			set.AddImplied(imp)
-		}
-		out[string(s.node.ID)] = set.Links()
+		out[string(s.node.ID)] = composeLinks(edges, implied, siblings[string(s.node.ID)])
 	}
 	return out, nil
+}
+
+// Links returns every link at id the canon reads: each link filed on id as an
+// edge between its two ends with the key it has from each, then, when id is a
+// person, For's links, merged through one kinship.LinkSet, in that order. An id
+// that is no node has no links. Nothing is filtered: a link to a merged node is
+// returned. The caller owns the slice.
+func (r *Reader) Links(id []byte) ([]kinship.Link, error) {
+	n, err := r.d.src.node(id)
+	if err != nil || n == nil {
+		return nil, err
+	}
+	var implied []kinship.Implied
+	if n.Is(r.d.personType) {
+		if implied, err = r.For(id); err != nil {
+			return nil, err
+		}
+	}
+	filed, err := r.d.filedEdges(n)
+	if err != nil {
+		return nil, err
+	}
+	return composeLinks(filed, implied), nil
+}
+
+// composeLinks is the one rule for a node's links: each filed edge, then each
+// list of implied links in order, merged through one kinship.LinkSet.
+func composeLinks(filed []kinship.Edge, implied ...[]kinship.Implied) []kinship.Link {
+	set := kinship.NewLinkSet()
+	for _, e := range filed {
+		set.Add(kinship.Link{Edge: e})
+	}
+	for _, list := range implied {
+		for _, imp := range list {
+			set.AddImplied(imp)
+		}
+	}
+	return set.Links()
 }
 
 // stepped is one id's node, the links of the events it stands in that have it

@@ -80,7 +80,7 @@ func Align(layer Layer, canon CanonView, fixed []Fixed, cfg Config) Proposal
 | Input | Holds |
 | --- | --- |
 | `layer` | One Evidence graph: Subjects, bridges, Observations with values and provenance |
-| `canon` | A `CanonView` of the canonical graph: a handle's profile (its auto-reconciled values, every rank), the links at it, and each Subject's candidates. Today `Canon.View()` serves it over the part of the graph the loader walked from the seed handles |
+| `canon` | A `CanonView` of the canonical graph: a handle's profile (its auto-reconciled values, every rank), the links at it, and each Subject's candidates. Promote's `canonView` serves it one handle at a time: the profile from the match index, the handle's filed links and, for a person, the links the kinship pivots imply, kept when the far end is a handle |
 | `fixed` | Decided rows, plus every already-promoted Subject on the layer, whose existing claim is a free anchor |
 
 `Proposal` is one row per Subject:
@@ -94,7 +94,7 @@ func Align(layer Layer, canon CanonView, fixed []Fixed, cfg Config) Proposal
 
 ## 4.1 Abstraction, composition, and tunables
 
-`core/graphalign` composes the matching layers: entity compare judges a pair, segment compare judges a link, and `Align` walks, places and settles. It talks to no database and reads its numbers from the registry's alignment section (`graphalign.Rules`, filled in `core/matchregistry/alignment.go`); no layer imports the registry. The catalog adapter (`core/database/promotealign`) builds `Layer` and `Canon` and calls `Align`; the Promote page presents rows. Every tunable and its start is in the [knob inventory](matching-model.md#knob-inventory).
+`core/graphalign` composes the matching layers: entity compare judges a pair, segment compare judges a link, and `Align` walks, places and settles. It talks to no database and reads its numbers from the registry's alignment section (`graphalign.Rules`, filled in `core/matchregistry/alignment.go`); no layer imports the registry. The catalog adapter (`core/database/promotealign`) builds the `Layer` and a `CanonView` and calls `Align`; the Promote page presents rows. Every tunable and its start is in the [knob inventory](matching-model.md#knob-inventory).
 
 ---
 
@@ -143,19 +143,19 @@ Nothing names a Property or a relationship. Every weight comes from metadata or 
 
 ---
 
-# 7. Loading: prefetch, then walk in memory
+# 7. Loading: prefetch, then read in memory
 
-There are no database calls during the walk. Everything it reads is loaded first:
+On a warm catalog there are no database calls while `Align` runs: every node is cached since `Warm`, and a cold read loads on a miss. It reads:
 
 1. **The layer:** one Evidence graph's Subjects, bridges, Observations and provenance, loaded as a `graphfill.EvidenceGraph` and held as the `evidencelayer.Layers` entry, keyed by graph and derived from the vocabulary and `nameformats.Default`.
 2. **Seed handles:**
    - the fixed pairs;
    - the handles of already-promoted Subjects;
    - the candidates `graphalign.Candidates` keeps for each unpromoted Subject (`alignment.MinSimilarity`, the best `TopK`, ties up to `TieCap`; see the knob inventory in [`matching-model.md`](matching-model.md)), served to `Align` by `CanonView.Candidates`, ranked over the handles the shortlist index offers (`core/shortlist`, held in the match index), not every handle of the kind.
-3. **Walk the in-memory catalog graph** from the seeds through every link to a person, event or place, with no hop limit. A node not yet in memory loads in one batched read per wave of the walk; a warm one costs nothing. Handles carry the profiles the match index holds.
-Every read is batched (`sqlbatch`, 500 ids per IN list), so the query count follows the waves of the walk, not the size of the layer or the catalog.
+3. **Links, when `Align` scores a handle.** `Align` asks the view for a handle's links when it scores the handle; the view reads the handle's cached node and the kinship pivots, so a proposal reads the Source's neighbourhood, not the component. Handles carry the profiles the match index holds.
+Every read is batched (`sqlbatch`, 500 ids per IN list), so the query count does not follow the size of the layer or the catalog.
 
-**Canonical adjacency without S9-28.** It can be derived through members: H's member m → bridge → neighbor n → n's accepted claim → G. That's a join, and it loads in batch. The graph cache holds each node's links (`graphcache.Node.Links`), so the walk reads them in memory; a prototype of graph alignment (`Align`) never needed bridge filing to wait for.
+**Canonical adjacency without S9-28.** It can be derived through members: H's member m → bridge → neighbor n → n's accepted claim → G. That's a join, and it loads in batch. The graph cache holds each node's links (`graphcache.Node.Links`), so the view reads them in memory; a prototype of graph alignment (`Align`) never needed bridge filing to wait for.
 
 ---
 
@@ -239,8 +239,8 @@ Spike 9 was replanned around this on 2026-10-06. The close note is [`deployment-
 
 §5 and §6 describe the built walk (Spike 11, S11-16). What differs:
 
-- **Query count (§7):** every read is batched (`sqlbatch`), and the canon comes from the in-memory graph, and a warm proposal reads `MAX(revision)` only (`TestLargeSourceBudgets` `warm queries`). After a vocabulary, alias or name format change empties the match index, the next proposal builds it again (one read of every person, event and place node); a handle commit patches it. Cold, the graph loads one batch per wave of the walk.
+- **Query count (§7):** every read is batched (`sqlbatch`), and the canon comes from the in-memory graph, and a warm proposal reads `MAX(revision)` only (`TestLargeSourceBudgets` `warm queries`). After a vocabulary, alias or name format change empties the match index, the next proposal builds it again (one read of every person, event and place node); a handle commit patches it. Cold, `Warm` has loaded every person, event and place node at open, so the view reads cached nodes.
 - **Properties compared (§6):** only the lead properties of the registry's subject section, with their pools and periods, not every Property both sides carry.
 - **Provenance (§6):** not applied. A score is the pair's evidence plus its edge support; credibility and transcription certainty don't scale comparisons yet.
-- **Kinship shapes:** both loaders add the links `core/kinship` implies (spouse, parent, grandparent) through their one merge (`kinship.LinkSet`, whose implied links enter through `AddImplied`, or `PlaceImplied` in `loadCanon`, each recorded by `Implied.Recording`): the layer loader derives them, `loadCanon` reads them from the graph cache through `canonlinks.Reader.For`. Implied links are never filed and never shown as connections; a row reached through one says "via <neighbor>" with no relationship phrase. A link both sides imply through a paired event or middle parent counts once.
+- **Kinship shapes:** both loaders add the links `core/kinship` implies (spouse, parent, grandparent) through their one merge (`kinship.LinkSet`, whose implied links enter through `AddImplied`, each recorded by `Implied.Recording`): the layer loader derives them, the canon view reads them through `canonlinks.Reader.Links`. Implied links are never filed and never shown as connections; a row reached through one says "via <neighbor>" with no relationship phrase. A link both sides imply through a paired event or middle parent counts once.
 - **Bridge kinds in the loaders:** the layer loader lists its hops (participation, location, relationship, part of, succeeded by) in code. The canon follows every link the graph holds for a `connectrules` bridge, as filing does.

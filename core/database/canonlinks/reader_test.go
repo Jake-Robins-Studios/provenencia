@@ -435,6 +435,105 @@ func TestRelationships(t *testing.T) {
 	})
 }
 
+func (w *world) links(id []byte) []kinship.Link {
+	w.t.Helper()
+	links, err := w.r.Links(id)
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	return links
+}
+
+func TestLinks(t *testing.T) {
+	// sorted orders links by A, B, then Assoc: link order is LinkSet's, and
+	// the refs it follows come from the kit.
+	sorted := func(links []relShape) []relShape {
+		out := slices.Clone(links)
+		sort.Slice(out, func(i, j int) bool {
+			a, b := out[i], out[j]
+			if a.A != b.A {
+				return a.A < b.A
+			}
+			if a.B != b.B {
+				return a.B < b.B
+			}
+			return strings.Join(a.Assoc, ",") < strings.Join(b.Assoc, ",")
+		})
+		return out
+	}
+	check := func(t *testing.T, got, want []relShape) {
+		t.Helper()
+		got, want = sorted(got), sorted(want)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("got  %+v\nwant %+v", got, want)
+		}
+	}
+	// birth sets up Ann as the subject of B1 with Bob as father.
+	birth := func(t *testing.T) (w *world, ann, bob, b1 []byte) {
+		w = newWorld(t)
+		ann, bob = w.person("Ann"), w.person("Bob")
+		b1 = w.event("B1", vocabkey.EventBirth)
+		w.join("B1/Ann", ann, b1, "subject")
+		w.join("B1/Bob", bob, b1, "father")
+		return w, ann, bob, b1
+	}
+	// filed is the shape of a filed link: the edge its association has in
+	// edgesOf, with that association.
+	filed := func(w *world, assoc string) relShape {
+		for _, e := range w.edgesOf() {
+			if w.name(e.Associations[0]) == assoc {
+				return w.relShapes([]kinship.Link{{Edge: e}})[0]
+			}
+		}
+		w.t.Fatalf("no filed link %s", assoc)
+		return relShape{}
+	}
+	t.Run("a person's birth", func(t *testing.T) {
+		w, ann, _, _ := birth(t)
+		got := w.relShapes(w.links(ann))
+		if len(got) != 2 {
+			t.Fatalf("got %+v, want 2 links", got)
+		}
+		if got[0].OnlyImplied || !got[1].OnlyImplied {
+			t.Fatalf("got %+v, want the filed link first, then the implied one", got)
+		}
+		pa, pb := w.keys(vocabkey.BridgeRelationship, vocabkey.TermParent)
+		check(t, got, []relShape{
+			filed(w, "B1/Ann"),
+			{A: "Bob", B: "Ann", KeyA: pa, KeyB: pb, Assoc: []string{"B1/Ann", "B1/Bob"},
+				Shapes: []string{string(kinship.PatternBirthParents) + "/B1"}, OnlyImplied: true},
+		})
+	})
+	t.Run("a filed parent link merges with the implied one", func(t *testing.T) {
+		w, ann, bob, _ := birth(t)
+		w.parent("BA", bob, ann)
+		got := w.relShapes(w.links(ann))
+		if len(got) != 2 {
+			t.Fatalf("got %+v, want 2 links", got)
+		}
+		pa, pb := w.keys(vocabkey.BridgeRelationship, vocabkey.TermParent)
+		check(t, got, []relShape{
+			filed(w, "B1/Ann"),
+			{A: "Bob", B: "Ann", KeyA: pa, KeyB: pb, Assoc: []string{"B1/Ann", "B1/Bob", "BA"},
+				Shapes: []string{string(kinship.PatternBirthParents) + "/B1"}},
+		})
+	})
+	t.Run("an event implies nothing", func(t *testing.T) {
+		w, _, _, b1 := birth(t)
+		got := w.relShapes(w.links(b1))
+		check(t, got, []relShape{filed(w, "B1/Ann"), filed(w, "B1/Bob")})
+		if w.hasPivot(b1) {
+			t.Fatal("Links on an event stored a kinship result")
+		}
+	})
+	t.Run("no node", func(t *testing.T) {
+		w := newWorld(t)
+		if got, err := w.r.Links(make([]byte, 16)); got != nil || err != nil {
+			t.Fatalf("got %+v, %v for an unknown id, want nil, nil", got, err)
+		}
+	})
+}
+
 // hasPivot reports whether a kinship result is stored for an id.
 func (w *world) hasPivot(id []byte) bool {
 	_, ok := pivots.Peek(w.g, id)
@@ -565,15 +664,6 @@ func TestForFollowsCommits(t *testing.T) {
 // edgesOf is every link of the canon as an edge, once each.
 func (w *world) edgesOf() []kinship.Edge {
 	w.t.Helper()
-	terms, err := LoadTerms(w.g)
-	if err != nil {
-		w.t.Fatal(err)
-	}
-	v, err := w.g.Vocabulary()
-	if err != nil {
-		w.t.Fatal(err)
-	}
-	prop := v.PropertyID(vocabkey.PropertyEventType, vocabkey.OriginProvenencia)
 	seen := map[string]bool{}
 	var edges []kinship.Edge
 	for _, id := range w.all {
@@ -581,20 +671,16 @@ func (w *world) edgesOf() []kinship.Edge {
 		if err != nil || n == nil {
 			w.t.Fatalf("node %s: %v", w.name(id), err)
 		}
-		for _, l := range n.Links {
-			if seen[string(l.Association)] {
+		filed, err := w.r.d.filedEdges(n)
+		if err != nil {
+			w.t.Fatal(err)
+		}
+		for _, e := range filed {
+			if seen[string(e.Associations[0])] {
 				continue
 			}
-			seen[string(l.Association)] = true
-			neighbor, err := w.g.Node(l.Neighbor)
-			if err != nil {
-				w.t.Fatal(err)
-			}
-			from, to, kf, kt, ok := EdgeOf(id, n, l, neighbor, prop, terms)
-			if !ok {
-				continue
-			}
-			edges = append(edges, kinship.Edge{A: from, B: to, KeyA: kf, KeyB: kt, Associations: [][]byte{l.Association}})
+			seen[string(e.Associations[0])] = true
+			edges = append(edges, e)
 		}
 	}
 	return edges

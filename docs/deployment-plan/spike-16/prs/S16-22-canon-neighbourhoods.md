@@ -1,6 +1,6 @@
 # S16-22 — Promote reads each handle's neighbourhood instead of walking the catalog
 
-**Status:** Planned
+**Status:** Landed in [#844](https://github.com/mendahu/provenencia/pull/844) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine change; Promote's suggestions read the same as today)
@@ -14,6 +14,8 @@
 **Context:** [design § Promote](../cache-architecture.md#promote) ("Neighbourhoods instead of the whole canon"), [`docs/catalog-caches.md`](../../../catalog-caches.md), [`promote-graph-alignment.md`](../../../promote-graph-alignment.md) §4 (the `canon` input), §7 and §12, [`matching-model.md`](../../../matching-model.md) line 31, [`promote-ranking.md`](../../../ideas/promote-ranking.md) ("Memoise a person's composed kinship"), [S16-21 plan](S16-21-canon-view-place-links.md) (D-1 `CanonView`, its Out row on the event-type lookup), [S16-36 plan](S16-36-refuse-self-loops.md) (D-5 `CanonView.Links` contract), [S16-16 plan](S16-16-composed-kinship.md) (D-8 `BenchmarkLargeSourcePropose`, **Next adds**), [S16-20 plan](S16-20-match-index-apply.md) (**Next adds**), working rules: "The point of this batch is simpler code", "Cache entities and results per key; compose answers", "Every cache names the signal that updates it, and updates exactly", "Warm only what every proposal needs; no background re-warm", "Orders are defined and results do not move", "Memory is budgeted", "No new persisted projections, and no stored answer without a measurement", "A link with one record at both ends is crafted data, refused where links are read", "Measure growth"
 **Planned:** 2026-11-15 against `main` @ `292b421`
 **Review:** [`S16-22-canon-neighbourhoods.review.md`](S16-22-canon-neighbourhoods.review.md) — Fits with changes / Ready with changes after two rounds; no open blocker
+
+**Landed.** Differences from the plan: STEP-1's base figures were taken on the branch's base checkout before the first change, not in a second worktree, and on an Apple M1, so the figures in the PR and `completed.md` are M1 figures (`budgetWarm`'s comment keeps the plan's Xeon text). `rg -n "Canon\{" core --glob '!*_test.go'` also matches `graphcachetest.Canon`, an unrelated test-kit type.
 
 ### Implementer — read this first
 

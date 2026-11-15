@@ -98,28 +98,3 @@ func (s *LinkSet) WithImplied(terms segmentcompare.Terms, rules Rules) {
 		s.AddImplied(imp)
 	}
 }
-
-// PlaceImplied returns where each implied link goes among s's links: the
-// index of the link it merges into, or len(s.Links())+j for the j-th distinct
-// new link. It does not change s.
-func (s *LinkSet) PlaceImplied(implied []Implied) []int {
-	at := make([]int, len(implied))
-	var fresh map[linkKey]int
-	for i, imp := range implied {
-		k := linkKeyOf(imp.A, imp.B, imp.KeyA, imp.KeyB)
-		if j, ok := s.at[k]; ok {
-			at[i] = j
-			continue
-		}
-		j, ok := fresh[k]
-		if !ok {
-			if fresh == nil {
-				fresh = map[linkKey]int{}
-			}
-			j = len(s.links) + len(fresh)
-			fresh[k] = j
-		}
-		at[i] = j
-	}
-	return at
-}

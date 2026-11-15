@@ -20,7 +20,7 @@ Rank a Source Subject's candidate records with the same scoring the handle pages
 
 From S16-16 (user, 2026-11-13). S16-16 removed the stored per-person implied links and siblings answers: a person's implied links and siblings are now composed from the pivot memos on every read. On a warm proposal (the Promote page opening again, and every re-proposal after a decision) that composition runs for every person the canon walk reaches. Measured on an M1 under load (S16-16 ship log has both tables): `BenchmarkLargeSourcePropose` warm cost 1.56–1.74× the base at 4,000 persons and 1.68–2.27× at 16,000, run to run. The proposal after a handle commit is unchanged within noise (best of 3 and 5, alternating base and head, at 4,000 persons: 625 ms on the base, 630 ms at head). The user accepted the warm cost as the new normal.
 
-**Pick it up when** researchers say the pause after a Promote decision is too long on a large tree. Measure first: S16-22 reads each handle's links from the pivots instead of walking the component, which may shrink the walked set enough to settle it.
+**Pick it up when** researchers say the pause after a Promote decision is too long on a large tree. S16-22 replaced the walk: a warm proposal composes about 550 handles' links, 25 ms at 4,000 persons and 27 ms at 16,000 (Xeon 2.1 GHz); measure again before memoising.
 
 **Shape.** Memoise `canonlinks.Reader.For` per person in a keyed registry entry whose Apply drops only the people whose pivots changed and the people one parent step from them, without a catch-all drop on any handle commit (the working rule "Every cache names the signal that updates it, and updates exactly"). Measure memory at 16,000 against `docs/catalog-caches.md` first (rule "No stored answer without a measurement").
 
