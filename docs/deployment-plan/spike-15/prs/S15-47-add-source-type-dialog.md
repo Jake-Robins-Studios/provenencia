@@ -1,9 +1,9 @@
 # S15-47 — Adding a Source type opens a dialog
 
-**Status:** Planned
+**Status:** Landed in [#843](https://github.com/mendahu/provenencia/pull/843) (2026-11-14)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D26](../design/S15-D26-add-source-type-dialog.md), board redrawn and agreed 2026-11-14 (user)
+**Brief:** [S15-D26](../design/archive/S15-D26-add-source-type-dialog.md), board redrawn and agreed 2026-11-14 (user)
 **Board:** [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga), page *S2-03 Source Types Board*, section 05 "Add a type — a dialog, not a pane mode": frames 1a (Regular, empty dialog), 1b (Wide, the same 840pt sheet), 2 (key minted live), 3 (icon picked inline, its meaning under the grid), 4 (duplicate key under Label), 4b (danger Callout "The type was not added"), 5 (saving), 6 (discard confirm), 7 (after Add); the dialog's markup is in the component page *Source Types Pane*. Board decision AT-3 (redrawn and agreed 2026-11-14): a two-column sheet, 840pt, Label, Key and Description on the left, the icon grid always open on the right (5 columns), picking live with no second confirm; the side pane's "Choose an icon" sheet keeps its picker and draws the same grid (6 columns). Two board lines are not built (user, 2026-11-14): Return in Description is a new line, not Add (AT-9's Shift-Return), and the dialog does not wrap its grid under the fields below 790pt (AT-W1; two columns at every width, as the owner forms). Open the link in a browser; if you cannot, D-6, D-8, D-11 and § 6 macOS describe every frame
 **Depends on:** S15-D26
 **Blocks:** S15-48, S15-18
@@ -27,6 +27,12 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- The Source types icon grid's tests are `@MainActor` (the grid is a SwiftUI view, so its static `arrowTarget` is main-actor-isolated).
+- Moving `SourceOwnerFormColumns.swift` leaves § 4's "Current state" naming a path that no longer exists; `scripts/check-plan-docs.py` stops checking paths once the plan is Landed.
+- Not run: the manual check (section 10) and the board comparison of frames 1a to 7, including Full Keyboard Access Tab order into the grid and the focus ring (AC-1.5); this build was verified by the Go and Xcode tests only.
 
 ## 1. Objective
 
