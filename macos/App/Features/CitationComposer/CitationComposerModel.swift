@@ -433,7 +433,6 @@ final class CitationComposerModel {
     var evidenceGraphsKey: CatalogQueryKey { session.evidenceGraphsKey }
     var fieldsKey: CatalogQueryKey { .propertiesWorkspace(project: session.projectKey) }
     var connectRulesKey: CatalogQueryKey { .connectRules(project: session.projectKey) }
-    var sourceTypesKey: CatalogQueryKey { .sourceTypesList(project: session.projectKey) }
 
     private func termsKey(propertyID: String) -> CatalogQueryKey {
         .propertyTerms(project: session.projectKey, propertyId: propertyID)
@@ -1253,14 +1252,14 @@ final class CitationComposerModel {
         let _: QueryHandle<EvidenceGraphRows> = session.query(graphKey)
         let _: QueryHandle<PropertiesSnapshot> = session.query(fieldsKey)
         let _: QueryHandle<CatalogSourceWorkspace> = session.query(workspaceKey)
-        let _: QueryHandle<[CatalogSourceType]> = session.query(sourceTypesKey)
+        let _: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         let _: QueryHandle<[String: Int]> = session.query(citationCountsKey)
         let _: QueryHandle<[CatalogEvidenceGraph]> = session.query(evidenceGraphsKey)
         let _: QueryHandle<[CatalogConnectRule]> = session.query(connectRulesKey)
         let rows: EvidenceGraphRows? = await session.readyValue(graphKey)
         let fieldsReady: PropertiesSnapshot? = await session.readyValue(fieldsKey)
         let workspaceReady: CatalogSourceWorkspace? = await session.readyValue(workspaceKey)
-        _ = await session.readyValue(sourceTypesKey) as [CatalogSourceType]?
+        _ = await session.readyValue(session.sourceTypesKey) as [CatalogSourceType]?
         _ = await session.readyValue(citationCountsKey) as [String: Int]?
         _ = await session.readyValue(connectRulesKey) as [CatalogConnectRule]?
         let graphsReady: [CatalogEvidenceGraph]? = await session.readyValue(evidenceGraphsKey)

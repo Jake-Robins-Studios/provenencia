@@ -22,9 +22,7 @@ struct SourceTypesView: View {
 
     var body: some View {
         Group {
-            if let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-                SourceTypesModel.typesListKey(for: session)
-            ) {
+            if let typesHandle = session.sourceTypesHandle {
                 SourceTypesContent(
                     typesHandle: typesHandle,
                     model: model

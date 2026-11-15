@@ -54,7 +54,7 @@ struct PromoteView: View {
             let _: QueryHandle<PropertiesSnapshot> = model.session.query(model.propertiesKey)
             let _: QueryHandle<[CatalogConnectRule]> = model.session.query(model.rulesKey)
             let _: QueryHandle<[CatalogSource]> = model.session.query(model.sourcesKey)
-            let _: QueryHandle<[CatalogSourceType]> = model.session.query(model.sourceTypesKey)
+            let _: QueryHandle<[CatalogSourceType]> = model.session.query(model.session.sourceTypesKey)
             await model.load()
         }
         .workspaceLeaveConfirm(

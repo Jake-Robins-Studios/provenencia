@@ -59,7 +59,7 @@ struct SourceTypesModelTests {
     private func warm(_ model: SourceTypesModel, session: WorkspaceSession) async {
         model.warmListQueries()
         if let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-            SourceTypesModel.typesListKey(for: session)
+            session.sourceTypesKey
         ) {
             await waitForQuery(typesHandle)
         }
@@ -163,7 +163,7 @@ struct SourceTypesModelTests {
         )
         await waitForQuery(fieldsHandle)
         let typesHandle: QueryHandle<[CatalogSourceType]> = try #require(
-            session.queryHandle(SourceTypesModel.typesListKey(for: session))
+            session.queryHandle(session.sourceTypesKey)
         )
         store.fieldsByProject[projectDir] = [field(id: "f9", label: "Unseen")]
 

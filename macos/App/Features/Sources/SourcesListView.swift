@@ -28,9 +28,7 @@ struct SourcesListView: View {
             if let sourcesHandle: QueryHandle<[CatalogSource]> = session.queryHandle(
                 SourcesModel.sourcesListKey(for: session)
             ),
-            let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(
-                SourcesModel.sourceTypesListKey(for: session)
-            ) {
+            let typesHandle: QueryHandle<[CatalogSourceType]> = session.sourceTypesHandle {
                 SourcesListContent(
                     sourcesHandle: sourcesHandle,
                     typesHandle: typesHandle,

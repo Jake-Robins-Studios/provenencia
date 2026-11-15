@@ -120,14 +120,10 @@ final class SourcesModel {
         CatalogQueryKey.sourcesList(project: session.projectKey)
     }
 
-    static func sourceTypesListKey(for session: WorkspaceSession) -> CatalogQueryKey {
-        CatalogQueryKey.sourceTypesList(project: session.projectKey)
-    }
-
     /// Starts list queries once (`.task` / dialog). Do not call from view `body`.
     func warmListQueries() {
         let _: QueryHandle<[CatalogSource]> = session.query(Self.sourcesListKey(for: session))
-        let _: QueryHandle<[CatalogSourceType]> = session.query(Self.sourceTypesListKey(for: session))
+        let _: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         let _: QueryHandle<[String: EvidenceGraphProgress]> = session.query(session.evidenceGraphProgressKey)
         let _: QueryHandle<[CatalogEvidenceGraph]> = session.query(session.evidenceGraphsKey)
     }
@@ -140,7 +136,7 @@ final class SourcesModel {
     var graphCountsLoading: Bool { session.evidenceGraphCountsLoading }
 
     private var typesHandle: QueryHandle<[CatalogSourceType]>? {
-        session.queryHandle(Self.sourceTypesListKey(for: session))
+        session.queryHandle(session.sourceTypesKey)
     }
 
     /// The progress handle's failure while a status filter needs its counts. It
@@ -191,7 +187,7 @@ final class SourcesModel {
     }
 
     var types: [CatalogSourceType] {
-        session.queryHandle(Self.sourceTypesListKey(for: session))?.value ?? []
+        session.queryHandle(session.sourceTypesKey)?.value ?? []
     }
 
     var isLoading: Bool {
@@ -203,7 +199,7 @@ final class SourcesModel {
     var loadError: Error? {
         guard sources.isEmpty else { return nil }
         let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
-        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.sourceTypesListKey(for: session))
+        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.sourceTypesHandle
         return sourcesHandle?.failure ?? typesHandle?.failure
     }
 
@@ -281,7 +277,7 @@ final class SourcesModel {
     /// keeps the view observing them.
     var visibleSources: [CatalogSource] {
         let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
-        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.sourceTypesListKey(for: session))
+        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.sourceTypesHandle
         let filtersByStatus = settings.status != nil
         let token = VisibleRowsToken(
             sources: sourcesHandle?.revision ?? -1,
@@ -401,7 +397,7 @@ final class SourcesModel {
 
     /// Ensures the type pool query is warm for the Add Source dialog.
     func refreshTypes() {
-        let _: QueryHandle<[CatalogSourceType]> = session.query(Self.sourceTypesListKey(for: session))
+        let _: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
     }
 
     /// Opens the Copy Source form for a row's Source.

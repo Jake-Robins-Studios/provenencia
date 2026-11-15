@@ -47,7 +47,7 @@ final class SourceCopyModel {
         let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: original.id)
         workspaceKey = key
         workspaceHandle = session.query(key)
-        typesHandle = session.query(.sourceTypesList(project: session.projectKey))
+        typesHandle = session.query(session.sourceTypesKey)
         let prefill = SourceCopyChoices(
             draft: SourcesModel.Draft(
                 sourceTypeID: original.sourceTypeID,

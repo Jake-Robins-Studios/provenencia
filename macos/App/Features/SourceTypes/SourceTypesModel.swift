@@ -35,28 +35,23 @@ final class SourceTypesModel {
 
     // MARK: Session handles
 
-    static func typesListKey(for session: WorkspaceSession) -> CatalogQueryKey {
-        CatalogQueryKey.sourceTypesList(project: session.projectKey)
-    }
-
     func warmListQueries() {
-        let _: QueryHandle<[CatalogSourceType]> = session.query(Self.typesListKey(for: session))
+        let _: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
     }
 
     var types: [CatalogSourceType] {
-        session.queryHandle(Self.typesListKey(for: session))?.value ?? []
+        session.sourceTypesHandle?.value ?? []
     }
 
     var isLoading: Bool {
-        guard let handle: QueryHandle<[CatalogSourceType]> = session.queryHandle(Self.typesListKey(for: session))
+        guard let handle = session.sourceTypesHandle
         else { return true }
         return handle.status == .loading && types.isEmpty
     }
 
     var loadError: Error? {
         guard types.isEmpty else { return nil }
-        let typesHandle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.typesListKey(for: session))
-        return typesHandle?.failure
+        return session.sourceTypesHandle?.failure
     }
 
     // MARK: Derived
@@ -72,8 +67,7 @@ final class SourceTypesModel {
 
     /// Nil until the list has a value, so the header shows no zero counts.
     var countLine: String? {
-        let handle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(Self.typesListKey(for: session))
-        guard handle?.value != nil else { return nil }
+        guard session.sourceTypesHandle?.value != nil else { return nil }
         if types.pluginCount > 0 {
             return L10n.SourceTypes.countLineWithPlugin(
                 total: types.count, seeded: types.seededCount, user: types.userCount, plugin: types.pluginCount

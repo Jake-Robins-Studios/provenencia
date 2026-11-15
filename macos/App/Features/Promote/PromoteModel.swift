@@ -108,14 +108,13 @@ final class PromoteModel {
     var propertiesKey: CatalogQueryKey { .propertiesWorkspace(project: session.projectKey) }
     var rulesKey: CatalogQueryKey { .connectRules(project: session.projectKey) }
     var sourcesKey: CatalogQueryKey { .sourcesList(project: session.projectKey) }
-    var sourceTypesKey: CatalogQueryKey { .sourceTypesList(project: session.projectKey) }
 
     /// What the header shows of the Source, read from one lookup of its row in the
     /// session (which every rename and type change patches). While the Sources list is
     /// not warm, or once the Source is gone: the carried title, no ref, the default mark.
     var sourceHeader: PromoteSourceHeader {
         let row = session.source(id: entry.sourceID)
-        let types: QueryHandle<[CatalogSourceType]>? = session.queryHandle(sourceTypesKey)
+        let types: QueryHandle<[CatalogSourceType]>? = session.sourceTypesHandle
         let mark = types?.value?.iconKey(forTypeID: row?.sourceTypeID).map { PVMarkKey(catalogKey: $0) }
         return PromoteSourceHeader(
             title: WorkspaceLocationLabels.liveLabel(live: row?.title, carried: entry.sourceTitle),
@@ -440,7 +439,7 @@ final class PromoteModel {
     /// Waits for the Sources and source-types keys so the header has values when the page settles.
     private func warmSourceKeys() async {
         let _: [CatalogSource]? = await session.readyValue(sourcesKey)
-        let _: [CatalogSourceType]? = await session.readyValue(sourceTypesKey)
+        let _: [CatalogSourceType]? = await session.readyValue(session.sourceTypesKey)
     }
 }
 

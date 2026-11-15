@@ -108,9 +108,7 @@ final class SourcePageContext {
     // warms all three alongside the workspace.
 
     var types: [CatalogSourceType] {
-        let handle: QueryHandle<[CatalogSourceType]>? = session.queryHandle(
-            .sourceTypesList(project: session.projectKey)
-        )
+        let handle: QueryHandle<[CatalogSourceType]>? = session.sourceTypesHandle
         return handle?.value ?? []
     }
 
