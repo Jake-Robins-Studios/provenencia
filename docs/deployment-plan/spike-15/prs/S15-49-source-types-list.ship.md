@@ -124,3 +124,13 @@ Head `04a804a03`. Orchestrator gate PASS (xcode-test 69 s). F-7, F-8, F-9, ORC-1
 
 ## Round 3 — review (user-requested change; outside the two-round cap by the user's request)
 Scope `ec971b2cd...04a804a03`. Reviewers: CON, MNT, UX (kit change to `PVTable`, `macos/App/**`). Not sent: SEC+PRF — one `onGeometryChange` per table and a filter over ≤ 5 columns; no catalog input.
+
+Round 3 review: CON, MNT, UX all **Clean**; no blocker or major.
+Nits (logged): `UX-4 · PVTable.swift:101-103 · minTableWidth doc should rule out any sortable or filterable column` · `UX-5 · PVTable.swift:176 · tableWidth starts at 0; Description may pop in a pass late (manual check)` · `MNT-R3-1 · PVTable.swift:176,226 · measure the shown ids, not the raw width, so a resize redraws only at the threshold` · `MNT-R3-2 · PVTable.swift:13-21 · Contract list should say columns decide whether they show` · `CON-1 · SourceTypesListPane.swift:20 · "~360pt each" is ~330pt` · `CON-2 · plan line 133 · Next adds still names columns(.wide)`
+Follow-up candidate (ask user): MNT outside-diff note — `SourcesListColumns.compactBelow` is a second list-width breakpoint in the hand-built Sources list; `PVTableColumn.minTableWidth` is now the kit's.
+
+### Fix plan 4 (comments and code this PR adds; stale-comment rule)
+**F-10 — Nits in code this PR added** (UX-4, MNT-R3-1, MNT-R3-2, CON-1, CON-2)
+Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`, `macos/App/Features/SourceTypes/SourceTypesListPane.swift`, the plan.
+Do: `minTableWidth` doc → "…never a column that sorts or filters, or holds the row's name." `PVTable` measures `[String]` shown ids (Equatable) with `onGeometryChange(for: [String].self) { Self.shownColumns(columns, tableWidth: $0.size.width).map(\.id) }` into `@State private var shownIDs: [String]?`; `shownColumns` filters `columns` by those ids, and until the first measure (`nil`) shows the columns with no `minTableWidth` (keep the static `shownColumns(_:tableWidth:)` and its test). Add one Contract bullet at the top of `PVTable.swift`: columns also decide whether they show (`minTableWidth`), so header and rows always agree. `SourceTypesListPane` comment "~360pt" → "~330pt". Plan line 133: "a later optional column is one more entry with a `minTableWidth`".
+Check: `scripts/check-pr.sh` PASS.
