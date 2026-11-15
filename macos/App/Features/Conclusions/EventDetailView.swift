@@ -16,7 +16,7 @@ struct EventDetailView: View {
             pageIdentifier: "events.detail",
             errorIdentifier: "events.detail.error",
             userID: userID,
-            make: { EventDetailContent(detail: $0, orders: session.nameFormat) },
+            make: { detail, orders in EventDetailContent(detail: detail, orders: orders) },
             secondary: { EventDetailSecondary(date: $0.secondaryDate, place: $0.secondaryPlace) }
         )
     }

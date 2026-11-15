@@ -136,7 +136,7 @@ struct ConclusionDetailPage<Content: ConclusionDetailBody, Secondary: View, Page
     let entityId: String
     let pageIdentifier: String
     let errorIdentifier: String
-    let make: (CatalogConclusionDetail) -> Content
+    let make: (CatalogConclusionDetail, NameFormatOrders) -> Content
     let secondary: (Content) -> Secondary
     /// Everything below the header. The convenience initializer supplies `ConclusionDetailDefaultPageSections`.
     let pageSections: (Content, ConclusionDetailPageSectionsContext) -> PageSections
@@ -150,7 +150,7 @@ struct ConclusionDetailPage<Content: ConclusionDetailBody, Secondary: View, Page
         pageIdentifier: String,
         errorIdentifier: String,
         userID: String,
-        make: @escaping (CatalogConclusionDetail) -> Content,
+        make: @escaping (CatalogConclusionDetail, NameFormatOrders) -> Content,
         secondary: @escaping (Content) -> Secondary,
         pageSections: @escaping (Content, ConclusionDetailPageSectionsContext) -> PageSections
     ) {
@@ -217,7 +217,7 @@ extension ConclusionDetailPage where PageSections == ConclusionDetailDefaultPage
         pageIdentifier: String,
         errorIdentifier: String,
         userID: String,
-        make: @escaping (CatalogConclusionDetail) -> Content,
+        make: @escaping (CatalogConclusionDetail, NameFormatOrders) -> Content,
         secondary: @escaping (Content) -> Secondary
     ) {
         self.init(
@@ -269,7 +269,7 @@ private struct ConclusionDetailLoaded<Content: ConclusionDetailBody, Secondary: 
     let projectDir: String
     let pageIdentifier: String
     let errorIdentifier: String
-    let make: (CatalogConclusionDetail) -> Content
+    let make: (CatalogConclusionDetail, NameFormatOrders) -> Content
     let secondary: (Content) -> Secondary
     let lead: ConclusionLeadModel
     let pageSections: (Content, ConclusionDetailPageSectionsContext) -> PageSections
@@ -277,7 +277,9 @@ private struct ConclusionDetailLoaded<Content: ConclusionDetailBody, Secondary: 
     @Environment(WorkspaceNavigation.self) private var navigation
 
     private var presentation: ConclusionDetailPresentation<Content> {
-        ConclusionDetailPresentation(handle.reading, isFetching: handle.isFetching, content: make)
+        ConclusionDetailPresentation(handle.reading, isFetching: handle.isFetching) { detail in
+            session.conclusionContent(key, inputs: [key], extra: session.nameFormat, value: detail, make: make)
+        }
     }
 
     /// The page sections this kind of page offers; none for Event and Place.

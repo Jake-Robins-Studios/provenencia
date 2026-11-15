@@ -18,16 +18,16 @@ struct PersonFamilySection: View {
     private var root: String { ConclusionPageSection.family.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
     var body: some View {
-        let orders = session.nameFormat
-        let folds = folds
-        ConclusionPageSectionHost<CatalogPersonFamily, PersonFamilyContent, PersonFamilyDiagram>(
+        let inputs = PersonFamilyContent.Inputs(folds: folds, orders: session.nameFormat, locale: .autoupdatingCurrent)
+        ConclusionPageSectionHost<CatalogPersonFamily, PersonFamilyContent.Inputs, PersonFamilyContent, PersonFamilyDiagram>(
             section: .family,
             entityId: entityId,
             accessibilityIdentifierRoot: root,
             errorTitle: L10n.Conclusions.familyErrorTitle,
             emptyTitle: L10n.Conclusions.familyEmptyTitle,
             emptyMessage: L10n.string(L10n.Conclusions.familyEmptyMessage),
-            make: { PersonFamilyContent(family: $0, folds: folds, locale: .autoupdatingCurrent, orders: orders) },
+            extra: inputs,
+            make: { PersonFamilyContent(family: $0, folds: $1.folds, locale: $1.locale, orders: $1.orders) },
             isEmpty: \.isEmpty
         ) { content in
             PersonFamilyDiagram(

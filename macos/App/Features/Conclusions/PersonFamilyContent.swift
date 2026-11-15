@@ -232,3 +232,12 @@ struct PersonFamilyContent: Equatable {
         }
     }
 }
+
+extension PersonFamilyContent {
+    /// What the content is built from beside its read; it is built again when any of them changes.
+    struct Inputs: Equatable {
+        var folds: ConclusionFoldState<Fold>
+        var orders: NameFormatOrders
+        var locale: Locale
+    }
+}

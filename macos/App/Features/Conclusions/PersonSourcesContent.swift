@@ -184,3 +184,12 @@ struct PersonSourcesContent: Equatable {
         return index > 0 ? lines[index - 1].id : nil
     }
 }
+
+extension PersonSourcesContent {
+    /// What the content is built from beside its read and the Source types; it is built again
+    /// when either changes.
+    struct Inputs: Equatable {
+        var folds: ConclusionFoldState<Fold>
+        var orders: NameFormatOrders
+    }
+}

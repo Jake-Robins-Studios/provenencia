@@ -9,7 +9,12 @@ import SwiftUI
 /// `.empty`, and the root itself on the content. A second host over a section's companion
 /// read draws in its own region: it passes `read: .companion` and
 /// `placement: .column(loadingHeight:)`, and its id root gains `.column`.
-struct ConclusionPageSectionHost<Value, Content: Equatable, Body: View>: View {
+///
+/// The content is built once per change of the section's reads and of `extra`
+/// (`WorkspaceSession.conclusionContent`): `make` takes the read's value and
+/// `extra`, and reads nothing else but handles of the section's own reads,
+/// which it fetches inside the closure.
+struct ConclusionPageSectionHost<Value, Extra: Equatable, Content: Equatable, Body: View>: View {
     /// Where the host draws its states.
     enum Placement {
         /// The section's own region: states keep the page band, an empty read has an EmptyState.
@@ -28,7 +33,9 @@ struct ConclusionPageSectionHost<Value, Content: Equatable, Body: View>: View {
     let errorTitle: LocalizedStringResource
     let emptyTitle: LocalizedStringResource?
     let emptyMessage: String
-    let make: (Value) -> Content
+    /// The plain values `make` builds from beside the read: folds, name orders, width class.
+    let extra: Extra
+    let make: (Value, Extra) -> Content
     let isEmpty: (Content) -> Bool
     let content: (Content) -> Body
 
@@ -44,7 +51,8 @@ struct ConclusionPageSectionHost<Value, Content: Equatable, Body: View>: View {
         errorTitle: LocalizedStringResource,
         emptyTitle: LocalizedStringResource? = nil,
         emptyMessage: String = "",
-        make: @escaping (Value) -> Content,
+        extra: Extra,
+        make: @escaping (Value, Extra) -> Content,
         isEmpty: @escaping (Content) -> Bool = { _ in false },
         @ViewBuilder body: @escaping (Content) -> Body
     ) {
@@ -56,6 +64,7 @@ struct ConclusionPageSectionHost<Value, Content: Equatable, Body: View>: View {
         self.errorTitle = errorTitle
         self.emptyTitle = emptyTitle
         self.emptyMessage = emptyMessage
+        self.extra = extra
         self.make = make
         self.isEmpty = isEmpty
         self.content = body
@@ -146,9 +155,16 @@ struct ConclusionPageSectionHost<Value, Content: Equatable, Body: View>: View {
     private func loaded(_ handle: QueryHandle<Value>) -> some View {
         let presentation = ConclusionDetailPresentation<Content>(
             handle.reading,
-            isFetching: handle.isFetching,
-            content: make
-        )
+            isFetching: handle.isFetching
+        ) { value in
+            session.conclusionContent(
+                key,
+                inputs: section.reads(project: session.projectKey, entityId: entityId).map(\.key),
+                extra: extra,
+                value: value,
+                make: make
+            )
+        }
         switch presentation {
         case .loading:
             loading
