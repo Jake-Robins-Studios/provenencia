@@ -73,7 +73,7 @@ struct CitationComposerEvidenceColumn: View {
             }
             citationLoadErrorLine
             PVTabPair { first, second in
-                WeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6) {
+                PVWeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6, alignment: .top) {
                     VStack(alignment: .leading, spacing: 10) {
                         transcriptionColumn(rows: 6...40, focus: first)
                         footer
@@ -479,45 +479,5 @@ struct CitationStepMenuRow: View {
         }
         .padding(.vertical, PVSpacing.space3)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-/// Places children in weighted columns. Height follows the tallest child.
-private struct WeightedColumns: Layout {
-    var weights: [CGFloat]
-    var spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let widths = columnWidths(total: proposal.width ?? 0, count: subviews.count)
-        let height = zip(subviews, widths).map { view, width in
-            view.sizeThatFits(ProposedViewSize(width: width, height: nil)).height
-        }.max() ?? 0
-        return CGSize(width: proposal.width ?? 0, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let widths = columnWidths(total: bounds.width, count: subviews.count)
-        var x = bounds.minX
-        for (view, width) in zip(subviews, widths) {
-            view.place(
-                at: CGPoint(x: x, y: bounds.minY),
-                anchor: .topLeading,
-                proposal: ProposedViewSize(width: width, height: nil)
-            )
-            x += width + spacing
-        }
-    }
-
-    private func columnWidths(total: CGFloat, count: Int) -> [CGFloat] {
-        let weightCount = min(count, weights.count)
-        guard weightCount > 0 else { return [] }
-        let used = Array(weights.prefix(weightCount))
-        let sum = used.reduce(0, +)
-        let available = max(0, total - spacing * CGFloat(max(count - 1, 0)))
-        guard sum > 0 else {
-            let each = count == 0 ? 0 : available / CGFloat(count)
-            return Array(repeating: each, count: count)
-        }
-        return used.map { available * $0 / sum }
     }
 }

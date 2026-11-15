@@ -151,19 +151,3 @@ struct PVTableShownColumnsTests {
         #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 0).map(\.id) == ["a", "c"])
     }
 }
-
-/// F-12: flexible columns split the width the fixed columns leave by `flex` weight.
-@Suite
-struct PVTableColumnsLayoutTests {
-    @Test func flexibleColumnsShareTheFreeWidthByWeight() {
-        #expect(PVTableColumnsLayout.widths(fixed: [nil, nil, 100], flex: [1, 2, 1], total: 1000, spacing: 0) == [300, 600, 100])
-        // Spacing between three columns takes 20 of the free width.
-        let spaced = PVTableColumnsLayout.widths(fixed: [nil, nil, 100], flex: [1, 2, 1], total: 1000, spacing: 10)
-        #expect(abs(spaced[0] - 880.0 / 3) < 0.001)
-        #expect(abs(spaced[1] - 1760.0 / 3) < 0.001)
-        #expect(spaced[2] == 100)
-        #expect(PVTableColumnsLayout.widths(fixed: [50, 60], flex: [1, 1], total: 1000, spacing: 10) == [50, 60])
-        // A flex of 0 counts as 1.
-        #expect(PVTableColumnsLayout.widths(fixed: [nil, nil], flex: [0, 1], total: 100, spacing: 0) == [50, 50])
-    }
-}

@@ -57,48 +57,6 @@ enum PVTableSelection {
 /// Table type-to-select — same matcher menus and selects use.
 typealias PVTableTypeSelectMatcher = PVTypeSelectMatcher
 
-/// Lays a row's cells out as columns: fixed widths as given, the rest split by `flex`. The header and
-/// every row use it, so the columns line up. Placement goes through `widths` so tests drive it with
-/// made-up sizes.
-struct PVTableColumnsLayout: Layout {
-    let fixed: [CGFloat?]
-    let flex: [CGFloat]
-    let spacing: CGFloat
-
-    /// Each column's width in `total`: fixed ones as given, the rest sharing what remains by weight (a zero weight counts as 1).
-    static func widths(fixed: [CGFloat?], flex: [CGFloat], total: CGFloat, spacing: CGFloat) -> [CGFloat] {
-        let gaps = spacing * CGFloat(max(0, fixed.count - 1))
-        let fixedSum = fixed.reduce(0) { $0 + ($1 ?? 0) }
-        let free = max(0, total - gaps - fixedSum)
-        let weights = zip(fixed, flex).map { $0 == nil ? ($1 > 0 ? $1 : 1) : 0 }
-        let weightSum = weights.reduce(0, +)
-        return zip(fixed, weights).map { fixedWidth, weight in
-            fixedWidth ?? (weightSum > 0 ? free * weight / weightSum : 0)
-        }
-    }
-
-    private func columnWidths(_ subviews: Subviews, total: CGFloat) -> [CGFloat] {
-        guard subviews.count == fixed.count else { return Array(repeating: 0, count: subviews.count) }
-        return Self.widths(fixed: fixed, flex: flex, total: total, spacing: spacing)
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let total = proposal.width ?? 0
-        let widths = columnWidths(subviews, total: total)
-        let height = zip(subviews, widths).map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }.max() ?? 0
-        return CGSize(width: total, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let widths = columnWidths(subviews, total: bounds.width)
-        var x = bounds.minX
-        for (subview, width) in zip(subviews, widths) {
-            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading, proposal: ProposedViewSize(width: width, height: bounds.height))
-            x += width + spacing
-        }
-    }
-}
-
 // MARK: - Column definition
 
 /// A menu of mutually exclusive values a column can be narrowed to. The table
@@ -317,7 +275,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     // MARK: Header
 
     private var header: some View {
-        PVTableColumnsLayout(fixed: shownColumns.map(\.width), flex: shownColumns.map(\.flex), spacing: PVSpacing.space6) {
+        PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
             ForEach(shownColumns) { column in
                 HStack(spacing: PVSpacing.space1) {
                     if column.sortable, let onSortChange {
@@ -395,7 +353,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     private func rowView(_ row: Row) -> some View {
         let isSelected = row.id == selection
         return PVHoverEffect(isPressed: false, hoverAnimation: PVMotion.fastStandard) { showHover in
-            PVTableColumnsLayout(fixed: shownColumns.map(\.width), flex: shownColumns.map(\.flex), spacing: PVSpacing.space6) {
+            PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
                 ForEach(shownColumns) { column in
                     column.cell(row)
                         .frame(maxWidth: .infinity, alignment: .leading)

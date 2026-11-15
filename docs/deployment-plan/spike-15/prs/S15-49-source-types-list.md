@@ -248,6 +248,7 @@ Use a project with the seed's types and a few Sources (Census used by at least t
 6. Click a row: its page opens; Back returns to the list at its scroll. The Metadata page's list looks as before.
 7. A seeded project always has types, so check the empty state in the `SourceTypesView` `#Preview` with `store.sourceTypesByProject[projectDir] = []`, framed at 2296 × 1440: the empty state sits inside the band (AC-2.6). Revert the preview edit.
 8. Compare frames L1a – L4b of the board's section 01 at both widths.
+9. Properties: the Value type pill and the checkbox centre against the two-line Property cell, as before this PR.
 
 ## 11. Risks and stop conditions
 
@@ -281,4 +282,4 @@ None.
 
 - On the user's request (2026-11-15, after review) Description shows from a 1200pt table at any width class, not at Wide: `PVTableColumn` gains `minTableWidth`, `PVTable` measures its own width and shows only the columns it meets, and `SourceTypesListPane.columns()` takes no width class (`descriptionMinTableWidth` = 1200). AC-2.2 and AC-2.4 now read against the table width. T-2 is `listColumnsShowDescriptionFromATableWidth`.
 
-- On the user's request (2026-11-15, after review) Description takes twice Label's share of the free width: `PVTableColumn` gains `flex` (default 1, ignored with a `width`), `PVTable`'s header and rows lay out through `PVTableColumnsLayout`, and the pane passes `descriptionFlex = 2` (about 220 / 440pt at a 1200pt table).
+- On the user's request (2026-11-15, after review) Description takes twice Label's share of the free width: `PVTableColumn` gains `flex` (default 1, ignored with a `width`), `PVTable`'s header and rows lay out through the kit's `PVWeightedColumns` (which the Citation composer's evidence columns share), and the pane passes `descriptionFlex = 2` (about 220 / 440pt at a 1200pt table).
