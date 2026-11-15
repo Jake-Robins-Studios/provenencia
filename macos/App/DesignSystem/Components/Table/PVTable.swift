@@ -32,6 +32,15 @@ enum PVTableSelection {
         if index < 0 { return delta > 0 ? 0 : count - 1 }
         return min(count - 1, max(0, index + delta))
     }
+
+    /// The row Return or Space opens: the selected one (the first with none selected), and nil
+    /// when the table has no activate handler, so the key falls through.
+    static func activationTarget(for key: KeyEquivalent, index: Int, count: Int, canActivate: Bool) -> Int? {
+        guard canActivate,
+              case .activate(let target) = PVListKeyboard.action(for: key, option: false, index: index, count: count)
+        else { return nil }
+        return target
+    }
 }
 
 /// Table type-to-select — same matcher menus and selects use.
@@ -379,10 +388,10 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             select(at: PVTableSelection.moveIndex(index, delta: press.key == .pageDown ? 10 : -10, count: rows.count))
             return .handled
         case .return, .space:
-            guard let onActivate,
-                  case .activate(let target) = PVListKeyboard.action(
-                      for: press.key, option: false, index: index, count: rows.count
-                  )
+            guard let target = PVTableSelection.activationTarget(
+                      for: press.key, index: index, count: rows.count, canActivate: onActivate != nil
+                  ),
+                  let onActivate
             else { return .ignored }
             select(at: target)
             onActivate(rows[target].id)
