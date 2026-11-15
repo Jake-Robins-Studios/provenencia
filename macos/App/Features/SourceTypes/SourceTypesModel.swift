@@ -362,13 +362,7 @@ final class SourceTypesModel {
             let updated = try await store.assignTypeField(
                 projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
             )
-            session.apply(.assignedTypeSuggestion(typeId: type.id))
-            patchSuggestions(updated.suggestions, typeID: type.id)
-            patchTypesList { rows in
-                if let idx = rows.firstIndex(where: { $0.id == type.id }) {
-                    rows[idx].suggestedFieldCount = updated.suggestedFieldCount
-                }
-            }
+            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
             assignPick = ""
             toast = VocabularyToast(
                 title: L10n.string(L10n.SourceTypes.toastAssignedTitle),
@@ -390,13 +384,7 @@ final class SourceTypesModel {
             let updated = try await store.removeTypeField(
                 projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
             )
-            session.apply(.removedTypeSuggestion(typeId: type.id))
-            patchSuggestions(updated.suggestions, typeID: type.id)
-            patchTypesList { rows in
-                if let idx = rows.firstIndex(where: { $0.id == type.id }) {
-                    rows[idx].suggestedFieldCount = updated.suggestedFieldCount
-                }
-            }
+            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
             toast = VocabularyToast(
                 title: L10n.string(L10n.SourceTypes.toastRemovedTitle),
                 body: L10n.SourceTypes.toastRemovedBody(
@@ -457,11 +445,6 @@ final class SourceTypesModel {
         var rows = handle.value ?? []
         mutate(&rows)
         session.setQueryValue(key, value: rows)
-    }
-
-    private func patchSuggestions(_ suggestions: [CatalogTypeSuggestion], typeID: String) {
-        let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: typeID)
-        session.setQueryValue(key, value: suggestions)
     }
 
     private func compare(_ a: CatalogSourceType, _ b: CatalogSourceType) -> ComparisonResult {

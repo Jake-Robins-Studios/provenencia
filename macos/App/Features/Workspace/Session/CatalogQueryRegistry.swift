@@ -163,7 +163,7 @@ extension CatalogQueryKey.Kind {
                 kind: self,
                 invalidateOn: [.createdSource, .deletedSource, .changedSourceType],
                 invalidation: { project, _ in .key(.sourceTypesList(project: project)) },
-                patches: [.sourceTypeRow()],
+                patches: [.sourceTypeRow(), .typeSuggestionCount()],
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
                     return try await store.listSourceTypes(projectDir: key.project.projectDir)
@@ -204,7 +204,7 @@ extension CatalogQueryKey.Kind {
                 invalidateOn: [
                     .mutatedSourceWorkspace, .changedSourceType,
                     .updatedMetadataField, .deletedMetadataField,
-                    .assignedTypeSuggestion, .removedTypeSuggestion,
+                    .wroteTypeSuggestions,
                     .deletedSource,
                 ],
                 whenHidden: .markStale,
@@ -280,18 +280,14 @@ extension CatalogQueryKey.Kind {
             // Each suggestion embeds a full field row, so relabelling or
             // deleting a field reaches types the edit never named: the key
             // follows `source_vocabulary`. The join is not audited and reports
-            // no effects, so the type–field mutations name the key.
+            // no effects, so a suggestion write carries its reply
+            // (`.wroteTypeSuggestions`), which `typeSuggestions()` patches in:
+            // no invalidation, and a type that is not on screen goes stale
+            // rather than reloading.
             return .make(
                 kind: self,
-                invalidateOn: [.assignedTypeSuggestion, .removedTypeSuggestion],
-                invalidation: { project, mutation in
-                    switch mutation {
-                    case .assignedTypeSuggestion(let typeId), .removedTypeSuggestion(let typeId):
-                        return .key(.typeSuggestions(project: project, typeId: typeId))
-                    default:
-                        return .allCached(.typeSuggestions)
-                    }
-                },
+                whenHidden: .markStale,
+                patches: [.typeSuggestions()],
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
                     return try await store.listTypeSuggestions(

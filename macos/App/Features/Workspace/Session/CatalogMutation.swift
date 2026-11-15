@@ -32,10 +32,12 @@ enum CatalogMutation: Sendable, Equatable {
     case updatedMetadataField(id: String)
     case deletedMetadataField(id: String)
 
-    /// The type–field join is not audited and reports no effects, so these
-    /// name the type's suggestions key.
-    case assignedTypeSuggestion(typeId: String)
-    case removedTypeSuggestion(typeId: String)
+    /// Add or remove a suggested field on a type's page. The join is not audited and
+    /// reports no effects, so the mutation carries the reply: the type's Source-level
+    /// suggestions and their count, which `CatalogQueryPatch.typeSuggestions()` and
+    /// `.typeSuggestionCount()` write into the cache with no reload. Every cached Source
+    /// page derives its suggested rows from the type, so each is marked stale.
+    case wroteTypeSuggestions(typeId: String, edit: CatalogTypeSuggestionEdit)
 
     /// Bust-only: non-identity source page edits (notes, artifacts, credibility).
     case mutatedSourceWorkspace(sourceId: String)
@@ -160,8 +162,7 @@ enum CatalogMutationKind: Hashable, Sendable {
     case deletedSource
     case updatedMetadataField
     case deletedMetadataField
-    case assignedTypeSuggestion
-    case removedTypeSuggestion
+    case wroteTypeSuggestions
     case mutatedSourceWorkspace
 }
 
@@ -181,10 +182,8 @@ extension CatalogMutation {
             return .updatedMetadataField
         case .deletedMetadataField:
             return .deletedMetadataField
-        case .assignedTypeSuggestion:
-            return .assignedTypeSuggestion
-        case .removedTypeSuggestion:
-            return .removedTypeSuggestion
+        case .wroteTypeSuggestions:
+            return .wroteTypeSuggestions
         case .mutatedSourceWorkspace:
             return .mutatedSourceWorkspace
         }
