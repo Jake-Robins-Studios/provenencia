@@ -1,7 +1,7 @@
 # Ship log — S15-49 The Source types list is redesigned
 
 **Plan:** [`S15-49-source-types-list.md`](S15-49-source-types-list.md) · **Branch:** `s15-49-source-types-list` · **PR:** #852
-**State:** fixing 3 (user request after ready)
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `1f52b6080`. Note to the implementer: T-1's `sortColumn == .usage` is a typo for `.usedBy` (D-6, review M-2).
@@ -144,3 +144,9 @@ Orchestrator finding on the read — **ORC-2 · minor · Fix now:** `shownColumn
 Files: `macos/App/DesignSystem/Components/Table/PVTable.swift`.
 Do: the private `shownColumns` → `columns.filter { $0.minTableWidth == nil || shownIDs?.contains($0.id) == true }` (one expression; drop the `guard`). Remove the extra blank line. Doc on `shownIDs`: "Gated columns only consult it; a column with no `minTableWidth` always shows."
 Check: `scripts/check-pr.sh` PASS.
+
+## Round 5 — fix
+Head `5135fb8ac`. Orchestrator gate PASS. F-11 read by orchestrator: **Resolved** (ORC-2). `main` unchanged since `ce1dbf761`.
+
+## Result (final)
+Gate PASS · CI pending on `5135fb8ac`+ · open: none · follow-ups: one candidate for the user (`SourcesListColumns.compactBelow` vs `PVTableColumn.minTableWidth`) · to user: — (D-1 amended by the user 2026-11-15)
