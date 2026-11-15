@@ -67,3 +67,17 @@ None.
 
 ### M-8 · minor · two error contracts for lazy inputs
 **Answer:** Fixed — D-6 adds the held-error contract to `CanonView`'s doc.
+
+## Round 2
+
+### X-1 · blocker · STEP-2's `edgeOf` change breaks the walk STEP-3 still compiles
+**Answer:** Fixed — D-2: `EdgeOf` keeps its exported signature through STEP-3 and `deriver.edge` calls it; D-10: STEP-4 unexports it and drops `self`.
+
+### X-2 · major · D-2's error return cascade
+**Answer:** Fixed — D-2 names it: `relationshipEdges` and `kinEdges` return errors, `parentEdges` propagates; D-1's `Relationships` reads the edges first, then calls `composeLinks`.
+
+### X-3 · minor · §6 `Propose` snippet contradicts D-16
+**Answer:** Fixed — §6 shows `alignRows`' body and `Propose`'s call; STEP-3's conflicting sentence is gone.
+
+### X-4 · minor · "non-nil entries" ambiguous
+**Answer:** Fixed — D-5 memoises handles only; `ViewLinksForTest` copies every memo entry.
