@@ -1,7 +1,7 @@
 # Ship log — S15-49 The Source types list is redesigned
 
 **Plan:** [`S15-49-source-types-list.md`](S15-49-source-types-list.md) · **Branch:** `s15-49-source-types-list` · **PR:** #852
-**State:** fixing 6 (user request after ready)
+**State:** fixing 7
 
 ## Round 0 — implement
 Base `main` @ `1f52b6080`. Note to the implementer: T-1's `sortColumn == .usage` is a typo for `.usedBy` (D-6, review M-2).
@@ -174,3 +174,22 @@ Head `2460c1c7b`. Orchestrator gate PASS (xcode-test 71 s; the implementer's run
 
 ## Round 6 — review
 Scope `38c81349c...2460c1c7b`. Reviewers: CON, MNT, UX, SEC+PRF (performance: `PVTableColumnsLayout` now lays out every row of every `PVTable`, and the header). Orchestrator notes for the reviewers to weigh, not findings yet: `sizeThatFits` reads a nil proposal width as 0; a subview-count mismatch silently gives zero widths.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1, UX-1 | CON, UX | blocker | Every `PVTable` cell is now top-aligned, not centred, in rows of mixed height (Properties, Metadata, Source types, preview, header) | Fix now → F-15 | verified: base `HStack(spacing:)` (default `.center`), head `place(at: (x, bounds.minY), anchor: .topLeading)`; cells' frames set no height |
+| MNT-1 | MNT | blocker | `PVTableColumnsLayout` duplicates the composer's private `WeightedColumns` | Fix now → F-14 (same-pass cleanup) | verified: `CitationComposerEvidenceColumn.swift:486-525`; same loop, different edge rules |
+| SEC+PRF | — | — | No findings; per-row cost bounded by the lazy stack; no layout cycle; 100k-case probe of `widths` clean | — | — |
+
+Orchestrator notes (nil proposal width, count mismatch): not reachable today (CON, UX, PRF); folded into F-14's one rule per edge.
+
+### Fix plan 7
+**F-14 — One kit weighted-columns layout; the composer moves onto it** (MNT-1)
+Files: new `macos/App/DesignSystem/Components/WeightedColumns/PVWeightedColumns.swift` (the folder syncs into the project), `PVTable.swift`, `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`, `macos/App/DesignSystem/README.md`, tests (rename `PVTableColumnsLayoutTests` → `PVWeightedColumnsTests`, own file). Skill: `add-ui-component`, `add-swift-test`.
+Do: move `PVTableColumnsLayout` there as `struct PVWeightedColumns: Layout` with `fixed: [CGFloat?]`, `weights: [CGFloat]`, `spacing`, and `alignment: VerticalAlignment` (`.center` or `.top`; doc names both callers). `static func widths(fixed:weights:total:spacing:)` stays the one width rule. One rule per edge, each tested: a weight ≤ 0 or non-finite counts as 1; a child beyond the arrays is flexible with weight 1 (no zero widths); a nil proposal width reports fixed widths + gaps + each flexible child's ideal width and lays out at that. Measure and place with `height: nil` as the composer does. `PVTable` header and rows call it with `alignment: .center`; the composer replaces `WeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6)` with `PVWeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6, alignment: .top)` (convenience init: all flexible) and the private `WeightedColumns` is deleted. README row under the Components table (two callers).
+Check: `rg -n ": Layout \{" macos/App` no longer lists `WeightedColumns` or `PVTableColumnsLayout`; `rg -n "WeightedColumns\(" macos/App` prints only `PVWeightedColumns` uses.
+
+**F-15 — Cells centre in their row again** (CON-1, UX-1)
+Failing test first: `PVWeightedColumnsTests.shorterCellsCenterInTheRow` — `PVWeightedColumns.cellY(height: 18, rowHeight: 30, alignment: .center) == 6`; `.top` → 0.
+Do: `placeSubviews` places each child at `bounds.minY + cellY(height: child's measured height at its width, rowHeight: bounds.height, alignment:)`, anchor `.topLeading`. Add Properties to the plan's manual check (§ 10 step 9: "Properties: the Value type pill and the checkbox centre against the two-line Property cell, as before this PR").
+Check: tests pass; `PVTableTests`, the composer's tests and `scripts/check-pr.sh` PASS.
