@@ -8,12 +8,12 @@
 **Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769): one list of section reads), S16-07 (landed [#761](https://github.com/mendahu/provenencia/pull/761): `ConclusionFoldState`, one fold state per section)
 **Blocks:** —
 **Branch:** `s16-27-derived-values`
-**Version bump:** patch — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
+**Version bump:** patch, 0.15.4 → 0.15.5 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** [design § Swift](../cache-architecture.md#swift) ("One primitive for derived values"); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Cache contract" rule 5; [`docs/catalog-caches.md`](../../../catalog-caches.md) "Swift caches"; working rules: "(Batch 2) The point of this batch is simpler code", "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 1) Refused: memoising and re-shaping for speed" (its Batch 2 clause names this PR), "(Batch 2) No new persisted projections, and no stored answer without a measurement"; goal bar 15's last clause
 **Planned:** 2026-11-15 against `main` @ `1f52b60`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-27-derived-values.review.md`](S16-27-derived-values.review.md) — round 1: Fits with changes / Ready with changes; one To user item open
 
 **Runs on macOS.** Every step is Swift. On a machine without `xcodebuild`, stop after reading and report that the steps need a macOS runner.
 
@@ -32,11 +32,11 @@
 
 ## 1. Objective
 
-The app derives display values from cached reads in five hand-written ways: the Evidence graph index's revision bookkeeping, `EvidenceGraphModel`'s tuple memo (which compares whole row arrays on every read), `CitationComposerContext`'s `MemoToken`, `SourcesModel`'s `VisibleRowsToken`, and no memo at all for the Evidence graph snapshot Promote and Unpromote build and for a Person section's content, which `ConclusionPageSectionHost` builds on every pass of its body. This PR gives `WorkspaceSession` one primitive, `derived`, that builds a value once per change of the handles it reads and of the plain values it names (fold state, name orders, width class, locale), and moves every one of those onto it. A reader then names its inputs and its build, and nothing else.
+The app derives display values from cached reads in four hand-written ways (the Evidence graph index's revision bookkeeping, `EvidenceGraphModel`'s tuple memo, which compares whole row arrays on every read, `CitationComposerContext`'s `MemoToken`, `SourcesModel`'s `VisibleRowsToken`) and, for the rest, with no memo at all: Promote and Unpromote build the Evidence graph snapshot on every call, and a Conclusion page's detail content and each Person section's content are built on every pass of their host's body. This PR gives `WorkspaceSession` one primitive, `derived`, that builds a value once per change of the reads it names and of the plain values it is given (fold state, name orders, width class, locale), and moves every one of those onto it. A reader then names its inputs and its build, and nothing else.
 
 **Why now.** Bar 15's last clause ("every value the app derives from cached data is built once per change of its inputs") and the map row. S16-03 gave each section one list of reads and S16-07 one `Equatable` fold state, so a section's inputs can now be named.
 
-**What stays.** Every view draws what it draws today. The query cache, its keys, `followsInputs` and the hidden-entity cap are unchanged. `Memo` stays for the depiction preview, which derives from a draft, not from cached data.
+**What stays.** Every view draws what it draws today. The query cache, its keys, `followsInputs` and the hidden-entity cap are unchanged. `Memo` stays as the one-slot store the primitive is built on.
 
 ## 2. User stories
 
@@ -44,93 +44,99 @@ The app derives display values from cached reads in five hand-written ways: the 
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | A key holds a value at revision 1; `derived(.visibleSources, inputs: [key])` is read three times | the build ran once; `derivedBuildCount(.visibleSources) == 1` |
-| AC-1.2 | Then `session.apply(effects)` refreshes that key (revision 2) and the value is read again | the build ran twice in all |
+| AC-1.1 | A key holds a value; `derived(.visibleSources, inputs: [.key(key)])` is read three times | the build ran once; `derivedBuildCount(.visibleSources) == 1` |
+| AC-1.2 | Then `session.apply(effects)` refreshes that key and the value is read again | two builds in all |
 | AC-1.3 | Then a write refreshes another key that is not an input, and the value is read again | still two builds |
 | AC-1.4 | Then the same read passes a different `extra` (fold state with one page revealed) | three builds; reading again with that `extra` keeps three |
-| AC-1.5 | A key evicted (a deleted handle) and loaded again so its new handle is back at revision 1 | the next read builds again: an input whose handle was replaced never matches the old entry |
-| AC-1.6 | An entry built from a key, then that key evicted | the entry is gone (`derivedBuildCount` unchanged, the next read builds) |
+| AC-1.5 | A key read by an entry is evicted (a deleted handle), then loaded again | the entry is gone with the key; the next read builds |
+| AC-1.6 | Value B names `.derived(A)` as an input; A's key moves; B is read | A and B each build once more |
+| AC-1.7 | In a debug build, a build reads a key through `queryHandle` that its inputs do not name | `assertionFailure` names the id and the key |
 
 **US-2.** As a researcher, every view that moved draws the same thing it drew before.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-2.1 | The Evidence graph list merges one Source's re-read | the index takes that Source's graphs in place; no full build (`derivedBuildCount(.evidenceGraphIndex)` unchanged); lookups by id, by Source and the linked Artifacts are right |
-| AC-2.2 | `evidenceGraphSnapshot(graphID: "g1")` awaited twice with no write between | one build of `.evidenceGraphSnapshot(graphID: "g1")`; after the graph's rows reload, the third call builds once more and shows the new rows |
+| AC-2.2 | `evidenceGraphSnapshot(graphID: "g1")` awaited twice with no write between | one build of `.evidenceGraphSnapshot(graphID: "g1")`; after the graph's rows reload, the next call builds once more and shows the new rows |
 | AC-2.3 | Promote loads, then reproposes after a decision, the graph unchanged | the graph snapshot was built once |
-| AC-2.4 | The Evidence graph canvas: a Subject relabelled from "Wm Robins" to "William Robins" (rows reload) | `displayText` names "William Robins"; reading `displayText` twice between writes builds it once |
+| AC-2.4 | The Evidence graph canvas: a Subject relabelled from "Wm Robins" to "William Robins" (rows set again) | `displayText` names "William Robins"; reading `displayText` twice between writes builds it once |
 | AC-2.5 | The citation composer: a term added to a term-valued Property (its `propertyTerms` key reloads) | the vocabulary rebuilds once and offers the new term; a write to an unrelated key rebuilds nothing |
 | AC-2.6 | The Sources list: sort changed from A–Z to date oldest | one build; the rows are in date order as today |
 | AC-2.7 | A Person's Timeline section: its content read three times between writes, then one Show more | one build, then one more for the new fold state; a reload of the person's events builds once more |
+| AC-2.8 | A Person page's detail content read three times between writes, then the name format changes | one build, then one more |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
-| `WorkspaceSession.derived(_:inputs:extra:build:)`, `carryDerived`, `derivedBuildCount`, `DerivedValueID` *(new)*; `QueryHandle.serial` *(new)*; entries drop with an evicted input | STEP-1, AC-1.1 – AC-1.6 |
+| `WorkspaceSession.derived(_:inputs:extra:build:)`, `carryDerived`, `derivedBuildCount`, `DerivedValueID`, `DerivedInput`, `DerivedStamp` *(new)*; entries drop with an evicted key; a debug check that a build reads only its declared keys | STEP-1, AC-1.1 – AC-1.7 |
 | The Evidence graph index moves onto it (the splice through `carryDerived`); `evidenceGraphIndex`, `evidenceGraphIndexBuildCount` and `EvidenceGraphIndex.revision` go | STEP-2, AC-2.1 |
-| One graph snapshot per graph (`graphSnapshot(graphID:)`), read by `evidenceGraphSnapshot(graphID:)` (Promote, Unpromote), `EvidenceGraphModel` and the composer; `EvidenceGraphModel.snapshotMemo` goes | STEP-3, AC-2.2 – AC-2.4 |
-| The composer's vocabulary moves onto it; `MemoToken`, `memo` and `termRevisions` go | STEP-4, AC-2.5 |
+| One graph snapshot per graph (`cachedEvidenceGraphSnapshot(graphID:)`), read by `evidenceGraphSnapshot(graphID:)` (Promote, Unpromote), `EvidenceGraphModel` and the composer; `EvidenceGraphModel.snapshotMemo` goes | STEP-3, AC-2.2 – AC-2.4 |
+| The composer's vocabulary moves onto it; `MemoToken`, `memo`, `built` and `termRevisions` go | STEP-4, AC-2.5 |
 | The visible Sources move onto it; `visibleRowsMemo`, `visibleSourcesBuildCount` and `VisibleRowsToken` go | STEP-5, AC-2.6 |
-| `ConclusionPageSectionHost` builds content through it, keyed by the section's reads; the four section sites pass their extras | STEP-6, AC-2.7 |
+| The detail page and the section host build content through one `conclusionContent` call; the four section sites and the three detail sites pass their extras | STEP-6, AC-2.7, AC-2.8 |
 | `catalog-caches.md`, `macos-client-patterns.md` rule 5 and `add-workspace-place` teach it | STEP-7 |
 
 | Out | Home |
 | --- | --- |
 | Engine-side memos | not planned (map scope entry: "Not this PR") |
-| The depiction preview's `Memo` (derived from a draft, filled asynchronously) | not planned: not cached data |
+| `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes`, `MetadataModel.visibleFields` (sort a vocabulary list on each read; no memo today) | To user (review log); recommended not planned |
 | `SourcesModel.searchKeyCache` (per-row keys by row revision) | not planned: a per-row cache, not a derived value of whole reads |
 | Prefetching sections | S16-29 |
 | Lazy Timeline cards, participants sent once (P-7, P-8) | [person page performance idea](../../../ideas/person-page-performance.md) |
-| A debug check that a build reads only its declared inputs | not planned: the Edges below and review hold it |
 
 ## 4. Current state
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Handle revision | `macos/App/Features/Workspace/Session/QueryHandle.swift` `QueryHandle.revision`, `markReplaced`, `applyFailure`, `resetForInvalidation` | Bumps on every replace or clear of `value`; starts at 0 on a new handle, so a key evicted and loaded again reuses revision 1 |
+| Handle revision | `macos/App/Features/Workspace/Session/QueryHandle.swift` `QueryHandle.revision`, `markReplaced`, `applyFailure`, `resetForInvalidation` | Bumps on every replace or clear of `value`; a new handle starts at 0 |
 | Erased handle | same file, `protocol AnyQueryHandle` (line 203) | `isStale`, `hasValue`, `isFetching`, stale and refresh calls; no revision |
-| Eviction | `macos/App/Features/Workspace/Session/WorkspaceSession.swift` `evict(_ key:)` (line 533); `trimHiddenEntities`, `evict(_:ids:)` | Drops a key's handle; the hidden-entity cap and deletes both go through it |
+| Handles map | `macos/App/Features/Workspace/Session/WorkspaceSession.swift` `private var handles` (line 16), `queryHandle(_:)` (line 72), `typedHandle` (line 561) | Private to the file; a handle is created only for a key with none |
+| Eviction | same file, `evict(_ key:)` (line 533); `trimHiddenEntities`, `evict(_:ids:)` | The one place a handle leaves the map; the hidden-entity cap and deletes both go through it |
 | Index storage | same file, `evidenceGraphIndex`, `evidenceGraphIndexBuildCount` (lines 34–42) | Two `@ObservationIgnored` stored properties for one memo |
-| Index | `macos/App/Features/Workspace/Session/WorkspaceSession+EvidenceGraphs.swift` `EvidenceGraphIndex` (carries `revision`), `currentEvidenceGraphIndex`, `spliceEvidenceGraphIndex(_:previousRevision:)` | Hand revision check; a merged re-read splices when the merge was the only revision move |
-| Splice caller | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` `.evidenceGraphsList` `afterMerge` (line 405) | Calls `spliceEvidenceGraphIndex(parts, previousRevision:)` |
+| Index | `macos/App/Features/Workspace/Session/WorkspaceSession+EvidenceGraphs.swift` `EvidenceGraphIndex` (carries `revision`; its doc says "Valid for one handle revision"), `currentEvidenceGraphIndex` (returns `EvidenceGraphIndex?`), `spliceEvidenceGraphIndex(_:previousRevision:)` | Hand revision check; a merged re-read splices when the merge was the only revision move |
+| Splice caller | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` `.evidenceGraphsList` `afterMerge` (line 406) | Calls `spliceEvidenceGraphIndex(parts, previousRevision:)` |
 | Snapshot (async) | `WorkspaceSession+EvidenceGraphs.swift` `evidenceGraphSnapshot(graphID:)` | Awaits the graph, properties and rules keys, then builds `EvidenceGraphSnapshot.build` every call; nil when the rows are nil, empty types or rules when theirs are |
 | Promote | `macos/App/Features/Promote/PromoteModel.swift` `load()` (line 157), the propose loop (line 269) | Builds the snapshot on every load and every repropose |
 | Unpromote | `macos/App/Features/Catalog/Unpromote/UnpromoteFlow.swift` `open` (line 131) | Builds the snapshot on each open with bridges |
-| Canvas snapshot | `macos/App/Features/EvidenceGraph/EvidenceGraphModel.swift` `snapshotMemo` (line 50), `displaySnapshot(rows:types:)`, `displayText(rows:types:)` (lines 241–266), `currentSnapshot()` (line 1371) | A tuple memo compared by whole `rows`, `types` and `rules` equality and the name orders on every read; text formatted with it |
-| Canvas callers | `macos/App/Features/EvidenceGraph/EvidenceGraphView.swift` lines 112, 777, 790 | Pass `graphHandle.value` and `fieldsHandle.value?.types` in |
-| Composer | `macos/App/Features/CitationComposer/CitationComposerContext.swift` `MemoToken`, `memo`, `built`, `termRevisions(in:)`, `graphSnapshot`, `vocabulary` | A revision token over graph, fields, rules and each term list; builds its own snapshot beside the canvas's |
-| Visible Sources | `macos/App/Features/Sources/SourcesModel.swift` `VisibleRowsToken`, `visibleRowsMemo`, `visibleSourcesBuildCount`, `visibleSources` (lines 259–294) | A revision token over sources, types and (under a status filter) graphs and progress, plus settings and locale |
-| Memo | `macos/App/Platform/Memo.swift` `Memo` | One-slot memo; used by the three above and `CitationComposerModel.depictionPreviewMemo` |
-| Section host | `macos/App/Features/Conclusions/ConclusionPageSectionHost.swift` `loaded(_:)` | `ConclusionDetailPresentation(handle.reading, …, content: make)` calls `make` on every body pass |
-| Section sites | `PersonTimelineSection.swift` (`make` captures folds, orders, width class, locale), `PersonFamilySection.swift` (folds, orders, locale), `PersonSourcesSection.swift` line 36 (claims groups, the supporting Source types handle, orders, folds) and line 201 (record links with `content.graphLocations`, from the claims) | Each builds a content value per pass |
+| Canvas snapshot | `macos/App/Features/EvidenceGraph/EvidenceGraphModel.swift` `snapshotMemo` (line 50), `displaySnapshot(rows:types:)`, `displayText(rows:types:)` (lines 241–266), `currentSnapshot()` (line 1371); `graphKey`, `fieldsKey` are private | A tuple memo compared by whole `rows`, `types` and `rules` equality and the name orders on every read; text formatted with it |
+| Canvas callers | `macos/App/Features/EvidenceGraph/EvidenceGraphView.swift` lines 112, 777, 790; doc link in `macos/App/Features/EvidenceGraph/EvidenceCardText.swift` line 9 | Pass `graphHandle.value` and `fieldsHandle.value?.types` in |
+| Composer | `macos/App/Features/CitationComposer/CitationComposerContext.swift` `MemoToken`, `memo`, `built`, `termRevisions(in:)`, `graphSnapshot`, `vocabulary` | A `Memo` over a revision token of graph, fields, rules and each term list; builds its own snapshot beside the canvas's |
+| Visible Sources | `macos/App/Features/Sources/SourcesModel.swift` `VisibleRowsToken`, `visibleRowsMemo`, `visibleSourcesBuildCount`, `visibleSources` (lines 259–294); `graphsHandle` is private | A `Memo` over a revision token of sources, types and (under a status filter) graphs and progress, plus settings and locale |
+| Memo | `macos/App/Platform/Memo.swift` `Memo` | One-slot memo with `value(for:)`, `store(_:for:)`; used by the composer, the visible Sources and `CitationComposerModel.depictionPreviewMemo` |
+| Detail page | `macos/App/Features/Conclusions/ConclusionDetailPage.swift` `ConclusionDetailPage.make`, `ConclusionDetailLoaded.presentation` (line 279) | `ConclusionDetailPresentation(handle.reading, …, content: make)` calls `make` on every body pass |
+| Detail sites | `PersonDetailView.swift` line 18, `EventDetailView.swift` line 19 (`make` captures `session.nameFormat`), `PlaceDetailView.swift` line 18 (captures nothing) | Each builds a content value per pass |
+| Section host | `macos/App/Features/Conclusions/ConclusionPageSectionHost.swift` `loaded(_:)` | Same presentation call: `make` on every body pass |
+| Section sites | `PersonTimelineSection.swift` (`make` captures folds, orders, width class and reads `.autoupdatingCurrent` inside the closure), `PersonFamilySection.swift` (folds, orders, `.autoupdatingCurrent` inside the closure), `PersonSourcesSection.swift` line 36 (claims groups, the supporting Source types handle, orders, folds) and line 201 (record links with `content.graphLocations`, which depends on the claims groups only) | Each builds a content value per pass |
 | Section reads | `macos/App/Features/Workspace/ConclusionPageSection.swift` `reads(project:entityId:)` | One list per section: own, companion, supporting |
-| Tests | `macos/ProvenenciaTests/WorkspaceSessionTests.swift` `evidenceGraphIndexFollowsTheListRevision`, `evidenceGraphSnapshotReadsTheThreeKeys`, `graphListMergeSplicesTheIndex`; `EvidenceGraphModelTests.swift` `displayTextFollowsTheSnapshot`; `SourcesModelTests.swift` (line 295, reads `visibleSourcesBuildCount`); `PromoteModelTests.swift`; `UnpromoteFlowTests.swift`; `CitationComposerModelTests.swift` | Cover today's memos and their behavior |
+| Tests | `macos/ProvenenciaTests/WorkspaceSessionTests.swift` `evidenceGraphIndexFollowsTheListRevision`, `evidenceGraphSnapshotReadsTheThreeKeys`, `graphListMergeSplicesTheIndex`, `deletedEntitiesLoseTheirHiddenKeys` (line 1353), `hiddenConclusionPagesAreCappedAtFifty` (line 1457); `EvidenceGraphModelTests.swift` `displayTextFollowsTheSnapshot`, `makeModel`; `SourcesModelTests.swift` (two tests read `visibleSourcesBuildCount`: lines 295–318 and 455–497); `PromoteModelTests.swift`; `UnpromoteFlowTests.swift`; `CitationComposerModelTests.swift` | Cover today's memos and their behavior |
 
-**Precedent.** `SourcesModel.visibleSources` is the shape to copy for the key: handle revisions plus plain values, built in a closure, a build counter for tests. `spliceEvidenceGraphIndex` (S16-12, [#800](https://github.com/mendahu/provenencia/pull/800)) is the shape `carryDerived` keeps: move the stored value forward only when the one merge was the only move. Do not copy `EvidenceGraphModel.snapshotMemo`'s comparison of whole values.
+**Precedent.** `SourcesModel.visibleSources` is the shape to copy for a call: handle revisions plus plain values, built in a closure, a build counter for tests. `spliceEvidenceGraphIndex` (S16-12, [#800](https://github.com/mendahu/provenencia/pull/800)) is the shape `carryDerived` keeps. Go's `graphcache` `DerivedFrom` (an entry derived from another entry) is the shape `DerivedInput.derived` copies. Do not copy `EvidenceGraphModel.snapshotMemo`'s comparison of whole values.
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | One primitive on `WorkspaceSession`: `func derived<Value>(_ id: DerivedValueID, inputs: [CatalogQueryKey], extra: any Equatable..., build: () -> Value) -> Value`, in `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` *(new)*. It stamps each input key's handle, compares the stamps and `extra` with the stored entry's, returns the stored value on a match, else builds, stores and counts | Map row; one way for every reader; variadic `extra` lets a site pass its fold state, orders and width class with no per-site struct | A per-view `@State` memo (does not survive a remount, and is a second mechanism); `Hashable` extras (would add conformances to `NameFormatOrders`, `NameFormatPart`, `PVWidthClass`, `SourcesListSettings` for no reader) |
-| D-2 | An input's stamp is its handle's `serial` and `revision`; a key with no handle stamps as serial 0. `QueryHandle` gains `let serial: Int` *(new)*, assigned from one main-actor counter at init (a private non-generic `enum QueryHandleSerials` in `QueryHandle.swift`; a generic class cannot hold a static stored property); `AnyQueryHandle` gains `serial` and `revision` | Revision alone matches a stale entry after an evict and reload (AC-1.5); a serial is a plain `Int`, so the entry holds no reference to a handle | Comparing values (O(rows) on every read, today's canvas memo); `ObjectIdentifier` (reused once the old handle is freed) |
-| D-3 | `extra` compares pairwise through an opened existential (`(rhs as? T) == lhs`), and a different count is a miss | Equatable is all the extras have | `AnyHashable` (D-1) |
-| D-4 | One slot per id: an entry keeps the latest stamps, `extra` and value | Every reader asks for one current value; two windows on one id stay correct and rebuild in turn | A least-recently-used set per id |
-| D-5 | An entry lives as long as its inputs: `evict(_ key:)` drops every entry that lists the key. No cap of its own | The per-entity keys' 50-entity cap and deletes then bound the section entries; the catalog-wide entries are one each | A separate cap (a second rule to keep in step with `maxHiddenEntities`) |
-| D-6 | `DerivedValueID` *(new)* is one closed enum beside the primitive: `evidenceGraphIndex`, `evidenceGraphSnapshot(graphID:)`, `evidenceGraphText(graphID:)`, `citationComposerVocabulary(graphID:)`, `visibleSources`, `sectionContent(ConclusionPageSection, ConclusionSectionRead.Role, entityId:)`. `ConclusionSectionRead.Role` becomes `Hashable` | One registry names every derived value, as `CatalogQueryKey.Kind` names every read; a typo cannot collide two values | An open `String` name; a generic typed key |
-| D-7 | Entries are stored as `Any`; a stored value of another type than the caller's `Value` fails `preconditionFailure("DerivedValueID \(id) holds \(type) not \(Value.self)")` | Each id has one value type; the enum makes a mix-up a programmer error, as `query(_:)` treats a key | Silent rebuild on a type mismatch |
-| D-8 | The store is one `@ObservationIgnored var derivedValues = DerivedValueStore()` *(new, `struct`)* on `WorkspaceSession`, and `derivedBuildCount(_ id:) -> Int` reads its counter. `derived` reads an entry, releases it, runs `build`, then writes: a build may call `derived` for another id (the composer's vocabulary reads the graph snapshot) | Filling while a view reads must not invalidate the view (as `evidenceGraphIndex` today); nested builds must not hold the dictionary | Observed storage (a view would invalidate itself while drawing) |
-| D-9 | `carryDerived<Value>(_ id:, across key:, from previousRevision: Int, _ change: (Value) -> Value)` *(new)*: when the entry's stamp for `key` is the current handle's serial at `previousRevision`, the handle now stands at `previousRevision + 1`, and every other stamp and the stored `extra` still match, it stores `change(old)` stamped current; otherwise it does nothing and the next read builds. A carry is not a build | Keeps S16-12's splice (AC-2.1, `graphListMergeSplicesTheIndex`) with no bookkeeping in the reader | Dropping the splice (a full index build over 10,000 graphs on each graph write) |
-| D-10 | `EvidenceGraphIndex` loses `revision`; `replacing(sources:)` loses its `revision:` argument. `currentEvidenceGraphIndex` becomes `derived(.evidenceGraphIndex, inputs: [evidenceGraphsKey])` building from the handle's rows, and returns nil while the handle has no value. `spliceEvidenceGraphIndex` becomes a `carryDerived` call; the registry's `afterMerge` calls it unchanged | Map row | — |
-| D-11 | `graphSnapshot(graphID:) -> EvidenceGraphSnapshot` *(new)* on the session: `derived(.evidenceGraphSnapshot(graphID:), inputs: [graph, propertiesWorkspace, connectRules])` building from each handle's value (missing rows → `EvidenceGraphRows(graphId:)`, missing types or rules → empty). `evidenceGraphSnapshot(graphID:) async` keeps its three warms and awaits, returns nil when the rows' `readyValue` is nil, else returns `graphSnapshot(graphID:)`. The canvas and the composer read `graphSnapshot` | One build per graph per change, shared by Promote, Unpromote, the canvas and the composer | One snapshot per reader (today) |
-| D-12 | Behavior change: when the types or rules key failed or stayed stale behind a value, `evidenceGraphSnapshot` now builds with that held value where it built with empty lists | The canvas and the composer already build with the held value; one snapshot cannot hold two answers. No test asserts the empty case (`evidenceGraphSnapshotReadsTheThreeKeys` fails the whole store, so the rows are nil) | Keeping two snapshots |
-| D-13 | `EvidenceGraphModel`: `displaySnapshot` and `displayText` become computed properties with no arguments. `displaySnapshot` is `session.graphSnapshot(graphID:)`; `displayText` is `derived(.evidenceGraphText(graphID:), inputs: [graph, propertiesWorkspace, connectRules], extra: session.nameFormat)` building `EvidenceGraphText(snapshot: displaySnapshot, orders: session.nameFormat)`. `snapshotMemo` goes; the three view sites and `currentSnapshot()` read the properties | Its arguments were always the same handles' values (§4) | Keeping the arguments (they would be ignored) |
-| D-14 | Composer: `vocabulary` is `derived(.citationComposerVocabulary(graphID:), inputs: [graphKey, fieldsKey, connectRulesKey] + termKeys(in: fields))` building `CitationComposerVocabulary.make` from `session.graphSnapshot(graphID:)`, the fields, the rules and each term key's value. `termRevisions(in:)` becomes `termKeys(in:) -> [CatalogQueryKey]` sorted by Property id (a stable input order). `graphSnapshot` reads the session's. `MemoToken`, `memo` and `built` go | Same inputs as today's token, one mechanism | — |
-| D-15 | Sources: `visibleSources` is `derived(.visibleSources, inputs: [sources, types] + (filtersByStatus ? [graphs, progress] : []), extra: settings, Locale.autoupdatingCurrent.identifier)` building `buildVisibleSources()`. `VisibleRowsToken`, `visibleRowsMemo` and `visibleSourcesBuildCount` go; the test reads `session.derivedBuildCount(.visibleSources)` | A fifth hand memo of the same shape; leaving it is a second way (working rule "simpler code"). Added to the map's scope entry in this plan's commit | Leaving it on `Memo` |
-| D-16 | `ConclusionPageSection.content<Value, Content>(_ role:, entityId:, session:, value:, extra: any Equatable..., make: (Value) -> Content) -> Content` *(new)* in `ConclusionPageSectionHost.swift`: `session.derived(.sectionContent(self, role, entityId:), inputs: reads(project:entityId:).map(\.key), extra:…) { make(value) }`. The host's `loaded(_:)` passes `{ section.content(read, entityId:, session:, value: $0, extra: extra, make: make) }` to the presentation | Testable without drawing the host (T-8); the inputs are the section's whole read list, so a builder may read any of them (Sources reads the supporting types; the record links read the claims' `graphLocations`) | Per-role input lists (a new switch for one extra rebuild when a companion reloads) |
-| D-17 | The host gains `extra: [any Equatable] = []` in its init. Timeline passes `[folds, orders, widthClass, locale.identifier]`, Family `[folds, orders, locale.identifier]`, Sources rows `[folds, orders]`, record links `[]`. `locale` is `Locale.autoupdatingCurrent`, read once in the section's `body` and passed to `make` as today | These are every non-handle value each `make` captures (§4) | Leaving a captured value out (the content would not follow it) |
-| D-18 | Tests for the primitive go in `macos/ProvenenciaTests/WorkspaceSessionDerivedTests.swift` *(new)* | `WorkspaceSessionTests.swift` is past 2,300 lines | Appending there |
+| D-1 | One primitive, in `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` *(new)*: `func derived<Value>(_ id: DerivedValueID, inputs: [DerivedInput], extra: [any Equatable] = [], build: () -> Value) -> Value`. It stamps its inputs, compares the stamp with the entry's, returns the stored value on a match, else builds, stores and counts. One signature, an array for `extra` | Map row; one way for every reader | A variadic overload beside the array (two signatures for one primitive, ambiguous with zero extras) |
+| D-2 | `enum DerivedInput: Equatable { case key(CatalogQueryKey); case derived(DerivedValueID) }` *(new)*. A `.key` stamps as its handle's `revision`, or -1 when the key has no handle. A `.derived(id)` stamps as that entry's version (it bumps on each build and each carry), after first validating that entry: its own inputs are stamped again and compared, and a mismatch makes the parent miss (the parent's build reads the child through `derived`, which rebuilds it) | One input list per value: the text and the vocabulary name the snapshot, not the snapshot's three keys, as Go's `DerivedFrom` names another entry | Copying the snapshot's keys into each dependant (a split brain when the snapshot gains an input); recording reads during the build as the only input source (the hosts get their value from outside the build) |
+| D-3 | No handle serial. A stale match across a dropped and re-created handle cannot happen, because `evict(_ key:)` is the only place a handle leaves the map and it drops every entry that reads the key (D-6) | One rule instead of two | `QueryHandle.serial` (a global counter guarding a case D-6 already removes) |
+| D-4 | `AnyQueryHandle` gains `var revision: Int { get }`. `WorkspaceSession.swift` gains an internal `func inputRevision(_ key: CatalogQueryKey) -> Int` (`handles[key]?.revision ?? -1`), so `handles` stays private; it reads `handles`, so a view that reads a derived value observes its inputs | `handles` is private (line 16) and cannot be reached from the new file | Widening `handles` |
+| D-5 | `extra` compares by count and then pairwise through an opened existential (`(rhs as? T) == lhs`). `struct DerivedStamp: Equatable` *(new)* holds `[Int]` (one per input, in order) and `[any Equatable]`, with that `==`. The store is `[DerivedValueID: Memo<DerivedStamp, Any>]` | `Memo` is already the one-slot store with `value(for:)` and `store(_:for:)`; reuse it | A new `Entry` struct (a second one-slot memo); `AnyHashable` extras (conformances on four types for no reader) |
+| D-6 | An entry lives as long as its inputs: `evict(_ key:)` drops every entry whose inputs contain `.key(key)`, then every entry whose inputs contain `.derived` of a dropped id, until none is left. No cap of its own | The per-entity keys' 50-entity cap and deletes bound the content entries; the others are one per graph or catalog-wide | A separate cap |
+| D-7 | `DerivedValueID` *(new)* is one closed enum beside the primitive: `evidenceGraphIndex`, `evidenceGraphSnapshot(graphID:)`, `evidenceGraphText(graphID:)`, `citationComposerVocabulary(graphID:)`, `visibleSources`, `conclusionContent(CatalogQueryKey)` | One registry names every derived value, as `CatalogQueryKey.Kind` names every read. A content value is keyed by the read its host draws: each host draws one key, so the detail page and each section host have distinct ids with no section or role cases | An open `String` name; separate detail and section cases |
+| D-8 | A stored value whose type is not the caller's `Value` fails `preconditionFailure("DerivedValueID \(id) holds \(type(of: stored)), not \(Value.self)")` | Each id has one value type, as `query(_:)` treats a key | Silent rebuild |
+| D-9 | `WorkspaceSession.swift` gains, in the class body, `@ObservationIgnored var derivedValues: [DerivedValueID: Memo<DerivedStamp, Any>] = [:]`, `@ObservationIgnored var derivedVersions: [DerivedValueID: Int] = [:]`, `@ObservationIgnored private(set) var derivedBuilds: [DerivedValueID: Int] = [:]` (internal, so the new file can write them) and `@ObservationIgnored var derivedReads: [Set<CatalogQueryKey>] = []`. `derivedBuildCount(_:)` returns `derivedBuilds[id] ?? 0`. `derived` reads the entry, releases it, runs `build`, then writes: a build may call `derived` for another id | Filling while a view reads must not invalidate the view (as `evidenceGraphIndex` today); nested builds must not hold the dictionary | Observed storage |
+| D-10 | Debug check: in `#if DEBUG`, `derived` pushes an empty set on `derivedReads` before `build` and pops it after; `queryHandle(_:)` inserts its key into the top set when one is pushed. After the build, a key in the set that is not a `.key` input (nor an input of a `.derived` input, nor read through a nested `derived` call, whose own set is separate) fails `assertionFailure("DerivedValueID \(id) read \(key), which its inputs do not name")` | A build that reads an undeclared key shows stale data; the check finds it in tests | Leaving it to review |
+| D-11 | `carryDerived<Value>(_ id:, across key:, from previousRevision: Int, _ change: (Value) -> Value)` *(new)*. It does nothing when there is no entry. It carries when the entry's stamp for `.key(key)` is `previousRevision`, the handle now stands at `previousRevision + 1`, and every other input's stamp is unchanged (none, for the index). It ignores `extra` and keeps the stored one. It stores `change(old)` under the new stamp and bumps the version; a carry is not a build | Keeps S16-12's splice (AC-2.1) with no bookkeeping in the reader | Dropping the splice (a full index build over 10,000 graphs on each graph write) |
+| D-12 | `EvidenceGraphIndex` loses `revision`; `replacing(sources:)` loses its `revision:` argument; its doc says it is built from one value of the graph list. `currentEvidenceGraphIndex` returns nil while the list handle has no value, else `derived(.evidenceGraphIndex, inputs: [.key(evidenceGraphsKey)]) { EvidenceGraphIndex(rows: rows) }` with `Value == EvidenceGraphIndex` (not optional). `spliceEvidenceGraphIndex` becomes `carryDerived(.evidenceGraphIndex, across: evidenceGraphsKey, from: previousRevision) { (index: EvidenceGraphIndex) in index.replacing(sources: parts) }`; the registry's `afterMerge` call is unchanged | Map row; the optional stays outside the primitive, so the carry and the read agree on the type | Storing `EvidenceGraphIndex?` |
+| D-13 | `cachedEvidenceGraphSnapshot(graphID:) -> EvidenceGraphSnapshot` *(new)*: `derived(.evidenceGraphSnapshot(graphID:), inputs: [.key(graph), .key(propertiesWorkspace), .key(connectRules)])` building from each handle's value (missing rows → `EvidenceGraphRows(graphId:)`, missing types or rules → empty). `evidenceGraphSnapshot(graphID:) async` keeps its three warms and awaits, returns nil when the rows' `readyValue` is nil, else `cachedEvidenceGraphSnapshot(graphID:)` | One build per graph per change, shared by Promote, Unpromote, the canvas and the composer. The `cached` prefix says it neither loads nor waits, beside its `evidenceGraph…` neighbours | One snapshot per reader (today) |
+| D-14 | Behavior change: when the types or rules key failed or stayed stale behind a value, `evidenceGraphSnapshot` now builds with that held value where it built with empty lists | The canvas and the composer already build with the held value; one snapshot cannot hold two answers. No test asserts the empty case (`evidenceGraphSnapshotReadsTheThreeKeys` fails the whole store, so the rows are nil) | Keeping two snapshots |
+| D-15 | `EvidenceGraphModel`: `displaySnapshot` and `displayText` become computed properties with no arguments. `displaySnapshot` is `session.cachedEvidenceGraphSnapshot(graphID:)`; `displayText` is `derived(.evidenceGraphText(graphID:), inputs: [.derived(.evidenceGraphSnapshot(graphID:))], extra: [session.nameFormat]) { EvidenceGraphText(snapshot: displaySnapshot, orders: session.nameFormat) }`. `snapshotMemo` goes; the three view sites and `currentSnapshot()` read the properties; `EvidenceCardText.swift`'s doc link names ``EvidenceGraphModel/displayText`` | Its arguments were always the same handles' values (§4) | Keeping the arguments |
+| D-16 | Composer: `vocabulary` is `derived(.citationComposerVocabulary(graphID:), inputs: [.derived(.evidenceGraphSnapshot(graphID:)), .key(fieldsKey), .key(connectRulesKey)] + termKeys(in: fields).map(DerivedInput.key))` building `CitationComposerVocabulary.make` from `session.cachedEvidenceGraphSnapshot(graphID:)`, the fields, the rules and each term key's value. `fields` is read before the call, from `fieldsKey`'s handle. `termRevisions(in:)` becomes `termKeys(in:) -> [CatalogQueryKey]`: the term-valued Property ids sorted as strings, each mapped to `.propertyTerms(project:propertyId:)`. `graphSnapshot` returns `session.cachedEvidenceGraphSnapshot(graphID:)`. `MemoToken`, `memo` and `built` go | Same inputs as today's token, one mechanism | — |
+| D-17 | Sources: `visibleSources` is `derived(.visibleSources, inputs: [.key(Self.sourcesListKey(for: session)), .key(session.sourceTypesKey)] + (filtersByStatus ? [.key(session.evidenceGraphsKey), .key(session.evidenceGraphProgressKey)] : []), extra: [settings, Locale.autoupdatingCurrent.identifier]) { buildVisibleSources() }`. `VisibleRowsToken`, `visibleRowsMemo` and `visibleSourcesBuildCount` go; both tests that read the counter read `session.derivedBuildCount(.visibleSources)` with their expected counts unchanged | The same shape as the others; leaving it is a second way (working rule "simpler code"). Added to the map's scope entry with this plan | Leaving it on its own token |
+| D-18 | Content: `func conclusionContent<Value, Content>(_ key: CatalogQueryKey, inputs: [CatalogQueryKey], extra: [any Equatable], value: Value, make: (Value) -> Content) -> Content` *(new)* in `WorkspaceSession+Derived.swift` is `derived(.conclusionContent(key), inputs: inputs.map(DerivedInput.key), extra: extra) { make(value) }`. The section host passes `{ session.conclusionContent(key, inputs: section.reads(project: session.projectKey, entityId: entityId).map(\.key), extra: extra, value: $0, make: make) }` to the presentation; `ConclusionDetailLoaded.presentation` passes `{ session.conclusionContent(handleKey, inputs: [handleKey], extra: extra, value: $0, make: make) }`, where `handleKey` is `.conclusionDetail(project:entityId:)` (the key `ConclusionDetailPage` already reads) | One path for both hosts, which share `ConclusionDetailPresentation`; testable without drawing a view (T-8). A section's inputs are its whole read list, so a builder may read any of them (Sources reads the supporting types; the record links read the claims' `graphLocations`) | Per-role input lists (a new switch for one extra rebuild when a companion reloads); leaving the detail page out (bar 15) |
+| D-19 | `ConclusionDetailPage`, `ConclusionDetailLoaded` and `ConclusionPageSectionHost` gain `extra: [any Equatable] = []` in their inits. Extras: Person and Event detail `[session.nameFormat]`, Place detail `[]`; Timeline `[folds, orders, widthClass, locale.identifier]`; Family `[folds, orders, locale.identifier]`; Sources rows `[folds, orders]`; record links `[]`. Timeline and Family read `let locale = Locale.autoupdatingCurrent` in `body` beside `orders` and `folds`; `make` uses that local | These are every non-handle value each `make` captures (§4) | Leaving a captured value out (the content would not follow it) |
+| D-20 | Tests for the primitive go in `macos/ProvenenciaTests/WorkspaceSessionDerivedTests.swift` *(new)*, with its own `makeSession` | `WorkspaceSessionTests.swift` is past 2,300 lines | Appending there |
 
 **Rules this plan bends.** None. "(Batch 1) Refused: memoising and re-shaping for speed" and "(Batch 2) No new persisted projections, and no stored answer without a measurement" (its clause "A composed answer is memoised only after it measures slow") name this PR as the user's exception: Batch 2 builds every section's content once per value through one primitive, as cache architecture, not as a speed fix (user, 2026-11-08). The PR claims no speed, so "(Batch 2) Measure growth" sets no budget.
 
@@ -140,18 +146,17 @@ The app derives display values from cached reads in five hand-written ways: the 
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `WorkspaceSession+Derived.swift` *(new)*: `derived`, `carryDerived`, `derivedBuildCount` | file / func | `macos/App/Platform/Memo.swift` `Memo` | `Memo` holds one key per owner and leaves the key to each reader; the four readers each wrote a token. `derived` builds the key from the handles, so a reader names inputs only |
-| `DerivedValueID` *(new)* | type | `CatalogQueryKey.Kind` | That enum names reads the registry loads; these are values built from them, with no loader |
-| `DerivedValueStore` *(new)* | type | `WorkspaceSession.evidenceGraphIndex` + `evidenceGraphIndexBuildCount` | Replaces both with one store for every id |
-| `QueryHandle.serial` *(new)* | property | `QueryHandle.revision` | Revision restarts on a new handle (D-2) |
-| `WorkspaceSession.graphSnapshot(graphID:)` *(new)* | func | `evidenceGraphSnapshot(graphID:) async` | The async call awaits loads; the canvas and composer read synchronously in a body. The async call now returns this |
-| `ConclusionPageSection.content(…)` *(new)* | func | `ConclusionPageSectionHost.make` | The host keeps `make`; this wraps it once |
-| `CitationComposerContext.termKeys(in:)` | func (rename of `termRevisions(in:)`) | — | Returns keys, not revisions |
-| `WorkspaceSessionDerivedTests` *(new)* | test file | `WorkspaceSessionTests` | D-18 |
+| `WorkspaceSession+Derived.swift` *(new)*: `derived`, `carryDerived`, `derivedBuildCount`, `conclusionContent` | file / func | `macos/App/Platform/Memo.swift` `Memo` | Reused as the store (D-5); `derived` builds the key from the inputs, so a reader names inputs only |
+| `DerivedValueID`, `DerivedInput` *(new)* | type | `CatalogQueryKey.Kind`; Go `graphcache` `DerivedFrom` | `Kind` names reads the registry loads; these name values built from them and what each is built from |
+| `DerivedStamp` *(new)* | type | `CitationComposerContext.MemoToken`, `SourcesModel.VisibleRowsToken` | Replaces both with one stamp for every id |
+| `WorkspaceSession.inputRevision(_:)` *(new)* | func | `queryHandle(_:)` | `queryHandle` needs the value type; a stamp needs only the revision |
+| `WorkspaceSession.cachedEvidenceGraphSnapshot(graphID:)` *(new)* | func | `evidenceGraphSnapshot(graphID:) async` | The async call awaits loads; the canvas and composer read synchronously in a body. The async call now returns this |
+| `CitationComposerContext.termKeys(in:)` | func (replaces `termRevisions(in:)`) | — | Returns keys, not revisions |
+| `WorkspaceSessionDerivedTests` *(new)* | test file | `WorkspaceSessionTests` | D-20 |
 
-**Builds on.** `WorkspaceSession`'s handles and `evict(_ key:)`; the section read list (S16-03); `ConclusionFoldState` (S16-07); the splice of S16-12.
-**Deletes.** `WorkspaceSession.evidenceGraphIndex`, `evidenceGraphIndexBuildCount`; `EvidenceGraphIndex.revision`; `EvidenceGraphModel.snapshotMemo` and the `rows:types:` arguments of `displaySnapshot` and `displayText`; `CitationComposerContext.MemoToken`, `memo`, `built`; `SourcesModel.VisibleRowsToken`, `visibleRowsMemo`, `visibleSourcesBuildCount`; the four memo rows of `docs/catalog-caches.md`'s Swift table (Evidence-graph index, Visible Sources, Citation composer snapshot, Evidence-graph snapshot), replaced by one "Derived values" row.
-**Next adds.** A new derived value is one `DerivedValueID` case and one `derived` call. S16-29's prefetch warms keys; a prefetched section's content is built on first draw and kept for the entity's lifetime. A later Event or Place section gets content once per change through the same host.
+**Builds on.** `WorkspaceSession`'s handles and `evict(_ key:)`; `Memo`; the section read list (S16-03); `ConclusionFoldState` (S16-07); the splice of S16-12; `graphcache`'s `DerivedFrom` idea.
+**Deletes.** `WorkspaceSession.evidenceGraphIndex`, `evidenceGraphIndexBuildCount`; `EvidenceGraphIndex.revision`; `EvidenceGraphModel.snapshotMemo` and the `rows:types:` arguments of `displaySnapshot` and `displayText`; `CitationComposerContext.MemoToken`, `memo`, `built`, `termRevisions(in:)`; `SourcesModel.VisibleRowsToken`, `visibleRowsMemo`, `visibleSourcesBuildCount`; the four memo rows of `docs/catalog-caches.md`'s Swift table (Evidence-graph index, Visible Sources, Citation composer snapshot, Evidence-graph snapshot), replaced by one "Derived values" row.
+**Next adds.** A new derived value is one `DerivedValueID` case and one `derived` call that names its keys and the derived values it reads. S16-29's prefetch warms keys; a prefetched section's content is built on first draw and kept while its keys are held. A later Event or Place section gets content once per change through the same host.
 
 ### Reach
 
@@ -159,15 +164,15 @@ None — no new path into existing code. A new state: a derived value outlives a
 
 ### Scale
 
-At the map's Batch 2 Scale: the stamps are one dictionary lookup and two `Int` compares per input; the widest input list is the composer's (three keys plus one per term-valued Property, about 10 on the shipped vocabulary). `evict(_ key:)` scans the entries: at most four section entries per entity (51 entities kept), one snapshot, text and vocabulary per opened graph, and two catalog-wide entries — a few hundred compares per eviction. Memory: a section entry holds the content value already built today, now kept while its keys are held (50 hidden entities); a Timeline content holds only its shown rows (S16-02). The snapshot is shared by four readers where the canvas and the composer each held one. No write changes what it invalidates.
+At the map's Batch 2 Scale: a stamp is one dictionary lookup and one `Int` compare per input; the widest input list is the composer's (three inputs plus one per term-valued Property, about 10 on the shipped vocabulary); a `.derived` input re-stamps its entry's three keys. `evict(_ key:)` scans the entries: at most four content entries per entity (51 entities kept: the detail page and three section hosts, the Sources section having two), one snapshot, text and vocabulary per opened graph, and two catalog-wide entries — a few hundred compares per eviction. Memory: a content entry holds the value already built today, now kept while its keys are held (50 hidden entities); a Timeline content holds only its shown rows (S16-02). The snapshot is shared by four readers where the canvas and the composer each held one. No write changes what it invalidates.
 
 ### Edges
 
-- **Assumptions.** A handle's `revision` moves on every change of `value` (`markReplaced`, `applyFailure(clearValue: true)`, `resetForInvalidation`); `modifyValue` returning false changes nothing and moves nothing. T-2 holds an `apply` that refreshes an input. A build reads only its declared inputs and `extra`: the section builds read the value passed in, the section's supporting key and the captured extras (D-17); the composer reads its term keys; `buildVisibleSources` reads `sources`, the types, graph statuses (only under a status filter, as today's token) and `searchKeys`, a per-row cache keyed by row revision.
-- **Neighbors.** Same stamps and same `extra` → stored value (AC-1.1); one input moved → build (AC-1.2); a non-input moved → stored (AC-1.3); `extra` moved → build (AC-1.4); handle replaced at the same revision → build (AC-1.5, T-3). A carry when another input also moved → no carry, the next read builds (T-4).
-- **Removed inputs.** An evicted key drops every entry built from it (AC-1.6, T-5). A section whose read goes to `.gone` or `.failed` never calls `content`; the entry stays until its key is evicted. A deleted graph's snapshot entries drop when its `evidenceGraph` key is evicted.
+- **Assumptions.** A handle's `revision` moves on every change of `value` (`markReplaced`, `applyFailure(clearValue: true)`, `resetForInvalidation`); `modifyValue` returning false changes nothing and moves nothing. T-2 holds an `apply` that refreshes an input. A build reads only its declared keys, its `.derived` inputs and `extra`; D-10 checks every read through `queryHandle` in debug builds. The hosts' builds take their value as an argument and declare that value's key. `buildVisibleSources` reads `searchKeys`, a per-row cache keyed by row revision, which is not a session read.
+- **Neighbors.** Same stamps and same `extra` → stored value (AC-1.1); one input moved → build (AC-1.2); a non-input moved → stored (AC-1.3); `extra` moved → build (AC-1.4); a `.derived` input whose own key moved → both build (AC-1.6). A carry when another input also moved → no carry, the next read builds (T-4).
+- **Removed inputs.** An evicted key drops every entry built from it and every entry built from those (AC-1.5, T-3, T-5). A host whose read goes to `.gone` or `.failed` never calls `conclusionContent`; the entry stays until its key is evicted. A deleted graph's snapshot, text and vocabulary drop when its `evidenceGraph` key is evicted.
 - **Real data.** None — no table- or seed-driven rule.
-- **Untrusted size.** None — the primitive adds no fan-out over data; each build costs what it costs today, at most once per change.
+- **Untrusted size.** None — the primitive adds no fan-out over data; each build costs what it costs today, at most once per change. `.derived` chains are one level deep (text and vocabulary on the snapshot).
 
 ### Schema
 
@@ -191,28 +196,33 @@ enum DerivedValueID: Hashable {
     case evidenceGraphText(graphID: String)
     case citationComposerVocabulary(graphID: String)
     case visibleSources
-    case sectionContent(ConclusionPageSection, ConclusionSectionRead.Role, entityId: String)
+    case conclusionContent(CatalogQueryKey)
 }
 
-struct DerivedValueStore {
-    struct Stamp: Equatable { let key: CatalogQueryKey; let serial: Int; let revision: Int }
-    struct Entry { var stamps: [Stamp]; var extra: [any Equatable]; var value: Any }
-    var entries: [DerivedValueID: Entry] = [:]
-    var builds: [DerivedValueID: Int] = [:]
-    mutating func drop(reading key: CatalogQueryKey)
+enum DerivedInput: Equatable {
+    case key(CatalogQueryKey)
+    case derived(DerivedValueID)
+}
+
+struct DerivedStamp: Equatable {
+    let inputs: [Int]
+    let extra: [any Equatable]
+    static func == (lhs: Self, rhs: Self) -> Bool // count, then pairwise opened compare
 }
 
 extension WorkspaceSession {
-    func derived<Value>(_ id: DerivedValueID, inputs: [CatalogQueryKey], extra: any Equatable..., build: () -> Value) -> Value
+    func derived<Value>(_ id: DerivedValueID, inputs: [DerivedInput], extra: [any Equatable] = [], build: () -> Value) -> Value
     func carryDerived<Value>(_ id: DerivedValueID, across key: CatalogQueryKey, from previousRevision: Int, _ change: (Value) -> Value)
     func derivedBuildCount(_ id: DerivedValueID) -> Int
+    func conclusionContent<Value, Content>(_ key: CatalogQueryKey, inputs: [CatalogQueryKey], extra: [any Equatable], value: Value, make: (Value) -> Content) -> Content
 }
 ```
 
-`derived` reads each input's handle through `handles[key]` (observed, so a view that reads a derived value observes its handles' revisions). A `derived` overload taking `extra: [any Equatable]` serves the host, which holds its extras as an array; the variadic form forwards to it.
+The entry also records its `inputs` so `evict` can find the entries that read a key (D-6): `derivedValues` maps an id to its `Memo`, and a third dictionary, `derivedInputs: [DerivedValueID: [DerivedInput]]` (`@ObservationIgnored`, in the class body beside D-9's), holds what each entry was built from.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
+| Detail content | `ConclusionDetailPage` (existing) | `macos/App/Features/Conclusions/ConclusionDetailPage.swift` | Gains `extra`; draws as today |
 | Section content | `ConclusionPageSectionHost` (existing) | `macos/App/Features/Conclusions/ConclusionPageSectionHost.swift` | Gains `extra`; draws as today |
 
 States: unchanged in every view. Accessibility: unchanged.
@@ -226,58 +236,63 @@ None — no copy changes.
 `XT` below is `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO`, the command `scripts/check-pr.sh` runs, narrowed with `-only-testing:`.
 
 **STEP-1 — The primitive**
-Files: `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` *(new)*, `QueryHandle.swift`, `WorkspaceSession.swift`, `macos/App/Features/Workspace/ConclusionPageSection.swift` (`Role: Hashable`), `macos/ProvenenciaTests/WorkspaceSessionDerivedTests.swift` *(new)*. Skill: `add-swift-test`.
-Do: D-1 – D-9: `serial`, the protocol members, the store on the session, `derived`, `carryDerived`, `derivedBuildCount`; `evict(_ key:)` calls `derivedValues.drop(reading: key)`. Write T-1 – T-5.
+Files: `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` *(new)*, `QueryHandle.swift` (`AnyQueryHandle.revision`), `WorkspaceSession.swift` (D-4, D-9 storage, `queryHandle` recording, `evict` drop), `macos/ProvenenciaTests/WorkspaceSessionDerivedTests.swift` *(new)*. Skill: `add-swift-test`.
+Do: D-1 – D-11. Write T-1 – T-5.
 Check: `XT -only-testing:ProvenenciaTests/WorkspaceSessionDerivedTests` passes.
 
 **STEP-2 — The Evidence graph index**
-Files: `WorkspaceSession+EvidenceGraphs.swift`, `WorkspaceSession.swift`, `CatalogQueryRegistry.swift` (only if the splice call's signature moves), `WorkspaceSessionTests.swift`.
-Do: D-10. Remove `evidenceGraphIndex` and `evidenceGraphIndexBuildCount`; `graphListMergeSplicesTheIndex` reads `derivedBuildCount(.evidenceGraphIndex)`.
-Check: `XT -only-testing:ProvenenciaTests/WorkspaceSessionTests` passes, `evidenceGraphIndexFollowsTheListRevision` and `graphListMergeSplicesTheIndex` included; `rg 'evidenceGraphIndexBuildCount|evidenceGraphIndex\b' macos` finds nothing.
+Files: `WorkspaceSession+EvidenceGraphs.swift`, `WorkspaceSession.swift`, `WorkspaceSessionTests.swift`.
+Do: D-12. Remove `evidenceGraphIndex` and `evidenceGraphIndexBuildCount`; `graphListMergeSplicesTheIndex` reads `derivedBuildCount(.evidenceGraphIndex)`.
+Check: `XT -only-testing:ProvenenciaTests/WorkspaceSessionTests` passes, `evidenceGraphIndexFollowsTheListRevision` and `graphListMergeSplicesTheIndex` included; `rg 'evidenceGraphIndexBuildCount|var evidenceGraphIndex|Valid for one handle revision' macos` finds nothing.
 
 **STEP-3 — One graph snapshot**
-Files: `WorkspaceSession+EvidenceGraphs.swift`, `EvidenceGraphModel.swift`, `EvidenceGraphView.swift`, `WorkspaceSessionTests.swift`, `EvidenceGraphModelTests.swift`, `PromoteModelTests.swift`.
-Do: D-11 – D-13. Rewrite `displayTextFollowsTheSnapshot` to set the rows with `session.setQueryValue(graphKey, value:)` (T-7). Extend `evidenceGraphSnapshotReadsTheThreeKeys` (T-6); add T-9.
-Check: `XT -only-testing:ProvenenciaTests/WorkspaceSessionTests -only-testing:ProvenenciaTests/EvidenceGraphModelTests -only-testing:ProvenenciaTests/PromoteModelTests -only-testing:ProvenenciaTests/UnpromoteFlowTests` pass; `rg snapshotMemo macos` finds nothing.
+Files: `WorkspaceSession+EvidenceGraphs.swift`, `EvidenceGraphModel.swift`, `EvidenceGraphView.swift`, `EvidenceCardText.swift` (doc link), `WorkspaceSessionTests.swift`, `EvidenceGraphModelTests.swift`, `PromoteModelTests.swift`.
+Do: D-13 – D-15. T-6, T-7, T-9.
+Check: `XT -only-testing:ProvenenciaTests/WorkspaceSessionTests -only-testing:ProvenenciaTests/EvidenceGraphModelTests -only-testing:ProvenenciaTests/PromoteModelTests -only-testing:ProvenenciaTests/UnpromoteFlowTests` pass; `rg 'snapshotMemo|displayText\(rows|displaySnapshot\(rows' macos` finds nothing.
 
 **STEP-4 — The composer's vocabulary**
 Files: `CitationComposerContext.swift`, `CitationComposerModelTests.swift`.
-Do: D-14. Add T-10.
-Check: `XT -only-testing:ProvenenciaTests/CitationComposerModelTests -only-testing:ProvenenciaTests/CitationComposerDepictionTests` pass; `rg MemoToken macos` finds nothing.
+Do: D-16. T-10.
+Check: `XT -only-testing:ProvenenciaTests/CitationComposerModelTests -only-testing:ProvenenciaTests/CitationComposerDepictionTests` pass; `rg 'MemoToken|termRevisions' macos` finds nothing.
 
 **STEP-5 — Visible Sources**
 Files: `SourcesModel.swift`, `SourcesModelTests.swift`.
-Do: D-15; the test at line 295 reads `session.derivedBuildCount(.visibleSources)` (T-11).
+Do: D-17; T-11.
 Check: `XT -only-testing:ProvenenciaTests/SourcesModelTests` passes; `rg 'visibleRowsMemo|visibleSourcesBuildCount|VisibleRowsToken' macos` finds nothing.
 
-**STEP-6 — Section content**
-Files: `ConclusionPageSectionHost.swift`, `PersonTimelineSection.swift`, `PersonFamilySection.swift`, `PersonSourcesSection.swift`, `macos/ProvenenciaTests/ConclusionPageSectionContentTests.swift` *(new)*.
-Do: D-16, D-17. Add T-8.
-Check: `XT -only-testing:ProvenenciaTests/ConclusionPageSectionContentTests` passes, and the Person content tests (`PersonTimelineContentTests`, `PersonFamilyContentTests`, `PersonSourcesContentTests`, `PersonRecordLinksContentTests`) pass unchanged.
+**STEP-6 — Detail and section content**
+Files: `ConclusionDetailPage.swift`, `PersonDetailView.swift`, `EventDetailView.swift`, `PlaceDetailView.swift`, `ConclusionPageSectionHost.swift`, `PersonTimelineSection.swift`, `PersonFamilySection.swift`, `PersonSourcesSection.swift`, `macos/ProvenenciaTests/ConclusionContentTests.swift` *(new)*.
+Do: D-18, D-19. T-8, T-12.
+Check: `XT -only-testing:ProvenenciaTests/ConclusionContentTests` passes, and `PersonTimelineContentTests`, `PersonFamilyContentTests`, `PersonSourcesContentTests`, `PersonRecordLinksContentTests` pass unchanged.
 
 **STEP-7 — Docs**
-Files: `docs/catalog-caches.md` (Swift caches: one "Derived values" row — owner `WorkspaceSession+Derived.swift` · `derived`, key `DerivedValueID`, fill the caller's build, updated by its inputs' handle serial and revision and its `extra`, lifetime its inputs' handles, cap none of its own; the four memo rows go; the Depiction preview row stays), `docs/macos-client-patterns.md` (Cache contract rule 5: a view derives display values with `session.derived`, naming its input keys and extras, and writes no token), `.agents/skills/add-workspace-place/SKILL.md` (step 5 "Model rules": one line on `derived`, one on adding a `DerivedValueID` case), `completed.md`, `deployment-plan.md` (map row), this plan.
+Files: `docs/catalog-caches.md` (Swift caches: one "Derived values" row — owner `WorkspaceSession+Derived.swift` · `derived`, key `DerivedValueID`, fill the caller's build, updated by its inputs (key revisions, the versions of the derived values it reads) and its `extra`, lifetime its inputs' handles, cap none of its own; the four memo rows go; the Depiction preview row stays), `docs/macos-client-patterns.md` (Cache contract rule 5: replace "that join is not a third cache key" with "that join is a `derived` value (`cachedEvidenceGraphSnapshot`), not a `CatalogQueryKey`", and add: a view derives display values with `session.derived`, naming its input keys, the derived values it reads and its extras, and writes no token), `.agents/skills/add-workspace-place/SKILL.md` (step 5 "Model rules": one line on `derived`, one on adding a `DerivedValueID` case), `completed.md`, `deployment-plan.md` (map row), this plan.
 Do: per the Definition of done.
-Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-27-derived-values.md` reports no errors; `scripts/check-guidance-names.py` passes.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-27-derived-values.md` reports no errors; `python3 scripts/check-guidance-names.py` passes.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
 
 ## 8. Tests
 
+`deletedEntitiesLoseTheirHiddenKeys` (line 1353) is the template for a deleted handle: `session.apply(CatalogWriteEffects(deleted: [CatalogWriteEffectsDeleted(entity: .handle, ids: ["e1"])]))` with `apply(location: .sectionRoot(.persons))` so the keys are hidden. `hiddenConclusionPagesAreCappedAtFifty` (line 1457) is the template for the cap: its `show(_:)` helper and 51 `FakeStore.seededConclusionDetails`.
+
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `WorkspaceSessionDerivedTests.swift` `aValueBuildsOncePerInputRevision` *(new)* | `setQueryValue(key)`; three reads → 1 build | AC-1.1, D-1 |
-| T-2 | Swift | same file, `anApplyThatRefreshesAnInputBuildsAgain` *(new)* | A FakeStore-backed key refreshed by `session.apply(effects)` → 2 builds; a write refreshing another key → still 2; a different `extra` → 3, again → 3 | AC-1.2, AC-1.3, AC-1.4, D-3 |
-| T-3 | Swift | same file, `aReplacedHandleNeverMatches` *(new)* | A per-entity key evicted by `apply` with its id in `deleted`, loaded again to revision 1 → the next read builds | AC-1.5, D-2 |
-| T-4 | Swift | same file, `aCarryMovesTheValueOnlyWhenItsKeyAloneMoved` *(new)* | Carry across key A from its previous revision → no build and the changed value; carry when key B also moved → no carry, next read builds | D-9 |
-| T-5 | Swift | same file, `anEvictedInputDropsTheValue` *(new)* | Entry built from a per-entity key; the hidden-entity cap evicts it → the next read builds | AC-1.6, D-5 |
-| T-6 | Swift | `WorkspaceSessionTests.swift` `evidenceGraphSnapshotReadsTheThreeKeys` (extended) | Two awaits, no write → `derivedBuildCount(.evidenceGraphSnapshot(graphID: "g1")) == 1`; after the reload → 2 and the new rows | AC-2.2, D-11 |
-| T-7 | Swift | `EvidenceGraphModelTests.swift` `displayTextFollowsTheSnapshot` (rewritten) | Rows set on the session; "Wm Robins" → "William Robins" after the rows change; two reads between writes → one text build | AC-2.4, D-13 |
-| T-8 | Swift | `ConclusionPageSectionContentTests.swift` `contentBuildsOncePerReadAndFold` *(new)* | Timeline section, `personEvents` key set; `content` read three times → 1 `make`; `folds.revealPage` → 2; `apply` refreshing the person's events → 3; a write to another person → 3 | AC-2.7, D-16, D-17 |
-| T-9 | Swift | `PromoteModelTests.swift` `reproposingReusesTheGraphSnapshot` *(new)* | `load()`, then one decision that reproposes → `derivedBuildCount(.evidenceGraphSnapshot(graphID:)) == 1` | AC-2.3, D-11 |
-| T-10 | Swift | `CitationComposerModelTests.swift` `aTermWriteRebuildsTheVocabularyOnce` *(new)* | A term added through `apply` → vocabulary builds once more and offers the term; an unrelated write → no build | AC-2.5, D-14 |
-| T-11 | Swift | `SourcesModelTests.swift` (the test at line 295, its build count read changed) | Sort changed → one build; rows in date order | AC-2.6, D-15 |
-| T-12 | Swift | `WorkspaceSessionTests.swift` `graphListMergeSplicesTheIndex` (count read changed) | Merge → `derivedBuildCount(.evidenceGraphIndex)` unchanged; lookups right | AC-2.1, D-10 |
+| T-1 | Swift | `WorkspaceSessionDerivedTests.swift` `aValueBuildsOncePerInputRevision` *(new)* | `setQueryValue(.sourceTypesList(project:), …)`; three reads of `derived(.visibleSources, inputs: [.key(that)])` → 1 build | AC-1.1, D-1 |
+| T-2 | Swift | same file, `anApplyThatRefreshesAnInputBuildsAgain` *(new)* | `.conclusionDetail` key for "e1" on screen (`apply(location: .personDetail(entityId: "e1", …))`, `FakeStore.seededConclusionDetails`), `settleWrites`; read → 1; `apply(CatalogWriteEffects(handles: ["e1"]))` and `settleWrites` → read → 2; same for "e2" (not an input) → 2; `extra: [1]` → 3, again → 3 | AC-1.2, AC-1.3, AC-1.4, D-5 |
+| T-3 | Swift | same file, `aDeletedInputDropsTheValue` *(new)* | Entry over the hidden `.conclusionDetail` key for "e1"; `apply` with `deleted` "e1" (template above) → the entry is gone; `setQueryValue` the key again; read → builds | AC-1.5, D-3, D-6 |
+| T-4 | Swift | same file, `aCarryMovesTheValueOnlyWhenItsKeyAloneMoved` *(new)* | Entry over keys A and B; `setQueryValue(A)`; `carryDerived(across: A, from: previous)` → no build, the changed value; then `setQueryValue(A)` and `setQueryValue(B)`, carry across A → no carry, the next read builds | D-11 |
+| T-5 | Swift | same file, `theHiddenEntityCapDropsValuesAndTheirDependants` *(new)* | Entries over "e0"'s detail key and a `.derived` dependant; the cap evicts "e0" (template above) → both gone | AC-1.5, D-6 |
+| T-6 | Swift | same file, `aDerivedInputFollowsItsOwnInputs` *(new)* | B reads `.derived(A)`, A reads key K; `setQueryValue(K)`; read B → A and B each 2 builds | AC-1.6, D-2 |
+| T-7 | Swift | `EvidenceGraphModelTests.swift` `displayTextFollowsTheSnapshot` (rewritten) | The test builds `CatalogQueryKey.evidenceGraph(project:graphId:)` and `.propertiesWorkspace(project:)` itself and sets the rows and a `PropertiesSnapshot` carrying today's `types` with `setQueryValue`; "Wm Robins" → "William Robins" after the rows are set again; two reads between writes → `derivedBuildCount(.evidenceGraphText(graphID:)) == 1` | AC-2.4, D-15 |
+| T-8 | Swift | `ConclusionContentTests.swift` `sectionContentBuildsOncePerReadAndFold` *(new)* | `.personEvents` key for "e1" set; `conclusionContent` with the Timeline's reads and `[folds]` read three times → 1 `make`; `folds.revealPage(.events)` → 2; `apply(CatalogWriteEffects(handles: ["e1"]))` with the key on screen, `settleWrites` → 3; the same for "e2" → 3 | AC-2.7, D-18, D-19 |
+| T-9 | Swift | `PromoteModelTests.swift` `reproposingReusesTheGraphSnapshot` *(new)* | `load()`, then one decision that reproposes (as `oneDecisionProposesOnce`) → `derivedBuildCount(.evidenceGraphSnapshot(graphID:)) == 1` | AC-2.3, D-13 |
+| T-10 | Swift | `CitationComposerModelTests.swift` `aTermWriteRebuildsTheVocabularyOnce` *(new)* | A term added through `apply` reporting the `property_terms` read → vocabulary builds once more and offers the term; an unrelated write → no build | AC-2.5, D-16 |
+| T-11 | Swift | `SourcesModelTests.swift`, both tests that read the build count (lines 295–318 and 455–497) | Their counts read `session.derivedBuildCount(.visibleSources)`; expected counts unchanged | AC-2.6, D-17 |
+| T-12 | Swift | `ConclusionContentTests.swift` `detailContentFollowsTheNameFormat` *(new)* | `.conclusionDetail` key set; `conclusionContent` with `[orders]` read three times → 1; `extra: [otherOrders]` → 2 | AC-2.8, D-18 |
+| T-13 | Swift | `WorkspaceSessionTests.swift` `evidenceGraphSnapshotReadsTheThreeKeys` (extended) | An added second await before the reload, no write → 1 build; after the reload → 2 and the new rows | AC-2.2, D-13 |
+| T-14 | Swift | `WorkspaceSessionTests.swift` `graphListMergeSplicesTheIndex` (count read changed) | Merge → `derivedBuildCount(.evidenceGraphIndex)` unchanged; lookups right | AC-2.1, D-12 |
+| T-15 | Swift | `WorkspaceSessionDerivedTests.swift` — none | AC-1.7's assertion stops a test process, so it has no automated test; the manual check runs a Debug build | AC-1.7, D-10 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `WorkspaceSessionTests`, `EvidenceGraphModelTests`, `CitationComposerModelTests`, `UnpromoteFlowTests`, `PromoteModelTests`, `SourcesModelTests`.
 
@@ -302,32 +317,37 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `W
 
 ## 10. Manual check
 
-1. Open a project with a person in at least 50 events. Open the person on Timeline, press Show more twice, resize across 1600 pt: rows and lifeline as before each unfold and at each width.
+Run a Debug build (D-10's check is on).
+
+1. Open a project with a person in at least 50 events. Open the person on Timeline, press Show more twice, resize across 1600 pt: rows and lifeline as before each unfold and at each width. No assertion fires (AC-1.7).
 2. Same person: Family, then Sources. Hover a graph on the record links diagram: its line lights as before. Rename a Source in another window: the Sources row shows the new title.
-3. Open an Evidence graph, rename a Subject: the card shows the new name. Drag a card: it moves as before.
-4. Open the citation composer on that graph and add a term to a term-valued Property in Properties: the composer offers it.
-5. Promote a Subject, decide one row: the proposal updates. Unpromote a record with a bridge: the confirm lists the connection.
-6. Sources list: change sort, filter by type and by status, type in search: rows as before.
+3. Change the name format in Settings: the Person page header and an Event page title follow it.
+4. Open an Evidence graph, rename a Subject: the card shows the new name. Drag a card: it moves as before.
+5. Open the citation composer on that graph and add a term to a term-valued Property in Properties: the composer offers it.
+6. Promote a Subject, decide one row: the proposal updates. Unpromote a record with a bridge: the confirm lists the connection.
+7. Sources list: change sort, filter by type and by status, type in search: rows as before.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| A build reads a handle it does not declare, so it shows stale data | Edges lists every read; the reviewer checks each `build` against its `inputs` |
-| SwiftUI reports "Modifying state during view update" | The store is `@ObservationIgnored` (D-8) |
-| A nested `derived` call corrupts the store | D-8's read-release-build-write order; T-10 runs a nested build |
+| A build reads a handle it does not declare, so it shows stale data | D-10's debug check; the manual check runs Debug |
+| SwiftUI reports "Modifying state during view update" | The storage is `@ObservationIgnored` (D-9) |
+| A nested `derived` call corrupts the store | D-9's read-release-build-write order; T-6 and T-10 run nested builds |
 
 **Stop and report if:**
 
 - A `QueryHandle` path changes `value` without moving `revision` (any setter of `storedValue` other than those §4 names).
-- A section's `make` captures a value §4 and D-17 do not list.
-- `graphListMergeSplicesTheIndex` cannot pass with `carryDerived` as D-9 states it.
-- An existing behavior test (not a build-count read) has to change its expected result, other than through D-12.
-- Swift rejects the opened-existential compare of D-3 on the project's toolchain.
+- A handle leaves `handles` anywhere but `evict(_ key:)` (D-3 depends on it).
+- A host's `make` captures a value §4 and D-19 do not list.
+- `graphListMergeSplicesTheIndex` cannot pass with `carryDerived` as D-11 states it.
+- D-10's check fires on a build in the moved code: name the id and the key.
+- An existing behavior test (not a build-count read) has to change its expected result, other than through D-14.
+- Swift rejects the opened-existential compare of D-5 on the project's toolchain.
 
 ## 12. Open questions
 
-None.
+- **The three vocabulary lists' sorts.** `PropertiesModel.visibleProperties`, `SourceTypesModel.visibleTypes` and `MetadataModel.visibleFields` sort a cached vocabulary list on each read with no memo. Recommendation: leave them out (not planned): each list holds tens of rows, and a memo there adds a call and an id each and removes nothing. Moving them is three more sites in STEP-5. Asked in the review log (To user).
 
 ## 13. PR
 
