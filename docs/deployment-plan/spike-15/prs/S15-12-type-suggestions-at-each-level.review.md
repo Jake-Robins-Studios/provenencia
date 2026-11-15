@@ -71,6 +71,17 @@ Logged; the board's copy settles it.
 ### M-7 · minor · `CatalogMetadataField.usedBy` doc is wrong
 **Answer:** Fixed — § 4 Swift count docs and STEP-3 correct it.
 
+## Re-plan round 2
+
+### X2-1 · major · The zero-default fake count breaks tests the plan does not name
+**Answer:** Fixed — D-7 names the T-8 seed (line ~1300) and the retired test at line ~339; STEP-3's check runs all five suites the fake change reaches.
+
+### X2-2 · minor · Plural rule for `listLabel`
+**Answer:** Fixed — § 6 Strings: plural variations on argument 2, as `sourceTypes.suggested.count`.
+
+### X2-3 · nit · Line numbers, T-5's phrase, an empty pick
+**Answer:** Fixed — § 4 line numbers; T-5 builds the phrase with `L10n.format`; an empty pick is `assignPicks[level, default: ""] == ""`.
+
 ## Side-pane plan (superseded)
 
 
