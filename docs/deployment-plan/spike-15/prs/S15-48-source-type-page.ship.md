@@ -121,3 +121,7 @@ Files: `macos/App/Features/SourceTypes/SourceTypePageModel.swift`, `macos/App/Pl
 Failing test first: `SourceTypePageModelTests.aTypeGoneBeforeItWasShownGetsAnUnnamedNotice`. Open the page on a type id that is not in a settled list, so `noteLabel` never saw a label. `goneNotice` must equal the new unnamed string and must not contain `“”`.
 Do: add `L10n.SourceTypes.goneNoticeUnnamed`, defaultValue "This source type no longer exists.", key `sourceTypes.page.goneNoticeUnnamed`, beside `goneNotice(label:)`. Word it like `conclusions.person.gone`. In `goneNotice`, use it when `lastLabel` is empty after trimming. Otherwise keep `goneNotice(label:)`. `goneTypeNamesItselfInTheNotice` still passes.
 Check: both tests pass; `L10nResolutionTests` and the xcstrings lint pass; scripts/check-pr.sh PASS.
+
+## UX-8 — fix
+Head `a90d675e9`. Gate PASS (orchestrator). CI macOS green. F-11 done: red first (`aTypeGoneBeforeItWasShownGetsAnUnnamedNotice` failed on both expectations), then `goneNotice` falls back to `L10n.SourceTypes.goneNoticeUnnamed` when no label was seen. Orchestrator read the diff: **Resolved**.
+Result update: open: none · to user: UX-4 (leave during Save, D-8), CON-1 (§ 10 manual check).
