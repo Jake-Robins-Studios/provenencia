@@ -91,6 +91,9 @@ struct WorkspaceSessionTests {
 
         let snapshot = try #require(await session.evidenceGraphSnapshot(graphID: "g1"))
         #expect(snapshot.subjects.map(\.id) == ["s1"])
+        // Asked again with no write between, the one snapshot is returned.
+        _ = try #require(await session.evidenceGraphSnapshot(graphID: "g1"))
+        #expect(session.derivedBuildCount(.evidenceGraphSnapshot(graphID: "g1")) == 1)
 
         // A stale graph key is read again.
         store.subjectsByGraph["g1"] = [
@@ -101,6 +104,7 @@ struct WorkspaceSessionTests {
         (session.queryHandle(graphKey) as QueryHandle<EvidenceGraphRows>?)?.markStale()
         let reloaded = try #require(await session.evidenceGraphSnapshot(graphID: "g1"))
         #expect(Set(reloaded.subjects.map(\.id)) == ["s1", "s2"])
+        #expect(session.derivedBuildCount(.evidenceGraphSnapshot(graphID: "g1")) == 2)
 
         // Rows that cannot be read give nothing.
         struct Boom: Error {}

@@ -6,7 +6,7 @@ import Foundation
 /// The graph's document body runs again on every drag frame. Formatting card
 /// sentences and accessibility names there repeated the same work for every
 /// card on every frame; building it with the snapshot (see
-/// ``EvidenceGraphModel/displayText(rows:types:)``) keeps formatting out of
+/// ``EvidenceGraphModel/displayText``) keeps formatting out of
 /// the per-frame path. Views read these strings and format nothing.
 ///
 /// Built on the main actor: the formatters live on the card view types.

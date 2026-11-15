@@ -160,24 +160,45 @@ extension WorkspaceSession {
         return Set(artifactIDs.filter { !linked.contains($0) })
     }
 
+    /// The three reads one graph's snapshot is built from: its rows, the
+    /// Subject types and the connect rules.
+    private func evidenceGraphSnapshotKeys(graphID: String) -> [CatalogQueryKey] {
+        [
+            .evidenceGraph(project: projectKey, graphId: graphID),
+            .propertiesWorkspace(project: projectKey),
+            .connectRules(project: projectKey),
+        ]
+    }
+
+    /// One graph as a snapshot, built once per change of its rows, the Subject
+    /// types and the connect rules. Neither loads nor waits: rows not read yet
+    /// are empty, and missing types or rules read as empty.
+    func cachedEvidenceGraphSnapshot(graphID: String) -> EvidenceGraphSnapshot {
+        let keys = evidenceGraphSnapshotKeys(graphID: graphID)
+        return derived(.evidenceGraphSnapshot(graphID: graphID), inputs: keys.map(DerivedInput.key)) {
+            let rows: QueryHandle<EvidenceGraphRows>? = queryHandle(keys[0])
+            let properties: QueryHandle<PropertiesSnapshot>? = queryHandle(keys[1])
+            let rules: QueryHandle<[CatalogConnectRule]>? = queryHandle(keys[2])
+            return EvidenceGraphSnapshot.build(
+                rows: rows?.value ?? EvidenceGraphRows(graphId: graphID),
+                types: properties?.value?.types ?? [],
+                rules: rules?.value ?? []
+            )
+        }
+    }
+
     /// One graph as a snapshot: its rows, the Subject types and the connect
     /// rules, each warmed when cold or stale and awaited. Nil when the rows
-    /// could not be read; missing types or rules read as empty.
+    /// could not be read.
     func evidenceGraphSnapshot(graphID: String) async -> EvidenceGraphSnapshot? {
-        let graphKey = CatalogQueryKey.evidenceGraph(project: projectKey, graphId: graphID)
-        let propertiesKey = CatalogQueryKey.propertiesWorkspace(project: projectKey)
-        let rulesKey = CatalogQueryKey.connectRules(project: projectKey)
-        let _: QueryHandle<EvidenceGraphRows> = query(graphKey)
-        let _: QueryHandle<PropertiesSnapshot> = query(propertiesKey)
-        let _: QueryHandle<[CatalogConnectRule]> = query(rulesKey)
-        let rows: EvidenceGraphRows? = await readyValue(graphKey)
-        let properties: PropertiesSnapshot? = await readyValue(propertiesKey)
-        let rules: [CatalogConnectRule]? = await readyValue(rulesKey)
-        guard let rows else { return nil }
-        return EvidenceGraphSnapshot.build(
-            rows: rows,
-            types: properties?.types ?? [],
-            rules: rules ?? []
-        )
+        let keys = evidenceGraphSnapshotKeys(graphID: graphID)
+        let _: QueryHandle<EvidenceGraphRows> = query(keys[0])
+        let _: QueryHandle<PropertiesSnapshot> = query(keys[1])
+        let _: QueryHandle<[CatalogConnectRule]> = query(keys[2])
+        let rows: EvidenceGraphRows? = await readyValue(keys[0])
+        let _: PropertiesSnapshot? = await readyValue(keys[1])
+        let _: [CatalogConnectRule]? = await readyValue(keys[2])
+        guard rows != nil else { return nil }
+        return cachedEvidenceGraphSnapshot(graphID: graphID)
     }
 }
