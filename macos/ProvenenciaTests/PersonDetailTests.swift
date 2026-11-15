@@ -345,7 +345,7 @@ struct PersonDetailTests {
 
         store.getConclusionDetailHold.isOn = true
         let save = Task { await model.choose(tile, copy: .personPortrait) }
-        while store.getConclusionDetailHold.count == 0 { await Task.yield() }
+        await store.getConclusionDetailHold.untilSuspended(1)
         #expect(model.savingID == tile.id)
         #expect(model.isSaving)
 

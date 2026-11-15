@@ -823,7 +823,7 @@ struct EvidenceGraphModelTests {
             delta: CGSize(width: 160, height: 0)
         )
         let olderWrite = model.lastPositionWrite
-        try #require(await waitUntil(timeout: .seconds(5)) { store.setSubjectPositionHold.count == 1 })
+        await store.setSubjectPositionHold.untilSuspended(1)
         _ = model.commitDrag(
             subjectID: "s1",
             originGridX: 5,
@@ -831,7 +831,7 @@ struct EvidenceGraphModelTests {
             delta: CGSize(width: 160, height: 0)
         )
         let newerWrite = model.lastPositionWrite
-        try #require(await waitUntil(timeout: .seconds(5)) { store.setSubjectPositionHold.count == 2 })
+        await store.setSubjectPositionHold.untilSuspended(2)
         // Settle the older write (fails) before the newer one (succeeds).
         store.setSubjectPositionHold.release()
         await olderWrite?.value
@@ -880,7 +880,7 @@ struct EvidenceGraphModelTests {
             delta: CGSize(width: 160, height: 0)
         )
         let olderWrite = model.lastPositionWrite
-        try #require(await waitUntil(timeout: .seconds(5)) { store.setSubjectPositionHold.count == 1 })
+        await store.setSubjectPositionHold.untilSuspended(1)
         _ = model.commitDrag(
             subjectID: "s1",
             originGridX: 5,
@@ -888,7 +888,7 @@ struct EvidenceGraphModelTests {
             delta: CGSize(width: 160, height: 0)
         )
         let newerWrite = model.lastPositionWrite
-        try #require(await waitUntil(timeout: .seconds(5)) { store.setSubjectPositionHold.count == 2 })
+        await store.setSubjectPositionHold.untilSuspended(2)
         // Settle the older write (succeeds) before the newer one (fails).
         store.setSubjectPositionHold.release()
         await olderWrite?.value

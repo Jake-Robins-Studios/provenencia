@@ -100,7 +100,7 @@ struct CatalogCountsTests {
 
         let first = Task { await counts.refreshAll() }
         // The first recount has read zero Sources and is held before returning them.
-        try #require(await waitUntil(timeout: .seconds(15)) { store.workspaceNavCountsHold.count == 1 })
+        await store.workspaceNavCountsHold.untilSuspended(1)
         store.workspaceNavCountsHold.isOn = false
         _ = try await store.createSource(
             projectDir: projectDir, userID: "u", sourceTypeID: "t1", title: "New", description: ""

@@ -2122,7 +2122,7 @@ struct WorkspaceSessionTests {
         let session = makeSession(store: store)
         let key = session.evidenceGraphsKey
         let handle: QueryHandle<[CatalogEvidenceGraph]> = session.query(key)
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 1 })
+        await store.listEvidenceGraphsHold.untilSuspended(1)
 
         session.apply(
             CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["s9"])]),
@@ -2131,7 +2131,7 @@ struct WorkspaceSessionTests {
         #expect(handle.isStale)
         store.evidenceGraphsByProject[projectDir] = [evidenceGraph("g2", sourceID: "s1")]
         let _: QueryHandle<[CatalogEvidenceGraph]> = session.query(key)
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 2 })
+        await store.listEvidenceGraphsHold.untilSuspended(2)
         store.listEvidenceGraphsHold.isOn = false
         store.listEvidenceGraphsHold.release()
         store.listEvidenceGraphsHold.release()
@@ -2355,7 +2355,7 @@ struct WorkspaceSessionTests {
         ]
         store.listEvidenceGraphsHold.isOn = true
         session.apply(graphRead("S"))
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 1 })
+        await store.listEvidenceGraphsHold.untilSuspended(1)
         #expect(handle.isFetching)
         if case .unknown = session.evidenceGraphPresence(id: "s-new") {} else {
             Issue.record("expected .unknown while the re-read runs")
@@ -2403,10 +2403,10 @@ struct WorkspaceSessionTests {
         store.listEvidenceGraphsHold.isOn = true
         let session = makeSession(store: store)
         session.apply(location: .sourcePage(sourceId: "S"))
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 1 })
+        await store.listEvidenceGraphsHold.untilSuspended(1)
 
         session.apply(graphRead("S"))
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 2 })
+        await store.listEvidenceGraphsHold.untilSuspended(2)
         store.listEvidenceGraphsHold.isOn = false
         store.listEvidenceGraphsHold.release()
         store.listEvidenceGraphsHold.release()
@@ -2421,7 +2421,7 @@ struct WorkspaceSessionTests {
         store.listEvidenceGraphsHold.isOn = true
         let session = makeSession(store: store)
         let handle: QueryHandle<[CatalogEvidenceGraph]> = session.query(session.evidenceGraphsKey)
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 1 })
+        await store.listEvidenceGraphsHold.untilSuspended(1)
 
         session.apply(graphRead("S"))
         #expect(handle.isStale)
@@ -2454,7 +2454,7 @@ struct WorkspaceSessionTests {
         store.listEvidenceGraphsHold.isOn = true
         session.apply(graphRead("S"))
         session.apply(graphRead("T"))
-        #expect(await waitUntil { store.listEvidenceGraphsHold.count == 2 })
+        await store.listEvidenceGraphsHold.untilSuspended(2)
 
         store.listEvidenceGraphsHold.release()
         #expect(await waitUntil { handle.value?.count == 3 })

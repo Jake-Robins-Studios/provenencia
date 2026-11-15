@@ -9,6 +9,7 @@ final class FakeHold: @unchecked Sendable {
     private let lock = NSLock()
     private var on = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
+    private var watchers: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
 
     /// While true, a call to `wait()` suspends.
     var isOn: Bool {
@@ -32,12 +33,44 @@ final class FakeHold: @unchecked Sendable {
         takeOldest()?.resume()
     }
 
+    /// Suspends until exactly `n` calls are suspended in `wait()`; returns at once when that
+    /// already holds. It has no deadline on purpose: a full-suite run starves the main actor
+    /// for longer than any fixed timeout (see `QueryHandleWaiting.swift`'s `waitForSearch`), and
+    /// a poll that gave up early would leave the test's `release()` with no waiter and hang it.
+    /// Signalled from `append` and `takeOldest`, not polled.
+    func untilSuspended(_ n: Int) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let ready = lock.withLock { () -> Bool in
+                if waiting.count == n { return true }
+                watchers.append((n, continuation))
+                return false
+            }
+            if ready { continuation.resume() }
+        }
+    }
+
     private func append(_ continuation: CheckedContinuation<Void, Never>) {
-        lock.withLock { waiting.append(continuation) }
+        let due = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+            waiting.append(continuation)
+            return takeDueWatchers()
+        }
+        due.forEach { $0.resume() }
     }
 
     private func takeOldest() -> CheckedContinuation<Void, Never>? {
-        lock.withLock { waiting.isEmpty ? nil : waiting.removeFirst() }
+        let (oldest, due) = lock.withLock { () -> (CheckedContinuation<Void, Never>?, [CheckedContinuation<Void, Never>]) in
+            let oldest = waiting.isEmpty ? nil : waiting.removeFirst()
+            return (oldest, takeDueWatchers())
+        }
+        due.forEach { $0.resume() }
+        return oldest
+    }
+
+    /// Removes and returns the watchers whose count now holds. Call with `lock` held.
+    private func takeDueWatchers() -> [CheckedContinuation<Void, Never>] {
+        let due = watchers.filter { $0.count == waiting.count }.map(\.continuation)
+        watchers.removeAll { $0.count == waiting.count }
+        return due
     }
 }
 
