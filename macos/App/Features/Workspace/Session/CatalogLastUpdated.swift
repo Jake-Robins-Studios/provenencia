@@ -114,34 +114,42 @@ struct CatalogQueryPatch: Sendable {
     /// row the list lacks adds nothing. Leaves any stale flag: other rows may
     /// still owe a reload.
     static func sourceRow() -> Self {
-        Self(follows: nil) { session, key, _, _, mutation in
-            guard let source = mutation?.patchedSource else { return .unchanged }
-            var isCreate = false
-            if case .createdSource(_) = mutation { isCreate = true }
-            return session.patchCached(key, as: [CatalogSource].self) { sources in
-                if let index = sources.firstIndex(where: { $0.id == source.id }) {
-                    sources[index] = source
-                    return true
-                }
-                guard isCreate else { return false }
-                sources.append(source)
-                return true
-            }
-        }
+        row(
+            CatalogSource.self,
+            patched: { $0.patchedSource },
+            appendsOn: { if case .createdSource(_) = $0 { return true } else { return false } }
+        )
     }
 
     /// Writes the mutation's Source type onto the cached types list: replaces the row with the
     /// same id, and a `.createdSourceType` appends its row when the list lacks it (the list sorts
     /// for display). Leaves any stale flag.
     static func sourceTypeRow() -> Self {
+        row(
+            CatalogSourceType.self,
+            patched: { $0.patchedSourceType },
+            appendsOn: { if case .createdSourceType(_) = $0 { return true } else { return false } }
+        )
+    }
+
+    /// The row patch of a cached list: replaces the row with the same id, and appends the
+    /// mutation's row when the list lacks it only if `appendsOn` says the mutation creates it;
+    /// otherwise a row the list lacks adds nothing.
+    static func row<Row: Identifiable & Sendable>(
+        _: Row.Type,
+        patched: @escaping @Sendable (CatalogMutation) -> Row?,
+        appendsOn: @escaping @Sendable (CatalogMutation) -> Bool
+    ) -> Self where Row.ID == String {
         Self(follows: nil) { session, key, _, _, mutation in
-            guard let type = mutation?.patchedSourceType else { return .unchanged }
-            return session.patchCached(key, as: [CatalogSourceType].self) { types in
-                if let index = types.firstIndex(where: { $0.id == type.id }) {
-                    types[index] = type
+            guard let mutation, let row = patched(mutation) else { return .unchanged }
+            let appends = appendsOn(mutation)
+            return session.patchCached(key, as: [Row].self) { rows in
+                if let index = rows.firstIndex(where: { $0.id == row.id }) {
+                    rows[index] = row
                     return true
                 }
-                types.append(type)
+                guard appends else { return false }
+                rows.append(row)
                 return true
             }
         }

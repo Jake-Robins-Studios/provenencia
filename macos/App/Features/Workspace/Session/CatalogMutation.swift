@@ -188,9 +188,7 @@ extension CatalogMutation {
             return nil
         }
     }
-}
 
-extension CatalogMutation {
     /// The Source type row to patch into the cached types list, if any.
     var patchedSourceType: CatalogSourceType? {
         if case .createdSourceType(let type) = self { return type }
