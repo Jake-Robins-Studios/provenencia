@@ -26,18 +26,6 @@ extension Array where Element: CatalogVocabularyRow {
     var pluginCount: Int { filter { CatalogOrigin.isPlugin($0.origin) }.count }
 }
 
-/// Detail-pane mode shared by the vocabulary destinations: illegal
-/// combinations of "adding" plus "a row is selected" are unrepresentable.
-/// The models keep their `draft` set for `.adding` / `.editing` (form
-/// bindings) and also for `.viewing`, so tearing down `Binding($model.draft)`
-/// projections when leaving the form does not trap.
-enum VocabularyPaneMode: Equatable {
-    case empty
-    case viewing(id: String)
-    case adding(resumeID: String?)
-    case editing(id: String)
-}
-
 /// A vocabulary destination's toast. Add / update read as success; detaching
 /// a suggestion is not a win, just a change, so it carries `.info` — the
 /// tone is the model's call, never hard-coded at the view.
