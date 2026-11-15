@@ -2,12 +2,11 @@ import SwiftUI
 
 /// The Source types list's table (S15-D28 TL-1 – TL-W2): the shared
 /// `VocabularyListPane` around this destination's columns — label with origin
-/// pill, Description at Wide, mono key, suggested-field count, usage — sortable
+/// pill, Description once the table is 1200pt wide, mono key, suggested-field count, usage — sortable
 /// by all but Description.
 struct SourceTypesListPane: View {
     @Bindable var model: SourceTypesModel
     @Environment(WorkspaceNavigation.self) private var navigation
-    @Environment(\.pvWidthClass) private var widthClass
     /// The row the table highlights; arrow keys move it without leaving the list.
     @State private var highlighted: String?
 
@@ -18,13 +17,16 @@ struct SourceTypesListPane: View {
     static let usedByColumnWidth: CGFloat = 120
     /// A column that does not sort takes a pane constant, not a `SortColumn` raw value.
     static let descriptionColumnID = "description"
+    /// Description shows from this table width (user, 2026-11-15: the Label and Description
+    /// share ~360pt each at 1200pt), at any width class.
+    static let descriptionMinTableWidth: CGFloat = 1200
 
     var body: some View {
         VocabularyListPane(
             totalCount: model.types.count,
             rows: model.visibleTypes,
             isLoading: model.isLoading,
-            columns: Self.columns(widthClass),
+            columns: Self.columns(),
             selection: $highlighted,
             sort: PVTableSort(
                 columnID: model.sortColumn.rawValue,
@@ -50,9 +52,9 @@ struct SourceTypesListPane: View {
         ))
     }
 
-    /// The columns at a width class: Description appears only at Wide, between
-    /// Label and Key. Static so the order is testable without a view.
-    static func columns(_ widthClass: PVWidthClass) -> [PVTableColumn<CatalogSourceType>] {
+    /// The columns: Description, between Label and Key, shows once the table is 1200pt wide
+    /// (`PVTableColumn.minTableWidth`). Static so the order is testable without a view.
+    static func columns() -> [PVTableColumn<CatalogSourceType>] {
         let label = PVTableColumn<CatalogSourceType>(
             id: SourceTypesModel.SortColumn.label.rawValue,
             title: L10n.SourceTypes.columnLabel,
@@ -74,6 +76,7 @@ struct SourceTypesListPane: View {
         let description = PVTableColumn<CatalogSourceType>(
             id: descriptionColumnID,
             title: L10n.SourceTypes.columnDescription,
+            minTableWidth: descriptionMinTableWidth,
             sortable: false
         ) { type in
             Text(type.description)
@@ -81,7 +84,7 @@ struct SourceTypesListPane: View {
                 .foregroundStyle(PVColor.textMuted)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .help(type.description.isEmpty ? "" : type.description)
+                .help(type.description)
         }
         let key = PVTableColumn<CatalogSourceType>(
             id: SourceTypesModel.SortColumn.key.rawValue,
@@ -111,10 +114,7 @@ struct SourceTypesListPane: View {
         ) { type in
             countCell(type.usedBy, spoken: L10n.SourceTypes.usage(count: type.usedBy))
         }
-        switch widthClass {
-        case .regular: return [label, key, fields, usedBy]
-        case .wide: return [label, description, key, fields, usedBy]
-        }
+        return [label, description, key, fields, usedBy]
     }
 
     /// One count look for both count columns; 0 reads as the dash.
