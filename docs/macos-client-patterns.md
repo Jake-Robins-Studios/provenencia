@@ -278,7 +278,7 @@ The same six rules are in the [`add-design-brief`](../.agents/skills/add-design-
 5. **Crossing the line keeps state.** Selection, scroll position, focus and unsaved edits survive a resize across 1600.
 6. **Past every column's maximum, center the group.** Page gutters are never narrower than at Regular; they take what is left.
 
-Rule 3's list maximum is a token, `PVSpacing.widthListWideMax` (1600pt of content, gutters outside; S15-04 adds it, and Promote's list reads it): a list whose Wide arrangement adds no column, or only a narrow one, centers at that width with hairlines at its sides through `pvListBand(_:)` (`Components/PageColumns/PVPageColumns.swift`), as the Sources list does (S15-04, user 2026-11-10: a list stretched across a 2296pt pane left a wide empty band between its title and its graphs).
+Rule 3's list maximum is a token, `PVSpacing.widthListWideMax` (1600pt of content, gutters outside; S15-04 adds it, and Promote's list reads it): a list whose Wide arrangement adds no column, or only a narrow one, centers at that width with hairlines at its sides through `pvListBand(_:)` (`Components/PageColumns/PVPageColumns.swift`), as the Sources and Source types lists do (S15-04, S15-49, user 2026-11-10: a list stretched across a 2296pt pane left a wide empty band between its title and its graphs).
 
 A full-width section's empty, loading and error states keep the page band: apply `pvKeepsPageBand()` (`Components/PageColumns/PVPageColumns.swift`) to them, so they stay centered at `widthContentMax` instead of stretching across a Wide pane. A page that passes `fillSplitSideMax` has a wider band (the main-and-side group); its states sit in the primary, which is that band.
 
@@ -288,13 +288,13 @@ A full-width section's empty, loading and error states keep the page band: apply
 
 | View shape | Regular | Wide |
 | --- | --- | --- |
-| List → detail page (Sources, Conclusions, vocabulary) | List; select navigates to the detail | List column (about 420–520pt) and the selected detail side by side. Until a list's redesign brings the detail beside it, the list adds what columns it has (the Sources list's Published column) and centers at `widthListWideMax` |
+| List → detail page (Sources, Conclusions, vocabulary) | List; select navigates to the detail | List column (about 420–520pt) and the selected detail side by side. Until a list's redesign brings the detail beside it, the list adds what columns it has (the Sources list's Published column, the Source types list's Description column) and centers at `widthListWideMax` |
 | Record / detail page (Source page, Conclusion detail) | One column; supporting sections stacked below | Primary column (≤ `widthContentMax`) plus a secondary column (340–480pt) of supporting content: metadata, linked records, activity, artifacts |
 | List with a pinned side column at both widths (Person's Sources) | The rows with the side column beside them while the pane holds the rows' minimum, else stacked under them | The same, the side column up to 720pt; `ConclusionPinnedSideColumn` holds it in view while the rows scroll |
 | Grid (artifacts, galleries) | Columns that fit at the card minimum | More columns at the same card size |
 | Table | Essential columns | Columns that were hidden at Regular |
 | Form / editor | One column at the form measure | Field groups in two columns, or the form beside a live preview or reference panel |
 | Canvas (evidence graph, viewer) | Canvas; inspector on demand | Canvas with the inspector docked open |
-| List with a side pane (Properties, Metadata, Source types) | List and a fixed side pane | The list takes the extra width (more columns), or the side pane widens; drawn in the page's brief |
+| List with a side pane (Properties, Metadata) | List and a fixed side pane | The list takes the extra width (more columns), or the side pane widens; drawn in the page's brief |
 
 A view that fits none of these says in its brief what its Wide frame does and why. Briefs carry these rules in their Paste block, because Claude Design does not follow links ([`add-design-brief`](../.agents/skills/add-design-brief/SKILL.md)).
