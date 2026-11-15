@@ -29,7 +29,7 @@ Authoritative behavior: [`docs/deployment-plan/archive/spike-3/navigation-histor
 | --- | --- |
 | New sidebar section / destination host | **Yes** — section + list root |
 | List → detail page (Source-style) | **Yes** — deep id on the location |
-| Master–detail row select (fields/types pattern) | **Yes** — selection is a place |
+| Master–detail row select (fields pattern) | **Yes** — selection is a place |
 | Omnibar / breadcrumb / cross-link → a place | **Yes** — call `go(to:)` |
 | Search query, scroll, focus, dirty drafts | **No** — UI ephemera, omit |
 | Modal/sheet that is not a restoreable place | **No** — unless product says Back should return into it |
@@ -95,11 +95,11 @@ In the destination view (pattern: `SourcesListView`, `MetadataView`):
 2. On `onAppear` + `onChange(of: navigation.currentLocation)` (+ `onChange` on query
    handle status/value when list loads async):
    - Guard `location.section == .yourSection`.
-   - Deep id present + found → apply selection/open (model `syncSelection(from:)`).
+   - Deep id present + found → apply selection/open (a master–detail model's `syncSelection(from:)`; a page mounts per id and reads its row's presence).
    - Deep id present + missing after handle ready → `navigation.fallbackToSectionRoot()`.
    - Deep id nil → clear to list root (no second `go(to:)`).
    - A page whose read reports its entity gone applies `.leavesForSectionRoot(when:notice:)`, with `notice:` for the toast that says why (a Conclusion page, the Evidence graph, the Source page).
-   - A write that deletes the shown entity applies its effects with `session.apply(_:_:leavingPage:)`, which leaves the page before the reload, so nothing reads the deleted id. The rule is for a page that the deleted entity is the whole of (the Person page, the Source page); a master–detail page (Metadata, Source types, Properties) stays on its list, which a plain `apply` refreshes.
+   - A write that deletes the shown entity applies its effects with `session.apply(_:_:leavingPage:)`, which leaves the page before the reload, so nothing reads the deleted id. The rule is for a page that the deleted entity is the whole of (the Person page, the Source page); a master–detail page (Metadata, Properties) stays on its list, which a plain `apply` refreshes.
 
 Catalog reads come from `WorkspaceSession` query handles (Spike 4) — see
 [`add-workspace-place`](../add-workspace-place/SKILL.md). Do **not** add `.task {
@@ -139,6 +139,6 @@ Inject a temp navigation file URL via `attachProject(uuid:fileURL:)`.
 
 - Persist/API: `NavigationHistoryStore`, `WorkspaceNavigation.attachProject`
 - Keyboard: `NavigationCoordinator` + `ProvenenciaApp` (`⌘[` / `⌘]`)
-- Unsaved work: `WorkspaceLeaveGuard` on `WorkspaceNavigation.leaveGuard` — `go(to:)` / back / forward / index ask the guard; `fallbackToSectionRoot()` and `attachProject` do not. The citation composer is the first place that holds.
+- Unsaved work: `WorkspaceLeaveGuard` on `WorkspaceNavigation.leaveGuard` — `go(to:)` / back / forward / index ask the guard; `fallbackToSectionRoot()` and `attachProject` do not. A page installs its guard with `.workspaceLeaveGuard(model)` (the citation composer, Promote and the Source type page do).
 - Catalog session for destination loads: [`use-catalog-session`](../use-catalog-session/SKILL.md)
 - Place registry + query cache: [`add-workspace-place`](../add-workspace-place/SKILL.md)
