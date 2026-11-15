@@ -67,4 +67,4 @@ No new findings from either reviewer.
 Nits (logged): `CON-7 · canonlinks.go:48-51 · edgeOf doc "neighbor is the link's other end"; it is the event neighbour, nil otherwise`
 
 ## Result
-Gate PASS · `origin/main` unmoved since the branch was cut (`bb94086cf`) · CI see PR · open: none · follow-ups: CON-2 (test hook so `canonView`'s held read error has a test) · to user: —
+Gate PASS · `origin/main` unmoved since the branch was cut (`bb94086cf`) · CI see PR · open: none · follow-ups: CON-2 dropped (user, 2026-11-15: the held-error path is unreachable on a warm index) · to user: —
