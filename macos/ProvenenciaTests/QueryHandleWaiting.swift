@@ -19,7 +19,8 @@ func waitForQuery<Value>(
 }
 
 /// Polls `condition` every 10 ms until it holds or `timeout` passes (two
-/// seconds by default); true once it holds.
+/// seconds by default); true once it holds. For a `FakeHold`, use
+/// `hold.untilSuspended(n)` instead.
 @MainActor
 func waitUntil(timeout: Duration = .seconds(2), _ condition: () -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout

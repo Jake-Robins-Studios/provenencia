@@ -37,7 +37,8 @@ final class FakeHold: @unchecked Sendable {
     /// already holds. It has no deadline on purpose: a full-suite run starves the main actor
     /// for longer than any fixed timeout (see `QueryHandleWaiting.swift`'s `waitForSearch`), and
     /// a poll that gave up early would leave the test's `release()` with no waiter and hang it.
-    /// Signalled from `append` and `takeOldest`, not polled.
+    /// Signalled from `append` and `takeOldest`, not polled. It waits for exactly `n`, so pick `n`
+    /// from calls the test controls: a count that passes `n` and never comes back waits forever.
     func untilSuspended(_ n: Int) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let ready = lock.withLock { () -> Bool in

@@ -18,7 +18,7 @@ Product logic under test lives in `macos/App/`. Tests live in **`macos/Provenenc
 - Inject `FakeStore` and `OnboardingFolders` with dirs under `FileManager.default.temporaryDirectory`.
 - **FakeStore:** new methods seed rows and script return values (`nextWriteEffects`, `…Error` hooks, impact maps); do not add graph-list order, Citation membership, effects-resolution, or graph / Copy Source refusal logic.
 - When adding a catalog `GenealogyStore` API on `FakeStore`, call `markCatalogSessionHeld` (same as real traffic) so `CatalogSessionStoreTests` / overlap coverage stay honest.
-- To pause a fake call mid-write, give it a `FakeHold` (`isOn`, `count`, `release()`); do not hand-roll continuations.
+- To pause a fake call mid-write, give it a `FakeHold` (`isOn`, `release()`; wait for a held call with `await hold.untilSuspended(n)`, never `waitUntil` on `count`; `count` is for negative checks only, such as no second call within 300 ms); do not hand-roll continuations.
 - **No** `GoStore`, `provenencia_call`, dylib, or generated `engine.pb.swift`.
 - **No** XCUITest / view snapshots unless the user asks.
 
