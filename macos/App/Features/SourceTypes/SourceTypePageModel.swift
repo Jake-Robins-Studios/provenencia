@@ -14,7 +14,10 @@ final class SourceTypePageModel {
     /// The Details form's values; set from the saved type once it is known (`syncDraft()`).
     var draft: SourceTypeDraft?
     private(set) var isSaving = false
-    var formError: String?
+    /// The Label's validation message, shown under Label as the researcher edits.
+    private(set) var labelError: String?
+    /// A refused or failed Save, shown beside Save and announced.
+    private(set) var saveError: String?
     var toast: VocabularyToast?
 
     var suggestionError: String?
@@ -88,9 +91,21 @@ final class SourceTypePageModel {
     var type: CatalogSourceType? { session.sourceType(id: typeID) }
 
     /// True once a settled types list lacks the type: the page leaves for the list.
-    var isGone: Bool {
-        if case .gone = session.sourceTypePresence(id: typeID) { return true }
-        return false
+    var isGone: Bool { session.sourceTypePresence(id: typeID).isGone }
+
+    /// The last label the page showed, for the notice once the type is gone (the row is no longer
+    /// in the list to name it).
+    @ObservationIgnored
+    private var lastLabel = ""
+
+    /// Remembers the label the page shows; nil (the type is not in the list) keeps the last one.
+    func noteLabel(_ label: String?) {
+        if let label { lastLabel = label }
+    }
+
+    /// The notice to show as the page leaves for the list: nil unless the type is gone.
+    var goneNotice: String? {
+        isGone ? L10n.SourceTypes.goneNotice(label: lastLabel) : nil
     }
 
     /// A plugin's type: read only.
@@ -133,20 +148,28 @@ final class SourceTypePageModel {
         return draft.labelError == nil && !isSaving && isDirty
     }
 
+    /// Sets the label and shows or clears its error as the researcher types, as
+    /// `SourceTypeAddModel.editLabel(_:)` does.
+    func editLabel(_ new: String) {
+        guard var draft, new != draft.label else { return }
+        draft.label = new
+        self.draft = draft
+        labelError = draft.labelError
+    }
+
     func revertEdit() {
         guard let type else { return }
         draft = Self.draft(of: type)
-        formError = nil
+        labelError = nil
+        saveError = nil
     }
 
     func submit() async {
         guard let draft, let type, !isLocked else { return }
-        guard draft.labelError == nil else {
-            formError = draft.labelError
-            return
-        }
+        labelError = draft.labelError
+        guard labelError == nil else { return }
         isSaving = true
-        formError = nil
+        saveError = nil
         defer { isSaving = false }
         do {
             let (updated, effects) = try await store.updateSourceType(
@@ -161,7 +184,7 @@ final class SourceTypePageModel {
                 tone: .success
             )
         } catch {
-            formError = L10n.Errors.message(for: error)
+            saveError = L10n.Errors.message(for: error)
         }
     }
 
@@ -300,8 +323,7 @@ final class SourceTypePageModel {
 
 extension SourceTypePageModel: WorkspaceLeaveGuard {
     /// Holds a move away while Details hold unsaved edits, unless a Save is in flight.
-    func shouldHoldNavigation(_ pending: PendingNavigation) -> Bool {
-        _ = pending
+    func shouldHoldNavigation(_: PendingNavigation) -> Bool {
         guard isDirty, !isSaving else { return false }
         pendingLeave = WorkspaceLeaveAsk()
         return true

@@ -6,7 +6,8 @@ import SwiftUI
 /// type is read only: no hint, no remove and no picker.
 struct SourceTypeSuggestionList: View {
     @Bindable var model: SourceTypePageModel
-    let isLocked: Bool
+
+    private var isLocked: Bool { model.isLocked }
 
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
@@ -20,7 +21,7 @@ struct SourceTypeSuggestionList: View {
                     .foregroundStyle(PVColor.textMuted)
             }
             if let suggestionError = model.suggestionError {
-                PVCallout(tone: .danger, message: suggestionError)
+                PVCallout(tone: .danger, message: suggestionError, announces: true)
                     .accessibilityIdentifier("sourceTypes.suggested.error")
             }
             content

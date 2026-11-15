@@ -362,8 +362,8 @@ struct WorkspaceLeaveAsk: Identifiable, Equatable {
 /// (Cancel, Escape, a click outside) is the page's keep-editing answer.
 enum WorkspaceLeaveConfirm {
     static func binding<Item>(
-        pending: @escaping () -> Item?,
-        keepEditing: @escaping () -> Void
+        pending: @escaping @MainActor @Sendable () -> Item?,
+        keepEditing: @escaping @MainActor @Sendable () -> Void
     ) -> Binding<Item?> {
         Binding(
             get: pending,
@@ -406,11 +406,11 @@ extension View {
     /// `onDiscard`, and every other way out of it runs `onKeepEditing`. One confirm for every page
     /// that installs `workspaceLeaveGuard(_:)`.
     func workspaceLeaveConfirm<Item: Identifiable>(
-        pending: @escaping () -> Item?,
+        pending: @escaping @MainActor @Sendable () -> Item?,
         copy: @escaping (Item) -> PVConfirmCopy,
         accessibilityIdentifierPrefix: String,
         onDiscard: @escaping () -> Void,
-        onKeepEditing: @escaping () -> Void
+        onKeepEditing: @escaping @MainActor @Sendable () -> Void
     ) -> some View {
         pvConfirm(
             item: WorkspaceLeaveConfirm.binding(pending: pending, keepEditing: onKeepEditing),

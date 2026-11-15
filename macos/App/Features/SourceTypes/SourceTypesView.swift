@@ -39,7 +39,6 @@ struct SourceTypesView: View {
 }
 
 private struct SourceTypesContent: View {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourceTypesModel
 
@@ -48,7 +47,7 @@ private struct SourceTypesContent: View {
             header
             PVDivider()
             if let loadError = model.loadError, model.types.isEmpty {
-                PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
+                PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError), announces: true)
                     .padding(.horizontal, PVSpacing.gutterPage)
                     .padding(.top, PVSpacing.space8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

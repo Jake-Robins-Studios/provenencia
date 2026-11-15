@@ -6633,7 +6633,7 @@
       }
     },
     "sourceTypes.detail.eyebrowType": {
-      "comment": "Eyebrow label above an existing type's detail panel",
+      "comment": "Eyebrow label above an existing type's page",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -6657,7 +6657,7 @@
       }
     },
     "sourceTypes.detail.keyHintEdit": {
-      "comment": "Hint under the key on an existing type's detail panel",
+      "comment": "Hint under the key on an existing type's page",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7144,6 +7144,18 @@
         }
       }
     },
+    "sourceTypes.page.goneNotice": {
+      "comment": "Notice after leaving a Source type page whose type another window deleted; argument is the type label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” was deleted."
+          }
+        }
+      }
+    },
     "sourceTypes.page.loadErrorTitle": {
       "comment": "Title of the retry notice on a Source type's page when the types list could not be read",
       "extractionState": "manual",
@@ -7301,7 +7313,7 @@
       }
     },
     "sourceTypes.suggested.noneBody": {
-      "comment": "Body of the panel shown when a type suggests no fields yet",
+      "comment": "Body of the notice shown when a type suggests no fields yet",
       "extractionState": "manual",
       "localizations": {
         "en": {

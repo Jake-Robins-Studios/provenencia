@@ -8052,7 +8052,7 @@ enum L10n {
         static let detailEyebrowType = LocalizedStringResource(
             "sourceTypes.detail.eyebrowType",
             defaultValue: "Source type",
-            comment: "Eyebrow label above an existing type's detail panel"
+            comment: "Eyebrow label above an existing type's page"
         )
 
         static let detailsSectionLabel = LocalizedStringResource(
@@ -8060,6 +8060,14 @@ enum L10n {
             defaultValue: "Details",
             comment: "Section title over a Source type page's Label, Icon and Description form"
         )
+
+        static func goneNotice(label: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.page.goneNotice",
+                defaultValue: "“%@” was deleted.",
+                comment: "Notice after leaving a Source type page whose type another window deleted; argument is the type label"
+            ), label)
+        }
 
         static let pageLoadErrorTitle = LocalizedStringResource(
             "sourceTypes.page.loadErrorTitle",
@@ -8082,7 +8090,7 @@ enum L10n {
         static let keyHintEdit = LocalizedStringResource(
             "sourceTypes.detail.keyHintEdit",
             defaultValue: "The key is minted once from the label and never changes — renaming the type keeps existing sources attached",
-            comment: "Hint under the key on an existing type's detail panel"
+            comment: "Hint under the key on an existing type's page"
         )
 
         static func usage(count: Int) -> String {
@@ -8267,7 +8275,7 @@ enum L10n {
         static let noAssignedBody = LocalizedStringResource(
             "sourceTypes.suggested.noneBody",
             defaultValue: "No suggested fields yet — a source of this type will offer nothing but the standard citation. Assign the fields these records usually carry.",
-            comment: "Body of the panel shown when a type suggests no fields yet"
+            comment: "Body of the notice shown when a type suggests no fields yet"
         )
 
         static let assignPlaceholder = LocalizedStringResource(

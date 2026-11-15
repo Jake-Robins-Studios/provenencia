@@ -20,7 +20,7 @@ struct SourceTypesListPane: View {
             rows: model.visibleTypes,
             isLoading: model.isLoading,
             columns: columns,
-            selection: selection,
+            selection: $highlighted,
             sort: PVTableSort(
                 columnID: model.sortColumn.rawValue,
                 direction: model.sortAscending ? .ascending : .descending
@@ -92,10 +92,5 @@ struct SourceTypesListPane: View {
                 .foregroundStyle(type.suggestedFieldCount > 0 ? PVColor.textSecondary : PVColor.textFaint)
             },
         ]
-    }
-
-    /// The highlight is the table's; opening a row is `onActivate`'s.
-    private var selection: Binding<String?> {
-        Binding(get: { highlighted }, set: { highlighted = $0 })
     }
 }

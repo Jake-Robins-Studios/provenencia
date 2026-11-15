@@ -127,10 +127,7 @@ final class EvidenceGraphModel {
     }
 
     /// True once the settled graph list no longer has this graph.
-    var graphIsGone: Bool {
-        if case .gone = session.evidenceGraphPresence(id: graphID) { return true }
-        return false
-    }
+    var graphIsGone: Bool { session.evidenceGraphPresence(id: graphID).isGone }
 
     var connectRules: [CatalogConnectRule] {
         let handle: QueryHandle<[CatalogConnectRule]>? = session.queryHandle(connectRulesKey)

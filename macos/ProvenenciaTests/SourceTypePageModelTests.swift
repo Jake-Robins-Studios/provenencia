@@ -90,13 +90,55 @@ struct SourceTypePageModelTests {
     @Test func blankLabelRefusesSave() async {
         let store = FakeStore()
         let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
-        model.draft?.label = "   "
+        model.editLabel("   ")
         #expect(!model.canSubmit)
         await model.submit()
 
-        #expect(model.formError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.saveError == nil)
         #expect(store.sourceTypesByProject[projectDir]?.first?.label == "Book")
         #expect(model.toast == nil)
+    }
+
+    /// UX-1: clearing the label shows the required message as the researcher edits, and typing a
+    /// label clears it.
+    @Test func clearingTheLabelShowsTheRequiredMessage() async {
+        let (model, _) = await makePageModel(typeID: "t1", types: [seededSourceType()])
+        model.editLabel("")
+        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(!model.canSubmit)
+
+        model.editLabel("Tome")
+        #expect(model.labelError == nil)
+        #expect(model.canSubmit)
+    }
+
+    /// UX-2: a failed write is a save error, not a Label error.
+    @Test func aStoreFailureOnSaveIsNotALabelError() async {
+        let store = FakeStore()
+        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
+        store.sourceTypesByProject[projectDir] = []
+        model.editLabel("Tome")
+        await model.submit()
+
+        #expect(model.labelError == nil)
+        #expect(model.saveError != nil)
+        #expect(model.toast == nil)
+
+        model.revertEdit()
+        #expect(model.saveError == nil)
+    }
+
+    /// UX-3: a type deleted elsewhere leaves with a notice that names it.
+    @Test func goneTypeNamesItselfInTheNotice() async {
+        let (model, session) = await makePageModel(typeID: "t1", types: [seededSourceType()])
+        model.noteLabel(model.type?.label)
+        #expect(model.goneNotice == nil)
+
+        session.apply(.deletedSourceType(id: "t1"))
+        model.noteLabel(model.type?.label)
+        #expect(model.isGone)
+        #expect(model.goneNotice == L10n.SourceTypes.goneNotice(label: "Book"))
     }
 
     @Test func changingIconMarksDirtyAndPersists() async {

@@ -8,6 +8,12 @@ enum CatalogRowPresence<Row> {
     case present(Row)
     case gone
 
+    /// True only for `.gone`.
+    var isGone: Bool {
+        if case .gone = self { return true }
+        return false
+    }
+
     /// `row`, the list's row for the id, as a presence: `.present` when the list
     /// has it, `.gone` only once the handle has settled with a value, else `.unknown`.
     @MainActor

@@ -37,118 +37,57 @@ struct SourceTypePageView: View {
 
     var body: some View {
         @Bindable var model = model
-        Group {
-            if let typesHandle = model.typesHandle {
-                SourceTypePageContent(typeID: typeID, typesHandle: typesHandle, model: model)
-            } else {
-                SourceTypePageLoadingShell(typeID: typeID, model: model)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(PVColor.surfacePage)
-        .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.page.toast")
-        .workspaceLeaveGuard(model)
-        .leavesForSectionRoot(when: model.isGone)
-        .workspaceLeaveConfirm(
-            pending: { model.pendingLeave },
-            copy: { _ in .discardChanges },
-            accessibilityIdentifierPrefix: "sourceTypes.page.leave",
-            onDiscard: { model.discardAndLeave() },
-            onKeepEditing: { model.keepEditing() }
-        )
-        .pvDeleteImpact(
-            flow: model.deleteImpact,
-            accessibilityIdentifierPrefix: "sourceTypes.deleteImpact",
-            onConfirm: {
-                Task { await model.confirmDelete(leaving: navigation.fallbackToSectionRoot) }
-            },
-            onNavigate: { location in
-                navigation.go(to: location)
-            }
-        )
-        .task { model.warm() }
-        .accessibilityIdentifier("sourceTypes.page")
+        SourceTypePageContent(typeID: typeID, typesHandle: model.typesHandle, model: model)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(PVColor.surfacePage)
+            .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.page.toast")
+            .workspaceLeaveGuard(model)
+            .leavesForSectionRoot(when: model.isGone, notice: model.goneNotice)
+            .workspaceLeaveConfirm(
+                pending: { model.pendingLeave },
+                copy: { _ in .discardChanges },
+                accessibilityIdentifierPrefix: "sourceTypes.page.leave",
+                onDiscard: { model.discardAndLeave() },
+                onKeepEditing: { model.keepEditing() }
+            )
+            .pvDeleteImpact(
+                flow: model.deleteImpact,
+                accessibilityIdentifierPrefix: "sourceTypes.deleteImpact",
+                onConfirm: {
+                    Task { await model.confirmDelete(leaving: navigation.fallbackToSectionRoot) }
+                },
+                onNavigate: { location in
+                    navigation.go(to: location)
+                }
+            )
+            .task { model.warm() }
+            .accessibilityIdentifier("sourceTypes.page")
     }
 }
 
-/// Spinner-only shell before the types list has a handle.
-private struct SourceTypePageLoadingShell: View {
-    let typeID: String
-    let model: SourceTypePageModel
-
-    var body: some View {
-        PVPageColumns(
-            headerPinned: true,
-            scrollResetKey: typeID,
-            split: .sourceTypePage,
-            header: { SourceTypePageHeader(model: model) },
-            primary: {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, PVSpacing.space9)
-            }
-        )
-    }
-}
-
-/// Observes the types handle so a load or a write repaints the page.
+/// Observes the types handle so a load or a write repaints the page. One frame for every state:
+/// the header stays put and only the columns change, from the spinner or the retry notice to
+/// Details beside Suggested fields.
 private struct SourceTypePageContent: View {
     let typeID: String
-    @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
+    let typesHandle: QueryHandle<[CatalogSourceType]>?
     @Bindable var model: SourceTypePageModel
     @State private var iconPickerOpen = false
     /// Pending selection while the sheet is open: the draft changes only on Use icon.
     @State private var pendingIconKey = PVMarkKey.defaultTypeMark.rawValue
 
     var body: some View {
-        Group {
-            if model.type != nil {
-                loaded
-            } else if case .failed(let error) = typesHandle.reading {
-                PVPageColumns(
-                    headerPinned: true,
-                    scrollResetKey: typeID,
-                    split: .sourceTypePage,
-                    header: { SourceTypePageHeader(model: model) },
-                    primary: {
-                        PVRetryCallout(
-                            title: L10n.SourceTypes.pageLoadErrorTitle,
-                            message: L10n.Errors.message(for: error),
-                            handle: typesHandle,
-                            id: "sourceTypes.page.loadError",
-                            onRetry: { model.rereadTypes() }
-                        )
-                        .accessibilityIdentifier("sourceTypes.page.loadError")
-                    }
-                )
-            } else {
-                // Loading, or the type is gone and the page is leaving for the list.
-                PVPageColumns(
-                    headerPinned: true,
-                    scrollResetKey: typeID,
-                    split: .sourceTypePage,
-                    header: { SourceTypePageHeader(model: model) },
-                    primary: {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, PVSpacing.space9)
-                    }
-                )
-            }
-        }
-        .onChange(of: model.type?.id, initial: true) { _, _ in
-            model.syncDraft()
-        }
-    }
-
-    private var loaded: some View {
         PVPageColumns(
             headerPinned: true,
             scrollResetKey: typeID,
             split: .sourceTypePage,
             header: { SourceTypePageHeader(model: model) },
-            primary: { details },
-            secondary: { SourceTypeSuggestionList(model: model, isLocked: model.isLocked) }
+            primary: { primary },
+            secondary: {
+                if model.type != nil {
+                    SourceTypeSuggestionList(model: model)
+                }
+            }
         )
         .pvFormDialog(
             isPresented: $iconPickerOpen,
@@ -171,6 +110,34 @@ private struct SourceTypePageContent: View {
                 columns: 6,
                 groupLabel: L10n.SourceTypes.iconPickerGroupLabel
             )
+        }
+        .onChange(of: model.type?.id, initial: true) { _, _ in
+            model.syncDraft()
+        }
+        .onChange(of: model.type?.label, initial: true) { _, label in
+            model.noteLabel(label)
+        }
+    }
+
+    /// Details once the type is known; else the retry notice on a failed read, or the spinner
+    /// while loading (or while the page leaves for the list because the type is gone).
+    @ViewBuilder
+    private var primary: some View {
+        if model.type != nil {
+            details
+        } else if let typesHandle, case .failed(let error) = typesHandle.reading {
+            PVRetryCallout(
+                title: L10n.SourceTypes.pageLoadErrorTitle,
+                message: L10n.Errors.message(for: error),
+                handle: typesHandle,
+                id: "sourceTypes.page.loadError",
+                onRetry: { model.rereadTypes() }
+            )
+            .accessibilityIdentifier("sourceTypes.page.loadError")
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, PVSpacing.space9)
         }
     }
 
@@ -213,10 +180,10 @@ private struct SourceTypePageContent: View {
     private var form: some View {
         if let draft = Binding($model.draft) {
             VStack(alignment: .leading, spacing: PVSpacing.space7) {
-                PVField(label: L10n.SourceTypes.formLabel, error: model.formError, marker: .required) {
+                PVField(label: L10n.SourceTypes.formLabel, error: model.labelError, marker: .required) {
                     PVInput(
-                        text: draft.label,
-                        isInvalid: model.formError != nil
+                        text: Binding(get: { draft.wrappedValue.label }, set: { model.editLabel($0) }),
+                        isInvalid: model.labelError != nil
                     )
                     .accessibilityIdentifier("sourceTypes.form.label")
                 }
@@ -234,6 +201,10 @@ private struct SourceTypePageContent: View {
                         prompt: L10n.SourceTypes.formDescriptionPlaceholder
                     )
                     .accessibilityIdentifier("sourceTypes.form.description")
+                }
+                if let saveError = model.saveError {
+                    PVCallout(tone: .danger, message: saveError, announces: true)
+                        .accessibilityIdentifier("sourceTypes.form.saveError")
                 }
                 VocabularyFormActions(
                     primaryLabel: model.isSaving ? L10n.SourceTypes.saveSaving : L10n.SourceTypes.saveChanges,

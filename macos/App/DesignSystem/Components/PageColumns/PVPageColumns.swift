@@ -170,14 +170,9 @@ enum PVPageColumnsMetrics {
     /// `widthContentMax` while the side takes what is left, between `widthInspector`
     /// and `sideMax`. `group` is the two and the gap between them.
     static func split(available: CGFloat, sideMax: CGFloat) -> (main: CGFloat, side: CGFloat, group: CGFloat) {
-        let standard = PVColumnSplit.standard
-        return beside(
-            available: available,
-            split: PVColumnSplit(
-                mainMin: standard.mainMin, mainMax: standard.mainMax, sideMin: standard.sideMin,
-                sideMax: sideMax, stacking: standard.stacking
-            )
-        )
+        var standard = PVColumnSplit.standard
+        standard.sideMax = sideMax
+        return beside(available: available, split: standard)
     }
 
     /// The widths of a main column and a side column inside `available` (the section's

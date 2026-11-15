@@ -38,6 +38,7 @@ struct SourceTypePageHeader: View {
                     .foregroundStyle(PVColor.textDisplay)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .help(type.label)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -60,7 +61,7 @@ struct SourceTypePageHeader: View {
                 .font(PVFont.body(size: PVTypeScale.micro, italic: true))
                 .foregroundStyle(PVColor.textMuted)
             if model.deleteImpact.request == nil, let deleteError = model.deleteError {
-                PVCallout(tone: .danger, message: deleteError)
+                PVCallout(tone: .danger, message: deleteError, announces: true)
                     .accessibilityIdentifier("sourceTypes.deleteError")
             }
         }
