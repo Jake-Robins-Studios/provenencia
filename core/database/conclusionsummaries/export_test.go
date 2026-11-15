@@ -3,6 +3,7 @@ package conclusionsummaries
 import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/mendahu/provenencia/core/datevalue"
 )
 
 func countList(c *database.Catalog, list func(*database.Catalog) error) (int, error) {
@@ -37,11 +38,21 @@ func ListPlacesQueryCount(c *database.Catalog) (int, error) {
 	})
 }
 
-// SortPersons and SortPlaces apply the list orders to rows.
+// SortPersons, SortPlaces and SortEvents apply the list orders to rows;
+// PlaceListKey and EventListKey are the keys they sort by.
 var (
-	SortPersons = sortPersons
-	SortPlaces  = sortPlaces
+	SortPersons  = sortPersons
+	SortPlaces   = sortPlaces
+	SortEvents   = sortEvents
+	PlaceListKey = placeListKey
+	EventListKey = eventListKey
 )
+
+// TitleListKey is a title's list key.
+func TitleListKey(title, ref string) ListKey { return titleListKey(title, ref) }
+
+// DateListKey is a date's list key: a nil date is undated.
+func DateListKey(v *datevalue.Value, ref string) ListKey { return dateKeyOf(v, ref).listKey() }
 
 // SetInputKeyCapForTest lowers the per-call input key cap and returns the
 // function that restores it.

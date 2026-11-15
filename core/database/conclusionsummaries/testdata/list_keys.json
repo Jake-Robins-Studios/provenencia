@@ -1,0 +1,78 @@
+{
+  "titles": [
+    {
+      "title": "Montreal",
+      "ref": "PLC-A",
+      "last": false,
+      "primary": "17411771174f181617bd164c15ef1711",
+      "key_ref": "plc-a"
+    },
+    {
+      "title": "Montréal",
+      "ref": "PLC-B",
+      "last": false,
+      "primary": "17411771174f181617bd164c15ef1711",
+      "key_ref": "plc-b"
+    },
+    {
+      "title": "MONTREAL",
+      "ref": "PLC-C",
+      "last": false,
+      "primary": "17411771174f181617bd164c15ef1711",
+      "key_ref": "plc-c"
+    },
+    {
+      "title": "Zürich",
+      "ref": "PLC-D",
+      "last": false,
+      "primary": "1895183617bd16cd161d16b4",
+      "key_ref": "plc-d"
+    },
+    {
+      "ref": "PLC-0",
+      "last": true,
+      "primary": "",
+      "key_ref": "plc-0"
+    }
+  ],
+  "dates": [
+    {
+      "year": 1850,
+      "side": "before",
+      "ref": "EVT-3",
+      "last": false,
+      "primary": "7ffffffffffdfe61",
+      "key_ref": "evt-3"
+    },
+    {
+      "year": 1850,
+      "side": "exact",
+      "ref": "EVT-2",
+      "last": false,
+      "primary": "7ffffffffffdfe62",
+      "key_ref": "evt-2"
+    },
+    {
+      "year": 1850,
+      "side": "after",
+      "ref": "EVT-1",
+      "last": false,
+      "primary": "7ffffffffffdfe63",
+      "key_ref": "evt-1"
+    },
+    {
+      "side": "none",
+      "ref": "EVT-A",
+      "last": true,
+      "primary": "",
+      "key_ref": "evt-a"
+    },
+    {
+      "side": "none",
+      "ref": "EVT-B",
+      "last": true,
+      "primary": "",
+      "key_ref": "evt-b"
+    }
+  ]
+}

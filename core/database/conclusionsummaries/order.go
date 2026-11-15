@@ -1,6 +1,7 @@
 package conclusionsummaries
 
 import (
+	"bytes"
 	"sort"
 	"strings"
 
@@ -15,6 +16,39 @@ import (
 // table, which is most of a list's time when every call makes a new one.
 var titleCollator = collate.New(language.Und, collate.IgnoreCase, collate.IgnoreDiacritics)
 
+// ListKey is a row's place in a list's order: rows with Last false first,
+// then Primary bytewise, then Ref bytewise. Every order in this package sorts
+// by it, and the list reads send it, so the app can place a re-read row. Ref is
+// always lowercased.
+type ListKey struct {
+	Last    bool
+	Primary []byte
+	Ref     string
+}
+
+// Less is whether k sorts before o.
+func (k ListKey) Less(o ListKey) bool {
+	if k.Last != o.Last {
+		return o.Last
+	}
+	if c := bytes.Compare(k.Primary, o.Primary); c != 0 {
+		return c < 0
+	}
+	return k.Ref < o.Ref
+}
+
+// titleListKey is title order as a key: a row with no title last, then the root
+// collation key of the trimmed title, then the lowercased ref.
+func titleListKey(title, ref string) ListKey {
+	title = strings.TrimSpace(title)
+	ref = strings.ToLower(ref)
+	if title == "" {
+		return ListKey{Last: true, Ref: ref}
+	}
+	var buf collate.Buffer
+	return ListKey{Primary: bytes.Clone(titleCollator.KeyFromString(&buf, title)), Ref: ref}
+}
+
 // SortByTitle orders any titled row by the title the caller supplies (a Place
 // row by its toponym, else its working label; a Source group by its title; a
 // Person row by its sort title, which leaves honorifics out), ignoring case and diacritics (Montréal beside Montreal), by the
@@ -22,27 +56,7 @@ var titleCollator = collate.New(language.Und, collate.IgnoreCase, collate.Ignore
 // titled only by its ref sorts last, by ref. Ties break by ref. This is the
 // one owner of title order; the app shows rows as given.
 func SortByTitle[T any](rows []T, title func(T) string, ref func(T) string) {
-	sortByKey(rows, func(row T) titleKey {
-		return titleKey{title: strings.TrimSpace(title(row)), ref: strings.ToLower(ref(row))}
-	}, titleKeyLess)
-}
-
-// titleKey is a row's title and ref, each prepared once: the trimmed title and
-// the lowercased ref.
-type titleKey struct{ title, ref string }
-
-// titleKeyLess is title order: a row with no title last, then the root
-// collation of the titles, then the refs.
-func titleKeyLess(a, b titleKey) bool {
-	if (a.title == "") != (b.title == "") {
-		return b.title == ""
-	}
-	if a.title != "" {
-		if o := titleCollator.CompareString(a.title, b.title); o != 0 {
-			return o < 0
-		}
-	}
-	return a.ref < b.ref
+	sortByKey(rows, func(row T) ListKey { return titleListKey(title(row), ref(row)) })
 }
 
 // SortByBirth orders people by birth date: dated first, earliest first, then by
@@ -116,36 +130,46 @@ func EventSpanAndAge(h EventSummary, birth PlacedBirth, hasBirth bool) EventPlac
 // then by ref. Each key is computed once, and rows with equal keys keep their
 // order.
 func sortByDateKey[T any](rows []T, key func(T) dateKey) {
-	sortByKey(rows, key, dateKeyLess)
+	sortByKey(rows, func(row T) ListKey { return key(row).listKey() })
 }
 
-// sortByKey computes each row's key once, sorts stably by less, and writes the
-// rows back. Rows with equal keys keep their order.
-func sortByKey[T, K any](rows []T, key func(T) K, less func(a, b K) bool) {
+// sortByKey computes each row's key once, sorts stably by ListKey.Less, and
+// writes the rows back. Rows with equal keys keep their order.
+func sortByKey[T any](rows []T, key func(T) ListKey) {
 	type keyed struct {
 		row T
-		key K
+		key ListKey
 	}
 	keyedRows := make([]keyed, len(rows))
 	for i := range rows {
 		keyedRows[i] = keyed{row: rows[i], key: key(rows[i])}
 	}
 	sort.SliceStable(keyedRows, func(i, j int) bool {
-		return less(keyedRows[i].key, keyedRows[j].key)
+		return keyedRows[i].key.Less(keyedRows[j].key)
 	})
 	for i := range rows {
 		rows[i] = keyedRows[i].row
 	}
 }
 
+// personListKey is a Person row's place in the Persons list.
+func personListKey(h PersonSummary, profile nameformats.Profile) ListKey {
+	return titleListKey(personSortKey(h, profile), h.Entity.Ref)
+}
+
+// placeListKey is a Place row's place in the Places list.
+func placeListKey(h PlaceSummary) ListKey {
+	return titleListKey(placeTitle(h), h.Entity.Ref)
+}
+
 // sortPersons is the Persons list order.
 func sortPersons(rows []PersonSummary, profile nameformats.Profile) {
-	SortByTitle(rows, func(h PersonSummary) string { return personSortKey(h, profile) }, func(h PersonSummary) string { return h.Entity.Ref })
+	sortByKey(rows, func(h PersonSummary) ListKey { return personListKey(h, profile) })
 }
 
 // sortPlaces is the Places list order.
 func sortPlaces(rows []PlaceSummary) {
-	SortByTitle(rows, placeTitle, func(h PlaceSummary) string { return h.Entity.Ref })
+	sortByKey(rows, placeListKey)
 }
 
 // personSortKey is the Persons list order. A name with parts sorts by the

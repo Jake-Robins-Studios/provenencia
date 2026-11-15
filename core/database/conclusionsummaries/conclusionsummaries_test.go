@@ -2,7 +2,10 @@ package conclusionsummaries_test
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -1562,5 +1565,165 @@ func TestEventParticipants(t *testing.T) {
 				t.Fatalf("subjects %v, want %v", subjects, tc.wantSubjects)
 			}
 		})
+	}
+}
+
+func TestListKeyLess(t *testing.T) {
+	k := func(last bool, primary []byte, ref string) conclusionsummaries.ListKey {
+		return conclusionsummaries.ListKey{Last: last, Primary: primary, Ref: ref}
+	}
+	tests := []struct {
+		name string
+		a, b conclusionsummaries.ListKey
+		less bool // a before b; b is never before a unless equal
+		tie  bool
+	}{
+		{name: "last goes after", a: k(false, nil, "z"), b: k(true, nil, "a"), less: true},
+		{name: "primary is bytewise", a: k(false, []byte{1}, ""), b: k(false, []byte{1, 0}, ""), less: true},
+		{name: "a longer primary before a larger byte", a: k(false, []byte{1, 0}, ""), b: k(false, []byte{2}, ""), less: true},
+		{name: "equal primary breaks by ref", a: k(false, []byte{1}, "per-a"), b: k(false, []byte{1}, "per-b"), less: true},
+		{name: "equal keys", a: k(false, []byte{1}, "per-a"), b: k(false, []byte{1}, "per-a"), tie: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.a.Less(tt.b); got != tt.less {
+				t.Fatalf("a.Less(b) = %v, want %v", got, tt.less)
+			}
+			if tt.less && tt.b.Less(tt.a) {
+				t.Fatal("b.Less(a) too")
+			}
+			if tt.tie && tt.b.Less(tt.a) {
+				t.Fatal("equal keys are less")
+			}
+		})
+	}
+}
+
+// listKeyPlaces are AC-2.2's places, in the order they should list.
+func listKeyPlaces() []conclusionsummaries.PlaceSummary {
+	place := func(ref string, names ...string) conclusionsummaries.PlaceSummary {
+		return conclusionsummaries.PlaceSummary{Entity: canonicalentities.Entity{Ref: ref}, Names: names}
+	}
+	return []conclusionsummaries.PlaceSummary{
+		place("PLC-B", "Montréal"), place("PLC-0"), place("PLC-D", "Zürich"),
+		place("PLC-C", "MONTREAL"), place("PLC-A", "Montreal"),
+	}
+}
+
+// listKeyEvents are AC-2.3's events: one date value or none, and a ref.
+func listKeyEvents() []conclusionsummaries.EventSummary {
+	event := func(ref string, d *datevalue.Value) conclusionsummaries.EventSummary {
+		return conclusionsummaries.EventSummary{Entity: canonicalentities.Entity{Ref: ref}, Date: d}
+	}
+	return []conclusionsummaries.EventSummary{
+		event("EVT-B", nil), event("EVT-1", datevaluetest.After(1850, 0, 0)),
+		event("EVT-3", datevaluetest.Before(1850, 0, 0)), event("EVT-A", nil),
+		event("EVT-2", datevaluetest.YMD(1850, 0, 0)),
+	}
+}
+
+func TestListKeysFollowListOrder(t *testing.T) {
+	places := listKeyPlaces()
+	conclusionsummaries.SortPlaces(places)
+	var refs []string
+	for i, p := range places {
+		refs = append(refs, p.Entity.Ref)
+		key := conclusionsummaries.PlaceListKey(p)
+		if i > 0 && !conclusionsummaries.PlaceListKey(places[i-1]).Less(key) {
+			t.Fatalf("place %d does not follow place %d: %v", i, i-1, refs)
+		}
+		if key.Last != (p.Entity.Ref == "PLC-0") {
+			t.Fatalf("%s: Last = %v", p.Entity.Ref, key.Last)
+		}
+	}
+	if got := strings.Join(refs, ","); got != "PLC-A,PLC-B,PLC-C,PLC-D,PLC-0" {
+		t.Fatalf("place order %s", got)
+	}
+
+	events := listKeyEvents()
+	conclusionsummaries.SortEvents(events)
+	refs = nil
+	for i, e := range events {
+		refs = append(refs, e.Entity.Ref)
+		key := conclusionsummaries.EventListKey(e)
+		if i > 0 && !conclusionsummaries.EventListKey(events[i-1]).Less(key) {
+			t.Fatalf("event %d does not follow event %d: %v", i, i-1, refs)
+		}
+		if key.Last != (e.Date == nil) {
+			t.Fatalf("%s: Last = %v", e.Entity.Ref, key.Last)
+		}
+	}
+	if got := strings.Join(refs, ","); got != "EVT-3,EVT-2,EVT-1,EVT-A,EVT-B" {
+		t.Fatalf("event order %s", got)
+	}
+}
+
+// listKeyRow is a row of testdata/list_keys.json, shared with the Swift
+// CatalogListMergeTests: the keys Go gives, in Go order.
+type listKeyRow struct {
+	Title  string `json:"title,omitempty"`
+	Year   int    `json:"year,omitempty"`
+	Side   string `json:"side,omitempty"`
+	Ref    string `json:"ref"`
+	Last   bool   `json:"last"`
+	Prim   string `json:"primary"`
+	KeyRef string `json:"key_ref"`
+}
+
+type listKeysFile struct {
+	Titles []listKeyRow `json:"titles"`
+	Dates  []listKeyRow `json:"dates"`
+}
+
+func keyRow(row listKeyRow, k conclusionsummaries.ListKey) listKeyRow {
+	row.Last, row.Prim, row.KeyRef = k.Last, hex.EncodeToString(k.Primary), k.Ref
+	return row
+}
+
+func TestListKeysFile(t *testing.T) {
+	var want listKeysFile
+	for _, p := range []listKeyRow{
+		{Title: "Montreal", Ref: "PLC-A"}, {Title: "Montréal", Ref: "PLC-B"}, {Title: "MONTREAL", Ref: "PLC-C"},
+		{Title: "Zürich", Ref: "PLC-D"}, {Title: "", Ref: "PLC-0"},
+	} {
+		want.Titles = append(want.Titles, keyRow(p, conclusionsummaries.TitleListKey(p.Title, p.Ref)))
+	}
+	for _, d := range []struct {
+		row listKeyRow
+		v   *datevalue.Value
+	}{
+		{listKeyRow{Year: 1850, Side: "before", Ref: "EVT-3"}, datevaluetest.Before(1850, 0, 0)},
+		{listKeyRow{Year: 1850, Side: "exact", Ref: "EVT-2"}, datevaluetest.YMD(1850, 0, 0)},
+		{listKeyRow{Year: 1850, Side: "after", Ref: "EVT-1"}, datevaluetest.After(1850, 0, 0)},
+		{listKeyRow{Side: "none", Ref: "EVT-A"}, nil},
+		{listKeyRow{Side: "none", Ref: "EVT-B"}, nil},
+	} {
+		want.Dates = append(want.Dates, keyRow(d.row, conclusionsummaries.DateListKey(d.v, d.row.Ref)))
+	}
+	decode := func(rows []listKeyRow) []conclusionsummaries.ListKey {
+		var keys []conclusionsummaries.ListKey
+		for _, r := range rows {
+			primary, err := hex.DecodeString(r.Prim)
+			must(t, err)
+			keys = append(keys, conclusionsummaries.ListKey{Last: r.Last, Primary: primary, Ref: r.KeyRef})
+		}
+		return keys
+	}
+	for name, rows := range map[string][]listKeyRow{"titles": want.Titles, "dates": want.Dates} {
+		keys := decode(rows)
+		for i := 1; i < len(keys); i++ {
+			if !keys[i-1].Less(keys[i]) {
+				t.Fatalf("%s: row %d does not follow row %d", name, i, i-1)
+			}
+		}
+	}
+	raw, err := os.ReadFile("testdata/list_keys.json")
+	var got listKeysFile
+	if err == nil {
+		err = json.Unmarshal(raw, &got)
+	}
+	if err != nil || !slices.Equal(got.Titles, want.Titles) || !slices.Equal(got.Dates, want.Dates) {
+		wantJSON, _ := json.MarshalIndent(want, "", "  ")
+		t.Fatalf("testdata/list_keys.json (%v) is not Go's keys; it should be:\n%s\n", err, wantJSON)
 	}
 }

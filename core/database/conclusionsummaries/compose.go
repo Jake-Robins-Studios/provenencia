@@ -2,6 +2,7 @@ package conclusionsummaries
 
 import (
 	"bytes"
+	"encoding/binary"
 	"maps"
 	"strings"
 
@@ -1030,17 +1031,22 @@ func (k dateKey) withRef(ref string) dateKey {
 }
 
 func sortEvents(rows []EventSummary) {
-	sortByDateKey(rows, eventKeyOf)
+	sortByKey(rows, eventListKey)
 }
 
-func dateKeyLess(a, b dateKey) bool {
-	if a.ok != b.ok {
-		return a.ok
+// listKey is k as a ListKey: undated last; else the date's order integer with
+// its sign flipped so it compares bytewise, then the ref.
+func (k dateKey) listKey() ListKey {
+	if !k.ok {
+		return ListKey{Last: true, Ref: k.ref}
 	}
-	if c := a.at.Compare(b.at); c != 0 {
-		return c < 0
-	}
-	return a.ref < b.ref
+	primary := binary.BigEndian.AppendUint64(nil, uint64(k.at.Int64())^(1<<63))
+	return ListKey{Primary: primary, Ref: k.ref}
+}
+
+// eventListKey is an Event row's place in the Events list.
+func eventListKey(h EventSummary) ListKey {
+	return eventKeyOf(h).listKey()
 }
 
 // AgeRange is the whole years of age a person had on a day: Lo to Hi, equal
