@@ -12,6 +12,18 @@ final class SourceTypesModel {
         var label: String
         var description: String
         var iconKey: String = PVMarkKey.defaultTypeMark.rawValue
+
+        var trimmedLabel: String { label.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        /// The key the engine mints from the label.
+        var key: String { FieldSlug.kebab(trimmedLabel) }
+
+        /// Why the label cannot be saved, or nil. One rule for the Add dialog and the side pane.
+        var labelError: String? {
+            if trimmedLabel.isEmpty { return L10n.string(L10n.SourceTypes.errorLabelRequired) }
+            if key.isEmpty { return L10n.string(L10n.SourceTypes.errorUnslugifiable) }
+            return nil
+        }
     }
 
     enum SortColumn: String {
@@ -24,6 +36,8 @@ final class SourceTypesModel {
     private(set) var sortAscending = true
 
     private(set) var mode: VocabularyPaneMode = .empty
+    /// The Add type dialog's model while it is open; a fresh one per open.
+    var adding: SourceTypeAddModel?
     var draft: Draft?
     private(set) var isSaving = false
     var formError: String?
@@ -129,10 +143,7 @@ final class SourceTypesModel {
         }
     }
 
-    var isAdding: Bool {
-        if case .adding = mode { return true }
-        return false
-    }
+    var isAdding: Bool { adding != nil }
 
     var selectedType: CatalogSourceType? {
         switch mode {
@@ -146,10 +157,6 @@ final class SourceTypesModel {
     var isSelectedTypeLocked: Bool {
         if case .viewing = mode { return true }
         return false
-    }
-
-    var draftKey: String {
-        FieldSlug.kebab(draft?.label ?? "")
     }
 
     /// Writes a pending icon pick into the draft (form-dialog confirm path).
@@ -167,10 +174,8 @@ final class SourceTypesModel {
     }
 
     var canSubmit: Bool {
-        guard let draft, !isSaving, !draft.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return false
-        }
-        return isAdding || isDirty
+        guard let draft else { return false }
+        return draft.labelError == nil && !isSaving && isDirty
     }
 
     var canEditAssociations: Bool {
@@ -206,7 +211,7 @@ final class SourceTypesModel {
         return L10n.SourceTypes.assignFieldNamed(field: field.label, type: type.label)
     }
 
-    var showsDelete: Bool { !isAdding && selectedType != nil }
+    var showsDelete: Bool { selectedType != nil }
 
     var canDeleteSelectedType: Bool { selectedType != nil }
 
@@ -243,7 +248,6 @@ final class SourceTypesModel {
         guard location.section == .sourceTypes else { return .ignored }
         guard let typesHandle: QueryHandle<[CatalogSourceType]> = session.queryHandle(Self.typesListKey(for: session)),
               typesHandle.status == .ready || !types.isEmpty else { return .ignored }
-        if isAdding { return .ignored }
         if let typeId = location.typeId {
             guard applySelection(typeId) else {
                 clearHistorySelection()
@@ -283,32 +287,22 @@ final class SourceTypesModel {
     }
 
     func clearHistorySelection() {
-        guard !isAdding else { return }
         mode = .empty
         suggestionError = nil
         assignPick = ""
     }
 
     func openAdd() {
-        let resumeID: String? = switch mode {
-        case .viewing(let id), .editing(let id): id
-        case .empty, .adding: nil
-        }
-        formError = nil
-        suggestionError = nil
-        assignPick = ""
-        mode = .adding(resumeID: resumeID)
-        draft = Draft(label: "", description: "", iconKey: PVMarkKey.defaultTypeMark.rawValue)
+        adding = SourceTypeAddModel(session: session, userID: userID, store: store)
     }
 
-    func cancelAdd() {
-        guard case .adding(let resumeID) = mode else { return }
-        formError = nil
-        if let resumeID {
-            select(resumeID)
-        } else {
-            mode = .empty
-        }
+    /// The "Type added" toast, after the dialog's create.
+    func showAdded(_ type: CatalogSourceType) {
+        toast = VocabularyToast(
+            title: L10n.string(L10n.SourceTypes.toastAddedTitle),
+            body: L10n.SourceTypes.toastAddedBody(label: type.label, key: type.key),
+            tone: .success
+        )
     }
 
     func revertEdit() {
@@ -317,44 +311,18 @@ final class SourceTypesModel {
         formError = nil
     }
 
-    @discardableResult
-    func submit() async -> WorkspaceLocation? {
-        guard let draft else { return nil }
-        let label = draft.label.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !label.isEmpty else {
-            formError = L10n.string(L10n.SourceTypes.errorLabelRequired)
-            return nil
+    func submit() async {
+        guard let draft else { return }
+        guard draft.labelError == nil else {
+            formError = draft.labelError
+            return
         }
-        if isAdding && FieldSlug.kebab(label).isEmpty {
-            formError = L10n.string(L10n.SourceTypes.errorUnslugifiable)
-            return nil
-        }
+        let label = draft.trimmedLabel
         isSaving = true
         formError = nil
         defer { isSaving = false }
         do {
             switch mode {
-            case .adding:
-                let (created, effects) = try await store.createSourceType(
-                    projectDir: session.projectKey.projectDir, userID: userID,
-                    label: label, description: draft.description, iconKey: draft.iconKey
-                )
-                session.apply(effects)
-                patchTypesList { rows in
-                    rows.append(created)
-                }
-                mode = .editing(id: created.id)
-                self.draft = Draft(label: created.label, description: created.description, iconKey: created.iconKey)
-                toast = VocabularyToast(
-                    title: L10n.string(L10n.SourceTypes.toastAddedTitle),
-                    body: L10n.SourceTypes.toastAddedBody(label: created.label, key: created.key),
-                    tone: .success
-                )
-                return WorkspaceLocation(
-                    section: .sourceTypes,
-                    typeId: created.id,
-                    title: created.label
-                )
             case .editing(let id):
                 let (updated, effects) = try await store.updateSourceType(
                     projectDir: session.projectKey.projectDir, userID: userID, typeID: id,
@@ -373,13 +341,13 @@ final class SourceTypesModel {
                     body: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key),
                     tone: .success
                 )
-                return nil
-            case .empty, .viewing:
-                return nil
+                return
+            case .empty, .viewing, .adding:
+                return
             }
         } catch {
             formError = L10n.Errors.message(for: error)
-            return nil
+            return
         }
     }
 

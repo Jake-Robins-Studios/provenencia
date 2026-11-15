@@ -24,6 +24,7 @@ struct PVField<Content: View>: View {
     /// `L10n.Errors.message` before it reaches here. Same reasoning as
     /// `PVToast`'s `title`/`message`.
     private let error: String?
+    private let announcesError: Bool
     private let marker: Marker
     private let content: Content
 
@@ -32,11 +33,13 @@ struct PVField<Content: View>: View {
         hint: (any PVCopy)? = nil,
         error: String? = nil,
         marker: Marker = .none,
+        announcesError: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.label = label
         self.hint = hint?.pvText
         self.error = error
+        self.announcesError = announcesError
         self.marker = marker
         self.content = content()
     }
@@ -63,7 +66,7 @@ struct PVField<Content: View>: View {
                 .environment(\.pvFieldLabel, label)
 
             if let error {
-                PVErrorText(error)
+                PVErrorText(error, announces: announcesError)
             } else if let hint {
                 hint
                     .font(PVFont.body(size: PVTypeScale.micro, italic: true))

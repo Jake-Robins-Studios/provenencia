@@ -87,15 +87,11 @@ struct SourceTypesListPane: View {
     /// Selection is the table's; workspace history owns committed place.
     private var selection: Binding<String?> {
         Binding(
-            get: { model.isAdding ? nil : model.selectedType?.id },
+            get: { model.selectedType?.id },
             set: { id in
                 guard let id else { return }
                 let type = model.types.first(where: { $0.id == id })
-                navigation.go(to: WorkspaceLocation(
-                    section: .sourceTypes,
-                    typeId: id,
-                    title: type?.label
-                ))
+                navigation.go(to: .sourceTypePage(typeId: id, title: type?.label))
             }
         )
     }

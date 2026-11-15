@@ -1202,6 +1202,48 @@ struct CatalogQueryRegistryTests {
         #expect(handle.value?.first?.usedBy == 1)
     }
 
+    /// T-10: a created Source type is appended to the warmed types list at once (a declared
+    /// patch, no reload), and applying it again leaves one row.
+    @Test func createdSourceTypePatchesTheTypesList() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
+        let handle: QueryHandle<[CatalogSourceType]> = session.query(key)
+        await waitForQuery(handle)
+        let before = handle.value?.count ?? 0
+
+        let row = CatalogSourceType(id: "t-new", key: "parish-register", origin: "user", label: "Parish register", description: "")
+        session.apply(.empty, .createdSourceType(row))
+        #expect(handle.value?.last == row)
+        #expect(handle.value?.count == before + 1)
+        #expect(!handle.isFetching)
+
+        session.apply(.empty, .createdSourceType(row))
+        #expect(handle.value?.filter { $0.id == "t-new" }.count == 1)
+    }
+
+    /// F-1: the generic row patch appends a row the list lacks only when `appendsOn` says so.
+    @Test func aNonCreateSourceTypeMutationForAMissingRowAddsNothing() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.sourceTypesList(project: session.projectKey)
+        let handle: QueryHandle<[CatalogSourceType]> = session.query(key)
+        await waitForQuery(handle)
+        let before = handle.value
+
+        let row = CatalogSourceType(id: "t-new", key: "parish-register", origin: "user", label: "Parish register", description: "")
+        let patch = CatalogQueryPatch.row(
+            CatalogSourceType.self,
+            patched: { $0.patchedSourceType },
+            appendsOn: { _ in false }
+        )
+        let result = patch.apply(session, key, [], CatalogActivity(), .createdSourceType(row))
+        #expect(result == .unchanged)
+        #expect(handle.value == before)
+    }
+
     /// Moving a source to another type patches the list row for an instant
     /// repaint, then refetches the page because the engine derives suggested
     /// metadata rows from the type.

@@ -156,6 +156,6 @@ Which items should I implement?
 
 ## Example triggers
 
-- “Evaluate `SourceTypeIconPickerForm` against our layering rules”
+- “Evaluate `SourceTypeIconGrid` against our layering rules”
 - “Look at `PVFormDialog` / `PVConfirm` for compose opportunities”
 - “Audit this badge — can we drill into a primitive and make a recipe?”

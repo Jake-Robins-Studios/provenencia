@@ -7963,6 +7963,42 @@ enum L10n {
             ), total, seeded, user, plugin)
         }
 
+        static let addDialogTitle = LocalizedStringResource(
+            "sourceTypes.add.title",
+            defaultValue: "Add source type",
+            comment: "Title of the Add type dialog"
+        )
+
+        static let addDialogSubtitle = LocalizedStringResource(
+            "sourceTypes.add.subtitle",
+            defaultValue: "A kind of record. Suggested fields and citation formats are added on the type afterwards.",
+            comment: "Subtitle of the Add type dialog"
+        )
+
+        static let addKey = LocalizedStringResource(
+            "sourceTypes.add.key",
+            defaultValue: "Key",
+            comment: "Label of the read-only key field in the Add type dialog"
+        )
+
+        static let addKeyPlaceholder = LocalizedStringResource(
+            "sourceTypes.add.keyPlaceholder",
+            defaultValue: "Minted from the label",
+            comment: "Placeholder of the Add type dialog's key field before a label is typed"
+        )
+
+        static let addErrorTitle = LocalizedStringResource(
+            "sourceTypes.add.errorTitle",
+            defaultValue: "The type was not added",
+            comment: "Title of the error callout in the Add type dialog"
+        )
+
+        static let addIconGroupLabel = LocalizedStringResource(
+            "sourceTypes.add.iconGroup",
+            defaultValue: "Icon for the new source type",
+            comment: "VoiceOver group label of the icon grid in the Add type dialog"
+        )
+
         static let addType = LocalizedStringResource(
             "sourceTypes.list.addType",
             defaultValue: "Add type",
@@ -8017,12 +8053,6 @@ enum L10n {
             "sourceTypes.detail.eyebrowType",
             defaultValue: "Source type",
             comment: "Eyebrow label above an existing type's detail panel"
-        )
-
-        static let detailEyebrowNewType = LocalizedStringResource(
-            "sourceTypes.detail.eyebrowNewType",
-            defaultValue: "New type",
-            comment: "Eyebrow label above the add-type panel"
         )
 
         static let keyHintAdd = LocalizedStringResource(
@@ -8206,12 +8236,6 @@ enum L10n {
             "sourceTypes.form.revert",
             defaultValue: "Revert",
             comment: "Secondary button label that discards unsaved edits to an existing type"
-        )
-
-        static let addSuggestionsNote = LocalizedStringResource(
-            "sourceTypes.form.addSuggestionsNote",
-            defaultValue: "Suggested fields are assigned after the type is saved.",
-            comment: "Callout in the add-type form explaining that associations come later"
         )
 
         static let suggestedSectionLabel = LocalizedStringResource(

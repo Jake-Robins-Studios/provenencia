@@ -133,10 +133,16 @@ struct PVInput: View {
     var body: some View {
         Group {
             if isReadOnly {
-                Text(text)
-                    .accessibilityValue(Text(text))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .modifier(chrome(isFocused: false))
+                Group {
+                    if text.isEmpty, let prompt {
+                        Text(prompt).foregroundStyle(PVColor.textMuted)
+                    } else {
+                        Text(text)
+                    }
+                }
+                .accessibilityValue(Text(text))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .modifier(chrome(isFocused: false))
             } else {
                 TextField(text: $text, prompt: prompt.map { Text($0) }) { EmptyView() }
                     .textFieldStyle(.plain)
@@ -222,6 +228,7 @@ struct PVInput: View {
         PVInput(text: .constant(""), size: .sm, prompt: "Search everything", icon: .search, suffix: "⌘K")
         PVInput(text: .constant("USR-A1B2C"), mono: true)
         PVInput(text: .constant("Jane Smith"), isReadOnly: true)
+        PVInput(text: .constant(""), isReadOnly: true, prompt: "Minted from the label")
         PVInput(text: .constant(""), prompt: "Required", isInvalid: true)
     }
     .padding(PVSpacing.space9)

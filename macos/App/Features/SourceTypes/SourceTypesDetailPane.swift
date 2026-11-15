@@ -1,11 +1,10 @@
 import SwiftUI
 
-/// The right pane of `SourceTypesView`: the add-type form, a selected
+/// The right pane of `SourceTypesView`: a selected
 /// type's detail (editable for `user` / `provenencia`, locked read-only for
 /// `plugin:…`) with the fields it suggests, or an empty prompt when nothing
 /// is selected — S2-03 §3.2/3.3.
 struct SourceTypesDetailPane: View {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Bindable var model: SourceTypesModel
     @State private var iconPickerOpen = false
     /// Pending selection while the form dialog is open — draft updates only on confirm.
@@ -33,7 +32,11 @@ struct SourceTypesDetailPane: View {
                 iconPickerOpen = false
             }
         ) {
-            SourceTypeIconPickerForm(selection: $pendingIconKey)
+            SourceTypeIconGrid(
+                selection: $pendingIconKey,
+                columns: 6,
+                groupLabel: L10n.SourceTypes.iconPickerGroupLabel
+            )
         }
         .onChange(of: panelIdentity) { _, _ in
             iconPickerOpen = false
@@ -46,9 +49,7 @@ struct SourceTypesDetailPane: View {
 
     @ViewBuilder
     private var content: some View {
-        if model.isAdding {
-            panel(isLocked: false)
-        } else if model.selectedType != nil {
+        if model.selectedType != nil {
             panel(isLocked: model.isSelectedTypeLocked)
         } else {
             PVEmptyState(
@@ -73,15 +74,11 @@ struct SourceTypesDetailPane: View {
             } else {
                 form
             }
-            if model.isAdding {
-                addSuggestionsNote
-            } else {
-                suggestedFields(isLocked: isLocked)
-            }
+            suggestedFields(isLocked: isLocked)
         }
         .padding(PVSpacing.space8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Force a fresh subtree when switching add / view / edit so form
+        // Force a fresh subtree when switching view / edit so form
         // bindings are not reused across modes that no longer own a draft.
         .id(panelIdentity)
     }
@@ -99,15 +96,15 @@ struct SourceTypesDetailPane: View {
 
     private var panelHeader: some View {
         VocabularyPanelHeader(
-            eyebrow: model.isAdding ? L10n.SourceTypes.detailEyebrowNewType : L10n.SourceTypes.detailEyebrowType,
+            eyebrow: L10n.SourceTypes.detailEyebrowType,
             title: panelTitle,
-            origin: model.isAdding ? CatalogOrigin.user : (model.selectedType?.origin ?? CatalogOrigin.user),
+            origin: model.selectedType?.origin ?? CatalogOrigin.user,
             keyText: panelKey,
             iconKey: panelIconKey,
-            usageLine: model.isAdding ? nil : model.selectedType.map {
+            usageLine: model.selectedType.map {
                 L10n.SourceTypes.usage(count: $0.usedBy)
             },
-            keyHint: model.isAdding ? L10n.SourceTypes.keyHintAdd : L10n.SourceTypes.keyHintEdit,
+            keyHint: L10n.SourceTypes.keyHintEdit,
             showsDelete: model.showsDelete,
             canDelete: model.canDeleteSelectedType,
             deleteTooltip: model.deleteTooltip,
@@ -118,26 +115,15 @@ struct SourceTypesDetailPane: View {
     }
 
     private var panelIconKey: String? {
-        if model.isAdding {
-            return model.draft?.iconKey
-        }
-        return model.selectedType?.iconKey ?? model.draft?.iconKey
+        model.selectedType?.iconKey ?? model.draft?.iconKey
     }
 
     private var panelTitle: String {
-        if model.isAdding {
-            let label = model.draft?.label.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return label.isEmpty ? L10n.string(L10n.SourceTypes.detailEyebrowNewType) : label
-        }
-        return model.selectedType?.label ?? ""
+        model.selectedType?.label ?? ""
     }
 
     private var panelKey: String {
-        if model.isAdding {
-            let key = model.draftKey
-            return key.isEmpty ? "—" : key
-        }
-        return model.selectedType?.key ?? ""
+        model.selectedType?.key ?? ""
     }
 
     // MARK: Locked (plugin) detail
@@ -167,9 +153,9 @@ struct SourceTypesDetailPane: View {
         }
     }
 
-    // MARK: Add / editable form
+    // MARK: Editable form
 
-    /// `panel(isLocked: false)` is only reached in `.adding` / `.editing`,
+    /// `panel(isLocked: false)` is only reached in `.editing`,
     /// where `draft` is set, so the `Binding($model.draft)` unwrap always
     /// succeeds in practice.
     @ViewBuilder
@@ -179,7 +165,6 @@ struct SourceTypesDetailPane: View {
                 PVField(label: L10n.SourceTypes.formLabel, error: model.formError, marker: .required) {
                     PVInput(
                         text: draft.label,
-                        prompt: model.isAdding ? L10n.SourceTypes.formLabelPlaceholder : nil,
                         isInvalid: model.formError != nil
                     )
                     .accessibilityIdentifier("sourceTypes.form.label")
@@ -192,27 +177,20 @@ struct SourceTypesDetailPane: View {
                     iconFieldButton(selection: draft.iconKey)
                 }
                 PVField(label: L10n.SourceTypes.formDescription, hint: L10n.SourceTypes.formDescriptionHint) {
-                    PVInput(
-                        text: draft.description,
-                        prompt: model.isAdding ? L10n.SourceTypes.formDescriptionPlaceholder : nil
-                    )
-                    .accessibilityIdentifier("sourceTypes.form.description")
+                    PVInput(text: draft.description)
+                        .accessibilityIdentifier("sourceTypes.form.description")
                 }
                 VocabularyFormActions(
                     primaryLabel: primaryLabel,
-                    secondaryLabel: secondaryLabel,
+                    secondaryLabel: L10n.SourceTypes.revert,
                     isSaving: model.isSaving,
                     canSubmit: model.canSubmit,
-                    isSecondaryDisabled: model.isSaving || (!model.isAdding && !model.isDirty),
+                    isSecondaryDisabled: model.isSaving || !model.isDirty,
                     identifierPrefix: "sourceTypes",
                     onPrimary: {
-                        Task {
-                            if let location = await model.submit() {
-                                navigation.go(to: location)
-                            }
-                        }
+                        Task { await model.submit() }
                     },
-                    onSecondary: { secondaryAction() }
+                    onSecondary: { model.revertEdit() }
                 )
             }
             .padding(.top, PVSpacing.space7)
@@ -277,35 +255,7 @@ struct SourceTypesDetailPane: View {
     }
 
     private var primaryLabel: LocalizedStringResource {
-        if model.isSaving { return L10n.SourceTypes.saveSaving }
-        return model.isAdding ? L10n.SourceTypes.addType : L10n.SourceTypes.saveChanges
-    }
-
-    private var secondaryLabel: LocalizedStringResource {
-        model.isAdding ? L10n.SourceTypes.cancel : L10n.SourceTypes.revert
-    }
-
-    private func secondaryAction() {
-        if model.isAdding {
-            model.cancelAdd()
-        } else {
-            model.revertEdit()
-        }
-    }
-
-    /// Suggestions are deliberately not part of create (S2-03 T-15) — the
-    /// callout says so, and the save lands on the detail that can assign.
-    private var addSuggestionsNote: some View {
-        PVCallout(
-            tone: .neutral,
-            icon: .info,
-            message: L10n.string(L10n.SourceTypes.addSuggestionsNote),
-            compact: true
-        )
-        .padding(.top, PVSpacing.space7)
-        .overlay(alignment: .top) {
-            PVDivider()
-        }
+        model.isSaving ? L10n.SourceTypes.saveSaving : L10n.SourceTypes.saveChanges
     }
 
     // MARK: Suggested fields
@@ -488,81 +438,5 @@ struct SourceTypesDetailPane: View {
     /// option's subtext rather than being flattened into the label.
     private var poolOptions: [PVComboBoxOption] {
         model.assignPool.map { PVComboBoxOption(value: $0.id, label: $0.label, subtext: $0.key) }
-    }
-}
-
-/// Icon grid + metaphor for the Source-type icon ``pvFormDialog`` body.
-/// Selection is local until the form dialog confirms.
-private struct SourceTypeIconPickerForm: View {
-    @Binding var selection: String
-
-    private let columns = [GridItem(.adaptive(minimum: 108), spacing: PVSpacing.space4)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space7) {
-            LazyVGrid(columns: columns, spacing: PVSpacing.space4) {
-                ForEach(PVMarkKey.typeKeys, id: \.rawValue) { key in
-                    iconCell(key)
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text(L10n.SourceTypes.iconPickerGroupLabel))
-            .accessibilityIdentifier("sourceTypes.iconPicker")
-
-            Text(selectedKey.typeMetaphor)
-                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                .foregroundStyle(PVColor.textMuted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var selectedKey: PVMarkKey {
-        PVMarkKey(catalogKey: selection)
-    }
-
-    private func iconCell(_ key: PVMarkKey) -> some View {
-        let selected = selection == key.rawValue
-        return Button {
-            selection = key.rawValue
-        } label: {
-            VStack(spacing: PVSpacing.space4) {
-                PVMark(key, size: 40, decorative: true)
-                Text(key.typePickerTitle)
-                    .font(PVFont.body(size: PVTypeScale.micro))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, PVSpacing.space4)
-            .padding(.vertical, PVSpacing.space5)
-            .foregroundStyle(selected ? PVColor.accent : PVColor.textSecondary)
-            .background(
-                RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                    .fill(selected ? PVColor.surfaceActive : PVColor.surfaceCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                    .stroke(selected ? PVColor.accent : PVColor.borderSubtle, lineWidth: 1)
-            )
-            .modifier(SelectedIconShadow(selected: selected))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(key.typePickerTitle))
-        .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-        .accessibilityIdentifier("sourceTypes.iconPicker.\(key.rawValue)")
-    }
-}
-
-private struct SelectedIconShadow: ViewModifier {
-    let selected: Bool
-
-    func body(content: Content) -> some View {
-        if selected {
-            content.pvShadow(PVElevation.sm)
-        } else {
-            content
-        }
     }
 }

@@ -49,7 +49,7 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
     }
 }
 
-/// The form body, in `SourceOwnerFormColumns`: the save error across the top, then two columns. Left: name,
+/// The form body, in `PVFormColumns`: the save error across the top, then two columns. Left: name,
 /// description and the metadata board. Right: the Artifacts the graph links; a
 /// locked one that Citations use links to the citation composer.
 private struct SourceGraphForm: View {
@@ -58,7 +58,7 @@ private struct SourceGraphForm: View {
     @Environment(\.pvSheetClose) private var close
 
     var body: some View {
-        SourceOwnerFormColumns(
+        PVFormColumns(
             saveError: model.saveError,
             saveErrorTitle: L10n.Sources.graphFormSaveErrorTitle,
             saveErrorIdentifier: "sources.graphForm.error",
