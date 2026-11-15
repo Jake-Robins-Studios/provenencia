@@ -1,4 +1,6 @@
 import Foundation
+import Observation
+import os
 import Testing
 @testable import Provenencia
 
@@ -264,6 +266,33 @@ struct CatalogListMergeTests {
         #expect(handle?.value?.count == count - 1)
         // decided: S16-26 F-8 (a copy of the cached value would move the buffer)
         #expect(before != nil && address() == before)
+    }
+
+    /// F-10: a patch that changes nothing does not tell the handle's observers; one that changes
+    /// something does.
+    @MainActor
+    @Test func noOpPatchNotifiesNoObserver() {
+        let session = WorkspaceSession(
+            projectKey: ProjectKey(projectDir: "/tmp/list-noop-patch.provenencia"),
+            store: FakeStore()
+        )
+        let key = CatalogQueryKey.personsList(project: session.projectKey)
+        session.setQueryValue(key, value: CatalogListRows((0..<5).map { Self.personRow("p\($0)", $0) } as [CatalogPersonSummary]))
+        let handle: QueryHandle<CatalogListRows<CatalogPersonSummary>>? = session.queryHandle(key)
+        let revision = handle?.revision
+        func fires(_ change: () -> Bool) -> (fired: Bool, result: CatalogPatchResult) {
+            let fired = OSAllocatedUnfairLock(initialState: false)
+            withObservationTracking { _ = handle?.value } onChange: { fired.withLock { $0 = true } }
+            let result = session.patchCached(key, as: CatalogListRows<CatalogPersonSummary>.self) { _ in change() }
+            return (fired.withLock { $0 }, result)
+        }
+        let noOp = fires { false }
+        #expect(!noOp.fired)
+        #expect(noOp.result == .unchanged)
+        #expect(handle?.revision == revision)
+        let changed = fires { true }
+        #expect(changed.fired)
+        #expect(changed.result == .applied)
     }
 
     private static func personRow(_ id: String, _ n: Int) -> CatalogPersonSummary {
