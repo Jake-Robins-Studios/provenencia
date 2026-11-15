@@ -45,14 +45,16 @@ import (
 // by the user on 2026-11-13, because S16-16 composes each walked person's
 // kinship at every call instead of reading a stored answer (see
 // docs/ideas/promote-ranking.md#memoise-a-persons-composed-kinship): the CI
-// figure 383 ms times the worst ratio seen (1.96) times 1.25 headroom. Warm
-// history: 250, 350, 375, 500, 950 ms. Warm has now been raised for the CI
-// runner: a proposal that creeps toward 950 ms again is a real slowdown to
-// investigate, not a reason to raise it again.
+// figure 383 ms times the worst ratio seen (1.96) times 1.25 headroom. Lowered to
+// 150 ms by S16-22 (2026-11-15), when Promote stopped walking the component: 25 ms
+// measured at 4,000 persons on a 4-core Xeon; 150 ms keeps six times headroom and
+// fails the walk (170 ms on the same machine). Warm history: 250, 350, 375, 500,
+// 950, 150 ms. A proposal that creeps toward 150 ms is a real slowdown to
+// investigate, not a reason to raise it.
 const (
 	budgetWarmOnOpen   = 2500 * time.Millisecond
 	budgetCold         = 2500 * time.Millisecond
-	budgetWarm         = 950 * time.Millisecond
+	budgetWarm         = 150 * time.Millisecond
 	budgetAfterCommit  = 2500 * time.Millisecond
 	budgetOnePlaceCold = 5 * time.Second
 	budgetOnePlaceWarm = 3 * time.Second
@@ -241,12 +243,8 @@ func TestLargeSourceBudgets(t *testing.T) {
 		databasetest.WithinBudget(t, "cold proposal", d, budgetCold)
 	})
 
-	// A warm proposal rebuilds the canon each time, about 120 MB of short-lived
-	// allocations over a heap of about 170 MB, so each run sets off one or two
-	// collections (2026-11-03, a best of three measured 388 ms on a loaded CI
-	// runner against 110 – 190 ms on a Mac). The cost itself is S16-22's to
-	// narrow: it reads each handle's links from the kinship pivots instead of
-	// walking the component.
+	// A warm proposal reads the links of the handles Align asks for (S16-22),
+	// about 18 MB of short-lived allocations.
 	t.Run("warm", func(t *testing.T) {
 		databasetest.WithinBudget(t, "warm proposal", lf.warmProposal(), budgetWarm)
 	})
@@ -267,6 +265,18 @@ func TestLargeSourceBudgets(t *testing.T) {
 		databasetest.WithinBudget(t, "proposal after a handle commit", after, budgetAfterCommit)
 		// decided: bar 10 (deployment-plan.md), moved to S16-32 by the user on 2026-11-13
 		databasetest.WithinBudget(t, "proposal after a handle commit, against 1.5 times a warm one", after, warm*3/2)
+	})
+
+	t.Run("at 16,000 persons", func(t *testing.T) {
+		warm4 := lf.warmProposal()
+		big := newLargeFixture(t, 16000)
+		warm := big.warmProposal()
+		n := 0
+		after := big.proposalAfterCommit(&n)
+		t.Logf("warm proposal at 16,000 persons %v (4,000: %v), after a handle commit %v", warm, warm4, after)
+		databasetest.WithinBudget(t, "warm proposal at 16,000 persons", warm, budgetWarm)
+		databasetest.WithinBudget(t, "warm proposal at 16,000 persons, against twice the one at 4,000", warm, 2*warm4)
+		databasetest.WithinBudget(t, "proposal after a handle commit at 16,000 persons, against 1.5 times a warm one", after, warm*3/2)
 	})
 
 	t.Run("warm queries", func(t *testing.T) {
