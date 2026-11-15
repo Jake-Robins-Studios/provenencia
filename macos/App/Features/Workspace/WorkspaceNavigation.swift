@@ -368,7 +368,7 @@ enum WorkspaceLeaveConfirm {
         Binding(
             get: pending,
             set: { newValue in
-                if newValue == nil { keepEditing() }
+                if newValue == nil { MainActor.assumeIsolated { keepEditing() } }
             }
         )
     }
