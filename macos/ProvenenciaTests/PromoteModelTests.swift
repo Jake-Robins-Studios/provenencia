@@ -340,12 +340,12 @@ struct PromoteModelTests {
         await model.load()
         hold.isOn = true
         model.setTarget(subjectID: "a", token: "handle:other")
-        #expect(await waitUntil { hold.count == 1 })
+        await hold.untilSuspended(1)
         for id in ["b", "c", "d", "e"] {
             model.setTarget(subjectID: id, token: "handle:other")
         }
         hold.release()
-        #expect(await waitUntil { hold.count == 1 })
+        await hold.untilSuspended(1)
         #expect(model.flow.row("f")?.target.handleID == "e1")
         hold.release()
         #expect(await waitUntil { !model.isProposing })
@@ -368,13 +368,13 @@ struct PromoteModelTests {
         await model.load()
         hold.isOn = true
         model.setTarget(subjectID: "a", token: "handle:other")
-        #expect(await waitUntil { hold.count == 1 })
+        await hold.untilSuspended(1)
         model.setTarget(subjectID: "a", token: "handle:e1")
         #expect(model.canFinish == false)
         model.done()
         #expect(model.isSaving == false)
         hold.release()
-        #expect(await waitUntil { hold.count == 1 })
+        await hold.untilSuspended(1)
         hold.release()
         let settled = await waitUntil { model.canFinish }
         #expect(settled)
@@ -417,7 +417,7 @@ struct PromoteModelTests {
         await model.load()
         hold.isOn = true
         model.setTarget(subjectID: "a", token: "handle:other")
-        #expect(await waitUntil { hold.count == 1 })
+        await hold.untilSuspended(1)
         model.mapRest()
         hold.isOn = false
         hold.release()

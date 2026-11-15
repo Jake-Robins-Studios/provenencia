@@ -181,7 +181,7 @@ struct WorkspaceSessionTests {
         #expect(handle.isFetching)
         #expect(session.artifactIDsInNoGraph(sourceID: "s1", artifactIDs: ["a1", "a2"]) == nil)
 
-        _ = await waitUntil { hold.count == 1 }
+        await hold.untilSuspended(1)
         hold.release()
         await waitForQuery(handle)
         #expect(session.artifactIDsInNoGraph(sourceID: "s1", artifactIDs: ["a1", "a2"]) == [])
