@@ -1,50 +1,37 @@
 import Foundation
 
-/// Cache identity for one catalog read. New workspace places add a case here
-/// and an arm on `CatalogQueryKey.Kind.descriptor`.
-enum CatalogQueryKey: Hashable, Sendable {
-    case sourcesList(project: ProjectKey)
-    case sourceTypesList(project: ProjectKey)
-    case metadataFieldsList(project: ProjectKey)
-    case credibilityGradesList(project: ProjectKey)
-    case sourceWorkspace(project: ProjectKey, sourceId: String)
-    /// One Evidence graph's rows: the canvas, the composer and Promote read it.
-    case evidenceGraph(project: ProjectKey, graphId: String)
-    case citationCounts(project: ProjectKey, graphId: String)
-    /// A type's suggested fields at the `source` level; the type page draws one
-    /// list until it edits all three levels.
-    case typeSuggestions(project: ProjectKey, typeId: String)
-    case propertiesWorkspace(project: ProjectKey)
-    case connectRules(project: ProjectKey)
-    case propertyTerms(project: ProjectKey, propertyId: String)
-    case citationsByArtifact(project: ProjectKey, graphId: String, artifactId: String)
-    case evidenceGraphProgress(project: ProjectKey)
-    /// Every Evidence graph of the project with its linked Artifact ids (S12-05).
-    case evidenceGraphsList(project: ProjectKey)
-    /// Every Person summary, composed from the auto-reconciler cache (S9-07).
-    case personsList(project: ProjectKey)
-    /// Every Event summary, composed from the auto-reconciler cache (S9-22).
-    case eventsList(project: ProjectKey)
-    /// Every Place summary, composed from the auto-reconciler cache (S9-25).
-    case placesList(project: ProjectKey)
-    /// One handle's detail, any kind (S9-15), with its kind's summary (birth
-    /// and death, an Event's subjects and title, a Place's names) read in the
-    /// same call. Marked stale, not revalidated, while off screen.
-    case conclusionDetail(project: ProjectKey, entityId: String)
-    /// One Person's accepted claims grouped by Source (S13-01), read for the
-    /// Sources section. Marked stale, not revalidated, while off screen.
-    case personClaims(project: ProjectKey, entityId: String)
-    /// One Person's family units (S13-04), read for the Family section.
-    /// Marked stale, not revalidated, while off screen.
-    case personFamily(project: ProjectKey, entityId: String)
-    /// One Person's timeline events (S13-05), read for the Timeline section.
-    /// Marked stale, not revalidated, while off screen.
-    case personEvents(project: ProjectKey, entityId: String)
-    /// One Person's Evidence graphs and the lines between them (S13-27), read
-    /// for the record links view. Marked stale, not revalidated, while off screen.
-    case personRecordLinks(project: ProjectKey, entityId: String)
+/// Cache identity for one catalog read: its kind, project and the ids its
+/// factory took. New workspace places add a `Kind` case, a factory and an arm
+/// on `CatalogQueryKey.Kind.descriptor`.
+struct CatalogQueryKey: Hashable, Sendable {
+    let kind: Kind
+    let project: ProjectKey
+    /// The ids the read takes, in its factory's argument order; empty for a
+    /// catalog-wide read.
+    let ids: [String]
 
-    /// Case identity without associated payload. Each kind has one
+    private init(_ kind: Kind, _ project: ProjectKey, _ ids: [String] = []) {
+        self.kind = kind
+        self.project = project
+        self.ids = ids
+    }
+
+    /// The key's single id, when it has exactly one.
+    var ownId: String? { ids.count == 1 ? ids[0] : nil }
+
+    /// `ownId`, for a loader of a kind that always has exactly one id; a
+    /// programming error otherwise.
+    var id: String {
+        precondition(ids.count == 1, "\(kind) has \(ids.count) ids")
+        return ids[0]
+    }
+
+    /// The graph of a `citationsByArtifact` key.
+    var citationGraphId: String { ids[0] }
+    /// The Artifact of a `citationsByArtifact` key.
+    var citationArtifactId: String { ids[1] }
+
+    /// What a key reads. Each kind has one
     /// `CatalogQueryDescriptor` (`Kind.descriptor`).
     enum Kind: Hashable, Sendable, CaseIterable {
         case sourcesList
@@ -71,101 +58,66 @@ enum CatalogQueryKey: Hashable, Sendable {
         case personRecordLinks
     }
 
-    var kind: Kind {
-        switch self {
-        case .sourcesList:
-            return .sourcesList
-        case .sourceTypesList:
-            return .sourceTypesList
-        case .metadataFieldsList:
-            return .metadataFieldsList
-        case .credibilityGradesList:
-            return .credibilityGradesList
-        case .sourceWorkspace:
-            return .sourceWorkspace
-        case .evidenceGraph:
-            return .evidenceGraph
-        case .citationCounts:
-            return .citationCounts
-        case .typeSuggestions:
-            return .typeSuggestions
-        case .propertiesWorkspace:
-            return .propertiesWorkspace
-        case .connectRules:
-            return .connectRules
-        case .propertyTerms:
-            return .propertyTerms
-        case .citationsByArtifact:
-            return .citationsByArtifact
-        case .evidenceGraphProgress:
-            return .evidenceGraphProgress
-        case .evidenceGraphsList:
-            return .evidenceGraphsList
-        case .personsList:
-            return .personsList
-        case .eventsList:
-            return .eventsList
-        case .placesList:
-            return .placesList
-        case .conclusionDetail:
-            return .conclusionDetail
-        case .personClaims:
-            return .personClaims
-        case .personFamily:
-            return .personFamily
-        case .personEvents:
-            return .personEvents
-        case .personRecordLinks:
-            return .personRecordLinks
-        }
+    static func sourcesList(project: ProjectKey) -> CatalogQueryKey { .init(.sourcesList, project) }
+    static func sourceTypesList(project: ProjectKey) -> CatalogQueryKey { .init(.sourceTypesList, project) }
+    static func metadataFieldsList(project: ProjectKey) -> CatalogQueryKey { .init(.metadataFieldsList, project) }
+    static func credibilityGradesList(project: ProjectKey) -> CatalogQueryKey { .init(.credibilityGradesList, project) }
+    static func sourceWorkspace(project: ProjectKey, sourceId: String) -> CatalogQueryKey {
+        .init(.sourceWorkspace, project, [sourceId])
     }
-
-    var project: ProjectKey {
-        switch self {
-        case .sourcesList(let project),
-             .sourceTypesList(let project),
-             .metadataFieldsList(let project),
-             .credibilityGradesList(let project),
-             .sourceWorkspace(let project, _),
-             .evidenceGraph(let project, _),
-             .citationCounts(let project, _),
-             .typeSuggestions(let project, _),
-             .propertiesWorkspace(let project),
-             .connectRules(let project),
-             .propertyTerms(let project, _),
-             .citationsByArtifact(let project, _, _),
-             .evidenceGraphProgress(let project),
-             .evidenceGraphsList(let project),
-             .personsList(let project),
-             .eventsList(let project),
-             .placesList(let project),
-             .conclusionDetail(let project, _),
-             .personClaims(let project, _),
-             .personFamily(let project, _),
-             .personEvents(let project, _),
-             .personRecordLinks(let project, _):
-            project
-        }
+    /// One Evidence graph's rows: the canvas, the composer and Promote read it.
+    static func evidenceGraph(project: ProjectKey, graphId: String) -> CatalogQueryKey {
+        .init(.evidenceGraph, project, [graphId])
     }
-
-    /// The one row id a key names, for the kinds whose descriptor reads it; nil
-    /// otherwise.
-    var ownId: String? {
-        switch self {
-        case .conclusionDetail(_, let id),
-             .personClaims(_, let id),
-             .personFamily(_, let id),
-             .personEvents(_, let id),
-             .personRecordLinks(_, let id),
-             .evidenceGraph(_, let id),
-             .citationCounts(_, let id),
-             .propertyTerms(_, let id):
-            id
-        case .sourcesList, .sourceTypesList, .metadataFieldsList, .credibilityGradesList,
-             .sourceWorkspace, .typeSuggestions, .propertiesWorkspace, .connectRules,
-             .citationsByArtifact, .evidenceGraphProgress, .evidenceGraphsList,
-             .personsList, .eventsList, .placesList:
-            nil
-        }
+    static func citationCounts(project: ProjectKey, graphId: String) -> CatalogQueryKey {
+        .init(.citationCounts, project, [graphId])
+    }
+    /// A type's suggested fields at the `source` level; the type page draws one
+    /// list until it edits all three levels.
+    static func typeSuggestions(project: ProjectKey, typeId: String) -> CatalogQueryKey {
+        .init(.typeSuggestions, project, [typeId])
+    }
+    static func propertiesWorkspace(project: ProjectKey) -> CatalogQueryKey { .init(.propertiesWorkspace, project) }
+    static func connectRules(project: ProjectKey) -> CatalogQueryKey { .init(.connectRules, project) }
+    static func propertyTerms(project: ProjectKey, propertyId: String) -> CatalogQueryKey {
+        .init(.propertyTerms, project, [propertyId])
+    }
+    static func citationsByArtifact(project: ProjectKey, graphId: String, artifactId: String) -> CatalogQueryKey {
+        .init(.citationsByArtifact, project, [graphId, artifactId])
+    }
+    static func evidenceGraphProgress(project: ProjectKey) -> CatalogQueryKey { .init(.evidenceGraphProgress, project) }
+    /// Every Evidence graph of the project with its linked Artifact ids (S12-05).
+    static func evidenceGraphsList(project: ProjectKey) -> CatalogQueryKey { .init(.evidenceGraphsList, project) }
+    /// Every Person summary, composed from the auto-reconciler cache (S9-07).
+    static func personsList(project: ProjectKey) -> CatalogQueryKey { .init(.personsList, project) }
+    /// Every Event summary, composed from the auto-reconciler cache (S9-22).
+    static func eventsList(project: ProjectKey) -> CatalogQueryKey { .init(.eventsList, project) }
+    /// Every Place summary, composed from the auto-reconciler cache (S9-25).
+    static func placesList(project: ProjectKey) -> CatalogQueryKey { .init(.placesList, project) }
+    /// One handle's detail, any kind (S9-15), with its kind's summary (birth
+    /// and death, an Event's subjects and title, a Place's names) read in the
+    /// same call. Marked stale, not revalidated, while off screen.
+    static func conclusionDetail(project: ProjectKey, entityId: String) -> CatalogQueryKey {
+        .init(.conclusionDetail, project, [entityId])
+    }
+    /// One Person's accepted claims grouped by Source (S13-01), read for the
+    /// Sources section. Marked stale, not revalidated, while off screen.
+    static func personClaims(project: ProjectKey, entityId: String) -> CatalogQueryKey {
+        .init(.personClaims, project, [entityId])
+    }
+    /// One Person's family units (S13-04), read for the Family section.
+    /// Marked stale, not revalidated, while off screen.
+    static func personFamily(project: ProjectKey, entityId: String) -> CatalogQueryKey {
+        .init(.personFamily, project, [entityId])
+    }
+    /// One Person's timeline events (S13-05), read for the Timeline section.
+    /// Marked stale, not revalidated, while off screen.
+    static func personEvents(project: ProjectKey, entityId: String) -> CatalogQueryKey {
+        .init(.personEvents, project, [entityId])
+    }
+    /// One Person's Evidence graphs and the lines between them (S13-27), read
+    /// for the record links view. Marked stale, not revalidated, while off screen.
+    static func personRecordLinks(project: ProjectKey, entityId: String) -> CatalogQueryKey {
+        .init(.personRecordLinks, project, [entityId])
     }
 }
