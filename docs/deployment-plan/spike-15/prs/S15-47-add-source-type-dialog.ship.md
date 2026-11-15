@@ -1,7 +1,7 @@
 # Ship log — S15-47 Adding a Source type opens a dialog
 
 **Plan:** [`S15-47-add-source-type-dialog.md`](S15-47-add-source-type-dialog.md) · **Branch:** `s15-47-add-source-type-dialog` · **PR:** #843
-**State:** fixing 1
+**State:** review 2
 
 Base: `origin/main` @ `44944d6`. The branch was cut before round 0 and carries the plan commit `2230bce` (the plan docs ride on the PR branch); the implementer switches to it instead of creating it.
 
@@ -82,3 +82,9 @@ Check: build; `PVInput`'s `#Preview` (or a new one) shows a read-only empty inpu
 Files: `PVFormColumns.swift`.
 Do: a `#Preview` with static text: equal columns with a save error, and `rightWidth: 432`.
 Check: builds.
+
+## Round 1 — fix
+Head `d2165c6`. Gate PASS (orchestrator). F-1 – F-10 done. Deviations: the F-1, F-3 and F-4 tests failed to compile before the fix (new symbols) rather than running red; `CatalogQueryPatch.row` is internal (not private) so the test calls it; F-6's `submit()` change rode in the F-8 commit.
+
+## Round 2 — review
+Scope `0c6e183...d2165c6`. Reviewers: CON (CON-1 major), MNT (MNT-1 blocker, MNT-2, MNT-3 majors), UX (UX-1 – UX-3 majors). SEC+PRF had no findings and does not return.
