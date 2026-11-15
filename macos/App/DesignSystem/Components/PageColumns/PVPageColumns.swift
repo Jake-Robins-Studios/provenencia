@@ -49,9 +49,9 @@ enum PVPageColumnsMetrics {
         (width - group) / 2
     }
 
-    /// The page's column widths for a proposal as the layout reads them: `columnWidths`, with
-    /// the side stacked under the main whenever there is a side column and `split` says to
-    /// (`PVColumnSplit.stacks(available:widthClass:)`).
+    /// The page's column widths for a proposal as the layout reads them: `columnWidths`, which
+    /// also says whether the side stacks under the main (a side column, and `split` says to:
+    /// `PVColumnSplit.stacks(available:widthClass:)`).
     static func layoutWidths(
         proposal: ProposedViewSize, widthClass: PVWidthClass, hasSecondary: Bool,
         primaryFill: Bool, fillSplitSideMax: CGFloat?, split: PVColumnSplit = .standard
@@ -60,14 +60,7 @@ enum PVPageColumnsMetrics {
             proposal: proposal, widthClass: widthClass, hasSecondary: hasSecondary,
             primaryFill: primaryFill, fillSplitSideMax: fillSplitSideMax, split: split
         )
-        let proposed = proposal.width.flatMap { $0.isFinite ? $0 : nil }
-        let available = (proposed ?? fallbackPane) - 2 * PVSpacing.gutterPage
-        return PVPageSideColumnWidths(
-            main: w.primary,
-            side: w.secondary,
-            group: w.group,
-            stacked: hasSecondary && split.stacks(available: available, widthClass: widthClass)
-        )
+        return PVPageSideColumnWidths(main: w.primary, side: w.secondary, group: w.group, stacked: w.stacked)
     }
 
     /// The id of the zero-height view at the very top of the scroll content.
@@ -119,21 +112,21 @@ enum PVPageColumnsMetrics {
         primaryFill: Bool = false,
         fillSplitSideMax: CGFloat? = nil,
         split: PVColumnSplit = .standard
-    ) -> (primary: CGFloat, secondary: CGFloat?, group: CGFloat, band: CGFloat) {
+    ) -> (primary: CGFloat, secondary: CGFloat?, group: CGFloat, band: CGFloat, stacked: Bool) {
         if primaryFill && widthClass == .wide && !hasSecondary {
             let primary = max(0, pane - 2 * PVSpacing.gutterPage)
             if let sideMax = fillSplitSideMax {
                 let group = Self.split(available: primary, sideMax: sideMax).group
-                return (group, nil, group, group)
+                return (group, nil, group, group, false)
             }
-            return (primary, nil, primary, min(PVSpacing.widthContentMax, primary))
+            return (primary, nil, primary, min(PVSpacing.widthContentMax, primary), false)
         }
         if !hasSecondary {
             let primary = max(0, min(PVSpacing.widthContentMax, pane - 2 * PVSpacing.gutterPage))
-            return (primary, nil, primary, primary)
+            return (primary, nil, primary, primary, false)
         }
         let columns = widths(available: pane - 2 * PVSpacing.gutterPage, widthClass: widthClass, split: split)
-        return (columns.main, columns.side, columns.group, columns.group)
+        return (columns.main, columns.side, columns.group, columns.group, columns.stacked)
     }
 
     /// The widths of a main column and a side column inside `available` (the width between the
@@ -228,7 +221,7 @@ enum PVPageColumnsMetrics {
         primaryFill: Bool = false,
         fillSplitSideMax: CGFloat? = nil,
         split: PVColumnSplit = .standard
-    ) -> (pane: CGFloat, primary: CGFloat, secondary: CGFloat?, group: CGFloat, band: CGFloat) {
+    ) -> (pane: CGFloat, primary: CGFloat, secondary: CGFloat?, group: CGFloat, band: CGFloat, stacked: Bool) {
         let proposed = proposal.width.flatMap { $0.isFinite ? $0 : nil }
         let widths = columnWidths(
             pane: proposed ?? fallbackPane,
@@ -238,7 +231,7 @@ enum PVPageColumnsMetrics {
             fillSplitSideMax: fillSplitSideMax,
             split: split
         )
-        return (proposed ?? widths.group, widths.primary, widths.secondary, widths.group, widths.band)
+        return (proposed ?? widths.group, widths.primary, widths.secondary, widths.group, widths.band, widths.stacked)
     }
 }
 
