@@ -5,7 +5,6 @@ import SwiftUI
 /// `plugin:…`) with the fields it suggests, or an empty prompt when nothing
 /// is selected — S2-03 §3.2/3.3.
 struct SourceTypesDetailPane: View {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Bindable var model: SourceTypesModel
     @State private var iconPickerOpen = false
     /// Pending selection while the form dialog is open — draft updates only on confirm.
@@ -189,11 +188,7 @@ struct SourceTypesDetailPane: View {
                     isSecondaryDisabled: model.isSaving || !model.isDirty,
                     identifierPrefix: "sourceTypes",
                     onPrimary: {
-                        Task {
-                            if let location = await model.submit() {
-                                navigation.go(to: location)
-                            }
-                        }
+                        Task { await model.submit() }
                     },
                     onSecondary: { model.revertEdit() }
                 )
