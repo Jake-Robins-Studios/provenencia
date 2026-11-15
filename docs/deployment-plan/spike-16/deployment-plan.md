@@ -196,6 +196,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-26 | Conclusion lists merge the rows a write touched | 2e | Go and Swift: the Persons, Events and Places lists re-read only the touched rows by id with Go's sort key, through one batch merged read (`mergedRows`) | — | S14-42 (Spike 14, landed #748) | [plan](prs/S16-26-lists-merge-touched-rows.md) | Landed #851 |
 | S16-27 | One primitive for values derived from cached data | 2e | Swift: `session.derived` builds a value once per change of its inputs; the four hand memos and the section host's per-pass build move onto it | — | S16-03, S16-07 | — | Scoped |
 | S16-29 | Prefetch a person's other sections and a hovered person | 2e | Swift: a `prefetch` tag in the section read list warms Family and Timeline after the open section settles; a 250 ms hover on a person warms their page | — | S16-09, S16-25, S16-03 | — | Scoped |
+| S16-37 | The list merge has a file of its own and no test-only parameters | 2e | Swift: `CatalogListRows`, `CatalogListRow`, `mergeSorted` and their helpers leave `CatalogLastUpdated.swift` for a file named for them; the `indexedLimit:` parameter and `merging(_:replacing:indexedLimit:)` move out of app code, with the tests forcing a path another way (S16-26 MNT-5, MNT-7) | — | S16-26 | quick-pr | Scoped |
+| S16-38 | An empty list shows its empty state while a merge runs | 2e | Swift: `ConclusionListPresentation` shows `PVEmptyState` for an empty list whose merge is in flight, instead of a blank body (S16-26 UX-1; predates S16-26) | — | S16-26 | quick-pr | Scoped |
 | S16-34 | Tests run without showing a window or opening the researcher's project | 3a | Swift, tests only: the test host launches a `Settings`-only app (no window, no identity or project read, no Dock icon); test windows are never shown and one `.hostedWindows` trait closes them when each test ends, replacing every `withExtendedLifetime` hold; `add-swift-test` teaches it | — | — | [plan](prs/S16-34-hidden-test-windows.md) | Landed #772 |
 | S16-35 | Layout tests compute their frames instead of waiting on a window | 3a | Swift, tests only: `SourcePageOverviewLayout` and `PVPageColumnsLayout` place through static functions tested with made-up sizes; `PVWidthClassTests` force layout and assert at once; `WorkspaceDestinationHostTests`' three whole-workspace tests go, with a plain test of the leave action; `add-swift-test` teaches it | — | S16-34 | [plan](prs/S16-35-layout-tests-without-waits.md) | Landed #775 |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
@@ -264,6 +266,8 @@ SLICE 2e — The app's cache
   S16-26  Conclusion lists merge the rows a write touched
   S16-27  One primitive for values derived from cached data
   S16-29  Prefetch a person's other sections and a hovered person
+  S16-37  The list merge has a file of its own and no test-only parameters
+  S16-38  An empty list shows its empty state while a merge runs
   Check: bar 12 (lists), the rest of 14, and 15.
 
 BATCH 3 — Test infrastructure
@@ -320,7 +324,8 @@ S16-09 ──▶ S16-25
 S16-12 ──▶ S16-25
 S16-09 ──▶ S16-29
 S16-03 ──▶ S16-29
-S14-42 ──▶ S16-26
+S14-42 ──▶ S16-26 ──▶ S16-37
+S16-26 ──▶ S16-38
 S16-03 ──▶ S16-27
 S16-07 ──▶ S16-27
 ```
@@ -535,6 +540,20 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Not this PR.** Engine-side warming (rule "Warm only what every proposal needs").
 **Check.** Bar 14's last clause: switching to Family or Timeline after the page settles shows no spinner; the prefetch's cost on the next click measured.
 **Context.** Rule "One open section, one list of reads" (S16-03); `macos/App/Features/Workspace/WorkspaceLocation.swift`, `Session/PlaceRegistry.swift`, `macos/App/Features/Conclusions/PersonCardLink.swift`; updates [`add-workspace-place`](../../../.agents/skills/add-workspace-place/SKILL.md).
+
+#### S16-37 — The list merge has a file of its own and no test-only parameters
+
+**Ships.** `CatalogListRows`, `CatalogListRow`, `Array.mergeSorted` and `sortedByListKey` move from `CatalogLastUpdated.swift` to a file named for the list merge; `CatalogLastUpdated.swift` keeps the last-updated rows. `merge(_:replacing:indexedLimit:)`'s `indexedLimit:` and `merging(_:replacing:indexedLimit:)` leave app code; the tests that force one path (`listRowsMergeMatchesMergeSorted`, the scale tests) do it without a parameter only tests pass.
+**Not this PR.** Any change to the merge's behavior or `indexedMergeLimit`.
+**Check.** `rg -n "indexedLimit" macos/App` prints nothing; `CatalogListMergeTests` unchanged in what it asserts and green.
+**Context.** S16-26 ship log (MNT-5, MNT-7); `macos/App/Features/Workspace/Session/CatalogLastUpdated.swift`; the project file lists the new file.
+
+#### S16-38 — An empty list shows its empty state while a merge runs
+
+**Ships.** `ConclusionListPresentation` (`ConclusionListPage.swift`) shows the empty state for a list with no rows while a merge or refetch is in flight, instead of `.rows([], refreshing: true)` and a blank body.
+**Not this PR.** The lists' failure notice ([idea](../../ideas/person-page-followups.md)).
+**Check.** A `PersonsListTests` case: an empty value with `isFetching` true gives the empty presentation.
+**Context.** S16-26 ship log (UX-1); `macos/App/Features/Conclusions/ConclusionListPage.swift`.
 
 ### Batch 3 — Test infrastructure
 

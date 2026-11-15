@@ -158,4 +158,4 @@ Head `91ae1f9`. Gate PASS (orchestrator run). F-9: `listRowsLargeWriteTakesTheOn
 `origin/main` moved to `8ee2760` (Spike 15 docs only); merged; gate PASS against `8ee2760`.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: MNT-5/MNT-7 (file name and test-only `indexedLimit`), UX-1 (blank body while an empty list merges; predates the PR) · to user: PRF-1 index (answered: in this PR), MNT-2 (answered: remove)
+Gate PASS · CI green · open: none · follow-ups (user, 2026-11-15: map rows in Spike 16): MNT-5/MNT-7 → S16-37, UX-1 → S16-38 · to user: PRF-1 index (answered: in this PR), MNT-2 (answered: remove)
