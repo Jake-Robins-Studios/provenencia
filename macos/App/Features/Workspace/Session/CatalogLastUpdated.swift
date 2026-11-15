@@ -88,9 +88,13 @@ extension Array where Element: CatalogListRow {
 /// key instead of reading every row. Every change goes through `init`, `merge` and
 /// `moveActivity`, which keep `keys` in step with `rows`.
 struct CatalogListRows<Row: CatalogListRow>: Sendable, RandomAccessCollection, ExpressibleByArrayLiteral {
-    /// The most rows a write may touch for `merge` to go row by row: past it, k removals' memmoves
-    /// cost more than the one pass of `Array.mergeSorted`.
-    static var indexedMergeLimit: Int { 32 } // decided: S16-26 F-6
+    /// The most ids a write may touch for `merge` to go row by row; past it, the one pass of
+    /// `Array.mergeSorted`. Both paths are linear in the list (a removal is a binary search plus a
+    /// memmove of the rows after it, the one pass reads every row), so the break-even is a fixed
+    /// count, not a share of the list. Measured with the real row type, optimized build, best of 9:
+    /// indexed against one pass is 13.5 / 20.2 ms at k = 16 and 29.0 / 20.7 ms at k = 32 over
+    /// 20,115 rows, 77.8 / 86.1 ms and 130.2 / 87.8 ms over 80,000 rows.
+    static var indexedMergeLimit: Int { 16 } // decided: S16-26 F-9
 
     private(set) var rows: [Row]
     private var keys: [String: CatalogListKey]
@@ -117,14 +121,13 @@ struct CatalogListRows<Row: CatalogListRow>: Sendable, RandomAccessCollection, E
     }
 
     /// The same result as `rows.mergeSorted(fresh, replacing: ids)`. When the write touched at most
-    /// `max(indexedMergeLimit, count / 16)` ids, each is found by its key, removed, and each fresh
+    /// `indexedMergeLimit` ids, each is found by its key, removed, and each fresh
     /// row inserted where its key falls; past that, one pass over the list (`mergeSorted`).
     /// `indexedLimit` is for tests that force one path.
     mutating func merge(_ fresh: [Row], replacing ids: [String], indexedLimit: Int? = nil) {
         var touched = Set(ids)
         for row in fresh { touched.insert(row.id) }
-        let limit = indexedLimit ?? Swift.max(Self.indexedMergeLimit, rows.count / 16)
-        var indexed = touched.count <= limit
+        var indexed = touched.count <= (indexedLimit ?? Self.indexedMergeLimit)
         if indexed {
             for id in touched {
                 guard let key = keys.removeValue(forKey: id) else { continue }

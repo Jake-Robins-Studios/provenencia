@@ -205,6 +205,32 @@ struct CatalogListMergeTests {
         #expect(indexed < ceilingMilliseconds)
     }
 
+    /// F-9: past `indexedMergeLimit` touched ids the merge takes the one pass. Both paths are
+    /// linear in the list, so a write of 200 ids (100 replaced by rows with new keys, 100 dropped)
+    /// must not cost more than the one pass does.
+    @Test func listRowsLargeWriteTakesTheOnePass() {
+        let count = 20_115
+        var random = SplitMix(seed: 0x5016_26F9)
+        let list = CatalogListRows((0..<count).map { Self.personRow(UUID().uuidString, $0 * 2) } as [CatalogPersonSummary])
+        let ids = (0..<200).map { list[$0 * 90 + 7].id }
+        let fresh = ids.prefix(100).map { Self.personRow($0, random.next(in: 0...(count * 2))) }
+        func best(_ limit: Int?) -> Double {
+            var best = Double.infinity
+            for _ in 0..<3 {
+                var copy = list
+                let elapsed = ContinuousClock().measure { copy.merge(fresh, replacing: ids, indexedLimit: limit) }
+                best = min(best, Self.milliseconds(elapsed))
+                #expect(copy.count == count - 100)
+            }
+            return best
+        }
+        let onePass = best(0)
+        let chosen = best(nil)
+        print("200-id write at 20115 rows: one pass \(onePass) ms, chosen path \(chosen) ms")
+        // decided: S16-26 F-9
+        #expect(chosen < onePass * 2 + 5)
+    }
+
     /// F-8: a patch through the session works on the cached rows in place, so a write costs the
     /// rows it touched, not a copy of the list: the rows keep their buffer.
     @MainActor
