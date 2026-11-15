@@ -357,6 +357,7 @@ struct CitationAutoTranscribeTests {
             to: CGPoint(x: 0.2, y: 0.2)
         )
         #expect(!model.setRegion(ArtifactRegionDraft(kind: .rectangle, points: points)))
+        await engine.hold.untilSuspended(1)
         engine.hold.release()
         await task.value
         #expect(!model.isTranscribing)

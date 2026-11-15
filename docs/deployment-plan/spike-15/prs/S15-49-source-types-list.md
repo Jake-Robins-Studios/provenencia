@@ -1,9 +1,9 @@
 # S15-49 — The Source types list is redesigned
 
-**Status:** Planned
+**Status:** Landed in [#852](https://github.com/mendahu/provenencia/pull/852) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D28](../design/S15-D28-source-types-list.md), board agreed 2026-11-15 (user)
+**Brief:** [S15-D28](../design/archive/S15-D28-source-types-list.md), board agreed 2026-11-15 (user)
 **Board:** [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): page *S2-03 Source Types Board*, section "01 Columns, sort and the Wide band" (frames L1a / L1b, L2a / L2b, L3, L4a / L4b and its notes on TL-1, TL-W1, TL-W2), drawn by the component *Source Types List* (`Source Types List.dc.html`, its `columns`). The board confirms D-1 – D-4 as written (Used by 120pt with Associated fields' count cell; Description a flexible column splitting the free width evenly with Label, 562pt each in the band; the band; no sort on Description) and adds one thing: the full description as a hover tooltip (D-3). Section 02 is S15-D26's Add type dialog, already built. Open the link in a browser; if you cannot, D-1 – D-4 and § 6 macOS describe each frame
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D28
 **Blocks:** —
@@ -105,9 +105,9 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | **Columns.** `SourceTypesListPane.columns(_ widthClass: PVWidthClass) -> [PVTableColumn<CatalogSourceType>]` *(new, `static`)* replaces the private instance `columns`; it, `usedByColumnWidth` and `descriptionColumnID` are internal (no `private`) so T-2 reads them. Regular: `label` (flexible), `key` (160), `fields` (132), `usedBy` (120) *(new)*. Wide: `label` (flexible), `description` *(new, flexible, `sortable: false`)*, `key`, `fields`, `usedBy`. Every column but `description` is `sortable: true`. Column ids are `SourceTypesModel.SortColumn` raw values, except `description`, a `static let descriptionColumnID = "description"` on the pane, with a doc comment saying a column that does not sort takes a pane constant | TL-1, TL-W2, TL-3; static so the order is tested without a view (T-2); the cells read only the row | An `isWide` flag on the model — width is a view concern; a `SourceTypesListColumns` type like the Sources list's — `PVTable` already owns the widths |
+| D-1 | **Columns.** `SourceTypesListPane.columns(_ widthClass: PVWidthClass) -> [PVTableColumn<CatalogSourceType>]` *(new, `static`)* replaces the private instance `columns`; it, `usedByColumnWidth` and `descriptionColumnID` are internal (no `private`) so T-2 reads them. Regular: `label` (flexible), `key` (160), `fields` (132), `usedBy` (120) *(new)*. Wide: `label` (flexible), `description` *(new, flexible, `sortable: false`)*, `key`, `fields`, `usedBy`. Every column but `description` is `sortable: true`. Column ids are `SourceTypesModel.SortColumn` raw values, except `description`, a `static let descriptionColumnID = "description"` on the pane, with a doc comment saying a column that does not sort takes a pane constant | TL-1, TL-W2, TL-3; static so the order is tested without a view (T-2); the cells read only the row | An `isWide` flag on the model — width is a view concern; a `SourceTypesListColumns` type like the Sources list's — `PVTable` already owns the widths *(amended by the user 2026-11-15 after review: Description shows from a 1200pt table at any width class, `PVTableColumn.minTableWidth`; see Landed)* |
 | D-2 | **One count cell.** `private static func countCell(_ count: Int) -> some View` *(new)* on `SourceTypesListPane` holds today's Fields cell (`Text(count > 0 ? "\(count)" : L10n.string(L10n.SourceTypes.countNone))`, `PVFont.mono(size: PVTypeScale.micro)`, `PVColor.textSecondary`, `PVColor.textFaint` at 0); the `fields` column calls it with `suggestedFieldCount`, the `usedBy` column with `usedBy`. Width `usedByColumnWidth: CGFloat = 120` *(new)* beside the two width constants. No identifier beyond what `PVTable` gives the header (`sourceTypes.sortBy.usedBy`); the row stays one combined element | TL-1; one count look in one place (review M-1), with D-5's one dash | A copy of the Fields cell — two copies of one rule; a "41 sources" phrase — the header names the unit |
-| D-3 | **Description cell.** `Text(type.description)`, `PVFont.body(size: PVTypeScale.bodySmall)`, `PVColor.textMuted`, `.lineLimit(1)`, `.truncationMode(.tail)`; an empty description draws the empty `Text`; a non-empty one carries `.help(type.description)`, so the cut text reads in full on hover (board L3 notes, the cell's `title`). Flexible width, sharing the free width equally with Label (D-1; board TL-W2: 562pt each in the band) | TL-W2; `PVTable` already splits flexible columns | A wrapped two-line cell — rows would change height between widths and between types |
+| D-3 | **Description cell.** `Text(type.description)`, `PVFont.body(size: PVTypeScale.bodySmall)`, `PVColor.textMuted`, `.lineLimit(1)`, `.truncationMode(.tail)`; an empty description draws the empty `Text`; a non-empty one carries `.help(type.description)`, so the cut text reads in full on hover (board L3 notes, the cell's `title`). Flexible width, sharing the free width equally with Label (D-1; board TL-W2: 562pt each in the band) | TL-W2; `PVTable` already splits flexible columns | A wrapped two-line cell — rows would change height between widths and between types *(amended by the user 2026-11-15 after review: Description takes twice Label's share, `PVTableColumn.flex`; see Landed)* |
 | D-4 | **Band.** `SourceTypesContent` reads `@Environment(\.pvWidthClass) private var widthClass` and applies `.pvListBand(widthClass)` right after the `VStack`'s `.frame(maxWidth: .infinity, maxHeight: .infinity)` and before `.background(PVColor.surfacePage)`, as `SourcesListView` does. The spinner `SourceTypesView.body` shows before the handle exists stays outside the band: it is a centered `ProgressView` filling the pane, so it sits in the same place banded or not. Header, divider, callout and list sit inside the band; background and the Add dialog stay full width. `SourceTypesListPane` reads the same environment value for D-1 | TL-W1, TL-4; the kit modifier's second caller; one structure at both widths keeps highlight and scroll (AC-2.5) | A frame in `VocabularyListPane` — Metadata would change too (Out) |
 | D-5 | **One dash key.** `L10n.SourceTypes.fieldCountNone` (`sourceTypes.list.fieldCountNone`) is renamed `countNone` (`sourceTypes.list.countNone`, "—", comment "Shown in a count column (Associated fields, Used by) when the count is 0"); the old key leaves `Localizable.xcstrings` | Two columns, one meaning; a second "—" key is a copy | Keeping the field-named key for both — its name and comment would lie |
 | D-6 | **Sort.** `SourceTypesModel.SortColumn` gains `case usedBy`. `compare` routes `.fields` and `.usedBy` through `private func compareCount(_ a: CatalogSourceType, _ b: CatalogSourceType, by count: KeyPath<CatalogSourceType, Int>) -> ComparisonResult` *(new)*: equal counts → `label.localizedCaseInsensitiveCompare`, else by count; today's `.fields` branch becomes that call. `sortBy` is unchanged (a new column starts ascending) | TL-2 and "Sort behaves as today" (map scope); ties follow the direction as Fields' do (brief § 2); one count compare (review M-1) | A second copy of the `.fields` branch; ties always A→Z — would change the Fields column too |
@@ -130,7 +130,7 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 
 **Builds on.** `PVTable` columns as the one source of widths; `pvListBand` and `PVSpacing.widthListWideMax` (S15-04); `\.pvWidthClass`; the `.sourceTypesList` key's existing invalidation.
 **Deletes.** `L10n.SourceTypes.fieldCountNone` and its xcstrings entry (renamed, D-5); the instance `columns` property (replaced, D-1). The "left pane" wording in the two doc comments; Source types in § 9's "List with a side pane" row.
-**Next adds.** S15-12 changes what `suggestedFieldCount` counts: the `fields` column is unchanged. A later Wide-only column is one more entry in `columns(.wide)`.
+**Next adds.** S15-12 changes what `suggestedFieldCount` counts: the `fields` column is unchanged. A later optional column is one more entry with a `minTableWidth`.
 
 ### Reach
 
@@ -248,6 +248,7 @@ Use a project with the seed's types and a few Sources (Census used by at least t
 6. Click a row: its page opens; Back returns to the list at its scroll. The Metadata page's list looks as before.
 7. A seeded project always has types, so check the empty state in the `SourceTypesView` `#Preview` with `store.sourceTypesByProject[projectDir] = []`, framed at 2296 × 1440: the empty state sits inside the band (AC-2.6). Revert the preview edit.
 8. Compare frames L1a – L4b of the board's section 01 at both widths.
+9. Properties: the Value type pill and the checkbox centre against the two-line Property cell, as before this PR.
 
 ## 11. Risks and stop conditions
 
@@ -271,3 +272,14 @@ None.
 
 **Title:** S15-49 — The Source types list is redesigned
 **Body:** objective in one sentence; what shipped against US-1 and US-2; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-49-source-types-list.md`.
+
+## Landed
+
+- The base had moved (`VERSION` was already 0.15.4), so the version is 0.15.5.
+- T-1 asserts `sortColumn == .usedBy`, the case D-6 names (the plan's `.usage` was a typo).
+- Not run: the manual check (section 10) and the board comparison in a browser.
+- On the user's request (2026-11-15) this PR adds `FakeHold.untilSuspended(_:)` and moves every positive hold wait onto it, fixing a full-suite hang in `SourceTypePageModelTests.aSaveInFlightIsNotHeld` (landed in S15-48); the count cells also carry spoken labels for VoiceOver (on-screen text unchanged).
+
+- On the user's request (2026-11-15, after review) Description shows from a 1200pt table at any width class, not at Wide: `PVTableColumn` gains `minTableWidth`, `PVTable` measures its own width and shows only the columns it meets, and `SourceTypesListPane.columns()` takes no width class (`descriptionMinTableWidth` = 1200). AC-2.2 and AC-2.4 now read against the table width. T-2 is `listColumnsShowDescriptionFromATableWidth`.
+
+- On the user's request (2026-11-15, after review) Description takes twice Label's share of the free width: `PVTableColumn` gains `flex` (default 1, ignored with a `width`), `PVTable`'s header and rows lay out through the kit's `PVWeightedColumns` (which the Citation composer's evidence columns share), and the pane passes `descriptionFlex = 2` (about 220 / 440pt at a 1200pt table).

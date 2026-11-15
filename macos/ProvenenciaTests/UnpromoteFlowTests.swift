@@ -181,13 +181,13 @@ struct UnpromoteFlowTests {
         let a = Task {
             await flow.open(subjectID: "s-weber", name: "A", kind: .person, handleID: nil, graphID: graphID, session: session)
         }
-        #expect(await waitUntil { store.getUnpromoteImpactHold.count == 1 })
+        await store.getUnpromoteImpactHold.untilSuspended(1)
         let b = Task {
             await flow.open(subjectID: "s-john", name: "B", kind: .person, handleID: nil, graphID: graphID, session: session)
         }
-        #expect(await waitUntil { store.getUnpromoteImpactHold.count == 2 })
+        await store.getUnpromoteImpactHold.untilSuspended(2)
         store.getUnpromoteImpactHold.release()
-        #expect(await waitUntil { store.getUnpromoteImpactHold.count == 1 })
+        await store.getUnpromoteImpactHold.untilSuspended(1)
         store.getUnpromoteImpactHold.isOn = false
         store.getUnpromoteImpactHold.release()
         await a.value
@@ -240,7 +240,7 @@ struct UnpromoteFlowTests {
                 graphID: graphID, session: session
             )
         }
-        #expect(await waitUntil { store.getUnpromoteImpactHold.count == 1 })
+        await store.getUnpromoteImpactHold.untilSuspended(1)
         #expect(flow.isBusy)
         store.getUnpromoteImpactHold.isOn = false
         store.getUnpromoteImpactHold.release()
@@ -258,7 +258,7 @@ struct UnpromoteFlowTests {
                 announce: { said.append($0) }
             )
         }
-        #expect(await waitUntil { store.unpromoteSubjectHold.count == 1 })
+        await store.unpromoteSubjectHold.untilSuspended(1)
         #expect(flow.isBusy)
         store.unpromoteSubjectHold.isOn = false
         store.unpromoteSubjectHold.release()
@@ -350,7 +350,7 @@ struct UnpromoteFlowTests {
         // A retry clears the error before the write returns.
         store.unpromoteSubjectHold.isOn = true
         let retry = Task { await flow.confirm(session: session, userID: "user-1") }
-        #expect(await waitUntil { store.unpromoteSubjectHold.count == 1 })
+        await store.unpromoteSubjectHold.untilSuspended(1)
         #expect(flow.pending?.error == nil)
         store.unpromoteSubjectHold.isOn = false
         store.unpromoteSubjectHold.release()

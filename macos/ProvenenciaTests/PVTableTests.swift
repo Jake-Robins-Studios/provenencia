@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -132,5 +133,21 @@ struct PVTableFilterSelectTests {
                     comment: "Accessibility label for a PVTable column's filter menu; argument is the column title"
                 )), locale: .current, "Data type")
         )
+    }
+}
+
+@MainActor
+struct PVTableShownColumnsTests {
+    private struct Row: Identifiable { let id: String }
+
+    @Test func optionalColumnShowsFromItsMinimumTableWidth() {
+        let columns = [
+            PVTableColumn<Row>(id: "a", title: "a") { Text($0.id) },
+            PVTableColumn<Row>(id: "b", title: "b", minTableWidth: 1200) { Text($0.id) },
+            PVTableColumn<Row>(id: "c", title: "c") { Text($0.id) },
+        ]
+        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 1199).map(\.id) == ["a", "c"])
+        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 1200).map(\.id) == ["a", "b", "c"])
+        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 0).map(\.id) == ["a", "c"])
     }
 }

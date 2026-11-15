@@ -557,7 +557,7 @@ struct SourceTypePageModelTests {
 
         store.updateSourceTypeHold.isOn = true
         let save = Task { await model.submit() }
-        #expect(await waitUntil { store.updateSourceTypeHold.count == 1 })
+        await store.updateSourceTypeHold.untilSuspended(1)
         #expect(model.isSaving)
         #expect(!model.shouldHoldNavigation(.back))
         #expect(model.pendingLeave == nil)

@@ -17,6 +17,10 @@ import SwiftUI
 /// - **Column definitions are the single source of truth for width** — the
 ///   header and the rows share them, so widths are never restated at the
 ///   call site.
+/// - A column with no `width` is flexible: the flexible columns share what the fixed ones
+///   leave by their `flex` weight (equal by default).
+/// - Columns also decide whether they show (`minTableWidth`), so the header and
+///   the rows always agree.
 /// - Search bars and result footers are feature chrome, not table chrome;
 ///   they stay in the pane, above and below the table.
 ///
@@ -24,6 +28,13 @@ import SwiftUI
 /// multi-select, column resize/reorder, drag-and-drop, inline editing.
 
 // MARK: - Pure helpers (unit-testable without UI)
+
+enum PVTableColumnGate {
+    /// The ids of the columns that show at a table width; plain values so the geometry closure stays Sendable.
+    static func shownIDs(gates: [(id: String, minTableWidth: CGFloat?)], tableWidth: CGFloat) -> [String] {
+        gates.filter { $0.minTableWidth.map { tableWidth >= $0 } ?? true }.map(\.id)
+    }
+}
 
 enum PVTableSelection {
     /// Clamped selection movement — never wraps, matching a native macOS table.
@@ -98,6 +109,12 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
     let id: String
     let title: LocalizedStringResource
     let width: CGFloat?
+    /// The column shows only while the table is at least this wide; nil always shows. For a
+    /// column that only adds context (a description), never a column that sorts or filters, or
+    /// holds the row's name.
+    let minTableWidth: CGFloat?
+    /// A flexible column's share of the width the fixed columns leave; ignored when `width` is set.
+    let flex: CGFloat
     let sortable: Bool
     let filter: PVTableColumnFilter?
     let cell: (Row) -> AnyView
@@ -106,6 +123,8 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
         id: String,
         title: LocalizedStringResource,
         width: CGFloat? = nil,
+        minTableWidth: CGFloat? = nil,
+        flex: CGFloat = 1,
         sortable: Bool = false,
         filter: PVTableColumnFilter? = nil,
         @ViewBuilder cell: @escaping (Row) -> Cell
@@ -113,6 +132,8 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
         self.id = id
         self.title = title
         self.width = width
+        self.minTableWidth = minTableWidth
+        self.flex = flex
         self.sortable = sortable
         self.filter = filter
         self.cell = { AnyView(cell($0)) }
@@ -166,6 +187,9 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     @FocusState private var isFocused: Bool
     @State private var matcher = PVTableTypeSelectMatcher()
+    /// The ids of the columns that show at the table's measured width; nil until the first measure.
+    /// Gated columns only consult it; a column with no `minTableWidth` always shows.
+    @State private var shownIDs: [String]?
 
     init(
         rows: [Row],
@@ -201,10 +225,25 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         rows.firstIndex { $0.id == selection } ?? -1
     }
 
+    /// The columns that show at a table width: those with no `minTableWidth`, or one the table meets.
+    static func shownColumns(_ columns: [PVTableColumn<Row>], tableWidth: CGFloat) -> [PVTableColumn<Row>] {
+        let ids = PVTableColumnGate.shownIDs(gates: columns.map { ($0.id, $0.minTableWidth) }, tableWidth: tableWidth)
+        return columns.filter { ids.contains($0.id) }
+    }
+
+    private var shownColumns: [PVTableColumn<Row>] {
+        columns.filter { $0.minTableWidth == nil || shownIDs?.contains($0.id) == true }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             rowList
+        }
+        .onGeometryChange(for: [String].self) { [gates = columns.map { ($0.id, $0.minTableWidth) }] proxy in
+            PVTableColumnGate.shownIDs(gates: gates, tableWidth: proxy.size.width)
+        } action: {
+            shownIDs = $0
         }
     }
 
@@ -236,8 +275,8 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     // MARK: Header
 
     private var header: some View {
-        HStack(spacing: PVSpacing.space6) {
-            ForEach(columns) { column in
+        PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
+            ForEach(shownColumns) { column in
                 HStack(spacing: PVSpacing.space1) {
                     if column.sortable, let onSortChange {
                         Button { onSortChange(column.id) } label: { headerLabel(column) }
@@ -252,8 +291,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
                         filterMenu(column, filter)
                     }
                 }
-                .frame(maxWidth: column.width == nil ? .infinity : nil, alignment: .leading)
-                .frame(width: column.width, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal, gutter)
@@ -315,11 +353,10 @@ struct PVTable<Row: Identifiable, Content: View>: View {
     private func rowView(_ row: Row) -> some View {
         let isSelected = row.id == selection
         return PVHoverEffect(isPressed: false, hoverAnimation: PVMotion.fastStandard) { showHover in
-            HStack(spacing: PVSpacing.space6) {
-                ForEach(columns) { column in
+            PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
+                ForEach(shownColumns) { column in
                     column.cell(row)
-                        .frame(maxWidth: column.width == nil ? .infinity : nil, alignment: .leading)
-                        .frame(width: column.width, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(.horizontal, gutter)

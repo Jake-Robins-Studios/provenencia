@@ -6,9 +6,9 @@
 **Implements later as:** PR **S15-49**
 **Board:** agreed 2026-11-15 (user) — [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): page *S2-03 Source Types Board*, section "01 Columns, sort and the Wide band" (frames L1a – L4b with notes), component *Source Types List*. As the brief asked, with one addition: the full description is a hover tooltip on its cell
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)): the list has no side pane, and a click or Return on a row opens the type's own page
-**Related:** working rule "A Source type has its own page" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); S15-D2 (the Sources list's Wide frame, [archived](archive/S15-D2-sources-list.md)), the nearest list of this kind; S15-D27 (the type's page, [archived](archive/S15-D27-source-type-page.md)); S15-D6 (S15-12 makes Associated fields count all three suggestion levels; its header and cells are unchanged); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S15-49-source-types-list.md`](../prs/S15-49-source-types-list.md)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
+**Related:** working rule "A Source type has its own page" in [`../deployment-plan.md`](../../deployment-plan.md#working-rules); S15-D2 (the Sources list's Wide frame, [archived](S15-D2-sources-list.md)), the nearest list of this kind; S15-D27 (the type's page, [archived](S15-D27-source-type-page.md)); S15-D6 (S15-12 makes Associated fields count all three suggestion levels; its header and cells are unchanged); [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S15-49-source-types-list.md`](../../prs/S15-49-source-types-list.md)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -184,4 +184,4 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 ## 7. Handoff
 
-When the board is agreed: record its link, frames and any answer the board gave on the **Board** line here and in [`README.md`](README.md). S15-49's plan copies TL-1 – TL-4, TL-W1, TL-W2 and the inventory, checks D-2 and D-3 against the frames, and moves from `Blocked — on board S15-D28` to `Planned`. When S15-49 lands, this brief moves to the spike's design archive.
+When the board is agreed: record its link, frames and any answer the board gave on the **Board** line here and in [`README.md`](../README.md). S15-49's plan copies TL-1 – TL-4, TL-W1, TL-W2 and the inventory, checks D-2 and D-3 against the frames, and moves from `Blocked — on board S15-D28` to `Planned`. When S15-49 lands, this brief moves to the spike's design archive.

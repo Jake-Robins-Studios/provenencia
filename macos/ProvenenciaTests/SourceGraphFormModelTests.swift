@@ -391,7 +391,7 @@ struct SourceGraphFormModelTests {
         let (model, store, _) = await makeSuggestingModel()
         store.listTypeSuggestionsHold.isOn = true
         let first = Task { await model.graphs.openAdd() }
-        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+        await store.listTypeSuggestionsHold.untilSuspended(1)
         let second = Task { await model.graphs.openAdd() }
         #expect(!(await waitUntil(timeout: .milliseconds(300)) { store.listTypeSuggestionsHold.count == 2 }))
         store.listTypeSuggestionsHold.release()
@@ -405,7 +405,7 @@ struct SourceGraphFormModelTests {
         let (model, store, _) = await makeSuggestingModel()
         store.listTypeSuggestionsHold.isOn = true
         let first = Task { await model.graphs.openAdd() }
-        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+        await store.listTypeSuggestionsHold.untilSuspended(1)
         #expect(!model.acceptsArtifactPageDrop)
         store.listTypeSuggestionsHold.release()
         #expect(await first.value != nil)

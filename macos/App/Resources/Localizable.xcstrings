@@ -6992,6 +6992,18 @@
         }
       }
     },
+    "sourceTypes.list.columnDescription": {
+      "comment": "Source types list column header, shown on wide windows: the type's description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Description"
+          }
+        }
+      }
+    },
     "sourceTypes.list.columnFields": {
       "comment": "Source types list column header: how many metadata fields the type suggests",
       "extractionState": "manual",
@@ -7024,6 +7036,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Label"
+          }
+        }
+      }
+    },
+    "sourceTypes.list.columnUsedBy": {
+      "comment": "Source types list column header: how many sources are classified as the type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used by"
           }
         }
       }
@@ -7096,6 +7120,54 @@
         }
       }
     },
+    "sourceTypes.list.countNone": {
+      "comment": "Shown in a count column (Associated fields, Used by) when the count is 0",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "—"
+          }
+        }
+      }
+    },
+    "sourceTypes.list.suggestedFields": {
+      "comment": "VoiceOver label for the Associated fields count in the Source types list; argument is the count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld suggested field"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld suggested fields"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sourceTypes.list.suggestedFieldsNone": {
+      "comment": "VoiceOver label for the Associated fields count in the Source types list when the count is 0",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no suggested fields"
+          }
+        }
+      }
+    },
     "sourceTypes.list.description": {
       "comment": "Explanatory copy under the Source types page title",
       "extractionState": "manual",
@@ -7104,18 +7176,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "The kinds of record this project cites, and the fields each kind usually carries. The fields are suggestions — a source of this type may leave any of them blank."
-          }
-        }
-      }
-    },
-    "sourceTypes.list.fieldCountNone": {
-      "comment": "Shown in the associated-fields column when a type suggests no fields",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "—"
           }
         }
       }

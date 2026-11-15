@@ -2337,7 +2337,7 @@ struct SourcePageModelTests {
         model.artifacts.sheet = nil
         store.listTypeSuggestionsHold.isOn = true
         let firstOpen = Task { await model.artifacts.openAdd() }
-        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+        await store.listTypeSuggestionsHold.untilSuspended(1)
         #expect(!model.acceptsArtifactPageDrop)
         let secondOpen = Task { await model.artifacts.openAdd() }
         // A second open must not start its own read.
@@ -2359,7 +2359,7 @@ struct SourcePageModelTests {
         model.artifacts.sheet = nil
         store.listTypeSuggestionsHold.isOn = true
         let graphOpen = Task { await model.graphs.openAdd() }
-        try #require(await waitUntil(timeout: .seconds(15)) { store.listTypeSuggestionsHold.count == 1 })
+        await store.listTypeSuggestionsHold.untilSuspended(1)
 
         model.artifacts.openSheet(artifactID: "P3")
         let edit = model.artifacts.sheet
@@ -2377,7 +2377,7 @@ struct SourcePageModelTests {
         sheet.draft.label = "Changed"
         store.updateArtifactHold.isOn = true
         let save = Task { await sheet.save() }
-        #expect(await waitUntil { store.updateArtifactHold.count == 1 })
+        await store.updateArtifactHold.untilSuspended(1)
         #expect(sheet.isSaving)
         #expect(!sheet.canSave)
         store.updateArtifactHold.release()
