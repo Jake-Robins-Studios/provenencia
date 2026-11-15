@@ -10,34 +10,6 @@ struct SourceTypesModelTests {
     private let projectDir = "/tmp/types.provenencia"
     private let userID = "00000000-0000-7000-8000-000000000001"
 
-    private func seededType(id: String = "t1", label: String = "Book", usedBy: Int = 0) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: "book", origin: "provenencia", label: label,
-            description: "A published monograph.", usedBy: usedBy
-        )
-    }
-
-    private func userType(id: String = "t2", label: String = "Family scrapbook", usedBy: Int = 0) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: FieldSlug.kebab(label), origin: "user", label: label,
-            description: "Nan's albums.", usedBy: usedBy
-        )
-    }
-
-    private func pluginType(id: String = "t3", label: String = "Grave memorial", usedBy: Int = 5) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: "grave-memorial", origin: "plugin:findagrave", label: label,
-            description: "From the plugin.", usedBy: usedBy
-        )
-    }
-
-    private func field(id: String, label: String, dataType: String = "text", usedBy: Int = 0) -> CatalogMetadataField {
-        CatalogMetadataField(
-            id: id, key: FieldSlug.kebab(label), origin: "provenencia", label: label,
-            dataType: dataType, description: "", usedBy: usedBy
-        )
-    }
-
     private func makeModel(
         store: FakeStore = FakeStore(),
         types: [CatalogSourceType] = [],
@@ -69,8 +41,8 @@ struct SourceTypesModelTests {
 
     @Test func loadPopulatesTypesPool() async {
         let (model, session) = makeModel(
-            types: [seededType(), userType(), pluginType()],
-            fields: [field(id: "f1", label: "Author")]
+            types: [seededSourceType(), userSourceType(), pluginSourceType()],
+            fields: [catalogMetadataField("f1", label: "Author")]
         )
         await warm(model, session: session)
         #expect(model.types.count == 3)
@@ -83,9 +55,9 @@ struct SourceTypesModelTests {
         let store = FakeStore()
         let (model, session) = makeModel(
             store: store,
-            types: [seededType(), userType()],
-            fields: [field(id: "f1", label: "Author")],
-            suggestions: ["t2": [CatalogTypeSuggestion(field: field(id: "f1", label: "Author"), sortOrder: 0)]]
+            types: [seededSourceType(), userSourceType()],
+            fields: [catalogMetadataField("f1", label: "Author")],
+            suggestions: ["t2": [CatalogTypeSuggestion(field: catalogMetadataField("f1", label: "Author"), sortOrder: 0)]]
         )
         await warm(model, session: session)
         #expect(model.visibleTypes.map(\.id) == ["t1", "t2"])
@@ -105,8 +77,8 @@ struct SourceTypesModelTests {
     /// T-12 (AC-4.1): the header counts the rows the page shows.
     @Test func countLineCountsTheRowsShown() async {
         let (model, session) = makeModel(types: [
-            seededType(id: "t1", label: "A"), seededType(id: "t3", label: "B"), seededType(id: "t4", label: "C"),
-            userType(id: "t2", label: "D"), userType(id: "t5", label: "E"),
+            seededSourceType(id: "t1", label: "A"), seededSourceType(id: "t3", label: "B"), seededSourceType(id: "t4", label: "C"),
+            userSourceType(id: "t2", label: "D"), userSourceType(id: "t5", label: "E"),
         ])
         await warm(model, session: session)
         #expect(model.countLine == L10n.SourceTypes.countLine(total: 5, seeded: 3, user: 2))
@@ -114,7 +86,7 @@ struct SourceTypesModelTests {
 
     /// F-6: no count line until the list has a value.
     @Test func countLineIsAbsentUntilTheListLoads() async {
-        let (model, session) = makeModel(types: [seededType(id: "t1", label: "A")])
+        let (model, session) = makeModel(types: [seededSourceType(id: "t1", label: "A")])
         #expect(model.countLine == nil)
         await warm(model, session: session)
         #expect(model.countLine != nil)
@@ -128,7 +100,7 @@ struct SourceTypesModelTests {
 
     @Test func addingMintsTheKeyFromTheLabelAndPutsTheRowInTheList() async throws {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [seededType()])
+        let (model, session) = makeModel(store: store, types: [seededSourceType()])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
         add.draft.label = "  Parish register "
@@ -150,7 +122,7 @@ struct SourceTypesModelTests {
     /// cache has not seen, so a reload shows as that row arriving.
     @Test func addingATypeReloadsFromItsEffects() async throws {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [seededType()])
+        let (model, session) = makeModel(store: store, types: [seededSourceType()])
         await warm(model, session: session)
         let project = session.projectKey
         let pageKey = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1")
@@ -165,7 +137,7 @@ struct SourceTypesModelTests {
         let typesHandle: QueryHandle<[CatalogSourceType]> = try #require(
             session.queryHandle(session.sourceTypesKey)
         )
-        store.fieldsByProject[projectDir] = [field(id: "f9", label: "Unseen")]
+        store.fieldsByProject[projectDir] = [catalogMetadataField("f9", label: "Unseen")]
 
         store.nextWriteEffects = CatalogWriteEffects(lists: [.sourceVocabulary])
         let add = makeAddModel(session, store: store)
@@ -182,7 +154,7 @@ struct SourceTypesModelTests {
 
     @Test func addingReturnsTheTypeTheDialogOpens() async throws {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [seededType()])
+        let (model, session) = makeModel(store: store, types: [seededSourceType()])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
         add.draft.label = "Parish register"
@@ -222,7 +194,7 @@ struct SourceTypesModelTests {
 
     @Test func addingADuplicateUserKeySurfacesTheErrorUnderTheLabel() async {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [userType(id: "t2", label: "Family scrapbook")])
+        let (model, session) = makeModel(store: store, types: [userSourceType(id: "t2", label: "Family scrapbook")])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
         add.draft.label = "Family scrapbook"
@@ -240,7 +212,7 @@ struct SourceTypesModelTests {
 
     @Test func editingTheLabelShowsAndClearsItsError() async {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [userType(id: "t2", label: "Family scrapbook")])
+        let (model, session) = makeModel(store: store, types: [userSourceType(id: "t2", label: "Family scrapbook")])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
         #expect(add.labelError == nil)
@@ -258,7 +230,7 @@ struct SourceTypesModelTests {
 
     @Test func addingCarriesThePickedIcon() async throws {
         let store = FakeStore()
-        let (model, session) = makeModel(store: store, types: [seededType()])
+        let (model, session) = makeModel(store: store, types: [seededSourceType()])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
         add.draft.label = "Diary"

@@ -8,34 +8,6 @@ struct SourceTypePageModelTests {
     private let projectDir = "/tmp/type-page.provenencia"
     private let userID = "00000000-0000-7000-8000-000000000001"
 
-    private func seededType(id: String = "t1", label: String = "Book", usedBy: Int = 0) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: "book", origin: "provenencia", label: label,
-            description: "A published monograph.", usedBy: usedBy
-        )
-    }
-
-    private func userType(id: String = "t2", label: String = "Family scrapbook", usedBy: Int = 0) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: FieldSlug.kebab(label), origin: "user", label: label,
-            description: "Nan's albums.", usedBy: usedBy
-        )
-    }
-
-    private func pluginType(id: String = "t3", label: String = "Grave memorial", usedBy: Int = 5) -> CatalogSourceType {
-        CatalogSourceType(
-            id: id, key: "grave-memorial", origin: "plugin:findagrave", label: label,
-            description: "From the plugin.", usedBy: usedBy
-        )
-    }
-
-    private func field(id: String, label: String, dataType: String = "text", usedBy: Int = 0) -> CatalogMetadataField {
-        CatalogMetadataField(
-            id: id, key: FieldSlug.kebab(label), origin: "provenencia", label: label,
-            dataType: dataType, description: "", usedBy: usedBy
-        )
-    }
-
     /// The page model of `typeID`, its three reads warmed and settled and its draft synced, as the
     /// view's `.task` and `.onChange` leave it.
     private func makePageModel(
@@ -64,7 +36,7 @@ struct SourceTypePageModelTests {
     // MARK: Details
 
     @Test func seededOrUserTypeEditsAndPluginTypeLocks() async {
-        let types = [seededType(), userType(), pluginType()]
+        let types = [seededSourceType(), userSourceType(), pluginSourceType()]
         let (book, _) = await makePageModel(typeID: "t1", types: types)
         #expect(!book.isLocked)
         #expect(book.canEditAssociations)
@@ -77,7 +49,7 @@ struct SourceTypePageModelTests {
 
     /// T-8 (AC-2.5): a plugin's type is locked, has nothing to save, and can still be deleted.
     @Test func pluginTypeIsLocked() async {
-        let (model, _) = await makePageModel(typeID: "t3", types: [pluginType()])
+        let (model, _) = await makePageModel(typeID: "t3", types: [pluginSourceType()])
         #expect(model.isLocked)
         #expect(!model.isDirty)
         model.draft?.label = "Edited"
@@ -90,7 +62,7 @@ struct SourceTypePageModelTests {
 
     /// AC-2.1: nothing changed, nothing to save or revert.
     @Test func aCleanDraftCannotBeSaved() async {
-        let (model, _) = await makePageModel(typeID: "t1", types: [seededType()])
+        let (model, _) = await makePageModel(typeID: "t1", types: [seededSourceType()])
         #expect(model.draft?.label == "Book")
         #expect(!model.isDirty)
         #expect(!model.canSubmit)
@@ -99,7 +71,7 @@ struct SourceTypePageModelTests {
     /// T-8 (AC-2.2): Save patches the row, keeps the key and toasts.
     @Test func saveUpdatesTheRowAndKeepsTheKey() async {
         let store = FakeStore()
-        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededType()])
+        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         model.draft?.label = "Population census"
         #expect(model.isDirty)
         #expect(model.canSubmit)
@@ -117,7 +89,7 @@ struct SourceTypePageModelTests {
     /// T-8 (AC-2.3): a blank label shows the required message and writes nothing.
     @Test func blankLabelRefusesSave() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededType()])
+        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         model.draft?.label = "   "
         #expect(!model.canSubmit)
         await model.submit()
@@ -128,7 +100,7 @@ struct SourceTypePageModelTests {
     }
 
     @Test func changingIconMarksDirtyAndPersists() async {
-        let (model, _) = await makePageModel(typeID: "t2", types: [userType()])
+        let (model, _) = await makePageModel(typeID: "t2", types: [userSourceType()])
         #expect(model.draft?.iconKey == PVMarkKey.defaultTypeMark.rawValue)
 
         model.draft?.iconKey = "type_scrapbook"
@@ -140,7 +112,7 @@ struct SourceTypePageModelTests {
     }
 
     @Test func applyDraftIconKeyUpdatesPendingPickerSelection() async {
-        let (model, _) = await makePageModel(typeID: "t2", types: [userType()])
+        let (model, _) = await makePageModel(typeID: "t2", types: [userSourceType()])
         let before = model.draft?.iconKey
         #expect(before == PVMarkKey.defaultTypeMark.rawValue)
 
@@ -157,7 +129,7 @@ struct SourceTypePageModelTests {
 
     /// T-8 (AC-2.4): Revert brings the saved values back.
     @Test func revertRestoresTheSavedValues() async {
-        let (model, _) = await makePageModel(typeID: "t2", types: [userType()])
+        let (model, _) = await makePageModel(typeID: "t2", types: [userSourceType()])
         model.draft?.description = "Changed"
         #expect(model.isDirty)
         model.revertEdit()
@@ -169,10 +141,10 @@ struct SourceTypePageModelTests {
     /// T-8 (AC-2.6, D-4): a list reload leaves a dirty draft alone.
     @Test func aListReloadKeepsTheDraft() async {
         let store = FakeStore()
-        let (model, session) = await makePageModel(typeID: "t2", store: store, types: [userType()])
+        let (model, session) = await makePageModel(typeID: "t2", store: store, types: [userSourceType()])
         model.draft?.description = "Changed"
 
-        var renamed = userType()
+        var renamed = userSourceType()
         renamed.label = "Scrapbook"
         store.sourceTypesByProject[projectDir] = [renamed]
         session.apply(CatalogWriteEffects(lists: [.sourceVocabulary]))
@@ -189,12 +161,12 @@ struct SourceTypePageModelTests {
     @Test func aSaveWithNoEffectsReloadsNothing() async {
         let store = FakeStore()
         let (model, session) = await makePageModel(
-            typeID: "t1", store: store, types: [seededType()], fields: [field(id: "f1", label: "Author")]
+            typeID: "t1", store: store, types: [seededSourceType()], fields: [catalogMetadataField("f1", label: "Author")]
         )
         let fieldsHandle: QueryHandle<[CatalogMetadataField]>? = session.queryHandle(
             .metadataFieldsList(project: session.projectKey)
         )
-        store.fieldsByProject[projectDir] = [field(id: "f9", label: "Later")]
+        store.fieldsByProject[projectDir] = [catalogMetadataField("f9", label: "Later")]
         store.nextWriteEffects = .empty
         model.draft?.description = "edited"
         await model.submit()
@@ -213,7 +185,7 @@ struct SourceTypePageModelTests {
     /// T-6 (AC-1.7): the model reads gone only once a settled list lacks its type.
     @Test func aGoneTypeIsGone() async {
         let store = FakeStore()
-        store.sourceTypesByProject[projectDir] = [seededType()]
+        store.sourceTypesByProject[projectDir] = [seededSourceType()]
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let model = SourceTypePageModel(typeID: "missing", session: session, userID: userID, store: store)
         #expect(!model.isGone)
@@ -230,11 +202,11 @@ struct SourceTypePageModelTests {
     // MARK: Suggestions
 
     @Test func warmingLoadsThatTypesSuggestionsInStoredOrder() async {
-        let author = field(id: "f1", label: "Author")
-        let publisher = field(id: "f2", label: "Publisher")
+        let author = catalogMetadataField("f1", label: "Author")
+        let publisher = catalogMetadataField("f2", label: "Publisher")
         let (model, _) = await makePageModel(
             typeID: "t1",
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author, publisher],
             // Publisher was assigned first, so stored order and label order disagree.
             suggestions: ["t1": [
@@ -246,11 +218,11 @@ struct SourceTypePageModelTests {
     }
 
     @Test func assignPoolExcludesFieldsAlreadySuggested() async {
-        let author = field(id: "f1", label: "Author")
+        let author = catalogMetadataField("f1", label: "Author")
         let (model, _) = await makePageModel(
             typeID: "t1",
-            types: [seededType()],
-            fields: [author, field(id: "f2", label: "Publisher")],
+            types: [seededSourceType()],
+            fields: [author, catalogMetadataField("f2", label: "Publisher")],
             suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
         )
         #expect(model.assignPool.map(\.id) == ["f2"])
@@ -262,8 +234,8 @@ struct SourceTypePageModelTests {
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
-            types: [seededType()],
-            fields: [field(id: "f1", label: "Author"), field(id: "f2", label: "Publisher")]
+            types: [seededSourceType()],
+            fields: [catalogMetadataField("f1", label: "Author"), catalogMetadataField("f2", label: "Publisher")]
         )
         let loads = store.listTypeSuggestionsLevels.count
 
@@ -281,14 +253,14 @@ struct SourceTypePageModelTests {
     }
 
     @Test func warmingShowsOnlySourceLevelSuggestions() async {
-        let author = field(id: "f1", label: "Author")
-        let publisher = field(id: "f2", label: "Publisher")
+        let author = catalogMetadataField("f1", label: "Author")
+        let publisher = catalogMetadataField("f2", label: "Publisher")
         let store = FakeStore()
         store.suggestionsByLevel[.graph] = ["t1": [CatalogTypeSuggestion(field: publisher, sortOrder: 0)]]
         let (model, _) = await makePageModel(
             typeID: "t1",
             store: store,
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author, publisher],
             suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
         )
@@ -296,14 +268,14 @@ struct SourceTypePageModelTests {
     }
 
     @Test func assigningWritesAtSourceLevelOnly() async {
-        let author = field(id: "f1", label: "Author")
-        let publisher = field(id: "f2", label: "Publisher")
+        let author = catalogMetadataField("f1", label: "Author")
+        let publisher = catalogMetadataField("f2", label: "Publisher")
         let store = FakeStore()
         let graphRow = CatalogTypeSuggestion(field: publisher, sortOrder: 0)
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author, publisher]
         )
         store.suggestionsByLevel[.graph] = ["t1": [graphRow]]
@@ -317,13 +289,13 @@ struct SourceTypePageModelTests {
     }
 
     @Test func fieldsColumnShowsTheEnginesCountNotTheReplyLength() async {
-        let author = field(id: "f1", label: "Author")
+        let author = catalogMetadataField("f1", label: "Author")
         let store = FakeStore()
         store.suggestedFieldCountOverride["t1"] = 7
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author]
         )
 
@@ -336,10 +308,10 @@ struct SourceTypePageModelTests {
 
     /// T-8 (AC-3.2): removing patches the cache; the field stays in the pool.
     @Test func removingASuggestionKeepsTheFieldInThePool() async {
-        let author = field(id: "f1", label: "Author", usedBy: 3)
+        let author = catalogMetadataField("f1", label: "Author", usedBy: 3)
         let (model, session) = await makePageModel(
             typeID: "t1",
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author],
             suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
         )
@@ -356,10 +328,10 @@ struct SourceTypePageModelTests {
     }
 
     @Test func removingASuggestionNoSourceUsesOmitsTheValueCount() async {
-        let author = field(id: "f1", label: "Author")
+        let author = catalogMetadataField("f1", label: "Author")
         let (model, _) = await makePageModel(
             typeID: "t1",
-            types: [seededType()],
+            types: [seededSourceType()],
             fields: [author],
             suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
         )
@@ -372,9 +344,9 @@ struct SourceTypePageModelTests {
 
     @Test func deleteIsOfferedForEveryOrigin() async {
         let types = [
-            userType(id: "t2", label: "Family scrapbook", usedBy: 0),
-            seededType(id: "t1", label: "Book", usedBy: 26),
-            pluginType(),
+            userSourceType(id: "t2", label: "Family scrapbook", usedBy: 0),
+            seededSourceType(id: "t1", label: "Book", usedBy: 26),
+            pluginSourceType(),
         ]
         for (id, label) in [("t2", "Family scrapbook"), ("t1", "Book"), ("t3", "Grave memorial")] {
             let (model, _) = await makePageModel(typeID: id, types: types)
@@ -386,7 +358,7 @@ struct SourceTypePageModelTests {
 
     @Test func unusedUserTypeConfirmDeletes() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t2", store: store, types: [userType()])
+        let (model, _) = await makePageModel(typeID: "t2", store: store, types: [userSourceType()])
         await model.askDelete()
 
         #expect(model.pendingImpact?.report.allowed == true)
@@ -397,7 +369,7 @@ struct SourceTypePageModelTests {
 
     @Test func unusedSeededTypeConfirmDeletes() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededType()])
+        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         await model.askDelete()
 
         #expect(model.pendingImpact?.report.allowed == true)
@@ -411,7 +383,7 @@ struct SourceTypePageModelTests {
             CatalogSource(id: "s1", ref: "SRC-AAAAA", sourceTypeID: "t1", title: "Parish", description: ""),
             CatalogSource(id: "s2", ref: "SRC-BBBBB", sourceTypeID: "t1", title: "Census", description: ""),
         ]
-        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededType(usedBy: 2)])
+        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType(usedBy: 2)])
         await model.askDelete()
 
         let report = model.pendingImpact?.report
@@ -430,7 +402,7 @@ struct SourceTypePageModelTests {
 
     @Test func pluginTypeOriginLockedTrashStillOffered() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t3", store: store, types: [pluginType(usedBy: 0)])
+        let (model, _) = await makePageModel(typeID: "t3", store: store, types: [pluginSourceType(usedBy: 0)])
         await model.askDelete()
 
         #expect(model.pendingImpact?.report.allowed == false)
@@ -443,12 +415,12 @@ struct SourceTypePageModelTests {
     /// without unsaved details.
     @Test func deletingLeavesAndDropsTheRow() async {
         for dirty in [false, true] {
-            let author = field(id: "f1", label: "Author")
+            let author = catalogMetadataField("f1", label: "Author")
             let store = FakeStore()
             let (model, session) = await makePageModel(
                 typeID: "t2",
                 store: store,
-                types: [userType(), seededType()],
+                types: [userSourceType(), seededSourceType()],
                 fields: [author],
                 suggestions: ["t2": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
             )
@@ -483,9 +455,9 @@ struct SourceTypePageModelTests {
         navigation.go(to: .sectionRoot(.sourceTypes))
         navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
 
-        let author = field(id: "f1", label: "Author")
+        let author = catalogMetadataField("f1", label: "Author")
         let (model, session) = await makePageModel(
-            typeID: "t1", types: [seededType()], fields: [author]
+            typeID: "t1", types: [seededSourceType()], fields: [author]
         )
         model.navigation = navigation
         navigation.leaveGuard = model
@@ -527,7 +499,7 @@ struct SourceTypePageModelTests {
     /// T-9: a move is not held while a Save runs, since the draft is about to be the saved row.
     @Test func aSaveInFlightIsNotHeld() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededType()])
+        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         model.draft?.label = "Changed"
         #expect(model.shouldHoldNavigation(.back))
         model.pendingLeave = nil

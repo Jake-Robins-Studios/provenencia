@@ -40,10 +40,43 @@ func catalogFileArtifact(
     )
 }
 
-/// A text metadata field for tests; `key` defaults to the lowercased `label`.
-func catalogMetadataField(_ id: String, label: String, key: String? = nil) -> CatalogMetadataField {
+/// A metadata field for tests; `key` defaults to the lowercased `label`.
+func catalogMetadataField(
+    _ id: String, label: String, key: String? = nil, dataType: String = "text", usedBy: Int = 0
+) -> CatalogMetadataField {
     CatalogMetadataField(
-        id: id, key: key ?? label.lowercased(), origin: "user", label: label, dataType: "text", description: ""
+        id: id, key: key ?? label.lowercased(), origin: "user", label: label, dataType: dataType,
+        description: "", usedBy: usedBy
+    )
+}
+
+/// A Source type for tests; `key` defaults to the kebab-cased `label`.
+func catalogSourceType(
+    _ id: String, label: String, key: String? = nil, origin: String, description: String = "", usedBy: Int = 0
+) -> CatalogSourceType {
+    CatalogSourceType(
+        id: id, key: key ?? FieldSlug.kebab(label), origin: origin, label: label, description: description,
+        usedBy: usedBy
+    )
+}
+
+/// A product-seeded Source type for tests (key `book`).
+func seededSourceType(id: String = "t1", label: String = "Book", usedBy: Int = 0) -> CatalogSourceType {
+    catalogSourceType(
+        id, label: label, key: "book", origin: "provenencia", description: "A published monograph.", usedBy: usedBy
+    )
+}
+
+/// A researcher-made Source type for tests.
+func userSourceType(id: String = "t2", label: String = "Family scrapbook", usedBy: Int = 0) -> CatalogSourceType {
+    catalogSourceType(id, label: label, origin: "user", description: "Nan's albums.", usedBy: usedBy)
+}
+
+/// A plugin's Source type for tests (read only).
+func pluginSourceType(id: String = "t3", label: String = "Grave memorial", usedBy: Int = 5) -> CatalogSourceType {
+    catalogSourceType(
+        id, label: label, key: "grave-memorial", origin: "plugin:findagrave", description: "From the plugin.",
+        usedBy: usedBy
     )
 }
 
