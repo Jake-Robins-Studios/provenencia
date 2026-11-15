@@ -1,7 +1,7 @@
 # Review — S16-25 Swift keys become plain values and follow their inputs
 
-**Verdict:** round 1: Fits with changes — Not ready; round 2: pending
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 2); every finding Fixed, nothing open
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - Before planning (answered 2026-11-15): the map's Check asked that a write inside a cited Source which changes no Source words leave record links alone (S16-12 PRF-1), but the only Source signal was `SourceScopes`, which every write in a Source sets, and S16-12 had marked a narrower signal "not planned" (2026-11-12). The user chose option 2: a `source_records` keyed read moved only by `sources`, `artifacts` and `source_credibility_assessments`, followed by the app and by the Go Source records entry. Recorded in **Rules this plan bends** and in STEP-6's map edits.
@@ -9,9 +9,10 @@
 ## Writer's own calls
 - D-2: one non-optional `id` accessor plus two `citationsByArtifact` accessors, rather than positional `ids[0]`.
 - D-3: no `onField` narrowing on `sources`, so a cover or public flag edit reloads pages that show the Source; the `date_values` path waits for S15-05.
-- D-9: FakeStore keeps empty inputs; tests seed inputs.
-- D-11: no end-to-end FFI test per relation (S16-24 D-11 had named one for this PR); the three halves are tested where they live.
-- D-12: four commits.
+- D-8: FakeStore keeps empty inputs; tests seed inputs.
+- D-10: no end-to-end FFI test per relation (S16-24 D-11 had named one for this PR); the three halves are tested where they live.
+- D-11: four commits.
+- Round 2 M-9 (option a): the inputs follow is three `followsValue` refreshes returned by one `followsInputs` declaration, not one refresh; STEP-6 rewords the Batch 2 rule's "one `.followsInputs` refresh" to "one `followsInputs` declaration (a `followsValue` refresh per input slot)" and the map row to match.
 
 ## Round 1
 
@@ -64,3 +65,31 @@ Inserting `ownId` into a copy of `handles` copies the set per key per write and 
 
 ### X-8 · minor · Credibility grade vocabulary edits are not covered
 **Answer:** Fixed — §6 Edges (d): grades change only at install (S16-12 D-4); D-3 and the Stop list make a runtime grade write a Stop.
+
+Note: round 2 replaced D-6 – D-8 of round 1 (the widened `.revalidate`, the `.inputs` slot and `isMet`); M-1, M-2 and X-10 are settled by that shape. Decision ids below refer to the plan after round 2.
+
+## Round 2
+
+### M-9 · blocker · `CatalogQueryFollows.inputs` is a slot that names no ids
+Round 1's fix made `.inputs` a label whose `ids(in:)` is empty, a third kind of slot beside row and catalog-wide slots, and rebuilt with `isMet` what `applyHiddenPolicy(followsValue:ids:)` already does per slot; `touchedHandles` (computed) would be rebuilt per key per write, so §6 Scale was wrong. Better (a): three `followsValue` refreshes over existing slots, and `revalidatedKeys` builds each slot's reported set once per write.
+**Answer:** Fixed — took (a). D-6: `followsInputs(_:)` returns the three `followsValue` refreshes (handles on `.touchedHandles`, graphs on `.evidenceGraphs`, Sources on `.reads(.sourceRecords)`); `.inputs`, `isMet` and the widened `.revalidate` are gone; `followsValue` stays. D-7: a per-write memo of each slot's set in `revalidatedKeys` (`CatalogQueryFollows: Hashable`) and an `isDisjoint` over the smaller set. AC-3.3, AC-3.4, T-5, §6 Scale, Deletes and the sweep updated.
+
+### M-9 notes (below the bar)
+- `Set.ReadIDs` collides with the struct `effects.ReadIDs`: renamed `Set.IDsOf` (D-4).
+- S15-21's sheet key is `whenHidden: .evict` and not a per-handle page: §6 Next adds and D-9 now say it adds `followsInputs` to its own `.make`.
+- `id` vs `ownId`: `id`'s doc points at `ownId` (D-2).
+
+### X-9 · major · T-1's `artifacts` check cannot compare a `ReadPath`
+**Answer:** Fixed — T-1 asserts `eff.EvidenceGraph.zero() && len(eff.Reads) == 1 && eff.Reads[0].Read == ReadSourceRecords`; the path end is checked by the existing loop.
+
+### X-10 · major · `.inputs` has no place in the switches or `requireRowIDs`
+**Answer:** Fixed by M-9: no `.inputs` case.
+
+### X-11 · minor · the Source page patches lose their kind check
+**Answer:** Fixed — D-2: `key.kind == .sourceWorkspace && key.ownId == <the Source id>`.
+
+### X-12 · minor · T-9's visible Family and new value are under-specified
+**Answer:** Fixed — T-9 names `.personDetail(…, pageSection: .family)`, the seeded and re-seeded values; T-8 names `citedDetail("e1")` with inputs, the location and the `memberCount` change. §4 gains the navigation row.
+
+### X-13 · nit · how `inputs` gets into FakeStore values
+**Answer:** Fixed — D-8 and STEP-5: each value type has `var inputs = CatalogPageInputs()`, so `inputs:` is a memberwise argument.
