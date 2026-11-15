@@ -620,13 +620,13 @@ private struct ThrowingStore: GenealogyStore {
     func listEvidenceGraphEventTitles(projectDir _: String, graphID _: String) async throws -> [String: CatalogEventTitle] {
         throw StoreBoom.boom
     }
-    func listPersonSummaries(projectDir _: String) async throws -> [CatalogPersonSummary] {
+    func listPersonSummaries(projectDir _: String, entityIDs _: [String]?) async throws -> [CatalogPersonSummary] {
         throw StoreBoom.boom
     }
-    func listEventSummaries(projectDir _: String) async throws -> [CatalogEventSummary] {
+    func listEventSummaries(projectDir _: String, entityIDs _: [String]?) async throws -> [CatalogEventSummary] {
         throw StoreBoom.boom
     }
-    func listPlaceSummaries(projectDir _: String) async throws -> [CatalogPlaceSummary] {
+    func listPlaceSummaries(projectDir _: String, entityIDs _: [String]?) async throws -> [CatalogPlaceSummary] {
         throw StoreBoom.boom
     }
     func getConclusionDetail(projectDir _: String, entityID _: String) async throws -> CatalogConclusionDetail {

@@ -87,6 +87,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// those rules (`conclusionsummaries`, `eventtitle`) and their tests.
     var seededEventSummaries: [CatalogEventSummary] = []
     var seededPlaceSummaries: [CatalogPlaceSummary] = []
+    /// When set, the whole Persons read returns these rows (keys as the test gives them) in place
+    /// of the composed ones.
+    var seededPersonSummaries: [CatalogPersonSummary]?
     /// Event card titles Go would choose, per Evidence graph then Subject id.
     var eventTitlesByGraph: [String: [String: CatalogEventTitle]] = [:]
     /// A handle's detail as Go would compose it, seeded by tests. Persons
@@ -156,6 +159,12 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var listSubjectsGraphIDs: [String] = []
     var getSourceWorkspaceCalls = 0
     var listPersonSummariesCalls = 0
+    /// The `entityIDs` of each list-summaries call, in order (nil: the whole read).
+    var listPersonSummariesEntityIDs: [[String]?] = []
+    var listEventSummariesEntityIDs: [[String]?] = []
+    var listPlaceSummariesEntityIDs: [[String]?] = []
+    /// When set, `listPersonSummaries` throws on every call.
+    var listPersonSummariesError: Error?
     var getPropertiesWorkspaceCalls = 0
     var getPropertiesWorkspaceError: Error?
     var listEvidenceGraphProgressCalls = 0
@@ -1756,27 +1765,38 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         Set(memberships.values.filter { $0.kind == kind }.map(\.entity.id)).count
     }
 
-    func listPersonSummaries(projectDir: String) async throws -> [CatalogPersonSummary] {
+    func listPersonSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPersonSummary] {
         // A read: no `recordedCalls`.
-        return withState {
+        try withState {
             listPersonSummariesCalls += 1
+            listPersonSummariesEntityIDs.append(entityIDs)
+            if let listPersonSummariesError { throw listPersonSummariesError }
             markCatalogSessionHeld(projectDir)
-            return personSummaries()
+            return Self.filtered(seededPersonSummaries ?? personSummaries(), to: entityIDs)
         }
     }
 
-    func listEventSummaries(projectDir: String) async throws -> [CatalogEventSummary] {
+    func listEventSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogEventSummary] {
         withState {
+            listEventSummariesEntityIDs.append(entityIDs)
             markCatalogSessionHeld(projectDir)
-            return seededEventSummaries
+            return Self.filtered(seededEventSummaries, to: entityIDs)
         }
     }
 
-    func listPlaceSummaries(projectDir: String) async throws -> [CatalogPlaceSummary] {
+    func listPlaceSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPlaceSummary] {
         withState {
+            listPlaceSummariesEntityIDs.append(entityIDs)
             markCatalogSessionHeld(projectDir)
-            return seededPlaceSummaries
+            return Self.filtered(seededPlaceSummaries, to: entityIDs)
         }
+    }
+
+    /// The rows of a whole read whose id is in `ids`, in the whole read's order; nil keeps them all.
+    private static func filtered<Row: Identifiable>(_ rows: [Row], to ids: [String]?) -> [Row] where Row.ID == String {
+        guard let ids else { return rows }
+        let wanted = Set(ids)
+        return rows.filter { wanted.contains($0.id) }
     }
 
     /// Mirrors the Go composer closely enough for UI tests: members' name
@@ -1791,17 +1811,15 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             let field = nameField(memberIDs: Set(group.map(\.subjectID)), sources: [])
             var top: CatalogNameValue?
             if case let .name(name)? = field.values.first?.value { top = name }
-            return CatalogPersonSummary(entity: entity, name: top, nameValueCount: field.values.count)
+            var row = CatalogPersonSummary(entity: entity, name: top, nameValueCount: field.values.count)
+            row.listKey = CatalogListKey(
+                last: top == nil,
+                primary: Data((top?.form.lowercased() ?? "").utf8),
+                ref: entity.ref.lowercased()
+            )
+            return row
         }
-        return summaries.sorted { a, b in
-            switch (a.name, b.name) {
-            case let (x?, y?) where x.form.lowercased() != y.form.lowercased():
-                return x.form.lowercased() < y.form.lowercased()
-            case (.some, .none): return true
-            case (.none, .some): return false
-            default: return a.entity.ref.localizedCaseInsensitiveCompare(b.entity.ref) == .orderedAscending
-            }
-        }
+        return summaries.sorted { $0.listKey < $1.listKey }
     }
 
     func listPersonClaims(projectDir: String, entityID: String) async throws -> CatalogPersonClaims {

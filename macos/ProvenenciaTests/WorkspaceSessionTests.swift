@@ -759,9 +759,9 @@ struct WorkspaceSessionTests {
         #expect(handle.value?.observations.count == 1)
     }
 
-    /// A Promote's effects leave a Persons list that isn't on screen stale: the old rows
-    /// stay, nothing fetches, and the next `query` reloads from Go's cache.
-    @Test func applyPromoteMarksHiddenPersonsListStale() async throws {
+    /// A Promote's effects reach a Persons list that isn't on screen as one read of the promoted
+    /// handle, merged in: the list holds the new row, current, with no whole reload (AC-1.4, AC-1.5).
+    @Test func applyPromoteMergesThePromotedPerson() async throws {
         let store = FakeStore()
         seedStore(store)
         store.subjectTypesByProject[projectDir] = [
@@ -780,12 +780,10 @@ struct WorkspaceSessionTests {
 
         let promoted = store.seedPromotion(projectDir: projectDir, subjectID: "sub-1")
         session.apply(CatalogWriteEffects(handles: [promoted.entity.id], evidenceGraphs: ["g-1"]))
-        #expect(!handle.isFetching)
-        #expect(handle.value?.isEmpty == true)
-
-        let _: QueryHandle<[CatalogPersonSummary]> = session.query(.personsList(project: session.projectKey))
-        await waitForQuery(handle)
+        await session.settleWrites()
         #expect(handle.value?.map(\.entity.ref) == [promoted.entity.ref])
+        #expect(!handle.isStale)
+        #expect(store.listPersonSummariesEntityIDs == [nil, [promoted.entity.id]])
     }
 
     /// The open section's reads stay visible, so a write revalidates them instead of marking
@@ -805,8 +803,8 @@ struct WorkspaceSessionTests {
     }
 
     /// A trigger marks Conclusion detail pages that aren't on screen stale,
-    /// revalidates the one that is, and marks the Persons list (also off
-    /// screen) stale until its next query.
+    /// revalidates the one that is, and merges the touched rows into the Persons list (also off
+    /// screen), which stays current.
     @Test func applyTriggerStalesHiddenDetailPagesAndRevalidatesTheVisibleOne() async throws {
         let store = FakeStore()
         seedStore(store)
@@ -858,12 +856,12 @@ struct WorkspaceSessionTests {
         // On screen: revalidated in place.
         await waitForQuery(secondHandle)
         #expect(secondHandle.value?.fields.first?.state == .single)
-        // The list is off screen: stale, not reloaded. The next query reloads it.
-        #expect(!list.isFetching)
-        #expect(list.value?.first?.name?.form != "Jim Robins")
-        let _: QueryHandle<[CatalogPersonSummary]> = session.query(.personsList(project: session.projectKey))
-        await waitForQuery(list)
+        // The list is off screen: it merged the touched rows, so it is current and not stale.
+        await session.settleWrites()
+        #expect(!list.isStale)
         #expect(list.value?.first?.name?.form == "Jim Robins")
+        let _: QueryHandle<[CatalogPersonSummary]> = session.query(.personsList(project: session.projectKey))
+        #expect(!list.isFetching)
 
         // Leaving for the list hides the second page too.
         session.apply(location: .sectionRoot(.persons))
@@ -887,6 +885,13 @@ struct WorkspaceSessionTests {
             nameValueCount: 0,
             updated: CatalogActivity(revision: revision, at: at)
         )
+    }
+
+    /// A Person row whose list key is `position` (Go's order, which the fake's reads keep).
+    private func keyedPerson(_ id: String, _ position: UInt8) -> CatalogPersonSummary {
+        var row = personSummary(id, revision: 1)
+        row.listKey = CatalogListKey(last: false, primary: Data([position]), ref: id)
+        return row
     }
 
     private func eventSummary(_ id: String) -> CatalogEventSummary {
@@ -986,9 +991,9 @@ struct WorkspaceSessionTests {
         #expect(evicted == nil)
     }
 
-    /// A write that changes list values reloads the list on screen and leaves
-    /// the others stale until they are shown.
-    @Test func hiddenListsGoStaleVisibleListReloads() async throws {
+    /// A write that names a handle re-reads just that row in each loaded list, on screen or not
+    /// (AC-1.3, AC-1.5): the lists merge it in, are not marked stale, and a `query` starts no load.
+    @Test func hiddenListsMergeTouchedRows() async throws {
         let store = FakeStore()
         seedStore(store)
         let session = makeSession(store: store)
@@ -996,47 +1001,110 @@ struct WorkspaceSessionTests {
         let people = CatalogQueryKey.personsList(project: project)
         let events = CatalogQueryKey.eventsList(project: project)
         let places = CatalogQueryKey.placesList(project: project)
-        func seed() throws -> (QueryHandle<[CatalogPersonSummary]>, QueryHandle<[CatalogEventSummary]>, QueryHandle<[CatalogPlaceSummary]>) {
-            session.setQueryValue(people, value: [personSummary("e1", revision: 1)])
-            session.setQueryValue(events, value: [eventSummary("e1")])
-            session.setQueryValue(places, value: [placeSummary("e1")])
-            return (
-                try #require(session.queryHandle(people)),
-                try #require(session.queryHandle(events)),
-                try #require(session.queryHandle(places))
-            )
-        }
+        session.setQueryValue(people, value: [personSummary("e1", revision: 1)])
+        session.setQueryValue(events, value: [eventSummary("e1")])
+        session.setQueryValue(places, value: [placeSummary("e1")])
+        let peopleHandle: QueryHandle<[CatalogPersonSummary]> = try #require(session.queryHandle(people))
+        let eventsHandle: QueryHandle<[CatalogEventSummary]> = try #require(session.queryHandle(events))
+        let placesHandle: QueryHandle<[CatalogPlaceSummary]> = try #require(session.queryHandle(places))
 
-        // AC-2.6: none on screen. Nothing loads; the old value shows; the next query reloads.
-        var (peopleHandle, eventsHandle, placesHandle) = try seed()
+        // The store has no `e1` row, so each list drops it.
         session.apply(CatalogWriteEffects(handles: ["e1"]))
-        #expect(!peopleHandle.isFetching && !eventsHandle.isFetching && !placesHandle.isFetching)
-        #expect(peopleHandle.value?.count == 1 && eventsHandle.value?.count == 1 && placesHandle.value?.count == 1)
+        await session.settleWrites()
+        #expect(store.listPersonSummariesEntityIDs == [["e1"]])
+        #expect(store.listEventSummariesEntityIDs == [["e1"]])
+        #expect(store.listPlaceSummariesEntityIDs == [["e1"]])
+        #expect(peopleHandle.value?.isEmpty == true && eventsHandle.value?.isEmpty == true && placesHandle.value?.isEmpty == true)
+        #expect(!peopleHandle.isStale && !eventsHandle.isStale && !placesHandle.isStale)
         let _: QueryHandle<[CatalogPersonSummary]> = session.query(people)
-        await waitForQuery(peopleHandle)
-        #expect(peopleHandle.value?.isEmpty == true)
-
-        // AC-2.7: People on screen. It reloads now; Events and Places go stale.
-        session.apply(location: .sectionRoot(.persons))
-        await waitForQuery(peopleHandle)
-        (peopleHandle, eventsHandle, placesHandle) = try seed()
-        session.apply(CatalogWriteEffects(handles: ["e1"]))
-        #expect(peopleHandle.isFetching)
-        await waitForQuery(peopleHandle)
-        #expect(peopleHandle.value?.isEmpty == true)
-        #expect(!eventsHandle.isFetching && !placesHandle.isFetching)
-        #expect(eventsHandle.value?.count == 1 && placesHandle.value?.count == 1)
-        // The stale Events list reloads on its next showing.
         let _: QueryHandle<[CatalogEventSummary]> = session.query(events)
-        #expect(eventsHandle.isFetching)
-        await waitForQuery(eventsHandle)
-        #expect(eventsHandle.value?.isEmpty == true)
+        let _: QueryHandle<[CatalogPlaceSummary]> = session.query(places)
+        #expect(!peopleHandle.isFetching && !eventsHandle.isFetching && !placesHandle.isFetching)
+        #expect(store.listPersonSummariesEntityIDs == [["e1"]])
+    }
+
+    /// A list key puts a re-read row where Go says (AC-1.1, AC-1.2): the visible list asks the
+    /// store once, for the write's touched ids, and the moved row lands after its new neighbour.
+    @Test func visibleListsReReadOnlyTouchedRows() async throws {
+        let store = FakeStore()
+        seedStore(store)
+        store.seededPersonSummaries = [keyedPerson("p1", 1), keyedPerson("p2", 2), keyedPerson("p3", 3)]
+        let session = makeSession(store: store)
+        let people = CatalogQueryKey.personsList(project: session.projectKey)
+        session.apply(location: .sectionRoot(.persons))
+        let handle: QueryHandle<[CatalogPersonSummary]> = try #require(session.queryHandle(people))
+        await waitForQuery(handle)
+        #expect(handle.value?.map(\.id) == ["p1", "p2", "p3"])
+
+        store.seededPersonSummaries = [keyedPerson("p1", 1), keyedPerson("p2", 4), keyedPerson("p3", 3)]
+        session.apply(CatalogWriteEffects(handles: ["p2"], summaryHandles: ["e9"]))
+        #expect(handle.isFetching)
+        await session.settleWrites()
+        #expect(store.listPersonSummariesEntityIDs == [nil, ["p2", "e9"]])
+        #expect(handle.value?.map(\.id) == ["p1", "p3", "p2"])
+        #expect(!handle.isFetching && !handle.isStale)
+    }
+
+    /// AC-1.6: a failed re-read goes through the hidden policy, as a failed `.merged` does.
+    @Test func listReReadFailureFollowsTheHiddenPolicy() async throws {
+        struct Boom: Error {}
+        // On screen: the list reloads whole, and that read fails too.
+        let store = FakeStore()
+        seedStore(store)
+        store.seededPersonSummaries = [keyedPerson("p1", 1), keyedPerson("p2", 2)]
+        let session = makeSession(store: store)
+        let people = CatalogQueryKey.personsList(project: session.projectKey)
+        session.apply(location: .sectionRoot(.persons))
+        let handle: QueryHandle<[CatalogPersonSummary]> = try #require(session.queryHandle(people))
+        await waitForQuery(handle)
+        store.listPersonSummariesError = Boom()
+        session.apply(CatalogWriteEffects(handles: ["p2"]))
+        await session.settleWrites()
+        #expect(store.listPersonSummariesEntityIDs == [nil, ["p2"], nil])
+        #expect(handle.status == .error)
+        #expect(handle.value?.map(\.id) == ["p1", "p2"])
+
+        // Off screen: the list is marked stale and reloads on its next showing.
+        let hiddenStore = FakeStore()
+        seedStore(hiddenStore)
+        hiddenStore.listPersonSummariesError = Boom()
+        let hiddenSession = makeSession(store: hiddenStore)
+        let hiddenKey = CatalogQueryKey.personsList(project: hiddenSession.projectKey)
+        hiddenSession.setQueryValue(hiddenKey, value: [keyedPerson("p1", 1), keyedPerson("p2", 2)])
+        let hidden: QueryHandle<[CatalogPersonSummary]> = try #require(hiddenSession.queryHandle(hiddenKey))
+        hiddenSession.apply(CatalogWriteEffects(handles: ["p2"]))
+        await hiddenSession.settleWrites()
+        #expect(hiddenStore.listPersonSummariesEntityIDs == [["p2"]])
+        #expect(hidden.isStale)
+        #expect(hidden.value?.map(\.id) == ["p1", "p2"])
+    }
+
+    /// AC-1.7: a label edit reloads a visible list whole and marks a hidden one stale; neither
+    /// makes a partial read.
+    @Test func labelEditReloadsOrStalesListsWithNoPartialRead() async throws {
+        let store = FakeStore()
+        seedStore(store)
+        store.seededPersonSummaries = [keyedPerson("p1", 1), keyedPerson("p2", 2)]
+        let session = makeSession(store: store)
+        let people = CatalogQueryKey.personsList(project: session.projectKey)
+        let events = CatalogQueryKey.eventsList(project: session.projectKey)
+        session.apply(location: .sectionRoot(.persons))
+        let handle: QueryHandle<[CatalogPersonSummary]> = try #require(session.queryHandle(people))
+        await waitForQuery(handle)
+        session.setQueryValue(events, value: [eventSummary("e1")])
+        let hidden: QueryHandle<[CatalogEventSummary]> = try #require(session.queryHandle(events))
+
+        session.apply(CatalogWriteEffects(handles: ["p2"], lists: [.propertyVocabulary]))
+        await session.settleWrites()
+        #expect(store.listPersonSummariesEntityIDs == [nil, nil])
+        #expect(store.listEventSummariesEntityIDs.isEmpty)
+        #expect(hidden.isStale)
     }
 
     /// A Source-page write reports its effects: the Sources row is patched in
-    /// place, the three conclusion lists are neither reloaded nor stale unless
-    /// the write reports handles, and the page's own workspace follows the
-    /// mutation.
+    /// place, the three conclusion lists are neither reloaded nor re-read unless
+    /// the write reports handles (then each merges just those rows), and the
+    /// page's own workspace follows the mutation.
     @Test func sourceWriteEffectsPatchSourcesAndLeaveListsAlone() async throws {
         let store = FakeStore()
         seedStore(store)
@@ -1079,18 +1147,19 @@ struct WorkspaceSessionTests {
         #expect(workspace.isFetching)
         await waitForQuery(workspace)
 
-        // AC-2.12: a credibility change reports the handle. The hidden lists
-        // go stale and reload on their next `query`; the Sources row still patches.
+        // AC-2.12: a credibility change reports the handle. Each hidden list re-reads just that row
+        // (the fake has none, so it is dropped) and stays current; the Sources row still patches.
         let second = CatalogActivity(revision: 13, at: "2026-10-15T16:05:00Z")
         session.apply(
             CatalogWriteEffects(handles: ["e1"], sourceScopes: ["s1"], activity: second),
             .mutatedSourceWorkspace(sourceId: "s1")
         )
         #expect(sourcesHandle.value?.first?.updated == second)
-        #expect(listsAreQuiet())
+        await session.settleWrites()
+        #expect(store.listPersonSummariesEntityIDs.last == .some(["e1"]))
+        #expect(!peopleHandle.isStale && !eventsHandle.isStale && !placesHandle.isStale)
         let _: QueryHandle<[CatalogPersonSummary]> = session.query(people)
-        #expect(peopleHandle.isFetching)
-        await waitForQuery(peopleHandle)
+        #expect(!peopleHandle.isFetching)
         let _: QueryHandle<[CatalogSource]> = session.query(sources)
         #expect(!sourcesHandle.isFetching)
 
@@ -1584,8 +1653,8 @@ struct WorkspaceSessionTests {
         #expect(!handle.isFetching)
     }
 
-    /// T-12 (AC-2.7): the Evidence graph and list keys declare the slots they
-    /// follow, so a write reloads the graphs it names and every list it touches.
+    /// T-12 (AC-2.7): the Evidence graph keys declare the slots they follow, so a write reloads
+    /// the graphs it names; the lists merge the rows it touches instead.
     @Test func effectSlotsRevalidateTheirKeys() {
         let session = makeSession()
         let project = session.projectKey
@@ -1597,11 +1666,9 @@ struct WorkspaceSessionTests {
         session.setQueryValue(CatalogQueryKey.eventsList(project: project), value: [CatalogEventSummary]())
         session.setQueryValue(CatalogQueryKey.placesList(project: project), value: [CatalogPlaceSummary]())
 
+        // The lists merge the touched rows (`.run`); only the graph is revalidated.
         let named = session.revalidatedKeys(for: CatalogWriteEffects(handles: ["e1"], evidenceGraphs: ["g1"]))
-        #expect(Set(named) == [
-            graph1, .personsList(project: project), .eventsList(project: project), .placesList(project: project),
-        ])
-        #expect(named.count == 4)
+        #expect(named == [graph1])
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(handleScopes: ["e1"])).isEmpty)
     }
 
@@ -2396,26 +2463,29 @@ struct WorkspaceSessionTests {
         #expect(session.evidenceGraphs(sourceID: "T")?.map(\.id) == ["t-default", "t-new"])
     }
 
-    /// T-12: a hidden graph list is flagged stale by the read, fetches nothing,
-    /// and reloads whole on the next query.
-    @Test func hiddenGraphListGoesStaleOnRead() async {
+    /// AC-1.9: a hidden graph list merges the read's Source too: it re-reads it, is not stale,
+    /// and a `query` starts no load.
+    @Test func hiddenGraphListMergesOnRead() async {
         let store = FakeStore()
         let (session, handle) = graphListSession(
             store: store,
             rows: [evidenceGraph("s-default", sourceID: "S", name: "Default")],
             visible: false
         )
-        store.evidenceGraphsByProject[projectDir] = [evidenceGraph("s-default", sourceID: "S", name: "Default")]
+        store.evidenceGraphsByProject[projectDir] = [
+            evidenceGraph("s-default", sourceID: "S", name: "Default"),
+            evidenceGraph("s-new", sourceID: "S", name: "New"),
+        ]
         session.apply(graphRead("S"))
-        #expect(handle.isStale)
         await session.settleWrites()
-        #expect(store.listEvidenceGraphsSourceIDs.isEmpty)
+        #expect(store.listEvidenceGraphsSourceIDs == ["S"])
+        #expect(handle.value?.map(\.id) == ["s-default", "s-new"])
+        #expect(!handle.isStale)
 
         let again: QueryHandle<[CatalogEvidenceGraph]> = session.query(session.evidenceGraphsKey)
-        await waitForQuery(again)
+        #expect(!again.isFetching)
         await session.settleWrites()
-        #expect(store.listEvidenceGraphsSourceIDs == [nil])
-        #expect(!handle.isStale)
+        #expect(store.listEvidenceGraphsSourceIDs == ["S"])
     }
 
     /// T-13: deleting a Source drops its graphs through the same re-read.

@@ -470,6 +470,21 @@ struct CatalogEventSubject: Sendable, Equatable {
     var nameValueCount: Int = 0
 }
 
+/// A row's place in its list, as Go sorts it (`conclusionsummaries.ListKey`, S16-26): rows with
+/// `last` false first, then `primary` bytewise, then `ref` bytewise. Only the list reads fill it;
+/// the app compares keys and never computes one.
+struct CatalogListKey: Sendable, Equatable, Comparable {
+    var last = false
+    var primary = Data()
+    var ref = ""
+
+    static func < (a: Self, b: Self) -> Bool {
+        if a.last != b.last { return !a.last }
+        if a.primary != b.primary { return a.primary.lexicographicallyPrecedes(b.primary) }
+        return a.ref.utf8.lexicographicallyPrecedes(b.ref.utf8)
+    }
+}
+
 /// One Person as a row, composed by Go from the auto-reconciler cache (S9-07).
 /// Structures only; `PersonTitleDisplay` formats the title. Birth and death
 /// are read by `PersonLifeDisplay`.
@@ -489,6 +504,8 @@ struct CatalogPersonSummary: Sendable, Equatable, Identifiable {
     /// The `objects/…` path of the picture the Person leads with; "" when none.
     /// Filled by the Person list, the detail reads, and omnibar search hits.
     var pictureImageRelPath: String = ""
+    /// The key the row's list sorts by; filled by the list reads only.
+    var listKey = CatalogListKey()
 
     var id: String { entity.id }
 }
@@ -520,6 +537,8 @@ struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var updated = CatalogActivity()
     /// The `objects/…` path of the picture the Event leads with; "" when none.
     var pictureImageRelPath: String = ""
+    /// The key the row's list sorts by; filled by the list reads only.
+    var listKey = CatalogListKey()
 
     var id: String { entity.id }
 }
@@ -573,6 +592,8 @@ struct CatalogPlaceSummary: Sendable, Equatable, Identifiable {
     var updated = CatalogActivity()
     /// The `objects/…` path of the picture the Place leads with; "" when none.
     var pictureImageRelPath: String = ""
+    /// The key the row's list sorts by; filled by the list reads only.
+    var listKey = CatalogListKey()
 
     var id: String { entity.id }
 }
@@ -1730,9 +1751,11 @@ protocol GenealogyStore: Sendable {
     /// The title of every Event Subject on one Evidence graph, keyed by Subject id.
     func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogEventTitle]
     /// Every unmerged Person as a row summary, in Go's list order by sort name, which leaves honorifics out, then ref-only by ref.
-    func listPersonSummaries(projectDir: String) async throws -> [CatalogPersonSummary]
-    func listEventSummaries(projectDir: String) async throws -> [CatalogEventSummary]
-    func listPlaceSummaries(projectDir: String) async throws -> [CatalogPlaceSummary]
+    /// `entityIDs` limits the read to those handles' rows, in list order (an unknown, merged or
+    /// other-kind id is absent); nil lists every row.
+    func listPersonSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPersonSummary]
+    func listEventSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogEventSummary]
+    func listPlaceSummaries(projectDir: String, entityIDs: [String]?) async throws -> [CatalogPlaceSummary]
     /// One handle's fields, auto-reconciled values and outcomes. Throws
     /// `conclusiondetails.not_found` for an unknown or merged handle.
     func getConclusionDetail(projectDir: String, entityID: String) async throws -> CatalogConclusionDetail

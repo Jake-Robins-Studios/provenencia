@@ -21,6 +21,48 @@ extension CatalogEventSummary: CatalogLastUpdatedRow {}
 extension CatalogPlaceSummary: CatalogLastUpdatedRow {}
 extension CatalogSource: CatalogLastUpdatedRow {}
 
+/// A cached list row that Go placed with a list key (S16-26): what `CatalogQueryRefresh.mergedRows`
+/// reads to put a re-read row where its key falls.
+protocol CatalogListRow: Identifiable, Sendable where ID == String {
+    var listKey: CatalogListKey { get }
+}
+
+extension CatalogPersonSummary: CatalogListRow {}
+extension CatalogEventSummary: CatalogListRow {}
+extension CatalogPlaceSummary: CatalogListRow {}
+
+extension Array where Element: CatalogListRow {
+    /// Drops the rows of `ids` and of `fresh`, then puts each `fresh` row where its key falls. The
+    /// list was in key order and stays so: one pass drops, `fresh` is sorted (stably) by key, and
+    /// one pass merges the two runs, a fresh row going after kept rows with an equal key.
+    mutating func mergeSorted(_ fresh: [Element], replacing ids: [String]) {
+        var dropped = Set(ids)
+        for row in fresh { dropped.insert(row.id) }
+        let kept = filter { !dropped.contains($0.id) }
+        let added = fresh.enumerated()
+            .sorted { a, b in
+                a.element.listKey == b.element.listKey ? a.offset < b.offset : a.element.listKey < b.element.listKey
+            }
+            .map(\.element)
+        var merged: [Element] = []
+        merged.reserveCapacity(kept.count + added.count)
+        var k = 0
+        var a = 0
+        while k < kept.count, a < added.count {
+            if added[a].listKey < kept[k].listKey {
+                merged.append(added[a])
+                a += 1
+            } else {
+                merged.append(kept[k])
+                k += 1
+            }
+        }
+        merged.append(contentsOf: kept[k...])
+        merged.append(contentsOf: added[a...])
+        self = merged
+    }
+}
+
 /// A per-entity page value that reports what it was built from (S16-24), so a
 /// key holding one follows those ids (`CatalogQueryRefresh.followsInputs`).
 protocol CatalogPageValue: Sendable {
@@ -259,7 +301,7 @@ struct CatalogQueryRefresh: Sendable {
         self.action = action
     }
 
-    /// A partial reload (`.run`). `merged` is the only way to declare one.
+    /// A partial reload (`.run`). `merged` and `mergedRows` are the only ways to declare one.
     fileprivate init(follows: CatalogQueryFollows, run: @escaping Run) {
         self.init(follows: follows, action: .run(run))
     }
@@ -286,11 +328,44 @@ struct CatalogQueryRefresh: Sendable {
                 key,
                 as: Value.self,
                 ids: ids,
-                read: { id in try await read(session, key, id) },
-                merge: merge,
+                read: { ids in
+                    var parts: [(String, Part)] = []
+                    for id in ids {
+                        parts.append((id, try await read(session, key, id)))
+                    }
+                    return parts
+                },
+                merge: { value, parts in
+                    for (id, part) in parts {
+                        merge(&value, id, part)
+                    }
+                },
                 afterMerge: afterMerge.map { after in
-                    { parts, previous in after(session, key, parts, previous) }
+                    { parts, previous in
+                        after(session, key, Dictionary(parts, uniquingKeysWith: { _, last in last }), previous)
+                    }
                 }
+            )
+        })
+    }
+
+    /// A partial reload of a list that Go orders (S16-26): `read` fetches the rows of the named ids
+    /// in one store call, and the rows are put where their `listKey` falls, the ids it returned
+    /// no row for dropped (`Array.mergeSorted`). The key's `isFetching` stays true while it runs;
+    /// a failed read reloads the key through its hidden policy.
+    static func mergedRows<Row: CatalogListRow>(
+        _: Row.Type,
+        follows: CatalogQueryFollows,
+        read: @escaping @MainActor @Sendable (WorkspaceSession, CatalogQueryKey, [String]) async throws -> [Row]
+    ) -> CatalogQueryRefresh {
+        requireRowIDs(follows)
+        return CatalogQueryRefresh(follows: follows, run: { session, key, ids in
+            await session.refreshCached(
+                key,
+                as: [Row].self,
+                ids: ids,
+                read: { try await read(session, key, $0) },
+                merge: { rows, fresh in rows.mergeSorted(fresh, replacing: ids) }
             )
         })
     }
@@ -338,10 +413,11 @@ struct CatalogQueryRefresh: Sendable {
     }
 
     /// A refresh that re-applies the hidden policy to a warmed key whenever the
-    /// write names any id. It is the one constructor for a catalog-wide slot
+    /// write names any id. It is the only constructor for a catalog-wide slot
     /// (`.list(_:)`, `.structure`).
     static func applyHiddenPolicyOnAny(follows: CatalogQueryFollows) -> CatalogQueryRefresh {
-        CatalogQueryRefresh(follows: follows, action: .revalidate { _, _ in nil })
+        precondition(follows.isCatalogWide, "a row slot names ids; use applyHiddenPolicy(follows:ids:)")
+        return CatalogQueryRefresh(follows: follows, action: .revalidate { _, _ in nil })
     }
 
     /// A key whose rows carry a Property, term or Subject type label.

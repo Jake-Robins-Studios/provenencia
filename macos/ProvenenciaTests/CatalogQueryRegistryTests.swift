@@ -1001,6 +1001,10 @@ struct CatalogQueryRegistryTests {
         #expect(CatalogQueryKey.Kind.evidenceGraph.descriptor.refreshes.map(\.follows) == [.evidenceGraphs])
         for kind in [CatalogQueryKey.Kind.personsList, .eventsList, .placesList] {
             #expect(kind.descriptor.refreshes.map(\.follows) == [.touchedHandles, .list(.propertyVocabulary)], "\(kind)")
+            guard case .run = kind.descriptor.refreshes[0].action else {
+                Issue.record("\(kind)'s first refresh is not a partial re-read")
+                continue
+            }
         }
         // T-5 (AC-3.3): the five per-entity kinds follow their inputs and their own handle.
         for kind in [
@@ -1058,11 +1062,10 @@ struct CatalogQueryRegistryTests {
         session.setQueryValue(detailKey, value: CatalogConclusionDetail(entity: entity("e1"), fields: []))
         session.setQueryValue(otherKey, value: CatalogConclusionDetail(entity: entity("e2"), fields: []))
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(handleScopes: ["e1"])).isEmpty)
-        // A write that changed e1 revalidates the lists and e1's detail, not e2's.
+        // A write that changed e1 revalidates e1's detail, not e2's; the lists merge e1's row
+        // through a `.run` refresh, so they are not revalidated.
         let effects = CatalogWriteEffects(handles: ["e1"], handleScopes: ["e1", "e2"])
-        #expect(Set(session.revalidatedKeys(for: effects)) == Set(
-            [.personsList(project: project), .eventsList(project: project), .placesList(project: project), detailKey]
-        ))
+        #expect(session.revalidatedKeys(for: effects) == [detailKey])
     }
 
     private func entity(_ id: String) -> CatalogCanonicalEntity {
