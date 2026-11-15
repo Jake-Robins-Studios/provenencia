@@ -8,7 +8,10 @@ import Observation
 @Observable
 final class SourceTypeAddModel {
     var draft = SourceTypesModel.Draft(label: "", description: "")
-    var labelError: String?
+    private(set) var labelError: String?
+    /// Whether `labelError` came from the engine's refusal of an Add, which the dialog announces;
+    /// an error that follows typing is not announced.
+    private(set) var labelErrorFromWrite = false
     var createError: String?
     private(set) var isSaving = false
 
@@ -23,12 +26,19 @@ final class SourceTypeAddModel {
     }
 
     /// The key the engine will mint from the label.
-    var key: String {
-        FieldSlug.kebab(draft.label.trimmingCharacters(in: .whitespacesAndNewlines))
+    var key: String { draft.key }
+
+    /// Sets the label and shows or clears its error as the researcher types, as
+    /// `SourceTitleTypeFields` does.
+    func editLabel(_ new: String) {
+        guard new != draft.label else { return }
+        draft.label = new
+        labelError = draft.labelError
+        labelErrorFromWrite = false
     }
 
     var isDirty: Bool {
-        !draft.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !draft.trimmedLabel.isEmpty
             || !draft.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || draft.iconKey != PVMarkKey.defaultTypeMark.rawValue
     }
@@ -39,6 +49,7 @@ final class SourceTypeAddModel {
     func create() async -> CatalogSourceType? {
         guard !isSaving else { return nil }
         labelError = draft.labelError
+        labelErrorFromWrite = false
         guard labelError == nil else { return nil }
         isSaving = true
         defer { isSaving = false }
@@ -46,7 +57,7 @@ final class SourceTypeAddModel {
         do {
             let (created, effects) = try await store.createSourceType(
                 projectDir: session.projectKey.projectDir, userID: userID,
-                label: draft.label.trimmingCharacters(in: .whitespacesAndNewlines),
+                label: draft.trimmedLabel,
                 description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines),
                 iconKey: draft.iconKey
             )
@@ -55,6 +66,7 @@ final class SourceTypeAddModel {
         } catch {
             if (error as? CoreInvokeError)?.engineCode == .sourceTypeDuplicateKey {
                 labelError = L10n.Errors.message(for: error)
+                labelErrorFromWrite = true
             } else {
                 createError = L10n.Errors.message(for: error)
             }

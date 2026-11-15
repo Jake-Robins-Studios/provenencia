@@ -58,12 +58,18 @@ private struct SourceTypeAddForm: View {
             rightWidth: Self.iconColumnWidth
         ) {
             PVTabPair { label, description in
-                PVField(label: L10n.SourceTypes.formLabel, error: model.labelError, marker: .required) {
+                PVField(
+                    label: L10n.SourceTypes.formLabel,
+                    error: model.labelError,
+                    marker: .required,
+                    announcesError: model.labelErrorFromWrite
+                ) {
                     PVInput(
-                        text: $model.draft.label,
+                        text: Binding(get: { model.draft.label }, set: { model.editLabel($0) }),
                         prompt: L10n.SourceTypes.formLabelPlaceholder,
                         isInvalid: model.labelError != nil,
-                        focus: label
+                        focus: label,
+                        activateOnAppear: true
                     )
                     .accessibilityIdentifier("sourceTypes.add.label")
                 }

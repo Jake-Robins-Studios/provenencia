@@ -423,8 +423,44 @@ struct SourceTypesModelTests {
         #expect(await add.create() == nil)
 
         #expect(add.labelError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+        #expect(add.labelErrorFromWrite)
         #expect(add.createError == nil)
         #expect(model.types.count == 1)
+
+        add.editLabel("x")
+        #expect(!add.labelErrorFromWrite)
+    }
+
+    @Test func editingTheLabelShowsAndClearsItsError() async {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store, types: [userType(id: "t2", label: "Family scrapbook")])
+        await warm(model, session: session)
+        let add = makeAddModel(session, store: store)
+        #expect(add.labelError == nil)
+
+        add.editLabel("—")
+        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorUnslugifiable))
+
+        add.editLabel("Family scrapbook")
+        #expect(await add.create() == nil)
+        #expect(add.labelError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+
+        add.editLabel("Diary")
+        #expect(add.labelError == nil)
+    }
+
+    @Test func addingCarriesThePickedIconAndToasts() async throws {
+        let store = FakeStore()
+        let (model, session) = makeModel(store: store, types: [seededType()])
+        await warm(model, session: session)
+        let add = makeAddModel(session, store: store)
+        add.draft.label = "Diary"
+        add.draft.iconKey = "type_photograph"
+        let created = try #require(await add.create())
+        #expect(created.iconKey == "type_photograph")
+
+        model.showAdded(created)
+        #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastAddedTitle))
     }
 
     @Test func anotherCreateFailureShowsInTheDialog() async {
