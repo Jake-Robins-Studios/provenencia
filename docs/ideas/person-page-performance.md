@@ -43,3 +43,7 @@ Siblings ship as the parents units' children, the siblings unit, and `origin_sib
 ## The large fixture cannot show participation inputs (S16-19 CON-5)
 
 `bulkCanon` (`core/database/promotealign/bench_test.go`) files only `subject` roles, so `catalog_search_inputs` and the event key count cannot show what S16-19 D-7 adds: one recorded input per non-subject participation (a witness, an informant). The growth is linear in participation rows. **Shape:** file a share of non-subject roles in `bulkCanon`, and take new benchmark baselines in the same PR, since every figure moves.
+
+## Prefetch a person's other sections and a hovered person (S16-29)
+
+Spike 16 scoped a prefetch and then descoped it (user, 2026-11-16: optimizing before real data shows the cost). Switching to Family or Timeline shows the section's spinner on first open; stale-while-refreshing (S16-09) already makes a return visit instant. **Shape:** a `prefetch` role in `ConclusionPageSection.reads` for Family and Timeline, which the place warms one key at a time after the open section's keys load, and a 250 ms hover on a person tile or card that warms what its click would load. Every engine call waits in `catalogsession`'s one queue, so a prefetch in flight delays the next click by its own read: measure the warm Family and Timeline reads at the spike's real-data Scale before pulling this in. A new role must decide each `Role` policy and stay out of the section host's derived inputs (S16-03 review M-2).

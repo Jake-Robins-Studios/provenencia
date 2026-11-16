@@ -73,13 +73,13 @@ S14-40 records each summary row's inputs through `graphcache.InputScope` (`Node`
 - **Values report their inputs (S16-24, S16-25).** Each per-entity read returns the handles (from `InputScope` and the kinship pivots), graphs and Sources it was built from, as three wire lists; `graphcache.InputKey`, which the persisted input index stores, keeps its one kind. Swift has one `followsInputs` declaration (a `followsValue` refresh per slot; Sources on the `source_records` read, S16-25) in place of `personSection`, `personGraphsSection`, the per-kind id closures, S16-09's Source follow and S16-12's. Cache keys become plain values in the same PR, so the selector is written once (S16-25).
 - **Lists merge the touched rows (S16-26)**: one read of the touched ids, rows placed by a list key from Go, on screen or not ([plan](prs/S16-26-lists-merge-touched-rows.md)).
 - **One primitive for derived values (S16-27):** `session.derived(...)`, rebuilt only when an input's revision changes, replacing four hand memos and building a section's content once per value.
-- **Prefetch last (S16-29):** a `prefetch` tag in S16-03's list of section reads, for Family and Timeline, and a hovered person's page, once S16-09 and S16-25 stop the next write throwing them away.
+- **Prefetch (S16-29): descoped** (user, 2026-11-16): optimizing before real data shows the cost; the idea is in [`person-page-performance.md`](../../ideas/person-page-performance.md).
 
 ## Warming
 
 - At open, `promotealign.Warm` already loads every person, event and place node; S16-20 fills the match index's full profiles in the same pass. Every other cache fills on first read. CPU only, behind the open spinner; open is 4.16 s at 16,000 persons today and is measured after S16-11 and S16-20.
 - After a write, nothing re-warms in the background: every engine call waits in `catalogsession`'s one queue, so a background build would delay the user's next action. Apply keeps each cache current inside `OnCommit`, and each PR states that Apply's work per commit (rule "Apply states its fan-out").
-- In Swift, stale-while-refreshing (S16-09) is the largest perceived-speed win; prefetch (S16-29) comes after it.
+- In Swift, stale-while-refreshing (S16-09) is the largest perceived-speed win; prefetch (S16-29) is descoped.
 
 ## What goes
 

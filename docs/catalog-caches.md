@@ -46,7 +46,7 @@ These stay fields of `graphcache.Graph`, not registry entries, because each is e
 
 ## Swift caches
 
-Sizes are not measured. S16-24 – S16-29 reshape these.
+Sizes are not measured.
 
 | Cache | Owner (path · symbol) | Key | Fill | Updated by | Lifetime | Cap |
 | --- | --- | --- | --- | --- | --- | --- |
