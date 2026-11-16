@@ -1,19 +1,120 @@
 # Review — S15-12 Source types suggest fields at each level (with brief S15-D6)
 
-**Verdict:** Fits — Ready with changes (round 1: Fits with changes — Not ready; round 2: Fits — Not ready on X2-1, fixed)
-**Rounds:** 2. **Reviewers:** maintainability (strongest available model), executability (implementing model)
+**Verdict (re-plan, 2026-11-15):** Fits with changes — Ready with changes. Round 1 and round 2 findings all answered Fixed (M-5 Declined); no open blocker. Board agreed 2026-11-16 and its fill re-reviewed
+**Rounds:** 2 of the re-plan. **Reviewers:** maintainability (opus), executability (sonnet)
+
+The plan was rewritten against S15-48's landed type page (#848) and S15-49's list (#852); the brief was rewritten as an enhancement of S15-D27's page board. The side-pane plan's two rounds are kept below under "Side-pane plan (superseded)".
 
 ## To user
-- None. The three product calls were answered before review (user, 2026-11-14): append only, no reorder; the Associated fields column counts all three lists; the arrangement of the three lists is the board's call.
+- M-2 option (a): a sub-level `PVSectionHeader` (smaller title, no rule) shared by this page and the citation composer's step header would be a kit change. Recommendation: not now; the plan and brief take option (b), a snowflake header matching `CitationComposerEvidenceColumn.stepper`, and S15-17 (formats in the same column, a third call site) asks the kit question.
 
 ## Writer's own calls
+- D-1: the key's ids become `[typeId, level.rawValue]` with named accessors, as `citationsByArtifact`.
+- D-4: per-level state as two dictionaries and one write gate on the page model, not a sub-model per list (M-5 declined).
+- D-6: the list header is a micro-caps title with a trailing mono count, not a nested `PVSectionHeader` (M-2 option b).
+- D-7: FakeStore's count becomes a scripted value, not a copy of the engine's rule (M-1).
+- D-9: one `LevelCopy` per level; the level phrase spliced into five sentences is a complete adverbial phrase (M-4).
+- D-10: Return adds through the add row's `.onSubmit`, focus returns after one yield.
+- A list's count, picker and plus show only once that list has loaded; any write disables every list's write controls.
+- Version bump minor, 0.16.0.
+
+## Re-plan round 1
+
+### X-1 · blocker · Strings for the picker label and the list's accessibility label have no key
+**Answer:** Fixed — `LevelCopy.pickerLabel` per level and `listAccessibilityLabel(title:count:)` (`sourceTypes.suggested.listLabel`) in D-9 and § 6 Strings; `assignFieldLabel` removed. Brief SL-9 wording matched.
+
+### X-2 · major · The count in a list's header while loading or failed
+**Answer:** Fixed — § 6 States: the count shows only when `.loaded`.
+
+### X-3 · major · Which controls disable during a write
+**Answer:** Fixed — § 6 States names the picker's `.disabled` expression; any write disables every picker, plus and remove.
+
+### X-4 · major · STEP-2 half-lands D-1
+**Answer:** Fixed — STEP-2 keeps `warm()` on the `.source` key; STEP-3 switches it to `typeSuggestionsKeys`.
+
+### X-5 · major · Submit needs a Task; focus can race the re-enable
+**Answer:** Fixed — D-10 wraps the submit in a `Task`, yields once, then focuses; a Stop condition covers focus not sticking.
+
+### X-6 · major · No remove hooks in the fake
+**Answer:** Fixed — `removeTypeFieldError` *(new)*; T-7 covers a failed remove. No remove hold: T-9 holds an assign, and the gate is one value for both.
+
+### X-7 · major · The list header's fallback
+**Answer:** Fixed — D-6 names the default (with M-2).
+
+### X-8 · minor · Assigning into an unloaded list
+**Answer:** Fixed — `isLoaded(at:)`; `canAssign(at:)` requires it; the picker shows only when loaded; T-9 covers a failed level.
+
+### X-9 · minor · Test and sweep wording
+**Answer:** Fixed — T-2's `UpdateSourceType` case adds a graph row first; one sweep in the DoD with named old names; STEP-7 full paths and the archive link moves; generated file paths named in STEP-1.
+
+### X-10 · nit · Duplicate defaults and Source-level wording
+Logged; the board's copy settles it.
+
+### M-1 · major · FakeStore takes over the engine's count rule
+**Answer:** Fixed — D-7: the fake's count is `suggestedFieldCountOverride[typeID] ?? 0`; tests that check a count seed it. § 4 Fake row records today's copy.
+
+### M-2 · major · The list header left as either/or; one option a near-copy
+**Answer:** Fixed (option b) — brief inventory and SL-1 name one header shape, the composer stepper's; D-6 default matches. Option (a) To user.
+
+### M-3 · minor · Next adds points S15-17 at keys and titles that do not fit it
+**Answer:** Fixed — removed from Next adds and D-9's Why.
+
+### M-4 · minor · The level phrase and "Whole phrases"
+**Answer:** Fixed — D-9 states the phrase is a complete adverbial phrase owned by one entry; key comments say so.
+
+### M-5 · minor · Dictionaries plus `(at:)` members vs one model per owner
+**Answer:** Declined — the write gate, toast, store and session are page-wide; a list holds a pick and an error, so a sub-model is a class around two values with a back-reference. Recorded in Codebase fit with `MetadataBoardModel` named.
+
+### M-6 · minor · Return mechanism and focus type
+**Answer:** Fixed — Codebase fit row names `MetadataBoardAddRowView` and `pvActivatesOnReturn`; focus is a private one-case enum.
+
+### M-7 · minor · `CatalogMetadataField.usedBy` doc is wrong
+**Answer:** Fixed — § 4 Swift count docs and STEP-3 correct it.
+
+## Re-plan round 2
+
+### X2-1 · major · The zero-default fake count breaks tests the plan does not name
+**Answer:** Fixed — D-7 names the T-8 seed (line ~1300) and the retired test at line ~339; STEP-3's check runs all five suites the fake change reaches.
+
+### X2-2 · minor · Plural rule for `listLabel`
+**Answer:** Fixed — § 6 Strings: plural variations on argument 2, as `sourceTypes.suggested.count`.
+
+### X2-3 · nit · Line numbers, T-5's phrase, an empty pick
+**Answer:** Fixed — § 4 line numbers; T-5 builds the phrase with `L10n.format`; an empty pick is `assignPicks[level, default: ""] == ""`.
+
+### M2-1 · blocker · The M-1 fix only half in the plan
+**Answer:** Fixed — STEP-3 says "scripted" and rewrites the `withSuggestedFieldCount` doc; D-7 says four hooks and seeds the `SourceTypesModelTests` fields-sort test (t2 = 1) beside T-8's seed (X2-1).
+
+### M2-2 · blocker · The level phrase's article agrees with the type label
+**Answer:** Fixed — phrases are "on each %@ Source", "on each Artifact of %@ Sources", "on each Evidence graph of %@ Sources", with no article that agrees with the label; D-9 cites "Whole phrases" accordingly; the brief's § 2.1, SL-9 and frames follow. Notes taken: `removeLabel(for:at:)` on the model; `assignedCount`'s comment updated; `listLabel` plurals (X2-2); the brief's Review line links this log.
+
+## Board fill (2026-11-16)
+
+Board S15-D6 agreed (user). D-6, § 6 macOS and § 6 Strings filled from it: micro-caps list headers, no section count, the pool hint once under the section, "Suggest a field …" as the plus's spoken label before a pick. One executability re-review of the filled parts.
+
+### X3-1 · major · Pool hint placement contradicts the States paragraph
+**Answer:** Fixed — States: only a list's picker, plus and `poolHintEmpty` wait for its load; the section's `poolHint` shows on any editable type, id `sourceTypes.suggested.poolHint`.
+
+### X3-2 · major · `assignField(phrase:)` not wired into D-9 or the tests
+**Answer:** Fixed — D-9 lists the seven phrase-taking strings and `assignAccessibilityLabel(at:)`'s three cases; T-5 asserts the unpicked label. Also: divider spacing corrected to space5 + space6 (about 28pt); the Review line de-duplicated.
+
+## Side-pane plan (superseded)
+
+
+**Verdict (side-pane plan):** Fits — Ready with changes (round 1: Fits with changes — Not ready; round 2: Fits — Not ready on X2-1, fixed)
+**Rounds:** 2. **Reviewers:** maintainability (strongest available model), executability (implementing model)
+
+### To user
+- None. The three product calls were answered before review (user, 2026-11-14): append only, no reorder; the Associated fields column counts all three lists; the arrangement of the three lists is the board's call.
+
+### Writer's own calls
 - D-2: the two type–field mutations become one patch-only `.wroteTypeSuggestions(typeId:level:edit:)` with descriptor patches (from M-1).
 - D-1: `.typeSuggestions` becomes `whenHidden: .markStale` (from M-2).
 - D-8: forms keep their uncached suggestion read.
 - D-9: list copy is one `L10n.SourceTypes.level(_:)` returning `LevelCopy`; toasts and labels use a level phrase ("on each Evidence graph of a Census Source").
 - Version bump minor, 0.16.0.
 
-## Round 1
+### Round 1
 
 ### M-1 · blocker · Each assign or remove reloads the list the reply already returned
 Apply invalidates the visible key; `setQueryValue` → `WorkspaceSession.replaceValue` restarts the in-flight load. Use a patch-only mutation with descriptor patches, as `.wroteMetadataBoard` / `CatalogQueryPatch.metadataBoard()`.
@@ -99,7 +200,7 @@ Apply invalidates the visible key; `setQueryValue` → `WorkspaceSession.replace
 ### X-18 · nit · Rows verified true
 Logged.
 
-## Round 2
+### Round 2
 
 ### X2-1 · blocker · A patch-only mutation cannot invalidate `.sourceWorkspace`
 `CatalogMutation.invalidationKind` is nil for patch-only cases, and `CatalogQueryRegistry.invalidations(by:project:)` returns `[]` for nil.
@@ -116,5 +217,5 @@ Two notes below the bar, both taken:
 - "Patch-only" means nil-kind in the code (`CatalogMutation.invalidationKind`); D-2 and STEP-7 now say "patch the two keys, then bust `.sourceWorkspace`". **Answer:** Fixed.
 - The handle-taking `PVRetryCallout` extension uses `L10n.Conclusions.readNoticeTryAgain`. **Answer:** Fixed — § 6 States use the kit init with `sourceTypes.suggested.tryAgain`.
 
-## Open before Planned
+### Open before Planned
 - Board S15-D6 agreed; D-6, § 6 macOS and § 6 Strings filled from it; a short re-review of those parts.
