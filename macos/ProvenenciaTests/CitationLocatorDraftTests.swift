@@ -100,7 +100,8 @@ struct CitationLocatorDraftTests {
     @Test func blankPrintedPageWritesNoSelector() {
         var draft = CitationLocatorDraft.artifactOnly()
         draft.pageLabel = "   "
-        #expect(draft.encodeJSON() == #"{"version":1,"selectors":[{"type":"artifact"}]}"#)
+        #expect(!draft.encodeJSON().contains(#""type":"page""#))
+        #expect(CitationLocatorDraft.decode(draft.encodeJSON()) == .artifactOnly())
 
         draft.page = 37
         let json = draft.encodeJSON()
