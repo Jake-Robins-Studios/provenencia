@@ -824,16 +824,33 @@ struct CitationComposerModelTests {
         func text(_ json: String) -> String {
             CitationStepMenuRow.locatorText(CitationLocatorDraft.decode(json))
         }
-        #expect(text(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare, page: 37)) == "image 37 · region")
+        let region = L10n.string(L10n.CitationComposer.menuRegion)
+        func joined(_ parts: String...) -> String { parts.joined(separator: " · ") }
+        #expect(
+            text(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare, page: 37))
+                == joined(CitationLineDisplay.filePage(37), region)
+        )
         var draft = CitationLocatorDraft.decode(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare, page: 37))
         draft.pageLabel = "23"
-        #expect(CitationStepMenuRow.locatorText(draft) == "p. 23 · image 37 · region")
-        #expect(text(#"{"version":1,"selectors":[{"type":"page","artifact_page":40}]}"#) == "image 40")
+        #expect(
+            CitationStepMenuRow.locatorText(draft)
+                == joined(CitationLineDisplay.printedPage("23"), CitationLineDisplay.filePage(37), region)
+        )
+        #expect(
+            text(#"{"version":1,"selectors":[{"type":"page","artifact_page":40}]}"#)
+                == CitationLineDisplay.filePage(40)
+        )
         #expect(text(#"{"version":1,"selectors":[{"type":"artifact"}]}"#) == "")
         draft = CitationLocatorDraft.decode(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare))
         draft.pageLabel = "14"
-        #expect(CitationStepMenuRow.locatorText(draft) == "p. 14 · region")
-        #expect(text(#"{"version":1,"selectors":[{"type":"page","page_label":"15"}]}"#) == "p. 15")
+        #expect(
+            CitationStepMenuRow.locatorText(draft)
+                == joined(CitationLineDisplay.printedPage("14"), region)
+        )
+        #expect(
+            text(#"{"version":1,"selectors":[{"type":"page","page_label":"15"}]}"#)
+                == CitationLineDisplay.printedPage("15")
+        )
     }
 
     @Test func newCitationFromTheObservationDialogClearsTheLocator() async {
