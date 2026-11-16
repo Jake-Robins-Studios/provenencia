@@ -104,7 +104,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-10 | Adding an Artifact asks for its copy details | 2 | Swift: Add Artifact opens the Artifact sheet in add mode; copy details save with the new Artifact | S15-D14 | S15-34, S15-36, S15-D14 | [plan](prs/S15-10-artifact-sheet-add-mode.md) | Landed [#829](https://github.com/mendahu/provenencia/pull/829) |
 | S15-11 | Evidence graphs show their metadata | 2 | Go: the Source page read carries each graph's board; the graph write replies answer its rows. Swift: the graph form in two columns with a metadata board; each graph row shows its saved values read-only | S15-D5 | S15-36, S15-34, S15-35, S15-D5 | [plan](prs/S15-11-graph-metadata.md) | Landed [#834](https://github.com/mendahu/provenencia/pull/834) |
 | S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/archive/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-48, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Landed #856 |
-| S15-13 | The composer records the printed page | 3 | Swift: `page_label` on the page selector | S15-D8 | S15-D8 | — | Scoped |
+| S15-13 | The composer records the printed page | 3 | Go and Swift: a Printed page field on image and PDF Citations, written as `page_label` (a page selector may hold the label alone); the composer on Regular and Wide (user, 2026-11-16) | [S15-D8](design/S15-D8-citation-composer-printed-page.md) | S15-50, S15-D8 | [plan](prs/S15-13-composer-printed-page.md) | Blocked — on S15-50 |
 | S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | — | Scoped |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, type read and write; a typed mutation on a format write | — | S15-14 | — | Scoped |
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
@@ -141,6 +141,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
+| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: a form holds its focus and lists its fields' Tab order, any number, on the kit's handle (`PVFieldFocus(_:equals:in:)`); `PVTabPair` goes from every caller; skill and README; no chrome change | — | — | [plan](prs/S15-50-forms-list-their-tab-order.md) | Planned |
 
 ## Design track
 
@@ -153,7 +154,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | [S15-D5](design/archive/S15-D5-evidence-graph-form.md) | Evidence graph form, graph rows | **S15-11** | A two-column form: Name, Description and the graph's metadata board beside the Artifacts checklist; a long Artifact list scrolls in its checklist, never the form (user, 2026-11-14); each graph row shows its saved values read-only (user, 2026-11-14) |
 | [S15-D6](design/archive/S15-D6-source-type-suggestion-levels.md) | Source type page | **S15-12** | Suggestions at three levels, stacked in the page's Suggested fields column (S15-D27 TP-7); Return adds a picked field. Rewritten 2026-11-15 as an enhancement of S15-D27's page board. The format editor is S15-D16 |
 | S15-D7 | Add type dialog | **S15-18** | Copy from, in S15-D26's dialog |
-| S15-D8 | Citation composer | **S15-13** | The printed page beside the page in the file |
+| [S15-D8](design/S15-D8-citation-composer-printed-page.md) | Citation composer | **S15-13** | The printed page next to Label on image and PDF Citations; the composer's split moves onto Regular and Wide (user, 2026-11-16) |
 | S15-D9 | Provenance sheet | **S15-21** | The formatted citation, grouped Citations, Copy citation; the loading and failed states of the on-open call. Split under "One brief, one PR": the fold is S15-D17, records on open S15-D18 |
 | S15-D10 | Move confirm | **S15-25** | The bundle, the target picker, the credibility note |
 | S15-D11 | Event page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed |
@@ -207,6 +208,7 @@ SLICE 2 — Metadata at three levels                    (alongside Spike 16)
   Check: bar 3 except the composer; a Source type opens on its own page from the list, the omnibar and Back.
 
 SLICE 3 — Printed page                                (alongside Spike 16)
+  S15-50  Forms list their tab order
   ✎ S15-D8 ──▶ S15-13  The composer records the printed page
   Check: bar 3's composer.
 
@@ -272,7 +274,7 @@ S15-26, S15-33 ──▶ S15-36 ──▶ S15-34, S15-10, S15-11
 S15-09, S15-33 ──▶ S15-34 ──▶ S15-35, S15-10, S15-11
 S15-35 ──▶ S15-25, S15-40
 S15-11, S15-34 ──▶ S15-39
-S15-13 ──▶ S15-45
+S15-50 ──▶ S15-13 ──▶ S15-45
 S15-14 ──▶ S15-15 ──▶ S15-16, S15-18, S15-20, S15-38
 S15-14 ──▶ S15-37, S15-43, S15-44
 S15-37 ──▶ S15-16, S15-19, S15-38, S15-41, S15-46
@@ -475,12 +477,19 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 ### Slice 3 — Printed page
 
+#### S15-50 — Forms list their tab order
+
+**Ships.** A form holds its own `@FocusState` and lists its fields in order, any number; each field's handle is `PVFieldFocus($focus, equals: field, in: order)` *(new)*, whose Tab and Shift-Tab follow that order and leave the ends to the key loop. It replaces `PVTabPair` at every caller, and `PVTabPair` is deleted. A text area's own Tab handling (`PVTextAreaTabRouter`: Tab leaves the area, Option-Tab types a tab) is unchanged. The rule in `add-ui-component` and `DesignSystem/README.md` becomes: when Tab must move from a field that claims Tab to a `PVTextArea`, the form lists the fields in order (user, 2026-11-16: tab order belongs to the form, not to a pair of fields, and lives on the focus handle; review of S15-50, M-1).
+**Not this PR.** The composer's third field (S15-13); any form's field order or layout.
+**Check.** In each form that used `PVTabPair` (Properties, the Artifact sheet, the graph form, Add type, the composer, the Evidence graph page), Tab and Shift-Tab move between the input and the text area as before.
+**Context.** `PVTabPair.swift`, `PVFieldFocus.swift`, `PVTextArea.swift` (`PVTextAreaTabRouter`), `PVInput.swift` (`PVInputTabClaim`); S15-13's review M-1; S15-50's review M-1; skills `add-ui-component`, `add-swift-test`. No brief: no view looks different.
+
 #### S15-13 — The composer records the printed page
 
-**Ships.** The citation composer offers the printed page beside the page in the file and writes it as `page_label` on the `page` selector.
-**Not this PR.** A per-Artifact page map (map § 7).
+**Ships.** The citation composer offers a Printed page field next to Label on image and PDF Artifacts and writes it as `page_label` on the `page` selector; `core/locator` accepts a page selector holding the label alone, since an image has no file page, and depictions still compare file pages only (user, 2026-11-16). The composer chooses its two arrangements by the Regular and Wide classes instead of its own 1400pt rule (user, 2026-11-16).
+**Not this PR.** A per-Artifact page map (map § 7); Unknown, Supplied and the needed flag (S15-44, S15-45).
 **Check.** A Citation saved with printed page "14" shows "p. 14" on today's citation line.
-**Context.** S15-D8; rule "Citations carry no metadata"; [`interpretation-layer-data-model.md`](../../interpretation-layer-data-model.md) § 3.2; `CitationLocatorDraft.swift`, `CitationFieldsDraft.swift`.
+**Context.** S15-D8; rule "Citations carry no metadata"; [`interpretation-layer-data-model.md`](../../interpretation-layer-data-model.md) § 3.2; `core/locator`; `CitationLocatorDraft.swift`, `CitationFieldsDraft.swift`, `CitationComposerView.swift`. Updates § 3.2 and marks the composer's [`wide-layout.md`](../../ideas/wide-layout.md) row landed.
 
 ### Slice 4 — Formats as data
 
