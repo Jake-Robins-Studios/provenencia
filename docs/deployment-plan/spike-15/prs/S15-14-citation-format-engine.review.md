@@ -1,6 +1,6 @@
 # Review — S15-14 The citation format engine
 
-**Verdict:** Fits with changes — Not ready (round 1); every finding Fixed, round 2 pending
+**Verdict:** Fits — Ready (after round 2; every finding Fixed)
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -9,7 +9,8 @@ None.
 
 ## Writer's own calls
 
-- D-2: `valuemark.Validate` also refuses **supplied with no value**, beyond the map's "never both; unknown has no text".
+- D-2: `valuemark.Validate` also refuses **supplied with no value** (map § 6.10 gives supplied as text; the rule's wording names only "never both; unknown has no text").
+- D-3: `CitationDisplay(v, style)` takes a `CitationStyle` enum (long, short, year), not the citation form; STEP-10 updates the rule's sketch.
 - D-11: in a chain, an option **marked unknown stops the chain** (the graph's "not given" wins over the Source's value).
 - D-11 / D-10: unknown with **no unknown text** prints nothing and drops its group, and still counts as answered (not missing).
 - D-13: a chain holding an **always-set built-in** (title, type, Artifact label, graph name) is **used**, never needed.
@@ -91,3 +92,33 @@ Maintainability: every round-1 answer checked against the code and resolved; M-5
 
 ### M-13 · blocker · `notKnobsSection` stays a third doc-section splitter beside `doctable`
 **Answer:** Fixed — D-17 adds `doctable.Section`, which `FirstColumn` reads; STEP-9 moves `notKnobsSection` onto it; §4, Codebase fit, Deletes, T-13, DoD sweep and the stop condition updated.
+
+Executability: round-1 answers hold; Ready with changes; no new blocker.
+
+### X-11 · major · The rule's `CitationDisplay(v, form)` sketch disagrees with D-3 and nothing updates it
+**Answer:** Fixed — STEP-10 rewrites the sketch in the working rule and map § 6.3 to `CitationDisplay(v, style)`; the bends paragraph points at **Writer's own calls**.
+
+### X-12 · major · "Check the base" against a stale local `main`
+**Answer:** Fixed — the **Planned** line says to compare with `origin/main` after a fetch (the Implementer block stays verbatim).
+
+### X-13 · minor · Partial citation dates
+**Answer:** Fixed — D-3 decides month-and-day, day alone, year style without a year, and names the styles; T-3 rows.
+
+### X-14 · minor · `RewriteFields` call order, nil receivers, nil resolver
+**Answer:** Fixed — D-14 (once per distinct field, `Fields()` order), D-15 (nil template, nil resolver).
+
+### X-15 · minor · `[]Target` identity
+**Answer:** Fixed — D-13: `slices.Equal`, repeated options kept, key and id are different targets.
+
+### X-16 · minor · Doc tables and the § 3 sentence
+**Answer:** Fixed — D-18 names every column, compares as sets, places the sentence.
+
+### X-17 · minor · Fuzz details
+**Answer:** Fixed — T-11 length guard; D-16 shared `parseCases`.
+
+### X-18 · minor · `bad_escape` span unit
+**Answer:** Fixed — the rune after `\`.
+
+## Verdict
+
+Round 2 closes with no open blocker and nothing to the user: maintainability Fits (M-13 Fixed), executability Ready (X-11 – X-18 Fixed). `scripts/check-pr.sh`'s Xcode tests cannot run on the Linux reviewer host; the implementer runs them on macOS.
