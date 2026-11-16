@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-37 — The list merge has a file of its own and no test-only parameters
+
+**Landed 2026-11-16** in [#858](https://github.com/mendahu/provenencia/pull/858). Nothing a researcher sees changes. `CatalogListRow`, `Array.mergeSorted` and `CatalogListRows` moved verbatim from `CatalogLastUpdated.swift` to `CatalogListMerge.swift`; `merge(_:replacing:)` has one signature, with no `indexedLimit:` and no `merging` copy. `CatalogListMergeTests` now picks each path by the count of ids a write touches, the input the app's own rule reads, and keeps every claim it made.
+
 ## S16-27 — One primitive for values derived from cached data
 
 **Landed 2026-11-15** in [#854](https://github.com/mendahu/provenencia/pull/854). Nothing a researcher sees changes. `WorkspaceSession.derived` builds a value once per change of the reads it names and of the plain values it is given; the Evidence graph index (still spliced across a merged re-read), the Evidence graph snapshot (now one per graph, shared by Promote, Unpromote, the canvas and the composer), the canvas card text, the composer's vocabulary, the visible Sources, and every Conclusion page's detail and section content move onto it, and the four hand-written memos are gone. A debug build asserts when a build reads a key it did not name.

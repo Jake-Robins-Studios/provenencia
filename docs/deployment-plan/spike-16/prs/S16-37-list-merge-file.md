@@ -1,6 +1,6 @@
 # S16-37 — The list merge has a file of its own and no test-only parameters
 
-**Status:** Planned
+**Status:** Landed in [#858](https://github.com/mendahu/provenencia/pull/858) (2026-11-16)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: code moves between files and a test-only parameter goes; nothing a researcher sees changes)
