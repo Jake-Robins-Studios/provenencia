@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-38 — An empty list shows its empty state while a merge runs
+
+**Landed 2026-11-16** in [#859](https://github.com/mendahu/provenencia/pull/859). A Persons, Events or Places list with no rows now shows its empty state, not a blank body, while a merge or refetch of it runs. `ConclusionListPresentation` maps an empty loaded value to `.empty` whether or not a fetch is in flight, so `.rows` always has rows.
+
 ## S16-37 — The list merge has a file of its own and no test-only parameters
 
 **Landed 2026-11-16** in [#858](https://github.com/mendahu/provenencia/pull/858). Nothing a researcher sees changes. `CatalogListRow`, `Array.mergeSorted` and `CatalogListRows` moved verbatim from `CatalogLastUpdated.swift` to `CatalogListMerge.swift`; `merge(_:replacing:)` has one signature, with no `indexedLimit:` and no `merging` copy. `CatalogListMergeTests` now picks each path by the count of ids a write touches, the input the app's own rule reads, and keeps every claim it made.
