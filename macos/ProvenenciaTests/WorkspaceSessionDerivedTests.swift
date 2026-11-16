@@ -48,7 +48,7 @@ struct WorkspaceSessionDerivedTests {
         store.seededConclusionDetails = ["e1": detail("e1"), "e2": detail("e2")]
         let session = makeSession(store: store)
         let key1 = detailKey(session, "e1")
-        let id = DerivedValueID.conclusionContent(key1)
+        let id = DerivedValueID.conclusionContent(key1, ObjectIdentifier(Int.self))
         session.apply(location: .personDetail(entityId: "e1", ref: "PER-e1", title: nil))
         await session.settleWrites()
         session.setQueryValue(detailKey(session, "e2"), value: detail("e2"))
@@ -82,7 +82,7 @@ struct WorkspaceSessionDerivedTests {
     @Test func aDeletedInputDropsTheValue() {
         let session = makeSession()
         let key = detailKey(session, "e1")
-        let content = DerivedValueID.conclusionContent(key)
+        let content = DerivedValueID.conclusionContent(key, ObjectIdentifier(Int.self))
         let text = DerivedValueID.evidenceGraphText(graphID: "g1")
         session.setQueryValue(key, value: detail("e1"))
         session.apply(location: .sectionRoot(.persons))
@@ -138,7 +138,7 @@ struct WorkspaceSessionDerivedTests {
         }
         let session = makeSession(store: store)
         let key0 = detailKey(session, "e0")
-        let content = DerivedValueID.conclusionContent(key0)
+        let content = DerivedValueID.conclusionContent(key0, ObjectIdentifier(Int.self))
         let text = DerivedValueID.evidenceGraphText(graphID: "g1")
         for index in 0...51 {
             session.apply(location: .personDetail(entityId: "e\(index)", ref: "PER-e\(index)", title: nil))
@@ -175,5 +175,27 @@ struct WorkspaceSessionDerivedTests {
         _ = readText()
         #expect(session.derivedBuildCount(snapshot) == 2)
         #expect(session.derivedBuildCount(text) == 2)
+    }
+
+    /// F-1 (SEC-1): one key opened as two page kinds holds one value per
+    /// content type, each built once.
+    @Test func oneKeyHoldsOneValuePerContentType() {
+        let session = makeSession()
+        let key = detailKey(session, "e1")
+        session.setQueryValue(key, value: detail("e1"))
+        var builds = 0
+        for _ in 0..<2 {
+            let text = session.conclusionContent(key, inputs: [key], extra: 0, value: 1) { _, _ in
+                builds += 1
+                return "a"
+            }
+            let number = session.conclusionContent(key, inputs: [key], extra: 0, value: 1) { _, _ in
+                builds += 1
+                return 7
+            }
+            #expect(text == "a")
+            #expect(number == 7)
+        }
+        #expect(builds == 2)
     }
 }

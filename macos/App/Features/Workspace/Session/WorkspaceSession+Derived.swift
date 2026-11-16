@@ -8,7 +8,9 @@ enum DerivedValueID: Hashable {
     case evidenceGraphText(graphID: String)
     case citationComposerVocabulary(graphID: String)
     case visibleSources
-    case conclusionContent(CatalogQueryKey)
+    /// One page or section's content: the key it reads and the content's type,
+    /// so one key opened as two page kinds holds two values.
+    case conclusionContent(CatalogQueryKey, ObjectIdentifier)
 }
 
 /// What a derived value is built from: a cached read, or another derived value.
@@ -149,7 +151,7 @@ extension WorkspaceSession {
         value: Value,
         make: (Value, Extra) -> Content
     ) -> Content {
-        derived(.conclusionContent(key), inputs: inputs.map(DerivedInput.key), extra: extra) {
+        derived(.conclusionContent(key, ObjectIdentifier(Content.self)), inputs: inputs.map(DerivedInput.key), extra: extra) {
             make(value, extra)
         }
     }
