@@ -23,4 +23,4 @@ S15-11 makes the Evidence graph form the app's first two-column form sheet (880p
 
 The window can be as narrow as 700pt (a pane of about 436pt). Pages are drawn at Regular and Wide; below the Regular frame some do not fit:
 
-- **Person page, Sources rows.** The Source rows' fixed Type, Date and Ref columns (442pt with their gaps, `PersonSourcesColumns`) do not fit the 372pt column of a 436pt pane, so the citation column has no room. Found on the S13-D10 board (frame 15r, 2026-11-07); the rows are S13-D6's layout, and their narrow arrangement waits for the next change to the Sources section (user, 2026-11-07).
+- **Person page, Sources rows.** The Source rows' fixed Type, Date and Ref columns (442pt with their gaps, `PersonSourcesColumns`) do not fit the 372pt column of a 436pt pane, so the citation column has no room. Found on the S13-D10 board (frame 15r, 2026-11-07); the rows are S13-D6's layout, and their narrow arrangement waits for the next change to the Sources section (user, 2026-11-07); the narrow rows switch at their own width with `PVWidthBreakpoints`, as the Sources list does.
