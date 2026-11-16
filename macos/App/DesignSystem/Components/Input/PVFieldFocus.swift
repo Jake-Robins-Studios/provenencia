@@ -30,13 +30,13 @@ struct PVFieldFocus {
     }
 
     @MainActor
-    init<Value: Hashable>(
+    private init<Value: Hashable>(
         _ binding: FocusState<Value?>.Binding,
         equals value: Value,
-        next: Value? = nil,
-        previous: Value? = nil
+        next: Value?,
+        previous: Value?
     ) {
-        let neighbours = Self.claims(next: next, previous: previous) { neighbour in
+        let claims = Self.claims(next: next, previous: previous) { neighbour in
             FocusClaim.claim(binding, neighbour)
         }
         self.init(
@@ -46,21 +46,22 @@ struct PVFieldFocus {
                 if binding.wrappedValue == value { binding.wrappedValue = nil }
             },
             apply: { view in AnyView(view.focused(binding, equals: value)) },
-            next: neighbours.next,
-            previous: neighbours.previous
+            next: claims.next,
+            previous: claims.previous
         )
     }
 
     /// A handle for a field in a form's Tab order: its neighbours are the
-    /// fields listed before and after `value` in `order`.
+    /// fields listed before and after `value` in `order`. With no order it has
+    /// none.
     @MainActor
     init<Value: Hashable>(
         _ binding: FocusState<Value?>.Binding,
         equals value: Value,
-        in order: [Value]
+        in order: [Value] = []
     ) {
-        let around = Self.neighbours(of: value, in: order)
-        self.init(binding, equals: value, next: around.next, previous: around.previous)
+        let neighbours = Self.neighbours(of: value, in: order)
+        self.init(binding, equals: value, next: neighbours.next, previous: neighbours.previous)
     }
 
     /// The claim a Tab press takes: `previous` for Shift-Tab, else `next`.
