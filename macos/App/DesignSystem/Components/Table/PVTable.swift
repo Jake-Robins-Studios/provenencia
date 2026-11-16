@@ -19,7 +19,7 @@ import SwiftUI
 ///   call site.
 /// - A column with no `width` is flexible: the flexible columns share what the fixed ones
 ///   leave by their `flex` weight (equal by default).
-/// - Columns also decide whether they show (`minTableWidth`), so the header and
+/// - Columns also decide whether they show (`minTableWidth`, read through `PVWidthBreakpoints`), so the header and
 ///   the rows always agree.
 /// - Search bars and result footers are feature chrome, not table chrome;
 ///   they stay in the pane, above and below the table.
@@ -28,13 +28,6 @@ import SwiftUI
 /// multi-select, column resize/reorder, drag-and-drop, inline editing.
 
 // MARK: - Pure helpers (unit-testable without UI)
-
-enum PVTableColumnGate {
-    /// The ids of the columns that show at a table width; plain values so the geometry closure stays Sendable.
-    static func shownIDs(gates: [(id: String, minTableWidth: CGFloat?)], tableWidth: CGFloat) -> [String] {
-        gates.filter { $0.minTableWidth.map { tableWidth >= $0 } ?? true }.map(\.id)
-    }
-}
 
 enum PVTableSelection {
     /// Clamped selection movement — never wraps, matching a native macOS table.
@@ -111,7 +104,8 @@ struct PVTableColumn<Row: Identifiable>: Identifiable {
     let width: CGFloat?
     /// The column shows only while the table is at least this wide; nil always shows. For a
     /// column that only adds context (a description), never a column that sorts or filters, or
-    /// holds the row's name.
+    /// holds the row's name. Fixed for the table's life: a table's columns do not change their
+    /// `minTableWidth` while it is shown.
     let minTableWidth: CGFloat?
     /// A flexible column's share of the width the fixed columns leave; ignored when `width` is set.
     let flex: CGFloat
@@ -187,9 +181,6 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     @FocusState private var isFocused: Bool
     @State private var matcher = PVTableTypeSelectMatcher()
-    /// The ids of the columns that show at the table's measured width; nil until the first measure.
-    /// Gated columns only consult it; a column with no `minTableWidth` always shows.
-    @State private var shownIDs: [String]?
 
     init(
         rows: [Row],
@@ -225,34 +216,32 @@ struct PVTable<Row: Identifiable, Content: View>: View {
         rows.firstIndex { $0.id == selection } ?? -1
     }
 
-    /// The columns that show at a table width: those with no `minTableWidth`, or one the table meets.
-    static func shownColumns(_ columns: [PVTableColumn<Row>], tableWidth: CGFloat) -> [PVTableColumn<Row>] {
-        let ids = PVTableColumnGate.shownIDs(gates: columns.map { ($0.id, $0.minTableWidth) }, tableWidth: tableWidth)
-        return columns.filter { ids.contains($0.id) }
+    /// The widths at which a column appears: the columns' `minTableWidth`s.
+    static func breakpoints(_ columns: [PVTableColumn<Row>]) -> [CGFloat] {
+        columns.compactMap(\.minTableWidth)
     }
 
-    private var shownColumns: [PVTableColumn<Row>] {
-        columns.filter { $0.minTableWidth == nil || shownIDs?.contains($0.id) == true }
+    /// The columns that show at a width: those with no `minTableWidth`, or one the width meets.
+    static func shownColumns(_ columns: [PVTableColumn<Row>], met: PVBreakpointsMet) -> [PVTableColumn<Row>] {
+        columns.filter { $0.minTableWidth.map(met.isAtLeast) ?? true }
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            rowList
-        }
-        .onGeometryChange(for: [String].self) { [gates = columns.map { ($0.id, $0.minTableWidth) }] proxy in
-            PVTableColumnGate.shownIDs(gates: gates, tableWidth: proxy.size.width)
-        } action: {
-            shownIDs = $0
+        PVWidthBreakpoints(Self.breakpoints(columns)) { met in
+            let shown = Self.shownColumns(columns, met: met)
+            VStack(spacing: 0) {
+                header(shown)
+                rowList(shown)
+            }
         }
     }
 
     /// The scrolling row list: one focus stop, list-like semantics.
-    private var rowList: some View {
+    private func rowList(_ shown: [PVTableColumn<Row>]) -> some View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(rows) { row in
-                    rowView(row).id(row.id)
+                    rowView(row, shown: shown).id(row.id)
                 }
                 content
             }
@@ -274,9 +263,9 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     // MARK: Header
 
-    private var header: some View {
-        PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
-            ForEach(shownColumns) { column in
+    private func header(_ shown: [PVTableColumn<Row>]) -> some View {
+        PVWeightedColumns(fixed: shown.map(\.width), weights: shown.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
+            ForEach(shown) { column in
                 HStack(spacing: PVSpacing.space1) {
                     if column.sortable, let onSortChange {
                         Button { onSortChange(column.id) } label: { headerLabel(column) }
@@ -350,11 +339,11 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     // MARK: Rows
 
-    private func rowView(_ row: Row) -> some View {
+    private func rowView(_ row: Row, shown: [PVTableColumn<Row>]) -> some View {
         let isSelected = row.id == selection
         return PVHoverEffect(isPressed: false, hoverAnimation: PVMotion.fastStandard) { showHover in
-            PVWeightedColumns(fixed: shownColumns.map(\.width), weights: shownColumns.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
-                ForEach(shownColumns) { column in
+            PVWeightedColumns(fixed: shown.map(\.width), weights: shown.map(\.flex), spacing: PVSpacing.space6, alignment: .center) {
+                ForEach(shown) { column in
                     column.cell(row)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

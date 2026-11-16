@@ -146,8 +146,13 @@ struct PVTableShownColumnsTests {
             PVTableColumn<Row>(id: "b", title: "b", minTableWidth: 1200) { Text($0.id) },
             PVTableColumn<Row>(id: "c", title: "c") { Text($0.id) },
         ]
-        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 1199).map(\.id) == ["a", "c"])
-        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 1200).map(\.id) == ["a", "b", "c"])
-        #expect(PVTable<Row, EmptyView>.shownColumns(columns, tableWidth: 0).map(\.id) == ["a", "c"])
+        let breakpoints = PVTable<Row, EmptyView>.breakpoints(columns)
+        #expect(breakpoints == [1200])
+        func shown(at width: CGFloat) -> [String] {
+            PVTable<Row, EmptyView>.shownColumns(columns, met: PVBreakpointsMet(breakpoints: breakpoints, width: width)).map(\.id)
+        }
+        #expect(shown(at: 1199) == ["a", "c"])
+        #expect(shown(at: 1200) == ["a", "b", "c"])
+        #expect(shown(at: 0) == ["a", "c"])
     }
 }
