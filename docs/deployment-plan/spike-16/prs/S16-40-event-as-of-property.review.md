@@ -49,3 +49,12 @@ Lint: `check-plan-docs.py` clean on the plan and the brief before the reviewers 
 | K-8 | minor | Name and type the helper for dates | **Fixed.** Rule: typed on date slices, not keys |
 | K-9 | minor | Cross-spike order inconsistent | **Fixed.** S15-13 lands first, S16-40 rebases; S15-D8 → S16-D3 in the graph |
 | K-10 | minor | Wiring | **Fixed.** Spike README; briefs D4 – D6 stay in the design track until written, as D1 and D2 did |
+
+## Round 2 (2026-11-16)
+
+### Executability (verdict: Ready with changes)
+
+| ID | Sev | Finding | Answer |
+| --- | --- | --- | --- |
+| X2-1 | blocker | Stop condition 1 named a `TestPipelineMultipleCardinality` date case that does not exist | **Fixed.** It names T-2's two cases in STEP-2 |
+| X2-2 | minor | Nothing automated checks `CitationPropertyFields` passes the flag | Logged: the pass-through is one argument; the rule itself is T-3 / T-5, the wiring is manual check 2 |

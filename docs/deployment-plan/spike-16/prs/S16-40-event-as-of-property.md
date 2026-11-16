@@ -282,7 +282,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 **Stop and report if:**
 
-- `TestPipelineMultipleCardinality` with two disjoint dates does not give `StateMultiple` (the reconciler needs a code change, which is Out).
+- T-2's "two as-ofs both kept" or "an as-of year folds into a day" fails in STEP-2 (the reconciler needs a code change, which is Out).
 - `CitationPropertyFields` has no `CatalogProperty` with `origin` for the chosen Property.
 - S15-13 has changed `CitationPropertyFields.valueControls` so the date case is built elsewhere.
 - The agreed S16-D3 board draws disabled chips, a hint, or a control not in the inventory.
