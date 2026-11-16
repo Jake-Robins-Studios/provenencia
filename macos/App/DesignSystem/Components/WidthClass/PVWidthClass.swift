@@ -41,8 +41,8 @@ private struct PVMeasuresWidthClass: ViewModifier {
 }
 
 extension View {
-    /// Measures the view it is applied to and gives that width class to the
-    /// view's content, so the view must fill the space to be measured.
+    /// Measures the width this view is given (through `PVWidthBreakpoints`,
+    /// which fills it) and gives that width class to the view's content.
     /// Applied once, by `WorkspaceDestinationHost`; pages read `\.pvWidthClass`
     /// and do not re-measure (§ 9 of macos-client-patterns.md).
     func pvMeasuresWidthClass() -> some View {
