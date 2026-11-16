@@ -2548,8 +2548,8 @@ type SourceType struct {
 	// (see sourcetypes.ErrInUse); the client uses the count to disable its
 	// delete affordance and say what is holding the type.
 	UsedBy int32 `protobuf:"varint,6,opt,name=used_by,json=usedBy,proto3" json:"used_by,omitempty"`
-	// How many metadata fields this type suggests at the Source level — the
-	// list's third column, so browsing does not have to fetch every type's
+	// How many metadata fields this type suggests at all three levels (a field
+	// at two levels counts twice) — the list's third column, so browsing does not have to fetch every type's
 	// join rows.
 	SuggestedFieldCount int32 `protobuf:"varint,7,opt,name=suggested_field_count,json=suggestedFieldCount,proto3" json:"suggested_field_count,omitempty"`
 	// Closed design-system type_* key for evidence representation.
@@ -8366,8 +8366,8 @@ func (x *AssignTypeFieldRequest) GetLevel() string {
 type AssignTypeFieldResponse struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Suggestions []*TypeSuggestion      `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
-	// The type's suggested-field count after the write, as
-	// SourceType.suggested_field_count.
+	// The type's suggested-field count after the write, over all three levels,
+	// as SourceType.suggested_field_count.
 	SuggestedFieldCount int32 `protobuf:"varint,2,opt,name=suggested_field_count,json=suggestedFieldCount,proto3" json:"suggested_field_count,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
@@ -8493,8 +8493,8 @@ func (x *RemoveTypeFieldRequest) GetLevel() string {
 type RemoveTypeFieldResponse struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Suggestions []*TypeSuggestion      `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
-	// The type's suggested-field count after the write, as
-	// SourceType.suggested_field_count.
+	// The type's suggested-field count after the write, over all three levels,
+	// as SourceType.suggested_field_count.
 	SuggestedFieldCount int32 `protobuf:"varint,2,opt,name=suggested_field_count,json=suggestedFieldCount,proto3" json:"suggested_field_count,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache

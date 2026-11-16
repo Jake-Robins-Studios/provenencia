@@ -1390,8 +1390,8 @@ public nonisolated struct Provenencia_Engine_V1_SourceType: Sendable {
   /// delete affordance and say what is holding the type.
   public var usedBy: Int32 = 0
 
-  /// How many metadata fields this type suggests at the Source level — the
-  /// list's third column, so browsing does not have to fetch every type's
+  /// How many metadata fields this type suggests at all three levels (a field
+  /// at two levels counts twice) — the list's third column, so browsing does not have to fetch every type's
   /// join rows.
   public var suggestedFieldCount: Int32 = 0
 
@@ -3680,8 +3680,8 @@ public nonisolated struct Provenencia_Engine_V1_AssignTypeFieldResponse: Sendabl
 
   public var suggestions: [Provenencia_Engine_V1_TypeSuggestion] = []
 
-  /// The type's suggested-field count after the write, as
-  /// SourceType.suggested_field_count.
+  /// The type's suggested-field count after the write, over all three levels,
+  /// as SourceType.suggested_field_count.
   public var suggestedFieldCount: Int32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -3719,8 +3719,8 @@ public nonisolated struct Provenencia_Engine_V1_RemoveTypeFieldResponse: Sendabl
 
   public var suggestions: [Provenencia_Engine_V1_TypeSuggestion] = []
 
-  /// The type's suggested-field count after the write, as
-  /// SourceType.suggested_field_count.
+  /// The type's suggested-field count after the write, over all three levels,
+  /// as SourceType.suggested_field_count.
   public var suggestedFieldCount: Int32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
