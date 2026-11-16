@@ -3433,7 +3433,7 @@ enum L10n {
 
         static let depictionNeedsPage = LocalizedStringResource(
             "citationComposer.depictionNeedsPage",
-            defaultValue: "This citation has no page yet. Save the viewer's page to it to draw a region.",
+            defaultValue: "This citation has no page in the file yet. Save the viewer's page to it to draw a region.",
             comment: "Warning when an existing PDF citation has no page, so a depiction cannot be drawn"
         )
 
@@ -3481,7 +3481,7 @@ enum L10n {
 
         static let depictionCaptionNeedsPage = LocalizedStringResource(
             "citationComposer.depictionCaptionNeedsPage",
-            defaultValue: "Draw and the region buttons wait until the citation has a page",
+            defaultValue: "Draw and the region buttons wait until the citation has a page in the file",
             comment: "Caption beside the depiction preview when the citation has no page"
         )
 

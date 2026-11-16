@@ -15549,7 +15549,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This citation has no page yet. Save the viewer's page to it to draw a region."
+            "value": "This citation has no page in the file yet. Save the viewer's page to it to draw a region."
           }
         }
       }
@@ -15645,7 +15645,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Draw and the region buttons wait until the citation has a page"
+            "value": "Draw and the region buttons wait until the citation has a page in the file"
           }
         }
       }
