@@ -43,6 +43,8 @@ struct SourceTypeSuggestionList: View {
 
     private enum PickerFocus { case picker }
     @FocusState private var focus: PickerFocus?
+    /// Set by a Return-add; focus returns to the picker once the write ends and it is enabled again.
+    @State private var refocusPending = false
 
     private var isLocked: Bool { model.isLocked }
     private var copy: L10n.SourceTypes.LevelCopy { L10n.SourceTypes.level(level) }
@@ -62,30 +64,24 @@ struct SourceTypeSuggestionList: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(
-            L10n.SourceTypes.listAccessibilityLabel(
-                title: L10n.string(copy.title), count: suggestions.count
-            )
-        )
+        .accessibilityLabel(listAccessibilityLabel)
         .accessibilityIdentifier(prefix)
+    }
+
+    /// The spoken label: the title alone until the level is loaded, matching the visible header.
+    private var listAccessibilityLabel: String {
+        guard model.isLoaded(at: level) else { return L10n.string(copy.title) }
+        return L10n.SourceTypes.listAccessibilityLabel(
+            title: L10n.string(copy.title), count: suggestions.count
+        )
     }
 
     /// The level title in micro caps with the count trailing once loaded, then the meaning.
     private var header: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
-            HStack(spacing: PVSpacing.space4) {
-                Text(copy.title)
-                    .pvMicroCaps()
-                    .foregroundStyle(PVColor.textSecondary)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 0)
-                if model.isLoaded(at: level) {
-                    Text(verbatim: L10n.SourceTypes.assignedCount(count: suggestions.count))
-                        .font(PVFont.mono(size: 11))
-                        .foregroundStyle(PVColor.textMuted)
-                }
-            }
-            .frame(height: 20)
+        PVSubsectionHeader(
+            title: copy.title,
+            meta: model.isLoaded(at: level) ? L10n.SourceTypes.assignedCount(count: suggestions.count) : nil
+        ) {
             Text(copy.meaning)
                 .font(PVFont.body(size: PVTypeScale.micro, italic: true))
                 .foregroundStyle(PVColor.textMuted)
@@ -232,6 +228,11 @@ struct SourceTypeSuggestionList: View {
                 .accessibilityIdentifier("\(prefix).assign")
             }
             .onSubmit { Task { await submitPick() } }
+            .onChange(of: model.suggestionWrite) { _, write in
+                guard write == nil, refocusPending else { return }
+                refocusPending = false
+                if !model.assignPool(at: level).isEmpty { focus = .picker }
+            }
             if pool.isEmpty {
                 Text(L10n.SourceTypes.poolHintEmpty)
                     .font(PVFont.body(size: PVTypeScale.micro, italic: true))
@@ -241,14 +242,12 @@ struct SourceTypeSuggestionList: View {
         }
     }
 
-    /// Return in the picker: adds the picked field when there is one, then puts focus back in the
-    /// emptied picker (the write disables it, which drops focus).
+    /// Return in the picker: adds the picked field when there is one. The write disables the
+    /// picker, which drops focus; `onChange` of the write returns it once the picker is enabled.
     private func submitPick() async {
         guard model.canAssign(at: level) else { return }
+        refocusPending = true
         await model.assignPickedField(at: level)
-        // Let the picker render enabled again before focus returns to it.
-        await Task.yield()
-        focus = .picker
     }
 
     /// The board's `max-height` for the assign list.
