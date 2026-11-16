@@ -21,7 +21,7 @@ Today the event has three date Properties ([`seeded-vocabulary.md` §3.2](../../
 
 ## The dating envelope
 
-Every consumer asks one question of an event: what span and which points does it assert? One pure helper in `core/valuecompare` (beside `DateEnds`, `Earliest`, `Latest`) answers it from date slices (occurrences, starts, ends, samples), not Property keys, so a later Place as-of is a second caller. Matching and the summaries map the four keys onto it. The helper lands with its first reader (S16-41); every later reader calls it, and the engine sends Swift its result, never the as-ofs themselves.
+Every consumer asks one question of an event: what span and which points does it assert? Every reader takes the four keys from `subject.Periods` (the lead `date` with its `Start`, `End` and `Samples`). Matching (S16-40) needs no new helper: it compares an as-of with the other side's period stand-in through the date comparer, and picks the deciding as-ofs with `valuecompare.SampleExtremes`. Display (S16-42) adds one pure helper in `core/valuecompare`, typed on date slices rather than Property keys, that reuses `SampleExtremes`; the engine sends Swift its result, never the as-ofs themselves.
 
 - **Occurrence.** A `date` wins, as today: the event happened then. The other three do not move it.
 - **Bounds.** The earliest closed `start_date` is the low bound; the latest closed `end_date` is the high bound. A missing one is open.

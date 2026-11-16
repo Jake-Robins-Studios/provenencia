@@ -67,7 +67,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
 
-**Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: every reader of the envelope is one pass over the event's values.
+**Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: matching and the dating read two extremes after one pass. The auto-reconciler's fold is quadratic in a Property's distinct values for every `multiple` Property today (1,000 distinct dates 0.6 s, 10,000 61 s; measured 2026-11-16); that is not Batch 5's to fix (S16-40 review log, To user).
 
 ## Where the notes went
 
@@ -182,7 +182,7 @@ These are the calls for this spike. PR plans treat them as binding.
   - An as-of against the other side's occurrence `date` follows today's period-against-date reading: as-ofs alone make a period open both ways, which compares as unknown (neither agrees nor conflicts); with a closed start or end, today's period stand-in is compared.
   - No weight of its own: an as-of counts under the event `date` lead's weights (`subject.Weights.event.date`).
 - **(Batch 5) A closed as-of counts toward the person's lifespan; it never dates a birth or a death** (user, 2026-11-16). The person was alive on a day an event they take part in was under way, so `subjectprofile`'s lifespan reads the event's closed as-ofs. Birth and death facts (`lifeFrom`) take their date from `date`, else `start_date`, as today. Binds S16-40 and S16-42.
-- **(Batch 5) One dating, in Go, derived on read** ([design](event-as-of.md#the-dating-envelope)). One pure helper in `core/valuecompare`, typed on date slices (occurrences, starts, ends, samples) and not on Property keys, returns the occurrence, the bounds, the samples and the known span with its open sides. Matching (through `subject.Periods`, which names the samples key) and the summaries (through `vocabkey`) map keys onto it; nothing else special-cases the four keys. Nothing writes `start_date` or `end_date` from as-ofs. Matching needs no helper: the window rule is the date comparer's `different` between an as-of and the other side's period stand-in (`period`), so S16-40 reuses both; S16-42 adds the helper for display.
+- **(Batch 5) One dating, in Go, derived on read** ([design](event-as-of.md#the-dating-envelope)). Every reader takes an event's four date keys from `subject.Periods` (the lead plus its `Start`, `End` and `Samples`), never from a hand list. Matching (S16-40) compares an as-of with the other side's period stand-in (`period`) through the date comparer, picking the deciding as-ofs with `valuecompare.SampleExtremes`; display (S16-42) adds one pure helper in `core/valuecompare`, typed on date slices, that returns the occurrence, the bounds and the known span with its open sides, reusing `SampleExtremes`. Nothing writes `start_date` or `end_date` from as-ofs.
 - **(Batch 5) The engine sends the dating, not the as-ofs** (map review K-3). An event summary carries which dating applies (occurrence, span, as-of), its low and high DateValues and their open sides: two dates however many as-ofs. Swift formats that and no longer decides which key dates an event (`DateRowDisplay.line(date:start:end:)`, `EventDetailContent.dateRow`, `EvidenceGraphSnapshot.dateLine`). Binds S16-42 and S16-44.
 - **(Batch 5) As-ofs alone make a span open on both sides** (user, 2026-11-16). An event with only as-ofs displays and sorts from its earliest as-of, spans to its latest, and is drawn open on both sides; a start or an end closes that side. The line's wording for each case is S16-D4's call. Binds S16-42 and S16-44.
 
@@ -384,7 +384,7 @@ S16-D4 ──▶ S16-42
 S16-D6 ──▶ S16-44
 ```
 
-Batch 5 runs in order: each PR reads what the one before added (the key and the helper, then the summary's dating).
+Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
 
 ---
 
@@ -651,7 +651,7 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 **Ships.** `conclusionsummaries` dates an event through the helper: `eventDating` and every reader of it (`eventKeyOf` list sort, `EventSpanAndAge` for the Timeline, `eventWhen` place folding); `lifeFrom` keeps `date` or start ([rule](#batch-5--event-as-of-dates)); `EventSummary` (Go, proto, `GoStore`, `CatalogEventSummary`) carries the dating (kind, low and high DateValue, open sides) read from every kept as-of; `searchindex` (`sqlHandleValues`, `eventMatchSecondary`, a `ProjectionVersion` bump) indexes it; `DateRowDisplay` formats the dating instead of choosing among `date`, start and end, on every surface of `EventSecondaryDisplay` and `ConclusionSummaryDisplay.secondary`, and on `EvidenceGraphSnapshot.dateLine`; `structured-date-model.md`'s display-date paragraph says so and its Events-list drift note closes.
 **Not this PR.** The Event page's Date row (S16-44); a notice for an as-of outside the researcher's start or end ([idea](../../ideas/event-as-of-followups.md)).
 **Check.** Bar 18's line on the Events list, Event page header, Timeline row and Evidence graph card, and bar 19's lifeline; an event with a `date`, or a start and end, reads as before; at 10,000 as-ofs on one event the Events list row is built from two dates.
-**Context.** `conclusionsummaries/compose.go` `eventDating`, `eventDate`, `oneEvent`, `keptDateAt`; `order.go` `EventSpanAndAge`; `Platform/DateRowDisplay.swift`; `EventsListView.swift` `EventSecondaryDisplay`; map review K-2, K-3, K-4.
+**Context.** Reuse S16-40's `valuecompare.SampleExtremes` (with `DateEnds`, the as-written reading) and `subjectcompare.Samples` / `subject.Periods` for the samples key; `conclusionsummaries/compose.go` `eventDating`, `eventDate`, `oneEvent`, `keptDateAt`; `order.go` `EventSpanAndAge`; `Platform/DateRowDisplay.swift`; `EventsListView.swift` `EventSecondaryDisplay`; map review K-2, K-3, K-4.
 
 #### S16-44 — The Event page's Date row shows as-ofs
 

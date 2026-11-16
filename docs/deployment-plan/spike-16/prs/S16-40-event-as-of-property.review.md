@@ -75,3 +75,40 @@ Fits; Ready. No open blocker. To user: D-10's wording of the `date` and `end_dat
 ## Re-plan (2026-11-16)
 
 The user dropped the composer's Before/After rule: an as-of takes every qualifier and is read by the window rule (the event started by the window's last day and was under way on its first). S16-40 lost its chrome and its brief (S16-D3 deleted) and absorbed S16-41's matching work; S16-43 merged into S16-42 (the lifeline already draws open sides from the engine). Matching needs no new helper: an as-of whose window misses the other side's period stand-in is the date comparer's `different`, confirmed by a probe against `propertycompare.Compare` at `14fbfca` (1990 vs "Before 1985", 1990 vs "After 1995", BEF 1990 vs 1995–2000, AFT 1990 vs 1970–1985: `conflict`; 1990 vs 1985–2000 and vs "After 1985": `partial`, `contains`; 1991 vs "Before 1990": `partial`, `near`). Rounds 1–2 above reviewed the earlier plan; the rewritten plan gets its own round below.
+
+## Round 3, on the rewritten plan (2026-11-16)
+
+### Executability (verdict: Ready with changes)
+
+| ID | Sev | Finding | Answer |
+| --- | --- | --- | --- |
+| X3-1 | blocker | Version base wrong: `main` at `14fbfca` is 0.17.0 | **Fixed.** Next minor after `VERSION` on the branch base (0.18.0 at `14fbfca`) |
+| X3-2 | blocker | `samplesAgainst` signature and return shape | **Fixed.** D-6 gives the signature; the open-end downgrade happens inside it, so it returns plain Results; D-7 ranks with `propertycompare.Better` |
+| X3-3 | major | Picks by raw `DateEnds`, ties, index mapping | **Fixed.** `valuecompare.SampleExtremes` returns indexes; ends read by `AboutEnds`; samples sorted by Same key first; dedupe stated |
+| X3-4 | major | Reading of "no positive value for key"; own `date`; base vs sample partial | **Fixed.** D-6 reads `other[key]`; mine's own `date` does not stop it; D-7 ranks all candidates with one ordering |
+| X3-5 | major | T-4 assertions underspecified | **Fixed.** Per-row `sim`, `ev`, `is(…)`; AC-3.4 reuses AC-2.5's years so 0.55 / 1.1 are known; helpers named; 999-value loop given |
+| X3-6 | major | `TestInvariants` never draws an as-of | **Fixed.** `groups()` appends `p.Samples`; an `asOf` pool; Edges and the Stop condition reworded |
+| X3-7 | major | Shortlist restructure unspecified | **Fixed.** D-9: a reaches list fed by the date loop and one open reach for as-ofs; T-5 construction given |
+| X3-8 | minor | Registry pair-claim test, `TestLead`, `TestMeta` | **Fixed.** STEP-3 files, T-3 |
+| X3-9 | minor | STEP-1 message, struct fields, paths, skill line | **Fixed** |
+| X3-10 | minor | `subjectHasValues` unchecked | Logged: covered by the shortlist and compare tests; no new graphalign case |
+| X3-11 | minor | Checks not runnable on Linux | Logged |
+| X3-12 | nit | `event-as-of.md` stale helper line | **Fixed** |
+
+### Maintainability (verdict: Fits with changes)
+
+| ID | Sev | Finding | Answer |
+| --- | --- | --- | --- |
+| M3-1 | blocker | Two readings of one as-of's window | **Fixed** (with X3-3): `AboutEnds`, Same-key order; T-4 row "ABT widens the pick" in both orders |
+| M3-2 | blocker | Invariants never see an as-of | **Fixed** (with X3-6) |
+| M3-3 | blocker | A second ranking beside `better`, order-dependent | **Fixed.** `propertycompare.Better` exports the one ordering; D-7 uses it for conflicts and matches; T-7 |
+| M3-4 | major | Shortlist re-derives samples and copies the open branch | **Fixed.** `subjectcompare.Samples` beside `Side`; D-9 feeds the existing emission |
+| M3-5 | blocker | An as-of on a birth would fix the lifespan; hand key list | **Fixed.** D-10: `LifeEventOf` reads keys from the period and samples into `LifeEvent.Samples`, which widen the span only; T-6 |
+| M3-6 | major | S16-42 would write a second extremes loop | **Fixed.** `valuecompare.SampleExtremes`, reading supplied by the caller; S16-42 Context names it |
+| M3-7 | major | Skill and matching-model lines | **Fixed.** STEP-7 names lines 30, 36, 54 and 212 and an `rg` |
+| M3-8 | minor | `RolePeriodEnd` mislabels samples | **Fixed.** Renamed `RolePeriodMember`; four docs; sweep in DoD |
+| M3-9 | minor | Place claim contradicts the idea file | **Fixed.** Dropped |
+| M3-10 | minor | Reconciler at 10,000 as-ofs | Measured 2026-11-16: 0.6 s at 1,000 distinct dates, 61 s at 10,000 (`foldValues`, quadratic). Every `multiple` Property has the cost today; this PR adds none. **To user**: park as crafted hardening, or cap distinct values per Property under the Batch 1 rule "Crafted fan-out is capped, not engineered" |
+| K3-1 | major | "One dating" rule contradicts itself; stale lines | **Fixed.** Rule rewritten; map order line and feature doc updated |
+| K3-2 | major | S16-42 should name what S16-40 leaves | **Fixed.** S16-42 Context |
+| K3-3 | major | S16-42 too large; split search indexing | **To user** (recommend: yes, a backend-only row after S16-42) |
