@@ -20,6 +20,7 @@ import (
 	_ "github.com/mendahu/provenencia/core/database/nameformats"
 	_ "github.com/mendahu/provenencia/core/database/promotealign"
 	_ "github.com/mendahu/provenencia/core/database/sources"
+	"github.com/mendahu/provenencia/core/internal/doctable"
 )
 
 // TestCacheDocListsEveryEntry holds docs/catalog-caches.md to the cache
@@ -28,27 +29,7 @@ import (
 // every owner (TestCacheDocSeesEveryOwner proves it), so its registry is the
 // app's. A PR that registers a cache adds its row in the same change.
 func TestCacheDocListsEveryEntry(t *testing.T) {
-	raw, err := os.ReadFile("../../docs/catalog-caches.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var rows []string
-	inSection := false
-	for _, line := range strings.Split(string(raw), "\n") {
-		switch {
-		case strings.HasPrefix(line, "## "):
-			inSection = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Registry entries"
-		case inSection && strings.HasPrefix(line, "|"):
-			cells := strings.Split(line, "|")
-			if len(cells) < 3 {
-				continue
-			}
-			first := strings.TrimSpace(cells[1])
-			if strings.HasPrefix(first, "`") && strings.HasSuffix(first, "`") {
-				rows = append(rows, strings.Trim(first, "`"))
-			}
-		}
-	}
+	rows := doctable.FirstColumn(t, "../../docs/catalog-caches.md", "Registry entries")
 	names := graphcache.EntryNames()
 	if len(names) == 0 {
 		t.Fatal("no cache entry is registered")

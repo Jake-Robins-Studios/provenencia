@@ -2,12 +2,13 @@ package matchregistry
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"slices"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/mendahu/provenencia/core/internal/doctable"
 )
 
 // notYetBuilt are the prefixes of inventory rows whose registry fields land
@@ -23,9 +24,9 @@ var catalogData = []string{"value.Names.Aliases", "value.Names.Patterns"}
 // inventory in step with Default(): every registry field has a row, and every
 // row is a field or under a not-yet-built prefix.
 func TestKnobInventoryMatchesRegistry(t *testing.T) {
-	rows := inventoryKeys(t)
+	rows := doctable.FirstColumn(t, "../../docs/matching-model.md", "Knob inventory")
 	fields := registryKeys(reflect.ValueOf(Default()))
-	notKnobs := notKnobsSection(t)
+	notKnobs := doctable.Section(t, "../../docs/matching-model.md", "Not knobs")
 
 	for _, c := range catalogData {
 		if !typeHasPath(reflect.TypeOf(Default()), strings.Split(c, ".")) {
@@ -85,57 +86,6 @@ func typeHasPath(t reflect.Type, path []string) bool {
 		}
 	}
 	return true
-}
-
-// notKnobsSection is the body of the "Not knobs" section.
-func notKnobsSection(t *testing.T) string {
-	body, err := os.ReadFile("../../docs/matching-model.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out []string
-	in := false
-	for _, line := range strings.Split(string(body), "\n") {
-		if strings.HasPrefix(line, "## ") {
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Not knobs"
-			continue
-		}
-		if in {
-			out = append(out, line)
-		}
-	}
-	if len(out) == 0 {
-		t.Fatal("no ## Not knobs section found")
-	}
-	return strings.Join(out, "\n")
-}
-
-// inventoryKeys are the first backticked cell of each row of the "Knob
-// inventory" section.
-func inventoryKeys(t *testing.T) []string {
-	body, err := os.ReadFile("../../docs/matching-model.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var keys []string
-	in := false
-	for _, line := range strings.Split(string(body), "\n") {
-		if strings.HasPrefix(line, "## ") {
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Knob inventory"
-			continue
-		}
-		if !in || !strings.HasPrefix(line, "| `") {
-			continue
-		}
-		cell := strings.TrimPrefix(line, "| `")
-		if end := strings.Index(cell, "`"); end >= 0 {
-			keys = append(keys, cell[:end])
-		}
-	}
-	if len(keys) == 0 {
-		t.Fatal("no rows found under ## Knob inventory")
-	}
-	return keys
 }
 
 // registryKeys are the dotted paths of v's leaves: the top-level field name
