@@ -1,18 +1,18 @@
 # S15-13 — The composer records the printed page
 
-**Status:** Blocked — on S15-50
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 3 — Printed page
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D8](../design/S15-D8-citation-composer-printed-page.md), board agreed 2026-11-16
 **Board:** agreed 2026-11-16 (user) — [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, section "S15-D8 · The printed page, on the app’s width classes": frames 1a, 1b, 2a, 2b, 3 (empty, "iv" typed), Tab order note, 4a, 4b, 5, 6, 7, 8a, 8b, Kit used. Board decisions: Label and Printed page share a row when the form's column fits both (Label at least 180pt, Printed page 140pt), else Printed page sits directly under Label (the stacked form at 1102pt stacks; at 1464pt it fits beside; the 440pt side form always shares a row); the help is the Input's tooltip, not a hint line; neither column widens at Wide (form 440pt, Observations 520pt, the viewer takes the rest); copy as § 2.1. The implementer opens the link; § 6 macOS also describes each frame's layout in words
-**Depends on:** S15-50 (`PVFieldFocus(_:equals:in:)`, not landed), S15-D8
+**Depends on:** S15-50 (`PVFieldFocus(_:equals:in:)`, PR #862, not yet merged: this PR is stacked on its branch `s15-50-forms-list-their-tab-order`), S15-D8
 **Blocks:** S15-45
 **Branch:** `s15-13-composer-printed-page`
 **Version bump:** minor, 0.16.0 (today's `VERSION`) → **0.17.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`. A backward-compatible feature: a new composer field, and the locator accepts a page selector that holds only `page_label` ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table-driven Go tests)
 **Context:** [`interpretation-layer-data-model.md` § 3.2](../../../interpretation-layer-data-model.md#32-page-selector); [`evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 1 and § 6.9; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (the Citation composer row); working rule "Citations carry no metadata"
-**Planned:** 2026-11-16 against `main` @ `0a90a17`. Refreshed when S15-50 lands (its ordered `PVFieldFocus` and `CitationFormFocus`, STEP-4) and when the board is agreed (§ 6 board-dependent items)
+**Planned:** 2026-11-16 against `main` @ `0a90a17`. Refreshed 2026-11-16 against S15-50's head `a4ce91c61` (PR #862): `CitationFormFocus { label, transcription }` is internal in `CitationComposerEvidenceColumn.swift`, held as `@FocusState private var formFocus` there, with `sideForm` `[.label, .transcription]` and `panelForm` `[.transcription, .label]` through `PVFieldFocus($formFocus, equals:, in: order)`; D-12, D-13 and STEP-4 hold as written. S15-50 also made `init(_:equals:next:previous:)` private: neighbours come only from `in:`
 **Review:** [`S15-13-composer-printed-page.review.md`](S15-13-composer-printed-page.review.md) — Fits with changes — Ready with changes, round 1
 
 ### Implementer — read this first
@@ -117,7 +117,7 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | Capabilities | `macos/App/Features/ArtifactViewer/ArtifactViewerKind.swift` `ArtifactLocatorCapabilities`, `locatorCapabilities` | `supportsPageLocator` (PDF), `supportsRegionLocator` (image, PDF), `supportsSpatialZoom`, `supportsTimeRangeLocator`. `ArtifactViewerModel.kind` starts `.unsupported` until a file loads |
 | Fields draft | `macos/App/Features/CitationComposer/CitationFieldsDraft.swift` `Values`, `isDirty`, `replace(from:)`, `resetBlank(keepLocator:)` | The locator is in `Values`, so a locator change marks the form dirty |
 | Model | `macos/App/Features/CitationComposer/CitationComposerModel.swift` `citationDescription`, `locator`, `removePage`, `resetToEntireArtifact`, `clearRegion`, `applySelectedArtifact` (sets `fields.locator = .artifactOnly()`), `confirmPendingImpact` (after a Citation delete: `resetComposerIdentity(keepLocator: true)`) | Bindings over `fields` |
-| Citation form | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` `sideForm`, `panelForm`, `labelField`, `transcriptionColumn` | `PVTabPair` pairs Label and the transcription (S15-50 moves it to a `@FocusState` of `CitationFormFocus` in the column with ordered `PVFieldFocus` handles); side: Label then transcription; panel: transcription (1.5) beside Label (1) |
+| Citation form | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` `sideForm`, `panelForm`, `labelField`, `transcriptionColumn` | `@FocusState private var formFocus: CitationFormFocus?` in the column, with ordered `PVFieldFocus(_:equals:in:)` handles (S15-50); side: Label then transcription; panel: transcription (1.5) beside Label (1) |
 | Citation menus | `CitationComposerEvidenceColumn.citationSelect`, `citationOptions`, `menuLocator`; `CitationComposerAuthoringBox.swift` (around line 570: its own `PVSelect`, `citationOptions`, `menuLocator`) | Two copies of the menu: the options, the "New citation · on this artifact" row, `CitationStepMenuRow(listed:locator:)`, and `menuLocator`, which prints `L10n.CitationComposer.menuPage` "p. %lld" for the **file** page. They differ in size, `menuWidth`, `maxVisibleRows`, `rowHeight`, the disabled condition, the accessibility id |
 | Composer split | `macos/App/Features/CitationComposer/CitationComposerView.swift` `composeSplit`, `evidence(threeUp:height:)` | `GeometryReader`; `threeUp = geo.size.width >= 1400` picks `.side` vs `.panel`; Observations at 520pt |
 | Width class | `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift`; `WorkspaceDestinationHost` measures every destination, the composer included | Not read by the composer |
@@ -339,7 +339,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 
 ## 12. Open questions
 
-None. STEP-4 is refreshed when S15-50 lands (its Landed note); until then the status is Blocked — on S15-50.
+None.
 
 ## 13. PR
 
