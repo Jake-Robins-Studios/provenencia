@@ -307,6 +307,11 @@ final class CitationComposerModel {
         get { fields.description }
         set { fields.description = newValue }
     }
+    /// The page the original prints, as typed; the locator trims it on save.
+    var pageLabel: String {
+        get { fields.locator.pageLabel }
+        set { fields.locator.pageLabel = newValue }
+    }
     var activeCitationID: String? {
         get { context.citationID }
         set { context.citationID = newValue }

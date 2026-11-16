@@ -291,6 +291,23 @@ func TestGraphRecordsCarryCitationWords(t *testing.T) {
 		}
 	})
 
+	t.Run("a Citation with a printed page and no file page", func(t *testing.T) {
+		f := newFamily(t)
+		id := cite(t, f, citations.CreateInput{
+			LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"}]}`,
+		})
+		loaded, cold := fills(t, f)
+		for _, rec := range []*graphfill.GraphRecords{loaded, cold} {
+			_, o, ok := rec.Observation(id)
+			if !ok {
+				t.Fatal("the Observation is not in the records")
+			}
+			if o.ArtifactPage != 0 || o.PageLabel != "14" {
+				t.Fatalf("citation words %+v", o)
+			}
+		}
+	})
+
 	t.Run("a Citation with no label and no page", func(t *testing.T) {
 		f := newFamily(t)
 		id := cite(t, f, citations.CreateInput{LocatorJSON: `{"version":1,"selectors":[{"type":"note"}]}`})

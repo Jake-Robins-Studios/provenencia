@@ -61,6 +61,14 @@ struct ArtifactViewerModelTests {
         #expect(!ArtifactViewerKind.video.isRenderableInS706)
     }
 
+    @Test func printedPageIsOfferedOnImagesAndPDFs() {
+        #expect(ArtifactViewerKind.image.locatorCapabilities.supportsPrintedPage)
+        #expect(ArtifactViewerKind.pdf.locatorCapabilities.supportsPrintedPage)
+        #expect(!ArtifactViewerKind.audio.locatorCapabilities.supportsPrintedPage)
+        #expect(!ArtifactViewerKind.video.locatorCapabilities.supportsPrintedPage)
+        #expect(!ArtifactViewerKind.unsupported.locatorCapabilities.supportsPrintedPage)
+    }
+
     @Test func clampsZoomAndPage() {
         #expect(ArtifactViewerModel.clampZoom(0.1) == ArtifactViewerModel.minZoom)
         #expect(ArtifactViewerModel.clampZoom(9) == ArtifactViewerModel.maxZoom)
