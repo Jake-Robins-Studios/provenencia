@@ -1,7 +1,7 @@
 # Review — S16-39 One container measures its own width and tells its content which layout fits
 
-**Verdict:** round 1 — Fits with changes (maintainability) · Ready with changes (executability); round 2 pending
-**Rounds:** 1 so far (round 1 had two blockers, so round 2 runs). **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes
+**Rounds:** 2 (round 1 had two blockers, both Fixed; round 2 found no new blocker). **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - M-1 (answered 2026-11-16): rebuild `pvMeasuresWidthClass` on the container. The user chose "Rebuild it on the container" → D-10; the map's Not this PR line now keeps only the class, where it is measured and its 1600pt value.
@@ -52,3 +52,28 @@
 
 ### X-8 · minor · The Sources list's first frame changes from all-met to none-met
 **Answer:** Fixed — manual check step 2 reopens at both sizes and looks for a wrong first frame; the Stop condition on T-3 stands.
+
+## Round 2
+
+Both reviewers checked every round-1 answer against the code and found it holds; no new blocker.
+
+### M2-1 · minor · The Regular/Wide rule stays hand-copied in four previews once `init(paneWidth:)` goes
+**Answer:** Fixed — D-10 keeps `init(paneWidth:)` as a one-line wrapper over the reading and moves the four previews onto it; STEP-1's check `rg`s the copied expression; T-8 runs the existing tests unchanged.
+
+### M2-2 / X-9 · major · `shownColumns` and `stacksPeople` still label the reading `width`
+**Answer:** Fixed — D-5 and STEP-4 use `met`.
+
+### M2-3 / X-13 · minor · The map's Ships and Check lines still name the pane measure as separate
+**Answer:** Fixed — the scope entry says `pvMeasuresWidthClass` is rebuilt on the container, and the Check's `rg` allows only the container and D-7's geometry.
+
+### M2-4 · nit · `add-design-brief`'s Paste-block copy of rule 3 never got S15-49's `minTableWidth` sentence
+**Answer:** Logged, not this PR — older than this plan; STEP-6 changes only the code name in the engineers' copy, which is not in the Paste block, so the gap does not widen.
+
+### X-10 · minor · How T-3 and T-4 record what the content was built for
+**Answer:** Fixed — T-3 names a `BreakpointsProbe` with `.onAppear` and `.onChange(of: met)` writing into a `@MainActor` box, copying `WidthClassProbe`; the host is the bare container.
+
+### X-11 · minor · The container's `#Preview` is unspecified
+**Answer:** Fixed — two previews at 800 and 1300pt with the exact `Text`.
+
+### X-12 · minor · The `add-ui-component` boundary comment is not worded
+**Answer:** Fixed — STEP-6 gives the exact comment line and puts it inside the GOOD code block.
