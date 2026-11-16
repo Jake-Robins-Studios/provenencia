@@ -2,6 +2,7 @@ package citationformat
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/valuemark"
@@ -32,7 +33,7 @@ type Run struct {
 }
 
 // Rendered is a format filled in: styled runs, adjacent runs of one style
-// merged and none empty.
+// merged and none empty, at most MaxRenderedBytes of text.
 type Rendered struct {
 	Runs []Run
 }
@@ -46,39 +47,77 @@ func (r Rendered) Plain() string {
 	return b.String()
 }
 
-func (r *Rendered) add(text string, italic bool) {
+// writer collects runs as lists of pieces joined once, and stops taking text
+// at the room it was given.
+type writer struct {
+	runs []runBuf
+	room int
+}
+
+type runBuf struct {
+	italic bool
+	pieces []string
+}
+
+func (w *writer) add(text string, italic bool) {
+	text = truncate(text, w.room)
 	if text == "" {
 		return
 	}
-	if n := len(r.Runs); n > 0 && r.Runs[n-1].Italic == italic {
-		r.Runs[n-1].Text += text
+	w.room -= len(text)
+	if n := len(w.runs); n > 0 && w.runs[n-1].italic == italic {
+		w.runs[n-1].pieces = append(w.runs[n-1].pieces, text)
 		return
 	}
-	r.Runs = append(r.Runs, Run{text, italic})
+	w.runs = append(w.runs, runBuf{italic, []string{text}})
 }
 
-func (r *Rendered) append(o Rendered) {
-	for _, run := range o.Runs {
-		r.add(run.Text, run.Italic)
+// merge adds the runs of o, which was given no more room than w has left.
+func (w *writer) merge(o *writer) {
+	for _, run := range o.runs {
+		for _, piece := range run.pieces {
+			w.add(piece, run.italic)
+		}
 	}
+}
+
+func (w *writer) rendered() Rendered {
+	var out Rendered
+	for _, run := range w.runs {
+		out.Runs = append(out.Runs, Run{strings.Join(run.pieces, ""), run.italic})
+	}
+	return out
+}
+
+// truncate cuts s to at most n bytes without splitting a character.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }
 
 // Render fills the template's placeholders from r. Values go in as literal
 // text after parsing, so none changes the format. A group prints when every
 // placeholder of its own prints text; otherwise it and everything inside it
 // print nothing. A placeholder outside any group with no value prints nothing.
+// The text stops at MaxRenderedBytes: the value that crosses it is cut and
+// nothing after it prints.
 func Render(t *Template, r Resolver) Rendered {
-	var out Rendered
 	if t == nil {
-		return out
+		return Rendered{}
 	}
-	renderNodes(t.root, false, t.form, r, &out)
-	return out
+	w := writer{room: MaxRenderedBytes}
+	renderNodes(t.root, false, t.form, r, &w)
+	return w.rendered()
 }
 
 // renderNodes writes nodes into out and reports whether every placeholder of
 // their own printed text. Nested groups decide for themselves.
-func renderNodes(nodes []node, italic bool, form Form, r Resolver, out *Rendered) bool {
+func renderNodes(nodes []node, italic bool, form Form, r Resolver, out *writer) bool {
 	ok := true
 	for _, n := range nodes {
 		switch n.kind {
@@ -95,9 +134,9 @@ func renderNodes(nodes []node, italic bool, form Form, r Resolver, out *Rendered
 				ok = false
 			}
 		case nodeGroup:
-			var inner Rendered
+			inner := writer{room: out.room}
 			if renderNodes(n.children, italic, form, r, &inner) {
-				out.append(inner)
+				out.merge(&inner)
 			}
 		}
 	}
@@ -126,23 +165,19 @@ func resolve(ref Ref, form Form, r Resolver) (string, bool) {
 // other answers when its text has something besides space, and prints as
 // given, in square brackets when supplied.
 func printed(r Ref, v Value, form Form) (text string, answered bool) {
-	var b Builtin
 	isBuiltin := r.Builtin != ""
-	if isBuiltin {
-		b, _ = LookupBuiltin(r.Level, r.Builtin)
-	}
 	if v.Mark.Unknown {
 		if isBuiltin {
-			return b.UnknownText, true
+			return builtins[r.row].UnknownText, true
 		}
 		return v.UnknownText, true
 	}
-	if isBuiltin && b.Date {
+	if isBuiltin && builtins[r.row].Date {
 		if v.Date != nil {
 			text = datevalue.CitationDisplay(*v.Date, dateStyle(r.Option, form))
 		}
 	} else {
-		text = v.Text
+		text = truncate(v.Text, MaxRenderedBytes)
 	}
 	if strings.TrimSpace(text) == "" {
 		return "", false

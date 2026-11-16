@@ -1,11 +1,10 @@
 package citationformat_test
 
 import (
-	"bufio"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/mendahu/provenencia/core/citationformat"
 	"github.com/mendahu/provenencia/core/datevalue"
@@ -39,23 +38,12 @@ func mustParse(t *testing.T, s string, f citationformat.Form) *citationformat.Te
 	return tpl
 }
 
-func seedFormat(t *testing.T, line int) (citationformat.Form, string) {
-	t.Helper()
-	f, err := os.Open("testdata/seed-formats.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-	for n := 1; sc.Scan(); n++ {
-		if n == line {
-			form, txt, _ := strings.Cut(sc.Text(), "\t")
-			return citationformat.Form(form), txt
-		}
-	}
-	t.Fatalf("no seed line %d", line)
-	return "", ""
-}
+// The census formats of the seed corpus, written out so the render
+// and requirement tests do not read the seed corpus.
+const (
+	censusFull  = `{source.date:year} [{source.meta.creator} ]census, {source.meta.jurisdiction}[, {source.meta.schedule}][, ED {source.meta.enumeration_district}][, piece {source.meta.piece}][, fol. {graph.meta.folio|source.meta.folio}][, p. {citation.page}][, schedule {graph.meta.schedule_number|source.meta.schedule_number}][, dwelling {graph.meta.dwelling_number|source.meta.dwelling_number}][, family {graph.meta.family_number|source.meta.family_number}][, line {graph.meta.line_number|source.meta.line_number}][, {graph.meta.item|source.meta.item}][; {artifact.meta.format}, *{artifact.meta.provider}*][ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])][; citing {artifact.meta.citing}].`
+	censusShort = `{source.date:year} [{source.meta.creator} ]census, {source.meta.jurisdiction}[, ED {source.meta.enumeration_district}][, fol. {graph.meta.folio|source.meta.folio}][, p. {citation.page}][, dwell. {graph.meta.dwelling_number|source.meta.dwelling_number}][, fam. {graph.meta.family_number|source.meta.family_number}][, {graph.meta.item|source.meta.item}].`
+)
 
 func censusValues() values {
 	src, art, gr, cit := vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph, vocabkey.LevelCitation
@@ -82,8 +70,7 @@ const censusPlain = "1880 U.S. census, Ottawa County, Kansas, population schedul
 func TestRender(t *testing.T) {
 	src, gr := vocabkey.LevelSource, vocabkey.LevelGraph
 	t.Run("census_full", func(t *testing.T) {
-		form, txt := seedFormat(t, 1)
-		got := citationformat.Render(mustParse(t, txt, form), censusValues())
+		got := citationformat.Render(mustParse(t, censusFull, citationformat.FormFull), censusValues())
 		if got.Plain() != censusPlain {
 			t.Fatalf("plain = %q", got.Plain())
 		}
@@ -98,11 +85,10 @@ func TestRender(t *testing.T) {
 		}
 	})
 	t.Run("census_item_on_source", func(t *testing.T) {
-		form, txt := seedFormat(t, 1)
 		v := censusValues()
 		delete(v, meta(gr, "item"))
 		v[meta(src, "item")] = text("Ada Robins")
-		if got := citationformat.Render(mustParse(t, txt, form), v).Plain(); got != censusPlain {
+		if got := citationformat.Render(mustParse(t, censusFull, citationformat.FormFull), v).Plain(); got != censusPlain {
 			t.Fatalf("plain = %q", got)
 		}
 	})
@@ -140,6 +126,21 @@ func TestRender(t *testing.T) {
 	t.Run("nil resolver", func(t *testing.T) {
 		if got := citationformat.Render(mustParse(t, "a{source.title}b", citationformat.FormFull), nil).Plain(); got != "ab" {
 			t.Fatalf("got %q", got)
+		}
+	})
+	t.Run("over cap", func(t *testing.T) {
+		big := strings.Repeat("é", 1<<19)
+		tpl := mustParse(t, strings.Repeat("{source.title}", 250), citationformat.FormFull)
+		got := citationformat.Render(tpl, values{builtin(src, "title"): text(big)}).Plain()
+		if len(got) > citationformat.MaxRenderedBytes || !utf8.ValidString(got) || len(got) < citationformat.MaxRenderedBytes-1 {
+			t.Fatalf("rendered %d bytes, valid %v", len(got), utf8.ValidString(got))
+		}
+	})
+	t.Run("over cap in groups", func(t *testing.T) {
+		tpl := mustParse(t, strings.Repeat("[{source.title}", 8)+strings.Repeat("]", 8), citationformat.FormFull)
+		got := citationformat.Render(tpl, values{builtin(src, "title"): text(strings.Repeat("a", 1<<20))}).Plain()
+		if len(got) != citationformat.MaxRenderedBytes {
+			t.Fatalf("rendered %d bytes", len(got))
 		}
 	})
 	t.Run("runs merge", func(t *testing.T) {
