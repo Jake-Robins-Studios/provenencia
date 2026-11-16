@@ -1,9 +1,9 @@
 # S15-13 — The composer records the printed page
 
-**Status:** Planned
+**Status:** Landed in [#863](https://github.com/mendahu/provenencia/pull/863) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 3 — Printed page
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D8](../design/S15-D8-citation-composer-printed-page.md), board agreed 2026-11-16
+**Brief:** [S15-D8](../design/archive/S15-D8-citation-composer-printed-page.md), board agreed 2026-11-16
 **Board:** agreed 2026-11-16 (user) — [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, section "S15-D8 · The printed page, on the app’s width classes": frames 1a, 1b, 2a, 2b, 3 (empty, "iv" typed), Tab order note, 4a, 4b, 5, 6, 7, 8a, 8b, Kit used. Board decisions: Label and Printed page share a row when the form's column fits both (Label at least 180pt, Printed page 140pt), else Printed page sits directly under Label (the stacked form at 1102pt stacks; at 1464pt it fits beside; the 440pt side form always shares a row); the help is the Input's tooltip, not a hint line; neither column widens at Wide (form 440pt, Observations 520pt, the viewer takes the rest); copy as § 2.1. The implementer opens the link; § 6 macOS also describes each frame's layout in words
 **Depends on:** S15-50 (`PVFieldFocus(_:equals:in:)`, PR #862, not yet merged: this PR is stacked on its branch `s15-50-forms-list-their-tab-order`), S15-D8
 **Blocks:** S15-45
@@ -345,3 +345,10 @@ None.
 
 **Title:** S15-13 — The composer records the printed page
 **Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-13-composer-printed-page.md`.
+
+## Landed
+
+- `CitationStepMenu` takes the `model` and the `ordered` Citations (the plan's parameter list omitted them): the menu reads `model.citationStepLabel(for:)` for its closed label.
+- `CitationComposerEvidenceColumn` takes the form's focus as `formFocus: FocusState<CitationFormFocus?>.Binding`.
+- The menu, field, width-class and focus changes share one commit: they edit the same files.
+- Not run in the app by the implementer: the board frames and manual check (§ 10), including `ViewThatFits` placement of Label and Printed page (frames 1a, 1b, 7) and focus across 1600pt.
