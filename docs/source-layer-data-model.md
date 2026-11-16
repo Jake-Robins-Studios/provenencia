@@ -95,7 +95,7 @@ The File store is shared infrastructure, but it is defined here because Artifact
 
 # 3. `source_types`
 
-Source types are a controlled but extensible vocabulary used primarily for search and filtering.
+Source types are a controlled but extensible vocabulary used primarily for search and filtering. A Source type's citation formats are written in the syntax of [citation-formats.md](citation-formats.md).
 
 ```sql
 CREATE TABLE source_types (
