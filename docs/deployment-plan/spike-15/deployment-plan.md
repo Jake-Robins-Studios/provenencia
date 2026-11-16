@@ -105,7 +105,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-11 | Evidence graphs show their metadata | 2 | Go: the Source page read carries each graph's board; the graph write replies answer its rows. Swift: the graph form in two columns with a metadata board; each graph row shows its saved values read-only | S15-D5 | S15-36, S15-34, S15-35, S15-D5 | [plan](prs/S15-11-graph-metadata.md) | Landed [#834](https://github.com/mendahu/provenencia/pull/834) |
 | S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/archive/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-48, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Landed #856 |
 | S15-13 | The composer records the printed page | 3 | Go and Swift: a Printed page field on image and PDF Citations, written as `page_label` (a page selector may hold the label alone); the composer on Regular and Wide (user, 2026-11-16) | [S15-D8](design/archive/S15-D8-citation-composer-printed-page.md) | S15-50, S15-D8 | [plan](prs/S15-13-composer-printed-page.md) | Landed [#863](https://github.com/mendahu/provenencia/pull/863) — stacked on S15-50 (#862) |
-| S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | — | Scoped |
+| S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | [plan](prs/S15-14-citation-format-engine.md) | Scoped |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, type read and write; a typed mutation on a format write | — | S15-14 | — | Scoped |
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
 | S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings, on the Source type page | S15-D16 | S15-16, S15-12, S15-48, S15-D16 | — | Scoped |
@@ -526,13 +526,14 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 **Ships.** Each seeded type's three formats, as in map § 6.8, installed with the types; Install writes them after the fields so keys resolve to ids. Says in the PR how to run Install against an existing dogfood project.
 **Not this PR.** Rendering them in the app (S15-16 on).
-**Check.** A test renders every seeded format in all three forms against an invented Source of its type and compares the expected text.
+**Check.** A test renders every seeded format in all three forms against an invented Source of its type and compares the expected text. It deletes S15-14's seed-format corpus (`core/citationformat/testdata/seed-formats.txt`) and `TestSeedFormatsParse`, which this test supersedes.
 **Context.** Rules "Follow the style; never copy the book", "The seed is the product default", "Formats name fields by id" (Install calls `metadatafields.ResolveKeysTx`); map § 6.8 "Formats". [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) keeps `Install` out of FFI, Swift and open, so the plan names how the dogfood run happens (a test-harness or developer command against a copy of the catalog) and warns that re-running `Install` overwrites edited product labels and formats and restores deleted product rows.
 
 #### S15-37 — Metadata values can be marked unknown or supplied
 
 **Ships.** One migration: `is_unknown` and `is_supplied` (with their checks) on `source_metadata`, `artifact_metadata` and `evidence_graph_metadata`, and `unknown_text` on `source_metadata_fields`. `sourcemetadata.Input` and `Row` carry a `valuemark.Mark` (an unknown row has no text, so `normalizeValue` takes the mark); `metadatafields`' update write takes `unknown_text`; the proto's `ValueMark`; FFI, Copy Source and the audit carry them.
 **Not this PR.** The Source date (S15-43), the page (S15-44), rendering (S15-16), any chrome.
+**Errors.** Maps S15-14's `valuemark.invalid` in `L10n.Errors`, the first PR that sends it over FFI.
 **Check.** Handler tests: a value saved unknown reads back unknown with no text; both facts together are refused through `valuemark.Validate`; Copy Source keeps them; the audit shows the change; a field's unknown text saves.
 **Context.** Rule "A value can be marked unknown or supplied"; map § 6.10; skills `add-catalog-migration`, `add-catalog-model`, `add-audit-scope`, `add-ffi-handler`. Updates [`source-layer-data-model.md`](../../source-layer-data-model.md).
 
@@ -569,6 +570,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-16 — Citations render through their type's formats
 
 **Ships.** The catalog resolver for `core/citationformat`, reading SQL: built-ins from the Source row and its date and the Citation's locator and label; metadata at each named level, the Source date and the page, each with its `valuemark` (S15-37, S15-43, S15-44), through S15-07's batch read; one batch render RPC (runs, plain text, group key per Citation; no missing list, rule "A format's fields are needed or used"); one render request for previews; the built-ins table over FFI. A type with no full format renders no text. Nothing is cached.
+**Parity.** Adds `api/ffi/swift_vocabulary_test.go` rows for S15-14's `Form`, `Option`, `DiagnosticCode` and built-in names, the first PR that sends them over FFI.
 **Not this PR.** Any screen (S15-17, S15-21 – S15-23).
 **Check.** Handler tests: the census example renders from values spread over Source, Artifact and graph; 300 and 1,200 Citations render in one call in a fixed number of queries, timed at both.
 **Context.** Rules "One engine, in Go", "Citations render on demand, from SQL", "One render request for previews", "Today's line stays the fallback"; map §§ 6.3, 6.5, 6.6.
