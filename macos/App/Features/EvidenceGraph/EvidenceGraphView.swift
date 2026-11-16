@@ -107,9 +107,6 @@ private struct EvidenceGraphContent: View {
     let sourceRef: String?
     let navigation: WorkspaceNavigation
     @FocusState private var focus: EvidenceGraphFocus?
-    @FocusState private var createFormFocus: CreateFormField?
-
-    private enum CreateFormField: Hashable { case label, description }
 
     private var snapshot: EvidenceGraphSnapshot {
         model.displaySnapshot
@@ -191,7 +188,7 @@ private struct EvidenceGraphContent: View {
                 }
             }
         ) {
-            createForm
+            EvidenceGraphCreateForm(model: model)
         }
         .pvDeleteImpact(
             flow: model.deleteImpact,
@@ -350,9 +347,41 @@ private struct EvidenceGraphContent: View {
         .shadow(color: Color.black.opacity(0.06), radius: 6, y: 1)
     }
 
+    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        let command: EvidenceGraphModel.Key?
+        switch press.key {
+        case .escape: command = .escape
+        case .return: command = .return
+        case .space: command = .space
+        case .leftArrow: command = .arrow(dx: -1, dy: 0)
+        case .rightArrow: command = .arrow(dx: 1, dy: 0)
+        case .upArrow: command = .arrow(dx: 0, dy: -1)
+        case .downArrow: command = .arrow(dx: 0, dy: 1)
+        default: command = nil
+        }
+        guard let command else { return .ignored }
+        let effect = model.handleKey(command, hasFocus: focus != nil)
+        if effect.clearFocus {
+            focus = nil
+        }
+        if !effect.moves.isEmpty {
+            model.moveSubjects(effect.moves)
+        }
+        return effect.handled ? .handled : .ignored
+    }
+}
+
+/// The create dialog's fields. It holds its own focus so Tab has its order
+/// inside the dialog's window.
+private struct EvidenceGraphCreateForm: View {
+    @Bindable var model: EvidenceGraphModel
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
+
     @ViewBuilder
-    private var createForm: some View {
-        let order: [CreateFormField] = model.isEditingBridge ? [.description] : [.label, .description]
+    var body: some View {
+        let order: [Field] = model.isEditingBridge ? [.description] : [.label, .description]
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if model.editingSubjectID == nil, let kind = model.armedKind {
                 let style = EvidenceSubjectKindStyle.resolve(
@@ -409,7 +438,7 @@ private struct EvidenceGraphContent: View {
                             set: { model.draft.label = $0 }
                         ),
                         isInvalid: model.labelError != nil,
-                        focus: PVFieldFocus($createFormFocus, equals: .label, in: order)
+                        focus: PVFieldFocus($focus, equals: .label, in: order)
                     )
                 }
             }
@@ -419,7 +448,7 @@ private struct EvidenceGraphContent: View {
                         get: { model.draft.description },
                         set: { model.draft.description = $0 }
                     ),
-                    focus: PVFieldFocus($createFormFocus, equals: .description, in: order)
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
                 )
             }
         }
@@ -427,29 +456,6 @@ private struct EvidenceGraphContent: View {
     private func styleTypeLabel(_ kind: EvidencePrimaryKind) -> String {
         model.typeLabelByKind[kind.rawValue]
             ?? L10n.string(model.toolName(for: kind))
-    }
-
-    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        let command: EvidenceGraphModel.Key?
-        switch press.key {
-        case .escape: command = .escape
-        case .return: command = .return
-        case .space: command = .space
-        case .leftArrow: command = .arrow(dx: -1, dy: 0)
-        case .rightArrow: command = .arrow(dx: 1, dy: 0)
-        case .upArrow: command = .arrow(dx: 0, dy: -1)
-        case .downArrow: command = .arrow(dx: 0, dy: 1)
-        default: command = nil
-        }
-        guard let command else { return .ignored }
-        let effect = model.handleKey(command, hasFocus: focus != nil)
-        if effect.clearFocus {
-            focus = nil
-        }
-        if !effect.moves.isEmpty {
-            model.moveSubjects(effect.moves)
-        }
-        return effect.handled ? .handled : .ignored
     }
 }
 
