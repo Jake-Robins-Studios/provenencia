@@ -73,8 +73,6 @@ struct PersonTimelineList: View {
     @State private var pendingReveal: String?
     /// Keeps the keyboard on a card across a width change or a reload that takes it.
     @State private var keeper = FocusKeeper<String>()
-    /// The items' measured width, after the line column.
-    @State private var itemsWidth: CGFloat = 0
     @State private var scrollTarget: String?
     @State private var scrollRequest = 0
     /// The title button or card with the keyboard: a row's event id or a card's id.
@@ -85,31 +83,31 @@ struct PersonTimelineList: View {
         let items = content.items
         HStack(alignment: .top, spacing: 0) {
             Color.clear.frame(width: PersonTimelineLifeline.columnWidth + PersonTimelineLifeline.listGap)
-            PersonTimelineStack(
-                tops: items.map { placement.tops[$0.id] ?? 0 },
-                height: placement.height
-            ) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    PersonTimelineItemView(
-                        item: item,
-                        previous: index > 0 ? items[index - 1] : nil,
-                        projectDir: projectDir,
-                        accessibilityIdentifierRoot: accessibilityIdentifierRoot,
-                        stacksPeople: PersonTimelinePlacement.stacksPeople(itemsWidth: itemsWidth, widthClass: widthClass),
-                        open: open,
-                        revealed: content.firstRevealed(by:),
-                        expand: unfold,
-                        focused: $focused
-                    )
-                    .id(item.id)
-                    .accessibilityIdentifier("\(accessibilityIdentifierRoot).item.\(item.id)")
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                        if abs((heights[item.id] ?? -1) - height) > 0.01 { heights[item.id] = height }
+            PVWidthBreakpoints(PersonTimelinePlacement.stackBreakpoints) { met in
+                PersonTimelineStack(
+                    tops: items.map { placement.tops[$0.id] ?? 0 },
+                    height: placement.height
+                ) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        PersonTimelineItemView(
+                            item: item,
+                            previous: index > 0 ? items[index - 1] : nil,
+                            projectDir: projectDir,
+                            accessibilityIdentifierRoot: accessibilityIdentifierRoot,
+                            stacksPeople: PersonTimelinePlacement.stacksPeople(met, widthClass: widthClass),
+                            open: open,
+                            revealed: content.firstRevealed(by:),
+                            expand: unfold,
+                            focused: $focused
+                        )
+                        .id(item.id)
+                        .accessibilityIdentifier("\(accessibilityIdentifierRoot).item.\(item.id)")
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                            if abs((heights[item.id] ?? -1) - height) > 0.01 { heights[item.id] = height }
+                        }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { itemsWidth = $0 }
             .pvScrollsRowIntoView(scrollTarget, anchor: .top, whenRequested: scrollRequest)
         }
         .overlay(alignment: .topLeading) {

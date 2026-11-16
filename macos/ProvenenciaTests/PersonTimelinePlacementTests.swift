@@ -102,11 +102,17 @@ struct PersonTimelinePlacementTests {
 
     @Test func narrowListStacksPeople() {
         // Regular: gutter 56, picture 72, one 300pt people column, four 16pt gaps and a 280pt text column.
-        #expect(PersonTimelinePlacement.stacksPeople(itemsWidth: 771, widthClass: .regular))
-        #expect(!PersonTimelinePlacement.stacksPeople(itemsWidth: 772, widthClass: .regular))
+        #expect(PersonTimelinePlacement.stacksBelow(.regular) == 772)
         // Wide: the people column is three cards and two gaps, 930pt.
-        #expect(PersonTimelinePlacement.stacksPeople(itemsWidth: 1401, widthClass: .wide))
-        #expect(!PersonTimelinePlacement.stacksPeople(itemsWidth: 1402, widthClass: .wide))
+        #expect(PersonTimelinePlacement.stacksBelow(.wide) == 1402)
+        func stacks(_ width: CGFloat, _ widthClass: PVWidthClass) -> Bool {
+            let met = PVBreakpointsMet(breakpoints: PersonTimelinePlacement.stackBreakpoints, width: width)
+            return PersonTimelinePlacement.stacksPeople(met, widthClass: widthClass)
+        }
+        #expect(stacks(771, .regular))
+        #expect(!stacks(772, .regular))
+        #expect(stacks(1401, .wide))
+        #expect(!stacks(1402, .wide))
     }
 
     @Test func aBirthdayPairSitsTogether() throws {
