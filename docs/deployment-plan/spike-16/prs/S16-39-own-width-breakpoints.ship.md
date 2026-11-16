@@ -56,4 +56,4 @@ Head `a63fd8400` (pushed). Gate PASS (orchestrator, against `eb7ee08e9`). F-1–
 Not run: no reviewer had a Fix-now blocker or major in round 1.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: — (the § 10 manual check is the user's)
+Gate PASS · CI green (first macOS run cancelled after 15m with no runner; re-run passed in 8m25s) · open: none · follow-ups: none · to user: — (the § 10 manual check is the user's)
