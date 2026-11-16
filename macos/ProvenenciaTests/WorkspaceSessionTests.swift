@@ -307,7 +307,7 @@ struct WorkspaceSessionTests {
         let store = FakeStore()
         let seeded = claims(onGraph: "g1")
         store.seededPersonClaims["per-1"] = seeded
-        store.seededConclusionDetails["per-1"] = detail("per-1")
+        store.seededConclusionDetails["per-1"] = catalogConclusionDetail("per-1")
         let session = makeSession(store: store)
         session.apply(location: .personDetail(entityId: "per-1", ref: "PER-1", title: nil).withPageSection(.sources))
         let key = CatalogQueryKey.personClaims(project: session.projectKey, entityId: "per-1")
@@ -1218,13 +1218,6 @@ struct WorkspaceSessionTests {
         #expect(!properties.isFetching && !graph.isFetching && !citations.isFetching)
     }
 
-    private func detail(_ id: String) -> CatalogConclusionDetail {
-        CatalogConclusionDetail(
-            entity: CatalogCanonicalEntity(id: id, ref: "PER-\(id)", subjectTypeID: "t", label: ""),
-            fields: []
-        )
-    }
-
     private func claims(onGraph graphID: String) -> [CatalogPersonClaimGroup] {
         [CatalogPersonClaimGroup(
             sourceID: "s1", sourceRef: "SRC-1", title: "Alpha", sourceTypeID: "t1",
@@ -1243,7 +1236,7 @@ struct WorkspaceSessionTests {
     @Test func touchedHandlesRevalidateOnlyTheirDetailPages() async {
         let store = FakeStore()
         seedStore(store)
-        store.seededConclusionDetails = ["e1": detail("e1"), "e3": detail("e3")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1"), "e3": catalogConclusionDetail("e3")]
         let session = makeSession(store: store)
         let project = session.projectKey
         session.apply(location: .personDetail(entityId: "e1", ref: "PER-e1", title: "One"))
@@ -1344,7 +1337,7 @@ struct WorkspaceSessionTests {
         session.setQueryValue(claimsKey, value: CatalogPersonClaims(
             groups: claims(onGraph: "g1"), inputs: CatalogPageInputs(evidenceGraphs: ["g1"], sources: ["s1"])
         ))
-        session.setQueryValue(detailKey, value: detail("e1"))
+        session.setQueryValue(detailKey, value: catalogConclusionDetail("e1"))
 
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g1"])) == [claimsKey])
         #expect(session.revalidatedKeys(for: CatalogWriteEffects(evidenceGraphs: ["g9"])).isEmpty)
@@ -1356,7 +1349,7 @@ struct WorkspaceSessionTests {
     /// reload.
     @Test func deletedEntitiesLoseTheirHiddenKeys() async {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": detail("e1"), "e3": detail("e3")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1"), "e3": catalogConclusionDetail("e3")]
         let session = makeSession(store: store)
         let project = session.projectKey
         let detail1 = CatalogQueryKey.conclusionDetail(project: project, entityId: "e1")
@@ -1364,10 +1357,10 @@ struct WorkspaceSessionTests {
         let claims1 = CatalogQueryKey.personClaims(project: project, entityId: "e1")
         let detail3 = CatalogQueryKey.conclusionDetail(project: project, entityId: "e3")
         let sourceKey = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "e1")
-        session.setQueryValue(detail1, value: detail("e1"))
+        session.setQueryValue(detail1, value: catalogConclusionDetail("e1"))
         session.setQueryValue(family1, value: CatalogPersonFamily(units: []))
         session.setQueryValue(claims1, value: CatalogPersonClaims(groups: claims(onGraph: "g1")))
-        session.setQueryValue(detail3, value: detail("e3"))
+        session.setQueryValue(detail3, value: catalogConclusionDetail("e3"))
         session.setQueryValue(sourceKey, value: CatalogSourceWorkspace(
             source: CatalogSource(id: "e1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: ""),
             notes: [], metadata: [], artifacts: [], credibility: nil
@@ -1398,7 +1391,7 @@ struct WorkspaceSessionTests {
     /// naming it; going Back shows its old value while it reloads.
     @Test func backToAStalePageShowsItsValueWhileItRefreshes() async throws {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": detail("e1"), "e3": detail("e3")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1"), "e3": catalogConclusionDetail("e3")]
         store.seededPersonFamilies = ["e1": CatalogPersonFamily(units: [])]
         let session = makeSession(store: store)
         let project = session.projectKey
@@ -1419,11 +1412,11 @@ struct WorkspaceSessionTests {
         #expect(detailHandle.isStale && !detailHandle.isFetching)
         #expect(familyHandle.isStale && !familyHandle.isFetching)
 
-        var updated = detail("e1")
+        var updated = catalogConclusionDetail("e1")
         updated.memberCount = 2
         store.seededConclusionDetails["e1"] = updated
         session.apply(location: e1)
-        #expect(detailHandle.value == detail("e1"))
+        #expect(detailHandle.value == catalogConclusionDetail("e1"))
         #expect(detailHandle.isFetching)
         await session.settleWrites()
         #expect(detailHandle.value == updated)
@@ -1434,7 +1427,7 @@ struct WorkspaceSessionTests {
     /// reading, which the page presents as gone.
     @Test func aStaleReloadOfAGoneEntityReadsAsGone() async throws {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": detail("e1")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1")]
         let session = makeSession(store: store)
         let key = CatalogQueryKey.conclusionDetail(project: session.projectKey, entityId: "e1")
         session.apply(location: .personDetail(entityId: "e1", ref: "PER-e1", title: nil))
@@ -1461,7 +1454,7 @@ struct WorkspaceSessionTests {
     @Test func hiddenConclusionPagesAreCappedAtFifty() async throws {
         let store = FakeStore()
         for index in 0...52 {
-            store.seededConclusionDetails["e\(index)"] = detail("e\(index)")
+            store.seededConclusionDetails["e\(index)"] = catalogConclusionDetail("e\(index)")
         }
         store.seededPersonFamilies = ["e0": CatalogPersonFamily(units: []), "e1": CatalogPersonFamily(units: [])]
         let session = makeSession(store: store)
@@ -1478,7 +1471,7 @@ struct WorkspaceSessionTests {
             #expect(holds(detailKey(id)))
         }
 
-        session.setQueryValue(detailKey("never"), value: detail("never"))
+        session.setQueryValue(detailKey("never"), value: catalogConclusionDetail("never"))
         await show("e0", .family)
         for index in 1...50 {
             await show("e\(index)")
@@ -1493,7 +1486,7 @@ struct WorkspaceSessionTests {
         }
 
         session.setQueryValue(familyKey("e1"), value: CatalogPersonFamily(units: []))
-        session.setQueryValue(detailKey("extra"), value: detail("extra"))
+        session.setQueryValue(detailKey("extra"), value: catalogConclusionDetail("extra"))
         await show("e1")
         #expect(!holds(detailKey("extra")))
         #expect(holds(familyKey("e1")))
@@ -1541,7 +1534,7 @@ struct WorkspaceSessionTests {
 
     /// The detail for `id`, built from its own handle, graph "g1" and Source "src1".
     private func detailWithInputs(_ id: String) -> CatalogConclusionDetail {
-        var built = detail(id)
+        var built = catalogConclusionDetail(id)
         built.inputs = CatalogPageInputs(handles: [id], evidenceGraphs: ["g1"], sources: ["src1"])
         return built
     }
@@ -1616,7 +1609,7 @@ struct WorkspaceSessionTests {
                 #expect(!named(session, effects).contains(key), "\(key.kind) loaded")
             }
         }
-        check(.conclusionDetail(project: project, entityId: "e1"), empty: detail("e1"))
+        check(.conclusionDetail(project: project, entityId: "e1"), empty: catalogConclusionDetail("e1"))
         check(.personClaims(project: project, entityId: "e1"), empty: CatalogPersonClaims())
         check(.personFamily(project: project, entityId: "e1"), empty: CatalogPersonFamily(units: []))
         check(.personEvents(project: project, entityId: "e1"), empty: CatalogPersonTimeline())

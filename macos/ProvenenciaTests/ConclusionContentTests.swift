@@ -13,18 +13,11 @@ struct ConclusionContentTests {
         WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     }
 
-    private func detail(_ id: String) -> CatalogConclusionDetail {
-        CatalogConclusionDetail(
-            entity: CatalogCanonicalEntity(id: id, ref: "PER-\(id)", subjectTypeID: "t", label: ""),
-            fields: []
-        )
-    }
-
     /// AC-2.7: the Timeline section's content is built once per read, fold and reload of
     /// the person's events, and a write to another person's page builds nothing.
     @Test func sectionContentBuildsOncePerReadAndFold() async throws {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": detail("e1"), "e2": detail("e2")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1"), "e2": catalogConclusionDetail("e2")]
         store.seededPersonEvents = ["e1": CatalogPersonTimeline(), "e2": CatalogPersonTimeline()]
         let session = makeSession(store: store)
         let section = ConclusionPageSection.timeline
@@ -67,8 +60,10 @@ struct ConclusionContentTests {
         read()
         #expect(builds == 3)
 
-        session.apply(CatalogWriteEffects(handles: ["e2"]))
-        await session.settleWrites()
+        let otherKey = CatalogQueryKey.personEvents(project: session.projectKey, entityId: "e2")
+        let otherRevision = session.inputRevision(otherKey)
+        session.setQueryValue(otherKey, value: CatalogPersonTimeline())
+        #expect(session.inputRevision(otherKey) != otherRevision)
         read()
         #expect(builds == 3)
     }
@@ -77,10 +72,10 @@ struct ConclusionContentTests {
     @Test func detailContentFollowsTheNameFormat() {
         let session = makeSession()
         let key = CatalogQueryKey.conclusionDetail(project: session.projectKey, entityId: "e1")
-        session.setQueryValue(key, value: detail("e1"))
+        session.setQueryValue(key, value: catalogConclusionDetail("e1"))
         var builds = 0
         func read(_ orders: NameFormatOrders) {
-            _ = session.conclusionContent(key, inputs: [key], extra: orders, value: detail("e1")) {
+            _ = session.conclusionContent(key, inputs: [key], extra: orders, value: catalogConclusionDetail("e1")) {
                 builds += 1
                 return PersonDetailContent(detail: $0, orders: $1)
             }

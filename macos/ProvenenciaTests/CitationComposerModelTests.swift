@@ -1437,7 +1437,7 @@ struct CitationComposerModelTests {
         _ = model.vocabulary
         _ = model.vocabulary
         let before = session.derivedBuildCount(id)
-        #expect(before >= 1)
+        #expect(before == 2)
         _ = model.vocabulary
         #expect(session.derivedBuildCount(id) == before)
 

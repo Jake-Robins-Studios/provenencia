@@ -13,13 +13,6 @@ struct WorkspaceSessionDerivedTests {
         WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     }
 
-    private func detail(_ id: String) -> CatalogConclusionDetail {
-        CatalogConclusionDetail(
-            entity: CatalogCanonicalEntity(id: id, ref: "PER-\(id)", subjectTypeID: "t", label: ""),
-            fields: []
-        )
-    }
-
     private func detailKey(_ session: WorkspaceSession, _ id: String) -> CatalogQueryKey {
         .conclusionDetail(project: session.projectKey, entityId: id)
     }
@@ -45,13 +38,13 @@ struct WorkspaceSessionDerivedTests {
     /// again, one that refreshes another key does not, and a new `extra` builds.
     @Test func anApplyThatRefreshesAnInputBuildsAgain() async {
         let store = FakeStore()
-        store.seededConclusionDetails = ["e1": detail("e1"), "e2": detail("e2")]
+        store.seededConclusionDetails = ["e1": catalogConclusionDetail("e1"), "e2": catalogConclusionDetail("e2")]
         let session = makeSession(store: store)
         let key1 = detailKey(session, "e1")
         let id = DerivedValueID.conclusionContent(key1, ObjectIdentifier(Int.self))
         session.apply(location: .personDetail(entityId: "e1", ref: "PER-e1", title: nil))
         await session.settleWrites()
-        session.setQueryValue(detailKey(session, "e2"), value: detail("e2"))
+        session.setQueryValue(detailKey(session, "e2"), value: catalogConclusionDetail("e2"))
 
         func read(extra: Int) -> Int {
             session.derived(id, inputs: [.key(key1)], extra: extra) { extra }
@@ -66,8 +59,10 @@ struct WorkspaceSessionDerivedTests {
         _ = read(extra: 0)
         #expect(session.derivedBuildCount(id) == 2)
 
-        session.apply(CatalogWriteEffects(handles: ["e2"]))
-        await session.settleWrites()
+        let otherKey = detailKey(session, "e2")
+        let otherRevision = session.inputRevision(otherKey)
+        session.setQueryValue(otherKey, value: catalogConclusionDetail("e2"))
+        #expect(session.inputRevision(otherKey) != otherRevision)
         _ = read(extra: 0)
         #expect(session.derivedBuildCount(id) == 2)
 
@@ -84,7 +79,7 @@ struct WorkspaceSessionDerivedTests {
         let key = detailKey(session, "e1")
         let content = DerivedValueID.conclusionContent(key, ObjectIdentifier(Int.self))
         let text = DerivedValueID.evidenceGraphText(graphID: "g1")
-        session.setQueryValue(key, value: detail("e1"))
+        session.setQueryValue(key, value: catalogConclusionDetail("e1"))
         session.apply(location: .sectionRoot(.persons))
         _ = session.derived(content, inputs: [.key(key)]) { 1 }
         _ = session.derived(text, inputs: [.derived(content)]) {
@@ -96,7 +91,7 @@ struct WorkspaceSessionDerivedTests {
         #expect(session.derivedEntries[content] == nil)
         #expect(session.derivedEntries[text] == nil)
 
-        session.setQueryValue(key, value: detail("e1"))
+        session.setQueryValue(key, value: catalogConclusionDetail("e1"))
         _ = session.derived(content, inputs: [.key(key)]) { 1 }
         #expect(session.derivedBuildCount(content) == 2)
     }
@@ -134,7 +129,7 @@ struct WorkspaceSessionDerivedTests {
     @Test func theHiddenEntityCapDropsValuesAndTheirDependants() async {
         let store = FakeStore()
         for index in 0...51 {
-            store.seededConclusionDetails["e\(index)"] = detail("e\(index)")
+            store.seededConclusionDetails["e\(index)"] = catalogConclusionDetail("e\(index)")
         }
         let session = makeSession(store: store)
         let key0 = detailKey(session, "e0")
@@ -148,6 +143,8 @@ struct WorkspaceSessionDerivedTests {
                 _ = session.derived(text, inputs: [.derived(content)]) {
                     session.derived(content, inputs: [.key(key0)]) { 1 }
                 }
+                #expect(session.derivedEntries[content] != nil)
+                #expect(session.derivedEntries[text] != nil)
             }
         }
         #expect(session.derivedEntries[content] == nil)
@@ -182,7 +179,7 @@ struct WorkspaceSessionDerivedTests {
     @Test func oneKeyHoldsOneValuePerContentType() {
         let session = makeSession()
         let key = detailKey(session, "e1")
-        session.setQueryValue(key, value: detail("e1"))
+        session.setQueryValue(key, value: catalogConclusionDetail("e1"))
         var builds = 0
         for _ in 0..<2 {
             let text = session.conclusionContent(key, inputs: [key], extra: 0, value: 1) { _, _ in
@@ -197,5 +194,22 @@ struct WorkspaceSessionDerivedTests {
             #expect(number == 7)
         }
         #expect(builds == 2)
+    }
+
+    /// F-2 (CON-1, AC-1.7, D-10): a build that reads a key its inputs do not name
+    /// is recorded under its id.
+    @Test func aBuildThatReadsAnUndeclaredKeyIsReported() {
+        let session = makeSession()
+        session.derivedAssertsUndeclaredReads = false
+        let declared = session.sourceTypesKey
+        let undeclared = session.evidenceGraphsKey
+        session.setQueryValue(declared, value: [CatalogSourceType]())
+        session.setQueryValue(undeclared, value: [CatalogEvidenceGraph]())
+        _ = session.derived(.visibleSources, inputs: [.key(declared)]) {
+            let sourceTypes: QueryHandle<[CatalogSourceType]>? = session.queryHandle(declared)
+            let graphs: QueryHandle<[CatalogEvidenceGraph]>? = session.queryHandle(undeclared)
+            return (sourceTypes?.value?.count ?? 0) + (graphs?.value?.count ?? 0)
+        }
+        #expect(session.derivedUndeclaredReads[.visibleSources] == [undeclared])
     }
 }
