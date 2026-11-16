@@ -1,6 +1,6 @@
 # Review — S15-12 Source types suggest fields at each level (with brief S15-D6)
 
-**Verdict (re-plan, 2026-11-15):** Fits with changes — Ready with changes. Round 1 and round 2 findings all answered Fixed (M-5 Declined); no open blocker. The board-dependent parts (D-6, § 6 Strings) get a short re-review when S15-D6's board is agreed
+**Verdict (re-plan, 2026-11-15):** Fits with changes — Ready with changes. Round 1 and round 2 findings all answered Fixed (M-5 Declined); no open blocker. Board agreed 2026-11-16 and its fill re-reviewed
 **Rounds:** 2 of the re-plan. **Reviewers:** maintainability (opus), executability (sonnet)
 
 The plan was rewritten against S15-48's landed type page (#848) and S15-49's list (#852); the brief was rewritten as an enhancement of S15-D27's page board. The side-pane plan's two rounds are kept below under "Side-pane plan (superseded)".
@@ -87,6 +87,16 @@ Logged; the board's copy settles it.
 
 ### M2-2 · blocker · The level phrase's article agrees with the type label
 **Answer:** Fixed — phrases are "on each %@ Source", "on each Artifact of %@ Sources", "on each Evidence graph of %@ Sources", with no article that agrees with the label; D-9 cites "Whole phrases" accordingly; the brief's § 2.1, SL-9 and frames follow. Notes taken: `removeLabel(for:at:)` on the model; `assignedCount`'s comment updated; `listLabel` plurals (X2-2); the brief's Review line links this log.
+
+## Board fill (2026-11-16)
+
+Board S15-D6 agreed (user). D-6, § 6 macOS and § 6 Strings filled from it: micro-caps list headers, no section count, the pool hint once under the section, "Suggest a field …" as the plus's spoken label before a pick. One executability re-review of the filled parts.
+
+### X3-1 · major · Pool hint placement contradicts the States paragraph
+**Answer:** Fixed — States: only a list's picker, plus and `poolHintEmpty` wait for its load; the section's `poolHint` shows on any editable type, id `sourceTypes.suggested.poolHint`.
+
+### X3-2 · major · `assignField(phrase:)` not wired into D-9 or the tests
+**Answer:** Fixed — D-9 lists the seven phrase-taking strings and `assignAccessibilityLabel(at:)`'s three cases; T-5 asserts the unpicked label. Also: divider spacing corrected to space5 + space6 (about 28pt); the Review line de-duplicated.
 
 ## Side-pane plan (superseded)
 
