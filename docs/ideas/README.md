@@ -57,7 +57,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 ### Kit and structural debt
 
-- [`shared-list-helpers.md`](shared-list-helpers.md) — empty search state, catalog querier, popup dismissal / list, history menu rows, type-select on disabled menus, Source section counts, silent sidebar recount
+- [`shared-list-helpers.md`](shared-list-helpers.md) — empty search state, catalog querier, popup dismissal / list, history menu rows, type-select on disabled menus, Source section counts, silent sidebar recount, Return adding a combo box pick the field no longer shows
 - [`keyboard-reorder.md`](keyboard-reorder.md) — keyboard and VoiceOver moves in `PVReorderableList`, so metadata board rows reorder without dragging
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
 - [`stacked-toasts.md`](stacked-toasts.md) — toasts that stack and expire on their own timers instead of replacing each other

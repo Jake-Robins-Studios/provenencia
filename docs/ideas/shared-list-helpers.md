@@ -60,3 +60,11 @@ S12-11 review M-8; dogfood 2026-10-25. Source page section counts: Notes shows a
 ## A failed sidebar recount is silent
 
 `WorkspaceView` reads `lastRefreshError` only in its first `.task`, so a sidebar recount that fails after a write says nothing. Observe it with `.onChange` and show it where the counts are.
+
+## Return adds a pick the combo box no longer shows
+
+S15-12 review CON-1 / UX-2 (2026-11-15), deferred by the user. On a Source type page, pick Folio in a suggestion list's picker, then clear the field or type text that matches nothing, and press Return: Folio is added and the toast confirms it, though the field no longer shows it. `PVComboBox` sets `selection` only in `commit`; typing changes `query` and leaves the pick in place. Return with no highlighted row returns `.ignored`, so it reaches the list's `.onSubmit` (`SourceTypeSuggestionList.submitPick`), and `canAssign(at:)` still sees the old pick. The plus button takes the same stale pick, but its tooltip names it.
+
+Two fixes, each past S15-12's plan:
+- **Kit:** `PVComboBox`'s Return does nothing while the field holds edited text with no highlighted row, including a field cleared by hand. Every combo box gets it: such a Return no longer reaches an enclosing form or a sheet's default button. The pick is kept, so clicking away still restores its label, and the two-step Return (pick, then add) stays.
+- **One-step Return:** Return on a highlighted row picks and adds at once through `onCommit` (`via: .return`), and the list drops its `.onSubmit`. No kit change, but AC-2.6's two Returns become one.
