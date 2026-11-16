@@ -648,7 +648,7 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 #### S16-40 — An event records when it was known to be under way
 
 **Ships.** `vocabkey.PropertyAsOf`; `as_of` in `subjectvocab`'s `seedProperties` (label "As of", `date`, `multiple`) and bound to `event`, locked, after `end_date`; `SeededPropertyKey.asOf` in Swift; the composer's date editor offers Exact and About for an As of observation, as a point or a range, and shows a stored Before or After selected; autoreconcile tests that two disjoint as-ofs are both kept (`StateMultiple`) and nested ones fold.
-**Not this PR.** Any reader that dates an event by its as-ofs (S16-41 to S16-43); the Event page's Date row (S16-42); a backfill into existing catalogs (the user's later request); hiding As of on an event type ([`ideas/properties-and-terms.md`](../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types)).
+**Not this PR.** Any reader that dates an event by its as-ofs (S16-41 to S16-44); the Event page's Date row (S16-44); a backfill into existing catalogs (the user's later request); hiding As of on an event type ([`ideas/properties-and-terms.md`](../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types)).
 **Check.** On a new project, an Event's Property menu in the composer lists As of; its date editor shows Exact and About and no Before or After; two As of observations from two Citations on one residence show on the Evidence graph with no conflict mark.
 **Context.** Dogfood, 2026-11-16; [`event-as-of.md`](event-as-of.md); [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md); precedent S11-48 (religion and languages spoken, `multiple` seeded Properties).
 

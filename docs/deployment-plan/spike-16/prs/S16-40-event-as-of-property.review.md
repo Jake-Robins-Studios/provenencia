@@ -58,3 +58,16 @@ Lint: `check-plan-docs.py` clean on the plan and the brief before the reviewers 
 | --- | --- | --- | --- |
 | X2-1 | blocker | Stop condition 1 named a `TestPipelineMultipleCardinality` date case that does not exist | **Fixed.** It names T-2's two cases in STEP-2 |
 | X2-2 | minor | Nothing automated checks `CitationPropertyFields` passes the flag | Logged: the pass-through is one argument; the rule itself is T-3 / T-5, the wiring is manual check 2 |
+
+### Maintainability (verdict: Fits with changes; no new blocker)
+
+| Item | Answer |
+| --- | --- |
+| K-9 half done: Spike 15's map did not name S16-40 | **Fixed.** S15-42's Depends on names S16-40 in Spike 15's map |
+| S16-40 scope entry still named S16-43 / S16-42 for the Date row | **Fixed.** S16-41 to S16-44; Date row S16-44 |
+| Stale stop condition | **Fixed** with X2-1 |
+| Binding count hard-coded | **Fixed.** STEP-1 reads `len(BindingsForType("event"))` |
+
+## Verdict
+
+Fits; Ready. No open blocker. To user: D-10's wording of the `date` and `end_date` descriptions. The plan stays `Blocked — on board S16-D3` until the board is agreed.

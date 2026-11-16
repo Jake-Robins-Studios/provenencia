@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`../event-as-of.md`](../event-as-of.md); working rules [Batch 5](../deployment-plan.md#batch-5--event-as-of-dates): "As of is a fourth event date Property", "New catalogs only", "On every event", "The composer offers Exact and About on an as-of"; [`seeded-vocabulary.md` §3.2–3.3](../../../seeded-vocabulary.md#32-properties); [`conclusion-reconciliation.md` §8](../../../conclusion-reconciliation.md#8-cardinality)
 **Planned:** 2026-11-16 against `main` @ `c1421af`
-**Review:** [`S16-40-event-as-of-property.review.md`](S16-40-event-as-of-property.review.md)
+**Review:** [`S16-40-event-as-of-property.review.md`](S16-40-event-as-of-property.review.md) — two rounds; round 2 Fits with changes (maintainability) and Ready with changes (executability), every change applied; no open blocker
 
 ### Implementer — read this first
 
@@ -207,7 +207,7 @@ None — the label "As of" and its description are seed data, not L10n; no app c
 
 **STEP-1 — Seed `as_of`**
 Files: `core/vocabkey/vocabkey.go`, `core/database/subjectvocab/registry.go`, `core/database/subjectvocab/subjectvocab_test.go`, `core/database/subjectvocab/vocabkey_test.go`. Skill: `add-seeded-vocabulary`.
-Do: add the key, the seed row and the binding (D-1, D-2); the `date` and `end_date` descriptions (D-10); `vocabkey.PropertyAsOf` in `TestVocabKeysMatchSeed`'s list; move `event_picture` to 6; add T-1's case, change `event_picture`'s expected order to 6, and the event binding count at `subjectvocab_test.go` line 74 from 6 to 7.
+Do: add the key, the seed row and the binding (D-1, D-2); the `date` and `end_date` descriptions (D-10); `vocabkey.PropertyAsOf` in `TestVocabKeysMatchSeed`'s list; move `event_picture` to 6; add T-1's case, change `event_picture`'s expected order to 6, and replace the event binding count at `subjectvocab_test.go` line 74 (`6`) with `len(BindingsForType("event"))`, so the next binding needs no edit there.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/subjectvocab/... ./core/onboarding/... ./api/ffi/...` passes.
 
 **STEP-2 — Prove the reconciler keeps as-ofs**
