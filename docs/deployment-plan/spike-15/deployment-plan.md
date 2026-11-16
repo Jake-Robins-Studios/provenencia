@@ -141,7 +141,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
-| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: `PVTabOrder` in the kit (a form's fields in order, any number, focus optionally held by the host) replaces `PVTabPair` at every caller; skill and README; no chrome change | — | — | — | Scoped |
+| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: `PVTabOrder` in the kit (a form's fields in order, any number, focus optionally held by the host) replaces `PVTabPair` at every caller; skill and README; no chrome change | — | — | [plan](prs/S15-50-forms-list-their-tab-order.md) | Draft |
 
 ## Design track
 
