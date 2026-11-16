@@ -104,7 +104,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-10 | Adding an Artifact asks for its copy details | 2 | Swift: Add Artifact opens the Artifact sheet in add mode; copy details save with the new Artifact | S15-D14 | S15-34, S15-36, S15-D14 | [plan](prs/S15-10-artifact-sheet-add-mode.md) | Landed [#829](https://github.com/mendahu/provenencia/pull/829) |
 | S15-11 | Evidence graphs show their metadata | 2 | Go: the Source page read carries each graph's board; the graph write replies answer its rows. Swift: the graph form in two columns with a metadata board; each graph row shows its saved values read-only | S15-D5 | S15-36, S15-34, S15-35, S15-D5 | [plan](prs/S15-11-graph-metadata.md) | Landed [#834](https://github.com/mendahu/provenencia/pull/834) |
 | S15-12 | Source types suggest fields at each level | 2 | Swift: the type page edits three suggestion lists; the Fields count spans all three | [S15-D6](design/archive/S15-D6-source-type-suggestion-levels.md) | S15-06, S15-48, S15-D6 | [plan](prs/S15-12-type-suggestions-at-each-level.md) | Landed #856 |
-| S15-13 | The composer records the printed page | 3 | Go and Swift: a Printed page field on image and PDF Citations, written as `page_label` (a page selector may hold the label alone); the composer on Regular and Wide (user, 2026-11-16) | [S15-D8](design/S15-D8-citation-composer-printed-page.md) | S15-D8 | [plan](prs/S15-13-composer-printed-page.md) | Blocked — on board S15-D8 |
+| S15-13 | The composer records the printed page | 3 | Go and Swift: a Printed page field on image and PDF Citations, written as `page_label` (a page selector may hold the label alone); the composer on Regular and Wide (user, 2026-11-16) | [S15-D8](design/S15-D8-citation-composer-printed-page.md) | S15-50, S15-D8 | [plan](prs/S15-13-composer-printed-page.md) | Blocked — on S15-50, board S15-D8 |
 | S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | — | Scoped |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, type read and write; a typed mutation on a format write | — | S15-14 | — | Scoped |
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
@@ -141,6 +141,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
+| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: `PVTabOrder` in the kit (a form's fields in order, any number, focus optionally held by the host) replaces `PVTabPair` at every caller; skill and README; no chrome change | — | — | — | Scoped |
 
 ## Design track
 
@@ -207,6 +208,7 @@ SLICE 2 — Metadata at three levels                    (alongside Spike 16)
   Check: bar 3 except the composer; a Source type opens on its own page from the list, the omnibar and Back.
 
 SLICE 3 — Printed page                                (alongside Spike 16)
+  S15-50  Forms list their tab order
   ✎ S15-D8 ──▶ S15-13  The composer records the printed page
   Check: bar 3's composer.
 
@@ -272,7 +274,7 @@ S15-26, S15-33 ──▶ S15-36 ──▶ S15-34, S15-10, S15-11
 S15-09, S15-33 ──▶ S15-34 ──▶ S15-35, S15-10, S15-11
 S15-35 ──▶ S15-25, S15-40
 S15-11, S15-34 ──▶ S15-39
-S15-13 ──▶ S15-45
+S15-50 ──▶ S15-13 ──▶ S15-45
 S15-14 ──▶ S15-15 ──▶ S15-16, S15-18, S15-20, S15-38
 S15-14 ──▶ S15-37, S15-43, S15-44
 S15-37 ──▶ S15-16, S15-19, S15-38, S15-41, S15-46
@@ -474,6 +476,13 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Context.** S15-D6 (an enhancement of S15-D27's page board); `SourceTypePageModel.swift`, `SourceTypeSuggestionList.swift`. S15-48 landed the suggestion-write mutation, its patches and `SourceTypeSuggestionList` at the Source level; S15-12 adds `level` to them (user, 2026-11-15).
 
 ### Slice 3 — Printed page
+
+#### S15-50 — Forms list their tab order
+
+**Ships.** A kit `PVTabOrder` (`DesignSystem/Components/Input/`): a form names its fields in order, any number, and gets one `PVFieldFocus` per field whose Tab and Shift-Tab follow that order, skipping fields not shown; the host may hold the `FocusState` (so focus survives a layout switch) or let `PVTabOrder` own it. It replaces `PVTabPair` at every caller, and `PVTabPair` is deleted. A text area's own Tab handling (`PVTextAreaTabRouter`: Tab leaves the area, Option-Tab types a tab) is unchanged. The rule in `add-ui-component` and `DesignSystem/README.md` becomes: a form with a text area lists its fields in a `PVTabOrder` (user, 2026-11-16: tab order belongs to the form, not to a pair of fields).
+**Not this PR.** The composer's third field (S15-13); any form's field order or layout.
+**Check.** In each form that used `PVTabPair` (Properties, the Artifact sheet, the graph form, Add type, the composer, the Evidence graph page), Tab and Shift-Tab move between the input and the text area as before.
+**Context.** `PVTabPair.swift`, `PVFieldFocus.swift`, `PVTextArea.swift` (`PVTextAreaTabRouter`), `PVInput.swift` (`PVInputTabClaim`); S15-13's review M-1; skills `add-ui-component`, `add-swift-test`. No brief: no view looks different.
 
 #### S15-13 — The composer records the printed page
 

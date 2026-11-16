@@ -6,7 +6,7 @@
 **Implements later as:** PR **S15-13**
 **Board:** — (not drawn yet). When agreed: the Claude Design link and frame names go here (user, 2026-11-16: the board reaches the implementer as a Claude Design link)
 **Review:** with the plan, in [`../prs/S15-13-composer-printed-page.review.md`](../prs/S15-13-composer-printed-page.review.md)
-**Depends on:** nothing unlanded. The locator already has `page_label` on its `page` selector ([`interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 3.2); today's citation line already prints it as "p. 23" (`CitationLineDisplay`); S14-24 (landed) gave every view a Regular and Wide class
+**Depends on:** S15-50 (a form's tab order in the kit, `PVTabOrder`). The locator already has `page_label` on its `page` selector ([`interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 3.2); today's citation line already prints it as "p. 23" (`CitationLineDisplay`); S14-24 (landed) gave every view a Regular and Wide class
 **Related:** working rule "Citations carry no metadata" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 1 (the two kinds of page) and § 6.9 (the printed page stays on the Citation); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (the Citation composer row); S15-D24 (later: Unknown, Supplied and the needed flag on this field)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
@@ -114,8 +114,8 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | Field prompt | "As printed, such as 14 or iv" |
 | Field hint, or the field's tooltip (the board decides which, or neither) | "The page number the original prints. It goes in the citation; the page in the file does not." |
 | Label field | "Label", "A short name, e.g. Schedule 18 · Alderwick household" *(today)* |
-| Citation menu row, printed page | "p. 14" |
-| Citation menu row, page in the file | "image 37" (today "p. 37") |
+| Citation menu row, printed page | "p. 14" (the citation line's own words, the same string) |
+| Citation menu row, page in the file | "image 37" (the citation line's own words, the same string; today the menu says "p. 37") |
 | Citation menu row, region | "region" *(today)* |
 | Citation menu row, joined | "p. 14 · image 37 · region"; each part only when present |
 | VoiceOver, the field | "Printed page", its value, and the hint above as its help |
@@ -146,7 +146,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | CP-2 | **When it is offered.** On an image or a PDF Artifact, always, whatever the locator holds: Entire artifact, a page, a page and a region, a region on an image. Not on an audio or video Artifact or a file the app cannot show: no field and no gap where it would be. |
 | CP-3 | **It is not part of the locator strip.** Picking another file page, drawing or clearing a region, removing the page and **Reset to entire artifact** leave the printed page as typed. The strip's chips do not show it. |
 | CP-4 | **Saving.** Typing in Printed page makes the form unsaved (Save enabled), as typing in Label does; Save stores it with the rest; leaving with it unsaved asks, as today. Opening another Citation from the Citation menu shows that Citation's printed page; **New citation** starts with it empty. Leading and trailing spaces are dropped; a field of only spaces is empty. |
-| CP-5 | **The Citation menu rows.** The composer's Citation menu and the Observation dialog's Citation menu share one row. Each row's locator text shows the printed page as "p. 14", the page in the file as "image 37", and "region", joined by " · ", each only when present (§ 2.1). Draw the open menu with three Citations: one with all three parts, one with a printed page only (an image), one with none. |
+| CP-5 | **The Citation menu rows.** The composer's Citation menu and the Observation dialog's Citation menu share one row. Each row's locator text shows the printed page as "p. 14", the page in the file as "image 37", and "region", joined by " · ", each only when present (§ 2.1). Draw the open menu on each Artifact of the data (frames 4a, 4b). |
 | CP-6 | **VoiceOver.** The field reads "Printed page" with its value and its help (§ 2.1). The menu row reads its parts as shown. |
 | CP-7 | **Tab order.** Tab moves through the form's fields in the order they are drawn (Label, Printed page, transcription in the side form; the board's order in the stacked form), and Shift-Tab back. |
 | CP-W1 | **Regular and Wide.** The composer chooses its arrangement by the width class, not by 1400pt. **Regular** (1102pt, up to 1599pt): today's two-column arrangement, the citation form stacked above the file viewer, the Observations column (520pt) beside them; the form keeps today's two inner columns (the transcription at 1.5, Label at 1) with Printed page beside or under Label. **Wide** (2296pt; from 1600pt): today's three-column arrangement, the file viewer taking the extra width (it is the canvas), the citation form a 440pt column beside it, the Observations column (520pt) at the right; Label and Printed page in one row above the transcription. The board decides whether either column is wider at Wide; the viewer always takes what is left. |
@@ -162,16 +162,17 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 
 ## 5. Suggested frames
 
-Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440); the others at Regular. Draw them from the composer as it is, with the toolbar above (its breadcrumb "Thornham 1881 › Alderwick household › Citation").
+Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440); the others at Regular, because their content does not change with width (frame 1b shows the 440pt form at Wide). A menu lists only the open Artifact's Citations, so frame 4 has one frame per Artifact. Draw them from the composer as it is, with the toolbar above (its breadcrumb "Thornham 1881 › Alderwick household › Citation").
 
-**Data.** Invent every record. Source **Thornham 1881 census** (type Census). Artifacts: **Folio 23** (an image, a JPEG of one enumeration page, 2400 × 3400 pixels); **Enumeration book 4** (a PDF of 62 pages); **Interview with M. Alderwick** (audio). Citations on Folio 23: CIT-7KQ2M "Schedule 18 · Alderwick household", printed page "14", a rectangle on the page; CIT-9RX4T "Schedule 19 · Pell household", no printed page. On Enumeration book 4: CIT-3HW8D "Ellen Alderwick, baptism", page 37 in the file, printed page "23", a rectangle.
+**Data.** Invent every record. Source **Thornham 1881 census** (type Census). Artifacts: **Folio 23** (an image, a JPEG of one enumeration page, 2400 × 3400 pixels); **Enumeration book 4** (a PDF of 62 pages); **Interview with M. Alderwick** (audio). Citations on Folio 23: CIT-7KQ2M "Schedule 18 · Alderwick household", printed page "14", a rectangle on the page; CIT-5MV2N "Schedule 20 · Rudd household", printed page "15", no region; CIT-9RX4T "Schedule 19 · Pell household", no printed page, no region. On Enumeration book 4: CIT-3HW8D "Ellen Alderwick, baptism", page 37 in the file, printed page "23", a rectangle; CIT-6TN1B "Banns, Alderwick and Rudd", page 40, no printed page; CIT-8PL3C "Book 4, the whole register", Entire artifact, no printed page.
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
 | 1a / 1b | CP-1, CP-2, CP-W1 | CIT-7KQ2M open on Folio 23 (an image), Printed page "14", the form saved. 1a two columns, the form stacked above the viewer; 1b three columns |
 | 2a / 2b | CP-1, CP-3 | CIT-3HW8D on Enumeration book 4: the strip "Entire artifact › Page 37 › Rectangle", Printed page "23" |
 | 3 | CP-4 | CIT-9RX4T: Printed page empty with its prompt, the cursor in it; then "iv" typed and Save enabled |
-| 4 | CP-5 | The Citation menu open over the Folio 23 Citations and CIT-3HW8D: rows "p. 23 · image 37 · region", "p. 14 · region", and one with no locator text |
+| 4a | CP-5 | On Enumeration book 4, the Citation menu open: rows "p. 23 · image 37 · region" (CIT-3HW8D), "image 40" (CIT-6TN1B), and CIT-8PL3C with no locator text |
+| 4b | CP-5 | On Folio 23, the Citation menu open: rows "p. 14 · region" (CIT-7KQ2M), "p. 15" (CIT-5MV2N), and CIT-9RX4T with no locator text |
 | 5 | CP-2 | **New citation** on Interview with M. Alderwick (audio): no Printed page field and no gap |
 | 6 | CP-3 | CIT-3HW8D after **Reset to entire artifact**: the strip back to "Entire artifact", Printed page still "23", Save enabled |
 | 7 | CP-W1 | A 1464pt pane (Regular): two columns, the form stacked above the viewer (today this width shows three) |
@@ -187,12 +188,12 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Width class | Component | Ship | `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift` | Measured once by `WorkspaceDestinationHost`; the composer never measures |
 | Citation form | Snowflake | Extend | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` (`sideForm`, `panelForm`, `labelField`) | Gains the Printed page field next to Label in both arrangements |
 | Printed page field | Component | Ship | `PVField` (`DesignSystem/Components/Field/PVField.swift`) + `PVInput` (`DesignSystem/Components/Input/PVInput.swift`) | The same Field and Input as Label, size `.sm`; its help as the Field's hint or the Input's tooltip (the board's call); no new control |
-| Form focus | Component | Ship | `PVFieldFocus` (`DesignSystem/Components/Input/PVFieldFocus.swift`, `next:` / `previous:`) | Today the form pairs Label and the transcription with `PVTabPair` (two fields); three fields use a feature-private focus enum with `PVFieldFocus` neighbours, as `CitationComposerAuthoringBox` does. No three-field kit pair |
+| Tab order | Component | Ship (from S15-50) | `PVTabOrder` (`DesignSystem/Components/Input/`, added by S15-50, replacing `PVTabPair`) | The form lists its fields in order; Tab and Shift-Tab follow the list; the composer holds the focus state so it survives the layout switch |
 | Citation menu row | Snowflake | Extend | `CitationStepMenuRow` (`CitationComposerEvidenceColumn.swift`), in the `PVSelect` of `CitationComposerEvidenceColumn.citationSelect` and of `CitationComposerAuthoringBox` | Row layout unchanged; only its locator text changes, in both menus |
 | Locator strip | Snowflake | Ship (unchanged) | `CitationComposerViewerPane.locatorStrip` | Keeps "Page 37"; does not show the printed page |
 | Citation line | Snowflake | Ship (unchanged) | `macos/App/Platform/CitationLineDisplay.swift` | Already prints "p. 14"; not drawn |
 
-**Non-goals.** No new kit primitive. No page picker, stepper or number field: the printed page is text. No printed page in the locator strip. No "p." typed into the value. No change to the Observations column's width, the authoring box or the edit dialog. No third arrangement of the composer.
+**Non-goals.** No new kit primitive in this PR (S15-50 adds `PVTabOrder` before it). No page picker, stepper or number field: the printed page is text. No printed page in the locator strip. No "p." typed into the value. No change to the Observations column's width, the authoring box (beyond its Citation menu's row text) or the edit dialog. No third arrangement of the composer.
 
 ---
 
