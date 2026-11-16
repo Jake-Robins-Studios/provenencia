@@ -210,7 +210,7 @@ A Source type's citation formats (full note, short note, source-list entry) are 
 | `unknown_option` | An option on metadata, or one not in the row's `Options`, including empty (`{source.title:}`) and `year:full` | The text after the first `:` |
 | `not_in_list_form` | In `FormList`, `!ListFormAllows(level)` | The option |
 
-**Rules this plan bends.** None. D-3's enum is the argument the rule's sketch calls `form` (import direction), and STEP-10 updates the sketch in the rule and map § 6.3 to match; D-2's "supplied needs a value" is map § 6.10's "Supplied (text; …)"; D-7 keeps the rule's per-row "allowed in the list form" as `InListForm()`. All three are under **Writer's own calls** in the review log for the user to veto.
+**Rules this plan bends.** None. D-3's enum is the argument the rule's sketch calls `form` (import direction), and STEP-10 updates the sketch in the rule and map § 6.3 to match; D-2's "supplied needs a value" is map § 6.10's "Supplied (text; prints in square brackets)"; D-7 keeps the rule's per-row "allowed in the list form" as `InListForm()`. All three are under **Writer's own calls** in the review log for the user to veto.
 
 ## 6. Design
 
