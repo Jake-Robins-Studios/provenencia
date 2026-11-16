@@ -85,7 +85,7 @@ private struct SourceTypePageContent: View {
             primary: { primary },
             secondary: {
                 if model.type != nil {
-                    SourceTypeSuggestionList(model: model)
+                    SourceTypeSuggestedFields(model: model)
                 }
             }
         )

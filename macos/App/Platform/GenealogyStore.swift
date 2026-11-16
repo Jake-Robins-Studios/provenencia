@@ -1225,7 +1225,7 @@ struct CatalogSourceType: Sendable, Equatable, Identifiable {
     /// 0 — the engine refuses otherwise (`sourcetypes.in_use`). Only
     /// `listSourceTypes` and `updateSourceType` populate it.
     var usedBy: Int = 0
-    /// How many metadata fields this type suggests at the Source level —
+    /// How many metadata fields this type suggests at all three levels —
     /// the list's third column, so browsing never fetches every type's join
     /// rows. Only
     /// `listSourceTypes` and `updateSourceType` populate it.
@@ -1270,7 +1270,7 @@ struct CatalogMetadataField: Sendable, Equatable, Identifiable {
     var label: String
     var dataType: String
     var description: String
-    /// How many sources already carry a value for this field. Deleting is
+    /// How many Sources, Artifacts and Evidence graphs already carry a value for this field. Deleting is
     /// only allowed at 0 — the engine refuses otherwise
     /// (`metadatafields.in_use`). Only `listMetadataFields` and
     /// `updateMetadataField` populate it.

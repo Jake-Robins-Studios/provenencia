@@ -38,7 +38,9 @@ struct L10nResolutionTests {
     @Test func formerlyInterpolatedCopyFormatsItsArguments() {
         #expect(L10n.NameValue.partMoveUp(position: 3) == "Move part 3 up")
         #expect(L10n.CitationComposer.pasteHintSelected(lines: 4, page: 12) == "Pastes the 4 lines selected on page 12")
-        #expect(L10n.SourceTypes.assignFieldNamed(field: "Author", type: "Book") == "Assign field Author to Book")
+        #expect(L10n.SourceTypes.assignFieldNamed(field: "Author", phrase: "on each Census Source") == "Suggest Author on each Census Source")
+        #expect(L10n.SourceTypes.listAccessibilityLabel(title: "On each Artifact", count: 1) == "On each Artifact, 1 field")
+        #expect(L10n.SourceTypes.listAccessibilityLabel(title: "On each Artifact", count: 4) == "On each Artifact, 4 fields")
         #expect(L10n.Workspace.personCount(1) == "1 person")
         #expect(L10n.Workspace.personCount(3) == "3 persons")
         #expect(L10n.SourceTypes.usage(count: 0) == "no sources yet")

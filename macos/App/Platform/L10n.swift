@@ -8020,7 +8020,7 @@ enum L10n {
         static let columnFields = LocalizedStringResource(
             "sourceTypes.list.columnFields",
             defaultValue: "Associated fields",
-            comment: "Source types list column header: how many metadata fields the type suggests"
+            comment: "Source types list column header: how many metadata fields the type suggests at all three levels"
         )
 
         static let columnUsedBy = LocalizedStringResource(
@@ -8295,7 +8295,7 @@ enum L10n {
 
         static let suggestedHint = LocalizedStringResource(
             "sourceTypes.suggested.hint",
-            defaultValue: "Suggestions, not a schema — a source of this type may leave any of them blank",
+            defaultValue: "Suggestions, not a schema — a record may leave any of them blank",
             comment: "Hint under the suggested fields section label"
         )
 
@@ -8303,15 +8303,122 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.suggested.count",
                 defaultValue: "%lld fields",
-                comment: "Count beside the suggested fields section label; argument is how many fields the type suggests"
+                comment: "Count beside one suggestion list's title; argument is how many fields that list holds"
             ), count)
         }
 
-        static let noAssignedBody = LocalizedStringResource(
-            "sourceTypes.suggested.noneBody",
-            defaultValue: "No suggested fields yet — a source of this type will offer nothing but the standard citation. Assign the fields these records usually carry.",
-            comment: "Body of the notice shown when a type suggests no fields yet"
-        )
+        /// The copy that names one suggestion list: its title, the meaning under it, its empty card,
+        /// its picker's label and the phrase the toasts, tooltips and spoken labels take. One switch
+        /// over `Level` keeps the four in step.
+        struct LevelCopy {
+            let title: LocalizedStringResource
+            let meaning: LocalizedStringResource
+            let emptyBody: LocalizedStringResource
+            let pickerLabel: LocalizedStringResource
+            /// A format taking the type's label ("on each Artifact of %@ Sources"), whole, so no
+            /// article agrees with the label.
+            let phrase: LocalizedStringResource
+        }
+
+        static func level(_ level: Level) -> LevelCopy {
+            switch level {
+            case .source:
+                return LevelCopy(
+                    title: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.title",
+                        defaultValue: "On the Source",
+                        comment: "Title of a Source type page's list of fields suggested on the Source itself"
+                    ),
+                    meaning: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.meaning",
+                        defaultValue: "The record as a whole",
+                        comment: "Under the Source-level suggestion list's title: what the Source level holds"
+                    ),
+                    emptyBody: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.empty",
+                        defaultValue: "No Source fields yet. Assign the fields these records usually carry.",
+                        comment: "Body of the notice shown when a type suggests no fields on the Source"
+                    ),
+                    pickerLabel: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.pickerLabel",
+                        defaultValue: "Metadata field to assign on the Source",
+                        comment: "Accessibility label for the Source-level assign-field combo box"
+                    ),
+                    phrase: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.phrase",
+                        defaultValue: "on each %@ Source",
+                        comment: "Whole phrase naming the Source-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    )
+                )
+            case .artifact:
+                return LevelCopy(
+                    title: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.title",
+                        defaultValue: "On each Artifact",
+                        comment: "Title of a Source type page's list of fields suggested on each Artifact of its Sources"
+                    ),
+                    meaning: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.meaning",
+                        defaultValue: "The copy you used: an image, a scan, a transcript",
+                        comment: "Under the Artifact-level suggestion list's title: what an Artifact is"
+                    ),
+                    emptyBody: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.empty",
+                        defaultValue: "No Artifact fields yet. Assign what you note about each copy, such as its provider or URL.",
+                        comment: "Body of the notice shown when a type suggests no fields on its Artifacts"
+                    ),
+                    pickerLabel: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.pickerLabel",
+                        defaultValue: "Metadata field to assign on each Artifact",
+                        comment: "Accessibility label for the Artifact-level assign-field combo box"
+                    ),
+                    phrase: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.phrase",
+                        defaultValue: "on each Artifact of %@ Sources",
+                        comment: "Whole phrase naming the Artifact-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    )
+                )
+            case .graph:
+                return LevelCopy(
+                    title: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.title",
+                        defaultValue: "On each Evidence graph",
+                        comment: "Title of a Source type page's list of fields suggested on each Evidence graph of its Sources"
+                    ),
+                    meaning: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.meaning",
+                        defaultValue: "One item in the record: a household, an entry",
+                        comment: "Under the Evidence-graph-level suggestion list's title: what an Evidence graph is"
+                    ),
+                    emptyBody: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.empty",
+                        defaultValue: "No Evidence graph fields yet. Assign what you note about each item, such as its line or household.",
+                        comment: "Body of the notice shown when a type suggests no fields on its Evidence graphs"
+                    ),
+                    pickerLabel: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.pickerLabel",
+                        defaultValue: "Metadata field to assign on each Evidence graph",
+                        comment: "Accessibility label for the Evidence-graph-level assign-field combo box"
+                    ),
+                    phrase: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.phrase",
+                        defaultValue: "on each Evidence graph of %@ Sources",
+                        comment: "Whole phrase naming the Evidence-graph-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    )
+                )
+            case .citation:
+                preconditionFailure("Citations have no metadata suggestions")
+            }
+        }
+
+        /// A suggestion list's spoken label: its title and how many fields it holds.
+        static func listAccessibilityLabel(title: String, count: Int) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.suggested.listLabel",
+                defaultValue: "%1$@, %#@count@",
+                comment: "Spoken label for one suggestion list on a Source type page; arguments are the list's title then how many fields it holds"
+            ), title, count)
+        }
 
         static let assignPlaceholder = LocalizedStringResource(
             "sourceTypes.suggested.assignPlaceholder",
@@ -8325,30 +8432,26 @@ enum L10n {
             comment: "Shown inside the assign-field combo box list when the typed query matches no field"
         )
 
-        static let assignFieldLabel = LocalizedStringResource(
-            "sourceTypes.suggested.assignFieldLabel",
-            defaultValue: "Metadata field to assign",
-            comment: "Accessibility label for the assign-field combo box"
-        )
+        static func assignField(phrase: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.suggested.assignField",
+                defaultValue: "Suggest a field %@",
+                comment: "Spoken label for the plus button when no field is picked yet; argument is the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            ), phrase)
+        }
 
-        static let assignField = LocalizedStringResource(
-            "sourceTypes.suggested.assignField",
-            defaultValue: "Assign field",
-            comment: "Spoken label for the assign button when no field is picked yet"
-        )
-
-        static func assignFieldNamed(field: String, type: String) -> String {
+        static func assignFieldNamed(field: String, phrase: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.suggested.assignFieldNamed",
-                defaultValue: "Assign field %1$@ to %2$@",
-                comment: "Spoken label for the assign button; arguments are the picked field label then the type label"
-            ), field, type)
+                defaultValue: "Suggest %1$@ %2$@",
+                comment: "Spoken label for the plus button; arguments are the picked field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            ), field, phrase)
         }
 
         static let assignTipPoolEmpty = LocalizedStringResource(
             "sourceTypes.suggested.assignTipPoolEmpty",
-            defaultValue: "Every field is already assigned",
-            comment: "Tooltip on the disabled assign button when the type already suggests the whole vocabulary"
+            defaultValue: "Every field is already in this list",
+            comment: "Tooltip on the disabled assign button when the list already holds the whole vocabulary"
         )
 
         static let assignTipChoose = LocalizedStringResource(
@@ -8357,32 +8460,32 @@ enum L10n {
             comment: "Tooltip on the disabled assign button before a field is picked"
         )
 
-        static func assignTipField(label: String) -> String {
+        static func assignTipField(label: String, phrase: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.suggested.assignTipField",
-                defaultValue: "Assign %@ to this type",
-                comment: "Tooltip on the enabled assign button; argument is the picked field label"
-            ), label)
+                defaultValue: "Suggest %1$@ %2$@",
+                comment: "Tooltip on the enabled assign button; arguments are the picked field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            ), label, phrase)
         }
 
         static let poolHint = LocalizedStringResource(
             "sourceTypes.suggested.poolHint",
             defaultValue: "The pool is the Metadata vocabulary — add a new field there first if it is missing",
-            comment: "Hint under the assign-field picker naming where the pool comes from"
+            comment: "Hint once under the suggested fields section hint naming where every list's pool comes from"
         )
 
         static let poolHintEmpty = LocalizedStringResource(
             "sourceTypes.suggested.poolHintEmpty",
-            defaultValue: "Every field in the vocabulary is already suggested for this type",
-            comment: "Hint under the assign-field picker when nothing is left to assign"
+            defaultValue: "Every field in the vocabulary is already in this list",
+            comment: "Hint under one list's picker when nothing is left to assign to that list"
         )
 
-        static func removeSuggestion(label: String) -> String {
+        static func removeSuggestion(label: String, phrase: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.suggested.remove",
-                defaultValue: "Remove %@ from this type",
-                comment: "Accessibility label and tooltip on the control that detaches one suggested field; argument is the field label"
-            ), label)
+                defaultValue: "Stop suggesting %1$@ %2$@",
+                comment: "Accessibility label and tooltip on the control that detaches one suggested field; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            ), label, phrase)
         }
 
         static let toastAssignedTitle = LocalizedStringResource(
@@ -8391,12 +8494,12 @@ enum L10n {
             comment: "Toast title after attaching a field to a type"
         )
 
-        static func toastAssignedBody(field: String, type: String) -> String {
+        static func toastAssignedBody(field: String, phrase: String) -> String {
             return L10n.format(LocalizedStringResource(
                 "sourceTypes.toast.assignedBody",
-                defaultValue: "%1$@ is now suggested for %2$@.",
-                comment: "Toast body after attaching a field to a type; arguments are the field label then the type label"
-            ), field, type)
+                defaultValue: "%1$@ is now suggested %2$@.",
+                comment: "Toast body after attaching a field to a type's list; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            ), field, phrase)
         }
 
         static let toastRemovedTitle = LocalizedStringResource(
@@ -8407,23 +8510,23 @@ enum L10n {
 
         /// The reassurance that carries T-20: detaching the join deletes
         /// neither the field nor the values sources already hold for it.
-        static func toastRemovedBody(field: String, type: String, valueCount: Int) -> String {
+        static func toastRemovedBody(field: String, phrase: String, valueCount: Int) -> String {
             if valueCount == 0 {
-                return L10n.format(removedBodyNoValues, field, type)
+                return L10n.format(removedBodyNoValues, field, phrase)
             }
-            return L10n.format(removedBodyWithValues, field, type, valueCount)
+            return L10n.format(removedBodyWithValues, field, phrase, valueCount)
         }
 
         private static let removedBodyNoValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyNoValues",
-            defaultValue: "%1$@ is no longer suggested for %2$@. The field stays in this project’s vocabulary.",
-            comment: "Toast body after detaching a field no Source, Artifact or graph carries a value for; arguments are the field label then the type label"
+            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary.",
+            comment: "Toast body after detaching a field no Source, Artifact or graph carries a value for; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
         )
 
         private static let removedBodyWithValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyWithValues",
-            defaultValue: "%1$@ is no longer suggested for %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts and graphs already carrying a value keep it.",
-            comment: "Toast body after detaching a field that Sources, Artifacts or graphs still carry values for; arguments are the field label, the type label, then how many Sources, Artifacts and graphs hold a value"
+            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts and graphs already carrying a value keep it.",
+            comment: "Toast body after detaching a field that Sources, Artifacts or graphs still carry values for; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value"
         )
 
         static let toastUpdatedTitle = LocalizedStringResource(
