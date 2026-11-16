@@ -1,6 +1,7 @@
 # S16-39 — One container measures its own width and tells its content which layout fits
 
-**Status:** Planned
+**Status:** Landed in [#866](https://github.com/mendahu/provenencia/pull/866) (2026-11-16)
+**Landed:** No version bump, as planned. No differences from the plan.
 **Spike / slice:** Spike 16 · Slice 4a — Layout by a container's own width
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view switches layout at the same widths as today and draws the same on each side of them)
