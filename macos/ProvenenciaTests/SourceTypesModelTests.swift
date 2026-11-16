@@ -53,7 +53,7 @@ struct SourceTypesModelTests {
 
     @Test func sortingTogglesWithinAColumnAndResetsAcrossColumns() async {
         let store = FakeStore()
-        store.suggestedFieldCountOverride["t2"] = 1
+        store.suggestedFieldCounts["t2"] = 1
         let (model, session) = makeModel(
             store: store,
             types: [seededSourceType(), userSourceType()],

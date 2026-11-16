@@ -157,7 +157,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The count the engine would report for a type, scripted per type id. The rule behind it
     /// lives in Go, so the fake does not derive it from the lists: a type with no entry reports 0,
     /// and a test that checks a count seeds it.
-    var suggestedFieldCountOverride: [String: Int] = [:]
+    var suggestedFieldCounts: [String: Int] = [:]
     var fieldsByProject: [String: [CatalogMetadataField]] = [:]
     var propertiesByProject: [String: [CatalogProperty]] = [:]
     /// Value-type rules `getPropertiesWorkspace` returns; empty unless a test seeds them.
@@ -1175,7 +1175,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     }
 
     private func suggestedFieldCount(typeID: String) -> Int {
-        suggestedFieldCountOverride[typeID] ?? 0
+        suggestedFieldCounts[typeID] ?? 0
     }
 
     func createSourceType(

@@ -102,7 +102,7 @@ private struct SourceTypesContent: View {
     ], "t4": [
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![3], sortOrder: 0),
     ]]
-    store.suggestedFieldCountOverride = ["t2": 3, "t4": 1]
+    store.suggestedFieldCounts = ["t2": 3, "t4": 1]
     let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     return SourceTypesView(
         session: session,

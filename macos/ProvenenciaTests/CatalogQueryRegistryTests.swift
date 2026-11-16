@@ -1293,7 +1293,7 @@ struct CatalogQueryRegistryTests {
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "book", origin: "user", label: "Book", description: ""),
         ]
-        store.suggestedFieldCountOverride["t1"] = 1
+        store.suggestedFieldCounts["t1"] = 1
         let source: QueryHandle<[CatalogTypeSuggestion]> = session.query(
             .typeSuggestions(project: project, typeId: "t1", level: .source)
         )
