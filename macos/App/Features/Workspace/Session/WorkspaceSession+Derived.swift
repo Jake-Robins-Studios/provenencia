@@ -68,13 +68,10 @@ extension WorkspaceSession {
         #endif
         let value = build()
         #if DEBUG
-        let reads = derivedReads.removeLast()
-        let declared = Set(inputs.compactMap { input -> CatalogQueryKey? in
-            if case .key(let key) = input { return key }
-            return nil
-        })
-        if let undeclared = reads.subtracting(declared).first {
-            assertionFailure("DerivedValueID \(id) read \(undeclared), which its inputs do not name")
+        let undeclared = derivedReads.removeLast().subtracting(declaredKeys(inputs))
+        derivedUndeclaredReads[id] = undeclared
+        if let first = undeclared.first, derivedAssertsUndeclaredReads {
+            assertionFailure("DerivedValueID \(id) read \(first), which its inputs do not name")
         }
         #endif
         guard let stamp = derivedStamp(inputs) else {
@@ -155,6 +152,16 @@ extension WorkspaceSession {
             make(value, extra)
         }
     }
+
+    #if DEBUG
+    /// The keys among `inputs`: the only handles a build may read.
+    private func declaredKeys(_ inputs: [DerivedInput]) -> Set<CatalogQueryKey> {
+        Set(inputs.compactMap { input -> CatalogQueryKey? in
+            if case .key(let key) = input { return key }
+            return nil
+        })
+    }
+    #endif
 
     /// One stamp per input, or nil when a derived input has no entry or is no
     /// longer current.

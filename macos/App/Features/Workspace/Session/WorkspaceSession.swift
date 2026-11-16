@@ -40,6 +40,15 @@ final class WorkspaceSession {
     var derivedBuilds: [DerivedValueID: Int] = [:]
     @ObservationIgnored
     var derivedReads: [Set<CatalogQueryKey>] = []
+    #if DEBUG
+    /// The keys each id's last build read without naming them in its inputs,
+    /// and whether such a read stops the build (a test turns that off to read
+    /// the record).
+    @ObservationIgnored
+    var derivedUndeclaredReads: [DerivedValueID: Set<CatalogQueryKey>] = [:]
+    @ObservationIgnored
+    var derivedAssertsUndeclaredReads = true
+    #endif
 
     init(
         projectKey: ProjectKey,
