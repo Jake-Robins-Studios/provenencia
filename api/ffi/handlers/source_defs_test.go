@@ -514,6 +514,13 @@ func TestUpdateSourceType(t *testing.T) {
 				})); err != nil {
 					t.Fatal(err)
 				}
+				// One suggestion above the seeded Source level, so the count
+				// must reach past the source list.
+				if _, err := AssignTypeField(marshalProto(t, &engine.AssignTypeFieldRequest{
+					ProjectDir: dir, TypeId: typeID, FieldId: newUserField(t, dir, userID, "Folio"), Level: "graph",
+				})); err != nil {
+					t.Fatal(err)
+				}
 				return &engine.UpdateSourceTypeRequest{
 					ProjectDir: dir, UserId: userID, TypeId: typeID,
 					Label: "Renamed starter", Description: "edited",
@@ -529,21 +536,18 @@ func TestUpdateSourceType(t *testing.T) {
 					t.Fatalf("%+v", resp.Type)
 				}
 				// The update reply also refreshes the suggested-field count
-				// — the seeded starter ships with suggestions, so it must
-				// agree with what ListTypeSuggestions reads.
+				// — it is the sum of the three levels' lists.
 				ur := req.(*engine.UpdateSourceTypeRequest)
-				lout, err := ListTypeSuggestions(marshalProto(t, &engine.ListTypeSuggestionsRequest{
-					ProjectDir: ur.ProjectDir, TypeId: ur.TypeId, Level: "source",
-				}))
-				if err != nil {
-					t.Fatal(err)
+				total, source := 0, 0
+				for _, level := range []string{"source", "artifact", "graph"} {
+					n := len(listSuggestionLabels(t, ur.ProjectDir, ur.TypeId, level))
+					total += n
+					if level == "source" {
+						source = n
+					}
 				}
-				var list engine.ListTypeSuggestionsResponse
-				if err := proto.Unmarshal(lout, &list); err != nil {
-					t.Fatal(err)
-				}
-				if len(list.Suggestions) == 0 || int(resp.Type.GetSuggestedFieldCount()) != len(list.Suggestions) {
-					t.Fatalf("suggested_field_count %d, suggestions %d", resp.Type.GetSuggestedFieldCount(), len(list.Suggestions))
+				if source == 0 || total != source+1 || int(resp.Type.GetSuggestedFieldCount()) != total {
+					t.Fatalf("suggested_field_count %d, lists total %d (source %d)", resp.Type.GetSuggestedFieldCount(), total, source)
 				}
 			},
 		},
@@ -662,7 +666,7 @@ func TestAssignAndRemoveTypeField(t *testing.T) {
 			},
 		},
 		{
-			name: "the reply counts the engine's source suggestions after the write",
+			name: "the reply counts the engine's suggestions at every level after the write",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _ := sourceFixture(t)
 				typeID := newUserType(t, dir, userID, "Parish register")
@@ -684,8 +688,8 @@ func TestAssignAndRemoveTypeField(t *testing.T) {
 				if err := proto.Unmarshal(out, &resp); err != nil {
 					t.Fatal(err)
 				}
-				if resp.GetSuggestedFieldCount() != 3 {
-					t.Fatalf("after assign suggested_field_count = %d, want 3", resp.GetSuggestedFieldCount())
+				if resp.GetSuggestedFieldCount() != 4 {
+					t.Fatalf("after assign suggested_field_count = %d, want 4", resp.GetSuggestedFieldCount())
 				}
 				ar := req.(*engine.AssignTypeFieldRequest)
 				ids := suggestionIDs(t, ar.ProjectDir, ar.TypeId, "source")
@@ -702,8 +706,8 @@ func TestAssignAndRemoveTypeField(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				if removed.GetSuggestedFieldCount() != 1 {
-					t.Fatalf("after remove suggested_field_count = %d, want 1", removed.GetSuggestedFieldCount())
+				if removed.GetSuggestedFieldCount() != 2 {
+					t.Fatalf("after remove suggested_field_count = %d, want 2", removed.GetSuggestedFieldCount())
 				}
 			},
 		},

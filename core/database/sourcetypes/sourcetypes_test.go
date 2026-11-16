@@ -478,7 +478,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 			},
 		},
 		{
-			name: "list counts the fields a type suggests",
+			name: "list counts the fields a type suggests at every level",
 			run: func(t *testing.T, c *database.Catalog) {
 				typeID, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
@@ -515,11 +515,11 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				for _, tp := range all {
 					byKey[tp.Key] = tp.SuggestedFields
 				}
-				if byKey["book"] != 1 || byKey["letter"] != 0 {
+				if byKey["book"] != 2 || byKey["letter"] != 0 {
 					t.Fatalf("got %v", byKey)
 				}
-				if n, err := SuggestedFields(c, typeID); err != nil || n != 1 {
-					t.Fatalf("SuggestedFields = %d, %v, want 1", n, err)
+				if n, err := SuggestedFields(c, typeID); err != nil || n != 2 {
+					t.Fatalf("SuggestedFields = %d, %v, want 2", n, err)
 				}
 			},
 		},

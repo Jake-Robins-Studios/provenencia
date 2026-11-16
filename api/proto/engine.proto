@@ -338,8 +338,8 @@ message SourceType {
   // (see sourcetypes.ErrInUse); the client uses the count to disable its
   // delete affordance and say what is holding the type.
   int32 used_by = 6;
-  // How many metadata fields this type suggests at the Source level — the
-  // list's third column, so browsing does not have to fetch every type's
+  // How many metadata fields this type suggests at all three levels (a field
+  // at two levels counts twice) — the list's third column, so browsing does not have to fetch every type's
   // join rows.
   int32 suggested_field_count = 7;
   // Closed design-system type_* key for evidence representation.
@@ -1027,8 +1027,8 @@ message AssignTypeFieldRequest {
 
 message AssignTypeFieldResponse {
   repeated TypeSuggestion suggestions = 1;
-  // The type's suggested-field count after the write, as
-  // SourceType.suggested_field_count.
+  // The type's suggested-field count after the write, over all three levels,
+  // as SourceType.suggested_field_count.
   int32 suggested_field_count = 2;
 }
 
@@ -1048,8 +1048,8 @@ message RemoveTypeFieldRequest {
 
 message RemoveTypeFieldResponse {
   repeated TypeSuggestion suggestions = 1;
-  // The type's suggested-field count after the write, as
-  // SourceType.suggested_field_count.
+  // The type's suggested-field count after the write, over all three levels,
+  // as SourceType.suggested_field_count.
   int32 suggested_field_count = 2;
 }
 

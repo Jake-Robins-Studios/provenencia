@@ -2,6 +2,8 @@ import Foundation
 import Testing
 @testable import Provenencia
 
+private enum PageBoom: Error { case boom }
+
 @Suite
 @MainActor
 struct SourceTypePageModelTests {
@@ -15,11 +17,11 @@ struct SourceTypePageModelTests {
         store: FakeStore = FakeStore(),
         types: [CatalogSourceType] = [],
         fields: [CatalogMetadataField] = [],
-        suggestions: [String: [CatalogTypeSuggestion]] = [:]
+        suggestions: [Level: [String: [CatalogTypeSuggestion]]] = [:]
     ) async -> (SourceTypePageModel, WorkspaceSession) {
         store.sourceTypesByProject[projectDir] = types
         store.fieldsByProject[projectDir] = fields
-        store.suggestionsByType = suggestions
+        store.suggestionsByLevel = suggestions
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let model = SourceTypePageModel(typeID: typeID, session: session, userID: userID, store: store)
         model.warm()
@@ -28,7 +30,9 @@ struct SourceTypePageModelTests {
             .metadataFieldsList(project: session.projectKey)
         )
         if let fieldsHandle { await waitForQuery(fieldsHandle) }
-        if let handle = model.suggestionsHandle { await waitForQuery(handle) }
+        for level in Level.metadataLevels {
+            if let handle = model.suggestionsHandle(at: level) { await waitForQuery(handle) }
+        }
         model.syncDraft()
         return (model, session)
     }
@@ -252,20 +256,33 @@ struct SourceTypePageModelTests {
 
     // MARK: Suggestions
 
-    @Test func warmingLoadsThatTypesSuggestionsInStoredOrder() async {
+    /// T-3 (AC-1.1, D-1): each level reads its own list, in stored order.
+    @Test func warmingLoadsEachLevelsListInStoredOrder() async {
         let author = catalogMetadataField("f1", label: "Author")
         let publisher = catalogMetadataField("f2", label: "Publisher")
+        let store = FakeStore()
         let (model, _) = await makePageModel(
             typeID: "t1",
+            store: store,
             types: [seededSourceType()],
             fields: [author, publisher],
             // Publisher was assigned first, so stored order and label order disagree.
-            suggestions: ["t1": [
-                CatalogTypeSuggestion(field: publisher, sortOrder: 0),
-                CatalogTypeSuggestion(field: author, sortOrder: 1),
-            ]]
+            suggestions: [
+                .source: ["t1": [
+                    CatalogTypeSuggestion(field: publisher, sortOrder: 0),
+                    CatalogTypeSuggestion(field: author, sortOrder: 1),
+                ]],
+                .artifact: ["t1": [CatalogTypeSuggestion(field: publisher, sortOrder: 0)]],
+                .graph: ["t1": [
+                    CatalogTypeSuggestion(field: author, sortOrder: 0),
+                    CatalogTypeSuggestion(field: publisher, sortOrder: 1),
+                ]],
+            ]
         )
-        #expect(model.suggestions.map(\.field.label) == ["Publisher", "Author"])
+        #expect(model.suggestions(at: .source).map(\.field.label) == ["Publisher", "Author"])
+        #expect(model.suggestions(at: .artifact).map(\.field.label) == ["Publisher"])
+        #expect(model.suggestions(at: .graph).map(\.field.label) == ["Author", "Publisher"])
+        #expect(Set(store.listTypeSuggestionsLevels) == [.source, .artifact, .graph])
     }
 
     @Test func assignPoolExcludesFieldsAlreadySuggested() async {
@@ -274,14 +291,43 @@ struct SourceTypePageModelTests {
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author, catalogMetadataField("f2", label: "Publisher")],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
-        #expect(model.assignPool.map(\.id) == ["f2"])
+        #expect(model.assignPool(at: .source).map(\.id) == ["f2"])
+    }
+
+    /// T-4 (AC-1.3, D-4): a failed read fails only its own list, and Try again reads it again.
+    @Test func aFailedLevelReadFailsOnlyThatList() async {
+        let author = catalogMetadataField("f1", label: "Author")
+        let store = FakeStore()
+        store.listTypeSuggestionsError = PageBoom.boom
+        store.listTypeSuggestionsErrorLevels = [.graph]
+        let (model, _) = await makePageModel(
+            typeID: "t1",
+            store: store,
+            types: [seededSourceType()],
+            fields: [author],
+            suggestions: [
+                .source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]],
+                .graph: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]],
+            ]
+        )
+        #expect(model.suggestionsHandle(at: .graph)?.reading.noticeError != nil)
+        #expect(!model.isLoaded(at: .graph))
+        #expect(model.isLoaded(at: .source) && model.isLoaded(at: .artifact))
+        #expect(model.suggestions(at: .source).map(\.field.id) == ["f1"])
+
+        store.listTypeSuggestionsError = nil
+        model.rereadSuggestions(at: .graph)
+        if let handle = model.suggestionsHandle(at: .graph) { await waitForQuery(handle) }
+        #expect(model.isLoaded(at: .graph))
+        #expect(model.suggestions(at: .graph).map(\.field.id) == ["f1"])
     }
 
     /// T-8 (AC-3.1): assigning patches the cache and reloads nothing.
     @Test func assigningAppendsTheFieldAndUpdatesTheListCount() async {
         let store = FakeStore()
+        store.suggestedFieldCounts["t1"] = 0
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
@@ -289,90 +335,192 @@ struct SourceTypePageModelTests {
             fields: [catalogMetadataField("f1", label: "Author"), catalogMetadataField("f2", label: "Publisher")]
         )
         let loads = store.listTypeSuggestionsLevels.count
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 0)
+        // The engine's count after the writes: the reply carries it and the row takes it.
+        store.suggestedFieldCounts["t1"] = 2
 
-        model.assignPick = "f2"
-        await model.assignPickedField()
-        model.assignPick = "f1"
-        await model.assignPickedField()
+        model.assignPicks[.source] = "f2"
+        await model.assignPickedField(at: .source)
+        model.assignPicks[.source] = "f1"
+        await model.assignPickedField(at: .source)
         await session.settleWrites()
 
-        #expect(model.suggestions.map(\.field.id) == ["f2", "f1"])
-        #expect(model.assignPick.isEmpty)
+        #expect(model.suggestions(at: .source).map(\.field.id) == ["f2", "f1"])
+        #expect(model.assignPicks[.source, default: ""].isEmpty)
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 2)
         #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastAssignedTitle))
         #expect(store.listTypeSuggestionsLevels.count == loads)
     }
 
-    @Test func warmingShowsOnlySourceLevelSuggestions() async {
+    /// T-5 (AC-2.1, D-4): an add changes its own list and its own pick only.
+    @Test func assigningWritesAtThatLevelOnly() async {
         let author = catalogMetadataField("f1", label: "Author")
         let publisher = catalogMetadataField("f2", label: "Publisher")
         let store = FakeStore()
-        store.suggestionsByLevel[.graph] = ["t1": [CatalogTypeSuggestion(field: publisher, sortOrder: 0)]]
+        let sourceRow = CatalogTypeSuggestion(field: author, sortOrder: 0)
         let (model, _) = await makePageModel(
             typeID: "t1",
             store: store,
             types: [seededSourceType()],
             fields: [author, publisher],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [sourceRow]]]
         )
-        #expect(model.suggestions.map(\.field.id) == ["f1"])
+        let phrase = L10n.format(L10n.SourceTypes.level(.graph).phrase, "Book")
+        #expect(model.assignAccessibilityLabel(at: .graph) == L10n.SourceTypes.assignField(phrase: phrase))
+
+        model.assignPicks[.source] = "f2"
+        model.assignPicks[.graph] = "f2"
+        await model.assignPickedField(at: .graph)
+
+        #expect(store.suggestionsByLevel[.graph]?["t1"]?.map(\.field.id) == ["f2"])
+        #expect(store.suggestionsByLevel[.source]?["t1"] == [sourceRow])
+        #expect(store.suggestionsByLevel[.artifact]?["t1"] == nil)
+        #expect(model.suggestions(at: .graph).map(\.field.id) == ["f2"])
+        #expect(model.assignPicks[.graph, default: ""] == "")
+        #expect(model.assignPicks[.source] == "f2")
+        #expect(model.toast?.body == L10n.SourceTypes.toastAssignedBody(field: "Publisher", phrase: phrase))
     }
 
-    @Test func assigningWritesAtSourceLevelOnly() async {
+    /// T-6 (AC-2.2, AC-2.3): one field can sit in two lists; each list's pool and remove are its own.
+    @Test func aFieldCanSitInTwoLists() async {
+        let page = catalogMetadataField("f1", label: "Page", usedBy: 4)
+        let (model, _) = await makePageModel(
+            typeID: "t1",
+            types: [seededSourceType()],
+            fields: [page],
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: page, sortOrder: 0)]]]
+        )
+        #expect(model.assignPool(at: .artifact).map(\.id) == ["f1"])
+        #expect(model.assignPool(at: .source).isEmpty)
+
+        model.assignPicks[.artifact] = "f1"
+        await model.assignPickedField(at: .artifact)
+        #expect(model.suggestions(at: .artifact).map(\.field.id) == ["f1"])
+        #expect(model.assignPool(at: .artifact).isEmpty)
+
+        await model.removeSuggestion(fieldID: "f1", level: .artifact)
+        #expect(model.suggestions(at: .artifact).isEmpty)
+        #expect(model.suggestions(at: .source).map(\.field.id) == ["f1"])
+        // The values clause stays: the field and its values survive a remove.
+        let phrase = L10n.format(L10n.SourceTypes.level(.artifact).phrase, "Book")
+        #expect(model.toast?.body == L10n.SourceTypes.toastRemovedBody(field: "Page", phrase: phrase, valueCount: 4))
+    }
+
+    /// T-7 (AC-2.4): a failed write shows in its own list and keeps its pick; no other list shows it.
+    @Test func anAssignFailureStaysInItsList() async {
+        let author = catalogMetadataField("f1", label: "Author")
+        let store = FakeStore()
+        let (model, _) = await makePageModel(
+            typeID: "t1",
+            store: store,
+            types: [seededSourceType()],
+            fields: [author],
+            suggestions: [.graph: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
+        )
+        store.assignTypeFieldError = PageBoom.boom
+        model.assignPicks[.artifact] = "f1"
+        await model.assignPickedField(at: .artifact)
+        #expect(model.suggestionErrors[.artifact] != nil)
+        #expect(model.suggestionErrors[.source] == nil && model.suggestionErrors[.graph] == nil)
+        #expect(model.assignPicks[.artifact] == "f1")
+        #expect(model.suggestionWrite == nil)
+
+        store.removeTypeFieldError = PageBoom.boom
+        await model.removeSuggestion(fieldID: "f1", level: .graph)
+        #expect(model.suggestionErrors[.graph] != nil)
+        #expect(model.suggestions(at: .graph).map(\.field.id) == ["f1"])
+    }
+
+    /// T-9 (AC-2.6 model gate, AC-2.7, D-4, D-10): one write at a time across lists, and nothing
+    /// is added with no pick or against a list that has not read.
+    @Test func oneWriteAtATimeAcrossLists() async {
         let author = catalogMetadataField("f1", label: "Author")
         let publisher = catalogMetadataField("f2", label: "Publisher")
         let store = FakeStore()
-        let graphRow = CatalogTypeSuggestion(field: publisher, sortOrder: 0)
-        let (model, session) = await makePageModel(
+        let (model, _) = await makePageModel(
             typeID: "t1",
             store: store,
             types: [seededSourceType()],
             fields: [author, publisher]
         )
-        store.suggestionsByLevel[.graph] = ["t1": [graphRow]]
+        #expect(!model.canAssign(at: .graph))
+        model.assignPicks[.source] = "f1"
+        model.assignPicks[.graph] = "f2"
+        #expect(model.canAssign(at: .graph) && model.canRemove)
 
-        model.assignPick = "f1"
-        await model.assignPickedField()
+        store.assignTypeFieldHold.isOn = true
+        let write = Task { await model.assignPickedField(at: .source) }
+        await store.assignTypeFieldHold.untilSuspended(1)
+        #expect(model.suggestionWrite == .assigning(.source))
+        #expect(!model.canAssign(at: .graph))
+        #expect(!model.canRemove)
 
-        #expect(store.suggestionsByLevel[.source]?["t1"]?.map(\.field.id) == ["f1"])
-        #expect(store.suggestionsByLevel[.graph]?["t1"] == [graphRow])
-        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 1)
+        store.assignTypeFieldHold.isOn = false
+        store.assignTypeFieldHold.release()
+        await write.value
+        #expect(model.suggestionWrite == nil)
+        #expect(model.canAssign(at: .graph))
+        #expect(model.canRemove)
+    }
+
+    /// T-9: a list whose read failed offers no add.
+    @Test func aFailedListOffersNoAdd() async {
+        let store = FakeStore()
+        store.listTypeSuggestionsError = PageBoom.boom
+        store.listTypeSuggestionsErrorLevels = [.graph]
+        let (model, _) = await makePageModel(
+            typeID: "t1",
+            store: store,
+            types: [seededSourceType()],
+            fields: [catalogMetadataField("f1", label: "Author")]
+        )
+        model.assignPicks[.graph] = "f1"
+        #expect(!model.canAssign(at: .graph))
+        model.assignPicks[.source] = "f1"
+        #expect(model.canAssign(at: .source))
     }
 
     @Test func fieldsColumnShowsTheEnginesCountNotTheReplyLength() async {
         let author = catalogMetadataField("f1", label: "Author")
         let store = FakeStore()
-        store.suggestedFieldCountOverride["t1"] = 7
+        store.suggestedFieldCounts["t1"] = 3
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
             types: [seededSourceType()],
             fields: [author]
         )
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 3)
+        store.suggestedFieldCounts["t1"] = 7
 
-        model.assignPick = "f1"
-        await model.assignPickedField()
+        model.assignPicks[.artifact] = "f1"
+        await model.assignPickedField(at: .artifact)
 
-        #expect(model.suggestions.count == 1)
+        #expect(model.suggestions(at: .artifact).count == 1)
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 7)
     }
 
     /// T-8 (AC-3.2): removing patches the cache; the field stays in the pool.
     @Test func removingASuggestionKeepsTheFieldInThePool() async {
         let author = catalogMetadataField("f1", label: "Author", usedBy: 3)
+        let store = FakeStore()
+        store.suggestedFieldCounts["t1"] = 1
         let (model, session) = await makePageModel(
             typeID: "t1",
+            store: store,
             types: [seededSourceType()],
             fields: [author],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 1)
+        store.suggestedFieldCounts["t1"] = 0
 
-        await model.removeSuggestion(fieldID: "f1")
+        await model.removeSuggestion(fieldID: "f1", level: .source)
 
-        #expect(model.suggestions.isEmpty)
+        #expect(model.suggestions(at: .source).isEmpty)
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 0)
         // The vocabulary row survives, so the field is assignable again.
-        #expect(model.assignPool.map(\.id) == ["f1"])
+        #expect(model.assignPool(at: .source).map(\.id) == ["f1"])
         #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastRemovedTitle))
         // T-20: the copy must not imply the existing values went with it.
         #expect(model.toast?.body.contains("3") == true)
@@ -384,11 +532,12 @@ struct SourceTypePageModelTests {
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
 
-        await model.removeSuggestion(fieldID: "f1")
-        #expect(model.toast?.body == L10n.SourceTypes.toastRemovedBody(field: "Author", type: "Book", valueCount: 0))
+        await model.removeSuggestion(fieldID: "f1", level: .source)
+        let phrase = L10n.format(L10n.SourceTypes.level(.source).phrase, "Book")
+        #expect(model.toast?.body == L10n.SourceTypes.toastRemovedBody(field: "Author", phrase: phrase, valueCount: 0))
     }
 
     // MARK: Delete
@@ -473,7 +622,7 @@ struct SourceTypePageModelTests {
                 store: store,
                 types: [userSourceType(), seededSourceType()],
                 fields: [author],
-                suggestions: ["t2": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+                suggestions: [.source: ["t2": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
             )
             if dirty { model.draft?.description = "Changed" }
             await model.askDelete()
@@ -518,8 +667,8 @@ struct SourceTypePageModelTests {
         #expect(model.pendingLeave == nil)
 
         // A suggestion write keeps a clean draft clean (AC-4.5).
-        model.assignPick = "f1"
-        await model.assignPickedField()
+        model.assignPicks[.source] = "f1"
+        await model.assignPickedField(at: .source)
         #expect(!model.isDirty)
         navigation.goBack()
         #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))

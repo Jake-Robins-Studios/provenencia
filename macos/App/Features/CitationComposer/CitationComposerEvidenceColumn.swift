@@ -97,9 +97,9 @@ struct CitationComposerEvidenceColumn: View {
     private var artifactStepper: some View {
         // Read once: each read of `model.artifacts` scans the project's graph list.
         let artifacts = model.artifacts
-        return stepper(
-            eyebrow: L10n.CitationComposer.artifactEyebrow,
-            position: artifactPosition(in: artifacts)
+        return PVSubsectionHeader(
+            title: L10n.CitationComposer.artifactEyebrow,
+            meta: artifactPosition(in: artifacts)
         ) {
             artifactSelect(artifacts)
         }
@@ -107,31 +107,11 @@ struct CitationComposerEvidenceColumn: View {
 
     private var citationStepper: some View {
         let ordered = model.orderedCitations
-        return stepper(
-            eyebrow: L10n.CitationComposer.citationEyebrow,
-            position: citationPosition(in: ordered)
+        return PVSubsectionHeader(
+            title: L10n.CitationComposer.citationEyebrow,
+            meta: citationPosition(in: ordered)
         ) {
             citationSelect(ordered)
-        }
-    }
-
-    private func stepper<Control: View>(
-        eyebrow: LocalizedStringResource,
-        position: String,
-        @ViewBuilder control: () -> Control
-    ) -> some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space2) {
-            HStack(spacing: PVSpacing.space4) {
-                Text(eyebrow)
-                    .pvMicroCaps()
-                    .foregroundStyle(PVColor.textSecondary)
-                Spacer(minLength: 0)
-                Text(verbatim: position)
-                    .font(PVFont.mono(size: 11))
-                    .foregroundStyle(PVColor.textMuted)
-            }
-            .frame(height: 20)
-            control()
         }
     }
 

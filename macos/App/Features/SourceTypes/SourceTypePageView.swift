@@ -85,7 +85,7 @@ private struct SourceTypePageContent: View {
             primary: { primary },
             secondary: {
                 if model.type != nil {
-                    SourceTypeSuggestionList(model: model)
+                    SourceTypeSuggestedFields(model: model)
                 }
             }
         )
@@ -264,11 +264,29 @@ private struct SourceTypePageContent: View {
     store.sourceTypesByProject[projectDir] = [
         CatalogSourceType(id: "t1", key: "census", origin: CatalogOrigin.provenencia, label: "Census", description: "A household count taken by a government.", usedBy: 41),
     ]
-    store.suggestionsByType["t1"] = [
+    let artifactFields = [
+        CatalogMetadataField(id: "f4", key: "provider", origin: CatalogOrigin.provenencia, label: "Provider", dataType: "text", description: ""),
+        CatalogMetadataField(id: "f5", key: "url", origin: CatalogOrigin.provenencia, label: "URL", dataType: "text", description: ""),
+    ]
+    let graphFields = [
+        CatalogMetadataField(id: "f6", key: "item", origin: CatalogOrigin.provenencia, label: "Item", dataType: "text", description: ""),
+        CatalogMetadataField(id: "f7", key: "line", origin: CatalogOrigin.provenencia, label: "Line", dataType: "text", description: ""),
+    ]
+    store.fieldsByProject[projectDir] = fields + artifactFields + graphFields
+    store.suggestionsByLevel[.source] = ["t1": [
         CatalogTypeSuggestion(field: fields[0], sortOrder: 0),
         CatalogTypeSuggestion(field: fields[2], sortOrder: 1),
         CatalogTypeSuggestion(field: fields[1], sortOrder: 2),
-    ]
+    ]]
+    store.suggestionsByLevel[.artifact] = ["t1": [
+        CatalogTypeSuggestion(field: artifactFields[0], sortOrder: 0),
+        CatalogTypeSuggestion(field: artifactFields[1], sortOrder: 1),
+    ]]
+    store.suggestionsByLevel[.graph] = ["t1": [
+        CatalogTypeSuggestion(field: graphFields[0], sortOrder: 0),
+        CatalogTypeSuggestion(field: graphFields[1], sortOrder: 1),
+    ]]
+    store.suggestedFieldCounts["t1"] = 7
     let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     return SourceTypePageView(
         typeID: "t1",

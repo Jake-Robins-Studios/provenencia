@@ -505,7 +505,7 @@ struct WorkspaceSessionTests {
 
     @Test func staleWhileRevalidate() async {
         let session = makeSession()
-        let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: "t1")
+        let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: "t1", level: .source)
         let counter = Counter()
         let gate = Gate()
 
@@ -557,14 +557,14 @@ struct WorkspaceSessionTests {
                 id: "f1", key: "author", origin: "user", label: "Author", dataType: "text", description: ""
             ),
         ]
-        store.suggestionsByType["t1"] = [
+        store.suggestionsByLevel[.source] = ["t1": [
             CatalogTypeSuggestion(
                 field: CatalogMetadataField(
                     id: "f1", key: "author", origin: "user", label: "Author", dataType: "text", description: ""
                 ),
                 sortOrder: 0
             ),
-        ]
+        ]]
     }
 
     @Test func applyLocationSourcesRoot() async {
@@ -634,7 +634,7 @@ struct WorkspaceSessionTests {
             CatalogQueryKey.metadataFieldsList(project: project)
         )
         let suggestionsHandle: QueryHandle<[CatalogTypeSuggestion]>? = session.queryHandle(
-            CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
+            CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .source)
         )
         #expect(typesHandle != nil)
         #expect(fieldsHandle != nil)
