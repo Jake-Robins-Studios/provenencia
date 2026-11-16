@@ -48,28 +48,32 @@ enum ArtifactViewerKind: String, Equatable, Sendable, CaseIterable {
                 supportsPageLocator: false,
                 supportsRegionLocator: true,
                 supportsSpatialZoom: true,
-                supportsTimeRangeLocator: false
+                supportsTimeRangeLocator: false,
+                supportsPrintedPage: true
             )
         case .pdf:
             return ArtifactLocatorCapabilities(
                 supportsPageLocator: true,
                 supportsRegionLocator: true,
                 supportsSpatialZoom: true,
-                supportsTimeRangeLocator: false
+                supportsTimeRangeLocator: false,
+                supportsPrintedPage: true
             )
         case .audio, .video:
             return ArtifactLocatorCapabilities(
                 supportsPageLocator: false,
                 supportsRegionLocator: false,
                 supportsSpatialZoom: false,
-                supportsTimeRangeLocator: true
+                supportsTimeRangeLocator: true,
+                supportsPrintedPage: false
             )
         case .unsupported:
             return ArtifactLocatorCapabilities(
                 supportsPageLocator: false,
                 supportsRegionLocator: false,
                 supportsSpatialZoom: false,
-                supportsTimeRangeLocator: false
+                supportsTimeRangeLocator: false,
+                supportsPrintedPage: false
             )
         }
     }
@@ -82,4 +86,6 @@ struct ArtifactLocatorCapabilities: Equatable, Sendable {
     var supportsSpatialZoom: Bool
     /// Reserved: A/V players later. S7-07 does not implement time-range UI.
     var supportsTimeRangeLocator: Bool
+    /// The Citation may record the page the original prints (`page_label`), with or without a file page.
+    var supportsPrintedPage: Bool
 }

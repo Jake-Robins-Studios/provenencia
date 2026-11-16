@@ -9,8 +9,15 @@ enum PVWidthClass: Equatable, Sendable {
     case regular
     case wide
 
+    /// The pane's one breakpoint, for `PVWidthBreakpoints`.
+    static let breakpoints: [CGFloat] = [PVSpacing.widthWideBreakpoint]
+
+    init(_ met: PVBreakpointsMet) {
+        self = met.isAtLeast(PVSpacing.widthWideBreakpoint) ? .wide : .regular
+    }
+
     init(paneWidth: CGFloat) {
-        self = paneWidth >= PVSpacing.widthWideBreakpoint ? .wide : .regular
+        self.init(PVBreakpointsMet(breakpoints: Self.breakpoints, width: paneWidth))
     }
 }
 
@@ -26,22 +33,16 @@ extension EnvironmentValues {
 }
 
 private struct PVMeasuresWidthClass: ViewModifier {
-    @State private var widthClass: PVWidthClass = .regular
-
     func body(content: Content) -> some View {
-        content
-            .environment(\.pvWidthClass, widthClass)
-            .onGeometryChange(for: PVWidthClass.self) {
-                PVWidthClass(paneWidth: $0.size.width)
-            } action: {
-                widthClass = $0
-            }
+        PVWidthBreakpoints(PVWidthClass.breakpoints) { met in
+            content.environment(\.pvWidthClass, PVWidthClass(met))
+        }
     }
 }
 
 extension View {
-    /// Measures the view it is applied to and gives that width class to the
-    /// view's content, so the view must fill the space to be measured.
+    /// Measures the width this view is given (through `PVWidthBreakpoints`,
+    /// which fills it) and gives that width class to the view's content.
     /// Applied once, by `WorkspaceDestinationHost`; pages read `\.pvWidthClass`
     /// and do not re-measure (§ 9 of macos-client-patterns.md).
     func pvMeasuresWidthClass() -> some View {

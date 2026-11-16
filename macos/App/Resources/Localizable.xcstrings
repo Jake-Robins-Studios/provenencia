@@ -15549,7 +15549,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This citation has no page yet. Save the viewer's page to it to draw a region."
+            "value": "This citation has no page in the file yet. Save the viewer's page to it to draw a region."
           }
         }
       }
@@ -15645,7 +15645,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Draw and the region buttons wait until the citation has a page"
+            "value": "Draw and the region buttons wait until the citation has a page in the file"
           }
         }
       }
@@ -22107,6 +22107,42 @@
         }
       }
     },
+    "citationComposer.printedPageHelp": {
+      "comment": "Help for the printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used in the reference citation"
+          }
+        }
+      }
+    },
+    "citationComposer.printedPageLabel": {
+      "comment": "Label of the citation's printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Printed page"
+          }
+        }
+      }
+    },
+    "citationComposer.printedPagePrompt": {
+      "comment": "Placeholder in the printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "14 or iv"
+          }
+        }
+      }
+    },
     "citationComposer.deleteReading": {
       "comment": "Ghost button that deletes the saved citation",
       "extractionState": "manual",
@@ -22811,18 +22847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld × %2$lld px"
-          }
-        }
-      }
-    },
-    "citationComposer.menuPage": {
-      "comment": "Short page locator on a citation menu row",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "p. %lld"
           }
         }
       }

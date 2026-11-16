@@ -368,6 +368,40 @@ func TestCitations(t *testing.T) {
 			},
 		},
 		{
+			name: "a printed page alone is a valid locator, two page selectors are not",
+			run: func(t *testing.T) {
+				c, s := mustSeed(t)
+				obs := []observations.Input{{
+					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
+					ValueTermID: s.femaleTerm.ID,
+				}}
+				res, err := createCitation(c, userID, CreateInput{
+					GraphID:     s.graph,
+					ArtifactID:  s.artifact.ID,
+					LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"}]}`,
+				}, obs)
+				if err != nil {
+					t.Fatalf("create with a label-only page selector: %v", err)
+				}
+				_, err = writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
+					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
+						LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","page_label":"14"}]}`,
+					})
+				})
+				if !errors.Is(err, locator.ErrInvalid) {
+					t.Fatalf("update with two page selectors: got %v want locator.ErrInvalid", err)
+				}
+				_, err = createCitation(c, userID, CreateInput{
+					GraphID:     s.graph,
+					ArtifactID:  s.artifact.ID,
+					LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","artifact_page":2}]}`,
+				}, obs)
+				if !errors.Is(err, locator.ErrInvalid) {
+					t.Fatalf("create with two page selectors: got %v want locator.ErrInvalid", err)
+				}
+			},
+		},
+		{
 			name: "list by artifact",
 			run: func(t *testing.T) {
 				c, s := mustSeed(t)

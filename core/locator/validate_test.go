@@ -80,6 +80,20 @@ func TestValidate(t *testing.T) {
 			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":"23"}]}`,
 		},
 		{
+			name: "printed page only",
+			json: `{"version":1,"selectors":[{"type":"page","page_label":"14"}]}`,
+		},
+		{
+			name: "printed page then region",
+			json: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14"},{"type":"region","unit":"normalized","points":[
+				{"x":0.1,"y":0.1},{"x":0.4,"y":0.1},{"x":0.4,"y":0.3},{"x":0.1,"y":0.3}
+			]}]}`,
+		},
+		{
+			name: "file page with blank printed page",
+			json: `{"version":1,"selectors":[{"type":"page","artifact_page":37,"page_label":""}]}`,
+		},
+		{
 			name: "region rectangle",
 			json: `{"version":1,"selectors":[{"type":"region","unit":"normalized","points":[
 				{"x":0.1,"y":0.1},{"x":0.5,"y":0.1},{"x":0.5,"y":0.4},{"x":0.1,"y":0.4}
@@ -130,6 +144,31 @@ func TestValidate(t *testing.T) {
 		{
 			name:    "page zero",
 			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":0}]}`,
+			wantErr: true,
+		},
+		{
+			name:    "page selector with nothing in it",
+			json:    `{"version":1,"selectors":[{"type":"page"}]}`,
+			wantErr: true,
+		},
+		{
+			name:    "page selector with a blank printed page and no file page",
+			json:    `{"version":1,"selectors":[{"type":"page","page_label":"  "}]}`,
+			wantErr: true,
+		},
+		{
+			name:    "file page zero beside a printed page",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":0,"page_label":"4"}]}`,
+			wantErr: true,
+		},
+		{
+			name:    "two page selectors",
+			json:    `{"version":1,"selectors":[{"type":"page","artifact_page":1},{"type":"page","artifact_page":2}]}`,
+			wantErr: true,
+		},
+		{
+			name:    "two page selectors, one printed page only",
+			json:    `{"version":1,"selectors":[{"type":"page","page_label":"14"},{"type":"page","artifact_page":2}]}`,
 			wantErr: true,
 		},
 		{
@@ -227,6 +266,7 @@ func TestPage(t *testing.T) {
 		wantPage  int
 		wantLabel string
 	}{
+		{"printed page only", `{"version":1,"selectors":[{"type":"page","page_label":" 14 "}]}`, 0, "14"},
 		{"page with label", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":" 23 "}]}`, 37, "23"},
 		{"page without label", `{"version":1,"selectors":[{"type":"page","artifact_page":4}]}`, 4, ""},
 		{"artifact selector only", `{"version":1,"selectors":[{"type":"artifact"}]}`, 0, ""},
@@ -240,9 +280,9 @@ func TestPage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			page, label := Page(tt.doc)
-			if page != tt.wantPage || label != tt.wantLabel {
-				t.Fatalf("Page = %d, %q; want %d, %q", page, label, tt.wantPage, tt.wantLabel)
+			got := Page(tt.doc)
+			if want := (PageRef{ArtifactPage: tt.wantPage, Label: tt.wantLabel}); got != want {
+				t.Fatalf("Page = %+v; want %+v", got, want)
 			}
 		})
 	}

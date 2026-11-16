@@ -3,6 +3,9 @@
 // Version 1 locators are an ordered selector chain. Known types validated in
 // Spike 7: artifact, page, region, text_quote. Unknown selector types are preserved
 // losslessly (Validate does not fail solely for an unrecognized type).
+//
+// A page selector holds artifact_page (the page of the file), page_label (the
+// page the original prints), or both. A document has at most one.
 package locator
 
 import (
@@ -106,6 +109,7 @@ func validateDoc(doc document) error {
 	if regionPoints > MaxRegionPoints {
 		return ErrInvalid
 	}
+	pageSelectors := 0
 	for i, sel := range doc.Selectors {
 		switch strings.TrimSpace(sel.Type) {
 		case TypeArtifact:
@@ -113,6 +117,10 @@ func validateDoc(doc document) error {
 				return ErrInvalid
 			}
 		case TypePage:
+			pageSelectors++
+			if pageSelectors > 1 {
+				return ErrInvalid
+			}
 			if err := validatePage(sel); err != nil {
 				return err
 			}
@@ -131,8 +139,16 @@ func validateDoc(doc document) error {
 	return nil
 }
 
+// validatePage accepts a file page of 1 or more, or no file page and a
+// non-blank printed page (an image has no file page).
 func validatePage(sel selectorRaw) error {
-	if sel.ArtifactPage == nil || *sel.ArtifactPage < 1 {
+	if sel.ArtifactPage != nil {
+		if *sel.ArtifactPage < 1 {
+			return ErrInvalid
+		}
+		return nil
+	}
+	if sel.PageLabel == nil || strings.TrimSpace(*sel.PageLabel) == "" {
 		return ErrInvalid
 	}
 	return nil

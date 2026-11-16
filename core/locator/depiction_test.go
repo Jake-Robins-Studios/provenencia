@@ -20,6 +20,7 @@ func TestValidateDepictionRegion(t *testing.T) {
 	}
 	page := func(n string) string { return `{"type":"page","artifact_page":` + n + `}` }
 	art := `{"type":"artifact"}`
+	label := `{"type":"page","page_label":"14"}`
 	tests := []struct {
 		name     string
 		region   string
@@ -45,6 +46,9 @@ func TestValidateDepictionRegion(t *testing.T) {
 		{"region over the point cap", doc(page("1"), ringRegion(MaxRegionPoints+1)), doc(page("1")), true},
 		{"citation locator over the point cap", doc(page("1"), tri), doc(page("1"), ringRegion(MaxRegionPoints+1)), true},
 		{"citation locator points over the cap across selectors", doc(page("1"), tri), doc(page("1"), ringRegion(129), ringRegion(128)), true},
+		{"label-only citation, region without page", doc(tri), doc(art, label), false},
+		{"label-only citation, region on page 1", doc(page("1"), tri), doc(art, label), true},
+		{"region page selector label-only", doc(label, tri), doc(art, label), true},
 		{"invalid region json", `{`, doc(page("1")), true},
 		{"invalid citation json", doc(page("1"), tri), `{`, true},
 	}

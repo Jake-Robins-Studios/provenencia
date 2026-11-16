@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-39 — One container measures its own width and tells its content which layout fits
+
+**Landed 2026-11-16** in [#866](https://github.com/mendahu/provenencia/pull/866). `PVWidthBreakpoints` fills the width it is given, measures it and builds its content for the breakpoints that width meets, rebuilding only when one is crossed and giving the right layout on the first frame. The Source types table's Description column (1200pt), the Sources list's compact rows (880pt) and the Timeline's stacked people (772pt at Regular, 1402pt at Wide) moved onto it, as did the pane's width class (`pvMeasuresWidthClass`), at the same widths as before. The other measures in `macos/App` are named as geometry or a fit to content; § 9 and `add-ui-component` teach the container.
+
 ## S16-38 — An empty list shows its empty state while a merge runs
 
 **Landed 2026-11-16** in [#859](https://github.com/mendahu/provenencia/pull/859). A Persons, Events or Places list with no rows now shows its empty state, not a blank body, while a merge or refetch of it runs. `ConclusionListPresentation` maps an empty loaded value to `.empty` whether or not a fetch is in flight, so `.rows` always has rows.

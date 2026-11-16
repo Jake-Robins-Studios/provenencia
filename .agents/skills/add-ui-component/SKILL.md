@@ -127,6 +127,20 @@ enum VocabularyDeleteDialog { static func sheet(…) }  // only Metadata uses it
 // ✅ GOOD — wait for second call site; use .pvConfirm at the view today
 ```
 
+```swift
+// ❌ BAD — a view measures its own width into @State and compares it in body
+@State private var width: CGFloat = 0
+// body: … if width < 880 { compactRow } else { fullRow } …
+// .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+
+// ✅ GOOD
+// For a choice of content by width. A fit to content is ViewThatFits; the same subviews beside or stacked are a Layout.
+static let compactBelow: CGFloat = 880
+PVWidthBreakpoints([Self.compactBelow]) { met in
+    if met.isAtLeast(Self.compactBelow) { fullRow } else { compactRow }
+}
+```
+
 ## Steps when adding a component
 
 1. Confirm layer = component (decision step 2).

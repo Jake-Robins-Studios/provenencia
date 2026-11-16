@@ -21,14 +21,24 @@ enum CitationLineDisplay {
         outcome.sourceTitle.isEmpty ? outcome.observationRef : outcome.sourceTitle
     }
 
+    /// The page the original prints: "p. 23". The one home of these words; the citation menus use it too.
+    static func printedPage(_ label: String) -> String {
+        L10n.Conclusions.citationPagePrinted(label)
+    }
+
+    /// The page of the file: "image 37".
+    static func filePage(_ page: Int) -> String {
+        L10n.Conclusions.citationPageImage(page)
+    }
+
     /// A record's citation line, split into the title and the rest. The Source's title (else the Observation ref), the Artifact label, the Citation label and the page, each trimmed and dropped when empty. The page is the printed label ("p. 23") else the image number ("image 37").
     static func parts(_ outcome: CatalogReconcilerOutcome) -> Parts {
         let pageLabel = outcome.pageLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         let page: String
         if !pageLabel.isEmpty {
-            page = L10n.Conclusions.citationPagePrinted(pageLabel)
+            page = printedPage(pageLabel)
         } else if outcome.artifactPage > 0 {
-            page = L10n.Conclusions.citationPageImage(outcome.artifactPage)
+            page = filePage(outcome.artifactPage)
         } else {
             page = ""
         }

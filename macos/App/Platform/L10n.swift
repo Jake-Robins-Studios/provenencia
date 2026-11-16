@@ -3433,7 +3433,7 @@ enum L10n {
 
         static let depictionNeedsPage = LocalizedStringResource(
             "citationComposer.depictionNeedsPage",
-            defaultValue: "This citation has no page yet. Save the viewer's page to it to draw a region.",
+            defaultValue: "This citation has no page in the file yet. Save the viewer's page to it to draw a region.",
             comment: "Warning when an existing PDF citation has no page, so a depiction cannot be drawn"
         )
 
@@ -3481,7 +3481,7 @@ enum L10n {
 
         static let depictionCaptionNeedsPage = LocalizedStringResource(
             "citationComposer.depictionCaptionNeedsPage",
-            defaultValue: "Draw and the region buttons wait until the citation has a page",
+            defaultValue: "Draw and the region buttons wait until the citation has a page in the file",
             comment: "Caption beside the depiction preview when the citation has no page"
         )
 
@@ -3888,6 +3888,24 @@ enum L10n {
             comment: "Short name for this citation"
         )
 
+        static let printedPageLabel = LocalizedStringResource(
+            "citationComposer.printedPageLabel",
+            defaultValue: "Printed page",
+            comment: "Label of the citation's printed-page field"
+        )
+
+        static let printedPagePrompt = LocalizedStringResource(
+            "citationComposer.printedPagePrompt",
+            defaultValue: "14 or iv",
+            comment: "Placeholder in the printed-page field"
+        )
+
+        static let printedPageHelp = LocalizedStringResource(
+            "citationComposer.printedPageHelp",
+            defaultValue: "Used in the reference citation",
+            comment: "Help for the printed-page field"
+        )
+
         static let observationsSection = LocalizedStringResource(
             "citationComposer.observationsSection",
             defaultValue: "Observations",
@@ -4022,14 +4040,6 @@ enum L10n {
                 defaultValue: "%1$@ · %2$@",
                 comment: "Closed citation menu; arguments are the ref and the names, description, or empty reading"
             ), ref, detail)
-        }
-
-        static func menuPage(_ page: Int) -> String {
-            L10n.format(LocalizedStringResource(
-                "citationComposer.menuPage",
-                defaultValue: "p. %lld",
-                comment: "Short page locator on a citation menu row"
-            ), page)
         }
 
         static let menuRegion = LocalizedStringResource(
