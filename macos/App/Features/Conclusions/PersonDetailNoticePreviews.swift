@@ -54,7 +54,7 @@ private struct PersonDetailNoticePreview: View {
         PersonDetailView(session: session, entityId: Self.entityId, userID: "preview-user")
             .environment(session)
             .environment(navigation)
-            .environment(\.pvWidthClass, width >= PVSpacing.widthWideBreakpoint ? .wide : .regular)
+            .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
             .frame(width: width, height: 900)
             .background(PVColor.surfacePage)
             .task { await failTheDetailAfterTheFirstAnswer() }

@@ -92,21 +92,23 @@ struct PersonTimelinePlacement: Equatable {
         return widthClass == .wide ? 3 * card + 2 * cardColumnGap : card
     }
 
-    /// The text column's width in items `itemsWidth` wide, with the people beside
-    /// it: the gutter, picture and people column and four gaps (gutter|picture,
-    /// picture|text, text|spacer, spacer|people) taken out.
-    static func textWidth(itemsWidth: CGFloat, widthClass: PVWidthClass) -> CGFloat {
-        itemsWidth - gutterWidth - rowPicture - peopleWidth(widthClass) - 4 * rowGap
+    /// The items' width below which the people go under the title: the text column's least
+    /// width, with the gutter, picture and people column and four gaps (gutter|picture,
+    /// picture|text, text|spacer, spacer|people) beside it.
+    static func stacksBelow(_ widthClass: PVWidthClass) -> CGFloat {
+        minimumTextWidth + gutterWidth + rowPicture + peopleWidth(widthClass) + 4 * rowGap
     }
+
+    /// The widths the people's place changes at, for `PVWidthBreakpoints`: one per width class.
+    static let stackBreakpoints: [CGFloat] = [stacksBelow(.regular), stacksBelow(.wide)]
 
     /// The widest the text column grows: the page's content measure less the
     /// line column, the gutter, the picture and two gaps.
     static let textCap: CGFloat = PVSpacing.widthContentMax - PersonTimelineLifeline.columnWidth - PersonTimelineLifeline.listGap - gutterWidth - rowPicture - 2 * rowGap
 
-    /// Whether the people column goes under the title: the text column beside it
-    /// would be under `minimumTextWidth`.
-    static func stacksPeople(itemsWidth: CGFloat, widthClass: PVWidthClass) -> Bool {
-        textWidth(itemsWidth: itemsWidth, widthClass: widthClass) < minimumTextWidth
+    /// Whether the people column goes under the title: the items are under `stacksBelow` for the class.
+    static func stacksPeople(_ met: PVBreakpointsMet, widthClass: PVWidthClass) -> Bool {
+        !met.isAtLeast(stacksBelow(widthClass))
     }
 
     /// `pointsPerYear` keeps a scale already chosen; nil chooses one. An item

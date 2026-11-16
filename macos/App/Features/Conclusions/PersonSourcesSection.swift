@@ -576,7 +576,7 @@ private struct PersonSourcesPreview: View {
         }
         .environment(session)
         .environment(navigation)
-        .environment(\.pvWidthClass, width >= PVSpacing.widthWideBreakpoint ? .wide : .regular)
+        .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
         .frame(width: width, height: 700)
         .background(PVColor.surfacePage)
         .onAppear { folds = foldsAtStart }
