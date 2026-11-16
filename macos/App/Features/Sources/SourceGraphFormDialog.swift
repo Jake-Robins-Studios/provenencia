@@ -119,7 +119,11 @@ private struct SourceGraphForm: View {
                 hint: L10n.Sources.graphFormDescriptionHint,
                 marker: .optional
             ) {
-                PVTextArea(text: $model.draft.description, lineLimit: 3...3, focus: PVFieldFocus($focus, equals: .description, in: order))
+                PVTextArea(
+                    text: $model.draft.description,
+                    lineLimit: 3...3,
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
+                )
                     .accessibilityIdentifier("sources.graphForm.description")
             }
         }

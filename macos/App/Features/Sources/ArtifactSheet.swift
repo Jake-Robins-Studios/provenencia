@@ -126,7 +126,11 @@ private struct ArtifactSheetForm: View {
                 label: L10n.Sources.artifactDescription,
                 hint: L10n.Sources.artifactDescriptionHint
             ) {
-                PVTextArea(text: $model.draft.description, lineLimit: 3...8, focus: PVFieldFocus($focus, equals: .description, in: order))
+                PVTextArea(
+                    text: $model.draft.description,
+                    lineLimit: 3...8,
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
+                )
                     .accessibilityIdentifier("\(prefix).description")
             }
         }
