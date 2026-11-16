@@ -88,7 +88,7 @@ On an As of observation, the date editor offers **As stated** and **About**, as 
 
 | Fact | Means for the board |
 | --- | --- |
-| As of is a seeded event Property: key `as_of`, label "As of", value type date, more than one allowed | It appears in the Property menu for an Event Subject, after End date |
+| As of is a seeded event Property: key `as_of`, label "As of", value type date, more than one allowed | It appears in the Property menu for an Event Subject (the menu sorts by label) |
 | A date is one moment: a point (with a qualifier) or a range (between two bounds, no qualifier) | Range hides the qualifier row today; it still does |
 | The qualifiers are As stated (exact), About, Before, After | As of offers the first two |
 | A date written outside the composer (an import, an older edit) can already hold Before or After on As of | The editor shows that chip, selected, so opening and saving never changes the value silently |
@@ -114,7 +114,7 @@ On an As of observation, the date editor offers **As stated** and **About**, as 
 - **AO-1.** With Property **As of** and Kind **Point**, the qualifier row shows two chips: As stated, About. Before and After are absent, not disabled.
 - **AO-2.** With Property **As of** and Kind **Range**, the editor looks as any range does today: no qualifier row.
 - **AO-3.** Editing an As of observation whose stored qualifier is Before (or After) shows three chips: As stated, About and that one, selected. Picking As stated or About removes the extra chip on the next draw.
-- **AO-4.** The qualifier row follows the Property chosen now: switching an open draft from Start date, with Before selected, to As of keeps Before shown and selected, as AO-3. The composer's handling of the typed date on a Property switch is unchanged.
+- **AO-4.** Switching the Property clears the value, as it does today for every Property; a fresh As of draft shows As stated and About.
 - **AO-5.** Every other date Property shows the four chips, as today.
 
 ### 4.1 Wide layout
