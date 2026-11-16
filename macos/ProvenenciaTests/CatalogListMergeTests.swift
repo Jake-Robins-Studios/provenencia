@@ -228,25 +228,12 @@ struct CatalogListMergeTests {
         let list = CatalogListRows((0..<count).map { Self.personRow(UUID().uuidString, $0 * 2) } as [CatalogPersonSummary])
         let ids = (0..<200).map { list[$0 * 90 + 7].id }
         let fresh = ids.prefix(100).map { Self.personRow($0, random.next(in: 0...(count * 2))) }
-        func best(_ merge: (inout CatalogListRows<CatalogPersonSummary>) -> Void) -> Double {
-            var best = Double.infinity
-            for _ in 0..<3 {
-                var copy = list
-                let elapsed = ContinuousClock().measure { merge(&copy) }
-                best = min(best, Self.milliseconds(elapsed))
-                #expect(copy.count == count - 100)
-            }
-            return best
+        let onePass = Self.bestOfMilliseconds(list.rows, runs: 3, expected: count - 100) {
+            $0.mergeSorted(fresh, replacing: ids)
         }
-        var onePassBest = Double.infinity
-        for _ in 0..<3 {
-            var plain = list.rows
-            let elapsed = ContinuousClock().measure { plain.mergeSorted(fresh, replacing: ids) }
-            onePassBest = min(onePassBest, Self.milliseconds(elapsed))
-            #expect(plain.count == count - 100)
+        let chosen = Self.bestOfMilliseconds(list, runs: 3, expected: count - 100) {
+            $0.merge(fresh, replacing: ids)
         }
-        let onePass = onePassBest
-        let chosen = best { $0.merge(fresh, replacing: ids) }
         print("200-id write at 20115 rows: one pass \(onePass) ms, chosen path \(chosen) ms")
         // decided: S16-26 F-9
         #expect(chosen < onePass * 2 + 5)
@@ -330,14 +317,7 @@ struct CatalogListMergeTests {
         let list = (0..<count).map { personRow(UUID().uuidString, $0 * 2) }
         let dropped = [list[count / 3].id, list[count / 2].id]
         let fresh = [personRow(dropped[0], count / 2 * 2 + 1)]
-        var best = Double.infinity
-        for _ in 0..<5 {
-            var copy = list
-            let elapsed = ContinuousClock().measure { copy.mergeSorted(fresh, replacing: dropped) }
-            best = min(best, milliseconds(elapsed))
-            #expect(copy.count == count - 1)
-        }
-        return best
+        return bestOfMilliseconds(list, runs: 5, expected: count - 1) { $0.mergeSorted(fresh, replacing: dropped) }
     }
 
     /// The write as the session applies it: the cached value is shared with the handle, so the
@@ -348,12 +328,20 @@ struct CatalogListMergeTests {
         // The fallback touches 17 ids, past `indexedMergeLimit`: 15 more rows the list holds.
         if !indexed { dropped += (0..<15).map { list[count / 4 + $0].id } }
         let fresh = [personRow(dropped[0], count / 2 * 2 + 1)]
+        return bestOfMilliseconds(list, runs: 5, expected: count - dropped.count + 1) { $0.merge(fresh, replacing: dropped) }
+    }
+
+    /// The fastest of `runs` timed merges, each on a fresh copy of `start` (the copy is made
+    /// outside the timing), checking each result holds `expected` rows.
+    private static func bestOfMilliseconds<V: Collection>(
+        _ start: V, runs: Int, expected: Int, _ run: (inout V) -> Void
+    ) -> Double {
         var best = Double.infinity
-        for _ in 0..<5 {
-            var copy = list
-            let elapsed = ContinuousClock().measure { copy.merge(fresh, replacing: dropped) }
+        for _ in 0..<runs {
+            var copy = start
+            let elapsed = ContinuousClock().measure { run(&copy) }
             best = min(best, milliseconds(elapsed))
-            #expect(copy.count == count - dropped.count + 1)
+            #expect(copy.count == expected)
         }
         return best
     }
