@@ -132,14 +132,53 @@ func applyQualifier(qual, point string, st displayStyle) string {
 	}
 }
 
-// formatSide writes one end of a date. One switch decides which parts print;
-// the style decides only how a day without a month is written, whether the
-// clock prints, and the words.
-func formatSide(s side, st displayStyle) string {
-	if st != styleCompact {
-		return citationSide(s, st)
+// printedParts decides which parts of one end print, for every style. A month
+// outside 1-12 prints as digits in compact and is dropped from a citation; a
+// day with no month is dropped unless compact; the clock prints only for
+// compact; the year style keeps the year alone.
+func printedParts(s side, st displayStyle) (year, month, day *int, clock bool) {
+	year, month, day = s.year, s.month, s.day
+	if st == styleCompact {
+		return year, month, day, true
 	}
-	year, month, day := s.year, s.month, s.day
+	if month != nil && (*month < 1 || *month > len(monthsLong)) {
+		month = nil
+	}
+	if month == nil || st == styleCitationYear {
+		day = nil
+	}
+	if st == styleCitationYear {
+		month = nil
+	}
+	return year, month, day, false
+}
+
+// formatSide writes one end of a date. printedParts decides which parts print;
+// the style decides only the words.
+func formatSide(s side, st displayStyle) string {
+	year, month, day, clock := printedParts(s, st)
+	if st == styleCompact {
+		return compactSide(s, year, month, day, clock)
+	}
+	var parts []string
+	if day != nil {
+		parts = append(parts, fmt.Sprintf("%d", *day))
+	}
+	if month != nil {
+		names := monthsLong
+		if st == styleCitationShort {
+			names = monthsShort
+		}
+		parts = append(parts, names[*month-1])
+	}
+	if year != nil {
+		parts = append(parts, fmt.Sprintf("%d", *year))
+	}
+	return strings.Join(parts, " ")
+}
+
+// compactSide writes the ISO digits of the parts printedParts chose.
+func compactSide(s side, year, month, day *int, withClock bool) string {
 	var date string
 	switch {
 	case year != nil && month != nil && day != nil:
@@ -160,6 +199,9 @@ func formatSide(s side, st displayStyle) string {
 
 	hour, minute, second := s.hour, s.minute, s.second
 	var clock string
+	if !withClock {
+		hour, minute, second = nil, nil, nil
+	}
 	switch {
 	case hour != nil && minute != nil && second != nil:
 		clock = fmt.Sprintf("%02d:%02d:%02d", *hour, *minute, *second)
@@ -185,26 +227,4 @@ func formatSide(s side, st displayStyle) string {
 	default:
 		return clock
 	}
-}
-
-// citationSide is formatSide's citation case: the clock is dropped, and so is a
-// day without a month; the year style keeps the year alone.
-func citationSide(s side, st displayStyle) string {
-	var parts []string
-	if st != styleCitationYear {
-		if s.month != nil && *s.month >= 1 && *s.month <= len(monthsLong) {
-			if s.day != nil {
-				parts = append(parts, fmt.Sprintf("%d", *s.day))
-			}
-			names := monthsLong
-			if st == styleCitationShort {
-				names = monthsShort
-			}
-			parts = append(parts, names[*s.month-1])
-		}
-	}
-	if s.year != nil {
-		parts = append(parts, fmt.Sprintf("%d", *s.year))
-	}
-	return strings.Join(parts, " ")
 }
