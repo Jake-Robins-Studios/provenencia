@@ -1,6 +1,6 @@
 # Review — S15-50 Forms list their tab order
 
-**Verdict:** round 1: Fits with changes — Not ready; reshaped (M-1, user 2026-11-16); round 2 below
+**Verdict:** Fits with changes — Ready with changes (round 1 reshaped on M-1, user 2026-11-16; round 2 no blocker)
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -74,3 +74,31 @@
 **Answer:** Fixed — STEP-3 says `labelField` and `transcriptionColumn` keep their parameters.
 
 ## Round 2
+
+One fresh reviewer (sonnet), executability with a maintainability eye. Verdict: Ready with changes; no blocker. Round 1's answers hold against the code.
+
+### R2-1 · major · Two dialog forms would hold their `@FocusState` on the presenting view
+**Answer:** Fixed — D-3: the state sits in the form's content view inside the sheet. D-4 extracts `PropertiesCreateForm` (from `PropertiesCreateHost.createForm`) and `CitationNewSubjectFields` (from the new-Subject dialog's closure), as `SourceDateForm` does; a Stop condition covers Tab inside a dialog.
+
+### R2-2 · minor · D-4 names files as types
+**Answer:** Fixed — `SourceGraphForm`, `SourceTypeAddForm`.
+
+### R2-3 · minor · State names and `order` placement half pinned
+**Answer:** Fixed — D-4 names each state property (`focus`, `formFocus`, `createFormFocus`) and where `order` is written; D-3 allows `let order` at the top of a `@ViewBuilder` property or `body`.
+
+### R2-4 · minor · D-5's handle swap on the bridge path is unchecked
+**Answer:** Declined — AC-2.3 (one listed field → no neighbours) and manual check step 2 cover it; `PVTextArea` falls back to the key loop exactly as with a nil handle.
+
+### R2-5 · minor · T-2's nil case cannot infer its type
+**Answer:** Fixed — `String?.none`; D-1 says both new members are `@MainActor`.
+
+### R2-6 · minor · The S15-41 map edit has no pinned place
+**Answer:** Fixed — STEP-4 names the scope entry's **Ships.** line and the sentence.
+
+### R2-7 · minor · `init(_:equals:next:previous:)` left as a one-caller wrapper
+**Answer:** Fixed — D-1 keeps it as the one place a handle on a binding is built; forms use `in:`.
+
+### R2-8 · nit · Two imprecise wordings
+**Answer:** Fixed — § 4 says where each `PropertiesIdentityEditor` handle sits; the `rg` stop condition is logged as approximate.
+
+**Final verdict:** Fits with changes — Ready with changes. No open blocker; the plan is Planned.

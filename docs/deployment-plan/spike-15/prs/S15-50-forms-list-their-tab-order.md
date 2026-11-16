@@ -1,6 +1,6 @@
 # S15-50 — Forms list their tab order
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 3 — Printed page (preparatory)
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every form looks and tabs the same before and after)
@@ -13,7 +13,7 @@
 **Rules that bind:** —
 **Context:** S15-13's review M-1 ([`S15-13-composer-printed-page.review.md`](S15-13-composer-printed-page.review.md)); the map's S15-50 scope entry; `macos/App/DesignSystem/README.md` (Input, Field focus, TextArea rows)
 **Planned:** 2026-11-16 against `main` @ `5b64138`
-**Review:** [`S15-50-forms-list-their-tab-order.review.md`](S15-50-forms-list-their-tab-order.review.md) — Fits with changes — Not ready → reshaped (user, 2026-11-16), round 1
+**Review:** [`S15-50-forms-list-their-tab-order.review.md`](S15-50-forms-list-their-tab-order.review.md) — Fits with changes — Ready with changes, rounds 1 – 2 (reshaped in round 1, user 2026-11-16)
 
 ### Implementer — read this first
 
@@ -73,7 +73,7 @@ AppKit's key loop skips the text view under a `PVTextArea` when Tab leaves a `PV
 | Text-area editors with no `PVInput` (`SourcePageCredibilityView`, `SourcePageDescriptionView`, `SourcePageNotesView`) | not planned: the rule (D-6) does not reach them |
 | Focus kept across a width change | S15-13 (`FocusKeeper` on the composer's host-held state) |
 | Any change to `PVTextAreaTabRouter` or `PVInputTabClaim` | not planned |
-| Editing `PVTabPair` mentions in earlier plans, review logs, briefs and `archive/` | not planned: history stays as written |
+| Editing `PVTabPair` mentions in earlier plans, review logs, briefs and the spike archives | not planned: history stays as written |
 
 ## 4. Current state
 
@@ -83,7 +83,7 @@ AppKit's key loop skips the text view under a `PVTextArea` when Tab leaves a `PV
 | The handle | `macos/App/DesignSystem/Components/Input/PVFieldFocus.swift` `PVFieldFocus.init(_:equals:next:previous:)`, `static func neighbours(next:previous:claim:)` | Builds a handle on any `FocusState<Value?>.Binding` with optional neighbours; `neighbours(next:previous:claim:)` turns neighbour values into `FocusClaim.claim` closures. Its only caller is `init(_:equals:next:previous:)` (and the test `tabPairOrder`) |
 | Text area Tab | `macos/App/DesignSystem/Components/TextArea/PVTextArea.swift` `PVTextAreaTabRouter` | Tab leaves the area to `focus.next`, else the key loop; Option-Tab inserts a tab. Unchanged |
 | Input Tab | `macos/App/DesignSystem/Components/Input/PVInput.swift` `PVInputTabClaim` | Claims Tab for a handle with a neighbour. Unchanged |
-| Callers (9 uses, 7 files) | `Features/Properties/PropertiesView.swift` 619 (`PropertiesIdentityEditor`, handles used inside `PVInlineEdit`'s editor closure) and 823 (`PropertiesCreateHost`: Label, a read-only Key `PVInput` with no handle, Description); `Features/Sources/ArtifactSheet.swift` 103 (`ArtifactSheetForm.fields`); `Features/Sources/SourceGraphFormDialog.swift` 95 (`fields`: Name, Description); `Features/SourceTypes/SourceTypeAddDialog.swift` 55 (Label, a read-only Key with no handle, Description); `Features/CitationComposer/CitationComposerEvidenceColumn.swift` 58 (`sideForm`: Label first) and 75 (`panelForm`: Transcription first); `Features/CitationComposer/CitationComposerView.swift` 131 (new-Subject dialog: Label, Description); `Features/EvidenceGraph/EvidenceGraphView.swift` 395 (`EvidenceGraphContent.createForm`: the label hidden while `model.isEditingBridge`, and the description passed `nil` then) | Each wraps one input and one text area in `PVTabPair { a, b in … }` |
+| Callers (9 uses, 7 files) | `Features/Properties/PropertiesView.swift` 619 (`PropertiesIdentityEditor`: the label handle inside `PVInlineEdit`'s editor closure, the description's on the `PVTextArea` beside it) and 823 (`PropertiesCreateHost.createForm`, the content of the host's `.pvFormDialog`: Label, a read-only Key `PVInput` with no handle, Description); `Features/Sources/ArtifactSheet.swift` 103 (`ArtifactSheetForm.fields`); `Features/Sources/SourceGraphFormDialog.swift` 95 (`SourceGraphForm.fields`: Name, Description); `Features/SourceTypes/SourceTypeAddDialog.swift` 55 (`SourceTypeAddForm.body`: Label, a read-only Key with no handle, Description); `Features/CitationComposer/CitationComposerEvidenceColumn.swift` 58 (`sideForm`: Label first) and 75 (`panelForm`: Transcription first); `Features/CitationComposer/CitationComposerView.swift` 131 (the new-Subject dialog's content closure on `CitationComposerView`'s `.pvFormDialog`: Label, Description); `Features/EvidenceGraph/EvidenceGraphView.swift` 395 (`EvidenceGraphContent.createForm`: the label hidden while `model.isEditingBridge`, and the description passed `nil` then) | Each wraps one input and one text area in `PVTabPair { a, b in … }` |
 | Precedent | `Features/Promote/PromoteView.swift` (`private enum Field { case query }`, `@FocusState`), `Features/Sources/SourceDateDialog.swift`, `Features/Sources/MetadataBoardView.swift` | Forms that hold `@FocusState private var focus: Field?` and pass `PVFieldFocus($focus, equals: …)` |
 | Guidance | `.agents/skills/add-ui-component/SKILL.md` line 74; `macos/App/DesignSystem/README.md` rows Input (157), Field focus (158), TextArea (159) | Name `PVTabPair` as the rule |
 | Tests | `macos/ProvenenciaTests/PVFieldFocusTests.swift` `tabPairOrder` | Tests `PVTabPairField.next/previous` and `neighbours(next:previous:claim:)` with a recording claim |
@@ -94,10 +94,10 @@ AppKit's key loop skips the text view under a `PVTextArea` when Tab leaves a `PV
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | In `PVFieldFocus.swift`: `static func neighbours<Value: Equatable>(of value: Value, in order: [Value]) -> (next: Value?, previous: Value?)` *(new)*, the field after and before the value's first place in `order`, nil at the ends, for an empty order and for a value not in `order`; and `@MainActor init<Value: Hashable>(_ binding: FocusState<Value?>.Binding, equals value: Value, in order: [Value])` *(new)*, which calls it and then `self.init(binding, equals: value, next:, previous:)` | The order rule lives on the handle every kit field takes, in the file that already owns Tab neighbours (user, 2026-11-16) | A `PVTabOrder` view owning or borrowing focus — two state modes, a generic the callers cannot infer, an untestable claim path (review M-1, X-1, X-2) |
+| D-1 | In `PVFieldFocus.swift`: `static func neighbours<Value: Equatable>(of value: Value, in order: [Value]) -> (next: Value?, previous: Value?)` *(new)*, the field after and before the value's first place in `order`, nil at the ends, for an empty order and for a value not in `order`; and `@MainActor init<Value: Hashable>(_ binding: FocusState<Value?>.Binding, equals value: Value, in order: [Value])` *(new)*, which calls it and then `self.init(binding, equals: value, next:, previous:)`. Both are `@MainActor` (the file's statics that build claims already are). `init(_:equals:next:previous:)` stays as the one place a handle on a binding is built; it is not called from forms (the DesignSystem README's Field focus row says forms use `in:`) | The order rule lives on the handle every kit field takes, in the file that already owns Tab neighbours (user, 2026-11-16) | A `PVTabOrder` view owning or borrowing focus — two state modes, a generic the callers cannot infer, an untestable claim path (review M-1, X-1, X-2) |
 | D-2 | The existing `static func neighbours(next:previous:claim:)` is renamed `claims(next:previous:claim:)`; behavior unchanged | Two statics named `neighbours` doing two halves of one job would read as one (review M-2) | Keeping the name |
-| D-3 | A form holds `@FocusState private var focus: Field?` and a nested `private enum Field: Hashable` in the type that draws the form, and writes its order once as a local `let order: [Field]` in the property that builds the fields; a field not drawn is left out of `order` | The form owns its order and its state, as Promote and the date dialog already do | A kit enum of generic slots — the pair's `first`/`second` again |
-| D-4 | Types and orders: `PropertiesIdentityEditor` `Field { label, description }`; `PropertiesCreateHost` `Field { label, description }` (the read-only Key keeps no handle, so Tab goes Label → Description as today); `ArtifactSheetForm` `Field { label, description }`; `SourceGraphFormDialog` `Field { name, description }`; `SourceTypeAddDialog` `Field { label, description }` (Key as in Properties); `CitationComposerView` `NewSubjectField { label, description }` (a separate name: S15-13 adds the composer's citation form focus to the same view); `CitationComposerEvidenceColumn` `CitationFormFocus { label, transcription }` *(internal, not private: S15-13 extends it and moves its state to `CitationComposerView`)* with `sideForm` `[.label, .transcription]` and `panelForm` `[.transcription, .label]`; `EvidenceGraphContent` `CreateFormField { label, description }` (its `focus` name is taken by `EvidenceGraphFocus`, so its state is `@FocusState private var createFormFocus: CreateFormField?`) | Each form's fields and today's order; no name clash in a view that already holds a focus state | — |
+| D-3 | A form holds `@FocusState private var focus: Field?` and a nested `private enum Field: Hashable` in the view that is the form's content (inside the sheet when the form is a dialog, never on the view that presents it), and writes its order once as `let order: [Field] = …` at the top of the `@ViewBuilder` property or `body` that builds the fields; a field not drawn is left out of `order` | The form owns its order and its state, as Promote and the date dialog already do | A kit enum of generic slots — the pair's `first`/`second` again |
+| D-4 | Types, states and orders: `PropertiesIdentityEditor` `Field { label, description }`, `focus`, in `body`; `PropertiesCreateForm` *(new, private struct in `PropertiesView.swift`, extracted from `PropertiesCreateHost.createForm`: `@Bindable var model: PropertiesModel`, `@Binding var draft: PropertiesModel.Draft?`; the host's dialog closure becomes `PropertiesCreateForm(model: model, draft: $draft)`)* `Field { label, description }`, `focus` (the read-only Key keeps no handle, so Tab goes Label → Description as today); `ArtifactSheetForm` `Field { label, description }`, `focus`, in `fields`; `SourceGraphForm` (in `SourceGraphFormDialog.swift`) `Field { name, description }`, `focus`, in `fields`; `SourceTypeAddForm` (in `SourceTypeAddDialog.swift`) `Field { label, description }`, `focus`, in `body` (Key as in Properties); `CitationNewSubjectFields` *(new, private struct in `CitationComposerView.swift`: `let label: Binding<String>`, `let description: Binding<String>`, `let error: String?`; it replaces the `PVTabPair` block inside the new-Subject dialog's `VStack`, called with `newSubjectLabelBinding`, `newSubjectDescriptionBinding`, `model.newSubjectDraft?.error`)* `Field { label, description }`, `focus`; `CitationComposerEvidenceColumn` `CitationFormFocus { label, transcription }` *(internal, not private: S15-13 extends it and moves its state to `CitationComposerView`)*, state `@FocusState private var formFocus: CitationFormFocus?` (not `focus`: `labelField(focus:)` and `transcriptionColumn(rows:focus:)` take a parameter of that name), `sideForm` `[.label, .transcription]`, `panelForm` `[.transcription, .label]`, each in its own property; `EvidenceGraphContent` `CreateFormField { label, description }`, state `@FocusState private var createFormFocus: CreateFormField?` (its `focus` holds `EvidenceGraphFocus`), in `createForm` | Each form's fields and today's order; the state sits in the sheet's content view, as `SourceDateForm` and `PromoteView` do; no name clash (review R2-1, R2-2, R2-3) | The state on the presenting view — whether its `.focused` reaches a separate sheet window is unproven |
 | D-5 | `EvidenceGraphContent.createForm`: `order = model.isEditingBridge ? [.description] : [.label, .description]`, and the description always gets its handle; the label's `PVField` stays behind the existing `if !model.isEditingBridge` | One rule for hidden fields (D-3); a lone listed field has no neighbours, so Tab goes to the key loop as with today's `nil` handle (AC-1.4) | Keeping the `nil` special case (review M-3) |
 | D-6 | The rule in the skill and the README: "When Tab must move from a field that claims Tab (`PVInput`, `PVComboBox`, `PVSelect`) to a `PVTextArea`, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`. Every kit field takes a `PVFieldFocus`." | Worded by the reason it exists, so text-area-only editors stay conforming (review M-4) | "A form with a `PVTextArea` lists its fields" — reaches forms it does not mean |
 | D-7 | `PVTabPair.swift` (`PVTabPair`, `PVTabPairField`, its `#Preview`) is deleted. `PVFieldFocusTests.tabPairOrder` becomes T-2 | One mechanism | Keeping `PVTabPair` as a wrapper — the user asked to retire the pair |
@@ -112,6 +112,7 @@ AppKit's key loop skips the text view under a `PVTextArea` when Tab leaves a `PV
 | --- | --- | --- | --- |
 | `PVFieldFocus.neighbours(of:in:)` *(new)*, `PVFieldFocus.init(_:equals:in:)` *(new)* | func, init | `PVTabPairField.next/previous`; `PVFieldFocus.init(_:equals:next:previous:)` | Generalizes the first to any order; extends the second, which it calls |
 | Per-form `private enum Field` and friends *(new, 8)*; `CitationFormFocus` *(new)* | enum | `PromoteView`'s `private enum Field` | Same shape, per form |
+| `PropertiesCreateForm`, `CitationNewSubjectFields` *(new, private)* | view | `SourceDateForm` (a dialog's content view holding its focus) | Moves two dialog forms out of their presenters so the state sits in the sheet |
 
 **Builds on.** `PVFieldFocus`, the form-held `@FocusState` pattern (`PromoteView`, `SourceDateDialog`, `MetadataBoardView`).
 **Deletes.** `PVTabPair.swift` (`PVTabPair`, `PVTabPairField`, its `#Preview`); the name `neighbours(next:previous:claim:)` (renamed); the `nil` handle special case in `EvidenceGraphContent.createForm`; the `PVTabPair` wording in the skill and the README.
@@ -151,6 +152,7 @@ None.
 | --- | --- | --- | --- |
 | Ordered handle | `PVFieldFocus` | `macos/App/DesignSystem/Components/Input/PVFieldFocus.swift` | D-1, D-2 |
 | Callers | — | the 7 files in § 4 | D-3, D-4, D-5. A caller reads, for one field: `PVInput(text: …, focus: PVFieldFocus($focus, equals: .label, in: order))` |
+| Dialog content views | — | `PropertiesCreateForm`, `CitationNewSubjectFields` *(new)* | D-4 |
 
 States and accessibility: unchanged.
 
@@ -176,7 +178,7 @@ Do: D-4, D-7. `labelField(focus:)` and `transcriptionColumn(rows:focus:)` keep t
 Check: `rg -n "PVTabPair" macos` returns nothing; `xcodebuild test` passes; manual check step 3.
 
 **STEP-4 — Docs.**
-Files: `.agents/skills/add-ui-component/SKILL.md` (line 74: D-6), `macos/App/DesignSystem/README.md` (Input and TextArea rows: D-6's sentence in place of the `PVTabPair` clause; Field focus row: "builds its Tab neighbours from a form's order with `init(_:equals:in:)`"), `docs/deployment-plan/spike-15/deployment-plan.md` (map row status; S15-41's scope gains "the control takes a `PVFieldFocus`, so a form can list it in its Tab order"), `docs/deployment-plan/spike-15/completed.md`, this plan.
+Files: `.agents/skills/add-ui-component/SKILL.md` (line 74: D-6), `macos/App/DesignSystem/README.md` (Input and TextArea rows: D-6's sentence in place of the `PVTabPair` clause; Field focus row: "builds its Tab neighbours from a form's order with `init(_:equals:in:)`"), `docs/deployment-plan/spike-15/deployment-plan.md` (map row status; the **Ships.** line of the scope entry `#### S15-41 — A metadata row can be marked unknown or supplied` gains the sentence "The control takes a `PVFieldFocus`, so a form can list it in its Tab order."), `docs/deployment-plan/spike-15/completed.md`, this plan.
 Do: per the Definition of done.
 Check: `rg -n "PVTabPair" .agents macos docs/*.md` returns nothing; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-50-forms-list-their-tab-order.md` reports no errors.
 
@@ -187,7 +189,7 @@ Commits: one per behavior. The subject is one full imperative sentence ending in
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
 | T-1 | Swift | `PVFieldFocusTests` `neighboursFollowTheFormsOrder` *(new)* | The cases of AC-2.1, AC-2.2, AC-2.3 | AC-2.1, AC-2.2, AC-2.3, D-1 |
-| T-2 | Swift | `PVFieldFocusTests` `claimsRunTheNeighbour` (today's `tabPairOrder`, renamed and rewritten without `PVTabPairField`) | `claims(next: "c", previous: "a")` with a recording claim: `next?()` records "c", `previous?()` records "a"; `claims(next: nil, previous: nil)` gives two nils | AC-2.4, D-2 |
+| T-2 | Swift | `PVFieldFocusTests` `claimsRunTheNeighbour` (today's `tabPairOrder`, renamed and rewritten without `PVTabPairField`) | `claims(next: "c", previous: "a")` with a recording claim: `next?()` records "c", `previous?()` records "a"; `claims(next: String?.none, previous: String?.none)` gives two nils | AC-2.4, D-2 |
 
 Tab at a real form is checked by hand (§ 10): a `FocusState.Binding` cannot be made outside a rendered view.
 
@@ -227,6 +229,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 **Stop and report if:**
 
 - A form's Tab order differs from before in any manual check step.
+- Tab does not move between the two fields inside a dialog (Add property, the new-Subject dialog, Add Evidence graph, Add type, the Artifact sheet) with the state in its content view (D-3).
 - A `PVTabPair` use appears outside the 7 files of § 4 (`rg -n "PVTabPair" macos` at the base).
 - `neighbours(next:previous:claim:)` has a caller other than `PVFieldFocus.init(_:equals:next:previous:)` and `tabPairOrder` (`rg -n "neighbours\(next:" macos`).
 
