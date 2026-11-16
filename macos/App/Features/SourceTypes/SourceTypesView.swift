@@ -95,14 +95,14 @@ private struct SourceTypesContent: View {
         CatalogSourceType(id: "t4", key: "family-scrapbook", origin: "user", label: "Family scrapbook", description: "Nan's albums.", usedBy: 3),
         CatalogSourceType(id: "t5", key: "grave-memorial", origin: "plugin:findagrave", label: "Grave memorial", description: "A memorial page.", usedBy: 5),
     ]
-    store.suggestionsByType["t2"] = [
+    store.suggestionsByLevel[.source] = ["t2": [
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![0], sortOrder: 0),
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![2], sortOrder: 1),
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![1], sortOrder: 2),
-    ]
-    store.suggestionsByType["t4"] = [
+    ], "t4": [
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![3], sortOrder: 0),
-    ]
+    ]]
+    store.suggestedFieldCountOverride = ["t2": 3, "t4": 1]
     let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     return SourceTypesView(
         session: session,

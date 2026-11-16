@@ -60,7 +60,7 @@ final class SourceTypePageModel {
     private var fieldsKey: CatalogQueryKey { .metadataFieldsList(project: session.projectKey) }
 
     private var suggestionsKey: CatalogQueryKey {
-        .typeSuggestions(project: session.projectKey, typeId: typeID)
+        .typeSuggestions(project: session.projectKey, typeId: typeID, level: .source)
     }
 
     /// Starts the three reads the page shows: the types list, the Metadata fields (the assign pool)
@@ -241,7 +241,7 @@ final class SourceTypePageModel {
             let updated = try await store.assignTypeField(
                 projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
             )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
+            session.apply(.wroteTypeSuggestions(typeId: type.id, level: .source, edit: updated))
             assignPick = ""
             toast = VocabularyToast(
                 title: L10n.string(L10n.SourceTypes.toastAssignedTitle),
@@ -263,7 +263,7 @@ final class SourceTypePageModel {
             let updated = try await store.removeTypeField(
                 projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: .source
             )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
+            session.apply(.wroteTypeSuggestions(typeId: type.id, level: .source, edit: updated))
             toast = VocabularyToast(
                 title: L10n.string(L10n.SourceTypes.toastRemovedTitle),
                 body: L10n.SourceTypes.toastRemovedBody(

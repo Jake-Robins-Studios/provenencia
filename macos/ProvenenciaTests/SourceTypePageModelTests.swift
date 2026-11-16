@@ -15,11 +15,11 @@ struct SourceTypePageModelTests {
         store: FakeStore = FakeStore(),
         types: [CatalogSourceType] = [],
         fields: [CatalogMetadataField] = [],
-        suggestions: [String: [CatalogTypeSuggestion]] = [:]
+        suggestions: [Level: [String: [CatalogTypeSuggestion]]] = [:]
     ) async -> (SourceTypePageModel, WorkspaceSession) {
         store.sourceTypesByProject[projectDir] = types
         store.fieldsByProject[projectDir] = fields
-        store.suggestionsByType = suggestions
+        store.suggestionsByLevel = suggestions
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let model = SourceTypePageModel(typeID: typeID, session: session, userID: userID, store: store)
         model.warm()
@@ -260,10 +260,10 @@ struct SourceTypePageModelTests {
             types: [seededSourceType()],
             fields: [author, publisher],
             // Publisher was assigned first, so stored order and label order disagree.
-            suggestions: ["t1": [
+            suggestions: [.source: ["t1": [
                 CatalogTypeSuggestion(field: publisher, sortOrder: 0),
                 CatalogTypeSuggestion(field: author, sortOrder: 1),
-            ]]
+            ]]]
         )
         #expect(model.suggestions.map(\.field.label) == ["Publisher", "Author"])
     }
@@ -274,7 +274,7 @@ struct SourceTypePageModelTests {
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author, catalogMetadataField("f2", label: "Publisher")],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
         #expect(model.assignPool.map(\.id) == ["f2"])
     }
@@ -313,7 +313,7 @@ struct SourceTypePageModelTests {
             store: store,
             types: [seededSourceType()],
             fields: [author, publisher],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
         #expect(model.suggestions.map(\.field.id) == ["f1"])
     }
@@ -364,7 +364,7 @@ struct SourceTypePageModelTests {
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
 
         await model.removeSuggestion(fieldID: "f1")
@@ -384,7 +384,7 @@ struct SourceTypePageModelTests {
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author],
-            suggestions: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+            suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
 
         await model.removeSuggestion(fieldID: "f1")
@@ -473,7 +473,7 @@ struct SourceTypePageModelTests {
                 store: store,
                 types: [userSourceType(), seededSourceType()],
                 fields: [author],
-                suggestions: ["t2": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]
+                suggestions: [.source: ["t2": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
             )
             if dirty { model.draft?.description = "Changed" }
             await model.askDelete()

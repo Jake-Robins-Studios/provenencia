@@ -24,14 +24,14 @@ struct CatalogQueryRegistryTests {
                 id: "f1", key: "author", origin: "user", label: "Author", dataType: "text", description: ""
             ),
         ]
-        store.suggestionsByType["t1"] = [
+        store.suggestionsByLevel[.source] = ["t1": [
             CatalogTypeSuggestion(
                 field: CatalogMetadataField(
                     id: "f1", key: "author", origin: "user", label: "Author", dataType: "text", description: ""
                 ),
                 sortOrder: 0
             ),
-        ]
+        ]]
         store.evidenceGraphsByProject[projectDir] = [
             CatalogEvidenceGraph(
                 id: "g1", ref: "GPH-1", sourceID: "s1", name: "Default", description: "", artifactIDs: ["art-0"]
@@ -58,7 +58,7 @@ struct CatalogQueryRegistryTests {
             CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1")
         )
         let suggestionsHandle: QueryHandle<[CatalogTypeSuggestion]> = session.query(
-            CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
+            CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .source)
         )
 
         await waitForQuery(sourcesHandle)
@@ -458,7 +458,10 @@ struct CatalogQueryRegistryTests {
         #expect(CatalogQueryKey.citationCounts(project: project, graphId: "g1").ownId == "g1")
         #expect(CatalogQueryKey.propertyTerms(project: project, propertyId: "p1").ownId == "p1")
         #expect(CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1").ownId == "s1")
-        #expect(CatalogQueryKey.typeSuggestions(project: project, typeId: "t1").ownId == "t1")
+        let suggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .graph)
+        #expect(suggestionsKey.ownId == nil)
+        #expect(suggestionsKey.suggestionsTypeId == "t1")
+        #expect(suggestionsKey.suggestionsLevel == .graph)
         #expect(CatalogQueryKey.personsList(project: project).ownId == nil)
         #expect(CatalogQueryKey.citationsByArtifact(project: project, graphId: "g1", artifactId: "a1").ownId == nil)
 
@@ -916,11 +919,11 @@ struct CatalogQueryRegistryTests {
         seedStore(store)
         let session = makeSession(store: store)
         let project = session.projectKey
-        let suggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
-        let otherSuggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t2")
+        let suggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .source)
+        let otherSuggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t2", level: .source)
         let typesKey = CatalogQueryKey.sourceTypesList(project: project)
 
-        store.suggestionsByType["t2"] = []
+        store.suggestionsByLevel[.source]?["t2"] = []
 
         let suggestionsHandle: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestionsKey)
         let otherHandle: QueryHandle<[CatalogTypeSuggestion]> = session.query(otherSuggestionsKey)
@@ -936,7 +939,7 @@ struct CatalogQueryRegistryTests {
         let edit = CatalogTypeSuggestionEdit(
             suggestions: [CatalogTypeSuggestion(field: date, sortOrder: 0)], suggestedFieldCount: 1
         )
-        session.apply(.wroteTypeSuggestions(typeId: "t1", edit: edit))
+        session.apply(.wroteTypeSuggestions(typeId: "t1", level: .source, edit: edit))
         await session.settleWrites()
 
         #expect(suggestionsHandle.value == edit.suggestions)
@@ -979,7 +982,7 @@ struct CatalogQueryRegistryTests {
             .allCached(.sourceWorkspace),
         ])
         #expect(registry.invalidations(
-            by: .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
+            by: .wroteTypeSuggestions(typeId: "t1", level: .source, edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             project: project
         ) == [.allCached(.sourceWorkspace)])
         // A mutation names no graph key: the graph is reached through each kind's
@@ -1028,7 +1031,7 @@ struct CatalogQueryRegistryTests {
         let everyMutation: [CatalogMutation] = [
             .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
-            .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
+            .wroteTypeSuggestions(typeId: "t1", level: .source, edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),
             .wroteMetadataBoard(sourceId: "s1", owner: MetadataOwner(level: .source, id: "s1"), entries: []),
         ]
@@ -1150,11 +1153,12 @@ struct CatalogQueryRegistryTests {
     @Test func fieldRelabelInvalidatesEveryCachedSuggestionList() async {
         let store = FakeStore()
         seedStore(store)
-        store.suggestionsByType["t2"] = store.suggestionsByType["t1"]
+        let first = store.suggestionsByLevel[.source]?["t1"]
+        store.suggestionsByLevel[.source]?["t2"] = first
         let session = makeSession(store: store)
         let project = session.projectKey
-        let firstKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
-        let secondKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t2")
+        let firstKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .source)
+        let secondKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t2", level: .source)
 
         let firstHandle: QueryHandle<[CatalogTypeSuggestion]> = session.query(firstKey)
         let secondHandle: QueryHandle<[CatalogTypeSuggestion]> = session.query(secondKey)
@@ -1168,8 +1172,8 @@ struct CatalogQueryRegistryTests {
             ),
             sortOrder: 0
         )
-        store.suggestionsByType["t1"] = [renamed]
-        store.suggestionsByType["t2"] = [renamed]
+        store.suggestionsByLevel[.source]?["t1"] = [renamed]
+        store.suggestionsByLevel[.source]?["t2"] = [renamed]
         session.apply(CatalogWriteEffects(lists: [.sourceVocabulary]), .updatedMetadataField(id: "f1"))
 
         let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(firstKey)
@@ -1274,8 +1278,9 @@ struct CatalogQueryRegistryTests {
         #expect(registry.invalidations(by: .deletedSourceType(id: "t-book"), project: session.projectKey).isEmpty)
     }
 
-    /// T-7 (AC-3.1, AC-3.3, D-7): a suggestion write patches the type's suggestions and the row's
-    /// count with no load, and marks a cached Source page stale.
+    /// T-8 (D-1, D-2, D-5, AC-3.2): a suggestion write at one level patches that level's key and the
+    /// row's count with no load, leaves the type's other levels alone, and marks a cached Source
+    /// page stale.
     @Test func wroteTypeSuggestionsPatchesTheListAndTheCount() async {
         let store = FakeStore()
         seedStore(store)
@@ -1288,29 +1293,40 @@ struct CatalogQueryRegistryTests {
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "book", origin: "user", label: "Book", description: ""),
         ]
-        let suggestions: QueryHandle<[CatalogTypeSuggestion]> = session.query(
-            .typeSuggestions(project: project, typeId: "t1")
+        store.suggestedFieldCountOverride["t1"] = 1
+        let source: QueryHandle<[CatalogTypeSuggestion]> = session.query(
+            .typeSuggestions(project: project, typeId: "t1", level: .source)
+        )
+        let artifact: QueryHandle<[CatalogTypeSuggestion]> = session.query(
+            .typeSuggestions(project: project, typeId: "t1", level: .artifact)
+        )
+        let graph: QueryHandle<[CatalogTypeSuggestion]> = session.query(
+            .typeSuggestions(project: project, typeId: "t1", level: .graph)
         )
         let types: QueryHandle<[CatalogSourceType]> = session.query(.sourceTypesList(project: project))
         let page: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s1"))
-        await waitForQuery(suggestions)
+        await waitForQuery(source)
+        await waitForQuery(artifact)
+        await waitForQuery(graph)
         await waitForQuery(types)
         await waitForQuery(page)
-        #expect(suggestions.value?.map(\.field.id) == ["f1"])
+        #expect(source.value?.map(\.field.id) == ["f1"])
+        #expect(graph.value?.isEmpty == true)
         #expect(types.value?.first?.suggestedFieldCount == 1)
         let loads = store.listTypeSuggestionsLevels.count
         #expect(!page.isStale)
         // A reload of the list would now read no types.
         store.sourceTypesByProject[projectDir] = []
 
-        let author = suggestions.value![0]
         let edit = CatalogTypeSuggestionEdit(
-            suggestions: [author, CatalogTypeSuggestion(field: publisher, sortOrder: 1)], suggestedFieldCount: 2
+            suggestions: [CatalogTypeSuggestion(field: publisher, sortOrder: 0)], suggestedFieldCount: 2
         )
-        session.apply(.wroteTypeSuggestions(typeId: "t1", edit: edit))
+        session.apply(.wroteTypeSuggestions(typeId: "t1", level: .graph, edit: edit))
         await session.settleWrites()
 
-        #expect(suggestions.value == edit.suggestions)
+        #expect(graph.value == edit.suggestions)
+        #expect(source.value?.map(\.field.id) == ["f1"])
+        #expect(artifact.value?.isEmpty == true)
         #expect(types.value?.first?.suggestedFieldCount == 2)
         #expect(store.listTypeSuggestionsLevels.count == loads)
         #expect(page.isStale)
@@ -1502,7 +1518,7 @@ struct CatalogQueryRegistryTests {
         let keys: [String: CatalogQueryKey] = [
             "sourceTypesList": .sourceTypesList(project: project),
             "metadataFieldsList": .metadataFieldsList(project: project),
-            "typeSuggestions": .typeSuggestions(project: project, typeId: "t1"),
+            "typeSuggestions": .typeSuggestions(project: project, typeId: "t1", level: .source),
             "propertiesWorkspace": .propertiesWorkspace(project: project),
             "personsList": .personsList(project: project),
             "eventsList": .eventsList(project: project),
@@ -1595,7 +1611,7 @@ struct CatalogQueryRegistryTests {
         let mutations: [CatalogMutation] = [
             .updatedSource(source), .changedSourceType(source), .createdSource(source), .deletedSource(id: "s1"),
             .updatedMetadataField(id: "f1"), .deletedMetadataField(id: "f1"),
-            .wroteTypeSuggestions(typeId: "t1", edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
+            .wroteTypeSuggestions(typeId: "t1", level: .source, edit: CatalogTypeSuggestionEdit(suggestions: [], suggestedFieldCount: 0)),
             .mutatedSourceWorkspace(sourceId: "s1"),
             .wroteMetadataBoard(sourceId: "s1", owner: MetadataOwner(level: .source, id: "s1"), entries: []),
         ]

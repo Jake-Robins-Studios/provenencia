@@ -157,13 +157,6 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// A count the engine would report that differs from the `.source` list's
     /// length, so a test can tell the engine's count from the reply's rows.
     var suggestedFieldCountOverride: [String: Int] = [:]
-    /// The `.source` level of `suggestionsByLevel`, for tests that need one
-    /// list. Like every stored property it is read and written inside
-    /// `withState`, which already holds `stateLock`.
-    var suggestionsByType: [String: [CatalogTypeSuggestion]] {
-        get { suggestionsByLevel[.source, default: [:]] }
-        set { suggestionsByLevel[.source] = newValue }
-    }
     var fieldsByProject: [String: [CatalogMetadataField]] = [:]
     var propertiesByProject: [String: [CatalogProperty]] = [:]
     /// Value-type rules `getPropertiesWorkspace` returns; empty unless a test seeds them.

@@ -373,12 +373,13 @@ struct CatalogQueryPatch: Sendable {
         }
     }
 
-    /// Writes a suggestion write's reply onto the cached suggestions of the type it names (S15-12 D-2,
-    /// at the Source level). A key of another type, or one with no value, is left alone.
+    /// Writes a suggestion write's reply onto the cached suggestions of the type it names (S15-12 D-2).
+    /// A key of another type or level, or one with no value, is left alone.
     static func typeSuggestions() -> Self {
         Self(follows: nil) { session, key, _, _, mutation in
-            guard case .wroteTypeSuggestions(let typeId, let edit)? = mutation else { return .unchanged }
-            guard key.kind == .typeSuggestions, key.ownId == typeId else { return .unchanged }
+            guard case .wroteTypeSuggestions(let typeId, let level, let edit)? = mutation else { return .unchanged }
+            guard key.kind == .typeSuggestions, key.suggestionsTypeId == typeId, key.suggestionsLevel == level
+            else { return .unchanged }
             return session.patchCached(key, as: [CatalogTypeSuggestion].self) { suggestions in
                 guard suggestions != edit.suggestions else { return false }
                 suggestions = edit.suggestions
@@ -391,7 +392,7 @@ struct CatalogQueryPatch: Sendable {
     /// list's Fields column follows with no reload. A type the list lacks adds nothing.
     static func typeSuggestionCount() -> Self {
         Self(follows: nil) { session, key, _, _, mutation in
-            guard case .wroteTypeSuggestions(let typeId, let edit)? = mutation else { return .unchanged }
+            guard case .wroteTypeSuggestions(let typeId, _, let edit)? = mutation else { return .unchanged }
             return session.patchCached(key, as: [CatalogSourceType].self) { rows in
                 guard let index = rows.firstIndex(where: { $0.id == typeId }),
                       rows[index].suggestedFieldCount != edit.suggestedFieldCount
