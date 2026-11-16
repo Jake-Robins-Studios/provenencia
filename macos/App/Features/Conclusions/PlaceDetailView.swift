@@ -15,7 +15,7 @@ struct PlaceDetailView: View {
             pageIdentifier: "places.detail",
             errorIdentifier: "places.detail.error",
             userID: userID,
-            make: { PlaceDetailContent(detail: $0) },
+            make: { detail, _ in PlaceDetailContent(detail: detail) },
             secondary: { PlaceDetailChain(text: $0.chain, recorded: $0.chainIsRecorded) }
         )
     }

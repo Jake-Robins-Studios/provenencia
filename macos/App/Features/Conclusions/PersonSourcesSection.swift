@@ -22,24 +22,23 @@ struct PersonSourcesSection: View {
     private var root: String { ConclusionPageSection.sources.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
     var body: some View {
-        let orders = session.nameFormat
-        let folds = folds
-        let typesHandle: QueryHandle<[CatalogSourceType]>? = ConclusionPageSection.sources
-            .read(.supporting, project: session.projectKey, entityId: entityId)
-            .flatMap { session.queryHandle($0) }
-        ConclusionPageSectionHost<CatalogPersonClaims, PersonSourcesContent, PersonSourcesList>(
+        let inputs = PersonSourcesContent.Inputs(folds: folds, orders: session.nameFormat)
+        let typesKey = ConclusionPageSection.sources.read(.supporting, project: session.projectKey, entityId: entityId)
+        ConclusionPageSectionHost<CatalogPersonClaims, PersonSourcesContent.Inputs, PersonSourcesContent, PersonSourcesList>(
             section: .sources,
             entityId: entityId,
             accessibilityIdentifierRoot: root,
             errorTitle: L10n.Conclusions.sourcesErrorTitle,
             emptyTitle: L10n.Conclusions.sourcesEmptyTitle,
             emptyMessage: L10n.string(L10n.Conclusions.sourcesEmptyMessage),
-            make: {
-                PersonSourcesContent(
-                    groups: $0.groups,
+            extra: inputs,
+            make: { claims, inputs in
+                let typesHandle: QueryHandle<[CatalogSourceType]>? = typesKey.flatMap { session.queryHandle($0) }
+                return PersonSourcesContent(
+                    groups: claims.groups,
                     sourceTypes: typesHandle?.value ?? [],
-                    orders: orders,
-                    folds: folds
+                    orders: inputs.orders,
+                    folds: inputs.folds
                 )
             },
             isEmpty: \.isEmpty
@@ -198,7 +197,7 @@ struct PersonSourcesList: View {
     private var diagram: some View {
         let focused = focusedGraphID
         let hover = hover
-        return ConclusionPageSectionHost<CatalogPersonRecordLinks, PersonRecordLinksContent, PersonRecordLinksColumn>(
+        return ConclusionPageSectionHost<CatalogPersonRecordLinks, [String: WorkspaceLocation], PersonRecordLinksContent, PersonRecordLinksColumn>(
             section: .sources,
             entityId: entityId,
             accessibilityIdentifierRoot: accessibilityIdentifierRoot,
@@ -207,11 +206,9 @@ struct PersonSourcesList: View {
                 loadingHeight: CircularLinkDiagramStyle.standard.minimumHeight
             ),
             errorTitle: L10n.Conclusions.recordLinksErrorTitle,
-            make: {
-                PersonRecordLinksContent(
-                    links: $0,
-                    graphLocations: content.graphLocations
-                )
+            extra: content.graphLocations,
+            make: { links, graphLocations in
+                PersonRecordLinksContent(links: links, graphLocations: graphLocations)
             }
         ) { links in
             PersonRecordLinksColumn(

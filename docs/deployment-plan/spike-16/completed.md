@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-27 — One primitive for values derived from cached data
+
+**Landed 2026-11-15** in [#854](https://github.com/mendahu/provenencia/pull/854). Nothing a researcher sees changes. `WorkspaceSession.derived` builds a value once per change of the reads it names and of the plain values it is given; the Evidence graph index (still spliced across a merged re-read), the Evidence graph snapshot (now one per graph, shared by Promote, Unpromote, the canvas and the composer), the canvas card text, the composer's vocabulary, the visible Sources, and every Conclusion page's detail and section content move onto it, and the four hand-written memos are gone. A debug build asserts when a build reads a key it did not name.
+
 ## S16-26 — Conclusion lists merge the rows a write touched
 
 **Landed 2026-11-15** in [#851](https://github.com/mendahu/provenencia/pull/851). After a write, the Persons, Events and Places lists re-read only the rows the write touched, on screen or not, and put each where Go's order says, so Back to a list shows current rows with no reload (a whole Persons reload was 115–137 ms at 16,000 persons; the touched rows take under 1 ms). Go sorts every list by one `ListKey` (a collation or date key, then the ref) and sends it as `list_key`; the list requests take `entity_ids`. A partial re-read now runs for any warmed key with a current value, so the Evidence graph list merges while hidden too; a label edit still reloads a visible list whole and marks a hidden one stale.

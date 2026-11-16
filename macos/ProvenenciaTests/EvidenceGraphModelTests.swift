@@ -198,20 +198,27 @@ struct EvidenceGraphModelTests {
             )
         }
 
-        let first = rows(label: "Wm Robins")
-        let placed = try #require(model.displaySnapshot(rows: first, types: types).subjects.first)
-        let text = model.displayText(rows: first, types: types)[subject: placed]
-        #expect(text.accessibilityLabel == EvidenceSubjectCard.accessibilityLabel(for: placed))
-        #expect(text.footerActionName == EvidenceSubjectCard.footerAccessibilityActionName(for: placed))
-        #expect(text.deleteActionName == L10n.EvidenceGraph.deleteAccessibility(
+        let session = model.session
+        let graphKey = CatalogQueryKey.evidenceGraph(project: session.projectKey, graphId: graphID)
+        let fieldsKey = CatalogQueryKey.propertiesWorkspace(project: session.projectKey)
+        var fields = PropertiesSnapshot.empty
+        fields.types = types
+        session.setQueryValue(fieldsKey, value: fields)
+        session.setQueryValue(graphKey, value: rows(label: "Wm Robins"))
+        let text = model.displayText
+        let placed = try #require(model.displaySnapshot.subjects.first)
+        #expect(text[subject: placed].accessibilityLabel == EvidenceSubjectCard.accessibilityLabel(for: placed))
+        #expect(text[subject: placed].footerActionName == EvidenceSubjectCard.footerAccessibilityActionName(for: placed))
+        #expect(text[subject: placed].deleteActionName == L10n.EvidenceGraph.deleteAccessibility(
             kind: "person", label: "Wm Robins", ref: "CPR-1"
         ))
-        #expect(model.displayText(rows: first, types: types) == model.displayText(rows: first, types: types))
+        #expect(model.displayText == model.displayText)
+        #expect(session.derivedBuildCount(.evidenceGraphText(graphID: graphID)) == 1)
 
-        let renamed = rows(label: "William Robins")
-        let renamedPlaced = try #require(model.displaySnapshot(rows: renamed, types: types).subjects.first)
-        #expect(model.displayText(rows: renamed, types: types)[subject: renamedPlaced].accessibilityLabel
-            .contains("William Robins"))
+        session.setQueryValue(graphKey, value: rows(label: "William Robins"))
+        let renamedPlaced = try #require(model.displaySnapshot.subjects.first)
+        #expect(model.displayText[subject: renamedPlaced].accessibilityLabel.contains("William Robins"))
+        #expect(session.derivedBuildCount(.evidenceGraphText(graphID: graphID)) == 2)
     }
 
     @Test func prepareCachesPrimaryTypeIDs() async {

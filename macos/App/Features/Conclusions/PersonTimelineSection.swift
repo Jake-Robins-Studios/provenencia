@@ -19,17 +19,22 @@ struct PersonTimelineSection: View {
     private var root: String { ConclusionPageSection.timeline.accessibilityIdentifierRoot(pageIdentifier: pageIdentifier) }
 
     var body: some View {
-        let orders = session.nameFormat
-        let folds = folds
-        let widthClass = widthClass
-        ConclusionPageSectionHost<CatalogPersonTimeline, PersonTimelineContent, PersonTimelineList>(
+        let inputs = PersonTimelineContent.Inputs(
+            folds: folds, orders: session.nameFormat, widthClass: widthClass, locale: .autoupdatingCurrent
+        )
+        ConclusionPageSectionHost<CatalogPersonTimeline, PersonTimelineContent.Inputs, PersonTimelineContent, PersonTimelineList>(
             section: .timeline,
             entityId: entityId,
             accessibilityIdentifierRoot: root,
             errorTitle: L10n.Conclusions.timelineErrorTitle,
             emptyTitle: L10n.Conclusions.timelineEmptyTitle,
             emptyMessage: L10n.string(L10n.Conclusions.timelineEmptyMessage),
-            make: { PersonTimelineContent(timeline: $0, folds: folds, locale: .autoupdatingCurrent, orders: orders, widthClass: widthClass) },
+            extra: inputs,
+            make: {
+                PersonTimelineContent(
+                    timeline: $0, folds: $1.folds, locale: $1.locale, orders: $1.orders, widthClass: $1.widthClass
+                )
+            },
             isEmpty: \.isEmpty
         ) { content in
             PersonTimelineList(

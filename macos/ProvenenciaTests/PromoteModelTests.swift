@@ -321,6 +321,21 @@ struct PromoteModelTests {
         #expect(calls.count == 2)
     }
 
+    @Test func reproposingReusesTheGraphSnapshot() async {
+        let subjects = [subject("a", ref: "CPR-A", label: "Ada")]
+        let store = store(subjects: subjects)
+        store.promoteProposals = [
+            CatalogPromoteGraphAlignmentProposal(revision: 1, rows: [row("a", handleID: "e1")]),
+            CatalogPromoteGraphAlignmentProposal(revision: 2, rows: [row("a", handleID: "e9")]),
+        ]
+        let model = model(store: store, subjectID: "a")
+        await model.load()
+        model.setTarget(subjectID: "a", token: "handle:other")
+        let settled = await waitUntil { !model.isProposing }
+        #expect(settled)
+        #expect(model.session.derivedBuildCount(.evidenceGraphSnapshot(graphID: "g-1")) == 1)
+    }
+
     @Test func quickDecisionsRunOneProposalAtATime() async {
         let labels = ["a", "b", "c", "d", "e", "f"]
         let subjects = labels.map { subject($0, ref: "CPR-\($0.uppercased())", label: $0) }

@@ -386,3 +386,13 @@ struct PersonTimelineContent: Equatable {
         )
     }
 }
+
+extension PersonTimelineContent {
+    /// What the content is built from beside its read; it is built again when any of them changes.
+    struct Inputs: Equatable {
+        var folds: ConclusionFoldState<Fold>
+        var orders: NameFormatOrders
+        var widthClass: PVWidthClass
+        var locale: Locale
+    }
+}

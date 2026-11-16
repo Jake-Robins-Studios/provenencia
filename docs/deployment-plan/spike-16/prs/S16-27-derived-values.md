@@ -1,6 +1,6 @@
 # S16-27 — One primitive for values derived from cached data
 
-**Status:** Planned
+**Status:** Landed in [#854](https://github.com/mendahu/provenencia/pull/854) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view draws the same content; only how often the app builds it changes)
@@ -8,12 +8,14 @@
 **Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769): one list of section reads), S16-07 (landed [#761](https://github.com/mendahu/provenencia/pull/761): `ConclusionFoldState`, one fold state per section)
 **Blocks:** —
 **Branch:** `s16-27-derived-values`
-**Version bump:** patch, 0.15.4 → 0.15.5 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
+**Version bump:** patch, 0.15.5 → 0.15.6 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** [design § Swift](../cache-architecture.md#swift) ("One primitive for derived values"); [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) "Cache contract" rule 5; [`docs/catalog-caches.md`](../../../catalog-caches.md) "Swift caches"; working rules: "(Batch 2) The point of this batch is simpler code", "(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing", "(Batch 1) Refused: memoising and re-shaping for speed" (its Batch 2 clause names this PR), "(Batch 2) No new persisted projections, and no stored answer without a measurement"; goal bar 15's last clause
 **Planned:** 2026-11-15 against `main` @ `1f52b60`
 **Review:** [`S16-27-derived-values.review.md`](S16-27-derived-values.review.md) — round 1: Fits with changes / Ready with changes; round 2: Fits with changes / Not ready, every finding Fixed; To user answered (2026-11-15); Planned
+
+**Landed.** Differences from the plan: the version bump is 0.15.5 → 0.15.6, because `main` already stood at 0.15.5 (S15-49); STEP-1 and STEP-2 landed as one commit (the primitive and the index's move share `WorkspaceSession.swift`'s storage); the T-10 test (`aTermWriteRebuildsTheVocabularyOnce`) writes the term through `confirmCustomTerm` with `nextWriteEffects`, because a bare `apply` only marks a hidden term key stale, and uses the term-valued `role` Property; T-7 sets the rows and the Subject types with `setQueryValue`. Review round 1: the derived-value id for a Conclusion page's content carries the content's type, so one key opened as two page kinds holds one value per kind; the D-10 comparison records the undeclared keys per id (`derivedUndeclaredReads`) and a test reads that record (`aBuildThatReadsAnUndeclaredKeyIsReported`), and §10 step 8 removes the rules key from the inputs list only; `Memo.value(for:build:)` is deleted; and `evidenceGraph` keys are never evicted, so a graph's snapshot, card text and composer vocabulary last for the window's session, like its rows handle.
 
 **Base.** Compare against `origin/main` (fetch it first); `1f52b60` is the planned commit.
 
@@ -167,13 +169,13 @@ None — no new path into existing code. A new state: a derived value outlives a
 
 ### Scale
 
-At the map's Batch 2 Scale: a stamp is one dictionary lookup and one `Int` compare per input; the widest input list is the composer's (three inputs plus one per term-valued Property, about 10 on the shipped vocabulary); a `.derived` input re-stamps its entry's three keys. `evict(_ key:)` scans the entries: at most four content entries per entity (51 entities kept: the detail page and three section hosts, the Sources section having two), one snapshot, text and vocabulary per opened graph, and two catalog-wide entries — a few hundred compares per eviction. Memory: a content entry holds the value already built today, now kept while its keys are held (50 hidden entities); a Timeline content holds only its shown rows (S16-02). The snapshot is shared by four readers where the canvas and the composer each held one. No write changes what it invalidates.
+At the map's Batch 2 Scale: a stamp is one dictionary lookup and one `Int` compare per input; the widest input list is the composer's (three inputs plus one per term-valued Property, about 10 on the shipped vocabulary); a `.derived` input re-stamps its entry's three keys. `evict(_ key:)` scans the entries: at most four content entries per entity (51 entities kept: the detail page and three section hosts, the Sources section having two), one snapshot, text and vocabulary per opened graph (kept for the window's session), and two catalog-wide entries — a few hundred compares per eviction. Memory: a content entry holds the value already built today, now kept while its keys are held (50 hidden entities); a Timeline content holds only its shown rows (S16-02). The snapshot is shared by four readers where the canvas and the composer each held one. No write changes what it invalidates.
 
 ### Edges
 
 - **Assumptions.** A handle's `revision` moves on every change of `value` (`markReplaced`, `applyFailure(clearValue: true)`, `resetForInvalidation`); `modifyValue` returning false changes nothing and moves nothing. T-2 holds an `apply` that refreshes an input. A build reads only its declared keys, its `.derived` inputs and `extra`; D-10 checks every read through `queryHandle` in debug builds. The hosts' builds take their value as an argument and declare that value's key. `buildVisibleSources` reads `searchKeys`, a per-row cache keyed by row revision, which is not a session read.
 - **Neighbors.** Same stamps and same `extra` → stored value (AC-1.1); one input moved → build (AC-1.2); a non-input moved → stored (AC-1.3); `extra` moved → build (AC-1.4); a `.derived` input whose own key moved → both build (AC-1.6). A carry when another input also moved → no carry, the next read builds (T-4).
-- **Removed inputs.** An evicted key drops every entry built from it and every entry built from those (AC-1.5, T-3, T-5). A host whose read goes to `.gone` or `.failed` never calls `conclusionContent`; the entry stays until its key is evicted. A deleted graph's snapshot, text and vocabulary drop when its `evidenceGraph` key is evicted.
+- **Removed inputs.** An evicted key drops every entry built from it and every entry built from those (AC-1.5, T-3, T-5). A host whose read goes to `.gone` or `.failed` never calls `conclusionContent`; the entry stays until its key is evicted. `evidenceGraph` keys are never evicted, so a graph's snapshot, text and vocabulary last for the window's session, like its rows handle.
 - **Real data.** None — no table- or seed-driven rule.
 - **Untrusted size.** None — the primitive adds no fan-out over data; each build costs what it costs today, at most once per change. `.derived` chains are one level deep (text and vocabulary on the snapshot).
 
@@ -334,7 +336,7 @@ Run a Debug build (D-10's check is on).
 5. Open the citation composer on that graph and add a term to a term-valued Property in Properties: the composer offers it.
 6. Promote a Subject, decide one row: the proposal updates. Unpromote a record with a bridge: the confirm lists the connection.
 7. Sources list: change sort, filter by type and by status, type in search: rows as before.
-8. In a Debug build, remove `.key(connectRules)` from `evidenceGraphSnapshotKeys(graphID:)`, open an Evidence graph: the assertion names `evidenceGraphSnapshot` and the `connectRules` key (AC-1.7). Put the key back.
+8. In a Debug build, remove `rules` from `EvidenceGraphSnapshotKeys.inputs` only (the build still reads it), open an Evidence graph: the assertion names `evidenceGraphSnapshot` and the `connectRules` key (AC-1.7). Put it back.
 
 ## 11. Risks and stop conditions
 

@@ -1,6 +1,14 @@
 import Foundation
 @testable import Provenencia
 
+/// A Person's Conclusion detail for tests: `PER-` plus the `id`, no fields.
+func catalogConclusionDetail(_ id: String) -> CatalogConclusionDetail {
+    CatalogConclusionDetail(
+        entity: CatalogCanonicalEntity(id: id, ref: "PER-\(id)", subjectTypeID: "t", label: ""),
+        fields: []
+    )
+}
+
 /// An Artifact row for tests. `ref` defaults to `ART-` plus the `id`, and `label`
 /// to the `id`; a file-bearing Artifact passes `fileID` and `file` together.
 func catalogArtifact(

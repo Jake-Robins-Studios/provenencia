@@ -46,15 +46,6 @@ final class EvidenceGraphModel {
     /// Cards a drag in flight moves: the anchor first, then the other selected
     /// subjects in snapshot order. Cleared when the drop commits.
     private(set) var groupDragIDs: [String] = []
-    @ObservationIgnored
-    private var snapshotMemo: (
-        rows: EvidenceGraphRows,
-        types: [CatalogSubjectType],
-        rules: [CatalogConnectRule],
-        orders: NameFormatOrders,
-        value: EvidenceGraphSnapshot,
-        text: EvidenceGraphText
-    )?
     /// The Unpromote confirm's state, bound with `.unpromoteConfirm(flow:…)`.
     let unpromote = UnpromoteFlow()
     /// Subject pending DeleteImpact confirm or notice.
@@ -238,31 +229,20 @@ final class EvidenceGraphModel {
     }
 
     /// Snapshot as loaded. Edges come from cited observations.
-    func displaySnapshot(rows: EvidenceGraphRows?, types: [CatalogSubjectType]) -> EvidenceGraphSnapshot {
-        let rules = connectRules
-        let normalized = rows ?? EvidenceGraphRows(graphId: graphID)
-        if let snapshotMemo,
-           snapshotMemo.rows == normalized,
-           snapshotMemo.types == types,
-           snapshotMemo.rules == rules,
-           snapshotMemo.orders == session.nameFormat
-        {
-            return snapshotMemo.value
-        }
-        let value = EvidenceGraphSnapshot.build(
-            rows: normalized,
-            types: types,
-            rules: rules
-        )
-        snapshotMemo = (normalized, types, rules, session.nameFormat, value, EvidenceGraphText(snapshot: value, orders: session.nameFormat))
-        return value
+    var displaySnapshot: EvidenceGraphSnapshot {
+        session.cachedEvidenceGraphSnapshot(graphID: graphID)
     }
 
-    /// Card copy for the same snapshot as ``displaySnapshot(rows:types:)``,
-    /// formatted once when that snapshot is built.
-    func displayText(rows: EvidenceGraphRows?, types: [CatalogSubjectType]) -> EvidenceGraphText {
-        _ = displaySnapshot(rows: rows, types: types)
-        return snapshotMemo?.text ?? EvidenceGraphText(snapshot: displaySnapshot(rows: rows, types: types), orders: session.nameFormat)
+    /// Card copy for the same snapshot as ``displaySnapshot``, formatted once
+    /// per change of the snapshot and the name orders.
+    var displayText: EvidenceGraphText {
+        session.derived(
+            .evidenceGraphText(graphID: graphID),
+            inputs: [.derived(.evidenceGraphSnapshot(graphID: graphID))],
+            extra: session.nameFormat
+        ) {
+            EvidenceGraphText(snapshot: displaySnapshot, orders: session.nameFormat)
+        }
     }
 
     func prepare() async {
@@ -1369,10 +1349,10 @@ final class EvidenceGraphModel {
     }
 
     private func currentSnapshot() -> EvidenceGraphSnapshot? {
-        guard let handle: QueryHandle<EvidenceGraphRows> = session.queryHandle(graphKey) else {
+        guard let _: QueryHandle<EvidenceGraphRows> = session.queryHandle(graphKey) else {
             return nil
         }
-        return displaySnapshot(rows: handle.value, types: fieldsSnapshot?.types ?? [])
+        return displaySnapshot
     }
 
     private func primary(in snapshot: EvidenceGraphSnapshot?, id: String) -> EvidenceGraphPlacedSubject? {

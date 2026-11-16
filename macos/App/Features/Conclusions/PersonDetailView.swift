@@ -15,7 +15,7 @@ struct PersonDetailView: View {
             pageIdentifier: "persons.detail",
             errorIdentifier: "persons.detail.error",
             userID: userID,
-            make: { PersonDetailContent(detail: $0, orders: session.nameFormat) },
+            make: { PersonDetailContent(detail: $0, orders: $1) },
             secondary: { PersonDetailLifeLines(lines: $0.lifeLines) },
             pageSections: { PersonDetailSections(entityId: entityId, userID: userID, content: $0, context: $1) }
         )

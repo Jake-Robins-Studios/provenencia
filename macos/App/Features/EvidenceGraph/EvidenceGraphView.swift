@@ -109,7 +109,7 @@ private struct EvidenceGraphContent: View {
     @FocusState private var focus: EvidenceGraphFocus?
 
     private var snapshot: EvidenceGraphSnapshot {
-        model.displaySnapshot(rows: graphHandle.value, types: fieldsHandle.value?.types ?? [])
+        model.displaySnapshot
     }
 
     private var subjects: [EvidenceGraphPlacedSubject] {
@@ -774,7 +774,7 @@ private struct EvidenceGraphDocumentBody: View {
     @Environment(\.graphCanvasViewport) private var viewport
 
     private var snapshot: EvidenceGraphSnapshot {
-        model.displaySnapshot(rows: graphHandle.value, types: fieldsHandle.value?.types ?? [])
+        model.displaySnapshot
     }
 
     private var subjects: [EvidenceGraphPlacedSubject] {
@@ -787,7 +787,7 @@ private struct EvidenceGraphDocumentBody: View {
 
     /// Card copy formatted with the snapshot; card views format nothing.
     private var text: EvidenceGraphText {
-        model.displayText(rows: graphHandle.value, types: fieldsHandle.value?.types ?? [])
+        model.displayText
     }
 
     private var inputMode: EvidenceCanvasInputMode {

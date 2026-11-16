@@ -305,10 +305,10 @@ struct SourcesModelTests {
         await warmLists(model, session: session)
         model.settings.typeFilterID = "t1"
         _ = model.visibleSources
-        let before = model.visibleSourcesBuildCount
+        let before = session.derivedBuildCount(.visibleSources)
         model.settings.sort = .dateOldest
         let rows = model.visibleSources
-        #expect(model.visibleSourcesBuildCount == before + 1)
+        #expect(session.derivedBuildCount(.visibleSources) == before + 1)
         #expect(rows.count == 1500)
         let dated = (0..<100).map { String(format: "s%04d", $0 * 30) }
         #expect(rows.prefix(100).map(\.id) == dated)
@@ -467,36 +467,36 @@ struct SourcesModelTests {
         await warmLists(model, session: session)
         model.settings.sort = .az
         #expect(model.visibleSources.map(\.title) == ["Album", "Deed", "Will"])
-        #expect(model.visibleSourcesBuildCount == 1)
+        #expect(session.derivedBuildCount(.visibleSources) == 1)
 
         model.openAdd()
         for title in ["D", "De", "Dee"] {
             model.draft.title = title
             _ = model.visibleSources
         }
-        #expect(model.visibleSourcesBuildCount == 1)
+        #expect(session.derivedBuildCount(.visibleSources) == 1)
 
         model.settings.query = "deed"
         #expect(model.visibleSources.map(\.title) == ["Deed"])
-        #expect(model.visibleSourcesBuildCount == 2)
+        #expect(session.derivedBuildCount(.visibleSources) == 2)
 
         let sourcesKey = SourcesModel.sourcesListKey(for: session)
         session.setQueryValue(sourcesKey, value: model.sources)
         _ = model.visibleSources
-        #expect(model.visibleSourcesBuildCount == 3)
+        #expect(session.derivedBuildCount(.visibleSources) == 3)
 
         // Without a status filter the progress revision is not an input.
         session.setQueryValue(session.evidenceGraphProgressKey, value: [String: EvidenceGraphProgress]())
         _ = model.visibleSources
-        #expect(model.visibleSourcesBuildCount == 3)
+        #expect(session.derivedBuildCount(.visibleSources) == 3)
 
         model.settings.query = ""
         model.settings.status = .empty
         _ = model.visibleSources
-        let afterFilter = model.visibleSourcesBuildCount
+        let afterFilter = session.derivedBuildCount(.visibleSources)
         session.setQueryValue(session.evidenceGraphProgressKey, value: [String: EvidenceGraphProgress]())
         _ = model.visibleSources
-        #expect(model.visibleSourcesBuildCount == afterFilter + 1)
+        #expect(session.derivedBuildCount(.visibleSources) == afterFilter + 1)
     }
 
     @Test func cancelAddDoesNotCreate() async {
