@@ -6,7 +6,7 @@
 **Implements later as:** PR **S15-13**
 **Board:** — (not drawn yet). When agreed: the Claude Design link and frame names go here (user, 2026-11-16: the board reaches the implementer as a Claude Design link)
 **Review:** with the plan, in [`../prs/S15-13-composer-printed-page.review.md`](../prs/S15-13-composer-printed-page.review.md)
-**Depends on:** S15-50 (a form's tab order in the kit, `PVTabOrder`). The locator already has `page_label` on its `page` selector ([`interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 3.2); today's citation line already prints it as "p. 23" (`CitationLineDisplay`); S14-24 (landed) gave every view a Regular and Wide class
+**Depends on:** S15-50 (a form lists its fields' Tab order on the kit's focus handle, `PVFieldFocus(_:equals:in:)`). The locator already has `page_label` on its `page` selector ([`interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 3.2); today's citation line already prints it as "p. 23" (`CitationLineDisplay`); S14-24 (landed) gave every view a Regular and Wide class
 **Related:** working rule "Citations carry no metadata" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 1 (the two kinds of page) and § 6.9 (the printed page stays on the Citation); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (the Citation composer row); S15-D24 (later: Unknown, Supplied and the needed flag on this field)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
@@ -188,12 +188,12 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Width class | Component | Ship | `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift` | Measured once by `WorkspaceDestinationHost`; the composer never measures |
 | Citation form | Snowflake | Extend | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` (`sideForm`, `panelForm`, `labelField`) | Gains the Printed page field next to Label in both arrangements |
 | Printed page field | Component | Ship | `PVField` (`DesignSystem/Components/Field/PVField.swift`) + `PVInput` (`DesignSystem/Components/Input/PVInput.swift`) | The same Field and Input as Label, size `.sm`; its help as the Field's hint or the Input's tooltip (the board's call); no new control |
-| Tab order | Component | Ship (from S15-50) | `PVTabOrder` (`DesignSystem/Components/Input/`, added by S15-50, replacing `PVTabPair`) | The form lists its fields in order; Tab and Shift-Tab follow the list; the composer holds the focus state so it survives the layout switch |
+| Tab order | Component | Ship (from S15-50) | `PVFieldFocus(_:equals:in:)` (`DesignSystem/Components/Input/PVFieldFocus.swift`; S15-50 replaces `PVTabPair` with it) | The form lists its fields in order; Tab and Shift-Tab follow the list; the composer holds the focus state so it survives the layout switch |
 | Citation menu row | Snowflake | Extend | `CitationStepMenuRow` (`CitationComposerEvidenceColumn.swift`), in the `PVSelect` of `CitationComposerEvidenceColumn.citationSelect` and of `CitationComposerAuthoringBox` | Row layout unchanged; only its locator text changes, in both menus |
 | Locator strip | Snowflake | Ship (unchanged) | `CitationComposerViewerPane.locatorStrip` | Keeps "Page 37"; does not show the printed page |
 | Citation line | Snowflake | Ship (unchanged) | `macos/App/Platform/CitationLineDisplay.swift` | Already prints "p. 14"; not drawn |
 
-**Non-goals.** No new kit primitive in this PR (S15-50 adds `PVTabOrder` before it). No page picker, stepper or number field: the printed page is text. No printed page in the locator strip. No "p." typed into the value. No change to the Observations column's width, the authoring box (beyond its Citation menu's row text) or the edit dialog. No third arrangement of the composer.
+**Non-goals.** No new kit primitive. No page picker, stepper or number field: the printed page is text. No printed page in the locator strip. No "p." typed into the value. No change to the Observations column's width, the authoring box (beyond its Citation menu's row text) or the edit dialog. No third arrangement of the composer.
 
 ---
 

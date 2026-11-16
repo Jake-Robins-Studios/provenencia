@@ -5,14 +5,14 @@
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D8](../design/S15-D8-citation-composer-printed-page.md), board not agreed yet
 **Board:** — (when agreed: the Claude Design link and frame names, copied from the brief's **Board** line; user, 2026-11-16)
-**Depends on:** S15-50 (`PVTabOrder`, not landed), S15-D8
+**Depends on:** S15-50 (`PVFieldFocus(_:equals:in:)`, not landed), S15-D8
 **Blocks:** S15-45
 **Branch:** `s15-13-composer-printed-page`
 **Version bump:** minor, 0.16.0 (today's `VERSION`) → **0.17.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`. A backward-compatible feature: a new composer field, and the locator accepts a page selector that holds only `page_label` ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table-driven Go tests)
 **Context:** [`interpretation-layer-data-model.md` § 3.2](../../../interpretation-layer-data-model.md#32-page-selector); [`evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 1 and § 6.9; [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); [`docs/ideas/wide-layout.md`](../../../ideas/wide-layout.md) (the Citation composer row); working rule "Citations carry no metadata"
-**Planned:** 2026-11-16 against `main` @ `0a90a17`. Refreshed when S15-50 lands (its `PVTabOrder` API, STEP-4) and when the board is agreed (§ 6 board-dependent items)
+**Planned:** 2026-11-16 against `main` @ `0a90a17`. Refreshed when S15-50 lands (its ordered `PVFieldFocus` and `CitationFormFocus`, STEP-4) and when the board is agreed (§ 6 board-dependent items)
 **Review:** [`S15-13-composer-printed-page.review.md`](S15-13-composer-printed-page.review.md) — Fits with changes — Ready with changes, round 1
 
 ### Implementer — read this first
@@ -89,13 +89,13 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | Go: label-only page selector, one page selector per document, `locator.PageRef` | STEP-1, AC-4.* |
 | CP-1, CP-2, CP-3, CP-4: the Printed page field, when offered, independent of the locator strip, saving | STEP-2, STEP-3, STEP-4, AC-1.*, AC-2.1 – AC-2.4, AC-2.6, AC-2.7 |
 | CP-5: the Citation menu rows, one shared menu for both Citation menus | STEP-5, AC-2.5 |
-| CP-6, CP-7: VoiceOver, Tab order through S15-50's `PVTabOrder` | STEP-4, AC-3.4 |
+| CP-6, CP-7: VoiceOver, Tab order through S15-50's ordered `PVFieldFocus` | STEP-4, AC-3.4 |
 | CP-W1, CP-W2: Regular and Wide, focus and edits kept across the line | STEP-6, AC-3.1 – AC-3.3 |
 | Domain doc § 3.2, `wide-layout.md` row, map row | STEP-7 |
 
 | Out | Home |
 | --- | --- |
-| `PVTabOrder` itself and moving `PVTabPair`'s callers | S15-50 |
+| The ordered focus handle itself and moving `PVTabPair`'s callers | S15-50 |
 | Unknown, Supplied and the needed flag on the printed page | S15-44 (Go), S15-45 (Swift, S15-D24) |
 | Keeping the page selector's unmodeled keys on a Swift save (none exist until S15-44 adds `page_unknown`, `page_supplied`) | S15-45 (it models them) |
 | A per-Artifact page map ("image 37 is page 23") | not planned (map § 7, "Refused in this spike") |
@@ -117,7 +117,7 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | Capabilities | `macos/App/Features/ArtifactViewer/ArtifactViewerKind.swift` `ArtifactLocatorCapabilities`, `locatorCapabilities` | `supportsPageLocator` (PDF), `supportsRegionLocator` (image, PDF), `supportsSpatialZoom`, `supportsTimeRangeLocator`. `ArtifactViewerModel.kind` starts `.unsupported` until a file loads |
 | Fields draft | `macos/App/Features/CitationComposer/CitationFieldsDraft.swift` `Values`, `isDirty`, `replace(from:)`, `resetBlank(keepLocator:)` | The locator is in `Values`, so a locator change marks the form dirty |
 | Model | `macos/App/Features/CitationComposer/CitationComposerModel.swift` `citationDescription`, `locator`, `removePage`, `resetToEntireArtifact`, `clearRegion`, `applySelectedArtifact` (sets `fields.locator = .artifactOnly()`), `confirmPendingImpact` (after a Citation delete: `resetComposerIdentity(keepLocator: true)`) | Bindings over `fields` |
-| Citation form | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` `sideForm`, `panelForm`, `labelField`, `transcriptionColumn` | `PVTabPair` pairs Label and the transcription (S15-50 moves it to `PVTabOrder`); side: Label then transcription; panel: transcription (1.5) beside Label (1) |
+| Citation form | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` `sideForm`, `panelForm`, `labelField`, `transcriptionColumn` | `PVTabPair` pairs Label and the transcription (S15-50 moves it to a `@FocusState` of `CitationFormFocus` in the column with ordered `PVFieldFocus` handles); side: Label then transcription; panel: transcription (1.5) beside Label (1) |
 | Citation menus | `CitationComposerEvidenceColumn.citationSelect`, `citationOptions`, `menuLocator`; `CitationComposerAuthoringBox.swift` (around line 570: its own `PVSelect`, `citationOptions`, `menuLocator`) | Two copies of the menu: the options, the "New citation · on this artifact" row, `CitationStepMenuRow(listed:locator:)`, and `menuLocator`, which prints `L10n.CitationComposer.menuPage` "p. %lld" for the **file** page. They differ in size, `menuWidth`, `maxVisibleRows`, `rowHeight`, the disabled condition, the accessibility id |
 | Composer split | `macos/App/Features/CitationComposer/CitationComposerView.swift` `composeSplit`, `evidence(threeUp:height:)` | `GeometryReader`; `threeUp = geo.size.width >= 1400` picks `.side` vs `.panel`; Observations at 520pt |
 | Width class | `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift`; `WorkspaceDestinationHost` measures every destination, the composer included | Not read by the composer |
@@ -142,7 +142,7 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | D-9 | One Citation menu: `CitationStepMenu` *(new, in `CitationComposerEvidenceColumn.swift`)* takes `selection`, `size`, `menuWidth`, `maxVisibleRows`, `rowHeight`, `isDisabled`, `accessibilityIdentifier`, and owns the options, the "New citation · on this artifact" row and `CitationStepMenuRow`. Both call sites use it; both `citationOptions` and both `menuLocator` go. `CitationStepMenuRow` computes its locator text with `static func locatorText(_ locator: CitationLocatorDraft) -> String` *(new)*: `[printed page, file page, region]`, each when present, joined by " · " | CP-5 changes both menus; one row and one menu make the next change (S15-45's flag) once | Editing both copies |
 | D-10 | The page words have one home: `CitationLineDisplay.printedPage(_ label: String) -> String` and `filePage(_ page: Int) -> String` *(new)* wrap the existing `L10n.Conclusions.citationPagePrinted` and `citationPageImage`; `parts` and `locatorText` both call them. `L10n.CitationComposer.menuPage` is deleted; no menu key is added | "p." means the printed page everywhere, in one translation | New composer keys with the same words |
 | D-11 | `CitationComposerColumnLayout.init(_ widthClass: PVWidthClass)` *(new)*: `.wide` → `.side`, `.regular` → `.panel`. `composeSplit` reads `@Environment(\.pvWidthClass)`; `evidence(threeUp:height:)` becomes `evidence(layout:height:)`. The `GeometryReader` stays for the panel's 55% height | CP-W1 (user, 2026-11-16) | Keeping 1400pt — the user asked for the move |
-| D-12 | Tab order: `CitationFormFocus` *(new, enum in `CitationComposerEvidenceColumn.swift`)* `{ label, printedPage, transcription }` with `static func order(_ layout: CitationComposerColumnLayout, printedPageOffered: Bool) -> [CitationFormFocus]`: `.side` → label, printedPage, transcription; `.panel` → transcription, label, printedPage; `printedPage` dropped when not offered. The form passes that order to S15-50's `PVTabOrder`, with the `FocusState` held by `CitationComposerView` (above the layout switch) | The order is the composer's one real decision; the mechanism is the kit's (user, 2026-11-16) | A feature-private next/previous ring — a second mechanism |
+| D-12 | Tab order: S15-50's `CitationFormFocus` gains `printedPage` (`{ label, printedPage, transcription }`) and `static func order(_ layout: CitationComposerColumnLayout, printedPageOffered: Bool) -> [CitationFormFocus]` *(new)*: `.side` → label, printedPage, transcription; `.panel` → transcription, label, printedPage; `printedPage` dropped when not offered. Each field's handle is `PVFieldFocus($formFocus, equals: field, in: order)` (S15-50), with `formFocus` held by `CitationComposerView` (above the layout switch) and passed down as a `FocusState<CitationFormFocus?>.Binding`; S15-50's `@FocusState` in `CitationComposerEvidenceColumn` goes | The order is the composer's one real decision; the mechanism is the kit's (user, 2026-11-16) | A feature-private next/previous ring — a second mechanism |
 | D-13 | Focus across the line: `CitationComposerView` holds `@FocusState var formFocus: CitationFormFocus?` and `@State var formKeeper: FocusKeeper<CitationFormFocus>`, and applies `.focusKeeper($formKeeper, focus: $formFocus, isShown: { order.contains($0) }, fallback: { _ in nil }, map: { $0 }, scroll: { _ in })` | CP-W2: the column is rebuilt when the layout changes; focus held above it survives, and `FocusKeeper` re-claims on a width change | `@FocusState` in the column — lost on rebuild |
 | D-14 | Copy and keys follow § 6 Strings; the board's wording replaces them where it differs (refresh at board agreement) | The brief lets the board refine copy | — |
 | D-15 | No length cap on the printed page beyond the locator's `MaxDocumentBytes` (64 KiB) | Matches every other locator string | A new cap — a rule with no need |
@@ -163,10 +163,10 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | `CitationStepMenuRow.locatorText(_:)` *(new)* | func | the two private `menuLocator` | Replaces both |
 | `CitationLineDisplay.printedPage(_:)`, `filePage(_:)` *(new)* | func | the inline branches in `CitationLineDisplay.parts` | Same words, now shared |
 | `CitationComposerColumnLayout.init(_:)` *(new)* | init | `CitationComposerColumnLayout` | Extends the existing enum |
-| `CitationFormFocus` *(new)* | enum | `PVTabPairField`, `CitationAuthoringFocus` | The form's fields; the order goes to the kit's `PVTabOrder` |
+| `CitationFormFocus.printedPage`, `CitationFormFocus.order(_:printedPageOffered:)` *(new)* | case, func | S15-50's `CitationFormFocus` | Extends it |
 | L10n keys in § Strings *(new)* | key | `L10n.CitationComposer.descriptionLabel` / `descriptionPrompt` | New field |
 
-**Builds on.** S15-50's `PVTabOrder`; `FocusKeeper` for Wide rule 5; `PVWidthClass` from `WorkspaceDestinationHost`; the locator's `page` selector; `CitationLineDisplay` as the one home of the page words.
+**Builds on.** S15-50's `PVFieldFocus(_:equals:in:)` and `CitationFormFocus`; `FocusKeeper` for Wide rule 5; `PVWidthClass` from `WorkspaceDestinationHost`; the locator's `page` selector; `CitationLineDisplay` as the one home of the page words.
 **Deletes.** `L10n.CitationComposer.menuPage` and its `Localizable.xcstrings` entry `citationComposer.menuPage`; both private `citationOptions` and `menuLocator` (in `CitationComposerEvidenceColumn.swift` and `CitationComposerAuthoringBox.swift`); `CitationStepMenuRow`'s `locator:` parameter; `CitationLocatorDraft.hasPage`; the page counts in `citationPage` and `regionDocPages`; the `1400` threshold and the `threeUp` parameter in `CitationComposerView.swift`.
 **Next adds.** S15-44 adds `page_unknown` and `page_supplied` to `validatePage` and a `Mark` field to `PageRef`; S15-45 puts the Unknown/Supplied control beside this field (one more entry in its tab order) and models those keys in `CitationLocatorDraft`; S15-16 resolves `{citation.page}` through `locator.Page`.
 
@@ -216,7 +216,7 @@ None — the locator travels as a JSON string; `engine.proto`'s `page_label` is 
 | Printed page field | `PVField` + `PVInput` size `.sm` | `CitationComposerEvidenceColumn.printedPageField(focus:)` *(new)* | Label `printedPageLabel`, prompt `printedPagePrompt`, help `printedPageHelp` as the Field's `hint:` or the Input's `.help` per the board; `accessibilityIdentifier("citationComposer.printedPage")`; shown only when `model.locatorCapabilities.supportsPrintedPage` |
 | Side form | — | `sideForm` | Label and Printed page in one `HStack` (Label flexible, Printed page 140pt) above the transcription, unless the board places it otherwise |
 | Panel form | `PVWeightedColumns` [1.5, 1] | `panelForm` | Right column: Label, then Printed page under it, unless the board places it otherwise |
-| Tab order | S15-50 `PVTabOrder` | `sideForm`, `panelForm` | D-12 |
+| Tab order | `PVFieldFocus(_:equals:in:)` (S15-50) | `sideForm`, `panelForm` | D-12 |
 | Citation menu | `PVSelect` | `CitationStepMenu` *(new)* | D-9 |
 | Split | `PVWidthClass` | `CitationComposerView.composeSplit` | D-11 |
 | Focus across widths | `FocusKeeper` | `CitationComposerView` | D-13 |
@@ -254,7 +254,7 @@ Check: tests pass.
 
 **STEP-4 — The citation form shows Printed page, in tab order.**
 Files: `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`, `CitationComposerView.swift` (the `@FocusState` only), `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/ProvenenciaTests/CitationComposerModelTests.swift`. Skills: `add-ui-component`, `add-localized-string`.
-Do: the field in both forms per § 6 macOS and the board; the three keys of § Strings; D-12 with S15-50's `PVTabOrder`; T-6, T-8's order cases.
+Do: the field in both forms per § 6 macOS and the board; the three keys of § Strings; D-12 with S15-50's `PVFieldFocus(_:equals:in:)`; T-6, T-8's order cases.
 Check: `xcodebuild test` passes; Frames 1a, 2a, 3, 5 match in the app; Tab follows AC-3.4.
 
 **STEP-5 — One Citation menu names the printed page.**
@@ -328,7 +328,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 
 **Stop and report if:**
 
-- S15-50's `PVTabOrder` cannot take a `FocusState` held by `CitationComposerView` (D-12, D-13 need it).
+- A `FocusState<CitationFormFocus?>.Binding` passed from `CitationComposerView` cannot build S15-50's ordered handles in the column (D-12, D-13 need it).
 - A stored locator in a dogfood project or test fixture has two page selectors or a page selector without `artifact_page` before this PR (`rg -n '"type":"page"' core api macos` and the dogfood projects' `citations.locator_json`): the Real data claim is wrong.
 - A caller of `citationPage` outside `core/locator/depiction.go` depends on `ok` meaning "has a file page" (`rg -n "citationPage\(" core`).
 - `FocusKeeper` cannot re-claim a text field after the column is rebuilt (CP-W2 cannot hold without a new mechanism).

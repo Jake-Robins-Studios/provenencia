@@ -141,7 +141,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
-| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: `PVTabOrder` in the kit (a form's fields in order, any number, focus optionally held by the host) replaces `PVTabPair` at every caller; skill and README; no chrome change | — | — | [plan](prs/S15-50-forms-list-their-tab-order.md) | Draft |
+| S15-50 | Forms list their tab order | 3 | Preparatory, Swift: a form holds its focus and lists its fields' Tab order, any number, on the kit's handle (`PVFieldFocus(_:equals:in:)`); `PVTabPair` goes from every caller; skill and README; no chrome change | — | — | [plan](prs/S15-50-forms-list-their-tab-order.md) | Draft |
 
 ## Design track
 
@@ -479,10 +479,10 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-50 — Forms list their tab order
 
-**Ships.** A kit `PVTabOrder` (`DesignSystem/Components/Input/`): a form names its fields in order, any number, and gets one `PVFieldFocus` per field whose Tab and Shift-Tab follow that order, skipping fields not shown; the host may hold the `FocusState` (so focus survives a layout switch) or let `PVTabOrder` own it. It replaces `PVTabPair` at every caller, and `PVTabPair` is deleted. A text area's own Tab handling (`PVTextAreaTabRouter`: Tab leaves the area, Option-Tab types a tab) is unchanged. The rule in `add-ui-component` and `DesignSystem/README.md` becomes: a form with a text area lists its fields in a `PVTabOrder` (user, 2026-11-16: tab order belongs to the form, not to a pair of fields).
+**Ships.** A form holds its own `@FocusState` and lists its fields in order, any number; each field's handle is `PVFieldFocus($focus, equals: field, in: order)` *(new)*, whose Tab and Shift-Tab follow that order and leave the ends to the key loop. It replaces `PVTabPair` at every caller, and `PVTabPair` is deleted. A text area's own Tab handling (`PVTextAreaTabRouter`: Tab leaves the area, Option-Tab types a tab) is unchanged. The rule in `add-ui-component` and `DesignSystem/README.md` becomes: when Tab must move from a field that claims Tab to a `PVTextArea`, the form lists the fields in order (user, 2026-11-16: tab order belongs to the form, not to a pair of fields, and lives on the focus handle; review of S15-50, M-1).
 **Not this PR.** The composer's third field (S15-13); any form's field order or layout.
 **Check.** In each form that used `PVTabPair` (Properties, the Artifact sheet, the graph form, Add type, the composer, the Evidence graph page), Tab and Shift-Tab move between the input and the text area as before.
-**Context.** `PVTabPair.swift`, `PVFieldFocus.swift`, `PVTextArea.swift` (`PVTextAreaTabRouter`), `PVInput.swift` (`PVInputTabClaim`); S15-13's review M-1; skills `add-ui-component`, `add-swift-test`. No brief: no view looks different.
+**Context.** `PVTabPair.swift`, `PVFieldFocus.swift`, `PVTextArea.swift` (`PVTextAreaTabRouter`), `PVInput.swift` (`PVInputTabClaim`); S15-13's review M-1; S15-50's review M-1; skills `add-ui-component`, `add-swift-test`. No brief: no view looks different.
 
 #### S15-13 — The composer records the printed page
 
