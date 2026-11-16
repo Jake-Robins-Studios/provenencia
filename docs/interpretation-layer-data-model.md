@@ -206,6 +206,8 @@ For a PDF, `artifact_page` is the 1-based page position the application uses to 
 
 A scanned book, register, newspaper, or archival document may display a different page number or label on the scanned page itself. That source pagination is retained separately as optional descriptive information in `page_label`.
 
+An image Artifact (a census page saved as a JPEG) has no file page. Its `page` selector holds `page_label` alone, and `artifact_page` is omitted.
+
 ```json
 {
   "type": "page",
@@ -219,10 +221,12 @@ Schema:
 ```text
 PageSelector {
     type: "page"
-    artifact_page: integer >= 1
+    artifact_page?: integer >= 1
     page_label?: string
 }
 ```
+
+A page selector holds `artifact_page`, a non-blank `page_label`, or both; one with neither is invalid, as is `artifact_page` below 1. A locator, and a depiction's region document, holds at most one `page` selector. A depiction's region document names the file page it is drawn on, so its `page` selector must hold `artifact_page`.
 
 `page_label` is deliberately text rather than an integer because source pagination may contain values such as:
 
@@ -234,7 +238,7 @@ A-3
 folio 17r
 ```
 
-An unnumbered page simply omits `page_label`.
+An unnumbered page simply omits `page_label`. The composer writes `page_label` from its Printed page field, trimmed and omitted when blank.
 
 The general rule is:
 
