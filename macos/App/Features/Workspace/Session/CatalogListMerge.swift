@@ -77,21 +77,13 @@ struct CatalogListRows<Row: CatalogListRow>: Sendable, RandomAccessCollection, E
     var endIndex: Int { rows.endIndex }
     subscript(position: Int) -> Row { rows[position] }
 
-    /// `merging(_:replacing:)` on a copy.
-    func merging(_ fresh: [Row], replacing ids: [String], indexedLimit: Int? = nil) -> Self {
-        var copy = self
-        copy.merge(fresh, replacing: ids, indexedLimit: indexedLimit)
-        return copy
-    }
-
     /// The same result as `rows.mergeSorted(fresh, replacing: ids)`. When the write touched at most
     /// `indexedMergeLimit` ids, each is found by its key, removed, and each fresh
     /// row inserted where its key falls; past that, one pass over the list (`mergeSorted`).
-    /// `indexedLimit` is for tests that force one path.
-    mutating func merge(_ fresh: [Row], replacing ids: [String], indexedLimit: Int? = nil) {
+    mutating func merge(_ fresh: [Row], replacing ids: [String]) {
         var touched = Set(ids)
         for row in fresh { touched.insert(row.id) }
-        var indexed = touched.count <= (indexedLimit ?? Self.indexedMergeLimit)
+        var indexed = touched.count <= Self.indexedMergeLimit
         if indexed {
             for id in touched {
                 guard let key = keys.removeValue(forKey: id) else { continue }

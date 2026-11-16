@@ -127,8 +127,8 @@ struct CatalogListMergeTests {
     }
 
     /// F-6: `CatalogListRows.merge` is `mergeSorted` on both paths: random sorted lists with equal
-    /// keys, random dropped and fresh ids (overlapping, unknown), the indexed path and the full pass
-    /// each forced.
+    /// keys, random dropped and fresh ids (overlapping, unknown). At most 16 ids touched is the
+    /// indexed path by the app's rule; adding 17 ids of the list forces the one pass the same way.
     @Test func listRowsMergeMatchesMergeSorted() {
         var random = SplitMix(seed: 0x5016_26F6)
         for _ in 0..<500 {
@@ -138,25 +138,37 @@ struct CatalogListMergeTests {
             rows.sort { $0.listKey == $1.listKey ? $0.id < $1.id : $0.listKey < $1.listKey }
             let known = rows.map(\.id)
             var ids: [String] = []
-            for _ in 0..<random.next(in: 0...20) { ids.append(Self.pickID(known, &random)) }
+            for _ in 0..<random.next(in: 0...8) { ids.append(Self.pickID(known, &random)) }
             var freshIDs: [String] = []
-            for _ in 0..<random.next(in: 0...20) {
+            for _ in 0..<random.next(in: 0...8) {
                 let id = Self.pickID(known, &random)
                 if !freshIDs.contains(id) { freshIDs.append(id) }
             }
             let fresh = freshIDs.map { Row($0, UInt8(random.next(in: 0...80)), note: "fresh") }
+            let fresh2 = freshIDs.map { Row($0, UInt8(random.next(in: 0...80)), note: "fresh2") }
             var expected = rows
             expected.mergeSorted(fresh, replacing: ids)
             let list = CatalogListRows(rows)
-            #expect(list.merging(fresh, replacing: ids, indexedLimit: Int.max).rows == expected)
-            #expect(list.merging(fresh, replacing: ids, indexedLimit: 0).rows == expected)
-            #expect(list.merging(fresh, replacing: ids).rows == expected)
-            // The index follows the merge: a second merge on the result still matches.
+            // At most 16 touched ids: the indexed path.
+            #expect(merged(list, fresh, ids).rows == expected)
+            if rows.count > CatalogListRows<Row>.indexedMergeLimit {
+                // 17 more ids the list holds: past the limit, the one pass.
+                let wide = ids + rows.prefix(CatalogListRows<Row>.indexedMergeLimit + 1).map(\.id)
+                var wideExpected = rows
+                wideExpected.mergeSorted(fresh, replacing: wide)
+                #expect(merged(list, fresh, wide).rows == wideExpected)
+            }
+            // The index follows the merge: a second indexed merge on the result still matches.
             var again = expected
-            again.mergeSorted(rows, replacing: ids)
-            #expect(list.merging(fresh, replacing: ids, indexedLimit: Int.max)
-                .merging(rows, replacing: ids, indexedLimit: Int.max).rows == again)
+            again.mergeSorted(fresh2, replacing: ids)
+            #expect(merged(merged(list, fresh, ids), fresh2, ids).rows == again)
         }
+    }
+
+    private func merged(_ list: CatalogListRows<Row>, _ fresh: [Row], _ ids: [String]) -> CatalogListRows<Row> {
+        var copy = list
+        copy.merge(fresh, replacing: ids)
+        return copy
     }
 
     private static func pickID(_ known: [String], _ random: inout SplitMix) -> String {
@@ -216,18 +228,25 @@ struct CatalogListMergeTests {
         let list = CatalogListRows((0..<count).map { Self.personRow(UUID().uuidString, $0 * 2) } as [CatalogPersonSummary])
         let ids = (0..<200).map { list[$0 * 90 + 7].id }
         let fresh = ids.prefix(100).map { Self.personRow($0, random.next(in: 0...(count * 2))) }
-        func best(_ limit: Int?) -> Double {
+        func best(_ merge: (inout CatalogListRows<CatalogPersonSummary>) -> Void) -> Double {
             var best = Double.infinity
             for _ in 0..<3 {
                 var copy = list
-                let elapsed = ContinuousClock().measure { copy.merge(fresh, replacing: ids, indexedLimit: limit) }
+                let elapsed = ContinuousClock().measure { merge(&copy) }
                 best = min(best, Self.milliseconds(elapsed))
                 #expect(copy.count == count - 100)
             }
             return best
         }
-        let onePass = best(0)
-        let chosen = best(nil)
+        var onePassBest = Double.infinity
+        for _ in 0..<3 {
+            var plain = list.rows
+            let elapsed = ContinuousClock().measure { plain.mergeSorted(fresh, replacing: ids) }
+            onePassBest = min(onePassBest, Self.milliseconds(elapsed))
+            #expect(plain.count == count - 100)
+        }
+        let onePass = onePassBest
+        let chosen = best { $0.merge(fresh, replacing: ids) }
         print("200-id write at 20115 rows: one pass \(onePass) ms, chosen path \(chosen) ms")
         // decided: S16-26 F-9
         #expect(chosen < onePass * 2 + 5)
@@ -325,16 +344,16 @@ struct CatalogListMergeTests {
     /// merge works on a copy, and the copy is timed with it.
     private static func bestMilliseconds(rows count: Int, indexed: Bool) -> Double {
         let list = CatalogListRows((0..<count).map { personRow(UUID().uuidString, $0 * 2) } as [CatalogPersonSummary])
-        let dropped = [list[count / 3].id, list[count / 2].id]
+        var dropped = [list[count / 3].id, list[count / 2].id]
+        // The fallback touches 17 ids, past `indexedMergeLimit`: 15 more rows the list holds.
+        if !indexed { dropped += (0..<15).map { list[count / 4 + $0].id } }
         let fresh = [personRow(dropped[0], count / 2 * 2 + 1)]
         var best = Double.infinity
         for _ in 0..<5 {
             var copy = list
-            let elapsed = ContinuousClock().measure {
-                copy.merge(fresh, replacing: dropped, indexedLimit: indexed ? Int.max : 0)
-            }
+            let elapsed = ContinuousClock().measure { copy.merge(fresh, replacing: dropped) }
             best = min(best, milliseconds(elapsed))
-            #expect(copy.count == count - 1)
+            #expect(copy.count == count - dropped.count + 1)
         }
         return best
     }
