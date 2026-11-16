@@ -1,9 +1,9 @@
 # S15-12 — Source types suggest fields at each level
 
-**Status:** Planned
+**Status:** Landed in [#856](https://github.com/mendahu/provenencia/pull/856) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D6](../design/S15-D6-source-type-suggestion-levels.md), board agreed 2026-11-16 (user)
+**Brief:** [S15-D6](../design/archive/S15-D6-source-type-suggestion-levels.md), board agreed 2026-11-16 (user)
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): artboard *S15-D27 · S15-D6 · Source type page board*, the frames named "S15-D6 · …" in its menu (D6-1a, D6-1b, D6-2 – D6-7, D6-7b, D6-7c, D6-8a, D6-8b, D6-9 – D6-11) and their decision notes (SL-1 header, SL-3 pool hint, SL-4 Return adds, SL-W1), drawn by the component *Source type page · component* (`Source-Type-Page.dc.html`). Board decisions: each list's header is a micro-caps title with its mono count trailing and the meaning in italic under it; a hairline and about 28pt between lists; no count on the section title; the pool hint once under the section hint, and only "Every field in the vocabulary is already in this list" under a list's picker when its pool is empty; copy as the brief's § 2.1, plus the plus button's spoken label before a pick, "Suggest a field on each …". The board draws a failed read as a danger `PVCallout` with a Try again button because the web kit has no `PVRetryCallout`; the app uses `PVRetryCallout`. Open the link in a browser; if you cannot, D-6 and § 6 macOS describe each frame
 **Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-49 (landed [#852](https://github.com/mendahu/provenencia/pull/852)), S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782)), S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-11 (landed [#834](https://github.com/mendahu/provenencia/pull/834)), S15-D6
 **Blocks:** S15-17, S15-18
@@ -349,3 +349,14 @@ None — the board answered D-6 and § 6 Strings (2026-11-16).
 
 **Title:** S15-12 — Source types suggest fields at each level
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-12-type-suggestions-at-each-level.md`.
+
+## Landed
+
+- `VERSION` was 0.15.6 on `main`, so the bump is 0.15.6 to 0.16.0.
+- STEP-3 and STEP-4 ran in the other order: the page model builds its toasts and labels from `L10n.SourceTypes.level(_:)`, so the copy came first. The copy, model, view and tests are one commit.
+- `sourceTypes.suggested.listLabel` is a plural substitution (`%1$@, %#@count@`, `argNum` 2) rather than a top-level plural variation, so the count binds to its argument by `argNum` as the other two-argument plurals do.
+- `PVComboBox.swift`'s two previews named the deleted `assignFieldLabel`; they take `level(.source).pickerLabel`. `L10nResolutionTests` ported its `assignFieldNamed` case to the phrase form and gained two `listAccessibilityLabel` cases.
+- The per-list "every field is already in this list" line has the id `sourceTypes.suggested.<level>.poolEmpty`, and the section hint has `sourceTypes.suggested.hint`; the plan named neither.
+- `aFailedListOffersNoAdd` (new) holds T-9's last case on its own, and the test file has a private `PageBoom` error, since `StoreBoom` is private to `FakeStore.swift`.
+- The `UpdateSourceType` handler test assigns its graph field in the request builder, before the update runs.
+- Not run: the manual check (section 10): Return adding and focus returning to the emptied picker, the board comparison at Regular and Wide, and the Source form offering the new fields. The D-10 stop condition ("focus does not return") is therefore unverified in the running app.
