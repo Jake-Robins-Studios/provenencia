@@ -40,21 +40,36 @@ struct PVFieldFocusTests {
         #expect(none.tabClaim(shift: true) == nil)
     }
 
-    @Test func tabPairOrder() {
-        #expect(PVTabPairField.first.next == .second)
-        #expect(PVTabPairField.first.previous == nil)
-        #expect(PVTabPairField.second.previous == .first)
-        #expect(PVTabPairField.second.next == nil)
+    @Test func neighboursFollowTheFormsOrder() {
+        let middle = PVFieldFocus.neighbours(of: "b", in: ["a", "b", "c"])
+        #expect(middle.next == "c")
+        #expect(middle.previous == "a")
+        let first = PVFieldFocus.neighbours(of: "a", in: ["a", "b", "c"])
+        #expect(first.next == "b")
+        #expect(first.previous == nil)
+        let last = PVFieldFocus.neighbours(of: "c", in: ["a", "b", "c"])
+        #expect(last.next == nil)
+        #expect(last.previous == "b")
+        for lone in [
+            PVFieldFocus.neighbours(of: "a", in: ["a"]),
+            PVFieldFocus.neighbours(of: "d", in: ["a", "b"]),
+            PVFieldFocus.neighbours(of: "a", in: [String]()),
+        ] {
+            #expect(lone.next == nil)
+            #expect(lone.previous == nil)
+        }
+    }
 
-        var claimed: [PVTabPairField] = []
-        let neighbours = PVFieldFocus.neighbours(
-            next: PVTabPairField.second,
-            previous: nil
-        ) { claimed.append($0) }
-        #expect(neighbours.previous == nil)
-        #expect(neighbours.next != nil)
-        neighbours.next?()
-        #expect(claimed == [.second])
+    @Test func claimsRunTheNeighbour() {
+        var claimed: [String] = []
+        let both = PVFieldFocus.claims(next: "c", previous: "a") { claimed.append($0) }
+        both.next?()
+        both.previous?()
+        #expect(claimed == ["c", "a"])
+
+        let none = PVFieldFocus.claims(next: String?.none, previous: String?.none) { _ in }
+        #expect(none.next == nil)
+        #expect(none.previous == nil)
     }
 
     @Test func optionalHandleFallsBackToOwn() {

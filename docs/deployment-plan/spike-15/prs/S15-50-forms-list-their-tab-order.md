@@ -1,6 +1,6 @@
 # S15-50 — Forms list their tab order
 
-**Status:** Planned
+**Status:** Landed in [#862](https://github.com/mendahu/provenencia/pull/862) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 3 — Printed page (preparatory)
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every form looks and tabs the same before and after)
@@ -27,6 +27,14 @@
 8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
 
 ---
+
+## Landed
+
+- `PropertiesCreateForm` also took `holdsField`, `holdsRadios` and `createBindRow` from `PropertiesCreateHost`.
+- `ArtifactSheetForm.fields`, `SourceGraphForm.fields`, `sideForm` and `panelForm` gained `@ViewBuilder` to hold `let order`.
+- Review UX-1: the Evidence graph create form's focus moved into a new private `EvidenceGraphCreateForm` (with `focus` / `Field`) inside the dialog, per D-3, instead of D-4's `createFormFocus` / `CreateFormField` on `EvidenceGraphContent`; `styleTypeLabel(_:)` moved with it.
+- Review MNT-1: `init(_:equals:next:previous:)` is now `private` with no defaults, and `init(_:equals:in:)` defaults `order` to `[]`, so a form's order is the only way to give a handle Tab neighbours.
+- Ship log: [`S15-50-forms-list-their-tab-order.ship.md`](S15-50-forms-list-their-tab-order.ship.md).
 
 ## 1. Objective
 

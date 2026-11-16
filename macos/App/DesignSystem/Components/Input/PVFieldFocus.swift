@@ -30,13 +30,13 @@ struct PVFieldFocus {
     }
 
     @MainActor
-    init<Value: Hashable>(
+    private init<Value: Hashable>(
         _ binding: FocusState<Value?>.Binding,
         equals value: Value,
-        next: Value? = nil,
-        previous: Value? = nil
+        next: Value?,
+        previous: Value?
     ) {
-        let neighbours = Self.neighbours(next: next, previous: previous) { neighbour in
+        let claims = Self.claims(next: next, previous: previous) { neighbour in
             FocusClaim.claim(binding, neighbour)
         }
         self.init(
@@ -46,9 +46,22 @@ struct PVFieldFocus {
                 if binding.wrappedValue == value { binding.wrappedValue = nil }
             },
             apply: { view in AnyView(view.focused(binding, equals: value)) },
-            next: neighbours.next,
-            previous: neighbours.previous
+            next: claims.next,
+            previous: claims.previous
         )
+    }
+
+    /// A handle for a field in a form's Tab order: its neighbours are the
+    /// fields listed before and after `value` in `order`. With no order it has
+    /// none.
+    @MainActor
+    init<Value: Hashable>(
+        _ binding: FocusState<Value?>.Binding,
+        equals value: Value,
+        in order: [Value] = []
+    ) {
+        let neighbours = Self.neighbours(of: value, in: order)
+        self.init(binding, equals: value, next: neighbours.next, previous: neighbours.previous)
     }
 
     /// The claim a Tab press takes: `previous` for Shift-Tab, else `next`.
@@ -70,10 +83,24 @@ struct PVFieldFocus {
         return .handled
     }
 
+    /// The fields after and before `value`'s first place in `order`; nil at
+    /// the ends, for an empty order and for a value not in `order`.
+    @MainActor
+    static func neighbours<Value: Equatable>(
+        of value: Value,
+        in order: [Value]
+    ) -> (next: Value?, previous: Value?) {
+        guard let index = order.firstIndex(of: value) else { return (nil, nil) }
+        return (
+            next: order.indices.contains(index + 1) ? order[index + 1] : nil,
+            previous: index > 0 ? order[index - 1] : nil
+        )
+    }
+
     /// Turns a neighbour value into the claim that moves focus to it; a nil
     /// neighbour stays nil.
     @MainActor
-    static func neighbours<Value>(
+    static func claims<Value>(
         next: Value?,
         previous: Value?,
         claim: @escaping @MainActor (Value) -> Void

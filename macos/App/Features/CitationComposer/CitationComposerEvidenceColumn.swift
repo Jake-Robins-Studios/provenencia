@@ -7,10 +7,16 @@ enum CitationComposerColumnLayout {
     case panel
 }
 
+/// The Citation form's fields that Tab moves between.
+enum CitationFormFocus: Hashable {
+    case label, transcription
+}
+
 /// Citation column: artifact and citation menus, then the reading.
 struct CitationComposerEvidenceColumn: View {
     @Bindable var model: CitationComposerModel
     var layout: CitationComposerColumnLayout
+    @FocusState private var formFocus: CitationFormFocus?
 
     var body: some View {
         switch layout {
@@ -47,7 +53,9 @@ struct CitationComposerEvidenceColumn: View {
         }
     }
 
+    @ViewBuilder
     private var sideForm: some View {
+        let order: [CitationFormFocus] = [.label, .transcription]
         VStack(alignment: .leading, spacing: PVSpacing.space7) {
             VStack(alignment: .leading, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -55,15 +63,18 @@ struct CitationComposerEvidenceColumn: View {
                 citationLoadErrorLine
             }
             PVDivider(axis: .horizontal, color: PVColor.borderSubtle)
-            PVTabPair { first, second in
-                labelField(focus: first)
-                transcriptionColumn(rows: 8...40, focus: second)
-            }
+            labelField(focus: PVFieldFocus($formFocus, equals: .label, in: order))
+            transcriptionColumn(
+                rows: 8...40,
+                focus: PVFieldFocus($formFocus, equals: .transcription, in: order)
+            )
             footer
         }
     }
 
+    @ViewBuilder
     private var panelForm: some View {
+        let order: [CitationFormFocus] = [.transcription, .label]
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .bottom, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -72,14 +83,15 @@ struct CitationComposerEvidenceColumn: View {
                     .frame(maxWidth: .infinity)
             }
             citationLoadErrorLine
-            PVTabPair { first, second in
-                PVWeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6, alignment: .top) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        transcriptionColumn(rows: 6...40, focus: first)
-                        footer
-                    }
-                    labelField(focus: second)
+            PVWeightedColumns(weights: [1.5, 1], spacing: PVSpacing.space6, alignment: .top) {
+                VStack(alignment: .leading, spacing: 10) {
+                    transcriptionColumn(
+                        rows: 6...40,
+                        focus: PVFieldFocus($formFocus, equals: .transcription, in: order)
+                    )
+                    footer
                 }
+                labelField(focus: PVFieldFocus($formFocus, equals: .label, in: order))
             }
         }
     }
