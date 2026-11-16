@@ -1,6 +1,6 @@
 # S15-14 — The citation format engine
 
-**Status:** Planned
+**Status:** Landed in [#868](https://github.com/mendahu/provenencia/pull/868) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: three pure Go packages that nothing in the app calls yet; every view looks the same)
@@ -431,3 +431,9 @@ None.
 
 **Title:** S15-14 — The citation format engine
 **Body:** objective in one sentence; what shipped against each US; AC evidence (test names); the fuzz run's last line; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-14-citation-format-engine.md`.
+
+## Landed
+
+- `formatSide(s side, st displayStyle)` keeps the compact switch and hands the citation styles to one `citationSide` function beside it, rather than one switch with a style argument for every part (D-4 words it as one switch): the citation styles drop the clock and a day without a month, and the compact output is byte for byte what it was.
+- `Ref` keeps an unexported `fieldSpan` beside `Span`: where a metadata option writes its field, which `RewriteFields` replaces.
+- The seed corpus is generated from map § 6.8's code blocks, each wrapped format joined with nothing between its lines.
