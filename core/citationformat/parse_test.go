@@ -39,8 +39,11 @@ var parseCases = []struct {
 	{"bad escape last", `a\`, "full", []diag{{"bad_escape", 1, 2}}},
 	{"empty placeholder", "{}", "full", []diag{{"empty_option", 1, 1}}},
 	{"empty chain option", "{source.title|}", "full", []diag{{"empty_option", 14, 14}}},
-	{"space in option", "{source.title x}", "full", []diag{{"bad_character", 1, 15}}},
-	{"double brace", "{{source.title}", "full", []diag{{"bad_character", 1, 14}}},
+	{"space in option", "{source.title x}", "full", []diag{{"bad_character", 13, 14}}},
+	{"double brace", "{{source.title}", "full", []diag{{"unclosed_placeholder", 0, 1}}},
+	{"missing close before next placeholder", "{source.title, p. {citation.page}.", "full", []diag{{"unclosed_placeholder", 0, 1}}},
+	{"bad character trailing space", "{source.title }", "full", []diag{{"bad_character", 13, 14}}},
+	{"nine mixed", "[*[*[*[*[", "full", []diag{{"too_deep", 8, 9}}},
 	{"title only", "{title}", "full", []diag{{"unknown_level", 1, 6}}},
 	{"level only", "{source}", "full", []diag{{"unknown_builtin", 1, 7}}},
 	{"level dot", "{source.}", "full", []diag{{"unknown_builtin", 1, 8}}},
@@ -48,7 +51,7 @@ var parseCases = []struct {
 	{"meta without field", "{source.meta.}", "full", []diag{{"bad_field", 13, 13}}},
 	{"meta bare", "{source.meta}", "full", []diag{{"bad_field", 12, 12}}},
 	{"dotted key", "{source.meta.a.b}", "full", []diag{{"bad_field", 13, 16}}},
-	{"key with space", "{source.meta.a b}", "full", []diag{{"bad_character", 1, 16}}},
+	{"key with space", "{source.meta.a b}", "full", []diag{{"bad_character", 14, 15}}},
 	{"option on key", "{source.meta.A:B}", "full", []diag{{"unknown_option", 15, 16}}},
 	{"year full", "{source.date:year:full}", "full", []diag{{"unknown_option", 13, 22}}},
 	{"empty option after colon", "{source.title:}", "full", []diag{{"unknown_option", 14, 14}}},
@@ -100,22 +103,37 @@ func TestParseNilTemplate(t *testing.T) {
 	}
 }
 
-func TestSeedFormatsParse(t *testing.T) {
+type seedFormat struct {
+	form citationformat.Form
+	text string
+}
+
+// seedFormats reads the seed corpus, the one reader of it.
+func seedFormats(tb testing.TB) []seedFormat {
+	tb.Helper()
 	raw, err := os.ReadFile("testdata/seed-formats.txt")
 	if err != nil {
-		t.Fatal(err)
+		tb.Fatal(err)
 	}
-	lines := strings.Split(strings.TrimRight(string(raw), "\n"), "\n")
-	if len(lines) != 66 {
-		t.Fatalf("seed has %d formats, want 66", len(lines))
-	}
-	for i, line := range lines {
+	var out []seedFormat
+	for i, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
 		form, text, ok := strings.Cut(line, "\t")
 		if !ok {
-			t.Fatalf("line %d has no tab", i+1)
+			tb.Fatalf("line %d has no tab", i+1)
 		}
-		if _, diags := citationformat.Parse(text, citationformat.Form(form)); len(diags) > 0 {
-			t.Errorf("line %d (%s): %v", i+1, form, diags)
+		out = append(out, seedFormat{citationformat.Form(form), text})
+	}
+	return out
+}
+
+func TestSeedFormatsParse(t *testing.T) {
+	seeds := seedFormats(t)
+	if len(seeds) != 66 {
+		t.Fatalf("seed has %d formats, want 66", len(seeds))
+	}
+	for i, s := range seeds {
+		if _, diags := citationformat.Parse(s.text, s.form); len(diags) > 0 {
+			t.Errorf("line %d (%s): %v", i+1, s.form, diags)
 		}
 	}
 }

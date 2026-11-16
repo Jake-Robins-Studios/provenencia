@@ -16,6 +16,11 @@ import (
 const (
 	// MaxFormatBytes is the longest format Parse reads.
 	MaxFormatBytes = 4096
+	// MaxRenderedBytes is the most text Render produces, and the longest value
+	// it copies. It is far above the longest seeded format filled with real
+	// values; a crafted format repeating a placeholder reaches it, and Render
+	// stops there.
+	MaxRenderedBytes = 64 << 10
 	// MaxDepth is the most open groups and italic spans at once.
 	MaxDepth = 8
 )
@@ -57,6 +62,9 @@ type Ref struct {
 	Span   Span
 	// fieldSpan is where a metadata option writes its field.
 	fieldSpan Span
+	// row is the built-in's index in builtins; it means nothing when Builtin
+	// is empty.
+	row int
 }
 
 // DiagnosticCode names one mistake Parse finds.
@@ -208,7 +216,7 @@ func (p *parser) flush() {
 
 // open pushes a group or italic span; false when that makes the depth too great.
 func (p *parser) open(kind nodeKind, at int) bool {
-	if len(p.stack)-1+1 > MaxDepth {
+	if len(p.stack) > MaxDepth {
 		p.diag(CodeTooDeep, at, at+1)
 		return false
 	}
@@ -253,10 +261,16 @@ func (p *parser) scan() bool {
 			p.diag(CodeBadEscape, i, i+1+size)
 			i += 1 + size
 		case '{':
-			end := strings.IndexByte(text[i+1:], '}')
+			end := strings.IndexAny(text[i+1:], "{}")
 			if end < 0 {
 				p.diag(CodeUnclosedPlaceholder, i, i+1)
 				return true
+			}
+			if text[i+1+end] == '{' {
+				// A later { opens its own placeholder; this one never closed.
+				p.diag(CodeUnclosedPlaceholder, i, i+1)
+				i += 1 + end
+				continue
 			}
 			p.placeholder(i+1, text[i+1:i+1+end])
 			i += end + 2
@@ -346,8 +360,8 @@ func (p *parser) option(opt string, start int) (Ref, *Diagnostic) {
 	if opt == "" {
 		return bad(CodeEmptyOption, Span{start, start})
 	}
-	if strings.ContainsAny(opt, " \\{[]*") {
-		return bad(CodeBadCharacter, whole)
+	if k := strings.IndexAny(opt, " \\{[]*"); k >= 0 {
+		return bad(CodeBadCharacter, Span{start + k, start + k + 1})
 	}
 	main, optText, hasOpt := strings.Cut(opt, ":")
 	optSpan := Span{start + len(main) + 1, start + len(opt)}
@@ -383,11 +397,12 @@ func (p *parser) option(opt string, start int) (Ref, *Diagnostic) {
 		}
 		return r, nil
 	}
-	b, ok := LookupBuiltin(level, rest)
+	row, ok := builtinRow(level, rest)
 	if !hasDot || !ok {
 		return bad(CodeUnknownBuiltin, whole)
 	}
-	ref.Builtin = rest
+	b := &builtins[row]
+	ref.Builtin, ref.row = rest, row
 	if hasOpt && !b.hasOption(Option(optText)) {
 		return ref, &Diagnostic{CodeUnknownOption, optSpan}
 	}

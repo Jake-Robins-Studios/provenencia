@@ -44,10 +44,8 @@ func collect(nodes []node, inGroup bool, out *[]Requirement) {
 			}
 			for i, r := range n.chain {
 				targets[i] = r.Target
-				if r.Builtin != "" {
-					if b, _ := LookupBuiltin(r.Level, r.Builtin); b.AlwaysSet {
-						need = NeedUsed
-					}
+				if r.Builtin != "" && builtins[r.row].AlwaysSet {
+					need = NeedUsed
 				}
 			}
 			add(out, targets, need)
@@ -81,7 +79,11 @@ func Missing(reqs []Requirement, r Resolver) []Requirement {
 			continue
 		}
 		met := slices.ContainsFunc(req.Targets, func(t Target) bool {
-			_, answered := resolve(Ref{Target: t}, FormFull, r)
+			ref := Ref{Target: t}
+			if t.Builtin != "" {
+				ref.row, _ = builtinRow(t.Level, t.Builtin)
+			}
+			_, answered := resolve(ref, FormFull, r)
 			return answered
 		})
 		if !met {

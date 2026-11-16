@@ -21,8 +21,7 @@ func find(reqs []citationformat.Requirement, targets ...citationformat.Target) *
 
 func TestRequirements(t *testing.T) {
 	src, gr := vocabkey.LevelSource, vocabkey.LevelGraph
-	formFull, censusFull := seedFormat(t, 1)
-	full := mustParse(t, censusFull, formFull)
+	full := mustParse(t, censusFull, citationformat.FormFull)
 
 	reqs := citationformat.Requirements(full)
 	if r := find(reqs, meta(src, "jurisdiction")); r == nil || r.Need != citationformat.NeedNeeded {
@@ -67,9 +66,7 @@ func TestRequirements(t *testing.T) {
 
 func TestMissing(t *testing.T) {
 	src := vocabkey.LevelSource
-	formFull, censusFull := seedFormat(t, 1)
-	formShort, censusShort := seedFormat(t, 2)
-	reqs := citationformat.Requirements(mustParse(t, censusFull, formFull), mustParse(t, censusShort, formShort))
+	reqs := citationformat.Requirements(mustParse(t, censusFull, citationformat.FormFull), mustParse(t, censusShort, citationformat.FormShort))
 	onlyDate := values{builtin(src, "date"): date(datevaluetest.YMD(1880, 0, 0))}
 	missing := citationformat.Missing(reqs, onlyDate)
 	if len(missing) != 1 || !reflect.DeepEqual(missing[0].Targets, []citationformat.Target{meta(src, "jurisdiction")}) {

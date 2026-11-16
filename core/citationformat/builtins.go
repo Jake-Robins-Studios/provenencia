@@ -45,13 +45,19 @@ func Builtins() []Builtin {
 
 // LookupBuiltin finds the built-in called name at level l.
 func LookupBuiltin(l vocabkey.Level, name string) (Builtin, bool) {
-	for _, b := range builtins {
-		if b.Level == l && b.Name == name {
-			b.Options = slices.Clone(b.Options)
-			return b, true
-		}
+	i, ok := builtinRow(l, name)
+	if !ok {
+		return Builtin{}, false
 	}
-	return Builtin{}, false
+	b := builtins[i]
+	b.Options = slices.Clone(b.Options)
+	return b, true
+}
+
+// builtinRow is the index in builtins of the built-in called name at level l.
+func builtinRow(l vocabkey.Level, name string) (int, bool) {
+	i := slices.IndexFunc(builtins, func(b Builtin) bool { return b.Level == l && b.Name == name })
+	return i, i >= 0
 }
 
 // ListFormAllows reports whether the list form may read level l: it describes

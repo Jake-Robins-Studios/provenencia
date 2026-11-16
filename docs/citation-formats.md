@@ -25,7 +25,7 @@ The list form describes the Source as a whole, so it reads Source values only: a
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
 
-Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,096 bytes and 8 open groups and italic spans at once.
+Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,096 bytes and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
 
 ## Built-in placeholders
 
@@ -63,16 +63,16 @@ A DateValue prints in citation terms through `datevalue.CitationDisplay`: day-mo
 | `unknown_form` | The form is not one of the three | Zero width at 0 |
 | `too_long` | More than 4,096 bytes | The whole text |
 | `too_deep` | More than 8 open groups and italic spans | The opening `[` or `*` |
-| `unclosed_placeholder` | A `{` with no `}` after it | That `{` |
+| `unclosed_placeholder` | A `{` with no `}` before the next `{` or the end | That `{` |
 | `stray_close_brace` | A `}` outside a placeholder | That `}` |
 | `unclosed_group` | A `[` still open at the end | That `[` |
 | `stray_close_bracket` | A `]` with no open group | That `]` |
 | `unclosed_italic` | A `*` still open when its group closes or the text ends | That `*` |
-| `bad_escape` | A `\` before any other character, or last | The `\` and the character after it |
+| `bad_escape` | A `\` before any other character, or last | The `\` and the character after it, or the `\` alone when last |
 | `group_without_placeholder` | A group with no placeholder of its own | `[` through `]` |
 | `empty_option` | An empty option, as in `{}` | Zero width at its place |
-| `bad_character` | An option holding a space, `\`, `{`, `[`, `]` or `*` | The option |
-| `unprefixed_meta` | An option starting `meta.` | The option |
+| `bad_character` | An option holding a space, `\`, `{`, `[`, `]` or `*` | The first space, `\`, `{`, `[`, `]` or `*` in the option |
+| `unprefixed_meta` | An option whose first part is `meta` | The option |
 | `unknown_level` | A first part that is not a level | The option |
 | `meta_not_at_level` | `meta` at the Citation level | The option |
 | `bad_field` | No field after `meta.`, or one that is neither a key nor an id | The field |

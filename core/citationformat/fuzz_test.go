@@ -1,7 +1,6 @@
 package citationformat_test
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -12,8 +11,12 @@ import (
 
 type answerAll struct{}
 
+// bigValue is long enough that a short format repeating a placeholder reaches
+// MaxRenderedBytes.
+var bigValue = strings.Repeat("v*[{\\", 1<<15)
+
 func (answerAll) Resolve(citationformat.Target) citationformat.Value {
-	return citationformat.Value{Text: "v*[{\\", Date: datevaluetest.YMD(1880, 3, 3)}
+	return citationformat.Value{Text: bigValue, Date: datevaluetest.YMD(1880, 3, 3)}
 }
 
 // FuzzParse feeds arbitrary text and forms to Parse: it must not panic, a
@@ -23,11 +26,8 @@ func FuzzParse(f *testing.F) {
 	for _, c := range parseCases {
 		f.Add(c.text, string(c.form))
 	}
-	if raw, err := os.ReadFile("testdata/seed-formats.txt"); err == nil {
-		for _, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
-			form, text, _ := strings.Cut(line, "\t")
-			f.Add(text, form)
-		}
+	for _, s := range seedFormats(f) {
+		f.Add(s.text, string(s.form))
 	}
 	f.Fuzz(func(t *testing.T, text, form string) {
 		tpl, diags := citationformat.Parse(text, citationformat.Form(form))
@@ -40,10 +40,21 @@ func FuzzParse(f *testing.F) {
 			}
 		}
 		if tpl != nil {
-			citationformat.Render(tpl, answerAll{})
+			if got := citationformat.Render(tpl, answerAll{}).Plain(); len(got) > citationformat.MaxRenderedBytes {
+				t.Fatalf("rendered %d bytes", len(got))
+			}
 			got, err := tpl.RewriteFields(func(f citationformat.FieldRef) (citationformat.FieldRef, error) { return f, nil })
 			if err != nil || got != text {
 				t.Fatalf("identity rewrite = %q, %v; want %q", got, err, text)
+			}
+			// Whatever key is offered, the result parses or the rewrite refuses.
+			got, err = tpl.RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
+				return citationformat.FieldRef{Key: form}, nil
+			})
+			if err == nil {
+				if _, diags := citationformat.Parse(got, tpl.Form()); len(diags) > 0 {
+					t.Fatalf("rewrite with key %q = %q: %v", form, got, diags)
+				}
 			}
 		}
 		if key := slug.Kebab(text); key != "" && len(key) <= 4000 {
