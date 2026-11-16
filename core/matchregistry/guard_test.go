@@ -47,6 +47,7 @@ var layerPackages = []struct {
 	{"core/depictionvalue/depictionvaluetest", false},
 	{"core/propertymeta", false},
 	{"core/vocabkey", false},
+	{"core/valuemark", false},
 }
 
 // readerPackages are the packages that read the matching layers' inputs and

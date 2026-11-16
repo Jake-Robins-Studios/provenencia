@@ -35,6 +35,7 @@ const (
 	CodeNameValuesInvalid             = "namevalues.invalid"
 	CodeDepictionValuesInvalid        = "depictionvalues.invalid"
 	CodeLocatorInvalid                = "locator.invalid"
+	CodeValueMarkInvalid              = "valuemark.invalid"
 	CodeCitationsInvalid              = "citations.invalid"
 	CodeCitationsInUse                = "citations.in_use"
 	CodeObservationsInvalid           = "observations.invalid"
