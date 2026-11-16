@@ -73,6 +73,15 @@ func TestRewriteFields(t *testing.T) {
 			t.Fatalf("answer %+v: got %q, %v", bad, got, err)
 		}
 	}
+	t.Run("invalid key answer", func(t *testing.T) {
+		tpl := mustParse(t, "[{source.meta.#0192f3a4-0000-7000-8000-000000000001}, ]{source.title}", "full")
+		got, err := tpl.RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
+			return citationformat.FieldRef{Key: "x}]*{citation.page"}, nil
+		})
+		if got != "" || !errors.Is(err, citationformat.ErrFieldRef) {
+			t.Fatalf("got %q, %v", got, err)
+		}
+	})
 	var nilTpl *citationformat.Template
 	if got, err := nilTpl.RewriteFields(toIDs); got != "" || err != nil {
 		t.Fatalf("nil template: %q, %v", got, err)
