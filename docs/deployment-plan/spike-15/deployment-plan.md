@@ -666,7 +666,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-41 — A metadata row can be marked unknown or supplied
 
-**Ships.** The Unknown and Supplied control, built once beside the board row in `macos/App/Features/Sources/`, on every board's rows; live boards save at once, draft boards with their owner's Save. An unknown row reads as its field's unknown text and is not flagged.
+**Ships.** The Unknown and Supplied control, built once beside the board row in `macos/App/Features/Sources/`, on every board's rows; live boards save at once, draft boards with their owner's Save. An unknown row reads as its field's unknown text and is not flagged. The control takes a `PVFieldFocus`, so a form can list it in its Tab order.
 **Not this PR.** The Source date (S15-42), the page (S15-45), the unknown text itself (S15-46).
 **Check.** Bar 11's metadata half: a book Source with publication place marked unknown is not flagged, and its citation reads "n.p."; a place marked supplied reads "[Topeka]".
 **Context.** S15-D22; rule "A value can be marked unknown or supplied"; S15-37, S15-39.
