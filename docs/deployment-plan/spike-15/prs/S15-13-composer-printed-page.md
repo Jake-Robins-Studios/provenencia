@@ -1,10 +1,10 @@
 # S15-13 — The composer records the printed page
 
-**Status:** Blocked — on S15-50, board S15-D8
+**Status:** Blocked — on S15-50
 **Spike / slice:** Spike 15 · Slice 3 — Printed page
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D8](../design/S15-D8-citation-composer-printed-page.md), board not agreed yet
-**Board:** — (when agreed: the Claude Design link and frame names, copied from the brief's **Board** line; user, 2026-11-16)
+**Brief:** [S15-D8](../design/S15-D8-citation-composer-printed-page.md), board agreed 2026-11-16
+**Board:** agreed 2026-11-16 (user) — [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, section "S15-D8 · The printed page, on the app’s width classes": frames 1a, 1b, 2a, 2b, 3 (empty, "iv" typed), Tab order note, 4a, 4b, 5, 6, 7, 8a, 8b, Kit used. Board decisions: Label and Printed page share a row when the form's column fits both (Label at least 180pt, Printed page 140pt), else Printed page sits directly under Label (the stacked form at 1102pt stacks; at 1464pt it fits beside; the 440pt side form always shares a row); the help is the Input's tooltip, not a hint line; neither column widens at Wide (form 440pt, Observations 520pt, the viewer takes the rest); copy as § 2.1. The implementer opens the link; § 6 macOS also describes each frame's layout in words
 **Depends on:** S15-50 (`PVFieldFocus(_:equals:in:)`, not landed), S15-D8
 **Blocks:** S15-45
 **Branch:** `s15-13-composer-printed-page`
@@ -144,7 +144,8 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | D-11 | `CitationComposerColumnLayout.init(_ widthClass: PVWidthClass)` *(new)*: `.wide` → `.side`, `.regular` → `.panel`. `composeSplit` reads `@Environment(\.pvWidthClass)`; `evidence(threeUp:height:)` becomes `evidence(layout:height:)`. The `GeometryReader` stays for the panel's 55% height | CP-W1 (user, 2026-11-16) | Keeping 1400pt — the user asked for the move |
 | D-12 | Tab order: S15-50's `CitationFormFocus` gains `printedPage` (`{ label, printedPage, transcription }`) and `static func order(_ layout: CitationComposerColumnLayout, printedPageOffered: Bool) -> [CitationFormFocus]` *(new)*: `.side` → label, printedPage, transcription; `.panel` → transcription, label, printedPage; `printedPage` dropped when not offered. Each field's handle is `PVFieldFocus($formFocus, equals: field, in: order)` (S15-50), with `formFocus` held by `CitationComposerView` (above the layout switch) and passed down as a `FocusState<CitationFormFocus?>.Binding`; S15-50's `@FocusState` in `CitationComposerEvidenceColumn` goes | The order is the composer's one real decision; the mechanism is the kit's (user, 2026-11-16) | A feature-private next/previous ring — a second mechanism |
 | D-13 | Focus across the line: `CitationComposerView` holds `@FocusState var formFocus: CitationFormFocus?` and `@State var formKeeper: FocusKeeper<CitationFormFocus>`, and applies `.focusKeeper($formKeeper, focus: $formFocus, isShown: { order.contains($0) }, fallback: { _ in nil }, map: { $0 }, scroll: { _ in })` | CP-W2: the column is rebuilt when the layout changes; focus held above it survives, and `FocusKeeper` re-claims on a width change | `@FocusState` in the column — lost on rebuild |
-| D-14 | Copy and keys follow § 6 Strings; the board's wording replaces them where it differs (refresh at board agreement) | The brief lets the board refine copy | — |
+| D-14 | Copy and keys follow § 6 Strings, which the agreed board uses word for word ("Printed page", "As printed, such as 14 or iv", the help sentence as the Input's tooltip, "Save citation" unchanged) | The board matched the brief's copy | — |
+| D-16 | Placement (board): `labelAndPrintedPage` *(new, private view in `CitationComposerEvidenceColumn.swift`)* is `ViewThatFits(in: .horizontal)` over an `HStack` (Label `.frame(minWidth: 180)`, Printed page `.frame(width: 140)`) and a `VStack` (Label, then Printed page); both forms use it, so the side form (440pt) always shares a row and the stacked form's right column stacks at 1102pt and shares a row at 1464pt. Help: `printedPageHelp` as `.help(...)` on the Input and its accessibility hint, not `PVField(hint:)`. At Wide no column widens (`440`, `520` stay). The panel's Tab order stays transcription, Label, Printed page in both placements | The agreed board (frames 1a, 1b, 7, "Where the field sits") | Measuring the column width by hand — `ViewThatFits` decides from the space it is given |
 | D-15 | No length cap on the printed page beyond the locator's `MaxDocumentBytes` (64 KiB) | Matches every other locator string | A new cap — a rule with no need |
 
 **Rules this plan bends.** None. The `PVTabPair` rule in `add-ui-component` and `DesignSystem/README.md` is replaced by S15-50 before this PR (user, 2026-11-16). The map row's scope grew to Go + Swift and the width-class move; the map says so (user, 2026-11-16).
@@ -162,6 +163,7 @@ A citation names the page of the original record ("p. 14", "fol. 17r", "iv"), no
 | `CitationStepMenu` *(new)* | view | the two `PVSelect` blocks in `CitationComposerEvidenceColumn` and `CitationComposerAuthoringBox` | Replaces both |
 | `CitationStepMenuRow.locatorText(_:)` *(new)* | func | the two private `menuLocator` | Replaces both |
 | `CitationLineDisplay.printedPage(_:)`, `filePage(_:)` *(new)* | func | the inline branches in `CitationLineDisplay.parts` | Same words, now shared |
+| `labelAndPrintedPage` *(new, private)* | view | `labelField(focus:)` | Places Label and Printed page together by the space given (D-16); `labelField` stays its first part |
 | `CitationComposerColumnLayout.init(_:)` *(new)* | init | `CitationComposerColumnLayout` | Extends the existing enum |
 | `CitationFormFocus.printedPage`, `CitationFormFocus.order(_:printedPageOffered:)` *(new)* | case, func | S15-50's `CitationFormFocus` | Extends it |
 | L10n keys in § Strings *(new)* | key | `L10n.CitationComposer.descriptionLabel` / `descriptionPrompt` | New field |
@@ -213,9 +215,9 @@ None — the locator travels as a JSON string; `engine.proto`'s `page_label` is 
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Printed page field | `PVField` + `PVInput` size `.sm` | `CitationComposerEvidenceColumn.printedPageField(focus:)` *(new)* | Label `printedPageLabel`, prompt `printedPagePrompt`, help `printedPageHelp` as the Field's `hint:` or the Input's `.help` per the board; `accessibilityIdentifier("citationComposer.printedPage")`; shown only when `model.locatorCapabilities.supportsPrintedPage` |
-| Side form | — | `sideForm` | Label and Printed page in one `HStack` (Label flexible, Printed page 140pt) above the transcription, unless the board places it otherwise |
-| Panel form | `PVWeightedColumns` [1.5, 1] | `panelForm` | Right column: Label, then Printed page under it, unless the board places it otherwise |
+| Printed page field | `PVField` + `PVInput` size `.sm` | `CitationComposerEvidenceColumn.printedPageField(focus:)` *(new)* | Label `printedPageLabel`, prompt `printedPagePrompt`, help `printedPageHelp` as the Input's `.help` and accessibility hint (D-16); `accessibilityIdentifier("citationComposer.printedPage")`; shown only when `model.locatorCapabilities.supportsPrintedPage` |
+| Side form | — | `sideForm` | `labelAndPrintedPage` (D-16) above the transcription; on the 440pt column it is always one row |
+| Panel form | `PVWeightedColumns` [1.5, 1] | `panelForm` | Right column: `labelAndPrintedPage` (D-16): stacked at 1102pt (frame 1a), one row at 1464pt (frame 7) |
 | Tab order | `PVFieldFocus(_:equals:in:)` (S15-50) | `sideForm`, `panelForm` | D-12 |
 | Citation menu | `PVSelect` | `CitationStepMenu` *(new)* | D-9 |
 | Split | `PVWidthClass` | `CitationComposerView.composeSplit` | D-11 |
@@ -223,7 +225,7 @@ None — the locator travels as a JSON string; `engine.proto`'s `page_label` is 
 
 States: an audio, video or unsupported Artifact, or a file still loading, draws no field and no gap. Accessibility: the field's label and help (CP-6); menu row text as drawn.
 
-Board-dependent (filled at board agreement, then this plan moves to Planned once S15-50 has landed): the Printed page position in each form (and so the panel's tab order), hint vs tooltip, any column width at Wide, final copy.
+Frames in words (the agreed board): 1a — CIT-7KQ2M on Folio 23 at 1102pt, two columns, the form stacked above the viewer, Printed page "14" under Label in the form's right column, saved. 1b — the same at 2296pt, three columns, the 440pt form beside the viewer, Label and Printed page in one row above the transcription. 2a/2b — CIT-3HW8D on the PDF, strip "Entire artifact › Page 37 › Rectangle", Printed page "23". 3 — CIT-9RX4T, empty field with its prompt and focus ring, Save citation disabled; then "iv" typed and Save citation enabled. 4a/4b — the Citation menu rows of AC-2.5. 5 — an audio Artifact: Label alone, no gap. 6 — after Reset to entire artifact: Printed page still "23", Save citation enabled. 7 — 1464pt: two columns, Printed page beside Label. 8a/8b — "23a" unsaved with the cursor in it at 1599pt and 1600pt, unchanged across the line.
 
 ### Strings
 
@@ -324,7 +326,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 | --- | --- |
 | An older app opens a project with a label-only selector: its `Validate` refuses it, so its citation line shows no page and an edit there drops the label | Pre-1.0 minor bump; no older app is in use on dogfood projects after the bump |
 | Focus lost on the layout switch despite `FocusKeeper` | T-8 covers the order; manual step 5 covers the claim |
-| The board places Printed page differently from § 6 | The plan is refreshed at board agreement before Planned |
+| `ViewThatFits` picks the stacked layout in the 440pt side form (Label 180 + 140 + spacing must fit in 440 minus the column's padding) | Frame 1b; if it stacks, stop (Stop conditions) |
 
 **Stop and report if:**
 
@@ -333,10 +335,11 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 - A caller of `citationPage` outside `core/locator/depiction.go` depends on `ok` meaning "has a file page" (`rg -n "citationPage\(" core`).
 - `FocusKeeper` cannot re-claim a text field after the column is rebuilt (CP-W2 cannot hold without a new mechanism).
 - The agreed board's frames disagree with an AC here.
+- In the 440pt side form Label and Printed page do not share one row (frame 1b), or in the 1102pt stacked form they do not stack (frame 1a).
 
 ## 12. Open questions
 
-None. The board-dependent parts of § 6 are filled when S15-D8 is agreed, and STEP-4 is refreshed when S15-50 lands; until then the status is Blocked.
+None. STEP-4 is refreshed when S15-50 lands (its Landed note); until then the status is Blocked — on S15-50.
 
 ## 13. PR
 

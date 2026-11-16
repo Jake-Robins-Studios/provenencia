@@ -80,3 +80,7 @@
 
 ### X-13 · minor · The board's open choices change the inventory
 **Answer:** Logged — the plan's "Board-dependent" line and the brief's Handoff name them; the plan is refreshed at board agreement.
+
+## Board check (2026-11-16)
+
+The agreed S15-D8 board was read against the brief: every requirement CP-1 – CP-7, CP-W1, CP-W2 has its frame; the copy matches § 2.1 word for word ("Printed page", "As printed, such as 14 or iv", the help sentence, "Save citation"); the Tab order note matches D-12; the Kit used row names only kit pieces and the three extended snowflakes; no local control. The board's own decisions are folded into the plan as D-16 (placement by the space given, help as a tooltip, no column widens at Wide) and § 6's frame descriptions. Round 2 of the plan review runs at the refresh after S15-50 lands.
