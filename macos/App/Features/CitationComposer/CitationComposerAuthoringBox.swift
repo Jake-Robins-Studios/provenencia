@@ -563,37 +563,20 @@ struct CitationComposerModalLead: View {
 
     var body: some View {
         let ordered = model.orderedCitations
-        let listedByID = Dictionary(ordered.map { ($0.citation.id, $0) }, uniquingKeysWith: { first, _ in first })
         return VStack(alignment: .leading, spacing: PVSpacing.space5) {
             PVField(label: L10n.CitationComposer.citationEyebrow) {
                 VStack(alignment: .leading, spacing: PVSpacing.space3) {
-                    PVSelect(
+                    CitationStepMenu(
+                        model: model,
+                        ordered: ordered,
                         selection: citationSelection,
-                        options: citationOptions(ordered),
                         size: .sm,
-                        displayLabel: model.citationStepLabel(for: citationSelection.wrappedValue),
                         menuWidth: 460,
                         maxVisibleRows: 5,
                         rowHeight: 72,
                         isDisabled: !citationEnabled,
-                        accessibilityLabel: L10n.CitationComposer.citationEyebrow,
                         accessibilityIdentifier: "citationComposer.modal.citation"
-                    ) { option in
-                        if option.id.isEmpty {
-                            HStack(spacing: PVSpacing.space4) {
-                                PVIcon(.plus, size: 14)
-                                Text(L10n.CitationComposer.newCitation)
-                                    .font(PVFont.body(size: PVTypeScale.caption))
-                                Text(L10n.CitationComposer.onThisArtifact)
-                                    .font(PVFont.body(size: 12, italic: true))
-                                    .foregroundStyle(PVColor.textMuted)
-                            }
-                        } else if let listed = listedByID[option.id] {
-                            CitationStepMenuRow(listed: listed, locator: menuLocator(listed.citation))
-                        } else {
-                            Text(verbatim: option.label)
-                        }
-                    }
+                    )
                     citationReading
                 }
             }
@@ -658,25 +641,6 @@ struct CitationComposerModalLead: View {
                 .stroke(PVColor.borderDefault, lineWidth: 1)
         )
         .accessibilityIdentifier("citationComposer.modal.citationReading")
-    }
-
-    private func citationOptions(_ ordered: [CatalogListedCitation]) -> [PVSelectOption] {
-        [PVSelectOption(value: "", label: L10n.string(L10n.CitationComposer.newCitation))]
-            + ordered.map {
-                PVSelectOption(value: $0.citation.id, label: $0.citation.ref)
-            }
-    }
-
-    private func menuLocator(_ citation: CatalogCitation) -> String {
-        let locator = CitationLocatorDraft.decode(citation.locatorJSON)
-        var parts: [String] = []
-        if let page = locator.page {
-            parts.append(L10n.CitationComposer.menuPage(page))
-        }
-        if locator.region != nil {
-            parts.append(L10n.string(L10n.CitationComposer.menuRegion))
-        }
-        return parts.joined(separator: " · ")
     }
 }
 

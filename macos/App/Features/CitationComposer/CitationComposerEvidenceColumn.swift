@@ -5,18 +5,38 @@ enum CitationComposerColumnLayout {
     case side
     /// Citation form stacked above the file.
     case panel
+
+    /// Wide puts the form beside the file; Regular stacks it above.
+    init(_ widthClass: PVWidthClass) {
+        self = widthClass == .wide ? .side : .panel
+    }
 }
 
 /// The Citation form's fields that Tab moves between.
 enum CitationFormFocus: Hashable {
-    case label, transcription
+    case label, printedPage, transcription
+
+    /// Tab order of the form in `layout`: the printed page follows Label, and
+    /// is left out when the Artifact does not offer it.
+    static func order(
+        _ layout: CitationComposerColumnLayout,
+        printedPageOffered: Bool
+    ) -> [CitationFormFocus] {
+        let order: [CitationFormFocus]
+        switch layout {
+        case .side: order = [.label, .printedPage, .transcription]
+        case .panel: order = [.transcription, .label, .printedPage]
+        }
+        return printedPageOffered ? order : order.filter { $0 != .printedPage }
+    }
 }
 
 /// Citation column: artifact and citation menus, then the reading.
 struct CitationComposerEvidenceColumn: View {
     @Bindable var model: CitationComposerModel
     var layout: CitationComposerColumnLayout
-    @FocusState private var formFocus: CitationFormFocus?
+    /// Held by the composer, above the layout switch, so focus survives the column being rebuilt.
+    var formFocus: FocusState<CitationFormFocus?>.Binding
 
     var body: some View {
         switch layout {
@@ -55,7 +75,7 @@ struct CitationComposerEvidenceColumn: View {
 
     @ViewBuilder
     private var sideForm: some View {
-        let order: [CitationFormFocus] = [.label, .transcription]
+        let order = CitationFormFocus.order(.side, printedPageOffered: printedPageOffered)
         VStack(alignment: .leading, spacing: PVSpacing.space7) {
             VStack(alignment: .leading, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -63,10 +83,13 @@ struct CitationComposerEvidenceColumn: View {
                 citationLoadErrorLine
             }
             PVDivider(axis: .horizontal, color: PVColor.borderSubtle)
-            labelField(focus: PVFieldFocus($formFocus, equals: .label, in: order))
+            labelAndPrintedPage(
+                label: PVFieldFocus(formFocus, equals: .label, in: order),
+                printedPage: PVFieldFocus(formFocus, equals: .printedPage, in: order)
+            )
             transcriptionColumn(
                 rows: 8...40,
-                focus: PVFieldFocus($formFocus, equals: .transcription, in: order)
+                focus: PVFieldFocus(formFocus, equals: .transcription, in: order)
             )
             footer
         }
@@ -74,7 +97,7 @@ struct CitationComposerEvidenceColumn: View {
 
     @ViewBuilder
     private var panelForm: some View {
-        let order: [CitationFormFocus] = [.transcription, .label]
+        let order = CitationFormFocus.order(.panel, printedPageOffered: printedPageOffered)
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .bottom, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -87,11 +110,14 @@ struct CitationComposerEvidenceColumn: View {
                 VStack(alignment: .leading, spacing: 10) {
                     transcriptionColumn(
                         rows: 6...40,
-                        focus: PVFieldFocus($formFocus, equals: .transcription, in: order)
+                        focus: PVFieldFocus(formFocus, equals: .transcription, in: order)
                     )
                     footer
                 }
-                labelField(focus: PVFieldFocus($formFocus, equals: .label, in: order))
+                labelAndPrintedPage(
+                    label: PVFieldFocus(formFocus, equals: .label, in: order),
+                    printedPage: PVFieldFocus(formFocus, equals: .printedPage, in: order)
+                )
             }
         }
     }
@@ -128,34 +154,17 @@ struct CitationComposerEvidenceColumn: View {
     }
 
     private func citationSelect(_ ordered: [CatalogListedCitation]) -> some View {
-        let listedByID = Dictionary(ordered.map { ($0.citation.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return PVSelect(
+        CitationStepMenu(
+            model: model,
+            ordered: ordered,
             selection: citationSelection,
-            options: citationOptions(ordered),
             size: .md,
-            displayLabel: model.citationStepLabel(for: model.activeCitationID),
             menuWidth: 480,
             maxVisibleRows: 6,
             rowHeight: 84,
             isDisabled: model.isTranscribing || model.isDrawingDepiction,
-            accessibilityLabel: L10n.CitationComposer.citationEyebrow,
             accessibilityIdentifier: "citationComposer.citationSelect"
-        ) { option in
-            if option.id.isEmpty {
-                HStack(spacing: PVSpacing.space4) {
-                    PVIcon(.plus, size: 14)
-                    Text(L10n.CitationComposer.newCitation)
-                        .font(PVFont.body(size: PVTypeScale.caption))
-                    Text(L10n.CitationComposer.onThisArtifact)
-                        .font(PVFont.body(size: 12, italic: true))
-                        .foregroundStyle(PVColor.textMuted)
-                }
-            } else if let listed = listedByID[option.id] {
-                citationMenuRow(listed)
-            } else {
-                Text(verbatim: option.label)
-            }
-        }
+        )
     }
 
     private func artifactSelect(_ artifacts: [CatalogArtifact]) -> some View {
@@ -202,13 +211,6 @@ struct CitationComposerEvidenceColumn: View {
         )
     }
 
-    private func citationOptions(_ ordered: [CatalogListedCitation]) -> [PVSelectOption] {
-        [PVSelectOption(value: "", label: L10n.string(L10n.CitationComposer.newCitation))]
-            + ordered.map {
-                PVSelectOption(value: $0.citation.id, label: $0.citation.ref)
-            }
-    }
-
     private func artifactOptions(_ artifacts: [CatalogArtifact]) -> [PVSelectOption] {
         artifacts.map { artifact in
             PVSelectOption(value: artifact.id, label: artifactTitle(artifact))
@@ -232,10 +234,6 @@ struct CitationComposerEvidenceColumn: View {
               let index = artifacts.firstIndex(where: { $0.id == id })
         else { return "" }
         return L10n.DesignSystem.selectOptionPosition(current: index + 1, count: artifacts.count)
-    }
-
-    private func citationMenuRow(_ listed: CatalogListedCitation) -> some View {
-        CitationStepMenuRow(listed: listed, locator: menuLocator(listed.citation))
     }
 
     private func artifactMenuRow(_ artifact: CatalogArtifact) -> some View {
@@ -270,6 +268,47 @@ struct CitationComposerEvidenceColumn: View {
             content = PVThumbnail.Content(glyph: artifactMark(artifact).map(PVGlyph.mark))
         }
         return PVThumbnail(content, size: 48)
+    }
+
+    private var printedPageOffered: Bool {
+        model.locatorCapabilities.supportsPrintedPage
+    }
+
+    /// Label with Printed page: one row when the form's column fits both, else
+    /// Printed page directly under Label. An Artifact with no printed page shows Label alone.
+    @ViewBuilder
+    private func labelAndPrintedPage(label: PVFieldFocus?, printedPage: PVFieldFocus?) -> some View {
+        if printedPageOffered {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: PVSpacing.space5) {
+                    labelField(focus: label)
+                        .frame(minWidth: 180)
+                    printedPageField(focus: printedPage)
+                        .frame(width: 140)
+                }
+                VStack(alignment: .leading, spacing: PVSpacing.space5) {
+                    labelField(focus: label)
+                    printedPageField(focus: printedPage)
+                }
+            }
+        } else {
+            labelField(focus: label)
+        }
+    }
+
+    private func printedPageField(focus: PVFieldFocus?) -> some View {
+        let help = L10n.string(L10n.CitationComposer.printedPageHelp)
+        return PVField(label: L10n.CitationComposer.printedPageLabel) {
+            PVInput(
+                text: $model.pageLabel,
+                size: .sm,
+                prompt: L10n.CitationComposer.printedPagePrompt,
+                focus: focus
+            )
+            .help(help)
+            .accessibilityHint(Text(verbatim: help))
+            .accessibilityIdentifier("citationComposer.printedPage")
+        }
     }
 
     private func labelField(focus: PVFieldFocus?) -> some View {
@@ -363,18 +402,6 @@ struct CitationComposerEvidenceColumn: View {
         }
     }
 
-    private func menuLocator(_ citation: CatalogCitation) -> String {
-        let locator = CitationLocatorDraft.decode(citation.locatorJSON)
-        var parts: [String] = []
-        if let page = locator.page {
-            parts.append(L10n.CitationComposer.menuPage(page))
-        }
-        if locator.region != nil {
-            parts.append(L10n.string(L10n.CitationComposer.menuRegion))
-        }
-        return parts.joined(separator: " · ")
-    }
-
     private func artifactTitle(_ artifact: CatalogArtifact) -> String {
         let label = artifact.label.trimmingCharacters(in: .whitespacesAndNewlines)
         if !label.isEmpty { return label }
@@ -420,13 +447,81 @@ struct CitationComposerEvidenceColumn: View {
 
 }
 
+/// The Citation menu of the step picker and the observation dialog: a "New
+/// citation" row, then one row per listed Citation.
+struct CitationStepMenu: View {
+    let model: CitationComposerModel
+    let ordered: [CatalogListedCitation]
+    let selection: Binding<String>
+    let size: PVControlSize
+    let menuWidth: CGFloat
+    let maxVisibleRows: Int
+    let rowHeight: CGFloat
+    let isDisabled: Bool
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        let listedByID = Dictionary(ordered.map { ($0.citation.id, $0) }, uniquingKeysWith: { first, _ in first })
+        PVSelect(
+            selection: selection,
+            options: options,
+            size: size,
+            displayLabel: model.citationStepLabel(for: selection.wrappedValue),
+            menuWidth: menuWidth,
+            maxVisibleRows: maxVisibleRows,
+            rowHeight: rowHeight,
+            isDisabled: isDisabled,
+            accessibilityLabel: L10n.CitationComposer.citationEyebrow,
+            accessibilityIdentifier: accessibilityIdentifier
+        ) { option in
+            if option.id.isEmpty {
+                HStack(spacing: PVSpacing.space4) {
+                    PVIcon(.plus, size: 14)
+                    Text(L10n.CitationComposer.newCitation)
+                        .font(PVFont.body(size: PVTypeScale.caption))
+                    Text(L10n.CitationComposer.onThisArtifact)
+                        .font(PVFont.body(size: 12, italic: true))
+                        .foregroundStyle(PVColor.textMuted)
+                }
+            } else if let listed = listedByID[option.id] {
+                CitationStepMenuRow(listed: listed)
+            } else {
+                Text(verbatim: option.label)
+            }
+        }
+    }
+
+    private var options: [PVSelectOption] {
+        [PVSelectOption(value: "", label: L10n.string(L10n.CitationComposer.newCitation))]
+            + ordered.map {
+                PVSelectOption(value: $0.citation.id, label: $0.citation.ref)
+            }
+    }
+}
+
 /// Citation menu row for the step picker and the observation dialog.
 struct CitationStepMenuRow: View {
     let listed: CatalogListedCitation
-    var locator: String
+
+    /// The row's locator words: the printed page, the file page and the region,
+    /// each when present, as "p. 23 · image 37 · region".
+    static func locatorText(_ locator: CitationLocatorDraft) -> String {
+        var parts: [String] = []
+        if !locator.pageLabel.isEmpty {
+            parts.append(CitationLineDisplay.printedPage(locator.pageLabel))
+        }
+        if let page = locator.page {
+            parts.append(CitationLineDisplay.filePage(page))
+        }
+        if locator.region != nil {
+            parts.append(L10n.string(L10n.CitationComposer.menuRegion))
+        }
+        return parts.joined(separator: " · ")
+    }
 
     var body: some View {
         let citation = listed.citation
+        let locator = Self.locatorText(CitationLocatorDraft.decode(citation.locatorJSON))
         let label = citation.description.trimmingCharacters(in: .whitespacesAndNewlines)
         let transcription = citation.transcription
             .components(separatedBy: .newlines)

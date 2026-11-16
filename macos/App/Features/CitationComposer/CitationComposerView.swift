@@ -8,7 +8,11 @@ struct CitationComposerView: View {
     let userID: String
 
     @Environment(WorkspaceNavigation.self) private var navigation
+    @Environment(\.pvWidthClass) private var widthClass
     @State private var model: CitationComposerModel
+    /// Held here, above the layout switch, so the cursor survives the column being rebuilt.
+    @FocusState private var formFocus: CitationFormFocus?
+    @State private var formKeeper = FocusKeeper<CitationFormFocus>()
 
     init(
         entry: CitationComposerEntry,
@@ -293,10 +297,14 @@ struct CitationComposerView: View {
     }
 
     private var composeSplit: some View {
-        GeometryReader { geo in
-            let threeUp = geo.size.width >= 1400
+        let layout = CitationComposerColumnLayout(widthClass)
+        let order = CitationFormFocus.order(
+            layout,
+            printedPageOffered: model.locatorCapabilities.supportsPrintedPage
+        )
+        return GeometryReader { geo in
             HStack(alignment: .top, spacing: 0) {
-                evidence(threeUp: threeUp, height: geo.size.height)
+                evidence(layout: layout, height: geo.size.height)
                 CitationComposerObservationsColumn(model: model) {
                     navigation.go(to: model.graphLocation())
                 }
@@ -304,11 +312,20 @@ struct CitationComposerView: View {
                 .frame(maxHeight: .infinity)
             }
         }
+        .focusKeeper(
+            $formKeeper,
+            focus: $formFocus,
+            isShown: { order.contains($0) },
+            fallback: { _ in nil },
+            map: { $0 },
+            scroll: { _ in }
+        )
     }
 
     @ViewBuilder
-    private func evidence(threeUp: Bool, height: CGFloat) -> some View {
-        if threeUp {
+    private func evidence(layout: CitationComposerColumnLayout, height: CGFloat) -> some View {
+        switch layout {
+        case .side:
             HStack(alignment: .top, spacing: 0) {
                 CitationComposerViewerPane(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -317,16 +334,16 @@ struct CitationComposerView: View {
                     .overlay(alignment: .trailing) {
                         PVDivider(axis: .vertical, color: PVColor.borderSubtle)
                     }
-                CitationComposerEvidenceColumn(model: model, layout: .side)
+                CitationComposerEvidenceColumn(model: model, layout: .side, formFocus: $formFocus)
                     .frame(width: 440, alignment: .topLeading)
                     .overlay(alignment: .trailing) {
                         PVDivider(axis: .vertical, color: PVColor.borderSubtle)
                     }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
+        case .panel:
             VStack(spacing: 0) {
-                CitationComposerEvidenceColumn(model: model, layout: .panel)
+                CitationComposerEvidenceColumn(model: model, layout: .panel, formFocus: $formFocus)
                     .frame(maxHeight: height * 0.55, alignment: .top)
                 CitationComposerViewerPane(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

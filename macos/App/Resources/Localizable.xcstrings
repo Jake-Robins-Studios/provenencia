@@ -22107,6 +22107,42 @@
         }
       }
     },
+    "citationComposer.printedPageHelp": {
+      "comment": "Help for the printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The page number the original prints. It goes in the citation; the page in the file does not."
+          }
+        }
+      }
+    },
+    "citationComposer.printedPageLabel": {
+      "comment": "Label of the citation's printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Printed page"
+          }
+        }
+      }
+    },
+    "citationComposer.printedPagePrompt": {
+      "comment": "Placeholder in the printed-page field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "As printed, such as 14 or iv"
+          }
+        }
+      }
+    },
     "citationComposer.deleteReading": {
       "comment": "Ghost button that deletes the saved citation",
       "extractionState": "manual",
@@ -22811,18 +22847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld × %2$lld px"
-          }
-        }
-      }
-    },
-    "citationComposer.menuPage": {
-      "comment": "Short page locator on a citation menu row",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "p. %lld"
           }
         }
       }

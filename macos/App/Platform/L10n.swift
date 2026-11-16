@@ -3888,6 +3888,24 @@ enum L10n {
             comment: "Short name for this citation"
         )
 
+        static let printedPageLabel = LocalizedStringResource(
+            "citationComposer.printedPageLabel",
+            defaultValue: "Printed page",
+            comment: "Label of the citation's printed-page field"
+        )
+
+        static let printedPagePrompt = LocalizedStringResource(
+            "citationComposer.printedPagePrompt",
+            defaultValue: "As printed, such as 14 or iv",
+            comment: "Placeholder in the printed-page field"
+        )
+
+        static let printedPageHelp = LocalizedStringResource(
+            "citationComposer.printedPageHelp",
+            defaultValue: "The page number the original prints. It goes in the citation; the page in the file does not.",
+            comment: "Help for the printed-page field"
+        )
+
         static let observationsSection = LocalizedStringResource(
             "citationComposer.observationsSection",
             defaultValue: "Observations",
@@ -4022,14 +4040,6 @@ enum L10n {
                 defaultValue: "%1$@ · %2$@",
                 comment: "Closed citation menu; arguments are the ref and the names, description, or empty reading"
             ), ref, detail)
-        }
-
-        static func menuPage(_ page: Int) -> String {
-            L10n.format(LocalizedStringResource(
-                "citationComposer.menuPage",
-                defaultValue: "p. %lld",
-                comment: "Short page locator on a citation menu row"
-            ), page)
         }
 
         static let menuRegion = LocalizedStringResource(

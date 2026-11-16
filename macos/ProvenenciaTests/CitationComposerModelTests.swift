@@ -773,6 +773,69 @@ struct CitationComposerModelTests {
         #expect(model.fields.isDirty == false)
     }
 
+    @Test func pageLabelLoadsSavesAndResets() async {
+        let store = makeStore()
+        store.artifactsBySource[sourceID] = scans(2)
+        link(store, ["art-0", "art-1"])
+        seedCitation(
+            store,
+            locatorJSON: #"{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":"23"}]}"#
+        )
+        let model = makeModel(store: store, citationID: "cit-1")
+        await model.prepare()
+        #expect(model.pageLabel == "23")
+        #expect(model.fields.isDirty == false)
+
+        model.pageLabel = "24"
+        #expect(model.fields.isDirty)
+        #expect(model.canSaveCitation)
+        await model.fields.saveCitation()
+        #expect(store.citationsByID["cit-1"]?.locatorJSON.contains(#""page_label":"24""#) == true)
+        #expect(store.citationsByID["cit-1"]?.locatorJSON.contains(#""artifact_page":37"#) == true)
+
+        model.selectCitation(nil)
+        await model.awaitIdentitySwitch()
+        #expect(model.pageLabel == "")
+
+        model.selectCitation("cit-1")
+        await model.awaitIdentitySwitch()
+        #expect(model.pageLabel == "24")
+        await model.askDeleteCitation()
+        await model.confirmPendingImpact()
+        #expect(model.activeCitationID == nil)
+        #expect(model.pageLabel == "24")
+
+        model.requestSelectArtifact("art-1")
+        await model.awaitIdentitySwitch()
+        #expect(model.selectedArtifactID == "art-1")
+        #expect(model.pageLabel == "")
+    }
+
+    @Test func formLayoutFollowsWidthClassAndTabOrder() {
+        #expect(CitationComposerColumnLayout(.regular) == .panel)
+        #expect(CitationComposerColumnLayout(.wide) == .side)
+        #expect(CitationFormFocus.order(.side, printedPageOffered: true) == [.label, .printedPage, .transcription])
+        #expect(CitationFormFocus.order(.panel, printedPageOffered: true) == [.transcription, .label, .printedPage])
+        #expect(CitationFormFocus.order(.side, printedPageOffered: false) == [.label, .transcription])
+        #expect(CitationFormFocus.order(.panel, printedPageOffered: false) == [.transcription, .label])
+    }
+
+    @Test func menuRowNamesPrintedAndFilePage() {
+        func text(_ json: String) -> String {
+            CitationStepMenuRow.locatorText(CitationLocatorDraft.decode(json))
+        }
+        #expect(text(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare, page: 37)) == "image 37 · region")
+        var draft = CitationLocatorDraft.decode(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare, page: 37))
+        draft.pageLabel = "23"
+        #expect(CitationStepMenuRow.locatorText(draft) == "p. 23 · image 37 · region")
+        #expect(text(#"{"version":1,"selectors":[{"type":"page","artifact_page":40}]}"#) == "image 40")
+        #expect(text(#"{"version":1,"selectors":[{"type":"artifact"}]}"#) == "")
+        draft = CitationLocatorDraft.decode(RegionFixtures.locatorJSON(points: RegionFixtures.smallSquare))
+        draft.pageLabel = "14"
+        #expect(CitationStepMenuRow.locatorText(draft) == "p. 14 · region")
+        #expect(text(#"{"version":1,"selectors":[{"type":"page","page_label":"15"}]}"#) == "p. 15")
+    }
+
     @Test func newCitationFromTheObservationDialogClearsTheLocator() async {
         let store = makeStore()
         seedArtifact(store)
