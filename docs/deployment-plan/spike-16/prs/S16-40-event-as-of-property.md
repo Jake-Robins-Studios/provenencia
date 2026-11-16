@@ -72,14 +72,16 @@ A researcher can record that a lasting event was under way on a day without clai
 | `as_of` seed Property and event binding; `event_picture` moves to 6 | STEP-1, AC-1.1, AC-1.2 |
 | Seed product-value test and autoreconcile `multiple` date cases | STEP-1, STEP-2, AC-1.1, AC-3.1, AC-3.2 |
 | `SeededPropertyKey.asOf` in Swift | STEP-3 |
-| `DateQualifier.asStated`, `DateQualifier.allowsBeforeAfter(for:)` and `DateQualifier.offered(allowsBeforeAfter:current:)` *(new)*; `DateValueEditorForm` draws the offered chips (AO-1 – AO-5, AO-W1) | STEP-3, STEP-4, AC-2.1 – AC-2.5 |
+| `CatalogProperty.productKey`, `CitationComposerVocabulary.offersBeforeAfter(propertyID:)`, `DateValueDraft.pointQualifiers` and `DateValueDraft.offeredQualifiers(allowsBeforeAfter:)` *(new)*; `DateValueEditorForm` draws the offered chips (AO-1 – AO-5, AO-W1) | STEP-3, STEP-4, AC-2.1 – AC-2.5 |
 | `CitationPropertyFields` passes the rule for its Property | STEP-4, AC-2.1 |
-| `seeded-vocabulary.md` §3.2, §3.3 and the coexistence paragraph | STEP-5 |
+| The `date` and `end_date` seed descriptions point to As of (D-10) | STEP-1 |
+| `seeded-vocabulary.md` §3.2, §3.3 and the coexistence paragraph (its list of event date Properties too) | STEP-5 |
 
 | Out | Home |
 | --- | --- |
-| Any reader that dates, sorts, matches or draws an event by its as-ofs | S16-41, S16-42, S16-43 |
-| The Event page's Date row showing as-ofs | S16-42 |
+| `EvidenceGraphSnapshot.dateLine` (an Evidence graph card's date line) reading as-ofs | S16-42 |
+| Any reader that dates, sorts, matches or draws an event by its as-ofs | S16-41, S16-42, S16-43, S16-44 |
+| The Event page's Date row showing as-ofs | S16-44 |
 | `as_of` in an existing catalog | [event as-of follow-ups](../../../ideas/event-as-of-followups.md) (the user's later one-off command) |
 | Refusing `BEF` / `AFT` on `as_of` in Go | not planned (working rule: the rule lives in the composer's editor) |
 | Hiding As of on an event type | [properties and terms: lock event properties to event types](../../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types) |
@@ -105,10 +107,14 @@ A researcher can record that a lasting event was under way on a day without clai
 | Composer value field | `macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift` `CitationPropertyFields.valueControls` (line 368), `case .date` (line 415) | Builds `DateValueEditorForm(draft:accessibilityIdentifierPrefix:yearFocus:)`; `property` is `model.vocabulary.property(id:)`, a `CatalogProperty` with `key` and `origin` |
 | Other editor caller | `macos/App/Features/Sources/SourceDateDialog.swift` line 47 | Source date; must keep four chips |
 | Evidence graph marks | `macos/App/Features/EvidenceGraph/EvidenceCitedPropertyMarks.swift` `conflictCounts` | Skips `multiple` keys, from `PropertiesSnapshot.cardinalityByKey` |
-| Swift tests | `macos/ProvenenciaTests/DateValueDraftTests.swift` | Draft validity; no qualifier-offer test |
+| Swift tests | `macos/ProvenenciaTests/DateValueDraftTests.swift`; `CitationComposerModelTests.swift` `offersNegative` checks (around line 1062) | Draft validity; the composer's per-Property offers |
+| Composer offers | `CitationComposerVocabulary.offersNegative(propertyID:)` (line 181) | The one place that says what the composer offers for a Property |
+| Product key | `macos/App/Platform/GenealogyStore.swift` `CatalogPropertyTerm.productKey` (line 1074), `CatalogConclusionValue.productKey` (line 628) | "key only when the row is the product's"; `CatalogProperty` (line 1050) has none |
+| Go key guard | `core/database/subjectvocab/vocabkey_test.go` `TestVocabKeysMatchSeed` (list at line 54) | Checks each listed `vocabkey.Property*` is seeded |
+| Parity guard | `api/ffi/swift_vocabulary_test.go` "date qualifiers" row (line 511) | `DateQualifier`'s `static let`s must be exactly ABT, BEF, AFT: no new constant may go there |
 | Docs | `docs/seeded-vocabulary.md` §3.2 table (line 315), §3.3 event block (line 371), the coexistence paragraph (line 355) | Three event date Properties |
 
-**Precedent.** S11-48 seeded `religion` and `languages_spoken` as `multiple` Properties: a `seedProperties` row with `Cardinality: propertymeta.CardinalityMultiple`, a `seedBindings` row, a `TestSeedProductValues` case, and the §3.2 / §3.3 rows. Copy that; no migration. For the key-specific composer rule, copy the shape of `valueControls`' `property?.key == "age"` suffix, but put the rule on `DateQualifier` (D-4) instead of inline.
+**Precedent.** S11-48 seeded `religion` and `languages_spoken` as `multiple` Properties: a `seedProperties` row with `Cardinality: propertymeta.CardinalityMultiple`, a `seedBindings` row, a `TestSeedProductValues` case, and the §3.2 / §3.3 rows. Copy that; no migration. For the composer rule, copy `CitationComposerVocabulary.offersNegative(propertyID:)` and its test.
 
 ## 5. Decisions
 
@@ -117,11 +123,12 @@ A researcher can record that a lasting event was under way on a day without clai
 | D-1 | `as_of` is bound to `event` at sort order 5, locked; `event_picture` moves to 6 | The date Properties sit together where binding order is read (the Properties page, `ListBindings`); locked like the other dates (§3.2: event date Properties are locked). The composer's menu sorts by label and is unchanged | Appending at 6 after the picture — splits the dates on the Properties page |
 | D-2 | Seed description: "A day the event was known to be under way, from a record made then (an obituary's \"of Town Y\", a directory's year). Not when it began, ended or happened. More than one is allowed." | The Properties page shows it; it says what the label cannot | Leaving it empty — the label alone reads like a date of record |
 | D-3 | No Go validation of the qualifier on `as_of` | Working rule: the rule lives in the composer's editor, not in `DateValue` or `observations`; S16-41's envelope skips an as-of with an open end | A per-Property refusal in `observations` — the user ruled it out |
-| D-4 | The rule is two pure statics on `DateQualifier` (`ConclusionVocabulary.swift`): `allowsBeforeAfter(for property: CatalogProperty?) -> Bool` (false only for key `as_of` with `CatalogOrigin.isProduct(origin)`) and `offered(allowsBeforeAfter: Bool, current: String) -> [String]` (`["", ABT]`, plus `BEF` and `AFT` when allowed, plus `current` when it is `BEF` or `AFT` and not already listed; order "", ABT, BEF, AFT) | One home for the rule, unit-testable without a view; a researcher's own `as_of` (origin `user`) is not the seeded one (`CatalogOrigin.isProduct`) | A `Bool` computed inline in `CitationPropertyFields` — untestable and a second copy when S16-42 reads it; a `Set` parameter on the form — the order of chips becomes the caller's |
-| D-5 | `DateValueEditorForm` gains `var allowsBeforeAfter: Bool = true`; `qualifierSection` loops over `DateQualifier.offered(allowsBeforeAfter:current: draft.qualifier)`. A private `static func chip(_ qualifier: String) -> (label: LocalizedStringResource, suffix: String)` in the form maps `DateQualifier.asStated` → (`L10n.Sources.dateQualifierAsStated`, `exact`), `about` → (`L10n.Sources.dateQualifierAbout`, `abt`), `before` → (`L10n.Sources.dateQualifierBefore`, `bef`), `after` → (`L10n.Sources.dateQualifierAfter`, `aft`); the form's `"ABT"`, `"BEF"`, `"AFT"` literals become the `DateQualifier` constants. `DateQualifier.asStated = ""` *(new)* names the exact case | The default keeps `SourceDateDialog` and every other caller unchanged; identifiers stay as UI tests know them | Hiding chips with `.opacity` or `.disabled` — S16-D3 says absent, not disabled |
-| D-6 | `CitationPropertyFields` passes `allowsBeforeAfter: DateQualifier.allowsBeforeAfter(for: property)` | The Property is already read there (`property`) | Reading the key inside the form — the form has no Property |
-| D-7 | `DateValueDraft` is unchanged | A stored `BEF` stays valid (AC-2.3); validity is not per Property | Clearing `BEF` on load — rewrites a value silently |
+| D-4 | `CitationComposerVocabulary.offersBeforeAfter(propertyID: String) -> Bool` *(new)*, beside `offersNegative`: `property(id: propertyID)?.productKey != SeededPropertyKey.asOf`. `CatalogProperty.productKey: String?` *(new)*, the third twin of `CatalogPropertyTerm.productKey` (`CatalogOrigin.isProduct(origin) ? key : nil`) | The composer's per-Property offers live in one place; a researcher's own `as_of` (origin `user`) is not the seeded one; `ConclusionVocabulary.swift` stays a mirror of Go wire values (`.cursor/rules/macos-client.mdc`) | A static on `DateQualifier` — puts a composer rule in the wire-mirror file; an inline check in `CitationPropertyFields` — untestable |
+| D-5 | `DateValueDraft.pointQualifiers: [String]` *(new, static)* = `["", DateQualifier.about, DateQualifier.before, DateQualifier.after]`; `pointQualifierOK` becomes `pointQualifiers.contains(qual)`. `DateValueDraft.offeredQualifiers(allowsBeforeAfter: Bool) -> [String]` *(new)*: `pointQualifiers` filtered to `""` and `about`, plus `before` and `after` when allowed, plus the draft's own `qualifier` when it is `before` or `after`; in `pointQualifiers` order | One list of point qualifiers serves validity and the offer; the draft owns the current qualifier | A new `DateQualifier.asStated` — fails the parity guard; a second hand list in the form |
+| D-6 | `DateValueEditorForm` gains `var allowsBeforeAfter: Bool = true`; `qualifierSection` loops over `draft.offeredQualifiers(allowsBeforeAfter:)`. A private `static func chip(_ qualifier: String) -> (label: LocalizedStringResource, suffix: String)` maps `""` → (`L10n.Sources.dateQualifierAsStated`, `exact`), `DateQualifier.about` → (`L10n.Sources.dateQualifierAbout`, `abt`), `DateQualifier.before` → (`L10n.Sources.dateQualifierBefore`, `bef`), `DateQualifier.after` → (`L10n.Sources.dateQualifierAfter`, `aft`). `CitationPropertyFields` passes `allowsBeforeAfter: model.vocabulary.offersBeforeAfter(propertyID: values.propertyID)` | The default keeps `SourceDateDialog` unchanged; identifiers stay as UI tests know them; S16-D3 says absent, not disabled | `.opacity` or `.disabled` chips; reading the Property inside the form, which has none |
+| D-7 | `DateValueDraft` validity is unchanged (the same four, from one list) | A stored `BEF` stays valid (AC-2.3); validity is not per Property | Clearing `BEF` on load — rewrites a value silently |
 | D-9 | A `current` qualifier that is none of the four (hand-edited data) is not offered; no chip is selected, as today when no chip matches | The editor never invents a chip for an unknown value | A fifth chip — a control for data the app does not write |
+| D-10 | Two neighbouring seed descriptions point to As of (new catalogs only, as the seed): `date` → "Point-in-time when the event occurred. Prefer this for births, deaths, and other one-day facts. Use Start date and End date when the event lasts across a range, and As of for a day a record shows it under way."; `end_date` → "When a spanned event ended. Pair with Start date; leave empty for instantaneous events that only need Date. A day the event was last seen under way is As of." | Today's "or the best single date when a span is unknown" and "or was last known" send an attestation to `date` or `end_date`, the misuse Batch 5 fixes | Leaving them — the Properties page points two ways for one fact |
 | D-8 | Reconcile is proven by tests in `autoreconcile` only; no code change | `multiple` already keeps distinct dates and folds nested ones (§8) | An end-to-end autoreconciler test — the cardinality reaches `Reconcile` through the generic `sqlLoadCandidates`, covered today |
 
 **Rules this plan bends.** None.
@@ -135,12 +142,14 @@ A researcher can record that a lasting event was under way on a day without clai
 | `vocabkey.PropertyAsOf` *(new)* | const | `vocabkey.PropertyStartDate` | Extends the block; code reads the key by name from S16-41 |
 | `as_of` seed row and binding *(new)* | registry row | `religion` row | Extends `seedProperties` / `seedBindings` |
 | `SeededPropertyKey.asOf` *(new)* | const | `SeededPropertyKey.startDate` | Extends the enum; `TestSwiftVocabularyMatchesGo` guards it |
-| `DateQualifier.asStated`, `DateQualifier.allowsBeforeAfter(for:)`, `DateQualifier.offered(allowsBeforeAfter:current:)` *(new)* | const, func | `DateValueDraft.pointQualifierOK` (validity, all four); `DateValueDisplay` qualifier switch (labels) | Neither says which chips a Property offers; searched `DateQualifier`, `qualifier`, `pointQualifierOK` |
+| `CitationComposerVocabulary.offersBeforeAfter(propertyID:)` *(new)* | func | `CitationComposerVocabulary.offersNegative(propertyID:)` | Extends the same type with the same shape |
+| `CatalogProperty.productKey` *(new)* | property | `CatalogPropertyTerm.productKey`, `CatalogConclusionValue.productKey` | The third twin of the existing idiom |
+| `DateValueDraft.pointQualifiers`, `DateValueDraft.offeredQualifiers(allowsBeforeAfter:)` *(new)* | const, func | `DateValueDraft.pointQualifierOK` | Its list becomes `pointQualifiers`; searched `DateQualifier`, `qualifier`, `pointQualifierOK` |
 | `DateValueEditorForm.allowsBeforeAfter` *(new)* | parameter | `accessibilityIdentifierPrefix` (same form) | One flag, default true |
 
 **Builds on.** `add-seeded-vocabulary` (registry rows, create-time Install); the S11-48 precedent; `DateValueEditorForm`'s chips.
-**Deletes.** The four hand-written `PVChip` blocks in `qualifierSection`, replaced by one loop, and the form's qualifier string literals. Nothing else becomes dead.
-**Next adds.** S16-41 reads `vocabkey.PropertyAsOf` in `matchregistry` and `subjectprofile`; S16-42 reads `SeededPropertyKey.asOf` in `EventDetailContent.dateRow`.
+**Deletes.** The four hand-written `PVChip` blocks in `qualifierSection`, replaced by one loop, and the form's qualifier string literals; `pointQualifierOK`'s own `switch` list.
+**Next adds.** S16-41 reads `vocabkey.PropertyAsOf` in `matchregistry` (`subject.Periods` samples) and `subjectprofile`; S16-42 reads it in `conclusionsummaries`. Swift reads `SeededPropertyKey.asOf` only for the composer rule: the engine sends the dating (Batch 5 rule).
 
 ### Reach
 
@@ -148,7 +157,7 @@ A researcher can record that a lasting event was under way on a day without clai
 | --- | --- | --- |
 | An event with several date values on one Property | Evidence graph card marks (`EvidenceCitedPropertyMarks.conflictCounts`), conclusion detail `state` | `multiple` keys are skipped / read `multiple` today (toponym, religion); AC-3.3 |
 | An event with only as-ofs | Event page Date row, Events list, Timeline | Shown as undated, exactly as an event with no date today (nothing reads `as_of` until S16-42); manual check 4 |
-| A stored `BEF` / `AFT` as-of opened in the composer | `DateValueEditorForm` | The chip is shown selected (D-4, AC-2.3) |
+| A stored `BEF` / `AFT` as-of opened in the composer | `DateValueEditorForm` | The chip is shown selected (D-5, AC-2.3) |
 
 ### Scale
 
@@ -157,7 +166,7 @@ None — the seed adds one row to a create-time Install; the editor builds at mo
 ### Edges
 
 - **Assumptions.** `Reconcile` with `CardinalityMultiple` assumes a module whose `outvotes` is false keeps every distinct unit; `dateModule.outvotes` is false. T-2 holds it for dates. `TestSwiftVocabularyMatchesGo` assumes each Swift key is seeded; T-1 and the guard hold it.
-- **Neighbors.** `date` (single): two disjoint dates stay `mixed` (`TestDateReconcile` "3 May and 14 June stay mixed", unchanged). A researcher's own `as_of` (origin `user`): four chips (AC-2.5, T-3). A range as-of: no qualifier row (AC-2.2). `start_date` with `BEF`: four chips (T-3).
+- **Neighbors.** `date` (single): two disjoint dates stay `mixed` (`TestDateReconcile` "3 May and 14 June stay mixed", unchanged). A researcher's own `as_of` (origin `user`): four chips (AC-2.5, T-5). A range as-of: no qualifier row (AC-2.2). `start_date` with `BEF`: four chips (T-3, T-5).
 - **Removed inputs.** A folded as-of (1990 into 10 JAN 1990) keeps its record on the kept value (`folded` reason), as any date (T-2).
 - **Real data.** The seed is the only table: one new row and one new binding; `TestInstallMatchesRegistry` runs over the whole registry.
 - **Untrusted size.** None — no read of data the app did not write is added.
@@ -183,9 +192,9 @@ None — the Property reaches Swift through the existing vocabulary reads.
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Date editor | Snowflake, Extend | `macos/App/Features/Dates/DateValueEditorForm.swift` | `allowsBeforeAfter` (D-5); chips from `DateQualifier.offered` |
+| Date editor | Snowflake, Extend | `macos/App/Features/Dates/DateValueEditorForm.swift` | `allowsBeforeAfter` (D-6); chips from `draft.offeredQualifiers` |
 | Qualifier chips | `PVChipGroup` + `PVChip` | `DesignSystem/Components/Chip/` | Same chips, same identifiers; fewer on As of |
-| Property field | Snowflake, Ship | `CitationPropertyFields` | Passes the rule (D-6) |
+| Property field | Snowflake, Extend | `CitationPropertyFields` | Passes `model.vocabulary.offersBeforeAfter` (D-6) |
 | Property menu | `PVComboBox` | `CitationComposerAuthoringBox.propertyOptions` | Unchanged; lists As of from the seed |
 
 States: Point on As of (two chips, AO-1); Range (no row, AO-2); stored Before/After (three chips, AO-3). Wide: unchanged, the authoring box keeps its 520pt column (AO-W1). Accessibility: the chips keep their labels; no new control.
@@ -197,8 +206,8 @@ None — the label "As of" and its description are seed data, not L10n; no app c
 ## 7. Steps
 
 **STEP-1 — Seed `as_of`**
-Files: `core/vocabkey/vocabkey.go`, `core/database/subjectvocab/registry.go`, `core/database/subjectvocab/subjectvocab_test.go`. Skill: `add-seeded-vocabulary`.
-Do: add the key, the seed row and the binding (D-1, D-2); move `event_picture` to 6; add T-1's case, change `event_picture`'s expected order to 6, and the event binding count at `subjectvocab_test.go` line 74 from 6 to 7.
+Files: `core/vocabkey/vocabkey.go`, `core/database/subjectvocab/registry.go`, `core/database/subjectvocab/subjectvocab_test.go`, `core/database/subjectvocab/vocabkey_test.go`. Skill: `add-seeded-vocabulary`.
+Do: add the key, the seed row and the binding (D-1, D-2); the `date` and `end_date` descriptions (D-10); `vocabkey.PropertyAsOf` in `TestVocabKeysMatchSeed`'s list; move `event_picture` to 6; add T-1's case, change `event_picture`'s expected order to 6, and the event binding count at `subjectvocab_test.go` line 74 from 6 to 7.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/subjectvocab/... ./core/onboarding/... ./api/ffi/...` passes.
 
 **STEP-2 — Prove the reconciler keeps as-ofs**
@@ -207,18 +216,18 @@ Do: give `TestDateReconcile`'s cases a `cardinality string` field (empty reads a
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/autoreconcile/...` passes.
 
 **STEP-3 — The Swift key and the rule**
-Files: `macos/App/Platform/ConclusionVocabulary.swift`, `macos/ProvenenciaTests/DateQualifierTests.swift` *(new)*. Skill: `add-swift-test`.
-Do: `SeededPropertyKey.asOf = "as_of"`; `DateQualifier.asStated`, `DateQualifier.allowsBeforeAfter(for:)` and `DateQualifier.offered(allowsBeforeAfter:current:)` (D-4, D-9); T-3.
+Files: `macos/App/Platform/ConclusionVocabulary.swift`, `macos/App/Platform/GenealogyStore.swift`, `macos/App/Platform/DateValueDraft.swift`, `macos/App/Features/CitationComposer/CitationComposerVocabulary.swift`, `macos/ProvenenciaTests/DateValueDraftTests.swift`, `macos/ProvenenciaTests/CitationComposerModelTests.swift`. Skill: `add-swift-test`.
+Do: `SeededPropertyKey.asOf = "as_of"`; `CatalogProperty.productKey` and `offersBeforeAfter` (D-4); `pointQualifiers` and `offeredQualifiers` (D-5, D-9); T-3, T-5. `DateQualifier` gains nothing.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/ -run TestSwiftVocabularyMatchesGo` passes; T-3 passes in `xcodebuild test`.
 
 **STEP-4 — The editor offers the chips**
 Files: `macos/App/Features/Dates/DateValueEditorForm.swift`, `macos/App/Features/CitationComposer/CitationComposerAuthoringBox.swift`. Skill: `add-ui-component`.
-Do: D-5 and D-6. Keep each chip's label (`L10n.Sources.dateQualifierAsStated`, `L10n.Sources.dateQualifierAbout`, `L10n.Sources.dateQualifierBefore`, `L10n.Sources.dateQualifierAfter`), tone and identifier.
+Do: D-6. Keep each chip's label (`L10n.Sources.dateQualifierAsStated`, `L10n.Sources.dateQualifierAbout`, `L10n.Sources.dateQualifierBefore`, `L10n.Sources.dateQualifierAfter`), tone and identifier.
 Check: the app builds; manual check 2 shows AO-1, AO-2, AO-4 and AO-5, and editing a stored `BEF` as-of shows AO-3.
 
 **STEP-5 — Docs**
 Files: `docs/seeded-vocabulary.md`, `completed.md`, `../deployment-plan.md` (S16-40 row), this plan (status), `../design/S16-D3-composer-as-of-date.md` → `../design/archive/`, `../design/README.md`.
-Do: §3.2 adds `as_of  date  a day the event was known to be under way; cardinality multiple; locked on event; new catalogs only (S16-40)`; §3.3 adds `event  as_of  # date; multiple; locked (S16-40)` and moves `event_picture`; the coexistence paragraph adds: "use `as_of` for a day a record shows the event under way, without saying when it began or ended (an obituary's 'of Town Y'); several may sit on one event." Bump the version (0.16.1 → 0.17.0, or the next minor after `main`'s `VERSION`): `VERSION`, `core/version.go` `Version`, every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`. Then per the Definition of done.
+Do: §3.2 adds `as_of  date  a day the event was known to be under way; cardinality multiple; locked on event; new catalogs only (S16-40)` and drops `(or best single date)` from `date`; §3.3 adds `event  as_of  # date; multiple; locked (S16-40)` and moves `event_picture`; the coexistence paragraph's first sentence lists `as_of` among the event date Properties, and it adds: "use `as_of` for a day a record shows the event under way, without saying when it began or ended (an obituary's 'of Town Y'); several may sit on one event." Bump the version (0.16.1 → 0.17.0, or the next minor after `main`'s `VERSION`): `VERSION`, `core/version.go` `Version`, every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`. Then per the Definition of done.
 Check: links resolve; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-40-event-as-of-property.md` passes.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
@@ -227,10 +236,11 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/subjectvocab/subjectvocab_test.go` `TestSeedProductValues` | `{"as_of", "As of", date, multiple, "event", 5, true}` → passes; `event_picture` → order 6 | AC-1.1, D-1 |
+| T-1 | Go | `core/database/subjectvocab/subjectvocab_test.go` `TestSeedProductValues`; `vocabkey_test.go` `TestVocabKeysMatchSeed` | `{"as_of", "As of", date, multiple, "event", 5, true}` → passes; `event_picture` → order 6 | AC-1.1, D-1 |
 | T-2 | Go | `core/autoreconcile/dates_test.go` `TestDateReconcile` | cardinality `multiple`: "two as-ofs both kept": `date(1, 1990, ip(1), ip(10))`, `date(2, 2015, ip(2), ip(10))` → `want: {{1}, {2}}`, `StateMultiple`; "an as-of year folds into a day": `date(1, 1990, nil, nil)`, `date(2, 1990, ip(1), ip(10))` → `want: {{1, 2}}`, `StateMerged`, `shown` 10 JAN 1990, `folded: {1}` | AC-3.1, AC-3.2, D-8 |
-| T-3 | Swift | `macos/ProvenenciaTests/DateQualifierTests.swift` *(new)* `@Suite struct DateQualifierTests`: `@Test(arguments:)` `offered` and `@Test(arguments:)` `allowsBeforeAfter` | `offered(allowsBeforeAfter: false, current: "")` → `["", "ABT"]`; `(false, "BEF")` → `["", "ABT", "BEF"]`; `(false, "AFT")` → `["", "ABT", "AFT"]`; `(false, "XYZ")` → `["", "ABT"]`; `(true, "")` and `(true, "BEF")` → `["", "ABT", "BEF", "AFT"]`. `allowsBeforeAfter(for:)` with `CatalogProperty(id: "p", key:, origin:, label: "", description: "", valueType: "date")` (as `PropertiesModelTests` builds one) → false for (`as_of`, `provenencia`); true for (`as_of`, `user`) and (`start_date`, `provenencia`); `nil` → true | AC-2.1, AC-2.3, AC-2.5, D-4, D-9 |
+| T-3 | Swift | `macos/ProvenenciaTests/DateValueDraftTests.swift` `offeredQualifiers` *(new, `@Test(arguments:)`)* | draft qualifier `""`, allowed false → `["", "ABT"]`; `"BEF"`, false → `["", "ABT", "BEF"]`; `"AFT"`, false → `["", "ABT", "AFT"]`; `"XYZ"`, false → `["", "ABT"]`; `""` and `"BEF"`, true → `["", "ABT", "BEF", "AFT"]`; `DateValueDraft.pointQualifiers` → `["", "ABT", "BEF", "AFT"]` | AC-2.1, AC-2.3, AC-2.5, D-5, D-9 |
 | T-4 | Go | `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` *(existing)* | `SeededPropertyKey.asOf` → seeded | AC-1.1 |
+| T-5 | Swift | `macos/ProvenenciaTests/CitationComposerModelTests.swift` `offersBeforeAfter` *(new, beside the `offersNegative` checks)* | a vocabulary holding `CatalogProperty(id: "p1", key: "as_of", origin: "provenencia", label: "As of", description: "", valueType: "date")`, `p2` (`as_of`, `user`) and `p3` (`start_date`, `provenencia`) → `offersBeforeAfter`: `p1` false, `p2` true, `p3` true, an unknown id true | AC-2.1, AC-2.5, D-4 |
 
 AC-1.2, AC-1.3, AC-2.2, AC-2.4 and AC-3.3 are covered by the manual check: they are the existing generic paths (binding order, create-only Install, range form, `multiple` marks), each tested today for other Properties.
 
@@ -260,7 +270,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 1. Create a new project. Open Properties: As of is listed (date, Multiple, locked, bound to Event).
 2. Open an image Citation in the composer, choose an Event Subject. The Property menu lists As of (by label). Pick it, Kind Point: the chips are As stated and About. Switch to Range: no qualifier row. Pick Start date, choose Before, then pick As of again: the value clears and the chips are As stated and About (AC-2.4). Pick Start date again: four chips. At a Wide window, the box is the same width.
 3. Save As of 10 Jan 1990 from one Citation and As of 10 Feb 2015 from a second Citation of another Source, both on the same residence handle. The Evidence graph card shows both values and no conflict mark.
-4. Open that Event's page: the Date row reads as an undated event does today (S16-42 shows the as-ofs).
+4. Open that Event's page: the Date row reads as an undated event does today (S16-44 shows the as-ofs).
 5. Open a project created before this build: Properties has no As of.
 
 ## 11. Risks and stop conditions

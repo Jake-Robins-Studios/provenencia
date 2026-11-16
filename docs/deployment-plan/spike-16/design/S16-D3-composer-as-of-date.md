@@ -97,7 +97,7 @@ On an As of observation, the date editor offers **As stated** and **About**, as 
 ### 2.1 What this board is not
 
 - No new date editor, no As of–specific control, no hint or help line about what As of means.
-- No change to the Event page, the Events list or the Timeline (later briefs S16-D4, S16-D5).
+- No change to the Event page, the Events list or the Timeline (later briefs S16-D4, S16-D5, S16-D6).
 - No change for Date, Start date, End date or any researcher-created date Property.
 - No warning when a researcher picks a Before or After that is already stored; the chip is simply shown.
 
@@ -105,8 +105,8 @@ On an As of observation, the date editor offers **As stated** and **About**, as 
 
 | Ships in S16-40 | Not in S16-40 |
 | --- | --- |
-| As of in the Property menu (from the seed, no new control) | Event page Date row (S16-42) |
-| Qualifier row with As stated and About on As of | Lifeline span (S16-43) |
+| As of in the Property menu (from the seed, no new control) | Event page Date row (S16-44) |
+| Qualifier row with As stated and About on As of | Every event date line (S16-42); the lifeline (S16-43) |
 | A stored Before or After on As of shown selected | Any change to the Source date dialog |
 
 ## 4. Requirements
@@ -137,9 +137,9 @@ On an As of observation, the date editor offers **As stated** and **About**, as 
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Date editor | Snowflake | Extend | `macos/App/Features/Dates/DateValueEditorForm.swift` (`qualifierSection`) | Shows a chip for Before and After only when the caller allows them or the draft holds one |
+| Date editor | Snowflake | Extend | `macos/App/Features/Dates/DateValueEditorForm.swift` (`qualifierSection`) | Shows a chip for Before and After only when the caller allows them or the draft holds one (`DateValueDraft.offeredQualifiers`) |
 | Qualifier chips | Component | Ship | `PVChipGroup` + `PVChip` (`DesignSystem/Components/Chip/`) | The same chips; fewer of them. No Segmented control swap |
-| Property field | Snowflake | Ship (unchanged) | `CitationPropertyFields` (`CitationComposerAuthoringBox.swift`) | Passes whether the Property is As of |
+| Property field | Snowflake | Extend | `CitationPropertyFields` (`CitationComposerAuthoringBox.swift`) | Passes `model.vocabulary.offersBeforeAfter` to the date editor; draws nothing new |
 | Property menu | Component | Ship (unchanged) | `PVComboBox` in `CitationComposerAuthoringBox.propertyOptions` | Lists As of from the seed |
 
 **Non-goals.** No new kit primitive. No disabled chips. No explanation copy. No change to the Kind control or the cascade fields.

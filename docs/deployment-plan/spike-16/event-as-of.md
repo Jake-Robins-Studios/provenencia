@@ -21,7 +21,7 @@ Today the event has three date Properties ([`seeded-vocabulary.md` §3.2](../../
 
 ## The dating envelope
 
-Every consumer asks one question of an event: what span and which points does it assert? One pure helper in `core/valuecompare` (beside `DateEnds`, `Earliest`, `Latest`) answers it from the kept or recorded values of the four Properties. The helper lands with its first reader (S16-41); every later reader calls it.
+Every consumer asks one question of an event: what span and which points does it assert? One pure helper in `core/valuecompare` (beside `DateEnds`, `Earliest`, `Latest`) answers it from date slices (occurrences, starts, ends, samples), not Property keys, so a later Place as-of is a second caller. Matching and the summaries map the four keys onto it. The helper lands with its first reader (S16-41); every later reader calls it, and the engine sends Swift its result, never the as-ofs themselves.
 
 - **Occurrence.** A `date` wins, as today: the event happened then. The other three do not move it.
 - **Bounds.** The earliest closed `start_date` is the low bound; the latest closed `end_date` is the high bound. A missing one is open.
@@ -37,7 +37,7 @@ Every consumer asks one question of an event: what span and which points does it
 | `as_of` 1990, `end_date` 2015 | 1990 – 2015 | span, open before |
 | `date` 1990 | 1990 | the occurrence (today) |
 
-**Matching reads samples, not occurrences** (user, 2026-11-16). Two as-ofs never conflict with each other. An as-of conflicts only with the other side's closed start after it or closed end before it, and agrees when it falls inside the other side's closed bounds. The 1990 obituary record and the 2015 directory record of one residence therefore meet in Promote with no date conflict.
+**Matching reads an as-of as a pair of bounds** (user, 2026-11-16). As of x means the event started by x and was still under way at x: start ≤ x ≤ end, read with the logic start and end already have. Two as-ofs never conflict, since one span covers both. An as-of conflicts with a closed start after it or a closed end before it, on either side; it agrees only inside a period closed on both ends. Against an occurrence `date`, as-ofs alone are a period open both ways, which compares as unknown. The 1990 obituary record and the 2015 directory record of one residence therefore meet in Promote with no date conflict. A closed as-of also counts toward the person's lifespan; it never dates a birth or a death.
 
 **Derived, never written.** The envelope is read, not stored. Nothing writes `start_date` or `end_date` from as-ofs; the researcher's start and end stay theirs.
 
