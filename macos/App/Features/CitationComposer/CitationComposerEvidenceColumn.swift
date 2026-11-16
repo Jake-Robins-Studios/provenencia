@@ -37,6 +37,8 @@ struct CitationComposerEvidenceColumn: View {
     var layout: CitationComposerColumnLayout
     /// Held by the composer, above the layout switch, so focus survives the column being rebuilt.
     var formFocus: FocusState<CitationFormFocus?>.Binding
+    /// Tab order of this layout's form, worked out once by the composer.
+    var order: [CitationFormFocus]
 
     var body: some View {
         switch layout {
@@ -75,7 +77,6 @@ struct CitationComposerEvidenceColumn: View {
 
     @ViewBuilder
     private var sideForm: some View {
-        let order = CitationFormFocus.order(.side, printedPageOffered: printedPageOffered)
         VStack(alignment: .leading, spacing: PVSpacing.space7) {
             VStack(alignment: .leading, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -97,7 +98,6 @@ struct CitationComposerEvidenceColumn: View {
 
     @ViewBuilder
     private var panelForm: some View {
-        let order = CitationFormFocus.order(.panel, printedPageOffered: printedPageOffered)
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .bottom, spacing: PVSpacing.space5) {
                 artifactStepper
@@ -270,15 +270,11 @@ struct CitationComposerEvidenceColumn: View {
         return PVThumbnail(content, size: 48)
     }
 
-    private var printedPageOffered: Bool {
-        model.locatorCapabilities.supportsPrintedPage
-    }
-
     /// Label with Printed page: one row when the form's column fits both, else
     /// Printed page directly under Label. An Artifact with no printed page shows Label alone.
     @ViewBuilder
     private func labelAndPrintedPage(label: PVFieldFocus?, printedPage: PVFieldFocus?) -> some View {
-        if printedPageOffered {
+        if order.contains(.printedPage) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: PVSpacing.space5) {
                     labelField(focus: label)

@@ -304,7 +304,7 @@ struct CitationComposerView: View {
         )
         return GeometryReader { geo in
             HStack(alignment: .top, spacing: 0) {
-                evidence(layout: layout, height: geo.size.height)
+                evidence(layout: layout, order: order, height: geo.size.height)
                 CitationComposerObservationsColumn(model: model) {
                     navigation.go(to: model.graphLocation())
                 }
@@ -323,7 +323,11 @@ struct CitationComposerView: View {
     }
 
     @ViewBuilder
-    private func evidence(layout: CitationComposerColumnLayout, height: CGFloat) -> some View {
+    private func evidence(
+        layout: CitationComposerColumnLayout,
+        order: [CitationFormFocus],
+        height: CGFloat
+    ) -> some View {
         switch layout {
         case .side:
             HStack(alignment: .top, spacing: 0) {
@@ -334,7 +338,7 @@ struct CitationComposerView: View {
                     .overlay(alignment: .trailing) {
                         PVDivider(axis: .vertical, color: PVColor.borderSubtle)
                     }
-                CitationComposerEvidenceColumn(model: model, layout: .side, formFocus: $formFocus)
+                CitationComposerEvidenceColumn(model: model, layout: .side, formFocus: $formFocus, order: order)
                     .frame(width: 440, alignment: .topLeading)
                     .overlay(alignment: .trailing) {
                         PVDivider(axis: .vertical, color: PVColor.borderSubtle)
@@ -343,7 +347,7 @@ struct CitationComposerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .panel:
             VStack(spacing: 0) {
-                CitationComposerEvidenceColumn(model: model, layout: .panel, formFocus: $formFocus)
+                CitationComposerEvidenceColumn(model: model, layout: .panel, formFocus: $formFocus, order: order)
                     .frame(maxHeight: height * 0.55, alignment: .top)
                 CitationComposerViewerPane(model: model)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
