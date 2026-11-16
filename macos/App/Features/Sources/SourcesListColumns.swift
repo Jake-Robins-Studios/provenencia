@@ -14,6 +14,8 @@ struct SourcesListColumns: Equatable {
     }
 
     static let compactBelow: CGFloat = 880
+    /// The widths the list's layout changes at, for `PVWidthBreakpoints`.
+    static let breakpoints: [CGFloat] = [compactBelow]
     static let sourceTrailing = PVSpacing.space6
     static let cellTrailing = PVSpacing.space5
     static let graphLeading = PVSpacing.space6
@@ -24,8 +26,8 @@ struct SourcesListColumns: Equatable {
     static let slotSpacing = PVSpacing.space3
     static let stackVertical = PVSpacing.space4
 
-    init(listWidth: CGFloat, widthClass: PVWidthClass) {
-        isCompact = listWidth < Self.compactBelow
+    init(met: PVBreakpointsMet, widthClass: PVWidthClass) {
+        isCompact = !met.isAtLeast(Self.compactBelow)
         self.widthClass = widthClass
     }
 

@@ -52,13 +52,6 @@ private struct SourcesListContent: View {
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourcesModel
     @Environment(\.pvWidthClass) private var widthClass
-    /// The list's width; the caption and every row lay out on the columns built
-    /// from it. The first frame is wide and the first geometry report corrects it.
-    @State private var listWidth: CGFloat = .infinity
-
-    private var columns: SourcesListColumns {
-        SourcesListColumns(listWidth: listWidth, widthClass: widthClass)
-    }
 
     var body: some View {
         let rows = model.visibleSources
@@ -297,34 +290,34 @@ private struct SourcesListContent: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .accessibilityIdentifier("sources.filterEmpty")
         } else {
-            ScrollView {
-                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section {
-                        ForEach(rows) { source in
-                            SourcesListRow(source: source, model: model, columns: columns)
-                                .id(source.id)
+            PVWidthBreakpoints(SourcesListColumns.breakpoints) { met in
+                let columns = SourcesListColumns(met: met, widthClass: widthClass)
+                ScrollView {
+                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                        Section {
+                            ForEach(rows) { source in
+                                SourcesListRow(source: source, model: model, columns: columns)
+                                    .id(source.id)
+                            }
+                        } header: {
+                            captionBand(columns)
                         }
-                    } header: {
-                        captionBand
                     }
+                    .scrollTargetLayout()
                 }
-                .scrollTargetLayout()
+                .modifier(ListScrollAnchorModifier(
+                    anchor: navigation.currentLocation.listScrollAnchor,
+                    rowIDs: rows.map(\.id),
+                    isLoaded: true
+                ))
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text(L10n.Sources.listAccessibilityLabel))
+                .accessibilityIdentifier("sources.list")
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: {
-                listWidth = $0
-            }
-            .modifier(ListScrollAnchorModifier(
-                anchor: navigation.currentLocation.listScrollAnchor,
-                rowIDs: rows.map(\.id),
-                isLoaded: true
-            ))
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text(L10n.Sources.listAccessibilityLabel))
-            .accessibilityIdentifier("sources.list")
         }
     }
 
-    private var captionBand: some View {
+    private func captionBand(_ columns: SourcesListColumns) -> some View {
         HStack(spacing: 0) {
             caption(L10n.Sources.columnSource)
                 .sourcesSourceCell()
