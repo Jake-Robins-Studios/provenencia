@@ -352,3 +352,4 @@ None.
 - `CitationComposerEvidenceColumn` takes the form's focus as `formFocus: FocusState<CitationFormFocus?>.Binding`.
 - The menu, field, width-class and focus changes share one commit: they edit the same files.
 - Not run in the app by the implementer: the board frames and manual check (§ 10), including `ViewThatFits` placement of Label and Printed page (frames 1a, 1b, 7) and focus across 1600pt.
+- Printed page help and prompt changed from the board copy after review (UX-2, UX-3; user 2026-11-16).

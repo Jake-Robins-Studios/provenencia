@@ -22114,7 +22114,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The page number the original prints. It goes in the citation; the page in the file does not."
+            "value": "Used in the reference citation"
           }
         }
       }
@@ -22138,7 +22138,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "As printed, such as 14 or iv"
+            "value": "14 or iv"
           }
         }
       }

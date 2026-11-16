@@ -3896,13 +3896,13 @@ enum L10n {
 
         static let printedPagePrompt = LocalizedStringResource(
             "citationComposer.printedPagePrompt",
-            defaultValue: "As printed, such as 14 or iv",
+            defaultValue: "14 or iv",
             comment: "Placeholder in the printed-page field"
         )
 
         static let printedPageHelp = LocalizedStringResource(
             "citationComposer.printedPageHelp",
-            defaultValue: "The page number the original prints. It goes in the citation; the page in the file does not.",
+            defaultValue: "Used in the reference citation",
             comment: "Help for the printed-page field"
         )
 
