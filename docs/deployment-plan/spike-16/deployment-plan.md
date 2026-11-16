@@ -51,7 +51,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 11. **A Person page opens from memory.** With the catalog warm, opening a Person on Vitals, its provenance sheet, its Gallery and its Sources section issues no SQL but the one read of its pictures' file paths (user, 2026-11-13: one query, rule "No Go cache for a view that is one query"); a Source rename shows on every page without reloading any Evidence graph.
 12. **Lists and progress never rescan the catalog.** The Sources list's graph progress needs no full-table count; the Sources section of a person in 80 Evidence graphs loads no whole graph; a write updates only the rows it touched in the Persons, Events and Places lists.
 13. **Walks are lookups.** A city's place chain reads without loading its 6,000 location links; the Family section reads in one pass; the life rows and the Timeline take their owners and participants from summary rows.
-14. **Back is instant.** Returning to a Person, Event or Place page shows its last value at once while it refreshes; a write that touches nothing a cached section was built from leaves it alone; a person's other sections are ready before they are opened.
+14. **Back is instant.** Returning to a Person, Event or Place page shows its last value at once while it refreshes; a write that touches nothing a cached section was built from leaves it alone.
 15. **One table names every cache.** `docs/catalog-caches.md` (new in S16-10) lists every Go and Swift cache with what builds it and the signal that updates it; at 16,000 persons the Go caches together stay under 250 MB of live data, and no cache grows faster than the catalog; every value the app derives from cached data is built once per change of its inputs.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
@@ -100,7 +100,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | Cache review: summary rows carry life owners and participants; [`structural-debt.md`](../../ideas/structural-debt.md) A-33 (two event–person shapes) | S16-19 |
 | [`promote-ranking.md`](../../ideas/promote-ranking.md) "Name index on commit" (B-8, B-9); [`structural-debt.md`](../../ideas/structural-debt.md) row "`graphalign.Handle` has the fields of `subjectcompare.Subject`" (its `Handle` half) | S16-20, S16-32 |
 | [`promote-ranking.md`](../../ideas/promote-ranking.md) "Narrower canon walk" (B-8's walk); the same structural-debt row's `CanonEdge` half | S16-21, S16-22 |
-| Cache review (Swift): stale while refreshing; values report their inputs; lists merge touched rows; keys as plain values; one derived-value primitive with [`person-page-performance.md`](../../ideas/person-page-performance.md)'s "Section content is rebuilt on every pass"; prefetch | S16-09 (stale while refreshing), S16-24 – S16-27, S16-29 |
+| Cache review (Swift): stale while refreshing; values report their inputs; lists merge touched rows; keys as plain values; one derived-value primitive with [`person-page-performance.md`](../../ideas/person-page-performance.md)'s "Section content is rebuilt on every pass"; prefetch (descoped with S16-29, user 2026-11-16: back to [`person-page-performance.md`](../../ideas/person-page-performance.md)) | S16-09 (stale while refreshing), S16-24 – S16-27 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -148,7 +148,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 2) Orders are defined and results do not move.** Every cache defines its iteration order; kinship answers keep `For`'s order. Promote's suggestions are held equal to today's by an equivalence test on the large fixture (S16-22) and the matching goldens; Family, Timeline, summaries and search are held by their existing tests and the rebuild-equals-upkeep tests. Binds S16-11 – S16-32.
 - **(Batch 2) Memory is budgeted.** Every cache has a cap and a size measured at 4,000 and 16,000 persons, recorded in `docs/catalog-caches.md` (S16-10). The ceiling follows the catalog's size: at 16,000 persons the Go caches' live data stays under 250 MB (user, 2026-11-11, replacing 40 MB, which S16-10 found already passed at about 118 MB). Each PR records its caches' figures before and after; a cache that grows faster than the data it holds is a finding. The aim is many small pieces that compose into an answer, each cheap to update or drop, so task-to-task speed stays high (user, 2026-11-11). The records tier has a cap of its own. Binds S16-10 – S16-32.
 - **(Batch 2) Batch 1's caps stay where S16-01 puts them** (map review K-28). The relatives-per-role cap is in `kinship.KinOf` and the records-per-graph cap is one function, which S16-16 and S16-13 keep calling; the summary composers keep S16-01's capped `eventLocations` for an event's places, and the place entries hold place-to-place links only. Binds S16-13, S16-16, S16-19.
-- **(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing.** Per-entity Conclusion keys go from `.evict` to `.markStale`, and only ids in `effects.deleted` are evicted, with a cap of 50 hidden entities. Each per-entity read reports the handles, graphs and Sources it was built from as three wire lists; `graphcache.InputKey`, which the persisted input index stores, keeps its one kind (map review K-28). One `followsInputs` declaration (a `followsValue` refresh per input slot) replaces the hand-written selectors. Swift derives nothing the engine knows; one `session.derived` primitive builds what it derives for display once per change of its inputs. Binds S16-09, S16-24 – S16-27, S16-29.
+- **(Batch 2) Swift caches one value per view, follows its inputs and shows it stale while refreshing.** Per-entity Conclusion keys go from `.evict` to `.markStale`, and only ids in `effects.deleted` are evicted, with a cap of 50 hidden entities. Each per-entity read reports the handles, graphs and Sources it was built from as three wire lists; `graphcache.InputKey`, which the persisted input index stores, keeps its one kind (map review K-28). One `followsInputs` declaration (a `followsValue` refresh per input slot) replaces the hand-written selectors. Swift derives nothing the engine knows; one `session.derived` primitive builds what it derives for display once per change of its inputs. Binds S16-09, S16-24 – S16-27.
 - **(Batch 2) No Go cache for a view that is one query.** The Source workspace lists, source types, metadata fields, Citations by Artifact and subject positions keep their single reads; Swift's per-view key is enough. Binds S16-10 – S16-32.
 - **(Batch 2) No new persisted projections, and no stored answer without a measurement.** Stored summary rows, a canonical links table and stored shortlist keys are refused for now ([design](cache-architecture.md#not-this-batch)). A composed answer is memoised only after it measures slow at the batch's Scale. Binds S16-10 – S16-32.
 - **(Batch 2) A link with one record at both ends is crafted data, refused where links are read** (user, 2026-11-14). No genealogical link joins a record to itself, and the app never writes one: `connect.CreateCitedBridge` refuses equal ends, and filing refuses a link whose two ends are one handle (`connectrules` `DecisionSelfLink`, which stays: two Source records claimed onto one handle are real data). So a stored link from a record to itself only comes from a hand-edited catalog. It is refused once on each path that reads the catalog's links (the canon's links and an Evidence graph's bridges, both in `graphcache`; user, 2026-11-14, S16-36 planning), and no reader handles it: `kinship.Edge.Readings` and `Ends`, `graphalign`'s view and layer, the place entries' pages and chains and their tests stop reading self-loops (S16-21 D-14, D-16 and its self-loop tests were written before this rule). Binds S16-36, S16-22.
@@ -195,9 +195,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-25 | Swift keys become plain values and follow their inputs | 2e | Go and Swift: a `source_records` keyed read names a Source when its words move, and the Source records entry and the app follow it; `CatalogQueryKey` becomes a value of kind, project and ids, with the same factories, and the key enum's switches and `guard case` blocks go; one `followsInputs` declaration replaces `personSection`, `personGraphsSection`, the per-kind id closures and the `.source` follows of S16-09 and S16-12 | — | S16-24, S16-03, S16-09, S16-12 | [plan](prs/S16-25-keys-follow-inputs.md) | Landed #847 |
 | S16-26 | Conclusion lists merge the rows a write touched | 2e | Go and Swift: the Persons, Events and Places lists re-read only the touched rows by id with Go's sort key, through one batch merged read (`mergedRows`) | — | S14-42 (Spike 14, landed #748) | [plan](prs/S16-26-lists-merge-touched-rows.md) | Landed #851 |
 | S16-27 | One primitive for values derived from cached data | 2e | Swift: `session.derived` builds a value once per change of its inputs; the four hand memos, the uncached snapshot and the detail page's and section host's per-pass builds move onto it | — | S16-03, S16-07 | [plan](prs/S16-27-derived-values.md) | Landed #854 |
-| S16-29 | Prefetch a person's other sections and a hovered person | 2e | Swift: a `prefetch` tag in the section read list warms Family and Timeline after the open section settles; a 250 ms hover on a person warms their page | — | S16-09, S16-25, S16-03 | — | Scoped |
-| S16-37 | The list merge has a file of its own and no test-only parameters | 2e | Swift: `CatalogListRows`, `CatalogListRow`, `mergeSorted` and their helpers leave `CatalogLastUpdated.swift` for a file named for them; the `indexedLimit:` parameter and `merging(_:replacing:indexedLimit:)` move out of app code, with the tests forcing a path another way (S16-26 MNT-5, MNT-7) | — | S16-26 | quick-pr | Scoped |
-| S16-38 | An empty list shows its empty state while a merge runs | 2e | Swift: `ConclusionListPresentation` shows `PVEmptyState` for an empty list whose merge is in flight, instead of a blank body (S16-26 UX-1; predates S16-26) | — | S16-26 | quick-pr | Scoped |
+| S16-29 | Prefetch a person's other sections and a hovered person | 2e | Descoped: optimizing before real data shows the cost (user, 2026-11-16); the idea is in [`person-page-performance.md`](../../ideas/person-page-performance.md) | — | — | — | Descoped (2026-11-16) |
+| S16-37 | The list merge has a file of its own and no test-only parameters | 2e | Swift: `CatalogListRows`, `CatalogListRow`, `mergeSorted` and their helpers leave `CatalogLastUpdated.swift` for a file named for them; the `indexedLimit:` parameter and `merging(_:replacing:indexedLimit:)` move out of app code, with the tests forcing a path another way (S16-26 MNT-5, MNT-7) | — | S16-26 | [plan](prs/S16-37-list-merge-file.md) | Draft |
+| S16-38 | An empty list shows its empty state while a merge runs | 2e | Swift: `ConclusionListPresentation` shows `PVEmptyState` for an empty list whose merge is in flight, instead of a blank body (S16-26 UX-1; predates S16-26) | — | S16-26 | [plan](prs/S16-37-list-merge-file.md) | Draft |
 | S16-34 | Tests run without showing a window or opening the researcher's project | 3a | Swift, tests only: the test host launches a `Settings`-only app (no window, no identity or project read, no Dock icon); test windows are never shown and one `.hostedWindows` trait closes them when each test ends, replacing every `withExtendedLifetime` hold; `add-swift-test` teaches it | — | — | [plan](prs/S16-34-hidden-test-windows.md) | Landed #772 |
 | S16-35 | Layout tests compute their frames instead of waiting on a window | 3a | Swift, tests only: `SourcePageOverviewLayout` and `PVPageColumnsLayout` place through static functions tested with made-up sizes; `PVWidthClassTests` force layout and assert at once; `WorkspaceDestinationHostTests`' three whole-workspace tests go, with a plain test of the leave action; `add-swift-test` teaches it | — | S16-34 | [plan](prs/S16-35-layout-tests-without-waits.md) | Landed #775 |
 | S16-39 | One container measures its own width and tells its content which layout fits | 4a | Swift, kit: a design-system modifier that measures the view it is on (a filling container, never one sized by its content) and publishes a breakpoint result to its subtree, as `pvMeasuresWidthClass` does for the pane, reporting only when a breakpoint is crossed; `PVTable`'s `minTableWidth` gate (S15-49) and the Sources list's `SourcesListColumns.compactBelow` move onto it, and every other view that turns a measured width into a layout choice is surveyed and moved or named as not one; § 9 and `add-ui-component` teach it | — | S15-49 (#852) | — | Scoped |
@@ -266,10 +266,9 @@ SLICE 2e — The app's cache
   S16-25  Swift keys become plain values and follow their inputs
   S16-26  Conclusion lists merge the rows a write touched
   S16-27  One primitive for values derived from cached data
-  S16-29  Prefetch a person's other sections and a hovered person
   S16-37  The list merge has a file of its own and no test-only parameters
   S16-38  An empty list shows its empty state while a merge runs
-  Check: bar 12 (lists), the rest of 14, and 15.
+  Check: bar 12 (lists), the rest of 14, and 15. S16-29 (prefetch) is descoped (user, 2026-11-16).
 
 BATCH 3 — Test infrastructure
 
@@ -321,7 +320,7 @@ S16-13 ──▶ S16-32
 S16-18 ──▶ S16-21 ──▶ S16-36 ──▶ S16-22
 S16-16 ──▶ S16-22
 S16-20 ──▶ S16-22
-S16-16 ──▶ S16-24 ──▶ S16-25 ──▶ S16-29
+S16-16 ──▶ S16-24 ──▶ S16-25
 S16-30 ──▶ S16-24
 S16-13 ──▶ S16-24
 S16-19 ──▶ S16-24
@@ -329,8 +328,6 @@ S14-42 ──▶ S16-24
 S16-03 ──▶ S16-25
 S16-09 ──▶ S16-25
 S16-12 ──▶ S16-25
-S16-09 ──▶ S16-29
-S16-03 ──▶ S16-29
 S14-42 ──▶ S16-26 ──▶ S16-37
 S16-26 ──▶ S16-38
 S16-03 ──▶ S16-27
@@ -541,13 +538,6 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Not this PR.** Engine-side memos.
 **Check.** Bar 15's last clause: a test counts one build per input revision through an `apply`; the moved features' tests unchanged in what they assert.
 **Context.** [`person-page-performance.md`](../../ideas/person-page-performance.md)'s "Section content is rebuilt on every pass of its host" (moved to this batch); `macos/App/Features/Workspace/Session/WorkspaceSession+EvidenceGraphs.swift`, `macos/App/Features/EvidenceGraph/EvidenceGraphModel.swift`, `macos/App/Features/CitationComposer/`, `macos/App/Features/Promote/PromoteModel.swift`, `macos/App/Features/Catalog/Unpromote/UnpromoteFlow.swift`, `macos/App/Features/Sources/SourcesModel.swift`, `macos/App/Features/Conclusions/ConclusionPageSectionHost.swift`. A new pattern: teach it in [`add-workspace-place`](../../../.agents/skills/add-workspace-place/SKILL.md) and [`macos-client-patterns.md`](../../macos-client-patterns.md) rule 5.
-
-#### S16-29 — Prefetch a person's other sections and a hovered person
-
-**Ships.** S16-03's list of section reads gains a `prefetch` tag, which Family and Timeline declare; the place warms tagged reads after the open section's keys settle, one at a time. A 250 ms hover on a person tile or card warms that person's detail. Each prefetch is measured against the next foreground read it could delay.
-**Not this PR.** Engine-side warming (rule "Warm only what every proposal needs").
-**Check.** Bar 14's last clause: switching to Family or Timeline after the page settles shows no spinner; the prefetch's cost on the next click measured.
-**Context.** Rule "One open section, one list of reads" (S16-03); `macos/App/Features/Workspace/WorkspaceLocation.swift`, `Session/PlaceRegistry.swift`, `macos/App/Features/Conclusions/PersonCardLink.swift`; updates [`add-workspace-place`](../../../.agents/skills/add-workspace-place/SKILL.md).
 
 #### S16-37 — The list merge has a file of its own and no test-only parameters
 
