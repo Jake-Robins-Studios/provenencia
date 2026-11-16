@@ -5,9 +5,11 @@ import SwiftUI
 enum ConclusionListPresentation<Row: Equatable>: Equatable {
     /// First load: skeleton, no count, rows inert.
     case loading
-    /// Loaded with nothing to list: no count, Promote explanation.
+    /// Loaded with nothing to list, even while a merge or refetch runs: no
+    /// count, Promote explanation.
     case empty
-    /// Rows, with the header meta; stale rows stay live while refreshing.
+    /// Rows, never empty, with the header meta; stale rows stay live while
+    /// refreshing.
     case rows([Row], refreshing: Bool)
     /// The read failed with nothing to show.
     case failed(String)
@@ -15,7 +17,7 @@ enum ConclusionListPresentation<Row: Equatable>: Equatable {
     init(_ read: QueryRead<[Row]>, isFetching: Bool) {
         switch read {
         case .loaded(let value):
-            self = value.isEmpty && !isFetching ? .empty : .rows(value, refreshing: isFetching)
+            self = value.isEmpty ? .empty : .rows(value, refreshing: isFetching)
         case .failed(let error):
             self = .failed(L10n.Errors.message(for: error))
         case .loading:

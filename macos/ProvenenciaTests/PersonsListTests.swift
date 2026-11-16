@@ -63,6 +63,11 @@ struct PersonsListTests {
         #expect(ConclusionListPresentation(.loaded(rows), isFetching: true) == .rows(rows, refreshing: true))
     }
 
+    @Test func emptyListShowsEmptyStateWhileAMergeRuns() {
+        let empty: QueryRead<[CatalogPersonSummary]> = .loaded([])
+        #expect(ConclusionListPresentation(empty, isFetching: true) == .empty)
+    }
+
     @Test func headerMetaCountsAndShowsRefreshing() {
         let one = [summary("PER-1", name: "A")]
         let two = one + [summary("PER-2")]
