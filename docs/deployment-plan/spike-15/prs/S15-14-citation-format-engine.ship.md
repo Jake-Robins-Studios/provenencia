@@ -99,4 +99,4 @@ Check: the test passes; `FuzzParse` 30 s no crasher; check-pr PASS.
 Head `1c192b0f9`. Gate PASS. F-9 done: `TestMissing/unknown_builtin_target` panicked `index out of range [-1]` before the fix; both new subtests pass. Orchestrator read the diff: `Missing` returns unanswered on `!ok`; `printed` guards `r.row` range. Merged `origin/main` (`3a2a2816c`, #867); gate PASS against it.
 
 ## Result
-Gate PASS · CI see PR · open: none · follow-ups: none · to user: UX-1, UX-2 (answered 2026-11-16: change both) · later PR: UX-3 (S15-37 Errors line) · rejected: MNT-4
+Gate PASS · CI green (both test jobs pass; localizable skipped) · open: none · follow-ups: none · to user: UX-1, UX-2 (answered 2026-11-16: change both) · later PR: UX-3 (S15-37 Errors line) · rejected: MNT-4
