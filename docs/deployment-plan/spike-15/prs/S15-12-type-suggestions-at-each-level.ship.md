@@ -70,4 +70,4 @@ No new findings. Both reviewers noted, outside the lenses, that the composer's A
 Merged `origin/main` (`bca068ca3`, S16 docs only). Gate PASS against `bca068ca3`.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: CON-1/UX-2 (stale pick on Return) → `docs/ideas/shared-list-helpers.md` (user, 2026-11-16) · to user: CON-2 (plan § 10 manual check, incl. the D-10 focus stop condition)
+Gate PASS · CI green · open: none · follow-ups: CON-1/UX-2 (stale pick on Return) → `docs/ideas/shared-list-helpers.md` (user, 2026-11-16) · to user: CON-2 (plan § 10 manual check, incl. the D-10 focus stop condition)
