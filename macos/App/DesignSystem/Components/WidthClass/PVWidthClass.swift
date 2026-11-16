@@ -9,8 +9,15 @@ enum PVWidthClass: Equatable, Sendable {
     case regular
     case wide
 
+    /// The pane's one breakpoint, for `PVWidthBreakpoints`.
+    static let breakpoints: [CGFloat] = [PVSpacing.widthWideBreakpoint]
+
+    init(_ met: PVBreakpointsMet) {
+        self = met.isAtLeast(PVSpacing.widthWideBreakpoint) ? .wide : .regular
+    }
+
     init(paneWidth: CGFloat) {
-        self = paneWidth >= PVSpacing.widthWideBreakpoint ? .wide : .regular
+        self.init(PVBreakpointsMet(breakpoints: Self.breakpoints, width: paneWidth))
     }
 }
 
@@ -26,16 +33,10 @@ extension EnvironmentValues {
 }
 
 private struct PVMeasuresWidthClass: ViewModifier {
-    @State private var widthClass: PVWidthClass = .regular
-
     func body(content: Content) -> some View {
-        content
-            .environment(\.pvWidthClass, widthClass)
-            .onGeometryChange(for: PVWidthClass.self) {
-                PVWidthClass(paneWidth: $0.size.width)
-            } action: {
-                widthClass = $0
-            }
+        PVWidthBreakpoints(PVWidthClass.breakpoints) { met in
+            content.environment(\.pvWidthClass, PVWidthClass(met))
+        }
     }
 }
 

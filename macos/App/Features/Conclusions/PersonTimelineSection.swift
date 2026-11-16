@@ -581,7 +581,7 @@ private struct PersonTimelinePreview: View {
     var body: some View {
         PVPageColumns(primaryFill: true) {
             PersonTimelineList(
-                content: PersonTimelineContent(timeline: timeline, folds: folds, widthClass: width >= PVSpacing.widthWideBreakpoint ? .wide : .regular),
+                content: PersonTimelineContent(timeline: timeline, folds: folds, widthClass: PVWidthClass(paneWidth: width)),
                 projectDir: "/tmp/none",
                 accessibilityIdentifierRoot: "preview",
                 open: { _ in },
@@ -589,7 +589,7 @@ private struct PersonTimelinePreview: View {
                 expandThrough: { folds.reveal($0, pages: $1) }
             )
         }
-        .environment(\.pvWidthClass, width >= PVSpacing.widthWideBreakpoint ? .wide : .regular)
+        .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
         .frame(width: width, height: 900)
         .background(PVColor.surfacePage)
         .onAppear { folds = foldsAtStart }
