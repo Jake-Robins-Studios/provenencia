@@ -19,8 +19,8 @@ import SwiftUI
 ///   call site.
 /// - A column with no `width` is flexible: the flexible columns share what the fixed ones
 ///   leave by their `flex` weight (equal by default).
-/// - Columns also decide whether they show (`minTableWidth`, read through `PVWidthBreakpoints`), so the header and
-///   the rows always agree.
+/// - Columns also decide whether they show (`minTableWidth`, read through `PVWidthBreakpoints`),
+///   so the header and the rows always agree.
 /// - Search bars and result footers are feature chrome, not table chrome;
 ///   they stay in the pane, above and below the table.
 ///

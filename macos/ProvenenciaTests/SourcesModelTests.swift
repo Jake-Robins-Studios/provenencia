@@ -665,13 +665,17 @@ struct SourcesModelTests {
         #expect(words?[AttributeScopes.SwiftUIAttributes.FontAttribute.self] == PVFont.body(size: PVTypeScale.micro).italic())
     }
 
+    private func columns(at width: CGFloat, _ widthClass: PVWidthClass) -> SourcesListColumns {
+        SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: width), widthClass: widthClass)
+    }
+
     @Test func listColumnsMatchBoard() {
-        let wide = SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 1136), widthClass: .regular)
+        let wide = columns(at: 1136, .regular)
         #expect(!wide.isCompact)
         #expect(wide.type == 170)
         #expect(wide.graphs == 420)
-        #expect(!SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 880), widthClass: .regular).isCompact)
-        let narrow = SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 879.5), widthClass: .regular)
+        #expect(!columns(at: 880, .regular).isCompact)
+        let narrow = columns(at: 879.5, .regular)
         #expect(narrow.isCompact)
         #expect(narrow.type == nil)
         #expect(narrow.graphs == 380)
@@ -681,22 +685,22 @@ struct SourcesModelTests {
     }
 
     @Test func columnsPlaceTheDateByWidth() {
-        let regular = SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 1000), widthClass: .regular)
+        let regular = columns(at: 1000, .regular)
         #expect(regular.datePlacement == .underType)
         #expect(regular.type == 170)
         #expect(regular.published == nil)
         #expect(regular.graphs == 420)
-        #expect(SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 880), widthClass: .regular).datePlacement == .underType)
-        let narrow = SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 860), widthClass: .regular)
+        #expect(columns(at: 880, .regular).datePlacement == .underType)
+        let narrow = columns(at: 860, .regular)
         #expect(narrow.datePlacement == .recordLine)
         #expect(narrow.type == nil)
         #expect(narrow.graphs == 380)
-        let wide = SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 1664), widthClass: .wide)
+        let wide = columns(at: 1664, .wide)
         #expect(wide.datePlacement == .column)
         #expect(wide.type == 150)
         #expect(wide.published == 150)
         #expect(wide.graphs == 420)
-        #expect(SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: 860), widthClass: .wide).datePlacement == .recordLine)
+        #expect(columns(at: 860, .wide).datePlacement == .recordLine)
         #expect(PVSpacing.widthListWideMax == 1600)
     }
 
