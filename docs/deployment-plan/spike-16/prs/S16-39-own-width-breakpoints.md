@@ -1,7 +1,7 @@
 # S16-39 — One container measures its own width and tells its content which layout fits
 
 **Status:** Landed in [#866](https://github.com/mendahu/provenencia/pull/866) (2026-11-16)
-**Landed:** No version bump, as planned. No differences from the plan.
+**Landed:** No version bump, as planned. Differences from the plan: the § 10 manual check was not run by the implementer (no UI session); the user runs steps 1–3 and 6 before merge, and step 2 checks the Sources list draws no compact frame before full rows. `PVBreakpointsMet`'s two fields are `private let`, not `let` (D-2). The `add-ui-component` comment line opens the GOOD half of the new anti-pattern block, there being no earlier width example to attach it to.
 **Spike / slice:** Spike 16 · Slice 4a — Layout by a container's own width
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view switches layout at the same widths as today and draws the same on each side of them)
