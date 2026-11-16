@@ -1,6 +1,6 @@
 # Deployment plan — Spike 16
 
-Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host.
+Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host. Batch 5 (2026-11-16) adds an event's **As of** date: a day a lasting event was known to be under way, kept beside its start and end and read as a sample, never as when it happened ([design](event-as-of.md)).
 
 **A brief covers one view.** A PR that adds, changes or removes chrome waits on a brief for each view it touches. Briefs and PR plans are written just before the PR ([`add-design-brief`](../../../.agents/skills/add-design-brief/SKILL.md), [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md)). A bugfix or a behavior change with no new chrome is not gated.
 
@@ -27,6 +27,8 @@ Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-e
 | S16-09 | S15-29 | `.conclusionDetail`'s Source follow: once its records move to the sheet's key, S15-29 restates what the detail key follows |
 | S16-25 | — | Converts any `CatalogQueryKey` cases Spike 15 adds before it lands (likely S15-11, S15-17, S15-21's sheet key, S15-23) along with the rest; Spike 15 keys added after it use the value keys |
 | S16-37 | S15-12 | `CatalogLastUpdated.swift`: S16-37 moves the list merge out, so the line numbers S15-12's plan cites for `CatalogQueryPatch.typeSuggestions()` and `.typeSuggestionCount()` shift by about 166 lines; the symbols stay |
+
+| S16-40 | S15-13, S15-42 | `CitationComposerAuthoringBox.swift` `CitationPropertyFields` (S15-13 changes the composer form) and `Features/Dates/DateValueEditorForm.swift` (S15-42's Source date dialog shows it; S16-40 adds a parameter whose default keeps every qualifier) |
 
 Spike 16's Apply for Source records and the graph catalog must handle an Artifact or graph whose `source_id` changes (S15-24): both Sources are in the write's `source_records` read (Source records) and its `evidence_graphs` read (the graph index).
 
@@ -55,9 +57,18 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 14. **Back is instant.** Returning to a Person, Event or Place page shows its last value at once while it refreshes; a write that touches nothing a cached section was built from leaves it alone.
 15. **One table names every cache.** `docs/catalog-caches.md` (new in S16-10) lists every Go and Swift cache with what builds it and the signal that updates it; at 16,000 persons the Go caches together stay under 250 MB of live data, and no cache grows faster than the catalog; every value the app derives from cached data is built once per change of its inputs.
 
+**Batch 5 — Event as-of dates** (user, 2026-11-16; [design](event-as-of.md)):
+
+16. **An attestation is recorded as one.** On a new project, an obituary's "survived by X of Town Y" of 10 Jan 1990 is recorded on X's residence as **As of** 10 Jan 1990; the composer offers Exact and About for it, not Before or After; a directory's As of 10 Feb 2015 on the same residence sits beside it, and neither the Evidence graph nor the auto-reconciler reads the two as a conflict.
+17. **Promote meets two attestations of one residence.** The 1990 obituary record and the 2015 directory record of one residence are compared with no date conflict; a record whose residence closed in 1985 conflicts with the 1990 one.
+18. **The Event page and the Events list date an as-of event.** A residence known only from its two as-ofs reads "As of 10 Jan 1990 – 10 Feb 2015" on its Event page and in the Events list, and sorts at 10 Jan 1990.
+19. **The Timeline draws it.** On the Person page's Timeline, that residence spans 1990 to 2015 on the lifeline with both ends marked open; a start of 1985 closes its left end.
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
+
+**Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: every reader of the envelope is one pass over the event's values.
 
 ## Where the notes went
 
@@ -159,6 +170,16 @@ These are the calls for this spike. PR plans treat them as binding.
 
 - **(Batch 3) A test run shows no window and touches no install** (user, 2026-11-10). The test host opens no app window and reads no install identity or project; a test window is never ordered in and is closed when its test ends; test runs are measured one `xcodebuild` at a time, never several at once (three at once took the researcher's Mac down on 2026-11-10). Unit and integration tests stay low-cost: no mouse or key events synthesized through a window (user, 2026-11-10). Binds S16-34, S16-35.
 
+### Batch 5 — Event as-of dates
+
+- **(Batch 5) As of is a fourth event date Property, not a new DateValue kind** (user, 2026-11-16). Key `as_of`, label "As of", value type `date`, cardinality `multiple`, bound to `event` and locked like `date`, `start_date` and `end_date` ([`seeded-vocabulary.md` §3.2](../../seeded-vocabulary.md#32-properties)). A DateValue stays one moment ([`structured-date-model.md`](../../structured-date-model.md)). It is never encoded as `start_date = BEF x` with `end_date = AFT x`. Binds S16-40.
+- **(Batch 5) New catalogs only** (user, 2026-11-16). `subjectvocab.Install` seeds `as_of` at create time, as every seeded Property; no migration inserts it and open does not heal it. The user asks for a one-off backfill command for the dogfood project after the batch lands ([`ideas/event-as-of-followups.md`](../../ideas/event-as-of-followups.md)). Binds S16-40.
+- **(Batch 5) On every event** (user, 2026-11-16). The binding is per Subject type; nothing hides As of on a birth or a burial. Per-event-type scoping waits in [`ideas/properties-and-terms.md`](../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types).
+- **(Batch 5) The composer offers Exact and About on an as-of, as a point or a range; never Before or After.** Before and After belong to a start or an end. The rule lives in the composer's date editor, not in `DateValue` or `observations`: an as-of the app did not write may still carry `BEF` or `AFT`, and the editor shows that chip selected so the value is never rewritten silently. Binds S16-40.
+- **(Batch 5) One dating envelope, derived on read** ([design](event-as-of.md#the-dating-envelope)). One pure helper in `core/valuecompare` reads an event's `date`, `start_date`, `end_date` and `as_of` values into an occurrence, low and high bounds, samples and a known span; matching, the summaries and the Timeline read it instead of each special-casing the four keys. An as-of with an open end is not a sample. Nothing writes `start_date` or `end_date` from as-ofs. S16-41 adds it; S16-42 and S16-43 read it.
+- **(Batch 5) An as-of is a sample, never an occurrence** (user, 2026-11-16). Two as-ofs never conflict with each other, and never agree by themselves. An as-of conflicts with the other side's closed start after it or closed end before it, and agrees when it falls inside the other side's closed bounds. A `date` still wins over the rest, as today. Binds S16-41.
+- **(Batch 5) As-ofs alone make a span open on both sides** (user, 2026-11-16). An event with only as-ofs displays and sorts from its earliest as-of, spans to its latest, and is drawn open on both sides; a start or an end closes that side. Binds S16-42 and S16-43.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -202,6 +223,10 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-34 | Tests run without showing a window or opening the researcher's project | 3a | Swift, tests only: the test host launches a `Settings`-only app (no window, no identity or project read, no Dock icon); test windows are never shown and one `.hostedWindows` trait closes them when each test ends, replacing every `withExtendedLifetime` hold; `add-swift-test` teaches it | — | — | [plan](prs/S16-34-hidden-test-windows.md) | Landed #772 |
 | S16-35 | Layout tests compute their frames instead of waiting on a window | 3a | Swift, tests only: `SourcePageOverviewLayout` and `PVPageColumnsLayout` place through static functions tested with made-up sizes; `PVWidthClassTests` force layout and assert at once; `WorkspaceDestinationHostTests`' three whole-workspace tests go, with a plain test of the leave action; `add-swift-test` teaches it | — | S16-34 | [plan](prs/S16-35-layout-tests-without-waits.md) | Landed #775 |
 | S16-39 | One container measures its own width and tells its content which layout fits | 4a | Swift, kit: a design-system container (`PVWidthBreakpoints`) that fills the width it is given, measures it, and hands its content which of the caller's breakpoints it meets, rebuilding only when one is crossed; `PVTable`'s `minTableWidth` gate (S15-49), the Sources list's `SourcesListColumns.compactBelow`, the Timeline's people stacking and the Citation composer's three-up split move onto it, and every other measured width is named as geometry; § 9 and `add-ui-component` teach it | — | S15-49 (#852) | [plan](prs/S16-39-own-width-breakpoints.md) | Planned |
+| S16-40 | An event records when it was known to be under way | 5a | Go and Swift: `as_of` seeded (date, multiple, locked on `event`); the composer's date editor offers Exact and About on it, not Before or After; the auto-reconciler keeps distinct as-ofs (tests only); no reader dates by it yet | [S16-D3](design/S16-D3-composer-as-of-date.md) | S16-D3 | [plan](prs/S16-40-event-as-of-property.md) | Blocked — on board S16-D3 |
+| S16-41 | Matching and Promote read as-ofs as samples | 5a | Go: the dating envelope in `core/valuecompare`; `subjectcompare` reads an event's date through it (the `subject.Periods` rule gains the samples), so the shortlist's date buckets and the lifespan see as-ofs; goldens unchanged for events with no as-of | — | S16-40 | — | Scoped |
+| S16-42 | The Event page and the Events list date an as-of event | 5a | Go and Swift: summaries carry an event's kept as-ofs and date it through the envelope (display, sort, search); the Event page's Date row and the shared date line read "As of …" | S16-D4 | S16-41, S16-D4 | — | Scoped |
+| S16-43 | The Timeline draws an as-of event's span | 5a | Go and Swift: `EventSpanAndAge` places through the envelope; the lifeline draws the known span with its open sides marked | S16-D5 | S16-42, S16-D5 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -210,6 +235,10 @@ These are the calls for this spike. PR plans treat them as binding.
 | --- | --- | --- | --- |
 | S16-D1 | Person page: notices for a failed reload (the header band, a full-width section, the Sources diagram column) and for a record links diagram that is partial | **S16-04** | An enhancement of the Spike 13 Person page boards (S13-D1, S13-D10). Reuses `PVRetryCallout` as the Promote page does (S14-D7). Draws Regular and Wide. The Conclusion page frame is shared, so the board also says the Event and Place pages take the same notice. Copy: the notice titles, Try again, the diagram's partial note |
 | S16-D2 | Person page folds (Family, Timeline, Sources): Show more counts and reveals a page, focus lands on the first revealed item, a folded record's highlight on its Show more, a folded lifeline point opens through its page | **S16-07** | One brief for the three sections, which are one view (user, 2026-11-09). An enhancement of the Spike 13 boards (S13-D3, S13-D4, S13-D6, S13-D10); reuses each item's focus ring and the record line's highlight tokens. Draws Regular and Wide. No new copy key |
+
+| S16-D3 | Citation composer: the date editor on an As of observation (Exact and About, point or range; a stored Before or After stays shown) | **S16-40** | An enhancement of the Citation Composer board, after its S15-D8 turn |
+| S16-D4 | Event page: the Date row and the header line for an event dated by as-ofs; one Events list row with the same line | **S16-42** | Written just before S16-42 |
+| S16-D5 | Person page Timeline: an as-of event's span on the lifeline, open sides marked | **S16-43** | Written just before S16-43; extends the S16-D2 frames |
 
 ## Slices
 
@@ -284,6 +313,15 @@ SLICE 4a — Layout by a container's own width
   S16-39  One container measures its own width and tells its content which layout fits
   Check: the Source types list's Description and the Sources list's compact rows switch at the same widths as before, with no frame late on first open.
 
+BATCH 5 — Event as-of dates
+
+SLICE 5a — An attestation is a sample
+  ✎ S16-D3 ──▶ S16-40  An event records when it was known to be under way
+  S16-41  Matching and Promote read as-ofs as samples
+  ✎ S16-D4 ──▶ S16-42  The Event page and the Events list date an as-of event
+  ✎ S16-D5 ──▶ S16-43  The Timeline draws an as-of event's span
+  Check: bar 16 to 19.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -334,7 +372,13 @@ S16-26 ──▶ S16-38
 S16-03 ──▶ S16-27
 S16-07 ──▶ S16-27
 S15-49 ──▶ S16-39
+
+S16-D3 ──▶ S16-40 ──▶ S16-41 ──▶ S16-42 ──▶ S16-43
+S16-D4 ──▶ S16-42
+S16-D5 ──▶ S16-43
 ```
+
+Batch 5 runs in order: each PR reads what the one before added (the key, then the envelope, then the summary's as-ofs). S16-40 and Spike 15's S15-13 both change `CitationPropertyFields`; whichever lands second rebases.
 
 ---
 
@@ -582,3 +626,37 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Not this PR.** The pane's width class, where it is measured (`WorkspaceDestinationHost`) and its 1600pt breakpoint (`pvMeasuresWidthClass` itself is rebuilt on the container: user, 2026-11-16, plan review M-1); any change to a breakpoint's value; `ViewThatFits` or a custom `Layout` in place of measuring.
 **Check.** The Source types list shows Description from a 1200pt table and the Sources list goes compact below 880pt, as before; no measured-width breakpoint is left outside the container (`rg -n -e onGeometryChange -e GeometryReader macos/App` prints only the container and the geometry uses the plan names); a test drives the breakpoint result with made-up widths (S16-35's pattern).
 **Context.** User, 2026-11-15, on S15-49 ([#852](https://github.com/mendahu/provenencia/pull/852)): unify the table's own-width breakpoint into a general-purpose tool; the S15-49 ship log (MNT round 3 note on `compactBelow`, F-7, F-10, F-11); [§ 9 of macos-client-patterns.md](../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3; `macos/App/DesignSystem/Components/WidthClass/PVWidthClass.swift`, `Table/PVTable.swift`, `macos/App/Features/Sources/SourcesListColumns.swift`.
+
+### Batch 5 — Event as-of dates
+
+Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--event-as-of-dates).
+
+### Slice 5a — An attestation is a sample
+
+#### S16-40 — An event records when it was known to be under way
+
+**Ships.** `vocabkey.PropertyAsOf`; `as_of` in `subjectvocab`'s `seedProperties` (label "As of", `date`, `multiple`) and bound to `event`, locked, after `end_date`; `SeededPropertyKey.asOf` in Swift; the composer's date editor offers Exact and About for an As of observation, as a point or a range, and shows a stored Before or After selected; autoreconcile tests that two disjoint as-ofs are both kept (`StateMultiple`) and nested ones fold.
+**Not this PR.** Any reader that dates an event by its as-ofs (S16-41 to S16-43); the Event page's Date row (S16-42); a backfill into existing catalogs (the user's later request); hiding As of on an event type ([`ideas/properties-and-terms.md`](../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types)).
+**Check.** On a new project, an Event's Property menu in the composer lists As of; its date editor shows Exact and About and no Before or After; two As of observations from two Citations on one residence show on the Evidence graph with no conflict mark.
+**Context.** Dogfood, 2026-11-16; [`event-as-of.md`](event-as-of.md); [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md); precedent S11-48 (religion and languages spoken, `multiple` seeded Properties).
+
+#### S16-41 — Matching and Promote read as-ofs as samples
+
+**Ships.** The dating envelope (pure, `core/valuecompare`, beside `DateEnds`); `subjectcompare.Side` builds an event's date stand-in through it when the side has no positive `date`, with as-ofs as samples that never conflict with each other ([rule](#batch-5--event-as-of-dates)); the shortlist's date buckets reach as-ofs through `Side`; `subjectprofile.LifeEventOf` counts a closed as-of toward the lifespan; the registry knob and the matching-model inventory row ([`add-match-rule`](../../../.agents/skills/add-match-rule/SKILL.md)).
+**Not this PR.** Display and sort (S16-42, S16-43); a new weight for as-ofs beyond the event `date` lead's.
+**Check.** On the 1990 obituary and 2015 directory records of one residence, Promote proposes them together and its explanation has no date conflict; a residence that ended in 1985 conflicts with the 1990 record; the matching goldens for events with no as-of are unchanged.
+**Context.** `core/subjectcompare/pairs.go` `period`; `core/matchregistry/subject.go` `Periods`; `core/shortlist` `Dated`; [`matching-model.md`](../../matching-model.md).
+
+#### S16-42 — The Event page and the Events list date an as-of event
+
+**Ships.** `EventSummary` carries the event's kept as-ofs (a reader of every kept row, not `keptDateAt`'s first); `eventDating` places an event through the envelope (date, else start, else earliest as-of), so the Events list sorts it and search indexes it; proto, `GoStore` and `CatalogEventSummary` carry the as-ofs; `DateRowDisplay` reads "As of …" and "As of … – …"; the Event page's Date row shows the as-ofs and their records.
+**Not this PR.** The lifeline's span (S16-43); a notice for an as-of outside the researcher's start or end ([idea](../../ideas/event-as-of-followups.md)).
+**Check.** Bar 18; an event with a `date` reads as before.
+**Context.** `conclusionsummaries` `eventDating`, `oneEvent`; `EventDetailContent.dateRow`; `EventSecondaryDisplay`; [`structured-date-model.md`](../../structured-date-model.md) (the display date paragraph, updated here).
+
+#### S16-43 — The Timeline draws an as-of event's span
+
+**Ships.** `EventSpanAndAge` reads the envelope, so the Timeline places and spans an as-of event; the lifeline marks each open side as it marks `bef.` and `aft.` today.
+**Not this PR.** Life facts (a birth or a death is never dated by an as-of: its own `date` is the fact).
+**Check.** Bar 19.
+**Context.** `conclusionsummaries/order.go` `EventSpanAndAge`; `persondetail/timeline.go`; `PersonTimelineContent.swift`; brief S16-D5 on the S16-D2 frames.
