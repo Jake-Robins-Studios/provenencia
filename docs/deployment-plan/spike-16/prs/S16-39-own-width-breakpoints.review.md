@@ -77,3 +77,7 @@ Both reviewers checked every round-1 answer against the code and found it holds;
 
 ### X-12 · minor · The `add-ui-component` boundary comment is not worded
 **Answer:** Fixed — STEP-6 gives the exact comment line and puts it inside the GOOD code block.
+
+## Refresh — 2026-11-16 (after the round-0 stop)
+
+The implementer stopped on the base check: S15-13 (#863) had replaced the composer's `threeUp = width >= 1400` with `CitationComposerColumnLayout(widthClass)`, so §4's Composer row, D-8, STEP-5, AC-1.4, T-4's composer wording and manual check step 4 described code that was gone. User, 2026-11-16: drop the composer. The plan now moves three views; D-8 records the composer as out, D-7 names its `GeometryReader` as geometry, STEP-5 is a no-op check, and the map row and scope entry say the same. Every other §4 row was rechecked at `eb7ee08e9` (no change in the touched files). The change only removes scope and adds no Decision, so no reviewer round was run; `check-plan-docs.py` reports no errors.
