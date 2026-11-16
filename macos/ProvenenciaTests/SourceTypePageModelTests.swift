@@ -327,7 +327,7 @@ struct SourceTypePageModelTests {
     /// T-8 (AC-3.1): assigning patches the cache and reloads nothing.
     @Test func assigningAppendsTheFieldAndUpdatesTheListCount() async {
         let store = FakeStore()
-        store.suggestedFieldCountOverride["t1"] = 2
+        store.suggestedFieldCounts["t1"] = 0
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
@@ -335,6 +335,9 @@ struct SourceTypePageModelTests {
             fields: [catalogMetadataField("f1", label: "Author"), catalogMetadataField("f2", label: "Publisher")]
         )
         let loads = store.listTypeSuggestionsLevels.count
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 0)
+        // The engine's count after the writes: the reply carries it and the row takes it.
+        store.suggestedFieldCounts["t1"] = 2
 
         model.assignPicks[.source] = "f2"
         await model.assignPickedField(at: .source)
@@ -480,13 +483,15 @@ struct SourceTypePageModelTests {
     @Test func fieldsColumnShowsTheEnginesCountNotTheReplyLength() async {
         let author = catalogMetadataField("f1", label: "Author")
         let store = FakeStore()
-        store.suggestedFieldCountOverride["t1"] = 7
+        store.suggestedFieldCounts["t1"] = 3
         let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
             types: [seededSourceType()],
             fields: [author]
         )
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 3)
+        store.suggestedFieldCounts["t1"] = 7
 
         model.assignPicks[.artifact] = "f1"
         await model.assignPickedField(at: .artifact)
@@ -498,12 +503,17 @@ struct SourceTypePageModelTests {
     /// T-8 (AC-3.2): removing patches the cache; the field stays in the pool.
     @Test func removingASuggestionKeepsTheFieldInThePool() async {
         let author = catalogMetadataField("f1", label: "Author", usedBy: 3)
+        let store = FakeStore()
+        store.suggestedFieldCounts["t1"] = 1
         let (model, session) = await makePageModel(
             typeID: "t1",
+            store: store,
             types: [seededSourceType()],
             fields: [author],
             suggestions: [.source: ["t1": [CatalogTypeSuggestion(field: author, sortOrder: 0)]]]
         )
+        #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 1)
+        store.suggestedFieldCounts["t1"] = 0
 
         await model.removeSuggestion(fieldID: "f1", level: .source)
 

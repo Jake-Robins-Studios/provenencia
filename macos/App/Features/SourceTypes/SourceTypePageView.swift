@@ -286,7 +286,7 @@ private struct SourceTypePageContent: View {
         CatalogTypeSuggestion(field: graphFields[0], sortOrder: 0),
         CatalogTypeSuggestion(field: graphFields[1], sortOrder: 1),
     ]]
-    store.suggestedFieldCountOverride["t1"] = 7
+    store.suggestedFieldCounts["t1"] = 7
     let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     return SourceTypePageView(
         typeID: "t1",
