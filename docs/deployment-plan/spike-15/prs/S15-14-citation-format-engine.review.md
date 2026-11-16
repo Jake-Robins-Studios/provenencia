@@ -1,7 +1,7 @@
 # Review — S15-14 The citation format engine
 
 **Verdict:** Fits with changes — Not ready (round 1); every finding Fixed, round 2 pending
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
@@ -84,3 +84,10 @@ None.
 
 ### X-10 · minor · STEP-4 used types from later steps
 **Answer:** Fixed — STEP-3 declares `Target` and `FieldRef`; STEP-4 declares `Ref` and `Span`; `Target.Builtin` holds the bare name.
+
+## Round 2
+
+Maintainability: every round-1 answer checked against the code and resolved; M-5 partly (see M-13). D-2 confirmed not a bend: map § 6.10 already gives supplied as "text; prints in square brackets".
+
+### M-13 · blocker · `notKnobsSection` stays a third doc-section splitter beside `doctable`
+**Answer:** Fixed — D-17 adds `doctable.Section`, which `FirstColumn` reads; STEP-9 moves `notKnobsSection` onto it; §4, Codebase fit, Deletes, T-13, DoD sweep and the stop condition updated.

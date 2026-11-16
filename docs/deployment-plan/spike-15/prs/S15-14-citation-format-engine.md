@@ -123,7 +123,7 @@ A Source type's citation formats (full note, short note, source-list entry) are 
 | `Requirements` and `Missing` | STEP-6, AC-4.1 – AC-4.6 |
 | The field-id token, `Fields` and `RewriteFields` | STEP-7, AC-6.1, AC-6.2, AC-6.3 |
 | `FuzzParse` and the seed-format corpus | STEP-8, AC-1.1 |
-| One doc-table test helper, `core/internal/doctable`, used by the two existing doc-parity tests and this PR's | STEP-9 |
+| One doc-section test helper, `core/internal/doctable`, used by the existing doc-parity readers and this PR's | STEP-9 |
 | `docs/citation-formats.md` *(new)* with a parity test; link from `source-layer-data-model.md`; `add-date-value` and `date-values.mdc` name `CitationDisplay` | STEP-10 |
 
 | Out | Home |
@@ -157,7 +157,7 @@ A Source type's citation formats (full note, short note, source-list entry) are 
 | Not always set | `core/database/migrations/000059.sql` (`citations.label TEXT`, nullable); `core/locator/depiction.go` `PageRef`, `Page` | A Citation's label, printed page and file page can be absent |
 | Citation line today | `macos/App/Platform/CitationLineDisplay.swift` `CitationLineDisplay` | Stays the fallback (rule "Today's line stays the fallback, in Swift"); untouched |
 | Citation engine | — | No template, placeholder or format parser exists in `core/` or `api/` (searched `text/template`, `placeholder`, `func Parse`) |
-| Doc-table readers | `core/matchregistry/inventory_test.go` `inventoryKeys` (first backticked span of rows under `## Knob inventory`); `core/catalogsession/cache_doc_test.go` `TestCacheDocListsEveryEntry` (inline loop over `## Registry entries`) | Two hand-written copies of "first backticked cell under a `##` heading" |
+| Doc-section readers | `core/matchregistry/inventory_test.go` `inventoryKeys` (first backticked span of rows under `## Knob inventory`) and `notKnobsSection` (body under `## Not knobs`); `core/catalogsession/cache_doc_test.go` `TestCacheDocListsEveryEntry` (inline loop over `## Registry entries`) | Three hand-written splitters on `## ` headings, the only `docs/` readers in `*_test.go` |
 | Fuzz precedent | `core/raster/jpegdc_test.go` `FuzzDecodeJPEGDC` | `f.Add` seeds; crashers under `testdata/fuzz/<Target>/` |
 | Domain docs | `docs/source-layer-data-model.md` § 3 `source_types`; `.agents/skills/add-date-value/SKILL.md` (line 12 "compact display", "Package" tree, "Display (macOS)"); `.cursor/rules/date-values.mdc` first bullet | Name `CompactDisplay` only; no citation-format doc |
 
@@ -183,7 +183,7 @@ A Source type's citation formats (full note, short note, source-list entry) are 
 | D-14 | `FieldRef{Key string; ID uuid.UUID}`, exactly one set; `(f FieldRef) ByID() bool` is `f.ID != uuid.Nil`; `(f FieldRef) Token() string` is the key, or `#` + `ID.String()`. `(t *Template) Fields() []FieldRef`: distinct refs in order of first appearance. `(t *Template) RewriteFields(to func(FieldRef) (FieldRef, error)) (string, error)` replaces only each field's bytes with the token of `to`'s answer; it returns the first error `to` returns, or `ErrFieldRef` *(new, `errors.New`)* when an answer has both or neither set; on error the string is empty | Rule "Formats name fields by id": one stored token, one rewrite. `#` cannot occur in a key, so a token is never a key. Span replacement keeps the researcher's spacing and escapes through key → id → key | Re-printing the tree — it would rewrite what the researcher typed; a raw 32-hex token — audit and logs use the canonical form |
 | D-15 | The tree is unexported. `Template` exports `Form()`, `Text()`, `Fields()`, `RewriteFields`; callers use `Render`, `Requirements` and `Missing` | Every caller the map names is served by these | Exported node types — nothing outside the package walks the tree |
 | D-16 | Tests live in `package citationformat_test`, table-driven. `core/citationformat/testdata/seed-formats.txt` *(new)* holds the 66 map § 6.8 formats, one per line as `form<TAB>text`, each wrapped format joined with nothing between its lines; `TestSeedFormatsParse` parses them; `FuzzParse(f, text string, form string)` seeds from it and from the T-4 inputs. S15-20 deletes the file and `TestSeedFormatsParse` once its registry render test proves AC-1.1; `FuzzParse` then keeps the T-4 seeds and `testdata/fuzz/FuzzParse/` (review M-4) | `go-tests.mdc` (fuzz target; seeds from `testdata/`); one hand-off so the seed formats have one home after S15-20 | Seeds only in code — the rule asks for `testdata/` |
-| D-17 | `core/internal/doctable` *(new)*: `func FirstColumn(t testing.TB, path, section string) []string` returns the first backticked span of the first cell of each table row under the `## <section>` heading, and fails the test when the heading is missing or has no such row. `inventoryKeys` and `TestCacheDocListsEveryEntry` move onto it; `TestDocMatchesEngine` *(new)* uses it twice (review M-5) | This PR would add the third copy of the reader | A third copy |
+| D-17 | `core/internal/doctable` *(new)*: `func Section(t testing.TB, path, section string) string` returns the text under the `## <section>` heading up to the next `## ` heading, and fails the test when the heading is missing or the section is empty; `func FirstColumn(t testing.TB, path, section string) []string` reads `Section` and returns the first backticked span of the first cell of each table row, failing when there is none. `inventoryKeys`, `notKnobsSection` and the loop in `TestCacheDocListsEveryEntry` move onto them; `TestDocMatchesEngine` *(new)* uses `FirstColumn` twice (review M-5, M-13) | This PR would add a fourth copy of the heading splitter | A fourth copy; a helper that leaves `notKnobsSection` beside it |
 | D-18 | `docs/citation-formats.md` *(new)*, the domain doc, has sections `## Forms`, `## Syntax`, `## Built-in placeholders` (first column `level.name` in backticks, options in their own column), `## Needed and used`, `## Unknown and supplied`, `## Dates`, `## Diagnostics` (first column the code). `TestDocMatchesEngine` checks the two named tables equal `Builtins()` and `DiagnosticCodes()`. `docs/source-layer-data-model.md` § 3 gains the sentence "A Source type's citation formats are written in the syntax of citation-formats.md.", with the file name linked to `docs/citation-formats.md` *(new)*. | The scope entry ("Writes the syntax as a domain doc"); a doc table beside a registry drifts without a check | Generating the doc from Go — no doc generator exists |
 
 **Diagnostic codes** (D-8; spans in bytes; "stops" means scanning ends there):
@@ -230,12 +230,12 @@ A Source type's citation formats (full note, short note, source-list entry) are 
 | `Requirements`, `Missing`, `Requirement`, `Need` *(new)* | funcs, types | — | First requirement derivation |
 | `Token`, `ByID`, `Fields`, `RewriteFields`, `ErrFieldRef` *(new)* | funcs, error | — | First stored field reference in text |
 | `FuzzParse`, `testdata/seed-formats.txt` *(new)* | test, fixture | `FuzzDecodeJPEGDC` | Same shape; the fixture is deleted by S15-20 |
-| `core/internal/doctable` `FirstColumn` *(new)* | test helper | `inventoryKeys`, the loop in `TestCacheDocListsEveryEntry` | Replaces both |
+| `core/internal/doctable` `Section`, `FirstColumn` *(new)* | test helper | `inventoryKeys`, `notKnobsSection`, the loop in `TestCacheDocListsEveryEntry` | Replaces all three |
 | `TestDocMatchesEngine` *(new)* | test | `TestKnobInventoryMatchesRegistry` | Same check, on the helper |
 | `docs/citation-formats.md` *(new)* | doc | the spike's design note of the same name (retired at S15-99) | The domain doc outlives the spike |
 
 **Builds on.** `vocabkey.Level` for every prefix; `datevalue`'s end formatter; the `apperr` registry; the `layerPackages` guard; the raster fuzz precedent.
-**Deletes.** The inline `side` literals in `datevalue.Validate` and `CompactDisplay`'s six-pointer calls (D-4); `formatSide`'s old signature; `inventoryKeys` and the inline reader loop in `TestCacheDocListsEveryEntry` (D-17). Nothing else becomes dead: no caller of the engine exists yet.
+**Deletes.** The inline `side` literals in `datevalue.Validate` and `CompactDisplay`'s six-pointer calls (D-4); `formatSide`'s old signature; `inventoryKeys`, `notKnobsSection` and the inline reader loop in `TestCacheDocListsEveryEntry` (D-17). Nothing else becomes dead: no caller of the engine exists yet.
 **Next adds.** S15-15: `Parse(text, form)` refuses a save with diagnostics; `Fields()` → `metadatafields.ResolveKeysTx` → `RewriteFields` to ids on write and to keys on read; the delete-impact probe searches the format columns for `FieldRef{ID: id}.Token()`. S15-16: a `Resolver` keyed by `Target` over batched reads, `Render` per Citation, `Missing` for the preview, `Builtins()` over FFI, Swift parity rows for `Form`, `Option`, `DiagnosticCode` and built-in names. S15-37 / S15-43 / S15-44: `valuemark.Mark` in `sourcemetadata.Input`, the Source date write and `locator.PageRef`, checked with `valuemark.Validate`; S15-37 maps `valuemark.invalid` in `L10n.Errors`. S15-38: `Requirements(full, short, list)` per type, grouped by `Target.Level`. S15-17: copy per diagnostic code. S15-20: deletes the seed corpus (D-16). A later doc-parity test is one `doctable.FirstColumn` call.
 
 ### Reach
@@ -266,7 +266,7 @@ None — no catalog change.
 | `core/valuemark` *(new)* | `Mark`, `ErrInvalid`, `Validate` (D-2) |
 | `core/datevalue` | `display.go`: `CitationStyle`, `CitationLong`, `CitationShort`, `CitationYear`, `CitationDisplay` *(new)*; `formatSide(s side, st displayStyle)`, `applyQualifier(qual, point string, st displayStyle)` reshaped (D-3, D-4). `datevalue.go`: `startSide`, `endSide` *(new)*; package comment names both display styles |
 | `core/citationformat` *(new)* | `form.go` (package comment; `Form`, `Forms`, `Valid`, `Option`), `builtins.go` (`Builtin`, `Builtins`, `LookupBuiltin`, `ListFormAllows`, `InListForm`), `parse.go` (`Target`, `FieldRef`, `Ref`, `Span`, `Template` and its `Form`/`Text`, `Diagnostic`, `DiagnosticCode` constants, `DiagnosticCodes`, `MaxFormatBytes`, `MaxDepth`, `Parse`), `render.go` (`Resolver`, `Value`, `Run`, `Rendered`, `Plain`, `Render`, `printed`), `requirements.go` (`Need`, `Requirement`, `Requirements`, `Missing`), `rewrite.go` (`Token`, `ByID`, `Fields`, `RewriteFields`, `ErrFieldRef`) |
-| `core/internal/doctable` *(new)* | `FirstColumn` (D-17) |
+| `core/internal/doctable` *(new)* | `Section`, `FirstColumn` (D-17) |
 
 ```go
 // citationformat, signatures only
@@ -348,7 +348,7 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/citationformat/` passes; `CGO_EN
 
 **STEP-9 — One doc-table reader**
 Files: `core/internal/doctable/doctable.go` *(new)*, `core/matchregistry/inventory_test.go`, `core/catalogsession/cache_doc_test.go`.
-Do: D-17; replace `inventoryKeys` with `doctable.FirstColumn(t, "../../docs/matching-model.md", "Knob inventory")` and the loop in `TestCacheDocListsEveryEntry` with `doctable.FirstColumn(t, "../../docs/catalog-caches.md", "Registry entries")`.
+Do: D-17; replace `inventoryKeys` with `doctable.FirstColumn(t, "../../docs/matching-model.md", "Knob inventory")`, `notKnobsSection` with `doctable.Section(t, "../../docs/matching-model.md", "Not knobs")`, and the loop in `TestCacheDocListsEveryEntry` with `doctable.FirstColumn(t, "../../docs/catalog-caches.md", "Registry entries")`.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/matchregistry/ ./core/catalogsession/` passes (T-13).
 
 **STEP-10 — Docs**
@@ -374,7 +374,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-10 | Go | `core/citationformat/rewrite_test.go` `TestRewriteFields`, `TestFields` *(new)* | AC-6.1, AC-6.2; escapes and spaces outside fields kept byte for byte; a `to` error → that error, empty text; an answer with both or neither set → `ErrFieldRef`; `Fields` distinct in first-appearance order; `Token` of a key and of an id | AC-6.1, AC-6.2, D-14 |
 | T-11 | Go | `core/citationformat/fuzz_test.go` `FuzzParse` *(new)* | `(text, form)`: `Parse(text, Form(form))` does not panic; a template exactly when no diagnostics; every span inside `[0, len(text)]`; with a template, `Render` with a resolver answering every target does not panic, and `RewriteFields` with the identity returns `text`; for `slug.Kebab(text)` non-empty, `{source.meta.<it>}` parses with no diagnostic | D-8, D-9, D-14, D-16 |
 | T-12 | Go | `core/citationformat/doc_test.go` `TestDocMatchesEngine` *(new)* | `## Built-in placeholders` first column = `Builtins()` as `level.name`; `## Diagnostics` first column = `DiagnosticCodes()` | D-18 |
-| T-13 | Go | `core/matchregistry/inventory_test.go` `TestKnobInventoryMatchesRegistry`, `core/catalogsession/cache_doc_test.go` `TestCacheDocListsEveryEntry` (existing) | Pass on `doctable.FirstColumn` | D-17 |
+| T-13 | Go | `core/matchregistry/inventory_test.go` `TestKnobInventoryMatchesRegistry`, `core/catalogsession/cache_doc_test.go` `TestCacheDocListsEveryEntry` (existing) | Pass on `doctable.FirstColumn` and `doctable.Section`, with the same row sets as before | D-17 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/datevalue` (STEP-2), `core/matchregistry` and `core/catalogsession` (STEP-9).
 
@@ -386,7 +386,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left — none in this PR
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`inventoryKeys`); `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`inventoryKeys`, `notKnobsSection`); `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — no UI
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — none
@@ -419,7 +419,7 @@ None in the app — nothing calls the engine yet; slice 4's Check ("the census e
 - A line of `core/citationformat/testdata/seed-formats.txt` *(new)* copied from map § 6.8 gets a diagnostic (name the line and the code).
 - `core/citationformat` or `core/valuemark` would need to import a `core/database` package.
 - `TestCompactDisplay` or `datevalue`'s validate tests fail after STEP-2's reshape and the fix would change a test's expectation.
-- `TestKnobInventoryMatchesRegistry` or `TestCacheDocListsEveryEntry` reads a different row set on `doctable.FirstColumn` than before.
+- `TestKnobInventoryMatchesRegistry` or `TestCacheDocListsEveryEntry` reads a different row set or section on `doctable` than before.
 - A key in `core/database/sourcevocab/registry.go` or any test fixture holds a character outside D-9's key set.
 - The fuzzer finds a crash whose fix needs a change to a Decision (a limit, a code, the grammar).
 
