@@ -15,6 +15,8 @@
 **Planned:** 2026-11-16 against `main` @ `04e76c4`
 **Review:** [`S16-37-list-merge-file.review.md`](S16-37-list-merge-file.review.md) — Fits with changes — Ready with changes, 1 round; no blocker; To user: none
 
+**Landed.** Differences from the plan: `main` moved from `04e76c4` to `0a90a171a` before the branch was cut (S15-12's edits sit after the moved block, so no stop); the timing loops in `CatalogListMergeTests` share one best-of-N helper (S16-37 review MNT-1), so `listRowsLargeWriteTakesTheOnePass` times both paths through it rather than D-7's `best` and an inline loop; `bestMilliseconds(rows:indexed:)` checks `count - dropped.count + 1`, equal to D-7's `count - 16` on the fallback and `count - 1` indexed; the `add-workspace-place` line 178 wording is ", whose row also conforms to `CatalogListRow` in `CatalogListMerge.swift`" rather than D-9's exact text.
+
 **Runs on macOS.** STEP-1's build check, STEP-3 and STEP-4 need `xcodebuild`; STEP-1's move checks (`git diff`, `rg`) run anywhere. On a machine without it, stop after reading and report that the steps need a macOS runner.
 
 ### Implementer — read this first
