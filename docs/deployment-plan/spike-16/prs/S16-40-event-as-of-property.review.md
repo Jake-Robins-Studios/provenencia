@@ -112,3 +112,24 @@ The user dropped the composer's Before/After rule: an as-of takes every qualifie
 | K3-1 | major | "One dating" rule contradicts itself; stale lines | **Fixed.** Rule rewritten; map order line and feature doc updated |
 | K3-2 | major | S16-42 should name what S16-40 leaves | **Fixed.** S16-42 Context |
 | K3-3 | major | S16-42 too large; split search indexing | **To user** (recommend: yes, a backend-only row after S16-42) |
+
+### User answers (2026-11-16)
+
+- M3-10: parked as crafted hardening in `docs/ideas/share-packages.md`.
+- K3-3: keep S16-42 whole.
+- An as-of inside a closed period scores as partial, like a date inside a period.
+
+## Round 4 (2026-11-16, round 2 on the rewrite; verdict: Ready with changes)
+
+| ID | Sev | Finding | Answer |
+| --- | --- | --- | --- |
+| R4-1 | blocker | The Same-key sort is empty on untyped profile values | **Fixed.** D-6 keys `propertycompare.Typed(v, meta)`; T-4 row "a tie decided by the sort" in every value order |
+| R4-2 | major | `subject_section_test.go`'s period-member list | **Fixed.** STEP-3 files, T-3 |
+| R4-3 | major | Match strength reads from the extremes only, unstated | **Fixed.** Stated in D-6 with the 1983 / 1990 / 2002 example; T-4 row "extremes set the strength". Kept: comparing every sample to find a better match is the cost D-6 bounds |
+| R4-4 | minor | Stale `RolePeriodEnd` in T-3; Edges tie text; D-7 tie | **Fixed** |
+| R4-5 | minor | §12 vs an open To-user item | **Fixed.** Answered by the user and parked |
+| R4-6 | nit | Dead negative in the invariant pool | **Fixed.** Dropped |
+
+## Verdict
+
+Ready. No open blocker, no open To-user item. Two rounds on the rewritten plan (rounds 3 and 4).

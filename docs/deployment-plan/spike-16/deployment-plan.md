@@ -67,7 +67,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
 
-**Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: matching and the dating read two extremes after one pass. The auto-reconciler's fold is quadratic in a Property's distinct values for every `multiple` Property today (1,000 distinct dates 0.6 s, 10,000 61 s; measured 2026-11-16); that is not Batch 5's to fix (S16-40 review log, To user).
+**Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: matching and the dating read two extremes after one pass. The auto-reconciler's fold is quadratic in a Property's distinct values for every `multiple` Property today (1,000 distinct dates 0.6 s, 10,000 61 s; measured 2026-11-16); that is not Batch 5's to fix; it is parked in [`ideas/share-packages.md`](../../ideas/share-packages.md) (user, 2026-11-16).
 
 ## Where the notes went
 

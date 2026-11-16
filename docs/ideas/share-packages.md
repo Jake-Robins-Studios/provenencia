@@ -53,6 +53,7 @@ Parked 2026-10-29 when Spike 12 closed: defenses that matter once a project or p
 | B-4, B-5 | S12-42 | A name holding the name key's separators makes ambiguous keys, and an alias table with 100,000 sets for one name is loaded unchecked; keys should be unambiguous and fuzzed, and alias tables checked on load against registry bounds. Also: a researcher term and a seeded term may share a key on one Property, and the canon term loader keeps whichever row comes last. |
 | B-6 | S12-49 | A family with thousands of duplicate parent links makes grandparent derivation quadratic; chains should share each pair's edges and be bounded per middle person by a registry value. Also: implied-kinship shapes on one link are bounded by the number of pivots joining a pair, not per pivot, and `ParentStep` recomputes its keys on every edge. |
 | — | S14-26 | A name part's length is bounded when names are assembled, not in `namevalue` `Insert` or `Validate`, so a crafted package can store an unbounded part. |
+| — | S16-40 | The auto-reconciler's fold compares every pair of a Property's distinct values (`autoreconcile` `foldValues`): measured 2026-11-16 at 0.6 s for 1,000 distinct dates and 61 s for 10,000 on a `multiple` date. Real data never nears it; a crafted package could stall a Property's reconcile. A cap on distinct values per Property before the fold, per the "crafted fan-out is capped" rule, would bound it for every `multiple` Property (user, 2026-11-16: parked). |
 
 ## Explicitly out of scope for this note
 
