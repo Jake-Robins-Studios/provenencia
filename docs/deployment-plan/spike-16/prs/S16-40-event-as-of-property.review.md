@@ -71,3 +71,7 @@ Lint: `check-plan-docs.py` clean on the plan and the brief before the reviewers 
 ## Verdict
 
 Fits; Ready. No open blocker. To user: D-10's wording of the `date` and `end_date` descriptions. The plan stays `Blocked — on board S16-D3` until the board is agreed.
+
+## Re-plan (2026-11-16)
+
+The user dropped the composer's Before/After rule: an as-of takes every qualifier and is read by the window rule (the event started by the window's last day and was under way on its first). S16-40 lost its chrome and its brief (S16-D3 deleted) and absorbed S16-41's matching work; S16-43 merged into S16-42 (the lifeline already draws open sides from the engine). Matching needs no new helper: an as-of whose window misses the other side's period stand-in is the date comparer's `different`, confirmed by a probe against `propertycompare.Compare` at `14fbfca` (1990 vs "Before 1985", 1990 vs "After 1995", BEF 1990 vs 1995–2000, AFT 1990 vs 1970–1985: `conflict`; 1990 vs 1985–2000 and vs "After 1985": `partial`, `contains`; 1991 vs "Before 1990": `partial`, `near`). Rounds 1–2 above reviewed the earlier plan; the rewritten plan gets its own round below.

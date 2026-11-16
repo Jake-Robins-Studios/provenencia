@@ -6,9 +6,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 ## Scheduled
 
-| Brief | View | Board | Gates |
-| --- | --- | --- | --- |
-| [S16-D3](S16-D3-composer-as-of-date.md) | Citation composer: the date editor on an As of observation | not drawn | S16-40 |
+None.
 
 ## Archived
 

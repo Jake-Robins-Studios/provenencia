@@ -17,7 +17,7 @@ Today the event has three date Properties ([`seeded-vocabulary.md` §3.2](../../
 
 - **Multiple.** Several as-ofs sit on one event without competing; the auto-reconciler keeps each distinct one (`autoreconcile` `StateMultiple`, [conclusion-reconciliation §8](../../conclusion-reconciliation.md#8-cardinality)). Nested ones still fold (`1990` into `10 JAN 1990`).
 - **On every event.** Bound to `event` and locked, like the other three. Nothing hides it on an instantaneous type (no per-event-type binding exists).
-- **Exact or About, a point or a range.** Before and After belong to a start or an end; the composer does not offer them on an as-of.
+- **Any qualifier.** Exact, About, Before, After or a range, as on any date; the composer has no As of rule. Each reads by the window rule below.
 
 ## The dating envelope
 
@@ -25,8 +25,8 @@ Every consumer asks one question of an event: what span and which points does it
 
 - **Occurrence.** A `date` wins, as today: the event happened then. The other three do not move it.
 - **Bounds.** The earliest closed `start_date` is the low bound; the latest closed `end_date` is the high bound. A missing one is open.
-- **Samples.** Each as-of with both ends closed is a sample: a window of days at least one of which the event was under way. An as-of with an open end (a `BEF` or `AFT` written outside the composer) is not a sample and is skipped, as the lifespan skips open dates.
-- **Known span.** From the earliest of the low bound and the samples to the latest of the high bound and the samples. Without a start, the low side is open beyond the earliest sample; without an end, the high side is open beyond the latest one.
+- **Samples.** Each as-of is a sample: a window of days on at least one of which the event was under way. So the event started by the window's last day and was still under way on its first. An open side bounds nothing: `BEF 1990` says only "started by 1990", `AFT 1990` only "still under way after 1990".
+- **Known span.** From the earliest of the low bound and the samples' closed sides to the latest of the high bound and the samples' closed sides. Without a start, the low side is open beyond the earliest sample; without an end, the high side is open beyond the latest one.
 
 | Recorded | Known span | Drawn as |
 | --- | --- | --- |
