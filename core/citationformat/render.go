@@ -166,6 +166,9 @@ func resolve(ref Ref, form Form, r Resolver) (string, bool) {
 // given, in square brackets when supplied.
 func printed(r Ref, v Value, form Form) (text string, answered bool) {
 	isBuiltin := r.Builtin != ""
+	if isBuiltin && (r.row < 0 || r.row >= len(builtins)) {
+		return "", false
+	}
 	if v.Mark.Unknown {
 		if isBuiltin {
 			return builtins[r.row].UnknownText, true

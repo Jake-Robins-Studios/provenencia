@@ -81,7 +81,11 @@ func Missing(reqs []Requirement, r Resolver) []Requirement {
 		met := slices.ContainsFunc(req.Targets, func(t Target) bool {
 			ref := Ref{Target: t}
 			if t.Builtin != "" {
-				ref.row, _ = builtinRow(t.Level, t.Builtin)
+				row, ok := builtinRow(t.Level, t.Builtin)
+				if !ok {
+					return false
+				}
+				ref.row = row
 			}
 			_, answered := resolve(ref, FormFull, r)
 			return answered

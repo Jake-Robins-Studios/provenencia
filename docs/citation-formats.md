@@ -56,7 +56,7 @@ A DateValue prints in citation terms through `datevalue.CitationDisplay`: day-mo
 
 ## Diagnostics
 
-`Parse` returns every diagnostic with its byte span, sorted by position, and no template. After `unknown_form`, `too_long`, `too_deep` and `unclosed_placeholder` scanning stops and nothing after is reported.
+`Parse` returns every diagnostic with its byte span, sorted by position, and no template. After `unknown_form`, `too_long` and `too_deep` scanning stops and nothing after is reported. After `unclosed_placeholder` scanning stops when no `{` or `}` follows; before a later `{` it resumes there.
 
 | Code | When | Span |
 | --- | --- | --- |

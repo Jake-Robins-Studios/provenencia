@@ -97,4 +97,16 @@ func TestMissing(t *testing.T) {
 	if got := citationformat.Missing(used, values{}); len(got) != 0 {
 		t.Errorf("used listed missing: %+v", got)
 	}
+	for name, target := range map[string]citationformat.Target{
+		"unknown_builtin_target": {Level: vocabkey.LevelSource, Builtin: "nope"},
+		"builtin_at_wrong_level": {Level: vocabkey.LevelArtifact, Builtin: "date"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := citationformat.Requirement{Targets: []citationformat.Target{target}, Need: citationformat.NeedNeeded}
+			got := citationformat.Missing([]citationformat.Requirement{req}, values{})
+			if len(got) != 1 {
+				t.Fatalf("missing = %+v", got)
+			}
+		})
+	}
 }
