@@ -43,8 +43,12 @@ private struct SourceTypeAddForm: View {
     static let iconColumnWidth: CGFloat = 432
 
     @Bindable var model: SourceTypeAddModel
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
 
     var body: some View {
+        let order: [Field] = [.label, .description]
         PVFormColumns(
             saveError: model.createError,
             saveErrorTitle: L10n.SourceTypes.addErrorTitle,
@@ -52,40 +56,38 @@ private struct SourceTypeAddForm: View {
             isSaving: model.isSaving,
             rightWidth: Self.iconColumnWidth
         ) {
-            PVTabPair { label, description in
-                PVField(
-                    label: L10n.SourceTypes.formLabel,
-                    error: model.labelError,
-                    marker: .required,
-                    announcesError: model.labelErrorFromWrite
-                ) {
-                    PVInput(
-                        text: Binding(get: { model.draft.label }, set: { model.editLabel($0) }),
-                        prompt: L10n.SourceTypes.formLabelPlaceholder,
-                        isInvalid: model.labelError != nil,
-                        focus: label,
-                        activateOnAppear: true
-                    )
-                    .accessibilityIdentifier("sourceTypes.add.label")
-                }
-                PVField(label: L10n.SourceTypes.addKey, hint: L10n.SourceTypes.keyHintAdd) {
-                    PVInput(
-                        text: .constant(model.key),
-                        mono: true,
-                        isReadOnly: true,
-                        prompt: L10n.SourceTypes.addKeyPlaceholder
-                    )
-                    .accessibilityIdentifier("sourceTypes.add.key")
-                }
-                PVField(label: L10n.SourceTypes.formDescription, hint: L10n.SourceTypes.formDescriptionHint) {
-                    PVTextArea(
-                        text: $model.draft.description,
-                        lineLimit: 4...8,
-                        prompt: L10n.SourceTypes.formDescriptionPlaceholder,
-                        focus: description
-                    )
-                    .accessibilityIdentifier("sourceTypes.add.description")
-                }
+            PVField(
+                label: L10n.SourceTypes.formLabel,
+                error: model.labelError,
+                marker: .required,
+                announcesError: model.labelErrorFromWrite
+            ) {
+                PVInput(
+                    text: Binding(get: { model.draft.label }, set: { model.editLabel($0) }),
+                    prompt: L10n.SourceTypes.formLabelPlaceholder,
+                    isInvalid: model.labelError != nil,
+                    focus: PVFieldFocus($focus, equals: .label, in: order),
+                    activateOnAppear: true
+                )
+                .accessibilityIdentifier("sourceTypes.add.label")
+            }
+            PVField(label: L10n.SourceTypes.addKey, hint: L10n.SourceTypes.keyHintAdd) {
+                PVInput(
+                    text: .constant(model.key),
+                    mono: true,
+                    isReadOnly: true,
+                    prompt: L10n.SourceTypes.addKeyPlaceholder
+                )
+                .accessibilityIdentifier("sourceTypes.add.key")
+            }
+            PVField(label: L10n.SourceTypes.formDescription, hint: L10n.SourceTypes.formDescriptionHint) {
+                PVTextArea(
+                    text: $model.draft.description,
+                    lineLimit: 4...8,
+                    prompt: L10n.SourceTypes.formDescriptionPlaceholder,
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
+                )
+                .accessibilityIdentifier("sourceTypes.add.description")
             }
         } right: {
             PVField(label: L10n.SourceTypes.formIcon, hint: L10n.SourceTypes.formIconHint) {

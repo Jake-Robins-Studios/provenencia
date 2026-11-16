@@ -107,6 +107,9 @@ private struct EvidenceGraphContent: View {
     let sourceRef: String?
     let navigation: WorkspaceNavigation
     @FocusState private var focus: EvidenceGraphFocus?
+    @FocusState private var createFormFocus: CreateFormField?
+
+    private enum CreateFormField: Hashable { case label, description }
 
     private var snapshot: EvidenceGraphSnapshot {
         model.displaySnapshot
@@ -349,6 +352,7 @@ private struct EvidenceGraphContent: View {
 
     @ViewBuilder
     private var createForm: some View {
+        let order: [CreateFormField] = model.isEditingBridge ? [.description] : [.label, .description]
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if model.editingSubjectID == nil, let kind = model.armedKind {
                 let style = EvidenceSubjectKindStyle.resolve(
@@ -392,33 +396,31 @@ private struct EvidenceGraphContent: View {
             if let createError = model.createError {
                 PVErrorText(createError, size: .caption)
             }
-            PVTabPair { label, description in
-                if !model.isEditingBridge {
-                    PVField(
-                        label: L10n.EvidenceGraph.labelField,
-                        hint: L10n.EvidenceGraph.workingLabelHint,
-                        error: model.labelError,
-                        marker: .required
-                    ) {
-                        PVInput(
-                            text: Binding(
-                                get: { model.draft.label },
-                                set: { model.draft.label = $0 }
-                            ),
-                            isInvalid: model.labelError != nil,
-                            focus: label
-                        )
-                    }
-                }
-                PVField(label: L10n.EvidenceGraph.descriptionField) {
-                    PVTextArea(
+            if !model.isEditingBridge {
+                PVField(
+                    label: L10n.EvidenceGraph.labelField,
+                    hint: L10n.EvidenceGraph.workingLabelHint,
+                    error: model.labelError,
+                    marker: .required
+                ) {
+                    PVInput(
                         text: Binding(
-                            get: { model.draft.description },
-                            set: { model.draft.description = $0 }
+                            get: { model.draft.label },
+                            set: { model.draft.label = $0 }
                         ),
-                        focus: model.isEditingBridge ? nil : description
+                        isInvalid: model.labelError != nil,
+                        focus: PVFieldFocus($createFormFocus, equals: .label, in: order)
                     )
                 }
+            }
+            PVField(label: L10n.EvidenceGraph.descriptionField) {
+                PVTextArea(
+                    text: Binding(
+                        get: { model.draft.description },
+                        set: { model.draft.description = $0 }
+                    ),
+                    focus: PVFieldFocus($createFormFocus, equals: .description, in: order)
+                )
             }
         }
     }

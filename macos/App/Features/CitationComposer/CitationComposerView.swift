@@ -128,16 +128,11 @@ struct CitationComposerView: View {
             onConfirm: { Task { await model.confirmNewSubject() } }
         ) {
             VStack(alignment: .leading, spacing: PVSpacing.space5) {
-                PVTabPair { label, description in
-                    PVField(label: L10n.CitationComposer.newSubjectLabel, error: model.newSubjectDraft?.error) {
-                        PVInput(text: newSubjectLabelBinding, size: .sm, focus: label)
-                            .accessibilityIdentifier("citationComposer.newSubject.label")
-                    }
-                    PVField(label: L10n.CitationComposer.descriptionLabel) {
-                        PVTextArea(text: newSubjectDescriptionBinding, lineLimit: 1...3, focus: description)
-                            .accessibilityIdentifier("citationComposer.newSubject.description")
-                    }
-                }
+                CitationNewSubjectFields(
+                    label: newSubjectLabelBinding,
+                    description: newSubjectDescriptionBinding,
+                    error: model.newSubjectDraft?.error
+                )
             }
         }
         .pvDeleteImpact(
@@ -450,5 +445,36 @@ struct CitationComposerView: View {
             get: { model.newSubjectDraft?.description ?? "" },
             set: { model.newSubjectDraft?.description = $0 }
         )
+    }
+}
+
+/// The new-Subject dialog's fields. It holds its own focus so Tab has its
+/// order inside the dialog's window.
+private struct CitationNewSubjectFields: View {
+    let label: Binding<String>
+    let description: Binding<String>
+    let error: String?
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
+
+    var body: some View {
+        let order: [Field] = [.label, .description]
+        PVField(label: L10n.CitationComposer.newSubjectLabel, error: error) {
+            PVInput(
+                text: label,
+                size: .sm,
+                focus: PVFieldFocus($focus, equals: .label, in: order)
+            )
+            .accessibilityIdentifier("citationComposer.newSubject.label")
+        }
+        PVField(label: L10n.CitationComposer.descriptionLabel) {
+            PVTextArea(
+                text: description,
+                lineLimit: 1...3,
+                focus: PVFieldFocus($focus, equals: .description, in: order)
+            )
+            .accessibilityIdentifier("citationComposer.newSubject.description")
+        }
     }
 }

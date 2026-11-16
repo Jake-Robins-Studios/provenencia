@@ -56,6 +56,9 @@ private struct SourceGraphForm: View {
     @Bindable var model: SourceGraphFormModel
     @Environment(WorkspaceNavigation.self) private var navigation
     @Environment(\.pvSheetClose) private var close
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case name, description }
 
     var body: some View {
         PVFormColumns(
@@ -90,34 +93,34 @@ private struct SourceGraphForm: View {
         .id(SourceGraphFormModel.Section.metadata)
     }
 
+    @ViewBuilder
     private var fields: some View {
+        let order: [Field] = [.name, .description]
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
-            PVTabPair { name, description in
-                PVField(
-                    label: L10n.Sources.graphFormName,
-                    error: model.nameError,
-                    marker: .required
-                ) {
-                    PVInput(
-                        text: $model.draft.name,
-                        prompt: L10n.Sources.graphFormNamePlaceholder,
-                        isInvalid: model.nameError != nil,
-                        focus: name,
-                        activateOnAppear: model.opensAt == .top
-                    )
-                    .accessibilityIdentifier("sources.graphForm.name")
-                    .onChange(of: model.draft.name) { _, _ in
-                        if model.nameError != nil { model.nameError = nil }
-                    }
+            PVField(
+                label: L10n.Sources.graphFormName,
+                error: model.nameError,
+                marker: .required
+            ) {
+                PVInput(
+                    text: $model.draft.name,
+                    prompt: L10n.Sources.graphFormNamePlaceholder,
+                    isInvalid: model.nameError != nil,
+                    focus: PVFieldFocus($focus, equals: .name, in: order),
+                    activateOnAppear: model.opensAt == .top
+                )
+                .accessibilityIdentifier("sources.graphForm.name")
+                .onChange(of: model.draft.name) { _, _ in
+                    if model.nameError != nil { model.nameError = nil }
                 }
-                PVField(
-                    label: L10n.Sources.graphFormDescription,
-                    hint: L10n.Sources.graphFormDescriptionHint,
-                    marker: .optional
-                ) {
-                    PVTextArea(text: $model.draft.description, lineLimit: 3...3, focus: description)
-                        .accessibilityIdentifier("sources.graphForm.description")
-                }
+            }
+            PVField(
+                label: L10n.Sources.graphFormDescription,
+                hint: L10n.Sources.graphFormDescriptionHint,
+                marker: .optional
+            ) {
+                PVTextArea(text: $model.draft.description, lineLimit: 3...3, focus: PVFieldFocus($focus, equals: .description, in: order))
+                    .accessibilityIdentifier("sources.graphForm.description")
             }
         }
     }

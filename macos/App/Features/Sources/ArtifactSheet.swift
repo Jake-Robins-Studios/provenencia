@@ -63,6 +63,9 @@ private struct ArtifactSheetForm: View {
     @Bindable var model: ArtifactSheetModel
 
     private let prefix = "sources.page.artifactSheet"
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
 
     var body: some View {
         PVFormColumns(
@@ -99,32 +102,32 @@ private struct ArtifactSheetForm: View {
         }
     }
 
+    @ViewBuilder
     private var fields: some View {
-        PVTabPair { label, description in
-            VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                PVField(
-                    label: L10n.Sources.artifactLabel,
-                    error: model.labelError,
-                    marker: .required
-                ) {
-                    PVInput(
-                        text: $model.draft.label,
-                        isInvalid: model.labelError != nil,
-                        focus: label,
-                        activateOnAppear: model.opensAt == .top
-                    )
-                    .accessibilityIdentifier("\(prefix).label")
-                    .onChange(of: model.draft.label) { _, _ in
-                        if model.labelError != nil { model.labelError = nil }
-                    }
+        let order: [Field] = [.label, .description]
+        VStack(alignment: .leading, spacing: PVSpacing.space6) {
+            PVField(
+                label: L10n.Sources.artifactLabel,
+                error: model.labelError,
+                marker: .required
+            ) {
+                PVInput(
+                    text: $model.draft.label,
+                    isInvalid: model.labelError != nil,
+                    focus: PVFieldFocus($focus, equals: .label, in: order),
+                    activateOnAppear: model.opensAt == .top
+                )
+                .accessibilityIdentifier("\(prefix).label")
+                .onChange(of: model.draft.label) { _, _ in
+                    if model.labelError != nil { model.labelError = nil }
                 }
-                PVField(
-                    label: L10n.Sources.artifactDescription,
-                    hint: L10n.Sources.artifactDescriptionHint
-                ) {
-                    PVTextArea(text: $model.draft.description, lineLimit: 3...8, focus: description)
-                        .accessibilityIdentifier("\(prefix).description")
-                }
+            }
+            PVField(
+                label: L10n.Sources.artifactDescription,
+                hint: L10n.Sources.artifactDescriptionHint
+            ) {
+                PVTextArea(text: $model.draft.description, lineLimit: 3...8, focus: PVFieldFocus($focus, equals: .description, in: order))
+                    .accessibilityIdentifier("\(prefix).description")
             }
         }
     }

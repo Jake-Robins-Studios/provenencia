@@ -613,89 +613,91 @@ private struct PropertiesIdentityEditor: View {
     @Bindable var model: PropertiesModel
     @State private var labelDraft = ""
     @State private var descriptionDraft = ""
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
 
     var body: some View {
+        let order: [Field] = [.label, .description]
         VStack(alignment: .leading, spacing: PVSpacing.space4) {
-            PVTabPair { label, description in
-                PVInlineEdit(
-                    isEditing: model.isEditingIdentity,
-                    isSaving: model.isSaving,
-                    error: model.isEditingIdentity ? model.formError : nil,
-                    saveLabel: L10n.Properties.editSave,
-                    cancelLabel: L10n.Properties.editCancel,
-                    editLabel: L10n.Properties.editAction,
-                    saveDisabled: !model.canSubmitEdit(label: labelDraft, description: descriptionDraft),
-                    showsEditControl: model.canEditSelected,
-                    axis: .horizontal,
-                    actionsStyle: .iconRow,
-                    accessibilityIdentifierPrefix: "properties.identity",
-                    onEdit: {
-                        seedDrafts()
-                        model.beginEdit()
-                    },
-                    onSave: {
-                        Task { _ = await model.submitEdit(label: labelDraft, description: descriptionDraft) }
-                    },
-                    onCancel: { model.cancelEdit() },
-                    display: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(verbatim: property.label)
-                                .font(PVFont.display(size: PVTypeScale.h3))
-                                .foregroundStyle(PVColor.textDisplay)
-                            Text(verbatim: property.key)
-                                .font(PVFont.mono(size: PVTypeScale.caption))
-                                .foregroundStyle(PVColor.textMuted)
+            PVInlineEdit(
+                isEditing: model.isEditingIdentity,
+                isSaving: model.isSaving,
+                error: model.isEditingIdentity ? model.formError : nil,
+                saveLabel: L10n.Properties.editSave,
+                cancelLabel: L10n.Properties.editCancel,
+                editLabel: L10n.Properties.editAction,
+                saveDisabled: !model.canSubmitEdit(label: labelDraft, description: descriptionDraft),
+                showsEditControl: model.canEditSelected,
+                axis: .horizontal,
+                actionsStyle: .iconRow,
+                accessibilityIdentifierPrefix: "properties.identity",
+                onEdit: {
+                    seedDrafts()
+                    model.beginEdit()
+                },
+                onSave: {
+                    Task { _ = await model.submitEdit(label: labelDraft, description: descriptionDraft) }
+                },
+                onCancel: { model.cancelEdit() },
+                display: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(verbatim: property.label)
+                            .font(PVFont.display(size: PVTypeScale.h3))
+                            .foregroundStyle(PVColor.textDisplay)
+                        Text(verbatim: property.key)
+                            .font(PVFont.mono(size: PVTypeScale.caption))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
+                },
+                editor: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        PVInput(
+                            text: $labelDraft,
+                            size: .sm,
+                            isInvalid: labelDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                            focus: PVFieldFocus($focus, equals: .label, in: order),
+                            activateOnAppear: true
+                        )
+                        .accessibilityIdentifier("properties.identity.label")
+                        Text(verbatim: property.key)
+                            .font(PVFont.mono(size: PVTypeScale.caption))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
+                },
+                restingTrailing: {
+                    if model.showsDelete {
+                        PVIconButton(
+                            .trash,
+                            label: model.deleteTooltip,
+                            size: .sm,
+                            tone: .danger
+                        ) {
+                            Task { await model.askDelete() }
                         }
-                    },
-                    editor: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            PVInput(
-                                text: $labelDraft,
-                                size: .sm,
-                                isInvalid: labelDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                                focus: label,
-                                activateOnAppear: true
-                            )
-                            .accessibilityIdentifier("properties.identity.label")
-                            Text(verbatim: property.key)
-                                .font(PVFont.mono(size: PVTypeScale.caption))
-                                .foregroundStyle(PVColor.textMuted)
-                        }
-                    },
-                    restingTrailing: {
-                        if model.showsDelete {
-                            PVIconButton(
-                                .trash,
-                                label: model.deleteTooltip,
-                                size: .sm,
-                                tone: .danger
-                            ) {
-                                Task { await model.askDelete() }
-                            }
-                            .disabled(!model.canDeleteSelected)
-                            .accessibilityLabel(Text(verbatim: model.deleteAccessibilityLabel))
-                            .accessibilityIdentifier("properties.delete")
-                        }
-                    },
-                    editingTrailing: { EmptyView() }
+                        .disabled(!model.canDeleteSelected)
+                        .accessibilityLabel(Text(verbatim: model.deleteAccessibilityLabel))
+                        .accessibilityIdentifier("properties.delete")
+                    }
+                },
+                editingTrailing: { EmptyView() }
+            )
+            if model.isEditingIdentity {
+                PVTextArea(
+                    text: $descriptionDraft,
+                    lineLimit: 2...6,
+                    prompt: L10n.Properties.editDescriptionPlaceholder,
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
                 )
-                if model.isEditingIdentity {
-                    PVTextArea(
-                        text: $descriptionDraft,
-                        lineLimit: 2...6,
-                        prompt: L10n.Properties.editDescriptionPlaceholder,
-                        focus: description
-                    )
-                    .accessibilityIdentifier("properties.identity.description")
-                    Text(L10n.Properties.editKeyStays(key: property.key))
-                        .font(PVFont.body(size: PVTypeScale.caption, italic: true))
-                        .foregroundStyle(PVColor.textMuted)
-                } else if !property.description.isEmpty {
-                    Text(verbatim: property.description)
-                        .font(PVFont.body(size: PVTypeScale.bodySmall))
-                        .foregroundStyle(PVColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                .accessibilityIdentifier("properties.identity.description")
+                Text(L10n.Properties.editKeyStays(key: property.key))
+                    .font(PVFont.body(size: PVTypeScale.caption, italic: true))
+                    .foregroundStyle(PVColor.textMuted)
+            } else if !property.description.isEmpty {
+                Text(verbatim: property.description)
+                    .font(PVFont.body(size: PVTypeScale.bodySmall))
+                    .foregroundStyle(PVColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .onChange(of: model.isEditingIdentity) { _, editing in
@@ -740,7 +742,7 @@ private struct PropertiesCreateHost: View {
                     }
                 }
             ) {
-                createForm
+                PropertiesCreateForm(model: model, draft: $draft)
             }
             .onAppear {
                 if model.createOpen { draft = model.draft }
@@ -756,6 +758,16 @@ private struct PropertiesCreateHost: View {
             set: { if !$0 { model.closeCreate() } }
         )
     }
+}
+
+/// The create dialog's fields. It holds its own focus so Tab has its order
+/// inside the dialog's window.
+private struct PropertiesCreateForm: View {
+    @Bindable var model: PropertiesModel
+    @Binding var draft: PropertiesModel.Draft?
+    @FocusState private var focus: Field?
+
+    private enum Field: Hashable { case label, description }
 
     /// Holds in create: the radios, or the value type's one value with its reason.
     @ViewBuilder
@@ -808,8 +820,8 @@ private struct PropertiesCreateHost: View {
         .accessibilityLabel(Text(L10n.Properties.holds))
     }
 
-    @ViewBuilder
-    private var createForm: some View {
+    var body: some View {
+        let order: [Field] = [.label, .description]
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if let formError = model.formError {
                 PVCallout(tone: .danger, message: formError)
@@ -820,51 +832,49 @@ private struct PropertiesCreateHost: View {
                     .accessibilityIdentifier("properties.create.loadError")
             }
 
-            PVTabPair { label, description in
-                PVField(
-                    label: L10n.Properties.createLabel,
-                    hint: L10n.Properties.createLabelHint,
-                    marker: .required
-                ) {
-                    PVInput(
-                        text: Binding(
-                            get: { draft?.label ?? "" },
-                            set: { draft?.label = $0 }
-                        ),
-                        prompt: L10n.Properties.createLabelPlaceholder,
-                        focus: label
-                    )
-                    .accessibilityIdentifier("properties.create.label")
-                }
+            PVField(
+                label: L10n.Properties.createLabel,
+                hint: L10n.Properties.createLabelHint,
+                marker: .required
+            ) {
+                PVInput(
+                    text: Binding(
+                        get: { draft?.label ?? "" },
+                        set: { draft?.label = $0 }
+                    ),
+                    prompt: L10n.Properties.createLabelPlaceholder,
+                    focus: PVFieldFocus($focus, equals: .label, in: order)
+                )
+                .accessibilityIdentifier("properties.create.label")
+            }
 
-                PVField(
-                    label: L10n.Properties.createKey,
-                    hint: L10n.Properties.createKeyHint
-                ) {
-                    PVInput(
-                        text: Binding(
-                            get: { PropertiesModel.draftKey(label: draft?.label ?? "") },
-                            set: { _ in }
-                        ),
-                        mono: true,
-                        isReadOnly: true,
-                        prompt: L10n.Properties.createKeyPlaceholder
-                    )
-                    .accessibilityIdentifier("properties.create.key")
-                }
+            PVField(
+                label: L10n.Properties.createKey,
+                hint: L10n.Properties.createKeyHint
+            ) {
+                PVInput(
+                    text: Binding(
+                        get: { PropertiesModel.draftKey(label: draft?.label ?? "") },
+                        set: { _ in }
+                    ),
+                    mono: true,
+                    isReadOnly: true,
+                    prompt: L10n.Properties.createKeyPlaceholder
+                )
+                .accessibilityIdentifier("properties.create.key")
+            }
 
-                PVField(label: L10n.Properties.createDescription) {
-                    PVTextArea(
-                        text: Binding(
-                            get: { draft?.description ?? "" },
-                            set: { draft?.description = $0 }
-                        ),
-                        lineLimit: 2...4,
-                        prompt: L10n.Properties.createDescriptionPlaceholder,
-                        focus: description
-                    )
-                    .accessibilityIdentifier("properties.create.description")
-                }
+            PVField(label: L10n.Properties.createDescription) {
+                PVTextArea(
+                    text: Binding(
+                        get: { draft?.description ?? "" },
+                        set: { draft?.description = $0 }
+                    ),
+                    lineLimit: 2...4,
+                    prompt: L10n.Properties.createDescriptionPlaceholder,
+                    focus: PVFieldFocus($focus, equals: .description, in: order)
+                )
+                .accessibilityIdentifier("properties.create.description")
             }
 
             PVField(
