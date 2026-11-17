@@ -48,17 +48,21 @@ const (
 			label = excluded.label,
 			data_type = excluded.data_type,
 			description = excluded.description`
-	sqlLookup = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
-		FROM source_metadata_fields WHERE key = ? AND origin = ?`
-	sqlGetByID = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
-		FROM source_metadata_fields WHERE id = ?`
-	sqlGetByIDsIn = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
-		FROM source_metadata_fields WHERE id IN (`
 	sqlKeysIn = `SELECT id, key, origin FROM source_metadata_fields WHERE key IN (`
-	sqlList   = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
-		FROM source_metadata_fields ORDER BY label COLLATE NOCASE, origin, key`
-	sqlUpdate = `UPDATE source_metadata_fields SET label = ?, description = ? WHERE id = ?`
+	sqlUpdate = `UPDATE source_metadata_fields SET label = ?, description = ?, unknown_text = ? WHERE id = ?`
 	sqlDelete = `DELETE FROM source_metadata_fields WHERE id = ?`
+)
+
+// The field reads, each selecting Columns("") for ScanField.
+var (
+	sqlLookup = `SELECT ` + Columns("") + `
+		FROM source_metadata_fields WHERE key = ? AND origin = ?`
+	sqlGetByID = `SELECT ` + Columns("") + `
+		FROM source_metadata_fields WHERE id = ?`
+	sqlGetByIDsIn = `SELECT ` + Columns("") + `
+		FROM source_metadata_fields WHERE id IN (`
+	sqlList = `SELECT ` + Columns("") + `
+		FROM source_metadata_fields ORDER BY label COLLATE NOCASE, origin, key`
 )
 
 // Field is one source_metadata_fields row.
@@ -69,6 +73,9 @@ type Field struct {
 	Label       string
 	DataType    string
 	Description string
+	// UnknownText is what a value of this field marked unknown prints ("n.p."),
+	// or "" when the field names none.
+	UnknownText string
 	// UsedBy is how many Sources, Artifacts and Evidence graphs hold a value
 	// for this field plus how many Source types name it in a citation format:
 	// the total that blocks its delete. List and Update populate
@@ -170,13 +177,14 @@ func Create(tx *database.Tx, label, dataType, description string) (Field, []rowc
 	}}, nil
 }
 
-// Update patches label and description for a project field (user or
-// provenencia) by id. Key, origin, and data_type are immutable after create.
+// Update patches label, description and unknown text for a project field (user
+// or provenencia) by id. Key, origin, and data_type are immutable after create.
 // dataType must match the existing value (callers still pass it for clarity).
-// Returns ErrLocked for plugin-origin fields. An unchanged label and
-// description returns the existing field and no changes. The caller records
-// the returned changes.
-func Update(tx *database.Tx, id []byte, label, dataType, description string) (Field, []rowchange.Change, error) {
+// A nil unknownText keeps the stored one; otherwise it is trimmed and "" clears
+// it. Returns ErrLocked for plugin-origin fields. An unchanged label,
+// description and unknown text returns the existing field and no changes. The
+// caller records the returned changes.
+func Update(tx *database.Tx, id []byte, label, dataType, description string, unknownText *string) (Field, []rowchange.Change, error) {
 	if tx == nil {
 		return Field{}, nil, ErrInvalid
 	}
@@ -196,6 +204,10 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string) (Fi
 	if dataType != existing.DataType {
 		return Field{}, nil, ErrInvalid
 	}
+	unknown := existing.UnknownText
+	if unknownText != nil {
+		unknown = strings.TrimSpace(*unknownText)
+	}
 	fields := map[string]rowchange.FieldDiff{}
 	if existing.Label != label {
 		fields["label"] = rowchange.FieldDiff{Old: database.NullString(existing.Label), New: database.NullString(label)}
@@ -203,10 +215,13 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string) (Fi
 	if existing.Description != description {
 		fields["description"] = rowchange.FieldDiff{Old: database.NullString(existing.Description), New: database.NullString(description)}
 	}
+	if existing.UnknownText != unknown {
+		fields["unknown_text"] = rowchange.FieldDiff{Old: database.NullString(existing.UnknownText), New: database.NullString(unknown)}
+	}
 	if len(fields) == 0 {
 		return existing, nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), id); err != nil {
+	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), database.NullString(unknown), id); err != nil {
 		return Field{}, nil, err
 	}
 	got, err := getByID(tx.Tx, id)
@@ -413,6 +428,9 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if prev.Description != "" {
 		fields["description"] = rowchange.FieldDiff{Old: prev.Description, New: nil}
 	}
+	if prev.UnknownText != "" {
+		fields["unknown_text"] = rowchange.FieldDiff{Old: prev.UnknownText, New: nil}
+	}
 	return append(released, rowchange.Change{
 		EntityType: "metadata_field",
 		EntityID:   append([]byte(nil), id...),
@@ -433,10 +451,20 @@ func lookupTx(tx *sql.Tx, key, origin string) (Field, error) {
 	return ScanField(tx.QueryRow(sqlLookup, key, origin))
 }
 
-// ScanField scans a row of id, key, origin, label, data_type, description, in
-// that order, then any trailing columns into extra.
+// Columns is the SELECT list ScanField reads, each column prefixed "alias." when
+// alias is not empty.
+func Columns(alias string) string {
+	p := ""
+	if alias != "" {
+		p = alias + "."
+	}
+	return p + "id, " + p + "key, " + p + "origin, " + p + "label, " + p + "data_type, COALESCE(" + p + "description, ''), COALESCE(" + p + "unknown_text, '')"
+}
+
+// ScanField scans a row of Columns, in that order, then any trailing columns
+// into extra.
 func ScanField(row interface{ Scan(dest ...any) error }, extra ...any) (Field, error) {
 	var f Field
-	err := row.Scan(append([]any{&f.ID, &f.Key, &f.Origin, &f.Label, &f.DataType, &f.Description}, extra...)...)
+	err := row.Scan(append([]any{&f.ID, &f.Key, &f.Origin, &f.Label, &f.DataType, &f.Description, &f.UnknownText}, extra...)...)
 	return f, err
 }

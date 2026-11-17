@@ -350,7 +350,7 @@ func TestGetFormats(t *testing.T) {
 		}
 		_, _, err := writes.Run(f.c, writes.Op{Action: "update_metadata_field", UserID: f.userID},
 			func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
-				return metadatafields.Update(tx, f.line, "Line no.", metadatafields.DataTypeText, "")
+				return metadatafields.Update(tx, f.line, "Line no.", metadatafields.DataTypeText, "", nil)
 			})
 		if err != nil {
 			t.Fatal(err)

@@ -26,11 +26,6 @@ const (
 	sqlEnsureSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order)
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(source_type_id, field_id, level) DO UPDATE SET sort_order = excluded.sort_order`
-	sqlListSuggestions = `SELECT f.id, f.key, f.origin, f.label, f.data_type, COALESCE(f.description, ''), j.sort_order
-		FROM source_type_metadata_fields j
-		JOIN source_metadata_fields f ON f.id = j.field_id
-		WHERE j.source_type_id = ? AND j.level = ?
-		ORDER BY j.sort_order ASC, f.label COLLATE NOCASE, f.key`
 	sqlDeleteSuggestion = `DELETE FROM source_type_metadata_fields
 		WHERE source_type_id = ? AND field_id = ? AND level = ?`
 	// The next sort_order is computed inside the INSERT so concurrent
@@ -41,6 +36,12 @@ const (
 		FROM source_type_metadata_fields WHERE source_type_id = ? AND level = ?
 		ON CONFLICT(source_type_id, field_id, level) DO NOTHING`
 )
+
+var sqlListSuggestions = `SELECT ` + metadatafields.Columns("f") + `, j.sort_order
+	FROM source_type_metadata_fields j
+	JOIN source_metadata_fields f ON f.id = j.field_id
+	WHERE j.source_type_id = ? AND j.level = ?
+	ORDER BY j.sort_order ASC, f.label COLLATE NOCASE, f.key`
 
 // Suggestion is one ordered field attached to a source type at a level.
 type Suggestion struct {
