@@ -1,9 +1,9 @@
 # S16-42 — Every event date line reads the engine's dating
 
-**Status:** Planned
+**Status:** Landed in [#876](https://github.com/mendahu/provenencia/pull/876) (2026-11-17)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D4](../design/S16-D4-event-date-line.md) (Events list: the shared event date line, ED-1 – ED-7, ED-W1) and [S16-D7](../design/S16-D7-timeline-lifeline-dating.md) (Person page Timeline: the lifeline, TL-1 – TL-3, TL-W1); both boards agreed 2026-11-17
+**Brief:** [S16-D4](../design/archive/S16-D4-event-date-line.md) (Events list: the shared event date line, ED-1 – ED-7, ED-W1) and [S16-D7](../design/archive/S16-D7-timeline-lifeline-dating.md) (Person page Timeline: the lifeline, TL-1 – TL-3, TL-W1); both boards agreed 2026-11-17
 **Board:** agreed 2026-11-17. [Claude Design — Events List](https://claude.ai/artifact/HP8p5mK3BFhNzFRrP5UK9w), page `project/Events List.dc.html`, section `#s16-d4` "S16-D4 · Event dates": frames 1a (Regular, with the table of every dating case, its VoiceOver words and the four new keys), 1b (Wide), 2 (every surface). [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page `project/Person Detail - Timeline.dc.html`, turn 18 "S16-D7 · Lifeline dating" (search `Turn 18`; drawing in `spanMark`): frames 18a (Regular), 18b (Wide), 18c (the four marks zoomed). The implementer reads each with the Artifact tool's `read` on its link and that `path`. Turn 18's row date texts are stand-ins; S16-D4's wording is the one to build (§ Strings)
 **Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)), S16-D4, S16-D7
 **Blocks:** S16-44
@@ -417,3 +417,7 @@ None.
 
 **Title:** S16-42 — Every event date line reads the engine's dating
 **Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence (test names, the AC-4.3 benchmark table, the warm-ms cause); deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-42-event-dating-line.md`.
+
+## Landed
+
+Differences from the plan: the tied-Hi T-1 row lives in `TestDatingOfTiedHiTakesLowestLo`; T-10 asserts ISO strings from `CompactDisplay`; T-7 is covered by `TestEventDatingProto` plus the OCCURRENCE assertion in `TestListEventSummaries`; `eventPlaces` keeps its `v vocab` parameter. AC-4.3 was relaxed by the user to "no added overhead" and T-1's as-of-after-end row reads as D-4 gives it (High nil). The DoD's `vocabkey.Property(StartDate|EndDate|AsOf)` sweep still finds `placeShell` and `assocDatesOf` (a Place's and an association's own period) and `oneEvent`'s `h.StartDate` / `h.EndDate` reads, which S16-44 removes with the summary fields. T-6's 50 ms bound measured 17 ms alone and 69 ms once inside a full parallel `go test ./...`. The §10 manual check was not run.
