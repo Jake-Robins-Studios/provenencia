@@ -1,4 +1,4 @@
-package metadatafields
+package metadatafields_test
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/mendahu/provenencia/core/database/metadatafields"
 	"testing"
 
 	"github.com/google/uuid"
@@ -32,29 +33,29 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "upsert lookup refresh data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Field{
-					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				got, err := Lookup(c, "author", vocabkey.OriginProvenencia)
+				got, err := metadatafields.Lookup(c, "author", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if string(got.ID) != string(id) || got.DataType != DataTypeText {
+				if string(got.ID) != string(id) || got.DataType != metadatafields.DataTypeText {
 					t.Fatalf("got %+v", got)
 				}
-				if _, err := Upsert(c, Field{
-					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: DataTypeURL,
+				if _, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeURL,
 				}); err != nil {
 					t.Fatal(err)
 				}
-				got, err = Lookup(c, "author", vocabkey.OriginProvenencia)
+				got, err = metadatafields.Lookup(c, "author", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if got.DataType != DataTypeURL {
+				if got.DataType != metadatafields.DataTypeURL {
 					t.Fatalf("data_type %q", got.DataType)
 				}
 			},
@@ -62,9 +63,9 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "rejects bad data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Field{
+				if _, err := metadatafields.Upsert(c, metadatafields.Field{
 					Key: "x", Origin: vocabkey.OriginUser, Label: "X", DataType: "number",
-				}); !errors.Is(err, ErrInvalid) {
+				}); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -72,17 +73,17 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "upsert accepts url data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Field{
-					Key: "landing-page", Origin: vocabkey.OriginUser, Label: "Landing page", DataType: DataTypeURL,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "landing-page", Origin: vocabkey.OriginUser, Label: "Landing page", DataType: metadatafields.DataTypeURL,
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				got, err := Lookup(c, "landing-page", vocabkey.OriginUser)
+				got, err := metadatafields.Lookup(c, "landing-page", vocabkey.OriginUser)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if string(got.ID) != string(id) || got.DataType != DataTypeURL {
+				if string(got.ID) != string(id) || got.DataType != metadatafields.DataTypeURL {
 					t.Fatalf("got %+v", got)
 				}
 			},
@@ -90,7 +91,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "lookup missing",
 			run: func(t *testing.T, c *database.Catalog) {
-				_, err := Lookup(c, "nope", vocabkey.OriginProvenencia)
+				_, err := metadatafields.Lookup(c, "nope", vocabkey.OriginProvenencia)
 				if !errors.Is(err, sql.ErrNoRows) {
 					t.Fatalf("got %v", err)
 				}
@@ -145,8 +146,8 @@ func TestDelete(t *testing.T) {
 			name: "unused provenencia ok",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Field{
-					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -157,7 +158,7 @@ func TestDelete(t *testing.T) {
 				if latestAction(t, c) != "delete_metadata_field" {
 					t.Fatalf("action %q", latestAction(t, c))
 				}
-				_, err = Lookup(c, "author", vocabkey.OriginProvenencia)
+				_, err = metadatafields.Lookup(c, "author", vocabkey.OriginProvenencia)
 				if !errors.Is(err, sql.ErrNoRows) {
 					t.Fatalf("got %v", err)
 				}
@@ -179,7 +180,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				field, err := runCreate(c, "Folio", DataTypeText, "")
+				field, err := runCreate(c, "Folio", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -197,10 +198,10 @@ func TestDelete(t *testing.T) {
 				); err != nil {
 					t.Fatal(err)
 				}
-				if err := runDelete(c, userID, field.ID); !errors.Is(err, ErrInUse) {
+				if err := runDelete(c, userID, field.ID); !errors.Is(err, metadatafields.ErrInUse) {
 					t.Fatalf("got %v", err)
 				}
-				if _, err := GetByID(c, field.ID); err != nil {
+				if _, err := metadatafields.GetByID(c, field.ID); err != nil {
 					t.Fatalf("field gone: %v", err)
 				}
 			},
@@ -211,7 +212,7 @@ func TestDelete(t *testing.T) {
 				mustUser(t, c)
 				src, _, _ := fieldHolders(t, c, userID)
 				graphID := insertGraph(t, c, src.ID, "Household")
-				field, err := runCreate(c, "Line", DataTypeText, "")
+				field, err := runCreate(c, "Line", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -224,10 +225,10 @@ func TestDelete(t *testing.T) {
 					id[:], graphID, field.ID); err != nil {
 					t.Fatal(err)
 				}
-				if err := runDelete(c, userID, field.ID); !errors.Is(err, ErrInUse) {
+				if err := runDelete(c, userID, field.ID); !errors.Is(err, metadatafields.ErrInUse) {
 					t.Fatalf("got %v, want ErrInUse", err)
 				}
-				if _, err := GetByID(c, field.ID); err != nil {
+				if _, err := metadatafields.GetByID(c, field.ID); err != nil {
 					t.Fatalf("field gone: %v", err)
 				}
 			},
@@ -237,7 +238,7 @@ func TestDelete(t *testing.T) {
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
 				_, art, typeID := fieldHolders(t, c, userID)
-				field, err := runCreate(c, "Provider", DataTypeText, "")
+				field, err := runCreate(c, "Provider", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -257,7 +258,7 @@ func TestDelete(t *testing.T) {
 				if _, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
 					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
 						var err error
-						changes, err = Delete(tx, userID, field.ID)
+						changes, err = metadatafields.Delete(tx, userID, field.ID)
 						return struct{}{}, changes, err
 					}); err != nil {
 					t.Fatal(err)
@@ -282,7 +283,7 @@ func TestDelete(t *testing.T) {
 				s1, art, _ := fieldHolders(t, c, userID)
 				s2, _, _ := fieldHolders(t, c, userID)
 				graphID := insertGraph(t, c, s1.ID, "Household")
-				field, err := runCreate(c, "Shelf mark", DataTypeText, "")
+				field, err := runCreate(c, "Shelf mark", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -307,7 +308,7 @@ func TestDelete(t *testing.T) {
 				if n, err := deleteimpact.UsedBy(c, catalogmodel.KindMetadataField, field.ID); err != nil || n != 4 {
 					t.Fatalf("UsedBy = %d, %v; want 4", n, err)
 				}
-				all, err := List(c)
+				all, err := metadatafields.List(c)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -322,16 +323,16 @@ func TestDelete(t *testing.T) {
 			name: "unused plugin is origin locked",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Field{
-					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := runDelete(c, userID, id); !errors.Is(err, ErrOriginLocked) {
+				if err := runDelete(c, userID, id); !errors.Is(err, metadatafields.ErrOriginLocked) {
 					t.Fatalf("got %v", err)
 				}
-				if _, err := GetByID(c, id); err != nil {
+				if _, err := metadatafields.GetByID(c, id); err != nil {
 					t.Fatalf("field gone: %v", err)
 				}
 			},
@@ -342,7 +343,7 @@ func TestDelete(t *testing.T) {
 				mustUser(t, c)
 				missing := make([]byte, 16)
 				missing[15] = 9
-				if err := runDelete(c, userID, missing); !errors.Is(err, ErrInvalid) {
+				if err := runDelete(c, userID, missing); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -363,8 +364,8 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				id, err := Upsert(c, Field{
-					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -388,7 +389,7 @@ func TestDelete(t *testing.T) {
 				if err := runDelete(c, userID, id); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := GetByID(c, id); !errors.Is(err, sql.ErrNoRows) {
+				if _, err := metadatafields.GetByID(c, id); !errors.Is(err, sql.ErrNoRows) {
 					t.Fatalf("field still there: %v", err)
 				}
 				var joins int
@@ -410,7 +411,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "bad id",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := runDelete(c, userID, []byte{1}); !errors.Is(err, ErrInvalid) {
+				if err := runDelete(c, userID, []byte{1}); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -436,7 +437,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "create mints slug key",
 			run: func(t *testing.T, c *database.Catalog) {
-				f, err := runCreate(c, "Grandma's album code", DataTypeText, "")
+				f, err := runCreate(c, "Grandma's album code", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -448,7 +449,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "create rejects unslugifiable label",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := runCreate(c, "...", DataTypeText, ""); !errors.Is(err, ErrInvalid) {
+				if _, err := runCreate(c, "...", metadatafields.DataTypeText, ""); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -456,11 +457,11 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "create rejects duplicate key under user origin",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := runCreate(c, "Album code", DataTypeText, ""); err != nil {
+				if _, err := runCreate(c, "Album code", metadatafields.DataTypeText, ""); err != nil {
 					t.Fatal(err)
 				}
-				_, err := runCreate(c, "Album code", DataTypeText, "")
-				if !errors.Is(err, ErrDuplicateKey) {
+				_, err := runCreate(c, "Album code", metadatafields.DataTypeText, "")
+				if !errors.Is(err, metadatafields.ErrDuplicateKey) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -468,12 +469,12 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "same key different origin does not collide",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Field{
-					Key: "photographer", Origin: vocabkey.OriginProvenencia, Label: "Photographer", DataType: DataTypeText,
+				if _, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "photographer", Origin: vocabkey.OriginProvenencia, Label: "Photographer", DataType: metadatafields.DataTypeText,
 				}); err != nil {
 					t.Fatal(err)
 				}
-				f, err := runCreate(c, "Photographer", DataTypeText, "")
+				f, err := runCreate(c, "Photographer", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -485,19 +486,19 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update patches label and description but not key or data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				created, err := runCreate(c, "Album code", DataTypeText, "old")
+				created, err := runCreate(c, "Album code", metadatafields.DataTypeText, "old")
 				if err != nil {
 					t.Fatal(err)
 				}
-				updated, err := runUpdate(c, created.ID, "Album Code", DataTypeText, "new")
+				updated, err := runUpdate(c, created.ID, "Album Code", metadatafields.DataTypeText, "new")
 				if err != nil {
 					t.Fatal(err)
 				}
 				if updated.Key != created.Key || updated.Label != "Album Code" ||
-					updated.DataType != DataTypeText || updated.Description != "new" {
+					updated.DataType != metadatafields.DataTypeText || updated.Description != "new" {
 					t.Fatalf("got %+v", updated)
 				}
-				got, err := GetByID(c, created.ID)
+				got, err := metadatafields.GetByID(c, created.ID)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -509,11 +510,11 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update rejects data type change",
 			run: func(t *testing.T, c *database.Catalog) {
-				created, err := runCreate(c, "Album code", DataTypeText, "")
+				created, err := runCreate(c, "Album code", metadatafields.DataTypeText, "")
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := runUpdate(c, created.ID, "Album code", DataTypeURL, ""); !errors.Is(err, ErrInvalid) {
+				if _, err := runUpdate(c, created.ID, "Album code", metadatafields.DataTypeURL, ""); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -521,18 +522,18 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update provenencia field",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Field{
-					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				updated, err := runUpdate(c, id, "Author renamed", DataTypeText, "edited")
+				updated, err := runUpdate(c, id, "Author renamed", metadatafields.DataTypeText, "edited")
 				if err != nil {
 					t.Fatal(err)
 				}
 				if updated.Key != "author" || updated.Origin != vocabkey.OriginProvenencia ||
-					updated.Label != "Author renamed" || updated.DataType != DataTypeText ||
+					updated.Label != "Author renamed" || updated.DataType != metadatafields.DataTypeText ||
 					updated.Description != "edited" {
 					t.Fatalf("got %+v", updated)
 				}
@@ -541,13 +542,13 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update rejects plugin field",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Field{
-					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: DataTypeText,
+				id, err := metadatafields.Upsert(c, metadatafields.Field{
+					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := runUpdate(c, id, "Memorial", DataTypeText, ""); !errors.Is(err, ErrLocked) {
+				if _, err := runUpdate(c, id, "Memorial", metadatafields.DataTypeText, ""); !errors.Is(err, metadatafields.ErrLocked) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -555,7 +556,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "get by id missing",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := GetByID(c, make([]byte, 16)); !errors.Is(err, sql.ErrNoRows) {
+				if _, err := metadatafields.GetByID(c, make([]byte, 16)); !errors.Is(err, sql.ErrNoRows) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -579,11 +580,11 @@ func TestListByIDsTx(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer c.Close()
-	a, err := runCreate(c, "Author", DataTypeText, "")
+	a, err := runCreate(c, "Author", metadatafields.DataTypeText, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := runCreate(c, "Link", DataTypeURL, "")
+	b, err := runCreate(c, "Link", metadatafields.DataTypeURL, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -597,21 +598,21 @@ func TestListByIDsTx(t *testing.T) {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	got, err := ListByIDsTx(tx, [][]byte{a.ID, b.ID, a.ID, make([]byte, 16)})
+	got, err := metadatafields.ListByIDsTx(tx, [][]byte{a.ID, b.ID, a.ID, make([]byte, 16)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 2 {
 		t.Fatalf("got %d fields, want 2: %+v", len(got), got)
 	}
-	byID := map[string]Field{}
+	byID := map[string]metadatafields.Field{}
 	for _, f := range got {
 		byID[string(f.ID)] = f
 	}
-	if byID[string(a.ID)].Key != "author" || byID[string(b.ID)].DataType != DataTypeURL {
+	if byID[string(a.ID)].Key != "author" || byID[string(b.ID)].DataType != metadatafields.DataTypeURL {
 		t.Fatalf("got %+v", got)
 	}
-	none, err := ListByIDsTx(tx, nil)
+	none, err := metadatafields.ListByIDsTx(tx, nil)
 	if err != nil || none != nil {
 		t.Fatalf("nil ids = %+v, %v", none, err)
 	}
@@ -624,7 +625,7 @@ func TestListByIDsTx(t *testing.T) {
 			ids = append(ids, unknown)
 		}
 		ids = append(ids, b.ID)
-		got, err := ListByIDsTx(tx, ids)
+		got, err := metadatafields.ListByIDsTx(tx, ids)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -634,18 +635,18 @@ func TestListByIDsTx(t *testing.T) {
 	})
 }
 
-func runCreate(c *database.Catalog, label, dataType, description string) (Field, error) {
+func runCreate(c *database.Catalog, label, dataType, description string) (metadatafields.Field, error) {
 	got, _, err := writes.Run(c, writes.Op{Action: "create_metadata_field"},
-		func(tx *database.Tx) (Field, []rowchange.Change, error) {
-			return Create(tx, label, dataType, description)
+		func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
+			return metadatafields.Create(tx, label, dataType, description)
 		})
 	return got, err
 }
 
-func runUpdate(c *database.Catalog, id []byte, label, dataType, description string) (Field, error) {
+func runUpdate(c *database.Catalog, id []byte, label, dataType, description string) (metadatafields.Field, error) {
 	got, _, err := writes.Run(c, writes.Op{Action: "update_metadata_field"},
-		func(tx *database.Tx) (Field, []rowchange.Change, error) {
-			return Update(tx, id, label, dataType, description)
+		func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
+			return metadatafields.Update(tx, id, label, dataType, description)
 		})
 	return got, err
 }
@@ -653,7 +654,7 @@ func runUpdate(c *database.Catalog, id []byte, label, dataType, description stri
 func runDelete(c *database.Catalog, userID, id []byte) error {
 	_, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
 		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, id)
+			changes, err := metadatafields.Delete(tx, userID, id)
 			return struct{}{}, changes, err
 		})
 	return err
@@ -703,7 +704,7 @@ func TestResolveKeysTx(t *testing.T) {
 	defer c.Close()
 	upsert := func(key, origin string) []byte {
 		t.Helper()
-		id, err := Upsert(c, Field{Key: key, Origin: origin, Label: key, DataType: DataTypeText})
+		id, err := metadatafields.Upsert(c, metadatafields.Field{Key: key, Origin: origin, Label: key, DataType: metadatafields.DataTypeText})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -744,7 +745,7 @@ func TestResolveKeysTx(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ResolveKeysTx(tx, tc.keys, tc.prefer)
+			got, err := metadatafields.ResolveKeysTx(tx, tc.keys, tc.prefer)
 			if err != nil {
 				t.Fatal(err)
 			}

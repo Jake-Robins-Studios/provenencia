@@ -357,6 +357,10 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	}); err != nil {
 		return nil, err
 	}
+	formats, err := StoredFormatsTx(tx.Tx, [][]byte{id})
+	if err != nil {
+		return nil, err
+	}
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
@@ -371,6 +375,15 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	}
 	if prev.IconKey != "" {
 		fields["icon_key"] = rowchange.FieldDiff{Old: prev.IconKey, New: nil}
+	}
+	// A deleted type's formats stay in the revision.
+	stored := formats[string(id)]
+	for column, text := range map[string]string{
+		"citation_full": stored.Full, "citation_short": stored.Short, "citation_list": stored.List,
+	} {
+		if text != "" {
+			fields[column] = rowchange.FieldDiff{Old: text, New: nil}
+		}
 	}
 	return []rowchange.Change{{
 		EntityType: "source_type",
