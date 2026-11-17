@@ -157,6 +157,27 @@ func Latest(ends []DateEnd) (best DateEnd, ok bool) {
 	return best, ok
 }
 
+// SampleExtremes picks, from samples read as firsts[i] and lasts[i], the two
+// that can bound a period: endsFirst is the index of the lowest Hi among the
+// closed lasts (the sample that ends first), startsLast the index of the
+// highest Lo among the closed firsts (the sample that starts last). The lower
+// index wins a tie; -1 means no end is closed. The caller supplies the reading
+// of each date (DateEnds, AboutEnds).
+func SampleExtremes(firsts, lasts []DateEnd) (endsFirst, startsLast int) {
+	endsFirst, startsLast = -1, -1
+	for i, e := range lasts {
+		if !e.Open && (endsFirst < 0 || e.Hi < lasts[endsFirst].Hi) {
+			endsFirst = i
+		}
+	}
+	for i, e := range firsts {
+		if !e.Open && (startsLast < 0 || e.Lo > firsts[startsLast].Lo) {
+			startsLast = i
+		}
+	}
+	return endsFirst, startsLast
+}
+
 // Window is an inclusive proleptic-day span. A nil bound is open.
 // A fully open window is "always" (no place period, undated place).
 type Window struct {

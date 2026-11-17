@@ -249,3 +249,38 @@ func TestOutcomeMatches(t *testing.T) {
 		}
 	}
 }
+
+func TestBetter(t *testing.T) {
+	speak := func(rel valuecompare.Relation, sim float64) propertycompare.Result {
+		return propertycompare.Result{Speaking: &propertycompare.SpeakingPair{
+			Result: valuecompare.Result{Relation: rel, Similarity: sim},
+		}}
+	}
+	rules := matchregistry.Default().Value
+	agree, partial := speak(valuecompare.Same, 1), speak(valuecompare.Contains, 0.9)
+	lower := speak(valuecompare.Contains, 0.4)
+	none := propertycompare.Result{}
+	for _, c := range []struct {
+		name string
+		x, y propertycompare.Result
+		want bool
+	}{
+		{"an agree beats a partial", agree, partial, true},
+		{"a partial does not beat an agree", partial, agree, false},
+		{"equal outcomes: the higher similarity", partial, lower, true},
+		{"equal outcomes: the lower similarity loses", lower, partial, false},
+		{"a result with no pair is never better", none, agree, false},
+		{"a pair beats no pair", agree, none, true},
+		{"two with no pair", none, none, false},
+		{"the same result", agree, agree, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := propertycompare.Better(c.x, c.y, rules); got != c.want {
+				t.Errorf("Better = %v, want %v", got, c.want)
+			}
+			if propertycompare.Better(c.x, c.y, rules) && propertycompare.Better(c.y, c.x, rules) {
+				t.Error("Better is true both ways")
+			}
+		})
+	}
+}

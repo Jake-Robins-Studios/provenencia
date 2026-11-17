@@ -256,6 +256,64 @@ func TestCompare(t *testing.T) {
 		{name: "AC-2.13 a period against a different date", kind: vocabkey.Event,
 			a: Vals{start: {year(1815)}, end: {year(1820)}}, b: Vals{date: {year(1830)}}, sim: 0, ev: -3,
 			check: is(date, conflict, rel, -3)},
+
+		{name: "AC-3.1 two as-ofs on different days do not conflict", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}}, b: Vals{asOf: {year(2015)}}, sim: 0, ev: 0,
+			check: is(date, unknown, noVals, 0)},
+		{name: "AC-3.2 an as-of after the end conflicts", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}}, b: Vals{end: {year(1985)}}, sim: 0, ev: -3,
+			check: func(t *testing.T, r subjectcompare.Result) {
+				is(date, conflict, rel, -3)(t, r)
+				s := prop(t, r, date).Result.Speaking
+				if a, b := datevalue.CompactDisplay(*s.A.Date), datevalue.CompactDisplay(*s.B.Date); a != "1990" || b != "Before 1985" {
+					t.Errorf("speaking A %q B %q", a, b)
+				}
+			}},
+		{name: "AC-3.3 an as-of before the start conflicts", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}}, b: Vals{start: {year(1995)}}, sim: 0, ev: -3,
+			check: is(date, conflict, rel, -3)},
+		{name: "AC-3.4 an as-of inside a closed period is partial", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1817)}}, b: Vals{start: {year(1815)}, end: {year(1820)}}, sim: 0.55, ev: 1.1,
+			check: func(t *testing.T, r subjectcompare.Result) {
+				is(date, partial, rel, 1.1)(t, r)
+				s := prop(t, r, date).Result.Speaking
+				if got := datevalue.CompactDisplay(*s.A.Date); got != "1817" || s.Result.Relation != valuecompare.Contains || !near(s.Result.Similarity, 0.55) {
+					t.Errorf("speaking A %q relation %s %v", got, s.Result.Relation, s.Result.Similarity)
+				}
+			}},
+		{name: "AC-3.5 a half-open period does not agree", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}}, b: Vals{start: {year(1985)}}, sim: 0, ev: 0,
+			check: is(date, unknown, noVals, 0)},
+		{name: "AC-3.6 an as-of against an occurrence date reads no period", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}}, b: Vals{date: {year(1881)}}, sim: 0, ev: 0,
+			check: is(date, unknown, noVals, 0)},
+		{name: "AC-3.7 an as-of beside a start against an occurrence date", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1990)}, start: {year(1985)}}, b: Vals{date: {year(1881)}}, sim: 0, ev: -3,
+			check: is(date, conflict, rel, -3)},
+		{name: "AC-3.8 a before as-of started by then conflicts", kind: vocabkey.Event,
+			a: Vals{asOf: {pt.Date(datevaluetest.Before(1990, 0, 0))}}, b: Vals{start: {year(1995)}, end: {year(2000)}}, sim: 0, ev: -3,
+			check: is(date, conflict, rel, -3)},
+		{name: "AC-3.9 an after as-of still under way conflicts", kind: vocabkey.Event,
+			a: Vals{asOf: {pt.Date(datevaluetest.After(1990, 0, 0))}}, b: Vals{start: {year(1970)}, end: {year(1985)}}, sim: 0, ev: -3,
+			check: is(date, conflict, rel, -3)},
+		{name: "AC-3.10 an as-of within tolerance of an end is no conflict", kind: vocabkey.Event,
+			a: Vals{asOf: {year(1991)}}, b: Vals{end: {year(1990)}}, sim: 0, ev: 0,
+			check: is(date, unknown, noVals, 0)},
+		{name: "AC-3.2 swapped", kind: vocabkey.Event,
+			a: Vals{end: {year(1985)}}, b: Vals{asOf: {year(1990)}}, sim: 0, ev: -3,
+			check: func(t *testing.T, r subjectcompare.Result) {
+				is(date, conflict, rel, -3)(t, r)
+				s := prop(t, r, date).Result.Speaking
+				if a, b := datevalue.CompactDisplay(*s.A.Date), datevalue.CompactDisplay(*s.B.Date); a != "Before 1985" || b != "1990" {
+					t.Errorf("speaking A %q B %q", a, b)
+				}
+			}},
+		{name: "the extremes decide a thousand as-ofs", kind: vocabkey.Event,
+			a: Vals{asOf: manyAsOfs()}, b: Vals{start: {year(1985)}, end: {year(2000)}}, sim: 0, ev: -3,
+			check: is(date, conflict, rel, -3)},
+		{name: "a negative as-of is ignored", kind: vocabkey.Event,
+			a: Vals{asOf: {pt.Neg(year(1970))}}, b: Vals{start: {year(1985)}, end: {year(2000)}}, sim: 0, ev: 0,
+			check: is(date, unknown, noVals, 0)},
 	}
 	for _, r := range rows {
 		t.Run(r.name, func(t *testing.T) {
@@ -412,4 +470,73 @@ func TestCountsUnder(t *testing.T) {
 			t.Errorf("CountsUnder(%s, %s) = %q, %v; want %q, %v", c.kind, c.key, got, ok, c.want, c.ok)
 		}
 	}
+}
+
+// manyAsOfs is 999 as-ofs inside 1986 to 1999 and one in 1970.
+func manyAsOfs() []V {
+	out := make([]V, 0, 1000)
+	for i := range 999 {
+		out = append(out, year(1986+i%14))
+	}
+	return append(out, year(1970))
+}
+
+// TestCompareSamples checks the as-of rule picks the same samples whatever
+// the order of the values.
+func TestCompareSamples(t *testing.T) {
+	rules := matchregistry.Default()
+	for _, c := range []struct {
+		name    string
+		asOfs   []V
+		b       Vals
+		outcome propertycompare.Outcome
+		rel     valuecompare.Relation
+		speakA  string
+	}{
+		{"ABT widens the pick", []V{pt.Date(datevaluetest.About(1990, 0, 0)), year(1990)},
+			Vals{start: {year(1993)}}, conflict, valuecompare.Different, "1990"},
+		{"extremes set the strength", []V{year(1983), year(1990), year(2002)},
+			Vals{start: {year(1985)}, end: {year(2000)}}, partial, valuecompare.Near, ""},
+		{"a tie is decided by the sort", []V{year(1989), year(1990), pt.Date(datevaluetest.Between(1990, 0, 0, 2000, 0, 0))},
+			Vals{start: {year(1990)}, end: {year(1991)}}, "", "", ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			var first propertycompare.Result
+			var firstSim, firstEv float64
+			for i, order := range permutationsOf(c.asOfs) {
+				got := subjectcompare.Compare(vocabkey.Event, Vals{asOf: order}, c.b, subjectcomparetest.Metas(), rules.Subject, rules.Value)
+				p := prop(t, got, date).Result
+				if i == 0 {
+					first, firstSim, firstEv = p, got.Similarity, got.Evidence
+					if c.outcome != "" && (p.Outcome != c.outcome || p.Speaking == nil || p.Speaking.Result.Relation != c.rel) {
+						t.Fatalf("outcome %s speaking %+v, want %s %s", p.Outcome, p.Speaking, c.outcome, c.rel)
+					}
+					if c.speakA != "" && datevalue.CompactDisplay(*p.Speaking.A.Date) != c.speakA {
+						t.Fatalf("speaking A %q, want %q", datevalue.CompactDisplay(*p.Speaking.A.Date), c.speakA)
+					}
+					continue
+				}
+				if p.Outcome != first.Outcome || p.Cause != first.Cause || !near(got.Similarity, firstSim) || !near(got.Evidence, firstEv) ||
+					(p.Speaking == nil) != (first.Speaking == nil) ||
+					(p.Speaking != nil && (p.Speaking.Result.Relation != first.Speaking.Result.Relation || p.Speaking.A.Date == nil || first.Speaking.A.Date == nil ||
+						datevalue.CompactDisplay(*p.Speaking.A.Date) != datevalue.CompactDisplay(*first.Speaking.A.Date))) {
+					t.Fatalf("order %d: %+v, first order %+v", i, p, first)
+				}
+			}
+		})
+	}
+}
+
+// permutationsOf returns every order of vs.
+func permutationsOf(vs []V) [][]V {
+	if len(vs) <= 1 {
+		return [][]V{slices.Clone(vs)}
+	}
+	var out [][]V
+	for i := range vs {
+		for _, p := range permutationsOf(slices.Concat(vs[:i], vs[i+1:])) {
+			out = append(out, append([]V{vs[i]}, p...))
+		}
+	}
+	return out
 }

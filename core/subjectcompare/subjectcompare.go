@@ -149,8 +149,37 @@ func Compare(kind vocabkey.SubjectType, a, b Values, metas Metas, rules Rules, v
 // Subject for key, under key's meta. It is the one place Side meets property
 // compare; Compare and the record-links count both call it (the lifespan rule
 // calls propertycompare.Compare directly).
+//
+// When key's period names samples, each side's extreme samples are also read
+// against the other side's period (samplesAgainst). The result is the best
+// conflict among that comparison, the samples' and each direction's; else the
+// best match; else the comparison alone. Best is propertycompare.Better, and a
+// tie keeps the first of the comparison, side A's samples, side B's samples.
 func CompareProperty(kind vocabkey.SubjectType, key vocabkey.PropertyKey, a, b Values, metas Metas, rules Rules, value valuecompare.Rules) propertycompare.Result {
-	return propertycompare.Compare(Side(kind, key, a, rules), Side(kind, key, b, rules), metas[key], value)
+	base := propertycompare.Compare(Side(kind, key, a, rules), Side(kind, key, b, rules), metas[key], value)
+	samples := samplesAgainst(kind, key, a, b, rules, false, metas[key], value)
+	samples = append(samples, samplesAgainst(kind, key, b, a, rules, true, metas[key], value)...)
+	if len(samples) == 0 {
+		return base
+	}
+	all := append([]propertycompare.Result{base}, samples...)
+	pick := func(want func(propertycompare.Outcome) bool) (propertycompare.Result, bool) {
+		var best propertycompare.Result
+		found := false
+		for _, r := range all {
+			if want(r.Outcome) && (!found || propertycompare.Better(r, best, value)) {
+				best, found = r, true
+			}
+		}
+		return best, found
+	}
+	if r, ok := pick(func(o propertycompare.Outcome) bool { return o == propertycompare.OutcomeConflict }); ok {
+		return r
+	}
+	if r, ok := pick(propertycompare.Outcome.Matches); ok {
+		return r
+	}
+	return base
 }
 
 // Points is what one lead property adds to Evidence: an agree earns the agree

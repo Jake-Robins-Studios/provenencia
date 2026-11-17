@@ -232,6 +232,31 @@ func better(x, y pair) bool {
 	return false
 }
 
+// Better reports whether x speaks before y: better, applied to the two
+// Results' speaking pairs, each side keyed as Compare keys it under rules. A
+// Result with no speaking pair is never better than one with a pair, and two
+// without are equal, so the choice never depends on which argument is which.
+func Better(x, y Result, value valuecompare.Rules) bool {
+	if x.Speaking == nil {
+		return false
+	}
+	if y.Speaking == nil {
+		return true
+	}
+	return better(pairOf(x.Speaking, value), pairOf(y.Speaking, value))
+}
+
+// pairOf is a speaking pair as a pair, its values keyed.
+func pairOf(sp *SpeakingPair, rules valuecompare.Rules) pair {
+	ka, oka := valuecompare.Key(sp.A.Value, valuecompare.Same, rules)
+	kb, okb := valuecompare.Key(sp.B.Value, valuecompare.Same, rules)
+	return pair{
+		a:   keyed{v: sp.A, key: ka, hasKey: oka},
+		b:   keyed{v: sp.B, key: kb, hasKey: okb},
+		res: sp.Result, det: sp.Detail,
+	}
+}
+
 // keyBefore sorts keys ascending, a value with no key after any value with one.
 func keyBefore(x, y keyed) bool {
 	if x.hasKey != y.hasKey {

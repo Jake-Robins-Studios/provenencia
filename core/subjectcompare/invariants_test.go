@@ -42,6 +42,9 @@ func groups(t *testing.T, kind vocabkey.SubjectType) []group {
 		props = append(props, s.Pools[kind][lead].With...)
 		if p, ok := s.Periods[kind][lead]; ok {
 			props = append(props, p.Start, p.End)
+			if p.Samples != "" {
+				props = append(props, p.Samples)
+			}
 		}
 		if l, ok := s.Lifespans[kind][lead]; ok {
 			props = append(props, l.Span)
@@ -65,7 +68,9 @@ var propertyPools = map[vocabkey.PropertyKey][]V{
 	date:   {year(1817), year(1818), year(1830), pt.Date(datevaluetest.About(1817, 0, 0))},
 	start:  {year(1815), year(1816)},
 	end:    {year(1820)},
-	topo:   {pt.Text("York"), pt.Text("york"), pt.Text("Montréal"), pt.Text("Montreal"), pt.Text("London")},
+	asOf: {year(1817), pt.Date(datevaluetest.About(1817, 0, 0)), pt.Date(datevaluetest.Before(1818, 0, 0)),
+		pt.Date(datevaluetest.After(1816, 0, 0))},
+	topo: {pt.Text("York"), pt.Text("york"), pt.Text("Montréal"), pt.Text("Montreal"), pt.Text("London")},
 	lifeWindow: {pt.Date(datevaluetest.Between(1850, 0, 0, 1960, 0, 0)), pt.Date(datevaluetest.Between(1730, 0, 0, 1840, 0, 0)),
 		pt.Date(datevaluetest.Between(1790, 0, 0, 1900, 0, 0))},
 	lifeSpan: {pt.Date(datevaluetest.Between(1850, 0, 0, 1850, 0, 0)), pt.Date(datevaluetest.Between(1840, 0, 0, 1840, 0, 0)),
