@@ -183,7 +183,7 @@ Keys are dotted paths of the registry, `core/matchregistry`: `section.Group.Fiel
 | `subject.Periods.event.date.Start` | `start_date` | `match.DatePeriods` | Start of the period that stands for `date` on a side with no date |
 | `subject.Periods.event.date.End` | `end_date` | `match.DatePeriods` | End of that period |
 | `subject.Periods.event.date.Samples` | `as_of` | decided (user, 2026-11-16) | As-ofs read against the other side's period |
-| `subject.Periods.event.date.MaxSamples` | 1000 | estimate: far above the handful recorded | Most as-ofs a side may record before they are not read as bounds (the base comparison stands); never the first few |
+| `subject.Periods.event.date.MaxSamples` | 1000 | estimate: far above the handful recorded | Most as-ofs a side may record before they are not read as bounds (the base comparison stands): over it, compare and the lifespan read none of them and the shortlist files the event as one open reach, counting the samples without copying them (`subjectcompare.CountSamples`); never the first few. Display is not matching: the dating reads every kept as-of |
 | `subject.Pools.person.sex_at_birth.With` | `gender` | decided ([`comparison-layers.md`](deployment-plan/archive/spike-11/comparison-layers.md#layer-3-subject-comparison)) | Properties whose values join `sex_at_birth`'s on each side |
 | `subject.Pools.person.sex_at_birth.Terms.gender` | `man` → `male`, `woman` → `female` | decided (user, 2026-10-21) | Reads a gender term as the sex at birth term it names before comparing; a gender with no entry (`non_binary`) is left out, never a conflict |
 | `segment.OneSupport` | 1.5 | `graphalign` `EdgeSupportLow` | Points for a matching one-cardinality link (birth, death) |
