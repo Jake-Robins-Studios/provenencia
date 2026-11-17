@@ -1,7 +1,7 @@
 # Ship log — S15-15 Source types store citation formats
 
 **Plan:** [`S15-15-type-stores-citation-formats.md`](S15-15-type-stores-citation-formats.md) · **Branch:** `s15-15-type-stores-citation-formats` · **PR:** #871
-**State:** fixing 1
+**State:** ready
 
 Base: `main` @ `dbc946cf6` (plan planned against `754d8f6`). `VERSION` on main is already 0.18.0, so the bump is 0.18.0 → 0.19.0 per the plan's Version bump line.
 
@@ -64,3 +64,21 @@ Do: the `records` substitution becomes one "%arg Source, Artifact, graph or Sour
 Check: localizable check PASS; scripts/check-pr.sh PASS.
 
 **Nits riding along (only if trivial in files already touched):** MNT-4 doc comment on `citationFormatsProto`; MNT-5 comment naming `searchindex.ReprojectSource`/`ReprojectSourceType`; UX-3 serial comma "people, events, or places" in the two new headings; CON-2 `docs/citation-formats.md` `ambiguous_field` row "more than one field holds the key".
+
+## Round 1 — fix
+Head `9e9c2461b`. Gate PASS (orchestrator run). F-1 through F-6 done; nits MNT-3/4/5, UX-3/4, CON-2 done; CON-3 not done (nit). Deviations: F-1's broad `rg` still prints user-only and provenencia-only origin checks (`propertyterms.go:204`, `properties.go:220`, …), which are not the user-or-provenencia rule (verified). F-2 caps in SQL with `length(CAST(col AS BLOB)) <= ?` to count bytes like `Parse`. The push failed: github.com did not resolve, so the head is local only.
+Minors checked by orchestrator: CON-1 (F-4) **Resolved**: the resave asserts diagnostics, revision 0, raw text unchanged. UX-2 (F-6) **Resolved**: toast and xcstrings end "…are unchanged". UX outside-lens (F-5) **Resolved**: § 10 step 2 and Edges corrected. MNT-2 (F-3) goes to round 2 with MNT-1.
+
+## Round 2 — review
+Reviewers: MNT (MNT-1 major), SEC+PRF (SEC-1 major). Scope `5962a9a7f...9e9c2461b`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | major | (round 1) editable-origin copies | Resolved | reviewer: `vocabkey.Editable` + `editableTx`; four callers moved |
+| MNT-2 | MNT | minor | (round 1) form↔column pairing | Resolved | reviewer: one `formColumns` table |
+| SEC-1 | SEC | major | (round 1) uncapped format-ref scan | Resolved | reviewer: `formatText` caps at `MaxFormatBytes` in bytes; test `a format text past the format cap names no field` |
+
+No new findings. Nits: none.
+
+## Result
+Gate PASS · CI not run yet (github.com unreachable from this Mac; branch not pushed) · open: none · follow-ups: none · to user: UX-1 (answered: keep D-5), UX-2 (answered: "…are unchanged") · nit not done: CON-3
