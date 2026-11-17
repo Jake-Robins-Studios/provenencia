@@ -43,16 +43,16 @@ enum DateRowDisplay {
         let text = line(date: date, includesPhrase: includesPhrase, locale: locale)
         guard !text.isEmpty else { return RoleLine(text: "", styled: nil) }
         let format: LocalizedStringResource
-        let sentence: String
         switch role {
         case .plain: return RoleLine(text: text, styled: nil)
-        case .from: (format, sentence) = (L10n.Dates.rowFromFormat, L10n.Dates.rowFrom(text, locale: locale))
-        case .asOf: (format, sentence) = (L10n.Dates.rowAsOfFormat, L10n.Dates.rowAsOf(text, locale: locale))
-        case .until: (format, sentence) = (L10n.Dates.rowUntilFormat, L10n.Dates.rowUntil(text, locale: locale))
+        case .from: format = L10n.Dates.rowFromFormat
+        case .asOf: format = L10n.Dates.rowAsOfFormat
+        case .until: format = L10n.Dates.rowUntilFormat
         }
         var marked = AttributeContainer()
         marked[DateRun.self] = true
-        return RoleLine(text: sentence, styled: StyledFormat.attributed(format, [.init(text: text, attributes: marked)]))
+        let styled = StyledFormat.attributed(format, [.init(text: text, attributes: marked)])
+        return RoleLine(text: String(styled.characters), styled: styled)
     }
 
     /// One date. Empty when nil. `includesPhrase: false` leaves off the words the source gave for the

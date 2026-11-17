@@ -2733,19 +2733,11 @@ enum L10n {
             comment: "An event's recorded start on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
         )
 
-        static func rowFrom(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
-            L10n.format(rowFromFormat, locale: locale, date)
-        }
-
         static let rowUntilFormat = LocalizedStringResource(
             "dates.row.until",
             defaultValue: "until %@",
             comment: "An event's recorded end on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
         )
-
-        static func rowUntil(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
-            L10n.format(rowUntilFormat, locale: locale, date)
-        }
 
         static func rowAsOfRange(start: String, end: String, locale: Locale = .autoupdatingCurrent) -> String {
             let resource = LocalizedStringResource(
