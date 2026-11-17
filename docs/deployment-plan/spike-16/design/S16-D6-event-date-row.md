@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 16 (odds and ends), batch 5
 **View:** the Event page: its Date row
 **Implements later as:** PR **S16-44** (The Event page's Date row shows as-ofs)
-**Board:** — (not drawn yet). Draw on [Claude Design — Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page `project/Event Detail.dc.html`, as a new turn "S16-D6 · As-of dates" after frames 1 – 7
+**Board:** agreed 2026-11-17 — [Claude Design — Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page `project/Event Detail.dc.html`, turn "S16-D6 · As-of dates" (frames 8a, 8b, 9, 10). DR-2, DR-3: `from`, `as of`, `until` before each date, the role word in secondary ink and the date in primary. DR-8: `Show 50 more` under the lines. The Why's own fold drawn in frame 10 is S15-27's
 **Depends on:** S16-42 (landed [#876](https://github.com/mendahu/provenencia/pull/876)): the engine sends each event's dating, and the Event page header reads it (S16-D4's wording); the agreed Event page frames 1 – 7
 **Related:** [S16-D4](archive/S16-D4-event-date-line.md) (the shared date line, whose wording this row reuses); feature doc [`../event-as-of.md`](../event-as-of.md); working rules "The engine sends the dating, not the as-ofs" and "As-ofs alone make a span open on both sides" in [`../deployment-plan.md`](../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-44-event-date-row.md`](../prs/S16-44-event-date-row.md)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -154,7 +154,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Reconciled value row | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | The Date row: label, value lines, badge slot, Why; gains the fold of its listed lines (DR-8) |
-| Value lines | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines |
+| Value lines | Recipe | Extend | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines. A line can lead with its role word in secondary ink (agreed board) |
 | Show more | Snowflake | Ship | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` `ConclusionShowMoreRow`, `ConclusionFold` | DR-8: the fold every Conclusion page list uses; `Show %lld more` |
 | The Why | Recipe | Ship | `macos/App/Features/Conclusions/ReconciliationReasoningView.swift`, `PVProvenanceSheetContent.spanning` | The records of every field behind the lines, in one group, as the start–end row today |
 | Row model | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `ReconciledValueRowModel.spanning` | Takes the listed lines as well as the lead |

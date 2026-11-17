@@ -8,7 +8,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
-| [S16-D6](S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs: each kept as-of earliest first with its Sources, the start and end beside them | — (to draw on [Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5)) | S16-44 |
+| [S16-D6](S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs: each kept as-of earliest first with its Sources, the start and end beside them | [agreed 2026-11-17](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), turn "S16-D6 · As-of dates": `from` / `as of` / `until` in secondary ink, `Show 50 more` | S16-44 |
 | S16-D8 | Properties: a search's no-match state as the kit's empty state, with Clear search | — (written just before S16-48) | S16-48 |
 | S16-D9 | Omnibar results on the kit popup list: its own window, the combo box's card, the loading, empty and error lines | — (written just before S16-52) | S16-52 |
 | S16-D10 | Toast stack: several toasts stacked top-trailing in the workspace window, a refreshed card, a burst clipped at the bottom, the composer's toast moved into it | — (written just before S16-58) | S16-58 |
