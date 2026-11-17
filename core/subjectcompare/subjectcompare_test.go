@@ -29,6 +29,7 @@ const (
 	date   = vocabkey.PropertyDate
 	start  = vocabkey.PropertyStartDate
 	end    = vocabkey.PropertyEndDate
+	asOf   = vocabkey.PropertyAsOf
 	topo   = vocabkey.PropertyToponym
 )
 
@@ -329,6 +330,7 @@ func TestLead(t *testing.T) {
 		{vocabkey.Person, gender, sex, true},
 		{vocabkey.Event, start, date, true},
 		{vocabkey.Event, end, date, true},
+		{vocabkey.Event, asOf, date, true},
 		{vocabkey.Person, vocabkey.PropertyLifespan, vocabkey.PropertyLifespan, true},
 		{vocabkey.Person, vocabkey.PropertyLifespanSpan, "", false},
 		{vocabkey.Person, vocabkey.PropertyKey("occupation"), "", false},
@@ -353,8 +355,9 @@ func TestRulesRole(t *testing.T) {
 	}{
 		{vocabkey.Person, name, name, subjectcompare.RoleLead, true},
 		{vocabkey.Person, gender, sex, subjectcompare.RolePooled, true},
-		{vocabkey.Event, start, date, subjectcompare.RolePeriodEnd, true},
-		{vocabkey.Event, end, date, subjectcompare.RolePeriodEnd, true},
+		{vocabkey.Event, start, date, subjectcompare.RolePeriodMember, true},
+		{vocabkey.Event, end, date, subjectcompare.RolePeriodMember, true},
+		{vocabkey.Event, asOf, date, subjectcompare.RolePeriodMember, true},
 		{vocabkey.Person, vocabkey.PropertyLifespanSpan, "", subjectcompare.RoleLead, false},
 	} {
 		lead, role, ok := rules.Role(c.kind, c.key)
@@ -375,6 +378,7 @@ func TestMeta(t *testing.T) {
 		{vocabkey.Person, gender, sex},
 		{vocabkey.Event, end, end},
 		{vocabkey.Event, start, start},
+		{vocabkey.Event, asOf, asOf},
 		{vocabkey.Event, date, date},
 		{vocabkey.Person, vocabkey.PropertyKey("religion"), "religion"},
 		{vocabkey.Person, vocabkey.PropertyLifespanSpan, vocabkey.PropertyLifespanSpan},
@@ -400,6 +404,7 @@ func TestCountsUnder(t *testing.T) {
 		{vocabkey.Person, vocabkey.PropertyLifespan, "", false},
 		{vocabkey.Person, vocabkey.PropertyLifespanSpan, "", false},
 		{vocabkey.Event, start, "", false},
+		{vocabkey.Event, asOf, "", false},
 		{vocabkey.Event, date, date, true},
 	} {
 		got, ok := rules.CountsUnder(c.kind, c.key)

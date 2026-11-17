@@ -29,8 +29,10 @@ type Pool struct {
 }
 
 // Period reads two date properties as one range that stands for the lead on
-// a side with no positive lead value.
-type Period struct{ Start, End vocabkey.PropertyKey }
+// a side with no positive lead value. Samples names a date property whose
+// values each show the lead's event under way on a day; CompareProperty reads
+// them as bounds against the other side's period.
+type Period struct{ Start, End, Samples vocabkey.PropertyKey }
 
 // EventRole names an event a person takes part in by its type and the
 // person's role in it.
@@ -58,8 +60,9 @@ type Rules struct {
 	// Pools lists, per Subject type and lead property, the properties whose
 	// values are compared with the lead's.
 	Pools map[vocabkey.SubjectType]map[vocabkey.PropertyKey]Pool
-	// Periods lists, per Subject type and lead property, the start and end
-	// properties read as one range for a side with no positive lead value.
+	// Periods lists, per Subject type and lead property, the start, end or
+	// samples properties: start and end read as one range for a side with no
+	// positive lead value, samples as bounds on the other side's range.
 	Periods map[vocabkey.SubjectType]map[vocabkey.PropertyKey]Period
 	// Lifespans lists, per Subject type and lead property, the derived
 	// lifespan whose window is the lead and whose span is Span; the profile
@@ -185,14 +188,14 @@ const (
 	RoleLead Role = iota
 	// RolePooled is a property a lead pools its values with.
 	RolePooled
-	// RolePeriodEnd is the start or end a lead reads as a period.
-	RolePeriodEnd
+	// RolePeriodMember is the start, end or samples a lead reads as a period.
+	RolePeriodMember
 )
 
 // Role returns the lead property a property counts under for the kind and how
 // it counts: a weighted property is its own lead, else the first lead, in
-// ascending key order, that pools it or reads it as a period end. A
-// lifespan's Span is in neither, so it has no lead.
+// ascending key order, that pools it or reads it as a period member (start,
+// end or samples). A lifespan's Span is in neither, so it has no lead.
 func (r Rules) Role(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabkey.PropertyKey, Role, bool) {
 	if _, ok := r.Weights[kind][key]; ok {
 		return key, RoleLead, true
@@ -201,8 +204,8 @@ func (r Rules) Role(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabk
 		if slices.Contains(r.Pools[kind][lead].With, key) {
 			return lead, RolePooled, true
 		}
-		if p, ok := r.Periods[kind][lead]; ok && (p.Start == key || p.End == key) {
-			return lead, RolePeriodEnd, true
+		if p, ok := r.Periods[kind][lead]; ok && (p.Start == key || p.End == key || p.Samples == key) {
+			return lead, RolePeriodMember, true
 		}
 	}
 	return "", RoleLead, false
@@ -210,23 +213,24 @@ func (r Rules) Role(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabk
 
 // Lead returns the lead property a property counts under for the kind: the
 // property itself when it is weighted, else the first lead, in ascending key
-// order, that pools it or reads it as a period end. A lifespan's Span is in
-// neither, so it has no lead.
+// order, that pools it or reads it as a period member (start, end or
+// samples). A lifespan's Span is in neither, so it has no lead.
 func (r Rules) Lead(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabkey.PropertyKey, bool) {
 	lead, _, ok := r.Role(kind, key)
 	return lead, ok
 }
 
 // Meta returns the meta a property's values compare under for the kind. A
-// property with a lead compares under the lead, except a period end, which
-// compares under its own key; a property with no lead compares under its own
-// key. The rest of how a property counts reads from Role: it counts under the
+// property with a lead compares under the lead, except a period member
+// (start, end or samples), which has a meta of its own key and is compared
+// inside CompareProperty under the lead's meta; a property with no lead
+// compares under its own key. The rest of how a property counts reads from Role: it counts under the
 // lead when there is one (else under its own key, unweighted), and its weights
 // are Weights[kind][lead]. CompareProperty compares a property through Side, and
 // CountsUnder names the key it compares under.
 func (r Rules) Meta(kind vocabkey.SubjectType, p vocabkey.PropertyKey) vocabkey.PropertyKey {
 	lead, role, ok := r.Role(kind, p)
-	if !ok || role == RolePeriodEnd {
+	if !ok || role == RolePeriodMember {
 		return p
 	}
 	return lead
@@ -236,12 +240,13 @@ func (r Rules) Meta(kind vocabkey.SubjectType, p vocabkey.PropertyKey) vocabkey.
 // whose values CompareProperty compares, which is Meta (a pooled property
 // counts with its lead). It is false for a key that counts under none of its own: a derived
 // property (a lifespan and its span), which the profile builder builds from
-// events, and the start or end of a period, which the lead reads as one range.
+// events, and the start, end or samples of a period, which the lead reads as
+// one range or as bounds on it.
 func (r Rules) CountsUnder(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabkey.PropertyKey, bool) {
 	if r.Derived(kind, key) {
 		return "", false
 	}
-	if _, role, ok := r.Role(kind, key); ok && role == RolePeriodEnd {
+	if _, role, ok := r.Role(kind, key); ok && role == RolePeriodMember {
 		return "", false
 	}
 	return r.Meta(kind, key), true
