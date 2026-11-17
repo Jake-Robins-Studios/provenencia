@@ -133,3 +133,7 @@ The user dropped the composer's Before/After rule: an as-of takes every qualifie
 ## Verdict
 
 Ready. No open blocker, no open To-user item. Two rounds on the rewritten plan (rounds 3 and 4).
+
+## Refresh (2026-11-17, `main` @ `754d8f6`)
+
+`main` moved 42 commits from `14fbfca` (S15-14 citation format engine, #867 citation date terms and `valuemark`, S16-39). `git diff --stat 14fbfca 754d8f6` touches no file under the plan's Current state; `matchregistry/inventory_test.go` moved its doc-table reading to `core/internal/doctable`, and `TestKnobInventoryMatchesRegistry` still reads the same two sections of `docs/matching-model.md`. `VERSION` is still 0.17.0. No Decision changed; only the planning base moved. `check-plan-docs.py`: 0 errors, 0 warnings. No reviewer round: nothing to review beyond the base.
