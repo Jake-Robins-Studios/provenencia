@@ -505,7 +505,7 @@ struct EvidenceGraphSnapshotTests {
             graphId: "g-1",
             subjects: [james, baptism],
             positions: [james, baptism].map { CatalogSubjectPosition(subjectID: $0.id, gridX: 0, gridY: 0) },
-            eventTitles: [baptism.id: baptismTitle, james.id: baptismTitle]
+            eventTitles: [baptism.id: CatalogSourceEventTitle(title: baptismTitle), james.id: CatalogSourceEventTitle(title: baptismTitle)]
         )
         let snapshot = EvidenceGraphSnapshot.build(rows: rows, types: [personType, eventType], rules: CatalogConnectRule.productMatrix)
         let card = snapshot.subjects.first { $0.id == baptism.id }

@@ -516,8 +516,9 @@ struct CatalogPersonSummary: Sendable, Equatable, Identifiable {
 }
 
 /// One Event as a row, composed by Go from the auto-reconciler cache (S9-22).
-/// Structures only; `EventTitleDisplay` formats the title. A point `date`
-/// wins over `startDate` / `endDate`.
+/// Structures only; `EventTitleDisplay` formats the title and
+/// `DateRowDisplay.line(dating:)` the date line from `dating`, which Go chose;
+/// Swift never picks which date key dates an event.
 struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var entity: CatalogCanonicalEntity
     var eventName: String = ""
@@ -533,6 +534,8 @@ struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var startDateCount: Int = 0
     var endDate: CatalogDateValueInput?
     var endDateCount: Int = 0
+    /// The one dating Go reads from the event's date, start, end and as-ofs.
+    var dating = CatalogEventDating()
     /// Subject-role persons, then every location's kept names.
     var subjects: [CatalogEventSubject] = []
     var places: [CatalogChainedPlace] = []
@@ -546,6 +549,31 @@ struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var listKey = CatalogListKey()
 
     var id: String { entity.id }
+}
+
+/// An Event's dating as Go chose it (S16-42): its kind, its earliest and latest
+/// date (`high` is nil when the dating is one date) and whether the period
+/// continues before `low` or after `high`. `DateRowDisplay.line(dating:)` formats it.
+struct CatalogEventDating: Sendable, Equatable {
+    enum Kind: Sendable, Equatable {
+        case none
+        case occurrence
+        case span
+        case asOf
+    }
+
+    var kind: Kind = .none
+    var low: CatalogDateValueInput?
+    var high: CatalogDateValueInput?
+    var openLow = false
+    var openHigh = false
+}
+
+/// An Event Subject's title and dating on an Evidence graph, as Go read them
+/// from the graph's Observations (wire `SourceEventTitle`).
+struct CatalogSourceEventTitle: Sendable, Equatable {
+    var title: CatalogEventTitle
+    var dating = CatalogEventDating()
 }
 
 /// An Event's title as Go chose it (Spike 9 R4): which row of the naming
@@ -1754,7 +1782,7 @@ protocol GenealogyStore: Sendable {
     /// Accepted handle of every promoted Subject on one Evidence graph.
     func listSubjectMemberships(projectDir: String, graphID: String) async throws -> [CatalogSubjectMembership]
     /// The title of every Event Subject on one Evidence graph, keyed by Subject id.
-    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogEventTitle]
+    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogSourceEventTitle]
     /// Every unmerged Person as a row summary, in Go's list order by sort name, which leaves honorifics out, then ref-only by ref.
     /// `entityIDs` limits the read to those handles' rows, in list order (an unknown, merged or
     /// other-kind id is absent); nil lists every row.

@@ -35,6 +35,10 @@ struct EvidenceGraphPlacedSubject: Identifiable, Sendable, Equatable {
     /// as Event summaries. Nil for people and places, and until Go has titled it.
     var eventTitle: CatalogEventTitle?
 
+    /// An Event's dating as Go chose it from this Source's date, start, end and
+    /// as-of Observations. Nil for people and places, and until Go has dated it.
+    var eventDating: CatalogEventDating?
+
     /// What the subject is called where it is promoted: its first asserted
     /// naming Observation (a Person's structured name, a Place's `toponym`), else
     /// its working label, else its ref. An Event uses its Go-chosen title.
@@ -138,8 +142,8 @@ struct EvidenceGraphRows: Sendable, Equatable {
     var observations: [CatalogObservation]
     /// Accepted handles of promoted subjects; absent subjects are unpromoted.
     var memberships: [CatalogSubjectMembership]
-    /// Go's title for each Event Subject, keyed by Subject id.
-    var eventTitles: [String: CatalogEventTitle]
+    /// Go's title and dating for each Event Subject, keyed by Subject id.
+    var eventTitles: [String: CatalogSourceEventTitle]
 
     init(
         graphId: String,
@@ -147,7 +151,7 @@ struct EvidenceGraphRows: Sendable, Equatable {
         positions: [CatalogSubjectPosition] = [],
         observations: [CatalogObservation] = [],
         memberships: [CatalogSubjectMembership] = [],
-        eventTitles: [String: CatalogEventTitle] = [:]
+        eventTitles: [String: CatalogSourceEventTitle] = [:]
     ) {
         self.graphId = graphId
         self.subjects = subjects
@@ -228,7 +232,7 @@ struct EvidenceGraphSnapshot: Sendable, Equatable {
         types: [CatalogSubjectType],
         observations: [CatalogObservation] = [],
         memberships: [CatalogSubjectMembership] = [],
-        eventTitles: [String: CatalogEventTitle] = [:],
+        eventTitles: [String: CatalogSourceEventTitle] = [:],
         rules: [CatalogConnectRule] = []
     ) -> EvidenceGraphSnapshot {
         let typeByID = Dictionary(uniqueKeysWithValues: types.map { ($0.id, $0) })
@@ -264,7 +268,8 @@ struct EvidenceGraphSnapshot: Sendable, Equatable {
                         isCited: !subjectObservations.isEmpty,
                         observations: subjectObservations,
                         membership: membershipBySubject[subject.id],
-                        eventTitle: kind == .event ? eventTitles[subject.id] : nil
+                        eventTitle: kind == .event ? eventTitles[subject.id]?.title : nil,
+                        eventDating: kind == .event ? eventTitles[subject.id]?.dating : nil
                     )
                 )
             } else if let kind = EvidenceBridgeKind(rawValue: type.key) {
