@@ -55,6 +55,8 @@ const (
 	MethodSetSourceDate                     = int32(engine.Method_METHOD_SET_SOURCE_DATE)
 	MethodSetSourcePublic                   = int32(engine.Method_METHOD_SET_SOURCE_PUBLIC)
 	MethodGetMetadataBoard                  = int32(engine.Method_METHOD_GET_METADATA_BOARD)
+	MethodGetCitationFormats                = int32(engine.Method_METHOD_GET_CITATION_FORMATS)
+	MethodUpdateCitationFormats             = int32(engine.Method_METHOD_UPDATE_CITATION_FORMATS)
 	MethodSearchCatalog                     = int32(engine.Method_METHOD_SEARCH_CATALOG)
 	MethodCreateSubject                     = int32(engine.Method_METHOD_CREATE_SUBJECT)
 	MethodUpdateSubject                     = int32(engine.Method_METHOD_UPDATE_SUBJECT)
@@ -223,6 +225,10 @@ func route(method int32, in []byte) ([]byte, error) {
 		return handlers.SetSourcePublic(in)
 	case MethodGetMetadataBoard:
 		return handlers.GetMetadataBoard(in)
+	case MethodGetCitationFormats:
+		return handlers.GetCitationFormats(in)
+	case MethodUpdateCitationFormats:
+		return handlers.UpdateCitationFormats(in)
 	case MethodSearchCatalog:
 		return handlers.SearchCatalog(in)
 	case MethodCreateSubject:

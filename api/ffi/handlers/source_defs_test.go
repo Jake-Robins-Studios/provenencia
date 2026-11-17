@@ -862,3 +862,86 @@ func suggestionIDs(t *testing.T, dir, typeID, level string) []string {
 	}
 	return out
 }
+
+func TestCitationFormats(t *testing.T) {
+	dir, userID, typeID := sourceFixture(t)
+	var field engine.CreateMetadataFieldResponse
+	mustRPC(t, CreateMetadataField, &engine.CreateMetadataFieldRequest{
+		ProjectDir: dir, UserId: userID, Label: "Line number", DataType: "text",
+	}, &field)
+	const full = "{source.title}[, line {graph.meta.line-number}]"
+	update := func(req *engine.UpdateCitationFormatsRequest) (*engine.UpdateCitationFormatsResponse, error) {
+		req.ProjectDir, req.UserId = dir, userID
+		if req.TypeId == "" {
+			req.TypeId = typeID
+		}
+		var resp engine.UpdateCitationFormatsResponse
+		err := rpc(t, UpdateCitationFormats, req, &resp)
+		return &resp, err
+	}
+
+	t.Run("update then get round trip", func(t *testing.T) {
+		resp, err := update(&engine.UpdateCitationFormatsRequest{Full: full})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.GetFormats().GetFull() != full || resp.GetFormats().GetTypeId() != typeID ||
+			len(resp.GetDiagnostics()) != 0 || resp.GetEffects().GetRevision() <= 0 {
+			t.Fatalf("update reply %v", resp)
+		}
+		var got engine.GetCitationFormatsResponse
+		mustRPC(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: typeID}, &got)
+		if got.GetFormats().GetFull() != full || got.GetFormats().GetShort() != "" || len(got.GetDiagnostics()) != 0 {
+			t.Fatalf("get reply %v", &got)
+		}
+	})
+
+	t.Run("a refused format comes back as diagnostics and saves nothing", func(t *testing.T) {
+		resp, err := update(&engine.UpdateCitationFormatsRequest{Full: full, Short: "{source.title"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := &engine.CitationFormatDiagnostic{Form: "short", Code: "unclosed_placeholder", Start: 0, End: 1}
+		if len(resp.GetDiagnostics()) != 1 || !proto.Equal(resp.GetDiagnostics()[0], want) {
+			t.Fatalf("diagnostics %v", resp.GetDiagnostics())
+		}
+		if resp.GetEffects().GetRevision() != 0 || len(resp.GetEffects().GetLists()) != 0 || resp.GetFormats().GetShort() != "" {
+			t.Fatalf("reply %v", resp)
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		missing := "0192f3a4-0000-7000-8000-000000000001"
+		for name, tc := range map[string]struct {
+			req  *engine.UpdateCitationFormatsRequest
+			want error
+		}{
+			"malformed type id": {&engine.UpdateCitationFormatsRequest{TypeId: "nope"}, errInvalidID},
+			"unknown type id":   {&engine.UpdateCitationFormatsRequest{TypeId: missing}, sourcetypes.ErrInvalid},
+			"malformed choice id": {&engine.UpdateCitationFormatsRequest{
+				Full: "{source.title}", FieldChoices: []*engine.CitationFieldChoice{{Key: "a", FieldId: "nope"}}}, sourcetypes.ErrInvalid},
+		} {
+			if _, err := update(tc.req); !errors.Is(err, tc.want) {
+				t.Fatalf("%s: got %v, want %v", name, err, tc.want)
+			}
+		}
+		var resp engine.UpdateCitationFormatsResponse
+		req := &engine.UpdateCitationFormatsRequest{ProjectDir: dir, TypeId: typeID}
+		if err := rpc(t, UpdateCitationFormats, req, &resp); err == nil {
+			t.Fatal("a missing user_id must fail")
+		}
+		var got engine.GetCitationFormatsResponse
+		if err := rpc(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: missing}, &got); !errors.Is(err, sourcetypes.ErrInvalid) {
+			t.Fatalf("get unknown type: %v", err)
+		}
+	})
+
+	t.Run("a field a format names cannot be deleted", func(t *testing.T) {
+		var gone engine.DeleteMetadataFieldResponse
+		err := rpc(t, DeleteMetadataField, &engine.DeleteMetadataFieldRequest{
+			ProjectDir: dir, UserId: userID, FieldId: field.Field.GetId()}, &gone)
+		if !errors.Is(err, metadatafields.ErrInUse) {
+			t.Fatalf("got %v, want ErrInUse", err)
+		}
+	})
+}
