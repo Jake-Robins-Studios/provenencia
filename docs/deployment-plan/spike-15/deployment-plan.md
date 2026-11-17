@@ -526,6 +526,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-19 — Seed the citation types, fields and suggestions
 
 **Ships.** `sourcevocab`'s registry gains the 26 types (with icons from `sourcetypes/icons.go`), 63 fields (with descriptions) and suggestions at their levels in format order (map § 6.8); `birth_certificate` stops suggesting `record_date` and `issue_date`.
+**Also (structural debt, 2026-11-17).** The seed `Upsert`s (`sourcetypes.go`, `metadatafields.go`, and the properties path if it does the same) reproject their search documents by hand off `writes.Run` (`searchindex.ReprojectSourceType` after a raw `Exec`). Since this PR adds most of the seeded rows, the Upserts it calls write through `writes.Run` and let the effects registry reproject, as [`core/writes/README.md`](../../../core/writes/README.md) says.
 **Not this PR.** Formats (S15-20).
 **Check.** A new project lists the 26 types; a census Source suggests its Source fields, its Artifacts the copy fields, its graphs the item fields; Install run twice changes nothing.
 **Context.** Rule "The seed is the product default"; map § 6.8; skill `add-seeded-vocabulary`. `seedField` gains `UnknownText`, seeded through `Install` ("n.p." on `publication_place` and `publisher`); lands after S15-37. Updates [`seeded-vocabulary.md`](../../seeded-vocabulary.md) § 2 and [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) (the `seedFields` shape).
@@ -548,6 +549,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-43 — The Source date can be marked unknown or supplied
 
 **Ships.** One migration: `date_unknown` and `date_supplied` on `sources` (a `valuemark.Mark`; unknown means no `date_value_id`); the Source read and date write; Copy Source carries them with the date when its Published date tick is on; audit.
+**Also (structural debt, 2026-11-17; S15-32 review SEC-1).** `datevalue.Validate` gains one high total cap on `Phrase`. Today it checks only that a phrase is present (`core/datevalue/datevalue.go`), so a crafted catalog's huge phrase is copied again by Copy Source's date tick, which this PR extends.
 **Not this PR.** The date dialog (S15-42).
 **Check.** Handler tests: a Source marked no date reads back unknown with no date; supplied keeps its DateValue; Copy Source with the tick off carries neither.
 **Context.** Rules "The Source date is one optional DateValue on `sources`", "A value can be marked unknown or supplied"; skills `add-catalog-migration`, `add-date-value`. Updates [`source-provenance-date.md`](source-provenance-date.md).
@@ -596,6 +598,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-21 — The provenance sheet shows formatted citations
 
 **Ships.** When the provenance sheet opens it holds one `CatalogQueryKey` (evicted when hidden) that asks S15-16's batch render for its Citations, and groups them by the returned key; loading and failure use S16-04's `QueryHandle` reading and `PVRetryCallout`; it shows each record's full citation with its Citations beneath, or today's line when the type has no format. Lands after S16-30, which reshapes the sheet's records. The existing Copy citation (`PVClipboardButton`) copies the full or short form as rich and plain text through one rich-payload write added to `PVClipboardCopyState`. `CitationLineDisplay` stays as the fallback and for its other callers.
+**Also (structural debt, 2026-11-17).** The sheet's empty-Source-title fallback guards a state the catalog refuses, because a Source title is required. That fallback is `CitationLineDisplay.sourceTitle(for:)` and `Parts.titleIsRef`, read by `ConclusionGallerySection.swift` and `PVProvenanceRecordTable.swift` and pinned by `PersonDetailTests`. It goes with its separate view and component. `CitationLineDisplay` itself stays, per rule "Today's line stays the fallback".
 **Not this PR.** The Sources section (S15-22).
 **Check.** Bar 4's provenance sheet; bar 7 on the sheet; copying pastes italics into a rich-text editor.
 **Context.** S15-D9 (it draws the sheet's loading and failed states for the on-open call); [`provenance-loading.md`](provenance-loading.md) (this PR starts "Load records when the sheet opens"; update its note when it lands); rules "Grouping is by the rendered full citation", "Citations render on demand, from SQL", "Today's line stays the fallback"; S16-30; `PVProvenanceSheetContent.swift`, `PVProvenanceRecordRow.swift`, `PVClipboardCopyState`, `CitationLineDisplay.swift`.
@@ -685,6 +688,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-42 — The Source date can be unknown, supplied or flagged
 
 **Ships.** The date dialog offers **No date** and **Supplied** (S15-41's control) beside the shared date form; the header shows them, and flags an empty date when the type needs `{source.date}`.
+**Also (structural debt, 2026-11-17).** The shared date form's strings move from `L10n.Sources` (`date*`, the `sources.page.date…` keys) to `L10n.Dates`, with no copy change; the Source date dialog's own `sourceDate*` copy stays. `SourcesRowDate`, which now serves a row, this header and the Copy form, is renamed for what it is: a Source's date as text.
 **Not this PR.** The shared date form itself, unchanged.
 **Check.** Bar 11's date half: an undated letter dated from its postmark, marked supplied, cites "[12 March 1880]"; one marked no date cites "n.d." and is not flagged.
 **Context.** S15-D23; rule "A value can be marked unknown or supplied"; S15-43, S15-38, S15-41; `add-date-value`.
