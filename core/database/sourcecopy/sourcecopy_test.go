@@ -32,6 +32,7 @@ import (
 	"github.com/mendahu/provenencia/core/derivatives"
 	"github.com/mendahu/provenencia/core/ingest"
 	"github.com/mendahu/provenencia/core/ref"
+	"github.com/mendahu/provenencia/core/valuemark"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
 )
@@ -363,6 +364,76 @@ func TestCopy(t *testing.T) {
 		name string
 		run  func(t *testing.T)
 	}{
+		{
+			name: "marks travel with the values",
+			run: func(t *testing.T) {
+				c, userID, orig, arts := seedObituary(t)
+				publication, err := metadatafields.Lookup(c, "publication", vocabkey.OriginUser)
+				if err != nil {
+					t.Fatal(err)
+				}
+				provider, err := metadatafields.Upsert(c, metadatafields.Field{Key: "provider", Origin: vocabkey.OriginUser, Label: "Provider", DataType: metadatafields.DataTypeText})
+				if err != nil {
+					t.Fatal(err)
+				}
+				set := func(o sourcemetadata.Owner, in sourcemetadata.Input) {
+					t.Helper()
+					if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (sourcemetadata.Row, []rowchange.Change, error) {
+						return sourcemetadata.Set(tx, userID, o, in)
+					}); err != nil {
+						t.Fatal(err)
+					}
+				}
+				set(sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: orig.ID}, sourcemetadata.Input{FieldID: publication.ID, Mark: valuemark.Mark{Unknown: true}})
+				set(sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: arts[0].ID}, sourcemetadata.Input{FieldID: provider, ValueText: "Ancestry", Mark: valuemark.Mark{Supplied: true}})
+
+				cp, err := runCopy(c, userID, allParts(orig, arts))
+				if err != nil {
+					t.Fatal(err)
+				}
+				copied, err := artifacts.ListBySource(c, cp.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				db := dbtest.MustDB(t, c)
+				tx, err := db.Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer tx.Rollback()
+				srcDraft, err := sourcemetadata.ReadDraftTx(tx, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: cp.ID})
+				if err != nil {
+					t.Fatal(err)
+				}
+				var gotPublication *sourcemetadata.Input
+				for i, v := range srcDraft.Values {
+					if bytes.Equal(v.FieldID, publication.ID) {
+						gotPublication = &srcDraft.Values[i]
+					}
+				}
+				if gotPublication == nil || gotPublication.Mark != (valuemark.Mark{Unknown: true}) || gotPublication.ValueText != "" {
+					t.Fatalf("copied publication %+v", gotPublication)
+				}
+				found := false
+				for _, a := range copied {
+					d, err := sourcemetadata.ReadDraftTx(tx, sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: a.ID})
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, v := range d.Values {
+						if bytes.Equal(v.FieldID, provider) {
+							found = true
+							if v.Mark != (valuemark.Mark{Supplied: true}) || v.ValueText != "Ancestry" {
+								t.Fatalf("copied provider %+v", v)
+							}
+						}
+					}
+				}
+				if !found {
+					t.Fatal("the copy's Artifacts hold no provider value")
+				}
+			},
+		},
 		{
 			name: "all parts",
 			run: func(t *testing.T) {
