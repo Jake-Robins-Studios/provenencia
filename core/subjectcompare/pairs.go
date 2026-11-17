@@ -29,7 +29,7 @@ func Side(kind vocabkey.SubjectType, key vocabkey.PropertyKey, values Values, ru
 			out = append(out, v)
 		}
 	}
-	if p, ok := rules.Periods[kind][key]; ok && !slices.ContainsFunc(out, propertycompare.Value.Positive) {
+	if p, ok := rules.Period(kind, key); ok && !slices.ContainsFunc(out, propertycompare.Value.Positive) {
 		if v, _, ok := period(values[p.Start], values[p.End]); ok {
 			out = append(out, v)
 		}
@@ -42,7 +42,7 @@ func Side(kind vocabkey.SubjectType, key vocabkey.PropertyKey, values Values, ru
 // the one reading of a side's samples, for compare, the shortlist and the
 // lifespan (through PeriodSamples).
 func Samples(kind vocabkey.SubjectType, key vocabkey.PropertyKey, v Values, rules Rules) []propertycompare.Value {
-	p, ok := rules.Periods[kind][key]
+	p, ok := rules.Period(kind, key)
 	if !ok {
 		return nil
 	}
@@ -77,7 +77,7 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // unknown, its cause unchanged. Match strength therefore reads from the two
 // extreme samples only. A side with more than the period's MaxSamples samples is skipped.
 func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, other Values, rules Rules, swapped bool, meta propertymeta.Meta, value valuecompare.Rules) []propertycompare.Result {
-	p, ok := rules.Periods[kind][key]
+	p, ok := rules.Period(kind, key)
 	if !ok || p.Samples == "" || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
 		return nil
 	}

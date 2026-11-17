@@ -229,6 +229,22 @@ const (
 	RolePeriodMember
 )
 
+// Period is the period key's lead reads for the kind: its start, end and
+// samples properties. ok is false when key has none. It is the one lookup of
+// Periods.
+func (r Rules) Period(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (Period, bool) {
+	p, ok := r.Periods[kind][key]
+	return p, ok
+}
+
+// EventPeriod is an Event's lead date property and its period: the four keys
+// (date, start, end, as-of samples) every reader of an event's dating takes
+// from the registry.
+func (r Rules) EventPeriod() (lead vocabkey.PropertyKey, p Period) {
+	p, _ = r.Period(vocabkey.Event, vocabkey.PropertyDate)
+	return vocabkey.PropertyDate, p
+}
+
 // Role returns the lead property a property counts under for the kind and how
 // it counts: a weighted property is its own lead, else the first lead, in
 // ascending key order, that pools it or reads it as a period member (start,
@@ -241,7 +257,7 @@ func (r Rules) Role(kind vocabkey.SubjectType, key vocabkey.PropertyKey) (vocabk
 		if slices.Contains(r.Pools[kind][lead].With, key) {
 			return lead, RolePooled, true
 		}
-		if p, ok := r.Periods[kind][lead]; ok && (p.Start == key || p.End == key || p.Samples == key) {
+		if p, ok := r.Period(kind, lead); ok && (p.Start == key || p.End == key || p.Samples == key) {
 			return lead, RolePeriodMember, true
 		}
 	}

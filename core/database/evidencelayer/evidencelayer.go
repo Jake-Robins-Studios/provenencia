@@ -180,10 +180,11 @@ func build(g *graphcache.Graph, eg graphcache.EvidenceGraph, namePattern string)
 			built[id] = forSubject(s, nil)
 		}
 	}
+	lead, period := rules.Subject.EventPeriod()
 	life := map[string][]subjectprofile.LifeEvent{}
 	for _, p := range participations {
 		if ev, ok := built[string(p.event)]; ok {
-			life[string(p.person)] = append(life[string(p.person)], subjectprofile.LifeEventOf(ev, vocabkey.Role(p.role), vocabkey.PropertyDate, rules.Subject.Periods[vocabkey.Event][vocabkey.PropertyDate]))
+			life[string(p.person)] = append(life[string(p.person)], subjectprofile.LifeEventOf(ev, vocabkey.Role(p.role), lead, period))
 		}
 	}
 	for id, s := range primary {
