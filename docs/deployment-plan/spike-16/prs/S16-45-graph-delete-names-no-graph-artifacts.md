@@ -1,6 +1,6 @@
 # S16-45 — A graph delete names the Artifacts it leaves in no graph
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6a — A graph delete warns about its Artifacts
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: one more sentence in the graph delete confirm the kit already draws; Batch 6 working rule)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [design](../graph-delete-leaves-no-graph.md), [`catalog-deletes.md` rule 10](../../../catalog-deletes.md), working rules: "(Batch 6) A sentence added to a confirm the kit already draws is copy, not chrome"
 **Planned:** 2026-11-17 against `main` @ `09f7398`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-45-graph-delete-names-no-graph-artifacts.review.md`](S16-45-graph-delete-names-no-graph-artifacts.review.md) — Fits with changes / Ready with changes, 1 round
 
 ### Implementer — read this first
 
@@ -30,7 +30,7 @@
 
 ## 1. Objective
 
-Deleting an Evidence graph leaves each Artifact that was linked only to that graph in no graph, where no Citation composer offers it. Today the delete confirm names the graph's Citations but not these Artifacts; the researcher finds out afterwards from the row badge "Not in an evidence graph" (S12-38). After this PR the confirm names them beforehand, in words that mirror the Artifact sheet's line when the researcher unchecks an Artifact's last graph.
+Deleting an Evidence graph leaves each Artifact that was linked only to that graph in no graph, where no Citation composer offers it. Today the delete confirm names the graph's Citations but not these Artifacts; the researcher finds out afterwards from the row badge "Not in an evidence graph" (S12-38). After this PR the confirm names them beforehand, in the words of the Artifact sheet's line when the researcher unchecks an Artifact's last graph.
 
 **Why now.** Idea `artifact-outside-graph-marker.md`, pulled into Batch 6 (user, 2026-11-17): both ways of leaving an Artifact in no graph should warn alike.
 
@@ -42,8 +42,8 @@ Deleting an Evidence graph leaves each Artifact that was linked only to that gra
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Source with graphs Default and Jones; Artifact `ART-A` linked only to Jones, `ART-B` linked to both. Delete Jones | The confirm's message ends with the sentence "ART-A won’t be in any evidence graph. Citations can’t use it until it is linked to one." `ART-B` is not named |
-| AC-1.2 | Jones holds `ART-A` and `ART-C`, both only in Jones | "ART-A and ART-C won’t be in any evidence graph. Citations can’t use them until they are linked to one." |
+| AC-1.1 | Source with graphs Default and Jones; Artifact `ART-A` linked only to Jones, `ART-B` linked to both. Delete Jones | The confirm's message ends with the sentence "ART-A won’t be in an evidence graph. Citations can’t use it until it is linked." `ART-B` is not named |
+| AC-1.2 | Jones holds `ART-A` and `ART-C`, both only in Jones | "ART-A and ART-C won’t be in an evidence graph. Citations can’t use them until they are linked." |
 | AC-1.3 | Jones holds 25 Artifacts that are in no other graph | The engine reports Total 25 with the first 20 refs listed; the sentence names 20 refs and ends ", and 5 more", then the plural ending of AC-1.2 |
 | AC-1.4 | Every Artifact of Jones is also in Default, or Jones has no Artifact | No such group in the report; the confirm reads as today |
 | AC-1.5 | Jones also has 2 Citations | The Citations sentence comes first, then the Artifacts sentence |
@@ -95,13 +95,14 @@ Deleting an Evidence graph leaves each Artifact that was linked only to that gra
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | A new `inboundEdge` in `cascadeEdgeList`, built by `noGraphEdge()` *(new)* in `core/database/deleteimpact/no_graph.go` *(new)* and appended to `buildCascadeEdges`'s return | An informing edge, like `lastMemberEdge`; the Report reads it with no new mechanism | Naming the `evidence_graph_artifacts.graph_id` facet — its List must equal everything it releases (all links); a new Report field — `Cascades` already means "goes with it, never blocks" |
+| D-1 | The cascade registry gets one home: `core/database/deleteimpact/cascades.go` *(new)* takes, moved unchanged from `handle_gone.go`, the shared via const block, `cascadeEdgeList` and `buildCascadeEdges`; the new edge is an `inboundEdge` literal inside `buildCascadeEdges`, appended after `leavesHandle`. The handle helpers (`lastMemberRows`, `subjectHandleCascade*`, `handleGoesWithout`, `releaseHandleIfGone`, `LastMemberGroup`) stay in `handle_gone.go` | An informing edge, like `lastMemberEdge`; one file names every cascade (map review M-2) | Naming the `evidence_graph_artifacts.graph_id` facet — its List must equal everything it releases (all links); a new Report field — `Cascades` already means "goes with it, never blocks" |
 | D-2 | Via `ViaLeavesNoGraph = "evidence_graph_artifacts.last_graph"` *(new)*, in the shared const block of `handle_gone.go` | Table-dot-meaning, as `canonical_entities.last_member`; distinct from the facet's `evidence_graph_artifacts.graph_id` | Reusing the facet's via string — two groups would share a via |
-| D-3 | Query: links of the graph whose Artifact has no link to another graph. Count `SELECT COUNT(*) FROM evidence_graph_artifacts l WHERE l.graph_id = ? AND NOT EXISTS (SELECT 1 FROM evidence_graph_artifacts o WHERE o.artifact_id = l.artifact_id AND o.graph_id != l.graph_id)`; List the same joined to `artifacts a` selecting `a.id, a.ref`, `ORDER BY a.ref COLLATE NOCASE LIMIT ?`, through `countSQLFn` / `listSQLFn` | Same order as the Citations list; the `NOT EXISTS` uses the `artifact_id` index | Reading links in Go and filtering — more rows read for the same answer |
+| D-3 | Query: links of the graph whose Artifact has no link to another graph, the predicate written once as a const fragment (`soleLinkFrom` *(new)*: `FROM evidence_graph_artifacts l WHERE l.graph_id = ? AND NOT EXISTS (…)` as below) that both strings build on, as `fkEdge` builds its two queries from one shape. Count `SELECT COUNT(*) FROM evidence_graph_artifacts l WHERE l.graph_id = ? AND NOT EXISTS (SELECT 1 FROM evidence_graph_artifacts o WHERE o.artifact_id = l.artifact_id AND o.graph_id != l.graph_id)`; List the same joined to `artifacts a` selecting `a.id, a.ref`, `ORDER BY a.ref COLLATE NOCASE LIMIT ?`, through `countSQLFn` / `listSQLFn` | Same order as the Citations list; the `NOT EXISTS` uses the `artifact_id` index | Reading links in Go and filtering — more rows read for the same answer |
 | D-4 | `Child: KindArtifact`, `Bucket: BucketFacet`, `Parent: KindEvidenceGraph` | `projectArtifact` already projects an Artifact; `BucketFacet` matches the other cascade edges | A new kind |
 | D-5 | Swift case `DeleteImpactCascadeVia.leavesNoGraph` *(new)*; `cascadeLines` maps it to `L10n.DeleteImpact.leavesNoGraph(count:refs:)` *(new)* | Each known via has its own sentence | Leaving it on `.unrecognized` — "This also changes artifacts ART-A." does not say what happens |
-| D-6 | Copy, key `deleteImpact.confirm.leavesNoGraph`, value `%2$@ %#@graphs@`, substitution `graphs` (argNum 1, `lld`): one "won’t be in any evidence graph. Citations can’t use it until it is linked to one.", other "won’t be in any evidence graph. Citations can’t use them until they are linked to one." | Mirrors the Artifact sheet's line (`artifactGraphsNone`), changed on purpose for a list: "any" and "linked to one" read for several Artifacts; the count is not printed, as in `deletesHandles` | Printing the count ("The graph’s 2 artifacts won’t be in any evidence graph") — reads as if the Artifacts were deleted |
+| D-6 | Copy, key `deleteImpact.confirm.leavesNoGraph`, value `%2$@ %#@graphs@`, substitution `graphs` (argNum 1, `lld`): one "won’t be in an evidence graph. Citations can’t use it until it is linked.", other "won’t be in an evidence graph. Citations can’t use them until they are linked." | The Artifact sheet's words (`artifactGraphsNone`: "won’t be in an evidence graph. Citations can’t use it until it is linked."), so both warnings read alike (user, 2026-11-17); the count is not printed, as in `deletesHandles` | Printing the count ("The graph’s 2 artifacts won’t be in any evidence graph") — reads as if the Artifacts were deleted |
 | D-7 | Refs, not labels, in the sentence | Every cascade line names refs; the joined list and ", and N more" come from `cascadeLines` unchanged | Labels — a change to every line (Out) |
+| D-9 | `func CascadeVias() []string` *(new)* in `cascades.go` returns the `Via` of every `Named` facet release (`facetReleases()`) and every `cascadeEdgeList` entry; the "cascade vias" row of `swift_vocabulary_test.go` reads `want: sorted(deleteimpact.CascadeVias()...)` | The registry is the only list: a new cascade fails the parity test until Swift has its case (review M-1), as `graphalign.ConnectionOutcomes()` does for its row | Adding the const to the hand-kept `want` — a forgotten line passes the test and Swift falls to `alsoAffects` |
 | D-8 | Tests: Go table test in `deleteimpact`; a delete-then-check subtest in `evidencegraphs`; Swift tests in `PVDeleteImpactTests` | Each layer where the behavior lives | A UI test — the confirm's message is a string `cascadeLines` returns |
 
 **Rules this plan bends.** None.
@@ -112,15 +113,17 @@ Deleting an Evidence graph leaves each Artifact that was linked only to that gra
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `ViaLeavesNoGraph` *(new)* | const | `ViaLastMember` | Extends the same const block |
-| `noGraphEdge()` *(new)*, `no_graph.go` *(new)* | func, file | `lastMemberEdge` in `handle_gone.go` | `handle_gone.go` is about handles; the edge is about graph links. It is registered through the existing `buildCascadeEdges` |
+| `ViaLeavesNoGraph` *(new)* | const | `ViaLastMember` | Extends the same const block, now in `cascades.go` |
+| `cascades.go` *(new)* | file | `handle_gone.go` (holds the vias and `buildCascadeEdges` today) | Moves the registry out of a file about handles; no new code but the edge, `soleLinkFrom` and `CascadeVias` |
+| `soleLinkFrom` *(new)* | const | `fkEdge` in `probes.go` | One predicate for count and list |
+| `CascadeVias()` *(new)* | func | `ResourceInboundVias()` | The cascade counterpart, read by the parity test |
 | `DeleteImpactCascadeVia.leavesNoGraph` *(new)* | enum case | `.deletesCitations` | Extends the enum |
 | `L10n.DeleteImpact.leavesNoGraph(count:refs:)` *(new)*, key `deleteImpact.confirm.leavesNoGraph` | key | `deletesHandles(count:handleRefs:)` | Extends `L10n.DeleteImpact` |
 | `TestImpactEvidenceGraphLeavesNoGraph` *(new)* | test | `TestImpactEvidenceGraph` | A table test of its own (go-tests rule); the existing test is a sequence of subtests on one fixture |
 
 **Builds on.** `cascadeEdgeList` / `cascadesFor`, `countSQLFn` / `listSQLFn`, `projectArtifact`, `cascadeLines`, `swift_vocabulary_test`.
 **Deletes.** None — nothing becomes dead.
-**Next adds.** A later informing cascade on any kind is one more edge in `buildCascadeEdges` and one Swift case.
+**Next adds.** A later informing cascade on any kind is one more edge in `buildCascadeEdges` and one Swift case; the parity test asks for the case.
 
 ### Reach
 
@@ -146,7 +149,7 @@ None — no catalog change.
 
 | Package | Change |
 | --- | --- |
-| `core/database/deleteimpact` | `const ViaLeavesNoGraph = "evidence_graph_artifacts.last_graph"` *(new)* in `handle_gone.go`'s shared block; `func noGraphEdge() inboundEdge` *(new)* in `no_graph.go` *(new)* per D-3, D-4; `buildCascadeEdges` returns `{lastMemberEdge, leavesHandle, noGraphEdge()}` |
+| `core/database/deleteimpact` | `cascades.go` *(new)* per D-1: the moved const block plus `const ViaLeavesNoGraph = "evidence_graph_artifacts.last_graph"` *(new)*; the moved `cascadeEdgeList` and `buildCascadeEdges`, which returns `{lastMemberEdge, leavesHandle, <graph edge literal per D-3, D-4>}`; `soleLinkFrom` *(new)*; `func CascadeVias() []string` *(new)* per D-9 |
 
 Errors: none new.
 
@@ -170,8 +173,8 @@ L10n keys *(new)*: `L10n.DeleteImpact.leavesNoGraph(count:refs:)` = `deleteImpac
 ## 7. Steps
 
 **STEP-1 — Engine cascade**
-Files: `core/database/deleteimpact/handle_gone.go`, `core/database/deleteimpact/no_graph.go` *(new)*, `core/database/deleteimpact/impact_test.go`. Skill: `add-catalog-delete`.
-Do: add the const (D-2) and `noGraphEdge()` (D-1, D-3, D-4); register it in `buildCascadeEdges`. Write T-1.
+Files: `core/database/deleteimpact/handle_gone.go`, `core/database/deleteimpact/cascades.go` *(new)*, `core/database/deleteimpact/impact_test.go`. Skill: `add-catalog-delete`.
+Do: first move the const block, `cascadeEdgeList` and `buildCascadeEdges` to `cascades.go` unchanged and run the check (no behavior change); then add the const (D-2), `soleLinkFrom` and the edge (D-1, D-3, D-4) and `CascadeVias` (D-9). Write T-1.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/deleteimpact/...` passes, including `TestImpactEvidenceGraph` unchanged.
 
 **STEP-2 — Delete agrees with the report**
@@ -181,11 +184,11 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/evidencegraphs/...` pas
 
 **STEP-3 — Swift case and copy**
 Files: `api/ffi/swift_vocabulary_test.go`, `macos/App/Platform/ConclusionVocabulary.swift`, `macos/App/DesignSystem/Recipes/DeleteImpact/PVDeleteImpact.swift`, `macos/App/Platform/L10n.swift` (beside `deletesHandles`), `macos/App/Resources/Localizable.xcstrings` (the key beside `deleteImpact.confirm.deletesHandles`), `macos/ProvenenciaTests/PVDeleteImpactTests.swift`. Skills: `add-localized-string`, `add-swift-test`.
-Do: add `deleteimpact.ViaLeavesNoGraph` to the "cascade vias" `want` (T-3); D-5, D-6; write T-4 – T-7 in the `PVDeleteImpactTests` suite, after `graphDeleteConfirmReadsSingularForOneCitation`.
+Do: set the "cascade vias" row to `want: sorted(deleteimpact.CascadeVias()...)` (T-3, D-9); D-5, D-6; write T-4 – T-7 in the `PVDeleteImpactTests` suite, after `graphDeleteConfirmReadsSingularForOneCitation`.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/...` passes; `python3 -m json.tool macos/App/Resources/Localizable.xcstrings > /dev/null` succeeds; on macOS, `xcodebuild test` (the command `scripts/check-pr.sh` runs as `xcode-test`) passes, no Swift warning. Off macOS, `check-pr.sh` reports `xcode-test (needs macOS)`: report T-4 – T-7 and the Swift build as not run, and hand the PR to a macOS run; do not mark them passed.
 
 **STEP-4 — Docs**
-Files: `docs/catalog-deletes.md` rule 10 (after "the confirm names them (`Report.Cascades`, via `citations.graph_id`)": add that the confirm also names, via `evidence_graph_artifacts.last_graph`, the Artifacts linked to that graph and to no other, which it leaves in no graph); `core/database/deleteimpact/README.md` (after the `canonical_entities.last_member` sentence: "Graph delete Impact lists the Artifacts it leaves in no graph under `evidence_graph_artifacts.last_graph`."); `.agents/skills/add-catalog-delete/SKILL.md` (after the `Named: true` bullet: "An informing cascade that is not a release (a consequence such as `canonical_entities.last_member` or `evidence_graph_artifacts.last_graph`) is an edge in `buildCascadeEdges`, with its via in the shared const block and a `DeleteImpactCascadeVia` case."); `docs/deployment-plan/spike-16/completed.md` (a paragraph under Batch 6: "S16-45 (#N): the graph delete confirm names the Artifacts it leaves in no evidence graph, through a new `deleteimpact` cascade, `evidence_graph_artifacts.last_graph`."), `docs/deployment-plan/spike-16/deployment-plan.md` (map row Status `Landed #N`), this plan (Status and a Landed note). Version: `VERSION` and `core/version.go` `Version` to the next patch, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` (4 at the planning base) to the same value, in this step's commit.
+Files: `docs/catalog-deletes.md` rule 10 (after "the confirm names them (`Report.Cascades`, via `citations.graph_id`)": add that the confirm also names, via `evidence_graph_artifacts.last_graph`, the Artifacts linked to that graph and to no other, which it leaves in no graph); `core/database/deleteimpact/README.md` (after the `canonical_entities.last_member` sentence: "Graph delete Impact lists the Artifacts it leaves in no graph under `evidence_graph_artifacts.last_graph`."); `.agents/skills/add-catalog-delete/SKILL.md` (after the `Named: true` bullet: "An informing cascade that is not a release (a consequence such as `canonical_entities.last_member` or `evidence_graph_artifacts.last_graph`) is an edge in `buildCascadeEdges` in `core/database/deleteimpact/cascades.go` *(new)*, with its via in that file's const block and a `DeleteImpactCascadeVia` case; `TestSwiftVocabularyMatchesGo` reads `CascadeVias()` and fails until the case exists."); `docs/deployment-plan/spike-16/completed.md` (a paragraph under Batch 6: "S16-45 (#N): the graph delete confirm names the Artifacts it leaves in no evidence graph, through a new `deleteimpact` cascade, `evidence_graph_artifacts.last_graph`."), `docs/deployment-plan/spike-16/deployment-plan.md` (map row Status `Landed #N`), this plan (Status and a Landed note). Version: `VERSION` and `core/version.go` `Version` to the next patch, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` (4 at the planning base) to the same value, in this step's commit.
 Do: per the Definition of done.
 Check: `scripts/check-pr.sh` prints `check-pr: PASS`.
 
@@ -197,10 +200,10 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `core/database/deleteimpact/impact_test.go` `TestImpactEvidenceGraphLeavesNoGraph` *(new)*, table-driven | Fixture per case: a new catalog and Source (as `TestImpactEvidenceGraph` builds them); Artifacts made with `artifactstest.Create` and zero-value `Graphs` start in Default; an Artifact meant for Jones only goes there with `evidencegraphstest.Split(t, c, userID, src.ID, "Jones", ids...)`, one in both with `evidencegraphstest.Create(t, c, userID, src.ID, "Jones", ids...)`; Citations with `observationstest.Cite`, a Subject with `subjectstest.On(t, c, userID, jones.ID, "person", "Alice")`. Cases: "sole link" (A in Jones only, B in both) → one group via `ViaLeavesNoGraph`, `Kind == KindArtifact`, `Total 1`, listed `[A.Ref]` with `Location.ArtifactID` set; "two sole links" → `Total 2`, refs sorted; "no sole links" (every Artifact also in Default) → no group with that via; "empty graph" → no group; "unlinked Artifact" (C in no graph, Jones holds only B, which is in Default too) → no group; "25 sole links" → `Total 25`, 20 listed; "with Citations" (2 Citations in Jones) → `Cascades[0].Via == ViaDeletesCitations`, `Cascades[1].Via == ViaLeavesNoGraph`; "refused graph" (a Subject in Jones) → `Allowed` false, the group still in `Cascades` | AC-1.1–AC-1.5 ("no sole links", "empty graph": AC-1.4), D-1–D-4 |
 | T-2 | Go | `core/database/evidencegraphs/evidencegraphs_test.go` subtest "a graph delete leaves its sole Artifacts in no graph" *(new)* With the file's `fixture`: `a := f.newArtifact(t, s, "Page A")` (no link), `b := f.newArtifact(t, s, "Page B")`, `f.link(t, def.ID, b)`, then `f.createGraph(t, evidencegraphs.CreateInput{SourceID: s.ID, Name: "Jones", ArtifactIDs: [][]byte{a, b}})`, so A is in Jones only and B in both; `graphImpact` lists A only; `f.deleteGraph(jones)`; `evidencegraphstest.ArtifactGraphs(A)` empty, `ArtifactGraphs(B)` = `[Default]` | AC-1.6 |
-| T-3 | Go | `api/ffi/swift_vocabulary_test.go` "cascade vias" (updated) | Go vias = Swift `DeleteImpactCascadeVia` wires, with `evidence_graph_artifacts.last_graph` | D-2, D-5 |
-| T-4 | Swift | `PVDeleteImpactTests.swift` `graphDeleteConfirmNamesTheArtifactItLeavesInNoGraph` *(new)* | group via `evidence_graph_artifacts.last_graph`, kind `artifact`, total 1, listed `ART-A` → `["ART-A won’t be in any evidence graph. Citations can’t use it until it is linked to one."]` | AC-1.1, D-6 |
-| T-5 | Swift | `graphDeleteConfirmNamesArtifactsInThePlural` *(new)* | total 2, `ART-A`, `ART-C` → `["ART-A and ART-C won’t be in any evidence graph. Citations can’t use them until they are linked to one."]` | AC-1.2 |
-| T-6 | Swift | `graphDeleteConfirmCountsArtifactsBeyondTheListedCap` *(new)* | total 25, 20 listed → one line with prefix "ART-1, " and containing ", and 5 more" and suffix "Citations can’t use them until they are linked to one." | AC-1.3 |
+| T-3 | Go | `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` "cascade vias" (updated) | `CascadeVias()` = Swift `DeleteImpactCascadeVia` wires: the four vias, with `evidence_graph_artifacts.last_graph` | D-2, D-5, D-9 |
+| T-4 | Swift | `PVDeleteImpactTests.swift` `graphDeleteConfirmNamesTheArtifactItLeavesInNoGraph` *(new)* | group via `evidence_graph_artifacts.last_graph`, kind `artifact`, total 1, listed `ART-A` → `["ART-A won’t be in an evidence graph. Citations can’t use it until it is linked."]` | AC-1.1, D-6 |
+| T-5 | Swift | `graphDeleteConfirmNamesArtifactsInThePlural` *(new)* | total 2, `ART-A`, `ART-C` → `["ART-A and ART-C won’t be in an evidence graph. Citations can’t use them until they are linked."]` | AC-1.2 |
+| T-6 | Swift | `graphDeleteConfirmCountsArtifactsBeyondTheListedCap` *(new)* | total 25, 20 listed → one line with prefix "ART-1, " and containing ", and 5 more" and suffix "Citations can’t use them until they are linked." | AC-1.3 |
 | T-7 | Swift | `graphDeleteConfirmNamesCitationsThenArtifacts` *(new)* | cascades `[citations.graph_id (2), evidence_graph_artifacts.last_graph (1)]` → two lines, Citations first | AC-1.5 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestImpactEvidenceGraph`, the evidencegraphs "a graph takes its Citations with it" subtest (both assert one cascade; §4 says why they stay at one), `PVDeleteImpactTests`.
@@ -228,7 +231,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 1. Open a project. On a Source, make sure it has two graphs, Default and Jones (add Jones from the Source page).
 2. Add Artifact A and in its sheet check only Jones. Add Artifact B with both graphs checked.
-3. Click the trash button on Jones. The confirm reads the usual sentence, then "ART-… (A's ref) won’t be in any evidence graph. Citations can’t use it until it is linked to one." B's ref is not named.
+3. Click the trash button on Jones. The confirm reads the usual sentence, then "ART-… (A's ref) won’t be in an evidence graph. Citations can’t use it until it is linked." B's ref is not named.
 4. Delete. A's row shows "Not in an evidence graph"; B's does not.
 5. Add a graph Smith, link B to it, delete Smith: the confirm has no Artifacts sentence (AC-1.4).
 
@@ -241,6 +244,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 **Stop and report if:**
 
+- Moving the const block, `cascadeEdgeList` or `buildCascadeEdges` to `cascades.go` changes any test result (it must be a pure move).
 - `buildCascadeEdges` or `cascadesFor` no longer exist as §4 says, or `Report.Cascades` is no longer filled for a graph.
 - `TestImpactEvidenceGraph` or the evidencegraphs Citations subtest fails with two cascades (their Artifact is in Jones only at your base).
 - The `swift_vocabulary_test` "cascade vias" row cannot read a new case without changing its regex.
