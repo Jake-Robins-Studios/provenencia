@@ -43,7 +43,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 - [`person-page-performance.md`](person-page-performance.md) — record links memo and a household-sized budget, Timeline participants sent once, lazy Timeline cards, siblings sent once
 - [`person-page-followups.md`](person-page-followups.md) — the Conclusion lists' silent refresh failure, partial record-links lines, a cap on graphs per person
-- [`wide-layout.md`](wide-layout.md) — pages still waiting for a Wide / Page columns frame
+- [`wide-layout.md`](wide-layout.md) — pages still waiting for a Wide frame (the Persons, Events and Places lists, Properties, Metadata, Event and Place pages) and the Person Sources rows at narrow widths
 
 ### Properties, vocabulary, Sources
 
