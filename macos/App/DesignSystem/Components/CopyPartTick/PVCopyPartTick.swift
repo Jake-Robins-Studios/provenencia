@@ -6,7 +6,7 @@ import SwiftUI
 /// whatever the stored choice is, so a hidden tick is never sent. Copy Source
 /// and Copy Source type use it for every part.
 struct PVCopyPartTick: View {
-    let label: String
+    let label: LocalizedStringResource
     let hint: String
     /// Replaces `hint` when the original has no such part ("None on this Source").
     let absentHint: String
@@ -17,7 +17,7 @@ struct PVCopyPartTick: View {
 
     var body: some View {
         PVCheckbox(
-            verbatim: label,
+            verbatim: L10n.string(label),
             description: isAvailable ? hint : absentHint,
             isChecked: Binding(
                 get: { isAvailable && isChecked },

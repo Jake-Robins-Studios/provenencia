@@ -34,8 +34,6 @@ final class SourceTypeCopyModel {
     private let session: WorkspaceSession
     private let userID: String
     private let store: any GenealogyStore
-    private let levelKeys: [Level: CatalogQueryKey]
-    private let levelHandles: [Level: QueryHandle<[CatalogTypeSuggestion]>]
 
     init(
         original: CatalogSourceType,
@@ -47,15 +45,9 @@ final class SourceTypeCopyModel {
         self.session = session
         self.userID = userID
         self.store = store
-        var keys: [Level: CatalogQueryKey] = [:]
-        var handles: [Level: QueryHandle<[CatalogTypeSuggestion]>] = [:]
-        for level in Level.metadataLevels {
-            let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: original.id, level: level)
-            keys[level] = key
-            handles[level] = session.query(key)
+        for key in CatalogQueryKey.typeSuggestionsKeys(project: session.projectKey, typeId: original.id) {
+            let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(key)
         }
-        levelKeys = keys
-        levelHandles = handles
         prefill = SourceTypeCopyChoices()
     }
 
@@ -79,24 +71,23 @@ final class SourceTypeCopyModel {
     /// while any read is; else ready. A value wins: a failed refetch of a list keeps the stale
     /// list and stays ready.
     var loadState: PVFormLoadState {
-        var states = [formatsState]
-        for level in Level.metadataLevels {
-            switch levelHandles[level]?.read {
-            case .loaded?: states.append(.ready)
-            case .failed(let error)?: states.append(.failed(L10n.Errors.message(for: error)))
-            default: states.append(.loading)
-            }
-        }
-        if let failed = states.first(where: { if case .failed = $0 { true } else { false } }) { return failed }
-        return states.contains(.loading) ? .loading : .ready
+        PVFormLoadState.combining(
+            [formatsState] + Level.metadataLevels.map { suggestionsHandle(at: $0)?.read.formLoadState ?? .loading }
+        )
+    }
+
+    private func suggestionsKey(at level: Level) -> CatalogQueryKey {
+        .typeSuggestions(project: session.projectKey, typeId: original.id, level: level)
+    }
+
+    private func suggestionsHandle(at level: Level) -> QueryHandle<[CatalogTypeSuggestion]>? {
+        session.queryHandle(suggestionsKey(at: level))
     }
 
     /// Reads again what failed: each failed list, and the formats.
     func reload() {
-        for level in Level.metadataLevels {
-            if case .failed? = levelHandles[level]?.read, let key = levelKeys[level] {
-                let _: QueryHandle<[CatalogTypeSuggestion]> = session.reread(key)
-            }
+        for level in Level.metadataLevels where suggestionsHandle(at: level)?.read.isFailed == true {
+            let _: QueryHandle<[CatalogTypeSuggestion]> = session.reread(suggestionsKey(at: level))
         }
         if case .failed = formatsState {
             formatsState = .loading
@@ -129,7 +120,7 @@ final class SourceTypeCopyModel {
 
     /// How many fields the original suggests at the level; 0 until it is read.
     func suggestionCount(at level: Level) -> Int {
-        levelHandles[level]?.value?.count ?? 0
+        suggestionsHandle(at: level)?.value?.count ?? 0
     }
 
     func levelAvailable(_ level: Level) -> Bool { suggestionCount(at: level) > 0 }
