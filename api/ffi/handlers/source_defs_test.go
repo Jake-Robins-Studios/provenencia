@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -905,6 +906,8 @@ func TestCopySourceType(t *testing.T) {
 		if resp.GetEffects().GetRevision() <= 0 {
 			t.Fatalf("effects %v", resp.GetEffects())
 		}
+		assertLatestAuditAction(t, dir, "copy_source_type")
+		assertLatestAuditUser(t, dir, userID)
 		var have, want engine.GetCitationFormatsResponse
 		mustRPC(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: got.GetId()}, &have)
 		mustRPC(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: typeID}, &want)
@@ -1013,4 +1016,30 @@ func TestCitationFormats(t *testing.T) {
 			t.Fatalf("got %v, want ErrInUse", err)
 		}
 	})
+}
+
+// assertLatestAuditUser fails unless the newest audit transaction names wantUserID.
+func assertLatestAuditUser(t *testing.T, projectDir, wantUserID string) {
+	t.Helper()
+	err := catalogsession.Do(projectDir, func(c *database.Catalog) error {
+		db, err := c.DB()
+		if err != nil {
+			return err
+		}
+		want, err := parseUserID(wantUserID)
+		if err != nil {
+			return err
+		}
+		var got []byte
+		if err := db.QueryRow(`SELECT user_id FROM audit_transactions ORDER BY revision DESC LIMIT 1`).Scan(&got); err != nil {
+			return err
+		}
+		if got == nil || !bytes.Equal(got, want) {
+			t.Fatalf("audit user_id = %x, want %x", got, want)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
