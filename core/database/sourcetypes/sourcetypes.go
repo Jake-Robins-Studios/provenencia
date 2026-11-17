@@ -42,6 +42,9 @@ const (
 			label = excluded.label,
 			description = excluded.description,
 			icon_key = excluded.icon_key`
+	// sqlInsert is the one insert of a new type with its citation formats.
+	sqlInsert = `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	sqlLookup = `SELECT id, key, origin, label, COALESCE(description, ''), icon_key
 		FROM source_types WHERE key = ? AND origin = ?`
 	sqlGetByID = `SELECT id, key, origin, label, COALESCE(description, ''), icon_key
@@ -181,16 +184,27 @@ func List(c *database.Catalog) ([]Type, error) {
 	return out, nil
 }
 
-// Create mints a kebab-case key from label (see core/slug.Kebab) and
-// inserts a new user-origin type on tx. Returns ErrInvalid if the label cannot
-// form a key or icon_key is unknown, or ErrDuplicateKey (params: the
-// colliding key) if a user-origin type with that key already exists.
-// The caller records the returned changes.
-func Create(tx *database.Tx, label, description, iconKey string) (Type, []rowchange.Change, error) {
+// CreateInput is what a new user-origin type starts with.
+type CreateInput struct {
+	Label       string
+	Description string
+	// IconKey is empty for the default mark.
+	IconKey string
+	// Formats are stored (fields by id, as StoredFormatsTx returns them); the
+	// zero value is no formats.
+	Formats Formats
+}
+
+// Create mints a kebab-case key from in.Label (see core/slug.Kebab) and
+// inserts a new user-origin type on tx, with its formats. Returns ErrInvalid
+// if the label cannot form a key or the icon key is unknown, or
+// ErrDuplicateKey (params: the colliding key) if a user-origin type with that
+// key already exists. The caller records the returned changes.
+func Create(tx *database.Tx, in CreateInput) (Type, []rowchange.Change, error) {
 	if tx == nil {
 		return Type{}, nil, ErrInvalid
 	}
-	key := slug.Kebab(label)
+	key := slug.Kebab(in.Label)
 	if key == "" {
 		return Type{}, nil, ErrInvalid
 	}
@@ -199,9 +213,9 @@ func Create(tx *database.Tx, label, description, iconKey string) (Type, []rowcha
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return Type{}, nil, err
 	}
-	label = strings.TrimSpace(label)
-	description = strings.TrimSpace(description)
-	iconKey, err := NormalizeIconKey(iconKey)
+	label := strings.TrimSpace(in.Label)
+	description := strings.TrimSpace(in.Description)
+	iconKey, err := NormalizeIconKey(in.IconKey)
 	if err != nil {
 		return Type{}, nil, err
 	}
@@ -213,7 +227,8 @@ func Create(tx *database.Tx, label, description, iconKey string) (Type, []rowcha
 		return Type{}, nil, err
 	}
 	id := uid[:]
-	if _, err := tx.Exec(sqlUpsert, id, key, vocabkey.OriginUser, label, database.NullString(description), iconKey); err != nil {
+	if _, err := tx.Exec(sqlInsert, id, key, vocabkey.OriginUser, label, database.NullString(description), iconKey,
+		database.NullString(in.Formats.Full), database.NullString(in.Formats.Short), database.NullString(in.Formats.List)); err != nil {
 		return Type{}, nil, err
 	}
 	fields := map[string]rowchange.FieldDiff{
@@ -225,6 +240,9 @@ func Create(tx *database.Tx, label, description, iconKey string) (Type, []rowcha
 	}
 	if description != "" {
 		fields["description"] = rowchange.FieldDiff{Old: nil, New: description}
+	}
+	for column, diff := range formatFieldDiffs(Formats{}, in.Formats) {
+		fields[column] = diff
 	}
 	got, err := getByIDTx(tx.Tx, id)
 	if err != nil {
@@ -374,11 +392,8 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 		fields["icon_key"] = rowchange.FieldDiff{Old: prev.IconKey, New: nil}
 	}
 	// A deleted type's formats stay in the revision.
-	stored := formats[string(id)]
-	for _, fc := range formColumns {
-		if text := stored.text(fc.form); text != "" {
-			fields[fc.column] = rowchange.FieldDiff{Old: text, New: nil}
-		}
+	for column, diff := range formatFieldDiffs(formats[string(id)], Formats{}) {
+		fields[column] = diff
 	}
 	return []rowchange.Change{{
 		EntityType: "source_type",
@@ -403,6 +418,15 @@ func editableTx(tx *sql.Tx, id []byte) (Type, error) {
 		return Type{}, ErrLocked
 	}
 	return t, nil
+}
+
+// GetByIDTx returns the type with the given id read on tx: ErrInvalid for an
+// id that is not 16 bytes, sql.ErrNoRows for a type that is not there.
+func GetByIDTx(tx *sql.Tx, id []byte) (Type, error) {
+	if len(id) != 16 {
+		return Type{}, ErrInvalid
+	}
+	return getByIDTx(tx, id)
 }
 
 func getByIDTx(tx *sql.Tx, id []byte) (Type, error) {

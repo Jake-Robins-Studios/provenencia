@@ -50,7 +50,9 @@ func CreateSourceType(in []byte) ([]byte, error) {
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "create_source_type"},
 			func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
-				return sourcetypes.Create(tx, req.GetLabel(), req.GetDescription(), req.GetIconKey())
+				return sourcetypes.Create(tx, sourcetypes.CreateInput{
+					Label: req.GetLabel(), Description: req.GetDescription(), IconKey: req.GetIconKey(),
+				})
 			})
 		if err != nil {
 			return err

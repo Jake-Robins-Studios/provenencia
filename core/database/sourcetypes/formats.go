@@ -63,6 +63,22 @@ func (f Formats) with(form citationformat.Form, text string) Formats {
 	return f
 }
 
+// formatFieldDiffs returns one diff per format column whose text differs
+// between before and after, an empty text as NULL: the one place a format
+// column is audited.
+func formatFieldDiffs(before, after Formats) map[string]rowchange.FieldDiff {
+	fields := map[string]rowchange.FieldDiff{}
+	for _, fc := range formColumns {
+		if before.text(fc.form) != after.text(fc.form) {
+			fields[fc.column] = rowchange.FieldDiff{
+				Old: database.NullString(before.text(fc.form)),
+				New: database.NullString(after.text(fc.form)),
+			}
+		}
+	}
+	return fields
+}
+
 // FieldChoice says which field a key means when more than one field holds it.
 type FieldChoice struct {
 	Key     string
@@ -400,13 +416,7 @@ func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldCh
 		view.Diagnostics = diags
 		return view, nil, nil
 	}
-	fields := map[string]rowchange.FieldDiff{}
-	for _, fc := range formColumns {
-		form, column := fc.form, fc.column
-		if before.text(form) != next.text(form) {
-			fields[column] = rowchange.FieldDiff{Old: database.NullString(before.text(form)), New: database.NullString(next.text(form))}
-		}
-	}
+	fields := formatFieldDiffs(before, next)
 	if len(fields) > 0 {
 		if _, err := tx.Exec(sqlUpdateFormats,
 			database.NullString(next.Full), database.NullString(next.Short), database.NullString(next.List), typeID); err != nil {
