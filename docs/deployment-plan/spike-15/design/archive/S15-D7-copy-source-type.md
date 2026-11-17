@@ -212,4 +212,4 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and any board decision on the **Board** line here and in [`README.md`](README.md). S15-18's plan copies CT-1 – CT-10, CT-W1, the copy and the inventory, and moves from `Blocked — on board S15-D7` to `Planned`. When S15-18 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the frames and any board decision on the **Board** line here and in [`README.md`](../README.md). S15-18's plan copies CT-1 – CT-10, CT-W1, the copy and the inventory, and moves from `Blocked — on board S15-D7` to `Planned`. When S15-18 lands, the brief moves to the spike's design archive.
