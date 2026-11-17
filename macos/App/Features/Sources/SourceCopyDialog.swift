@@ -71,7 +71,7 @@ private struct SourceCopyForm: View {
                 Text(L10n.Sources.copySourcePartsHeading)
                     .pvMicroCaps()
                     .foregroundStyle(PVColor.textFaint)
-                SourceFormLoadArea(
+                PVFormLoadArea(
                     state: model.loadState,
                     loadingText: L10n.Sources.copySourceLoading,
                     errorTitle: L10n.Sources.copySourceLoadErrorTitle,
@@ -128,8 +128,6 @@ private struct SourceCopyForm: View {
         }
     }
 
-    /// One part tick. An unavailable part reads unchecked and disabled, with
-    /// "None on this Source" in place of its hint.
     private func partTick(
         _ label: LocalizedStringResource,
         hint: String,
@@ -137,23 +135,14 @@ private struct SourceCopyForm: View {
         available: Bool,
         id: String
     ) -> some View {
-        PVCheckbox(
-            verbatim: L10n.string(label),
-            description: available ? hint : L10n.string(L10n.Sources.copySourcePartAbsent),
-            isChecked: partBinding(keyPath, available: available),
-            isDisabled: !available || model.isSaving
+        PVCopyPartTick(
+            label: L10n.string(label),
+            hint: hint,
+            absentHint: L10n.string(L10n.Sources.copySourcePartAbsent),
+            isChecked: $model.choices[dynamicMember: keyPath],
+            isAvailable: available,
+            isDisabled: model.isSaving
         )
         .accessibilityIdentifier(id)
-    }
-
-    /// An unavailable part reads unchecked whatever the stored choice is.
-    private func partBinding(
-        _ keyPath: WritableKeyPath<SourceCopyChoices, Bool>,
-        available: Bool
-    ) -> Binding<Bool> {
-        Binding(
-            get: { available && model.choices[keyPath: keyPath] },
-            set: { model.choices[keyPath: keyPath] = $0 }
-        )
     }
 }

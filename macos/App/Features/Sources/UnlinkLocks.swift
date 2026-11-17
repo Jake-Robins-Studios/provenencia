@@ -10,9 +10,9 @@ import Observation
 final class UnlinkLocks {
     /// The links the engine refuses to unlink, with why.
     private(set) var blocks: [CatalogEvidenceGraphUnlinkBlock] = []
-    private(set) var state: SourceFormLoadState
+    private(set) var state: PVFormLoadState
 
-    init(state: SourceFormLoadState = .loading) {
+    init(state: PVFormLoadState = .loading) {
         self.state = state
     }
 

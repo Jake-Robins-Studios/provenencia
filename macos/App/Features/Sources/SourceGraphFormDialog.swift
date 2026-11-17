@@ -70,7 +70,7 @@ private struct SourceGraphForm: View {
             fields
             metadata
         } right: {
-            SourceFormLoadArea(
+            PVFormLoadArea(
                 state: model.loadState,
                 loadingText: L10n.Sources.graphFormLoading,
                 errorTitle: L10n.Sources.graphFormLoadErrorTitle,

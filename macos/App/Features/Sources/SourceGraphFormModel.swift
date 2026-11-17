@@ -47,7 +47,7 @@ final class SourceGraphFormModel {
     let board: MetadataBoardModel
     /// The linked Artifacts the engine refuses to unlink, with why.
     private let locks: UnlinkLocks
-    var loadState: SourceFormLoadState { locks.state }
+    var loadState: PVFormLoadState { locks.state }
     var blocks: [CatalogEvidenceGraphUnlinkBlock] { locks.blocks }
 
     private let context: SourcePageContext

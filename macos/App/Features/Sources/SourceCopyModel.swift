@@ -74,7 +74,7 @@ final class SourceCopyModel {
     }
 
     /// A value wins: a failed refetch keeps the stale parts and stays `.ready`.
-    var loadState: SourceFormLoadState {
+    var loadState: PVFormLoadState {
         switch workspaceHandle.read {
         case .loaded: .ready
         case .failed(let error): .failed(L10n.Errors.message(for: error))

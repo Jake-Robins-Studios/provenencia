@@ -6596,8 +6596,8 @@
         }
       }
     },
-    "sources.form.readAgain": {
-      "comment": "Button that reads a Source-page form's loaded parts again after they failed to load",
+    "designSystem.formLoad.readAgain": {
+      "comment": "Button that reads a form's loaded parts again after they failed to load",
       "extractionState": "manual",
       "localizations": {
         "en": {

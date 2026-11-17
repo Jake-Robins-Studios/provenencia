@@ -101,6 +101,11 @@ enum L10n {
             defaultValue: "(optional)",
             comment: "Marks an optional PVField, shown muted beside its label"
         )
+        static let formReadAgain = LocalizedStringResource(
+            "designSystem.formLoad.readAgain",
+            defaultValue: "Read again",
+            comment: "Button that reads a form's loaded parts again after they failed to load"
+        )
         static let checkboxPartlyChecked = LocalizedStringResource(
             "designSystem.checkbox.partlyChecked",
             defaultValue: "partly checked",
@@ -5725,12 +5730,6 @@ enum L10n {
                 comment: "Copy Source load error message; argument is the error text"
             ), error)
         }
-
-        static let formReadAgain = LocalizedStringResource(
-            "sources.form.readAgain",
-            defaultValue: "Read again",
-            comment: "Button that reads a Source-page form's loaded parts again after they failed to load"
-        )
 
         static let copySourceSaveErrorTitle = LocalizedStringResource(
             "sources.copy.saveErrorTitle",
