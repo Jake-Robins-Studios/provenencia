@@ -3,6 +3,8 @@ package deleteimpact
 import (
 	"database/sql"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 
@@ -172,6 +174,7 @@ var inboundEdgeList = sync.OnceValue(func() []inboundEdge {
 				JOIN evidence_graphs g ON g.id = m.graph_id
 				WHERE m.field_id = ?
 				ORDER BY COALESCE(g.ref, '') COLLATE NOCASE LIMIT ?`), "evidence_graph_metadata", "field_id"),
+		citationFormatEdge(),
 		joinEdge(catalogmodel.KindCredibilityGrade, "source_credibility_assessments.credibility_grade_id", catalogmodel.KindSource,
 			`SELECT COUNT(DISTINCT source_id) FROM source_credibility_assessments WHERE credibility_grade_id = ?`,
 			`SELECT s.id, s.ref FROM source_credibility_assessments a
@@ -248,6 +251,12 @@ func isLastGraph(tx *sql.Tx, graphID []byte) (bool, error) {
 	err := tx.QueryRow(`SELECT COUNT(*) FROM evidence_graphs
 		WHERE source_id = (SELECT source_id FROM evidence_graphs WHERE id = ?)`, graphID).Scan(&n)
 	return n == 1, err
+}
+
+// ResourceInboundVias returns the via of every inbound resource edge, sorted:
+// the keys the Swift via headings must cover.
+func ResourceInboundVias() []string {
+	return slices.Sorted(maps.Keys(resourceInboundVias()))
 }
 
 func resourceInboundVias() map[string]bool {

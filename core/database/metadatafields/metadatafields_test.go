@@ -207,6 +207,118 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
+			name: "a field a citation format names is in use",
+			run: func(t *testing.T, c *database.Catalog) {
+				mustUser(t, c)
+				field, err := runCreate(c, "Line", metadatafields.DataTypeText, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				mustType := func(label string) []byte {
+					id, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: label, Origin: vocabkey.OriginUser, Label: label})
+					if err != nil {
+						t.Fatal(err)
+					}
+					return id
+				}
+				census, bible := mustType("Census"), mustType("Bible")
+				setFormats := func(typeID []byte, in sourcetypes.Formats) {
+					t.Helper()
+					view, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
+						func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
+							return sourcetypes.UpdateFormats(tx, typeID, in, nil)
+						})
+					if err != nil || len(view.Diagnostics) != 0 {
+						t.Fatalf("set formats: %v %+v", err, view.Diagnostics)
+					}
+				}
+				// Census names the field twice (full and list), Bible once.
+				setFormats(census, sourcetypes.Formats{Full: "{source.title}[, line {graph.meta.line}]", List: "{source.meta.line}"})
+				setFormats(bible, sourcetypes.Formats{Short: "{graph.meta.line}"})
+
+				impact := func() deleteimpact.Report {
+					t.Helper()
+					db := dbtest.MustDB(t, c)
+					tx, err := db.Begin()
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer func() { _ = tx.Rollback() }()
+					report, err := deleteimpact.Impact(tx, catalogmodel.KindMetadataField, field.ID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					return report
+				}
+				report := impact()
+				if report.Allowed || report.Gate != deleteimpact.GateInbound || len(report.Groups) != 1 {
+					t.Fatalf("report %+v", report)
+				}
+				g := report.Groups[0]
+				if g.Via != "source_types.citation_formats" || g.Kind != catalogmodel.KindSourceType || g.Total != 2 || len(g.Listed) != 2 {
+					t.Fatalf("group %+v", g)
+				}
+				for i, want := range [][]byte{bible, census} {
+					if !bytes.Equal(g.Listed[i].ID, want) || g.Listed[i].Location.TypeID != database.UUIDString(want) {
+						t.Fatalf("listed[%d] = %+v", i, g.Listed[i])
+					}
+				}
+				if err := runDelete(c, userID, field.ID); !errors.Is(err, metadatafields.ErrInUse) {
+					t.Fatalf("got %v", err)
+				}
+
+				// Values on two Sources add to the count.
+				src, _, typeID := fieldHolders(t, c, userID)
+				src2, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
+					return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: "U"})
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				db := dbtest.MustDB(t, c)
+				for _, sid := range [][]byte{src.ID, src2.ID} {
+					id, err := uuid.NewV7()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := db.Exec(`INSERT INTO source_metadata (id, source_id, field_id, value_text) VALUES (?, ?, ?, '1')`,
+						id[:], sid, field.ID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				report = impact()
+				vias := map[string]int{}
+				for _, g := range report.Groups {
+					vias[g.Via] = g.Total
+				}
+				if len(vias) != 2 || vias["source_metadata.field_id"] != 2 || vias["source_types.citation_formats"] != 2 {
+					t.Fatalf("groups %v", vias)
+				}
+				if n, err := deleteimpact.UsedBy(c, catalogmodel.KindMetadataField, field.ID); err != nil || n != 4 {
+					t.Fatalf("UsedBy = %d, %v; want 4", n, err)
+				}
+				listed, err := metadatafields.List(c)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, f := range listed {
+					if bytes.Equal(f.ID, field.ID) && f.UsedBy != 4 {
+						t.Fatalf("List UsedBy = %d, want 4", f.UsedBy)
+					}
+				}
+
+				// Clearing the formats and the values frees the field.
+				setFormats(census, sourcetypes.Formats{})
+				setFormats(bible, sourcetypes.Formats{})
+				if _, err := db.Exec(`DELETE FROM source_metadata WHERE field_id = ?`, field.ID); err != nil {
+					t.Fatal(err)
+				}
+				if err := runDelete(c, userID, field.ID); err != nil {
+					t.Fatalf("delete after clearing: %v", err)
+				}
+			},
+		},
+		{
 			name: "a field held only on a graph is in use",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
