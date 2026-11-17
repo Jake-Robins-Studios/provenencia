@@ -32,6 +32,18 @@ Maintainability: **Fits with changes**. Executability: **Not ready** (X-1). The 
 | X-9 | minor | Tie order of non-seed rows | **Fixed.** D-10: ties broken by `field_id` |
 | X-10 | minor | The plan's own lint fails until this log exists | **Fixed** by this log |
 
-## Round 2
+## Round 2 (2026-11-17)
 
-See below.
+Maintainability: **Fits with changes**. Executability: **Ready with changes**. Every round-1 answer holds (M-3 in part, closed by M2-2 below).
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M2-1 | blocker | A re-run on an old catalog kept `record_date` and `issue_date` suggested, against the map ("stops suggesting") | **To user → answered** (2026-11-17): "dont worry about dogfood projects, I will take care of them manually. Just make sure that new projects get the correct stuff." D-10 drops the re-run ordering; D-12, US-4, Out, Edges, STEP-5, STEP-9 rewritten; AC-4.2, AC-4.3, T-5, T-6 removed. Map rule "The seed is the product default", bar 6, the S15-19 and S15-20 entries and citation map § 6.4 say the dogfood projects are updated by hand |
+| M2-2 | blocker | `seedListTx` would add insert and update statements beside `sqlEnsureSuggestion`; S15-52's transactional ensure would go dead | **Fixed**, then made moot by M2-1: `seedListTx` is gone, and Install writes through S15-52's transactional ensure, its one production caller |
+| M-1 caveat | minor | `sourcetypes.Create` still writes formats in `sqlInsert`; the three fixture files need `nil` if S15-52 has them call `UpsertTx` | **Logged** for `Create` (existing, unchanged by this PR). STEP-1 names the three fixture files |
+| X2-1 | minor | Other `Types[0]` handler tests not named | **Fixed.** D-11 names them and when they switch |
+| X2-2 | minor | S15-52's helper names fixed only when it lands | **Logged.** The § 4 redo records them; the Stop condition stands |
+
+## Verdict
+
+**Fits / Ready.** No blocker open; nothing To user open. Status stays **Blocked — on S15-52**, and § 4 is redone when S15-52 lands.
