@@ -77,4 +77,4 @@ Reviewers: CON (CON-1), MNT (MNT-1, MNT-2), SEC+PRF (SEC-1). Scope `51ff5742f...
 Nits (logged): none.
 
 ## Result
-Gate PASS (`67e353501`, against `754d8f6c2`; `origin/main` unmoved) · CI green (test ×2, localizable) · open: none · follow-ups: SEC-3 (count before copy), PRF-1 narrower keying for as-of-only events (unexplained +3.5 ms warm), round-1 nits MNT-6–8, CON-5 · to user: — · §10 manual check not run (AC-1.2, AC-1.3, AC-1.4, AC-2.3 unverified)
+Gate PASS (`67e353501`, against `754d8f6c2`; `origin/main` unmoved) · CI green (test ×2, localizable) · open: none · follow-ups: SEC-3 (count before copy) and PRF-1 (narrower keying for as-of-only events, the +3.5 ms warm cost) → S16-42's map scope entry (user, 2026-11-16); round-1 nits MNT-6–8, CON-5 dropped · to user: — · §10 manual check not run (AC-1.2, AC-1.3, AC-1.4, AC-2.3 unverified)
