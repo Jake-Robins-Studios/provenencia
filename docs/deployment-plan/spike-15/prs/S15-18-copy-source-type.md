@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`, `.cursor/rules/swift-tests.mdc`, `.cursor/rules/macos-client.mdc`, `.cursor/rules/versioning.mdc`
 **Context:** [map § 6.3 "The editor"](../evidence-explained-citation-map.md), working rules: "A Source type has its own page" (Copy in the page header, user 2026-11-17), "Suggestions have a level", "Formats name fields by id", "No engineering for two windows editing the same data"; [`source-layer-data-model.md`](../../../source-layer-data-model.md) § 3 `source_types` and the Copy Source section; [`S15-15` plan](S15-15-type-stores-citation-formats.md) **Next adds** ("S15-18 copies `StoredFormatsTx` output as stored")
 **Planned:** 2026-11-17 against `main` @ `09f7398`
-**Review:** — (not reviewed yet; runs when the board is agreed)
+**Review:** [`S15-18-copy-source-type.review.md`](S15-18-copy-source-type.review.md) — Fits with changes — Ready with changes, round 1 (2026-11-17)
 
 ### Implementer — read this first
 
@@ -74,11 +74,13 @@ A researcher who wants a type close to one they have (a state census beside the 
 | `CopySourceType` RPC and `sourcevocab.CopyType` (one write, ticked parts) | STEP-1 – STEP-3, AC-1.1 – AC-1.6, US-3 |
 | `sourcetypes.Create` stores stored-form formats and audits them | STEP-1, AC-3.1 |
 | Swift store: `copySourceType`, `citationFormats` | STEP-4 |
-| Copy in the page header on every type (CT-1) | STEP-7, AC-1.5 |
-| Copy type sheet: Label, Key, ticks, read state, errors, discard (CT-2 – CT-6, CT-8 – CT-10) | STEP-5, STEP-6, US-2 |
-| After Copy type, open the new type's page with no toast (CT-7) | STEP-6, AC-1.1 |
-| Wide: the sheet and the page are the same at both widths (CT-W1) | STEP-6, manual check 5 |
-| Label and Key fields shared by Add and Copy | STEP-5 |
+| Copy in the page header on every type (CT-1) | STEP-8, AC-1.5 |
+| Copy type sheet: Label, Key, ticks, read state, errors, discard (CT-2 – CT-6, CT-8 – CT-10) | STEP-7, US-2 |
+| After Copy type, open the new type's page with no toast (CT-7) | STEP-7, AC-1.1 |
+| Wide: the sheet and the page are the same at both widths (CT-W1) | STEP-7, manual check 5 |
+| Label and Key fields and the label rule shared by Add, the page and Copy | STEP-6 |
+| The read area and the part tick promoted to recipes | STEP-5 |
+| `CitationForm` and the form names | STEP-4 |
 
 | Out | Home |
 | --- | --- |
@@ -120,16 +122,17 @@ A researcher who wants a type close to one they have (a state census beside the 
 | --- | --- | --- | --- |
 | D-1 | **A new RPC** `CopySourceType` (`METHOD_COPY_SOURCE_TYPE = 122`): request `project_dir`, `user_id`, `type_id` (the original), `label`, `copy_icon`, `copy_description`, `copy_formats`, `repeated string levels`; response `SourceType type`, `WriteEffects effects` | Copy Source has its own RPC beside create; a create request stays free of copy flags | Extending `CreateSourceTypeRequest` — every Add would carry six unused fields |
 | D-2 | **`sourcevocab.CopyType(tx *database.Tx, in CopyTypeInput) (sourcetypes.Type, []rowchange.Change, error)`** *(new)* in `core/database/sourcevocab/copy.go` *(new)*; `CopyTypeInput{TypeID []byte; Label string; Icon, Description, Formats bool; Levels []vocabkey.Level}`. It never calls `writes.Run` | `sourcevocab` owns the suggestion join and already imports `sourcetypes`; `sourcetypes` cannot import it (cycle). Same role as `sourcecopy` | A new `sourcetypecopy` package — about 80 lines that `sourcevocab` already composes; logic in the handler — not table-testable in core |
-| D-3 | **`sourcetypes.Create` gains a fifth parameter `stored Formats`** (fields by id, as `StoredFormatsTx` returns). It inserts with `sqlInsert` *(new)*: `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list) VALUES (…)`, empty text as NULL (`database.NullString`), and adds to the create change one field per non-empty form under its `formColumns` column. The other callers pass `sourcetypes.Formats{}`: `CreateSourceType` handler, `core/database/sourcemetadata/sourcemetadata_test.go`, `core/search/search_test.go` | One row, one change, formats audited as `Delete` audits them. Copied as stored: the original's ids already name fields (a format field's delete is refused, S15-15), so no `ToStored` pass | `UpdateFormats` after `Create` — two changes for one new row and a key round trip that can turn an ambiguous key into a diagnostic |
+| D-3 | **`sourcetypes.Create(tx *database.Tx, in CreateInput) (Type, []rowchange.Change, error)`** with `CreateInput{Label, Description, IconKey string; Formats Formats}` *(new)*; `Formats` is stored form (fields by id, as `StoredFormatsTx` returns). It inserts with `sqlInsert` *(new)*: `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, empty text as NULL (`database.NullString`), and merges `formatFieldDiffs(Formats{}, in.Formats)` into the create change. `formatFieldDiffs(before, after Formats) map[string]rowchange.FieldDiff` *(new, unexported, `formats.go`)* returns one diff per `formColumns` column whose text differs, `database.NullString` on both sides; `Delete` calls it with `(stored, Formats{})` and `UpdateFormats` with `(before, next)`, replacing their two loops. Every caller of `Create` moves to the struct, leaving `Formats` out: `CreateSourceType` handler (`api/ffi/handlers/source_defs.go`), `core/database/sourcetypes/sourcetypes_test.go` `TestCreateUpdateGetByID`, `core/database/sourcemetadata/sourcemetadata_test.go`, `core/search/search_test.go` | One row, one change; how a format column is audited is decided once (review M-6). An input struct takes the next create-time property without a signature change (`sources.CreateInput` precedent; M-9). Copied as stored: the original's ids already name fields (a format field's delete is refused, S15-15), so no `ToStored` pass | `UpdateFormats` after `Create` — two changes for one new row and a key round trip; a fifth positional parameter three of four callers pass empty |
 | D-4 | **`sourcetypes.GetByIDTx(tx *sql.Tx, id []byte) (Type, error)`** *(new, exported)*: `ErrInvalid` when `len(id) != 16`, else `getByIDTx` | `CopyType` reads the original's icon and description in the write's tx | Reading outside the tx |
-| D-5 | **CopyType rules.** Every level must satisfy `HoldsMetadata()` and appear once, else `sourcevocab.ErrInvalid`, checked before any write. A missing original is `sourcetypes.ErrInvalid` (via `errors.Is(err, sql.ErrNoRows)`). Icon off → `""` (Create's default mark); Description off → `""`; Formats off → `Formats{}`; on → `StoredFormatsTx` of the original. Then `sourcetypes.Create` (its key and duplicate rules unchanged; origin user). Then, when `Levels` is non-empty, one `sqlCopySuggestions` *(new)*: `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order) SELECT ?, field_id, level, sort_order FROM source_type_metadata_fields WHERE source_type_id = ? AND level IN (…)`. No change is recorded for join rows | The join is not audited (`AppendSuggestion` precedent; effects registry `None`). One statement keeps order | Per-row `EnsureSuggestion` — opens the catalog's DB, not the tx |
-| D-6 | **Handler** `CopySourceType` in `api/ffi/handlers/source_defs.go`: parses user id and type id as `CreateSourceType` and `UpdateSourceType` do; levels as `vocabkey.Level(s)`; `writes.Run(c, writes.Op{Action: "copy_source_type"}, …)`; after Run fills `got.SuggestedFields` with `sourcetypes.SuggestedFields(c, got.ID)` (as `UpdateSourceType`); `UsedBy` stays 0 | Mirrors its siblings; the reply's count keeps the list row right through `.createdSourceType` | A count inside `CopyType` — `Create` returns 0 there and the list read owns the count rule |
-| D-7 | **Swift store** *(new)*: `copySourceType(projectDir:userID:typeID:label:copyIcon:copyDescription:copyFormats:levels: [Level]) async throws -> (CatalogSourceType, CatalogWriteEffects)` and `citationFormats(projectDir:typeID:) async throws -> CatalogCitationFormats`, with `CatalogCitationFormats` *(new)* `{ typeID, full, short, list: String }` in `macos/App/Platform/GenealogyStore.swift` beside `CatalogSourceType`; `CoreMethod.copySourceType`, `CoreMethod.getCitationFormats`. `FakeStore`: `copySourceTypeError`, `citationFormatsError`, `citationFormatsByType: [String: CatalogCitationFormats]`, `copySourceTypeCalls` (the arguments), and a copy that appends a user type, copies `suggestionsByLevel` rows for the levels sent and sets `suggestedFieldCounts` | The sheet needs to know which forms exist (CT-4); S15-17 reuses the read (map S15-17 "Cache signal", 2026-11-17) and extends the struct with choices and diagnostics | A `has_formats` column on the list — another value a format write must patch |
-| D-8 | **`SourceTypeCopyModel`** *(new)*, `macos/App/Features/SourceTypes/SourceTypeCopyModel.swift`, `@MainActor @Observable final class`, `init(original: CatalogSourceType, session:userID:store:)`. `SourceTypeCopyChoices` *(new)* `Equatable { draft = SourceTypeDraft(label: "", description: ""); includeIcon = true; includeDescription = true; includeFormats = true; includedLevels: Set<Level> = Set(Level.metadataLevels) }`; `prefill`; `labelError`, `labelErrorFromWrite`, `copyError`, `isSaving`; `editLabel(_:)` as `SourceTypeAddModel.editLabel`; suggestion handles `session.query(.typeSuggestions(project:typeId:level:))` for the original at each metadata level, held in init; `formats: CatalogCitationFormats?` and `formatsError: String?` from `loadFormats() async` (the form's `.task`); `loadState: SourceFormLoadState` — `.failed` if the formats read or any level failed, else `.loading` until all four have values, else `.ready`; `reload()` rereads each failed level (`session.reread`) and calls `loadFormats()`; availability: icon always, description non-empty after trim, formats when any form non-empty, a level when its list is non-empty; `levelsToCopy` = ticked ∩ available, in `Level.metadataLevels` order; `canCopy` = ready ∧ !isSaving ∧ `draft.labelError == nil`; `isDirty` = `choices != prefill`; `copy() async -> CatalogSourceType?` sends ticked ∧ available parts, applies `session.apply(effects, .createdSourceType(created))`, maps `.sourceTypeDuplicateKey` to `labelError` with `labelErrorFromWrite = true`, any other error to `copyError` | Copy Source's model shape; Add type's label rule | Reusing `SourceTypeAddModel` with a mode — two dialogs' state in one class |
-| D-9 | **Host.** `SourceTypePageModel` gains `var copying: SourceTypeCopyModel?` and `func openCopy()` (does nothing while `type` is nil or `isGone`; otherwise a fresh model from `type`), and `var canOpenCopy: Bool` (`type != nil && !isGone`). `SourceTypePageHeader` draws `PVIconButton(.duplicate, label: L10n.SourceTypes.copyEntry, size: .sm)` before the trash, `.disabled(!model.canOpenCopy)`, id `sourceTypes.page.copy`, on every origin. `SourceTypePageView` adds `.sourceTypeCopyDialog($model.copying)` | Copy Source's host shape (`SourcePageModel.copying`) | A `@State` bool in the view — the model owns dialog state on the Source page |
-| D-10 | **Dialog** `SourceTypeCopyDialog.swift` *(new)*: `View.sourceTypeCopyDialog(_:)` over `pvFormDialog(item:)`, width 520, copy from § 6 Strings, `accessibilityIdentifierPrefix: "sourceTypes.copy"`; `onConfirm` calls `copy()`, then `navigation.go(to: .sourceTypePage(typeId: created.id, title: created.label))`, no toast. The form: save-error `PVCallout` (danger, title `copyErrorTitle`), `SourceTypeLabelKeyFields`, `PVDivider`, the micro-caps heading, `SourceFormLoadArea` holding six `PVCheckbox` ticks (a private `partTick` as Copy Source's, unavailable reads unticked and disabled with "None on this type") | CT-2 – CT-6, CT-8 – CT-10; Copy Source's form | Two columns with the icon grid — the copy is edited on its page (brief non-goal) |
-| D-11 | **`SourceTypeLabelKeyFields`** *(new)*, `macos/App/Features/SourceTypes/SourceTypeLabelKeyFields.swift`: the Label `PVField` (required marker, error, `announcesError`, `PVInput` with `activateOnAppear`, placeholder) and the read-only mono Key `PVField`, taking `label: Binding<String>`, `error: String?`, `announcesError: Bool`, `key: String`, `placeholder: LocalizedStringResource`, `focus: PVFieldFocus?`, `accessibilityIdentifierPrefix: String` (ids `<prefix>.label`, `<prefix>.key`). `SourceTypeAddForm` uses it with today's values and ids (`sourceTypes.add.label`, `.key`) | Two dialogs, one Label + Key; the Add dialog's look and ids do not change | A second inline copy in the Copy form |
-| D-12 | **Tick hints.** Icon: `PVMarkKey(catalogKey: original.iconKey).typePickerTitle`. Description: "The original's description, as written". Formats: the present forms' names ("Full note", "Short note", "Source-list entry", in that order) joined by `ListFormatter.localizedString(byJoining:)`. Levels: `L10n.SourceTypes.copyFieldCount(_:)` *(new)* ("1 field" / "%lld fields", String Catalog plural). Absent: "None on this type". Tick labels: "Icon", "Description", "Citation formats", "Suggested fields on the Source", "Suggested fields on each Artifact", "Suggested fields on each Evidence graph" | S15-D7 § 2.1 | Counting forms ("3 forms") — less telling |
+| D-5 | **CopyType rules.** Every level must satisfy `HoldsMetadata()` and appear once, else `sourcevocab.ErrInvalid`, checked before any write. A missing original is `sourcetypes.ErrInvalid` (via `errors.Is(err, sql.ErrNoRows)`). Icon off → `""` (Create's default mark); Description off → `""`; Formats off → `Formats{}`; on → `StoredFormatsTx` of the original. Then `sourcetypes.Create`. Then, when `Levels` is non-empty, one `sqlCopySuggestions` *(new)*: `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order) SELECT ?, field_id, level, sort_order FROM source_type_metadata_fields WHERE source_type_id = ? AND level IN (` + one `?` per level joined by `,` (at most 3, validated) + `)`. No change is recorded for join rows. STEP-2 updates the `sourcevocab` package doc: it also holds the type copy, run inside the caller's `writes.Run` and never calling it | The join is not audited (`AppendSuggestion` precedent; effects registry `None`). One statement keeps order | Per-row `EnsureSuggestion` — opens the catalog's DB, not the tx; `sqlbatch.Query` — a read helper |
+| D-6 | **Handler** `CopySourceType` in `api/ffi/handlers/source_defs.go`: `parseUserID(req.GetUserId())`, `parseID(req.GetTypeId())`, levels as `vocabkey.Level(s)`; `writes.Run(c, writes.Op{Action: "copy_source_type", UserID: userID}, …)` as `CopySource` does, so the revision carries who copied; after Run fills `got.SuggestedFields` with `sourcetypes.SuggestedFields(c, got.ID)` (as `UpdateSourceType`); `UsedBy` stays 0 | Copy Source's handler is the sibling; the reply's count keeps the list row right through `.createdSourceType` | `Op` without `UserID`, as `CreateSourceType` (an older handler) |
+| D-7 | **Swift store** *(new)*: `copySourceType(projectDir:userID:typeID:label:copyIcon:copyDescription:copyFormats:levels: [Level]) async throws -> (CatalogSourceType, CatalogWriteEffects)` (GoStore sends `levels.map(\.rawValue)`) and `citationFormats(projectDir:typeID:) async throws -> CatalogCitationFormats`, with `CatalogCitationFormats` *(new)* `{ typeID, full, short, list: String; func text(_ form: CitationForm) -> String }` in `macos/App/Platform/GenealogyStore.swift` beside `CatalogSourceType`; `CitationForm` *(new)*, `macos/App/Platform/CitationForm.swift`, `enum CitationForm: String, CaseIterable { case full, short, list }` mirroring `citationformat.Forms()`, with a row in `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` as `Level.swift` has; `CoreMethod.copySourceType`, `CoreMethod.getCitationFormats`. `FakeStore` scripts, never computes (`.cursor/rules/swift-tests.mdc`): `copySourceTypeResult: (CatalogSourceType, CatalogWriteEffects)?` (the reply), `copySourceTypeError`, `copySourceTypeCalls` (the arguments), `citationFormatsByType: [String: CatalogCitationFormats]`, `citationFormatsError` | The sheet needs to know which forms exist (CT-4); S15-17 reuses the read, the struct and `CitationForm` (map S15-17 "Cache signal"; review M-7). Which rows a copy makes is tested in Go only (review M-2) | A `has_formats` column on the list; a fake that copies `suggestionsByLevel` — a second copy of the engine's rule |
+| D-8 | **`SourceTypeCopyModel`** *(new)*, `macos/App/Features/SourceTypes/SourceTypeCopyModel.swift`, `@MainActor @Observable final class`, `init(original: CatalogSourceType, session:userID:store:)`. `SourceTypeCopyChoices` *(new)* `Equatable { draft = SourceTypeDraft(label: "", description: ""); includeIcon = true; includeDescription = true; includeFormats = true; includedLevels: Set<Level> = Set(Level.metadataLevels) }`; `prefill`; `var labelCheck = SourceTypeLabelCheck()` (D-11); `copyError`, `isSaving`. Reads: three level handles from `CatalogQueryKey.typeSuggestionsKeys(project:typeId:)` for the original, each `session.query(...)` in init; the formats read as `private(set) var formatsState: PVFormLoadState = .loading` plus `formats: CatalogCitationFormats?`, set by `loadFormats() async` (the form's `.task`; success → `.ready` and the value, failure → `.failed(L10n.Errors.message(for:))`). `loadState: PVFormLoadState`: the first `.failed` in the order formats, source, artifact, graph (its message); else `.loading` while any is loading; else `.ready`. `reload()` rereads each failed level (`session.reread`) and, when the formats read failed, sets `formatsState = .loading` and starts `Task { await loadFormats() }`. Availability: icon always; description non-empty after trim; formats when any `CitationForm` has text; a level when its list is non-empty. `levelsToCopy` = ticked ∩ available, in `Level.metadataLevels` order. `canCopy` = ready ∧ !isSaving ∧ `draft.labelError == nil`. `isDirty` = `choices != prefill`. `copy() async -> CatalogSourceType?`: `labelCheck.validate(draft)` or stop; sends ticked ∧ available parts; on success `session.apply(effects, .createdSourceType(created))`; on error `labelCheck.refuse(error)` or else `copyError = L10n.Errors.message(for:)` | Copy Source's model shape; one state per read (review M-8) | Reusing `SourceTypeAddModel` with a mode — two dialogs' state in one class; a `formats` and `formatsError` pair |
+| D-9 | **Host.** `SourceTypePageModel` gains `var copying: SourceTypeCopyModel?`, `func openCopy()` (does nothing while `type` is nil or `isGone`; otherwise a fresh model from `type`) and `var canOpenCopy: Bool` (`type != nil && !isGone`). `SourceTypePageHeader` draws `PVIconButton(.duplicate, label: L10n.SourceTypes.copyEntry, size: .sm)` (spoken label the same as the tooltip, board CT-1) before the trash in `loaded(_:)`, `.disabled(!model.canOpenCopy)`, id `sourceTypes.page.copy`, on every origin; in `loading`, the same button disabled before the trash's `PVSkeletonBar(width: 28, height: 28)`, in one `HStack(spacing: PVSpacing.space4)` (board: "shown disabled while the page loads"). `SourceTypePageView` adds `.sourceTypeCopyDialog($model.copying)` | Copy Source's host shape (`SourcePageModel.copying`) | A `@State` bool in the view |
+| D-10 | **Dialog** `SourceTypeCopyDialog.swift` *(new)*: `View.sourceTypeCopyDialog(_:)` over `pvFormDialog(item:)`, width 520, copy from § 6 Strings, `accessibilityIdentifierPrefix: "sourceTypes.copy"`; `onConfirm` calls `copy()`, then `navigation.go(to: .sourceTypePage(typeId: created.id, title: created.label))` (the existing case S15-47 uses), no toast. The form: save-error `PVCallout` (danger, title `copyErrorTitle`), `SourceTypeLabelKeyFields`, `PVDivider`, the micro-caps heading, `PVFormLoadArea` holding six `PVCopyPartTick`s | CT-2 – CT-6, CT-8 – CT-10; Copy Source's form | Two columns with the icon grid (brief non-goal) |
+| D-11 | **One label rule, one Label + Key view.** `SourceTypeLabelCheck` *(new)*, a struct in `SourceTypeDraft.swift`: `private(set) var error: String?`, `private(set) var announces = false`; `mutating func edit(_ new: String, in draft: inout SourceTypeDraft)` (no-op when unchanged; sets the label, `error = draft.labelError`, `announces = false`); `mutating func validate(_ draft: SourceTypeDraft) -> Bool` (`error = draft.labelError`, `announces = false`, returns `error == nil`); `mutating func refuse(_ error: Error) -> Bool` (on `.sourceTypeDuplicateKey`: `self.error = L10n.Errors.message(for:)`, `announces = true`, true; else false); `mutating func clear()`. `SourceTypeAddModel` and `SourceTypePageModel` replace `labelError`, `labelErrorFromWrite` and their `editLabel` bodies with it (`editLabel` stays as a one-line call; the page's guards on its optional draft); `SourceTypeAddDialog.swift` and `SourceTypePageView.swift` read `labelCheck.error` / `.announces`. `SourceTypeLabelKeyFields` *(new)*, `SourceTypeLabelKeyFields.swift`: the Label `PVField` (required, error, `announcesError`, `PVInput` with `activateOnAppear`, placeholder) and the read-only mono Key `PVField`, taking `label: Binding<String>`, `check: SourceTypeLabelCheck`, `key: String`, `placeholder: LocalizedStringResource`, `focus: PVFieldFocus?`, `accessibilityIdentifierPrefix: String` (ids `<prefix>.label`, `<prefix>.key`); `SourceTypeAddForm` uses it with today's ids (`sourceTypes.add.label`, `.key`) | The label rule exists twice today (review M-1); a third copy is pulled out by the PR that adds it | A third `editLabel` |
+| D-12 | **Ticks and hints.** `PVCopyPartTick` *(new recipe, D-14)*. Icon hint: `PVMarkKey(catalogKey: original.iconKey).typePickerTitle`. Description: "The original's description, as written". Formats: `CitationForm.allCases.filter { !formats.text($0).isEmpty }.map { L10n.CitationForms.name($0) }` joined by `ListFormatter.localizedString(byJoining:)` ("Full note, Short note and Source-list entry"). Levels: `L10n.SourceTypes.assignedCount(count:)` (the page's list count, review M-5). Labels: "Icon", "Description", "Citation formats", and `L10n.SourceTypes.level(level).copyTick` *(new field on `LevelCopy`)* (review M-4). Absent: "None on this type" | S15-D7 § 2.1; one switch per vocabulary | New `copyLevel` and `copyFieldCount` keys |
+| D-14 | **Promote before the second feature (`add-ui-component`).** `SourceFormLoadArea` and `SourceFormLoadState` move to `macos/App/DesignSystem/Recipes/FormLoadArea/PVFormLoadArea.swift` *(new)* as `PVFormLoadArea` and `PVFormLoadState`, unchanged in behavior; its Read again string moves from `L10n.Sources.formReadAgain` to `L10n.DesignSystem.formReadAgain` (key `designSystem.formLoad.readAgain`); its three callers (`SourceCopyDialog.swift`, `ArtifactSheet.swift`, `SourceGraphFormDialog.swift`) and every `SourceFormLoadState` use (`SourceCopyModel`, `ArtifactSheetModel`, `UnlinkLocks` and their tests) are renamed. `SourceCopyForm.partTick`/`partBinding` become `macos/App/DesignSystem/Recipes/CopyPartTick/PVCopyPartTick.swift` *(new)*: `PVCopyPartTick(label: String, hint: String, absentHint: String, isChecked: Binding<Bool>, isAvailable: Bool, isDisabled: Bool)` — an unavailable part reads unticked and disabled with `absentHint`; Copy Source and Copy type both use it | `.agents/skills/add-ui-component/SKILL.md` "If a second feature needs it, promote to `Recipes/<Name>/` before copying"; S15-32 review M-1 made `partTick` so the rule lives once (review M-3) | Reaching into `Features/Sources`; a second `partTick` |
 | D-13 | **Unsaved Details.** The sheet copies saved values (the original's `CatalogSourceType` and server reads), never the page's draft. After Copy type, `navigation.go(to:)` runs through the page's existing leave guard, which asks when Details are dirty | Brief § 2 "Saved values only"; no new safety rule | Copying the draft — a write of values the researcher has not saved |
 
 **Rules this plan bends.** None.
@@ -147,12 +150,17 @@ A researcher who wants a type close to one they have (a state census beside the 
 | `SourceTypeCopyModel`, `SourceTypeCopyChoices` *(new)* | type | `SourceCopyModel`, `SourceCopyChoices` | Different parts and reads; same shape |
 | `SourceTypeCopyDialog.swift` *(new)* | view | `SourceCopyDialog.swift` | Same shape |
 | `SourceTypeLabelKeyFields` *(new)* | view | `SourceTypeAddForm`'s two fields | Extracted from it (D-11) |
-| `L10n.SourceTypes.copy*` keys *(new)* | key | `L10n.Sources.copySource*` | Different nouns; the Sources keys say "Source" |
+| `SourceTypeLabelCheck` *(new)* | type | `SourceTypeAddModel.editLabel`, `SourceTypePageModel.editLabel` | Replaces both (D-11) |
+| `PVFormLoadArea`, `PVFormLoadState` *(moved)* | recipe | `Features/Sources/SourceFormLoadArea.swift` | Promoted (D-14) |
+| `PVCopyPartTick` *(new)* | recipe | `SourceCopyForm.partTick` | Promoted (D-14) |
+| `CitationForm` *(new)*, `L10n.CitationForms` *(new)* | enum / keys | `Platform/Level.swift`, `L10n.SourceTypes.LevelCopy` | Mirror of `citationformat.Forms()`; S15-17 reuses (D-7, D-12) |
+| `formatFieldDiffs` *(new)*, `CreateInput` *(new)* | func / type | `Delete`'s and `UpdateFormats`'s loops; `sources.CreateInput` | D-3 |
+| `L10n.SourceTypes.copy*` keys *(new)*, `LevelCopy.copyTick` *(new)* | key | `L10n.Sources.copySource*`; `LevelCopy` | Different nouns; level text stays in `LevelCopy`'s one switch |
 | `SourceTypeCopyModelTests.swift` *(new)* | test | `SourceCopyModelTests.swift` | One file per model |
 
 **Builds on.** Copy Source's RPC, model and dialog; `writes.Run` composing; `SourceFormLoadArea`; `.createdSourceType` row patch (S15-47); `pvFormDialog(item:)`; the page's leave guard (S15-48).
-**Deletes.** The inline Label and Key `PVField`s in `SourceTypeAddForm` (replaced by `SourceTypeLabelKeyFields`). Nothing else becomes dead.
-**Next adds.** S15-17 reuses `citationFormats` and extends `CatalogCitationFormats` with field choices and diagnostics. S15-20's seed needs nothing from this. A fourth part (a future type property) is one more `include…` bool, request field and tick.
+**Deletes.** The inline Label and Key `PVField`s in `SourceTypeAddForm`; `labelError`, `labelErrorFromWrite` and the duplicate-key branch in `SourceTypeAddModel`, `labelError` in `SourceTypePageModel` (replaced by `SourceTypeLabelCheck`); `Features/Sources/SourceFormLoadArea.swift` (moved); `SourceCopyForm.partTick`, `partBinding` (promoted); `L10n.Sources.formReadAgain` (moved); the `formColumns` loops in `Delete` and `UpdateFormats` (replaced by `formatFieldDiffs`).
+**Next adds.** S15-17 reuses `citationFormats`, `CitationForm` and `L10n.CitationForms`, and extends `CatalogCitationFormats` with field choices and diagnostics. S15-20's seed needs nothing from this. A fourth part (a future type property) is one more `include…` bool, request field and tick.
 
 ### Reach
 
@@ -183,7 +191,7 @@ None — no catalog change; `source_types` has the citation columns since S15-15
 
 | Package | Change |
 | --- | --- |
-| `core/database/sourcetypes` | `Create(tx *database.Tx, label, description, iconKey string, stored Formats) (Type, []rowchange.Change, error)` (D-3); `GetByIDTx(tx *sql.Tx, id []byte) (Type, error)` *(new)* (D-4); `sqlInsert` *(new)* |
+| `core/database/sourcetypes` | `Create(tx *database.Tx, in CreateInput) (Type, []rowchange.Change, error)`, `CreateInput` *(new)*, `formatFieldDiffs` *(new)* (D-3); `GetByIDTx(tx *sql.Tx, id []byte) (Type, error)` *(new)* (D-4); `sqlInsert` *(new)* |
 | `core/database/sourcevocab` | `copy.go` *(new)*: `CopyTypeInput` *(new)*, `CopyType` *(new)*, `sqlCopySuggestions` *(new)* (D-2, D-5) |
 
 ```go
@@ -211,8 +219,8 @@ Errors: `sourcevocab.invalid` → a level outside the metadata levels or repeate
 | Copy type sheet | `pvFormDialog(item:)` | `SourceTypeCopyDialog.swift` *(new)* | 520pt (CT-2) |
 | Label, Key | `SourceTypeLabelKeyFields` (`PVField` + `PVInput`) | *(new)* file | D-11 |
 | Divider, heading | `PVDivider`; `Text(...).pvMicroCaps()` `PVColor.textFaint` | dialog | As Copy Source |
-| Ticks | `PVCheckbox(verbatim:description:isChecked:isDisabled:)` | dialog | D-10, D-12 |
-| Read area | `SourceFormLoadArea` | `Features/Sources/` | CT-5 |
+| Ticks | `PVCopyPartTick` (over `PVCheckbox`) | `DesignSystem/Recipes/CopyPartTick/` *(new)* | D-12, D-14 |
+| Read area | `PVFormLoadArea` | `DesignSystem/Recipes/FormLoadArea/` *(new)* | CT-5, D-14 |
 | Errors | `PVField` error; `PVCallout(tone: .danger, title:message:)` | dialog | CT-3, CT-8 |
 | Discard confirm | `pvFormDialog`'s `isDirty` | — | CT-9 |
 
@@ -233,26 +241,28 @@ L10n keys *(new)*, all in `L10n.SourceTypes`, with `Localizable.xcstrings` entri
 | `copyPartsHeading` (`sourceTypes.copy.parts`) | "Copy from the original" |
 | `copyIcon`, `copyDescription`, `copyFormats` | "Icon", "Description", "Citation formats" |
 | `copyDescriptionHint` | "The original's description, as written" |
-| `copyFormFull`, `copyFormShort`, `copyFormList` | "Full note", "Short note", "Source-list entry" |
-| `copyLevel(_:)` (one key per metadata level) | "Suggested fields on the Source", "Suggested fields on each Artifact", "Suggested fields on each Evidence graph" |
-| `copyFieldCount(_:)` (plural) | "1 field" / "%lld fields" |
+| `L10n.CitationForms.name(_:)` (`citationForms.full`, `.short`, `.list`) | "Full note", "Short note", "Source-list entry" |
+| `LevelCopy.copyTick` (`sourceTypes.suggested.level.source.copyTick`, `.artifact.copyTick`, `.graph.copyTick`) | "Suggested fields on the Source", "Suggested fields on each Artifact", "Suggested fields on each Evidence graph" |
+| `L10n.DesignSystem.formReadAgain` (`designSystem.formLoad.readAgain`, moved from `L10n.Sources.formReadAgain`) | today's text |
 | `copyPartAbsent` | "None on this type" |
 | `copyLoading` | "Reading the original's formats and suggested fields" |
 | `copyLoadErrorTitle` | "The original's parts could not be read." |
 | `copyConfirm` | "Copy type" |
 | `copyErrorTitle` | "The type was not copied" |
 
-Reused: `L10n.SourceTypes.cancel`, `formLabel`, `addKey`, `keyHintAdd`, `addKeyPlaceholder`, `errorLabelRequired`, `errorUnslugifiable`, `L10n.Errors.message(for:)`. The Read again button and the load error message come from `SourceFormLoadArea`'s existing parameters (`errorMessage` passes the engine message). Removed: none. No existing copy names the old scope.
+Reused: `L10n.SourceTypes.assignedCount(count:)`, `L10n.SourceTypes.cancel`, `formLabel`, `addKey`, `keyHintAdd`, `addKeyPlaceholder`, `errorLabelRequired`, `errorUnslugifiable`, `L10n.Errors.message(for:)`. The load error message comes from `PVFormLoadArea`'s `errorMessage` parameter (the engine message). Removed: `L10n.Sources.formReadAgain` (moved). No existing copy names the old scope.
 
 ## 7. Steps
 
-**STEP-1 — Create stores formats; GetByIDTx**
-Files: `core/database/sourcetypes/sourcetypes.go`, `sourcetypes_test.go`, `api/ffi/handlers/source_defs.go` (pass `sourcetypes.Formats{}`), `core/database/sourcemetadata/sourcemetadata_test.go`, `core/search/search_test.go`. Skill: `add-catalog-query`, `add-audit-scope`.
-Do: D-3, D-4. Extend `TestCreateUpdateGetByID` (T-2).
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcetypes/ ./core/database/sourcemetadata/ ./core/search/ ./api/ffi/handlers/` passes.
+Ten steps, at the size limit: steps 5 and 6 are the promotions and the label rule the review asked for, each a no-change refactor with its own commit.
+
+**STEP-1 — Create takes an input and stores formats**
+Files: `core/database/sourcetypes/sourcetypes.go`, `formats.go`, `sourcetypes_test.go`, `api/ffi/handlers/source_defs.go`, `core/database/sourcemetadata/sourcemetadata_test.go`, `core/search/search_test.go`. Skill: `add-catalog-query`, `add-audit-scope`.
+Do: D-3, D-4. Extend `TestCreateUpdateGetByID` (T-2). Before editing, `rg -n 'sourcetypes\.Create\(|\bCreate\(tx' core api` lists exactly the four callers in D-3.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcetypes/ ./core/database/sourcemetadata/ ./core/search/ ./api/ffi/handlers/` passes (`TestDelete` and the formats tests unchanged).
 
 **STEP-2 — CopyType**
-Files: `core/database/sourcevocab/copy.go` *(new)*, `copy_test.go` *(new)*. Skill: `add-seeded-vocabulary`.
+Files: `core/database/sourcevocab/copy.go` *(new)*, `copy_test.go` *(new)*, `sourcevocab.go` (package doc). Skill: `add-seeded-vocabulary`.
 Do: D-2, D-5. T-1.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/` passes.
 
@@ -261,33 +271,38 @@ Files: `api/proto/engine.proto`, generated files, `api/ffi/dispatch.go`, `api/ff
 Do: D-1, D-6; `./scripts/generate-proto.sh`. T-3.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./api/...` passes.
 
-**STEP-4 — Swift store**
-Files: `macos/App/Platform/GenealogyStore.swift`, `GoStore.swift`, `FakeStore.swift`, `CoreInvoke.swift`, (`CatalogCitationFormats` beside `CatalogSourceType` in `GenealogyStore.swift`).
-Do: D-7.
-Check: `xcodebuild build` of the app scheme succeeds with no new warning.
+**STEP-4 — Swift store and CitationForm**
+Files: `macos/App/Platform/GenealogyStore.swift`, `GoStore.swift`, `FakeStore.swift`, `CoreInvoke.swift`, `CitationForm.swift` *(new)*, `L10n.swift`, `Localizable.xcstrings`, `api/ffi/swift_vocabulary_test.go`. Skill: `add-localized-string`.
+Do: D-7; `L10n.CitationForms.name(_:)`. T-6.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/ -run TestSwiftVocabularyMatchesGo` passes; `xcodebuild build` succeeds with no new warning.
 
-**STEP-5 — Shared Label and Key**
-Files: `macos/App/Features/SourceTypes/SourceTypeLabelKeyFields.swift` *(new)*, `SourceTypeAddDialog.swift`. Skill: `add-ui-component`.
-Do: D-11.
-Check: existing `SourceTypesModelTests` and the Add dialog's UI ids unchanged; `xcodebuild test` passes.
+**STEP-5 — Promote the read area and the part tick**
+Files: `macos/App/DesignSystem/Recipes/FormLoadArea/PVFormLoadArea.swift` *(new, moved)*, `macos/App/DesignSystem/Recipes/CopyPartTick/PVCopyPartTick.swift` *(new)*, `Features/Sources/SourceFormLoadArea.swift` (deleted), `SourceCopyDialog.swift`, `SourceCopyModel.swift`, `ArtifactSheet.swift`, `ArtifactSheetModel.swift`, `SourceGraphFormDialog.swift`, `UnlinkLocks.swift`, their tests, `L10n.swift`, `Localizable.xcstrings`. Skill: `add-ui-component`, `add-localized-string`.
+Do: D-14. No visible change.
+Check: `rg -n 'SourceFormLoad|formReadAgain|partTick' macos docs/*.md .agents .cursor` finds only the new names; `xcodebuild test` passes (`SourceCopyModelTests` unchanged).
 
-**STEP-6 — Model and sheet**
-Files: `SourceTypeCopyModel.swift` *(new)*, `SourceTypeCopyDialog.swift` *(new)*, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/ProvenenciaTests/SourceTypeCopyModelTests.swift` *(new)*. Skill: `add-localized-string`, `add-swift-test`, `add-ui-component`.
+**STEP-6 — One label rule, one Label + Key view**
+Files: `SourceTypeDraft.swift`, `SourceTypeLabelKeyFields.swift` *(new)*, `SourceTypeAddModel.swift`, `SourceTypeAddDialog.swift`, `SourceTypePageModel.swift`, `SourceTypePageView.swift`, their tests.
+Do: D-11. No visible change.
+Check: `rg -n 'labelErrorFromWrite|sourceTypes\.add\.(label|key)' macos` shows the ids only in `SourceTypeAddDialog.swift`'s call to `SourceTypeLabelKeyFields` and no `labelErrorFromWrite`; `xcodebuild test` passes (`SourceTypesModelTests`, `SourceTypePageModelTests` unchanged in what they assert).
+
+**STEP-7 — Model and sheet**
+Files: `SourceTypeCopyModel.swift` *(new)*, `SourceTypeCopyDialog.swift` *(new)*, `L10n.swift`, `Localizable.xcstrings`, `macos/ProvenenciaTests/SourceTypeCopyModelTests.swift` *(new)*. Skill: `add-localized-string`, `add-swift-test`.
 Do: D-8, D-10, D-12, Strings. T-4.
 Check: `xcodebuild test` runs `SourceTypeCopyModelTests` green.
 
-**STEP-7 — Host on the page**
+**STEP-8 — Host on the page**
 Files: `SourceTypePageModel.swift`, `SourceTypePageHeader.swift`, `SourceTypePageView.swift`, `macos/ProvenenciaTests/SourceTypePageModelTests.swift`.
 Do: D-9, D-13. T-5.
-Check: `xcodebuild test` green; in the app, Copy shows on Census and on a plugin type.
+Check: `xcodebuild test` green; in the app, Copy shows on Census and on a plugin type, disabled while the page loads.
 
-**STEP-8 — Version**
+**STEP-9 — Version**
 Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`.
 Do: the header's bump.
-Check: `scripts/check-pr.sh` prints `check-pr: PASS`.
+Check: `scripts/check-pr.sh` prints `check-pr: PASS` (on macOS: it runs the Xcode tests).
 
-**STEP-9 — Docs**
-Files: `docs/source-layer-data-model.md` (§ 3: a type can be copied, action `copy_source_type`, what each part copies, join rows unaudited), `completed.md`, `deployment-plan.md` (map row), this plan (status, Landed note), `design/S15-D7-copy-source-type.md` → `design/archive/`, `design/README.md`.
+**STEP-10 — Docs**
+Files: `docs/source-layer-data-model.md` (a "Copy a Source type" section beside Copy Source's: action `copy_source_type`, what each part copies, join rows unaudited), `.agents/skills/add-seeded-vocabulary/SKILL.md` (the `sourcevocab` row: it also holds the type copy), `docs/design-system-layers.md` if it lists recipes (add `PVFormLoadArea`, `PVCopyPartTick`), `completed.md`, `deployment-plan.md` (map row), this plan (status, Landed note), `design/S15-D7-copy-source-type.md` → `design/archive/`, `design/README.md`.
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-18-copy-source-type.md` reports no errors; links resolve.
 
@@ -297,13 +312,14 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/sourcevocab/copy_test.go` `TestCopyType` *(new)*, table | every part → icon, description, stored formats equal, rows equal with sort order at each level, one create change with three `citation_*` fields; Artifact level off → no Artifact rows; Icon/Description/Formats off → default mark, empty, no `citation_*` fields; no ticks → blank user type; plugin original → user copy; Provenencia `census` with label "Census" → succeeds; user `census` exists → `ErrDuplicateKey`; unknown original → `sourcetypes.ErrInvalid`; levels `citation` or duplicated → `sourcevocab.ErrInvalid`, no row; level with no rows → succeeds, none copied; removing the copy's row leaves the original's; copied formats → deleting a named field is refused naming both types | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, AC-3.2, AC-3.3, D-3, D-5 |
-| T-2 | Go | `core/database/sourcetypes/sourcetypes_test.go` `TestCreateUpdateGetByID` (extended) | Create with stored formats → `StoredFormatsTx` returns them; change fields include the non-empty forms only; `GetByIDTx` with a 15-byte id → `ErrInvalid` | D-3, D-4 |
+| T-1 | Go | `core/database/sourcevocab/copy_test.go` `TestCopyType` *(new)*, table | every part → icon, description, stored formats equal, rows equal with sort order at each level, one create change with three `citation_*` fields; Artifact level off → no Artifact rows; Icon/Description/Formats off → default mark, empty, no `citation_*` fields; no ticks → blank user type; plugin original → user copy; Provenencia `census` with label "Census" → succeeds; user `census` exists → `ErrDuplicateKey`; unknown original → `sourcetypes.ErrInvalid`; levels `citation` or duplicated → `sourcevocab.ErrInvalid`, no row; level with no rows → succeeds, none copied; removing the copy's row leaves the original's; copied formats → `deleteimpact.Impact(tx, catalogmodel.KindMetadataField, fieldID)` has the group `deleteimpact.ViaCitationFormats` with `Total == 2` (as `metadatafields_test.go` asserts it) | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, AC-3.2, AC-3.3, D-3, D-5 |
+| T-2 | Go | `core/database/sourcetypes/sourcetypes_test.go` `TestCreateUpdateGetByID` (extended) | `CreateInput` with stored formats → `StoredFormatsTx` returns them; change fields include the non-empty forms only, `Old` nil; `GetByIDTx` with a 15-byte id → `ErrInvalid`; `TestDelete` and `UpdateFormats` tests keep their change fields (via `formatFieldDiffs`) | D-3, D-4 |
 | T-3 | Go | `api/ffi/handlers/source_defs_test.go` `TestCopySourceType` *(new)*, `runRPC` | Census-like type with formats and suggestions → reply origin `user`, `suggested_field_count` equal to the copied rows, effects with a revision; `GetCitationFormats` on the copy equals the original's texts; bad `user_id` → invalid; bad `type_id` → invalid | AC-1.1, AC-3.1 |
-| T-4 | Swift | `macos/ProvenenciaTests/SourceTypeCopyModelTests.swift` *(new)* | `prefillsBlankLabelAndEveryTick`; `absentPartsReadUntickedAndAreNotSent` (Letter-like); `copySendsTickedLevelsAndPatchesTheList` (list row with count); `duplicateKeyShowsUnderLabel`; `otherFailureKeepsChoices`; `formatsReadFailureThenReadAgain`; `cannotCopyWhileReading`; `dirtyAfterLabelOrTick` | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, D-8 |
-| T-5 | Swift | `macos/ProvenenciaTests/SourceTypePageModelTests.swift` `openCopyOnLoadedTypeOnly` *(new)* | type not loaded → `copying` stays nil; loaded plugin type → `copying.original.id` equals it | AC-1.5, D-9 |
+| T-4 | Swift | `macos/ProvenenciaTests/SourceTypeCopyModelTests.swift` *(new)* | `prefillsBlankLabelAndEveryTick`; `absentPartsReadUntickedAndAreNotSent` (Letter-like: `copySourceTypeCalls` has `copyDescription == false`, `copyFormats == false`, levels `[.source]`); `copySendsTickedPartsAndPatchesTheList` (Artifact off → levels `[.source, .graph]`; the scripted `copySourceTypeResult` row, with its `suggestedFieldCount`, is in the cached types list); `duplicateKeyShowsUnderLabel` (`labelCheck.announces`); `otherFailureKeepsChoices`; `formatsReadFailureThenReadAgain` (`citationFormatsError` set → `.failed`; cleared, `reload()` then `await loadFormats()` → `.ready`); `cannotCopyWhileReading`; `dirtyAfterLabelOrTick` | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, D-8 |
+| T-5 | Swift | `macos/ProvenenciaTests/SourceTypePageModelTests.swift` `openCopyOnLoadedTypeOnly` *(new)* | type not loaded → `canOpenCopy` false, `openCopy()` leaves `copying` nil; loaded plugin type → `copying.original.id` equals it | AC-1.5, D-9 |
+| T-6 | Go | `api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` (a row) | `CitationForm` cases equal `citationformat.Forms()` | D-7 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestCreateUpdateGetByID`, `TestCreateSourceTypeMintsKeyFromLabel`, `SourceTypesModelTests` (Add dialog ids), the dispatch test over every `Method`.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestCreateUpdateGetByID`, `TestDelete`, `TestCitationFormats`, `TestCreateSourceTypeMintsKeyFromLabel`, `SourceCopyModelTests`, `SourcePageModelTests` (Artifact sheet's load state), `SourceTypesModelTests`, `SourceTypePageModelTests`, `api/ffi/dispatch_test.go`.
 
 ## 9. Definition of done
 
@@ -326,8 +342,8 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 ## 10. Manual check
 
-1. Open a project with a user type "Census" given the census-sheet mark, a description, the three formats (typed through `UpdateCitationFormats` in a test harness or S15-17 if landed) and suggestions at all three levels. On its page press Copy: the sheet shows six ticks, all on, with the mark's name, "Full note, Short note and Source-list entry" and the three counts.
-2. Type "State census", untick "Suggested fields on each Artifact", press Copy type: the State census page opens with the census-sheet mark, the description, the Source and Evidence graph lists, no Artifact list entries; the Source types list shows it with the summed count. Bar 5: the type read returns Census's formats.
+1. Open a project with a user type "Census" given the census-sheet mark, a description and suggestions at all three levels. On its page press Copy: the sheet shows six ticks with the mark's name and the three counts. Until S15-17 lands no screen writes formats, so Citation formats reads "None on this type" here; copying formats is covered by T-1 and T-3, and once S15-17 has landed, give Census formats first and see "Full note, Short note and Source-list entry".
+2. Type "State census", untick "Suggested fields on each Artifact", press Copy type: the State census page opens with the census-sheet mark, the description, the Source and Evidence graph lists, no Artifact list entries; the Source types list shows it with the summed count. 
 3. On Census, type "Census" in the sheet: the duplicate message shows under Label.
 4. Open a Provenencia type with no formats (Birth certificate): Description and Citation formats read "None on this type" when absent; Copy is enabled; on a plugin type, Copy is enabled.
 5. Repeat 1 with the window at Regular and stretched to Wide: the sheet and the page look the same at both widths (CT-W1).
@@ -338,7 +354,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 | Risk | Mitigation |
 | --- | --- |
 | Changing `Create`'s signature misses a caller | STEP-1 lists all three; `go vet ./...` catches the rest |
-| The fake's copy drifts from Go | T-3 covers Go; T-4 asserts what Swift sends, not the fake's result rules |
+| The promotions touch Copy Source and the Artifact sheet | STEP-5 is its own commit with no visible change; their tests must pass unchanged |
 | The board draws Icon or Description as fields | Stop condition below |
 
 **Stop and report if:**
