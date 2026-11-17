@@ -183,8 +183,7 @@ func buildFacetReleases() []facetRelease {
 		optionalPointer(catalogmodel.KindArtifact, "sources", "primary_artifact_id", "source", "id", col{"cover_mode", colText}),
 		// An Artifact's metadata goes with it; layout rows are audited under
 		// field_id, as a Source's are.
-		rowFacet(catalogmodel.KindArtifact, "artifact_metadata", "artifact_id", "artifact_metadata", "id",
-			col{"id", colUUID}, col{"artifact_id", colUUID}, col{"field_id", colUUID}, col{"value_text", colText}),
+		metadataValueFacet(catalogmodel.KindArtifact, "artifact_metadata", "artifact_id"),
 		rowFacet(catalogmodel.KindArtifact, "artifact_metadata_layout", "artifact_id", "artifact_metadata_layout", "field_id",
 			col{"artifact_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
 		// A graph's Citations go with it, each through releaseCitation (a graph
@@ -200,8 +199,7 @@ func buildFacetReleases() []facetRelease {
 		// A graph's links go with it, audited under its id.
 		rowFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_artifacts", "graph_id", "evidence_graph_artifact", "graph_id",
 			col{"graph_id", colUUID}, col{"artifact_id", colUUID}),
-		rowFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_metadata", "graph_id", "evidence_graph_metadata", "id",
-			col{"id", colUUID}, col{"graph_id", colUUID}, col{"field_id", colUUID}, col{"value_text", colText}),
+		metadataValueFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_metadata", "graph_id"),
 		rowFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_metadata_layout", "graph_id", "evidence_graph_metadata_layout", "field_id",
 			col{"graph_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
 
@@ -215,8 +213,7 @@ func buildFacetReleases() []facetRelease {
 			Remaining: `SELECT COUNT(*) FROM evidence_graphs WHERE source_id = ?`,
 			Release:   releaseEach(`SELECT id FROM evidence_graphs WHERE source_id = ? ORDER BY id`, releaseGraph),
 		},
-		rowFacet(catalogmodel.KindSource, "source_metadata", "source_id", "source_metadata", "id",
-			col{"id", colUUID}, col{"source_id", colUUID}, col{"field_id", colUUID}, col{"value_text", colText}),
+		metadataValueFacet(catalogmodel.KindSource, "source_metadata", "source_id"),
 		rowFacet(catalogmodel.KindSource, "source_credibility_assessments", "source_id", "source_credibility_assessment", "id",
 			col{"id", colUUID}, col{"source_id", colUUID}, col{"credibility_grade_id", colUUID}, col{"argument", colText}),
 		// Layout rows are audited under field_id (sourcemetadata precedent).
@@ -490,6 +487,14 @@ func eraseObservation(tx *sql.Tx, id []byte) (released, error) {
 }
 
 // --- Plain row facets -------------------------------------------------------
+
+// metadataValueFacet is a value table's facet: the row audited whole, with the
+// mark it carries (core/valuemark), as sourcemetadata's own delete change.
+func metadataValueFacet(parent catalogmodel.Kind, table, ownerCol string) facetRelease {
+	return rowFacet(parent, table, ownerCol, table, "id",
+		col{"id", colUUID}, col{ownerCol, colUUID}, col{"field_id", colUUID}, col{"value_text", colText},
+		col{"is_unknown", colBool}, col{"is_supplied", colBool})
+}
 
 type colKind int
 
