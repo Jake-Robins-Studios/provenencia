@@ -154,7 +154,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Reconciled value row | Snowflake | Ship | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | The Date row. Unchanged: label, value lines, badge slot, Why |
-| Value lines | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines |
+| Value lines | Recipe | Extend | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines. Extended with one muted remainder caption under the lines (DR-8), as the Place page's Contains ends |
 | The Why | Recipe | Ship | `macos/App/Features/Conclusions/ReconciliationReasoningView.swift`, `PVProvenanceSheetContent.spanning` | The records of every field behind the lines, in one group, as the start–end row today |
 | Row model | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `ReconciledValueRowModel.spanning` | Takes the listed lines as well as the lead |
 | Row date text | Shared Platform formatter | Ship | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay`, `L10n.Dates.rowAsOf` | Each date in the list row's compact form; "as of" is S16-D4's copy. DR-3's start and end words and DR-8's remainder line are new copy |
