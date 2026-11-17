@@ -13612,6 +13612,54 @@
         }
       }
     },
+    "dates.row.asOf": {
+      "comment": "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "as of %@"
+          }
+        }
+      }
+    },
+    "dates.row.asOfRange": {
+      "comment": "Event date line when as-of dates date the event and its period is open on both sides. Arguments are the earliest and the latest as-of date. The separator is an en dash.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "as of %1$@–%2$@"
+          }
+        }
+      }
+    },
+    "dates.row.fromAsOf": {
+      "comment": "Event date line when a start date closes the earliest side and an as-of date is the latest. Arguments are the start date and the as-of date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from %1$@, as of %2$@"
+          }
+        }
+      }
+    },
+    "dates.row.asOfUntil": {
+      "comment": "Event date line when an as-of date is the earliest and an end date closes the latest side. Arguments are the as-of date and the end date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "as of %1$@, until %2$@"
+          }
+        }
+      }
+    },
     "dates.row.dayMonthYear": {
       "comment": "Row date with day, abbreviated month, and year (14 May 1817). Day and year are digits, never grouped. Reorder for your locale.",
       "extractionState": "manual",

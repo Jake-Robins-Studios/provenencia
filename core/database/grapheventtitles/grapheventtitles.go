@@ -1,5 +1,5 @@
-// Package grapheventtitles chooses the title of every Event Subject on one
-// Evidence graph, from what that graph cites: the event's own event_name and
+// Package grapheventtitles titles and dates every Event Subject on one Evidence
+// graph, from what that graph cites: the event's own event_name and
 // event_type, the people its subject-role participations name, and the places
 // its locations name. The rule is eventtitle's, the same one canonical Event
 // summaries use, so a card and the Event it is promoted to title themselves by
@@ -15,16 +15,30 @@ import (
 
 	"github.com/mendahu/provenencia/core/database/graphcache"
 	"github.com/mendahu/provenencia/core/database/observations"
+	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/eventtitle"
+	"github.com/mendahu/provenencia/core/matchregistry"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/valuecodec"
+	"github.com/mendahu/provenencia/core/valuecompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
-// Title is one Event Subject's chosen title.
+// Title is one Event Subject's chosen title and its dating.
 type Title struct {
 	SubjectID []byte
 	Plan      eventtitle.Plan
+	Dating    valuecompare.Dating
+}
+
+// eventLead and eventPeriod are the Property keys an Event's dating reads.
+var eventLead, eventPeriod = matchregistry.Default().Subject.EventPeriod()
+
+// eventDates is what one Event Subject's Observations record: the first lead,
+// start and end date and every as-of.
+type eventDates struct {
+	date, start, end *datevalue.Value
+	samples          []datevalue.Value
 }
 
 type naming struct {
@@ -77,6 +91,41 @@ func FromStored(eg graphcache.EvidenceGraph, propKey map[string]string, terms ma
 			first[k] = n
 		}
 	}
+	dates := map[string]*eventDates{}
+	for _, o := range eg.Observations {
+		if o.Polarity != "positive" || len(o.Date) == 0 {
+			continue
+		}
+		keyName := vocabkey.PropertyKey(propKey[string(o.PropertyID)])
+		if keyName != eventLead && keyName != eventPeriod.Start && keyName != eventPeriod.End && keyName != eventPeriod.Samples {
+			continue
+		}
+		d, err := valuecodec.UnmarshalDate(o.Date)
+		if err != nil {
+			continue
+		}
+		e := dates[string(o.SubjectID)]
+		if e == nil {
+			e = &eventDates{}
+			dates[string(o.SubjectID)] = e
+		}
+		switch keyName {
+		case eventLead:
+			if e.date == nil {
+				e.date = &d
+			}
+		case eventPeriod.Start:
+			if e.start == nil {
+				e.start = &d
+			}
+		case eventPeriod.End:
+			if e.end == nil {
+				e.end = &d
+			}
+		case eventPeriod.Samples:
+			e.samples = append(e.samples, d)
+		}
+	}
 	places := slices.Clone(eg.EventPlaces)
 	names := map[string]namevalue.Value{}
 	for _, o := range eg.Observations {
@@ -93,10 +142,10 @@ func FromStored(eg graphcache.EvidenceGraph, propKey map[string]string, terms ma
 	for id, records := range toponyms {
 		placeNames[id] = observations.FirstText(records)
 	}
-	return assemble(events, first, placeNames, eg.EventPeople, places, names)
+	return assemble(events, first, placeNames, eg.EventPeople, places, names, dates)
 }
 
-func assemble(events []titledEvent, first map[string]naming, placeNames map[string]string, people, places []graphcache.EvidenceEdge, names map[string]namevalue.Value) []Title {
+func assemble(events []titledEvent, first map[string]naming, placeNames map[string]string, people, places []graphcache.EvidenceEdge, names map[string]namevalue.Value, dates map[string]*eventDates) []Title {
 	peopleOf := map[string][]eventtitle.Subject{}
 	seen := map[string]bool{}
 	for _, e := range people {
@@ -145,7 +194,11 @@ func assemble(events []titledEvent, first map[string]naming, placeNames map[stri
 				parts.TypeLabel = n.text
 			}
 		}
-		out = append(out, Title{SubjectID: e.id, Plan: eventtitle.Choose(parts)})
+		t := Title{SubjectID: e.id, Plan: eventtitle.Choose(parts)}
+		if d := dates[string(e.id)]; d != nil {
+			t.Dating = valuecompare.DatingOf(d.date, d.start, d.end, d.samples)
+		}
+		out = append(out, t)
 	}
 	return out
 }

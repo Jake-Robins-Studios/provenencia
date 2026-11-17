@@ -6,9 +6,12 @@ import (
 
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
+	"github.com/mendahu/provenencia/core/datevalue"
+	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
 	"github.com/mendahu/provenencia/core/eventtitle"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
+	"github.com/mendahu/provenencia/core/valuecompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -216,5 +219,31 @@ func TestMatchTextCarriesFoldedInNicknames(t *testing.T) {
 				t.Fatalf("secondary %q, want %q", secondary, tt.want)
 			}
 		})
+	}
+}
+
+// An Event's search text follows its date line: the dating's two dates, not
+// every as-of the event records.
+func TestEventSecondaryIndexesDating(t *testing.T) {
+	ymd := datevaluetest.YMD
+	asOfs := func(ds ...*datevalue.Value) conclusionsummaries.EventSummary {
+		var samples []datevalue.Value
+		for _, d := range ds {
+			samples = append(samples, *d)
+		}
+		return conclusionsummaries.EventSummary{Dating: valuecompare.DatingOf(nil, nil, nil, samples)}
+	}
+	if got := eventMatchSecondary(asOfs(ymd(1990, 1, 10), ymd(2015, 2, 10))); !reflect.DeepEqual(got, []string{"1990-01-10", "2015-02-10"}) {
+		t.Errorf("two as-ofs indexed %q", got)
+	}
+	if got := eventMatchSecondary(asOfs(ymd(1990, 0, 0), ymd(2003, 0, 0), ymd(2015, 0, 0))); !reflect.DeepEqual(got, []string{"1990", "2015"}) {
+		t.Errorf("three as-ofs indexed %q, want the middle year absent", got)
+	}
+	dated := conclusionsummaries.EventSummary{Dating: valuecompare.DatingOf(ymd(1849, 0, 0), nil, nil, nil)}
+	if got := eventMatchSecondary(dated); !reflect.DeepEqual(got, []string{"1849"}) {
+		t.Errorf("a date indexed %q", got)
+	}
+	if ProjectionVersion != 12 {
+		t.Errorf("ProjectionVersion = %d, want 12", ProjectionVersion)
 	}
 }

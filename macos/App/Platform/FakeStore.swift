@@ -125,7 +125,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// of the composed ones.
     var seededPersonSummaries: [CatalogPersonSummary]?
     /// Event card titles Go would choose, per Evidence graph then Subject id.
-    var eventTitlesByGraph: [String: [String: CatalogEventTitle]] = [:]
+    var eventTitlesByGraph: [String: [String: CatalogSourceEventTitle]] = [:]
     /// A handle's detail as Go would compose it, seeded by tests. Persons
     /// without a seed fall back to the name mirror below.
     var seededConclusionDetails: [String: CatalogConclusionDetail] = [:]
@@ -1778,7 +1778,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogEventTitle] {
+    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogSourceEventTitle] {
         withState {
             markCatalogSessionHeld(projectDir)
             return eventTitlesByGraph[graphID] ?? [:]

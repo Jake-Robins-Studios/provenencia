@@ -6,9 +6,9 @@
 **Implements later as:** PR **S16-42** (Every event date line reads the engine's dating)
 **Board:** agreed 2026-11-17 — [Claude Design — Events List](https://claude.ai/artifact/HP8p5mK3BFhNzFRrP5UK9w), section "S16-D4 · Event dates" (frames 1a, 1b, 2). ED-2 – ED-5: `as of %@`, `as of %1$@–%2$@`, `from %1$@, as of %2$@`, `as of %1$@, until %2$@` ("known …" and an ellipsis were weighed and dropped: the ellipsis reads as truncation and VoiceOver says nothing)
 **Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)): events record **As of** dates; the agreed Events list frames
-**Related:** [S16-D7](S16-D7-timeline-lifeline-dating.md) (the Timeline lifeline, the same PR); feature doc [`../event-as-of.md`](../event-as-of.md); working rules "One dating, in Go, derived on read", "The engine sends the dating, not the as-ofs" and "As-ofs alone make a span open on both sides" in [`../deployment-plan.md`](../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-42-event-dating-line.md`](../prs/S16-42-event-dating-line.md)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
+**Related:** [S16-D7](S16-D7-timeline-lifeline-dating.md) (the Timeline lifeline, the same PR); feature doc [`../event-as-of.md`](../../event-as-of.md); working rules "One dating, in Go, derived on read", "The engine sends the dating, not the as-ofs" and "As-ofs alone make a span open on both sides" in [`../deployment-plan.md`](../../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-42-event-dating-line.md`](../../prs/S16-42-event-dating-line.md)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../../.agents/skills/add-localized-string/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -103,7 +103,7 @@ This board decides **how the date line reads** in each dating case.
 
 - Not the Event page's Date row, which lists each as-of with its records (S16-D6, PR S16-44).
 - Not the date editor or the composer: As of is entered with today's date editor (S16-40).
-- Not a notice when an as-of falls outside the researcher's start or end ([idea](../../../ideas/event-as-of-followups.md)).
+- Not a notice when an as-of falls outside the researcher's start or end ([idea](../../../../ideas/event-as-of-followups.md)).
 - Not a new layout for any row: only the date text changes.
 - Not the Timeline's lifeline (S16-D7).
 
@@ -113,7 +113,7 @@ This board decides **how the date line reads** in each dating case.
 
 | S16-42 ships | Not S16-42 |
 | --- | --- |
-| ED-1 – ED-7, ED-W1 | The Timeline lifeline (S16-D7, also S16-42); the Event page Date row (S16-44, S16-D6); an out-of-bounds as-of notice ([idea](../../../ideas/event-as-of-followups.md)) |
+| ED-1 – ED-7, ED-W1 | The Timeline lifeline (S16-D7, also S16-42); the Event page Date row (S16-44, S16-D6); an out-of-bounds as-of notice ([idea](../../../../ideas/event-as-of-followups.md)) |
 
 ---
 

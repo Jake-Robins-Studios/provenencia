@@ -442,7 +442,7 @@ func TestSampleExtremes(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			firsts, lasts := ends(c.dates...)
-			if ef, sl := valuecompare.SampleExtremes(firsts, lasts); ef != c.endsFirst || sl != c.startsLast {
+			if ef, sl := valuecompare.SampleExtremes(firsts, lasts, nil, nil); ef != c.endsFirst || sl != c.startsLast {
 				t.Errorf("SampleExtremes = %d, %d; want %d, %d", ef, sl, c.endsFirst, c.startsLast)
 			}
 		})

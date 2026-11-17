@@ -931,3 +931,56 @@ func TestAttachPlaceRelationshipsRecordsHiddenParts(t *testing.T) {
 	}
 	t.Errorf("handles %x lack the hidden village %x", handles, villageID)
 }
+
+// A birth is never dated by an as-of: its places fold at its own start date
+// (or at no date), whatever as-ofs the event records.
+func TestLifeIgnoresAsOf(t *testing.T) {
+	cases := []struct {
+		name        string
+		start       *int
+		wantDate    *int
+		wantParents []string
+	}{
+		// Ontario holds from 1949: folded at 1948 it does not, at 1950 it would.
+		{"start 1948 and as-of 1950", year(1948), year(1948), nil},
+		{"only an as-of", nil, nil, []string{"Ontario"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := newFixture(t)
+			toronto := f.placeSubject("Toronto", nil, nil, 0, 0)
+			ontario := f.placeSubject("Ontario", nil, nil, 2, 0)
+			f.placeRel(toronto, ontario, propertyterms.KeyPartOf, year(1949), nil)
+			person := f.lifePerson()
+			birth := subjectstest.On(f.T, f.C, userID, f.graph, "event", "")
+			f.at(birth, 4, 4)
+			in := []observations.Input{
+				{PropertyID: f.Prop("event_type").ID, ValueTermID: f.Term("event_type", "birth").ID},
+				{PropertyID: f.Prop("as_of").ID, Date: datevaluetest.YMD(1950, 0, 0)},
+			}
+			if tc.start != nil {
+				in = append(in, observations.Input{PropertyID: f.Prop("start_date").ID, Date: datevaluetest.YMD(*tc.start, 0, 0)})
+			}
+			f.Cite(f.Artifact, birth, in...)
+			f.Participation(f.Source, f.Artifact, person, birth, "subject")
+			f.Locate(f.Source, f.Artifact, birth, toronto)
+			f.promoteSubject(person)
+			f.promoteSubject(birth)
+			f.promoteSubject(toronto)
+			f.promoteSubject(ontario)
+
+			persons, err := conclusionsummaries.ListPersons(f.C)
+			must(t, err)
+			if len(persons) != 1 {
+				t.Fatalf("persons %d", len(persons))
+			}
+			b := persons[0].Birth
+			if (b.Date == nil) != (tc.wantDate == nil) || (b.Date != nil && *b.Date.StartYear != *tc.wantDate) {
+				t.Fatalf("birth date %+v, want year %v", b.Date, tc.wantDate)
+			}
+			if len(b.Places) != 1 || !sameSet(b.Places[0].Parents, tc.wantParents) {
+				t.Fatalf("birth places %+v, want parents %v", b.Places, tc.wantParents)
+			}
+		})
+	}
+}

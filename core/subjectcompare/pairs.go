@@ -29,7 +29,7 @@ func Side(kind vocabkey.SubjectType, key vocabkey.PropertyKey, values Values, ru
 			out = append(out, v)
 		}
 	}
-	if p, ok := rules.Periods[kind][key]; ok && !slices.ContainsFunc(out, propertycompare.Value.Positive) {
+	if p, ok := rules.Period(kind, key); ok && !slices.ContainsFunc(out, propertycompare.Value.Positive) {
 		if v, _, ok := period(values[p.Start], values[p.End]); ok {
 			out = append(out, v)
 		}
@@ -37,22 +37,28 @@ func Side(kind vocabkey.SubjectType, key vocabkey.PropertyKey, values Values, ru
 	return out
 }
 
-// Samples is the positive values v records for the samples property of key's
-// period, nil when key has no period or its period names no samples. It is
-// the one reading of a side's samples, for compare, the shortlist and the
-// lifespan (through PeriodSamples).
-func Samples(kind vocabkey.SubjectType, key vocabkey.PropertyKey, v Values, rules Rules) []propertycompare.Value {
-	p, ok := rules.Periods[kind][key]
-	if !ok {
-		return nil
+// CountSamples is how many positive values v records for p's samples property,
+// counted without copying any. Zero when p names none.
+func CountSamples(v Values, p Period) int {
+	if p.Samples == "" {
+		return 0
 	}
-	return PeriodSamples(v, p)
+	n := 0
+	for _, s := range v[p.Samples] {
+		if s.Positive() {
+			n++
+		}
+	}
+	return n
 }
 
 // PeriodSamples is the positive values v records for p's samples property,
-// nil when p names none.
+// nil when p names none or v records more than p.MaxSamples: the count comes
+// first, so a crafted side is never copied. It is the one reading of a side's
+// samples and the one place the cap holds, for compare, the shortlist and the
+// lifespan.
 func PeriodSamples(v Values, p Period) []propertycompare.Value {
-	if p.Samples == "" {
+	if n := CountSamples(v, p); n == 0 || n > p.MaxSamples {
 		return nil
 	}
 	var out []propertycompare.Value
@@ -69,16 +75,18 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // unless other has no positive value for key and its start and end build a
 // period; mine's own value for key does not stop it. The samples are read with
 // AboutEnds as the comparer reads a date and picked in one pass by
-// valuecompare.SampleExtremes; a tie on the extreme end is broken by the
-// lowest typed Same key, so the picks never depend on input order. Each pick is
+// valuecompare.SampleExtremes, whose tie on the extreme end is the
+// lowest typed Same key (propertycompare.KeyCompare), so the picks never depend on input order (the event
+// dating's pick, valuecompare.DatingOf, breaks it on the dates instead, as it
+// shows them). Each pick is
 // compared with the period by propertycompare.Compare under meta, the lead's,
 // with the period on its own side (swapped puts it on side A). A period with
 // an open end bounds but does not agree: an agree or partial against it is
 // unknown, its cause unchanged. Match strength therefore reads from the two
-// extreme samples only. A side with more than the period's MaxSamples samples is skipped.
+// extreme samples only. A side with more than the period's MaxSamples samples has none (PeriodSamples).
 func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, other Values, rules Rules, swapped bool, meta propertymeta.Meta, value valuecompare.Rules) []propertycompare.Result {
-	p, ok := rules.Periods[kind][key]
-	if !ok || p.Samples == "" || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
+	p, ok := rules.Period(kind, key)
+	if !ok || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
 		return nil
 	}
 	standIn, open, ok := period(other[p.Start], other[p.End])
@@ -86,7 +94,7 @@ func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, o
 		return nil
 	}
 	samples := PeriodSamples(mine, p)
-	if len(samples) == 0 || len(samples) > p.MaxSamples {
+	if len(samples) == 0 {
 		return nil
 	}
 
@@ -103,13 +111,8 @@ func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, o
 		reads = append(reads, propertycompare.Typed(v, meta))
 		firsts, lasts = append(firsts, first), append(lasts, last)
 	}
-	endsFirst, startsLast := valuecompare.SampleExtremes(firsts, lasts)
-	if i := endsFirst; i >= 0 {
-		endsFirst = lowestKey(reads, i, func(j int) bool { return !lasts[j].Open && lasts[j].Hi == lasts[i].Hi }, value)
-	}
-	if i := startsLast; i >= 0 {
-		startsLast = lowestKey(reads, i, func(j int) bool { return !firsts[j].Open && firsts[j].Lo == firsts[i].Lo }, value)
-	}
+	byKey := func(i, j int) int { return propertycompare.KeyCompare(reads[i], reads[j], value) }
+	endsFirst, startsLast := valuecompare.SampleExtremes(firsts, lasts, byKey, func(i, j, _ int) int { return byKey(i, j) })
 	picks := []int{endsFirst}
 	if startsLast != endsFirst {
 		picks = append(picks, startsLast)
@@ -173,16 +176,4 @@ func period(starts, ends []propertycompare.Value) (propertycompare.Value, bool, 
 		return propertycompare.Value{}, false, false
 	}
 	return propertycompare.Value{Value: valuecompare.Value{Date: &d}}, first.Open || last.Open, true
-}
-
-// lowestKey is, of the samples reads[i] for which tied reports true (pick
-// among them), the one with the lowest Same key.
-func lowestKey(reads []propertycompare.Value, pick int, tied func(i int) bool, value valuecompare.Rules) int {
-	best := pick
-	for i := range reads {
-		if tied(i) && propertycompare.KeyCompare(reads[i], reads[best], value) < 0 {
-			best = i
-		}
-	}
-	return best
 }

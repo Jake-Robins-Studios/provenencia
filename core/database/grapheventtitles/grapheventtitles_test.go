@@ -5,7 +5,9 @@ import (
 
 	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
+	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
 	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/mendahu/provenencia/core/valuecompare"
 
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/artifacts/artifactstest"
@@ -201,6 +203,29 @@ func TestForEvidenceGraph(t *testing.T) {
 		got := grapheventtitles.FromStored(eg, nil, nil)
 		if len(got) != 1 || string(got[0].SubjectID) != string(jonesEvent.ID) {
 			t.Fatalf("titles %+v, want one for %x", got, jonesEvent.ID)
+		}
+	})
+
+	t.Run("each Event Subject is dated from its Observations (S16-42 AC-1.7)", func(t *testing.T) {
+		f := newFixture(t)
+		dated := func(key string, y, m, d int) observations.Input {
+			return observations.Input{PropertyID: f.Prop(key).ID, Date: datevaluetest.YMD(y, m, d)}
+		}
+		residence := f.subject("event", "Residence", f.eventType("residence"), dated("as_of", 1990, 1, 10), dated("as_of", 2015, 2, 10))
+		fire := f.subject("event", "Fire", dated("date", 1849, 0, 0))
+		none := f.subject("event", "Nothing")
+		got := map[string]valuecompare.Dating{}
+		for _, title := range titlesFromStored(t, f) {
+			got[string(title.SubjectID)] = title.Dating
+		}
+		if d := got[string(residence.ID)]; d.Kind != valuecompare.DatingAsOf || *d.Low.StartYear != 1990 || *d.High.StartYear != 2015 || !d.OpenLow || !d.OpenHigh {
+			t.Errorf("residence dating %+v", d)
+		}
+		if d := got[string(fire.ID)]; d.Kind != valuecompare.DatingOccurrence || *d.Low.StartYear != 1849 {
+			t.Errorf("fire dating %+v", d)
+		}
+		if d := got[string(none.ID)]; d.Kind != valuecompare.DatingNone {
+			t.Errorf("undated dating %+v", d)
 		}
 	})
 

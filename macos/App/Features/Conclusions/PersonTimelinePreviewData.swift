@@ -36,22 +36,31 @@ enum PersonTimelinePreviewData {
         func apply(to summary: inout CatalogEventSummary) {
             switch self {
             case .day(let y, let m, let d, _, _):
-                summary.date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m, startDay: d)
+                let date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m, startDay: d)
+                summary.date = date
                 summary.dateCount = 1
+                summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .month(let y, let m, _, _):
-                summary.date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m)
+                let date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m)
+                summary.date = date
                 summary.dateCount = 1
+                summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .year(let y):
-                summary.date = CatalogDateValueInput(kind: "point", startYear: y)
+                let date = CatalogDateValueInput(kind: "point", startYear: y)
+                summary.date = date
                 summary.dateCount = 1
+                summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .years(let a, let b):
                 summary.startDate = CatalogDateValueInput(kind: "point", startYear: a)
                 summary.endDate = CatalogDateValueInput(kind: "point", startYear: b)
                 summary.startDateCount = 1
                 summary.endDateCount = 1
+                summary.dating = CatalogEventDating(kind: .span, low: summary.startDate, high: summary.endDate)
             case .before(let y):
-                summary.date = CatalogDateValueInput(kind: "point", qualifier: "BEF", startYear: y)
+                let date = CatalogDateValueInput(kind: "point", qualifier: "BEF", startYear: y)
+                summary.date = date
                 summary.dateCount = 1
+                summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             }
         }
     }

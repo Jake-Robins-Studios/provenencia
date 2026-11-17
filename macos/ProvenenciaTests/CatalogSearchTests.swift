@@ -191,6 +191,22 @@ struct CatalogSearchHitPresentationTests {
         #expect(ConclusionSummaryDisplay.ref(.place(place)) == "PLC-1")
     }
 
+    @Test func anAsOfEventHitsSecondLineIsItsDatingLine() {
+        let en = Locale(identifier: "en_US")
+        var event = CatalogEventSummary(
+            entity: CatalogCanonicalEntity(id: "EVT-1", ref: "EVT-1", subjectTypeID: "t", label: ""),
+            title: CatalogEventTitle(rule: .ref, ref: "EVT-1")
+        )
+        event.dating = CatalogEventDating(
+            kind: .asOf,
+            low: CatalogDateValueInput(kind: "point", startYear: 1990, startMonth: 1, startDay: 10),
+            high: CatalogDateValueInput(kind: "point", startYear: 2015, startMonth: 2, startDay: 10),
+            openLow: true, openHigh: true
+        )
+        #expect(EventSecondaryDisplay.line(event, locale: en) == "as of 10 Jan 1990–10 Feb 2015")
+        #expect(ConclusionSummaryDisplay.secondary(.event(event)) == EventSecondaryDisplay.line(event))
+    }
+
     @Test func accessibilityLabelComposesVisibleRowMetadata() {
         let hit = CatalogSearchHit(
             kind: "source",

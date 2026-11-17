@@ -87,18 +87,18 @@ type EventPlacing struct {
 }
 
 // EventSpanAndAge is where h sits on a line of years and the age a person born
-// on birth had at it, from one placing of the event's date. The span is that of
-// the date the event order places it by (a date, else a start date, whichever
-// has a place); Dated is false when h is undated, so "dated" and "has a span"
-// are one fact. Days is the days of the same date as written (an ABT date is
-// not widened; a BEF or AFT end is open on its side), the zero Window when h is
-// not dated. Age is in whole years, as a range: Hi counts from the
+// on birth had at it, from one placing of the event's dating. The span runs
+// from the dating's Low to its High, open on a side the dating leaves open (an
+// as-of, a missing start or end); Dated is false when h is undated, so "dated"
+// and "has a span" are one fact. Days is the days of the same dating as written
+// (an ABT date is not widened; a BEF or AFT end is open on its side), the zero
+// Window when h is not dated. Age is in whole years, as a range: Hi counts from the
 // earliest birth day to the latest day of the event, Lo from the latest birth
 // day to the earliest day of the event. Aged is false when hasBirth is false,
 // when the event or the birth has no place, when any of the four ends is open
 // (BEF, AFT, a one-sided range), or when the event is before the birth.
 func EventSpanAndAge(h EventSummary, birth PlacedBirth, hasBirth bool) EventPlacing {
-	ev := eventDating(h.Date, h.StartDate)
+	ev := placeDating(h.Dating)
 	placing := EventPlacing{Span: ev.span, Dated: ev.key.ok}
 	if placing.Dated {
 		placing.Days = valuecompare.EndsWindow(ev.first, ev.last)

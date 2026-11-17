@@ -543,6 +543,55 @@ public nonisolated enum Provenencia_Engine_V1_EventTitleRule: SwiftProtobuf.Enum
 
 }
 
+/// EventDatingKind says what an EventDating is. UNSPECIFIED is no dating.
+public nonisolated enum Provenencia_Engine_V1_EventDatingKind: SwiftProtobuf.Enum, Swift.CaseIterable {
+  public typealias RawValue = Int
+  case unspecified // = 0
+
+  /// OCCURRENCE: one recorded date (low).
+  case occurrence // = 1
+
+  /// SPAN: a start, an end, or both, as recorded.
+  case span // = 2
+
+  /// AS_OF: at least one side is an as-of date.
+  case asOf // = 3
+  case UNRECOGNIZED(Int)
+
+  public init() {
+    self = .unspecified
+  }
+
+  public init?(rawValue: Int) {
+    switch rawValue {
+    case 0: self = .unspecified
+    case 1: self = .occurrence
+    case 2: self = .span
+    case 3: self = .asOf
+    default: self = .UNRECOGNIZED(rawValue)
+    }
+  }
+
+  public var rawValue: Int {
+    switch self {
+    case .unspecified: return 0
+    case .occurrence: return 1
+    case .span: return 2
+    case .asOf: return 3
+    case .UNRECOGNIZED(let i): return i
+    }
+  }
+
+  // The compiler won't synthesize support with the UNRECOGNIZED case.
+  public static let allCases: [Provenencia_Engine_V1_EventDatingKind] = [
+    .unspecified,
+    .occurrence,
+    .span,
+    .asOf,
+  ]
+
+}
+
 /// RecordLinkStrength is how heavily a record link weighs.
 public nonisolated enum Provenencia_Engine_V1_RecordLinkStrength: SwiftProtobuf.Enum, Swift.CaseIterable {
   public typealias RawValue = Int
@@ -4726,11 +4775,22 @@ public nonisolated struct Provenencia_Engine_V1_SourceEventTitle: Sendable {
   /// Clears the value of `title`. Subsequent reads from it will return its default value.
   public mutating func clearTitle() {self._title = nil}
 
+  /// dating is the Event Subject's dating, read from its Observations.
+  public var dating: Provenencia_Engine_V1_EventDating {
+    get {_dating ?? Provenencia_Engine_V1_EventDating()}
+    set {_dating = newValue}
+  }
+  /// Returns true if `dating` has been explicitly set.
+  public var hasDating: Bool {self._dating != nil}
+  /// Clears the value of `dating`. Subsequent reads from it will return its default value.
+  public mutating func clearDating() {self._dating = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _title: Provenencia_Engine_V1_EventTitle? = nil
+  fileprivate var _dating: Provenencia_Engine_V1_EventDating? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_ListEvidenceGraphEventTitlesResponse: Sendable {
@@ -5212,11 +5272,62 @@ public nonisolated struct Provenencia_Engine_V1_EventSummary: @unchecked Sendabl
   /// Clears the value of `listKey`. Subsequent reads from it will return its default value.
   public mutating func clearListKey() {_uniqueStorage()._listKey = nil}
 
+  /// dating is when the event was under way, read by the engine from its date,
+  /// start, end and as-of dates. Every event date line and the list order read it.
+  public var dating: Provenencia_Engine_V1_EventDating {
+    get {_storage._dating ?? Provenencia_Engine_V1_EventDating()}
+    set {_uniqueStorage()._dating = newValue}
+  }
+  /// Returns true if `dating` has been explicitly set.
+  public var hasDating: Bool {_storage._dating != nil}
+  /// Clears the value of `dating`. Subsequent reads from it will return its default value.
+  public mutating func clearDating() {_uniqueStorage()._dating = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+/// EventDating is the one dating of an event: its kind, its earliest and latest
+/// date (high is unset when the dating is one date), and whether the period
+/// continues before low or after high.
+public nonisolated struct Provenencia_Engine_V1_EventDating: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var kind: Provenencia_Engine_V1_EventDatingKind = .unspecified
+
+  public var low: Provenencia_Engine_V1_DateValueInput {
+    get {_low ?? Provenencia_Engine_V1_DateValueInput()}
+    set {_low = newValue}
+  }
+  /// Returns true if `low` has been explicitly set.
+  public var hasLow: Bool {self._low != nil}
+  /// Clears the value of `low`. Subsequent reads from it will return its default value.
+  public mutating func clearLow() {self._low = nil}
+
+  public var high: Provenencia_Engine_V1_DateValueInput {
+    get {_high ?? Provenencia_Engine_V1_DateValueInput()}
+    set {_high = newValue}
+  }
+  /// Returns true if `high` has been explicitly set.
+  public var hasHigh: Bool {self._high != nil}
+  /// Clears the value of `high`. Subsequent reads from it will return its default value.
+  public mutating func clearHigh() {self._high = nil}
+
+  public var openLow: Bool = false
+
+  public var openHigh: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _low: Provenencia_Engine_V1_DateValueInput? = nil
+  fileprivate var _high: Provenencia_Engine_V1_DateValueInput? = nil
 }
 
 /// ListEventSummaries returns every unmerged Event in list order: dated
@@ -8647,6 +8758,10 @@ nonisolated extension Provenencia_Engine_V1_Method: SwiftProtobuf._ProtoNameProv
 
 nonisolated extension Provenencia_Engine_V1_EventTitleRule: SwiftProtobuf._ProtoNameProviding {
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0EVENT_TITLE_RULE_UNSPECIFIED\0\u{1}EVENT_TITLE_RULE_RECORDED_NAME\0\u{1}EVENT_TITLE_RULE_SUBJECT\0\u{1}EVENT_TITLE_RULE_COUPLE\0\u{1}EVENT_TITLE_RULE_SUBJECTS\0\u{1}EVENT_TITLE_RULE_LABEL\0\u{1}EVENT_TITLE_RULE_TYPE_AT_PLACE\0\u{1}EVENT_TITLE_RULE_TYPE\0\u{1}EVENT_TITLE_RULE_REF\0")
+}
+
+nonisolated extension Provenencia_Engine_V1_EventDatingKind: SwiftProtobuf._ProtoNameProviding {
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0EVENT_DATING_KIND_UNSPECIFIED\0\u{1}EVENT_DATING_KIND_OCCURRENCE\0\u{1}EVENT_DATING_KIND_SPAN\0\u{1}EVENT_DATING_KIND_AS_OF\0")
 }
 
 nonisolated extension Provenencia_Engine_V1_RecordLinkStrength: SwiftProtobuf._ProtoNameProviding {
@@ -16590,7 +16705,7 @@ nonisolated extension Provenencia_Engine_V1_ListEvidenceGraphEventTitlesRequest:
 
 nonisolated extension Provenencia_Engine_V1_SourceEventTitle: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".SourceEventTitle"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}subject_id\0\u{1}title\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}subject_id\0\u{1}title\0\u{1}dating\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16600,6 +16715,7 @@ nonisolated extension Provenencia_Engine_V1_SourceEventTitle: SwiftProtobuf.Mess
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.subjectID) }()
       case 2: try { try decoder.decodeSingularMessageField(value: &self._title) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._dating) }()
       default: break
       }
     }
@@ -16616,12 +16732,16 @@ nonisolated extension Provenencia_Engine_V1_SourceEventTitle: SwiftProtobuf.Mess
     try { if let v = self._title {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
     } }()
+    try { if let v = self._dating {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_SourceEventTitle, rhs: Provenencia_Engine_V1_SourceEventTitle) -> Bool {
     if lhs.subjectID != rhs.subjectID {return false}
     if lhs._title != rhs._title {return false}
+    if lhs._dating != rhs._dating {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -17160,7 +17280,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesResponse: SwiftPr
 
 nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EventSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0\u{1}dating\0")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -17181,6 +17301,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
     var _updatedAt: String = String()
     var _pictureImageRelPath: String = String()
     var _listKey: Provenencia_Engine_V1_ListKey? = nil
+    var _dating: Provenencia_Engine_V1_EventDating? = nil
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -17209,6 +17330,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       _updatedAt = source._updatedAt
       _pictureImageRelPath = source._pictureImageRelPath
       _listKey = source._listKey
+      _dating = source._dating
     }
   }
 
@@ -17245,6 +17367,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         case 16: try { try decoder.decodeSingularStringField(value: &_storage._updatedAt) }()
         case 17: try { try decoder.decodeSingularStringField(value: &_storage._pictureImageRelPath) }()
         case 18: try { try decoder.decodeSingularMessageField(value: &_storage._listKey) }()
+        case 19: try { try decoder.decodeSingularMessageField(value: &_storage._dating) }()
         default: break
         }
       }
@@ -17311,6 +17434,9 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       try { if let v = _storage._listKey {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 18)
       } }()
+      try { if let v = _storage._dating {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 19)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -17338,10 +17464,65 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         if _storage._updatedAt != rhs_storage._updatedAt {return false}
         if _storage._pictureImageRelPath != rhs_storage._pictureImageRelPath {return false}
         if _storage._listKey != rhs_storage._listKey {return false}
+        if _storage._dating != rhs_storage._dating {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_EventDating: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".EventDating"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}kind\0\u{1}low\0\u{1}high\0\u{3}open_low\0\u{3}open_high\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularEnumField(value: &self.kind) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._low) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._high) }()
+      case 4: try { try decoder.decodeSingularBoolField(value: &self.openLow) }()
+      case 5: try { try decoder.decodeSingularBoolField(value: &self.openHigh) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if self.kind != .unspecified {
+      try visitor.visitSingularEnumField(value: self.kind, fieldNumber: 1)
+    }
+    try { if let v = self._low {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._high {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if self.openLow != false {
+      try visitor.visitSingularBoolField(value: self.openLow, fieldNumber: 4)
+    }
+    if self.openHigh != false {
+      try visitor.visitSingularBoolField(value: self.openHigh, fieldNumber: 5)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_EventDating, rhs: Provenencia_Engine_V1_EventDating) -> Bool {
+    if lhs.kind != rhs.kind {return false}
+    if lhs._low != rhs._low {return false}
+    if lhs._high != rhs._high {return false}
+    if lhs.openLow != rhs.openLow {return false}
+    if lhs.openHigh != rhs.openHigh {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

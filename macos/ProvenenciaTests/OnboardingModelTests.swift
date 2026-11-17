@@ -617,7 +617,7 @@ private struct ThrowingStore: GenealogyStore {
     func listSubjectMemberships(projectDir _: String, graphID _: String) async throws -> [CatalogSubjectMembership] {
         throw StoreBoom.boom
     }
-    func listEvidenceGraphEventTitles(projectDir _: String, graphID _: String) async throws -> [String: CatalogEventTitle] {
+    func listEvidenceGraphEventTitles(projectDir _: String, graphID _: String) async throws -> [String: CatalogSourceEventTitle] {
         throw StoreBoom.boom
     }
     func listPersonSummaries(projectDir _: String, entityIDs _: [String]?) async throws -> [CatalogPersonSummary] {

@@ -40,7 +40,8 @@ struct EventDetailTests {
     private func dated(
         date: CatalogDateValueInput? = nil,
         start: CatalogDateValueInput? = nil,
-        end: CatalogDateValueInput? = nil
+        end: CatalogDateValueInput? = nil,
+        dating: CatalogEventDating = CatalogEventDating()
     ) -> CatalogEventSummary {
         var summary = CatalogEventSummary(
             entity: CatalogCanonicalEntity(id: "e1", ref: "EVT-8PL22", subjectTypeID: "t", label: ""),
@@ -49,7 +50,21 @@ struct EventDetailTests {
         summary.date = date
         summary.startDate = start
         summary.endDate = end
+        // Go chose the dating; the test states the one it means.
+        summary.dating = dating
         return summary
+    }
+
+    @Test func anAsOfEventsHeaderLineReadsItsDating() {
+        var event = dated()
+        event.dating = CatalogEventDating(
+            kind: .asOf,
+            low: CatalogDateValueInput(kind: "point", startYear: 1990, startMonth: 1, startDay: 10),
+            high: CatalogDateValueInput(kind: "point", startYear: 2015, startMonth: 2, startDay: 10),
+            openLow: true, openHigh: true
+        )
+        #expect(EventSecondaryDisplay.content(event, locale: en).date == "as of 10 Jan 1990–10 Feb 2015")
+        #expect(content(detail(summary: event)).secondaryDate == "as of 10 Jan 1990–10 Feb 2015")
     }
 
     private func summary(_ title: CatalogEventTitle) -> CatalogEventSummary {
@@ -94,7 +109,7 @@ struct EventDetailTests {
             dateField("date", point, id: "point"),
             dateField("start_date", CatalogDateValueInput(kind: "point", startYear: 1849), id: "start"),
             dateField("end_date", CatalogDateValueInput(kind: "point", startYear: 1851), id: "end"),
-        ], summary: dated(date: point)))
+        ], summary: dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point))))
         #expect(page.rows.map(\.label) == ["Date", "Place"])
         #expect(page.rows[0].shown.lead == "14 May 1817")
         #expect(page.rows[0].provenanceContent().records.map(\.id) == ["point"])
@@ -107,7 +122,7 @@ struct EventDetailTests {
         let page = content(detail(fields: [
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end)))
+        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
         #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start", "end"])
         #expect(page.rows[0].shown.badge == nil)
@@ -124,7 +139,7 @@ struct EventDetailTests {
             ),
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end)))
+        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
         #expect(page.rows[0].provenanceContent().records.map(\.id).contains("start"))
         #expect(page.rows[0].provenanceContent().records.map(\.id).contains("end"))
@@ -139,21 +154,21 @@ struct EventDetailTests {
             dateField("date", point, id: "point"),
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end)))
+        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
         #expect(page.rows[0].shown.lead == page.secondaryDate)
     }
 
     @Test func bandLineReadsTheSummary() {
         let point = CatalogDateValueInput(kind: "point", startYear: 1817, startMonth: 5, startDay: 14)
-        let withDate = content(detail(summary: dated(date: point)))
+        let withDate = content(detail(summary: dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point))))
         #expect(withDate.secondaryDate == "14 May 1817")
-        #expect(withDate.secondaryDate == EventSecondaryDisplay.content(dated(date: point), locale: en).date)
+        #expect(withDate.secondaryDate == EventSecondaryDisplay.content(dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point)), locale: en).date)
 
         // A `date` field with records but no displayed value: the band shows the kept span, as the list row does.
         let start = CatalogDateValueInput(kind: "point", startYear: 1849)
         let end = CatalogDateValueInput(kind: "point", startYear: 1851)
-        let span = dated(start: start, end: end)
+        let span = dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))
         let spanned = content(detail(
             fields: [D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],

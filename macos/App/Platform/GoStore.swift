@@ -1063,7 +1063,7 @@ struct GoStore: GenealogyStore {
         return Self.mapWriteEffects(resp.effects)
     }
 
-    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogEventTitle] {
+    func listEvidenceGraphEventTitles(projectDir: String, graphID: String) async throws -> [String: CatalogSourceEventTitle] {
         var req = Provenencia_Engine_V1_ListEvidenceGraphEventTitlesRequest()
         req.projectDir = projectDir
         req.graphID = graphID
@@ -1072,8 +1072,27 @@ struct GoStore: GenealogyStore {
             request: req
         )
         return Dictionary(
-            resp.titles.map { ($0.subjectID, Self.mapEventTitle($0.title)) },
+            resp.titles.map {
+                ($0.subjectID, CatalogSourceEventTitle(title: Self.mapEventTitle($0.title), dating: Self.mapEventDating($0.dating)))
+            },
             uniquingKeysWith: { first, _ in first }
+        )
+    }
+
+    private static func mapEventDating(_ d: Provenencia_Engine_V1_EventDating) -> CatalogEventDating {
+        let kind: CatalogEventDating.Kind
+        switch d.kind {
+        case .occurrence: kind = .occurrence
+        case .span: kind = .span
+        case .asOf: kind = .asOf
+        case .unspecified, .UNRECOGNIZED: kind = .none
+        }
+        return CatalogEventDating(
+            kind: kind,
+            low: d.hasLow ? mapDateValue(d.low) : nil,
+            high: d.hasHigh ? mapDateValue(d.high) : nil,
+            openLow: d.openLow,
+            openHigh: d.openHigh
         )
     }
 
@@ -1252,6 +1271,7 @@ struct GoStore: GenealogyStore {
             startDateCount: Int(h.startDateCount),
             endDate: h.hasEndDate ? mapDateValue(h.endDate) : nil,
             endDateCount: Int(h.endDateCount),
+            dating: mapEventDating(h.dating),
             subjects: h.subjects.map(mapEventSubject),
             places: h.places.map(mapChainedPlace),
             title: mapEventTitle(h.title),
