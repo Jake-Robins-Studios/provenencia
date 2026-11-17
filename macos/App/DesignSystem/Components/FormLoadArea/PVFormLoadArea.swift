@@ -5,6 +5,13 @@ enum PVFormLoadState: Equatable {
     case loading
     case failed(String)
     case ready
+
+    /// The first failure in `states`; else loading while any is loading; else ready (an empty
+    /// list is ready).
+    static func combining(_ states: [PVFormLoadState]) -> PVFormLoadState {
+        if let failed = states.first(where: { if case .failed = $0 { true } else { false } }) { return failed }
+        return states.contains(.loading) ? .loading : .ready
+    }
 }
 
 /// The area of a form that waits on a read (the Copy forms' parts, the graph

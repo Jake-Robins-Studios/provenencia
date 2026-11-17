@@ -74,13 +74,7 @@ final class SourceCopyModel {
     }
 
     /// A value wins: a failed refetch keeps the stale parts and stays `.ready`.
-    var loadState: PVFormLoadState {
-        switch workspaceHandle.read {
-        case .loaded: .ready
-        case .failed(let error): .failed(L10n.Errors.message(for: error))
-        case .loading: .loading
-        }
-    }
+    var loadState: PVFormLoadState { workspaceHandle.read.formLoadState }
 
     /// The original's date as a row says it; nil when undated.
     var dateLine: String? { SourcesRowDate.line(workspace?.source.date) }
