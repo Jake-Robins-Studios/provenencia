@@ -284,7 +284,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-41 | Matching and Promote read an as-of as a pair of bounds | 5a | Merged into S16-40 once the composer rule was dropped (user, 2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-40 |
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Landed #876 |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
-| S16-44 | The Event page's Date row shows as-ofs | 5a | Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records | S16-D6 | S16-42, S16-D6 | — | Scoped |
+| S16-44 | The Event page's Date row shows as-ofs | 5a | Go and Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records, earliest first (Go sends a multi-valued date field's values in date order); the summary's old date fields retire | [S16-D6](design/S16-D6-event-date-row.md) | S16-42, S16-D6 | [plan](prs/S16-44-event-date-row.md) | Blocked — on board S16-D6 |
 | S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Planned |
 | S16-46 | Back returns to the row you opened in a section | 6b | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
 | S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
@@ -315,7 +315,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
 | S16-D9 | Omnibar results on the kit popup list: its own window under the field instead of the 640 pt overlay, the combo box's card, where the loading, empty and error lines sit | **S16-52** | Starts from today's omnibar board and the combo box's list |
 | S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom; the Citation composer's toast, which moves there from the foot of its observations column | **S16-58** | Starts from `PVToast`'s board |
-| S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
+| [S16-D6](design/S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames on the Event Detail board |
 
 ## Slices
 
@@ -774,10 +774,10 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 
 #### S16-44 — The Event page's Date row shows as-ofs
 
-**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`). Then the old date fields retire (user, 2026-11-17; S16-42 review M-9): `EventSummary.Date`, `StartDate`, `EndDate` leave Go, the proto, `GoStore` and `CatalogEventSummary` (their counts stay if the row needs them), with `oneEvent`'s rule that clears start and end when `date` is set, and `DateRowDisplay.span(start:end:)` loses its last event caller.
+**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`). The as-ofs list earliest first: Go's Conclusion detail sends a multi-valued date field's values in date order (user, 2026-11-17), and the row lists at most 20 lines against crafted data. Then the old date fields retire (user, 2026-11-17; S16-42 review M-9): `EventSummary.Date`, `StartDate`, `EndDate` leave Go, the proto, `GoStore` and `CatalogEventSummary` (their counts stay if the row needs them), with `oneEvent`'s rule that clears start and end when `date` is set, and `DateRowDisplay.span(start:end:)` loses its last event caller.
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause. An event dated only by as-ofs no longer shows "No date recorded" in its Date row under an "as of …" header (S16-42 ship log UX-1: until this PR the two contradict).
-**Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; brief S16-D6.
+**Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; `core/database/conclusiondetails` `finish`; brief [S16-D6](design/S16-D6-event-date-row.md); plan [`prs/S16-44-event-date-row.md`](prs/S16-44-event-date-row.md).
 
 ### Batch 6 — Idea follow-ups
 
