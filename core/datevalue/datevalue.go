@@ -1,5 +1,6 @@
 // Package datevalue is the pure DateValue type: the value, its validation and
-// its compact display. It imports no database package; queries live in
+// its two displays, compact (CompactDisplay, for list rows) and citation
+// (CitationDisplay, in citation terms). It imports no database package; queries live in
 // core/database/datevalues.
 //
 // Kinds validated by Validate (DDL stays flexible for later kinds):
@@ -73,16 +74,7 @@ type side struct {
 // Validate reports ErrInvalid when v is not a storable DateValue. Callers
 // trim string fields first.
 func Validate(v Value) error {
-	start := side{
-		year: v.StartYear, month: v.StartMonth, day: v.StartDay,
-		hour: v.StartHour, minute: v.StartMinute, second: v.StartSecond,
-		millisecond: v.StartMillisecond,
-	}
-	end := side{
-		year: v.EndYear, month: v.EndMonth, day: v.EndDay,
-		hour: v.EndHour, minute: v.EndMinute, second: v.EndSecond,
-		millisecond: v.EndMillisecond,
-	}
+	start, end := v.startSide(), v.endSide()
 	qual := v.Qualifier
 
 	switch v.Kind {
@@ -119,6 +111,23 @@ func Validate(v Value) error {
 		return ErrInvalid
 	}
 	return nil
+}
+
+// startSide and endSide are the one way to read an end of v.
+func (v Value) startSide() side {
+	return side{
+		year: v.StartYear, month: v.StartMonth, day: v.StartDay,
+		hour: v.StartHour, minute: v.StartMinute, second: v.StartSecond,
+		millisecond: v.StartMillisecond,
+	}
+}
+
+func (v Value) endSide() side {
+	return side{
+		year: v.EndYear, month: v.EndMonth, day: v.EndDay,
+		hour: v.EndHour, minute: v.EndMinute, second: v.EndSecond,
+		millisecond: v.EndMillisecond,
+	}
 }
 
 func pointQualifierOK(qual string) bool {

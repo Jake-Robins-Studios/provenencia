@@ -9,7 +9,7 @@ description: >-
 
 # Add or use a DateValue
 
-Shared cross-layer civil dates live in **`core/datevalue`** (the pure type, validation and compact display) and **`core/database/datevalues`** (the queries), not in Source-only packages. Authoritative design: [`docs/structured-date-model.md`](../../../docs/structured-date-model.md).
+Shared cross-layer civil dates live in **`core/datevalue`** (the pure type, validation and compact and citation display) and **`core/database/datevalues`** (the queries), not in Source-only packages. Authoritative design: [`docs/structured-date-model.md`](../../../docs/structured-date-model.md).
 
 New **columns** need a catalog migration first (`.agents/skills/add-catalog-migration/SKILL.md`). Do not invent a second date representation.
 
@@ -18,7 +18,7 @@ New **columns** need a catalog migration first (`.agents/skills/add-catalog-migr
 ```
 core/datevalue/              # pure: no core/database import
   datevalue.go               # Value, kinds, qualifiers, ErrInvalid, Validate
-  display.go                 # CompactDisplay
+  display.go                 # CompactDisplay, CitationDisplay
   calendar.go                # DaysFromCivil, DaysInMonth, BoundDays, YearLine, AddMonths, AddDays, AddYears, CompletedYears
   validate_test.go
   display_test.go
@@ -27,7 +27,7 @@ core/database/datevalues/    # queries
   datevalues_test.go
 ```
 
-Types and checks: `datevalue.Value`, `datevalue.Validate(v)`, `datevalue.CompactDisplay(v)`. Call sites for storage: `datevalues.Insert(c, v)` / `datevalues.Lookup(c, id)`. Minted id is UUIDv7 BLOB. Domain errors: `datevalue.ErrInvalid` (`datevalues.invalid`). Matching layers import `core/datevalue`, never `core/database/datevalues`.
+Types and checks: `datevalue.Value`, `datevalue.Validate(v)`, `datevalue.CompactDisplay(v)`, `datevalue.CitationDisplay(v, style)`. Call sites for storage: `datevalues.Insert(c, v)` / `datevalues.Lookup(c, id)`. Minted id is UUIDv7 BLOB. Domain errors: `datevalue.ErrInvalid` (`datevalues.invalid`). Matching layers import `core/datevalue`, never `core/database/datevalues`.
 
 Calendar arithmetic (day numbers, month lengths, the days a bound covers) lives in `core/datevalue/calendar.go`; the date ends and day windows that compare dates live in `core/valuecompare/datewindow.go` (`DateEnds`, `AboutEnds`, `Window`, `ShiftYears` for a year move on an end; `datevalue.AddYears` moves 29 February to 1 March in a common year, `CompletedYears` is its inverse, `Earliest` / `Latest` for the one earliest / latest pick of date ends). Do not write a second calendar. Where a date sorts is `core/valuecompare/dateorder.go` (`DateKeyOf`, `DateKey.Compare`, `DateKey.Int64`, beside `datewindow.go`): timelines, birth order, a Source's `date_sort_key` and the reconciler's stored date `sort_key` all read it. Do not write a second order. The Person page's Timeline starts from it and moves a row only where the dates cannot say which came first (`persondetail` `lifelineTypes.order`, `structured-date-model.md` § 3.4); that is not a sort, and no other list moves rows.
 
@@ -73,7 +73,7 @@ DateValues are value objects (UUID for persistence only). Concluded/refined zone
 
 ## Display (macOS)
 
-User-visible DateValue strings (list rows, composer summaries, previews) go through **`DateValueDisplay`** in [`macos/App/Platform/DateValueDisplay.swift`](../../../macos/App/Platform/DateValueDisplay.swift). Do not ad-hoc interpolate `y-m-d` or hard-code English ABT/BEF/AFT/between wrappers — call `DateValueDisplay.string(for:locale:)` (accepts `DateValueDraft` or `CatalogDateValueInput`). Qualifier/range templates live under `L10n.Dates`. Invalid drafts return `""`; call sites that need a placeholder keep their own L10n (e.g. composer “No date set”).
+User-visible DateValue strings (list rows, composer summaries, previews) go through **`DateValueDisplay`** in [`macos/App/Platform/DateValueDisplay.swift`](../../../macos/App/Platform/DateValueDisplay.swift). Do not ad-hoc interpolate `y-m-d` or hard-code English ABT/BEF/AFT/between wrappers — call `DateValueDisplay.string(for:locale:)` (accepts `DateValueDraft` or `CatalogDateValueInput`). Qualifier/range templates live under `L10n.Dates`. A date inside a citation is English citation text ("ca. 1880", "3 March 1830") written by Go's `CitationDisplay` (`core/citationformat` calls it), not by L10n. Invalid drafts return `""`; call sites that need a placeholder keep their own L10n (e.g. composer “No date set”).
 
 Evidence graph cited rows use **`ObservationValueDisplay`**, which prefers a structured NameValue via `NameValueDisplay` (profile order, else the form), then structured `CatalogObservation.date` → `DateValueDisplay`, then denormalized `valueText` / integer. List RPCs still fill `value_text` with the name form so other clients stay correct without type-specific UI.
 
