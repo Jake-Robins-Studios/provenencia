@@ -812,7 +812,7 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 
 Wrong today: three headers show a bare number that skips the strings catalog, and Evidence graphs shows "0 evidence graphs" where the others show nothing.
 **Not this PR.** A count form on `PVSectionHeader` (declined, user 2026-11-17); an Add button in the Notes header; headers that pass other meta text ("4 checked", Promote's and the Conclusion lists' own strings).
-**Check.** Bar 29; `rg -n 'meta: "\\\(|meta: String\(' macos/App` finds nothing; `scripts/check-localizable-xcstrings.py` passes with the four new keys.
+**Check.** Bar 29; `rg -n 'meta: .*("\\\(|String\()' macos/App` finds nothing (today it finds the three); `scripts/check-localizable-xcstrings.py` passes with the four new keys.
 **Context.** Rule "(Batch 6) A section count is a localized plural, hidden at zero"; `macos/App/Features/Sources/SourcePageNotesView.swift`, `SourcePageArtifactsView.swift` (the pattern to match), `SourcePageGraphsView.swift`; `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`; `macos/App/Features/Conclusions/ConclusionDetailGallery.swift`, `ConclusionGallerySection.swift`, `PersonDetailContent.swift` and `ConclusionDetailGallery.swift`'s Event and Place gallery (where each gallery is built); [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
 
 ### Slice 6d — Popups
