@@ -1,26 +1,21 @@
 # Wide layout: pages waiting for a Wide frame
 
-**Status:** idea, 2026-10-29. A queue, not a spike. Each line becomes a brief ([`add-design-brief`](../../.agents/skills/add-design-brief/SKILL.md) "Wide layout (binding)") and a PR when its page is next touched, or as a batch in an even spike.
+**Status:** idea, 2026-10-29; checked against the code 2026-11-17. A queue, not a spike. Each line becomes a brief ([`add-design-brief`](../../.agents/skills/add-design-brief/SKILL.md) "Wide layout (binding)") and a PR when its page is next touched, or as a batch in an even spike.
 
-Spike 14's Batch 6 gives every page a Regular / Wide width class (1600pt of pane, S14-24, landed) and a Page columns kit component (brief S14-D1). Page columns has no migration PR: each page moves onto it in its own redesign (user, 2026-10-29), starting with Spike 13's Person page frame (S13-D1, S13-10), which builds it. The rules and patterns are in [`macos-client-patterns.md` § 9](../macos-client-patterns.md#9-window-widths-regular-and-wide). These pages still show their Regular layout at Wide:
+Every page has a Regular / Wide width class (1600pt of pane, S14-24) and the Page columns kit component (`PVPageColumns`); a page moves onto it in its own redesign (user, 2026-10-29). The rules and patterns are in [`macos-client-patterns.md` § 9](../macos-client-patterns.md#9-window-widths-regular-and-wide).
+
+Done and gone from this list: the Source page (Page columns with the pinned header, S15-03), the Person page (S13-10, S13-28), the Sources list (centered at `widthListWideMax` with a Published column, S15-04), the Source types list and page (S15-48, S15-49), the Citation composer (S15-13), Promote (S13-23), and two-column form sheets, now the kit's `PVFormColumns` (the Artifact sheet, the Evidence graph form, the Add Source type dialog).
+
+## Pages still drawn at their Regular layout at Wide
 
 | Page | Wide pattern to start from | Notes |
 | --- | --- | --- |
-| Source page | Page columns with a secondary column; the pinned header slot | Landed (S15-03): the page is on Page columns with the pinned header, `primaryFill` and `fillSplitSideMax`; `SourcePageOverviewLayout` keeps Description and Credibility beside Metadata at Regular and puts Metadata in a side column at Wide, over the same four subviews so drafts survive crossing 1600. Spike 15 adds the Artifact metadata board and the citation preview to it ([`source-provenance-date.md`](../deployment-plan/spike-15/source-provenance-date.md)) |
-| Person, Event and Place pages | Page columns with a secondary column | On Page columns since S13-10: `ConclusionDetailPage` is built on it, so Person, Event and Place are centered at Wide. Person's sections are primary-only, except Sources, which fills the width with a pinned side column (S13-28); Event and Place keep their own Wide arrangement for their redesigns |
-| Sources, Persons, Events and Places lists | List beside the selected detail | `ConclusionListPage` moves onto Page columns with the lists' redesign; the Sources list is drawn at Wide with the Source date (S15-D2): centered at `widthListWideMax` with a Published column, on `SourcesListColumns` (S15-04) |
-| Properties, Metadata | List with a side pane | Each has a fixed side pane today; its brief decides whether the list or the pane takes the width (S14-24 D-6). `MetadataView` was a near-copy of `SourceTypesView`; Source types left the shape in Spike 15: a list and its own page (S15-48), the list centered at `widthListWideMax` with a Description column from a 1200pt table (S15-49); Metadata keeps it (user, 2026-11-14) |
-| Citation composer | Canvas / editor | Landed (S15-13): `CitationComposerView.composeSplit` reads the width class (`CitationComposerColumnLayout.init(_:)`): Regular stacks the form above the viewer with Observations beside, Wide puts the viewer, a 440pt form and 520pt Observations side by side; focus in the form is kept across the line with `FocusKeeper` |
-| Evidence graph | Canvas with the inspector docked open | |
-
-Promote widened in S13-23: its list goes to 1600 pt and its target menu to 460 pt at Wide (S13-D11 frame 27W).
-
-## Two-column form sheets
-
-S15-11 makes the Evidence graph form the app's first two-column form sheet (880pt at every width), so a long list beside the fields never makes the form scroll ([S15-D5](../deployment-plan/spike-15/design/archive/S15-D5-evidence-graph-form.md)). If the user likes it, the other form sheets follow (the Artifact sheet first), each in its own brief; the second sheet promotes the two-column layout into the kit's FormDialog (user, 2026-11-14).
+| Persons, Events and Places lists | List beside the selected detail | `ConclusionListPage` reads no width class and is not on Page columns. The Sources list went another way at Wide (centered with an extra column, S15-04); the lists' redesign picks one of the two |
+| Properties, Metadata | List with a side pane | Each keeps its fixed side pane at every width; its brief decides whether the list or the pane takes the width (S14-24 D-6). Source types left this shape for a list and its own page (S15-48, S15-49); Metadata keeps it (user, 2026-11-14) |
+| Event and Place pages | Page columns with a secondary column | On Page columns through `ConclusionDetailPage`, so centered at Wide, with no Wide arrangement of their own yet; it comes with their redesigns |
 
 ## Narrow panes
 
 The window can be as narrow as 700pt (a pane of about 436pt). Pages are drawn at Regular and Wide; below the Regular frame some do not fit:
 
-- **Person page, Sources rows.** The Source rows' fixed Type, Date and Ref columns (442pt with their gaps, `PersonSourcesColumns`) do not fit the 372pt column of a 436pt pane, so the citation column has no room. Found on the S13-D10 board (frame 15r, 2026-11-07); the rows are S13-D6's layout, and their narrow arrangement waits for the next change to the Sources section (user, 2026-11-07); the narrow rows switch at their own width with `PVWidthBreakpoints`, as the Sources list does.
+- **Person page, Sources rows.** The rows' fixed Type, Date and Ref columns plus the narrowest Citation column (`PersonSourcesColumns.minWidth`, about 640pt) do not fit a 436pt pane. `ConclusionPinnedSideColumn` already moves the diagram under the rows when the pane is narrow, but the rows themselves have no narrow arrangement. Found on the S13-D10 board (frame 15r, 2026-11-07); it waits for the next change to the Sources section (user, 2026-11-07). The rows switch at their own width with `PVWidthBreakpoints` (S16-39), as the Sources list does.

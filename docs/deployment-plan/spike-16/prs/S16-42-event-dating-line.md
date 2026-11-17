@@ -99,7 +99,7 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | --- | --- |
 | The Event page Date row (`EventDetailContent.dateRow`) | S16-44 |
 | Removing `EventSummary.Date`, `StartDate`, `EndDate` (Go, proto, Swift), `oneEvent`'s clear-start-and-end rule and `DateRowDisplay.span`'s last event caller | S16-44 (map scope entry, user 2026-11-17) |
-| A notice for an as-of outside the start or end | [`ideas/event-as-of-followups.md`](../../../ideas/event-as-of-followups.md) |
+| A notice for an as-of outside the start or end | descoped (user, 2026-11-17) |
 | Indexing every as-of year in search | not planned (AC-3.2: the line's two dates are what the row shows) |
 | Narrowing the as-of-only event's **index** keys | not planned (D-12: it would drop pairs probed from the dated side) |
 | A Place's as-of | [`ideas/event-as-of-followups.md`](../../../ideas/event-as-of-followups.md) |

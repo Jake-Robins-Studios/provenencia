@@ -24,7 +24,7 @@ Reviewers: CON, MNT, UX, SEC+PRF. UX: the diff touches `macos/App/**` and `Local
 | CON-4 | CON | minor | `macos-client-patterns.md:89` list of kept mutations omits `.wroteMetadataBoard` | Fix now → F-4 | verified at line 89 |
 | PRF (from MNT outside lens) | PRF | minor | `syncBoards` reassigns `boards` every sync | Rejected | SEC+PRF review: every card already reads `context.workspace` through `items`, so cards re-rendered each sync before this PR; bounded by one Source's Artifacts (60) |
 | UX (from CON outside lens) | UX | minor | Card keeps `.pvLiftHover(scale: 1.02)` while hosting a board's inputs and drag list | Logged → manual check | no evidence of a defect without the app; added to §10 manual check for the user |
-| UX-4 | UX | nit | Saved-row reorder is drag-only on every board | Follow-up → `docs/ideas/keyboard-reorder.md` | pre-existing on the Source board; the user chose an idea file |
+| UX-4 | UX | nit | Saved-row reorder is drag-only on every board | Follow-up → `spike-15/keyboard-reorder.md` (S15-51) | pre-existing on the Source board; the user chose an idea file |
 
 Nits (logged): `MNT-4 · SourcePageChrome.swift:3 · doc comment cites the moved paddings` · `MNT-5 · MetadataBoardView doc comment · say compact draws a trailing Add and no empty state` · `MNT-6 · released_metadata_scope_test.go:94,104 · indexOf → indicesOf; setValue → setProviderValue` · `MNT-7 · SourcePageModelTests T-5 · variable image holds repositoryField()` · `CON-5 · SourcePageArtifactsView.swift:457-476 · PVDivider inside the padded VStack, D-12 puts it above`. Nits ride along in F-9 since every one is in a file this PR adds or changes.
 
@@ -154,4 +154,4 @@ Head `7ce528c53`. F-14 done: `MetadataBoardLabel.width` a static 132; the sugges
 Merged `origin/main` (`7276092ba`, docs only) as `a1b882be9`; gate PASS against `7276092ba`.
 
 ## Result
-Gate PASS · CI green (`c637ca4b1`) · open: none · trimmed to the board write's cache patch and its fixes (user, 2026-11-12); the per-Artifact chrome is re-cut as S15-33 – S15-36 under brief S15-D14 · follow-ups: UX-4 → [`docs/ideas/keyboard-reorder.md`](../../../ideas/keyboard-reorder.md) · to user: — · manual check §10 steps 1 and 4 (the Source's own board) still apply; the Artifact steps do not
+Gate PASS · CI green (`c637ca4b1`) · open: none · trimmed to the board write's cache patch and its fixes (user, 2026-11-12); the per-Artifact chrome is re-cut as S15-33 – S15-36 under brief S15-D14 · follow-ups: UX-4 → [`spike-15/keyboard-reorder.md` (S15-51)](../keyboard-reorder.md) · to user: — · manual check §10 steps 1 and 4 (the Source's own board) still apply; the Artifact steps do not

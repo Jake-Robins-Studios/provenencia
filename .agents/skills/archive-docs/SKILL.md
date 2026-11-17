@@ -112,7 +112,7 @@ When an idea in `docs/ideas/` is finished or dropped:
    **skill**, or the **code** — graduate them there before deleting if they are
    not already.
 3. Open leftovers: one row or short note in another current idea, the next
-   spike's map, or `structural-debt.md` — never only in the deleted file, and
+   spike's map, or a new idea file named for its topic (never a catch-all debt file) — never only in the deleted file, and
    never in `docs/dogfood/`, which holds feedback from people using the app.
 4. Update [`docs/ideas/README.md`](../../../docs/ideas/README.md) and retarget
    inbound links (spike READMEs, domain docs, skills).

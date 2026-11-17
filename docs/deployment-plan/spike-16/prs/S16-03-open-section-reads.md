@@ -86,7 +86,7 @@ A Person page section declares what it reads once, and every part of the app tha
 | Section switch announcements, the leave-or-stay decision | S16-06 |
 | A `prefetch` read role | S16-29 |
 | Keys as plain values, `.followsInputs` | S16-25 |
-| The other `Features/Conclusions` tidy-ups of P-26 | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) (P-26 row) |
+| The other `Features/Conclusions` tidy-ups of P-26 | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (P-26 row) |
 
 ## 4. Current state
 

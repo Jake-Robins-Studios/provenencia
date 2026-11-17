@@ -15,9 +15,9 @@ User, 2026-11-08. They are the map's Batch 1 working rules.
 - **P-7 is a render cap.** The Timeline builds what its folds show and every fold unfolds a page at a time; no memo of the section's content.
 - **The map review re-cut four items** (2026-11-08, [review](deployment-plan.review.md)): P-2 has its own PR after Spike 14's S14-40; P-6 has its own PR, ungated; P-14 and P-7's pages share one fold PR; P-16 is scheduled with P-12.
 - **P-8 and P-9 are descoped** to [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md).
-- **Eight parked items ride with the PRs that touch their files** (user, later on 2026-11-08): P-15, P-17 (with the wording the audit proposed), P-20, P-21, P-24, part of P-22 and part of P-26, and the unused `CatalogQueryStalePolicy` from [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (S16-09).
+- **Eight parked items ride with the PRs that touch their files** (user, later on 2026-11-08): P-15, P-17 (with the wording the audit proposed), P-20, P-21, P-24, part of P-22 and part of P-26, and the unused `CatalogQueryStalePolicy` from `structural-debt.md` (retired 2026-11-17; split into topic idea files) (S16-09).
 - **The PRs were combined once more to cut review cycles** (user, later on 2026-11-08): P-2 joins the other caps in S16-01, P-10's note joins the notices in S16-04, and part of P-22 moves to S16-12, which changes the same message.
-- **P-18, P-19, P-23, P-25, P-27 and the rest of P-22 and P-26 stay parked** in idea files (table below).
+- **P-23, P-25, P-27 and the rest of P-22 and P-26 stay parked** in idea files (table below). P-18 and P-19 came back as Batch 6 (2026-11-17).
 
 ## Scheduled
 
@@ -50,13 +50,13 @@ User, 2026-11-08. They are the map's Batch 1 working rules.
 | --- | --- | --- |
 | P-8 | Timeline participants' summaries are sent once per event | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
 | P-9 | The record links read recomputes every pair, with no memo | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
-| P-18 | Birth and death event counts have no plural; the catalog check skips them | [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md) |
-| P-19 | Back resets a section's scroll, folds and focus | [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md) |
-| P-22 (the rest) | The claims read could own every graph label the record links diagram shows | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) |
+| P-18 | Birth and death event counts have no plural; the catalog check skips them | S16-47 (Batch 6, 2026-11-17) |
+| P-19 | Back resets a section's scroll, folds and focus | S16-46: scroll and focus (Batch 6, 2026-11-17); folds refused |
+| P-22 (the rest) | The claims read could own every graph label the record links diagram shows | [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md) |
 | P-23 | The family response sends each sibling two or three times | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
-| P-25 | A fourth hover-and-focus-ring button body (A-41 grew) | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (A-41) |
-| P-26 (the rest) | Layer tidy-ups in `Features/Conclusions` | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) |
-| P-27 | Per-key copies of registry tests and FakeStore reads | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) |
+| P-25 | A fourth hover-and-focus-ring button body (A-41 grew) | [`ideas/kit-layering.md`](../../ideas/kit-layering.md) (A-41) |
+| P-26 (the rest) | Layer tidy-ups in `Features/Conclusions` | [`ideas/kit-layering.md`](../../ideas/kit-layering.md), [`ideas/value-formatting.md`](../../ideas/value-formatting.md) |
+| P-27 | Per-key copies of registry tests and FakeStore reads | [`ideas/swift-test-fixtures.md`](../../ideas/swift-test-fixtures.md) |
 
 ## Items
 
@@ -266,7 +266,7 @@ Today: `["birth", "b1", "undated", "i1", "i2", "death"]`.
 
 **Problem.** The wire repeats the claims read's graph rows but not `source_ref`, so the Sources section hands `graphSourceRefs` to the diagram's adapter, and the "name, else ref" and "title, else ref" fallbacks are written twice. `source_id` and `source_type_id` are decoded and never read.
 
-**Fix.** Drop the unread `source_type_id` and the handoff, and write each fallback once. S16-12 found `source_ref` unneeded: a Source's title is required, so the diagram labels with the title, and `source_id` stays for the app's `.source` follow (user, 2026-11-12). With S16-12, which changes the same message (moved from S16-01 when the PRs were combined). The rest (the claims read owning every graph label) stays in [`ideas/structural-debt.md`](../../ideas/structural-debt.md).
+**Fix.** Drop the unread `source_type_id` and the handoff, and write each fallback once. S16-12 found `source_ref` unneeded: a Source's title is required, so the diagram labels with the title, and `source_id` stays for the app's `.source` follow (user, 2026-11-12). With S16-12, which changes the same message (moved from S16-01 when the PRs were combined). The rest (the claims read owning every graph label) stays in `structural-debt.md` (retired 2026-11-17; split into topic idea files).
 
 **Origin.** S13-27 (#743), S13-28 (#744).
 
@@ -286,7 +286,7 @@ Today: `["birth", "b1", "undated", "i1", "i2", "death"]`.
 
 **Problem.** The file grew from 484 to 736 lines in Spike 13; S16-03, S16-04 and S16-06 all edit it.
 
-**Fix.** Move the gallery model to `ConclusionGallerySection.swift`, `ConclusionDetailRowsSection` beside `ReconciledValueRow`, and the Place relationship model and section beside `PlaceRelationshipRow`, in S16-03 before its other steps. The other tidy-ups stay in [`ideas/structural-debt.md`](../../ideas/structural-debt.md).
+**Fix.** Move the gallery model to `ConclusionGallerySection.swift`, `ConclusionDetailRowsSection` beside `ReconciledValueRow`, and the Place relationship model and section beside `PlaceRelationshipRow`, in S16-03 before its other steps. The other tidy-ups stay in `structural-debt.md` (retired 2026-11-17; split into topic idea files).
 
 **Origin.** S13-09, S13-10, S13-11, S13-14 and S13-15.
 

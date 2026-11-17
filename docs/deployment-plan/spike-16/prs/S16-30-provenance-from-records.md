@@ -97,7 +97,7 @@ A Conclusion page's records (the Vitals provenance sheet, each Gallery picture's
 | Rendered citations in the sheet | S15-21 |
 | The claims and record links reads | S16-13 (landed) |
 | The Source page's Observation list (`source_read.go` `listedFromSource`) reading the new Citation fields | not planned |
-| `grapheventtitles.FromStored` onto `FirstTextOf`: it picks toponyms by key across origins, the detail read by the provenencia Property id, so folding it changes which Places title a Source event card (review M-9) | [`structural-debt.md`](../../../ideas/structural-debt.md) P-28 |
+| `grapheventtitles.FromStored` onto `FirstTextOf`: it picks toponyms by key across origins, the detail read by the provenencia Property id, so folding it changes which Places title a Source event card (review M-9) | `structural-debt.md` (retired 2026-11-17; split into topic idea files) P-28 |
 
 ## 4. Current state
 

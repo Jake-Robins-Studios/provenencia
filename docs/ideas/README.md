@@ -25,7 +25,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 ### Citation composer and media
 
 - [`citation-composer-followups.md`](citation-composer-followups.md) — bridge-mode subject filter; cropped citation preview
-- [`depictions-and-likenesses.md`](depictions-and-likenesses.md) — Spike 10 / 14 leftovers (signature, page-change confirm, PDF Artifact thumbnails, audit items)
+- [`depictions-and-likenesses.md`](depictions-and-likenesses.md) — Spike 10 / 14 leftovers (page-change confirm, PDF Artifact thumbnails, audit items)
 - [`audio-video-sources.md`](audio-video-sources.md)
 - [`text-quote-locators.md`](text-quote-locators.md)
 
@@ -42,26 +42,30 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 ### Conclusion pages and provenance
 
 - [`person-page-performance.md`](person-page-performance.md) — record links memo and a household-sized budget, Timeline participants sent once, lazy Timeline cards, siblings sent once
-- [`person-page-followups.md`](person-page-followups.md) — a birth and death events plural, Back keeping a section's place, the Conclusion lists' silent refresh failure
-- [`wide-layout.md`](wide-layout.md) — pages still waiting for a Wide / Page columns frame
+- [`person-page-followups.md`](person-page-followups.md) — the Conclusion lists' silent refresh failure, partial record-links lines, a cap on graphs per person
+- [`wide-layout.md`](wide-layout.md) — pages still waiting for a Wide frame (the Persons, Events and Places lists, Properties, Metadata, Event and Place pages) and the Person Sources rows at narrow widths
 
 ### Properties, vocabulary, Sources
 
-- [`copy-source-list-entries.md`](copy-source-list-entries.md) — copy the source-list entries of several Sources at once for a bibliography; Spike 15 copies one from the Source page
+- [`source-page-followups.md`](source-page-followups.md) — missing-Source errors outside the page context, delete after a delete elsewhere, the cover reload after Artifact writes
 - [`source-type-packages.md`](source-type-packages.md) — citation styles as installable packages of types, fields and formats; raised in Spike 15, which seeds the *Evidence Explained*-style set as the product default
-- [`event-as-of-followups.md`](event-as-of-followups.md) — Spike 16 Batch 5 leftovers: backfill `as_of` into an existing catalog, as-of on a Place, an as-of outside the researcher's own start or end
+- [`event-as-of-followups.md`](event-as-of-followups.md) — Spike 16 Batch 5 leftovers: as-of on a Place, hide as-of on instantaneous event types
 - [`properties-and-terms.md`](properties-and-terms.md) — binding order, event-type-scoped properties, Occupation seed, term management (direction / inverses), failed bind after create
 - [`source-to-source-relationships.md`](source-to-source-relationships.md)
 - [`registry-source-import.md`](registry-source-import.md) — paste a record URL from Ancestry, FamilySearch and similar; access unproven
 - [`share-packages.md`](share-packages.md) — also holds the crafted-project hardening parked when Spike 12 closed
 
-### Kit and structural debt
+### Kit, tooling and refactors
 
-- [`shared-list-helpers.md`](shared-list-helpers.md) — empty search state, catalog querier, popup dismissal / list, history menu rows, type-select on disabled menus, Source section counts, silent sidebar recount, Return adding a combo box pick the field no longer shows
-- [`keyboard-reorder.md`](keyboard-reorder.md) — keyboard and VoiceOver moves in `PVReorderableList`, so metadata board rows reorder without dragging
+- [`kit-layering.md`](kit-layering.md) — the kit's delete impact taking a Features type, hand-built hover focus rings, page-column metrics and diagram options with one caller
+- [`value-formatting.md`](value-formatting.md) — two date formatters, editor flags in the date draft, integer text, event formatting in Features
+- [`catalog-query-layer.md`](catalog-query-layer.md) — two ways to learn a Source delete; splitting `CatalogLastUpdated.swift`
+- [`graph-cache-followups.md`](graph-cache-followups.md) — kinship pivots on `deps`, value columns repeated across readers, two toponym readers, filed-link reads
+- [`search-index-followups.md`](search-index-followups.md) — search kinds owning their columns; a term rename leaving handle documents stale
+- [`swift-test-fixtures.md`](swift-test-fixtures.md) — Artifact file fixtures, per-key registry tests and fake reads, the fake's saved observations
+- [`plan-docs-tooling.md`](plan-docs-tooling.md) — the spike-close link comparison as a script; anchors and a gate over every doc
+- [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
-- [`stacked-toasts.md`](stacked-toasts.md) — toasts that stack and expire on their own timers instead of replacing each other
-- [`structural-debt.md`](structural-debt.md) — audit refactors with no visible change; leftover test artifact and Subject fixtures
 
 Closed spikes (decisions, not PR order): [`docs/deployment-plan/archive/`](../deployment-plan/archive/).
 

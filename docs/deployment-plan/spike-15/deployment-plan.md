@@ -25,6 +25,7 @@ Spike 15 makes Sources carry what a standard genealogical citation needs and tur
 10. **A heavy provenance sheet stays quick.** Person, Event and Place rows all open the same provenance sheet (the Why accordion is gone); a page loads without any record behind its values; a value's records arrive when its sheet opens, with a loading state and a Try again on failure; a value with 1,200 records opens on a page of rows with Show more.
 9. **The credibility argument behaves like a text area.** A long argument wraps, and it saves with the Save button, like the Source description.
 11. **A researcher can say a value is unknown or supplied.** A book Source with no place of publication marked unknown cites "n.p."; an undated letter dated from its postmark cites "[12 March 1880]"; marked-unknown values are no longer flagged as needed. A date in a citation reads "ca. 1880", where the app's pages read "abt 1880".
+12. **A board reorders without a mouse.** On any metadata board (the Source's Metadata section, the Artifact sheet, the graph form), a saved row's handle takes focus with Tab and moves with ⌥↑ / ⌥↓, and focus stays on it. With VoiceOver on, "Move down" on the first saved row makes it second and announces "Provider, 2 of 3". The order survives a reload.
 
 **Scale** (user, 2026-11-09). A census Source with **60 household graphs of 1 to 10 Citations each** (600 Citations); a Person page citing **30 Sources**, so a provenance sheet or Sources section renders up to **300 citations**; a move bundle of **5 Artifacts and 5 graphs**; up to **1,200 records on one value** (a crafted project, or a Place's name row; [`provenance-loading.md`](provenance-loading.md)); the seed's **26 types and 63 fields**. Also: a project of **3,000 Sources** (Spike 16's Scale) for the Sources list; a Source with up to **60 Artifacts**; a move bundle's graphs holding up to **100 Subjects** in all; a format or field edit on a type used by **500 Sources**. Plans write their fan-out against these.
 
@@ -42,8 +43,9 @@ Spike 15 makes Sources carry what a standard genealogical citation needs and tur
 | [Move an Artifact to another Source](move-artifact-between-sources.md) | S15-24, S15-25 | S15-D1, S15-D10, S15-D14 |
 | User review of S15-09 (2026-11-12): the Artifact cards grow too tall with their metadata; edit in a sheet; thumbnails pixelated | S15-33 – S15-36, S15-10 | S15-D14 |
 | [Provenance loading and drawing](provenance-loading.md), from `ideas/provenance.md` (retired 2026-11-09) | S15-27, S15-28, S15-29 | S15-D9 |
+| [Keyboard reorder](keyboard-reorder.md), from `ideas/keyboard-reorder.md` (S15-09 review UX-4; pulled in 2026-11-17) | S15-51 | — (no visible change) |
 
-**Back in the ideas folder** — [`ideas/source-type-packages.md`](../../ideas/source-type-packages.md): citation styles as installable packages. [`ideas/copy-source-list-entries.md`](../../ideas/copy-source-list-entries.md): copying the source-list entries of several Sources at once. [`source-structure-later.md`](source-structure-later.md) stays in this folder as reference and moves to `ideas/` at close: nested Sources, derivation links, named templates, per-graph credibility.
+**Back in the ideas folder** — [`ideas/source-type-packages.md`](../../ideas/source-type-packages.md): citation styles as installable packages. [`source-structure-later.md`](source-structure-later.md) stays in this folder as reference and moves to `ideas/` at close: nested Sources, derivation links, named templates, per-graph credibility.
 
 ## Working rules
 
@@ -86,6 +88,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **The Why accordion goes.** It is deprecated: Event and Place rows open the provenance sheet as Person rows do, and the Why and its code are deleted before records leave the page read (user, 2026-11-09). Binds S15-31. (K-30.)
 - **Records load when the sheet opens.** The detail page read stops carrying each value's records. It keeps what it already sends (`Support`, `Against`, the values and their state) and adds `FieldRecordCounts` per field (the record count and, for a mixed field, the distinct Source count), composed from the node's outcome rows and the records tier after S16-11 and S16-30, with no new SQL query. A sheet's records come from one read that takes the row's (owner, Property) pairs, mirroring `RecordsSource` (`.field`, `.spanning`, `.derived`), and returns them grouped by pair, each outcome carrying whether it denied a value and the denier's Source title; it reports its inputs as S16-24's reads do. The sheet's on-open call (S15-21's key) carries these records with their citations. Swift's `distinctSourceCount`, `recordCount` derivation, `deniedSomething` and denier search go. Binds S15-28, S15-29. Design: [`provenance-loading.md`](provenance-loading.md) "Load records when the sheet opens". (K-24, K-27, K-28, K-34.)
 - **A Source type has its own page.** The Source types list keeps no side pane: a row opens the type's own page, a deep place under Source types (`WorkspaceLocation.typeId`, today's breadcrumb "Source types › Census", Back and Forward, restore, the omnibar's `source_type` hits and delete-impact rows that name a type, which already route by `typeId`; the crumb's label resolves live from the cached types list, as a Source's title does), with room for the three suggestion lists (S15-12) and the three citation formats (S15-17) beside the name, icon, description and delete. **Add type** sits at the top right of the list and opens a short dialog (label, icon, description), as Add Source does; Save creates the type and opens its page, where suggestions and formats are added, all optional. S15-18's **Copy** sits in the type page's header and opens a sheet of ticks, as Copy Source does on the Source page; the Add dialog stays as it is (user, 2026-11-17). The Metadata page keeps its list and side pane: its fields gain no new data this spike (user, 2026-11-14). Binds S15-47 – S15-49, S15-12, S15-17, S15-18.
+- **Reorder by keyboard in the kit, with the name editor's shortcut.** `PVReorderableList` gives every row a keyboard and a VoiceOver move through the same `onMove` a drag calls, so every metadata board gets them and `MetadataBoardModel` keeps one move path. The focusable `PVReorderHandle` takes ⌥↑ / ⌥↓, the name editor's shortcut, bound to the focused handle. Each row has the accessibility actions Move up and Move down, hidden at the ends, and a move announces "<label>, n of m". There is no highlight: focus staying on the moved row is the confirmation, so there is no brief (user, 2026-11-17). One write per move, and a move waits for the board's previous reorder write. Binds S15-51. Design: [`keyboard-reorder.md`](keyboard-reorder.md).
 - **Refused in this spike.** A shared Repository record; per-Source format overrides; a fourth citation form; source type packages ([idea](../../ideas/source-type-packages.md)); install on open; undo of a move; Merge Sources; moving to a new Source; filling the jurisdiction from the graph; a per-Artifact page map; a citation preview on the Source page (user, 2026-11-13); copying several Sources' list entries at once ([idea](../../ideas/copy-source-list-entries.md)). Each is recorded in the map (§ 7) or the move doc.
 
 ## PR map
@@ -141,6 +144,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
 | S15-48 | Source types open on their own page | 2 | Swift: a Source type page (header, details, the Source suggestions, delete, locked plugin types) as a deep place; list rows open it; the side pane goes | [S15-D27](design/archive/S15-D27-source-type-page.md) | S15-47, S15-D27 | [plan](prs/S15-48-source-type-page.md) | Landed #848 |
 | S15-49 | The Source types list is redesigned | 2 | Swift: a sortable Used by column; at Wide the list centers in the Sources list's band and adds Description | [S15-D28](design/archive/S15-D28-source-types-list.md) | S15-48, S15-D28 | [plan](prs/S15-49-source-types-list.md) | Landed #852 |
+| S15-51 | Board rows reorder by keyboard and VoiceOver | 10 | Swift: `PVReorderableList` and a focusable `PVReorderHandle` take ⌥↑ / ⌥↓ and the Move up and Move down actions through `onMove`; the move is announced; a board's moves wait for its previous reorder write | — | — | — | Scoped |
 | S15-50 | Forms list their tab order | 3 | Preparatory, Swift: a form holds its focus and lists its fields' Tab order, any number, on the kit's handle (`PVFieldFocus(_:equals:in:)`); `PVTabPair` goes from every caller; skill and README; no chrome change | — | — | [plan](prs/S15-50-forms-list-their-tab-order.md) | Landed [#862](https://github.com/mendahu/provenencia/pull/862) |
 
 ## Design track
@@ -258,10 +262,14 @@ SLICE 9 — Needed fields, unknown and supplied values   (after slices 2, 3 and 
   ✎ S15-D19 ──▶ S15-23  The Source page copies its source-list entry
   Check: bar 4's boards and copy, bar 11.
 
+SLICE 10 — Keyboard reorder                          (any time)
+  S15-51  Board rows reorder by keyboard and VoiceOver
+  Check: bar 12.
+
 S15-99 — Dogfood close / docs
 ```
 
-**In parallel with Spike 16:** slices 1 to 4 need nothing from it. Within them, S15-01, S15-02, S15-06 and S15-26 have no dependencies and can start at once, with S15-07 and S15-14 right after S15-06; slice 1's UI waits on S15-D1 and S15-D2. In slice 5, S15-17 needs only slice 4; S15-05 waits for S16-12 and S16-13 (and S16-03, S16-06 and S16-07, which edit the same Sources section files); slice 6 when S16-30 lands, slice 7 when S16-15 lands as well. Slice 9 needs slices 2, 3 and 4, and S15-23 also S15-21's rich copy.
+**In parallel with Spike 16:** slices 1 to 4 need nothing from it. Within them, S15-01, S15-02, S15-06 and S15-26 have no dependencies and can start at once, with S15-07 and S15-14 right after S15-06; slice 1's UI waits on S15-D1 and S15-D2. In slice 5, S15-17 needs only slice 4; S15-05 waits for S16-12 and S16-13 (and S16-03, S16-06 and S16-07, which edit the same Sources section files); slice 6 when S16-30 lands, slice 7 when S16-15 lands as well. Slice 9 needs slices 2, 3 and 4, and S15-23 also S15-21's rich copy. Slice 10 (S15-51) needs nothing and can start at once; it touches `MetadataBoardView.savedRow`'s handle, which S15-39 and S15-41 also edit, so whichever lands second rebases.
 
 ### Dependencies at a glance
 
@@ -294,6 +302,7 @@ S15-21 ──▶ S15-27, S15-29
 S15-30 ──▶ S15-27
 S15-28 ──▶ S15-29
 S15-31 ──▶ S15-29
+S15-51: none
 
 Spike 16:
 S16-12, S16-13 ──▶ S15-05
@@ -517,6 +526,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-19 — Seed the citation types, fields and suggestions
 
 **Ships.** `sourcevocab`'s registry gains the 26 types (with icons from `sourcetypes/icons.go`), 63 fields (with descriptions) and suggestions at their levels in format order (map § 6.8); `birth_certificate` stops suggesting `record_date` and `issue_date`.
+**Also (structural debt, 2026-11-17).** The seed `Upsert`s (`sourcetypes.go`, `metadatafields.go`, and the properties path if it does the same) reproject their search documents by hand off `writes.Run` (`searchindex.ReprojectSourceType` after a raw `Exec`). Since this PR adds most of the seeded rows, the Upserts it calls write through `writes.Run` and let the effects registry reproject, as [`core/writes/README.md`](../../../core/writes/README.md) says.
 **Not this PR.** Formats (S15-20).
 **Check.** A new project lists the 26 types; a census Source suggests its Source fields, its Artifacts the copy fields, its graphs the item fields; Install run twice changes nothing.
 **Context.** Rule "The seed is the product default"; map § 6.8; skill `add-seeded-vocabulary`. `seedField` gains `UnknownText`, seeded through `Install` ("n.p." on `publication_place` and `publisher`); lands after S15-37. Updates [`seeded-vocabulary.md`](../../seeded-vocabulary.md) § 2 and [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) (the `seedFields` shape).
@@ -539,6 +549,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-43 — The Source date can be marked unknown or supplied
 
 **Ships.** One migration: `date_unknown` and `date_supplied` on `sources` (a `valuemark.Mark`; unknown means no `date_value_id`); the Source read and date write; Copy Source carries them with the date when its Published date tick is on; audit.
+**Also (structural debt, 2026-11-17; S15-32 review SEC-1).** `datevalue.Validate` gains one high total cap on `Phrase`. Today it checks only that a phrase is present (`core/datevalue/datevalue.go`), so a crafted catalog's huge phrase is copied again by Copy Source's date tick, which this PR extends.
 **Not this PR.** The date dialog (S15-42).
 **Check.** Handler tests: a Source marked no date reads back unknown with no date; supplied keeps its DateValue; Copy Source with the tick off carries neither.
 **Context.** Rules "The Source date is one optional DateValue on `sources`", "A value can be marked unknown or supplied"; skills `add-catalog-migration`, `add-date-value`. Updates [`source-provenance-date.md`](source-provenance-date.md).
@@ -587,6 +598,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-21 — The provenance sheet shows formatted citations
 
 **Ships.** When the provenance sheet opens it holds one `CatalogQueryKey` (evicted when hidden) that asks S15-16's batch render for its Citations, and groups them by the returned key; loading and failure use S16-04's `QueryHandle` reading and `PVRetryCallout`; it shows each record's full citation with its Citations beneath, or today's line when the type has no format. Lands after S16-30, which reshapes the sheet's records. The existing Copy citation (`PVClipboardButton`) copies the full or short form as rich and plain text through one rich-payload write added to `PVClipboardCopyState`. `CitationLineDisplay` stays as the fallback and for its other callers.
+**Also (structural debt, 2026-11-17).** The sheet's empty-Source-title fallback guards a state the catalog refuses, because a Source title is required. That fallback is `CitationLineDisplay.sourceTitle(for:)` and `Parts.titleIsRef`, read by `ConclusionGallerySection.swift` and `PVProvenanceRecordTable.swift` and pinned by `PersonDetailTests`. It goes with its separate view and component. `CitationLineDisplay` itself stays, per rule "Today's line stays the fallback".
 **Not this PR.** The Sources section (S15-22).
 **Check.** Bar 4's provenance sheet; bar 7 on the sheet; copying pastes italics into a rich-text editor.
 **Context.** S15-D9 (it draws the sheet's loading and failed states for the on-open call); [`provenance-loading.md`](provenance-loading.md) (this PR starts "Load records when the sheet opens"; update its note when it lands); rules "Grouping is by the rendered full citation", "Citations render on demand, from SQL", "Today's line stays the fallback"; S16-30; `PVProvenanceSheetContent.swift`, `PVProvenanceRecordRow.swift`, `PVClipboardCopyState`, `CitationLineDisplay.swift`.
@@ -676,6 +688,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-42 — The Source date can be unknown, supplied or flagged
 
 **Ships.** The date dialog offers **No date** and **Supplied** (S15-41's control) beside the shared date form; the header shows them, and flags an empty date when the type needs `{source.date}`.
+**Also (structural debt, 2026-11-17).** The shared date form's strings move from `L10n.Sources` (`date*`, the `sources.page.date…` keys) to `L10n.Dates`, with no copy change; the Source date dialog's own `sourceDate*` copy stays. `SourcesRowDate`, which now serves a row, this header and the Copy form, is renamed for what it is: a Source's date as text.
 **Not this PR.** The shared date form itself, unchanged.
 **Check.** Bar 11's date half: an undated letter dated from its postmark, marked supplied, cites "[12 March 1880]"; one marked no date cites "n.d." and is not flagged.
 **Context.** S15-D23; rule "A value can be marked unknown or supplied"; S15-43, S15-38, S15-41; `add-date-value`.
@@ -695,6 +708,15 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-23 — The Source page copies its source-list entry
 
 **Ships.** **Copy source-list entry** on the Source page: the list form rendered through the one render request and copied as rich and plain text through S15-21's rich-payload write. A type with no list format offers nothing. **Re-scoped (user, 2026-11-13):** the citation preview (S15-D1 SD-11 – SD-13) is not built; needed fields are flagged on the boards (S15-39, S15-40, S15-11).
-**Not this PR.** Copying several Sources' entries ([idea](../../ideas/copy-source-list-entries.md)); notes, which are copied where Citations are shown (S15-21).
+**Not this PR.** Copying several Sources' entries (descoped); notes, which are copied where Citations are shown (S15-21).
 **Check.** On a census Source, Copy source-list entry pastes "Kansas. Ottawa County. 1880 U.S. census, population schedule." with its italics into a rich-text editor.
 **Context.** S15-D19; rule "Boards flag needed fields; the engine decides the rows"; map § 6.10.
+
+### Slice 10 — Keyboard reorder
+
+#### S15-51 — Board rows reorder by keyboard and VoiceOver
+
+**Ships.** In the kit: `PVReorderHandle` takes focus. With it focused, ⌥↑ / ⌥↓ moves its row by one, and focus stays on the moved row's handle. Each row carries the accessibility actions Move up and Move down, hidden at the ends. A move announces "<label>, n of m" through `AccessibilityAnnouncement`. The caller gives each row's label, and the strings are `L10n.DesignSystem` strings. Every move goes through the list's `onMove`. In `MetadataBoardModel.moveSaved`, a move waits for the board's previous reorder write, so a reply or revert never undoes a later move. Fan-out: one reorder write per move on a live board of a few dozen rows; none on a draft board.
+**Not this PR.** A highlight on the moved row (refused, user 2026-11-17); batching held arrows into one write; moving the name editor's part rows onto the kit list; reordering suggestions.
+**Check.** On the Source's Metadata section, the Artifact sheet in add mode and the graph form: Tab to a saved row's handle, then ⌥↓ moves it down and focus stays on it. Pressing ⌥↓ three times quickly leaves the row three places down after reload. With VoiceOver, Move down on the first row makes it second and announces it, and the first row offers no Move up.
+**Context.** Rule "Reorder by keyboard in the kit"; [`keyboard-reorder.md`](keyboard-reorder.md); `PVReorderableList.swift`, `MetadataBoardView.swift`, `MetadataBoardModel.swift`, `NameValueEditorForm.swift` (the shortcut and announcement it matches); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
