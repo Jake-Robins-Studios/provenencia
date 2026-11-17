@@ -92,7 +92,7 @@ This board decides **how the Date row shows an event dated by as-ofs**: each as-
 | The engine sends one dating per event | Its kind (occurrence, span, as-of), its earliest and latest date and whether each side is open. The header line formats it (S16-D4). The Date row reads the dating's kind to choose which recorded dates it shows |
 | An occurrence wins | A kept `date` is the dating; the row shows the `date` field as today, even when the event also has as-ofs |
 | As-of dating | No `date`, and at least one as-of. A start closes the low side and an end the high side; without them the side is open |
-| Each as-of is kept separately | As of is a multi-valued Property: two as-ofs never compete, each is a kept value with its own Sources. The engine sends them earliest first |
+| Each as-of is kept separately | As of is a multi-valued Property: two as-ofs never compete, each is a kept value with its own Sources. The engine sends them in date order, each by its first day: `bet 1980 and 2000` lists before `1990`, even though the header's dating starts from 1990 |
 | A record | One Citation's Observation. The Why lists the records behind the row, each with the date it read and its citation |
 | Contradictory data | An as-of before the start or after the end opens that side of the dating (the header says so). The row still lists the start or end the researcher recorded; a notice for it is later work, not this board |
 | VoiceOver | The row is one element: its label, then its value. A row with several values speaks them in order, separated as a multi-valued row is today ("Date, as of 10 Jan 1990; as of 10 Feb 2015") |
@@ -126,7 +126,7 @@ This board decides **how the Date row shows an event dated by as-ofs**: each as-
 | DR-5 | **One as-of.** One line, `as of 10 Jan 1990` · `1 Source` (DR-2's wording). It must not read like an occurrence (`10 Jan 1990`) |
 | DR-6 | **The Why.** The row's Why lists every record behind its lines (the as-of records, and the start's and end's), each with the date it read and its citation, as the start–end row's Why does today. Its title names the row's dating as the header shows it (`Why “as of 10 Jan 1990–10 Feb 2015”`, today's Why title). No state badge on the row: each line carries its own Source count, as a multi-valued row does |
 | DR-7 | **No new layout.** The row is today's reconciled-value row: label column, the value lines stacked in the value column, the Why disclosure at its end. No chip, badge or icon marks "as of"; the words do |
-| DR-8 | **Many as-ofs.** A crafted or imported event can carry thousands of as-ofs. The row lists at most 20 lines (a directory run of real data has up to 20), then one muted line `9,980 more`, as the Place page's Contains list ends in `%lld more`; the Why still lists every record. **The board decides** that line's look; it is text, not a button. Draw it in frame 10 |
+| DR-8 | **Many as-ofs.** A crafted or imported event can carry thousands of as-ofs. The row shows its first 20 lines (a directory run of real data has up to 20), then the Conclusion page's **Show more** row (`Show 50 more`; each press adds 50), as every long list on a Conclusion page folds (user, 2026-11-17). The Show more row sits under the lines, in the value column. Any multi-valued row folds the same way. Draw it in frame 10 |
 | DR-W1 | The Date row reads the same at Regular and Wide. The Event page keeps its agreed Wide arrangement (frame 7); nothing moves between widths |
 
 ### 4.1 Wide layout
@@ -145,7 +145,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | --- | --- | --- |
 | 8a / 8b | DR-2, DR-7, DR-W1 | Event page "Residence of X", in Town Y, header line `as of 10 Jan 1990–10 Feb 2015`; the Date row lists the two as-ofs (DR-2), the Why closed |
 | 9 | DR-6 | Regular only: frame 8a with the Date row's Why open: the obituary's record (read as `10 Jan 1990`) and the directory's record (read as `10 Feb 2015`) |
-| 10 | DR-1, DR-3, DR-4, DR-5, DR-8 | Regular only: a reference strip of Date rows, label to Why button, one per case: "Baptism of Anna Weber" `14 May 1817` (DR-1); "Residence of Ruth Smith" start 1849, end 1851 (DR-1); "Residence of John Smith" start 1985, as-ofs 10 Jan 1990 and 10 Feb 2015 (DR-3); "Residence of Peter Smith" as-of 1990, end 2015 (DR-3); "Occupation of X" as-ofs abt 1990 and bef 2015 (DR-4); "Residence of Mary Smith" as-of 10 Jan 1990 only (DR-5); "Residence of Z" with 10,000 as-ofs, its 20 lines then `9,980 more` (DR-8). Each with the header line it sits under, as a caption |
+| 10 | DR-1, DR-3, DR-4, DR-5, DR-8 | Regular only: a reference strip of Date rows, label to Why button, one per case: "Baptism of Anna Weber" `14 May 1817` (DR-1); "Residence of Ruth Smith" start 1849, end 1851 (DR-1); "Residence of John Smith" start 1985, as-ofs 10 Jan 1990 and 10 Feb 2015 (DR-3); "Residence of Peter Smith" as-of 1990, end 2015 (DR-3); "Occupation of X" as-ofs abt 1990 and bef 2015 (DR-4); "Residence of Mary Smith" as-of 10 Jan 1990 only (DR-5); "Residence of Z" with 10,000 as-ofs, its first 20 lines then `Show 50 more` (DR-8). Each with the header line it sits under, as a caption |
 
 ---
 
@@ -153,11 +153,12 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Reconciled value row | Snowflake | Ship | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | The Date row. Unchanged: label, value lines, badge slot, Why |
-| Value lines | Recipe | Extend | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines. Extended with one muted remainder caption under the lines (DR-8), as the Place page's Contains ends |
+| Reconciled value row | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow` | The Date row: label, value lines, badge slot, Why; gains the fold of its listed lines (DR-8) |
+| Value lines | Recipe | Ship | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceParts.swift` `PVProvenanceValueList`, `PVProvenanceValueLine` | Each date line with its Source count, stacked, as a multi-valued row lists its values. Not a lead above a list: when the row lists lines, it shows only the lines |
+| Show more | Snowflake | Ship | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` `ConclusionShowMoreRow`, `ConclusionFold` | DR-8: the fold every Conclusion page list uses; `Show %lld more` |
 | The Why | Recipe | Ship | `macos/App/Features/Conclusions/ReconciliationReasoningView.swift`, `PVProvenanceSheetContent.spanning` | The records of every field behind the lines, in one group, as the start–end row today |
 | Row model | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `ReconciledValueRowModel.spanning` | Takes the listed lines as well as the lead |
-| Row date text | Shared Platform formatter | Ship | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay`, `L10n.Dates.rowAsOf` | Each date in the list row's compact form; "as of" is S16-D4's copy. DR-3's start and end words and DR-8's remainder line are new copy |
+| Row date text | Shared Platform formatter | Extend | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay`, `L10n.Dates.rowAsOf` | Each date in the list row's compact form; "as of" is S16-D4's copy. Gains each line's role word (from / as of / until), so DR-2 and DR-3's wording lands in the formatter; the start and end words are new copy |
 | Page columns | Component | Ship | `PVPageColumns` | Unchanged |
 
 **Non-goals.** No new kit primitive, no badge or chip for "as of", no icon, no new color or token, no second row for the as-ofs, no lead line above the listed lines, no tooltip.
@@ -166,4 +167,4 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 ## 7. Handoff
 
-When the board is agreed: record the turn, its frames and the DR-2, DR-3 and DR-8 wording on the **Board** line here, in [`README.md`](README.md) and on the plan's **Board** line; the plan copies DR-1 – DR-8 and DR-W1 into its Scope, fills its Strings and moves from `Blocked` to `Planned`. When S16-44 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the turn, its frames and the DR-2 and DR-3 wording on the **Board** line here, in [`README.md`](README.md) and on the plan's **Board** line; the plan copies DR-1 – DR-8 and DR-W1 into its Scope, fills its Strings and moves from `Blocked` to `Planned`. When S16-44 lands, the brief moves to the spike's design archive.
