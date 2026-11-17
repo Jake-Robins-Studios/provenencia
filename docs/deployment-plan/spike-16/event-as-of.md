@@ -43,4 +43,4 @@ Every consumer asks one question of an event: what span and which points does it
 
 ## What stays later
 
-[`ideas/event-as-of-followups.md`](../../ideas/event-as-of-followups.md): as-of on a Place's period, hiding as-of on instantaneous event types, a notice when an as-of falls outside the researcher's own start or end, and the one-off backfill of `as_of` into an existing catalog.
+[`ideas/event-as-of-followups.md`](../../ideas/event-as-of-followups.md): as-of on a Place's period and hiding as-of on instantaneous event types. A notice for an as-of outside the researcher's own start or end, and a backfill of `as_of` into an existing catalog, are descoped (user, 2026-11-17).
