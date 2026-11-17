@@ -29,7 +29,9 @@ struct PersonTimelineLifeline: Equatable {
     /// The shortest span of years the line scales: a life under it is drawn as this.
     static let minimumYears = 0.25
 
-    /// A day is a dot: at most 1/365 of a year (1/366 in a leap year), so this catches both.
+    /// The bar a day with an open side is drawn as: two of the 16 pt fades.
+    static let openDayLength: CGFloat = 32
+    /// A day is a dot, or the short bar when a side is open: at most 1/365 of a year (1/366 in a leap year), so this catches both.
     private static let dayInYears = 1.0 / 365.0 + 1e-9
 
     enum Shape: Equatable {
@@ -52,13 +54,13 @@ struct PersonTimelineLifeline: Equatable {
             }
         }
 
-        /// Where a tether leaves it: a dot or cap at its y, a closed bar at its
-        /// middle, an open bar 8pt in from its known end.
+        /// Where a tether leaves it: a dot or cap at its y, a closed bar or one open at both
+        /// ends at its middle, a bar open at one end 8pt in from its known end.
         var pointY: CGFloat {
             switch shape {
             case .dot(let y), .cap(let y, _): y
             case .bar(let from, let to, let openStart, let openEnd):
-                if openStart { to - 8 } else if openEnd { from + 8 } else { (from + to) / 2 }
+                if openStart == openEnd { (from + to) / 2 } else if openStart { to - 8 } else { from + 8 }
             }
         }
     }
@@ -185,7 +187,15 @@ struct PersonTimelineLifeline: Equatable {
                 return Mark(id: id, shape: .cap(y: base(span.from) + shift, isPlaceholder: false))
             }
             if span.to - span.from <= Self.dayInYears {
-                return Mark(id: id, shape: .dot(y: base(span.from) + shift))
+                guard span.openStart || span.openEnd else {
+                    return Mark(id: id, shape: .dot(y: base(span.from) + shift))
+                }
+                // A day with an open side is a short faded bar on the day, not a dot that hides it.
+                let middle = (base(span.from) + base(span.to)) / 2 + shift
+                return Mark(id: id, shape: .bar(
+                    from: middle - Self.openDayLength / 2, to: middle + Self.openDayLength / 2,
+                    openStart: span.openStart, openEnd: span.openEnd
+                ))
             }
             return Mark(id: id, shape: .bar(
                 from: base(span.from) + shift, to: base(span.to) + shift, openStart: span.openStart, openEnd: span.openEnd

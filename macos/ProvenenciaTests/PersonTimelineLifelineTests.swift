@@ -302,6 +302,38 @@ struct PersonTimelineLifelineTests {
         }
     }
 
+    @Test func aDayWithAnOpenSideIsAShortFadedBar() throws {
+        // One as-of day (open both sides), a `bef` day (open start) and a closed day, a year apart.
+        var asOf = Data.event("a", type: "residence", when: .day(1990, 1, 10, from: 1990.0, to: 1990.0 + 1.0 / 366))
+        asOf.span = CatalogTimelineSpan(from: 1990.0, to: 1990.0 + 1.0 / 366, openStart: true, openEnd: true)
+        var before = Data.event("b", type: "residence", when: .day(1992, 5, 14, from: 1992.0, to: 1992.0 + 1.0 / 366))
+        before.span = CatalogTimelineSpan(from: 1992.0, to: 1992.0 + 1.0 / 366, openStart: true, openEnd: false)
+        let closed = Data.event("c", type: "residence", when: .day(1994, 1, 10, from: 1994.0, to: 1994.0 + 1.0 / 366))
+        let (line, _) = lifeline(
+            Data.timeline([asOf, before, closed], birth: CatalogLifeMarker(), death: CatalogLifeMarker()), ppy: 43
+        )
+        let length = PersonTimelineLifeline.openDayLength
+        #expect(length == 32)
+        let both = try #require(line.mark("a"))
+        guard case .bar(let from, let to, true, true) = both.shape else {
+            Issue.record("an as-of day is a bar open at both ends")
+            return
+        }
+        #expect(abs((to - from) - length) < 0.001)
+        // Centred on the day, and tethered from its middle.
+        let dot = y(line.mark("c"))
+        #expect(abs(dot - (from + to) / 2 - CGFloat(4.0 - 0.5 / 366) * 43) < 0.01)
+        #expect(both.pointY == (from + to) / 2)
+        let bef = try #require(line.mark("b"))
+        guard case .bar(let bFrom, let bTo, true, false) = bef.shape else {
+            Issue.record("a bef day is the same bar, faded at its start only")
+            return
+        }
+        #expect(abs((bTo - bFrom) - length) < 0.001)
+        #expect(bef.pointY == bTo - 8)
+        if case .dot = line.mark("c")?.shape {} else { Issue.record("a closed day stays a dot") }
+    }
+
     @Test func tickCountIsCapped() {
         var timeline = Data.ida
         timeline.events = [
