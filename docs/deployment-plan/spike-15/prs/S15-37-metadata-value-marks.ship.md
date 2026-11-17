@@ -53,7 +53,7 @@ Head `dcd07cc5f`. MNT-1 **Resolved**: `readDraft` delegates to `readOwnerDraft`;
 
 | ID | Lens | Severity | Title | Decision | Evidence / reason |
 | --- | --- | --- | --- | --- | --- |
-| MNT-4 | MNT | minor (note) | An inline owner-generic `apply` closure (`sourcemetadata_test.go:1600-1608`, added in this PR) sits beside the Source-only `runApply` (:1245) | Follow-up | Same shape as MNT-1, but round 2 can only add blockers and a Fix plan 2 exists only for them. Asked the user where it goes |
+| MNT-4 | MNT | minor (note) | An inline owner-generic `apply` closure (`sourcemetadata_test.go:1600-1608`, added in this PR) sits beside the Source-only `runApply` (:1245) | Follow-up → dropped | Same shape as MNT-1, but round 2 can only add blockers and a Fix plan 2 exists only for them. User dropped it (2026-11-17) |
 
 ## Result
-Branch up to date with `origin/main` @ `2bcfd1fbd` (no merge needed). Gate PASS · CI pending · open: none · follow-ups: MNT-4 · later PR: UX-1 → S15-41 · rejected: SEC-1 · to user: —
+Branch up to date with `origin/main` @ `2bcfd1fbd` (no merge needed). Gate PASS · CI green · open: none · follow-ups: none (MNT-4 dropped by the user) · later PR: UX-1 → S15-41 · rejected: SEC-1 · to user: —
