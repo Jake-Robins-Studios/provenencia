@@ -43,7 +43,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 ### Conclusion pages and provenance
 
 - [`person-page-performance.md`](person-page-performance.md) — record links memo and a household-sized budget, Timeline participants sent once, lazy Timeline cards, siblings sent once
-- [`person-page-followups.md`](person-page-followups.md) — a birth and death events plural, Back keeping a section's place, the Conclusion lists' silent refresh failure
+- [`person-page-followups.md`](person-page-followups.md) — the Conclusion lists' silent refresh failure, partial record-links lines, a cap on graphs per person
 - [`wide-layout.md`](wide-layout.md) — pages still waiting for a Wide / Page columns frame
 
 ### Properties, vocabulary, Sources

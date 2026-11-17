@@ -17,7 +17,7 @@ User, 2026-11-08. They are the map's Batch 1 working rules.
 - **P-8 and P-9 are descoped** to [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md).
 - **Eight parked items ride with the PRs that touch their files** (user, later on 2026-11-08): P-15, P-17 (with the wording the audit proposed), P-20, P-21, P-24, part of P-22 and part of P-26, and the unused `CatalogQueryStalePolicy` from [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (S16-09).
 - **The PRs were combined once more to cut review cycles** (user, later on 2026-11-08): P-2 joins the other caps in S16-01, P-10's note joins the notices in S16-04, and part of P-22 moves to S16-12, which changes the same message.
-- **P-18, P-19, P-23, P-25, P-27 and the rest of P-22 and P-26 stay parked** in idea files (table below).
+- **P-23, P-25, P-27 and the rest of P-22 and P-26 stay parked** in idea files (table below). P-18 and P-19 came back as Batch 6 (2026-11-17).
 
 ## Scheduled
 
@@ -50,8 +50,8 @@ User, 2026-11-08. They are the map's Batch 1 working rules.
 | --- | --- | --- |
 | P-8 | Timeline participants' summaries are sent once per event | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
 | P-9 | The record links read recomputes every pair, with no memo | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
-| P-18 | Birth and death event counts have no plural; the catalog check skips them | [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md) |
-| P-19 | Back resets a section's scroll, folds and focus | [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md) |
+| P-18 | Birth and death event counts have no plural; the catalog check skips them | S16-46 (Batch 6, 2026-11-17) |
+| P-19 | Back resets a section's scroll, folds and focus | S16-45: scroll and focus (Batch 6, 2026-11-17); folds refused |
 | P-22 (the rest) | The claims read could own every graph label the record links diagram shows | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) |
 | P-23 | The family response sends each sibling two or three times | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
 | P-25 | A fourth hover-and-focus-ring button body (A-41 grew) | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (A-41) |

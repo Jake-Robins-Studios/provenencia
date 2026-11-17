@@ -63,6 +63,11 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 18. **Every date line dates an as-of event.** A residence known only from its two as-ofs is dated from 10 Jan 1990 to 10 Feb 2015, open both sides, in the Events list, on its Event page, on the Timeline and on its Evidence graph card, and sorts at 10 Jan 1990; its Event page's Date row lists both as-ofs with their records.
 19. **The Timeline draws it.** On the Person page's Timeline, that residence spans 1990 to 2015 on the lifeline with both ends marked open; a start of 1985 closes its left end. A person's birth is never dated by an as-of.
 
+**Batch 6 — Person page follow-ups** (user, 2026-11-17; [audit](person-page-audit.md) P-18, P-19):
+
+20. **Back keeps your place in a section.** Open a child's tile in Family, then the child's spouse, then press Back twice: each time the section scrolls to the tile you opened, and it has focus. The same holds for a Timeline row and a Sources row. Folds still open closed (S13-16).
+21. **Every count has a plural.** The provenance sheet's "records from N birth events" has plural forms for the events count as well as the records count, and the strings check refuses a count without one, even inside an entry that has other substitutions.
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
@@ -78,6 +83,8 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 | P-3 The Family read is quadratic in a crafted wide family | S16-01 | — |
 | P-4 The claims read rescans its graph per record | S16-01 | — |
 | P-5 A failed refresh is silent | S16-04 | S16-D1 |
+| P-18 Birth and death event counts have no plural (Batch 6, from [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md), 2026-11-17) | S16-46 | — |
+| P-19 Back resets a section's place (Batch 6, from the same idea file, 2026-11-17) | S16-45 | — (no visible change) |
 | P-6 Vitals and Gallery keep old Source words | S16-09 | — |
 | P-7 The Timeline builds every event | S16-07 (pages), S16-02 (build what is shown) | — |
 | P-10 The diagram draws uncounted links as weak | S16-01 (engine), S16-04 (note) | S16-D1 |
@@ -116,7 +123,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
 - Batch 2 leaves parked: stored summary rows, a canonical links table and stored shortlist keys (rule "No new persisted projections"); a batch Evidence-graph read past 64 graphs ([`structural-debt.md`](../../ideas/structural-debt.md), S13-16 PRF-2); Promote's per-graph compare and alike-pair memos (B-11, [`promote-ranking.md`](../../ideas/promote-ranking.md)).
-- [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md): P-18, P-19, and the Conclusion lists' silent refresh failure (map review K-2).
+- [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md): the Conclusion lists' silent refresh failure (map review K-2). P-18 and P-19 came back as Batch 6 (user, 2026-11-17).
 - [`ideas/structural-debt.md`](../../ideas/structural-debt.md): P-22 (the rest), P-25 (A-41), P-26 (the rest), P-27.
 
 ## Working rules
@@ -187,6 +194,11 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 5) As-ofs alone make a span open on both sides** (user, 2026-11-16). An event with only as-ofs displays and sorts from its earliest as-of, spans to its latest, and is drawn open on both sides; a start or an end closes that side. The line's wording for each case is S16-D4's call. Binds S16-42 and S16-44.
 - **(Batch 5) One dating for every event, on the Timeline and in order too** (user, 2026-11-17). The dating's whole span is drawn for every event, not only an as-of one: a start-and-end event spans its years on the lifeline, a start-only or end-only event is drawn open on the side it does not record, and an end-only event sorts at its end. Every text line for an event without an as-of reads as before. Binds S16-42.
 
+### Batch 6 — Person page follow-ups
+
+- **(Batch 6) Back restores a section's scroll and focus, not its folds** (user, 2026-11-17). A Conclusion page section (Person, Event or Place) records the id of the row or tile last opened from it on its `WorkspaceLocation`, as `sectionAnchor`. Like `listScrollAnchor`, it is written when leaving, ignored for identity, and decodes as nil from older history files. Back and Forward scroll to that row and focus it, and the page's other reads are untouched. Folds open closed as today: restoring them stays refused (S13-16 UX-5). When the anchored row is folded away or gone, focus lands on the fold's Show more row, or at the section's top when the row no longer exists. Nothing on the page looks different, so there is no brief. Binds S16-45. Updates [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) and [`navigation-history.md`](../archive/spike-3/navigation-history.md)'s anchor line.
+- **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-46.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -235,6 +247,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Planned |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records | S16-D6 | S16-42, S16-D6 | — | Scoped |
+| S16-45 | Back returns to the row you opened in a section | 6a | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
+| S16-46 | Birth and death event counts have plurals, and the strings check sees them | 6a | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -330,6 +344,13 @@ SLICE 5a — An attestation is a sample
   ✎ S16-D6 ──▶ S16-44  The Event page's Date row shows as-ofs
   Check: bar 16 to 19.
 
+BATCH 6 — Person page follow-ups
+
+SLICE 6a — Back and plurals                          (any time; the two run in parallel)
+  S16-45  Back returns to the row you opened in a section
+  S16-46  Birth and death event counts have plurals, and the strings check sees them
+  Check: bar 20, 21.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -385,9 +406,14 @@ S16-40 ──▶ S16-42 ──▶ S16-44
 S16-D4 ──▶ S16-42
 S16-D7 ──▶ S16-42
 S16-D6 ──▶ S16-44
+
+S16-03, S16-07 (landed) ──▶ S16-45
+S16-46: none
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
+
+Batch 6 needs nothing open: S16-45 builds on S16-03 (sections as places) and S16-07 (folds), both landed. S16-46 is a quick-pr. S16-45 edits `WorkspaceLocation.swift` and `NavigationHistoryStore.swift`, which S16-25 also touches if it is still open, so whichever lands second rebases.
 
 ---
 
@@ -407,7 +433,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Each names its a
 #### S16-07 — One paged fold that moves focus
 
 **Ships.** `ConclusionFold` gains a page of 50 and one fold state type that Family, Timeline and Sources use in place of their `Set`s and Sources' `rowsExpanded`; `firstRevealed` names the first item of the page just revealed and `ConclusionShowMoreRow` claims focus for it through `FocusClaim` (Family gains it; the `Task` hops in the Timeline and Sources go) (P-14, P-7's pages). One focus keeper in `macos/App/Platform/` holds focus across a width change for Gallery and Timeline. When the record links diagram highlights a graph whose record line is folded, that Source's Show more takes the highlight (P-15; the content already maps folded claims to graphs in `claimGraphs`).
-**Not this PR.** Building only shown rows and the lifeline's click targets (S16-02); Back restoring a section's folds (P-19, [idea](../../ideas/person-page-followups.md)).
+**Not this PR.** Building only shown rows and the lifeline's click targets (S16-02); Back restoring a section's folds (refused; Back's scroll and focus are S16-45).
 **Check.** Bar 3's paging and bar 7's fold focus: content tests name the revealed item after each page for every section, Family included; a test unfolds 2,000 hidden items in pages of 50. A content test highlights a folded line's Show more.
 **Brief.** [S16-D2](design/archive/S16-D2-person-page-folds.md) (user, 2026-11-09), one brief for Family, Timeline and Sources, the one view they make up: the page count, the focus landing and the Show more's highlight change how they look. Show more counts the next page, not the whole fold (user, 2026-11-09), and a folded lifeline point opens the fold through its page.
 **Context.** Audit P-7, P-14, P-15; rule "One paged fold that moves focus"; `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift`, `PersonFamilySection.swift`, `PersonFamilyContent.swift`, `PersonTimelineSection.swift`, `PersonTimelineContent.swift`, `PersonSourcesSection.swift`, `PersonSourcesContent.swift`, `ConclusionGallerySection.swift`, `macos/App/Platform/FocusClaim.swift`; [`macos-client-patterns.md`](../../macos-client-patterns.md) "One sectioned detail page" (teaches the fold) and Wide rule 5 (cites the keeper).
@@ -447,7 +473,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Each names its a
 #### S16-06 — Section switches and removals are spoken
 
 **Ships.** `PVSegmentedControl`'s `focus:` handle lands on the selected segment rather than the first enabled one (the component and its doc comment); the switcher passes a handle, a section switch announces the section and claims the selected segment when the old focus is gone (P-11). The leave-or-stay decision after a Remove moves into a function on `UnpromoteFlow` or a static helper that returns leave, or stay with the announcement, and the Sources section posts it; both branches are unit-tested (P-12, P-16). The wording of rule "A person's records are records": the header's count reads records on every Conclusion page, and the Unpromote confirm ends "…, and the person stays", per kind (P-17).
-**Not this PR.** Fold focus (S16-07); Back restoring scroll, folds and focus (P-19, [idea](../../ideas/person-page-followups.md)).
+**Not this PR.** Fold focus (S16-07); Back restoring scroll and focus (S16-45); folds (refused).
 **Check.** Bar 7, and bar 8's count and confirm; unit tests for both leave-or-stay branches, replacing `UnpromoteFlowTests.confirmReportsTheEffects`' inline copy; manual VoiceOver steps for ⌘3 from a Family tile.
 **Context.** Audit P-11, P-12, P-16, P-17; rules "Every outcome on the page is spoken", "A person's records are records", "One open section, one list of reads"; `macos/App/DesignSystem/Components/Chip/PVSegmentedControl.swift`, `macos/App/Features/Conclusions/ConclusionDetailPage.swift`, `PersonSourcesSection.swift`, `macos/App/Features/Catalog/Unpromote/UnpromoteFlow.swift`, `macos/ProvenenciaTests/UnpromoteFlowTests.swift`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
 
@@ -662,3 +688,21 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause.
 **Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; brief S16-D6.
+
+### Batch 6 — Person page follow-ups
+
+### Slice 6a — Back and plurals
+
+#### S16-45 — Back returns to the row you opened in a section
+
+**Ships.** `WorkspaceLocation.sectionAnchor`: the id of the row or tile opened from a Conclusion page section, written as the page leaves, ignored for identity, optional in history. Back and Forward to a Person, Event or Place page scroll its open section to that row and focus it. That covers the Family tiles, the Timeline rows and their people, and the Sources rows. A row folded away focuses its fold's Show more, and a row that is gone leaves the section at its top. Fan-out: one id lookup in the section's shown rows, at most a page of 50 (bar 3).
+**Not this PR.** Restoring folds (refused, S13-16 UX-5); Vitals and Gallery, which open sheets rather than places, unless the plan finds a row there that opens a place; scroll for list roots (already `listScrollAnchor`).
+**Check.** From a person's Family, open a child's tile, then from the child's Timeline an event. Pressing Back twice lands on that Timeline row, then that Family tile, each focused and scrolled into view. Quit and relaunch, and Back still lands there. An anchor whose row was deleted opens the section at its top.
+**Context.** Rule "(Batch 6) Back restores a section's scroll and focus, not its folds"; [audit](person-page-audit.md) P-19; `WorkspaceLocation.swift` (`listScrollAnchor`, `openPageSection`), `WorkspaceNavigation.swift` (`pendingListScrollAnchor`), `ConclusionDetailPage.swift`, `PersonFamilySection.swift`, `PersonTimelineSection.swift`, `PersonSourcesSection.swift`; [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md).
+
+#### S16-46 — Birth and death event counts have plurals, and the strings check sees them
+
+**Ships.** `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` plural substitution, like `recordsFromPlaces`. `uninflected_counts` in `scripts/check-localizable-xcstrings.py` stops skipping entries with substitutions and tests each `%n$lld <word>` that is not a substitution token. Wrong today: the events count is a bare `%2$lld birth events`, which English hides because the count is always two or more (`PVProvenanceSheetContent.swift` 326), and the check skips any entry with a substitution.
+**Not this PR.** Other languages' translations.
+**Check.** The check fails on today's two keys and passes after; the sheet still reads "5 records from 2 birth events".
+**Context.** Rule "(Batch 6) A count inside a substitution is checked too"; [audit](person-page-audit.md) P-18; `macos/App/Platform/L10n.swift` (`recordsFromOwners`), `macos/App/Resources/Localizable.xcstrings`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
