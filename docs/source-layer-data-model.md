@@ -219,6 +219,7 @@ CREATE TABLE source_metadata_fields (
     label           TEXT NOT NULL,
     data_type       TEXT NOT NULL DEFAULT 'text',
     description     TEXT,
+    unknown_text    TEXT,                      -- what a value marked unknown prints ("n.p."); NULL when none
 
     UNIQUE (key, origin),
     CHECK (data_type IN ('text', 'url'))
@@ -226,6 +227,8 @@ CREATE TABLE source_metadata_fields (
 ```
 
 Same `origin` / `UNIQUE (key, origin)` rules as `source_types` ([`seeded-vocabulary.md`](seeded-vocabulary.md) §1.1). `source_metadata.field_id` and `source_type_metadata_fields.field_id` reference the UUID `id`. **`data_type` is immutable after create** so existing `source_metadata` values stay consistent with validation.
+
+`unknown_text` is what a value of this field marked unknown prints in a citation (§5.3). It is edited through the field's update (absent keeps it, empty clears it); seeding it is the seed's job.
 
 Possible seeded fields include `author`, `publisher`, `publication_date`, and similar. Date-named keys are still `data_type = 'text'`. The authoritative list is in [`seeded-vocabulary.md`](seeded-vocabulary.md).
 
@@ -269,9 +272,16 @@ CREATE TABLE source_metadata (
     source_id       BLOB NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
     field_id        BLOB NOT NULL REFERENCES source_metadata_fields(id),
     value_text      TEXT,
+    is_unknown      INTEGER NOT NULL DEFAULT 0
+                    CHECK (is_unknown IN (0, 1) AND (is_unknown = 0 OR value_text IS NULL)),
+    is_supplied     INTEGER NOT NULL DEFAULT 0
+                    CHECK (is_supplied IN (0, 1) AND NOT (is_unknown = 1 AND is_supplied = 1)
+                           AND (is_supplied = 0 OR value_text IS NOT NULL)),
     UNIQUE (source_id, field_id)
 ) STRICT;
 ```
+
+**Unknown and supplied.** A value carries the two facts of `core/valuemark`. *Unknown*: the record does not give the value, so it has no text (`value_text` NULL, `is_unknown` 1). *Supplied*: the text is not on the record; the researcher took it from elsewhere (`is_supplied` 1, with text). Never both. The checks repeat `valuemark.Validate` so the table refuses what Go refuses. A write without a mark is a value with no mark, and the audit records the mark columns with the value. The same two columns sit on `artifact_metadata` and `evidence_graph_metadata` (§5.5).
 
 Metadata preserves text directly, including catalog dates:
 
@@ -323,6 +333,11 @@ CREATE TABLE artifact_metadata (
     artifact_id BLOB NOT NULL REFERENCES artifacts(id) ON DELETE CASCADE,
     field_id    BLOB NOT NULL REFERENCES source_metadata_fields(id),
     value_text  TEXT,
+    is_unknown  INTEGER NOT NULL DEFAULT 0
+                CHECK (is_unknown IN (0, 1) AND (is_unknown = 0 OR value_text IS NULL)),
+    is_supplied INTEGER NOT NULL DEFAULT 0
+                CHECK (is_supplied IN (0, 1) AND NOT (is_unknown = 1 AND is_supplied = 1)
+                       AND (is_supplied = 0 OR value_text IS NOT NULL)),
     UNIQUE (artifact_id, field_id)
 ) STRICT;
 
@@ -335,7 +350,7 @@ CREATE TABLE artifact_metadata_layout (
 ) STRICT;
 ```
 
-`evidence_graph_metadata` and `evidence_graph_metadata_layout` are the same with `graph_id REFERENCES evidence_graphs(id)`. Each table has an index on `field_id` for the field delete's probe and release.
+`evidence_graph_metadata` and `evidence_graph_metadata_layout` are the same with `graph_id REFERENCES evidence_graphs(id)`, and graph values carry `is_unknown` and `is_supplied` too. Each table has an index on `field_id` for the field delete's probe and release.
 
 - **Suggestions have a level.** A Source type suggests fields per level (`source_type_metadata_fields.level`); an Artifact's or a graph's board lists its own Source's type's suggestions at its level, plus extras.
 - **Audit.** Every change carries the owner column (`artifact_id`, `graph_id`) and scopes the owner's Source (`effects` registry, `up(owner, "source_id")`), so a write refreshes the Source's page and moves its last activity.
@@ -593,7 +608,7 @@ The audit tables are cross-cutting infrastructure and are defined separately in 
 1. Sources are evidentiary objects and remain free of genealogical interpretation. Structured Source **credibility** is an Interpretation assessment entity, not a column on `sources`; see [`research-judgment-model.md`](research-judgment-model.md).
 2. Source types and metadata fields use a seeded, controlled, origin-namespaced vocabulary (`UNIQUE (key, origin)`) rather than an enum; see [`seeded-vocabulary.md`](seeded-vocabulary.md) §1.1.
 3. Source metadata is descriptive and minimally structured.
-4. Metadata values are text (`value_text`); `url` is text-shaped for external-link affordances. Catalog dates are text. Do not attach DateValue (or NameValue) to `source_metadata`.
+4. Metadata values are text (`value_text`), or have no text when marked unknown (`is_unknown`); `url` is text-shaped for external-link affordances. Catalog dates are text. Do not attach DateValue (or NameValue) to `source_metadata`.
 5. Source types may suggest metadata fields but do not require them; how one Source presents those suggestions (dismissed, ordered) lives in `source_metadata_layout` rather than on the shared type join or on `source_metadata`.
 6. External provenencia belongs to the Source and must not be required to access ingested evidence.
 7. Artifacts are concrete representations of Sources and do not have an `artifact_type` taxonomy.
