@@ -70,3 +70,7 @@ Both reviewers confirmed every round-1 answer against the plan and the code at `
 | M2-4 / X2-2 | major | `Keys` had no stated way to get the period, and the `MaxBuckets` flip was not split | **Fixed.** D-7 `Rules.Period` is the one lookup (six readers move); D-12 names the `Keys` line and the `indexOpen` / `lookupOpen` rule |
 | X2-3 | minor | The `rg` sweep missed multi-line callers | **Fixed.** The build is the check (the chooser is deleted) |
 | X2-4 | minor | Where `eventDating` comes from; AC-4.3 noise | **Fixed.** D-9 names the `CatalogSourceEventTitle` entry; AC-4.3 and its stop condition use the median of 3 runs and their spread |
+
+## Amended during ship (2026-11-17)
+
+The S16-42 implementer stopped at STEP-9 on AC-4.3 ([ship log](S16-42-event-dating-line.ship.md)). The user relaxed AC-4.3: the branch's `asof=0.3` overhead must not exceed the base's by more than the runs' spread, because D-12 narrows only as-of-only probes' lookup and the catalog's as-of events keep an open index reach on purpose (D-9). Same pass: T-1 and §6 Edges "as-of 2020 + end 2015" now read as D-4 gives it (High nil, `as of 2020`). No Decision changed.
