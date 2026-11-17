@@ -405,9 +405,18 @@ func TestGetFormats(t *testing.T) {
 		if view.Full != text || len(view.Diagnostics) != 0 {
 			t.Fatalf("view %+v", view)
 		}
-		// The write accepts that token only when a field has it.
-		if _, _, err := f.update(t, f.typeID, view.Formats); err != nil {
+		// The write accepts that token only when a field has it: resaving
+		// reports the mistake, saves nothing and leaves the text as stored.
+		saved, res, err := f.update(t, f.typeID, view.Formats)
+		if err != nil {
 			t.Fatal(err)
+		}
+		wantDiags := []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownField, 13, 50)}
+		if !reflect.DeepEqual(saved.Diagnostics, wantDiags) || res.Revision != 0 {
+			t.Fatalf("resave: view %+v, result %+v", saved, res)
+		}
+		if got := f.raw(t, "citation_full", f.typeID).String; got != text {
+			t.Fatalf("stored %q", got)
 		}
 	})
 
