@@ -233,6 +233,7 @@ func eventSummaryProto(h conclusionsummaries.EventSummary, paths map[string]stri
 	}
 	eh.Title = eventTitleProto(h.Title)
 	eh.Dating = eventDatingProto(h.Dating)
+	eh.DatingProperties = eventDatingPropertiesProto(h.DatingProperties)
 	return eh
 }
 
@@ -251,6 +252,16 @@ func eventDatingProto(d valuecompare.Dating) *engine.EventDating {
 	}
 	if d.High != nil {
 		out.High = valuecodec.DateToProto(*d.High)
+	}
+	return out
+}
+
+// eventDatingPropertiesProto maps the Properties behind an event's dating, in
+// order. DatingRole's values equal the wire enum's.
+func eventDatingPropertiesProto(in []conclusionsummaries.DatingProperty) []*engine.EventDatingProperty {
+	out := make([]*engine.EventDatingProperty, 0, len(in))
+	for _, p := range in {
+		out = append(out, &engine.EventDatingProperty{PropertyKey: string(p.Key), Role: engine.EventDatingRole(p.Role)})
 	}
 	return out
 }

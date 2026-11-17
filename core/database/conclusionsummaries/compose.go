@@ -234,6 +234,25 @@ func keptDates(n *graphcache.Node, propID []byte) []datevalue.Value {
 // the lead date, and the start, end and as-of samples of its period.
 var eventLead, eventPeriod = matchregistry.Default().Subject.EventPeriod()
 
+var datingPropertiesByKind = func() map[valuecompare.DatingKind][]DatingProperty {
+	occurrence := DatingProperty{eventLead, DatingRoleOccurrence}
+	start := DatingProperty{eventPeriod.Start, DatingRoleStart}
+	end := DatingProperty{eventPeriod.End, DatingRoleEnd}
+	asOf := DatingProperty{eventPeriod.Samples, DatingRoleAsOf}
+	return map[valuecompare.DatingKind][]DatingProperty{
+		valuecompare.DatingOccurrence: {occurrence},
+		valuecompare.DatingSpan:       {start, end},
+		valuecompare.DatingAsOf:       {start, asOf, end},
+		valuecompare.DatingNone:       {occurrence, start, end, asOf},
+	}
+}()
+
+// datingProperties are the Properties behind a dating of the kind, from the
+// event period registry: a shared slice, read only.
+func datingProperties(kind valuecompare.DatingKind) []DatingProperty {
+	return datingPropertiesByKind[kind]
+}
+
 func toponyms(n *graphcache.Node, propID []byte) []string {
 	var names []string
 	for _, row := range n.Kept(propID) {
@@ -1041,6 +1060,7 @@ func oneEvent(in *graphcache.InputScope, v vocab, pg *placeGraph, n *graphcache.
 		return EventSummary{}, err
 	}
 	h.Dating = valuecompare.DatingOf(h.Date, h.StartDate, h.EndDate, keptDates(n, v.prop(string(eventPeriod.Samples))))
+	h.DatingProperties = datingProperties(h.Dating.Kind)
 	at := h.Dating.Low
 	if at == nil {
 		at = h.Dating.High

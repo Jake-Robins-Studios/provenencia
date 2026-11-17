@@ -42,6 +42,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
 	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
+	"github.com/mendahu/provenencia/core/matchregistry"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
 	"github.com/mendahu/provenencia/core/propertymeta"
@@ -592,6 +593,47 @@ func TestListEvents(t *testing.T) {
 		if string(got[i].Entity.ID) != string(id) {
 			t.Fatalf("order %d got %x want %x", i, got[i].Entity.ID, id)
 		}
+	}
+}
+
+func TestEventDatingProperties(t *testing.T) {
+	f := newFixture(t)
+	date, start, end, asOf := f.Prop("date"), f.Prop("start_date"), f.Prop("end_date"), f.Prop("as_of")
+	lead, period := matchregistry.Default().Subject.EventPeriod()
+	prop := func(k vocabkey.PropertyKey, r conclusionsummaries.DatingRole) conclusionsummaries.DatingProperty {
+		return conclusionsummaries.DatingProperty{Key: k, Role: r}
+	}
+	occ, st, en, as := prop(lead, conclusionsummaries.DatingRoleOccurrence), prop(period.Start, conclusionsummaries.DatingRoleStart),
+		prop(period.End, conclusionsummaries.DatingRoleEnd), prop(period.Samples, conclusionsummaries.DatingRoleAsOf)
+	cases := []struct {
+		name string
+		in   []observations.Input
+		want []conclusionsummaries.DatingProperty
+	}{
+		{"occurrence", []observations.Input{
+			{PropertyID: date.ID, Date: datevaluetest.YMD(1849, 0, 0)},
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1800, 0, 0)},
+			{PropertyID: asOf.ID, Date: datevaluetest.YMD(1820, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{occ}},
+		{"span", []observations.Input{
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1900, 0, 0)},
+			{PropertyID: end.ID, Date: datevaluetest.YMD(1910, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{st, en}},
+		{"as of", []observations.Input{
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1985, 0, 0)},
+			{PropertyID: asOf.ID, Date: datevaluetest.YMD(1990, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{st, as, en}},
+		{"undated", nil, []conclusionsummaries.DatingProperty{occ, st, en, as}},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			id := f.event(tt.in...)
+			got, err := conclusionsummaries.EventsByIDs(f.C, [][]byte{id})
+			must(t, err)
+			if len(got) != 1 || !slices.Equal(got[0].DatingProperties, tt.want) {
+				t.Fatalf("dating properties %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 

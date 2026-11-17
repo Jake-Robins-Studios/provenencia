@@ -1579,6 +1579,24 @@ message EventSummary {
   // dating is when the event was under way, read by the engine from its date,
   // start, end and as-of dates. Every event date line and the list order read it.
   EventDating dating = 19;
+  // dating_properties are the Properties whose values stand behind dating, each
+  // with its role, in the order the Date row shows them.
+  repeated EventDatingProperty dating_properties = 20;
+}
+
+// EventDatingRole is the part a Property plays in an event's dating.
+enum EventDatingRole {
+  EVENT_DATING_ROLE_UNSPECIFIED = 0;
+  EVENT_DATING_ROLE_OCCURRENCE = 1;
+  EVENT_DATING_ROLE_START = 2;
+  EVENT_DATING_ROLE_END = 3;
+  EVENT_DATING_ROLE_AS_OF = 4;
+}
+
+// EventDatingProperty is one Property behind an event's dating.
+message EventDatingProperty {
+  string property_key = 1;
+  EventDatingRole role = 2;
 }
 
 // EventDatingKind says what an EventDating is. UNSPECIFIED is no dating.

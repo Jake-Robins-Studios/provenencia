@@ -547,6 +547,53 @@ public nonisolated enum Provenencia_Engine_V1_EventTitleRule: SwiftProtobuf.Enum
 
 }
 
+/// EventDatingRole is the part a Property plays in an event's dating.
+public nonisolated enum Provenencia_Engine_V1_EventDatingRole: SwiftProtobuf.Enum, Swift.CaseIterable {
+  public typealias RawValue = Int
+  case unspecified // = 0
+  case occurrence // = 1
+  case start // = 2
+  case end // = 3
+  case asOf // = 4
+  case UNRECOGNIZED(Int)
+
+  public init() {
+    self = .unspecified
+  }
+
+  public init?(rawValue: Int) {
+    switch rawValue {
+    case 0: self = .unspecified
+    case 1: self = .occurrence
+    case 2: self = .start
+    case 3: self = .end
+    case 4: self = .asOf
+    default: self = .UNRECOGNIZED(rawValue)
+    }
+  }
+
+  public var rawValue: Int {
+    switch self {
+    case .unspecified: return 0
+    case .occurrence: return 1
+    case .start: return 2
+    case .end: return 3
+    case .asOf: return 4
+    case .UNRECOGNIZED(let i): return i
+    }
+  }
+
+  // The compiler won't synthesize support with the UNRECOGNIZED case.
+  public static let allCases: [Provenencia_Engine_V1_EventDatingRole] = [
+    .unspecified,
+    .occurrence,
+    .start,
+    .end,
+    .asOf,
+  ]
+
+}
+
 /// EventDatingKind says what an EventDating is. UNSPECIFIED is no dating.
 public nonisolated enum Provenencia_Engine_V1_EventDatingKind: SwiftProtobuf.Enum, Swift.CaseIterable {
   public typealias RawValue = Int
@@ -5413,11 +5460,33 @@ public nonisolated struct Provenencia_Engine_V1_EventSummary: @unchecked Sendabl
   /// Clears the value of `dating`. Subsequent reads from it will return its default value.
   public mutating func clearDating() {_uniqueStorage()._dating = nil}
 
+  /// dating_properties are the Properties whose values stand behind dating, each
+  /// with its role, in the order the Date row shows them.
+  public var datingProperties: [Provenencia_Engine_V1_EventDatingProperty] {
+    get {_storage._datingProperties}
+    set {_uniqueStorage()._datingProperties = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+/// EventDatingProperty is one Property behind an event's dating.
+public nonisolated struct Provenencia_Engine_V1_EventDatingProperty: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var propertyKey: String = String()
+
+  public var role: Provenencia_Engine_V1_EventDatingRole = .unspecified
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
 }
 
 /// EventDating is the one dating of an event: its kind, its earliest and latest
@@ -8888,6 +8957,10 @@ nonisolated extension Provenencia_Engine_V1_Method: SwiftProtobuf._ProtoNameProv
 
 nonisolated extension Provenencia_Engine_V1_EventTitleRule: SwiftProtobuf._ProtoNameProviding {
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0EVENT_TITLE_RULE_UNSPECIFIED\0\u{1}EVENT_TITLE_RULE_RECORDED_NAME\0\u{1}EVENT_TITLE_RULE_SUBJECT\0\u{1}EVENT_TITLE_RULE_COUPLE\0\u{1}EVENT_TITLE_RULE_SUBJECTS\0\u{1}EVENT_TITLE_RULE_LABEL\0\u{1}EVENT_TITLE_RULE_TYPE_AT_PLACE\0\u{1}EVENT_TITLE_RULE_TYPE\0\u{1}EVENT_TITLE_RULE_REF\0")
+}
+
+nonisolated extension Provenencia_Engine_V1_EventDatingRole: SwiftProtobuf._ProtoNameProviding {
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0EVENT_DATING_ROLE_UNSPECIFIED\0\u{1}EVENT_DATING_ROLE_OCCURRENCE\0\u{1}EVENT_DATING_ROLE_START\0\u{1}EVENT_DATING_ROLE_END\0\u{1}EVENT_DATING_ROLE_AS_OF\0")
 }
 
 nonisolated extension Provenencia_Engine_V1_EventDatingKind: SwiftProtobuf._ProtoNameProviding {
@@ -17620,7 +17693,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesResponse: SwiftPr
 
 nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EventSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0\u{1}dating\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0\u{1}dating\0\u{3}dating_properties\0")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -17642,6 +17715,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
     var _pictureImageRelPath: String = String()
     var _listKey: Provenencia_Engine_V1_ListKey? = nil
     var _dating: Provenencia_Engine_V1_EventDating? = nil
+    var _datingProperties: [Provenencia_Engine_V1_EventDatingProperty] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -17671,6 +17745,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       _pictureImageRelPath = source._pictureImageRelPath
       _listKey = source._listKey
       _dating = source._dating
+      _datingProperties = source._datingProperties
     }
   }
 
@@ -17708,6 +17783,7 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         case 17: try { try decoder.decodeSingularStringField(value: &_storage._pictureImageRelPath) }()
         case 18: try { try decoder.decodeSingularMessageField(value: &_storage._listKey) }()
         case 19: try { try decoder.decodeSingularMessageField(value: &_storage._dating) }()
+        case 20: try { try decoder.decodeRepeatedMessageField(value: &_storage._datingProperties) }()
         default: break
         }
       }
@@ -17777,6 +17853,9 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       try { if let v = _storage._dating {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 19)
       } }()
+      if !_storage._datingProperties.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._datingProperties, fieldNumber: 20)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -17805,10 +17884,46 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         if _storage._pictureImageRelPath != rhs_storage._pictureImageRelPath {return false}
         if _storage._listKey != rhs_storage._listKey {return false}
         if _storage._dating != rhs_storage._dating {return false}
+        if _storage._datingProperties != rhs_storage._datingProperties {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_EventDatingProperty: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".EventDatingProperty"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}property_key\0\u{1}role\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.propertyKey) }()
+      case 2: try { try decoder.decodeSingularEnumField(value: &self.role) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.propertyKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.propertyKey, fieldNumber: 1)
+    }
+    if self.role != .unspecified {
+      try visitor.visitSingularEnumField(value: self.role, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_EventDatingProperty, rhs: Provenencia_Engine_V1_EventDatingProperty) -> Bool {
+    if lhs.propertyKey != rhs.propertyKey {return false}
+    if lhs.role != rhs.role {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

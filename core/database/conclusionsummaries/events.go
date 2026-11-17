@@ -51,8 +51,12 @@ type EventSummary struct {
 	// Dating is when the event was under way: the one reading of its date,
 	// start, end and as-of dates (valuecompare.DatingOf). Order, the Timeline
 	// and every date line read it.
-	Dating   valuecompare.Dating
-	Subjects []EventSubject
+	Dating valuecompare.Dating
+	// DatingProperties are the Properties whose values stand behind Dating, in
+	// the order a reader shows them (event period registry). The slice is
+	// shared: read only.
+	DatingProperties []DatingProperty
+	Subjects         []EventSubject
 	// Participants are every person on the event through any role, by id and
 	// roles, in the order their participations are linked. The roles are not
 	// finished: a reader that shows them labels them (TermLabeler).
@@ -69,6 +73,23 @@ type EventSummary struct {
 	// ListKey is the key the row's list sorts by. The list reads fill it onto
 	// the rows they return, after composing; the finished rows never hold it.
 	ListKey ListKey
+}
+
+// DatingRole is the part a Property plays in an event's dating. Its values equal
+// the wire's EventDatingRole.
+type DatingRole int
+
+const (
+	DatingRoleOccurrence DatingRole = iota + 1
+	DatingRoleStart
+	DatingRoleEnd
+	DatingRoleAsOf
+)
+
+// DatingProperty is one Property behind an event's dating, with its role.
+type DatingProperty struct {
+	Key  vocabkey.PropertyKey
+	Role DatingRole
 }
 
 // EventSubject is one person on an event through a subject-role participation.
