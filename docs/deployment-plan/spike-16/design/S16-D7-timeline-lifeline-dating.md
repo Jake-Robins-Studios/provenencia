@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 16 (odds and ends), batch 5
 **View:** the Person page, Timeline section: the lifeline beside the event rows
 **Implements later as:** PR **S16-42** (Every event date line reads the engine's dating)
-**Board:** not drawn yet
+**Board:** agreed 2026-11-17 — [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Person Detail - Timeline*, turn 18 "S16-D7 · Lifeline dating" (frames 18a, 18b, 18c). TL-2: a 32 pt bar centred on the day; TL-3: a bar open both ends or closed both ends tethers from its middle. Its row date texts are stand-ins; S16-D4 holds the wording
 **Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)): events record **As of** dates; the agreed S13-D4 and S16-D2 Timeline frames on the Person page board ([Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Person Detail - Timeline*)
 **Related:** [S16-D4](S16-D4-event-date-line.md) (the date line's wording, which the Timeline rows show); feature doc [`../event-as-of.md`](../event-as-of.md); working rules "As-ofs alone make a span open on both sides" and "One dating for every event, on the Timeline and in order too" in [`../deployment-plan.md`](../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-42-event-dating-line.md`](../prs/S16-42-event-dating-line.md)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
