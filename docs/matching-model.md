@@ -73,10 +73,10 @@ Gracie Gates appears on a Source with a name and a birth on 1 May 1901. The rese
 | **evidence** | Points of connection: agree weights minus conflict penalties, plus segment support; the main currency from layer 3 up |
 | **agree weight** | Points a property earns when it agrees |
 | **conflict penalty** | Points a property costs when it conflicts; also counts as 0 in similarity |
-| **pair (compared together)** | Two or more properties compared as one, keyed by the lead: a pool adds properties' values to the lead's on each side (sex at birth with gender); a period reads `start_date` and `end_date` as one range for `date` on a side with no date, and reads `as_of` against the other side's period: a sample whose window misses it conflicts, one inside a period closed on both ends agrees |
+| **pair (compared together)** | Two or more properties compared as one, keyed by the lead: a pool adds properties' values to the lead's on each side (sex at birth with gender); a period reads `start_date` and `end_date` as one range for `date` on a side with no date, and reads `as_of` against the other side's period: a sample whose window misses it conflicts, one inside a period closed on both ends matches (usually partial: contains); a half-open period bounds but never matches |
 | **profile** | A Subject-shaped set of values built from an entity's reconciled conclusion: displayed values positive, denied values negative, nothing else |
 | **entity comparison** | Layer 4: a Subject against an entity's profile |
-| **lifespan** | A person's derived window and span, built from the exact dates (BEF, AFT and half-open ones are skipped) of every event they take part in, widened by a slack of years each way; each side's span is checked against the other's window |
+| **lifespan** | A person's derived window and span, built from the exact dates (BEF, AFT and half-open ones are skipped) and closed as-ofs, which never fix a start or an end, of every event they take part in, widened by a slack of years each way; each side's span is checked against the other's window |
 | **segment** | Two primary Subjects joined by a bridge: primary, bridge, primary |
 | **bridge** | The Subject that joins the two primary Subjects of a segment (a birth, a relationship) |
 | **cardinality** | How many a Subject can have through one bridge; only birth and death are declared `one` |
@@ -183,6 +183,7 @@ Keys are dotted paths of the registry, `core/matchregistry`: `section.Group.Fiel
 | `subject.Periods.event.date.Start` | `start_date` | `match.DatePeriods` | Start of the period that stands for `date` on a side with no date |
 | `subject.Periods.event.date.End` | `end_date` | `match.DatePeriods` | End of that period |
 | `subject.Periods.event.date.Samples` | `as_of` | decided (user, 2026-11-16) | As-ofs read against the other side's period |
+| `subject.Periods.event.date.MaxSamples` | 1000 | estimate: far above the handful recorded | Most as-ofs a side may record before they are not read as bounds (the base comparison stands); never the first few |
 | `subject.Pools.person.sex_at_birth.With` | `gender` | decided ([`comparison-layers.md`](deployment-plan/archive/spike-11/comparison-layers.md#layer-3-subject-comparison)) | Properties whose values join `sex_at_birth`'s on each side |
 | `subject.Pools.person.sex_at_birth.Terms.gender` | `man` → `male`, `woman` → `female` | decided (user, 2026-10-21) | Reads a gender term as the sex at birth term it names before comparing; a gender with no entry (`non_binary`) is left out, never a conflict |
 | `segment.OneSupport` | 1.5 | `graphalign` `EdgeSupportLow` | Points for a matching one-cardinality link (birth, death) |

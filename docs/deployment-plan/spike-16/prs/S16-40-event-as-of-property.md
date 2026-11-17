@@ -15,6 +15,8 @@
 **Planned:** 2026-11-16 against `main` @ `14fbfca`
 **Review:** [`S16-40-event-as-of-property.review.md`](S16-40-event-as-of-property.review.md) — two rounds on this plan (3 and 4), Ready; no open blocker
 
+**Landed.** Differences from the plan: the as-of pick (D-6) reads the samples in one linear pass through `valuecompare.SampleExtremes` and breaks a tie on the extreme end by the lowest Same key (`propertycompare.KeyCompare`), rather than sorting them first, with the same picks whatever the input order, and a side with more than `Period.MaxSamples` (1000, a registry knob) positive samples skips the sample check so the base comparison stands; `subjectcompare.PeriodSamples` is the one reading of a period's samples, which `LifeEventOf` calls (D-10's signature is kept); T-4's every-order rows run in `TestCompareSamples` through `permutationsOf`; `subjectprofile`'s tests add a `sampled` helper; T-7 has a "none closed" case; `FuzzCompareProperty` guards the comparer against any dates (seeded, runs as a unit test), and the invariants' `as_of` pool reaches the conflict branch. The §10 manual check was not run, so AC-1.2, AC-1.3, AC-1.4 and AC-2.3 are unverified until the user runs it.
+
 ### Implementer — read this first
 
 1. **This file is the whole task.** Read it top to bottom before you change code. Then read every file under **Current state** and load every skill under **Skills to load**.
