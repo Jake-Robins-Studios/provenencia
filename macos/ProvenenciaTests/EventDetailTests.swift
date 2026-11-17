@@ -314,6 +314,19 @@ struct EventDetailTests {
         #expect(closed.records == ["start", "as_of-1", "end"])
     }
 
+    @Test func anAsOfFieldThatIsNotMultipleListsItsFirstValue() {
+        let two = D.field(
+            "mixed", key: "as_of", label: "as_of", valueType: "date",
+            [D.value(1, "kept", .date(asOfDating.low)), D.value(2, "kept", .date(asOfDating.high))],
+            outcomes: [
+                D.outcome("as_of-1", "kept", rank: 1, title: "Census", recorded: .date(asOfDating.low)),
+                D.outcome("as_of-2", "kept", rank: 2, title: "Census", recorded: .date(asOfDating.high)),
+            ]
+        )
+        let row = asOfPage(fields: [two], dating: openBoth())
+        #expect(row.shown.listedValues.map(\.text) == ["as of 10 Jan 1990"])
+    }
+
     @Test func asOfRowLinesHaveDistinctIDs() {
         let row = asOfPage(
             fields: [
@@ -385,6 +398,28 @@ struct EventDetailTests {
             face: .date, lead: nil, listedValues: lines, emptyText: "", badge: nil
         )
         #expect(ReconciledValueRowModel.spokenValue(shown)?.split(separator: ";").count == 20)
+    }
+
+    @Test func theSpokenLabelGrowsWithEachPage() {
+        func lines(_ label: String) -> Int { label.split(separator: ";").count }
+        let years = (0..<900).map { (date: year(Int32(1100 + $0)), support: 1) }
+        let dates = asOfPage(
+            fields: [multiDateField("as_of", years)],
+            dating: CatalogEventDating(kind: .asOf, low: year(1100), high: year(1999), openLow: true, openHigh: true)
+        )
+        #expect(lines(dates.accessibilityLabel(pages: 0)) == 20)
+        #expect(lines(dates.accessibilityLabel(pages: 1)) == 70)
+
+        let ranks: [Int] = Array(1...25)
+        let names = D.field(
+            "multiple", key: "toponym", label: "Name", valueType: "text",
+            ranks.map { D.value($0, "kept", .text("Name \($0)")) },
+            outcomes: ranks.map { D.outcome("n\($0)", "kept", rank: $0, recorded: .text("Name \($0)")) }
+        )
+        let place = PlaceDetailContent.namesRow(names, locale: en)
+        #expect(lines(place.accessibilityLabel(pages: 0)) == 20)
+        #expect(lines(place.accessibilityLabel(pages: 1)) == 25)
+        #expect(place.accessibilityLabel(pages: 0) == place.accessibilityLabel)
     }
 
     @Test func missingDateIsAnEmptyDateRow() {
