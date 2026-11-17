@@ -37,6 +37,25 @@ struct SourceTypePageModelTests {
         return (model, session)
     }
 
+    // MARK: Copy
+
+    /// T-5 (AC-1.5): Copy opens once the type is loaded, on a plugin's type too, over the saved row.
+    @Test func openCopyOnLoadedTypeOnly() async {
+        let store = FakeStore()
+        let (missing, _) = await makePageModel(typeID: "t3", store: store, types: [])
+        #expect(!missing.canOpenCopy)
+        missing.openCopy()
+        #expect(missing.copying == nil)
+
+        let (model, _) = await makePageModel(typeID: "t3", store: store, types: [pluginSourceType()])
+        #expect(model.isLocked)
+        #expect(model.canOpenCopy)
+        model.draft?.label = "Unsaved edit"
+        model.openCopy()
+        #expect(model.copying?.original.id == "t3")
+        #expect(model.copying?.original.label == "Grave memorial")
+    }
+
     // MARK: Details
 
     @Test func seededOrUserTypeEditsAndPluginTypeLocks() async {

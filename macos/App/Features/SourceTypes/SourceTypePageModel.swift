@@ -19,6 +19,8 @@ final class SourceTypePageModel {
     /// A refused or failed Save, shown beside Save and announced.
     private(set) var saveError: String?
     var toast: VocabularyToast?
+    /// The Copy type sheet, while it is open (`View.sourceTypeCopyDialog`).
+    var copying: SourceTypeCopyModel?
 
     /// The one suggestion write in flight, across all three lists.
     enum SuggestionWrite: Equatable {
@@ -203,6 +205,19 @@ final class SourceTypePageModel {
 
     private static func draft(of type: CatalogSourceType) -> SourceTypeDraft {
         SourceTypeDraft(label: type.label, description: type.description, iconKey: type.iconKey)
+    }
+
+    // MARK: Copy
+
+    /// Copy is offered once the type is known and until it is gone, on every origin: copying only
+    /// reads the original, and the copy is the researcher's.
+    var canOpenCopy: Bool { type != nil && !isGone }
+
+    /// Opens the Copy type sheet for the saved type. The sheet copies saved values, never the
+    /// Details draft.
+    func openCopy() {
+        guard canOpenCopy, let type else { return }
+        copying = SourceTypeCopyModel(original: type, session: session, userID: userID, store: store)
     }
 
     // MARK: Suggested fields
