@@ -696,7 +696,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-46 — A field's unknown text is editable
 
-**Ships.** The Metadata page's field editor edits a field's unknown text ("n.p."), through S15-37's write.
+**Ships.** The Metadata page's field editor edits a field's unknown text ("n.p."), through S15-37's write. The request then carries `unknown_text` on every update, so its proto field and `metadatafields.Update`'s parameter become plain strings (S15-37 D-9, review M-6).
 **Check.** A researcher's own field given unknown text "not stated" cites it when a value is marked unknown.
 **Context.** S15-D25; `macos/App/Features/Metadata/MetadataModel.swift`.
 
