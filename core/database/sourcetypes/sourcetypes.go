@@ -191,7 +191,9 @@ type CreateInput struct {
 	// IconKey is empty for the default mark.
 	IconKey string
 	// Formats are stored (fields by id, as StoredFormatsTx returns them); the
-	// zero value is no formats.
+	// zero value is no formats. The text is stored as is, without citationformat
+	// parsing: callers pass text already in stored form (StoredFormatsTx output),
+	// and fresh researcher text goes through UpdateFormats.
 	Formats Formats
 }
 
