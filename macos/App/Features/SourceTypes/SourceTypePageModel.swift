@@ -15,7 +15,7 @@ final class SourceTypePageModel {
     var draft: SourceTypeDraft?
     private(set) var isSaving = false
     /// The Label's validation message, shown under Label as the researcher edits.
-    private(set) var labelError: String?
+    private(set) var labelCheck = SourceTypeLabelCheck()
     /// A refused or failed Save, shown beside Save and announced.
     private(set) var saveError: String?
     var toast: VocabularyToast?
@@ -165,26 +165,22 @@ final class SourceTypePageModel {
         return draft.labelError == nil && !isSaving && isDirty
     }
 
-    /// Sets the label and shows or clears its error as the researcher types, as
-    /// `SourceTypeAddModel.editLabel(_:)` does.
     func editLabel(_ new: String) {
-        guard var draft, new != draft.label else { return }
-        draft.label = new
+        guard var draft else { return }
+        labelCheck.edit(new, in: &draft)
         self.draft = draft
-        labelError = draft.labelError
     }
 
     func revertEdit() {
         guard let type else { return }
         draft = Self.draft(of: type)
-        labelError = nil
+        labelCheck.clear()
         saveError = nil
     }
 
     func submit() async {
         guard let draft, let type, !isLocked else { return }
-        labelError = draft.labelError
-        guard labelError == nil else { return }
+        guard labelCheck.validate(draft) else { return }
         isSaving = true
         saveError = nil
         defer { isSaving = false }

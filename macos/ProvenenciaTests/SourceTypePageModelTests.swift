@@ -98,7 +98,7 @@ struct SourceTypePageModelTests {
         #expect(!model.canSubmit)
         await model.submit()
 
-        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(model.saveError == nil)
         #expect(store.sourceTypesByProject[projectDir]?.first?.label == "Book")
         #expect(model.toast == nil)
@@ -109,11 +109,11 @@ struct SourceTypePageModelTests {
     @Test func clearingTheLabelShowsTheRequiredMessage() async {
         let (model, _) = await makePageModel(typeID: "t1", types: [seededSourceType()])
         model.editLabel("")
-        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(!model.canSubmit)
 
         model.editLabel("Tome")
-        #expect(model.labelError == nil)
+        #expect(model.labelCheck.error == nil)
         #expect(model.canSubmit)
     }
 
@@ -125,7 +125,7 @@ struct SourceTypePageModelTests {
         model.editLabel("Tome")
         await model.submit()
 
-        #expect(model.labelError == nil)
+        #expect(model.labelCheck.error == nil)
         #expect(model.saveError != nil)
         #expect(model.toast == nil)
 

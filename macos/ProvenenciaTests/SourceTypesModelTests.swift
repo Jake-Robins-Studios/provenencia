@@ -214,7 +214,7 @@ struct SourceTypesModelTests {
         #expect(!add.canAdd)
         #expect(await add.create() == nil)
 
-        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(add.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(model.types.isEmpty)
     }
 
@@ -227,7 +227,7 @@ struct SourceTypesModelTests {
 
         #expect(await add.create() == nil)
 
-        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorUnslugifiable))
+        #expect(add.labelCheck.error == L10n.string(L10n.SourceTypes.errorUnslugifiable))
         #expect(model.types.isEmpty)
     }
 
@@ -240,13 +240,13 @@ struct SourceTypesModelTests {
 
         #expect(await add.create() == nil)
 
-        #expect(add.labelError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
-        #expect(add.labelErrorFromWrite)
+        #expect(add.labelCheck.error == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+        #expect(add.labelCheck.announces)
         #expect(add.createError == nil)
         #expect(model.types.count == 1)
 
         add.editLabel("x")
-        #expect(!add.labelErrorFromWrite)
+        #expect(!add.labelCheck.announces)
     }
 
     @Test func editingTheLabelShowsAndClearsItsError() async {
@@ -254,17 +254,17 @@ struct SourceTypesModelTests {
         let (model, session) = makeModel(store: store, types: [userSourceType(id: "t2", label: "Family scrapbook")])
         await warm(model, session: session)
         let add = makeAddModel(session, store: store)
-        #expect(add.labelError == nil)
+        #expect(add.labelCheck.error == nil)
 
         add.editLabel("—")
-        #expect(add.labelError == L10n.string(L10n.SourceTypes.errorUnslugifiable))
+        #expect(add.labelCheck.error == L10n.string(L10n.SourceTypes.errorUnslugifiable))
 
         add.editLabel("Family scrapbook")
         #expect(await add.create() == nil)
-        #expect(add.labelError == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
+        #expect(add.labelCheck.error == L10n.Errors.sourceTypesDuplicateKey(key: "family-scrapbook"))
 
         add.editLabel("Diary")
-        #expect(add.labelError == nil)
+        #expect(add.labelCheck.error == nil)
     }
 
     @Test func addingCarriesThePickedIcon() async throws {
@@ -289,7 +289,7 @@ struct SourceTypesModelTests {
         #expect(await add.create() == nil)
 
         #expect(add.createError != nil)
-        #expect(add.labelError == nil)
+        #expect(add.labelCheck.error == nil)
     }
 
     @Test func addIsDirtyFollowsWhatWasTyped() {
