@@ -38,7 +38,8 @@ const (
 //	10: a folded column for spellings FTS indexes differently, and a Person's
 //	    nicknames that fold into its shown name (S14-21).
 //	11: summary inputs beside the handle documents (S14-40).
-const ProjectionVersion = 11
+//	12: an Event's dating, as-ofs included (S16-42).
+const ProjectionVersion = 12
 
 // Tagged body line prefixes for Source rollups (parsed by core/search for
 // match field codes + snippets).

@@ -382,8 +382,8 @@ func TestRebuildIndexesSummaryInputs(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM catalog_search_inputs`).Scan(&n); err != nil || n == 0 {
 		t.Fatalf("the rebuild wrote %d input rows, err %v", n, err)
 	}
-	if v, err := searchindex.ProjectionVersionStored(db); err != nil || v != 11 {
-		t.Fatalf("projection version %d, err %v, want 11", v, err)
+	if v, err := searchindex.ProjectionVersionStored(db); err != nil || v != 12 {
+		t.Fatalf("projection version %d, err %v, want 12", v, err)
 	}
 }
 
