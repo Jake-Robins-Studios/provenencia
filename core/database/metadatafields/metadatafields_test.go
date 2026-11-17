@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -692,4 +693,72 @@ func insertGraph(t *testing.T, c *database.Catalog, sourceID []byte, name string
 		t.Fatal(err)
 	}
 	return id[:]
+}
+
+func TestResolveKeysTx(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	upsert := func(key, origin string) []byte {
+		t.Helper()
+		id, err := Upsert(c, Field{Key: key, Origin: origin, Label: key, DataType: DataTypeText})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	solo := upsert("solo", vocabkey.OriginUser)
+	prodShared := upsert("shared", vocabkey.OriginProvenencia)
+	userShared := upsert("shared", vocabkey.OriginUser)
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	tests := []struct {
+		name      string
+		keys      []string
+		prefer    string
+		ids       map[string][]byte
+		unknown   []string
+		ambiguous []string
+	}{
+		{name: "one holder", keys: []string{"solo"}, ids: map[string][]byte{"solo": solo}},
+		{name: "shared without a preference", keys: []string{"shared"}, ambiguous: []string{"shared"}},
+		{name: "shared prefers provenencia", keys: []string{"shared"}, prefer: vocabkey.OriginProvenencia,
+			ids: map[string][]byte{"shared": prodShared}},
+		{name: "shared prefers an origin neither holds", keys: []string{"shared"}, prefer: "plugin:x",
+			ambiguous: []string{"shared"}},
+		{name: "shared prefers user", keys: []string{"shared"}, prefer: vocabkey.OriginUser,
+			ids: map[string][]byte{"shared": userShared}},
+		{name: "missing key", keys: []string{"nope", "Solo"}, unknown: []string{"Solo", "nope"}},
+		{name: "repeated key", keys: []string{"solo", "solo"}, ids: map[string][]byte{"solo": solo}},
+		{name: "nil keys"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ResolveKeysTx(tx, tc.keys, tc.prefer)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got.IDs) != len(tc.ids) {
+				t.Fatalf("ids %v, want %v", got.IDs, tc.ids)
+			}
+			for k, id := range tc.ids {
+				if !bytes.Equal(got.IDs[k], id) {
+					t.Fatalf("id of %q = %x, want %x", k, got.IDs[k], id)
+				}
+			}
+			if fmt.Sprint(got.Unknown) != fmt.Sprint(tc.unknown) || fmt.Sprint(got.Ambiguous) != fmt.Sprint(tc.ambiguous) {
+				t.Fatalf("unknown %v ambiguous %v, want %v %v", got.Unknown, got.Ambiguous, tc.unknown, tc.ambiguous)
+			}
+		})
+	}
 }

@@ -102,3 +102,22 @@ func TestFields(t *testing.T) {
 		t.Errorf("id token = %q", got)
 	}
 }
+
+func TestFieldSpans(t *testing.T) {
+	const text = "{source.meta.a} {graph.meta.a|source.meta.b}"
+	tpl := mustParse(t, text, citationformat.FormFull)
+	a := tpl.FieldSpans(citationformat.FieldRef{Key: "a"})
+	if want := []citationformat.Span{{13, 14}, {28, 29}}; !reflect.DeepEqual(a, want) {
+		t.Fatalf("a spans %v, want %v", a, want)
+	}
+	if b := tpl.FieldSpans(citationformat.FieldRef{Key: "b"}); len(b) != 1 || text[b[0].Start:b[0].End] != "b" {
+		t.Fatalf("b spans %v", b)
+	}
+	if c := tpl.FieldSpans(citationformat.FieldRef{Key: "c"}); c != nil {
+		t.Fatalf("c spans %v, want nil", c)
+	}
+	var none *citationformat.Template
+	if s := none.FieldSpans(citationformat.FieldRef{Key: "a"}); s != nil {
+		t.Fatalf("nil template spans %v", s)
+	}
+}

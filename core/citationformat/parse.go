@@ -67,7 +67,8 @@ type Ref struct {
 	row int
 }
 
-// DiagnosticCode names one mistake Parse finds.
+// DiagnosticCode names one mistake in a format, found by Parse or by storing
+// the format.
 type DiagnosticCode string
 
 const (
@@ -90,6 +91,8 @@ const (
 	CodeUnknownBuiltin          DiagnosticCode = "unknown_builtin"
 	CodeUnknownOption           DiagnosticCode = "unknown_option"
 	CodeNotInListForm           DiagnosticCode = "not_in_list_form"
+	CodeUnknownField            DiagnosticCode = "unknown_field"
+	CodeAmbiguousField          DiagnosticCode = "ambiguous_field"
 )
 
 // DiagnosticCodes returns every code, a new slice in the order of the table in
@@ -101,7 +104,7 @@ func DiagnosticCodes() []DiagnosticCode {
 		CodeUnclosedItalic, CodeBadEscape, CodeGroupWithoutPlaceholder,
 		CodeEmptyOption, CodeBadCharacter, CodeUnprefixedMeta, CodeUnknownLevel,
 		CodeMetaNotAtLevel, CodeBadField, CodeUnknownBuiltin, CodeUnknownOption,
-		CodeNotInListForm,
+		CodeNotInListForm, CodeUnknownField, CodeAmbiguousField,
 	}
 }
 
