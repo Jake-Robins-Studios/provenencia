@@ -1,6 +1,6 @@
 # Deployment plan — Spike 16
 
-Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host. Batch 5 (2026-11-16) adds an event's **As of** date: a day a lasting event was known to be under way, kept beside its start and end and read as a sample, never as when it happened ([design](event-as-of.md)).
+Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host. Batch 5 (2026-11-16) adds an event's **As of** date: a day a lasting event was known to be under way, kept beside its start and end and read as a sample, never as when it happened ([design](event-as-of.md)). Batch 6 (2026-11-17) takes parked ideas one PR at a time; the first is the graph delete confirm naming the Artifacts it leaves in no Evidence graph ([design](graph-delete-leaves-no-graph.md)).
 
 **A brief covers one view.** A PR that adds, changes or removes chrome waits on a brief for each view it touches. Briefs and PR plans are written just before the PR ([`add-design-brief`](../../../.agents/skills/add-design-brief/SKILL.md), [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md)). A bugfix or a behavior change with no new chrome is not gated.
 
@@ -63,6 +63,10 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 18. **Every date line dates an as-of event.** A residence known only from its two as-ofs is dated from 10 Jan 1990 to 10 Feb 2015, open both sides, in the Events list, on its Event page, on the Timeline and on its Evidence graph card, and sorts at 10 Jan 1990; its Event page's Date row lists both as-ofs with their records.
 19. **The Timeline draws it.** On the Person page's Timeline, that residence spans 1990 to 2015 on the lifeline with both ends marked open; a start of 1985 closes its left end. A person's birth is never dated by an as-of.
 
+**Batch 6 — Idea follow-ups** (user, 2026-11-17):
+
+20. **A graph delete warns before it leaves an Artifact in no graph.** On a Source with a Default graph and a Jones graph, where Artifact A is linked only to Jones and Artifact B to both, deleting Jones asks to confirm with a sentence naming A, and not B, as no longer in any evidence graph; after the delete, A's row shows the "Not in an evidence graph" badge.
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
@@ -112,6 +116,12 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | [`promote-ranking.md`](../../ideas/promote-ranking.md) "Name index on commit" (B-8, B-9); [`structural-debt.md`](../../ideas/structural-debt.md) row "`graphalign.Handle` has the fields of `subjectcompare.Subject`" (its `Handle` half) | S16-20, S16-32 |
 | [`promote-ranking.md`](../../ideas/promote-ranking.md) "Narrower canon walk" (B-8's walk); the same structural-debt row's `CanonEdge` half | S16-21, S16-22 |
 | Cache review (Swift): stale while refreshing; values report their inputs; lists merge touched rows; keys as plain values; one derived-value primitive with [`person-page-performance.md`](../../ideas/person-page-performance.md)'s "Section content is rebuilt on every pass"; prefetch (descoped with S16-29, user 2026-11-16: back to [`person-page-performance.md`](../../ideas/person-page-performance.md)) | S16-09 (stale while refreshing), S16-24 – S16-27 |
+
+**Batch 6** pulls in parked ideas (user, 2026-11-17):
+
+| Source | PR |
+| --- | --- |
+| `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -187,6 +197,10 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 5) As-ofs alone make a span open on both sides** (user, 2026-11-16). An event with only as-ofs displays and sorts from its earliest as-of, spans to its latest, and is drawn open on both sides; a start or an end closes that side. The line's wording for each case is S16-D4's call. Binds S16-42 and S16-44.
 - **(Batch 5) One dating for every event, on the Timeline and in order too** (user, 2026-11-17). The dating's whole span is drawn for every event, not only an as-of one: a start-and-end event spans its years on the lifeline, a start-only or end-only event is drawn open on the side it does not record, and an end-only event sorts at its end. Every text line for an event without an as-of reads as before. Binds S16-42.
 
+### Batch 6 — Idea follow-ups
+
+- **(Batch 6) A sentence added to a confirm the kit already draws is copy, not chrome** (user, 2026-11-17). When the alert, its buttons and its layout stay the same, the PR is not gated on a brief; its plan fixes the exact words and the user can veto them in the plan report. Binds S16-45.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -235,6 +249,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Planned |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records | S16-D6 | S16-42, S16-D6 | — | Scoped |
+| S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Planned |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -330,6 +345,12 @@ SLICE 5a — An attestation is a sample
   ✎ S16-D6 ──▶ S16-44  The Event page's Date row shows as-ofs
   Check: bar 16 to 19.
 
+BATCH 6 — Idea follow-ups
+
+SLICE 6a — A graph delete warns about its Artifacts
+  S16-45  A graph delete names the Artifacts it leaves in no graph
+  Check: bar 20.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -388,6 +409,8 @@ S16-D6 ──▶ S16-44
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
+
+Batch 6's S16-45 has no dependency and shares no file with an open PR.
 
 ---
 
@@ -662,3 +685,16 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause.
 **Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; brief S16-D6.
+
+### Batch 6 — Idea follow-ups
+
+Working rules: [Batch 6](#batch-6--idea-follow-ups).
+
+### Slice 6a — A graph delete warns about its Artifacts
+
+#### S16-45 — A graph delete names the Artifacts it leaves in no graph
+
+**Ships.** `deleteimpact` adds a cascade edge on `KindEvidenceGraph` (beside `canonical_entities.last_member`, not a facet release) that counts and lists, by ref, the Artifacts linked to the graph and to no other graph; its via is shared with Swift's `DeleteImpactCascadeVia` (`swift_vocabulary_test`). `PVDeleteImpactCopy.cascadeLines` gives that via its own sentence, in the Artifact sheet's words, after the Citations line. `catalog-deletes.md` § Evidence graphs, the `deleteimpact` README and `add-catalog-delete` name the cascade.
+**Not this PR.** Naming the Artifacts by label (every cascade line names refs; not planned); relinking from the confirm (not planned: the Artifact sheet relinks); the Artifact delete, Source delete and unlink paths (none leaves another Artifact in no graph).
+**Check.** Bar 20; a graph whose Artifacts are all in another graph shows the confirm as today.
+**Context.** [Design](graph-delete-leaves-no-graph.md); `core/database/deleteimpact/handle_gone.go` `buildCascadeEdges`; `facets.go` `cascadesFor`; `macos/App/DesignSystem/Recipes/DeleteImpact/PVDeleteImpact.swift` `cascadeLines`; `macos/App/Platform/ConclusionVocabulary.swift` `DeleteImpactCascadeVia`; `L10n.Sources.artifactGraphsNone`; precedent: the `citations.graph_id` cascade and its confirm line.
