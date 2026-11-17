@@ -190,7 +190,7 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string) (Fi
 	if err != nil {
 		return Field{}, nil, err
 	}
-	if existing.Origin != vocabkey.OriginUser && existing.Origin != vocabkey.OriginProvenencia {
+	if !vocabkey.Editable(existing.Origin) {
 		return Field{}, nil, ErrLocked
 	}
 	if dataType != existing.DataType {

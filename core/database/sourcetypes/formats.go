@@ -13,13 +13,22 @@ import (
 	"github.com/mendahu/provenencia/core/database/metadatafields"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
-	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
 const (
 	sqlStoredFormatsIn = `SELECT id, citation_full, citation_short, citation_list FROM source_types WHERE id IN (`
 	sqlUpdateFormats   = `UPDATE source_types SET citation_full = ?, citation_short = ?, citation_list = ? WHERE id = ?`
 )
+
+// formColumns pairs each form with the source_types column that stores it.
+var formColumns = []struct {
+	form   citationformat.Form
+	column string
+}{
+	{citationformat.FormFull, "citation_full"},
+	{citationformat.FormShort, "citation_short"},
+	{citationformat.FormList, "citation_list"},
+}
 
 // Formats are a type's three citation formats, one text per form. An empty
 // text is no format. Read from the catalog they name fields by id; on the wire
@@ -33,8 +42,10 @@ func (f Formats) text(form citationformat.Form) string {
 		return f.Full
 	case citationformat.FormShort:
 		return f.Short
+	case citationformat.FormList:
+		return f.List
 	}
-	return f.List
+	panic("sourcetypes: unknown citation form " + string(form))
 }
 
 // with returns f with one form's text replaced.
@@ -44,8 +55,10 @@ func (f Formats) with(form citationformat.Form, text string) Formats {
 		f.Full = text
 	case citationformat.FormShort:
 		f.Short = text
-	default:
+	case citationformat.FormList:
 		f.List = text
+	default:
+		panic("sourcetypes: unknown citation form " + string(form))
 	}
 	return f
 }
@@ -363,15 +376,12 @@ func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldCh
 	if tx == nil || len(typeID) != 16 {
 		return FormatsView{}, nil, ErrInvalid
 	}
-	existing, err := getByIDTx(tx.Tx, typeID)
-	if errors.Is(err, sql.ErrNoRows) {
+	// Update reports a missing type as sql.ErrNoRows; a formats write names the
+	// type by id alone, so a missing one is a bad argument (D-13).
+	if _, err := editableTx(tx.Tx, typeID); errors.Is(err, sql.ErrNoRows) {
 		return FormatsView{}, nil, ErrInvalid
-	}
-	if err != nil {
+	} else if err != nil {
 		return FormatsView{}, nil, err
-	}
-	if existing.Origin != vocabkey.OriginUser && existing.Origin != vocabkey.OriginProvenencia {
-		return FormatsView{}, nil, ErrLocked
 	}
 	stored, err := StoredFormatsTx(tx.Tx, [][]byte{typeID})
 	if err != nil {
@@ -391,9 +401,8 @@ func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldCh
 		return view, nil, nil
 	}
 	fields := map[string]rowchange.FieldDiff{}
-	for form, column := range map[citationformat.Form]string{
-		citationformat.FormFull: "citation_full", citationformat.FormShort: "citation_short", citationformat.FormList: "citation_list",
-	} {
+	for _, fc := range formColumns {
+		form, column := fc.form, fc.column
 		if before.text(form) != next.text(form) {
 			fields[column] = rowchange.FieldDiff{Old: database.NullString(before.text(form)), New: database.NullString(next.text(form))}
 		}
