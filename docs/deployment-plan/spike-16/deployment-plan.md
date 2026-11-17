@@ -68,6 +68,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 20. **A graph delete warns before it leaves an Artifact in no graph.** On a Source with a Default graph and a Jones graph, where Artifact A is linked only to Jones and Artifact B to both, deleting Jones asks to confirm with a sentence naming A, and not B, as no longer in any evidence graph; after the delete, A's row shows the "Not in an evidence graph" badge.
 21. **Back keeps your place in a section.** Open a child's tile in Family, then the child's spouse, then press Back twice: each time the section scrolls to the tile you opened, and it has focus. The same holds for a Timeline row and a Sources row. Folds still open closed (S13-16). (P-19, [audit](person-page-audit.md).)
 22. **Every count has a plural.** The provenance sheet's "records from N birth events" has plural forms for the events count as well as the records count, and the strings check refuses a count without one, even inside an entry that has other substitutions. (P-18.)
+23. **A Properties search with no match looks like every other empty list.** Searching Properties for "zzz" shows the kit's empty state, as the Sources list does when its filters hide everything, with a Clear search button that empties the field and brings the rows back.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -126,6 +127,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | Source | PR |
 | --- | --- |
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -258,6 +260,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Planned |
 | S16-46 | Back returns to the row you opened in a section | 6b | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
 | S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
+| S16-48 | A Properties search with no match shows the kit's empty state | 6c | Swift: `PropertiesView`'s hand-built no-match text becomes a compact `PVEmptyState` with Clear search, as the Sources list's no-filter-match state | S16-D8 | S16-D8 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -270,6 +273,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D3 | Citation composer: the date editor on an As of observation | — | Descoped with the composer rule (user, 2026-11-16); never drawn |
 | S16-D4 | Events list: the shared event date line on a row, every dating case (occurrence, closed span, as-of only, as-of with a start or an end) | **S16-42** | Names every surface that shows the line (Event page header, Timeline rows, search hits, Promote's menus, Promote's record rows); split from the lifeline (user, 2026-11-17: one brief per view) |
 | S16-D7 | Person page Timeline: the lifeline draws every event's dating (as-of spans with open sides, start-and-end spans, a one-day open mark, a both-open bar's tether) | **S16-42** | An enhancement of the S13-D4 / S16-D2 Timeline frames; reuses the bar's open-side fade; no new mark |
+| S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
 | S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
 
 ## Slices
@@ -364,6 +368,10 @@ SLICE 6b — Person page follow-ups                    (any time; the two run in
   S16-47  Birth and death event counts have plurals, and the strings check sees them
   Check: bar 21, 22.
 
+SLICE 6c — Shared list helpers                       (any time)
+  ✎ S16-D8 ──▶ S16-48  A Properties search with no match shows the kit's empty state
+  Check: bar 23.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -422,6 +430,7 @@ S16-D6 ──▶ S16-44
 
 S16-03, S16-07 (landed) ──▶ S16-46
 S16-47: none
+S16-D8 ──▶ S16-48
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -730,3 +739,12 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** Other languages' translations.
 **Check.** The check fails on today's two keys and passes after; the sheet still reads "5 records from 2 birth events".
 **Context.** Rule "(Batch 6) A count inside a substitution is checked too"; [audit](person-page-audit.md) P-18; `macos/App/Platform/L10n.swift` (`recordsFromOwners`), `macos/App/Resources/Localizable.xcstrings`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
+
+### Slice 6c — Shared list helpers
+
+#### S16-48 — A Properties search with no match shows the kit's empty state
+
+**Ships.** In `PropertiesView.propertyTable`, the hand-built `VStack` of `emptySearchTitle` and `emptySearch` becomes a compact `PVEmptyState` (search icon, the "No property matches “…”" title as `verbatimTitle`, the message) with a **Clear search** button that empties `searchQuery`, laid out as `SourcesListView`'s no-filter-match state. If S16-D8 keeps Create property, the button calls `model.openCreate(prefillLabel:)` with the query. The message's copy follows the buttons the brief keeps.
+**Not this PR.** The Properties page's other states (load failure, an empty catalog); the rest of [`shared-list-helpers.md`](../../ideas/shared-list-helpers.md).
+**Check.** Bar 23. A search that matches shows the table as today, and VoiceOver reads the empty state's title and its button.
+**Context.** S16-D8; `macos/App/Features/Properties/PropertiesView.swift` (`propertyTable`), `PropertiesModel.swift` (`searchQuery`, `openCreate`); the precedent at `macos/App/Features/Sources/SourcesListView.swift` (`noFilterMatchesTitle`, Clear filters); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).

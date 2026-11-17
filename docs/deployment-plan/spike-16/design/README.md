@@ -10,6 +10,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | --- | --- | --- | --- |
 | [S16-D4](S16-D4-event-date-line.md) | Events list: the shared event date line on a row, every dating case (occurrence, span, as-of only, as-of with a start or an end) | [agreed 2026-11-17](https://claude.ai/artifact/HP8p5mK3BFhNzFRrP5UK9w): "as of …", "from …, as of …", "as of …, until …" | S16-42 |
 | [S16-D7](S16-D7-timeline-lifeline-dating.md) | Person page Timeline: the lifeline draws every event's dating, with a one-day open mark | [agreed 2026-11-17](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), turn 18: a 32 pt bar for an open day | S16-42 |
+| S16-D8 | Properties: a search's no-match state as the kit's empty state, with Clear search | — (written just before S16-48) | S16-48 |
 
 ## Archived
 
