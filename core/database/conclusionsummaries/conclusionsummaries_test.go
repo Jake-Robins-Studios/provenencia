@@ -88,7 +88,7 @@ func (f *fixture) person(forms ...string) (subjects.Subject, []observations.Obse
 	personType := f.typeID("person")
 	s := subjectstest.OfType(f.T, f.C, userID, f.graph, personType, "")
 	var obs []observations.Observation
-	if len(forms) > 30 {
+	if len(forms) > 0 {
 		var in []observations.Input
 		for _, form := range forms {
 			in = append(in, observations.Input{SubjectID: s.ID, PropertyID: f.name.ID, Name: namevaluetest.Western(form)})
@@ -516,7 +516,7 @@ func (f *fixture) event(in ...observations.Input) []byte {
 	f.T.Helper()
 	eventType := f.typeID("event")
 	s := subjectstest.OfType(f.T, f.C, userID, f.graph, eventType, "")
-	if len(in) > 30 {
+	if len(in) > 0 {
 		for i := range in {
 			in[i].SubjectID = s.ID
 		}
