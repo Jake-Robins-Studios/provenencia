@@ -16,7 +16,7 @@ The idea was written before the graph delete took its Citations with it. It said
 ## Shape
 
 - **Engine.** `deleteimpact` gains one more non-blocking cascade on `KindEvidenceGraph`. It lists the Artifacts linked to the graph and to no other graph, by ref, and is capped like every listed group. It is information about a consequence, not a release: the graph's links are already released by their facet (`evidence_graph_artifacts.graph_id`), and this edge only says which of those links was an Artifact's last.
-- **App.** The confirm already appends one sentence per cascade group (`PVDeleteImpactCopy.cascadeLines`). The new via gets its own sentence, in the words of the Artifact sheet's line. Nothing else in the confirm changes: same alert, same buttons, same layout.
+- **App.** The confirm already appends one sentence per cascade group (`PVDeleteImpactCopy.cascadeLines`). The new via gets its own sentence, mirroring the Artifact sheet's line. Nothing else in the confirm changes: same alert, same buttons, same layout.
 - **No brief.** One more sentence in a confirm the kit already draws is copy, not chrome (user, 2026-11-17; Batch 6 working rule).
 
 ## Not this batch
