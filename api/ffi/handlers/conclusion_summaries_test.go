@@ -250,8 +250,8 @@ func TestListEventSummaries(t *testing.T) {
 				if h.GetUpdatedRevision() <= 0 || h.GetUpdatedAt() == "" {
 					t.Fatalf("updated %d %q", h.GetUpdatedRevision(), h.GetUpdatedAt())
 				}
-				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" || h.GetDate().GetStartYear() != 1849 {
-					t.Fatalf("type %v date %v", h.GetEventType(), h.GetDate())
+				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" {
+					t.Fatalf("type %v", h.GetEventType())
 				}
 				if d := h.GetDating(); d.GetKind() != engine.EventDatingKind_EVENT_DATING_KIND_OCCURRENCE || d.GetLow().GetStartYear() != 1849 || d.GetHigh() != nil || d.GetOpenLow() || d.GetOpenHigh() {
 					t.Fatalf("dating %v", d)
@@ -689,6 +689,39 @@ func listedPlaces(t *testing.T, req *engine.ListPlaceSummariesRequest) []*engine
 		t.Fatal(err)
 	}
 	return resp.Summaries
+}
+
+func TestEventDatingPropertiesProto(t *testing.T) {
+	d, st, en, as := "date", "start_date", "end_date", "as_of"
+	type pr struct {
+		key  string
+		role engine.EventDatingRole
+	}
+	occ, start := engine.EventDatingRole_EVENT_DATING_ROLE_OCCURRENCE, engine.EventDatingRole_EVENT_DATING_ROLE_START
+	end, asOf := engine.EventDatingRole_EVENT_DATING_ROLE_END, engine.EventDatingRole_EVENT_DATING_ROLE_AS_OF
+	cases := []struct {
+		name string
+		in   []conclusionsummaries.DatingProperty
+		want []pr
+	}{
+		{"an occurrence", []conclusionsummaries.DatingProperty{{Key: vocabkey.PropertyKey(d), Role: conclusionsummaries.DatingRoleOccurrence}}, []pr{{d, occ}}},
+		{"a span", []conclusionsummaries.DatingProperty{{Key: vocabkey.PropertyKey(st), Role: conclusionsummaries.DatingRoleStart}, {Key: vocabkey.PropertyKey(en), Role: conclusionsummaries.DatingRoleEnd}}, []pr{{st, start}, {en, end}}},
+		{"as-ofs", []conclusionsummaries.DatingProperty{{Key: vocabkey.PropertyKey(st), Role: conclusionsummaries.DatingRoleStart}, {Key: vocabkey.PropertyKey(as), Role: conclusionsummaries.DatingRoleAsOf}, {Key: vocabkey.PropertyKey(en), Role: conclusionsummaries.DatingRoleEnd}}, []pr{{st, start}, {as, asOf}, {en, end}}},
+		{"undated", []conclusionsummaries.DatingProperty{{Key: vocabkey.PropertyKey(d), Role: conclusionsummaries.DatingRoleOccurrence}, {Key: vocabkey.PropertyKey(st), Role: conclusionsummaries.DatingRoleStart}, {Key: vocabkey.PropertyKey(en), Role: conclusionsummaries.DatingRoleEnd}, {Key: vocabkey.PropertyKey(as), Role: conclusionsummaries.DatingRoleAsOf}}, []pr{{d, occ}, {st, start}, {en, end}, {as, asOf}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := eventSummaryProto(conclusionsummaries.EventSummary{DatingProperties: tc.in}, nil).GetDatingProperties()
+			if len(got) != len(tc.want) {
+				t.Fatalf("%d properties, want %d", len(got), len(tc.want))
+			}
+			for i, w := range tc.want {
+				if got[i].GetPropertyKey() != w.key || got[i].GetRole() != w.role {
+					t.Fatalf("property %d = %v, want %v", i, got[i], w)
+				}
+			}
+		})
+	}
 }
 
 func TestEventDatingProto(t *testing.T) {

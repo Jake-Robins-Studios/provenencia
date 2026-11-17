@@ -41,38 +41,60 @@ struct EventDetailContent: ConclusionDetailBody {
         )
     }
 
-    /// The Date row, following the summary the band reads. A summary `date` is
-    /// the `date` field. Otherwise, when the summary has a start or end, one row
-    /// whose lead is the start–end span and whose Why lists those fields' records.
-    /// Otherwise a `date` with records is that field. Stated empty when none is set.
+    /// The Date row, following the dating Go chose and the Properties it names
+    /// behind it (`datingProperties`); Swift picks no key. An as-of dating lists
+    /// the start, each kept as-of and the end as lines, and its Why holds every
+    /// record behind them. Any other dating is one field's row, or, over several
+    /// fields, one row whose lead is the dating and whose Why holds their records.
+    /// Stated empty when nothing is recorded.
     static func dateRow(
         _ fields: [CatalogConclusionField],
         summary: CatalogEventSummary?,
         locale: Locale
     ) -> ReconciledValueRowModel {
         let label = L10n.string(L10n.Conclusions.eventDate)
-        let date = fields.first { $0.propertyKey == SeededPropertyKey.date }
-        if summary?.date != nil, let date {
-            return labeled(ReconciledValueRowModel(field: date, locale: locale), label, field: date)
-        }
-        let spanKept = summary?.startDate != nil || summary?.endDate != nil
-        if !spanKept, let date, !date.outcomes.isEmpty {
-            return labeled(ReconciledValueRowModel(field: date, locale: locale), label, field: date)
-        }
-        let span = [SeededPropertyKey.startDate, SeededPropertyKey.endDate].compactMap { key in
-            fields.first { $0.propertyKey == key && !$0.outcomes.isEmpty }
-        }
         let empty = L10n.string(L10n.Conclusions.emptyEventDate)
-        guard !span.isEmpty else {
+        guard let summary else {
             return .empty(id: "date", label: label, face: .date, emptyText: empty)
         }
-        if span.count == 1, let only = span.first {
-            return labeled(ReconciledValueRowModel(field: only, locale: locale), label, field: only)
+        let behind: [(property: CatalogEventDatingProperty, field: CatalogConclusionField)] =
+            summary.datingProperties.compactMap { property in
+                fields.first { $0.propertyKey == property.key && !$0.outcomes.isEmpty }
+                    .map { (property, $0) }
+            }
+        let lead = DateRowDisplay.line(dating: summary.dating, locale: locale)
+        if summary.dating.kind == .asOf {
+            return .spanning(
+                id: "date", label: label, lead: lead, emptyText: empty, fields: behind.map(\.field),
+                listed: behind.flatMap { lines($0.field, role: $0.property.role, locale: locale) },
+                locale: locale
+            )
         }
-        let lead = DateRowDisplay.span(
-            start: summary?.startDate, end: summary?.endDate, locale: locale
-        )
-        return .spanning(id: "date", label: label, lead: lead, emptyText: empty, fields: span, locale: locale)
+        if behind.count == 1, let only = behind.first {
+            return ReconciledValueRowModel(field: only.field, locale: locale).relabeled(label, field: only.field)
+        }
+        if behind.isEmpty, lead.isEmpty {
+            return .empty(id: "date", label: label, face: .date, emptyText: empty)
+        }
+        return .spanning(id: "date", label: label, lead: lead, emptyText: empty, fields: behind.map(\.field), locale: locale)
+    }
+
+    /// A field's lines on the Date row: every displayed value of a multiple field, else the first
+    /// displayed value (a start or an end, even when mixed), each worded by the field's role.
+    private static func lines(
+        _ field: CatalogConclusionField,
+        role: CatalogEventDatingProperty.Role,
+        locale: Locale
+    ) -> [PVProvenanceSheetContent.Value] {
+        let words: DateRowDisplay.Role
+        switch role {
+        case .occurrence: words = .plain
+        case .start: words = .from
+        case .asOf: words = .asOf
+        case .end: words = .until
+        }
+        let shown = field.state == .multiple ? field.displayedValues : Array(field.displayedValues.prefix(1))
+        return PVProvenanceSheetContent.listed(shown, propertyKey: field.propertyKey, role: words, locale: locale)
     }
 
     /// The Place row. The first kept name, mixed when more survived. No Why:
@@ -86,16 +108,5 @@ struct EventDetailContent: ConclusionDetailBody {
             emptyText: empty, mixed: DerivedPlace.extra(places) > 0,
             opens: places.first.map(ReconciledValueRowModel.Opens.place)
         )
-    }
-
-    private static func labeled(
-        _ row: ReconciledValueRowModel,
-        _ label: String,
-        field: CatalogConclusionField
-    ) -> ReconciledValueRowModel {
-        var row = row
-        row.label = label
-        row.accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: label, lead: row.shown.lead, field: field)
-        return row
     }
 }

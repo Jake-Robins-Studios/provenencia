@@ -58,19 +58,11 @@ struct PlaceDetailContent: ConclusionDetailBody {
             return .empty(id: "names", label: label, face: .text, emptyText: empty)
         }
         var row = ReconciledValueRowModel(field: field, locale: locale)
-        row.label = label
         row.shown.emptyText = empty
-        guard row.shown.listedValues.count > 1 else {
-            row.accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(
-                label: label, lead: row.shown.lead, field: field
-            )
-            return row
+        row = row.relabeled(label, field: field)
+        if row.shown.listedValues.count > 1 {
+            row.whyTitle = L10n.Conclusions.whyThese(row.shown.listedValues.count, label: label)
         }
-        let names = row.shown.listedValues.map(\.text).joined(separator: "; ")
-        row.whyTitle = L10n.Conclusions.whyThese(row.shown.listedValues.count, label: label)
-        row.accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(
-            label: label, lead: names, field: field
-        )
         return row
     }
 

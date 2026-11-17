@@ -13625,13 +13625,37 @@
       }
     },
     "dates.row.asOf": {
-      "comment": "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date.",
+      "comment": "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date. Also each As of line on an event's Date row, where the words around the date are drawn muted.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "as of %@"
+          }
+        }
+      }
+    },
+    "dates.row.from": {
+      "comment": "An event's recorded start on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from %@"
+          }
+        }
+      }
+    },
+    "dates.row.until": {
+      "comment": "An event's recorded end on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "until %@"
           }
         }
       }

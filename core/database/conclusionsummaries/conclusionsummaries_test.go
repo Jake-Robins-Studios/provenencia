@@ -42,6 +42,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
 	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
+	"github.com/mendahu/provenencia/core/matchregistry"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
 	"github.com/mendahu/provenencia/core/propertymeta"
@@ -252,7 +253,7 @@ func TestSummariesShowKeptValuesOnly(t *testing.T) {
 					if string(h.Entity.ID) != string(entityID) {
 						continue
 					}
-					if h.EventName != "" || h.Type.Term != nil || h.Date != nil {
+					if h.EventName != "" || h.Type.Term != nil || h.Dating.Kind != valuecompare.DatingNone {
 						t.Fatalf("listed provisional values %+v", h)
 					}
 				}
@@ -570,21 +571,23 @@ func TestListEvents(t *testing.T) {
 	for _, h := range got {
 		byID[string(h.Entity.ID)] = h
 	}
-	if string(got[0].Entity.ID) != string(fire) || got[0].EventName != "The Great Fire" || got[0].Date == nil || *got[0].Date.StartYear != 1849 {
+	if string(got[0].Entity.ID) != string(fire) || got[0].EventName != "The Great Fire" ||
+		got[0].Dating.Kind != valuecompare.DatingOccurrence || *got[0].Dating.Low.StartYear != 1849 {
 		t.Fatalf("fire %+v", got[0])
 	}
 	born := byID[string(birthID)]
 	if born.Type.Term == nil || born.Type.Term.Key != "birth" || born.Type.Term.Label != "Birth" || born.Type.Term.Origin != "provenencia" || born.Title.Parts.TypeOrigin != "provenencia" || born.Type.Count != 1 {
 		t.Fatalf("type %+v", born.Type)
 	}
-	if born.Date == nil || *born.Date.StartYear != 1985 || born.StartDate != nil || born.EndDate != nil || born.StartDateCount != 1 {
+	if born.Dating.Kind != valuecompare.DatingOccurrence || *born.Dating.Low.StartYear != 1985 || born.Dating.High != nil {
 		t.Fatalf("date wins over span %+v", born)
 	}
 	spanned := byID[string(span)]
-	if spanned.Date != nil || spanned.StartDate == nil || *spanned.StartDate.StartYear != 1900 || spanned.EndDate == nil || *spanned.EndDate.StartYear != 1910 {
+	if spanned.Dating.Kind != valuecompare.DatingSpan || *spanned.Dating.Low.StartYear != 1900 || *spanned.Dating.High.StartYear != 1910 ||
+		spanned.Dating.OpenLow || spanned.Dating.OpenHigh {
 		t.Fatalf("span %+v", spanned)
 	}
-	if byID[string(undated)].Date != nil || byID[string(undated)].EventName != "" {
+	if byID[string(undated)].Dating.Kind != valuecompare.DatingNone || byID[string(undated)].EventName != "" {
 		t.Fatalf("undated %+v", byID[string(undated)])
 	}
 	want := [][]byte{fire, span, birthID, undated}
@@ -592,6 +595,47 @@ func TestListEvents(t *testing.T) {
 		if string(got[i].Entity.ID) != string(id) {
 			t.Fatalf("order %d got %x want %x", i, got[i].Entity.ID, id)
 		}
+	}
+}
+
+func TestEventDatingProperties(t *testing.T) {
+	f := newFixture(t)
+	date, start, end, asOf := f.Prop("date"), f.Prop("start_date"), f.Prop("end_date"), f.Prop("as_of")
+	lead, period := matchregistry.Default().Subject.EventPeriod()
+	prop := func(k vocabkey.PropertyKey, r conclusionsummaries.DatingRole) conclusionsummaries.DatingProperty {
+		return conclusionsummaries.DatingProperty{Key: k, Role: r}
+	}
+	occ, st, en, as := prop(lead, conclusionsummaries.DatingRoleOccurrence), prop(period.Start, conclusionsummaries.DatingRoleStart),
+		prop(period.End, conclusionsummaries.DatingRoleEnd), prop(period.Samples, conclusionsummaries.DatingRoleAsOf)
+	cases := []struct {
+		name string
+		in   []observations.Input
+		want []conclusionsummaries.DatingProperty
+	}{
+		{"occurrence", []observations.Input{
+			{PropertyID: date.ID, Date: datevaluetest.YMD(1849, 0, 0)},
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1800, 0, 0)},
+			{PropertyID: asOf.ID, Date: datevaluetest.YMD(1820, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{occ}},
+		{"span", []observations.Input{
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1900, 0, 0)},
+			{PropertyID: end.ID, Date: datevaluetest.YMD(1910, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{st, en}},
+		{"as of", []observations.Input{
+			{PropertyID: start.ID, Date: datevaluetest.YMD(1985, 0, 0)},
+			{PropertyID: asOf.ID, Date: datevaluetest.YMD(1990, 0, 0)},
+		}, []conclusionsummaries.DatingProperty{st, as, en}},
+		{"undated", nil, []conclusionsummaries.DatingProperty{occ, st, en, as}},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			id := f.event(tt.in...)
+			got, err := conclusionsummaries.EventsByIDs(f.C, [][]byte{id})
+			must(t, err)
+			if len(got) != 1 || !slices.Equal(got[0].DatingProperties, tt.want) {
+				t.Fatalf("dating properties %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -1313,7 +1357,6 @@ func TestSortByBirth(t *testing.T) {
 // engine composes from them and any as-of samples.
 func summary(date, start, end *datevalue.Value, samples ...datevalue.Value) conclusionsummaries.EventSummary {
 	return conclusionsummaries.EventSummary{
-		Date: date, StartDate: start, EndDate: end,
 		Dating: valuecompare.DatingOf(date, start, end, samples),
 	}
 }
@@ -1669,7 +1712,7 @@ func TestListKeysFollowListOrder(t *testing.T) {
 		if i > 0 && !conclusionsummaries.EventListKey(events[i-1]).Less(key) {
 			t.Fatalf("event %d does not follow event %d: %v", i, i-1, refs)
 		}
-		if key.Last != (e.Date == nil) {
+		if key.Last != (e.Dating.Low == nil && e.Dating.High == nil) {
 			t.Fatalf("%s: Last = %v", e.Entity.Ref, key.Last)
 		}
 	}

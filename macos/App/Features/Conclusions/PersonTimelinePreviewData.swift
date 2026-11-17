@@ -37,29 +37,21 @@ enum PersonTimelinePreviewData {
             switch self {
             case .day(let y, let m, let d, _, _):
                 let date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m, startDay: d)
-                summary.date = date
-                summary.dateCount = 1
                 summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .month(let y, let m, _, _):
                 let date = CatalogDateValueInput(kind: "point", startYear: y, startMonth: m)
-                summary.date = date
-                summary.dateCount = 1
                 summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .year(let y):
                 let date = CatalogDateValueInput(kind: "point", startYear: y)
-                summary.date = date
-                summary.dateCount = 1
                 summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             case .years(let a, let b):
-                summary.startDate = CatalogDateValueInput(kind: "point", startYear: a)
-                summary.endDate = CatalogDateValueInput(kind: "point", startYear: b)
-                summary.startDateCount = 1
-                summary.endDateCount = 1
-                summary.dating = CatalogEventDating(kind: .span, low: summary.startDate, high: summary.endDate)
+                summary.dating = CatalogEventDating(
+                    kind: .span,
+                    low: CatalogDateValueInput(kind: "point", startYear: a),
+                    high: CatalogDateValueInput(kind: "point", startYear: b)
+                )
             case .before(let y):
                 let date = CatalogDateValueInput(kind: "point", qualifier: "BEF", startYear: y)
-                summary.date = date
-                summary.dateCount = 1
                 summary.dating = CatalogEventDating(kind: .occurrence, low: date)
             }
         }

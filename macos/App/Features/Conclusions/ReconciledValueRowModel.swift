@@ -18,6 +18,14 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         case derived(owners: [CatalogOwnerField], shownOwnerID: String?, kind: CatalogDerivedRowKind?)
     }
 
+    /// How the row's spoken label is built from what it lists.
+    private enum Voice: Equatable {
+        /// The label, the value and the field's state (`ReconciledValueDisplay.accessibilityLabel`).
+        case field(CatalogConclusionField?)
+        /// The label and the value alone (a span or listed dates over several fields).
+        case joined
+    }
+
     var id: String
     var label: String
     /// What the row's value line shows: the lead, every kept value of a
@@ -32,8 +40,12 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     /// A derived row opens the Event or Place it is read from. Nil otherwise.
     var opens: Opens?
     private var source: RecordsSource
+    private var voice: Voice
     private var locale: Locale
     private var orders: NameFormatOrders
+
+    /// How a long list of lines folds: the first 20, then 50 more a press.
+    static let listFold = ConclusionFold(limit: 20, minimumHidden: 2)
 
     /// How many records sit behind the row.
     var recordCount: Int {
@@ -50,7 +62,6 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         orders: NameFormatOrders = NameFormatOrders()
     ) {
         let shown = PVProvenanceSheetContent.Shown(field: field, locale: locale, orders: orders)
-        let spokenLead = shown.listedValues.count > 1 ? shown.listedValues.map(\.text).joined(separator: "; ") : shown.lead
         id = field.propertyID
         label = field.label
         self.shown = shown
@@ -65,10 +76,45 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
             : field.valueType == .name
                 ? L10n.Conclusions.whyTitleName(shown.lead ?? field.label)
                 : L10n.Conclusions.whyTitle(shown.lead ?? field.label)
-        accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: field.label, lead: spokenLead, field: field)
+        accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: field.label, lead: Self.spokenValue(shown), field: field)
         source = .field(field)
+        voice = .field(field)
         self.locale = locale
         self.orders = orders
+    }
+
+    /// What VoiceOver says for the row's value: the first `lines` lines of a list, joined, else the
+    /// lead. A single role line speaks its own words (`as of 10 Jan 1990`), not the dating's.
+    static func spokenValue(_ shown: PVProvenanceSheetContent.Shown, lines: Int = listFold.limit) -> String? {
+        if shown.listedValues.count > 1 {
+            return shown.listedValues.prefix(lines).map(\.text).joined(separator: "; ")
+        }
+        if let only = shown.listedValues.first, only.styled != nil { return only.text }
+        return shown.lead
+    }
+
+    /// The row under another label, speaking what it shows.
+    func relabeled(_ label: String, field: CatalogConclusionField?) -> Self {
+        var row = self
+        row.label = label
+        row.voice = .field(field)
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
+        return row
+    }
+
+    /// What VoiceOver says for the row once `pages` pages of its list are revealed: the lines the
+    /// fold shows then. At no pages, the first 20.
+    func accessibilityLabel(pages: Int) -> String {
+        let lines = Self.listFold.shown(shown.listedValues, pages: pages).shown.count
+        let lead = Self.spokenValue(shown, lines: lines)
+        switch voice {
+        case .field(let field):
+            return ReconciledValueDisplay.accessibilityLabel(label: label, lead: lead, field: field)
+        case .joined:
+            let mixed = shown.badge == .mixed ? L10n.string(L10n.ProvenanceSheet.badgeMixed) : nil
+            return lead.flatMap { L10n.DesignSystem.spokenJoin([label, $0] + [mixed].compactMap { $0 }) }
+                ?? ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
+        }
     }
 
     /// The sheet or Why content of the row, built from its records now. The
@@ -88,28 +134,34 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         }
     }
 
-    /// One Date row whose lead is a start–end span. Why lists every record
-    /// on those properties. The span is not one property's reconciled state,
-    /// so it carries no badge.
+    /// One Date row whose lead is a start–end span, or whose `listed` lines are
+    /// the dates behind an as-of dating. Why lists every record on those
+    /// properties. The span is not one property's reconciled state, so it
+    /// carries no badge.
     static func spanning(
         id: String,
         label: String,
         lead: String?,
         emptyText: String,
         fields: [CatalogConclusionField],
+        listed: [PVProvenanceSheetContent.Value] = [],
         locale: Locale
     ) -> Self {
         let lead = lead.flatMap { $0.isEmpty ? nil : $0 }
-        let spoken = lead.map { L10n.DesignSystem.spokenJoin(label, $0) }
-            ?? ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
-        return Self(
-            id: id, label: label,
-            shown: .init(face: .date, lead: lead, emptyText: emptyText, badge: nil),
-            count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: lead.map { L10n.Conclusions.whyTitle($0) } ?? "",
-            accessibilityLabel: spoken,
-            source: .spanning(fields), locale: locale, orders: NameFormatOrders()
+        let shown = PVProvenanceSheetContent.Shown(
+            face: .date, lead: lead, listedValues: listed, emptyText: emptyText, badge: nil
         )
+        var row = Self(
+            id: id, label: label,
+            shown: shown,
+            count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
+            whyTitle: "",
+            accessibilityLabel: "",
+            source: .spanning(fields), voice: .joined, locale: locale, orders: NameFormatOrders()
+        )
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
+        if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
+        return row
     }
 
     /// A date or place read off the canonical graph. A kept count above 1 is
@@ -132,21 +184,15 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         orders: NameFormatOrders = NameFormatOrders()
     ) -> Self {
         let lead = lead.isEmpty ? nil : lead
-        let spoken: String
-        if let lead {
-            let parts = [label, lead] + (mixed ? [L10n.string(L10n.ProvenanceSheet.badgeMixed)] : [])
-            spoken = L10n.DesignSystem.spokenJoin(parts) ?? label
-        } else {
-            spoken = ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
-        }
         var row = Self(
             id: id, label: label,
             shown: .init(face: face, lead: lead, emptyText: emptyText, badge: mixed && lead != nil ? .mixed : nil),
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: "", accessibilityLabel: spoken,
-            source: .derived(owners: owners, shownOwnerID: shownOwnerID, kind: kind),
+            whyTitle: "", accessibilityLabel: "",
+            source: .derived(owners: owners, shownOwnerID: shownOwnerID, kind: kind), voice: .joined,
             locale: locale, orders: orders
         )
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
         if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
         row.opens = opens
         return row
@@ -154,19 +200,21 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
 
     /// A row with nothing behind it yet.
     static func empty(id: String, label: String, face: PVProvenanceFace, emptyText: String) -> Self {
-        Self(
+        var row = Self(
             id: id, label: label,
             shown: .init(face: face, lead: nil, emptyText: emptyText, badge: nil),
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [], whyTitle: "",
-            accessibilityLabel: ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil),
-            source: .spanning([]), locale: .autoupdatingCurrent, orders: NameFormatOrders()
+            accessibilityLabel: "",
+            source: .spanning([]), voice: .joined, locale: .autoupdatingCurrent, orders: NameFormatOrders()
         )
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
+        return row
     }
 
     private init(
         id: String, label: String, shown: PVProvenanceSheetContent.Shown, count: String?, against: String?,
         otherValuesLabel: String?, otherValues: [PVProvenanceSheetContent.Value], whyTitle: String,
-        accessibilityLabel: String, source: RecordsSource, locale: Locale, orders: NameFormatOrders
+        accessibilityLabel: String, source: RecordsSource, voice: Voice, locale: Locale, orders: NameFormatOrders
     ) {
         self.id = id
         self.label = label
@@ -178,6 +226,7 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         self.whyTitle = whyTitle
         self.accessibilityLabel = accessibilityLabel
         self.source = source
+        self.voice = voice
         self.locale = locale
         self.orders = orders
     }

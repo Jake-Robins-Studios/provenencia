@@ -108,7 +108,7 @@ type Field struct {
 	ValueType   string
 	State       autoreconcile.State // read off the displayed values
 	cardinality string
-	Values      []ReconciledValue // rank order
+	Values      []ReconciledValue // rank order; a multiple date field's in date order (autoreconcile.SortKey), ties by rank
 	Outcomes    []Outcome         // by group rank (none last), value rank (none last), then Observation id
 }
 
@@ -265,6 +265,7 @@ func fieldsOf(g *graphcache.Graph, v graphcache.Vocabulary, nodes []*graphcache.
 
 // finish reads a field's state off its values and orders its outcomes.
 func finish(f *Field) {
+	orderDates(f)
 	f.State = state(f.Values, f.cardinality)
 	displayed := map[int]bool{}
 	for _, v := range f.Values {
@@ -280,6 +281,17 @@ func finish(f *Field) {
 			o.GroupRank = o.ValueRank
 		}
 	}
+	// A value's place in Values: its rank, unless orderDates moved it.
+	place := make(map[int]int, len(f.Values))
+	for i, v := range f.Values {
+		place[v.Rank] = i + 1
+	}
+	at := func(rank int) int {
+		if p, ok := place[rank]; ok {
+			return p
+		}
+		return rank
+	}
 	less := func(a, b int) (decided, before bool) {
 		if (a == 0) != (b == 0) {
 			return true, b == 0
@@ -290,14 +302,46 @@ func finish(f *Field) {
 		return false, false
 	}
 	sort.SliceStable(f.Outcomes, func(i, j int) bool {
-		if d, b := less(f.Outcomes[i].GroupRank, f.Outcomes[j].GroupRank); d {
+		if d, b := less(at(f.Outcomes[i].GroupRank), at(f.Outcomes[j].GroupRank)); d {
 			return b
 		}
-		if d, b := less(f.Outcomes[i].ValueRank, f.Outcomes[j].ValueRank); d {
+		if d, b := less(at(f.Outcomes[i].ValueRank), at(f.Outcomes[j].ValueRank)); d {
 			return b
 		}
 		return string(f.Outcomes[i].ObservationID) < string(f.Outcomes[j].ObservationID)
 	})
+}
+
+// orderDates puts a multiple date field's values in date order
+// (autoreconcile.SortKey, a value with no key last, ties by rank). Rank on each
+// value is unchanged: the wire matches records to values by it.
+func orderDates(f *Field) {
+	if f.cardinality != propertymeta.CardinalityMultiple || f.ValueType != propertymeta.ValueTypeDate {
+		return
+	}
+	type keyed struct {
+		v   ReconciledValue
+		key string
+		ok  bool
+	}
+	ks := make([]keyed, len(f.Values))
+	for i, v := range f.Values {
+		k, ok := autoreconcile.SortKey(f.ValueType, autoreconcile.Value{Date: v.Value.Date})
+		ks[i] = keyed{v, k, ok}
+	}
+	sort.SliceStable(ks, func(i, j int) bool {
+		a, b := ks[i], ks[j]
+		if a.ok != b.ok {
+			return a.ok
+		}
+		if a.ok && a.key != b.key {
+			return a.key < b.key
+		}
+		return a.v.Rank < b.v.Rank
+	})
+	for i := range ks {
+		f.Values[i] = ks[i].v
+	}
 }
 
 // state reads a field's state off its displayed values, by the same rule as
