@@ -1,11 +1,11 @@
 # S16-42 — Every event date line reads the engine's dating
 
-**Status:** Blocked — on board S16-D4
+**Status:** Blocked — on boards S16-D4 and S16-D7
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D4](../design/S16-D4-event-date-line.md), board not agreed yet (the shared event date line on an Events list row, and the Timeline lifeline: ED-1 – ED-9, ED-W1)
-**Board:** not drawn yet. When agreed: the Claude Design artifact link, the turn "S16-D4 · Event dates", its frames, the ED-2 – ED-5 wording and the ED-8 mark go here; the implementer reads it with the Artifact tool's `read` on that link
-**Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)), S16-D4
+**Brief:** [S16-D4](../design/S16-D4-event-date-line.md) (Events list: the shared event date line, ED-1 – ED-7, ED-W1) and [S16-D7](../design/S16-D7-timeline-lifeline-dating.md) (Person page Timeline: the lifeline, TL-1 – TL-3, TL-W1); neither board agreed yet
+**Board:** not drawn yet. When agreed: the Events list board's turn "S16-D4 · Event dates" with its frames and the ED-2 – ED-5 wording, and the Person page board's turn "S16-D7 · Lifeline dating" with its frames and the TL-2 length go here; the implementer reads each with the Artifact tool's `read` on its link
+**Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)), S16-D4, S16-D7
 **Blocks:** S16-44
 **Branch:** `s16-42-event-dating-line`
 **Version bump:** minor — the next minor after `VERSION` on `main` when the branch is cut (0.18.0 → 0.19.0 at the planning base): additive wire fields (`EventSummary.dating`, `SourceEventTitle.dating`) and a change a researcher sees on every event date line ([`docs/versioning.md`](../../../versioning.md))
@@ -59,7 +59,7 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | AC-2.3 | The same residence with `start_date` 1985 | Span From 1985 To 2016, OpenStart false, OpenEnd true |
 | AC-2.4 | A residence with start 1960 and end 1970 | Span From 1960 To 1971, both closed (today: 1960 to 1961) |
 | AC-2.5 | An occupation with start 1975 only; one with end 1980 only | Span 1975–1976 OpenEnd true; span 1980–1981 OpenStart true, and the end-only event sorts at 1980 (today: undated, last) |
-| AC-2.6 | One as-of 10 Jan 1990; a `bef 14 May 1880` occurrence | Each a one-day span with an open side; the lifeline draws the ED-8 short faded bar for both, not a dot; a closed `14 May 1880` stays a dot |
+| AC-2.6 | One as-of 10 Jan 1990; a `bef 14 May 1880` occurrence | Each a one-day span with an open side; the lifeline draws the TL-2 short faded bar for both, not a dot; a closed `14 May 1880` stays a dot |
 | AC-2.7 | A person whose birth event has a start 1948 and an as-of 1950; another whose birth event has only an as-of | The first birth reads 1948 and its places fold at 1948; the second reads no birth date and its places fold with no date (today's fold for an undated birth) |
 | AC-2.8 | An event with 10,000 as-ofs | The summary carries two dates; the Events list row builds from them; the compose reads each as-of once (T-6) |
 
@@ -91,8 +91,8 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | `searchindex` indexes the dating; `ProjectionVersion` 12; `sqlHandleValues` reads only what documents use (D-10) | STEP-7, AC-3.* |
 | SEC-3: count samples before copying (D-11) | STEP-8, AC-4.4 |
 | PRF-1: narrower shortlist lookup for as-of-only events, with the benchmark (D-12, D-13) | STEP-9, AC-4.1 – AC-4.3 |
-| Swift wire types and the formatter: `DateRowDisplay` splits into one date and one span, and `line(dating:)` formats the dating on every `EventSecondaryDisplay` surface and on `EvidenceGraphSnapshot.dateLine` (ED-1 – ED-6, ED-9, ED-W1) | STEP-10, STEP-11, AC-1.* |
-| The lifeline's one-day open mark and a both-open bar's tether (ED-7, ED-8) | STEP-12, AC-2.6 |
+| Swift wire types and the formatter: `DateRowDisplay` splits into one date and one span, and `line(dating:)` formats the dating on every `EventSecondaryDisplay` surface and on `EvidenceGraphSnapshot.dateLine` (ED-1 – ED-7, ED-W1) | STEP-10, STEP-11, AC-1.* |
+| The lifeline's spans, one-day open mark and a both-open bar's tether (TL-1 – TL-3, TL-W1) | STEP-12, AC-2.6 |
 | Docs and guidance: `structured-date-model.md` § 3.4, `matching-model.md`'s `MaxSamples` row, `add-date-value`, the `grapheventtitles` package doc, the `CatalogEventSummary` doc | STEP-13 |
 
 | Out | Home |
@@ -149,7 +149,7 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | D-13 | **Benchmark.** `catalogShape.AsOfShare float64` *(new)*: in `bulkCanon`, each town death is chosen from a second stream `rand.New(rand.NewPCG(3, 4))` (the shape's `Rand` is not drawn, so `asof=0` builds the base catalog byte for byte) and, when `< AsOfShare`, its date row is written on the `as_of` property (`idOf(db, "properties", "as_of")`) with the same columns and values the `date` row gets. `newLargeFixtureAsOf(t, persons int, asOfShare float64)` *(new, `perf_test.go`)* does the same for Source A's deaths in `filedOn` (an as-of Observation instead of a date, same second stream); `newLargeFixture` calls it with 0; `TestLargeSourceBudgets` is unchanged. `BenchmarkLargeSourcePropose` runs `persons=4000,16000` × `asof=0,0.3`. Run it at the planning base with D-13 applied (STEP-9 first commits the shape; the base run checks that commit out on top of `dbc946c`) and on the branch. The +3.5 ms: compare `-cpuprofile` of `asof=0` and `asof=0.3` warm proposals and name the top differing function in the PR body | Map scope: measured at 4,000 and 16,000 with 30% as-of deaths; Source A must hold as-of-only probes for D-12 to show (review X-2) | Measuring only town deaths — every probe is dated, D-12 changes nothing |
 | D-14 | **Swift formatter.** `DateRowDisplay` splits: `line(date:includesPhrase:precision:locale:)` formats one date (today's callers that pass `date:` only); `span(start:end:includesPhrase:precision:locale:)` *(new name)* formats today's start–end text (`rowSpan`, or the one side recorded); `line(dating:includesPhrase:locale:)` *(new)*: `.occurrence` → `line(date: low)`, `.span` → `span(start: low, end: high)`, `.asOf` → the board's ED-2 – ED-5 wording over the formatted Low and High with `openLow` / `openHigh`, `.none` → "". The chooser `line(date:start:end:)` is deleted; `EventDetailContent.dateRow` calls `span(start:end:)` until S16-44 | Rule K-3 retires Swift's date-wins chooser (review M-2); no caller passes a date with a start or end after this PR | Keeping the chooser for its other callers — the rule names it |
 | D-15 | Tests, previews and `FakeStore` that build a `CatalogEventSummary` with dates set its `dating` with the memberwise initializer; no Swift helper derives a dating from date fields. `PersonTimelinePreviewData.apply(to:)`: `.day`, `.month`, `.year`, `.before` → `.occurrence` with `low` the date it sets; `.years` → `.span` with `low` start, `high` end | Rule K-3: Swift never decides which key dates an event | A `CatalogEventDating(date:start:end:)` convenience — a Swift copy of D-2 / D-4 |
-| D-16 | **Lifeline.** In the nested `point(_:_:stubsBefore:)`, a span whose `to - from` is a day or less and which has an open side becomes `.bar` centred on the day with length `PersonTimelineLifeline.openDayLength` *(new constant, at least twice the 16 pt fade: 32 pt unless the board draws another)*; a `.bar` open at both ends tethers at its middle (`Mark.pointY`). No new `Shape` case. This also draws a day-precision `bef` / `aft` occurrence as the short faded bar instead of a dot, as a year-precision `bef` already draws a faded bar; a closed day stays a dot | Brief ED-7, ED-8 (the brief's recommendation is the ED-7 fade at a minimum length); the span carries no dating kind and an open day is open whatever its kind (review M-5, M-6) | A fourth `Shape` case — three switches and their tests repeat it; a dating kind on `TimelineSpan` to keep `bef` days as dots — a wire field to keep a mark that hides the open side |
+| D-16 | **Lifeline.** In the nested `point(_:_:stubsBefore:)`, a span whose `to - from` is a day or less and which has an open side becomes `.bar` centred on the day with length `PersonTimelineLifeline.openDayLength` *(new constant, at least twice the 16 pt fade: 32 pt unless the board draws another)*; a `.bar` open at both ends tethers at its middle (`Mark.pointY`). No new `Shape` case. This also draws a day-precision `bef` / `aft` occurrence as the short faded bar instead of a dot, as a year-precision `bef` already draws a faded bar; a closed day stays a dot | Brief S16-D7 TL-1 – TL-3 (the brief draws TL-2 as the TL-1 fade at a fixed short length); the span carries no dating kind and an open day is open whatever its kind (review M-5, M-6) | A fourth `Shape` case — three switches and their tests repeat it; a dating kind on `TimelineSpan` to keep `bef` days as dots — a wire field to keep a mark that hides the open side |
 
 **Rules this plan bends.** None.
 
@@ -252,7 +252,7 @@ Errors: none new.
 | Lifeline mark | `.bar` in `PersonTimelineLifeline`; drawing in `PersonTimelineSection.swift` | `macos/App/Features/Conclusions/` | One-day open bar and middle tether (D-16) |
 | Wire types | `CatalogEventDating`, `CatalogSourceEventTitle` | `macos/App/Platform/GenealogyStore.swift`; mapping `GoStore.swift` | New; the `CatalogEventSummary` doc comment stops saying Swift picks a date |
 
-States: an event with no dating → empty date, place only (today). Large: two dates whatever the as-of count. Accessibility: the row label speaks the same words (`EventSecondaryDisplay.line(content)`), so the open-side wording is in words (brief ED-8, ED-9). Regular and Wide: identical (ED-W1).
+States: an event with no dating → empty date, place only (today). Large: two dates whatever the as-of count. Accessibility: the row label speaks the same words (`EventSecondaryDisplay.line(content)`), so the open-side wording is in words (S16-D4 ED-7). Regular and Wide: identical (ED-W1).
 
 ### Strings
 
@@ -317,11 +317,11 @@ Check: `xcodebuild test` passes with T-13 – T-15; `rg -n 'line\(date:[^)]*star
 
 **STEP-12 — The lifeline marks open sides of a one-day span**
 Files: `macos/App/Features/Conclusions/PersonTimelineLifeline.swift`, `PersonTimelineSection.swift`, `macos/ProvenenciaTests/PersonTimelineLifelineTests.swift`. Skill: `add-ui-component`.
-Do: D-16 per the board's ED-8 frame.
+Do: D-16 per the S16-D7 board's frames 1 and 2 (TL-1 – TL-3).
 Check: `xcodebuild test` passes with T-16.
 
 **STEP-13 — Docs**
-Files: `docs/structured-date-model.md` § 3.4; `docs/matching-model.md` (the `MaxSamples` row: over the cap a side's as-ofs are read by nothing in matching — compare, shortlist presence aside, lifespan); `.agents/skills/add-date-value/SKILL.md` (a line: `valuecompare.DatingOf` is the one dating of an event or period; the engine sends it and Swift formats `CatalogEventDating`, never picking a key); `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status), `design/S16-D4-event-date-line.md` → `design/archive/`, `design/README.md`.
+Files: `docs/structured-date-model.md` § 3.4; `docs/matching-model.md` (the `MaxSamples` row: over the cap a side's as-ofs are read by nothing in matching — compare, shortlist presence aside, lifespan); `.agents/skills/add-date-value/SKILL.md` (a line: `valuecompare.DatingOf` is the one dating of an event or period; the engine sends it and Swift formats `CatalogEventDating`, never picking a key); `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status), `design/S16-D4-event-date-line.md` and `design/S16-D7-timeline-lifeline-dating.md` → `design/archive/`, `design/README.md`.
 Do: § 3.4 says an event's dating comes from `valuecompare.DatingOf` (D-2 – D-4), sorts at its Low (else High), spans Low to High with open sides on the Timeline, and its drift note is closed; per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-42-event-dating-line.md` and links resolve.
 
@@ -366,7 +366,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - [ ] AC-4.3 benchmark rows (base and branch, both shares, both sizes) and the warm-ms cause in the PR body
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
-- [ ] Brief moved to design/archive/ and design/README.md updated
+- [ ] Both briefs (S16-D4, S16-D7) moved to design/archive/ and design/README.md updated
 - [ ] Domain docs and guidance updated: structured-date-model.md § 3.4, matching-model.md MaxSamples row, add-date-value skill, grapheventtitles package doc, CatalogEventSummary doc comment
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
@@ -376,7 +376,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 1. Create a new project. Add a Source "Obituary of A. Smith 1990" with a residence Event for X in Town Y, **As of** 10 Jan 1990; a Source "City directory 2015" with X's residence in Town Y, **As of** 10 Feb 2015; promote both to one Event.
 2. Events list: the residence shows the ED-2 line and sits between events dated 1989 and 1991. Open it: the header line is the same (the Date row is S16-44's).
 3. Open X's Person page, Timeline: the residence row shows the line; the lifeline bar spans 1990–2015 faded at both ends. Add `start_date` 1985 on another Source and promote: the left end closes.
-4. Add a residence with only As of 10 Jan 1990: the ED-8 short faded bar, the ED-3 line.
+4. Add a residence with only As of 10 Jan 1990: the TL-2 short faded bar, the ED-3 line.
 5. Search "1990": the residence is a hit with the ED-2 line. Promote a third Source's residence: the candidate menu and the record row show the line.
 6. On the dogfood project (no `as_of`), compare the Events list's date column before and after: identical; a start-and-end residence now spans its years on the lifeline.
 
@@ -387,7 +387,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 | An occurrence or span line changes by a character | T-13 compares with literal planning-base strings on every AC-1.6 shape |
 | Matching goldens move through D-7 or D-11 | No golden has more than 1,000 samples; `EventPeriod` returns the same period; STEP-2 and STEP-8 run them |
 | D-12 loses Promote pairs a researcher expects | AC-4.2 keeps the dated side's recall; the lost pairs are named in D-12 |
-| The board picks a one-day mark `.bar` cannot draw | Stop condition below |
+| The S16-D7 board picks a one-day mark `.bar` cannot draw | Stop condition below |
 | `protoc` or `xcodebuild` is missing where the implementer runs | The PR says which checks ran where; CI runs `xcode-test` and the generated files' check |
 
 **Stop and report if:**
@@ -398,12 +398,12 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - AC-4.3 is not met (the branch's `asof=0.3` overhead is not lower than the base's): report both runs; do not tune other knobs.
 - T-6 exceeds 50 ms, or the compose reads the as-ofs more than once.
 - The board's ED-2 – ED-5 wording cannot be built from two formatted dates and the two open flags (it needs a third date or the as-of count).
-- The board's ED-8 mark is not a `.bar` with faded sides (it would need a new `Shape` case).
+- The S16-D7 board's TL-2 mark is not a `.bar` with faded sides (it would need a new `Shape` case).
 - `matchregistry` cannot be imported from `conclusionsummaries` or `grapheventtitles` without a cycle.
 
 ## 12. Open questions
 
-- **O-1** (blocks Planned): the S16-D4 board's ED-2 – ED-5 wording and ED-8 mark. Recommendation in the brief: "as of" before the date or span; a short bar faded at both ends. When agreed, fill **Board**, **Strings**, T-13 strings, D-16's length and STEP-12, then run the self-review gate and `review-plan` round 2.
+- **O-1** (blocks Planned): the S16-D4 board's ED-2 – ED-5 wording (recommended: "as of" before the date or span) and the S16-D7 board's TL-2 length (recommended: 32 pt). When both are agreed, fill **Board**, **Strings**, T-13 strings, D-16's length and STEP-12, then run the self-review gate and `review-plan` round 2.
 
 ## 13. PR
 

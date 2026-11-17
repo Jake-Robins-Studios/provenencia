@@ -8,6 +8,8 @@
 - M-9 (answered 2026-11-17: yes): S16-44's map scope now retires `EventSummary.Date` / `StartDate` / `EndDate` on every layer, `oneEvent`'s clear-start-and-end rule and `DateRowDisplay.span`'s last event caller.
 - Before planning (answered 2026-11-17): one dating for every event on the Timeline and in order (now a Batch 5 working rule); PRF-1 stays in S16-42; the board draws the one-day mark.
 
+- Brief split (2026-11-17, user: "we need two briefs"): S16-D4 keeps the Events list date line (ED-1 – ED-7, ED-W1; old ED-9 is now ED-7); the lifeline moved to S16-D7 (TL-1 – TL-3, TL-W1; old ED-7 and ED-8). Findings below cite the old IDs.
+
 ## Writer's own calls
 
 - D-2: a recorded `date` always wins, placed or not; an unplaced one leaves the event undated in order (the summary already does this, since `oneEvent` clears start and end).
