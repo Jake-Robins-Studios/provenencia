@@ -12,7 +12,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D3 | Person page Sources section: each Source's date | — | S15-05 |
 | S15-D4 | Adding an Artifact: the copy fields | Descoped 2026-11-12: folded into S15-D14 | — |
 | [S15-D14](S15-D14-source-page-artifacts.md) | Source page Artifacts: the list with each Artifact's copy details read-only and a thumbnail of at most 80pt; the Artifact sheet in edit and add mode (replaces S15-D1 SD-9, SD-10 and S15-D4) | [agreed 2026-11-13](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): rows, 64pt thumbnail, kit discard confirm, header-only Add field on the Source's section | S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-35 (landed [#824](https://github.com/mendahu/provenencia/pull/824)), S15-10 (landed [#829](https://github.com/mendahu/provenencia/pull/829)), S15-25 (the brief stays here until S15-25 lands) |
-| [S15-D7](S15-D7-copy-source-type.md) | Source type page: Copy in the header and the Copy type sheet (moved from the Add type dialog, user 2026-11-17) | — | S15-18 |
+| [S15-D7](S15-D7-copy-source-type.md) | Source type page: Copy in the header and the Copy type sheet (moved from the Add type dialog, user 2026-11-17) | [agreed 2026-11-17](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): frames "S15-D7 · D7-1a – D7-10" (7 split into 7 and 7b) | S15-18 |
 | S15-D9 | Provenance sheet: formatted citations, grouping, Copy citation, the on-open loading and failed states | — | S15-21 |
 | S15-D10 | Move confirm: the bundle, the target, the credibility note | — | S15-25 |
 | S15-D11 | Event page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |

@@ -1,10 +1,10 @@
 # S15-18 — A Source type can be copied
 
-**Status:** Blocked — on board S15-D7
+**Status:** Draft
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D7](../design/S15-D7-copy-source-type.md), board not drawn yet
-**Board:** — (to be drawn on [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), artboard *S15-D27 · Source type page board*, frames "S15-D7 · …"; the implementer opens that link)
+**Brief:** [S15-D7](../design/S15-D7-copy-source-type.md), board agreed 2026-11-17
+**Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), artboard *S15-D27 · S15-D6 · S15-D7 · Source type page board*, the frames named "S15-D7" in its menu (D7-1a, D7-1b, D7-2a, D7-2b, D7-3 – D7-6, D7-7, D7-7b, D7-8 – D7-10) and its decision notes (CT-1 the button, CT-4 ticks, CT-9 leaving, CT-5, CT-3 · CT-8, CT-10, Handoff), drawn by *Source type page · component* (`Source-Type-Page.dc.html`). Board decisions: the kit's `copy` glyph (the app's `.duplicate`), shown disabled while the page loads; Escape or a click outside closes at once when nothing changed; frame 7 split into 7 (duplicate key) and 7b (save failed). The board writes its own duplicate-key sentence; the app keeps the engine's message, as Add type does (D-8)
 **Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782)), S15-12 (landed [#856](https://github.com/mendahu/provenencia/pull/856)), S15-15 (landed [#871](https://github.com/mendahu/provenencia/pull/871)), S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D7
 **Blocks:** —
 **Branch:** `s15-18-copy-source-type`
@@ -216,7 +216,7 @@ Errors: `sourcevocab.invalid` → a level outside the metadata levels or repeate
 | Errors | `PVField` error; `PVCallout(tone: .danger, title:message:)` | dialog | CT-3, CT-8 |
 | Discard confirm | `pvFormDialog`'s `isDirty` | — | CT-9 |
 
-Frames: the board's frames prefixed "S15-D7" (brief § 5). If a frame differs from this table, the board wins for layout and copy; a frame that needs a new kit piece or skips a confirm is a stop condition.
+Frames: the board's "S15-D7" frames (the **Board** line). They draw this table and § 6 Strings exactly; the one difference, the board's duplicate-key sentence, is not built (the engine's message shows).
 
 States: reading (skeleton, Copy type disabled), read failed (Callout, Read again), saving (all disabled, button loading), a part absent (unticked, disabled, "None on this type"). Accessibility: CT-10 — Return in Label confirms when enabled (`pvFormDialog` default), Tab runs Label then the ticks.
 
@@ -352,7 +352,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 ## 12. Open questions
 
-- The board S15-D7 is not drawn yet. When it is agreed, copy its frame names and decisions onto the **Board** line, reconcile § 6 macOS and Strings with it, run `review-plan`, and set status `Planned`.
+None.
 
 ## 13. PR
 
