@@ -187,8 +187,7 @@ func split(values []Value, side valuecompare.Side, meta propertymeta.Meta, rules
 			out.Excluded = append(out.Excluded, Excluded{Side: side, Value: v, Reason: ExcludeNeutral})
 			continue
 		}
-		k, ok := valuecompare.Key(v.Value, valuecompare.Same, rules)
-		kept = append(kept, keyed{v: v, key: k, hasKey: ok})
+		kept = append(kept, keyOf(v, rules))
 		if v.Positive() {
 			positives++
 		}
@@ -248,13 +247,32 @@ func Better(x, y Result, value valuecompare.Rules) bool {
 
 // pairOf is a speaking pair as a pair, its values keyed.
 func pairOf(sp *SpeakingPair, rules valuecompare.Rules) pair {
-	ka, oka := valuecompare.Key(sp.A.Value, valuecompare.Same, rules)
-	kb, okb := valuecompare.Key(sp.B.Value, valuecompare.Same, rules)
 	return pair{
-		a:   keyed{v: sp.A, key: ka, hasKey: oka},
-		b:   keyed{v: sp.B, key: kb, hasKey: okb},
+		a:   keyOf(sp.A, rules),
+		b:   keyOf(sp.B, rules),
 		res: sp.Result, det: sp.Detail,
 	}
+}
+
+// keyOf is v with its Same key under rules. v is already typed.
+func keyOf(v Value, rules valuecompare.Rules) keyed {
+	k, ok := valuecompare.Key(v.Value, valuecompare.Same, rules)
+	return keyed{v: v, key: k, hasKey: ok}
+}
+
+// KeyCompare orders x and y, both typed, by their Same keys under rules,
+// ascending, a value with no key after any value with one: the order Compare
+// breaks its ties by. It is negative when x sorts first, zero when the keys are
+// equal.
+func KeyCompare(x, y Value, rules valuecompare.Rules) int {
+	kx, ky := keyOf(x, rules), keyOf(y, rules)
+	switch {
+	case keyBefore(kx, ky):
+		return -1
+	case keyBefore(ky, kx):
+		return 1
+	}
+	return 0
 }
 
 // keyBefore sorts keys ascending, a value with no key after any value with one.

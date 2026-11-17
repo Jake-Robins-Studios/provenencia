@@ -54,11 +54,9 @@ func LifeEventOf(event subjectcompare.Values, role vocabkey.Role, lead vocabkey.
 			}
 		}
 	}
-	if p.Samples != "" {
-		for _, v := range event[p.Samples] {
-			if v.Positive() && v.Date != nil {
-				le.Samples = append(le.Samples, *v.Date)
-			}
+	for _, v := range subjectcompare.PeriodSamples(event, p) {
+		if v.Date != nil {
+			le.Samples = append(le.Samples, *v.Date)
 		}
 	}
 	return le

@@ -31,8 +31,16 @@ type Pool struct {
 // Period reads two date properties as one range that stands for the lead on
 // a side with no positive lead value. Samples names a date property whose
 // values each show the lead's event under way on a day; CompareProperty reads
-// them as bounds against the other side's period.
-type Period struct{ Start, End, Samples vocabkey.PropertyKey }
+// them as bounds against the other side's period. MaxSamples is the most
+// positive samples a side may record before the samples are not read as
+// bounds, so the base comparison stands; it is well above the handful a
+// researcher records, so only a crafted catalog reaches it, and the side is
+// skipped whole, never cut to the first few, so the result never depends on
+// input order.
+type Period struct {
+	Start, End, Samples vocabkey.PropertyKey
+	MaxSamples          int
+}
 
 // EventRole names an event a person takes part in by its type and the
 // person's role in it.
