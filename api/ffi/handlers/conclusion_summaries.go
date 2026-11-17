@@ -244,12 +244,19 @@ func eventDatingProto(d valuecompare.Dating) *engine.EventDating {
 	return out
 }
 
+var eventDatingRoles = map[conclusionsummaries.DatingRole]engine.EventDatingRole{
+	conclusionsummaries.DatingRoleOccurrence: engine.EventDatingRole_EVENT_DATING_ROLE_OCCURRENCE,
+	conclusionsummaries.DatingRoleStart:      engine.EventDatingRole_EVENT_DATING_ROLE_START,
+	conclusionsummaries.DatingRoleEnd:        engine.EventDatingRole_EVENT_DATING_ROLE_END,
+	conclusionsummaries.DatingRoleAsOf:       engine.EventDatingRole_EVENT_DATING_ROLE_AS_OF,
+}
+
 // eventDatingPropertiesProto maps the Properties behind an event's dating, in
-// order. DatingRole's values equal the wire enum's.
+// order.
 func eventDatingPropertiesProto(in []conclusionsummaries.DatingProperty) []*engine.EventDatingProperty {
 	out := make([]*engine.EventDatingProperty, 0, len(in))
 	for _, p := range in {
-		out = append(out, &engine.EventDatingProperty{PropertyKey: string(p.Key), Role: engine.EventDatingRole(p.Role)})
+		out = append(out, &engine.EventDatingProperty{PropertyKey: string(p.Key), Role: eventDatingRoles[p.Role]})
 	}
 	return out
 }

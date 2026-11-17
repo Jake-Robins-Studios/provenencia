@@ -69,8 +69,7 @@ type EventSummary struct {
 	ListKey ListKey
 }
 
-// DatingRole is the part a Property plays in an event's dating. Its values equal
-// the wire's EventDatingRole.
+// DatingRole is the part a Property plays in an event's dating.
 type DatingRole int
 
 const (
