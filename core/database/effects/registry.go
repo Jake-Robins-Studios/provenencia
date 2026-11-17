@@ -453,7 +453,8 @@ var registry = map[string]Effect{
 		Entity: "source_type",
 		Lists:  []List{ListSourceVocabulary},
 		// Each path lists the type columns its document reads, so a format-only
-		// change (citation_*) reprojects nothing.
+		// change (citation_*) reprojects nothing. The type document is
+		// searchindex.ReprojectSourceType; the Source document, ReprojectSource.
 		Search: []SearchDoc{
 			{Kind: DocSourceType, Path: union(
 				onField("label", self()), onField("description", self()), onField("icon_key", self()))},

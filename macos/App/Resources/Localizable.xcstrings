@@ -2734,13 +2734,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld person, event or place was merged into this one"
+                  "value": "%lld person, event, or place was merged into this one"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld people, events or places were merged into this one"
+                  "value": "%lld people, events, or places were merged into this one"
                 }
               }
             }
@@ -2758,13 +2758,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld person, event or place has this type"
+                  "value": "%lld person, event, or place has this type"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld people, events or places have this type"
+                  "value": "%lld people, events, or places have this type"
                 }
               }
             }
@@ -7749,7 +7749,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %#@records@ it."
+            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %#@records@."
           },
           "substitutions": {
             "records": {
@@ -7760,13 +7760,13 @@
                   "one": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Source, Artifact, graph or Source type that uses it keeps"
+                      "value": "%arg Source, Artifact, graph or Source type that uses it is unchanged"
                     }
                   },
                   "other": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Sources, Artifacts, graphs and Source types that use it keep"
+                      "value": "%arg Sources, Artifacts, graphs and Source types that use it are unchanged"
                     }
                   }
                 }

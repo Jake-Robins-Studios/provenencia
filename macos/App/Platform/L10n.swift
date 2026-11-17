@@ -8520,6 +8520,8 @@ enum L10n {
 
         /// The reassurance that carries T-20: detaching the join deletes
         /// neither the field nor the values sources already hold for it.
+        /// `valueCount` is the field's `usedBy`: Sources, Artifacts and graphs
+        /// holding a value, plus Source types that name the field in a format.
         static func toastRemovedBody(field: String, phrase: String, valueCount: Int) -> String {
             if valueCount == 0 {
                 return L10n.format(removedBodyNoValues, field, phrase)
@@ -8535,7 +8537,7 @@ enum L10n {
 
         private static let removedBodyWithValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyWithValues",
-            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts, graphs and Source types that use it keep it.",
+            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts, graphs and Source types that use it are unchanged.",
             comment: "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format"
         )
 
@@ -9186,12 +9188,12 @@ enum L10n {
             ),
             "canonical_entities.subject_type_id": LocalizedStringResource(
                 "deleteImpact.via.canonicalEntitiesSubjectTypeId",
-                defaultValue: "%lld people, events or places have this type",
+                defaultValue: "%lld people, events, or places have this type",
                 comment: "Inbound heading for canonical_entities.subject_type_id; argument is how many"
             ),
             "canonical_entities.merged_into_id": LocalizedStringResource(
                 "deleteImpact.via.canonicalEntitiesMergedIntoId",
-                defaultValue: "%lld people, events or places were merged into this one",
+                defaultValue: "%lld people, events, or places were merged into this one",
                 comment: "Inbound heading for canonical_entities.merged_into_id; argument is how many"
             ),
             "source_types.citation_formats": LocalizedStringResource(

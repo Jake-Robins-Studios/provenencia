@@ -174,6 +174,8 @@ func UpdateCitationFormats(in []byte) ([]byte, error) {
 	return proto.Marshal(out)
 }
 
+// citationFormatsProto is a type's formats view on the wire: the three texts
+// by key, the field each shared key means, and the diagnostics.
 func citationFormatsProto(typeID []byte, v sourcetypes.FormatsView) *engine.CitationFormats {
 	out := &engine.CitationFormats{
 		TypeId: database.UUIDString(typeID),

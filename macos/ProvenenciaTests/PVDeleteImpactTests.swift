@@ -209,8 +209,8 @@ struct PVDeleteImpactCopyTests {
             ("evidence_graph_metadata.field_id", "evidence_graph", 1, "1 Evidence graph records a value for this field"),
             ("source_types.citation_formats", "source_type", 2, "2 source types name this field in their citation formats"),
             ("source_types.citation_formats", "source_type", 1, "1 source type names this field in its citation formats"),
-            ("canonical_entities.subject_type_id", "canonical_entity", 3, "3 people, events or places have this type"),
-            ("canonical_entities.merged_into_id", "canonical_entity", 1, "1 person, event or place was merged into this one"),
+            ("canonical_entities.subject_type_id", "canonical_entity", 3, "3 people, events, or places have this type"),
+            ("canonical_entities.merged_into_id", "canonical_entity", 1, "1 person, event, or place was merged into this one"),
         ]
         for item in cases {
             #expect(PVDeleteImpactCopy.isKnownVia(item.0))

@@ -92,6 +92,6 @@ Deleting a field is refused while any format names its id; the delete notice lis
 | `unknown_option` | An option on metadata or one the built-in does not take | The text after the first `:` |
 | `not_in_list_form` | A level other than the Source in the list form | The option |
 | `unknown_field` | Reported by a type's format write, not `Parse`: no field has the key, or the id | The field |
-| `ambiguous_field` | Reported by a type's format write, not `Parse`: a user and a product field share the key and no choice was made | The field |
+| `ambiguous_field` | Reported by a type's format write, not `Parse`: more than one field holds the key and no choice was made | The field |
 
 Each option yields at most one diagnostic, the first that applies in this order from `empty_option` down.
