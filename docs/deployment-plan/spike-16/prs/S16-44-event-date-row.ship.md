@@ -105,4 +105,4 @@ Head `3f9841e27`. Gate PASS (orchestrator run; `origin/main` unchanged at `6d497
 Nits (logged): `ORC · ReconciledValueRowModel.swift:106 · doc comment still says "At no pages, the first 20" (now: the lines the fold shows)`.
 
 ## Result
-Gate PASS · CI <pending> · open: none · follow-ups: none · to user: MNT-2, MNT-3, UX-2, UX-3 (answered 2026-11-17)
+Gate PASS · CI green · open: none · follow-ups: none · to user: MNT-2, MNT-3, UX-2, UX-3 (answered 2026-11-17)
