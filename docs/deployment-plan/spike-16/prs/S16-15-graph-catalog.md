@@ -90,7 +90,7 @@ The Sources list shows each Evidence graph's Subject, filed and Observation coun
 | `searchindex`'s and `deleteimpact`'s graph SQL | not planned: write paths |
 | A graph moved between Sources by a real write | S15-24 (AC-2.2 holds the Apply now) |
 | The app's `EvidenceGraphIndex` (Swift) | not planned: Swift's per-view key is enough (rule "No Go cache for a view that is one query") |
-| A batch graph read | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) |
+| A batch graph read | `structural-debt.md` (retired 2026-11-17; split into topic idea files) |
 
 ## 4. Current state
 

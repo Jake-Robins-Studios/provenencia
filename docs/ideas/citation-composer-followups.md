@@ -27,3 +27,11 @@ The citation preview under the citation picker is cropped after roughly eight li
 - `CitationComposerAuthoringBox.citationReading` renders `model.transcription` as `Text` with `.lineLimit(8)` and `.fixedSize(horizontal: false, vertical: true)` inside a sunken bordered box — the eight-line cap is the crop.
 - The block sits under the citation `PVSelect` in a `.pvFormDialog(width: 520, …)`.
 - `PVFormDialogContent` wraps the form in a `PVPanel` with no internal scroll; check panel behavior when the form outgrows the window before choosing expand vs scroll.
+
+## Saved lines rebuild on every keystroke
+
+`CitationComposerSubjectGroups`' body reads the computed `subjectGroups` twice and also reads `model.authoring`, so every keystroke in a new-observation dialog rebuilds the saved lines and calls `ObservationValueDisplay.string` per row twice; a date row builds `DateFormatter`s on each call. Move the list into a child view that reads only `model.subjectGroups`, and bind the value once per body. No worse than before S14-37; untimed. Touch it when a composer list change next opens that file. (S14-37 review PRF-1)
+
+## Observation rows keep a draft state only one throwaway row uses
+
+`ObservationRows.rows` holds only rows from `ObservationRow.loaded(from:)`, so `ObservationRowState.draft`, the optional `baseline` and their branches in `canSave`, `deriveState` and `revert` serve only the throwaway row `savePropertyDraft` builds to call `asDraft`. Make `asDraft` a function of `ObservationRowValues`, then drop the state and make `baseline` non-optional. (S14-37 review MNT-2)

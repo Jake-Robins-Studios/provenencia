@@ -2,7 +2,7 @@
 
 **Status:** idea only — not roadmapped. Speed work on Spike 13's Person page found by the [2026-11-08 audit](../deployment-plan/spike-16/person-page-audit.md) and descoped by the user the same day: real data has not shown the cost yet. Spike 16 caps the crafted cases instead (working rule "Crafted fan-out is capped, not engineered") and gives the Timeline a render cap (S16-02). Every figure below is an estimate from reading the code; **measure before pulling any of these in.**
 
-Related: [`structural-debt.md`](structural-debt.md) row "S13-16 PRF-2" (a person past 64 Evidence graphs cycles the graph cache on the claims and record links reads); [`spike-15/provenance-loading.md`](../deployment-plan/spike-15/provenance-loading.md) (now Spike 15, S15-27 – S15-29) (records drawn in a provenance table).
+Related: [`spike-15/provenance-loading.md`](../deployment-plan/spike-15/provenance-loading.md) (now Spike 15, S15-27 – S15-29) (records drawn in a provenance table).
 
 ## The record links read recomputes every pair (P-9)
 
@@ -47,3 +47,7 @@ Siblings ship as the parents units' children, the siblings unit, and `origin_sib
 ## Prefetch a person's other sections and a hovered person (S16-29)
 
 Spike 16 scoped a prefetch and then descoped it (user, 2026-11-16: optimizing before real data shows the cost). Switching to Family or Timeline shows the section's spinner on first open; stale-while-refreshing (S16-09) already makes a return visit instant. **Shape:** a `prefetch` role in `ConclusionPageSection.reads` for Family and Timeline, which the place warms one key at a time after the open section's keys load, and a 250 ms hover on a person tile or card that warms what its click would load. Every engine call waits in `catalogsession`'s one queue, so a prefetch in flight delays the next click by its own read: measure the warm Family and Timeline reads at the spike's real-data Scale before pulling this in. A new role must decide each `Role` policy and stay out of the section host's derived inputs (S16-03 review M-2).
+
+## A person past 64 graphs cycles the graph cache
+
+A person past 64 graphs cycles the `graphfill` loaded-graph and `evidencelayer.Layers` entries, so every record-links read reloads all of their graphs and rebuilds their layers; the claims read no longer loads graphs (S16-13). A batch read of the loaded graphs would mark its graphs as used first, then load the missing ones and keep them while there is room, never evicting a graph of the same batch (graphs past the cap go to the caller uncached); `GetPersonRecordLinks` would move onto it, loading layers as well. Check: with a cap of N and N + 1 graphs in a batch, a repeat read loads one graph; time cold and repeat reads at 50 and 65 graphs. Spike 13's budget is 50 graphs, under the cap. (S13-16 PRF-2 (moved out of S13-27, 2026-11-07))

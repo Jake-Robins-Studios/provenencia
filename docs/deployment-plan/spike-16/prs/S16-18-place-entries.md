@@ -110,7 +110,7 @@ Every place chain ("Toronto, York County, Upper Canada") is built today by `buil
 | Storing a composed chain (`ParentChain` at a date) | not planned: rule "No new persisted projections, and no stored answer without a measurement" |
 | Filling place entries at open | not planned: rule "Warm only what every proposal needs" |
 | `ParentsAtDate`, `PartsAtDate`, `SuccessionNames` having only test callers | not planned: they are the tests' entry points to the chain rules |
-| `canonlinks.kinship` declaring `Inputs` (its pivots' `FollowKeys`) instead of its cached-neighbour Apply (`deps`) | [structural debt idea](../../../ideas/structural-debt.md) (a row added in STEP-10) |
+| `canonlinks.kinship` declaring `Inputs` (its pivots' `FollowKeys`) instead of its cached-neighbour Apply (`deps`) | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (a row added in STEP-10) |
 | A time budget for chain reads | not planned: this PR's claim is a counter (AC-1.1), not a time (D-14) |
 
 ## 4. Current state

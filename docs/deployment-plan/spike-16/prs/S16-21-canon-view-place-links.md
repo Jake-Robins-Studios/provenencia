@@ -79,9 +79,9 @@ Promote's alignment reads the canonical graph through one small interface, `grap
 | A session-graph `CanonView` from the match index and the kinship pivots; removing `loadCanon`'s walk, its `LinkSet` and `PlaceImplied` | S16-22 |
 | `canonlinks` owning the event-type property lookup that `newDeriver` and `loadCanon` each make (S16-20 Out row): `loadCanon`'s `EdgeOf` call goes with the walk in S16-22, leaving one | S16-22 |
 | The bridge filer reading filed links from the place entries (`identityclaims.filedLinks` reads its own transaction) | Not planned (map: "must read its own transaction") |
-| A two-term bridge filed mid-Done missing from an already-opened set for its other term | [`structural-debt.md`](../../../ideas/structural-debt.md) (the S14-22 row, kept without its link-key half) |
+| A two-term bridge filed mid-Done missing from an already-opened set for its other term | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (the S14-22 row, kept without its link-key half) |
 | Folding `graphalign`'s private `adjLink` onto `kinship.Link` for the layer side | Not planned: `adjLink` is one end's view, used only inside `align.go` |
-| `canonlinks.kinship` declaring `Inputs` instead of `deps` | [`structural-debt.md`](../../../ideas/structural-debt.md) (S16-18 MNT-1 row) |
+| `canonlinks.kinship` declaring `Inputs` instead of `deps` | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (S16-18 MNT-1 row) |
 
 ## 4. Current state
 

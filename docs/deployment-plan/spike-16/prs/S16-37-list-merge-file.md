@@ -81,7 +81,7 @@ rg -n 'indexedLimit|func merging' macos/App
 
 | Out | Home |
 | --- | --- |
-| Renaming `CatalogLastUpdated.swift` or moving its follows, patches, refreshes or page values (MNT-5's other half) | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) row P-29 (added with this plan) |
+| Renaming `CatalogLastUpdated.swift` or moving its follows, patches, refreshes or page values (MNT-5's other half) | `structural-debt.md` (retired 2026-11-17; split into topic idea files) row P-29 (added with this plan) |
 | Other doc comments in the moved code (`merge`'s remaining text, `CatalogListRows`' header) and `CatalogListMergeTests`' file header, which cites S16-26's IDs | not planned (still true after the move) |
 | Any change to the merge's behavior or `indexedMergeLimit` | not planned (map "Not this PR") |
 | The empty list while a merge runs | S16-38 |

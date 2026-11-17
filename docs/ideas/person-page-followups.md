@@ -13,3 +13,7 @@ A record links line over `MaxPairWork` or `MaxEntityMembers` keeps 0 facts and n
 ## Nothing caps how many Evidence graphs one person spans (S16-01)
 
 Nothing caps how many Evidence graphs one person spans; the Person page reads are linear in it (S16-01). The real Scale is 50. **Shape:** if a crafted project needs it, one more cap beside the records-per-graph one.
+
+## The record links read repeats the claims read's graph rows
+
+The record links read (`RecordLinksGraph`) repeats the claims read's graph rows, and Swift joins the two reads for the diagram's labels and locations. Make the claims read the one owner of graph labels, so the record links read returns graph ids (in claims order) and pairs. `RecordLinksGraph` still carries `graph_ref`, `graph_name` and `source_title` (`engine.proto`), and Swift still labels the diagram's nodes from them while taking locations from the claims read (`PersonRecordLinksContent.swift`). (P-22, Person page audit)

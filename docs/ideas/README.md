@@ -47,6 +47,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 ### Properties, vocabulary, Sources
 
+- [`source-page-followups.md`](source-page-followups.md) — missing-Source errors outside the page context, delete after a delete elsewhere, the cover reload after Artifact writes
 - [`source-type-packages.md`](source-type-packages.md) — citation styles as installable packages of types, fields and formats; raised in Spike 15, which seeds the *Evidence Explained*-style set as the product default
 - [`event-as-of-followups.md`](event-as-of-followups.md) — Spike 16 Batch 5 leftovers: as-of on a Place, hide as-of on instantaneous event types
 - [`properties-and-terms.md`](properties-and-terms.md) — binding order, event-type-scoped properties, Occupation seed, term management (direction / inverses), failed bind after create
@@ -54,11 +55,18 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`registry-source-import.md`](registry-source-import.md) — paste a record URL from Ancestry, FamilySearch and similar; access unproven
 - [`share-packages.md`](share-packages.md) — also holds the crafted-project hardening parked when Spike 12 closed
 
-### Kit and structural debt
+### Kit, tooling and refactors
+
+- [`kit-layering.md`](kit-layering.md) — the kit's delete impact taking a Features type, hand-built hover focus rings, page-column metrics and diagram options with one caller
+- [`value-formatting.md`](value-formatting.md) — two date formatters, editor flags in the date draft, integer text, event formatting in Features
+- [`catalog-query-layer.md`](catalog-query-layer.md) — two ways to learn a Source delete; splitting `CatalogLastUpdated.swift`
+- [`graph-cache-followups.md`](graph-cache-followups.md) — kinship pivots on `deps`, value columns repeated across readers, two toponym readers, filed-link reads
+- [`search-index-followups.md`](search-index-followups.md) — search kinds owning their columns; a term rename leaving handle documents stale
+- [`swift-test-fixtures.md`](swift-test-fixtures.md) — Artifact file fixtures, per-key registry tests and fake reads, the fake's saved observations
+- [`plan-docs-tooling.md`](plan-docs-tooling.md) — the spike-close link comparison as a script; anchors and a gate over every doc
 
 - [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
-- [`structural-debt.md`](structural-debt.md) — audit refactors with no visible change; leftover test artifact and Subject fixtures
 
 Closed spikes (decisions, not PR order): [`docs/deployment-plan/archive/`](../deployment-plan/archive/).
 

@@ -36,7 +36,7 @@ A transparent-polygon depiction crop. A per-kind thumbnail column or RPC. A Prop
 | A failed bind after a Property create | [`properties-and-terms.md`](../../../ideas/properties-and-terms.md) |
 | "Soby-Kirke" misses "Søby Kirke" | [`international-names.md`](../../../ideas/international-names.md) |
 | A name part length bound on Validate and Insert | [`share-packages.md`](../../../ideas/share-packages.md) "Harden before sharing" |
-| A field relabel reaching Source pages beside its effects; a new-spelling join reprojecting the city; a two-term filed-link set and its repeated link key | [`structural-debt.md`](../../../ideas/structural-debt.md) |
+| A field relabel reaching Source pages beside its effects; a new-spelling join reprojecting the city; a two-term filed-link set and its repeated link key | `structural-debt.md` (retired 2026-11-17; split into topic idea files) |
 | The two app-health audits' unscheduled items | Dropped with the audits (user, 2026-11-08); in git history |
 | Polygon vertex add, keyboard nudge, VoiceOver per vertex | Dropped (user, 2026-11-05) |
 | Dropped: a thumbnail choice reloading three lists; a term create reloading Properties (2 ms); a broken oversized JPEG re-decoded per response (off the session since S14-12); copy nits ("A smaller copy of the file will open", a generic "Discard changes?", a race with another window's unlink); a test for the localizable script; a split of `check-guidance-names.py`; code nits in `evidencegraphs`, `FakeStore` and `L10n.Promote` | Not worth a PR; no measured cost (2026-11-08) |

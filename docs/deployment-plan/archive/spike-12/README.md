@@ -28,10 +28,10 @@ Nested Sources and derivation links; per-graph credibility; moving Subjects betw
 | Open PRs at close: a Citation in one graph, reloading only what moved, file work before the catalog session, crafted-project crashes, copy and VoiceOver, synchronized folders, effects on every write, name folds, a stale graph-cache link after a merge, Promote recovery, search spellings, Promote's wire, oversized JPEGs | Spike 14, S14-10 – S14-23; the two audits moved with them |
 | Graph alignment conflicts after a decision, Promote's performance at scale, names compared however written | [`promote-ranking.md`](../../../ideas/promote-ranking.md) |
 | Crafted name keys, alias tables and kinship fan-out | [`share-packages.md`](../../../ideas/share-packages.md) "Harden before sharing" |
-| Search kind columns, canvas state enums | [`structural-debt.md`](../../../ideas/structural-debt.md) |
+| Search kind columns, canvas state enums | `structural-debt.md` (retired 2026-11-17; split into topic idea files) |
 | The evidence sheet's New-row opener, the sheet's pins, the typed band | Removed with Identity Claim pins ([Spike 13](../spike-13/README.md#decisions)) |
 | Nested Sources, derivation links, templates, per-graph credibility, layered citations | [`source-structure-later.md`](../../spike-15/source-structure-later.md) |
 | `source` Subjects, `mentions` and `remark` | [`source-to-source-relationships.md`](../../../ideas/source-to-source-relationships.md) |
 | Ship-log follow-ups: composer load error placement, a silent Open failure, a card edit dropped without asking; a thumbnails test fixture; recount order | Spike 14 S14-14, S14-12, S14-16 |
-| Ship-log follow-ups: a shared tiny-PNG test writer, the history menu on shared rows; a `SourceSurface` guard row; type-select on a disabled menu row | `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6), [`structural-debt.md`](../../../ideas/structural-debt.md), `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6) |
+| Ship-log follow-ups: a shared tiny-PNG test writer, the history menu on shared rows; a `SourceSurface` guard row; type-select on a disabled menu row | `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6), `structural-debt.md` (retired 2026-11-17; split into topic idea files), `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6) |
 | Dropped: a doubled `hasFile` check, one unreproduced flaky canvas test, logged nits | Not worth a PR (2026-10-29) |

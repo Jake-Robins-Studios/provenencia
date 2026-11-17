@@ -65,7 +65,7 @@ Logged.
 ## Round 2
 
 ### M-9 · blocker · `FirstTextOf` asks for a Property id `grapheventtitles.FromStored` does not have; the two callers pick toponyms differently
-**Answer:** Fixed — `grapheventtitles` is out of this PR: D-2 names only the detail read as caller, with the provenencia `toponym` id it resolves today; an Out row sends the fold to [`structural-debt.md`](../../../ideas/structural-debt.md) P-28 (new), which names the Property choice it needs. D-2's import sentence corrected. M-2's wording note (name parts' ids and `Idx`) is added to D-12.
+**Answer:** Fixed — `grapheventtitles` is out of this PR: D-2 names only the detail read as caller, with the provenencia `toponym` id it resolves today; an Out row sends the fold to `structural-debt.md` (retired 2026-11-17; split into topic idea files) P-28 (new), which names the Property choice it needs. D-2's import sentence corrected. M-2's wording note (name parts' ids and `Idx`) is added to D-12.
 
 ### X-9 · major · No Property id for `FromStored`
 **Answer:** Fixed — as M-9.
