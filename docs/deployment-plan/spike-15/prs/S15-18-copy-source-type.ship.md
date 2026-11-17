@@ -83,4 +83,4 @@ Fix-round implementer kept re-sending its report after finishing; the orchestrat
 Merged `origin/main` (`4d36820d0`) → `5f830d47b`. One conflict in `spike-15/deployment-plan.md`: kept this PR's S15-18 row (Landed #877, brief in `design/archive/`) and main's S15-19/S15-20 rows (merged seed PR). Gate PASS after the merge.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: CON-3 (§ 10 manual check, not run); UX-2 answered (toast when held and kept, 2026-11-17)
+Gate PASS · CI: Go tests and localizable green; macOS `test` cancelled twice with no runner assigned (queued 15 min, 0 steps, runs 134235786391 and 134245950389) · open: none · follow-ups: none · to user: CON-3 (§ 10 manual check, not run); UX-2 answered (toast when held and kept, 2026-11-17)
