@@ -73,6 +73,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 25. **Every popup closes the same way.** An action menu, a `PVSelect`, a combo box's list, the omnibar's results and the Back/Forward history menu each close on Escape, on a click outside, and when you switch to another app. None closes on the click that opened it.
 26. **The omnibar's results work like a combo box's list.** In the results, Home/End and Page Up/Down move the highlight, the card matches the combo box's, and the list stays on screen at a narrow window or near the screen edge.
 27. **The history menu behaves like every other menu.** Holding Back shows the same rows as today, which move with ↑/↓ and open with Return. Escape, a click outside and an app switch close it, and switching between Back and Forward still works.
+28. **Catalog tests make a test image one way.** `rg -n "png.Encode" core/database --glob '*_test.go'` finds no hit outside the shared test helper.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -133,6 +134,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
@@ -275,6 +277,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-51 | The combo box's list becomes a kit popup list | 6d | Preparatory, Swift: the floating list, its window, placement, keys and highlight leave `PVComboBox` for a kit popup list on `.pvPopup`; every combo box looks and behaves as today | — | S16-50 | — | Scoped |
 | S16-52 | The omnibar's results use the kit popup list | 6d | Swift: `OmnibarResultsHost` draws the kit popup list (its window, card, keys); the highlight moves to `OmnibarResultsModel`; the raw key-code watcher goes | S16-D9 | S16-51, S16-D9 | — | Scoped |
 | S16-53 | The history menu uses the kit presenter and a kit menu row | 6d | Swift: a kit menu row with a glyph, a two-part label and a trailing ref; the history menu draws it and moves onto `.pvPopup`, its own watcher and `activeIndex` go; rows look as today | — | S16-50 | — | Scoped |
+| S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -386,7 +389,8 @@ SLICE 6b — Person page follow-ups                    (any time; the two run in
 SLICE 6c — Shared list helpers                       (any time)
   ✎ S16-D8 ──▶ S16-48  A Properties search with no match shows the kit's empty state
   S16-49  One read querier and one write querier for every catalog package
-  Check: bar 23, 24. The two PRs share no file and run in parallel.
+  S16-54  Catalog tests write a test PNG through one helper   (quick-pr)
+  Check: bar 23, 24, 28. The three PRs share no file and run in parallel.
 
 SLICE 6d — Popups                                    (any time; a chain)
   S16-50  One kit popup presenter, and the kit menus use it
@@ -455,6 +459,7 @@ S16-03, S16-07 (landed) ──▶ S16-46
 S16-47: none
 S16-D8 ──▶ S16-48
 S16-49: none
+S16-54: none
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
@@ -782,6 +787,13 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** Trimming in the other `NullString` callers (a change to what is saved, not a cleanup); `canonicalentities.rowScanner` (a scan helper, not a querier); context-taking methods (`QueryContext`); any change to which functions take a `*sql.Tx` or a `*sql.DB`.
 **Check.** Bar 24, and `rg "func nullIfEmpty" core` finds nothing; `go build ./...`, `go vet ./...` and the Go tests pass unchanged; `go list -deps` on the leaf package shows no `core/database` package.
 **Context.** Rule "(Batch 6) One read querier and one write querier, in a leaf package"; [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history; `core/database/tx.go` (`Querier`, S12-01); [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) (its "Write the SQL and scan once … over `database.Querier`" paragraph); [`add-catalog-model`](../../../.agents/skills/add-catalog-model/SKILL.md) only if the leaf package needs registering.
+
+#### S16-54 — Catalog tests write a test PNG through one helper
+
+**Ships.** Quick-pr, Go tests only. `dbtest.WritePNG(t testing.TB, path string, w, h int)` in `core/database/dbtest` encodes a blank RGBA image as PNG and writes it, failing the test on error. It replaces `writeTinyPNG` in `sourcecopy/sourcecopy_test.go` (41) and `sources/sources_test.go` (111), and the six inline encoders in `artifacts/artifacts_test.go` (648, 705, 844, 873, 920, 973), each keeping its size. Today the same ten lines are written eight times, so the next image test copies a ninth.
+**Not this PR.** The image helpers outside `core/database` (`raster_test.go`'s `tinyPNG` and `pngBytes`, `ingest/stage_test.go`'s `stagePNG`, `derivatives/thumbnail_test.go`), which `dbtest` does not reach and which test the image code itself.
+**Check.** Bar 28; the three packages' tests pass unchanged.
+**Context.** [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history (S12-01 ship log); `core/database/dbtest/dbtest.go`; [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
 
 ### Slice 6d — Popups
 
