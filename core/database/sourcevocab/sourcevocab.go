@@ -4,6 +4,9 @@
 // catalog create. Call it only from onboarding.createCatalog — not on open.
 // It does not heal deleted rows on later opens; calling it twice would refresh
 // labels via Upsert (create path invokes it once).
+//
+// CopyType also lives here: it copies a type with its suggested fields inside
+// the caller's writes.Run and never calls it.
 package sourcevocab
 
 import (
