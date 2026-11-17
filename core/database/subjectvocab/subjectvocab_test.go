@@ -71,8 +71,8 @@ func TestSubjectVocab(t *testing.T) {
 					t.Fatal(err)
 				}
 				eb, err := ListBindings(c, evt.ID)
-				if err != nil || len(eb) != 6 {
-					t.Fatalf("event bindings %v len=%d want 6", err, len(eb))
+				if err != nil || len(eb) != len(BindingsForType("event")) {
+					t.Fatalf("event bindings %v len=%d want %d", err, len(eb), len(BindingsForType("event")))
 				}
 				gotEvent := map[string]bool{}
 				for _, b := range eb {
@@ -480,7 +480,8 @@ func TestSeedProductValues(t *testing.T) {
 		{"religion", "Religion", propertymeta.ValueTypeTerm, propertymeta.CardinalityMultiple, "person", 5, false, []term{{"catholic", "Catholic"}}, true},
 		{"languages_spoken", "Languages spoken", propertymeta.ValueTypeTerm, propertymeta.CardinalityMultiple, "person", 6, false, []term{{"english", "English"}}, true},
 		{"likeness", "Likeness", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "person", 1, true, nil, false},
-		{"event_picture", "Picture", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "event", 5, true, nil, false},
+		{"event_picture", "Picture", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "event", 6, true, nil, false},
+		{"as_of", "As of", propertymeta.ValueTypeDate, propertymeta.CardinalityMultiple, "event", 5, true, nil, false},
 		{"place_picture", "Picture", propertymeta.ValueTypeDepiction, propertymeta.CardinalityMultiple, "place", 3, true, nil, false},
 		{"gender", "", propertymeta.ValueTypeTerm, propertymeta.CardinalitySingle, "person", 3, false, []term{{"man", ""}, {"woman", ""}, {"non_binary", ""}}, false},
 		{"interests", "", propertymeta.ValueTypeText, propertymeta.CardinalityMultiple, "person", 4, false, nil, false},
