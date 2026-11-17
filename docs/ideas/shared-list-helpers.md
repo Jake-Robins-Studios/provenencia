@@ -8,7 +8,7 @@ Properties draws its own "no results" state instead of `PVEmptyState`.
 
 ## One catalog querier
 
-S12-01 adds `database.Querier` (`Query` + `QueryRow`, in `core/database/tx.go`) for reads that run over a `*sql.DB` or a write's `*sql.Tx`. Nine packages still declare their own copy: `sqlbatch`, `conclusiondetails`, `graphcache`, `matching`, `namealiases`, `autoreconciler` (adds `Exec`) and `effects` (`querier`), plus inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. Move each onto `database.Querier` (or a `database` type that adds `Exec`) when its package is next touched. `graphcache` and `effects` are blocked: `core/database` imports them, so they need a leaf package for the interface first.
+S12-01 adds `database.Querier` (`Query` + `QueryRow`, in `core/database/tx.go`) for reads that run over a `*sql.DB` or a write's `*sql.Tx`. Eleven packages still declare their own copy (checked 2026-11-17): `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler` (adds `Exec`) and `effects` (`querier`), plus inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. `conclusiondetails` and `matching` no longer declare one. Move each onto `database.Querier` (or a `database` type that adds `Exec`) when its package is next touched. `graphcache` and `effects` are blocked: `core/database` imports them, so they need a leaf package for the interface first.
 
 ## Trimmed empty-string binder
 
