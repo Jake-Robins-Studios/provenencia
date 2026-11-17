@@ -49,7 +49,25 @@ struct EventDetailTests {
         summary.date = date
         summary.startDate = start
         summary.endDate = end
+        // Go chose the dating; the test states it (a date wins over a start and end).
+        if date != nil {
+            summary.dating = CatalogEventDating(kind: .occurrence, low: date)
+        } else if start != nil || end != nil {
+            summary.dating = CatalogEventDating(kind: .span, low: start, high: end, openLow: start == nil, openHigh: end == nil)
+        }
         return summary
+    }
+
+    @Test func anAsOfEventsHeaderLineReadsItsDating() {
+        var event = dated()
+        event.dating = CatalogEventDating(
+            kind: .asOf,
+            low: CatalogDateValueInput(kind: "point", startYear: 1990, startMonth: 1, startDay: 10),
+            high: CatalogDateValueInput(kind: "point", startYear: 2015, startMonth: 2, startDay: 10),
+            openLow: true, openHigh: true
+        )
+        #expect(EventSecondaryDisplay.content(event, locale: en).date == "as of 10 Jan 1990–10 Feb 2015")
+        #expect(content(detail(summary: event)).secondaryDate == "as of 10 Jan 1990–10 Feb 2015")
     }
 
     private func summary(_ title: CatalogEventTitle) -> CatalogEventSummary {

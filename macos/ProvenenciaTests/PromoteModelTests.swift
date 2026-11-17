@@ -839,12 +839,10 @@ struct PromoteModelTests {
             description: "", refPrefix: "EVT", candidateRefPrefix: "CEV"
         ))
         let married = CatalogDateValueInput(kind: "point", startYear: 1842, startMonth: 5, startDay: 12)
-        store.observationsByGraph[graphID] = [
-            CatalogObservation(
-                id: "o-date", ref: "OBS-D", citationID: "c", subjectID: "m", propertyID: "p-date",
-                polarity: "positive", valueText: "", valueInteger: nil, valueDateID: "", date: married,
-                valueNameID: "", valueSubjectID: "", valueTermID: "",
-                propertyKey: "date", propertyLabel: "Date", propertyValueType: "date"
+        store.eventTitlesByGraph[graphID] = [
+            "m": CatalogSourceEventTitle(
+                title: CatalogEventTitle(rule: .label, label: "Wedding", ref: "CPR-M"),
+                dating: CatalogEventDating(kind: .occurrence, low: married)
             ),
         ]
         var eventRow = row("m", handleID: "e2")

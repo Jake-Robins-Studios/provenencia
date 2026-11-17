@@ -1,30 +1,36 @@
 import Foundation
 
 /// A date as a list row or page summary shows it: compact genealogical form
-/// (`14 May 1817`, `abt 1810`, `bet 1803 and 1806`), a point date over a
-/// start–end span. Editors keep `DateValueDisplay`.
+/// (`14 May 1817`, `abt 1810`, `bet 1803 and 1806`): one date, a start–end span,
+/// or an event's dating. Editors keep `DateValueDisplay`.
 enum DateRowDisplay {
     /// How much of a date a line shows. `.year` is a life span's: only the year of each
     /// side, with its qualifier ("abt 1790", "bet 1790 and 1795"); a side with no year
     /// shows nothing, and a date with only its phrase shows the phrase.
     enum Precision: Equatable, Sendable { case full, year }
 
-    /// A point date wins; otherwise the start–end span. Empty when none of
-    /// them is set. `includesPhrase: false` leaves off the words the source gave for the date
-    /// ("in the spring"), for a place where the date sits inside a sentence.
+    /// One date. Empty when nil. `includesPhrase: false` leaves off the words the source gave for the
+    /// date ("in the spring"), for a place where the date sits inside a sentence.
     static func line(
         date: CatalogDateValueInput?,
-        start: CatalogDateValueInput? = nil,
-        end: CatalogDateValueInput? = nil,
         includesPhrase: Bool = true,
         precision: Precision = .full,
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        if let date {
-            return rowDate(date, includesPhrase: includesPhrase, precision: precision, locale: locale)
-        }
-        let startText = start.map { rowDate($0, includesPhrase: includesPhrase, precision: precision, locale: locale) } ?? ""
-        let endText = end.map { rowDate($0, includesPhrase: includesPhrase, precision: precision, locale: locale) } ?? ""
+        guard let date else { return "" }
+        return rowDate(date, includesPhrase: includesPhrase, precision: precision, locale: locale)
+    }
+
+    /// A start and an end as one span (`1849–1851`), or the one side recorded. Empty when neither is set.
+    static func span(
+        start: CatalogDateValueInput?,
+        end: CatalogDateValueInput?,
+        includesPhrase: Bool = true,
+        precision: Precision = .full,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        let startText = line(date: start, includesPhrase: includesPhrase, precision: precision, locale: locale)
+        let endText = line(date: end, includesPhrase: includesPhrase, precision: precision, locale: locale)
         switch (startText.isEmpty, endText.isEmpty) {
         case (true, true):
             return ""
@@ -34,6 +40,41 @@ enum DateRowDisplay {
             return endText
         case (false, false):
             return L10n.Dates.rowSpan(start: startText, end: endText, locale: locale)
+        }
+    }
+
+    /// An event's dating as Go chose it, in words: an occurrence is its date, a span its start and
+    /// end, and an as-of dating says "as of" for each side that only an as-of date bounds. Empty
+    /// when the event has no dating. The open sides are the engine's; this never picks a key.
+    static func line(
+        dating: CatalogEventDating,
+        includesPhrase: Bool = true,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        switch dating.kind {
+        case .none:
+            return ""
+        case .occurrence:
+            return line(date: dating.low, includesPhrase: includesPhrase, locale: locale)
+        case .span:
+            return span(start: dating.low, end: dating.high, includesPhrase: includesPhrase, locale: locale)
+        case .asOf:
+            let low = line(date: dating.low, includesPhrase: includesPhrase, locale: locale)
+            let high = line(date: dating.high, includesPhrase: includesPhrase, locale: locale)
+            switch (dating.openLow, dating.openHigh) {
+            case (true, true):
+                if high.isEmpty { return low.isEmpty ? "" : L10n.Dates.rowAsOf(low, locale: locale) }
+                if low.isEmpty { return L10n.Dates.rowAsOf(high, locale: locale) }
+                return L10n.Dates.rowAsOfRange(start: low, end: high, locale: locale)
+            case (false, true):
+                if high.isEmpty { return low }
+                return L10n.Dates.rowFromAsOf(start: low, asOf: high, locale: locale)
+            case (true, false):
+                if low.isEmpty { return high }
+                return L10n.Dates.rowAsOfUntil(asOf: low, end: high, locale: locale)
+            case (false, false):
+                return span(start: dating.low, end: dating.high, includesPhrase: includesPhrase, locale: locale)
+            }
         }
     }
 

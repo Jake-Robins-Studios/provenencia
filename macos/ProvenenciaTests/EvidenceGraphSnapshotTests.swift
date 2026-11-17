@@ -450,21 +450,24 @@ struct EvidenceGraphSnapshotTests {
         )
     }
 
-    @Test func anEventsDateLineReadsItsDateObservations() {
-        func point(_ year: Int32, _ month: Int32? = nil, _ day: Int32? = nil) -> CatalogDateValueInput {
-            CatalogDateValueInput(kind: "point", startYear: year, startMonth: month, startDay: day)
-        }
-        let married = point(1842, 5, 12)
-        #expect(placed(.event, label: "m", [observation("date", date: married)]).dateLine
-            == DateRowDisplay.line(date: married))
-        let from = point(1840), to = point(1845)
-        #expect(placed(.event, label: "m", [observation("start_date", date: from), observation("end_date", date: to)]).dateLine
-            == DateRowDisplay.line(date: nil, start: from, end: to))
-        var spring = point(1842)
+    @Test func anEventsDateLineFormatsTheEnginesDating() {
+        let en = Locale(identifier: "en_US")
+        let first = CatalogDateValueInput(kind: "point", startYear: 1990, startMonth: 1, startDay: 10)
+        let last = CatalogDateValueInput(kind: "point", startYear: 2015, startMonth: 2, startDay: 10)
+        var event = placed(.event, label: "m")
+        // No date Observations on the card: the line is the dating's, never Observations read in Swift.
+        event.eventDating = CatalogEventDating(kind: .asOf, low: first, high: last, openLow: true, openHigh: true)
+        #expect(event.dateLine == DateRowDisplay.line(dating: event.eventDating!, includesPhrase: false, locale: en))
+        #expect(event.dateLine.contains("as of"))
+        var spring = CatalogDateValueInput(kind: "point", startYear: 1842)
         spring.phrase = "in the spring"
-        #expect(placed(.event, label: "m", [observation("date", date: spring)]).dateLine == "1842")
-        #expect(placed(.event, label: "m", [observation("date", polarity: "negative", date: married)]).dateLine == "")
-        #expect(placed(.person, label: "p", [observation("date", date: married)]).dateLine == "")
+        event.eventDating = CatalogEventDating(kind: .occurrence, low: spring)
+        #expect(event.dateLine == "1842")
+        event.eventDating = nil
+        #expect(event.dateLine == "")
+        var person = placed(.person, label: "p")
+        person.eventDating = CatalogEventDating(kind: .occurrence, low: first)
+        #expect(person.dateLine == "")
     }
 
     @Test func displayNameUsesEachKindsNamingProperty() {
