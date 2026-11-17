@@ -70,6 +70,9 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 22. **Every count has a plural.** The provenance sheet's "records from N birth events" has plural forms for the events count as well as the records count, and the strings check refuses a count without one, even inside an entry that has other substitutions. (P-18.)
 23. **A Properties search with no match looks like every other empty list.** Searching Properties for "zzz" shows the kit's empty state, as the Sources list does when its filters hide everything, with a Clear search button that empties the field and brings the rows back.
 24. **One querier type for catalog reads.** `rg -n "[Qq]uerier interface|q interface \{" core` finds only the shared read and write queriers. A new package that declares its own is refused by `add-catalog-query`. Nothing in the app changes.
+25. **Every popup closes the same way.** An action menu, a `PVSelect`, a combo box's list, the omnibar's results and the Back/Forward history menu each close on Escape, on a click outside, and when you switch to another app. None closes on the click that opened it.
+26. **The omnibar's results work like a combo box's list.** In the results, Home/End and Page Up/Down move the highlight, the card matches the combo box's, and the list stays on screen at a narrow window or near the screen edge.
+27. **The history menu behaves like every other menu.** Holding Back shows the same rows as today, which move with ↑/↓ and open with Return. Escape, a click outside and an app switch close it, and switching between Back and Forward still works.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -130,6 +133,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -210,6 +214,8 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 6) A sentence added to a confirm the kit already draws is copy, not chrome** (user, 2026-11-17). When the alert, its buttons and its layout stay the same, the PR is not gated on a brief; its plan fixes the exact words and the user can veto them in the plan report. Binds S16-45.
 - **(Batch 6) Back restores a section's scroll and focus, not its folds** (user, 2026-11-17). A Conclusion page section (Person, Event or Place) records the id of the row or tile last opened from it on its `WorkspaceLocation`, as `sectionAnchor`. Like `listScrollAnchor`, it is written when leaving, ignored for identity, and decodes as nil from older history files. Back and Forward scroll to that row and focus it, and the page's other reads are untouched. Folds open closed as today: restoring them stays refused (S13-16 UX-5). When the anchored row is folded away or gone, focus lands on the fold's Show more row, or at the section's top when the row no longer exists. Nothing on the page looks different, so there is no brief. Binds S16-46. Updates [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) and [`navigation-history.md`](../archive/spike-3/navigation-history.md)'s anchor line.
 - **(Batch 6) One read querier and one write querier, in a leaf package** (user, 2026-11-17). `database.Querier` (`Query`, `QueryRow`) and a new write surface that adds `Exec` (for example `database.Execer`) are defined once in a leaf package that imports nothing from `core/database`, and `core/database` re-exports them as aliases. Then `graphcache` and `effects`, which `core/database` imports, can use them without an import cycle. A package needing less than the full read surface (`sqlbatch` uses only `Query`) still takes `database.Querier`. Every package-local copy goes: `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler`, `effects`, and the inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) says a package never declares its own. The two identical private `nullIfEmpty` binders (`datevalues`, `audit`: trim, then bind an empty result as NULL) move to `database.NullTrimmed` beside `NullString`, which keeps not trimming (user, 2026-11-17). Binds S16-49.
+- **(Batch 6) One kit popup presenter, with the shared closing rules** (user, 2026-11-17). A kit presenter (`.pvPopup`, named in S16-50's plan) owns the event watcher of every floating popup. Its defaults: Escape closes; a left click outside closes on mouse-up; the press or click that opened it never closes it; the window resigning key (an app switch) closes it. A popup's real differences are options on the presenter, never a second watcher: the history menu ignores right-clicks (they switch between Back and Forward); the combo box stays open on a click in its own field and keeps its two-step Escape; a popup whose keys belong to its field (`PVSelect`'s closed field) keeps them. Binds S16-50 – S16-53. Updates [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) and the kit README's ContextMenu row (the history menu's "own presenter" note goes).
+- **(Batch 6) One kit popup list under the combo box and the omnibar** (user, 2026-11-17). The floating list is a kit component on `.pvPopup`. It owns its window and placement (today's `PVComboBoxPlacement`), the keys (↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the highlight that pointer and keyboard share (skipping disabled rows), scrolling to the highlight, and the loading, empty and error lines. `PVComboBox` keeps its picked-value field on top; the omnibar keeps its command field (Return opens and clears; Escape keeps the query). The omnibar's highlight (`CatalogSearchModel.selectedIndex`, `moveSelection`, `selectedHit`) moves to `OmnibarResultsModel`. Binds S16-51, S16-52.
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
 ## PR map
@@ -265,6 +271,10 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
 | S16-48 | A Properties search with no match shows the kit's empty state | 6c | Swift: `PropertiesView`'s hand-built no-match text becomes a compact `PVEmptyState` with Clear search, as the Sources list's no-filter-match state | S16-D8 | S16-D8 | — | Scoped |
 | S16-49 | One read querier and one write querier for every catalog package | 6c | Preparatory, Go: the two interfaces in a leaf package, aliased from `core/database`; the eleven local copies go; `add-catalog-query` forbids new ones; `database.NullTrimmed` replaces the two `nullIfEmpty` copies; no behaviour change | — | — | — | Scoped |
+| S16-50 | One kit popup presenter, and the kit menus use it | 6d | Preparatory, Swift: `.pvPopup` with the shared closing rules and its options; `pvContextMenu` (action menus, `PVSelect`, right-click menus) moves onto it; closing on an app switch is the only change | — | — | — | Scoped |
+| S16-51 | The combo box's list becomes a kit popup list | 6d | Preparatory, Swift: the floating list, its window, placement, keys and highlight leave `PVComboBox` for a kit popup list on `.pvPopup`; every combo box looks and behaves as today | — | S16-50 | — | Scoped |
+| S16-52 | The omnibar's results use the kit popup list | 6d | Swift: `OmnibarResultsHost` draws the kit popup list (its window, card, keys); the highlight moves to `OmnibarResultsModel`; the raw key-code watcher goes | S16-D9 | S16-51, S16-D9 | — | Scoped |
+| S16-53 | The history menu uses the kit presenter and a kit menu row | 6d | Swift: a kit menu row with a glyph, a two-part label and a trailing ref; the history menu draws it and moves onto `.pvPopup`, its own watcher and `activeIndex` go; rows look as today | — | S16-50 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -278,6 +288,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D4 | Events list: the shared event date line on a row, every dating case (occurrence, closed span, as-of only, as-of with a start or an end) | **S16-42** | Names every surface that shows the line (Event page header, Timeline rows, search hits, Promote's menus, Promote's record rows); split from the lifeline (user, 2026-11-17: one brief per view) |
 | S16-D7 | Person page Timeline: the lifeline draws every event's dating (as-of spans with open sides, start-and-end spans, a one-day open mark, a both-open bar's tether) | **S16-42** | An enhancement of the S13-D4 / S16-D2 Timeline frames; reuses the bar's open-side fade; no new mark |
 | S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
+| S16-D9 | Omnibar results on the kit popup list: its own window under the field instead of the 640 pt overlay, the combo box's card, where the loading, empty and error lines sit | **S16-52** | Starts from today's omnibar board and the combo box's list |
 | S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
 
 ## Slices
@@ -377,6 +388,13 @@ SLICE 6c — Shared list helpers                       (any time)
   S16-49  One read querier and one write querier for every catalog package
   Check: bar 23, 24. The two PRs share no file and run in parallel.
 
+SLICE 6d — Popups                                    (any time; a chain)
+  S16-50  One kit popup presenter, and the kit menus use it
+  S16-51  The combo box's list becomes a kit popup list
+  ✎ S16-D9 ──▶ S16-52  The omnibar's results use the kit popup list
+  S16-53  The history menu uses the kit presenter and a kit menu row
+  Check: bar 25 to 27.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -437,6 +455,9 @@ S16-03, S16-07 (landed) ──▶ S16-46
 S16-47: none
 S16-D8 ──▶ S16-48
 S16-49: none
+S16-50 ──▶ S16-51 ──▶ S16-52
+S16-50 ──▶ S16-53
+S16-D9 ──▶ S16-52
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -761,3 +782,33 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** Trimming in the other `NullString` callers (a change to what is saved, not a cleanup); `canonicalentities.rowScanner` (a scan helper, not a querier); context-taking methods (`QueryContext`); any change to which functions take a `*sql.Tx` or a `*sql.DB`.
 **Check.** Bar 24, and `rg "func nullIfEmpty" core` finds nothing; `go build ./...`, `go vet ./...` and the Go tests pass unchanged; `go list -deps` on the leaf package shows no `core/database` package.
 **Context.** Rule "(Batch 6) One read querier and one write querier, in a leaf package"; [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history; `core/database/tx.go` (`Querier`, S12-01); [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) (its "Write the SQL and scan once … over `database.Querier`" paragraph); [`add-catalog-model`](../../../.agents/skills/add-catalog-model/SKILL.md) only if the leaf package needs registering.
+
+### Slice 6d — Popups
+
+#### S16-50 — One kit popup presenter, and the kit menus use it
+
+**Ships.** Preparatory, Swift. `.pvPopup` (`DesignSystem/Components/`, the name fixed in the plan) owns the event watcher and the shared closing rules (rule "(Batch 6) One kit popup presenter"), with options for a popup's real differences. `pvContextMenu`'s `installDismissMonitor` and `handleKeyDown` move onto it, so action menus, `PVSelect` and right-click menus use it, with their keys unchanged. Tests drive each rule through the presenter's decision function with made-up events (S16-35's pattern, no window).
+**Not this PR.** The combo box (S16-51), the omnibar (S16-52), the history menu (S16-53); sheets (`.pvSheet` already shares its own).
+**Check.** An action menu and a `PVSelect` open, take ↑/↓/Return and type-select, and close on Escape and a click outside as today. The opening click never closes them. A switch to another app closes them.
+**Context.** Rule "(Batch 6) One kit popup presenter"; [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history; `macos/App/DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`installDismissMonitor`, `PVContextMenuPopupWindow`), `PVActionMenu.swift`; `DesignSystem/Components/Panel/PVSheet.swift` (the sheet precedent); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md).
+
+#### S16-51 — The combo box's list becomes a kit popup list
+
+**Ships.** Preparatory, Swift. The floating list leaves `PVComboBox.swift` (1,166 lines) for a kit popup list on `.pvPopup`: its window and `PVComboBoxPlacement`, following the parent window, the keys (`onKeyPress`: ↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the shared highlight with `PVComboBoxMatch.move` (skipping disabled rows), `.pvScrollsRowIntoView`, and the loading, empty and error lines. `PVComboBox` keeps its picked value, its query and its two-step Escape, and uses `.pvPopup`'s "stays open on a click in its own field" option. Every combo box looks and behaves as today. The combo box's click-away moves from mouse-down to the presenter's mouse-up only if the plan shows a row still commits. Otherwise it keeps mouse-down as an option.
+**Not this PR.** The omnibar (S16-52); Return with a stale pick ([`shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Return adds a pick the combo box no longer shows").
+**Check.** The Source type picker, the metadata field picker and the Properties picker filter, move, pick and close as before, at a window's edge too; the combo box tests pass unchanged.
+**Context.** Rule "(Batch 6) One kit popup list"; `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` (`PVComboBoxMatch`, `PVComboBoxPlacement`, the AppKit panel host), `FloatingMenuSelection/PVFloatingMenuSelection.swift`.
+
+#### S16-52 — The omnibar's results use the kit popup list
+
+**Ships.** `OmnibarResultsHost` draws S16-51's kit popup list, as S16-D9 draws it: the list's own window under the field in place of the 640 pt overlay (`OmnibarResultsModel.panelWidth` goes or becomes the list's width), the combo box's card, and Home/End and Page Up/Down. The raw key-code watcher (`keyCode` 53, 125, 126, 36) goes. `CatalogSearchModel.selectedIndex`, `moveSelection` and `selectedHit` move to `OmnibarResultsModel`, and the omnibar's field keeps Return opens and clears, and Escape keeps the query. Fan-out: the hits the search already returns; no new read.
+**Not this PR.** Search ranking or the hit kinds; the omnibar field's own chrome.
+**Check.** Bar 26; ↑/↓/Return still open a record, a failed search still shows its error, and switching apps closes the results.
+**Context.** S16-D9; rule "(Batch 6) One kit popup list"; `macos/App/Features/Workspace/OmnibarResultsHost.swift`, `OmnibarResultsModel.swift`, `macos/App/Features/Catalog/Search/CatalogSearchModel.swift`; [`omnibar-search.md`](../../deployment-plan/archive/spike-3/omnibar-search.md) if its UI section names the overlay.
+
+#### S16-53 — The history menu uses the kit presenter and a kit menu row
+
+**Ships.** A kit menu row (in `ContextMenu/`, beside `PVContextMenuItem`) with a leading glyph, a two-part label (a muted root, `›`, the leaf), a trailing mono ref and the leaf's help tooltip. `HistoryJumpMenuPanel` draws it, so its hand-built `Button` rows and `activeIndex` go. `HistoryJumpMenuHost` moves onto `.pvPopup` with the "ignore right-clicks" and "anchor to the button" options, so its own watcher and `handleKeyDown` go. Rows look as today, and the kit README's "keeps its own presenter" note goes.
+**Not this PR.** The row labels' truncation and wording ([`shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "History menu row labels"); type-select in the history menu.
+**Check.** Bar 27; a long press and a right-click on Back and on Forward each open the menu, switching between them works, and a row opens its place.
+**Context.** Rule "(Batch 6) One kit popup presenter"; `macos/App/Features/Workspace/WorkspaceToolbar.swift` (`HistoryJumpMenuPanel`, `HistoryJumpMenuHost`, `HistoryJumpMenuModel`), `DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`PVContextMenuPanel`, `PVMenuRowButtonStyle`); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) (the jump menu).
