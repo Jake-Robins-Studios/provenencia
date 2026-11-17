@@ -120,4 +120,4 @@ MNT-11: **Resolved** — read the diff: `SampleExtremes(firsts, lasts, endsTie, 
 Merged `origin/main` @ `f12ff7633` (docs only, clean); head `0e1b1e430`; gate PASS against `f12ff7633`. PR body updated.
 
 ## Result
-Gate PASS · CI see PR #876 · open: none · follow-ups: none · to user: CON-4 (span over the birth sorts after it — kept, can be overturned)
+Gate PASS · CI see PR #876 · open: none · follow-ups: none · to user: CON-4 (span over the birth sorts after it) — kept (user, 2026-11-17)
