@@ -610,6 +610,30 @@ func TestPersonEventsLifeline(t *testing.T) {
 			t.Errorf("S span %+v, want 1985 to 2016 open at the end", sp)
 		}
 	})
+	t.Run("a span over the birth sorts after it (S16-42 AC-2.2)", func(t *testing.T) {
+		for name, dates := range map[string][]struct {
+			prop string
+			year int
+		}{
+			"start and end": {{vocabkey.PropertyStartDate, 1950}, {vocabkey.PropertyEndDate, 1970}},
+			"as-ofs":        {{vocabkey.PropertyAsOf, 1950}, {vocabkey.PropertyAsOf, 1970}},
+		} {
+			w := newKinWorld(t)
+			pat := w.person("Pat")
+			b := w.eventOn("B", vocabkey.EventBirth, datevaluetest.YMD(1955, 0, 0))
+			r := w.event("R", vocabkey.EventType("residence"), 0)
+			for _, d := range dates {
+				w.k.Date(r, d.prop, *datevaluetest.YMD(d.year, 0, 0))
+			}
+			w.k.Join(pat, b, "subject")
+			w.k.Join(pat, r, "subject")
+			rows, _ := w.events(pat)
+			// The span's Days cover 1950 to 1970, so the birth in 1955 sorts first.
+			if got, want := eventOrder(w, rows), []string{"B", "R"}; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: order %v, want %v", name, got, want)
+			}
+		}
+	})
 	t.Run("AC-2.9", func(t *testing.T) {
 		w := newKinWorld(t)
 		pat := w.person("Pat")
