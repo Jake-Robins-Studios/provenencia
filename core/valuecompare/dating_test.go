@@ -104,3 +104,25 @@ func TestDatingOf(t *testing.T) {
 		}
 	}
 }
+
+func TestDatingOfOrderFreeWhenOnlyOneSideTies(t *testing.T) {
+	y := func(n int) datevalue.Value { return *datevaluetest.YMD(n, 0, 0) }
+	between := func(a, b int) datevalue.Value { return *datevaluetest.Between(a, 0, 0, b, 0, 0) }
+	ends := func(d *datevalue.Value) [2]valuecompare.DateEnd {
+		if d == nil {
+			return [2]valuecompare.DateEnd{}
+		}
+		f, l, _ := valuecompare.DateEnds(*d)
+		return [2]valuecompare.DateEnd{f, l}
+	}
+	for _, samples := range [][]datevalue.Value{
+		{between(1990, 1991), y(1991)},
+		{between(1990, 1995), y(1990)},
+	} {
+		fwd := valuecompare.DatingOf(nil, nil, nil, samples)
+		rev := valuecompare.DatingOf(nil, nil, nil, []datevalue.Value{samples[1], samples[0]})
+		if (fwd.High == nil) != (rev.High == nil) || ends(fwd.Low) != ends(rev.Low) || ends(fwd.High) != ends(rev.High) {
+			t.Errorf("order changes the dating: %+v vs reversed %+v", fwd, rev)
+		}
+	}
+}
