@@ -1388,6 +1388,8 @@ message ListEvidenceGraphEventTitlesRequest {
 message SourceEventTitle {
   string subject_id = 1;
   EventTitle title = 2;
+  // dating is the Event Subject's dating, read from its Observations.
+  EventDating dating = 3;
 }
 
 message ListEvidenceGraphEventTitlesResponse {
@@ -1541,6 +1543,31 @@ message EventSummary {
   string picture_image_rel_path = 17;
   // The key the row's list sorts by. Filled on the List*Summaries responses only.
   ListKey list_key = 18;
+  // dating is when the event was under way, read by the engine from its date,
+  // start, end and as-of dates. Every event date line and the list order read it.
+  EventDating dating = 19;
+}
+
+// EventDatingKind says what an EventDating is. UNSPECIFIED is no dating.
+enum EventDatingKind {
+  EVENT_DATING_KIND_UNSPECIFIED = 0;
+  // OCCURRENCE: one recorded date (low).
+  EVENT_DATING_KIND_OCCURRENCE = 1;
+  // SPAN: a start, an end, or both, as recorded.
+  EVENT_DATING_KIND_SPAN = 2;
+  // AS_OF: at least one side is an as-of date.
+  EVENT_DATING_KIND_AS_OF = 3;
+}
+
+// EventDating is the one dating of an event: its kind, its earliest and latest
+// date (high is unset when the dating is one date), and whether the period
+// continues before low or after high.
+message EventDating {
+  EventDatingKind kind = 1;
+  DateValueInput low = 2;
+  DateValueInput high = 3;
+  bool open_low = 4;
+  bool open_high = 5;
 }
 
 // ListEventSummaries returns every unmerged Event in list order: dated

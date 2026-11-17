@@ -22,11 +22,13 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
+	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
 	"github.com/mendahu/provenencia/core/eventtitle"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
 	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/mendahu/provenencia/core/valuecompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
 	"google.golang.org/protobuf/proto"
@@ -250,6 +252,9 @@ func TestListEventSummaries(t *testing.T) {
 				}
 				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" || h.GetDate().GetStartYear() != 1849 {
 					t.Fatalf("type %v date %v", h.GetEventType(), h.GetDate())
+				}
+				if d := h.GetDating(); d.GetKind() != engine.EventDatingKind_EVENT_DATING_KIND_OCCURRENCE || d.GetLow().GetStartYear() != 1849 || d.GetHigh() != nil || d.GetOpenLow() || d.GetOpenHigh() {
+					t.Fatalf("dating %v", d)
 				}
 			},
 		},
@@ -684,4 +689,31 @@ func listedPlaces(t *testing.T, req *engine.ListPlaceSummariesRequest) []*engine
 		t.Fatal(err)
 	}
 	return resp.Summaries
+}
+
+func TestEventDatingProto(t *testing.T) {
+	ymd := datevaluetest.YMD
+	cases := []struct {
+		name string
+		in   valuecompare.Dating
+		want engine.EventDatingKind
+	}{
+		{"none", valuecompare.Dating{}, engine.EventDatingKind_EVENT_DATING_KIND_UNSPECIFIED},
+		{"an occurrence", valuecompare.DatingOf(ymd(1849, 0, 0), nil, nil, nil), engine.EventDatingKind_EVENT_DATING_KIND_OCCURRENCE},
+		{"a span", valuecompare.DatingOf(nil, ymd(1985, 0, 0), ymd(2015, 0, 0), nil), engine.EventDatingKind_EVENT_DATING_KIND_SPAN},
+		{"as-ofs", valuecompare.DatingOf(nil, nil, nil, []datevalue.Value{*ymd(1990, 1, 10), *ymd(2015, 2, 10)}), engine.EventDatingKind_EVENT_DATING_KIND_AS_OF},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := eventDatingProto(tc.in)
+			if got.GetKind() != tc.want || (tc.in.Low == nil) != (got.GetLow() == nil) || (tc.in.High == nil) != (got.GetHigh() == nil) ||
+				got.GetOpenLow() != tc.in.OpenLow || got.GetOpenHigh() != tc.in.OpenHigh {
+				t.Fatalf("eventDatingProto = %v, want kind %v of %+v", got, tc.want, tc.in)
+			}
+		})
+	}
+	as := eventDatingProto(valuecompare.DatingOf(nil, nil, nil, []datevalue.Value{*ymd(1990, 1, 10), *ymd(2015, 2, 10)}))
+	if as.GetLow().GetStartYear() != 1990 || as.GetHigh().GetStartYear() != 2015 || !as.GetOpenLow() || !as.GetOpenHigh() {
+		t.Fatalf("as-of dating %v", as)
+	}
 }
