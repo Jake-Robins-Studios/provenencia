@@ -93,12 +93,12 @@ A Source's words (ref, title, type, credibility, its Artifacts' labels) are copi
 | The records tier and claims composed without loading whole graphs | S16-13 |
 | The Evidence-graph catalog (graph shells, a Source's graphs) | S16-15 |
 | Provenance records composed from cached records (the Citation and Subject halves of `sqlRecords`) | S16-30 |
-| The claims read owning every graph label (the rest of P-22) | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) |
+| The claims read owning every graph label (the rest of P-22) | `structural-debt.md` (retired 2026-11-17; split into topic idea files) |
 | The Source's cover and each Artifact's file on the record | the first PR that reads them from the record (D-3; user, 2026-11-12) |
 | The Source date on the record | S15-05 |
 | An Artifact moved between Sources, tested against this entry | S15-24 (no write moves one before it) |
 | A narrower update signal than `SourceScopes` (a keyed read fired only by Source, Artifact and credibility rows) | not planned (user, 2026-11-12) |
-| The provenance sheet's empty-Source-title fallback (`CitationLineDisplay.sourceTitle(for:)`, `Parts.titleIsRef`, read by `ConclusionGallerySection.swift` and `PVProvenanceRecordTable.swift`) | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) (STEP-8 adds the line; a separate view and component) |
+| The provenance sheet's empty-Source-title fallback (`CitationLineDisplay.sourceTitle(for:)`, `Parts.titleIsRef`, read by `ConclusionGallerySection.swift` and `PVProvenanceRecordTable.swift`) | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (STEP-8 adds the line; a separate view and component) |
 | `.followsInputs` in place of the `.source` follows | S16-25 |
 | The auto-reconciler reading credibility from the record (it runs on a write's graph) | not planned (D-4) |
 

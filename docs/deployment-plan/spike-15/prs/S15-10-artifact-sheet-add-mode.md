@@ -101,7 +101,7 @@ Add artifact opens the Artifact sheet in add mode, so a researcher records a new
 | Move on the Artifact's menu | S15-25 |
 | The graph form's board | S15-11 |
 | An ingest progress bar and the old dialog's other frames on the board (`add-one`, `add-some`, `add-none`, `add-loading`, `add-copying`, `add-failed`, `add-zip`, `add-two`, `add-attach`) | Not planned: SA-7 and the § 6 inventory ship today's drop row ("File drop — Ship"); the app has no ingest progress today |
-| Dropping the cover reload (`refreshCoverFromStore`) after an add or an attach | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md): a row added in STEP-8 (the Artifact create, ingest and attach replies carry the updated Source's cover fields, applied through the context, so both paths drop the whole-workspace reload; review M-9) |
+| Dropping the cover reload (`refreshCoverFromStore`) after an add or an attach | `structural-debt.md` (retired 2026-11-17; split into topic idea files): a row added in STEP-8 (the Artifact create, ingest and attach replies carry the updated Source's cover fields, applied through the context, so both paths drop the whole-workspace reload; review M-9) |
 | Any change to the edit sheet's behavior | Not planned |
 
 ## 4. Current state

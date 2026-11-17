@@ -133,7 +133,7 @@ On a Source page, a researcher sees each Artifact's copy details (provider, URL,
 - The file viewer, and the Add file dialog for an existing Artifact (first-attach only): unchanged.
 - The Source type page's suggestion lists (S15-D6).
 - Filling copy details automatically from a URL ([`registry-source-import.md`](../../../ideas/registry-source-import.md)).
-- Reordering saved rows by keyboard ([`keyboard-reorder.md`](../../../ideas/keyboard-reorder.md)).
+- Reordering saved rows by keyboard ([`keyboard-reorder.md`](../keyboard-reorder.md)).
 
 ---
 

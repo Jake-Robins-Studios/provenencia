@@ -90,6 +90,6 @@ S14-40 records each summary row's inputs through `graphcache.InputScope` (`Node`
 - Persisted projections (stored summary rows, a canonical links table, stored shortlist keys): refused for now (rule "No new persisted projections").
 - A catalog-wide kinship index with a reverse map: replaced by composing from the pivots (K-20); revisit only if composing measures slow.
 - The record links pair memo (P-9), participants sent once (P-8), lazy Timeline cards and siblings sent once (P-23): [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md).
-- A batch Evidence-graph read for a person past 64 graphs: [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (S13-16 PRF-2); record links still load whole graphs.
+- A batch Evidence-graph read for a person past 64 graphs: [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) "A person past 64 graphs cycles the graph cache" (S13-16 PRF-2); record links still load whole graphs.
 - Promote's per-graph compare and alike-pair memos (audit 2 B-11), coverage-aware similarity: [`ideas/promote-ranking.md`](../../ideas/promote-ranking.md).
 - A file-path memo, a last-activity table, stored graph progress counters: low value.

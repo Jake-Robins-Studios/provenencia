@@ -66,6 +66,18 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 **Batch 6 — Idea follow-ups** (user, 2026-11-17):
 
 20. **A graph delete warns before it leaves an Artifact in no graph.** On a Source with a Default graph and a Jones graph, where Artifact A is linked only to Jones and Artifact B to both, deleting Jones asks to confirm with a sentence naming A, and not B, as no longer in any evidence graph; after the delete, A's row shows the "Not in an evidence graph" badge.
+21. **Back keeps your place in a section.** Open a child's tile in Family, then the child's spouse, then press Back twice: each time the section scrolls to the tile you opened, and it has focus. The same holds for a Timeline row and a Sources row. Folds still open closed (S13-16). (P-19, [audit](person-page-audit.md).)
+22. **Every count has a plural.** The provenance sheet's "records from N birth events" has plural forms for the events count as well as the records count, and the strings check refuses a count without one, even inside an entry that has other substitutions. (P-18.)
+23. **A Properties search with no match looks like every other empty list.** Searching Properties for "zzz" shows the kit's empty state, as the Sources list does when its filters hide everything, with a Clear search button that empties the field and brings the rows back.
+24. **One querier type for catalog reads.** `rg -n "[Qq]uerier interface|q interface \{" core` finds only the shared read and write queriers. A new package that declares its own is refused by `add-catalog-query`. Nothing in the app changes.
+25. **Every popup closes the same way.** An action menu, a `PVSelect`, a combo box's list, the omnibar's results and the Back/Forward history menu each close on Escape, on a click outside, and when you switch to another app. None closes on the click that opened it. In a menu with a disabled row (the citation composer's Clear menu with no region), typing its first letter, ↑/↓ and Home/End skip it, and Return never closes the menu without acting.
+26. **The omnibar's results work like a combo box's list.** In the results, Home/End and Page Up/Down move the highlight, the card matches the combo box's, and the list stays on screen at a narrow window or near the screen edge.
+27. **The history menu behaves like every other menu.** Holding Back shows the same rows as today, which move with ↑/↓ and open with Return. Escape, a click outside and an app switch close it, and switching between Back and Forward still works.
+28. **Catalog tests make a test image one way.** `rg -n "png.Encode" core/database --glob '*_test.go'` finds no hit outside the shared test helper.
+29. **Section counts read alike.** A Source with 3 notes, 3 Artifacts and 3 Evidence graphs shows "3 notes", "3 artifacts" and "3 evidence graphs" in the three section headers. A Person with 3 likenesses shows "3 likenesses" over the Gallery, an Event or a Place "3 pictures", and the citation composer's Citation column "3 citations". A section with none shows no count.
+30. **A failed sidebar recount says so.** When the recount after a write fails (adding a Source with the catalog session refusing), the "Couldn't refresh catalog counts" toast shows, as it does when the first count at launch fails, and the badges keep their last values.
+31. **A combo box never submits a pick it no longer shows.** On a Source type page, pick Folio in a suggestion picker, clear the field or type "zzz", and press Return: nothing is added and the field keeps the text. Click away and it shows Folio again. With the field showing Folio, Return adds it, as today. The metadata board's inline Add field row behaves the same.
+32. **Toasts stack instead of replacing each other.** Choose two portraits in a row: both toasts show, stacked, newest on top, and each leaves five seconds after it appeared. Dismissing the lower one leaves the upper one's timer untouched. A workspace notice and a page's toast never overlap. The same failure twice shows one card whose timer restarts.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -82,6 +94,8 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 | P-3 The Family read is quadratic in a crafted wide family | S16-01 | — |
 | P-4 The claims read rescans its graph per record | S16-01 | — |
 | P-5 A failed refresh is silent | S16-04 | S16-D1 |
+| P-18 Birth and death event counts have no plural (Batch 6, from [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md), 2026-11-17) | S16-47 | — |
+| P-19 Back resets a section's place (Batch 6, from the same idea file, 2026-11-17) | S16-46 | — (no visible change) |
 | P-6 Vitals and Gallery keep old Source words | S16-09 | — |
 | P-7 The Timeline builds every event | S16-07 (pages), S16-02 (build what is shown) | — |
 | P-10 The diagram draws uncounted links as weak | S16-01 (engine), S16-04 (note) | S16-D1 |
@@ -97,7 +111,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 | P-22 (part) The record links wire's unread fields and missing `source_ref` | S16-12 (moved from S16-01 when the PRs were combined; S16-12 changes the same message) | — |
 | P-24 `edgeKey` joins ids with no separator | S16-16 (moved from S16-01 with Batch 2, which rewrites that code) | — |
 | P-26 (part) `ConclusionDetailPage.swift` holds 15 types | S16-03 | — |
-| `CatalogQueryStalePolicy` is unused ([`structural-debt.md`](../../ideas/structural-debt.md), S14-11 plan) | S16-09 | — |
+| `CatalogQueryStalePolicy` is unused (`structural-debt.md` (retired 2026-11-17; split into topic idea files), S14-11 plan) | S16-09 | — |
 
 The last eight rows were parked in idea files and folded into the PRs that already touch their files (user, 2026-11-08).
 
@@ -110,10 +124,10 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | Entity survey: Source records; a Source rename evicting every loaded graph | S16-12 |
 | Entity survey: Subject records, as a keyed registry entry by graph; provenance records composed | S16-13, S16-30 |
 | Entity survey: the Evidence-graph catalog; graph progress scans | S16-15 |
-| Cache review: kinship answers composed from the pivots; [`structural-debt.md`](../../ideas/structural-debt.md) row "The kinship memo slots … drop on every handle commit"; P-24 | S16-16 |
+| Cache review: kinship answers composed from the pivots; `structural-debt.md` (retired 2026-11-17; split into topic idea files) row "The kinship memo slots … drop on every handle commit"; P-24 | S16-16 |
 | Cache review: place entries | S16-18, S16-19 |
-| Cache review: summary rows carry life owners and participants; [`structural-debt.md`](../../ideas/structural-debt.md) A-33 (two event–person shapes) | S16-19 |
-| [`promote-ranking.md`](../../ideas/promote-ranking.md) "Name index on commit" (B-8, B-9); [`structural-debt.md`](../../ideas/structural-debt.md) row "`graphalign.Handle` has the fields of `subjectcompare.Subject`" (its `Handle` half) | S16-20, S16-32 |
+| Cache review: summary rows carry life owners and participants; `structural-debt.md` (retired 2026-11-17; split into topic idea files) A-33 (two event–person shapes) | S16-19 |
+| [`promote-ranking.md`](../../ideas/promote-ranking.md) "Name index on commit" (B-8, B-9); `structural-debt.md` (retired 2026-11-17; split into topic idea files) row "`graphalign.Handle` has the fields of `subjectcompare.Subject`" (its `Handle` half) | S16-20, S16-32 |
 | [`promote-ranking.md`](../../ideas/promote-ranking.md) "Narrower canon walk" (B-8's walk); the same structural-debt row's `CanonEdge` half | S16-21, S16-22 |
 | Cache review (Swift): stale while refreshing; values report their inputs; lists merge touched rows; keys as plain values; one derived-value primitive with [`person-page-performance.md`](../../ideas/person-page-performance.md)'s "Section content is rebuilt on every pass"; prefetch (descoped with S16-29, user 2026-11-16: back to [`person-page-performance.md`](../../ideas/person-page-performance.md)) | S16-09 (stale while refreshing), S16-24 – S16-27 |
 
@@ -122,12 +136,21 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | Source | PR |
 | --- | --- |
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
+| `ideas/stacked-toasts.md`, moved to [`stacked-toasts.md`](stacked-toasts.md) (2026-11-17) | S16-58, S16-59 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "Properties empty search state" (2026-11-17) | S16-48 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "A failed sidebar recount is silent" (2026-11-17) | S16-56 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "Source page section counts differ" (S12-11 M-8, dogfood 2026-10-25), with the composer's and the Gallery's bare counts (2026-11-17) | S16-55 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
+| `ideas/shared-list-helpers.md` (retired 2026-11-17) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
-- Batch 2 leaves parked: stored summary rows, a canonical links table and stored shortlist keys (rule "No new persisted projections"); a batch Evidence-graph read past 64 graphs ([`structural-debt.md`](../../ideas/structural-debt.md), S13-16 PRF-2); Promote's per-graph compare and alike-pair memos (B-11, [`promote-ranking.md`](../../ideas/promote-ranking.md)).
-- [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md): P-18, P-19, and the Conclusion lists' silent refresh failure (map review K-2).
-- [`ideas/structural-debt.md`](../../ideas/structural-debt.md): P-22 (the rest), P-25 (A-41), P-26 (the rest), P-27.
+- Batch 2 leaves parked: stored summary rows, a canonical links table and stored shortlist keys (rule "No new persisted projections"); a batch Evidence-graph read past 64 graphs (`structural-debt.md` (retired 2026-11-17; split into topic idea files), S13-16 PRF-2); Promote's per-graph compare and alike-pair memos (B-11, [`promote-ranking.md`](../../ideas/promote-ranking.md)).
+- [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md): the Conclusion lists' silent refresh failure (map review K-2). P-18 and P-19 came back as Batch 6 (user, 2026-11-17).
+- P-22 (the rest): [`ideas/person-page-followups.md`](../../ideas/person-page-followups.md); P-25 (A-41) and P-26's kit parts: [`ideas/kit-layering.md`](../../ideas/kit-layering.md); P-26's formatting part: [`ideas/value-formatting.md`](../../ideas/value-formatting.md); P-27: [`ideas/swift-test-fixtures.md`](../../ideas/swift-test-fixtures.md) (split from the retired `structural-debt.md`, 2026-11-17).
 
 ## Working rules
 
@@ -182,7 +205,7 @@ These are the calls for this spike. PR plans treat them as binding.
 ### Batch 5 — Event as-of dates
 
 - **(Batch 5) As of is a fourth event date Property, not a new DateValue kind** (user, 2026-11-16). Key `as_of`, label "As of", value type `date`, cardinality `multiple`, bound to `event` and locked like `date`, `start_date` and `end_date` ([`seeded-vocabulary.md` §3.2](../../seeded-vocabulary.md#32-properties)). A DateValue stays one moment ([`structured-date-model.md`](../../structured-date-model.md)). It is never stored as `start_date = BEF x` with `end_date = AFT x`. Binds S16-40.
-- **(Batch 5) New catalogs only** (user, 2026-11-16). `subjectvocab.Install` seeds `as_of` at create time, as every seeded Property; no migration inserts it and open does not heal it. The user asks for a one-off backfill command for the dogfood project after the batch lands ([`ideas/event-as-of-followups.md`](../../ideas/event-as-of-followups.md)). The neighbouring `date` and `end_date` seed descriptions stop sending an attestation there ("best single date", "last known"), also for new catalogs only. Binds S16-40.
+- **(Batch 5) New catalogs only** (user, 2026-11-16). `subjectvocab.Install` seeds `as_of` at create time, as every seeded Property; no migration inserts it and open does not heal it. No backfill into an existing catalog (descoped, user 2026-11-17). The neighbouring `date` and `end_date` seed descriptions stop sending an attestation there ("best single date", "last known"), also for new catalogs only. Binds S16-40.
 - **(Batch 5) On every event** (user, 2026-11-16). The binding is per Subject type; nothing hides As of on a birth or a burial. Per-event-type scoping waits in [`ideas/properties-and-terms.md`](../../ideas/properties-and-terms.md#lock-event-properties-to-specific-event-types).
 - **(Batch 5) Every qualifier, no exception** (user, 2026-11-16). An as-of takes any date the editor offers (exact, About, Before, After, a range); the composer has no As of rule. Each is read by the window rule below, so Before and After keep their meaning instead of being read as About. Binds S16-40.
 - **(Batch 5) An as-of x reads as "started by x, still under way at x"** (user, 2026-11-16). For every comparison it is the bound pair start ≤ x and end ≥ x, read with the logic start and end already have; it is only stored apart. An as-of's date covers a window of days (ABT widened as matching widens it, a range its two bounds, BEF and AFT open on one side): the event started by the window's last day and was still under way on its first; an open side bounds nothing (`BEF 1990`: started by 1990; `AFT 1990`: still under way after 1990). Consequences, each binding S16-40:
@@ -200,6 +223,19 @@ These are the calls for this spike. PR plans treat them as binding.
 ### Batch 6 — Idea follow-ups
 
 - **(Batch 6) A sentence added to a confirm the kit already draws is copy, not chrome** (user, 2026-11-17). When the alert, its buttons and its layout stay the same, the PR is not gated on a brief; its plan fixes the exact words and the user can veto them in the plan report. Binds S16-45.
+- **(Batch 6) Back restores a section's scroll and focus, not its folds** (user, 2026-11-17). A Conclusion page section (Person, Event or Place) records the id of the row or tile last opened from it on its `WorkspaceLocation`, as `sectionAnchor`. Like `listScrollAnchor`, it is written when leaving, ignored for identity, and decodes as nil from older history files. Back and Forward scroll to that row and focus it, and the page's other reads are untouched. Folds open closed as today: restoring them stays refused (S13-16 UX-5). When the anchored row is folded away or gone, focus lands on the fold's Show more row, or at the section's top when the row no longer exists. Nothing on the page looks different, so there is no brief. Binds S16-46. Updates [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) and [`navigation-history.md`](../archive/spike-3/navigation-history.md)'s anchor line.
+- **(Batch 6) One read querier and one write querier, in a leaf package** (user, 2026-11-17). `database.Querier` (`Query`, `QueryRow`) and a new write surface that adds `Exec` (for example `database.Execer`) are defined once in a leaf package that imports nothing from `core/database`, and `core/database` re-exports them as aliases. Then `graphcache` and `effects`, which `core/database` imports, can use them without an import cycle. A package needing less than the full read surface (`sqlbatch` uses only `Query`) still takes `database.Querier`. Every package-local copy goes: `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler`, `effects`, and the inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) says a package never declares its own. The two identical private `nullIfEmpty` binders (`datevalues`, `audit`: trim, then bind an empty result as NULL) move to `database.NullTrimmed` beside `NullString`, which keeps not trimming (user, 2026-11-17). Binds S16-49.
+- **(Batch 6) One kit popup presenter, with the shared closing rules** (user, 2026-11-17). A kit presenter (`.pvPopup`, named in S16-50's plan) owns the event watcher of every floating popup. Its defaults: Escape closes; a left click outside closes on mouse-up; the press or click that opened it never closes it; the window resigning key (an app switch) closes it. A popup's real differences are options on the presenter, never a second watcher: the history menu ignores right-clicks (they switch between Back and Forward); the combo box stays open on a click in its own field and keeps its two-step Escape; a popup whose keys belong to its field (`PVSelect`'s closed field) keeps them. A menu's keyboard skips disabled rows: type-select, ↑/↓ and Home/End never land on one, as `PVComboBoxMatch.move` already skips them, and Return on a row with no action leaves the menu open (user, 2026-11-17). Binds S16-50 – S16-53. Updates [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) and the kit README's ContextMenu row (the history menu's "own presenter" note goes).
+- **(Batch 6) A combo box passes Return on only when its field shows its pick** (user, 2026-11-17: solved in `PVComboBox`, composable into any form). While the field has focus, the combo box decides every Return, through one pure decision in `PVComboBoxMatch` that is tested without a window:
+  - **A highlighted row:** Return commits it, as today.
+  - **The field shows the committed label** (untouched, or typed back to it), or there is no pick and the field is empty: Return is `.ignored`. It reaches the enclosing form's `.onSubmit` or a sheet's default button, so a form's two-step "pick, then Return to add or save" keeps working.
+  - **Edited text that is not the committed label and no highlighted row** (a field cleared by hand, or text that matches nothing): Return is `.handled` and does nothing. The pick is kept and the field keeps the text; a click away or Escape restores the label as today.
+
+  A click on any other control already blurs the field and restores its label (`dismissAndBlur`), so a form's own buttons never act on a hidden pick. Return was the only path. No caller changes: `SourceTypeSuggestionList.submitPick` and `MetadataBoardView`'s Add field row keep their `.onSubmit`. The kit README's ComboBox row and [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) state the rule. Binds S16-57.
+- **(Batch 6) One kit popup list under the combo box and the omnibar** (user, 2026-11-17). The floating list is a kit component on `.pvPopup`. It owns its window and placement (today's `PVComboBoxPlacement`), the keys (↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the highlight that pointer and keyboard share (skipping disabled rows), scrolling to the highlight, and the loading, empty and error lines. `PVComboBox` keeps its picked-value field on top; the omnibar keeps its command field (Return opens and clears; Escape keeps the query). The omnibar's highlight (`CatalogSearchModel.selectedIndex`, `moveSelection`, `selectedHit`) moves to `OmnibarResultsModel`. Binds S16-51, S16-52.
+- **(Batch 6) A section count is a localized plural, hidden at zero** (user, 2026-11-17). Every `PVSectionHeader` that counts its items passes a plural string ("3 notes") and no count when the section is empty, since its empty state says so: the Source page's Notes, Artifacts and Evidence graphs, the citation composer's Citation column and the Conclusion Gallery section. `PVSectionHeader` keeps taking `meta` as a plain string: no count form in the kit (user, 2026-11-17). The change is copy in a header the page already draws, so it needs no brief. Binds S16-55.
+- **(Batch 6) One toast stack per window** (user, 2026-11-17). The workspace window holds one toast list that every workspace surface adds to, drawn by a kit `PVToastStack` top-trailing, newest first. Each entry leaves on its own five-second timer or its dismiss. There is no cap: nothing is pushed out early, and a burst taller than the window clips at its bottom (S16-D10 draws it). A toast equal to one on screen (tone, title, body) restarts that card's timer and moves it to the top, with no second card and no second announcement. Reduce Motion fades. A sheet (the likeness viewer) and Onboarding keep their own single toast. Binds S16-58, S16-59. Design: [`stacked-toasts.md`](stacked-toasts.md).
+- **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
 ## PR map
 
@@ -250,6 +286,20 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records | S16-D6 | S16-42, S16-D6 | — | Scoped |
 | S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Planned |
+| S16-46 | Back returns to the row you opened in a section | 6b | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
+| S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
+| S16-48 | A Properties search with no match shows the kit's empty state | 6c | Swift: `PropertiesView`'s hand-built no-match text becomes a compact `PVEmptyState` with Clear search, as the Sources list's no-filter-match state | S16-D8 | S16-D8 | — | Scoped |
+| S16-49 | One read querier and one write querier for every catalog package | 6c | Preparatory, Go: the two interfaces in a leaf package, aliased from `core/database`; the eleven local copies go; `add-catalog-query` forbids new ones; `database.NullTrimmed` replaces the two `nullIfEmpty` copies; no behaviour change | — | — | — | Scoped |
+| S16-50 | One kit popup presenter, and the kit menus use it | 6d | Preparatory, Swift: `.pvPopup` with the shared closing rules and its options; `pvContextMenu` (action menus, `PVSelect`, right-click menus) moves onto it; closing on an app switch and skipping disabled rows are the only changes | — | — | — | Scoped |
+| S16-57 | A combo box never submits a pick it no longer shows | 6d | Swift, kit: `PVComboBox` decides every Return in one tested `PVComboBoxMatch` decision; Return reaches the form only when the field shows the pick; no caller changes | — | — | — | Scoped |
+| S16-51 | The combo box's list becomes a kit popup list | 6d | Preparatory, Swift: the floating list, its window, placement, keys and highlight leave `PVComboBox` for a kit popup list on `.pvPopup`; every combo box looks and behaves as today | — | S16-50, S16-57 | — | Scoped |
+| S16-52 | The omnibar's results use the kit popup list | 6d | Swift: `OmnibarResultsHost` draws the kit popup list (its window, card, keys); the highlight moves to `OmnibarResultsModel`; the raw key-code watcher goes | S16-D9 | S16-51, S16-D9 | — | Scoped |
+| S16-53 | The history menu uses the kit presenter and a kit menu row | 6d | Swift: a kit menu row with a glyph, a two-part label and a trailing ref; the history menu draws it and moves onto `.pvPopup`, its own watcher and `activeIndex` go; rows look as today | — | S16-50 | — | Scoped |
+| S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
+| S16-55 | Section counts read alike | 6c | Swift: the bare numbers on Source page Notes, the composer's Citation column and the Gallery become plural strings; Evidence graphs hides its count at zero | — | — | quick-pr | Scoped |
+| S16-56 | A failed sidebar recount says so | 6c | Swift: `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the launch's counts toast for every failure; `clearRefreshError` is used or goes | — | — | quick-pr | Scoped |
+| S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once; the Citation composer's toast moves from the foot of its observations column into the stack | S16-D10 | S16-56, S16-D10 | — | Scoped |
+| S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to the window list instead of setting a `toast` binding; the forwarding goes; no visible change | — | S16-58 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -262,6 +312,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D3 | Citation composer: the date editor on an As of observation | — | Descoped with the composer rule (user, 2026-11-16); never drawn |
 | S16-D4 | Events list: the shared event date line on a row, every dating case (occurrence, closed span, as-of only, as-of with a start or an end) | **S16-42** | Names every surface that shows the line (Event page header, Timeline rows, search hits, Promote's menus, Promote's record rows); split from the lifeline (user, 2026-11-17: one brief per view) |
 | S16-D7 | Person page Timeline: the lifeline draws every event's dating (as-of spans with open sides, start-and-end spans, a one-day open mark, a both-open bar's tether) | **S16-42** | An enhancement of the S13-D4 / S16-D2 Timeline frames; reuses the bar's open-side fade; no new mark |
+| S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
+| S16-D9 | Omnibar results on the kit popup list: its own window under the field instead of the 640 pt overlay, the combo box's card, where the loading, empty and error lines sit | **S16-52** | Starts from today's omnibar board and the combo box's list |
+| S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom; the Citation composer's toast, which moves there from the foot of its observations column | **S16-58** | Starts from `PVToast`'s board |
 | S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
 
 ## Slices
@@ -351,6 +404,32 @@ SLICE 6a — A graph delete warns about its Artifacts
   S16-45  A graph delete names the Artifacts it leaves in no graph
   Check: bar 20.
 
+SLICE 6b — Person page follow-ups                    (any time; the two run in parallel)
+  S16-46  Back returns to the row you opened in a section
+  S16-47  Birth and death event counts have plurals, and the strings check sees them
+  Check: bar 21, 22.
+
+SLICE 6c — Shared list helpers                       (any time)
+  ✎ S16-D8 ──▶ S16-48  A Properties search with no match shows the kit's empty state
+  S16-49  One read querier and one write querier for every catalog package
+  S16-54  Catalog tests write a test PNG through one helper   (quick-pr)
+  S16-55  Section counts read alike                           (quick-pr)
+  S16-56  A failed sidebar recount says so                    (quick-pr)
+  Check: bar 23, 24, 28 to 30. The five PRs share no file and run in parallel.
+
+SLICE 6d — Popups                                    (any time; a chain)
+  S16-50  One kit popup presenter, and the kit menus use it
+  S16-57  A combo box never submits a pick it no longer shows
+  S16-51  The combo box's list becomes a kit popup list
+  ✎ S16-D9 ──▶ S16-52  The omnibar's results use the kit popup list
+  S16-53  The history menu uses the kit presenter and a kit menu row
+  Check: bar 25 to 27, 31.
+
+SLICE 6e — Stacked toasts                            (after S16-56)
+  ✎ S16-D10 ──▶ S16-58  Toasts stack in one list per window
+  S16-59  Workspace callers add to the toast stack
+  Check: bar 32.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -406,11 +485,25 @@ S16-40 ──▶ S16-42 ──▶ S16-44
 S16-D4 ──▶ S16-42
 S16-D7 ──▶ S16-42
 S16-D6 ──▶ S16-44
+
+S16-03, S16-07 (landed) ──▶ S16-46
+S16-47: none
+S16-D8 ──▶ S16-48
+S16-49: none
+S16-54: none
+S16-55: none
+S16-56: none
+S16-50 ──▶ S16-51 ──▶ S16-52
+S16-57 ──▶ S16-51
+S16-56 ──▶ S16-58 ──▶ S16-59
+S16-D10 ──▶ S16-58
+S16-50 ──▶ S16-53
+S16-D9 ──▶ S16-52
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
 
-Batch 6's S16-45 has no dependency and shares no file with an open PR.
+Batch 6's S16-45 has no dependency and shares no file with an open PR. Slice 6b needs nothing open: S16-46 builds on S16-03 (sections as places) and S16-07 (folds), both landed. S16-47 is a quick-pr. S16-46 edits `WorkspaceLocation.swift` and `NavigationHistoryStore.swift`, which S16-25 also touches if it is still open, so whichever lands second rebases.
 
 ---
 
@@ -430,7 +523,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Each names its a
 #### S16-07 — One paged fold that moves focus
 
 **Ships.** `ConclusionFold` gains a page of 50 and one fold state type that Family, Timeline and Sources use in place of their `Set`s and Sources' `rowsExpanded`; `firstRevealed` names the first item of the page just revealed and `ConclusionShowMoreRow` claims focus for it through `FocusClaim` (Family gains it; the `Task` hops in the Timeline and Sources go) (P-14, P-7's pages). One focus keeper in `macos/App/Platform/` holds focus across a width change for Gallery and Timeline. When the record links diagram highlights a graph whose record line is folded, that Source's Show more takes the highlight (P-15; the content already maps folded claims to graphs in `claimGraphs`).
-**Not this PR.** Building only shown rows and the lifeline's click targets (S16-02); Back restoring a section's folds (P-19, [idea](../../ideas/person-page-followups.md)).
+**Not this PR.** Building only shown rows and the lifeline's click targets (S16-02); Back restoring a section's folds (refused; Back's scroll and focus are S16-46).
 **Check.** Bar 3's paging and bar 7's fold focus: content tests name the revealed item after each page for every section, Family included; a test unfolds 2,000 hidden items in pages of 50. A content test highlights a folded line's Show more.
 **Brief.** [S16-D2](design/archive/S16-D2-person-page-folds.md) (user, 2026-11-09), one brief for Family, Timeline and Sources, the one view they make up: the page count, the focus landing and the Show more's highlight change how they look. Show more counts the next page, not the whole fold (user, 2026-11-09), and a folded lifeline point opens the fold through its page.
 **Context.** Audit P-7, P-14, P-15; rule "One paged fold that moves focus"; `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift`, `PersonFamilySection.swift`, `PersonFamilyContent.swift`, `PersonTimelineSection.swift`, `PersonTimelineContent.swift`, `PersonSourcesSection.swift`, `PersonSourcesContent.swift`, `ConclusionGallerySection.swift`, `macos/App/Platform/FocusClaim.swift`; [`macos-client-patterns.md`](../../macos-client-patterns.md) "One sectioned detail page" (teaches the fold) and Wide rule 5 (cites the keeper).
@@ -470,7 +563,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Each names its a
 #### S16-06 — Section switches and removals are spoken
 
 **Ships.** `PVSegmentedControl`'s `focus:` handle lands on the selected segment rather than the first enabled one (the component and its doc comment); the switcher passes a handle, a section switch announces the section and claims the selected segment when the old focus is gone (P-11). The leave-or-stay decision after a Remove moves into a function on `UnpromoteFlow` or a static helper that returns leave, or stay with the announcement, and the Sources section posts it; both branches are unit-tested (P-12, P-16). The wording of rule "A person's records are records": the header's count reads records on every Conclusion page, and the Unpromote confirm ends "…, and the person stays", per kind (P-17).
-**Not this PR.** Fold focus (S16-07); Back restoring scroll, folds and focus (P-19, [idea](../../ideas/person-page-followups.md)).
+**Not this PR.** Fold focus (S16-07); Back restoring scroll and focus (S16-46); folds (refused).
 **Check.** Bar 7, and bar 8's count and confirm; unit tests for both leave-or-stay branches, replacing `UnpromoteFlowTests.confirmReportsTheEffects`' inline copy; manual VoiceOver steps for ⌘3 from a Family tile.
 **Context.** Audit P-11, P-12, P-16, P-17; rules "Every outcome on the page is spoken", "A person's records are records", "One open section, one list of reads"; `macos/App/DesignSystem/Components/Chip/PVSegmentedControl.swift`, `macos/App/Features/Conclusions/ConclusionDetailPage.swift`, `PersonSourcesSection.swift`, `macos/App/Features/Catalog/Unpromote/UnpromoteFlow.swift`, `macos/ProvenenciaTests/UnpromoteFlowTests.swift`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
 
@@ -501,7 +594,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 #### S16-12 — Source records in the graph cache
 
 **Ships.** A whole registry entry of Source records (ref, title, type, credibility grade, Artifact labels; cover and Artifact file are added with their first reader, user 2026-11-12), built on first read in two queries; Apply reloads the Sources in `Set.SourceScopes` (nearly every write inside a Source; two small queries) and stores through `Set`; credibility is read with one column the grades own (`sourcecredibilitygrades.RelativeOrderColumn`), shared with the reconciler, not through the vocabulary. `EvidenceGraph` stops copying Source words and `loadGraphHead`'s join goes; the claims grouping, the record links labels and the outcome record shells take Source words from the record. The `sources` effect stops naming a Source's graphs for a title or type change, and the app's `personClaims` and `personRecordLinks` keys follow `.source` for the Sources in their value instead. `RecordLinksGraph` loses the unread `source_type_id` and keeps `source_id`, which the `.source` follow reads; it gains no `source_ref`, since a Source title and a graph name are never empty, so `graphSourceRefs` and the "name, else ref" and "title, else ref" fallbacks are deleted (P-22, part; moved from S16-01 on 2026-11-08; user, 2026-11-12).
-**Not this PR.** The records tier (S16-13); the Evidence-graph catalog (S16-15); the claims read owning every graph label (the rest of P-22, [`structural-debt.md`](../../ideas/structural-debt.md)).
+**Not this PR.** The records tier (S16-13); the Evidence-graph catalog (S16-15); the claims read owning every graph label (the rest of P-22, `structural-debt.md` (retired 2026-11-17; split into topic idea files)).
 **Check.** Bar 11's rename: a Source rename reloads no loaded Evidence graph and drops no graph memo (graph cache test), and the Sources section, record links and provenance sheet show the new title; the app's claims key reloads on the rename (Swift test); the `effects` completeness test passes; a handler test reads `source_id` and `source_title` on every record links graph, and the Sources section's labels are unchanged.
 **Context.** Audit P-22; rules "A Source's words live once", "Apply states its fan-out"; `core/database/graphcache/evidence_graph.go`, `core/database/graphfill/load.go`, `core/database/effects/registry.go` (`sources`), `core/database/autoreconciler/autoreconciler.go` (`provenanceJoins`), `core/database/persondetail/claims.go`, `recordlinks.go`, `api/proto/engine.proto`, `api/ffi/handlers/person_detail.go`, `macos/App/Platform/GoStore.swift`, `macos/App/Features/Conclusions/PersonRecordLinksContent.swift`, `PersonSourcesContent.swift`, `PersonSourcesSection.swift`, `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift`; [`add-ffi-handler`](../../../.agents/skills/add-ffi-handler/SKILL.md) for the field. Makes false and updates `core/database/effects/README.md` ("A Source row names every graph of the Source … on title"). Lands after S16-01 (same `claims.go` and `recordlinks.go`).
 
@@ -515,7 +608,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 #### S16-13 — Per-graph records in the cache registry, and the Sources section reads them
 
 **Ships.** Keyed registry entries drop their least recently used key at their cap instead of refusing new keys. Each Evidence graph's Subject records (each Subject, its accepted claim and its Observations, and the graph's Subject labels) are a keyed entry by graph id (`graphfill.records`), dropped on `Set.EvidenceGraphs`, filled from the loaded graph when it is held or from a step split out of `graphfill/load.go`, so one loader reads Subject and Observation rows, and checked by graphfill. The matching layer and Promote's candidates leave the loaded graph's memos for keyed entries of their own (`evidencelayer.layers`, `promotealign.candidates`), so `EvidenceGraphMemo`, `SetEvidenceGraphMemo` and the vocabulary loop in `OnCommit` go (user, 2026-11-13). The claims read composes from the records, Source records and the graph index's shells, and graphs keep `conclusionsummaries.SortByTitle`'s order (user, 2026-11-12), so `memberGraphs` goes, no whole Evidence graph is loaded, the handlers build each graph's label map once, and S16-01's records-per-graph function stays at the record read; the record links read takes its graphs and claimed entities from the same composition. It absorbs S16-14 (2026-11-08), so the tier lands with a reader, and the memo move, which the user kept in this PR over a preparatory split (2026-11-13).
-**Not this PR.** Each Observation's Citation label, page, Artifact id and uncertainty flag (S16-30, their first reader; user, 2026-11-13); provenance records (S16-30); re-ranking only what moved (S16-32); record links' graph loads (they compare whole graphs); a batch graph read ([`structural-debt.md`](../../ideas/structural-debt.md)).
+**Not this PR.** Each Observation's Citation label, page, Artifact id and uncertainty flag (S16-30, their first reader; user, 2026-11-13); provenance records (S16-30); re-ranking only what moved (S16-32); record links' graph loads (they compare whole graphs); a batch graph read (`structural-debt.md` (retired 2026-11-17; split into topic idea files)).
 **Check.** Bar 12's Sources section: a person in 80 Evidence graphs loads no whole graph (graph cache counter) and reads again with no query; a graph's records equal its slice of a loaded graph; evicting the loaded graph keeps the records; a graph in `Set.EvidenceGraphs` drops its records, layer and candidates; a keyed entry past its cap keeps its most recent keys; the records for 10,000 graphs and 50,000 Observations measured against the cap; the claims tests, Promote's tests and S16-01's timing test unchanged.
 **Context.** Audit P-4; [design § Entity records](cache-architecture.md#entity-records); rules "The point of this batch is simpler code", "Per-graph records and memos are registry entries keyed by graph", "A Source's words live once", "Memory is budgeted", "Batch 1's caps stay where S16-01 puts them"; `core/database/graphcache/cache.go`, `evidence_graph.go`, `core/database/graphfill/load.go`, `core/database/evidencelayer`, `core/database/promotealign/canon.go`, `core/database/persondetail/claims.go`, `recordlinks.go`, `api/ffi/handlers/person_detail.go`, `source_read.go`.
 
@@ -547,7 +640,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Ships.** The event and life composers read an event's own places' shells from the place entries (their chains moved onto the entries in S16-18), so a composer no longer loads a place's whole node; `eventPlaceGraph` goes with `PersonLifeOwners`, and the composers keep S16-01's capped `eventLocations` for an event's places. A person's summary row then keeps its birth and death owner events and their event–place links; an event's row keeps its participants by id and role, from one `Follow` of the participants hop. `PersonLifeOwners` and `lifeOwners` go (the detail's derived rows read the row), the Timeline reads participants from the event rows it already loads instead of walking each event, and the Timeline's `EventParticipant` moves onto the event row as the one participation type, while `EventSubject` stays the title's name summary (A-33; user, 2026-11-13: participants are ids and roles, and the event row keeps no date Property, which no reader needs once the person row keeps its date owners). It absorbs S16-31 (2026-11-08): the same composers in `compose.go`.
 **Not this PR.** Promote's checks (S16-21); sending each participant once on the wire (P-8, [idea](../../ideas/person-page-performance.md)).
 **Check.** Bar 13: S14-40's inputs tests (inputs equal isolated composition, stored inputs equal a rebuild after every upkeep write) and the rebuild-equals-upkeep tests pass; the summary, derived-row and Timeline tests unchanged; the Timeline read issues no per-event participant walk (counter); the first `part_of` filed from a city with 6,000 events measured against S14-40's figure. About 11 steps.
-**Context.** [Design § Results per key](cache-architecture.md#results-per-key-for-the-walks); rules "A cache a composer reads hands its inputs to the row", "Batch 1's caps stay where S16-01 puts them"; `core/database/conclusionsummaries/compose.go`, `placechains.go`, `core/database/conclusiondetails/conclusiondetails.go`, `core/database/persondetail/timeline.go`, `participants.go`, `core/database/searchindex/handles.go`; [`structural-debt.md`](../../ideas/structural-debt.md) A-33 (already moved here). Lands after S16-02 (same `timeline.go`).
+**Context.** [Design § Results per key](cache-architecture.md#results-per-key-for-the-walks); rules "A cache a composer reads hands its inputs to the row", "Batch 1's caps stay where S16-01 puts them"; `core/database/conclusionsummaries/compose.go`, `placechains.go`, `core/database/conclusiondetails/conclusiondetails.go`, `core/database/persondetail/timeline.go`, `participants.go`, `core/database/searchindex/handles.go`; `structural-debt.md` (retired 2026-11-17; split into topic idea files) A-33 (already moved here). Lands after S16-02 (same `timeline.go`).
 
 ### Slice 2d — Promote
 
@@ -556,7 +649,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Ships.** One whole registry entry holds profiles by handle, each handle's filed keys and the shortlist postings, filled by `promotealign.Warm` at open and declaring DerivedFrom on the alias index and the name format. Apply re-profiles the commit's roots and the people at the events they touched, once, refiles each handle whose profile changed, and the candidates, derived from the index, are ranked again when it changes (S16-32 narrows that). `indexGen`, the generation checks and the profiler's shared map go; Verify compares the patched entry with a fresh build. `graphalign.Handle` folds onto `subjectcompare.Subject`.
 **Not this PR.** Narrowing the candidates' re-rank (S16-32); the canon walk (S16-22).
 **Check.** Bar 9's match index half: a handle commit patches the index and Verify passes; after-commit and open time recorded before and after at 4,000 and 16,000 persons (bar 10's 1.5× gate moved to S16-32, user 2026-11-13: the re-rank alone measured 3.2× and 5.3× a warm proposal); Promote's tests and goldens unchanged; Verify passes; Apply's work stated for an event with 500 participants.
-**Context.** [`promote-ranking.md`](../../ideas/promote-ranking.md)'s "Name index on commit" (moved to this batch) and its open questions (`shortlist` removal, merges through `OnCommit`'s merged list); audit 2 B-8; rules "One cache registry, two ways to fill", "Apply states its fan-out"; `core/database/promotealign/profiles.go`, `index.go`, `canon.go`, `core/shortlist`, `core/graphalign`, `core/database/graphcache/commit.go`; [`promote-graph-alignment.md`](../../promote-graph-alignment.md) §8, [`use-catalog-session`](../../../.agents/skills/use-catalog-session/SKILL.md) (a handle commit no longer drops the index); the [`structural-debt.md`](../../ideas/structural-debt.md) row on `graphalign.Handle` (moved here).
+**Context.** [`promote-ranking.md`](../../ideas/promote-ranking.md)'s "Name index on commit" (moved to this batch) and its open questions (`shortlist` removal, merges through `OnCommit`'s merged list); audit 2 B-8; rules "One cache registry, two ways to fill", "Apply states its fan-out"; `core/database/promotealign/profiles.go`, `index.go`, `canon.go`, `core/shortlist`, `core/graphalign`, `core/database/graphcache/commit.go`; [`promote-graph-alignment.md`](../../promote-graph-alignment.md) §8, [`use-catalog-session`](../../../.agents/skills/use-catalog-session/SKILL.md) (a handle commit no longer drops the index); the `structural-debt.md` (retired 2026-11-17; split into topic idea files) row on `graphalign.Handle` (moved here).
 
 #### S16-32 — Promote re-ranks only the Subjects a write moved
 
@@ -570,7 +663,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Ships.** `graphalign` reads a `CanonView` interface (a handle's profile and links), served for now by today's `Canon` from `loadCanon`; `Align`, `corresponding`, `place` and `segments` read through it, and `graphalign.CanonEdge` folds onto `kinship.Link`. Tests keep `Canon{Handles, Edges}` through an adapter. `graphalign.Connections` and Promote's connections read the filed `part_of` and `succeeded_by` links from the place entries (S16-18), so the loop check no longer needs every canon edge loaded. It absorbs S16-33 (2026-11-08): both are `graphalign`'s preparation for S16-22.
 **Not this PR.** The session-graph view and the walk's removal (S16-22); the bridge filer's `filedLinks`, which must read its own transaction.
 **Check.** The goldens, `TestAlignInvariants`, Promote's connection and loop tests and its budgets unchanged; a proposal's connections read no canon edge for place links.
-**Context.** `core/graphalign/align.go`, `connections.go`, `core/database/promotealign/canon.go`, `connections.go`; S14-22 D-7 (why the check needs every filed link); the [`structural-debt.md`](../../ideas/structural-debt.md) row on `CanonEdge` (moved here). Makes false and updates [`add-match-rule`](../../../.agents/skills/add-match-rule/SKILL.md) line 33 (`CanonEdge`).
+**Context.** `core/graphalign/align.go`, `connections.go`, `core/database/promotealign/canon.go`, `connections.go`; S14-22 D-7 (why the check needs every filed link); the `structural-debt.md` (retired 2026-11-17; split into topic idea files) row on `CanonEdge` (moved here). Makes false and updates [`add-match-rule`](../../../.agents/skills/add-match-rule/SKILL.md) line 33 (`CanonEdge`).
 
 #### S16-36 — A link from a record to itself is refused where links are read
 
@@ -621,7 +714,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). The design, the 
 **Ships.** `CatalogListRows`, `CatalogListRow`, `Array.mergeSorted` and `sortedByListKey` move from `CatalogLastUpdated.swift` to a file named for the list merge; `CatalogLastUpdated.swift` keeps the last-updated rows. `merge(_:replacing:indexedLimit:)`'s `indexedLimit:` and `merging(_:replacing:indexedLimit:)` leave app code; the tests that force one path (`listRowsMergeMatchesMergeSorted`, the scale tests) do it without a parameter only tests pass.
 **Not this PR.** Any change to the merge's behavior or `indexedMergeLimit`.
 **Check.** `rg -n "indexedLimit" macos/App` prints nothing; `CatalogListMergeTests` keeps every claim it asserts, on the paths the app takes, and is green.
-**Context.** S16-26 ship log (MNT-5, MNT-7); `macos/App/Features/Workspace/Session/CatalogLastUpdated.swift`; the App group is synchronized, so the new file needs no project edit; updates [`add-workspace-place`](../../../.agents/skills/add-workspace-place/SKILL.md) line 178. The rest of MNT-5 (the file's follows, patches and refreshes) is logged in [`structural-debt.md`](../../ideas/structural-debt.md).
+**Context.** S16-26 ship log (MNT-5, MNT-7); `macos/App/Features/Workspace/Session/CatalogLastUpdated.swift`; the App group is synchronized, so the new file needs no project edit; updates [`add-workspace-place`](../../../.agents/skills/add-workspace-place/SKILL.md) line 178. The rest of MNT-5 (the file's follows, patches and refreshes) is logged in `structural-debt.md` (retired 2026-11-17; split into topic idea files).
 
 #### S16-38 — An empty list shows its empty state while a merge runs
 
@@ -675,7 +768,7 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 #### S16-42 — Every event date line reads the engine's dating
 
 **Ships.** `conclusionsummaries` dates an event through the helper: `eventDating` and every reader of it (`eventKeyOf` list sort, `EventSpanAndAge` for the Timeline, `eventWhen` place folding); `lifeFrom` keeps `date` or start ([rule](#batch-5--event-as-of-dates)); `EventSummary` (Go, proto, `GoStore`, `CatalogEventSummary`) carries the dating (kind, low and high DateValue, open sides) read from every kept as-of; `searchindex` (`sqlHandleValues`, `eventMatchSecondary`, a `ProjectionVersion` bump) indexes it; `DateRowDisplay` formats the dating instead of choosing among `date`, start and end, on every surface of `EventSecondaryDisplay` and `ConclusionSummaryDisplay.secondary`, and on `EvidenceGraphSnapshot.dateLine`; `structured-date-model.md`'s display-date paragraph says so and its Events-list drift note closes. From S16-40's review (user, 2026-11-16): `subjectcompare.PeriodSamples` counts a side's positive samples against `Period.MaxSamples` before it copies them, so compare, the shortlist and this PR's helper never copy 10,000 crafted as-ofs (S16-40 SEC-3); and the shortlist keys an event with only as-ofs more narrowly than one open reach (its samples' year buckets plus an open-start and an open-end key, not the samples' years widened by `MaxYears`, which exceeds `MaxBuckets` and gives the same keys), measured with `BenchmarkLargeSourcePropose` at 4,000 and 16,000 persons with 30% of town deaths as-of only against S16-40's +7%, tracing the +3.5 ms warm-proposal cost S16-40's verifier saw once any death is as-of only (S16-40 PRF-1).
-**Not this PR.** The Event page's Date row (S16-44); a notice for an as-of outside the researcher's start or end ([idea](../../ideas/event-as-of-followups.md)).
+**Not this PR.** The Event page's Date row (S16-44); a notice for an as-of outside the researcher's start or end (descoped).
 **Check.** Bar 18's line on the Events list, Event page header, Timeline row and Evidence graph card, and bar 19's lifeline; an event with a `date`, or a start and end, reads as before; at 10,000 as-ofs on one event the Events list row is built from two dates.
 **Context.** Reuse S16-40's `valuecompare.SampleExtremes` (with `DateEnds`, the as-written reading) and `subjectcompare.Samples` / `subject.Periods` for the samples key; `conclusionsummaries/compose.go` `eventDating`, `eventDate`, `oneEvent`, `keptDateAt`; `order.go` `EventSpanAndAge`; `Platform/DateRowDisplay.swift`; `EventsListView.swift` `EventSecondaryDisplay`; map review K-2, K-3, K-4; [S16-40 ship log](prs/S16-40-event-as-of-property.ship.md) SEC-3 and PRF-1; `core/subjectcompare/pairs.go` `PeriodSamples`; `core/shortlist/shortlist.go` `Keys`.
 
@@ -698,3 +791,117 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** Naming the Artifacts by label (every cascade line names refs; not planned); relinking from the confirm (not planned: the Artifact sheet relinks); the Artifact delete, Source delete and unlink paths (none leaves another Artifact in no graph).
 **Check.** Bar 20; a graph whose Artifacts are all in another graph shows the confirm as today.
 **Context.** [Design](graph-delete-leaves-no-graph.md); `core/database/deleteimpact/handle_gone.go` `buildCascadeEdges`; `facets.go` `cascadesFor`; `macos/App/DesignSystem/Recipes/DeleteImpact/PVDeleteImpact.swift` `cascadeLines`; `macos/App/Platform/ConclusionVocabulary.swift` `DeleteImpactCascadeVia`; `L10n.Sources.artifactGraphsNone`; precedent: the `citations.graph_id` cascade and its confirm line.
+
+### Slice 6b — Person page follow-ups
+
+#### S16-46 — Back returns to the row you opened in a section
+
+**Ships.** `WorkspaceLocation.sectionAnchor`: the id of the row or tile opened from a Conclusion page section, written as the page leaves, ignored for identity, optional in history. Back and Forward to a Person, Event or Place page scroll its open section to that row and focus it. That covers the Family tiles, the Timeline rows and their people, and the Sources rows. A row folded away focuses its fold's Show more, and a row that is gone leaves the section at its top. Fan-out: one id lookup in the section's shown rows, at most a page of 50 (bar 3).
+**Not this PR.** Restoring folds (refused, S13-16 UX-5); Vitals and Gallery, which open sheets rather than places, unless the plan finds a row there that opens a place; scroll for list roots (already `listScrollAnchor`).
+**Check.** From a person's Family, open a child's tile, then from the child's Timeline an event. Pressing Back twice lands on that Timeline row, then that Family tile, each focused and scrolled into view. Quit and relaunch, and Back still lands there. An anchor whose row was deleted opens the section at its top.
+**Context.** Rule "(Batch 6) Back restores a section's scroll and focus, not its folds"; [audit](person-page-audit.md) P-19; `WorkspaceLocation.swift` (`listScrollAnchor`, `openPageSection`), `WorkspaceNavigation.swift` (`pendingListScrollAnchor`), `ConclusionDetailPage.swift`, `PersonFamilySection.swift`, `PersonTimelineSection.swift`, `PersonSourcesSection.swift`; [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md).
+
+#### S16-47 — Birth and death event counts have plurals, and the strings check sees them
+
+**Ships.** `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` plural substitution, like `recordsFromPlaces`. `uninflected_counts` in `scripts/check-localizable-xcstrings.py` stops skipping entries with substitutions and tests each `%n$lld <word>` that is not a substitution token. Wrong today: the events count is a bare `%2$lld birth events`, which English hides because the count is always two or more (`PVProvenanceSheetContent.swift` 326), and the check skips any entry with a substitution.
+**Not this PR.** Other languages' translations.
+**Check.** The check fails on today's two keys and passes after; the sheet still reads "5 records from 2 birth events".
+**Context.** Rule "(Batch 6) A count inside a substitution is checked too"; [audit](person-page-audit.md) P-18; `macos/App/Platform/L10n.swift` (`recordsFromOwners`), `macos/App/Resources/Localizable.xcstrings`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
+
+### Slice 6c — Shared list helpers
+
+#### S16-48 — A Properties search with no match shows the kit's empty state
+
+**Ships.** In `PropertiesView.propertyTable`, the hand-built `VStack` of `emptySearchTitle` and `emptySearch` becomes a compact `PVEmptyState` (search icon, the "No property matches “…”" title as `verbatimTitle`, the message) with a **Clear search** button that empties `searchQuery`, laid out as `SourcesListView`'s no-filter-match state. If S16-D8 keeps Create property, the button calls `model.openCreate(prefillLabel:)` with the query. The message's copy follows the buttons the brief keeps.
+**Not this PR.** The Properties page's other states (load failure, an empty catalog); the other items of the retired `ideas/shared-list-helpers.md`, mapped as S16-49 – S16-57.
+**Check.** Bar 23. A search that matches shows the table as today, and VoiceOver reads the empty state's title and its button.
+**Context.** S16-D8; `macos/App/Features/Properties/PropertiesView.swift` (`propertyTable`), `PropertiesModel.swift` (`searchQuery`, `openCreate`); the precedent at `macos/App/Features/Sources/SourcesListView.swift` (`noFilterMatchesTitle`, Clear filters); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
+
+#### S16-49 — One read querier and one write querier for every catalog package
+
+**Ships.** Preparatory, Go, no behaviour change. A leaf package (named in the plan, for example `core/database/querier`) holds the read interface (`Query`, `QueryRow`) and the write interface (adds `Exec`). `core/database` keeps `database.Querier` as an alias and adds the write alias. Each of the eleven local copies is deleted and its functions take the shared type: `sqlbatch`, `graphcache` (`graph.go`), `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler` (write), `effects` (`path.go`'s `querier`), and the inline `interface { … }` parameters in `datevalues`, `namevalues` and `canonicalentities` (write where they `Exec`). `add-catalog-query` gains a sentence: a package never declares its own querier; it takes `database.Querier` or the write alias. `database.NullTrimmed` (trim, then NULL when empty, else the trimmed text) goes in `core/database/null.go` with a table test; `datevalues` and `audit` drop their `nullIfEmpty` and call it, and `add-catalog-query` names it beside `NullString`.
+**Also (structural debt, 2026-11-17).** `database.SQLInPlaceholders` moves to the same leaf package (aliased from `core/database`), and its two private copies use it: `placeholders` in `core/database/graphcache/sql.go`, which could not import `core/database`, and the inline `strings.Repeat` in `core/search/fts.go`.
+**Not this PR.** Trimming in the other `NullString` callers (a change to what is saved, not a cleanup); `canonicalentities.rowScanner` (a scan helper, not a querier); context-taking methods (`QueryContext`); any change to which functions take a `*sql.Tx` or a `*sql.DB`.
+**Check.** Bar 24, and `rg "func nullIfEmpty" core` finds nothing; `go build ./...`, `go vet ./...` and the Go tests pass unchanged; `go list -deps` on the leaf package shows no `core/database` package.
+**Context.** Rule "(Batch 6) One read querier and one write querier, in a leaf package"; `ideas/shared-list-helpers.md` (retired 2026-11-17) history; `core/database/tx.go` (`Querier`, S12-01); [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) (its "Write the SQL and scan once … over `database.Querier`" paragraph); [`add-catalog-model`](../../../.agents/skills/add-catalog-model/SKILL.md) only if the leaf package needs registering.
+
+#### S16-54 — Catalog tests write a test PNG through one helper
+
+**Ships.** Quick-pr, Go tests only. `dbtest.WritePNG(t testing.TB, path string, w, h int)` in `core/database/dbtest` encodes a blank RGBA image as PNG and writes it, failing the test on error. It replaces `writeTinyPNG` in `sourcecopy/sourcecopy_test.go` (41) and `sources/sources_test.go` (111), and the six inline encoders in `artifacts/artifacts_test.go` (648, 705, 844, 873, 920, 973), each keeping its size. Today the same ten lines are written eight times, so the next image test copies a ninth.
+**Not this PR.** The image helpers outside `core/database` (`raster_test.go`'s `tinyPNG` and `pngBytes`, `ingest/stage_test.go`'s `stagePNG`, `derivatives/thumbnail_test.go`), which `dbtest` does not reach and which test the image code itself.
+**Check.** Bar 28; the three packages' tests pass unchanged.
+**Context.** `ideas/shared-list-helpers.md` (retired 2026-11-17) history (S12-01 ship log); `core/database/dbtest/dbtest.go`; [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+#### S16-55 — Section counts read alike
+
+**Ships.** Quick-pr, Swift and strings. Each of these headers changes:
+- **Source page Notes:** `SourcePageNotesView` passes `L10n.Sources.notesCount(n)` (new, "%lld notes", plural) instead of `"\(model.notes.items.count)"`.
+- **Source page Evidence graphs:** `SourcePageGraphsView` passes no count when its rows are empty, as Notes and Artifacts already do.
+- **The citation composer's Citation column:** `CitationComposerEvidenceColumn` passes `L10n.CitationComposer.citationsCount(n)` (new, "%lld citations", plural) instead of `"\(model.listedCitations.count)"`, and no count at zero.
+- **The Conclusion Gallery section:** `ConclusionDetailGallery` gains the count's plural string beside `title` (`L10n.Conclusions.likenessesCount` for a Person, `picturesCount` for an Event or a Place, both new). `ConclusionGallerySection` passes it instead of `String(gallery.tiles.count)`. The section is not drawn when it has no tiles, so zero never shows.
+
+Wrong today: three headers show a bare number that skips the strings catalog, and Evidence graphs shows "0 evidence graphs" where the others show nothing.
+**Not this PR.** A count form on `PVSectionHeader` (declined, user 2026-11-17); an Add button in the Notes header; headers that pass other meta text ("4 checked", Promote's and the Conclusion lists' own strings).
+**Check.** Bar 29; `rg -n 'meta: .*("\\\(|String\()' macos/App` finds nothing (today it finds the three); `scripts/check-localizable-xcstrings.py` passes with the four new keys.
+**Context.** Rule "(Batch 6) A section count is a localized plural, hidden at zero"; `macos/App/Features/Sources/SourcePageNotesView.swift`, `SourcePageArtifactsView.swift` (the pattern to match), `SourcePageGraphsView.swift`; `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`; `macos/App/Features/Conclusions/ConclusionDetailGallery.swift`, `ConclusionGallerySection.swift`, `PersonDetailContent.swift` and `ConclusionDetailGallery.swift`'s Event and Place gallery (where each gallery is built); [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+#### S16-56 — A failed sidebar recount says so
+
+**Ships.** Quick-pr, Swift. `WorkspaceView` observes `catalogCounts.lastRefreshError` (`.onChange`) and shows the existing `countsToast` ("Couldn't refresh catalog counts", `L10n.Workspace.countsRefreshFailedTitle`) whenever it becomes non-nil, so the launch `.task` no longer reads it on its own. `CatalogCounts.clearRefreshError()` is called when the toast is shown, so a second failure shows again, or is deleted if the plan finds no use. Wrong today: only the first count at launch reads the error (`WorkspaceView.swift:81`); a recount after a write (`session.onNavCountsMoved`, line 48) sets it and nothing reads it, so the badges go stale with no word.
+**Not this PR.** A marker on the sidebar badge itself (new chrome; not planned unless dogfood shows the toast is missed); retrying the recount.
+**Check.** Bar 30; a test drives `CatalogCounts` with a `FakeStore` whose `workspaceNavCounts` fails on the second call and sees the error set after a write; the launch failure still toasts once.
+**Context.** `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/App/Features/Workspace/WorkspaceView.swift` (`countsToast`, `presentHistoryIssueIfNeeded` for the toast pattern); [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+### Slice 6d — Popups
+
+#### S16-50 — One kit popup presenter, and the kit menus use it
+
+**Ships.** Preparatory, Swift. `.pvPopup` (`DesignSystem/Components/`, the name fixed in the plan) owns the event watcher and the shared closing rules (rule "(Batch 6) One kit popup presenter"), with options for a popup's real differences. `pvContextMenu`'s `installDismissMonitor` and `handleKeyDown` move onto it, so action menus, `PVSelect` and right-click menus use it. Their keys are unchanged except that the keyboard skips disabled rows. `PVContextMenuKeyboard` learns which rows are enabled (from `PVActionMenuItem.keyboardTitles` or a parallel list), and type-select (`applyTypeSelect`), ↑/↓ and Home/End move only among them. Return with no registered action leaves the menu open. Wrong today: the matcher and `PVFloatingMenuSelection.moveIndex` see every title, so the highlight lands on a greyed-out row that cannot draw it, and Return then closes the menu and does nothing (`handleKeyDown`). Tests drive each rule through the presenter's decision function with made-up events (S16-35's pattern, no window).
+**Not this PR.** The combo box (S16-51), the omnibar (S16-52), the history menu (S16-53); sheets (`.pvSheet` already shares its own).
+**Check.** An action menu and a `PVSelect` open, take ↑/↓/Return and type-select, and close on Escape and a click outside as today. The opening click never closes them. A switch to another app closes them. In the composer's Clear menu with no region, "c", ↓ and Home skip Clear region, and Return on nothing keeps the menu open; `PVContextMenuKeyboard` tests cover each key against a disabled row.
+**Context.** Rule "(Batch 6) One kit popup presenter"; `ideas/shared-list-helpers.md` (retired 2026-11-17) history; `macos/App/DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`installDismissMonitor`, `PVContextMenuPopupWindow`), `PVActionMenu.swift`; `DesignSystem/Components/Panel/PVSheet.swift` (the sheet precedent); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md).
+
+#### S16-57 — A combo box never submits a pick it no longer shows
+
+**Ships.** Swift, kit. `PVComboBox.handleKey`'s `.return` case asks one pure decision, `PVComboBoxMatch.returnAction` (name fixed in the plan). It answers commit the highlighted row, pass to the form, or swallow, from the highlighted index, whether the text is typed (`isDirty`), the query and the committed label. It follows rule "(Batch 6) A combo box passes Return on only when its field shows its pick". Wrong today: with no highlighted row Return is always `.ignored` (`PVComboBox.swift:684`), so a cleared or retyped field passes Return to the form's `.onSubmit`, which acts on the old pick (`SourceTypeSuggestionList.submitPick` adds Folio; S15-12 CON-1, UX-2). The kit README's ComboBox row and `add-ui-component` state the rule. Lands before S16-51, so the refactor carries it.
+**Not this PR.** One-step Return (pick and add at once; the two-step flow of S15-12 AC-2.6 stays); clearing the binding when the field is emptied (the pick is kept, as today); the floating list (S16-51).
+**Check.** Bar 31; table tests on the decision cover each case (highlighted row; untouched field; typed back to the label; cleared with a pick; cleared with no pick; text matching nothing); in a sheet whose only field is a combo box showing its pick, Return still presses the default button.
+**Context.** Rule "(Batch 6) A combo box passes Return on only when its field shows its pick"; `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` (`handleKey`, `commit`, `restoreQuery`, `dismissAndBlur`, `selectedLabel`, `isDirty`); `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` (`submitPick`); `macos/App/Features/Sources/MetadataBoardView.swift` (the Add field row's `.onSubmit`); the S15-12 ship log ([`S15-12-type-suggestions-at-each-level.ship.md`](../spike-15/prs/S15-12-type-suggestions-at-each-level.ship.md)); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).
+
+#### S16-51 — The combo box's list becomes a kit popup list
+
+**Ships.** Preparatory, Swift. The floating list leaves `PVComboBox.swift` (1,166 lines) for a kit popup list on `.pvPopup`: its window and `PVComboBoxPlacement`, following the parent window, the keys (`onKeyPress`: ↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the shared highlight with `PVComboBoxMatch.move` (skipping disabled rows), `.pvScrollsRowIntoView`, and the loading, empty and error lines. `PVComboBox` keeps its picked value, its query and its two-step Escape, and uses `.pvPopup`'s "stays open on a click in its own field" option. Every combo box looks and behaves as today. The combo box's click-away moves from mouse-down to the presenter's mouse-up only if the plan shows a row still commits. Otherwise it keeps mouse-down as an option.
+**Not this PR.** The omnibar (S16-52). The Return rule moves with the keys exactly as S16-57 left it.
+**Check.** The Source type picker, the metadata field picker and the Properties picker filter, move, pick and close as before, at a window's edge too; the combo box tests pass unchanged.
+**Context.** Rule "(Batch 6) One kit popup list"; `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` (`PVComboBoxMatch`, `PVComboBoxPlacement`, the AppKit panel host), `FloatingMenuSelection/PVFloatingMenuSelection.swift`.
+
+#### S16-52 — The omnibar's results use the kit popup list
+
+**Ships.** `OmnibarResultsHost` draws S16-51's kit popup list, as S16-D9 draws it: the list's own window under the field in place of the 640 pt overlay (`OmnibarResultsModel.panelWidth` goes or becomes the list's width), the combo box's card, and Home/End and Page Up/Down. The raw key-code watcher (`keyCode` 53, 125, 126, 36) goes. `CatalogSearchModel.selectedIndex`, `moveSelection` and `selectedHit` move to `OmnibarResultsModel`, and the omnibar's field keeps Return opens and clears, and Escape keeps the query. Fan-out: the hits the search already returns; no new read.
+**Also (structural debt, 2026-11-17).** The results' width is capped to the content column, as the history menu's is (`WorkspaceContent.contentWidth`, `HistoryJumpMenuModel.fittedPanelWidth`). At the 700pt minimum window the 640pt panel today runs about 236pt past the column's left edge. `PVOmnibarHitRow` moves from `DesignSystem/Recipes/` to `DesignSystem/Components/` with `PVTitleText`, since it is content-agnostic and titled with a `String`.
+**Not this PR.** Search ranking or the hit kinds; the omnibar field's own chrome.
+**Check.** Bar 26; ↑/↓/Return still open a record, a failed search still shows its error, and switching apps closes the results.
+**Context.** S16-D9; rule "(Batch 6) One kit popup list"; `macos/App/Features/Workspace/OmnibarResultsHost.swift`, `OmnibarResultsModel.swift`, `macos/App/Features/Catalog/Search/CatalogSearchModel.swift`; [`omnibar-search.md`](../../deployment-plan/archive/spike-3/omnibar-search.md) if its UI section names the overlay.
+
+#### S16-53 — The history menu uses the kit presenter and a kit menu row
+
+**Ships.** A kit menu row (in `ContextMenu/`, beside `PVContextMenuItem`) with a leading glyph, a two-part label (a muted root, `›`, the leaf), a trailing mono ref and the leaf's help tooltip. `HistoryJumpMenuPanel` draws it, so its hand-built `Button` rows and `activeIndex` go. `HistoryJumpMenuHost` moves onto `.pvPopup` with the "ignore right-clicks" and "anchor to the button" options, so its own watcher and `handleKeyDown` go. Rows look as today, and the kit README's "keeps its own presenter" note goes.
+**Not this PR.** The row labels' truncation and wording ([`ideas/history-menu-labels.md`](../../ideas/history-menu-labels.md)); type-select in the history menu.
+**Check.** Bar 27; a long press and a right-click on Back and on Forward each open the menu, switching between them works, and a row opens its place.
+**Context.** Rule "(Batch 6) One kit popup presenter"; `macos/App/Features/Workspace/WorkspaceToolbar.swift` (`HistoryJumpMenuPanel`, `HistoryJumpMenuHost`, `HistoryJumpMenuModel`), `DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`PVContextMenuPanel`, `PVMenuRowButtonStyle`); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) (the jump menu).
+
+### Slice 6e — Stacked toasts
+
+#### S16-58 — Toasts stack in one list per window
+
+**Ships.** A kit `PVToastStack` (`DesignSystem/Components/Toast/`) that draws a list of entries as S16-D10 draws it, each a `PVToast` with its own id, timer and dismiss. A window toast list (an `@Observable` model, named in the plan) that `WorkspaceView` puts in the environment, with add (a repeat refreshes its entry), dismiss and expiry. `WorkspaceView`'s two overlays (`countsToast`, `session.noticeToast`) add to it, and one `PVToastStack` replaces them. `vocabularyToastOverlay` forwards a toast set on its binding into the window list when one is in the environment, and clears the binding. It draws today's single card where there is none (the likeness viewer's sheet). So every workspace page's toasts stack in this PR with no caller change. The Citation composer's toast (`bridgeToast`, drawn today by its own `PVToast` at the foot of the observations column in `CitationComposerSubjectGroups`) moves into the stack too: that overlay goes and `bridgeToast` is added to the window list, as S16-D10 draws it (user, 2026-11-17). It is the one toast that changes place. Fan-out: a handful of entries; each card owns one sleeping task.
+**Not this PR.** Moving callers off their bindings (S16-59); Onboarding's toast; a cap (refused, user 2026-11-17).
+**Check.** Bar 32; the composer's "connected" toast shows in the window's stack, top-trailing, not under the observations column; model tests on the list (two adds keep both; a repeat refreshes; dismissing one keeps the other's expiry), with no window; the likeness viewer still shows the lead's toast in the viewer and not behind it.
+**Context.** S16-D10; rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md); `macos/App/DesignSystem/Components/Toast/PVToast.swift` (its content-keyed `.task(id:)` expiry), `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift` (`vocabularyToastOverlay`), `VocabularyPane.swift` (`VocabularyToast`), `macos/App/Features/Workspace/WorkspaceView.swift`, `macos/App/Features/Conclusions/ConclusionLeadModel.swift` (`toastInViewer`), `macos/App/Features/CitationComposer/CitationComposerSubjectGroups.swift` and `CitationComposerModel.swift` (`bridgeToast`); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md). Lands after S16-56, which edits `WorkspaceView`'s counts toast.
+
+#### S16-59 — Workspace callers add to the toast stack
+
+**Ships.** Preparatory, Swift, no visible change. Each workspace caller adds to the window list instead of setting a `toast` property: the models behind Properties, the Source page, the Sources list, the Source type page, Metadata, the Evidence graph and the Conclusion detail page (`ConclusionLeadModel` when the toast is not in the viewer), and `WorkspaceSession.noticeToast`; the Citation composer's `bridgeToast` property goes too (S16-58 already draws it in the stack). A model reaches the list through what it already holds (likely `WorkspaceSession`); the plan picks one way for all. `vocabularyToastOverlay`'s forwarding goes, so the modifier remains only where a sheet draws its own toast. The models' tests assert on the list instead of a property.
+**Not this PR.** Onboarding's toast; a toast from a sheet joining the window list.
+**Check.** Bar 32 still holds; `rg -n "vocabularyToastOverlay\(" macos/App/Features` lists only sheet surfaces; the models' toast tests pass on the list.
+**Context.** Rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md) "Callers add, they do not set"; the callers named above; [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).

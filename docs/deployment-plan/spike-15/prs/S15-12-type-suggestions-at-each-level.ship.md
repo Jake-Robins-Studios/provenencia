@@ -13,7 +13,7 @@ Reviewers: CON, MNT, UX, SEC+PRF. Skipped: none (diff touches `macos/App/**`, `L
 
 | ID | Lens | Severity | Title | Decision | Evidence / reason |
 | --- | --- | --- | --- | --- | --- |
-| CON-1, UX-2 | CON, UX | major | Return in a cleared or retyped picker adds the earlier, hidden pick | Follow-up (user, 2026-11-15) → `docs/ideas/shared-list-helpers.md` | Verified: `PVComboBox` sets `selection` only in `commit` (`PVComboBox.swift:631`); Return with no active row returns `.ignored` (`:683`), so the list's `.onSubmit` → `submitPick` → `canAssign` sees the old pick. Each fix goes past the plan (§11 stop on a kit change, or AC-2.6 becomes one Return). User chose to defer |
+| CON-1, UX-2 | CON, UX | major | Return in a cleared or retyped picker adds the earlier, hidden pick | Follow-up (user, 2026-11-15) → `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6) | Verified: `PVComboBox` sets `selection` only in `commit` (`PVComboBox.swift:631`); Return with no active row returns `.ignored` (`:683`), so the list's `.onSubmit` → `submitPick` → `canAssign` sees the old pick. Each fix goes past the plan (§11 stop on a kit change, or AC-2.6 becomes one Return). User chose to defer |
 | MNT-1 | MNT | major | List header copies the composer's `stepper` header | Fix now → F-1 | Same-pass cleanup: verified the two blocks match (`rg 'frame\(height: 20\)' macos/App` = these two). Supersedes D-6's deferral and review-log M-2 (b); no researcher-visible change |
 | UX-1 | UX | major | Focus return after Return-add rests on one `Task.yield` | Fix now → F-2 | Verified `submitPick` (`SourceTypeSuggestionList.swift:246-252`); picker is disabled while `suggestionWrite != nil`; precedent defers (`MetadataBoardView.swift:158`) |
 | CON-2 | CON | major | Manual check §10 not run (AC-2.6 focus, AC-1.4, AC-2.5, board) | To user | Manual check is the user's at finish (ship-pr step 8); listed in the report with the D-10 stop condition |
@@ -70,4 +70,4 @@ No new findings. Both reviewers noted, outside the lenses, that the composer's A
 Merged `origin/main` (`bca068ca3`, S16 docs only). Gate PASS against `bca068ca3`.
 
 ## Result
-Gate PASS · CI green · open: none · follow-ups: CON-1/UX-2 (stale pick on Return) → `docs/ideas/shared-list-helpers.md` (user, 2026-11-16) · to user: CON-2 (plan § 10 manual check, incl. the D-10 focus stop condition)
+Gate PASS · CI green · open: none · follow-ups: CON-1/UX-2 (stale pick on Return) → `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6) (user, 2026-11-16) · to user: CON-2 (plan § 10 manual check, incl. the D-10 focus stop condition)

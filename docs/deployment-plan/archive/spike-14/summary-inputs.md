@@ -41,7 +41,7 @@ An input key is one of:
 | A handle's links of one bridge at one end `(H, bridge, end)` | `InputScope.Follow(H, hop)`. `Follow`'s own internal `Node(H)` records nothing more | A link of that bridge with H at that end is created, deleted or merged away, or its values move: a filtered hop (`EventsOfSubject` keeps role subject, `ParentsOfPlace` keeps part_of) can start or stop returning a link whose role or type changed, so the key covers every link of the bridge at that end, not only those the filter returned |
 | An association's values `(A, values)` | `InputScope.Follow` for each link it returns, and `InputScope.Node(A)` | A's rows move (role, type, link dates) or A is deleted |
 
-`InputScope.Nodes(ids)` is a prefetch and records nothing. Vocabulary labels (the one raw query in `compose.go`, `loadVocab`) are not handle inputs. They follow the existing vocabulary drop, which does not rewrite stored search documents (logged in [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md)).
+`InputScope.Nodes(ids)` is a prefetch and records nothing. Vocabulary labels (the one raw query in `compose.go`, `loadVocab`) are not handle inputs. They follow the existing vocabulary drop, which does not rewrite stored search documents (logged in `structural-debt.md` (retired 2026-11-17; split into topic idea files)).
 
 Keying links by bridge and end is what keeps the city cheap. Events at the city use `(city, values)` for its name and `(city, place_relationship, from)` for its parent chain, never `(city, location, place)`.
 
@@ -120,6 +120,6 @@ At the map's Scale (37,000 Subjects) the index is a few hundred thousand rows.
 - The effects registry for layer 1 (`Set.Handles`), the audit scopes and `Set.Search` for Source and Evidence graph documents.
 - The rebuild-equals-upkeep tests, which now also compare the index with a rebuild.
 - `graphcache` `detachAssociation` and `mergedNeighbors`, for node reloads and memo roots only; display rows drop from `SummaryDeps` alone.
-- The kinship memo slots (`canonlinks`, `DropOnHandleCommit`) stay as they are. Moving them onto the scope API is a later step ([`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md)).
+- The kinship memo slots (`canonlinks`, `DropOnHandleCommit`) stay as they are. Moving them onto the scope API is a later step (`structural-debt.md` (retired 2026-11-17; split into topic idea files)).
 - Detail pages are not dependents in the index. They reload by id from `touchedHandles`, and step 5 tells the app the ends of changed links.
 - No production code merges handles today (`merged_into_id` is set only by `graphcachetest`). The merge rows above are held by a `graphcachetest` merge test.

@@ -119,8 +119,8 @@ The Person page's claims read (the Sources section's groups and claims) stops lo
 | Each Observation's Citation label, page, Artifact id and uncertainty flag in the records | S16-30 |
 | The provenance sheet and the detail read composing from the records | S16-30 |
 | Candidates re-ranking only what moved; the generation check going | S16-32 |
-| Record links building layers without the whole loaded graph; a layer or loaded-graph cap above 64 | not planned ([`structural-debt.md`](../../../ideas/structural-debt.md) batch graph read) |
-| A batch fill of several graphs' records in one query set | [`structural-debt.md`](../../../ideas/structural-debt.md) (S13-16 PRF-2) |
+| Record links building layers without the whole loaded graph; a layer or loaded-graph cap above 64 | not planned (`structural-debt.md` (retired 2026-11-17; split into topic idea files) batch graph read) |
+| A batch fill of several graphs' records in one query set | `structural-debt.md` (retired 2026-11-17; split into topic idea files) (S13-16 PRF-2) |
 | The claims read reporting its inputs | S16-24 |
 | `BenchmarkSourceRecords` sharing `ScaleSeed` (review M-9) | not planned |
 

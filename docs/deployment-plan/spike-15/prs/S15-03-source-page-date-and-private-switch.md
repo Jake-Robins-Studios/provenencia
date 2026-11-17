@@ -111,9 +111,9 @@ On the Source page, a researcher sets, changes and clears the Source's own date 
 | Move on Artifact and graph cards (SD-14) | S15-25 |
 | Copy Source carrying the date | S15-32 |
 | Any use of the Private flag (badge, filter, sharing) | not planned in this spike (working rule) |
-| Not found from the note, metadata, credibility and Artifact packages and from the Copy and graph form models (`SourceCopyModel`, `SourceGraphFormModel`) when their Source is gone | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) gains a line (STEP-8) |
-| Delete from this page after the Source was deleted elsewhere: `DeleteImpactFlow` reports `sources.not_found` as its own error, not through `fail` | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) gains a line (STEP-8) |
-| Moving the shared date form's `L10n.Sources.date*` keys to `L10n.Dates` | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) gains a line (STEP-8) |
+| Not found from the note, metadata, credibility and Artifact packages and from the Copy and graph form models (`SourceCopyModel`, `SourceGraphFormModel`) when their Source is gone | `structural-debt.md` (retired 2026-11-17; split into topic idea files) gains a line (STEP-8) |
+| Delete from this page after the Source was deleted elsewhere: `DeleteImpactFlow` reports `sources.not_found` as its own error, not through `fail` | `structural-debt.md` (retired 2026-11-17; split into topic idea files) gains a line (STEP-8) |
+| Moving the shared date form's `L10n.Sources.date*` keys to `L10n.Dates` | `structural-debt.md` (retired 2026-11-17; split into topic idea files) gains a line (STEP-8) |
 
 ## 4. Current state
 

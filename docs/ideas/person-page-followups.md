@@ -1,14 +1,6 @@
 # Person page follow-ups
 
-**Status:** idea only — not roadmapped. Low-priority Person page items from the [2026-11-08 audit](../deployment-plan/spike-16/person-page-audit.md), parked by the user the same day. One needs a product call before anyone builds it (marked). Pull one in when the code it names next changes, or as a batch of an odds-and-ends spike.
-
-## Birth and death event counts have no plural (P-18)
-
-`provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` read `%#@records@ from %2$lld birth events`: the records count has a plural substitution, the events count does not (its sibling `recordsFromPlaces` has both). English is right because the count is always two or more (`PVProvenanceSheetContent.swift` 325); languages with few and many forms are not. `scripts/check-localizable-xcstrings.py` (96) skips any entry with a substitution, so the bare count passes. **Shape:** add an `events` substitution, and make the check test each `%n$lld <word>` that is not itself a substitution.
-
-## Back resets a section's place (P-19) — product call
-
-Walking the family or the timeline person to person and pressing Back lands at the top of the previous person's section, with its folds closed and nothing focused: the page is keyed by entity id (`PlaceRegistry.swift` 200), folds are view state, and `WorkspaceLocation` holds no scroll position for a section (only list roots keep `listScrollAnchor`, `WorkspaceNavigation.swift` 233). The fold half was raised for Sources in S13-16 (UX-5) and declined by the user; the scroll and focus half was never asked. **Shape, if wanted:** a per-section anchor (the last opened row or tile) restored and focused on Back, as `listScrollAnchor` does for lists.
+**Status:** idea only — not roadmapped. Low-priority Person page items from the [2026-11-08 audit](../deployment-plan/spike-16/person-page-audit.md), parked by the user the same day. P-18 and P-19 went to Spike 16 Batch 6 (S16-47, S16-46; 2026-11-17). Pull one in when the code it names next changes, or as a batch of an odds-and-ends spike.
 
 ## The Conclusion lists hide a refresh failure too (map review K-2)
 
@@ -21,3 +13,7 @@ A record links line over `MaxPairWork` or `MaxEntityMembers` keeps 0 facts and n
 ## Nothing caps how many Evidence graphs one person spans (S16-01)
 
 Nothing caps how many Evidence graphs one person spans; the Person page reads are linear in it (S16-01). The real Scale is 50. **Shape:** if a crafted project needs it, one more cap beside the records-per-graph one.
+
+## The record links read repeats the claims read's graph rows
+
+The record links read (`RecordLinksGraph`) repeats the claims read's graph rows, and Swift joins the two reads for the diagram's labels and locations. Make the claims read the one owner of graph labels, so the record links read returns graph ids (in claims order) and pairs. `RecordLinksGraph` still carries `graph_ref`, `graph_name` and `source_title` (`engine.proto`), and Swift still labels the diagram's nodes from them while taking locations from the claims read (`PersonRecordLinksContent.swift`). (P-22, Person page audit)

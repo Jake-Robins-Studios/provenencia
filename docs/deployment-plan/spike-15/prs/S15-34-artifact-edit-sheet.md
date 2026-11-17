@@ -115,7 +115,7 @@ An Artifact is edited in one sheet instead of on its card: label, description, t
 | Move to another Source… on an Artifact | S15-25 |
 | Flagging fields a citation needs on a board | S15-39 |
 | Unknown and Supplied on a row | S15-41 |
-| Reordering saved rows by keyboard | [`docs/ideas/keyboard-reorder.md`](../../../ideas/keyboard-reorder.md) |
+| Reordering saved rows by keyboard | [`spike-15/keyboard-reorder.md` (S15-51)](../keyboard-reorder.md) |
 | Filling copy details from a URL | [`docs/ideas/registry-source-import.md`](../../../ideas/registry-source-import.md) |
 | A Swift test of the sheet's SwiftUI layout or key routing beyond the pure rules in T-1 | not planned: `swift-tests.mdc` tests models and pure rules; the manual check covers keys |
 

@@ -86,8 +86,8 @@ A researcher copying a Source chooses whether the copy keeps the original's publ
 | A date on the Add Source dialog | Not planned |
 | The value-row owner check in `datevalues.PutTx` | [`docs/ideas/value-row-owner-check.md`](../../../ideas/value-row-owner-check.md) (D-6) |
 | A date on `sources.CreateInput` | Not planned (D-2) |
-| `SourceCopyModel` routing `sources.not_found` through `SourcePageContext.fail` | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md) row "S15-03 plan": the model is also hosted from the Sources list, which has no `SourcePageContext`, so the route needs its own design; that row gains "S15-32 left it: two hosts" (STEP-6) |
-| Renaming `SourcesRowDate` (its callers are now a row, the page header and the Copy form) | [`docs/ideas/structural-debt.md`](../../../ideas/structural-debt.md), a new row (STEP-6) |
+| `SourceCopyModel` routing `sources.not_found` through `SourcePageContext.fail` | `structural-debt.md` (retired 2026-11-17; split into topic idea files) row "S15-03 plan": the model is also hosted from the Sources list, which has no `SourcePageContext`, so the route needs its own design; that row gains "S15-32 left it: two hosts" (STEP-6) |
+| Renaming `SourcesRowDate` (its callers are now a row, the page header and the Copy form) | `structural-debt.md` (retired 2026-11-17; split into topic idea files), a new row (STEP-6) |
 | A `SourceCopyParts` value in place of the Bool parameters of `copySource` | Not planned (no further Copy part is named in the map) |
 
 ## 4. Current state
