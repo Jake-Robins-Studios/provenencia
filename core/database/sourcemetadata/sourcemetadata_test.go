@@ -693,20 +693,37 @@ func values(t *testing.T, c *database.Catalog, sourceID []byte) []Row {
 }
 
 func runSet(c *database.Catalog, userID, sourceID []byte, in Input) (Row, error) {
-	row, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-		func(tx *database.Tx) (Row, []rowchange.Change, error) {
-			return Set(tx, userID, sourceOwner(sourceID), in)
-		})
+	row, _, err := runSetOwner(c, userID, sourceOwner(sourceID), in)
 	return row, err
 }
 
 func runClear(c *database.Catalog, userID, sourceID, fieldID []byte) error {
+	_, err := runClearOwner(c, userID, sourceOwner(sourceID), fieldID)
+	return err
+}
+
+// runSetOwner runs Set on any owner in its own transaction.
+func runSetOwner(c *database.Catalog, userID []byte, owner Owner, in Input) (Row, []rowchange.Change, error) {
+	var changes []rowchange.Change
+	row, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
+		func(tx *database.Tx) (Row, []rowchange.Change, error) {
+			r, ch, err := Set(tx, userID, owner, in)
+			changes = ch
+			return r, ch, err
+		})
+	return row, changes, err
+}
+
+// runClearOwner runs Clear on any owner in its own transaction.
+func runClearOwner(c *database.Catalog, userID []byte, owner Owner, fieldID []byte) ([]rowchange.Change, error) {
+	var changes []rowchange.Change
 	_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
 		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Clear(tx, userID, sourceOwner(sourceID), fieldID)
+			var err error
+			changes, err = Clear(tx, userID, owner, fieldID)
 			return struct{}{}, changes, err
 		})
-	return err
+	return changes, err
 }
 
 func runDismissSuggestion(c *database.Catalog, userID, sourceID, fieldID []byte) error {
@@ -1257,20 +1274,7 @@ func readOwnerDraft(t *testing.T, c *database.Catalog, o Owner) Draft {
 
 func readDraft(t *testing.T, c *database.Catalog, sourceID []byte) Draft {
 	t.Helper()
-	db, err := c.DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	tx, err := db.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Rollback()
-	d, err := ReadDraftTx(tx, sourceOwner(sourceID))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return d
+	return readOwnerDraft(t, c, sourceOwner(sourceID))
 }
 
 func changeShape(ch []rowchange.Change) []string {
@@ -2305,25 +2309,12 @@ type ownerOps struct {
 
 func (o ownerOps) set(in Input) (Row, []rowchange.Change, error) {
 	o.t.Helper()
-	var changes []rowchange.Change
-	row, _, err := writes.Run(o.c, writes.Op{Action: "update_metadata", UserID: o.userID},
-		func(tx *database.Tx) (Row, []rowchange.Change, error) {
-			r, ch, err := Set(tx, o.userID, o.owner, in)
-			changes = ch
-			return r, ch, err
-		})
-	return row, changes, err
+	return runSetOwner(o.c, o.userID, o.owner, in)
 }
 
 func (o ownerOps) clear(fieldID []byte) []rowchange.Change {
 	o.t.Helper()
-	var changes []rowchange.Change
-	_, _, err := writes.Run(o.c, writes.Op{Action: "update_metadata", UserID: o.userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			var err error
-			changes, err = Clear(tx, o.userID, o.owner, fieldID)
-			return struct{}{}, changes, err
-		})
+	changes, err := runClearOwner(o.c, o.userID, o.owner, fieldID)
 	if err != nil {
 		o.t.Fatal(err)
 	}
@@ -2364,106 +2355,139 @@ func TestValueMarks(t *testing.T) {
 			o := ownerOps{t: t, c: c, userID: userID, owner: owner}
 			unknown, supplied := valuemark.Mark{Unknown: true}, valuemark.Mark{Supplied: true}
 
-			// Unknown, no text: stored with a NULL text.
-			row, changes, err := o.set(Input{FieldID: f1.ID, Mark: unknown})
-			if err != nil || row.Mark != unknown || row.ValueText != "" || len(changes) != 1 {
-				t.Fatalf("unknown = %+v, %v, %d changes", row, err, len(changes))
+			// The steps on f1 run in order: each starts from the row the one before left.
+			t.Run("unknown, no text, is stored with a NULL text", func(t *testing.T) {
+				row, changes, err := o.set(Input{FieldID: f1.ID, Mark: unknown})
+				if err != nil || row.Mark != unknown || row.ValueText != "" || len(changes) != 1 {
+					t.Fatalf("unknown = %+v, %v, %d changes", row, err, len(changes))
+				}
+				if textNull, u, s, n := o.stored(f1.ID); n != 1 || !textNull || u != 1 || s != 0 {
+					t.Fatalf("stored unknown = %v %d %d %d", textNull, u, s, n)
+				}
+			})
+			t.Run("the same unknown again changes nothing, blank text counting as no text", func(t *testing.T) {
+				if _, changes, err := o.set(Input{FieldID: f1.ID, ValueText: "   ", Mark: unknown}); err != nil || len(changes) != 0 {
+					t.Fatalf("repeat = %v, %d changes", err, len(changes))
+				}
+			})
+			t.Run("text and no mark over unknown is an update to a plain value", func(t *testing.T) {
+				row, changes, err := o.set(Input{FieldID: f1.ID, ValueText: "Lawrence"})
+				if err != nil || row.Mark != (valuemark.Mark{}) || row.ValueText != "Lawrence" || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate {
+					t.Fatalf("plain over unknown = %+v, %v, %+v", row, err, changes)
+				}
+			})
+			t.Run("unknown over text again", func(t *testing.T) {
+				if _, _, err := o.set(Input{FieldID: f1.ID, Mark: unknown}); err != nil {
+					t.Fatal(err)
+				}
+			})
+			t.Run("dismissing a field that holds an unknown value is a no-op", func(t *testing.T) {
+				_, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+						ch, err := DismissSuggestion(tx, userID, owner, f1.ID)
+						if len(ch) != 0 {
+							t.Errorf("dismiss changes %+v", ch)
+						}
+						return struct{}{}, ch, err
+					})
+				if err != nil {
+					t.Fatal(err)
+				}
+			})
+			t.Run("the field is in use while an unknown value holds it", func(t *testing.T) {
+				_, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
+					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+						ch, err := metadatafields.Delete(tx, userID, f1.ID)
+						return struct{}{}, ch, err
+					})
+				if !errors.Is(err, metadatafields.ErrInUse) {
+					t.Fatalf("delete field = %v, want ErrInUse", err)
+				}
+			})
+			t.Run("clearing an unknown value deletes its row", func(t *testing.T) {
+				if ch := o.clear(f1.ID); len(ch) != 1 || ch[0].Action != rowchange.ActionDelete {
+					t.Fatalf("clear = %+v", ch)
+				}
+				if _, _, _, n := o.stored(f1.ID); n != 0 {
+					t.Fatalf("row left after clear: %d", n)
+				}
+			})
+
+			// Refused marks name the field and write nothing; an empty value
+			// with no mark is still the old refusal.
+			refused := []struct {
+				name     string
+				in       Input
+				wantMark bool
+			}{
+				{"unknown with text", Input{FieldID: f2.ID, ValueText: "Topeka", Mark: unknown}, true},
+				{"both marks", Input{FieldID: f2.ID, Mark: valuemark.Mark{Unknown: true, Supplied: true}}, true},
+				{"supplied with blank text", Input{FieldID: f2.ID, ValueText: "  ", Mark: supplied}, true},
+				{"empty with no mark", Input{FieldID: f2.ID}, false},
 			}
-			if textNull, u, s, n := o.stored(f1.ID); n != 1 || !textNull || u != 1 || s != 0 {
-				t.Fatalf("stored unknown = %v %d %d %d", textNull, u, s, n)
-			}
-			// The same unknown again (blank text counts as no text): nothing changes.
-			if _, changes, err := o.set(Input{FieldID: f1.ID, ValueText: "   ", Mark: unknown}); err != nil || len(changes) != 0 {
-				t.Fatalf("repeat = %v, %d changes", err, len(changes))
-			}
-			// Text and no mark over unknown: an update to a plain value.
-			row, changes, err = o.set(Input{FieldID: f1.ID, ValueText: "Lawrence"})
-			if err != nil || row.Mark != (valuemark.Mark{}) || row.ValueText != "Lawrence" || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate {
-				t.Fatalf("plain over unknown = %+v, %v, %+v", row, err, changes)
-			}
-			// Clearing an unknown value deletes its row.
-			if _, _, err := o.set(Input{FieldID: f1.ID, Mark: unknown}); err != nil {
-				t.Fatal(err)
-			}
-			// Dismissing a field that holds an unknown value is a no-op.
-			_, _, err = writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-				func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := DismissSuggestion(tx, userID, owner, f1.ID)
-					if len(ch) != 0 {
-						t.Errorf("dismiss changes %+v", ch)
+			for _, tt := range refused {
+				t.Run("refused: "+tt.name, func(t *testing.T) {
+					_, changes, err := o.set(tt.in)
+					if tt.wantMark {
+						if !errors.Is(err, valuemark.ErrInvalid) || len(changes) != 0 {
+							t.Fatalf("set %+v = %v", tt.in, err)
+						}
+						if got := errParams(t, err); !slices.Equal(got, []string{database.UUIDString(f2.ID)}) {
+							t.Fatalf("params %v", got)
+						}
+					} else if !errors.Is(err, ErrInvalid) || errors.Is(err, valuemark.ErrInvalid) {
+						t.Fatalf("set %+v = %v, want ErrInvalid", tt.in, err)
 					}
-					return struct{}{}, ch, err
+					if _, _, _, n := o.stored(f2.ID); n != 0 {
+						t.Fatalf("refused set wrote a row")
+					}
 				})
-			if err != nil {
-				t.Fatal(err)
-			}
-			// The field is in use while an unknown value holds it.
-			_, _, err = writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
-				func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := metadatafields.Delete(tx, userID, f1.ID)
-					return struct{}{}, ch, err
-				})
-			if !errors.Is(err, metadatafields.ErrInUse) {
-				t.Fatalf("delete field = %v, want ErrInUse", err)
-			}
-			if ch := o.clear(f1.ID); len(ch) != 1 || ch[0].Action != rowchange.ActionDelete {
-				t.Fatalf("clear = %+v", ch)
-			}
-			if _, _, _, n := o.stored(f1.ID); n != 0 {
-				t.Fatalf("row left after clear: %d", n)
 			}
 
-			// Refused marks name the field and write nothing.
-			for _, in := range []Input{
-				{FieldID: f2.ID, ValueText: "Topeka", Mark: unknown},
-				{FieldID: f2.ID, Mark: valuemark.Mark{Unknown: true, Supplied: true}},
-				{FieldID: f2.ID, ValueText: "  ", Mark: supplied},
-			} {
-				_, changes, err := o.set(in)
-				if !errors.Is(err, valuemark.ErrInvalid) || len(changes) != 0 {
-					t.Fatalf("set %+v = %v", in, err)
+			t.Run("supplied text is stored with its mark, and a repeat changes nothing", func(t *testing.T) {
+				row, _, err := o.set(Input{FieldID: f2.ID, ValueText: "Topeka", Mark: supplied})
+				if err != nil || row.Mark != supplied || row.ValueText != "Topeka" {
+					t.Fatalf("supplied = %+v, %v", row, err)
 				}
-				if got := errParams(t, err); !slices.Equal(got, []string{database.UUIDString(f2.ID)}) {
-					t.Fatalf("params %v", got)
+				if _, changes, err := o.set(Input{FieldID: f2.ID, ValueText: "Topeka", Mark: supplied}); err != nil || len(changes) != 0 {
+					t.Fatalf("repeat supplied = %v, %d changes", err, len(changes))
 				}
-				if _, _, _, n := o.stored(f2.ID); n != 0 {
-					t.Fatalf("refused set wrote a row")
-				}
-			}
-			// An empty value with no mark is still the old refusal.
-			if _, _, err := o.set(Input{FieldID: f2.ID}); !errors.Is(err, ErrInvalid) || errors.Is(err, valuemark.ErrInvalid) {
-				t.Fatalf("empty = %v, want ErrInvalid", err)
-			}
-
-			// Supplied text is stored with its mark, and a repeat changes nothing.
-			row, _, err = o.set(Input{FieldID: f2.ID, ValueText: "Topeka", Mark: supplied})
-			if err != nil || row.Mark != supplied || row.ValueText != "Topeka" {
-				t.Fatalf("supplied = %+v, %v", row, err)
-			}
-			if _, changes, err := o.set(Input{FieldID: f2.ID, ValueText: "Topeka", Mark: supplied}); err != nil || len(changes) != 0 {
-				t.Fatalf("repeat supplied = %v, %d changes", err, len(changes))
-			}
+			})
 
 			// A url field: unknown has no text; supplied is canonicalized as any url is; a non-link is refused.
-			row, _, err = o.set(Input{FieldID: link.ID, Mark: unknown})
-			if err != nil || row.ValueText != "" {
-				t.Fatalf("url unknown = %+v, %v", row, err)
+			urls := []struct {
+				name     string
+				in       Input
+				wantErr  bool
+				wantText string
+				wantHref string
+				wantU    int
+				wantS    int
+			}{
+				{name: "unknown has no text and no href", in: Input{FieldID: link.ID, Mark: unknown}, wantU: 1},
+				{name: "supplied is canonicalized for the href", in: Input{FieldID: link.ID, ValueText: "ancestry.com/x", Mark: supplied},
+					wantText: "ancestry.com/x", wantHref: "https://ancestry.com/x", wantS: 1},
+				{name: "a supplied non-link is refused", in: Input{FieldID: link.ID, ValueText: "not a link", Mark: supplied}, wantErr: true},
 			}
-			if href := (WorkspaceEntry{Field: link, Value: &row}).OpenHref(); href != "" {
-				t.Fatalf("unknown url href %q", href)
-			}
-			row, _, err = o.set(Input{FieldID: link.ID, ValueText: "ancestry.com/x", Mark: supplied})
-			if err != nil || row.ValueText != "ancestry.com/x" || row.Mark != supplied {
-				t.Fatalf("url supplied = %+v, %v", row, err)
-			}
-			if _, u, s, _ := o.stored(link.ID); u != 0 || s != 1 {
-				t.Fatalf("url is_unknown %d is_supplied %d", u, s)
-			}
-			if href := (WorkspaceEntry{Field: link, Value: &row}).OpenHref(); href != "https://ancestry.com/x" {
-				t.Fatalf("supplied url href %q", href)
-			}
-			if _, _, err := o.set(Input{FieldID: link.ID, ValueText: "not a link", Mark: supplied}); !errors.Is(err, ErrInvalid) {
-				t.Fatalf("supplied non-link = %v, want ErrInvalid", err)
+			for _, tt := range urls {
+				t.Run("url: "+tt.name, func(t *testing.T) {
+					row, _, err := o.set(tt.in)
+					if tt.wantErr {
+						if !errors.Is(err, ErrInvalid) {
+							t.Fatalf("set = %v, want ErrInvalid", err)
+						}
+						return
+					}
+					if err != nil || row.ValueText != tt.wantText || row.Mark != tt.in.Mark {
+						t.Fatalf("set = %+v, %v", row, err)
+					}
+					if _, u, s, _ := o.stored(link.ID); u != tt.wantU || s != tt.wantS {
+						t.Fatalf("is_unknown %d is_supplied %d", u, s)
+					}
+					if href := (WorkspaceEntry{Field: link, Value: &row}).OpenHref(); href != tt.wantHref {
+						t.Fatalf("href %q, want %q", href, tt.wantHref)
+					}
+				})
 			}
 
 			// The table refuses what Go refuses, for a crafted write.
@@ -2472,108 +2496,112 @@ func TestValueMarks(t *testing.T) {
 				t.Fatal(err)
 			}
 			st := stores[level]
-			for _, args := range [][]any{{"text", 1, 0}, {nil, 0, 1}, {nil, 1, 1}, {"text", 2, 0}} {
-				id, err := uuid.NewV7()
-				if err != nil {
-					t.Fatal(err)
-				}
-				_, err = db.Exec(st.insert, id[:], owner.ID, doc.ID, args[0], args[1], args[2])
-				if err == nil || !database.IsConstraintViolation(err) {
-					t.Fatalf("crafted insert %v = %v, want a constraint error", args, err)
-				}
+			crafted := []struct {
+				name string
+				args []any
+			}{
+				{"unknown with text", []any{"text", 1, 0}},
+				{"supplied with no text", []any{nil, 0, 1}},
+				{"both marks", []any{nil, 1, 1}},
+				{"is_unknown out of range", []any{"text", 2, 0}},
+			}
+			for _, tt := range crafted {
+				t.Run("crafted insert: "+tt.name, func(t *testing.T) {
+					id, err := uuid.NewV7()
+					if err != nil {
+						t.Fatal(err)
+					}
+					_, err = db.Exec(st.insert, id[:], owner.ID, doc.ID, tt.args[0], tt.args[1], tt.args[2])
+					if err == nil || !database.IsConstraintViolation(err) {
+						t.Fatalf("crafted insert %v = %v, want a constraint error", tt.args, err)
+					}
+				})
 			}
 		})
 	}
 }
 
+// markDiff is one field diff a value change is expected to carry.
+type markDiff struct {
+	key      string
+	old, new any
+}
+
+// checkChange fails unless ch has exactly the field keys and the diffs listed.
+func checkChange(t *testing.T, ch rowchange.Change, keys []string, diffs []markDiff) {
+	t.Helper()
+	if !slices.Equal(fieldKeys(ch), keys) {
+		t.Fatalf("%s keys %v, want %v", ch.Action, fieldKeys(ch), keys)
+	}
+	for _, w := range diffs {
+		if d := ch.Fields[w.key]; d.Old != w.old || d.New != w.new {
+			t.Fatalf("%s %s = %+v, want old %v new %v", ch.Action, w.key, d, w.old, w.new)
+		}
+	}
+}
+
 func TestValueMarkChanges(t *testing.T) {
-	c, userID, src, _, _, f1, f2 := applyWorld(t)
-	o := ownerOps{t: t, c: c, userID: userID, owner: sourceOwner(src.ID)}
 	unknown, supplied := valuemark.Mark{Unknown: true}, valuemark.Mark{Supplied: true}
-	diff := func(ch rowchange.Change, key string) rowchange.FieldDiff {
-		t.Helper()
-		d, ok := ch.Fields[key]
-		if !ok {
-			t.Fatalf("%s change has no %s: %v", ch.Action, key, fieldKeys(ch))
+	// Each case sets prior (if any), then in, and wants the one change in's set
+	// makes: its action's field keys and the diffs listed.
+	tests := []struct {
+		name     string
+		prior    []Input // set first, on f2
+		in       Input
+		onF1     bool // run on f1 instead of f2
+		wantKeys []string
+		wantDiff []markDiff
+	}{
+		{name: "create unknown", in: Input{Mark: unknown}, onF1: true,
+			wantKeys: []string{"field_id", "id", "is_supplied", "is_unknown", "source_id", "value_text"},
+			wantDiff: []markDiff{{"value_text", nil, nil}, {"is_unknown", nil, true}, {"is_supplied", nil, false}}},
+		{name: "text over unknown", prior: []Input{{Mark: unknown}}, in: Input{ValueText: "Lawrence"}, onF1: true,
+			wantKeys: []string{"is_unknown", "value_text"},
+			wantDiff: []markDiff{{"value_text", nil, "Lawrence"}, {"is_unknown", true, false}}},
+		{name: "new text on a supplied value", prior: []Input{{ValueText: "A", Mark: supplied}}, in: Input{ValueText: "B", Mark: supplied},
+			wantKeys: []string{"value_text"}},
+		{name: "supplied to unknown", prior: []Input{{ValueText: "B", Mark: supplied}}, in: Input{Mark: unknown},
+			wantKeys: []string{"is_supplied", "is_unknown", "value_text"},
+			wantDiff: []markDiff{{"value_text", "B", nil}, {"is_unknown", false, true}, {"is_supplied", true, false}}},
+		{name: "text with no mark to unknown has no is_supplied diff", prior: []Input{{ValueText: "A"}}, in: Input{Mark: unknown},
+			wantKeys: []string{"is_unknown", "value_text"},
+			wantDiff: []markDiff{{"value_text", "A", nil}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, userID, src, _, _, f1, f2 := applyWorld(t)
+			o := ownerOps{t: t, c: c, userID: userID, owner: sourceOwner(src.ID)}
+			field := f2
+			if tt.onF1 {
+				field = f1
+			}
+			for _, p := range tt.prior {
+				p.FieldID = field.ID
+				if _, _, err := o.set(p); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tt.in.FieldID = field.ID
+			_, changes, err := o.set(tt.in)
+			if err != nil || len(changes) != 1 {
+				t.Fatalf("changes %+v, %v", changes, err)
+			}
+			checkChange(t, changes[0], tt.wantKeys, tt.wantDiff)
+		})
+	}
+
+	t.Run("delete a supplied value", func(t *testing.T) {
+		c, userID, src, _, _, _, f2 := applyWorld(t)
+		o := ownerOps{t: t, c: c, userID: userID, owner: sourceOwner(src.ID)}
+		if _, _, err := o.set(Input{FieldID: f2.ID, ValueText: "A", Mark: supplied}); err != nil {
+			t.Fatal(err)
 		}
-		return d
-	}
-	one := func(changes []rowchange.Change, err error) rowchange.Change {
-		t.Helper()
-		if err != nil || len(changes) != 1 {
-			t.Fatalf("changes %+v, %v", changes, err)
+		changes := o.clear(f2.ID)
+		if len(changes) != 1 {
+			t.Fatalf("changes %+v", changes)
 		}
-		return changes[0]
-	}
-	set := func(in Input) rowchange.Change {
-		t.Helper()
-		_, ch, err := o.set(in)
-		return one(ch, err)
-	}
-	want := func(ch rowchange.Change, keys ...string) {
-		t.Helper()
-		if !slices.Equal(fieldKeys(ch), keys) {
-			t.Fatalf("%s keys %v, want %v", ch.Action, fieldKeys(ch), keys)
-		}
-	}
-
-	ch := set(Input{FieldID: f1.ID, Mark: unknown})
-	want(ch, "field_id", "id", "is_supplied", "is_unknown", "source_id", "value_text")
-	if d := diff(ch, "value_text"); d.Old != nil || d.New != nil {
-		t.Fatalf("create value_text %+v", d)
-	}
-	if d := diff(ch, "is_unknown"); d.Old != nil || d.New != true {
-		t.Fatalf("create is_unknown %+v", d)
-	}
-	if d := diff(ch, "is_supplied"); d.Old != nil || d.New != false {
-		t.Fatalf("create is_supplied %+v", d)
-	}
-
-	ch = set(Input{FieldID: f1.ID, ValueText: "Lawrence"})
-	want(ch, "is_unknown", "value_text")
-	if d := diff(ch, "value_text"); d.Old != nil || d.New != "Lawrence" {
-		t.Fatalf("update value_text %+v", d)
-	}
-	if d := diff(ch, "is_unknown"); d.Old != true || d.New != false {
-		t.Fatalf("update is_unknown %+v", d)
-	}
-
-	set(Input{FieldID: f2.ID, ValueText: "A", Mark: supplied})
-	ch = set(Input{FieldID: f2.ID, ValueText: "B", Mark: supplied})
-	want(ch, "value_text")
-
-	ch = set(Input{FieldID: f2.ID, Mark: unknown})
-	want(ch, "is_supplied", "is_unknown", "value_text")
-	if d := diff(ch, "value_text"); d.Old != "B" || d.New != nil {
-		t.Fatalf("to unknown value_text %+v", d)
-	}
-	if d := diff(ch, "is_unknown"); d.Old != false || d.New != true {
-		t.Fatalf("to unknown is_unknown %+v", d)
-	}
-	if d := diff(ch, "is_supplied"); d.Old != true || d.New != false {
-		t.Fatalf("to unknown is_supplied %+v", d)
-	}
-
-	// Text with no mark, then unknown: no is_supplied diff.
-	ch = set(Input{FieldID: f2.ID, ValueText: "A"})
-	want(ch, "is_unknown", "value_text")
-	ch = set(Input{FieldID: f2.ID, Mark: unknown})
-	want(ch, "is_unknown", "value_text")
-	if d := diff(ch, "value_text"); d.Old != "A" || d.New != nil {
-		t.Fatalf("A to unknown value_text %+v", d)
-	}
-
-	// Delete a supplied value.
-	set(Input{FieldID: f2.ID, ValueText: "A", Mark: supplied})
-	ch = one(o.clear(f2.ID), nil)
-	want(ch, "field_id", "id", "is_supplied", "is_unknown", "source_id", "value_text")
-	if d := diff(ch, "is_unknown"); d.Old != false || d.New != nil {
-		t.Fatalf("delete is_unknown %+v", d)
-	}
-	if d := diff(ch, "is_supplied"); d.Old != true || d.New != nil {
-		t.Fatalf("delete is_supplied %+v", d)
-	}
-	if d := diff(ch, "value_text"); d.Old != "A" || d.New != nil {
-		t.Fatalf("delete value_text %+v", d)
-	}
+		checkChange(t, changes[0],
+			[]string{"field_id", "id", "is_supplied", "is_unknown", "source_id", "value_text"},
+			[]markDiff{{"is_unknown", false, nil}, {"is_supplied", true, nil}, {"value_text", "A", nil}})
+	})
 }
