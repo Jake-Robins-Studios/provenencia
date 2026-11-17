@@ -1,7 +1,7 @@
 # Review — S15-18 A Source type can be copied
 
-**Verdict:** Fits with changes — Ready with changes (round 1)
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes; every finding Fixed or Declined with evidence, no blocker open
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 - None.
@@ -83,3 +83,43 @@
 
 ### X-10 · nit · status and map row out of step
 Logged; set when the plan is Planned.
+
+## Round 2
+
+Fresh reviewers checked the round 1 answers against the plan and the code at `8a3e333`; all held. Verdicts: maintainability Fits with changes; executability Ready with changes.
+
+### M-11 · blocker · IN-list placeholders hand-built beside `database.SQLInPlaceholders`
+`core/database/sqlin.go` `SQLInPlaceholders` is the bind-list helper (7 callers).
+**Answer:** Fixed — D-5 builds the list with `database.SQLInPlaceholders(len(levels))`.
+
+### M-12 · minor · `PVFormLoadArea` reads as a component, not a recipe
+No product noun in either promoted view (`docs/design-system-layers.md` § 1).
+**Answer:** Fixed — D-14, STEP-5 and § 6 put `PVFormLoadArea` and `PVCopyPartTick` under `DesignSystem/Components/`. Supersedes the `Recipes/` paths in M-3's answer.
+
+### F-1 · blocker · STEP-5 misses `SourceGraphFormModel.swift`
+**Answer:** Fixed — STEP-5's files and D-14's caller list include it; callers' strings and ids stay.
+
+### F-2 · major · `CitationForm` parity row will not parse a one-line enum
+`rawCase` reads one `case` per line.
+**Answer:** Fixed — D-7 states one case per line, the `swiftCitationForm` constant and the exact row.
+
+### F-3 · major · Header layout in `loading`
+**Answer:** Fixed — D-9: the top row keeps `space5` with the eyebrow first; Copy and the trash share a nested `HStack(spacing: space4)` in both branches.
+
+### F-4 · major · `SourceTypeCopyModel` behaviors unspecified
+**Answer:** Fixed — D-8: `prefill` is the initial choices; `loadFormats()` returns when ready; `copy()` follows `SourceCopyModel.copy()` (guards on `isSaving` and `.ready`, clears `copyError`, `session.projectKey.projectDir`).
+
+### F-5 · minor · DoD cites the wrong doc section
+**Answer:** Fixed — a new § 4.3 after § 4.2 Copy Source; Context, STEP-10 and DoD agree.
+
+### F-6 · minor · Ambiguous doc paths
+**Answer:** Fixed — STEP-10 uses full paths; no change to `docs/design-system-layers.md`.
+
+### F-7 · minor · Expected lint warning
+**Answer:** Fixed — STEP-10's check names the expected warning.
+
+### F-8 · minor · STEP-6's `rg` check wording
+**Answer:** Fixed — the check looks for the `"sourceTypes.add"` prefix passed to `SourceTypeLabelKeyFields`.
+
+### F-9 · minor · Checks that cannot run here
+**Answer:** Declined — as X-9: Xcode and manual checks run on macOS.
