@@ -187,8 +187,7 @@ func split(values []Value, side valuecompare.Side, meta propertymeta.Meta, rules
 			out.Excluded = append(out.Excluded, Excluded{Side: side, Value: v, Reason: ExcludeNeutral})
 			continue
 		}
-		k, ok := valuecompare.Key(v.Value, valuecompare.Same, rules)
-		kept = append(kept, keyed{v: v, key: k, hasKey: ok})
+		kept = append(kept, keyOf(v, rules))
 		if v.Positive() {
 			positives++
 		}
@@ -230,6 +229,50 @@ func better(x, y pair) bool {
 		return keyBefore(x.b, y.b)
 	}
 	return false
+}
+
+// Better reports whether x speaks before y: better, applied to the two
+// Results' speaking pairs, each side keyed as Compare keys it under rules. A
+// Result with no speaking pair is never better than one with a pair, and two
+// without are equal, so the choice never depends on which argument is which.
+func Better(x, y Result, value valuecompare.Rules) bool {
+	if x.Speaking == nil {
+		return false
+	}
+	if y.Speaking == nil {
+		return true
+	}
+	return better(pairOf(x.Speaking, value), pairOf(y.Speaking, value))
+}
+
+// pairOf is a speaking pair as a pair, its values keyed.
+func pairOf(sp *SpeakingPair, rules valuecompare.Rules) pair {
+	return pair{
+		a:   keyOf(sp.A, rules),
+		b:   keyOf(sp.B, rules),
+		res: sp.Result, det: sp.Detail,
+	}
+}
+
+// keyOf is v with its Same key under rules. v is already typed.
+func keyOf(v Value, rules valuecompare.Rules) keyed {
+	k, ok := valuecompare.Key(v.Value, valuecompare.Same, rules)
+	return keyed{v: v, key: k, hasKey: ok}
+}
+
+// KeyCompare orders x and y, both typed, by their Same keys under rules,
+// ascending, a value with no key after any value with one: the order Compare
+// breaks its ties by. It is negative when x sorts first, zero when the keys are
+// equal.
+func KeyCompare(x, y Value, rules valuecompare.Rules) int {
+	kx, ky := keyOf(x, rules), keyOf(y, rules)
+	switch {
+	case keyBefore(kx, ky):
+		return -1
+	case keyBefore(ky, kx):
+		return 1
+	}
+	return 0
 }
 
 // keyBefore sorts keys ascending, a value with no key after any value with one.

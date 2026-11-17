@@ -49,7 +49,10 @@ func TestSubjectSection(t *testing.T) {
 				t.Errorf("period lead %s.%s has no Weights entry", kind, lead)
 			}
 			claim(kind, lead, "period lead")
-			for _, end := range []vocabkey.PropertyKey{p.Start, p.End} {
+			for _, end := range []vocabkey.PropertyKey{p.Start, p.End, p.Samples} {
+				if end == "" {
+					continue
+				}
 				if _, ok := s.Weights[kind][end]; ok {
 					t.Errorf("period property %s.%s has a Weights entry of its own", kind, end)
 				}

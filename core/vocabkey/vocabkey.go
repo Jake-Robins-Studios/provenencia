@@ -90,6 +90,7 @@ const (
 	PropertyDate         = "date"
 	PropertyStartDate    = "start_date"
 	PropertyEndDate      = "end_date"
+	PropertyAsOf         = "as_of"
 	PropertyToponym      = "toponym"
 	PropertyLikeness     = "likeness"
 	PropertyEventPicture = "event_picture"

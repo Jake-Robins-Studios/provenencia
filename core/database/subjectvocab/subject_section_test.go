@@ -77,7 +77,11 @@ func TestSubjectSectionMatchesSeed(t *testing.T) {
 	for kind, periods := range s.Periods {
 		checkKind(kind)
 		for lead, p := range periods {
-			for _, key := range []vocabkey.PropertyKey{lead, p.Start, p.End} {
+			members := []vocabkey.PropertyKey{lead, p.Start, p.End}
+			if p.Samples != "" {
+				members = append(members, p.Samples)
+			}
+			for _, key := range members {
 				checkBound(kind, key)
 				if valueType[string(key)] != propertymeta.ValueTypeDate {
 					t.Errorf("%s.%s is in a period but has value type %q, not date", kind, key, valueType[string(key)])

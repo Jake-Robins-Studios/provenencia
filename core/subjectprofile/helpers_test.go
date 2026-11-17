@@ -104,3 +104,8 @@ func denied(t *testing.T) subjectprofile.Entity {
 func ev(eventType vocabkey.EventType, role vocabkey.Role, d *datevalue.Value) subjectprofile.LifeEvent {
 	return subjectprofile.LifeEvent{EventType: eventType, Role: role, Dates: []datevalue.Value{*d}}
 }
+
+// sampled is an event known only by a day it was under way.
+func sampled(eventType vocabkey.EventType, role vocabkey.Role, d *datevalue.Value) subjectprofile.LifeEvent {
+	return subjectprofile.LifeEvent{EventType: eventType, Role: role, Samples: []datevalue.Value{*d}}
+}

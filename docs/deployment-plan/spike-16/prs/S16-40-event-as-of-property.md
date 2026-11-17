@@ -1,6 +1,6 @@
 # S16-40 — An event records As of dates, and matching reads them as bounds
 
-**Status:** Planned
+**Status:** Landed in [#869](https://github.com/mendahu/provenencia/pull/869) (2026-11-16)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the composer lists the new seeded Property and dates it with today's editor, like any other date Property)
@@ -14,6 +14,8 @@
 **Context:** [`../event-as-of.md`](../event-as-of.md); working rules [Batch 5](../deployment-plan.md#batch-5--event-as-of-dates): "As of is a fourth event date Property", "New catalogs only", "On every event", "Every qualifier, no exception", "An as-of x reads as started by x, still under way at x", "A closed as-of counts toward the person's lifespan"; [`seeded-vocabulary.md` §3.2–3.3](../../../seeded-vocabulary.md#32-properties); [`conclusion-reconciliation.md` §8](../../../conclusion-reconciliation.md#8-cardinality); [`matching-model.md`](../../../matching-model.md)
 **Planned:** 2026-11-16 against `main` @ `14fbfca`
 **Review:** [`S16-40-event-as-of-property.review.md`](S16-40-event-as-of-property.review.md) — two rounds on this plan (3 and 4), Ready; no open blocker
+
+**Landed.** Differences from the plan: the as-of pick (D-6) reads the samples in one linear pass through `valuecompare.SampleExtremes` and breaks a tie on the extreme end by the lowest Same key (`propertycompare.KeyCompare`), rather than sorting them first, with the same picks whatever the input order, and a side with more than `Period.MaxSamples` (1000, a registry knob) positive samples skips the sample check so the base comparison stands; `subjectcompare.PeriodSamples` is the one reading of a period's samples, which `LifeEventOf` calls (D-10's signature is kept); T-4's every-order rows run in `TestCompareSamples` through `permutationsOf`; `subjectprofile`'s tests add a `sampled` helper; T-7 has a "none closed" case; `FuzzCompareProperty` guards the comparer against any dates (seeded, runs as a unit test), and the invariants' `as_of` pool reaches the conflict branch. The §10 manual check was not run, so AC-1.2, AC-1.3, AC-1.4 and AC-2.3 are unverified until the user runs it.
 
 ### Implementer — read this first
 

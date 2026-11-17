@@ -93,11 +93,24 @@ func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompa
 			indexTypes = []string{noType, anyType}
 			lookupTypes = []string{anyType}
 		}
-		for _, date := range positive(kind, d.Date, v, metas, subject) {
-			lo, hi, open, ok := valuecompare.YearReach(date.Value, value)
-			if !ok {
-				continue
+		type reach struct {
+			lo, hi int
+			open   bool
+		}
+		var reaches []reach
+		dates := positive(kind, d.Date, v, metas, subject)
+		for _, date := range dates {
+			if lo, hi, open, ok := valuecompare.YearReach(date.Value, value); ok {
+				reaches = append(reaches, reach{lo, hi, open})
 			}
+		}
+		// An event with only as-ofs began and ended at unknown days: one open
+		// reach, which meets every closed one.
+		if len(dates) == 0 && len(subjectcompare.Samples(kind, d.Date, v, subject)) > 0 {
+			reaches = append(reaches, reach{open: true})
+		}
+		for _, rc := range reaches {
+			lo, hi, open := rc.lo, rc.hi, rc.open
 			if !open && floorDiv(hi, r.YearBucket)-floorDiv(lo, r.YearBucket)+1 > r.MaxBuckets {
 				open = true
 			}

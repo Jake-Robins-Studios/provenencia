@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/mendahu/provenencia/core/datevalue"
@@ -368,6 +369,25 @@ func TestKeys(t *testing.T) {
 		index, lookup := keys(vocabkey.Event, thrice, r.Alignment.Shortlist)
 		if !slices.Equal(index, wantIndex) || !slices.Equal(lookup, wantLookup) {
 			t.Errorf("keys = %q, %q; want %q, %q", index, lookup, wantIndex, wantLookup)
+		}
+	})
+	t.Run("an event with only an as-of is one open reach", func(t *testing.T) {
+		asOf := subjectcompare.Values{
+			vocabkey.PropertyEventType: {pt.Term("residence")},
+			vocabkey.PropertyAsOf:      {pt.Date(datevaluetest.YMD(1990, 0, 0))},
+		}
+		wantIndex, wantLookup := keys(vocabkey.Event, event(1, "residence", datevaluetest.After(1990, 0, 0)).v, r.Alignment.Shortlist)
+		index, lookup := keys(vocabkey.Event, asOf, r.Alignment.Shortlist)
+		if len(index) == 0 || !slices.Equal(index, wantIndex) || !slices.Equal(lookup, wantLookup) {
+			t.Errorf("keys = %q, %q; want %q, %q", index, lookup, wantIndex, wantLookup)
+		}
+	})
+	t.Run("an event with no as-of and no date has no date keys", func(t *testing.T) {
+		index, lookup := keys(vocabkey.Event, event(1, "residence", nil).v, r.Alignment.Shortlist)
+		for _, k := range append(slices.Clone(index), lookup...) {
+			if strings.HasPrefix(k, "t:") {
+				t.Errorf("date key %q", k)
+			}
 		}
 	})
 	t.Run("sorted and unique", func(t *testing.T) {

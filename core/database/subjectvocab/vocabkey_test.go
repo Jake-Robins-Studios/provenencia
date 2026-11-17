@@ -51,7 +51,7 @@ func TestVocabKeysMatchSeed(t *testing.T) {
 	for _, key := range []string{
 		vocabkey.PropertyName, vocabkey.PropertySexAtBirth, vocabkey.PropertyGender,
 		vocabkey.PropertyEventType, vocabkey.PropertyDate, vocabkey.PropertyStartDate,
-		vocabkey.PropertyEndDate, vocabkey.PropertyToponym,
+		vocabkey.PropertyEndDate, vocabkey.PropertyAsOf, vocabkey.PropertyToponym,
 		vocabkey.PropertyLikeness, vocabkey.PropertyEventPicture, vocabkey.PropertyPlacePicture,
 	} {
 		if !seeded[key] {

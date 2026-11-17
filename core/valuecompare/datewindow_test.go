@@ -414,3 +414,37 @@ func TestEarliestLatest(t *testing.T) {
 		}
 	})
 }
+
+func TestSampleExtremes(t *testing.T) {
+	ends := func(ds ...*datevalue.Value) (firsts, lasts []valuecompare.DateEnd) {
+		for _, d := range ds {
+			f, l, ok := valuecompare.DateEnds(*d)
+			if !ok {
+				t.Fatalf("no ends for %+v", d)
+			}
+			firsts, lasts = append(firsts, f), append(lasts, l)
+		}
+		return firsts, lasts
+	}
+	for _, c := range []struct {
+		name                  string
+		dates                 []*datevalue.Value
+		endsFirst, startsLast int
+	}{
+		{"open ends are skipped", []*datevalue.Value{
+			datevaluetest.YMD(1990, 0, 0), datevaluetest.YMD(1985, 0, 0),
+			datevaluetest.Before(1995, 0, 0), datevaluetest.After(1980, 0, 0),
+		}, 1, 0},
+		{"none closed", []*datevalue.Value{}, -1, -1},
+		{"equal ends keep the lower index", []*datevalue.Value{
+			datevaluetest.YMD(1990, 0, 0), datevaluetest.YMD(1990, 0, 0),
+		}, 0, 0},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			firsts, lasts := ends(c.dates...)
+			if ef, sl := valuecompare.SampleExtremes(firsts, lasts); ef != c.endsFirst || sl != c.startsLast {
+				t.Errorf("SampleExtremes = %d, %d; want %d, %d", ef, sl, c.endsFirst, c.startsLast)
+			}
+		})
+	}
+}

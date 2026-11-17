@@ -183,7 +183,7 @@ func build(g *graphcache.Graph, eg graphcache.EvidenceGraph, namePattern string)
 	life := map[string][]subjectprofile.LifeEvent{}
 	for _, p := range participations {
 		if ev, ok := built[string(p.event)]; ok {
-			life[string(p.person)] = append(life[string(p.person)], subjectprofile.LifeEventOf(ev, vocabkey.Role(p.role)))
+			life[string(p.person)] = append(life[string(p.person)], subjectprofile.LifeEventOf(ev, vocabkey.Role(p.role), vocabkey.PropertyDate, rules.Subject.Periods[vocabkey.Event][vocabkey.PropertyDate]))
 		}
 	}
 	for id, s := range primary {

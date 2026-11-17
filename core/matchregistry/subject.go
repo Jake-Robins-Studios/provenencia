@@ -34,7 +34,12 @@ func defaultSubject() subjectcompare.Rules {
 			}},
 		},
 		Periods: map[vocabkey.SubjectType]map[vocabkey.PropertyKey]subjectcompare.Period{
-			vocabkey.Event: {vocabkey.PropertyDate: {Start: vocabkey.PropertyStartDate, End: vocabkey.PropertyEndDate}},
+			vocabkey.Event: {vocabkey.PropertyDate: {
+				Start: vocabkey.PropertyStartDate, End: vocabkey.PropertyEndDate,
+				// decided (user, 2026-11-16): as-ofs read against the other side's period
+				Samples:    vocabkey.PropertyAsOf,
+				MaxSamples: 1000, // estimate: far above the handful recorded; only a crafted catalog reaches it, and that side's as-ofs are then not read
+			}},
 		},
 		Lifespans: map[vocabkey.SubjectType]map[vocabkey.PropertyKey]subjectcompare.Lifespan{
 			vocabkey.Person: {vocabkey.PropertyLifespan: {

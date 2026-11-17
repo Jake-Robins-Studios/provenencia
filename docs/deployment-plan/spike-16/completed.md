@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-40 — An event records As of dates, and matching reads them as bounds
+
+**Landed 2026-11-16** in [#869](https://github.com/mendahu/provenencia/pull/869). A new catalog seeds As of (`as_of`, date, multiple, locked on `event`, after End date), so an attestation such as an obituary's "of Town Y" is no longer recorded as when an event happened; the `date` and `end_date` descriptions point to it. The reconciler keeps several as-ofs. Promote reads each side's extreme as-ofs against the other record's period (`subject.Periods` gains `Samples`; `valuecompare.SampleExtremes`, `propertycompare.Better`): two residences attested on different days meet with no date conflict, an as-of that a recorded end or start rules out conflicts, and a half-open period bounds but does not agree; a side with more than 1000 as-ofs is not read as bounds. The shortlist files an as-of-only event as an open reach, and a closed as-of counts toward a person's lifespan without fixing its start or end (`LifeEventOf` reads the registry's period). Existing catalogs gain no `as_of`; nothing reads an event's as-ofs for display until S16-42. Minor version bump to 0.18.0.
+
 ## S16-39 — One container measures its own width and tells its content which layout fits
 
 **Landed 2026-11-16** in [#866](https://github.com/mendahu/provenencia/pull/866). `PVWidthBreakpoints` fills the width it is given, measures it and builds its content for the breakpoints that width meets, rebuilding only when one is crossed and giving the right layout on the first frame. The Source types table's Description column (1200pt), the Sources list's compact rows (880pt) and the Timeline's stacked people (772pt at Regular, 1402pt at Wide) moved onto it, as did the pane's width class (`pvMeasuresWidthClass`), at the same widths as before. The other measures in `macos/App` are named as geometry or a fit to content; § 9 and `add-ui-component` teach the container.

@@ -26,16 +26,20 @@ type Entity struct {
 }
 
 // LifeEvent is one event a person takes part in: its type, the person's role
-// in it, and every date the event records.
+// in it, and every date the event records. Samples are the days it was known
+// to be under way: they count toward the lifespan but never fix a start or an
+// end.
 type LifeEvent struct {
 	EventType vocabkey.EventType
 	Role      vocabkey.Role
 	Dates     []datevalue.Value
+	Samples   []datevalue.Value
 }
 
 // LifeEventOf reads one event an entity takes part in from the event's built
-// profile: its type, and every date it records.
-func LifeEventOf(event subjectcompare.Values, role vocabkey.Role) LifeEvent {
+// profile: its type, its dates (the lead and the period's start and end) and
+// its period's samples.
+func LifeEventOf(event subjectcompare.Values, role vocabkey.Role, lead vocabkey.PropertyKey, p subjectcompare.Period) LifeEvent {
 	le := LifeEvent{Role: role}
 	for _, v := range event[vocabkey.PropertyEventType] {
 		if v.Positive() {
@@ -43,11 +47,16 @@ func LifeEventOf(event subjectcompare.Values, role vocabkey.Role) LifeEvent {
 			break
 		}
 	}
-	for _, key := range []vocabkey.PropertyKey{vocabkey.PropertyDate, vocabkey.PropertyStartDate, vocabkey.PropertyEndDate} {
+	for _, key := range []vocabkey.PropertyKey{lead, p.Start, p.End} {
 		for _, v := range event[key] {
 			if v.Positive() && v.Date != nil {
 				le.Dates = append(le.Dates, *v.Date)
 			}
+		}
+	}
+	for _, v := range subjectcompare.PeriodSamples(event, p) {
+		if v.Date != nil {
+			le.Samples = append(le.Samples, *v.Date)
 		}
 	}
 	return le
@@ -170,7 +179,8 @@ func addLifespans(out subjectcompare.Values, events []LifeEvent, lifespans map[v
 // lifespan lays the exact dated events on one timeline. A date with an open
 // end (BEF, AFT, a half-open range) is skipped: it is too vague to rule
 // anything out. The span is the earliest first end to the latest last end of
-// the counted dates. The window starts at the earliest first end of a Starts
+// the counted dates and the closed samples (days an event was known to be under
+// way, which never fix a start or an end). The window starts at the earliest first end of a Starts
 // event, else MaxYears before the span's first end, and ends at the latest
 // last end of an Ends event, else MaxYears after the span's last end; it is
 // then widened by SlackYears each way, so only an egregious case conflicts.
@@ -192,6 +202,11 @@ func lifespan(events []LifeEvent, l subjectcompare.Lifespan) (window, span prope
 			}
 			if slices.Contains(l.Ends, er) {
 				endLasts = append(endLasts, last)
+			}
+		}
+		for _, d := range ev.Samples {
+			if first, last, ok := valuecompare.DateEnds(d); ok && !first.Open && !last.Open {
+				firsts, lasts = append(firsts, first), append(lasts, last)
 			}
 		}
 	}
