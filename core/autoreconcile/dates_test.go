@@ -179,6 +179,8 @@ func TestDateReconcile(t *testing.T) {
 		shown  *datevalue.Value // rank-1 displayed date, when one value
 		folded []byte           // observation ids whose reason is folded
 		noEvid []byte
+		// cardinality is empty for a single-valued Property.
+		cardinality string
 	}{
 		{
 			name: "equal days merge",
@@ -254,6 +256,25 @@ func TestDateReconcile(t *testing.T) {
 			shown: datePtr(ymd(1885, nil, nil)), folded: []byte{1},
 		},
 		{
+			name:        "two as-ofs both kept",
+			cardinality: propertymeta.CardinalityMultiple,
+			cands: []Candidate{
+				date(1, 1990, ip(1), ip(10)),
+				date(2, 2015, ip(2), ip(10)),
+			},
+			want: [][]byte{{1}, {2}}, state: StateMultiple,
+		},
+		{
+			name:        "an as-of year folds into a day",
+			cardinality: propertymeta.CardinalityMultiple,
+			cands: []Candidate{
+				date(1, 1990, nil, nil),
+				date(2, 1990, ip(1), ip(10)),
+			},
+			want: [][]byte{{1, 2}}, state: StateMerged,
+			shown: datePtr(ymd(1990, ip(1), ip(10))), folded: []byte{1},
+		},
+		{
 			name: "a phrase is no evidence",
 			cands: []Candidate{
 				{ObservationID: id(1), Value: Value{Date: &datevalue.Value{Kind: datevalue.KindPoint, Phrase: "Christmas"}}},
@@ -264,7 +285,11 @@ func TestDateReconcile(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := Reconcile(testRules, propertymeta.ValueTypeDate, tc.cands, nil, propertymeta.CardinalitySingle)
+			cardinality := tc.cardinality
+			if cardinality == "" {
+				cardinality = propertymeta.CardinalitySingle
+			}
+			got, err := Reconcile(testRules, propertymeta.ValueTypeDate, tc.cands, nil, cardinality)
 			if err != nil {
 				t.Fatal(err)
 			}
