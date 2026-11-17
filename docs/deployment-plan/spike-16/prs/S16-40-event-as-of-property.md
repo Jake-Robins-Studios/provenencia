@@ -1,6 +1,6 @@
 # S16-40 — An event records As of dates, and matching reads them as bounds
 
-**Status:** Planned
+**Status:** Landed in [#869](https://github.com/mendahu/provenencia/pull/869) (2026-11-16)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the composer lists the new seeded Property and dates it with today's editor, like any other date Property)
