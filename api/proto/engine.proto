@@ -133,6 +133,7 @@ enum Method {
   METHOD_GET_METADATA_BOARD = 119;
   METHOD_GET_CITATION_FORMATS = 120;
   METHOD_UPDATE_CITATION_FORMATS = 121;
+  METHOD_COPY_SOURCE_TYPE = 122;
 }
 
 message PingRequest {
@@ -945,6 +946,24 @@ message CreateSourceTypeRequest {
 }
 
 message CreateSourceTypeResponse {
+  SourceType type = 1;
+  WriteEffects effects = 2;
+}
+
+// CopySourceTypeRequest starts a new user type from the type type_id with the
+// parts ticked; levels are the metadata levels whose suggested fields copy.
+message CopySourceTypeRequest {
+  string project_dir = 1;
+  string user_id = 2;
+  string type_id = 3;
+  string label = 4;
+  bool copy_icon = 5;
+  bool copy_description = 6;
+  bool copy_formats = 7;
+  repeated string levels = 8;
+}
+
+message CopySourceTypeResponse {
   SourceType type = 1;
   WriteEffects effects = 2;
 }
