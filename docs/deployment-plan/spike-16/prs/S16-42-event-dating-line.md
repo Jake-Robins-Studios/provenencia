@@ -76,7 +76,7 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | --- | --- | --- |
 | AC-4.1 | An as-of-only residence (as-ofs 1990, 2015) probes the shortlist | Its lookup keys are its closed samples' year reach plus `wide`; it meets a residence dated 2000 and an `aft 1970` one, and not one dated 1881 |
 | AC-4.2 | A residence dated 1881 probes | It still meets the as-of-only residence (its index keys stay one open reach) |
-| AC-4.3 | `BenchmarkLargeSourcePropose` at 4,000 and 16,000 persons, `asof=0` and `asof=0.3` (Source A's deaths and the town deaths) | The warm-proposal overhead of `asof=0.3` over `asof=0` (median of 3 runs each) on the branch is not higher than at the planning base with the same shape by more than the spread of those runs (user, 2026-11-17: D-12 narrows only as-of-only probes' lookup, so it cannot lower this overhead; T-12 shows the narrowing); the four rows of each run and the cause of S16-40's flat +3.5 ms `warm-ms` are in the PR body |
+| AC-4.3 | `BenchmarkLargeSourcePropose` at 4,000 and 16,000 persons, `asof=0` and `asof=0.3` (Source A's deaths and the town deaths) | The warm-proposal overhead of `asof=0.3` over `asof=0` (median of 3 runs each) on the branch is not higher than at the planning base with the same shape by more than the widest spread (max − min) among that size's four rows of runs (user, 2026-11-17: D-12 narrows only as-of-only probes' lookup, so it cannot lower this overhead; T-12 shows the narrowing); the four rows of each run and the cause of S16-40's flat +3.5 ms `warm-ms` are in the PR body |
 | AC-4.4 | A Subject with 1,001 positive as-ofs (above `MaxSamples` 1,000) | `subjectcompare.PeriodSamples` returns nil without copying; compare and the lifespan read none of them; the shortlist files it as one open reach both ways (today's filing) |
 
 ## 3. Scope
@@ -404,7 +404,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - `eventDating`, `oneEvent`, `eventPlaces`, `EventSpanAndAge`, `eventMatchSecondary` or the lifeline's `point` no longer do what §4 says.
 - Any AC-1.6 line differs from the planning-base string.
 - A matching golden changes in STEP-2, STEP-8 or STEP-9.
-- AC-4.3 is not met (the branch's median `asof=0.3` overhead is higher than the base's by more than the runs' spread): report all runs; do not tune other knobs.
+- AC-4.3 is not met (the branch's median `asof=0.3` overhead is higher than the base's by more than the widest spread among that size's four rows of runs): report all runs; do not tune other knobs.
 - T-6 exceeds 50 ms, or the compose reads the as-ofs more than once.
 - The S16-D7 board's TL-2 mark is not a `.bar` with faded sides (it would need a new `Shape` case).
 - `matchregistry` cannot be imported from `conclusionsummaries` or `grapheventtitles` without a cycle.
