@@ -15,13 +15,20 @@ import (
 // is shared with the Swift via headings (swift_vocabulary_test).
 const ViaCitationFormats = "source_types.citation_formats"
 
-const (
-	sqlFormatTexts = `SELECT citation_full, citation_short, citation_list FROM source_types
+// formatText reads one format column as nothing when it is longer than
+// citationformat.MaxFormatBytes: such a text never parses (D-6), so it names no
+// field, and a crafted catalog cannot make the scan read it.
+func formatText(column string) string {
+	return "CASE WHEN length(CAST(" + column + " AS BLOB)) <= ? THEN " + column + " END"
+}
+
+var (
+	sqlFormatTexts = `SELECT ` + formatText("citation_full") + `, ` + formatText("citation_short") + `, ` + formatText("citation_list") + ` FROM source_types
 		WHERE citation_full IS NOT NULL OR citation_short IS NOT NULL OR citation_list IS NOT NULL`
 	sqlFormatTypesNaming = `SELECT id, key FROM source_types
-		WHERE instr(COALESCE(citation_full, ''), ?) > 0
-			OR instr(COALESCE(citation_short, ''), ?) > 0
-			OR instr(COALESCE(citation_list, ''), ?) > 0
+		WHERE instr(COALESCE(` + formatText("citation_full") + `, ''), ?) > 0
+			OR instr(COALESCE(` + formatText("citation_short") + `, ''), ?) > 0
+			OR instr(COALESCE(` + formatText("citation_list") + `, ''), ?) > 0
 		ORDER BY label COLLATE NOCASE, key LIMIT ?`
 )
 
@@ -46,7 +53,7 @@ func citationFormatEdge() inboundEdge {
 		if len(ids) == 0 {
 			return out, nil
 		}
-		rows, err := tx.Query(sqlFormatTexts)
+		rows, err := tx.Query(sqlFormatTexts, citationformat.MaxFormatBytes, citationformat.MaxFormatBytes, citationformat.MaxFormatBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +89,8 @@ func citationFormatEdge() inboundEdge {
 			if err != nil {
 				return nil, err
 			}
-			rows, err := tx.Query(sqlFormatTypesNaming, token, token, token, limit)
+			rows, err := tx.Query(sqlFormatTypesNaming,
+				citationformat.MaxFormatBytes, token, citationformat.MaxFormatBytes, token, citationformat.MaxFormatBytes, token, limit)
 			if err != nil {
 				return nil, err
 			}

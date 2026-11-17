@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/mendahu/provenencia/core/citationformat"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/artifacts"
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
@@ -342,6 +344,36 @@ func TestDelete(t *testing.T) {
 				}
 				if _, err := metadatafields.GetByID(c, field.ID); err != nil {
 					t.Fatalf("field gone: %v", err)
+				}
+			},
+		},
+		{
+			name: "a format text past the format cap names no field",
+			run: func(t *testing.T, c *database.Catalog) {
+				mustUser(t, c)
+				field, err := runCreate(c, "Line", metadatafields.DataTypeText, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "huge", Origin: vocabkey.OriginUser, Label: "Huge"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				u, err := uuid.FromBytes(field.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// A text no parse reads (D-6) holds the token past the cap.
+				text := strings.Repeat("x", citationformat.MaxFormatBytes) + citationformat.FieldRef{ID: u}.Token()
+				db := dbtest.MustDB(t, c)
+				if _, err := db.Exec(`UPDATE source_types SET citation_full = ? WHERE id = ?`, text, typeID); err != nil {
+					t.Fatal(err)
+				}
+				if n, err := deleteimpact.UsedBy(c, catalogmodel.KindMetadataField, field.ID); err != nil || n != 0 {
+					t.Fatalf("UsedBy = %d, %v; want 0", n, err)
+				}
+				if err := runDelete(c, userID, field.ID); err != nil {
+					t.Fatalf("delete: %v", err)
 				}
 			},
 		},
