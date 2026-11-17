@@ -58,7 +58,6 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 - [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
-- [`stacked-toasts.md`](stacked-toasts.md) — toasts that stack and expire on their own timers instead of replacing each other
 - [`structural-debt.md`](structural-debt.md) — audit refactors with no visible change; leftover test artifact and Subject fixtures
 
 Closed spikes (decisions, not PR order): [`docs/deployment-plan/archive/`](../deployment-plan/archive/).

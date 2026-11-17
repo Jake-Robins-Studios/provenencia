@@ -77,6 +77,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 29. **Section counts read alike.** A Source with 3 notes, 3 Artifacts and 3 Evidence graphs shows "3 notes", "3 artifacts" and "3 evidence graphs" in the three section headers. A Person with 3 likenesses shows "3 likenesses" over the Gallery, an Event or a Place "3 pictures", and the citation composer's Citation column "3 citations". A section with none shows no count.
 30. **A failed sidebar recount says so.** When the recount after a write fails (adding a Source with the catalog session refusing), the "Couldn't refresh catalog counts" toast shows, as it does when the first count at launch fails, and the badges keep their last values.
 31. **A combo box never submits a pick it no longer shows.** On a Source type page, pick Folio in a suggestion picker, clear the field or type "zzz", and press Return: nothing is added and the field keeps the text. Click away and it shows Folio again. With the field showing Folio, Return adds it, as today. The metadata board's inline Add field row behaves the same.
+32. **Toasts stack instead of replacing each other.** Choose two portraits in a row: both toasts show, stacked, newest on top, and each leaves five seconds after it appeared. Dismissing the lower one leaves the upper one's timer untouched. A workspace notice and a page's toast never overlap. The same failure twice shows one card whose timer restarts.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -135,6 +136,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | Source | PR |
 | --- | --- |
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
+| `ideas/stacked-toasts.md`, moved to [`stacked-toasts.md`](stacked-toasts.md) (2026-11-17) | S16-58, S16-59 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Properties empty search state" (2026-11-17) | S16-48 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
@@ -232,6 +234,7 @@ These are the calls for this spike. PR plans treat them as binding.
   A click on any other control already blurs the field and restores its label (`dismissAndBlur`), so a form's own buttons never act on a hidden pick. Return was the only path. No caller changes: `SourceTypeSuggestionList.submitPick` and `MetadataBoardView`'s Add field row keep their `.onSubmit`. The kit README's ComboBox row and [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) state the rule. Binds S16-57.
 - **(Batch 6) One kit popup list under the combo box and the omnibar** (user, 2026-11-17). The floating list is a kit component on `.pvPopup`. It owns its window and placement (today's `PVComboBoxPlacement`), the keys (↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the highlight that pointer and keyboard share (skipping disabled rows), scrolling to the highlight, and the loading, empty and error lines. `PVComboBox` keeps its picked-value field on top; the omnibar keeps its command field (Return opens and clears; Escape keeps the query). The omnibar's highlight (`CatalogSearchModel.selectedIndex`, `moveSelection`, `selectedHit`) moves to `OmnibarResultsModel`. Binds S16-51, S16-52.
 - **(Batch 6) A section count is a localized plural, hidden at zero** (user, 2026-11-17). Every `PVSectionHeader` that counts its items passes a plural string ("3 notes") and no count when the section is empty, since its empty state says so: the Source page's Notes, Artifacts and Evidence graphs, the citation composer's Citation column and the Conclusion Gallery section. `PVSectionHeader` keeps taking `meta` as a plain string: no count form in the kit (user, 2026-11-17). The change is copy in a header the page already draws, so it needs no brief. Binds S16-55.
+- **(Batch 6) One toast stack per window** (user, 2026-11-17). The workspace window holds one toast list that every workspace surface adds to, drawn by a kit `PVToastStack` top-trailing, newest first. Each entry leaves on its own five-second timer or its dismiss. There is no cap: nothing is pushed out early, and a burst taller than the window clips at its bottom (S16-D10 draws it). A toast equal to one on screen (tone, title, body) restarts that card's timer and moves it to the top, with no second card and no second announcement. Reduce Motion fades. A sheet (the likeness viewer) and Onboarding keep their own single toast. Binds S16-58, S16-59. Design: [`stacked-toasts.md`](stacked-toasts.md).
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
 ## PR map
@@ -295,6 +298,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
 | S16-55 | Section counts read alike | 6c | Swift: the bare numbers on Source page Notes, the composer's Citation column and the Gallery become plural strings; Evidence graphs hides its count at zero | — | — | quick-pr | Scoped |
 | S16-56 | A failed sidebar recount says so | 6c | Swift: `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the launch's counts toast for every failure; `clearRefreshError` is used or goes | — | — | quick-pr | Scoped |
+| S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once | S16-D10 | S16-56, S16-D10 | — | Scoped |
+| S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to the window list instead of setting a `toast` binding; the composer's `bridgeToast` joins it; the forwarding goes; no visible change | — | S16-58 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -309,6 +314,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D7 | Person page Timeline: the lifeline draws every event's dating (as-of spans with open sides, start-and-end spans, a one-day open mark, a both-open bar's tether) | **S16-42** | An enhancement of the S13-D4 / S16-D2 Timeline frames; reuses the bar's open-side fade; no new mark |
 | S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
 | S16-D9 | Omnibar results on the kit popup list: its own window under the field instead of the 640 pt overlay, the combo box's card, where the loading, empty and error lines sit | **S16-52** | Starts from today's omnibar board and the combo box's list |
+| S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom | **S16-58** | Starts from `PVToast`'s board |
 | S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
 
 ## Slices
@@ -419,6 +425,11 @@ SLICE 6d — Popups                                    (any time; a chain)
   S16-53  The history menu uses the kit presenter and a kit menu row
   Check: bar 25 to 27, 31.
 
+SLICE 6e — Stacked toasts                            (after S16-56)
+  ✎ S16-D10 ──▶ S16-58  Toasts stack in one list per window
+  S16-59  Workspace callers add to the toast stack
+  Check: bar 32.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -484,6 +495,8 @@ S16-55: none
 S16-56: none
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-57 ──▶ S16-51
+S16-56 ──▶ S16-58 ──▶ S16-59
+S16-D10 ──▶ S16-58
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
 ```
@@ -874,3 +887,19 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 **Not this PR.** The row labels' truncation and wording ([`ideas/history-menu-labels.md`](../../ideas/history-menu-labels.md)); type-select in the history menu.
 **Check.** Bar 27; a long press and a right-click on Back and on Forward each open the menu, switching between them works, and a row opens its place.
 **Context.** Rule "(Batch 6) One kit popup presenter"; `macos/App/Features/Workspace/WorkspaceToolbar.swift` (`HistoryJumpMenuPanel`, `HistoryJumpMenuHost`, `HistoryJumpMenuModel`), `DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`PVContextMenuPanel`, `PVMenuRowButtonStyle`); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) (the jump menu).
+
+### Slice 6e — Stacked toasts
+
+#### S16-58 — Toasts stack in one list per window
+
+**Ships.** A kit `PVToastStack` (`DesignSystem/Components/Toast/`) that draws a list of entries as S16-D10 draws it, each a `PVToast` with its own id, timer and dismiss. A window toast list (an `@Observable` model, named in the plan) that `WorkspaceView` puts in the environment, with add (a repeat refreshes its entry), dismiss and expiry. `WorkspaceView`'s two overlays (`countsToast`, `session.noticeToast`) add to it, and one `PVToastStack` replaces them. `vocabularyToastOverlay` forwards a toast set on its binding into the window list when one is in the environment, and clears the binding. It draws today's single card where there is none (the likeness viewer's sheet). So every workspace page's toasts stack in this PR with no caller change. Fan-out: a handful of entries; each card owns one sleeping task.
+**Not this PR.** Moving callers off their bindings (S16-59); Onboarding's toast; a cap (refused, user 2026-11-17).
+**Check.** Bar 32; model tests on the list (two adds keep both; a repeat refreshes; dismissing one keeps the other's expiry), with no window; the likeness viewer still shows the lead's toast in the viewer and not behind it.
+**Context.** S16-D10; rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md); `macos/App/DesignSystem/Components/Toast/PVToast.swift` (its content-keyed `.task(id:)` expiry), `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift` (`vocabularyToastOverlay`), `VocabularyPane.swift` (`VocabularyToast`), `macos/App/Features/Workspace/WorkspaceView.swift`, `macos/App/Features/Conclusions/ConclusionLeadModel.swift` (`toastInViewer`); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md). Lands after S16-56, which edits `WorkspaceView`'s counts toast.
+
+#### S16-59 — Workspace callers add to the toast stack
+
+**Ships.** Preparatory, Swift, no visible change. Each workspace caller adds to the window list instead of setting a `toast` property: the models behind Properties, the Source page, the Sources list, the Source type page, Metadata, the Evidence graph and the Conclusion detail page (`ConclusionLeadModel` when the toast is not in the viewer), and `WorkspaceSession.noticeToast`. The Citation composer's `bridgeToast` and its direct `PVToast` in `CitationComposerSubjectGroups` join the list. `vocabularyToastOverlay`'s forwarding goes, so the modifier remains only where a sheet draws its own toast. The models' tests assert on the list instead of a property.
+**Not this PR.** Onboarding's toast; a toast from a sheet joining the window list.
+**Check.** Bar 32 still holds; `rg -n "vocabularyToastOverlay\(" macos/App/Features` lists only sheet surfaces; the models' toast tests pass on the list.
+**Context.** Rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md) "Callers add, they do not set"; the callers named above; [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).
