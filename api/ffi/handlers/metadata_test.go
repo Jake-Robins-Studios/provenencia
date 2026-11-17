@@ -11,6 +11,7 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/dbtest"
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
+	"github.com/mendahu/provenencia/core/valuemark"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -140,6 +141,37 @@ func TestMetadataOwners(t *testing.T) {
 				t.Fatalf("got %v, want %v", err, tt.want)
 			}
 		})
+	}
+}
+
+func TestMetadataValueMarks(t *testing.T) {
+	m := newMetadataOwners(t)
+	set := func(in *engine.SetMetadataRequest) (*engine.MetadataWorkspaceEntry, error) {
+		in.ProjectDir, in.UserId, in.Owner, in.FieldId = m.dir, m.userID, m.artifact, m.suggested
+		var out engine.SetMetadataResponse
+		if err := rpc(t, SetMetadata, in, &out); err != nil {
+			return nil, err
+		}
+		return metadataByField(out.GetMetadata(), m.suggested), nil
+	}
+
+	got, err := set(&engine.SetMetadataRequest{Mark: &engine.ValueMark{Unknown: true}})
+	if err != nil || !got.GetHasValue() || got.GetValueText() != "" || !got.GetMark().GetUnknown() || got.GetMark().GetSupplied() {
+		t.Fatalf("unknown = %+v, %v", got, err)
+	}
+	// A set with no mark over the unknown value clears the mark.
+	got, err = set(&engine.SetMetadataRequest{ValueText: "FamilySearch"})
+	if err != nil || got.GetValueText() != "FamilySearch" || got.GetMark() != nil {
+		t.Fatalf("no mark = %+v, %v", got, err)
+	}
+	got, err = set(&engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Supplied: true}})
+	if err != nil || got.GetValueText() != "Topeka" || !got.GetMark().GetSupplied() || got.GetMark().GetUnknown() {
+		t.Fatalf("supplied = %+v, %v", got, err)
+	}
+	// Unknown with text is refused, naming the field.
+	_, err = set(&engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Unknown: true}})
+	if !errors.Is(err, valuemark.ErrInvalid) || !slices.Equal(errParams(t, err), []string{m.suggested}) {
+		t.Fatalf("unknown with text = %v, params %v", err, errParams(t, err))
 	}
 }
 

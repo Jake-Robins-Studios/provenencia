@@ -370,6 +370,8 @@ message MetadataField {
   // metadatafields.ErrInUse); the client uses the count to disable its delete
   // affordance and say what is holding the field.
   int32 used_by = 7;
+  // What a value of this field marked unknown prints ("n.p."); empty when none.
+  string unknown_text = 8;
 }
 
 message MetadataWorkspaceEntry {
@@ -383,6 +385,7 @@ message MetadataWorkspaceEntry {
   reserved 7;
   reserved "date_summary";
   string open_href = 9; // web link to open, from sourcemetadata OpenHref; empty when the value is not one
+  ValueMark mark = 10; // set only when has_value; absent for a value with no mark
 }
 
 // DateValueInput maps to datevalues.Insert (kind point|range; see docs/structured-date-model.md).
@@ -666,6 +669,14 @@ message MetadataOwner {
   string id = 2;
 }
 
+// ValueMark is the unknown and supplied facts of a value (core/valuemark). An
+// absent mark is a value typed as the record gives it. Every holder of a mark
+// on the wire uses this one message.
+message ValueMark {
+  bool unknown = 1;  // the record does not give the value; it has no text
+  bool supplied = 2; // the text is not on the record; it has text
+}
+
 message SetMetadataRequest {
   string project_dir = 1;
   string user_id = 2;
@@ -676,6 +687,7 @@ message SetMetadataRequest {
   reserved 6;
   reserved "date";
   MetadataOwner owner = 7;
+  ValueMark mark = 8; // absent means no mark: a set without one clears the stored mark
 }
 
 // SetMetadataResponse returns the owner's whole board in display order, so
@@ -745,6 +757,7 @@ message MetadataDraft {
 message MetadataValue {
   string field_id = 1;
   string value_text = 2;
+  ValueMark mark = 3; // absent means no mark
 }
 
 message MetadataLayoutRow {
@@ -998,6 +1011,7 @@ message UpdateMetadataFieldRequest {
   string label = 4;
   string data_type = 5;
   string description = 6;
+  optional string unknown_text = 7; // absent keeps the stored text; "" clears it
 }
 
 message UpdateMetadataFieldResponse {

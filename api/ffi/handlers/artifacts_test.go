@@ -480,6 +480,21 @@ func TestUpdateArtifactMetadata(t *testing.T) {
 			t.Fatalf("label %q provider %q, want %q and Ancestry", labelOf(t), valueOf(t, provider), label)
 		}
 	})
+	t.Run("a draft carries marks", func(t *testing.T) {
+		resp, err := update(labelOf(t), &engine.MetadataDraft{Values: []*engine.MetadataValue{
+			{FieldId: provider, Mark: &engine.ValueMark{Unknown: true}},
+			{FieldId: link, ValueText: "https://x.org/1", Mark: &engine.ValueMark{Supplied: true}},
+		}}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertReplyBoard(t, m.dir, m.artifact, resp.GetMetadata())
+		p, l := metadataByField(resp.GetMetadata(), provider), metadataByField(resp.GetMetadata(), link)
+		if p == nil || !p.GetHasValue() || p.GetValueText() != "" || !p.GetMark().GetUnknown() ||
+			l == nil || l.GetValueText() != "https://x.org/1" || !l.GetMark().GetSupplied() {
+			t.Fatalf("provider %+v, link %+v", p, l)
+		}
+	})
 	t.Run("a refused unlink drops the draft", func(t *testing.T) {
 		pageID := m.createArtifact(t, m.sourceID, "P6", &engine.GraphLinks{GraphIds: []string{m.defaultGraphID}})
 		mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
