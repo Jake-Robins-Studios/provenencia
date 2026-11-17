@@ -528,12 +528,6 @@ struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var eventTypeOrigin: String = ""
     var eventTypeLabel: String = ""
     var eventTypeCount: Int = 0
-    var date: CatalogDateValueInput?
-    var dateCount: Int = 0
-    var startDate: CatalogDateValueInput?
-    var startDateCount: Int = 0
-    var endDate: CatalogDateValueInput?
-    var endDateCount: Int = 0
     /// The one dating Go reads from the event's date, start, end and as-ofs.
     var dating = CatalogEventDating()
     /// The Properties whose values stand behind `dating`, each with its role, in

@@ -5353,48 +5353,6 @@ public nonisolated struct Provenencia_Engine_V1_EventSummary: @unchecked Sendabl
     set {_uniqueStorage()._eventTypeCount = newValue}
   }
 
-  public var date: Provenencia_Engine_V1_DateValueInput {
-    get {_storage._date ?? Provenencia_Engine_V1_DateValueInput()}
-    set {_uniqueStorage()._date = newValue}
-  }
-  /// Returns true if `date` has been explicitly set.
-  public var hasDate: Bool {_storage._date != nil}
-  /// Clears the value of `date`. Subsequent reads from it will return its default value.
-  public mutating func clearDate() {_uniqueStorage()._date = nil}
-
-  public var dateCount: Int32 {
-    get {_storage._dateCount}
-    set {_uniqueStorage()._dateCount = newValue}
-  }
-
-  public var startDate: Provenencia_Engine_V1_DateValueInput {
-    get {_storage._startDate ?? Provenencia_Engine_V1_DateValueInput()}
-    set {_uniqueStorage()._startDate = newValue}
-  }
-  /// Returns true if `startDate` has been explicitly set.
-  public var hasStartDate: Bool {_storage._startDate != nil}
-  /// Clears the value of `startDate`. Subsequent reads from it will return its default value.
-  public mutating func clearStartDate() {_uniqueStorage()._startDate = nil}
-
-  public var startDateCount: Int32 {
-    get {_storage._startDateCount}
-    set {_uniqueStorage()._startDateCount = newValue}
-  }
-
-  public var endDate: Provenencia_Engine_V1_DateValueInput {
-    get {_storage._endDate ?? Provenencia_Engine_V1_DateValueInput()}
-    set {_uniqueStorage()._endDate = newValue}
-  }
-  /// Returns true if `endDate` has been explicitly set.
-  public var hasEndDate: Bool {_storage._endDate != nil}
-  /// Clears the value of `endDate`. Subsequent reads from it will return its default value.
-  public mutating func clearEndDate() {_uniqueStorage()._endDate = nil}
-
-  public var endDateCount: Int32 {
-    get {_storage._endDateCount}
-    set {_uniqueStorage()._endDateCount = newValue}
-  }
-
   /// subjects are subject-role persons, participation ref then person ref.
   /// places are every location's kept names with hierarchical parents at the
   /// event's date (Locations that share part_of fold into one chain).
@@ -17693,7 +17651,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonSummariesResponse: SwiftPr
 
 nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".EventSummary"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{1}date\0\u{3}date_count\0\u{3}start_date\0\u{3}start_date_count\0\u{3}end_date\0\u{3}end_date_count\0\u{1}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0\u{1}dating\0\u{3}dating_properties\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}entity\0\u{3}event_name\0\u{3}event_name_count\0\u{3}event_type\0\u{3}event_type_count\0\u{2}\u{7}subjects\0\u{1}places\0\u{1}title\0\u{3}updated_revision\0\u{3}updated_at\0\u{3}picture_image_rel_path\0\u{3}list_key\0\u{1}dating\0\u{3}dating_properties\0\u{b}date\0\u{b}date_count\0\u{b}start_date\0\u{b}start_date_count\0\u{b}end_date\0\u{b}end_date_count\0\u{c}\u{6}\u{1}\u{c}\u{7}\u{1}\u{c}\u{8}\u{1}\u{c}\u{9}\u{1}\u{c}\u{a}\u{1}\u{c}\u{b}\u{1}")
 
   fileprivate class _StorageClass {
     var _entity: Provenencia_Engine_V1_CanonicalEntity? = nil
@@ -17701,12 +17659,6 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
     var _eventNameCount: Int32 = 0
     var _eventType: Provenencia_Engine_V1_ConclusionTerm? = nil
     var _eventTypeCount: Int32 = 0
-    var _date: Provenencia_Engine_V1_DateValueInput? = nil
-    var _dateCount: Int32 = 0
-    var _startDate: Provenencia_Engine_V1_DateValueInput? = nil
-    var _startDateCount: Int32 = 0
-    var _endDate: Provenencia_Engine_V1_DateValueInput? = nil
-    var _endDateCount: Int32 = 0
     var _subjects: [Provenencia_Engine_V1_EventSubject] = []
     var _places: [Provenencia_Engine_V1_ChainedPlace] = []
     var _title: Provenencia_Engine_V1_EventTitle? = nil
@@ -17731,12 +17683,6 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       _eventNameCount = source._eventNameCount
       _eventType = source._eventType
       _eventTypeCount = source._eventTypeCount
-      _date = source._date
-      _dateCount = source._dateCount
-      _startDate = source._startDate
-      _startDateCount = source._startDateCount
-      _endDate = source._endDate
-      _endDateCount = source._endDateCount
       _subjects = source._subjects
       _places = source._places
       _title = source._title
@@ -17769,12 +17715,6 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         case 3: try { try decoder.decodeSingularInt32Field(value: &_storage._eventNameCount) }()
         case 4: try { try decoder.decodeSingularMessageField(value: &_storage._eventType) }()
         case 5: try { try decoder.decodeSingularInt32Field(value: &_storage._eventTypeCount) }()
-        case 6: try { try decoder.decodeSingularMessageField(value: &_storage._date) }()
-        case 7: try { try decoder.decodeSingularInt32Field(value: &_storage._dateCount) }()
-        case 8: try { try decoder.decodeSingularMessageField(value: &_storage._startDate) }()
-        case 9: try { try decoder.decodeSingularInt32Field(value: &_storage._startDateCount) }()
-        case 10: try { try decoder.decodeSingularMessageField(value: &_storage._endDate) }()
-        case 11: try { try decoder.decodeSingularInt32Field(value: &_storage._endDateCount) }()
         case 12: try { try decoder.decodeRepeatedMessageField(value: &_storage._subjects) }()
         case 13: try { try decoder.decodeRepeatedMessageField(value: &_storage._places) }()
         case 14: try { try decoder.decodeSingularMessageField(value: &_storage._title) }()
@@ -17810,24 +17750,6 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
       } }()
       if _storage._eventTypeCount != 0 {
         try visitor.visitSingularInt32Field(value: _storage._eventTypeCount, fieldNumber: 5)
-      }
-      try { if let v = _storage._date {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
-      } }()
-      if _storage._dateCount != 0 {
-        try visitor.visitSingularInt32Field(value: _storage._dateCount, fieldNumber: 7)
-      }
-      try { if let v = _storage._startDate {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
-      } }()
-      if _storage._startDateCount != 0 {
-        try visitor.visitSingularInt32Field(value: _storage._startDateCount, fieldNumber: 9)
-      }
-      try { if let v = _storage._endDate {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 10)
-      } }()
-      if _storage._endDateCount != 0 {
-        try visitor.visitSingularInt32Field(value: _storage._endDateCount, fieldNumber: 11)
       }
       if !_storage._subjects.isEmpty {
         try visitor.visitRepeatedMessageField(value: _storage._subjects, fieldNumber: 12)
@@ -17870,12 +17792,6 @@ nonisolated extension Provenencia_Engine_V1_EventSummary: SwiftProtobuf.Message,
         if _storage._eventNameCount != rhs_storage._eventNameCount {return false}
         if _storage._eventType != rhs_storage._eventType {return false}
         if _storage._eventTypeCount != rhs_storage._eventTypeCount {return false}
-        if _storage._date != rhs_storage._date {return false}
-        if _storage._dateCount != rhs_storage._dateCount {return false}
-        if _storage._startDate != rhs_storage._startDate {return false}
-        if _storage._startDateCount != rhs_storage._startDateCount {return false}
-        if _storage._endDate != rhs_storage._endDate {return false}
-        if _storage._endDateCount != rhs_storage._endDateCount {return false}
         if _storage._subjects != rhs_storage._subjects {return false}
         if _storage._places != rhs_storage._places {return false}
         if _storage._title != rhs_storage._title {return false}

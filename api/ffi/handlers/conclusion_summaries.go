@@ -202,22 +202,10 @@ func eventSummaryProto(h conclusionsummaries.EventSummary, paths map[string]stri
 		EventName:           h.EventName,
 		EventNameCount:      int32(h.EventNameCount),
 		EventTypeCount:      int32(h.Type.Count),
-		DateCount:           int32(h.DateCount),
-		StartDateCount:      int32(h.StartDateCount),
-		EndDateCount:        int32(h.EndDateCount),
 		UpdatedRevision:     h.Updated.Revision,
 		UpdatedAt:           h.Updated.At,
 	}
 	eh.EventType = termProto(h.Type.Term)
-	if h.Date != nil {
-		eh.Date = valuecodec.DateToProto(*h.Date)
-	}
-	if h.StartDate != nil {
-		eh.StartDate = valuecodec.DateToProto(*h.StartDate)
-	}
-	if h.EndDate != nil {
-		eh.EndDate = valuecodec.DateToProto(*h.EndDate)
-	}
 	for _, s := range h.Subjects {
 		sub := &engine.EventSubject{
 			Entity:         canonicalEntityProto(s.Entity),

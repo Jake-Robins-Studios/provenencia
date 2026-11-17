@@ -1049,17 +1049,19 @@ func oneEvent(in *graphcache.InputScope, v vocab, pg *placeGraph, n *graphcache.
 	h := EventSummary{Entity: canonicalentities.FromNode(n)}
 	h.EventName, h.EventNameCount = keptText(n, v.prop("event_name"))
 	h.Type = keptTermFacts(n, v.prop(vocabkey.PropertyEventType))
-	var err error
-	if h.Date, h.DateCount, err = keptDateAt(n, v.prop(string(eventLead))); err != nil {
+	date, _, err := keptDateAt(n, v.prop(string(eventLead)))
+	if err != nil {
 		return EventSummary{}, err
 	}
-	if h.StartDate, h.StartDateCount, err = keptDateAt(n, v.prop(string(eventPeriod.Start))); err != nil {
+	start, _, err := keptDateAt(n, v.prop(string(eventPeriod.Start)))
+	if err != nil {
 		return EventSummary{}, err
 	}
-	if h.EndDate, h.EndDateCount, err = keptDateAt(n, v.prop(string(eventPeriod.End))); err != nil {
+	end, _, err := keptDateAt(n, v.prop(string(eventPeriod.End)))
+	if err != nil {
 		return EventSummary{}, err
 	}
-	h.Dating = valuecompare.DatingOf(h.Date, h.StartDate, h.EndDate, keptDates(n, v.prop(string(eventPeriod.Samples))))
+	h.Dating = valuecompare.DatingOf(date, start, end, keptDates(n, v.prop(string(eventPeriod.Samples))))
 	h.DatingProperties = datingProperties(h.Dating.Kind)
 	at := h.Dating.Low
 	if at == nil {
@@ -1099,10 +1101,6 @@ func oneEvent(in *graphcache.InputScope, v vocab, pg *placeGraph, n *graphcache.
 		return EventSummary{}, err
 	}
 	h.Participants = append(h.Participants, rolesByNeighbor(participantLinks, v.term)...)
-	if h.Date != nil {
-		h.StartDate = nil
-		h.EndDate = nil
-	}
 	return h, nil
 }
 

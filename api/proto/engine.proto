@@ -1552,12 +1552,8 @@ message EventSummary {
   int32 event_name_count = 3;
   ConclusionTerm event_type = 4;
   int32 event_type_count = 5;
-  DateValueInput date = 6;
-  int32 date_count = 7;
-  DateValueInput start_date = 8;
-  int32 start_date_count = 9;
-  DateValueInput end_date = 10;
-  int32 end_date_count = 11;
+  reserved 6, 7, 8, 9, 10, 11;
+  reserved "date", "date_count", "start_date", "start_date_count", "end_date", "end_date_count";
   // subjects are subject-role persons, participation ref then person ref.
   // places are every location's kept names with hierarchical parents at the
   // event's date (Locations that share part_of fold into one chain).

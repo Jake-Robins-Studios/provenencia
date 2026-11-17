@@ -250,8 +250,8 @@ func TestListEventSummaries(t *testing.T) {
 				if h.GetUpdatedRevision() <= 0 || h.GetUpdatedAt() == "" {
 					t.Fatalf("updated %d %q", h.GetUpdatedRevision(), h.GetUpdatedAt())
 				}
-				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" || h.GetDate().GetStartYear() != 1849 {
-					t.Fatalf("type %v date %v", h.GetEventType(), h.GetDate())
+				if h.GetEventType().GetKey() != "birth" || h.GetEventType().GetLabel() != "Birth" {
+					t.Fatalf("type %v", h.GetEventType())
 				}
 				if d := h.GetDating(); d.GetKind() != engine.EventDatingKind_EVENT_DATING_KIND_OCCURRENCE || d.GetLow().GetStartYear() != 1849 || d.GetHigh() != nil || d.GetOpenLow() || d.GetOpenHigh() {
 					t.Fatalf("dating %v", d)

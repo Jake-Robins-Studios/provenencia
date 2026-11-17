@@ -253,7 +253,7 @@ func TestSummariesShowKeptValuesOnly(t *testing.T) {
 					if string(h.Entity.ID) != string(entityID) {
 						continue
 					}
-					if h.EventName != "" || h.Type.Term != nil || h.Date != nil {
+					if h.EventName != "" || h.Type.Term != nil || h.Dating.Kind != valuecompare.DatingNone {
 						t.Fatalf("listed provisional values %+v", h)
 					}
 				}
@@ -571,21 +571,23 @@ func TestListEvents(t *testing.T) {
 	for _, h := range got {
 		byID[string(h.Entity.ID)] = h
 	}
-	if string(got[0].Entity.ID) != string(fire) || got[0].EventName != "The Great Fire" || got[0].Date == nil || *got[0].Date.StartYear != 1849 {
+	if string(got[0].Entity.ID) != string(fire) || got[0].EventName != "The Great Fire" ||
+		got[0].Dating.Kind != valuecompare.DatingOccurrence || *got[0].Dating.Low.StartYear != 1849 {
 		t.Fatalf("fire %+v", got[0])
 	}
 	born := byID[string(birthID)]
 	if born.Type.Term == nil || born.Type.Term.Key != "birth" || born.Type.Term.Label != "Birth" || born.Type.Term.Origin != "provenencia" || born.Title.Parts.TypeOrigin != "provenencia" || born.Type.Count != 1 {
 		t.Fatalf("type %+v", born.Type)
 	}
-	if born.Date == nil || *born.Date.StartYear != 1985 || born.StartDate != nil || born.EndDate != nil || born.StartDateCount != 1 {
+	if born.Dating.Kind != valuecompare.DatingOccurrence || *born.Dating.Low.StartYear != 1985 || born.Dating.High != nil {
 		t.Fatalf("date wins over span %+v", born)
 	}
 	spanned := byID[string(span)]
-	if spanned.Date != nil || spanned.StartDate == nil || *spanned.StartDate.StartYear != 1900 || spanned.EndDate == nil || *spanned.EndDate.StartYear != 1910 {
+	if spanned.Dating.Kind != valuecompare.DatingSpan || *spanned.Dating.Low.StartYear != 1900 || *spanned.Dating.High.StartYear != 1910 ||
+		spanned.Dating.OpenLow || spanned.Dating.OpenHigh {
 		t.Fatalf("span %+v", spanned)
 	}
-	if byID[string(undated)].Date != nil || byID[string(undated)].EventName != "" {
+	if byID[string(undated)].Dating.Kind != valuecompare.DatingNone || byID[string(undated)].EventName != "" {
 		t.Fatalf("undated %+v", byID[string(undated)])
 	}
 	want := [][]byte{fire, span, birthID, undated}
@@ -1355,7 +1357,6 @@ func TestSortByBirth(t *testing.T) {
 // engine composes from them and any as-of samples.
 func summary(date, start, end *datevalue.Value, samples ...datevalue.Value) conclusionsummaries.EventSummary {
 	return conclusionsummaries.EventSummary{
-		Date: date, StartDate: start, EndDate: end,
 		Dating: valuecompare.DatingOf(date, start, end, samples),
 	}
 }
@@ -1711,7 +1712,7 @@ func TestListKeysFollowListOrder(t *testing.T) {
 		if i > 0 && !conclusionsummaries.EventListKey(events[i-1]).Less(key) {
 			t.Fatalf("event %d does not follow event %d: %v", i, i-1, refs)
 		}
-		if key.Last != (e.Date == nil) {
+		if key.Last != (e.Dating.Low == nil && e.Dating.High == nil) {
 			t.Fatalf("%s: Last = %v", e.Entity.Ref, key.Last)
 		}
 	}

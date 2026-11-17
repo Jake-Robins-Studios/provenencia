@@ -32,8 +32,8 @@ func (t *Term) ProductKey() string {
 	return t.Key
 }
 
-// EventSummary is one Event as a row. A rank-1 date wins over a start/end
-// span; the span's counts are still reported. Subjects are the subject-role
+// EventSummary is one Event as a row. Its date is its Dating and the
+// Properties behind it (DatingProperties). Subjects are the subject-role
 // persons, participation ref then person ref. Places are every location's
 // kept names with hierarchical parents at the date Dating.Low gives, else Dating.High.
 type EventSummary struct {
@@ -41,13 +41,7 @@ type EventSummary struct {
 	EventName      string
 	EventNameCount int
 	// Type is the event_type term, with how many values are displayed.
-	Type           TermFacts
-	Date           *datevalue.Value
-	DateCount      int
-	StartDate      *datevalue.Value
-	StartDateCount int
-	EndDate        *datevalue.Value
-	EndDateCount   int
+	Type TermFacts
 	// Dating is when the event was under way: the one reading of its date,
 	// start, end and as-of dates (valuecompare.DatingOf). Order, the Timeline
 	// and every date line read it.
