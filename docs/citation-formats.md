@@ -54,6 +54,18 @@ A value can carry a mark (`core/valuemark`): unknown (the record does not give i
 
 A DateValue prints in citation terms through `datevalue.CitationDisplay`: day-month-year, `ca.` `bef.` `aft.` for a qualifier, `1878–1882` for a range. `{source.date}` and `{source.date:full}` write the month in full, or abbreviated in the short form; `{source.date:year}` writes the year alone and keeps the qualifier. The words are English citation text and are not localized.
 
+## Storage
+
+A type stores its three formats in `source_types.citation_full`, `citation_short` and `citation_list`. A column is NULL when the form has no format; an empty or all-whitespace text is never stored. A format is stored as sent, byte for byte, except that each field a placeholder names is written by id (`{graph.meta.#<id>}`, the id in canonical lowercase), so a field's key can never mean two fields once saved and a field a format names cannot be deleted. The wire writes fields by key, as the researcher types them.
+
+`GetCitationFormats` and `UpdateCitationFormats` carry the three forms by key. A write replaces all three, parses each, resolves each key to a field and refuses the whole write with every diagnostic when any form fails: `Parse`'s, then `unknown_field` and `ambiguous_field` at each occurrence of the key (resolution runs only on forms that parsed). Nothing saves and no revision is recorded. A write that stores the texts already stored records nothing.
+
+A key held by more than one field (a product field and a researcher's field may share a key) is `ambiguous_field` unless the write names the field in `field_choices`, one `{key, field_id}` per key; a choice must name a field whose key is exactly that key, or the write is invalid. The read returns a choice for each shown key that more than one field holds, so sending the reply back unchanged stores the same text. A `#<id>` typed in a format resolves to that field, or is `unknown_field`.
+
+The read shows every by-id field by its key, except an id with no field and an id whose key a different id already took in the same type's formats (scanned full, short, list): those stay as their `#<id>` token. A stored text that does not parse comes back as stored with its diagnostics, so a type's page still opens.
+
+Deleting a field is refused while any format names its id; the delete notice lists the types.
+
 ## Diagnostics
 
 `Parse` returns every diagnostic with its byte span, sorted by position, and no template. After `unknown_form`, `too_long` and `too_deep` scanning stops and nothing after is reported. After `unclosed_placeholder` scanning stops when no `{` or `}` follows; before a later `{` it resumes there.
@@ -79,5 +91,7 @@ A DateValue prints in citation terms through `datevalue.CitationDisplay`: day-mo
 | `unknown_builtin` | A name not in the built-in table at that level | The option |
 | `unknown_option` | An option on metadata or one the built-in does not take | The text after the first `:` |
 | `not_in_list_form` | A level other than the Source in the list form | The option |
+| `unknown_field` | Reported by a type's format write, not `Parse`: no field has the key, or the id | The field |
+| `ambiguous_field` | Reported by a type's format write, not `Parse`: more than one field holds the key and no choice was made | The field |
 
 Each option yields at most one diagnostic, the first that applies in this order from `empty_option` down.

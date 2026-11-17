@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/mendahu/provenencia/api/proto/engine"
+	"github.com/mendahu/provenencia/core/citationformat"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/deleteimpact"
@@ -97,6 +98,109 @@ func UpdateSourceType(in []byte) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(out)
+}
+
+// GetCitationFormats returns a type's citation formats with fields by key. A
+// stored text that does not parse comes back as stored, with its diagnostics.
+func GetCitationFormats(in []byte) ([]byte, error) {
+	var req engine.GetCitationFormatsRequest
+	if err := proto.Unmarshal(in, &req); err != nil {
+		return nil, unmarshalErr("get_citation_formats", err)
+	}
+	typeID, err := parseID(req.GetTypeId())
+	if err != nil {
+		return nil, err
+	}
+	var out *engine.GetCitationFormatsResponse
+	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		view, err := sourcetypes.GetFormats(c, typeID)
+		if err != nil {
+			return err
+		}
+		out = &engine.GetCitationFormatsResponse{
+			Formats:     citationFormatsProto(typeID, view),
+			Diagnostics: citationFormatDiagnosticsProto(view.Diagnostics),
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return proto.Marshal(out)
+}
+
+// UpdateCitationFormats replaces a type's three citation formats. A format the
+// engine cannot store comes back as diagnostics with nothing saved.
+func UpdateCitationFormats(in []byte) ([]byte, error) {
+	var req engine.UpdateCitationFormatsRequest
+	if err := proto.Unmarshal(in, &req); err != nil {
+		return nil, unmarshalErr("update_citation_formats", err)
+	}
+	if _, err := parseUserID(req.GetUserId()); err != nil {
+		return nil, err
+	}
+	typeID, err := parseID(req.GetTypeId())
+	if err != nil {
+		return nil, err
+	}
+	choices := make([]sourcetypes.FieldChoice, 0, len(req.GetFieldChoices()))
+	for _, ch := range req.GetFieldChoices() {
+		fieldID, err := parseID(ch.GetFieldId())
+		if err != nil {
+			return nil, sourcetypes.ErrInvalid
+		}
+		choices = append(choices, sourcetypes.FieldChoice{Key: ch.GetKey(), FieldID: fieldID})
+	}
+	formats := sourcetypes.Formats{Full: req.GetFull(), Short: req.GetShort(), List: req.GetList()}
+	var out *engine.UpdateCitationFormatsResponse
+	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		view, wrote, err := writes.Run(c, writes.Op{Action: "update_citation_formats"},
+			func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
+				return sourcetypes.UpdateFormats(tx, typeID, formats, choices)
+			})
+		if err != nil {
+			return err
+		}
+		out = &engine.UpdateCitationFormatsResponse{
+			Formats:     citationFormatsProto(typeID, view),
+			Diagnostics: citationFormatDiagnosticsProto(view.Diagnostics),
+			Effects:     writeEffectsProto(wrote),
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return proto.Marshal(out)
+}
+
+// citationFormatsProto is a type's formats view on the wire: the three texts
+// by key, the field each shared key means, and the diagnostics.
+func citationFormatsProto(typeID []byte, v sourcetypes.FormatsView) *engine.CitationFormats {
+	out := &engine.CitationFormats{
+		TypeId: database.UUIDString(typeID),
+		Full:   v.Full,
+		Short:  v.Short,
+		List:   v.List,
+	}
+	for _, ch := range v.Choices {
+		out.FieldChoices = append(out.FieldChoices, &engine.CitationFieldChoice{
+			Key: ch.Key, FieldId: database.UUIDString(ch.FieldID),
+		})
+	}
+	return out
+}
+
+// citationFormatDiagnosticsProto converts the mistakes in a format's forms;
+// spans are UTF-8 byte offsets in the form's text.
+func citationFormatDiagnosticsProto(ds []citationformat.FormDiagnostic) []*engine.CitationFormatDiagnostic {
+	var out []*engine.CitationFormatDiagnostic
+	for _, d := range ds {
+		out = append(out, &engine.CitationFormatDiagnostic{
+			Form: string(d.Form), Code: string(d.Code), Start: int32(d.Span.Start), End: int32(d.Span.End),
+		})
+	}
+	return out
 }
 
 func ListTypeSuggestions(in []byte) ([]byte, error) {

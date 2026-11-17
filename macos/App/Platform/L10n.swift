@@ -8520,6 +8520,8 @@ enum L10n {
 
         /// The reassurance that carries T-20: detaching the join deletes
         /// neither the field nor the values sources already hold for it.
+        /// `valueCount` is the field's `usedBy`: Sources, Artifacts and graphs
+        /// holding a value, plus Source types that name the field in a format.
         static func toastRemovedBody(field: String, phrase: String, valueCount: Int) -> String {
             if valueCount == 0 {
                 return L10n.format(removedBodyNoValues, field, phrase)
@@ -8530,13 +8532,13 @@ enum L10n {
         private static let removedBodyNoValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyNoValues",
             defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary.",
-            comment: "Toast body after detaching a field no Source, Artifact or graph carries a value for; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
+            comment: "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)"
         )
 
         private static let removedBodyWithValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyWithValues",
-            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts and graphs already carrying a value keep it.",
-            comment: "Toast body after detaching a field that Sources, Artifacts or graphs still carry values for; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value"
+            defaultValue: "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts, graphs and Source types that use it are unchanged.",
+            comment: "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format"
         )
 
         static let toastUpdatedTitle = LocalizedStringResource(
@@ -9183,6 +9185,21 @@ enum L10n {
                 "deleteImpact.via.artifactsFileId",
                 defaultValue: "%lld artifacts use this file",
                 comment: "Inbound heading for artifacts.file_id; argument is how many"
+            ),
+            "canonical_entities.subject_type_id": LocalizedStringResource(
+                "deleteImpact.via.canonicalEntitiesSubjectTypeId",
+                defaultValue: "%lld people, events, or places have this type",
+                comment: "Inbound heading for canonical_entities.subject_type_id; argument is how many"
+            ),
+            "canonical_entities.merged_into_id": LocalizedStringResource(
+                "deleteImpact.via.canonicalEntitiesMergedIntoId",
+                defaultValue: "%lld people, events, or places were merged into this one",
+                comment: "Inbound heading for canonical_entities.merged_into_id; argument is how many"
+            ),
+            "source_types.citation_formats": LocalizedStringResource(
+                "deleteImpact.via.sourceTypesCitationFormats",
+                defaultValue: "%lld source types name this field in their citation formats",
+                comment: "Inbound heading for source_types.citation_formats; argument is how many"
             ),
         ]
 

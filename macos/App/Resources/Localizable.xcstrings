@@ -2724,6 +2724,54 @@
         }
       }
     },
+    "deleteImpact.via.canonicalEntitiesMergedIntoId": {
+      "comment": "Inbound heading for canonical_entities.merged_into_id; argument is how many",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person, event, or place was merged into this one"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people, events, or places were merged into this one"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "deleteImpact.via.canonicalEntitiesSubjectTypeId": {
+      "comment": "Inbound heading for canonical_entities.subject_type_id; argument is how many",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person, event, or place has this type"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people, events, or places have this type"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "deleteImpact.via.citationsArtifactId": {
       "comment": "Inbound heading for citations.artifact_id; argument is how many",
       "extractionState": "manual",
@@ -2957,6 +3005,30 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sources have this type"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "deleteImpact.via.sourceTypesCitationFormats": {
+      "comment": "Inbound heading for source_types.citation_formats; argument is how many",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld source type names this field in its citation formats"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld source types name this field in their citation formats"
                 }
               }
             }
@@ -7659,7 +7731,7 @@
       }
     },
     "sourceTypes.toast.removedBodyNoValues": {
-      "comment": "Toast body after detaching a field no Source, Artifact or graph carries a value for; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7671,13 +7743,13 @@
       }
     },
     "sourceTypes.toast.removedBodyWithValues": {
-      "comment": "Toast body after detaching a field that Sources, Artifacts or graphs still carry values for; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value",
+      "comment": "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %#@records@ it."
+            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %#@records@."
           },
           "substitutions": {
             "records": {
@@ -7688,13 +7760,13 @@
                   "one": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Source, Artifact or graph already carrying a value keeps"
+                      "value": "%arg Source, Artifact, graph or Source type that uses it is unchanged"
                     }
                   },
                   "other": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Sources, Artifacts and graphs already carrying a value keep"
+                      "value": "%arg Sources, Artifacts, graphs and Source types that use it are unchanged"
                     }
                   }
                 }

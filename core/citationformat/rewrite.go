@@ -27,6 +27,22 @@ func (t *Template) Fields() []FieldRef {
 	return out
 }
 
+// FieldSpans returns where the template writes f, one span per occurrence in
+// text order, over the field token only. It is nil for a nil template or a
+// field the template does not name.
+func (t *Template) FieldSpans(f FieldRef) []Span {
+	if t == nil {
+		return nil
+	}
+	var out []Span
+	for _, r := range t.refs {
+		if r.Builtin == "" && r.Field == f {
+			out = append(out, r.fieldSpan)
+		}
+	}
+	return out
+}
+
 // RewriteFields returns the format with each field named as to answers. It
 // calls to once per distinct field, in Fields order, and replaces only the
 // bytes of each field's token, so every other byte stays as typed. It returns

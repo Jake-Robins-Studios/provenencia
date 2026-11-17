@@ -72,3 +72,36 @@ func TestQueryReadsPastTheBindLimit(t *testing.T) {
 		t.Fatalf("rows %d, want 3", got)
 	}
 }
+
+// Text keys bind as text, so they match a TEXT column; a blob would not.
+func TestQueryBindsStringKeysAsText(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+	if _, err := db.Exec(`CREATE TABLE t (key TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	keys := make([]string, 501)
+	for i := range keys {
+		keys[i] = fmt.Sprintf("key-%d", i)
+		if _, err := db.Exec(`INSERT INTO t VALUES (?)`, keys[i]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	batches := 0
+	var got int
+	err = sqlbatch.Query(db, `SELECT key FROM t WHERE key IN (`, `)`, nil, keys, func(rows *sql.Rows) error {
+		got++
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = sqlbatch.Each(keys, func([]string) error { batches++; return nil })
+	if got != 501 || batches != 2 {
+		t.Fatalf("rows %d in %d batches, want 501 in 2", got, batches)
+	}
+}

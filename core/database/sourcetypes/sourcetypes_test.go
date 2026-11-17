@@ -249,6 +249,41 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
+			name: "keeps its formats in the delete change",
+			run: func(t *testing.T, c *database.Catalog) {
+				mustUser(t, c)
+				id, err := Upsert(c, Type{Key: "census", Origin: vocabkey.OriginUser, Label: "Census"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, err := db.Exec(`UPDATE source_types SET citation_full = ?, citation_list = ? WHERE id = ?`,
+					"{source.title}", "{source.date}", id); err != nil {
+					t.Fatal(err)
+				}
+				tx, err := c.BeginWrite()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer c.EndWrite()
+				defer func() { _ = tx.Rollback() }()
+				changes, err := Delete(tx, userID, id)
+				if err != nil {
+					t.Fatal(err)
+				}
+				fields := changes[len(changes)-1].Fields
+				if fields["citation_full"].Old != "{source.title}" || fields["citation_list"].Old != "{source.date}" {
+					t.Fatalf("fields %+v", fields)
+				}
+				if _, ok := fields["citation_short"]; ok {
+					t.Fatalf("an empty format is recorded: %+v", fields)
+				}
+			},
+		},
+		{
 			name: "bad id",
 			run: func(t *testing.T, c *database.Catalog) {
 				if err := runDelete(c, userID, []byte{1}); !errors.Is(err, ErrInvalid) {

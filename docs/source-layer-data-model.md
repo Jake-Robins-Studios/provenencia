@@ -104,10 +104,16 @@ CREATE TABLE source_types (
     origin          TEXT NOT NULL,             -- provenencia | user | plugin:<id>
     label           TEXT NOT NULL,
     description     TEXT,
+    icon_key        TEXT NOT NULL,
+    citation_full   TEXT,                      -- NULL = no format; fields named by id
+    citation_short  TEXT,
+    citation_list   TEXT,
 
     UNIQUE (key, origin)
 ) STRICT;
 ```
+
+The three `citation_*` columns hold the type's citation formats; how they are stored and read is [`citation-formats.md`](citation-formats.md) § Storage.
 
 `origin` is the vocabulary namespace (product seed, researcher, or future plugin). Rules and reserved values: [`seeded-vocabulary.md`](seeded-vocabulary.md) §1.1. Uniqueness is `(key, origin)` so a later product seed can share a `key` with an existing user or plugin term without colliding. Domain rows (`sources.source_type_id`) reference the UUID `id`, not bare `key`.
 

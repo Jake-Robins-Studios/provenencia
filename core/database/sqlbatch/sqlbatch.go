@@ -14,9 +14,10 @@ import (
 // batch.
 const Size = 500
 
-// Each calls fn with consecutive slices of ids, each at most Size long. It
+// Each calls fn with consecutive slices of ids (blob ids, or text keys: the
+// element type is bound as it is), each at most Size long. It
 // stops at fn's first error.
-func Each(ids [][]byte, fn func(batch [][]byte) error) error {
+func Each[T any](ids []T, fn func(batch []T) error) error {
 	for start := 0; start < len(ids); start += Size {
 		if err := fn(ids[start:min(start+Size, len(ids))]); err != nil {
 			return err
@@ -35,8 +36,8 @@ type Querier interface {
 // inside the IN list ("… IN (") and tail closes it (")", or ") ORDER BY …").
 // Rows arrive batch by batch, so a caller that needs one order across
 // batches sorts afterwards.
-func Query(q Querier, head, tail string, args []any, ids [][]byte, scan func(rows *sql.Rows) error) error {
-	return Each(ids, func(batch [][]byte) error {
+func Query[T any](q Querier, head, tail string, args []any, ids []T, scan func(rows *sql.Rows) error) error {
+	return Each(ids, func(batch []T) error {
 		bound := make([]any, 0, len(args)+len(batch))
 		bound = append(bound, args...)
 		for _, id := range batch {

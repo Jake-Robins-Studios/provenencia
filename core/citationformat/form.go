@@ -28,6 +28,12 @@ func Forms() []Form { return []Form{FormFull, FormShort, FormList} }
 // Valid reports whether f is one of Forms. The match is exact.
 func (f Form) Valid() bool { return slices.Contains(Forms(), f) }
 
+// FormDiagnostic is a Diagnostic in one form's text.
+type FormDiagnostic struct {
+	Form Form
+	Diagnostic
+}
+
 // Option is what follows the colon of a placeholder: how a date is written.
 type Option string
 

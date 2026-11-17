@@ -75,6 +75,16 @@ func TestValidOrigin(t *testing.T) {
 	}
 }
 
+func TestEditable(t *testing.T) {
+	for origin, want := range map[string]bool{
+		"user": true, "provenencia": true, "plugin:x": false, "": false, "other": false,
+	} {
+		if got := Editable(origin); got != want {
+			t.Errorf("Editable(%q) = %v, want %v", origin, got, want)
+		}
+	}
+}
+
 func TestBridgeKeyString(t *testing.T) {
 	tests := []struct {
 		key  BridgeKey

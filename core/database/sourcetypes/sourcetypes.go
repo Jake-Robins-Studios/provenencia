@@ -250,15 +250,12 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	}
 	label = strings.TrimSpace(label)
 	description = strings.TrimSpace(description)
-	if len(id) != 16 || label == "" {
+	if label == "" {
 		return Type{}, nil, ErrInvalid
 	}
-	existing, err := getByIDTx(tx.Tx, id)
+	existing, err := editableTx(tx.Tx, id)
 	if err != nil {
 		return Type{}, nil, err
-	}
-	if existing.Origin != vocabkey.OriginUser && existing.Origin != vocabkey.OriginProvenencia {
-		return Type{}, nil, ErrLocked
 	}
 	normalizedIcon := existing.IconKey
 	if strings.TrimSpace(iconKey) != "" {
@@ -357,6 +354,10 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	}); err != nil {
 		return nil, err
 	}
+	formats, err := StoredFormatsTx(tx.Tx, [][]byte{id})
+	if err != nil {
+		return nil, err
+	}
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
@@ -372,12 +373,36 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if prev.IconKey != "" {
 		fields["icon_key"] = rowchange.FieldDiff{Old: prev.IconKey, New: nil}
 	}
+	// A deleted type's formats stay in the revision.
+	stored := formats[string(id)]
+	for _, fc := range formColumns {
+		if text := stored.text(fc.form); text != "" {
+			fields[fc.column] = rowchange.FieldDiff{Old: text, New: nil}
+		}
+	}
 	return []rowchange.Change{{
 		EntityType: "source_type",
 		EntityID:   append([]byte(nil), id...),
 		Action:     rowchange.ActionDelete,
 		Fields:     fields,
 	}}, nil
+}
+
+// editableTx returns the type with the given id once its origin allows a
+// write: ErrInvalid for an id that is not 16 bytes, sql.ErrNoRows for a type
+// that is not there, ErrLocked for a plugin's.
+func editableTx(tx *sql.Tx, id []byte) (Type, error) {
+	if len(id) != 16 {
+		return Type{}, ErrInvalid
+	}
+	t, err := getByIDTx(tx, id)
+	if err != nil {
+		return Type{}, err
+	}
+	if !vocabkey.Editable(t.Origin) {
+		return Type{}, ErrLocked
+	}
+	return t, nil
 }
 
 func getByIDTx(tx *sql.Tx, id []byte) (Type, error) {

@@ -153,10 +153,12 @@ func swiftFuncBody(t *testing.T, path, signature string) string {
 var (
 	swiftFixturePair = regexp.MustCompile(`\("((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)"\)`)
 	swiftFoldEntry   = regexp.MustCompile(`"(.)": "([^"\\]+)"`)
+	viaHeadingKey    = regexp.MustCompile(`"([a-z_.]+)": LocalizedStringResource`)
 )
 
 // swiftArrayLiteral returns the array literal assigned to `static let <name>`
-// inside an enum body: from its `= [` to the `]` alone on an indented line.
+// inside an enum body: from its `= [` to the `]` alone on a line indented as
+// the `static let` line is, so a literal holding its own brackets reads whole.
 func swiftArrayLiteral(t *testing.T, body, name string) string {
 	t.Helper()
 	start := strings.Index(body, "static let "+name)
@@ -167,8 +169,13 @@ func swiftArrayLiteral(t *testing.T, body, name string) string {
 	if open < 0 {
 		t.Fatalf("static let %s is not an array literal", name)
 	}
+	lineStart := strings.LastIndex(body[:start], "\n") + 1
+	indent := body[lineStart:start]
+	if trimmed := strings.TrimLeft(indent, " "); trimmed != "" {
+		indent = indent[:len(indent)-len(trimmed)] // modifiers such as `private` before `static`
+	}
 	rest := body[start+open:]
-	end := strings.Index(rest, "\n    ]")
+	end := strings.Index(rest, "\n"+indent+"]")
 	if end < 0 {
 		t.Fatalf("static let %s does not close", name)
 	}
@@ -598,6 +605,18 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 			}
 		})
 	}
+	t.Run("inbound vias", func(t *testing.T) {
+		// Every inbound resource edge of Go has a heading in Swift, and no more.
+		literal := swiftArrayLiteral(t, swiftEnumBody(t, swiftL10n, "DeleteImpact"), "viaFormats")
+		var got []string
+		for _, m := range viaHeadingKey.FindAllStringSubmatch(literal, -1) {
+			got = append(got, m[1])
+		}
+		sort.Strings(got)
+		if want := deleteimpact.ResourceInboundVias(); !reflect.DeepEqual(got, want) {
+			t.Fatalf("Swift via headings %q, Go inbound vias %q", got, want)
+		}
+	})
 	t.Run("states and reasons tolerate a value this build doesn't know", func(t *testing.T) {
 		for _, enum := range []string{"ReconciledState", "ReconcilerReason", "PromoteMoveReason", "PromoteConnectionOutcome"} {
 			if !unrecogniz.MatchString(swiftEnumBody(t, swiftVocabulary, enum)) {

@@ -6,6 +6,7 @@ package metadatafields
 import (
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -53,7 +54,8 @@ const (
 		FROM source_metadata_fields WHERE id = ?`
 	sqlGetByIDsIn = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
 		FROM source_metadata_fields WHERE id IN (`
-	sqlList = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
+	sqlKeysIn = `SELECT id, key, origin FROM source_metadata_fields WHERE key IN (`
+	sqlList   = `SELECT id, key, origin, label, data_type, COALESCE(description, '')
 		FROM source_metadata_fields ORDER BY label COLLATE NOCASE, origin, key`
 	sqlUpdate = `UPDATE source_metadata_fields SET label = ?, description = ? WHERE id = ?`
 	sqlDelete = `DELETE FROM source_metadata_fields WHERE id = ?`
@@ -68,7 +70,8 @@ type Field struct {
 	DataType    string
 	Description string
 	// UsedBy is how many Sources, Artifacts and Evidence graphs hold a value
-	// for this field: the total that blocks its delete. List and Update populate
+	// for this field plus how many Source types name it in a citation format:
+	// the total that blocks its delete. List and Update populate
 	// it; the other readers leave it 0.
 	UsedBy int
 }
@@ -187,7 +190,7 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string) (Fi
 	if err != nil {
 		return Field{}, nil, err
 	}
-	if existing.Origin != vocabkey.OriginUser && existing.Origin != vocabkey.OriginProvenencia {
+	if !vocabkey.Editable(existing.Origin) {
 		return Field{}, nil, ErrLocked
 	}
 	if dataType != existing.DataType {
@@ -249,6 +252,64 @@ func ListByIDsTx(tx *sql.Tx, ids [][]byte) ([]Field, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+	return out, nil
+}
+
+// KeyResolution is what ResolveKeysTx found: the id of each key one field
+// answers for, and the keys no field or more than one field holds (sorted).
+type KeyResolution struct {
+	IDs       map[string][]byte
+	Unknown   []string
+	Ambiguous []string
+}
+
+// ResolveKeysTx finds the field each key names, across origins. A key held by
+// one field resolves to it. A key held by several resolves to the one of
+// preferOrigin when preferOrigin is not empty and one of them has it, and is
+// Ambiguous otherwise. A key no field holds is Unknown. Keys match exactly. A
+// repeated key counts once; no keys returns the zero value without a query.
+func ResolveKeysTx(tx *sql.Tx, keys []string, preferOrigin string) (KeyResolution, error) {
+	keys = slices.Compact(slices.Sorted(slices.Values(keys)))
+	if len(keys) == 0 {
+		return KeyResolution{}, nil
+	}
+	type holder struct {
+		id     []byte
+		origin string
+	}
+	held := map[string][]holder{}
+	err := sqlbatch.Query(tx, sqlKeysIn, ")", nil, keys, func(rows *sql.Rows) error {
+		var h holder
+		var key string
+		if err := rows.Scan(&h.id, &key, &h.origin); err != nil {
+			return err
+		}
+		held[key] = append(held[key], h)
+		return nil
+	})
+	if err != nil {
+		return KeyResolution{}, err
+	}
+	out := KeyResolution{IDs: map[string][]byte{}}
+	for _, key := range keys {
+		hs := held[key]
+		switch {
+		case len(hs) == 0:
+			out.Unknown = append(out.Unknown, key)
+		case len(hs) == 1:
+			out.IDs[key] = hs[0].id
+		default:
+			i := -1
+			if preferOrigin != "" {
+				i = slices.IndexFunc(hs, func(h holder) bool { return h.origin == preferOrigin })
+			}
+			if i < 0 {
+				out.Ambiguous = append(out.Ambiguous, key)
+			} else {
+				out.IDs[key] = hs[i].id
+			}
+		}
 	}
 	return out, nil
 }

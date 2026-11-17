@@ -46,6 +46,7 @@ Every `BucketOptional` `SET NULL` FK whose parent is deletable needs exactly one
 ```
 - [ ] Table and every live FK registered in `catalogmodel` ([`add-catalog-model`](../add-catalog-model/SKILL.md))
 - [ ] Resource inbound edges have count + list probes; owned outbound is declared `BucketOwnedOutbound` in `catalogmodel` (a row child registers `PK`); no `deleteimpact` code
+- [ ] A reference held in text, not a foreign key: a text-reference edge with its own Count, List and Totals (see Text references)
 - [ ] Title + location projectors registered on the blocker kind (domain package)
 - [ ] Proto kind / via keys; recipe L10n heading (unknown via still renders)
 - [ ] Domain `Delete`: load → Impact in the same tx (extra gates are `Impact` gates) → connection facets if any → `SnapshotOwned` if owned outbound → DELETE parent → `ReleaseSnapshot` → audit / FTS
@@ -93,6 +94,10 @@ func Delete(c *database.Catalog, userID, id []byte) error {
 - Do not `DELETE FROM observations WHERE citation_id = ?` as a cascade. Policy is refuse.
 - A row with its own `Delete` that is also an audited facet of another parent gets one unexported release and one exported wrapper in `facets.go`, called by the parent's release (`releaseEach`) and by its own `Delete` (`releaseClaim` / `ReleaseClaim`, `releaseCitation` / `ReleaseCitation`), so both paths audit the same row. `ReleaseClaim` is the one claim removal; it deletes a handle when that claim was its last accepted member (Unpromote and Subject delete both call it).
 - Writers with **no UI** still cut over in the registry PR (`propertyterms.Delete`). Do not leave `sqlInUse`.
+
+## Text references
+
+A row can name another by a token in a text column, with no FK (a Source type's citation formats name a metadata field as `#<id>`). Such an edge is a resource edge with no FK behind it: build it in its own file in `core/database/deleteimpact` (`formatrefs.go`), beside its SQL and its via constant, and register it in `inboundEdgeList`. Give it its own Count, List and Totals: Totals reads the texts once and counts rows whose text holds each id's token, Count is Totals of one id so the two agree, and List matches the token with `instr`. A row counts once however many times it names the target. A token inside a literal over-refuses, which is the safe direction. The via needs a Swift heading, which `TestSwiftVocabularyMatchesGo` holds to `ResourceInboundVias()`.
 
 ## New table
 

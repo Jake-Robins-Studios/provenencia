@@ -216,6 +216,12 @@ func IsPluginOrigin(origin string) bool {
 	return strings.HasPrefix(origin, originPluginPrefix) && len(origin) > len(originPluginPrefix)
 }
 
+// Editable reports whether a vocabulary row of this origin may be edited or
+// deleted: user and provenencia rows are, a plugin's are not.
+func Editable(origin string) bool {
+	return origin == OriginUser || origin == OriginProvenencia
+}
+
 // ValidOrigin reports whether origin is provenencia, user, or a plugin origin.
 func ValidOrigin(origin string) bool {
 	return origin == OriginProvenencia || origin == OriginUser || IsPluginOrigin(origin)
