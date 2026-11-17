@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/mendahu/provenencia/core/database"
@@ -1308,6 +1309,15 @@ func TestSortByBirth(t *testing.T) {
 	}
 }
 
+// summary is an event row with its date, start and end and the dating the
+// engine composes from them and any as-of samples.
+func summary(date, start, end *datevalue.Value, samples ...datevalue.Value) conclusionsummaries.EventSummary {
+	return conclusionsummaries.EventSummary{
+		Date: date, StartDate: start, EndDate: end,
+		Dating: valuecompare.DatingOf(date, start, end, samples),
+	}
+}
+
 func TestEventSpan(t *testing.T) {
 	noYear := &datevalue.Value{Kind: datevalue.KindPoint, Calendar: "gregorian"}
 	noStart := &datevalue.Value{Kind: datevalue.KindRange, Calendar: "gregorian", EndYear: datevaluetest.Part(1849)}
@@ -1322,24 +1332,29 @@ func TestEventSpan(t *testing.T) {
 		want   conclusionsummaries.TimelineSpan
 		wantOK bool
 	}{
-		{"day", conclusionsummaries.EventSummary{Date: march}, year(1817+70.0/365, 1817+71.0/365, false, false), true},
-		{"year", conclusionsummaries.EventSummary{Date: datevaluetest.YMD(1835, 0, 0)}, year(1835, 1836, false, false), true},
-		{"range", conclusionsummaries.EventSummary{Date: datevaluetest.Between(1844, 0, 0, 1849, 0, 0)}, year(1844, 1850, false, false), true},
-		{"after", conclusionsummaries.EventSummary{Date: datevaluetest.After(1870, 0, 0)}, year(1870, 1871, false, true), true},
-		{"about is not widened", conclusionsummaries.EventSummary{Date: datevaluetest.About(1846, 0, 0)}, year(1846, 1847, false, false), true},
-		{"before", conclusionsummaries.EventSummary{Date: datevaluetest.Before(1880, 0, 0)}, year(1880, 1881, true, false), true},
-		{"range with no start year", conclusionsummaries.EventSummary{Date: noStart}, year(1849, 1850, true, false), true},
-		{"start date only", conclusionsummaries.EventSummary{StartDate: datevaluetest.YMD(1860, 0, 0)}, year(1860, 1861, false, false), true},
-		{"end date only", conclusionsummaries.EventSummary{EndDate: datevaluetest.YMD(1870, 0, 0)}, conclusionsummaries.TimelineSpan{}, false},
-		{"no date", conclusionsummaries.EventSummary{}, conclusionsummaries.TimelineSpan{}, false},
-		{"date with no year", conclusionsummaries.EventSummary{Date: noYear}, conclusionsummaries.TimelineSpan{}, false},
-		{"both ends open", conclusionsummaries.EventSummary{Date: bothOpen}, conclusionsummaries.TimelineSpan{}, false},
-		{"date with no year, dated start", conclusionsummaries.EventSummary{Date: noYear, StartDate: datevaluetest.YMD(1860, 0, 0)}, year(1860, 1861, false, false), true},
-		{"date wins over start", conclusionsummaries.EventSummary{Date: datevaluetest.YMD(1850, 0, 0), StartDate: datevaluetest.YMD(1860, 0, 0)}, year(1850, 1851, false, false), true},
-		{"year above the window", conclusionsummaries.EventSummary{Date: datevaluetest.YMD(1<<31-1, 0, 0)}, conclusionsummaries.TimelineSpan{}, false},
-		{"year below the window", conclusionsummaries.EventSummary{Date: datevaluetest.YMD(-1<<31, 0, 0)}, conclusionsummaries.TimelineSpan{}, false},
-		{"range from -2^31 to 2^31", conclusionsummaries.EventSummary{Date: datevaluetest.Between(-1<<31, 0, 0, 1<<31-1, 0, 0)}, conclusionsummaries.TimelineSpan{}, false},
-		{"range with one end past the window", conclusionsummaries.EventSummary{Date: datevaluetest.Between(1844, 0, 0, 10000, 0, 0)}, conclusionsummaries.TimelineSpan{}, false},
+		{"day", summary(march, nil, nil), year(1817+70.0/365, 1817+71.0/365, false, false), true},
+		{"year", summary(datevaluetest.YMD(1835, 0, 0), nil, nil), year(1835, 1836, false, false), true},
+		{"range", summary(datevaluetest.Between(1844, 0, 0, 1849, 0, 0), nil, nil), year(1844, 1850, false, false), true},
+		{"after", summary(datevaluetest.After(1870, 0, 0), nil, nil), year(1870, 1871, false, true), true},
+		{"about is not widened", summary(datevaluetest.About(1846, 0, 0), nil, nil), year(1846, 1847, false, false), true},
+		{"before", summary(datevaluetest.Before(1880, 0, 0), nil, nil), year(1880, 1881, true, false), true},
+		{"range with no start year", summary(noStart, nil, nil), year(1849, 1850, true, false), true},
+		{"start date only is open at its end", summary(nil, datevaluetest.YMD(1860, 0, 0), nil), year(1860, 1861, false, true), true},
+		{"end date only is open at its start", summary(nil, nil, datevaluetest.YMD(1870, 0, 0)), year(1870, 1871, true, false), true},
+		{"start and end", summary(nil, datevaluetest.YMD(1960, 0, 0), datevaluetest.YMD(1970, 0, 0)), year(1960, 1971, false, false), true},
+		{"as-ofs only", summary(nil, nil, nil, *datevaluetest.YMD(1990, 0, 0), *datevaluetest.YMD(2015, 0, 0)), year(1990, 2016, true, true), true},
+		{"start and as-ofs", summary(nil, datevaluetest.YMD(1985, 0, 0), nil, *datevaluetest.YMD(1990, 0, 0), *datevaluetest.YMD(2015, 0, 0)), year(1985, 2016, false, true), true},
+		{"one as-of is a day open on both sides", summary(nil, nil, nil, *datevaluetest.YMD(1990, 1, 10)), year(1990+9.0/365, 1990+10.0/365, true, true), true},
+		{"a before date", summary(datevaluetest.Before(1880, 5, 14), nil, nil), year(1880+134.0/366, 1880+135.0/366, true, false), true},
+		{"no date", summary(nil, nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"date with no year", summary(noYear, nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"both ends open", summary(bothOpen, nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"date with no year, dated start", summary(noYear, datevaluetest.YMD(1860, 0, 0), nil), conclusionsummaries.TimelineSpan{}, false},
+		{"date wins over start", summary(datevaluetest.YMD(1850, 0, 0), datevaluetest.YMD(1860, 0, 0), nil), year(1850, 1851, false, false), true},
+		{"year above the window", summary(datevaluetest.YMD(1<<31-1, 0, 0), nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"year below the window", summary(datevaluetest.YMD(-1<<31, 0, 0), nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"range from -2^31 to 2^31", summary(datevaluetest.Between(-1<<31, 0, 0, 1<<31-1, 0, 0), nil, nil), conclusionsummaries.TimelineSpan{}, false},
+		{"range with one end past the window", summary(datevaluetest.Between(1844, 0, 0, 10000, 0, 0), nil, nil), conclusionsummaries.TimelineSpan{}, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1367,12 +1382,13 @@ func TestEventSpanDays(t *testing.T) {
 		want      valuecompare.Window
 		wantDated bool
 	}{
-		{"about is not widened", conclusionsummaries.EventSummary{Date: datevaluetest.About(2011, 0, 0)}, days(datevaluetest.YMD(2011, 0, 0)), true},
-		{"after is open at its end", conclusionsummaries.EventSummary{Date: datevaluetest.After(2011, 3, 29)}, days(datevaluetest.After(2011, 3, 29)), true},
-		{"before is open at its start", conclusionsummaries.EventSummary{Date: datevaluetest.Before(1880, 0, 0)}, days(datevaluetest.Before(1880, 0, 0)), true},
-		{"start date only", conclusionsummaries.EventSummary{StartDate: datevaluetest.YMD(1860, 0, 0)}, days(datevaluetest.YMD(1860, 0, 0)), true},
-		{"date with no year, dated start", conclusionsummaries.EventSummary{Date: noYear, StartDate: datevaluetest.YMD(1860, 3, 4)}, days(datevaluetest.YMD(1860, 3, 4)), true},
-		{"no date", conclusionsummaries.EventSummary{}, valuecompare.Window{}, false},
+		{"about is not widened", summary(datevaluetest.About(2011, 0, 0), nil, nil), days(datevaluetest.YMD(2011, 0, 0)), true},
+		{"after is open at its end", summary(datevaluetest.After(2011, 3, 29), nil, nil), days(datevaluetest.After(2011, 3, 29)), true},
+		{"before is open at its start", summary(datevaluetest.Before(1880, 0, 0), nil, nil), days(datevaluetest.Before(1880, 0, 0)), true},
+		{"start date only", summary(nil, datevaluetest.YMD(1860, 0, 0), nil), days(datevaluetest.YMD(1860, 0, 0)), true},
+		{"date with no year, dated start", summary(noYear, datevaluetest.YMD(1860, 3, 4), nil), valuecompare.Window{}, false},
+		{"as-ofs are days from the first to the last", summary(nil, nil, nil, *datevaluetest.YMD(1990, 0, 0), *datevaluetest.YMD(2015, 0, 0)), days(datevaluetest.Between(1990, 0, 0, 2015, 0, 0)), true},
+		{"no date", summary(nil, nil, nil), valuecompare.Window{}, false},
 	}
 	same := func(a, b *int) bool { return (a == nil) == (b == nil) && (a == nil || *a == *b) }
 	for _, tc := range cases {
@@ -1458,7 +1474,7 @@ func TestEventAge(t *testing.T) {
 	born := datevaluetest.YMD(1817, 3, 12)
 	age := func(lo, hi int) conclusionsummaries.AgeRange { return conclusionsummaries.AgeRange{Lo: lo, Hi: hi} }
 	ev := func(d *datevalue.Value) conclusionsummaries.EventSummary {
-		return conclusionsummaries.EventSummary{Date: d}
+		return summary(d, nil, nil)
 	}
 	cases := []struct {
 		name   string
@@ -1471,19 +1487,20 @@ func TestEventAge(t *testing.T) {
 		{"a day", ev(datevaluetest.YMD(1844, 6, 4)), born, age(27, 27), true},
 		{"a year", ev(datevaluetest.YMD(1835, 0, 0)), born, age(17, 18), true},
 		{"a range", ev(datevaluetest.Between(1844, 0, 0, 1849, 0, 0)), born, age(26, 32), true},
-		{"start date only", conclusionsummaries.EventSummary{StartDate: datevaluetest.YMD(1844, 6, 4)}, born, age(27, 27), true},
+		{"start date only", summary(nil, datevaluetest.YMD(1844, 6, 4), nil), born, age(27, 27), true},
+		{"as-ofs on a person's known span", summary(nil, nil, nil, *datevaluetest.YMD(1990, 0, 0), *datevaluetest.YMD(2015, 0, 0)), datevaluetest.YMD(1955, 0, 0), age(34, 60), true},
 		{"before: at most, the year included", ev(datevaluetest.Before(1880, 0, 0)), born, conclusionsummaries.AgeRange{Hi: 63, OpenLo: true}, true},
 		{"after: at least, the year included", ev(datevaluetest.After(1850, 0, 0)), born, conclusionsummaries.AgeRange{Lo: 32, OpenHi: true}, true},
 		{"a range with a start only", ev(datevaluetest.Between(1850, 0, 0, 0, 0, 0)), born, conclusionsummaries.AgeRange{Lo: 32, OpenHi: true}, true},
 		{"a range with an end only", ev(datevaluetest.Between(0, 0, 0, 1860, 0, 0)), born, conclusionsummaries.AgeRange{Hi: 43, OpenLo: true}, true},
-		{"a start date before a year", conclusionsummaries.EventSummary{StartDate: datevaluetest.Before(1850, 0, 0)}, born, conclusionsummaries.AgeRange{Hi: 33, OpenLo: true}, true},
+		{"a start date before a year", summary(nil, datevaluetest.Before(1850, 0, 0), nil), born, conclusionsummaries.AgeRange{Hi: 33, OpenLo: true}, true},
 		{"before a day before the birth", ev(datevaluetest.Before(1810, 0, 0)), born, conclusionsummaries.AgeRange{}, false},
 		{"after with a birth after: no bound", ev(datevaluetest.After(1850, 0, 0)), datevaluetest.After(1817, 0, 0), conclusionsummaries.AgeRange{}, false},
 		{"a birth after a year", ev(datevaluetest.YMD(1844, 6, 4)), datevaluetest.After(1817, 0, 0), conclusionsummaries.AgeRange{Hi: 27, OpenLo: true}, true},
 		{"an about birth", ev(datevaluetest.YMD(1844, 6, 4)), datevaluetest.About(1817, 0, 0), age(26, 27), true},
 		{"a birth before a year", ev(datevaluetest.YMD(1844, 6, 4)), datevaluetest.Before(1817, 0, 0), conclusionsummaries.AgeRange{Lo: 26, OpenHi: true}, true},
 		{"no birth", ev(datevaluetest.YMD(1844, 6, 4)), nil, conclusionsummaries.AgeRange{}, false},
-		{"no event date", conclusionsummaries.EventSummary{}, born, conclusionsummaries.AgeRange{}, false},
+		{"no event date", summary(nil, nil, nil), born, conclusionsummaries.AgeRange{}, false},
 		{"event before the birth", ev(datevaluetest.YMD(1800, 0, 0)), born, conclusionsummaries.AgeRange{}, false},
 		{"year above the window", ev(datevaluetest.YMD(1<<31-1, 0, 0)), born, conclusionsummaries.AgeRange{}, false},
 		{"birth year above the window", ev(datevaluetest.YMD(1844, 6, 4)), datevaluetest.YMD(1<<31-1, 0, 0), conclusionsummaries.AgeRange{}, false},
@@ -1614,7 +1631,9 @@ func listKeyPlaces() []conclusionsummaries.PlaceSummary {
 // listKeyEvents are AC-2.3's events: one date value or none, and a ref.
 func listKeyEvents() []conclusionsummaries.EventSummary {
 	event := func(ref string, d *datevalue.Value) conclusionsummaries.EventSummary {
-		return conclusionsummaries.EventSummary{Entity: canonicalentities.Entity{Ref: ref}, Date: d}
+		h := summary(d, nil, nil)
+		h.Entity = canonicalentities.Entity{Ref: ref}
+		return h
 	}
 	return []conclusionsummaries.EventSummary{
 		event("EVT-B", nil), event("EVT-1", datevaluetest.After(1850, 0, 0)),
@@ -1807,5 +1826,65 @@ func TestListPlacesOf(t *testing.T) {
 	want := listRowOf(t, all, york, func(h conclusionsummaries.PlaceSummary) []byte { return h.Entity.ID })
 	if !reflect.DeepEqual(got[0], want) || got[0].ListKey.Last {
 		t.Fatalf("row differs from the list's:\n got %+v\nwant %+v", got[0], want)
+	}
+}
+
+// An event dated only by as-ofs is ordered, and dated, by its dating; deleting
+// an as-of redates it on the next read.
+func TestEventDatingInSummaries(t *testing.T) {
+	f := newFixture(t)
+	date := f.Prop("date")
+	asOf := f.Prop("as_of")
+	e1989 := f.event(observations.Input{PropertyID: date.ID, Date: datevaluetest.YMD(1989, 0, 0)})
+	e1991 := f.event(observations.Input{PropertyID: date.ID, Date: datevaluetest.YMD(1991, 0, 0)})
+
+	s := subjectstest.OfType(f.T, f.C, userID, f.graph, f.typeID("event"), "")
+	res, _, err := observationstest.Cite(f.C, userID, f.graph, f.Artifact.ID, locator,
+		observations.Input{SubjectID: s.ID, PropertyID: asOf.ID, Date: datevaluetest.YMD(1990, 1, 10)},
+		observations.Input{SubjectID: s.ID, PropertyID: asOf.ID, Date: datevaluetest.YMD(2015, 2, 10)},
+	)
+	must(t, err)
+	residence := promotetest.Save(f.T, f.C, userID, promote.Input{SubjectID: s.ID}).Entity.ID
+
+	got := f.events()
+	if len(got) != 3 || !bytes.Equal(got[0].Entity.ID, e1989) || !bytes.Equal(got[1].Entity.ID, residence) || !bytes.Equal(got[2].Entity.ID, e1991) {
+		t.Fatalf("order %v, want 1989, the residence, 1991", []string{got[0].Entity.Ref, got[1].Entity.Ref, got[2].Entity.Ref})
+	}
+	d := got[1].Dating
+	if d.Kind != valuecompare.DatingAsOf || d.Low == nil || *d.Low.StartYear != 1990 || d.High == nil || *d.High.StartYear != 2015 || !d.OpenLow || !d.OpenHigh {
+		t.Fatalf("dating %+v", d)
+	}
+
+	gone := res.Observations[1].ID // the 2015 as-of
+	_, err = writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		ch, err := observations.Delete(tx, userID, gone)
+		return struct{}{}, ch, err
+	})
+	must(t, err)
+	for _, h := range f.events() {
+		if bytes.Equal(h.Entity.ID, residence) && (h.Dating.Low == nil || h.Dating.High != nil || *h.Dating.Low.StartYear != 1990) {
+			t.Fatalf("dating after the delete %+v", h.Dating)
+		}
+	}
+}
+
+// A crafted event with 10,000 as-ofs is dated from two of them, in one pass.
+func TestEventDatingManyAsOfs(t *testing.T) {
+	f := newFixture(t)
+	asOf := f.Prop("as_of")
+	in := make([]observations.Input, 0, 10000)
+	for i := range 10000 {
+		in = append(in, observations.Input{PropertyID: asOf.ID, Date: datevaluetest.YMD(1000+i%900, 0, 0)})
+	}
+	f.event(in...)
+	f.C.Graph().Drop()
+	start := time.Now()
+	got := f.events()
+	if took := time.Since(start); took > 50*time.Millisecond {
+		t.Errorf("compose took %v, want under 50ms", took)
+	}
+	d := got[0].Dating
+	if d.Low == nil || d.High == nil || *d.Low.StartYear != 1000 || *d.High.StartYear != 1899 {
+		t.Fatalf("dating %+v", d)
 	}
 }

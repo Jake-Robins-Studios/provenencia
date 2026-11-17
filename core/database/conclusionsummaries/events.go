@@ -10,6 +10,7 @@ import (
 	"github.com/mendahu/provenencia/core/eventtitle"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/valuecodec"
+	"github.com/mendahu/provenencia/core/valuecompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -47,7 +48,11 @@ type EventSummary struct {
 	StartDateCount int
 	EndDate        *datevalue.Value
 	EndDateCount   int
-	Subjects       []EventSubject
+	// Dating is when the event was under way: the one reading of its date,
+	// start, end and as-of dates (valuecompare.DatingOf). Order, the Timeline
+	// and every date line read it.
+	Dating   valuecompare.Dating
+	Subjects []EventSubject
 	// Participants are every person on the event through any role, by id and
 	// roles, in the order their participations are linked. The roles are not
 	// finished: a reader that shows them labels them (TermLabeler).

@@ -186,11 +186,12 @@ func TestPersonEvents(t *testing.T) {
 			w.k.Join(pat, e, "subject")
 		}
 		rows, _ := w.events(pat)
-		want := append(w.order(b1, tr), w.order(w.byRef(r, v)...)...)
+		// An end-only event sorts at its end, open before it.
+		want := append(w.order(b1, tr, v), w.order(r)...)
 		if got := eventOrder(w, rows); !reflect.DeepEqual(got, want) {
 			t.Fatalf("order %v, want %v", got, want)
 		}
-		dated := map[string]bool{"B1": true, "T": true, "R": false, "V": false}
+		dated := map[string]bool{"B1": true, "T": true, "R": false, "V": true}
 		for _, row := range rows {
 			if (row.Span != nil) != dated[w.name(row.Event)] {
 				t.Errorf("%s dated = %v", w.name(row.Event), row.Span != nil)
@@ -578,6 +579,35 @@ func TestPersonEventsLifeline(t *testing.T) {
 		tl := check(t, w, pat, markers{deathEvent: d, birth: before(d)})
 		if tl.Events[1].Span == nil || tl.Events[1].Span.From != 1890 {
 			t.Errorf("census span %+v", tl.Events[1].Span)
+		}
+	})
+	t.Run("as-ofs span the lifeline (S16-42 AC-2.2, AC-2.3)", func(t *testing.T) {
+		w := newKinWorld(t)
+		pat := w.person("Pat")
+		b := w.eventOn("B", vocabkey.EventBirth, datevaluetest.YMD(1955, 0, 0))
+		r := w.event("R", vocabkey.EventType("residence"), 0)
+		w.k.Date(r, vocabkey.PropertyAsOf, *datevaluetest.YMD(1990, 0, 0))
+		w.k.Date(r, vocabkey.PropertyAsOf, *datevaluetest.YMD(2015, 0, 0))
+		s := w.event("S", vocabkey.EventType("residence"), 0)
+		w.k.Date(s, vocabkey.PropertyStartDate, *datevaluetest.YMD(1985, 0, 0))
+		w.k.Date(s, vocabkey.PropertyAsOf, *datevaluetest.YMD(1990, 0, 0))
+		w.k.Date(s, vocabkey.PropertyAsOf, *datevaluetest.YMD(2015, 0, 0))
+		for _, e := range [][]byte{b, r, s} {
+			w.k.Join(pat, e, "subject")
+		}
+		rows, _ := w.events(pat)
+		got := map[string]persondetail.PersonEvent{}
+		for _, row := range rows {
+			got[w.name(row.Event)] = row
+		}
+		if sp := got["R"].Span; sp == nil || sp.From != 1990 || sp.To != 2016 || !sp.OpenStart || !sp.OpenEnd {
+			t.Errorf("R span %+v, want 1990 to 2016 open both sides", sp)
+		}
+		if a := got["R"].Age; a == nil || a.Lo != 34 || a.Hi != 60 {
+			t.Errorf("R age %+v, want 34 to 60", a)
+		}
+		if sp := got["S"].Span; sp == nil || sp.From != 1985 || sp.To != 2016 || sp.OpenStart || !sp.OpenEnd {
+			t.Errorf("S span %+v, want 1985 to 2016 open at the end", sp)
 		}
 	})
 	t.Run("AC-2.9", func(t *testing.T) {
