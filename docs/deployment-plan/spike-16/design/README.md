@@ -12,7 +12,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | [S16-D7](S16-D7-timeline-lifeline-dating.md) | Person page Timeline: the lifeline draws every event's dating, with a one-day open mark | [agreed 2026-11-17](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), turn 18: a 32 pt bar for an open day | S16-42 |
 | S16-D8 | Properties: a search's no-match state as the kit's empty state, with Clear search | — (written just before S16-48) | S16-48 |
 | S16-D9 | Omnibar results on the kit popup list: its own window, the combo box's card, the loading, empty and error lines | — (written just before S16-52) | S16-52 |
-| S16-D10 | Toast stack: several toasts stacked top-trailing in the workspace window, a refreshed card, a burst clipped at the bottom | — (written just before S16-58) | S16-58 |
+| S16-D10 | Toast stack: several toasts stacked top-trailing in the workspace window, a refreshed card, a burst clipped at the bottom, the composer's toast moved into it | — (written just before S16-58) | S16-58 |
 
 ## Archived
 

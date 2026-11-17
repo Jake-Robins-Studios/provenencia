@@ -9,7 +9,7 @@ A screen shows one toast at a time. A second message replaces the first, so a re
 It is worse than replacement. A toast is drawn by whichever overlay owns it, and several overlays share the window's top-trailing corner:
 - `WorkspaceView` draws two: the counts toast (`countsToast`) and the session's notices (`session.noticeToast`).
 - Each workspace page draws its own through `vocabularyToastOverlay($model.toast, …)`: Properties, the Source page, the Sources list, the Source type page, Metadata, the Evidence graph, the Conclusion detail page.
-- The Citation composer draws `bridgeToast` with `PVToast` directly.
+- The Citation composer draws `bridgeToast` with `PVToast` directly, at the foot of its observations column. In the stack it moves to the window's top-trailing corner like every other toast (user, 2026-11-17), so S16-58 moves it and S16-D10 draws it.
 
 Two of these can show at once, one on top of the other.
 
