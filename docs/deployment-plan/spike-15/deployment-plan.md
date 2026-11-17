@@ -18,7 +18,7 @@ Spike 15 makes Sources carry what a standard genealogical citation needs and tur
 2. **A Source can be marked not public.** A switch on the Source page; it is saved and survives reopening. Nothing else changes yet.
 3. **Copy and item details live where they belong.** On a census Source, the Artifact holds provider, URL and accessed date (also offered when the Artifact is added), and each household's Evidence graph holds dwelling, family and line. The citation composer gains only the printed page.
 4. **Citations read like citations.** A census Citation's provenance sheet reads "1880 U.S. census, Ottawa County, Kansas, population schedule, ED 236, p. 14, dwelling 112, family 118, Ada Robins; digital image, *Ancestry* (… : accessed 12 March 2025)". Copy citation gives the full or short form. Each metadata board flags the fields its type's citation needs and are empty (the census Artifact: "URL, needed for citation"); the Source page copies its source-list entry.
-5. **Formats are the researcher's.** Editing the census full format on its Source type page updates a live preview against a real Source. A new type can **Copy from** an existing one and starts with its formats and suggestions.
+5. **Formats are the researcher's.** Editing the census full format on its Source type page updates a live preview against a real Source. **Copy** on a type's page starts a new type with the parts the researcher ticks, its formats and its suggestions at each level among them.
 6. **A new project knows the citation styles.** It starts with the 26 seeded types, 63 fields, suggestions at each level and formats (map § 6.8). The product owner's dogfood project gets them by running Install once.
 7. **One household, one citation.** The five Citations drawn on one household row show as one citation, with the highlighted pieces beneath it, on the provenance sheet and in the Person page's Sources section.
 8. **An Artifact moves with its graphs.** **Move to another Source…** from an Artifact or a graph shows everything that moves together, keeps every ref, and the moved Citations then read the target Source.
@@ -85,7 +85,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **The provenance table folds a page at a time.** `PVProvenanceRecordTable` folds with the kit's paged fold: S16-07's fold rule and fold state move to `macos/App/Platform/` and its Show more row becomes a kit component, `PVShowMoreRow`, so a recipe can use them (`docs/design-system-layers.md`: a recipe never names a `Features/` type). The fold counts citation groups (a group's full citation with its Citations), never splitting a group, 50 at a time. Binds S15-30, S15-27. Design: [`provenance-loading.md`](provenance-loading.md) "Cap". (K-25, K-33.)
 - **The Why accordion goes.** It is deprecated: Event and Place rows open the provenance sheet as Person rows do, and the Why and its code are deleted before records leave the page read (user, 2026-11-09). Binds S15-31. (K-30.)
 - **Records load when the sheet opens.** The detail page read stops carrying each value's records. It keeps what it already sends (`Support`, `Against`, the values and their state) and adds `FieldRecordCounts` per field (the record count and, for a mixed field, the distinct Source count), composed from the node's outcome rows and the records tier after S16-11 and S16-30, with no new SQL query. A sheet's records come from one read that takes the row's (owner, Property) pairs, mirroring `RecordsSource` (`.field`, `.spanning`, `.derived`), and returns them grouped by pair, each outcome carrying whether it denied a value and the denier's Source title; it reports its inputs as S16-24's reads do. The sheet's on-open call (S15-21's key) carries these records with their citations. Swift's `distinctSourceCount`, `recordCount` derivation, `deniedSomething` and denier search go. Binds S15-28, S15-29. Design: [`provenance-loading.md`](provenance-loading.md) "Load records when the sheet opens". (K-24, K-27, K-28, K-34.)
-- **A Source type has its own page.** The Source types list keeps no side pane: a row opens the type's own page, a deep place under Source types (`WorkspaceLocation.typeId`, today's breadcrumb "Source types › Census", Back and Forward, restore, the omnibar's `source_type` hits and delete-impact rows that name a type, which already route by `typeId`; the crumb's label resolves live from the cached types list, as a Source's title does), with room for the three suggestion lists (S15-12) and the three citation formats (S15-17) beside the name, icon, description and delete. **Add type** sits at the top right of the list and opens a short dialog (label, icon, description), as Add Source does; Save creates the type and opens its page, where suggestions and formats are added, all optional. S15-18's **Copy from** goes in that dialog. The Metadata page keeps its list and side pane: its fields gain no new data this spike (user, 2026-11-14). Binds S15-47 – S15-49, S15-12, S15-17, S15-18.
+- **A Source type has its own page.** The Source types list keeps no side pane: a row opens the type's own page, a deep place under Source types (`WorkspaceLocation.typeId`, today's breadcrumb "Source types › Census", Back and Forward, restore, the omnibar's `source_type` hits and delete-impact rows that name a type, which already route by `typeId`; the crumb's label resolves live from the cached types list, as a Source's title does), with room for the three suggestion lists (S15-12) and the three citation formats (S15-17) beside the name, icon, description and delete. **Add type** sits at the top right of the list and opens a short dialog (label, icon, description), as Add Source does; Save creates the type and opens its page, where suggestions and formats are added, all optional. S15-18's **Copy** sits in the type page's header and opens a sheet of ticks, as Copy Source does on the Source page; the Add dialog stays as it is (user, 2026-11-17). The Metadata page keeps its list and side pane: its fields gain no new data this spike (user, 2026-11-14). Binds S15-47 – S15-49, S15-12, S15-17, S15-18.
 - **Refused in this spike.** A shared Repository record; per-Source format overrides; a fourth citation form; source type packages ([idea](../../ideas/source-type-packages.md)); install on open; undo of a move; Merge Sources; moving to a new Source; filling the jurisdiction from the graph; a per-Artifact page map; a citation preview on the Source page (user, 2026-11-13); copying several Sources' list entries at once ([idea](../../ideas/copy-source-list-entries.md)). Each is recorded in the map (§ 7) or the move doc.
 
 ## PR map
@@ -109,7 +109,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, the format read and write RPCs | — | S15-14 | [plan](prs/S15-15-type-stores-citation-formats.md) | Landed [#871](https://github.com/mendahu/provenencia/pull/871) |
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
 | S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings, on the Source type page | S15-D16 | S15-16, S15-12, S15-48, S15-D16 | — | Scoped |
-| S15-18 | A new type can copy another's formats and suggestions | 4 | Go and Swift: one write; **Copy from** in the Add type dialog (S15-47) | S15-D7 | S15-15, S15-06, S15-47, S15-12, S15-D7 | — | Scoped |
+| S15-18 | A Source type can be copied | 4 | Go and Swift: one copy write; **Copy** in the type page's header opens a sheet of ticks (icon, description, formats, suggestions at each level), as Copy Source | [S15-D7](design/S15-D7-copy-source-type.md) | S15-15, S15-06, S15-48, S15-12, S15-D7 | [plan](prs/S15-18-copy-source-type.md) | Blocked — on board S15-D7 |
 | S15-19 | Seed the citation types, fields and suggestions | 4 | Go: `sourcevocab` registry and Install for 26 types, 63 fields, levelled suggestions; `unknown_text` | — | S15-06, S15-37 | — | Scoped |
 | S15-20 | Seed the citation formats | 4 | Go: each seeded type's three formats; a render test per type | — | S15-19, S15-15 | — | Scoped |
 | S15-21 | The provenance sheet shows formatted citations | 6 | Swift: the sheet's on-open key renders and groups; Copy citation copies rich text | S15-D9 | S15-16, S16-30, S16-04, S15-D9 | — | Scoped |
@@ -153,7 +153,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D4 | Adding an Artifact | — | **Descoped (2026-11-12):** folded into S15-D14, which draws the Artifact sheet in add mode |
 | [S15-D5](design/archive/S15-D5-evidence-graph-form.md) | Evidence graph form, graph rows | **S15-11** | A two-column form: Name, Description and the graph's metadata board beside the Artifacts checklist; a long Artifact list scrolls in its checklist, never the form (user, 2026-11-14); each graph row shows its saved values read-only (user, 2026-11-14) |
 | [S15-D6](design/archive/S15-D6-source-type-suggestion-levels.md) | Source type page | **S15-12** | Suggestions at three levels, stacked in the page's Suggested fields column (S15-D27 TP-7); Return adds a picked field. Rewritten 2026-11-15 as an enhancement of S15-D27's page board. The format editor is S15-D16 |
-| S15-D7 | Add type dialog | **S15-18** | Copy from, in S15-D26's dialog |
+| [S15-D7](design/S15-D7-copy-source-type.md) | Source type page | **S15-18** | Copy in the page header; the Copy type sheet with its ticks (user, 2026-11-17: moved from the Add type dialog) |
 | [S15-D8](design/archive/S15-D8-citation-composer-printed-page.md) | Citation composer | **S15-13** | The printed page next to Label on image and PDF Citations; the composer's split moves onto Regular and Wide (user, 2026-11-16) |
 | S15-D9 | Provenance sheet | **S15-21** | The formatted citation, grouped Citations, Copy citation; the loading and failed states of the on-open call. Split under "One brief, one PR": the fold is S15-D17, records on open S15-D18 |
 | S15-D10 | Move confirm | **S15-25** | The bundle, the target picker, the credibility note |
@@ -215,7 +215,7 @@ SLICE 3 — Printed page                                (alongside Spike 16)
 SLICE 4 — Formats as data                             (alongside Spike 16)
   S15-14  The citation format engine
   S15-15  Source types store citation formats
-  ✎ S15-D7 ──▶ S15-18  A new type can copy another's formats and suggestions
+  ✎ S15-D7 ──▶ S15-18  A Source type can be copied
   S15-19  Seed the citation types, fields and suggestions
   S15-20  Seed the citation formats
   S15-37  Metadata values can be marked unknown or supplied
@@ -223,7 +223,7 @@ SLICE 4 — Formats as data                             (alongside Spike 16)
   S15-44  The printed page can be marked unknown or supplied
   S15-38  Boards carry their citation's requirements
   S15-16  Citations render through their type's formats
-  Check: bar 6 on a new project; bar 5's Copy from; the census example renders in a handler test.
+  Check: bar 6 on a new project; bar 5's Copy; the census example renders in a handler test.
 
 SLICE 5 — Person page date and the format editor
   S15-05  The Person page's Sources section shows each Source's date   (S15-D3, after S16-12, S16-13)
@@ -287,7 +287,7 @@ S15-21 ──▶ S15-23
 S15-12 ──▶ S15-17
 S15-47 ──▶ S15-48 ──▶ S15-49
 S15-48 ──▶ S15-12, S15-17
-S15-47 ──▶ S15-18      S15-12 ──▶ S15-18
+S15-48 ──▶ S15-18      S15-12 ──▶ S15-18
 S15-05 ──▶ S15-22
 S15-24 ──▶ S15-25
 S15-21 ──▶ S15-27, S15-29
@@ -449,7 +449,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-47 — Adding a Source type opens a dialog
 
 **Ships.** **Add type** at the Source types list's top right opens a form dialog with Label (required), Icon and Description, as Add Source does from the Sources list; Save creates the type through today's `createSourceType` and opens its place (`WorkspaceLocation(section: .sourceTypes, typeId:)`), which shows the side pane until S15-48. The side pane's add mode, its add-suggestions note and `SourceTypesModel`'s `.adding` mode go. The dialog has its own model, opened fresh each time and held by the list model as one optional, as Copy Source's `SourceCopyModel` is (user, 2026-11-14), not `VocabularyPaneMode.adding`; a created type reaches the list through a declared row patch (`.createdSourceType`), and the type's other writes move onto it in S15-48 (user, 2026-11-14); `VocabularyHeader`'s existing top-right Add is rewired (`onAdd`), not moved. The dialog is two columns (board S15-D26, redrawn 2026-11-14): Label, Key and Description on the left, the icon grid inline on the right. The grid (`SourceTypeIconPickerForm`, private in `SourceTypesDetailPane.swift`) moves to its own file in `Features/SourceTypes/` as `SourceTypeIconGrid`, drawn by the dialog and by the side pane's "Choose an icon" sheet now and by the page in S15-48 (`docs/design-system-layers.md` names it as its snowflake example). The owner forms' two-column body (`SourceOwnerFormColumns`) moves to the kit as `PVFormColumns`, its right column's width a parameter, and the dialog uses it (user, 2026-11-14). Rule "A Source type has its own page".
-**Not this PR.** The type's own page (S15-48); Copy from (S15-18).
+**Not this PR.** The type's own page (S15-48); Copy (S15-18).
 **Check.** Add type, type "Parish register", pick an icon, Save: the new type is selected; Cancel with text asks before discarding.
 **Context.** S15-D26; `SourceTypesView.swift` (`VocabularyHeader` add action), `SourceTypesModel.swift` (`openAdd`, `cancelAdd`, `submit`), `SourceTypesDetailPane.swift` (add mode, `SourceTypeIconPickerForm`); precedent the Sources list's Add Source dialog in `SourcesListView.swift`; skills `add-ui-component`, `add-localized-string`, `add-swift-test`.
 
@@ -507,12 +507,12 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Check.** Handler tests: save and read a format; a key held by a product and a user field resolves to the one chosen; relabel a field and the format still reads; delete a field in use is refused with its types.
 **Context.** Rule "Formats name fields by id"; map § 6.3 "Storage"; `core/database/deleteimpact/register.go` (`joinEdge`); skills `add-catalog-migration`, `add-catalog-delete` (gains the text-reference case), `add-ffi-handler`. A format edit refreshes the citations of every Source of the type through the vocabulary signal (500 Sources at Scale).
 
-#### S15-18 — A new type can copy another's formats and suggestions
+#### S15-18 — A Source type can be copied
 
-**Ships.** One engine write creates a type as a copy of another's three formats and suggestions at every level; S15-47's Add type dialog offers **Copy from**.
-**Not this PR.** Copying Sources or metadata values.
-**Check.** Bar 5's Copy from: a new type copied from Census has its graph suggestions on its page (S15-12) and its formats through the type read (S15-15; on the page once S15-17 lands).
-**Context.** S15-D7; map § 6.3 "The editor"; S15-47's Add type dialog file and the Source types list model.
+**Ships.** **Copy** in the Source type page's header, on every type (a locked plugin type included), opens a Copy type sheet modelled on Copy Source: Label (blank, its key minted live, as Add type), then "Copy from the original" with six ticks, all on: Icon, Description, Citation formats, and Suggested fields on the Source, on each Artifact and on each Evidence graph; a part the original lacks reads unticked with "None on this type". Save creates a user type in one engine write that copies the ticked parts (formats as stored, by field id; suggestion rows with their order) and opens its page. The Add type dialog is unchanged (user, 2026-11-17: Copy moved from the Add dialog to the page, as Copy Source).
+**Not this PR.** Copying Sources or metadata values; the format editor (S15-17).
+**Check.** Bar 5's Copy: copying Census with every tick on opens a new type whose page shows Census's icon, description and suggestions at all three levels, and whose formats the type read (S15-15) returns equal to Census's; with the Artifact tick off it has no Artifact suggestions.
+**Context.** S15-D7; map § 6.3 "The editor"; Copy Source (`SourceCopyDialog.swift`, `SourceCopyModel.swift`, `core/database/sourcecopy`); `SourceTypePageHeader.swift`, `SourceTypePageModel.swift`.
 
 #### S15-19 — Seed the citation types, fields and suggestions
 
@@ -577,9 +577,9 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-17 — The format editor
 
 **Ships.** The Source type page edits its three formats with Insert field (the built-ins table and the fields, grouped by level, inserting the prefixed form), a live preview against a Source of that type the researcher picks, and the engine's diagnostics shown at their position. Swift does not parse formats.
-**Not this PR.** Copy from (S15-18).
+**Not this PR.** Copy (S15-18).
 **Check.** Bar 5: editing the census full format updates the preview.
-**Cache signal.** The Swift store method for `UpdateCitationFormats` and `CatalogMutation.changedCitationFormats(typeId)`, applied after a format save, for S15-38's board keys (rule "Requirements need a refresh signal"; moved from S15-15, user 2026-11-17).
+**Cache signal.** The Swift store method for `UpdateCitationFormats` and `CatalogMutation.changedCitationFormats(typeId)`, applied after a format save, for S15-38's board keys (rule "Requirements need a refresh signal"; moved from S15-15, user 2026-11-17). The store method for `GetCitationFormats` (`citationFormats(projectDir:typeID:)`) is S15-18's, whose Copy sheet reads it once; S15-17 reuses it and decides whether the page caches it.
 **Context.** S15-D16; map § 6.3 "The editor". A new query key goes into `docs/catalog-caches.md` (S16-10) and, if it lands after S16-25, uses S16-25's value keys.
 
 ### Slice 6 — Citations in the app
