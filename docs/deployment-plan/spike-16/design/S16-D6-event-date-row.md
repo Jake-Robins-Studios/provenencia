@@ -158,7 +158,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Show more | Snowflake | Ship | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` `ConclusionShowMoreRow`, `ConclusionFold` | DR-8: the fold every Conclusion page list uses; `Show %lld more` |
 | The Why | Recipe | Ship | `macos/App/Features/Conclusions/ReconciliationReasoningView.swift`, `PVProvenanceSheetContent.spanning` | The records of every field behind the lines, in one group, as the start–end row today |
 | Row model | Snowflake | Extend | `macos/App/Features/Conclusions/ReconciledValueRowModel.swift` `ReconciledValueRowModel.spanning` | Takes the listed lines as well as the lead |
-| Row date text | Shared Platform formatter | Extend | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay`, `L10n.Dates.rowAsOf` | Each date in the list row's compact form; "as of" is S16-D4's copy. Gains each line's role word (from / as of / until), so DR-2 and DR-3's wording lands in the formatter; the start and end words are new copy |
+| Row date text | Shared Platform formatter | Extend | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay`, `L10n.Dates.rowAsOf` | Each date in the list row's compact form; "as of" is S16-D4's copy. Gains each line's role sentence (`from %@`, `as of %@`, `until %@`), one translatable format each, with a styled copy that marks the date so the words around it draw muted; `from` and `until` are new copy |
 | Page columns | Component | Ship | `PVPageColumns` | Unchanged |
 
 **Non-goals.** No new kit primitive, no badge or chip for "as of", no icon, no new color or token, no second row for the as-ofs, no lead line above the listed lines, no tooltip.
