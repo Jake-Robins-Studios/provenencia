@@ -1,10 +1,6 @@
 # Shared list helpers
 
-**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, and the tiny-PNG test writer to S16-54 (2026-11-17). "History menu row labels" moved to its own idea file, [`history-menu-labels.md`](history-menu-labels.md) (2026-11-17).
-
-## Type-select can land on a disabled menu row
-
-S12-17 ship log; dogfood 2026-10-29. Typing a letter in an action menu can highlight a disabled row (`keyboardTitles` keeps disabled titles), and Return on it closes the menu with no action. Seen on Sources list Clear and other `PVActionMenuItem` menus. Type-select and Return should skip or refuse disabled rows the same way pointer activation does.
+**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, the tiny-PNG test writer to S16-54, and type-select on a disabled row into S16-50 (2026-11-17). "History menu row labels" moved to its own idea file, [`history-menu-labels.md`](history-menu-labels.md) (2026-11-17).
 
 ## Source page section counts differ
 
