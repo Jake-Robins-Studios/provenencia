@@ -1,10 +1,6 @@
 # Shared list helpers
 
-**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" went to Spike 16 (S16-48, 2026-11-17).
-
-## One catalog querier
-
-S12-01 adds `database.Querier` (`Query` + `QueryRow`, in `core/database/tx.go`) for reads that run over a `*sql.DB` or a write's `*sql.Tx`. Eleven packages still declare their own copy (checked 2026-11-17): `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler` (adds `Exec`) and `effects` (`querier`), plus inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. `conclusiondetails` and `matching` no longer declare one. Move each onto `database.Querier` (or a `database` type that adds `Exec`) when its package is next touched. `graphcache` and `effects` are blocked: `core/database` imports them, so they need a leaf package for the interface first.
+**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" and "One catalog querier" went to Spike 16 (S16-48, S16-49; 2026-11-17).
 
 ## Trimmed empty-string binder
 

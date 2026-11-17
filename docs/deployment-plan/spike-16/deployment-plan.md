@@ -69,6 +69,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 21. **Back keeps your place in a section.** Open a child's tile in Family, then the child's spouse, then press Back twice: each time the section scrolls to the tile you opened, and it has focus. The same holds for a Timeline row and a Sources row. Folds still open closed (S13-16). (P-19, [audit](person-page-audit.md).)
 22. **Every count has a plural.** The provenance sheet's "records from N birth events" has plural forms for the events count as well as the records count, and the strings check refuses a count without one, even inside an entry that has other substitutions. (P-18.)
 23. **A Properties search with no match looks like every other empty list.** Searching Properties for "zzz" shows the kit's empty state, as the Sources list does when its filters hide everything, with a Clear search button that empties the field and brings the rows back.
+24. **One querier type for catalog reads.** `rg -n "[Qq]uerier interface|q interface \{" core` finds only the shared read and write queriers. A new package that declares its own is refused by `add-catalog-query`. Nothing in the app changes.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -128,6 +129,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | --- | --- |
 | `ideas/artifact-outside-graph-marker.md`, moved to [`graph-delete-leaves-no-graph.md`](graph-delete-leaves-no-graph.md) | S16-45 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One catalog querier" (2026-11-17) | S16-49 |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -207,6 +209,7 @@ These are the calls for this spike. PR plans treat them as binding.
 
 - **(Batch 6) A sentence added to a confirm the kit already draws is copy, not chrome** (user, 2026-11-17). When the alert, its buttons and its layout stay the same, the PR is not gated on a brief; its plan fixes the exact words and the user can veto them in the plan report. Binds S16-45.
 - **(Batch 6) Back restores a section's scroll and focus, not its folds** (user, 2026-11-17). A Conclusion page section (Person, Event or Place) records the id of the row or tile last opened from it on its `WorkspaceLocation`, as `sectionAnchor`. Like `listScrollAnchor`, it is written when leaving, ignored for identity, and decodes as nil from older history files. Back and Forward scroll to that row and focus it, and the page's other reads are untouched. Folds open closed as today: restoring them stays refused (S13-16 UX-5). When the anchored row is folded away or gone, focus lands on the fold's Show more row, or at the section's top when the row no longer exists. Nothing on the page looks different, so there is no brief. Binds S16-46. Updates [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) and [`navigation-history.md`](../archive/spike-3/navigation-history.md)'s anchor line.
+- **(Batch 6) One read querier and one write querier, in a leaf package** (user, 2026-11-17). `database.Querier` (`Query`, `QueryRow`) and a new write surface that adds `Exec` (for example `database.Execer`) are defined once in a leaf package that imports nothing from `core/database`, and `core/database` re-exports them as aliases. Then `graphcache` and `effects`, which `core/database` imports, can use them without an import cycle. A package needing less than the full read surface (`sqlbatch` uses only `Query`) still takes `database.Querier`. Every package-local copy goes: `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler`, `effects`, and the inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) says a package never declares its own. Binds S16-49.
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
 ## PR map
@@ -261,6 +264,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-46 | Back returns to the row you opened in a section | 6b | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
 | S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
 | S16-48 | A Properties search with no match shows the kit's empty state | 6c | Swift: `PropertiesView`'s hand-built no-match text becomes a compact `PVEmptyState` with Clear search, as the Sources list's no-filter-match state | S16-D8 | S16-D8 | — | Scoped |
+| S16-49 | One read querier and one write querier for every catalog package | 6c | Preparatory, Go: the two interfaces in a leaf package, aliased from `core/database`; the eleven local copies go; `add-catalog-query` forbids new ones; no behaviour change | — | — | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -370,7 +374,8 @@ SLICE 6b — Person page follow-ups                    (any time; the two run in
 
 SLICE 6c — Shared list helpers                       (any time)
   ✎ S16-D8 ──▶ S16-48  A Properties search with no match shows the kit's empty state
-  Check: bar 23.
+  S16-49  One read querier and one write querier for every catalog package
+  Check: bar 23, 24. The two PRs share no file and run in parallel.
 
 S16-99 — Dogfood close / docs
 ```
@@ -431,6 +436,7 @@ S16-D6 ──▶ S16-44
 S16-03, S16-07 (landed) ──▶ S16-46
 S16-47: none
 S16-D8 ──▶ S16-48
+S16-49: none
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -748,3 +754,10 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** The Properties page's other states (load failure, an empty catalog); the rest of [`shared-list-helpers.md`](../../ideas/shared-list-helpers.md).
 **Check.** Bar 23. A search that matches shows the table as today, and VoiceOver reads the empty state's title and its button.
 **Context.** S16-D8; `macos/App/Features/Properties/PropertiesView.swift` (`propertyTable`), `PropertiesModel.swift` (`searchQuery`, `openCreate`); the precedent at `macos/App/Features/Sources/SourcesListView.swift` (`noFilterMatchesTitle`, Clear filters); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
+
+#### S16-49 — One read querier and one write querier for every catalog package
+
+**Ships.** Preparatory, Go, no behaviour change. A leaf package (named in the plan, for example `core/database/querier`) holds the read interface (`Query`, `QueryRow`) and the write interface (adds `Exec`). `core/database` keeps `database.Querier` as an alias and adds the write alias. Each of the eleven local copies is deleted and its functions take the shared type: `sqlbatch`, `graphcache` (`graph.go`), `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler` (write), `effects` (`path.go`'s `querier`), and the inline `interface { … }` parameters in `datevalues`, `namevalues` and `canonicalentities` (write where they `Exec`). `add-catalog-query` gains a sentence: a package never declares its own querier; it takes `database.Querier` or the write alias.
+**Not this PR.** `canonicalentities.rowScanner` (a scan helper, not a querier); context-taking methods (`QueryContext`); any change to which functions take a `*sql.Tx` or a `*sql.DB`.
+**Check.** Bar 24; `go build ./...`, `go vet ./...` and the Go tests pass unchanged; `go list -deps` on the leaf package shows no `core/database` package.
+**Context.** Rule "(Batch 6) One read querier and one write querier, in a leaf package"; [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history; `core/database/tx.go` (`Querier`, S12-01); [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) (its "Write the SQL and scan once … over `database.Querier`" paragraph); [`add-catalog-model`](../../../.agents/skills/add-catalog-model/SKILL.md) only if the leaf package needs registering.
