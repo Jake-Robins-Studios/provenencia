@@ -693,37 +693,29 @@ func (f *fixture) asOfIn(s subjects.Subject, d *datevalue.Value) observations.In
 
 // A multiple date field sends its values in date order; rank stays the wire's.
 func TestForEntityMultipleDatesInDateOrder(t *testing.T) {
-	type rec struct {
-		key  string // "as_of", "date", "name"
-		date *datevalue.Value
-		name string
-	}
-	asOf := func(d *datevalue.Value) rec { return rec{key: "as_of", date: d} }
 	tests := []struct {
 		name    string
-		recs    []rec // one Source each, in order
-		field   string
-		wantFst func(v conclusiondetails.Value) bool
-		wantYrs []int // start years of the values, in order; 0 = no date
+		dates   []*datevalue.Value // one Source each, in order
+		wantYrs []int              // start years of the values, in order; 0 = no date
 	}{
-		{"two sources on 2015, one on 1990", []rec{asOf(datevaluetest.YMD(2015, 0, 0)), asOf(datevaluetest.YMD(2015, 0, 0)), asOf(datevaluetest.YMD(1990, 0, 0))}, "as_of", nil, []int{1990, 2015}},
-		{"range sorts by its first day", []rec{asOf(datevaluetest.YMD(1990, 0, 0)), asOf(datevaluetest.Between(1950, 0, 0, 1955, 0, 0))}, "as_of", nil, []int{1950, 1990}},
-		{"a qualified date sorts at its point", []rec{asOf(datevaluetest.After(1960, 0, 0)), asOf(datevaluetest.YMD(1950, 0, 0))}, "as_of", nil, []int{1950, 1960}},
+		{"two sources on 2015, one on 1990", []*datevalue.Value{datevaluetest.YMD(2015, 0, 0), datevaluetest.YMD(2015, 0, 0), datevaluetest.YMD(1990, 0, 0)}, []int{1990, 2015}},
+		{"range sorts by its first day", []*datevalue.Value{datevaluetest.YMD(1990, 0, 0), datevaluetest.Between(1950, 0, 0, 1955, 0, 0)}, []int{1950, 1990}},
+		{"a qualified date sorts at its point", []*datevalue.Value{datevaluetest.After(1960, 0, 0), datevaluetest.YMD(1950, 0, 0)}, []int{1950, 1960}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newFixture(t)
 			var subs []subjects.Subject
-			for i, r := range tt.recs {
+			for i, d := range tt.dates {
 				s := f.subjectOn(f.source(fmt.Sprintf("Source %d", i)), "event")
-				f.cite(s, f.asOfIn(s, r.date))
+				f.cite(s, f.asOfIn(s, d))
 				subs = append(subs, s)
 			}
 			h := f.promote(subs[0], nil)
 			for _, s := range subs[1:] {
 				f.promote(s, h)
 			}
-			fld := field(f.detail(h), tt.field)
+			fld := field(f.detail(h), "as_of")
 			var got []int
 			for _, v := range fld.Values {
 				y := 0
