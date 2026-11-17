@@ -1,10 +1,11 @@
 # Review — S15-15 Source types store citation formats
 
-**Verdict:** (round 2 pending)
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes. Every blocker Fixed or answered by the user; nothing open
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
+- Answered 2026-11-17: the two existing delete-notice vias without a heading get one here (M-11), with the copy in D-12.
 - Answered before review (2026-11-17): the Swift mutation `.changedCitationFormats(typeId)` and the store method move to S15-17, the first Swift caller (D-11, Rules this plan bends).
 
 ## Writer's own calls
@@ -83,3 +84,24 @@
 
 ### X-11 · nit
 Logged. The temptations are covered: no `catalogmodel` change (§ Schema), and `docs/catalog-caches.md` belongs to S15-38. The type-delete test is now T-11.
+
+## Round 2
+
+Fresh reviewers had the plan and the round 1 log. They confirmed every round 1 answer against the code (`onField` on create and delete, `sqlbatch` generics, the edge shape, and so on) and raised these new findings on the round 1 fixes.
+
+### M-10 · blocker · The Sources' search gate drops `icon_key`
+**Codebase:** `searchindex.ReprojectSource` reads `st.icon_key` for `DisplayIconKey`.
+**Answer:** Fixed. D-10 gates the Sources' docs on `label` or `icon_key`, and each gate lists the columns its document reads. T-10 has an icon-only case.
+
+### M-11 / X-12 · blocker · T-12 needs headings for two existing vias with no copy
+**Codebase:** `canonical_entities.subject_type_id` and `canonical_entities.merged_into_id` are in `resourceInboundVias()` and have no `viaFormats` entry. (The S15-08 field vias do have headings; only the Swift test table lacks their rows.)
+**Answer:** To user, answered 2026-11-17: "Add both headings here". D-12 holds the copy, T-8 has the rows, T-12 has no exemption, and the header's copy scope is updated.
+
+### M-12 / X-13 · blocker · `swiftArrayLiteral` cannot read the nested `viaFormats`
+**Answer:** Fixed. STEP-7 changes the helper to close at a `]` indented like its own `static let` line, so both existing callers are unchanged. T-12 uses the helper.
+
+### X-14 · major · T-10 does not fit `TestResolveLists`' table
+**Answer:** Fixed. T-10 is a new `effects/source_type_search_test.go` `TestSourceTypeSearchGates`, with a fixture of a type and two Sources, following the `evidence_graphs_test.go` precedent.
+
+### X-15 · minor · T-6 fixture helpers
+**Answer:** Fixed. T-6 names `sourceFixture`, `CreateMetadataField` and `mustRPC`.
