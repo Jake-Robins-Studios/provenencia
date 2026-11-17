@@ -49,10 +49,27 @@ func Samples(kind vocabkey.SubjectType, key vocabkey.PropertyKey, v Values, rule
 	return PeriodSamples(v, p)
 }
 
-// PeriodSamples is the positive values v records for p's samples property,
-// nil when p names none.
-func PeriodSamples(v Values, p Period) []propertycompare.Value {
+// CountSamples is how many positive values v records for p's samples property,
+// counted without copying any. Zero when p names none.
+func CountSamples(v Values, p Period) int {
 	if p.Samples == "" {
+		return 0
+	}
+	n := 0
+	for _, s := range v[p.Samples] {
+		if s.Positive() {
+			n++
+		}
+	}
+	return n
+}
+
+// PeriodSamples is the positive values v records for p's samples property,
+// nil when p names none or v records more than p.MaxSamples: the count comes
+// first, so a crafted side is never copied. It is the one place the cap holds,
+// for compare, the shortlist and the lifespan.
+func PeriodSamples(v Values, p Period) []propertycompare.Value {
+	if n := CountSamples(v, p); n == 0 || n > p.MaxSamples {
 		return nil
 	}
 	var out []propertycompare.Value
@@ -75,7 +92,7 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // with the period on its own side (swapped puts it on side A). A period with
 // an open end bounds but does not agree: an agree or partial against it is
 // unknown, its cause unchanged. Match strength therefore reads from the two
-// extreme samples only. A side with more than the period's MaxSamples samples is skipped.
+// extreme samples only. A side with more than the period's MaxSamples samples has none (PeriodSamples).
 func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, other Values, rules Rules, swapped bool, meta propertymeta.Meta, value valuecompare.Rules) []propertycompare.Result {
 	p, ok := rules.Period(kind, key)
 	if !ok || p.Samples == "" || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
@@ -86,7 +103,7 @@ func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, o
 		return nil
 	}
 	samples := PeriodSamples(mine, p)
-	if len(samples) == 0 || len(samples) > p.MaxSamples {
+	if len(samples) == 0 {
 		return nil
 	}
 

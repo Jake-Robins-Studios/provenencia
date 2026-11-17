@@ -98,6 +98,7 @@ func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompa
 			open   bool
 		}
 		var reaches []reach
+		period, _ := subject.Period(kind, d.Date)
 		dates := positive(kind, d.Date, v, metas, subject)
 		for _, date := range dates {
 			if lo, hi, open, ok := valuecompare.YearReach(date.Value, value); ok {
@@ -106,7 +107,7 @@ func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompa
 		}
 		// An event with only as-ofs began and ended at unknown days: one open
 		// reach, which meets every closed one.
-		if len(dates) == 0 && len(subjectcompare.Samples(kind, d.Date, v, subject)) > 0 {
+		if len(dates) == 0 && subjectcompare.CountSamples(v, period) > 0 {
 			reaches = append(reaches, reach{open: true})
 		}
 		for _, rc := range reaches {

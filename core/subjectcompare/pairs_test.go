@@ -70,3 +70,31 @@ func TestSamplesAgainstReadsNothingWhenOtherSpeaks(t *testing.T) {
 		t.Errorf("allocated %v times, want 0", allocs)
 	}
 }
+
+// TestPeriodSamplesCap checks the samples are counted before they are copied:
+// over the cap none are returned, at it all are, and a negative value is not
+// counted.
+func TestPeriodSamplesCap(t *testing.T) {
+	p, _ := matchregistry.Default().Subject.Period(vocabkey.Event, date)
+	negative := year(1999)
+	negative.Negative = true
+	atCap := Vals{asOf: samplesOf(p.MaxSamples)}
+	over := Vals{asOf: append(samplesOf(p.MaxSamples), year(2001))}
+	withNegative := Vals{asOf: append(samplesOf(p.MaxSamples), negative)}
+
+	if n := subjectcompare.CountSamples(over, p); n != p.MaxSamples+1 {
+		t.Errorf("CountSamples(over the cap) = %d, want %d", n, p.MaxSamples+1)
+	}
+	if got := subjectcompare.PeriodSamples(over, p); got != nil {
+		t.Errorf("PeriodSamples(over the cap) returned %d samples, want nil", len(got))
+	}
+	if got := subjectcompare.PeriodSamples(atCap, p); len(got) != p.MaxSamples {
+		t.Errorf("PeriodSamples(at the cap) = %d, want %d", len(got), p.MaxSamples)
+	}
+	if n := subjectcompare.CountSamples(withNegative, p); n != p.MaxSamples {
+		t.Errorf("CountSamples(with a negative) = %d, want %d", n, p.MaxSamples)
+	}
+	if n := subjectcompare.CountSamples(Vals{}, p); n != 0 {
+		t.Errorf("CountSamples(nothing) = %d", n)
+	}
+}
