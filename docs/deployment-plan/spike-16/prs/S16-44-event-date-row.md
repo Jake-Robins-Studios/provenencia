@@ -1,9 +1,9 @@
 # S16-44 — The Event page's Date row shows as-ofs
 
-**Status:** Planned
+**Status:** Landed in [#881](https://github.com/mendahu/provenencia/pull/881) (2026-11-17)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D6](../design/S16-D6-event-date-row.md) (Event page: the Date row for an event dated by as-ofs, DR-1 – DR-8, DR-W1), board agreed 2026-11-17
+**Brief:** [S16-D6](../design/archive/S16-D6-event-date-row.md) (Event page: the Date row for an event dated by as-ofs, DR-1 – DR-8, DR-W1), board agreed 2026-11-17
 **Board:** agreed 2026-11-17. [Claude Design — Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page `project/Event Detail.dc.html`, turn "S16-D6 · As-of dates": frames 8a (Regular), 8b (Wide), 9 (the Why open) and 10 (the strip of every case, with Residence of Z's 10,000 as-ofs folded). The implementer reads it with the Artifact tool's `read` on that link and that `path`, as S16-42 read its boards. Wording: `from`, `as of`, `until` before each date, the role word in secondary ink (D-3); `Show 50 more` (D-5). Two things the board draws are not built here: the Why's own `Show 50 more` (S15-27), and `; 9,980 more` at the end of the spoken label (the label speaks the 20 lines it shows; the Show more button speaks the rest)
 **Depends on:** S16-42 (landed [#876](https://github.com/mendahu/provenencia/pull/876)), S16-D6 (agreed 2026-11-17)
 **Blocks:** —
@@ -341,3 +341,7 @@ None.
 
 **Title:** S16-44 — The Event page's Date row shows as-ofs
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-44-event-date-row.md`.
+
+## Landed
+
+Differences from the plan: the version went 0.22.0 to 0.23.0, not 0.21.0 to 0.22.0 (`main` was at 0.22.0 when the branch was cut). T-1's rows use dates the reconciler keeps apart: a range of 1950 - 1955 with 1990, and `aft 1960` with 1950, because `bet 1980 and 2000` and `1990`, or `bef 1990` and `1985`, fold into one value, and a phrase-only as-of is not kept as a value, so it has no row; and the single-valued `date` row asserts rank order with both values kept (1849, 1817 as rank 2), as the reconciler keeps the second as a mixed value. `PVProvenanceSheetContent.Value.styled` and `propertyKey` default to nil and "" and `PersonDetailTests.aMixedRowDisclosesItsOtherValues` names its `propertyKey`. `L10n.Dates.rowAsOfFormat`, `rowFromFormat` and `rowUntilFormat` are the resources (with `rowFrom`, `rowUntil` functions) that `DateRowDisplay.line(date:role:)` styles; `rowAsOf` now formats `rowAsOfFormat`. T-2 logs `ForEntity`'s time: median 118.8 ms before and 128.2 ms after over 5 runs. The manual check (section 10) was not run.
