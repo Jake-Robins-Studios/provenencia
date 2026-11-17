@@ -108,6 +108,12 @@ func TestLifespanFromEvents(t *testing.T) {
 					t.Errorf("span first end %+v", sFirst)
 				}
 			}},
+		{name: "an as-of counts toward the span", events: []subjectprofile.LifeEvent{
+			ev(death, subj, y(1900)), sampled(residence, subj, y(1880))},
+			want: "lifespan={Between 1760 and 1910}; lifespan_span={Between 1880 and 1900}"},
+		{name: "an as-of on a birth does not fix the window's start", events: []subjectprofile.LifeEvent{
+			sampled(birth, subj, y(1850)), ev(death, subj, y(1900))},
+			want: "lifespan={Between 1730 and 1910}; lifespan_span={Between 1850 and 1900}"},
 		{name: "a date written about stays as written", events: []subjectprofile.LifeEvent{
 			ev(birth, subj, datevaluetest.About(1815, 0, 0)), ev(death, subj, y(1890))},
 			want: "lifespan={Between 1805 and 1900}; lifespan_span={Between 1815 and 1890}",
