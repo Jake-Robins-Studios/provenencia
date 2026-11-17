@@ -50,8 +50,8 @@ User, 2026-11-08. They are the map's Batch 1 working rules.
 | --- | --- | --- |
 | P-8 | Timeline participants' summaries are sent once per event | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
 | P-9 | The record links read recomputes every pair, with no memo | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
-| P-18 | Birth and death event counts have no plural; the catalog check skips them | S16-46 (Batch 6, 2026-11-17) |
-| P-19 | Back resets a section's scroll, folds and focus | S16-45: scroll and focus (Batch 6, 2026-11-17); folds refused |
+| P-18 | Birth and death event counts have no plural; the catalog check skips them | S16-47 (Batch 6, 2026-11-17) |
+| P-19 | Back resets a section's scroll, folds and focus | S16-46: scroll and focus (Batch 6, 2026-11-17); folds refused |
 | P-22 (the rest) | The claims read could own every graph label the record links diagram shows | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) |
 | P-23 | The family response sends each sibling two or three times | [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md) |
 | P-25 | A fourth hover-and-focus-ring button body (A-41 grew) | [`ideas/structural-debt.md`](../../ideas/structural-debt.md) (A-41) |

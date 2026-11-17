@@ -1,6 +1,6 @@
 # Person page follow-ups
 
-**Status:** idea only — not roadmapped. Low-priority Person page items from the [2026-11-08 audit](../deployment-plan/spike-16/person-page-audit.md), parked by the user the same day. P-18 and P-19 went to Spike 16 Batch 6 (S16-46, S16-45; 2026-11-17). Pull one in when the code it names next changes, or as a batch of an odds-and-ends spike.
+**Status:** idea only — not roadmapped. Low-priority Person page items from the [2026-11-08 audit](../deployment-plan/spike-16/person-page-audit.md), parked by the user the same day. P-18 and P-19 went to Spike 16 Batch 6 (S16-47, S16-46; 2026-11-17). Pull one in when the code it names next changes, or as a batch of an odds-and-ends spike.
 
 ## The Conclusion lists hide a refresh failure too (map review K-2)
 

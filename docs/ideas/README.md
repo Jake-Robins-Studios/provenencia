@@ -21,7 +21,6 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`evidence-graph-followups.md`](evidence-graph-followups.md) — card image memory, upward shadows, P3 color drift, keyboard multi-select, reloading sign
 - [`evidence-graph-structure-shortcuts.md`](evidence-graph-structure-shortcuts.md) — place or paste a common cluster; field hints from transcription
 - [`graph-canvas-second-host.md`](graph-canvas-second-host.md) — what a family-tree canvas host still needs from GraphCanvas
-- [`artifact-outside-graph-marker.md`](artifact-outside-graph-marker.md) — name, in a graph delete's confirm, the Artifacts it leaves in no Evidence graph; the card marker went to Spike 12 (S12-38)
 
 ### Citation composer and media
 
