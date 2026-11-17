@@ -1,6 +1,6 @@
 # History menu labels
 
-**Status:** idea only — not roadmapped. Moved out of [`shared-list-helpers.md`](shared-list-helpers.md) on 2026-11-17 so it can be thought through on its own; more changes to the menu are to be added here. Spike 16's S16-53 moves the menu onto a kit menu row and `.pvPopup` with no visible change and leaves this out.
+**Status:** idea only — not roadmapped. Moved out of `shared-list-helpers.md` on 2026-11-17 (that file is retired; its other items went to Spike 16 Batch 6) so it can be thought through on its own; more changes to the menu are to be added here. Spike 16's S16-53 moves the menu onto a kit menu row and `.pvPopup` with no visible change and leaves this out.
 
 ## Where it started
 

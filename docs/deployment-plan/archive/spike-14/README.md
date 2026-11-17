@@ -32,7 +32,7 @@ A transparent-polygon depiction crop. A per-kind thumbnail column or RPC. A Prop
 | --- | --- |
 | A loading caption while the viewer opens; a drawing hint that says "tools above" for one tool; EXIF orientation; a larger cover derivative; pictures as matching evidence for an Event or Place | [`depictions-and-likenesses.md`](../../../ideas/depictions-and-likenesses.md) |
 | A reloading sign on a revisited canvas | [`evidence-graph-followups.md`](../../../ideas/evidence-graph-followups.md) |
-| A failed sidebar recount is silent | [`shared-list-helpers.md`](../../../ideas/shared-list-helpers.md) |
+| A failed sidebar recount is silent | `shared-list-helpers.md` (retired 2026-11-17; Spike 16 Batch 6) |
 | A failed bind after a Property create | [`properties-and-terms.md`](../../../ideas/properties-and-terms.md) |
 | "Soby-Kirke" misses "Søby Kirke" | [`international-names.md`](../../../ideas/international-names.md) |
 | A name part length bound on Validate and Insert | [`share-packages.md`](../../../ideas/share-packages.md) "Harden before sharing" |
