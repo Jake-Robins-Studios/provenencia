@@ -1,7 +1,7 @@
 # Review — S15-37 Metadata values can be marked unknown or supplied
 
-**Verdict:** Fits with changes — Ready with changes (round 1)
-**Rounds:** 1 (round 2 pending). **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits — Ready with changes (all answered)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 None.
@@ -63,3 +63,24 @@ None.
 
 ### X-9 · Swift vocabulary
 No finding.
+
+## Round 2
+
+Maintainability (opus): every round-1 answer holds; no new findings. Verdict: Fits.
+
+### X-1 · blocker · T-12 cannot pass as written (two rows always differ in `id` and owner)
+**Answer:** Fixed — T-12 compares key sets and the `value_text`, `is_unknown`, `is_supplied` and `field_id` diffs of two owners holding the same field and value; `id` and the owner column are not compared. Fixtures named (`ownerFixture`; two Sources for the Source level).
+
+### X-2 · major · `metadatafields.Delete`'s change drops `unknown_text`
+**Answer:** Fixed — D-9: `Delete`'s change gains `unknown_text` when not empty, as `description`; T-6 case added.
+
+### X-3 · minor · D-10's const-to-var split unstated
+**Answer:** Fixed — D-10 says split each `const` block; rebuilt queries go in one `var` block with their clauses unchanged.
+
+### X-4 · minor · STEP-4 misses `sourcetypes/formats_test.go`
+**Answer:** Fixed — added to STEP-4's files.
+
+### X-5 · minor · No text-to-unknown update case
+**Answer:** Fixed — T-2 row added.
+
+**Final verdict:** Fits — Ready with changes answered; nothing open.
