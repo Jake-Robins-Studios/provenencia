@@ -132,6 +132,7 @@ struct L10nResolutionTests {
             "evidencegraphs.in_use": "Subjects still need this evidence graph.",
             "evidencegraphs.last_graph": "A source keeps at least one evidence graph.",
             "observations.other_graph": "That subject or artifact is in another evidence graph.",
+            "valuemark.invalid": "A value can’t be both unknown and supplied; an unknown value has no text, and a supplied one needs text.",
         ]
         for (code, sentence) in expected {
             let message = L10n.Errors.message(code: code)

@@ -193,6 +193,44 @@ func TestUpdateMetadataField(t *testing.T) {
 			},
 		},
 		{
+			name: "the unknown text is set, kept when absent, and cleared when empty",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, userID, _ := sourceFixture(t)
+				var created engine.CreateMetadataFieldResponse
+				mustRPC(t, CreateMetadataField, &engine.CreateMetadataFieldRequest{
+					ProjectDir: dir, UserId: userID, Label: "Place", DataType: "text",
+				}, &created)
+				update := func(unknownText *string) *engine.MetadataField {
+					t.Helper()
+					var out engine.UpdateMetadataFieldResponse
+					mustRPC(t, UpdateMetadataField, &engine.UpdateMetadataFieldRequest{
+						ProjectDir: dir, UserId: userID, FieldId: created.Field.GetId(),
+						Label: "Place", DataType: "text", UnknownText: unknownText,
+					}, &out)
+					return out.GetField()
+				}
+				if got := update(proto.String("n.p.")).GetUnknownText(); got != "n.p." {
+					t.Fatalf("set: unknown_text %q", got)
+				}
+				if got := update(nil).GetUnknownText(); got != "n.p." {
+					t.Fatalf("absent: unknown_text %q, want it kept", got)
+				}
+				return &engine.UpdateMetadataFieldRequest{
+					ProjectDir: dir, UserId: userID, FieldId: created.Field.GetId(),
+					Label: "Place", DataType: "text", UnknownText: proto.String(""),
+				}
+			},
+			after: func(t *testing.T, out []byte, _ proto.Message) {
+				var resp engine.UpdateMetadataFieldResponse
+				if err := proto.Unmarshal(out, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if resp.Field.GetUnknownText() != "" {
+					t.Fatalf("empty: unknown_text %q, want it cleared", resp.Field.GetUnknownText())
+				}
+			},
+		},
+		{
 			name: "rejects data type change",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _ := sourceFixture(t)

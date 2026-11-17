@@ -1,6 +1,6 @@
 # S15-37 — Metadata values can be marked unknown or supplied
 
-**Status:** Planned
+**Status:** Landed in [#879](https://github.com/mendahu/provenencia/pull/879) (2026-11-17)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, one migration, the wire and one error message. No view can set or show a mark yet; S15-41 adds the control and S15-46 the unknown text editor)
@@ -354,3 +354,11 @@ None.
 
 **Title:** S15-37 — Metadata values can be marked unknown or supplied
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-37-metadata-value-marks.md`.
+
+## Landed
+
+- The version bump is 0.21.0 → 0.22.0: `main` was already at 0.21.0 when the PR was cut.
+- AC-1.4: `urlshape.Canonical` (unchanged) stores a supplied url "ancestry.com/x" as typed, lowercased, not "https://ancestry.com/x"; `open_href` is "https://ancestry.com/x". `TestValueMarks` asserts that.
+- T-12 deletes the second owner through `artifacts.Delete` (Artifact level) or `sources.Delete` after deleting the fixture's Artifact (Source and graph levels), since a Source holding an Artifact cannot be deleted.
+- Commits keep the build green: `metadatafields.Update`'s handler call passed `nil` in the field commit and `req.UnknownText` in the wire commit.
+- The in-app manual check (§ 10) was not run in the implementing session.

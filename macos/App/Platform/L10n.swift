@@ -11353,6 +11353,11 @@ enum L10n {
             defaultValue: "This metadata change can't be saved.",
             comment: "FFI error sourcemetadata.invalid"
         )
+        static let valueMarkInvalid = LocalizedStringResource(
+            "error.valuemark.invalid",
+            defaultValue: "A value can’t be both unknown and supplied; an unknown value has no text, and a supplied one needs text.",
+            comment: "FFI error valuemark.invalid"
+        )
         static let filesInvalid = LocalizedStringResource(
             "error.files.invalid",
             defaultValue: "Invalid file.",
@@ -11957,6 +11962,8 @@ enum L10n {
                 return L10n.string(sourceCredibilityInvalid)
             case "sourcemetadata.invalid":
                 return L10n.string(sourceMetadataInvalid)
+            case "valuemark.invalid":
+                return L10n.string(valueMarkInvalid)
             case "files.invalid":
                 return L10n.string(filesInvalid)
             case "ingest.invalid":

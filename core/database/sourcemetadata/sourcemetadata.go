@@ -22,6 +22,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/urlshape"
+	"github.com/mendahu/provenencia/core/valuemark"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -36,12 +37,15 @@ type Row struct {
 	Owner     Owner
 	FieldID   []byte
 	ValueText string
+	// Mark says whether the value is unknown (ValueText is "") or supplied.
+	Mark valuemark.Mark
 }
 
 // Input is one value of a Set or a Draft.
 type Input struct {
 	FieldID   []byte
 	ValueText string
+	Mark      valuemark.Mark
 }
 
 // Draft is what an owner's metadata form or copy holds: one value per field,
@@ -86,7 +90,8 @@ type LayoutRow struct {
 
 // Set upserts a metadata value for (owner, field). The caller records the
 // returned changes. An unchanged value returns the existing row and no changes.
-// A refused value is ErrInvalid naming its field.
+// A refused mark is valuemark.ErrInvalid and any other refused value is
+// ErrInvalid, each naming its field.
 func Set(tx *database.Tx, userID []byte, owner Owner, in Input) (Row, []rowchange.Change, error) {
 	st, err := storeFor(owner)
 	if err != nil {
@@ -108,7 +113,7 @@ func Set(tx *database.Tx, userID []byte, owner Owner, in Input) (Row, []rowchang
 	}
 	field := fields[string(in.FieldID)]
 
-	normalized, err := normalizeFor(field, in.ValueText)
+	normalized, err := normalizeFor(field, in.ValueText, in.Mark)
 	if err != nil {
 		return Row{}, nil, err
 	}
@@ -118,40 +123,73 @@ func Set(tx *database.Tx, userID []byte, owner Owner, in Input) (Row, []rowchang
 	if err != nil && !creating {
 		return Row{}, nil, err
 	}
+	var prevRow *Row
+	if !creating {
+		prevRow = &prev
+	}
 
+	row, change, err := putValueTx(tx.Tx, st, owner, prevRow, field.ID, normalized, in.Mark)
+	if err != nil {
+		return Row{}, nil, err
+	}
+	if change == nil {
+		return row, nil, nil
+	}
 	if creating {
-		row, change, err := insertValueTx(tx.Tx, st, owner, field.ID, normalized)
-		if err != nil {
-			return Row{}, nil, err
-		}
 		// A field the researcher just filled needs a place in the owner's
 		// order; appending keeps an existing hand-sorted layout intact.
 		if _, err := tx.Exec(st.layoutAppend, owner.ID, in.FieldID, owner.ID); err != nil {
 			return Row{}, nil, mapConstraint(err)
 		}
-		return row, []rowchange.Change{change}, nil
 	}
+	return row, []rowchange.Change{*change}, nil
+}
 
-	if prev.ValueText == normalized {
-		return prev, nil, nil
+// putValueTx writes the already normalized text and mark as the owner's value
+// for the field: an insert when prev is nil, nothing (prev and a nil change)
+// when the text and mark are equal, an update otherwise. It writes no layout
+// row; Set appends one and CreateAll writes the caller's.
+func putValueTx(tx *sql.Tx, st *store, owner Owner, prev *Row, fieldID []byte, normalized string, mark valuemark.Mark) (Row, *rowchange.Change, error) {
+	if prev == nil {
+		row, change, err := insertValueTx(tx, st, owner, fieldID, normalized, mark)
+		if err != nil {
+			return Row{}, nil, err
+		}
+		return row, &change, nil
 	}
-	row, change, err := updateValueTx(tx.Tx, st, prev, normalized)
+	if prev.ValueText == normalized && prev.Mark == mark {
+		return *prev, nil, nil
+	}
+	row, change, err := updateValueTx(tx, st, *prev, normalized, mark)
 	if err != nil {
 		return Row{}, nil, err
 	}
-	return row, []rowchange.Change{change}, nil
+	return row, &change, nil
 }
 
-// insertValueTx inserts the already normalized text as the owner's value for
-// the field and returns the row with its create change. It writes no layout
-// row; Set appends one and CreateAll writes the caller's.
-func insertValueTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte, normalized string) (Row, rowchange.Change, error) {
+// auditFields is a value row as change columns: every column, so a create, a
+// delete here and a facet release of the row (deleteimpact) read alike. An
+// unknown row's value_text is nil.
+func auditFields(st *store, r Row) map[string]any {
+	return map[string]any{
+		"id":           database.UUIDString(r.ID),
+		st.ownerColumn: database.UUIDString(r.Owner.ID),
+		"field_id":     database.UUIDString(r.FieldID),
+		"value_text":   database.NullString(r.ValueText),
+		"is_unknown":   r.Mark.Unknown,
+		"is_supplied":  r.Mark.Supplied,
+	}
+}
+
+// insertValueTx inserts the already normalized text and mark as the owner's
+// value for the field and returns the row with its create change.
+func insertValueTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte, normalized string, mark valuemark.Mark) (Row, rowchange.Change, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return Row{}, rowchange.Change{}, err
 	}
 	idBytes := id[:]
-	if _, err := tx.Exec(st.insert, idBytes, owner.ID, fieldID, database.NullString(normalized)); err != nil {
+	if _, err := tx.Exec(st.insert, idBytes, owner.ID, fieldID, database.NullString(normalized), boolInt(mark.Unknown), boolInt(mark.Supplied)); err != nil {
 		return Row{}, rowchange.Change{}, mapConstraint(err)
 	}
 	row := Row{
@@ -159,26 +197,20 @@ func insertValueTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte, normalize
 		Owner:     Owner{Level: owner.Level, ID: append([]byte(nil), owner.ID...)},
 		FieldID:   append([]byte(nil), fieldID...),
 		ValueText: normalized,
-	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":           {Old: nil, New: id.String()},
-		st.ownerColumn: {Old: nil, New: database.UUIDString(owner.ID)},
-		"field_id":     {Old: nil, New: database.UUIDString(fieldID)},
-	}
-	if normalized != "" {
-		fields["value_text"] = rowchange.FieldDiff{Old: nil, New: normalized}
+		Mark:      mark,
 	}
 	return row, rowchange.Change{
 		EntityType: st.values,
 		EntityID:   row.ID,
 		Action:     rowchange.ActionCreate,
-		Fields:     fields,
+		Fields:     rowchange.FullRow(auditFields(st, row)),
 	}, nil
 }
 
-// updateValueTx writes the new, already normalized text over prev's row.
-func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string) (Row, rowchange.Change, error) {
-	if _, err := tx.Exec(st.update, database.NullString(normalized), prev.ID); err != nil {
+// updateValueTx writes the new, already normalized text and mark over prev's
+// row. Its change carries only the columns that differ.
+func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string, mark valuemark.Mark) (Row, rowchange.Change, error) {
+	if _, err := tx.Exec(st.update, database.NullString(normalized), boolInt(mark.Unknown), boolInt(mark.Supplied), prev.ID); err != nil {
 		return Row{}, rowchange.Change{}, mapConstraint(err)
 	}
 	row := Row{
@@ -186,14 +218,23 @@ func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string) (Row, row
 		Owner:     Owner{Level: prev.Owner.Level, ID: append([]byte(nil), prev.Owner.ID...)},
 		FieldID:   append([]byte(nil), prev.FieldID...),
 		ValueText: normalized,
+		Mark:      mark,
+	}
+	diffs := map[string]rowchange.FieldDiff{}
+	if prev.ValueText != normalized {
+		diffs["value_text"] = rowchange.FieldDiff{Old: database.NullString(prev.ValueText), New: database.NullString(normalized)}
+	}
+	if prev.Mark.Unknown != mark.Unknown {
+		diffs["is_unknown"] = rowchange.FieldDiff{Old: prev.Mark.Unknown, New: mark.Unknown}
+	}
+	if prev.Mark.Supplied != mark.Supplied {
+		diffs["is_supplied"] = rowchange.FieldDiff{Old: prev.Mark.Supplied, New: mark.Supplied}
 	}
 	return row, rowchange.Change{
 		EntityType: st.values,
 		EntityID:   row.ID,
 		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"value_text": {Old: database.NullString(prev.ValueText), New: database.NullString(normalized)},
-		},
+		Fields:     diffs,
 	}, nil
 }
 
@@ -202,19 +243,11 @@ func deleteValueTx(tx *sql.Tx, st *store, prev Row) (rowchange.Change, error) {
 	if _, err := tx.Exec(st.delete, prev.Owner.ID, prev.FieldID); err != nil {
 		return rowchange.Change{}, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":           {Old: database.UUIDString(prev.ID), New: nil},
-		st.ownerColumn: {Old: database.UUIDString(prev.Owner.ID), New: nil},
-		"field_id":     {Old: database.UUIDString(prev.FieldID), New: nil},
-	}
-	if prev.ValueText != "" {
-		fields["value_text"] = rowchange.FieldDiff{Old: prev.ValueText, New: nil}
-	}
 	return rowchange.Change{
 		EntityType: st.values,
 		EntityID:   prev.ID,
 		Action:     rowchange.ActionDelete,
-		Fields:     fields,
+		Fields:     rowchange.DeletedRow(auditFields(st, prev)),
 	}, nil
 }
 
@@ -304,8 +337,9 @@ func CreateAll(tx *database.Tx, userID []byte, owner Owner, d Draft) ([]rowchang
 // the draft leaves out stays, so a draft never undoes a dismiss by omission.
 // Apply appends no layout row for a new value: a caller with a board sends the
 // whole order as d.Layout. Only differing rows are written. The caller records
-// the returned changes. A refused value is ErrInvalid naming its field (the
-// first in draft order); any other refusal is a bare ErrInvalid.
+// the returned changes. A refused mark is valuemark.ErrInvalid and any other
+// refused value is ErrInvalid, each naming its field (the first in draft
+// order); any other refusal is a bare ErrInvalid.
 func Apply(tx *database.Tx, userID []byte, owner Owner, d Draft) ([]rowchange.Change, error) {
 	st, err := storeFor(owner)
 	if err != nil {
@@ -375,7 +409,7 @@ func apply(tx *database.Tx, userID []byte, st *store, owner Owner, have stored, 
 	}
 	normalized := make([]string, len(d.Values))
 	for i, in := range d.Values {
-		n, err := normalizeFor(fields[string(in.FieldID)], in.ValueText)
+		n, err := normalizeFor(fields[string(in.FieldID)], in.ValueText, in.Mark)
 		if err != nil {
 			return nil, err
 		}
@@ -403,20 +437,16 @@ func apply(tx *database.Tx, userID []byte, st *store, owner Owner, have stored, 
 		changes = append(changes, change)
 	}
 	for i, in := range d.Values {
-		prev, ok := haveValue[string(in.FieldID)]
-		switch {
-		case !ok:
-			_, change, err := insertValueTx(tx.Tx, st, owner, in.FieldID, normalized[i])
-			if err != nil {
-				return nil, err
-			}
-			changes = append(changes, change)
-		case prev.ValueText != normalized[i]:
-			_, change, err := updateValueTx(tx.Tx, st, prev, normalized[i])
-			if err != nil {
-				return nil, err
-			}
-			changes = append(changes, change)
+		var prevRow *Row
+		if prev, ok := haveValue[string(in.FieldID)]; ok {
+			prevRow = &prev
+		}
+		_, change, err := putValueTx(tx.Tx, st, owner, prevRow, in.FieldID, normalized[i], in.Mark)
+		if err != nil {
+			return nil, err
+		}
+		if change != nil {
+			changes = append(changes, *change)
 		}
 	}
 	for _, l := range d.Layout {
@@ -640,7 +670,7 @@ func ReadDraftsTx(tx *sql.Tx, owners []Owner) ([]Draft, error) {
 	}
 	held := make(map[string][]Input, len(owners))
 	for _, v := range values {
-		held[v.Owner.key()] = append(held[v.Owner.key()], Input{FieldID: v.FieldID, ValueText: v.ValueText})
+		held[v.Owner.key()] = append(held[v.Owner.key()], Input{FieldID: v.FieldID, ValueText: v.ValueText, Mark: v.Mark})
 	}
 	out := make([]Draft, len(owners))
 	for i, o := range owners {
@@ -942,12 +972,22 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, er
 	return out, nil
 }
 
-// normalizeFor trims text and normalizes it for the field's type. A refused
-// value is ErrInvalid with the field's wire id as its param.
-func normalizeFor(field metadatafields.Field, text string) (string, error) {
-	n, err := normalizeValue(field.DataType, strings.TrimSpace(text))
+// normalizeFor trims text, checks it against the mark, and normalizes it for
+// the field's type. An unknown value has no text, so it returns "". A bad mark
+// is valuemark.ErrInvalid and any other refused value is ErrInvalid, each with
+// the field's wire id as its param.
+func normalizeFor(field metadatafields.Field, text string, mark valuemark.Mark) (string, error) {
+	trimmed := strings.TrimSpace(text)
+	id := database.UUIDString(field.ID)
+	if err := valuemark.Validate(mark, trimmed != ""); err != nil {
+		return "", valuemark.ErrInvalid.WithParams(id)
+	}
+	if mark.Unknown {
+		return "", nil
+	}
+	n, err := normalizeValue(field.DataType, trimmed)
 	if err != nil {
-		return "", ErrInvalid.WithParams(database.UUIDString(field.ID))
+		return "", ErrInvalid.WithParams(id)
 	}
 	return n, nil
 }
@@ -977,9 +1017,11 @@ type rowScanner interface {
 func scanRow(row rowScanner, st *store) (Row, error) {
 	var r Row
 	var ownerID []byte
-	if err := row.Scan(&r.ID, &ownerID, &r.FieldID, &r.ValueText); err != nil {
+	var unknown, supplied int
+	if err := row.Scan(&r.ID, &ownerID, &r.FieldID, &r.ValueText, &unknown, &supplied); err != nil {
 		return Row{}, err
 	}
+	r.Mark = valuemark.Mark{Unknown: unknown == 1, Supplied: supplied == 1}
 	r.Owner = Owner{Level: st.level, ID: ownerID}
 	return r, nil
 }

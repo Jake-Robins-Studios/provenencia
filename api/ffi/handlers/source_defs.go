@@ -434,7 +434,7 @@ func UpdateMetadataField(in []byte) ([]byte, error) {
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "update_metadata_field"},
 			func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
-				return metadatafields.Update(tx, fieldID, req.GetLabel(), req.GetDataType(), req.GetDescription())
+				return metadatafields.Update(tx, fieldID, req.GetLabel(), req.GetDataType(), req.GetDescription(), req.UnknownText)
 			})
 		if err != nil {
 			return err
@@ -536,6 +536,7 @@ func metadataFieldProto(f metadatafields.Field) *engine.MetadataField {
 		Label:       f.Label,
 		DataType:    f.DataType,
 		Description: f.Description,
+		UnknownText: f.UnknownText,
 		UsedBy:      int32(f.UsedBy),
 	}
 }

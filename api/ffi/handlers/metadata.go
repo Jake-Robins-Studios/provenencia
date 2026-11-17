@@ -38,7 +38,7 @@ func parseDraft(d *engine.MetadataDraft) (*sourcemetadata.Draft, error) {
 		if err != nil {
 			return nil, err
 		}
-		out.Values = append(out.Values, sourcemetadata.Input{FieldID: id, ValueText: v.GetValueText()})
+		out.Values = append(out.Values, sourcemetadata.Input{FieldID: id, ValueText: v.GetValueText(), Mark: parseValueMark(v.GetMark())})
 	}
 	for _, l := range d.GetLayout() {
 		id, err := parseID(l.GetFieldId())
@@ -98,6 +98,7 @@ func SetMetadata(in []byte) ([]byte, error) {
 				return sourcemetadata.Set(tx, userID, owner, sourcemetadata.Input{
 					FieldID:   fieldID,
 					ValueText: req.GetValueText(),
+					Mark:      parseValueMark(req.GetMark()),
 				})
 			})
 		if err != nil {
@@ -286,14 +287,7 @@ func metadataEntriesProto(entries []sourcemetadata.WorkspaceEntry) []*engine.Met
 
 func metadataEntryProto(e sourcemetadata.WorkspaceEntry) *engine.MetadataWorkspaceEntry {
 	out := &engine.MetadataWorkspaceEntry{
-		Field: &engine.MetadataField{
-			Id:          database.UUIDString(e.Field.ID),
-			Key:         e.Field.Key,
-			Origin:      e.Field.Origin,
-			Label:       e.Field.Label,
-			DataType:    e.Field.DataType,
-			Description: e.Field.Description,
-		},
+		Field:     metadataFieldProto(e.Field),
 		Suggested: e.Suggested,
 		SortOrder: int32(e.SortOrder),
 		OpenHref:  e.OpenHref(),
@@ -301,6 +295,7 @@ func metadataEntryProto(e sourcemetadata.WorkspaceEntry) *engine.MetadataWorkspa
 	if e.Value != nil {
 		out.HasValue = true
 		out.ValueText = e.Value.ValueText
+		out.Mark = valueMarkProto(e.Value.Mark)
 	}
 	return out
 }

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"slices"
 	"strings"
 	"testing"
 
@@ -698,6 +699,108 @@ func TestCreateUpdateGetByID(t *testing.T) {
 			},
 		},
 		{
+			name: "update takes the unknown text: absent keeps it, empty clears it",
+			run: func(t *testing.T, c *database.Catalog) {
+				created, err := runCreate(c, "Place", metadatafields.DataTypeText, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				ptr := func(s string) *string { return &s }
+				diff := func(changes []rowchange.Change) (old, new any) {
+					t.Helper()
+					if len(changes) != 1 || len(changes[0].Fields) != 1 {
+						t.Fatalf("changes %+v", changes)
+					}
+					d, ok := changes[0].Fields["unknown_text"]
+					if !ok {
+						t.Fatalf("no unknown_text in %+v", changes[0].Fields)
+					}
+					return d.Old, d.New
+				}
+
+				got, changes, err := runUpdateUnknown(c, created.ID, "Place", metadatafields.DataTypeText, "", ptr("  not stated "))
+				if err != nil || got.UnknownText != "not stated" {
+					t.Fatalf("set = %+v, %v", got, err)
+				}
+				if old, new := diff(changes); old != nil || new != "not stated" {
+					t.Fatalf("set diff %v -> %v", old, new)
+				}
+				// Every read returns it.
+				byID, err := metadatafields.GetByID(c, created.ID)
+				if err != nil || byID.UnknownText != "not stated" {
+					t.Fatalf("GetByID = %+v, %v", byID, err)
+				}
+				listed, err := metadatafields.List(c)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if i := slices.IndexFunc(listed, func(f metadatafields.Field) bool { return bytes.Equal(f.ID, created.ID) }); i < 0 || listed[i].UnknownText != "not stated" {
+					t.Fatalf("List = %+v", listed)
+				}
+				looked, err := metadatafields.Lookup(c, created.Key, created.Origin)
+				if err != nil || looked.UnknownText != "not stated" {
+					t.Fatalf("Lookup = %+v, %v", looked, err)
+				}
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				tx, err := db.Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				byIDs, err := metadatafields.ListByIDsTx(tx, [][]byte{created.ID})
+				_ = tx.Rollback()
+				if err != nil || len(byIDs) != 1 || byIDs[0].UnknownText != "not stated" {
+					t.Fatalf("ListByIDsTx = %+v, %v", byIDs, err)
+				}
+
+				// Absent keeps it.
+				got, changes, err = runUpdateUnknown(c, created.ID, "Place", metadatafields.DataTypeText, "", nil)
+				if err != nil || got.UnknownText != "not stated" || len(changes) != 0 {
+					t.Fatalf("absent = %+v, %v, %+v", got, err, changes)
+				}
+				// Everything equal is no change.
+				if _, changes, err = runUpdateUnknown(c, created.ID, "Place", metadatafields.DataTypeText, "", ptr("not stated")); err != nil || len(changes) != 0 {
+					t.Fatalf("equal = %v, %+v", err, changes)
+				}
+				// Empty clears it.
+				got, changes, err = runUpdateUnknown(c, created.ID, "Place", metadatafields.DataTypeText, "", ptr(""))
+				if err != nil || got.UnknownText != "" {
+					t.Fatalf("clear = %+v, %v", got, err)
+				}
+				if old, new := diff(changes); old != "not stated" || new != nil {
+					t.Fatalf("clear diff %v -> %v", old, new)
+				}
+
+				// A delete records the unknown text it held.
+				if _, _, err := runUpdateUnknown(c, created.ID, "Place", metadatafields.DataTypeText, "", ptr("n.p.")); err != nil {
+					t.Fatal(err)
+				}
+				var deleted []rowchange.Change
+				userID := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+				userRef, err := ref.Mint(ref.PrefixUser)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := users.Upsert(c, userID, "Jake", userRef); err != nil {
+					t.Fatal(err)
+				}
+				if _, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
+					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+						var err error
+						deleted, err = metadatafields.Delete(tx, userID, created.ID)
+						return struct{}{}, deleted, err
+					}); err != nil {
+					t.Fatal(err)
+				}
+				last := deleted[len(deleted)-1]
+				if d := last.Fields["unknown_text"]; d.Old != "n.p." || d.New != nil {
+					t.Fatalf("delete fields %+v", last.Fields)
+				}
+			},
+		},
+		{
 			name: "get by id missing",
 			run: func(t *testing.T, c *database.Catalog) {
 				if _, err := metadatafields.GetByID(c, make([]byte, 16)); !errors.Is(err, sql.ErrNoRows) {
@@ -788,11 +891,20 @@ func runCreate(c *database.Catalog, label, dataType, description string) (metada
 }
 
 func runUpdate(c *database.Catalog, id []byte, label, dataType, description string) (metadatafields.Field, error) {
+	got, _, err := runUpdateUnknown(c, id, label, dataType, description, nil)
+	return got, err
+}
+
+// runUpdateUnknown is Update with its unknown text, returning the changes it recorded.
+func runUpdateUnknown(c *database.Catalog, id []byte, label, dataType, description string, unknownText *string) (metadatafields.Field, []rowchange.Change, error) {
+	var changes []rowchange.Change
 	got, _, err := writes.Run(c, writes.Op{Action: "update_metadata_field"},
 		func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
-			return metadatafields.Update(tx, id, label, dataType, description)
+			f, ch, err := metadatafields.Update(tx, id, label, dataType, description, unknownText)
+			changes = ch
+			return f, ch, err
 		})
-	return got, err
+	return got, changes, err
 }
 
 func runDelete(c *database.Catalog, userID, id []byte) error {

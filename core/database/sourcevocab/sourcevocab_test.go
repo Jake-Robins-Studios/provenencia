@@ -319,9 +319,18 @@ func TestAppendSuggestion(t *testing.T) {
 					if err := AppendSuggestion(c, typeID, f.ID, vocabkey.LevelSource); err != nil {
 						t.Fatal(err)
 					}
+					if label == "Publisher" {
+						unknownText := "n.p."
+						if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata_field"},
+							func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
+								return metadatafields.Update(tx, f.ID, f.Label, f.DataType, "", &unknownText)
+							}); err != nil {
+							t.Fatal(err)
+						}
+					}
 				}
 				want, err := ListSuggestions(c, typeID, vocabkey.LevelSource)
-				if err != nil || len(want) != 2 {
+				if err != nil || len(want) != 2 || want[1].Field.UnknownText != "n.p." {
 					t.Fatalf("ListSuggestions = %+v, %v", want, err)
 				}
 				db, err := c.DB()
@@ -341,7 +350,7 @@ func TestAppendSuggestion(t *testing.T) {
 					t.Fatalf("got %d suggestions, want %d", len(got), len(want))
 				}
 				for i := range got {
-					if !bytes.Equal(got[i].Field.ID, want[i].Field.ID) || got[i].SortOrder != want[i].SortOrder {
+					if !bytes.Equal(got[i].Field.ID, want[i].Field.ID) || got[i].SortOrder != want[i].SortOrder || got[i].Field.UnknownText != want[i].Field.UnknownText {
 						t.Fatalf("suggestion %d = %+v, want %+v", i, got[i], want[i])
 					}
 				}

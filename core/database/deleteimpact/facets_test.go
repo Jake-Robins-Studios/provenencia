@@ -3,6 +3,7 @@ package deleteimpact_test
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -26,6 +27,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/valuemark"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
 )
@@ -110,6 +112,40 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 			if !got[want] {
 				t.Errorf("missing %s in %v", want, types)
 			}
+		}
+	})
+
+	t.Run("source delete keeps an unknown value's mark in the audit", func(t *testing.T) {
+		src, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
+			return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: "Atlas"})
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (sourcemetadata.Row, []rowchange.Change, error) {
+			return sourcemetadata.Set(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: src.ID}, sourcemetadata.Input{FieldID: fieldID, Mark: valuemark.Mark{Unknown: true}})
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			changes, err := sources.Delete(tx, userID, src.ID)
+			return struct{}{}, changes, err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		_, revision := dbtest.LatestRevision(t, dbtest.MustDB(t, c))
+		var found bool
+		for _, ch := range revision {
+			if ch.EntityType != "source_metadata" {
+				continue
+			}
+			found = true
+			if ch.Fields["is_unknown"].Old != true || ch.Fields["is_supplied"].Old != false || ch.Fields["value_text"].Old != nil {
+				t.Fatalf("released value fields %+v", ch.Fields)
+			}
+		}
+		if !found {
+			t.Fatalf("no source_metadata change in %+v", revision)
 		}
 	})
 
@@ -463,5 +499,108 @@ func TestImpactMetadataFieldHolders(t *testing.T) {
 	if strings.Join(vias, ",") != "source_metadata.field_id,artifact_metadata.field_id,evidence_graph_metadata.field_id" ||
 		len(totals) != 3 || totals[0] != 2 || totals[1] != 1 || totals[2] != 1 {
 		t.Fatalf("groups %v %v", vias, totals)
+	}
+}
+
+// TestMetadataValueAuditParity pins D-5 and D-6: a value deleted by Clear and
+// one released with its owner read alike in the audit, marks included.
+func TestMetadataValueAuditParity(t *testing.T) {
+	for _, level := range []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph} {
+		t.Run(string(level), func(t *testing.T) {
+			c, userID := testCatalog(t)
+			unknownField, err := metadatafields.Upsert(c, metadatafields.Field{Key: "place", Origin: vocabkey.OriginUser, Label: "Place", DataType: "text"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			suppliedField, err := metadatafields.Upsert(c, metadatafields.Field{Key: "town", Origin: vocabkey.OriginUser, Label: "Town", DataType: "text"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Two owners of the same type, each holding both values.
+			ownerOf := func(src sources.Source, a, g sourcemetadata.Owner) sourcemetadata.Owner {
+				switch level {
+				case vocabkey.LevelArtifact:
+					return a
+				case vocabkey.LevelGraph:
+					return g
+				}
+				return sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: src.ID}
+			}
+			src1, a1, g1 := ownerFixture(t, c, userID, "First")
+			src2, a2, g2 := ownerFixture(t, c, userID, "Second")
+			first, second := ownerOf(src1, a1, g1), ownerOf(src2, a2, g2)
+			for _, o := range []sourcemetadata.Owner{first, second} {
+				for _, in := range []sourcemetadata.Input{
+					{FieldID: unknownField, Mark: valuemark.Mark{Unknown: true}},
+					{FieldID: suppliedField, ValueText: "Topeka", Mark: valuemark.Mark{Supplied: true}},
+				} {
+					if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
+						func(tx *database.Tx) (sourcemetadata.Row, []rowchange.Change, error) {
+							return sourcemetadata.Set(tx, userID, o, in)
+						}); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+
+			table := map[vocabkey.Level]string{
+				vocabkey.LevelSource: "source_metadata", vocabkey.LevelArtifact: "artifact_metadata", vocabkey.LevelGraph: "evidence_graph_metadata",
+			}[level]
+			cleared := map[string]rowchange.Change{}
+			for _, f := range [][]byte{unknownField, suppliedField} {
+				changes, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, []rowchange.Change, error) {
+						ch, err := sourcemetadata.Clear(tx, userID, first, f)
+						return ch, ch, err
+					})
+				if err != nil || len(changes) != 1 {
+					t.Fatalf("clear = %v, %v", changes, err)
+				}
+				cleared[database.UUIDString(f)] = changes[0]
+			}
+			// Release the second owner's values with it: the Artifact alone, or
+			// the Source (its Artifact first, which a Source cannot be deleted with).
+			deleteArt := func() {
+				if _, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+					changes, err := artifacts.Delete(tx, userID, a2.ID)
+					return struct{}{}, changes, err
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			deleteArt()
+			if level != vocabkey.LevelArtifact {
+				if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+					changes, err := sources.Delete(tx, userID, src2.ID)
+					return struct{}{}, changes, err
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, revision := dbtest.LatestRevision(t, dbtest.MustDB(t, c))
+			released := 0
+			for _, ch := range revision {
+				if ch.EntityType != table {
+					continue
+				}
+				fieldID, _ := ch.Fields["field_id"].Old.(string)
+				want, ok := cleared[fieldID]
+				if !ok {
+					t.Fatalf("released a value of field %q, cleared %v", fieldID, cleared)
+				}
+				released++
+				if len(ch.Fields) != len(want.Fields) {
+					t.Fatalf("released keys %v, cleared keys %v", ch.Fields, want.Fields)
+				}
+				for _, k := range []string{"field_id", "value_text", "is_unknown", "is_supplied"} {
+					if !reflect.DeepEqual(ch.Fields[k], want.Fields[k]) {
+						t.Errorf("%s: released %+v, cleared %+v", k, ch.Fields[k], want.Fields[k])
+					}
+				}
+			}
+			if released != 2 {
+				t.Fatalf("released %d values, want 2", released)
+			}
+		})
 	}
 }
