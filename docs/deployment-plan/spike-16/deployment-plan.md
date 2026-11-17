@@ -185,6 +185,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 5) One dating, in Go, derived on read** ([design](event-as-of.md#the-dating-envelope)). Every reader takes an event's four date keys from `subject.Periods` (the lead plus its `Start`, `End` and `Samples`), never from a hand list. Matching (S16-40) compares an as-of with the other side's period stand-in (`period`) through the date comparer, picking the deciding as-ofs with `valuecompare.SampleExtremes`; display (S16-42) adds one pure helper in `core/valuecompare`, typed on date slices, that returns the occurrence, the bounds and the known span with its open sides, reusing `SampleExtremes`. Nothing writes `start_date` or `end_date` from as-ofs.
 - **(Batch 5) The engine sends the dating, not the as-ofs** (map review K-3). An event summary carries which dating applies (occurrence, span, as-of), its low and high DateValues and their open sides: two dates however many as-ofs. Swift formats that and no longer decides which key dates an event (`DateRowDisplay.line(date:start:end:)`, `EventDetailContent.dateRow`, `EvidenceGraphSnapshot.dateLine`). Binds S16-42 and S16-44.
 - **(Batch 5) As-ofs alone make a span open on both sides** (user, 2026-11-16). An event with only as-ofs displays and sorts from its earliest as-of, spans to its latest, and is drawn open on both sides; a start or an end closes that side. The line's wording for each case is S16-D4's call. Binds S16-42 and S16-44.
+- **(Batch 5) One dating for every event, on the Timeline and in order too** (user, 2026-11-17). The dating's whole span is drawn for every event, not only an as-of one: a start-and-end event spans its years on the lifeline, a start-only or end-only event is drawn open on the side it does not record, and an end-only event sorts at its end. Every text line for an event without an as-of reads as before. Binds S16-42.
 
 ## PR map
 
@@ -231,7 +232,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-39 | One container measures its own width and tells its content which layout fits | 4a | Swift, kit: a design-system container (`PVWidthBreakpoints`) that fills the width it is given, measures it, and hands its content which of the caller's breakpoints it meets, rebuilding only when one is crossed; `PVTable`'s `minTableWidth` gate (S15-49), the Sources list's `SourcesListColumns.compactBelow` and the Timeline's people stacking move onto it, and every other measured width is named as geometry; § 9 and `add-ui-component` teach it | — | S15-49 (#852) | [plan](prs/S16-39-own-width-breakpoints.md) | Landed #866 |
 | S16-40 | An event records As of dates, and matching reads them as bounds | 5a | Go: `as_of` seeded (date, multiple, locked on `event`); the `date` and `end_date` descriptions point to it; `subjectcompare.CompareProperty` compares an event's as-ofs with the other side's period stand-in through the date comparer (`subject.Periods` gains `Samples`); the shortlist reaches an as-of event; the lifespan counts closed as-ofs; goldens unchanged for events with no as-of | — (no chrome change: the composer lists the seeded Property as any other) | — | [plan](prs/S16-40-event-as-of-property.md) | Landed #869 |
 | S16-41 | Matching and Promote read an as-of as a pair of bounds | 5a | Merged into S16-40 once the composer rule was dropped (user, 2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-40 |
-| S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4 | S16-40, S16-D4 | — | Scoped |
+| S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Planned |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Swift: the Date row chooses its fields by the summary's dating and lists the as-ofs with their records | S16-D6 | S16-42, S16-D6 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
@@ -244,7 +245,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D2 | Person page folds (Family, Timeline, Sources): Show more counts and reveals a page, focus lands on the first revealed item, a folded record's highlight on its Show more, a folded lifeline point opens through its page | **S16-07** | One brief for the three sections, which are one view (user, 2026-11-09). An enhancement of the Spike 13 boards (S13-D3, S13-D4, S13-D6, S13-D10); reuses each item's focus ring and the record line's highlight tokens. Draws Regular and Wide. No new copy key |
 
 | S16-D3 | Citation composer: the date editor on an As of observation | — | Descoped with the composer rule (user, 2026-11-16); never drawn |
-| S16-D4 | The shared event date line, drawn on an Events list row, and the Timeline lifeline's bar: every dating case (occurrence, closed span, as-of only, as-of with a start or an end) | **S16-42** | Names every surface that shows the line (Event page header, Timeline rows, search hits, Promote's menus, Evidence graph cards); the lifeline bar reuses its open-side fade; written just before S16-42 |
+| S16-D4 | Events list: the shared event date line on a row, every dating case (occurrence, closed span, as-of only, as-of with a start or an end) | **S16-42** | Names every surface that shows the line (Event page header, Timeline rows, search hits, Promote's menus, Promote's record rows); split from the lifeline (user, 2026-11-17: one brief per view) |
+| S16-D7 | Person page Timeline: the lifeline draws every event's dating (as-of spans with open sides, start-and-end spans, a one-day open mark, a both-open bar's tether) | **S16-42** | An enhancement of the S13-D4 / S16-D2 Timeline frames; reuses the bar's open-side fade; no new mark |
 | S16-D6 | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames |
 
 ## Slices
@@ -324,7 +326,7 @@ BATCH 5 — Event as-of dates
 
 SLICE 5a — An attestation is a sample
   S16-40  An event records As of dates, and matching reads them as bounds
-  ✎ S16-D4 ──▶ S16-42  Every event date line reads the engine's dating
+  ✎ S16-D4, S16-D7 ──▶ S16-42  Every event date line reads the engine's dating
   ✎ S16-D6 ──▶ S16-44  The Event page's Date row shows as-ofs
   Check: bar 16 to 19.
 
@@ -381,6 +383,7 @@ S15-49 ──▶ S16-39
 
 S16-40 ──▶ S16-42 ──▶ S16-44
 S16-D4 ──▶ S16-42
+S16-D7 ──▶ S16-42
 S16-D6 ──▶ S16-44
 ```
 
@@ -655,7 +658,7 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 
 #### S16-44 — The Event page's Date row shows as-ofs
 
-**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`).
+**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`). Then the old date fields retire (user, 2026-11-17; S16-42 review M-9): `EventSummary.Date`, `StartDate`, `EndDate` leave Go, the proto, `GoStore` and `CatalogEventSummary` (their counts stay if the row needs them), with `oneEvent`'s rule that clears start and end when `date` is set, and `DateRowDisplay.span(start:end:)` loses its last event caller.
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause.
 **Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; brief S16-D6.
