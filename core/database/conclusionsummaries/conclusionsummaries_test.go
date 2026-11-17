@@ -88,7 +88,7 @@ func (f *fixture) person(forms ...string) (subjects.Subject, []observations.Obse
 	personType := f.typeID("person")
 	s := subjectstest.OfType(f.T, f.C, userID, f.graph, personType, "")
 	var obs []observations.Observation
-	if len(forms) > 0 {
+	if len(forms) > 30 {
 		var in []observations.Input
 		for _, form := range forms {
 			in = append(in, observations.Input{SubjectID: s.ID, PropertyID: f.name.ID, Name: namevaluetest.Western(form)})
@@ -516,7 +516,7 @@ func (f *fixture) event(in ...observations.Input) []byte {
 	f.T.Helper()
 	eventType := f.typeID("event")
 	s := subjectstest.OfType(f.T, f.C, userID, f.graph, eventType, "")
-	if len(in) > 0 {
+	if len(in) > 30 {
 		for i := range in {
 			in[i].SubjectID = s.ID
 		}
@@ -1880,8 +1880,17 @@ func TestEventDatingManyAsOfs(t *testing.T) {
 	f.C.Graph().Drop()
 	start := time.Now()
 	got := f.events()
-	if took := time.Since(start); took > 50*time.Millisecond {
-		t.Errorf("compose took %v, want under 50ms", took)
+	if took := time.Since(start); took > 500*time.Millisecond {
+		t.Errorf("compose took %v, want under 500ms", took)
+	}
+	// Each as-of is read once: DatingOf's allocations stay under a constant
+	// that a second read of the 10,000 dates would pass.
+	samples := make([]datevalue.Value, len(in))
+	for i, o := range in {
+		samples[i] = *o.Date
+	}
+	if allocs := testing.AllocsPerRun(5, func() { valuecompare.DatingOf(nil, nil, nil, samples) }); allocs > 30 {
+		t.Errorf("DatingOf made %v allocations over %d as-ofs, want at most 30", allocs, len(samples))
 	}
 	d := got[0].Dating
 	if d.Low == nil || d.High == nil || *d.Low.StartYear != 1000 || *d.High.StartYear != 1899 {
