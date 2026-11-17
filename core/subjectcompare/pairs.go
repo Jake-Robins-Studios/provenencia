@@ -75,8 +75,8 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // unless other has no positive value for key and its start and end build a
 // period; mine's own value for key does not stop it. The samples are read with
 // AboutEnds as the comparer reads a date and picked in one pass by
-// valuecompare.SampleExtremes; a tie on the extreme end is broken by the
-// lowest typed Same key, so the picks never depend on input order (the event
+// valuecompare.SampleExtremes, whose tie on the extreme end is the
+// lowest typed Same key (propertycompare.KeyCompare), so the picks never depend on input order (the event
 // dating's pick, valuecompare.DatingOf, breaks it on the dates instead, as it
 // shows them). Each pick is
 // compared with the period by propertycompare.Compare under meta, the lead's,
@@ -111,13 +111,8 @@ func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, o
 		reads = append(reads, propertycompare.Typed(v, meta))
 		firsts, lasts = append(firsts, first), append(lasts, last)
 	}
-	endsFirst, startsLast := valuecompare.SampleExtremes(firsts, lasts)
-	if i := endsFirst; i >= 0 {
-		endsFirst = lowestKey(reads, i, func(j int) bool { return !lasts[j].Open && lasts[j].Hi == lasts[i].Hi }, value)
-	}
-	if i := startsLast; i >= 0 {
-		startsLast = lowestKey(reads, i, func(j int) bool { return !firsts[j].Open && firsts[j].Lo == firsts[i].Lo }, value)
-	}
+	byKey := func(i, j int) int { return propertycompare.KeyCompare(reads[i], reads[j], value) }
+	endsFirst, startsLast := valuecompare.SampleExtremes(firsts, lasts, byKey, func(i, j, _ int) int { return byKey(i, j) })
 	picks := []int{endsFirst}
 	if startsLast != endsFirst {
 		picks = append(picks, startsLast)
@@ -181,16 +176,4 @@ func period(starts, ends []propertycompare.Value) (propertycompare.Value, bool, 
 		return propertycompare.Value{}, false, false
 	}
 	return propertycompare.Value{Value: valuecompare.Value{Date: &d}}, first.Open || last.Open, true
-}
-
-// lowestKey is, of the samples reads[i] for which tied reports true (pick
-// among them), the one with the lowest Same key.
-func lowestKey(reads []propertycompare.Value, pick int, tied func(i int) bool, value valuecompare.Rules) int {
-	best := pick
-	for i := range reads {
-		if tied(i) && propertycompare.KeyCompare(reads[i], reads[best], value) < 0 {
-			best = i
-		}
-	}
-	return best
 }

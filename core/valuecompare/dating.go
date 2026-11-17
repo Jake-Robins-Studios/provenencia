@@ -112,57 +112,53 @@ func placeSamples(samples []datevalue.Value) []datingSample {
 }
 
 // pickSamples is the index of the sample that ends first and the one that
-// starts last. Every sample is ranked by its dates before its place in the
-// slice, so the picks never depend on order. Ends first: the lowest latest
-// bound of its earliest closed end, then that end's lowest earliest bound,
-// then the same two of its latest closed end. Starts last: the highest earliest
-// bound of its latest closed end, then that end's highest latest bound, then
-// the sample that ends first when it is tied on those, then the highest two of
-// its earliest closed end. Each ranking ends on the sample's side of its day
-// (BEF, plain, AFT), so a BEF and an AFT of one day are told apart; only
-// samples equal in all of these fall to the lower index (D-3). This reads each sample's ends as DateEnds shows them for
-// display; subjectcompare's samplesAgainst reads them as the comparer does.
+// starts last, picked by SampleExtremes over each sample's earliest and latest
+// closed ends as DateEnds shows them. Every tie reads the dates before the
+// place in the slice, so the picks never depend on order. Ends first: the
+// lowest latest bound of its earliest closed end, then that end's lowest
+// earliest bound, then the same two of its latest closed end. Starts last: the
+// highest earliest bound of its latest closed end, then that end's highest
+// latest bound, then the sample that ends first when it is tied on its ranks,
+// then the highest two of its earliest closed end. Each ranking ends on the
+// sample's side of its day (BEF, plain, AFT), so a BEF and an AFT of one day
+// are told apart; only samples equal in all of these fall to the lower index
+// (D-3). subjectcompare's samplesAgainst reads the ends as the comparer does
+// and breaks its tie on the Same key instead.
 func pickSamples(placed []datingSample) (low, high int) {
+	his := make([]DateEnd, len(placed))
+	los := make([]DateEnd, len(placed))
 	for i, s := range placed {
-		if i > 0 && endsFirstBefore(s, placed[low]) {
-			low = i
-		}
+		his[i], los[i] = s.hi, s.lo
 	}
-	for i, s := range placed {
-		if i > 0 && startsLastAfter(s, placed[high], placed[low]) {
-			high = i
+	endsTie := func(i, j int) int { return endsCompare(placed[i], placed[j]) }
+	startsTie := func(i, j, ender int) int {
+		a, b := placed[i], placed[j]
+		if d := b.hi.Hi - a.hi.Hi; d != 0 {
+			return d
 		}
+		aEnds, bEnds := endsCompare(a, placed[ender]) == 0, endsCompare(b, placed[ender]) == 0
+		if aEnds != bEnds {
+			if aEnds {
+				return -1
+			}
+			return 1
+		}
+		for _, d := range [...]int{b.lo.Hi - a.lo.Hi, b.lo.Lo - a.lo.Lo, b.key.Side - a.key.Side} {
+			if d != 0 {
+				return d
+			}
+		}
+		return 0
 	}
-	return low, high
+	return SampleExtremes(his, los, endsTie, startsTie)
 }
 
-// endsFirstBefore reports whether a ends strictly before b by the ranking of
-// pickSamples.
-func endsFirstBefore(a, b datingSample) bool {
+// endsCompare orders a and b by when they end: negative when a ends first.
+func endsCompare(a, b datingSample) int {
 	for _, d := range [...]int{a.lo.Hi - b.lo.Hi, a.lo.Lo - b.lo.Lo, a.hi.Lo - b.hi.Lo, a.hi.Hi - b.hi.Hi, a.key.Side - b.key.Side} {
 		if d != 0 {
-			return d < 0
+			return d
 		}
 	}
-	return false
-}
-
-// startsLastAfter reports whether a starts strictly after b by the ranking of
-// pickSamples, where ender is the sample that ends first.
-func startsLastAfter(a, b, ender datingSample) bool {
-	for _, d := range [...]int{a.hi.Lo - b.hi.Lo, a.hi.Hi - b.hi.Hi} {
-		if d != 0 {
-			return d > 0
-		}
-	}
-	aEnds, bEnds := !endsFirstBefore(ender, a) && !endsFirstBefore(a, ender), !endsFirstBefore(ender, b) && !endsFirstBefore(b, ender)
-	if aEnds != bEnds {
-		return aEnds
-	}
-	for _, d := range [...]int{a.lo.Hi - b.lo.Hi, a.lo.Lo - b.lo.Lo, a.key.Side - b.key.Side} {
-		if d != 0 {
-			return d > 0
-		}
-	}
-	return false
+	return 0
 }
