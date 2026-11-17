@@ -7986,6 +7986,32 @@ enum L10n {
     }
 
     /// Maps stable Go/FFI error codes to localized user-facing copy.
+    /// The names of a Source type's three citation formats.
+    enum CitationForms {
+        static func name(_ form: CitationForm) -> LocalizedStringResource {
+            switch form {
+            case .full:
+                return LocalizedStringResource(
+                    "citationForms.full",
+                    defaultValue: "Full note",
+                    comment: "Name of a Source type's full citation format, the first note a Source is cited by"
+                )
+            case .short:
+                return LocalizedStringResource(
+                    "citationForms.short",
+                    defaultValue: "Short note",
+                    comment: "Name of a Source type's short citation format, for later notes to the same Source"
+                )
+            case .list:
+                return LocalizedStringResource(
+                    "citationForms.list",
+                    defaultValue: "Source-list entry",
+                    comment: "Name of a Source type's citation format for the Source list or bibliography"
+                )
+            }
+        }
+    }
+
     enum SourceTypes {
         static let description = LocalizedStringResource(
             "sourceTypes.list.description",

@@ -23882,6 +23882,42 @@
           }
         }
       }
+    },
+    "citationForms.full": {
+      "comment": "Name of a Source type's full citation format, the first note a Source is cited by",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full note"
+          }
+        }
+      }
+    },
+    "citationForms.short": {
+      "comment": "Name of a Source type's short citation format, for later notes to the same Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short note"
+          }
+        }
+      }
+    },
+    "citationForms.list": {
+      "comment": "Name of a Source type's citation format for the Source list or bibliography",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source-list entry"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

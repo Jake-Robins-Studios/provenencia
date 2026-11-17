@@ -96,6 +96,8 @@ enum CoreMethod {
     static let upsertSourceCredibilityAssessment = Int32(Provenencia_Engine_V1_Method.upsertSourceCredibilityAssessment.rawValue)
     static let listSourceTypes = Int32(Provenencia_Engine_V1_Method.listSourceTypes.rawValue)
     static let createSourceType = Int32(Provenencia_Engine_V1_Method.createSourceType.rawValue)
+    static let copySourceType = Int32(Provenencia_Engine_V1_Method.copySourceType.rawValue)
+    static let getCitationFormats = Int32(Provenencia_Engine_V1_Method.getCitationFormats.rawValue)
     static let listMetadataFields = Int32(Provenencia_Engine_V1_Method.listMetadataFields.rawValue)
     static let createMetadataField = Int32(Provenencia_Engine_V1_Method.createMetadataField.rawValue)
     static let updateMetadataField = Int32(Provenencia_Engine_V1_Method.updateMetadataField.rawValue)
