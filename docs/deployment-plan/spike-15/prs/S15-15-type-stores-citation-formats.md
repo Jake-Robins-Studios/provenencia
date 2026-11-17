@@ -1,6 +1,6 @@
 # S15-15 — Source types store citation formats
 
-**Status:** Planned
+**Status:** Landed in [#871](https://github.com/mendahu/provenencia/pull/871) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire, three delete-notice headings (one new edge, two existing edges that fell back to generic text; user, 2026-11-17) and one toast sentence in existing copy; the delete notice draws its groups as today, and S15-17 adds the editor; precedent S15-08, user 2026-11-11)
@@ -427,3 +427,10 @@ None.
 
 **Title:** S15-15 — Source types store citation formats
 **Body:** objective in one sentence; what shipped against each US; AC evidence (test names); deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-15-type-stores-citation-formats.md`.
+
+## Landed
+
+- `core/database/metadatafields/metadatafields_test.go` is now the external test package `metadatafields_test` (every name qualified, no test changed): `sourcetypes` imports `metadatafields` for `ResolveKeysTx`, and the test file imports `sourcetypes`, which was an import cycle in test.
+- `main`'s `VERSION` was already 0.18.0 when the PR was cut, so the bump is 0.18.0 → 0.19.0.
+- T-5's cases for the format edge sit in one `TestDelete` case, "a field a citation format names is in use", that also holds AC-3.3 to AC-3.5.
+- `TestQueryBindsStringKeysAsText` (not T-9's batch-limit extension) covers `sqlbatch` over `[]string`: 501 keys read in two batches against a TEXT column.
