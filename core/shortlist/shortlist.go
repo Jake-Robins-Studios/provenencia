@@ -64,7 +64,9 @@ func positive(kind vocabkey.SubjectType, lead vocabkey.PropertyKey, v subjectcom
 // tokens with the year buckets its date can still be Near to (a reach wider
 // than MaxBuckets counts as open): a closed reach is filed under each bucket it
 // covers and looked up under each, an open one meets every closed one through
-// "wide" and "any" keys. An event with no type is filed under every type, and a
+// "wide" and "any" keys. An event dated only by as-ofs is filed as one open
+// reach but looks up the years its closed samples reach (open when it has
+// none, or has more samples than the cap reads). An event with no type is filed under every type, and a
 // probe with no type meets every event.
 func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompare.Metas, r Rules, subject subjectcompare.Rules, value valuecompare.Rules) (index, lookup []string) {
 	for _, lead := range r.Words[kind] {
@@ -93,30 +95,53 @@ func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompa
 			indexTypes = []string{noType, anyType}
 			lookupTypes = []string{anyType}
 		}
+		// A reach is what an event's date can still be Near to: lo to hi, open
+		// when it has no bound. It is filed (index) and looked up (lookup) on its
+		// own, because an as-of-only event is filed as open but looks up by its
+		// samples' years.
 		type reach struct {
-			lo, hi int
-			open   bool
+			lo, hi                int
+			indexOpen, lookupOpen bool
 		}
 		var reaches []reach
 		dates := positive(kind, d.Date, v, metas, subject)
 		for _, date := range dates {
 			if lo, hi, open, ok := valuecompare.YearReach(date.Value, value); ok {
-				reaches = append(reaches, reach{lo, hi, open})
+				reaches = append(reaches, reach{lo, hi, open, open})
 			}
 		}
-		// An event with only as-ofs began and ended at unknown days: one open
-		// reach, which meets every closed one.
-		if len(dates) == 0 && len(subjectcompare.Samples(kind, d.Date, v, subject)) > 0 {
-			reaches = append(reaches, reach{open: true})
+		// An event with only as-ofs began and ended at unknown days. It is filed
+		// as one open reach, which a dated event looks up and meets. Its own
+		// lookup is the years its samples reach, so it stops meeting every event
+		// of its type; with no closed reach, or too many buckets, or more samples
+		// than the cap reads, it looks up open as before.
+		if period, _ := subject.Period(kind, d.Date); len(dates) == 0 && subjectcompare.CountSamples(v, period) > 0 {
+			rc := reach{indexOpen: true, lookupOpen: true}
+			found := false
+			for _, sample := range subjectcompare.PeriodSamples(v, period) {
+				if lo, hi, open, ok := valuecompare.YearReach(sample.Value, value); ok && !open {
+					if !found || lo < rc.lo {
+						rc.lo = lo
+					}
+					if !found || hi > rc.hi {
+						rc.hi = hi
+					}
+					found = true
+				}
+			}
+			rc.lookupOpen = !found
+			reaches = append(reaches, rc)
 		}
 		for _, rc := range reaches {
-			lo, hi, open := rc.lo, rc.hi, rc.open
-			if !open && floorDiv(hi, r.YearBucket)-floorDiv(lo, r.YearBucket)+1 > r.MaxBuckets {
-				open = true
+			lo, hi := rc.lo, rc.hi
+			tooWide := !rc.lookupOpen && floorDiv(hi, r.YearBucket)-floorDiv(lo, r.YearBucket)+1 > r.MaxBuckets
+			indexOpen, lookupOpen := rc.indexOpen, rc.lookupOpen || tooWide
+			if !rc.indexOpen && tooWide {
+				indexOpen = true
 			}
 			for _, k := range indexTypes {
 				base := datePrefix + k + "|"
-				if open {
+				if indexOpen {
 					index = append(index, base+"wide", base+"any")
 					continue
 				}
@@ -125,7 +150,7 @@ func Keys(kind vocabkey.SubjectType, v subjectcompare.Values, metas subjectcompa
 			}
 			for _, k := range lookupTypes {
 				base := datePrefix + k + "|"
-				if open {
+				if lookupOpen {
 					lookup = append(lookup, base+"any")
 					continue
 				}

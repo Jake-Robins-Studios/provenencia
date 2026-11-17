@@ -2,7 +2,6 @@ package searchindex
 
 import (
 	"database/sql"
-	"strconv"
 	"strings"
 
 	"github.com/mendahu/provenencia/core/database"
@@ -27,12 +26,12 @@ const (
 	sqlHandleHeads = `SELECT e.id, e.ref, COALESCE(e.label, ''), st.key, st.origin, e.merged_into_id IS NOT NULL
 		FROM canonical_entities e JOIN subject_types st ON st.id = e.subject_type_id
 		WHERE e.id IN (`
-	// Cached values of the Properties handle documents read, terms by label.
-	sqlHandleValues = `SELECT r.entity_id, p.key, r.rank, r.value_text, r.value_name, r.value_date, t.label
+	// Cached values of the Properties handle documents read: the alternate
+	// names and toponyms a summary does not show.
+	sqlHandleValues = `SELECT r.entity_id, p.key, r.rank, r.value_text, r.value_name
 		FROM auto_reconciler_values r
 		JOIN properties p ON p.id = r.property_id AND p.origin = 'provenencia'
-		LEFT JOIN property_terms t ON t.id = r.value_term_id
-		WHERE p.key IN ('name', 'toponym', 'event_type', 'date', 'start_date', 'end_date')
+		WHERE p.key IN ('name', 'toponym')
 		  AND r.entity_id IN (`
 	sqlAllHandles = `SELECT id FROM canonical_entities ORDER BY id`
 )
@@ -157,13 +156,13 @@ func loadHandleValues(q Querier, in string, args []any) (map[string]handleValues
 	out := map[string]handleValues{}
 	for rows.Next() {
 		var (
-			entityID           []byte
-			key                string
-			rank               int
-			text, termLabel    sql.NullString
-			nameBlob, dateBlob []byte
+			entityID []byte
+			key      string
+			rank     int
+			text     sql.NullString
+			nameBlob []byte
 		)
-		if err := rows.Scan(&entityID, &key, &rank, &text, &nameBlob, &dateBlob, &termLabel); err != nil {
+		if err := rows.Scan(&entityID, &key, &rank, &text, &nameBlob); err != nil {
 			return nil, err
 		}
 		var v string
@@ -174,20 +173,6 @@ func loadHandleValues(q Querier, in string, args []any) (map[string]handleValues
 				return nil, err
 			}
 			v = n.Form
-		case dateBlob != nil:
-			d, err := valuecodec.UnmarshalDate(dateBlob)
-			if err != nil {
-				return nil, err
-			}
-			var years []string
-			for _, y := range []*int{d.StartYear, d.EndYear} {
-				if y != nil {
-					years = append(years, strconv.Itoa(*y))
-				}
-			}
-			v = strings.Join(years, " ")
-		case termLabel.Valid:
-			v = termLabel.String
 		case text.Valid:
 			v = text.String
 		}
@@ -352,7 +337,7 @@ func personLifeMatch(h conclusionsummaries.PersonSummary) []string {
 
 func eventMatchSecondary(h conclusionsummaries.EventSummary) []string {
 	var out []string
-	for _, d := range []*datevalue.Value{h.Date, h.StartDate, h.EndDate} {
+	for _, d := range []*datevalue.Value{h.Dating.Low, h.Dating.High} {
 		if d == nil {
 			continue
 		}

@@ -156,6 +156,9 @@ struct ConclusionListKindTests {
         var event = CatalogEventSummary(
             entity: CatalogCanonicalEntity(id: "ev1", ref: "EVT-1", subjectTypeID: "t", label: ""),
             date: CatalogDateValueInput(kind: "point", startYear: 1844, startMonth: 6, startDay: 4),
+            dating: CatalogEventDating(
+                kind: .occurrence, low: CatalogDateValueInput(kind: "point", startYear: 1844, startMonth: 6, startDay: 4)
+            ),
             places: [place("1", "Bremen"), place("2", "Hamburg"), place("3", "Lübeck")],
             title: CatalogEventTitle(rule: .typeAtPlace, ref: "EVT-1", typeLabel: "Marriage", place: "Bremen")
         )
@@ -165,7 +168,7 @@ struct ConclusionListKindTests {
         event.places = []
         #expect(EventSecondaryDisplay.content(event, locale: en)
             == EventSecondaryDisplay.Content(date: "4 Jun 1844", place: "", extraPlaces: 0))
-        event.date = nil
+        event.dating = CatalogEventDating()
         #expect(EventSecondaryDisplay.content(event, locale: en)
             == EventSecondaryDisplay.Content(date: "", place: "", extraPlaces: 0))
         #expect(EventSecondaryDisplay.line(event, locale: en) == "")

@@ -100,7 +100,7 @@ enum EventSecondaryDisplay {
 
     static func content(_ summary: CatalogEventSummary, locale: Locale = .autoupdatingCurrent) -> Content {
         Content(
-            date: DateRowDisplay.line(date: summary.date, start: summary.startDate, end: summary.endDate, locale: locale),
+            date: DateRowDisplay.line(dating: summary.dating, locale: locale),
             place: DerivedPlace.name(summary.places),
             extraPlaces: DerivedPlace.extra(summary.places)
         )

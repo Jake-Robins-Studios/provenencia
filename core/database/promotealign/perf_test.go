@@ -21,6 +21,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
 	"github.com/mendahu/provenencia/core/database/namealiases"
 	"github.com/mendahu/provenencia/core/database/nameformats"
+	"github.com/mendahu/provenencia/core/database/observations"
 	"github.com/mendahu/provenencia/core/database/promotealign"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/searchindex"
@@ -126,6 +127,13 @@ type largeFixture struct {
 }
 
 func newLargeFixture(t testing.TB, persons int) *largeFixture {
+	return newLargeFixtureAsOf(t, persons, 0)
+}
+
+// newLargeFixtureAsOf is newLargeFixture with asOfShare of the catalog's town
+// deaths and of Source A's deaths dated by an as-of instead of a date. Each is
+// chosen from a stream of its own, so at 0 the fixture is newLargeFixture's.
+func newLargeFixtureAsOf(t testing.TB, persons int, asOfShare float64) *largeFixture {
 	t.Helper()
 	f := newFixture(t)
 	must(t, nameformats.Install(f.c))
@@ -148,16 +156,28 @@ func newLargeFixture(t testing.TB, persons int) *largeFixture {
 
 	db, err := f.c.DB()
 	must(t, err)
-	must(t, bulkCanon(db, cityID, largeShape(r, names, filed[0], persons)))
+	shape := largeShape(r, names, filed[0], persons)
+	shape.AsOfShare = asOfShare
+	must(t, bulkCanon(db, cityID, shape))
 	f.c.Graph().Drop()
 
 	// Source A: 40 persons, 40 births and 20 deaths, none located.
+	asOf := rand.New(rand.NewPCG(3, 4))
 	filedOn := func(name string, birthYear, deathYear int) {
 		p := f.Person(f.source, f.artifact, name)
 		b := f.EventOn(f.source, f.artifact, "birth", fixtureDate(r, birthYear))
 		f.Participation(f.source, f.artifact, p, b, "subject")
 		if deathYear != 0 {
-			d := f.EventOn(f.source, f.artifact, "death", fixtureDate(r, deathYear))
+			when := fixtureDate(r, deathYear)
+			var d subjects.Subject
+			if asOf.Float64() < asOfShare && when != nil {
+				d = f.Bare(f.source, "event")
+				f.Cite(f.artifact, d,
+					observations.Input{PropertyID: f.Prop("event_type").ID, ValueTermID: f.Term("event_type", "death").ID},
+					observations.Input{PropertyID: f.Prop("as_of").ID, Date: when})
+			} else {
+				d = f.EventOn(f.source, f.artifact, "death", when)
+			}
 			f.Participation(f.source, f.artifact, p, d, "subject")
 		}
 	}

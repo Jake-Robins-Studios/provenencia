@@ -2710,6 +2710,42 @@ enum L10n {
             return L10n.format(resource, locale: locale, start, end)
         }
 
+        static func rowAsOf(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
+            let resource = LocalizedStringResource(
+                "dates.row.asOf",
+                defaultValue: "as of %@",
+                comment: "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date."
+            )
+            return L10n.format(resource, locale: locale, date)
+        }
+
+        static func rowAsOfRange(start: String, end: String, locale: Locale = .autoupdatingCurrent) -> String {
+            let resource = LocalizedStringResource(
+                "dates.row.asOfRange",
+                defaultValue: "as of %1$@–%2$@",
+                comment: "Event date line when as-of dates date the event and its period is open on both sides. Arguments are the earliest and the latest as-of date. The separator is an en dash."
+            )
+            return L10n.format(resource, locale: locale, start, end)
+        }
+
+        static func rowFromAsOf(start: String, asOf: String, locale: Locale = .autoupdatingCurrent) -> String {
+            let resource = LocalizedStringResource(
+                "dates.row.fromAsOf",
+                defaultValue: "from %1$@, as of %2$@",
+                comment: "Event date line when a start date closes the earliest side and an as-of date is the latest. Arguments are the start date and the as-of date."
+            )
+            return L10n.format(resource, locale: locale, start, asOf)
+        }
+
+        static func rowAsOfUntil(asOf: String, end: String, locale: Locale = .autoupdatingCurrent) -> String {
+            let resource = LocalizedStringResource(
+                "dates.row.asOfUntil",
+                defaultValue: "as of %1$@, until %2$@",
+                comment: "Event date line when an as-of date is the earliest and an end date closes the latest side. Arguments are the as-of date and the end date."
+            )
+            return L10n.format(resource, locale: locale, asOf, end)
+        }
+
         static func rowDayMonthYear(day: Int32, month: String, year: Int32, locale: Locale = .autoupdatingCurrent) -> String {
             let resource = LocalizedStringResource(
                 "dates.row.dayMonthYear",

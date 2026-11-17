@@ -53,6 +53,15 @@ func event(id byte, typ string, d *datevalue.Value) entry {
 	return entry{id, v}
 }
 
+// asOfEvent is an event of the type with no date, dated by its as-ofs alone.
+func asOfEvent(id byte, typ string, ds ...*datevalue.Value) entry {
+	v := subjectcompare.Values{vocabkey.PropertyEventType: {pt.Term(typ)}}
+	for _, d := range ds {
+		v[vocabkey.PropertyAsOf] = append(v[vocabkey.PropertyAsOf], pt.Date(d))
+	}
+	return entry{id, v}
+}
+
 func period(id byte, typ string, start, end *datevalue.Value) entry {
 	v := subjectcompare.Values{vocabkey.PropertyEventType: {pt.Term(typ)}}
 	if start != nil {
@@ -146,6 +155,19 @@ func TestFind(t *testing.T) {
 		{"huge range probe", "AC-2.2", plain, vocabkey.Event,
 			append(slices.Clone(events), event(6, "birth", datevaluetest.Between(1, 0, 0, 10_000_000, 0, 0))),
 			event(0, "birth", datevaluetest.Between(1, 0, 0, 10_000_000, 0, 0)), []byte{1, 2, 3, 6}},
+		{"as-of-only probe looks up its samples' years", "S16-42 AC-4.1", plain, vocabkey.Event,
+			[]entry{
+				event(1, "residence", datevaluetest.YMD(2000, 0, 0)),
+				event(2, "residence", datevaluetest.After(1970, 0, 0)),
+				event(3, "residence", datevaluetest.YMD(1881, 0, 0)),
+			},
+			asOfEvent(0, "residence", datevaluetest.YMD(1990, 0, 0), datevaluetest.YMD(2015, 0, 0)), []byte{1, 2}},
+		{"a dated probe still meets an as-of-only event", "S16-42 AC-4.2", plain, vocabkey.Event,
+			[]entry{asOfEvent(5, "residence", datevaluetest.YMD(1990, 0, 0), datevaluetest.YMD(2015, 0, 0))},
+			event(0, "residence", datevaluetest.YMD(1881, 0, 0)), []byte{5}},
+		{"an as-of with no closed end looks up open", "S16-42 AC-4.1", plain, vocabkey.Event,
+			[]entry{event(3, "residence", datevaluetest.YMD(1881, 0, 0))},
+			asOfEvent(0, "residence", datevaluetest.Before(2015, 0, 0)), []byte{3}},
 		{"no date to look up", "AC-1.7", plain, vocabkey.Event, events, event(0, "birth", nil), nil},
 		{"no lead of the kind", "AC-1.7", plain, vocabkey.Person,
 			[]entry{person(1, "James Robins")},
@@ -371,15 +393,33 @@ func TestKeys(t *testing.T) {
 			t.Errorf("keys = %q, %q; want %q, %q", index, lookup, wantIndex, wantLookup)
 		}
 	})
-	t.Run("an event with only an as-of is one open reach", func(t *testing.T) {
-		asOf := subjectcompare.Values{
-			vocabkey.PropertyEventType: {pt.Term("residence")},
-			vocabkey.PropertyAsOf:      {pt.Date(datevaluetest.YMD(1990, 0, 0))},
+	t.Run("an event with only as-ofs is filed as one open reach and looks up their years", func(t *testing.T) {
+		asOf := asOfEvent(1, "residence", datevaluetest.YMD(1990, 0, 0), datevaluetest.YMD(2015, 0, 0))
+		wantIndex, _ := keys(vocabkey.Event, event(1, "residence", datevaluetest.After(1990, 0, 0)).v, r.Alignment.Shortlist)
+		_, closedLookup := keys(vocabkey.Event, event(1, "residence", datevaluetest.Between(1990, 0, 0, 2015, 0, 0)).v, r.Alignment.Shortlist)
+		index, lookup := keys(vocabkey.Event, asOf.v, r.Alignment.Shortlist)
+		if len(index) == 0 || !slices.Equal(index, wantIndex) {
+			t.Errorf("index = %q, want the open reach's %q", index, wantIndex)
 		}
-		wantIndex, wantLookup := keys(vocabkey.Event, event(1, "residence", datevaluetest.After(1990, 0, 0)).v, r.Alignment.Shortlist)
-		index, lookup := keys(vocabkey.Event, asOf, r.Alignment.Shortlist)
-		if len(index) == 0 || !slices.Equal(index, wantIndex) || !slices.Equal(lookup, wantLookup) {
-			t.Errorf("keys = %q, %q; want %q, %q", index, lookup, wantIndex, wantLookup)
+		if !slices.Equal(lookup, closedLookup) || slices.Contains(lookup, "t:residence|any") || !slices.Contains(lookup, "t:residence|wide") {
+			t.Errorf("lookup = %q, want the closed reach's %q with no any key", lookup, closedLookup)
+		}
+	})
+	t.Run("an as-of with no closed end looks up open", func(t *testing.T) {
+		index, lookup := keys(vocabkey.Event, asOfEvent(1, "residence", datevaluetest.Before(2015, 0, 0)).v, r.Alignment.Shortlist)
+		if !slices.Contains(index, "t:residence|wide") || !slices.Contains(lookup, "t:residence|any") || slices.Contains(lookup, "t:residence|wide") {
+			t.Errorf("keys = %q, %q; want filed wide and any, looked up any", index, lookup)
+		}
+	})
+	t.Run("over the sample cap is one open reach both ways", func(t *testing.T) {
+		limit := r.Subject.Periods[vocabkey.Event][vocabkey.PropertyDate].MaxSamples
+		var ds []*datevalue.Value
+		for i := 0; i <= limit; i++ {
+			ds = append(ds, datevaluetest.YMD(1900+i%50, 0, 0))
+		}
+		index, lookup := keys(vocabkey.Event, asOfEvent(1, "residence", ds...).v, r.Alignment.Shortlist)
+		if !slices.Contains(index, "t:residence|wide") || !slices.Contains(lookup, "t:residence|any") || slices.Contains(lookup, "t:residence|wide") {
+			t.Errorf("keys = %q, %q; want filed wide and any, looked up any", index, lookup)
 		}
 	})
 	t.Run("an event with no as-of and no date has no date keys", func(t *testing.T) {

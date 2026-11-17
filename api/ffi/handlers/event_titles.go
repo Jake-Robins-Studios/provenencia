@@ -77,6 +77,7 @@ func ListEvidenceGraphEventTitles(in []byte) ([]byte, error) {
 			out.Titles = append(out.Titles, &engine.SourceEventTitle{
 				SubjectId: database.UUIDString(t.SubjectID),
 				Title:     eventTitleProto(t.Plan),
+				Dating:    eventDatingProto(t.Dating),
 			})
 		}
 		return nil

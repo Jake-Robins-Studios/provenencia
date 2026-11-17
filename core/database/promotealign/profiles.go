@@ -179,9 +179,10 @@ func (p *profiler) subject(n *graphcache.Node, built map[string]subjectcompare.S
 		if err != nil {
 			return subjectcompare.Subject{}, err
 		}
+		lead, period := p.cfg.Subject.EventPeriod()
 		for _, l := range links {
 			if ev, ok := built[string(l.Neighbor)]; ok {
-				e.Life = append(e.Life, subjectprofile.LifeEventOf(ev.Values, vocabkey.Role(l.TermKey), vocabkey.PropertyDate, p.cfg.Subject.Periods[vocabkey.Event][vocabkey.PropertyDate]))
+				e.Life = append(e.Life, subjectprofile.LifeEventOf(ev.Values, vocabkey.Role(l.TermKey), lead, period))
 			}
 		}
 	}

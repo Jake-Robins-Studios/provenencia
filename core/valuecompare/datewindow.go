@@ -160,18 +160,28 @@ func Latest(ends []DateEnd) (best DateEnd, ok bool) {
 // SampleExtremes picks, from samples read as firsts[i] and lasts[i], the two
 // that can bound a period: endsFirst is the index of the lowest Hi among the
 // closed lasts (the sample that ends first), startsLast the index of the
-// highest Lo among the closed firsts (the sample that starts last). The lower
-// index wins a tie; -1 means no end is closed. The caller supplies the reading
-// of each date (DateEnds, AboutEnds).
-func SampleExtremes(firsts, lasts []DateEnd) (endsFirst, startsLast int) {
+// highest Lo among the closed firsts (the sample that starts last); -1 means
+// no end is closed. The caller supplies the reading of each date (DateEnds for
+// the event dating, AboutEnds for compare) and the tie rule: among samples
+// equal on the primary end, endsTie(i, j) is negative when sample i ranks
+// before the current pick j, and startsTie(i, j, endsFirst) the same for the
+// starts, given the endsFirst pick. A nil tie, or a zero result, keeps the
+// lower index. Both ties read values, so the picks do not depend on order.
+func SampleExtremes(firsts, lasts []DateEnd, endsTie func(i, j int) int, startsTie func(i, j, endsFirst int) int) (endsFirst, startsLast int) {
 	endsFirst, startsLast = -1, -1
 	for i, e := range lasts {
-		if !e.Open && (endsFirst < 0 || e.Hi < lasts[endsFirst].Hi) {
+		if e.Open {
+			continue
+		}
+		if endsFirst < 0 || e.Hi < lasts[endsFirst].Hi || (e.Hi == lasts[endsFirst].Hi && endsTie != nil && endsTie(i, endsFirst) < 0) {
 			endsFirst = i
 		}
 	}
 	for i, e := range firsts {
-		if !e.Open && (startsLast < 0 || e.Lo > firsts[startsLast].Lo) {
+		if e.Open {
+			continue
+		}
+		if startsLast < 0 || e.Lo > firsts[startsLast].Lo || (e.Lo == firsts[startsLast].Lo && startsTie != nil && startsTie(i, startsLast, endsFirst) < 0) {
 			startsLast = i
 		}
 	}

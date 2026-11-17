@@ -69,8 +69,8 @@ struct EventDetailContent: ConclusionDetailBody {
         if span.count == 1, let only = span.first {
             return labeled(ReconciledValueRowModel(field: only, locale: locale), label, field: only)
         }
-        let lead = DateRowDisplay.line(
-            date: nil, start: summary?.startDate, end: summary?.endDate, locale: locale
+        let lead = DateRowDisplay.span(
+            start: summary?.startDate, end: summary?.endDate, locale: locale
         )
         return .spanning(id: "date", label: label, lead: lead, emptyText: empty, fields: span, locale: locale)
     }

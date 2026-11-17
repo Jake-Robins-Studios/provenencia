@@ -6,6 +6,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
 	"github.com/mendahu/provenencia/core/database/files"
 	"github.com/mendahu/provenencia/core/valuecodec"
+	"github.com/mendahu/provenencia/core/valuecompare"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"google.golang.org/protobuf/proto"
 )
@@ -231,7 +232,27 @@ func eventSummaryProto(h conclusionsummaries.EventSummary, paths map[string]stri
 		eh.Places = append(eh.Places, chainedPlaceProto(p))
 	}
 	eh.Title = eventTitleProto(h.Title)
+	eh.Dating = eventDatingProto(h.Dating)
 	return eh
+}
+
+var eventDatingKinds = map[valuecompare.DatingKind]engine.EventDatingKind{
+	valuecompare.DatingOccurrence: engine.EventDatingKind_EVENT_DATING_KIND_OCCURRENCE,
+	valuecompare.DatingSpan:       engine.EventDatingKind_EVENT_DATING_KIND_SPAN,
+	valuecompare.DatingAsOf:       engine.EventDatingKind_EVENT_DATING_KIND_AS_OF,
+}
+
+// eventDatingProto maps an event's dating to the wire; the kind of no dating is
+// UNSPECIFIED.
+func eventDatingProto(d valuecompare.Dating) *engine.EventDating {
+	out := &engine.EventDating{Kind: eventDatingKinds[d.Kind], OpenLow: d.OpenLow, OpenHigh: d.OpenHigh}
+	if d.Low != nil {
+		out.Low = valuecodec.DateToProto(*d.Low)
+	}
+	if d.High != nil {
+		out.High = valuecodec.DateToProto(*d.High)
+	}
+	return out
 }
 
 func ListPlaceSummaries(in []byte) ([]byte, error) {
