@@ -521,6 +521,19 @@ private struct ThrowingStore: GenealogyStore {
         description _: String,
         iconKey _: String
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) { throw StoreBoom.boom }
+    func copySourceType(
+        projectDir _: String,
+        userID _: String,
+        typeID _: String,
+        label _: String,
+        copyIcon _: Bool,
+        copyDescription _: Bool,
+        copyFormats _: Bool,
+        levels _: [Level]
+    ) async throws -> (CatalogSourceType, CatalogWriteEffects) { throw StoreBoom.boom }
+    func citationFormats(projectDir _: String, typeID _: String) async throws -> CatalogCitationFormats {
+        throw StoreBoom.boom
+    }
     func updateSourceType(
         projectDir _: String,
         userID _: String,
