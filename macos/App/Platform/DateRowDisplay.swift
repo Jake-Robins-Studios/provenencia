@@ -9,6 +9,52 @@ enum DateRowDisplay {
     /// shows nothing, and a date with only its phrase shows the phrase.
     enum Precision: Equatable, Sendable { case full, year }
 
+    /// The part of an event's dating a date line plays on its Date row.
+    enum Role: Equatable, Sendable {
+        /// The date alone.
+        case plain
+        case from
+        case asOf
+        case until
+    }
+
+    /// Marks the date inside a styled role line, as against the role word around it.
+    enum DateRun: AttributedStringKey {
+        typealias Value = Bool
+        static let name = "provenencia.dateRun"
+    }
+
+    /// A date's line with its role: the sentence as plain text, and a copy that marks the
+    /// date's own run (`DateRun`) so a view can draw the role word apart from it. `styled` is nil
+    /// for a plain date and for an empty one.
+    struct RoleLine: Equatable {
+        var text: String
+        var styled: AttributedString?
+    }
+
+    /// One date worded by its role (`from 1985`, `as of 10 Jan 1990`, `until 2015`), one translatable
+    /// sentence per role. An empty date gives an empty line.
+    static func line(
+        date: CatalogDateValueInput?,
+        role: Role,
+        includesPhrase: Bool = true,
+        locale: Locale = .autoupdatingCurrent
+    ) -> RoleLine {
+        let text = line(date: date, includesPhrase: includesPhrase, locale: locale)
+        guard !text.isEmpty else { return RoleLine(text: "", styled: nil) }
+        let format: LocalizedStringResource
+        let sentence: String
+        switch role {
+        case .plain: return RoleLine(text: text, styled: nil)
+        case .from: (format, sentence) = (L10n.Dates.rowFromFormat, L10n.Dates.rowFrom(text, locale: locale))
+        case .asOf: (format, sentence) = (L10n.Dates.rowAsOfFormat, L10n.Dates.rowAsOf(text, locale: locale))
+        case .until: (format, sentence) = (L10n.Dates.rowUntilFormat, L10n.Dates.rowUntil(text, locale: locale))
+        }
+        var marked = AttributeContainer()
+        marked[DateRun.self] = true
+        return RoleLine(text: sentence, styled: StyledFormat.attributed(format, [.init(text: text, attributes: marked)]))
+    }
+
     /// One date. Empty when nil. `includesPhrase: false` leaves off the words the source gave for the
     /// date ("in the spring"), for a place where the date sits inside a sentence.
     static func line(

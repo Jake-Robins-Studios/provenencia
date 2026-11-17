@@ -21,6 +21,10 @@ struct ReconciledValueRow: View {
     @Environment(WorkspaceNavigation.self) private var navigation
     @State private var showsOtherValues = false
     @State private var showsWhy = false
+    /// How many pages of a long list of lines the row has revealed (`ReconciledValueRowModel.listFold`).
+    @State private var folds = ConclusionFoldState<String>()
+    /// The Show more button takes no part in a line's focus: no line takes it.
+    @FocusState private var focusedLine: Int?
 
     /// The value column starts after the label column and its gap.
     static let labelWidth: CGFloat = 132
@@ -38,6 +42,18 @@ struct ReconciledValueRow: View {
             }
             .frame(minHeight: 52)
             .padding(.vertical, PVSpacing.space3)
+            if folded.hidden > 0 {
+                ConclusionShowMoreRow(
+                    hidden: folded.hidden,
+                    fold: ReconciledValueRowModel.listFold,
+                    focus: $focusedLine,
+                    revealed: nil,
+                    expand: { folds.revealPage(model.id) }
+                )
+                .padding(.leading, Self.disclosureInset)
+                .padding(.bottom, PVSpacing.space3)
+                .accessibilityIdentifier("conclusion.detail.row.\(model.id).more")
+            }
             if showsOtherValues {
                 otherValues
                     .padding(.leading, Self.disclosureInset)
@@ -50,6 +66,15 @@ struct ReconciledValueRow: View {
             }
         }
         .accessibilityIdentifier("conclusion.detail.row.\(model.id)")
+        .onChange(of: model.shown.listedValues) { folds = ConclusionFoldState<String>() }
+    }
+
+    /// The row's lines at the pages revealed, and how many the fold leaves out.
+    private var folded: (shown: PVProvenanceSheetContent.Shown, hidden: Int) {
+        var shown = model.shown
+        let fold = ReconciledValueRowModel.listFold.shown(shown.listedValues, pages: folds.pages(model.id))
+        shown.listedValues = fold.shown
+        return (shown, fold.hidden)
     }
 
     /// Label, value and state: one VoiceOver element with the row's spoken
@@ -69,7 +94,7 @@ struct ReconciledValueRow: View {
     }
 
     private var value: some View {
-        PVProvenanceValueList(model.shown)
+        PVProvenanceValueList(folded.shown)
     }
 
     private var state: some View {

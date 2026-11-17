@@ -2715,13 +2715,36 @@ enum L10n {
             return L10n.format(resource, locale: locale, start, end)
         }
 
+        /// The format of an As of line: the one resource the header's date line and an event's Date
+        /// row both word it by, so the row can draw its words muted around the date.
+        static let rowAsOfFormat = LocalizedStringResource(
+            "dates.row.asOf",
+            defaultValue: "as of %@",
+            comment: "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date. Also each As of line on an event's Date row, where the words around the date are drawn muted."
+        )
+
         static func rowAsOf(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
-            let resource = LocalizedStringResource(
-                "dates.row.asOf",
-                defaultValue: "as of %@",
-                comment: "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date."
-            )
-            return L10n.format(resource, locale: locale, date)
+            L10n.format(rowAsOfFormat, locale: locale, date)
+        }
+
+        static let rowFromFormat = LocalizedStringResource(
+            "dates.row.from",
+            defaultValue: "from %@",
+            comment: "An event's recorded start on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
+        )
+
+        static func rowFrom(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
+            L10n.format(rowFromFormat, locale: locale, date)
+        }
+
+        static let rowUntilFormat = LocalizedStringResource(
+            "dates.row.until",
+            defaultValue: "until %@",
+            comment: "An event's recorded end on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
+        )
+
+        static func rowUntil(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
+            L10n.format(rowUntilFormat, locale: locale, date)
         }
 
         static func rowAsOfRange(start: String, end: String, locale: Locale = .autoupdatingCurrent) -> String {

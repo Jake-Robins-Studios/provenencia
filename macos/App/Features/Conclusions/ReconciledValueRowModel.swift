@@ -35,6 +35,9 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     private var locale: Locale
     private var orders: NameFormatOrders
 
+    /// How a long list of lines folds: the first 20, then 50 more a press.
+    static let listFold = ConclusionFold(limit: 20, minimumHidden: 2)
+
     /// How many records sit behind the row.
     var recordCount: Int {
         switch source {
@@ -50,7 +53,6 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         orders: NameFormatOrders = NameFormatOrders()
     ) {
         let shown = PVProvenanceSheetContent.Shown(field: field, locale: locale, orders: orders)
-        let spokenLead = shown.listedValues.count > 1 ? shown.listedValues.map(\.text).joined(separator: "; ") : shown.lead
         id = field.propertyID
         label = field.label
         self.shown = shown
@@ -65,10 +67,30 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
             : field.valueType == .name
                 ? L10n.Conclusions.whyTitleName(shown.lead ?? field.label)
                 : L10n.Conclusions.whyTitle(shown.lead ?? field.label)
-        accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: field.label, lead: spokenLead, field: field)
+        accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(label: field.label, lead: Self.spokenValue(shown), field: field)
         source = .field(field)
         self.locale = locale
         self.orders = orders
+    }
+
+    /// What VoiceOver says for the row's value: the first lines of a list, joined, else the lead. A
+    /// single role line speaks its own words (`as of 10 Jan 1990`), not the dating's.
+    static func spokenValue(_ shown: PVProvenanceSheetContent.Shown) -> String? {
+        if shown.listedValues.count > 1 {
+            return shown.listedValues.prefix(listFold.limit).map(\.text).joined(separator: "; ")
+        }
+        if let only = shown.listedValues.first, only.styled != nil { return only.text }
+        return shown.lead
+    }
+
+    /// The row under another label, speaking what it shows.
+    func relabeled(_ label: String, field: CatalogConclusionField?) -> Self {
+        var row = self
+        row.label = label
+        row.accessibilityLabel = ReconciledValueDisplay.accessibilityLabel(
+            label: label, lead: Self.spokenValue(shown), field: field
+        )
+        return row
     }
 
     /// The sheet or Why content of the row, built from its records now. The
@@ -88,28 +110,35 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         }
     }
 
-    /// One Date row whose lead is a start–end span. Why lists every record
-    /// on those properties. The span is not one property's reconciled state,
-    /// so it carries no badge.
+    /// One Date row whose lead is a start–end span, or whose `listed` lines are
+    /// the dates behind an as-of dating. Why lists every record on those
+    /// properties. The span is not one property's reconciled state, so it
+    /// carries no badge.
     static func spanning(
         id: String,
         label: String,
         lead: String?,
         emptyText: String,
         fields: [CatalogConclusionField],
+        listed: [PVProvenanceSheetContent.Value] = [],
         locale: Locale
     ) -> Self {
         let lead = lead.flatMap { $0.isEmpty ? nil : $0 }
-        let spoken = lead.map { L10n.DesignSystem.spokenJoin(label, $0) }
+        let shown = PVProvenanceSheetContent.Shown(
+            face: .date, lead: lead, listedValues: listed, emptyText: emptyText, badge: nil
+        )
+        let spoken = spokenValue(shown).map { L10n.DesignSystem.spokenJoin(label, $0) }
             ?? ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
-        return Self(
+        var row = Self(
             id: id, label: label,
-            shown: .init(face: .date, lead: lead, emptyText: emptyText, badge: nil),
+            shown: shown,
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: lead.map { L10n.Conclusions.whyTitle($0) } ?? "",
+            whyTitle: "",
             accessibilityLabel: spoken,
             source: .spanning(fields), locale: locale, orders: NameFormatOrders()
         )
+        if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
+        return row
     }
 
     /// A date or place read off the canonical graph. A kept count above 1 is

@@ -58,7 +58,7 @@ struct PVProvenanceValueLine: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space5) {
-            Text(verbatim: value.text)
+            text
                 .font(face.valueFont)
                 .foregroundStyle(PVColor.textPrimary)
                 .textSelection(.enabled)
@@ -66,6 +66,30 @@ struct PVProvenanceValueLine: View {
                 .font(PVFont.mono(size: PVTypeScale.caption))
                 .foregroundStyle(PVColor.textMuted)
         }
+    }
+}
+
+extension PVProvenanceValueLine {
+    /// The line's text: a role line draws its role word in secondary ink and its date in primary.
+    @ViewBuilder
+    fileprivate var text: some View {
+        if let styled = value.styled {
+            Text(Self.inked(styled))
+        } else {
+            Text(verbatim: value.text)
+        }
+    }
+
+    // Typed `AttributeContainer` subscripts, as `PVComboBoxHighlight`: no key-path Sendable warnings.
+    fileprivate static func inked(_ styled: AttributedString) -> AttributedString {
+        var out = styled
+        for run in styled.runs {
+            var ink = AttributeContainer()
+            ink[AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute.self] =
+                run[DateRowDisplay.DateRun.self] == true ? PVColor.textPrimary : PVColor.textSecondary
+            out[run.range].mergeAttributes(ink)
+        }
+        return out
     }
 }
 

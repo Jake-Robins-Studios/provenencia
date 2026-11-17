@@ -37,23 +37,57 @@ struct EventDetailTests {
         )
     }
 
+    /// The Properties Go names behind each kind of dating (the event period registry's four keys).
+    private static func property(_ key: String, _ role: CatalogEventDatingProperty.Role) -> CatalogEventDatingProperty {
+        CatalogEventDatingProperty(key: key, role: role)
+    }
+
+    private let occurrence = EventDetailTests.property("date", .occurrence)
+    private let startProperty = EventDetailTests.property("start_date", .start)
+    private let endProperty = EventDetailTests.property("end_date", .end)
+    private let asOfProperty = EventDetailTests.property("as_of", .asOf)
+
+    /// A summary with the dating and the Properties behind it that the test states: Go chose them.
     private func dated(
-        date: CatalogDateValueInput? = nil,
-        start: CatalogDateValueInput? = nil,
-        end: CatalogDateValueInput? = nil,
-        dating: CatalogEventDating = CatalogEventDating()
+        dating: CatalogEventDating = CatalogEventDating(),
+        properties: [CatalogEventDatingProperty] = []
     ) -> CatalogEventSummary {
         var summary = CatalogEventSummary(
             entity: CatalogCanonicalEntity(id: "e1", ref: "EVT-8PL22", subjectTypeID: "t", label: ""),
             title: CatalogEventTitle(rule: .ref, ref: "EVT-8PL22")
         )
-        summary.date = date
-        summary.startDate = start
-        summary.endDate = end
-        // Go chose the dating; the test states the one it means.
         summary.dating = dating
+        summary.datingProperties = properties
         return summary
     }
+
+    private func year(_ year: Int32) -> CatalogDateValueInput {
+        CatalogDateValueInput(kind: "point", startYear: year)
+    }
+
+    private func day(_ year: Int32, _ month: Int32, _ day: Int32) -> CatalogDateValueInput {
+        CatalogDateValueInput(kind: "point", startYear: year, startMonth: month, startDay: day)
+    }
+
+    /// A multi-valued field of dates: each displayed value with its Source count, one record each, plus
+    /// `denied` records that read as a date but went into no value.
+    private func multiDateField(
+        _ key: String,
+        _ values: [(date: CatalogDateValueInput, support: Int)],
+        denied: [CatalogDateValueInput] = []
+    ) -> CatalogConclusionField {
+        D.field(
+            "multiple", key: key, label: key, valueType: "date",
+            values.enumerated().map { D.value($0.offset + 1, "kept", support: $0.element.support, .date($0.element.date)) },
+            outcomes: values.enumerated().map {
+                D.outcome("\(key)-\($0.offset + 1)", "kept", rank: $0.offset + 1, title: "Census", recorded: .date($0.element.date))
+            } + denied.enumerated().map {
+                D.outcome("\(key)-denied-\($0.offset)", "denied", rank: nil, title: "Directory", recorded: .date($0.element))
+            }
+        )
+    }
+
+    private var asOfDating: (low: CatalogDateValueInput, high: CatalogDateValueInput) { (day(1990, 1, 10), day(2015, 2, 10)) }
 
     @Test func anAsOfEventsHeaderLineReadsItsDating() {
         var event = dated()
@@ -103,13 +137,14 @@ struct EventDetailTests {
         #expect(!page.showsRef)
     }
 
-    @Test func dateFieldWinsOverASpan() {
-        let point = CatalogDateValueInput(kind: "point", startYear: 1817, startMonth: 5, startDay: 14)
+    @Test func anOccurrenceKeepsTheDateRowWhateverElseIsRecorded() {
+        let point = day(1817, 5, 14)
+        let dating = CatalogEventDating(kind: .occurrence, low: point)
         let page = content(detail(fields: [
             dateField("date", point, id: "point"),
-            dateField("start_date", CatalogDateValueInput(kind: "point", startYear: 1849), id: "start"),
-            dateField("end_date", CatalogDateValueInput(kind: "point", startYear: 1851), id: "end"),
-        ], summary: dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point))))
+            dateField("start_date", year(1849), id: "start"),
+            multiDateField("as_of", [(year(1820), 1)]),
+        ], summary: dated(dating: dating, properties: [occurrence])))
         #expect(page.rows.map(\.label) == ["Date", "Place"])
         #expect(page.rows[0].shown.lead == "14 May 1817")
         #expect(page.rows[0].provenanceContent().records.map(\.id) == ["point"])
@@ -117,21 +152,35 @@ struct EventDetailTests {
     }
 
     @Test func spanLeadWhenThereIsNoDate() {
-        let start = CatalogDateValueInput(kind: "point", startYear: 1849)
-        let end = CatalogDateValueInput(kind: "point", startYear: 1851)
+        let start = year(1849)
+        let end = year(1851)
         let page = content(detail(fields: [
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
+        ], summary: dated(
+            dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
+        )))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
         #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start", "end"])
         #expect(page.rows[0].shown.badge == nil)
         #expect(page.secondaryDate == page.rows[0].shown.lead)
     }
 
+    @Test func aSpanWithOneSideIsThatFieldsRow() {
+        let start = year(1849)
+        let page = content(detail(fields: [
+            dateField("start_date", start, id: "start"),
+        ], summary: dated(
+            dating: CatalogEventDating(kind: .span, low: start), properties: [startProperty, endProperty]
+        )))
+        #expect(page.rows[0].label == "Date")
+        #expect(page.rows[0].shown.lead == "1849")
+        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start"])
+    }
+
     @Test func dateRowFallsToTheSpanWhenTheDateShowsNothing() {
-        let start = CatalogDateValueInput(kind: "point", startYear: 1849)
-        let end = CatalogDateValueInput(kind: "point", startYear: 1851)
+        let start = year(1849)
+        let end = year(1851)
         let page = content(detail(fields: [
             D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
@@ -139,36 +188,41 @@ struct EventDetailTests {
             ),
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
+        ], summary: dated(
+            dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
+        )))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
-        #expect(page.rows[0].provenanceContent().records.map(\.id).contains("start"))
-        #expect(page.rows[0].provenanceContent().records.map(\.id).contains("end"))
+        #expect(page.rows[0].provenanceContent().records.map(\.id) == ["start", "end"])
         #expect(page.rows[0].shown.lead == page.secondaryDate)
     }
 
-    @Test func dateRowFollowsTheSummaryWhenFieldsDisagree() {
-        let point = CatalogDateValueInput(kind: "point", startYear: 1817, startMonth: 5, startDay: 14)
-        let start = CatalogDateValueInput(kind: "point", startYear: 1849)
-        let end = CatalogDateValueInput(kind: "point", startYear: 1851)
+    @Test func dateRowFollowsTheDatingWhenFieldsDisagree() {
+        let start = year(1849)
+        let end = year(1851)
         let page = content(detail(fields: [
-            dateField("date", point, id: "point"),
+            dateField("date", day(1817, 5, 14), id: "point"),
             dateField("start_date", start, id: "start"),
             dateField("end_date", end, id: "end"),
-        ], summary: dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))))
+        ], summary: dated(
+            dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
+        )))
         #expect(page.rows[0].shown.lead == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
         #expect(page.rows[0].shown.lead == page.secondaryDate)
     }
 
     @Test func bandLineReadsTheSummary() {
-        let point = CatalogDateValueInput(kind: "point", startYear: 1817, startMonth: 5, startDay: 14)
-        let withDate = content(detail(summary: dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point))))
+        let point = day(1817, 5, 14)
+        let dating = CatalogEventDating(kind: .occurrence, low: point)
+        let withDate = content(detail(summary: dated(dating: dating, properties: [occurrence])))
         #expect(withDate.secondaryDate == "14 May 1817")
-        #expect(withDate.secondaryDate == EventSecondaryDisplay.content(dated(date: point, dating: CatalogEventDating(kind: .occurrence, low: point)), locale: en).date)
+        #expect(withDate.secondaryDate == EventSecondaryDisplay.content(dated(dating: dating), locale: en).date)
 
         // A `date` field with records but no displayed value: the band shows the kept span, as the list row does.
-        let start = CatalogDateValueInput(kind: "point", startYear: 1849)
-        let end = CatalogDateValueInput(kind: "point", startYear: 1851)
-        let span = dated(start: start, end: end, dating: CatalogEventDating(kind: .span, low: start, high: end))
+        let start = year(1849)
+        let end = year(1851)
+        let span = dated(
+            dating: CatalogEventDating(kind: .span, low: start, high: end), properties: [startProperty, endProperty]
+        )
         let spanned = content(detail(
             fields: [D.field(
                 "single", key: SeededPropertyKey.date, label: "Date", valueType: "date", [],
@@ -178,6 +232,168 @@ struct EventDetailTests {
         ))
         #expect(spanned.secondaryDate == EventSecondaryDisplay.content(span, locale: en).date)
         #expect(spanned.secondaryDate == L10n.Dates.rowSpan(start: "1849", end: "1851", locale: en))
+    }
+
+    // MARK: As-of dating
+
+    private func asOfPage(
+        fields: [CatalogConclusionField],
+        dating: CatalogEventDating,
+        properties: [CatalogEventDatingProperty]? = nil
+    ) -> ReconciledValueRowModel {
+        content(detail(fields: fields, summary: dated(dating: dating, properties: properties ?? [startProperty, asOfProperty, endProperty]))).rows[0]
+    }
+
+    private func openBoth() -> CatalogEventDating {
+        CatalogEventDating(kind: .asOf, low: asOfDating.low, high: asOfDating.high, openLow: true, openHigh: true)
+    }
+
+    @Test func asOfRowListsEachAsOfEarliestFirst() {
+        let row = asOfPage(
+            fields: [multiDateField("as_of", [(asOfDating.low, 1), (asOfDating.high, 2)], denied: [year(1970)])],
+            dating: openBoth()
+        )
+        #expect(row.shown.listedValues.map(\.text) == ["as of 10 Jan 1990", "as of 10 Feb 2015"])
+        #expect(row.shown.listedValues.map(\.support) == ["1 Source", "2 Sources"])
+        #expect(row.shown.listedValues.map(\.rank) == [1, 2])
+        for line in row.shown.listedValues {
+            let styled = try! #require(line.styled)
+            let dateRuns = styled.runs.filter { $0.attributes[DateRowDisplay.DateRun.self] == true }
+            #expect(dateRuns.count == 1)
+            #expect(String(styled[dateRuns[0].range].characters) == String(line.text.dropFirst("as of ".count)))
+        }
+        #expect(row.shown.lead == "as of 10 Jan 1990–10 Feb 2015")
+        #expect(row.shown.badge == nil && row.count == nil)
+        #expect(row.provenanceContent().records.count == 3)
+        #expect(row.whyTitle == "Why “as of 10 Jan 1990–10 Feb 2015”")
+        #expect(row.accessibilityLabel == "Date, as of 10 Jan 1990; as of 10 Feb 2015")
+        #expect(row.label == "Date")
+    }
+
+    @Test func asOfRowListsTheStartAndEndBesideItsAsOfs() {
+        let ys = (y1985: year(1985), y1990: year(1990), y2015: year(2015))
+        func row(
+            fields: [CatalogConclusionField], dating: CatalogEventDating
+        ) -> (lines: [String], records: [String], lead: String?) {
+            let r = asOfPage(fields: fields, dating: dating)
+            return (r.shown.listedValues.map(\.text), r.provenanceContent().records.map(\.id), r.shown.lead)
+        }
+        let start = dateField("start_date", ys.y1985, id: "start")
+        let end = dateField("end_date", ys.y2015, id: "end")
+
+        let fromAndTwo = row(
+            fields: [start, multiDateField("as_of", [(ys.y1990, 1), (day(2015, 2, 10), 1)])],
+            dating: CatalogEventDating(kind: .asOf, low: ys.y1985, high: day(2015, 2, 10), openLow: false, openHigh: true)
+        )
+        #expect(fromAndTwo.lines == ["from 1985", "as of 1990", "as of 10 Feb 2015"])
+        #expect(fromAndTwo.records == ["start", "as_of-1", "as_of-2"])
+        #expect(fromAndTwo.lead == DateRowDisplay.line(
+            dating: CatalogEventDating(kind: .asOf, low: ys.y1985, high: day(2015, 2, 10), openLow: false, openHigh: true), locale: en
+        ))
+
+        let untilOnly = row(
+            fields: [multiDateField("as_of", [(ys.y1990, 1)]), end],
+            dating: CatalogEventDating(kind: .asOf, low: ys.y1990, high: ys.y2015, openLow: true, openHigh: false)
+        )
+        #expect(untilOnly.lines == ["as of 1990", "until 2015"])
+        #expect(untilOnly.records == ["as_of-1", "end"])
+
+        // An as-of before the start: lines keep the order Go sends, whatever the dates say.
+        let before = row(
+            fields: [start, multiDateField("as_of", [(year(1980), 1)])],
+            dating: CatalogEventDating(kind: .asOf, low: year(1980), high: ys.y1985, openLow: true, openHigh: false)
+        )
+        #expect(before.lines == ["from 1985", "as of 1980"])
+
+        let closed = row(
+            fields: [start, multiDateField("as_of", [(ys.y1990, 1)]), end],
+            dating: CatalogEventDating(kind: .asOf, low: ys.y1985, high: ys.y2015)
+        )
+        #expect(closed.lines == ["from 1985", "as of 1990", "until 2015"])
+        #expect(closed.lead == "1985–2015")
+        #expect(closed.records == ["start", "as_of-1", "end"])
+    }
+
+    @Test func asOfRowLinesHaveDistinctIDs() {
+        let row = asOfPage(
+            fields: [
+                dateField("start_date", year(1985), id: "start"),
+                multiDateField("as_of", [(year(1990), 1), (year(2015), 1)]),
+            ],
+            dating: CatalogEventDating(kind: .asOf, low: year(1985), high: year(2015), openLow: false, openHigh: true)
+        )
+        #expect(Set(row.shown.listedValues.map(\.id)).count == 3)
+        #expect(row.shown.listedValues.map(\.rank) == [1, 1, 2])
+    }
+
+    @Test func asOfLinesKeepTheirQualifiers() {
+        let about = CatalogDateValueInput(kind: "point", qualifier: "ABT", startYear: 1990)
+        let before = CatalogDateValueInput(kind: "point", qualifier: "BEF", startYear: 2015)
+        let two = asOfPage(
+            fields: [multiDateField("as_of", [(about, 1), (before, 1)])],
+            dating: CatalogEventDating(kind: .asOf, low: about, high: before, openLow: true, openHigh: true)
+        )
+        #expect(two.shown.listedValues.map(\.text) == ["as of abt 1990", "as of bef 2015"])
+        let one = asOfPage(
+            fields: [multiDateField("as_of", [(asOfDating.low, 1)])],
+            dating: CatalogEventDating(kind: .asOf, low: asOfDating.low, openLow: true, openHigh: true)
+        )
+        #expect(one.shown.listedValues.map(\.text) == ["as of 10 Jan 1990"])
+        #expect(one.accessibilityLabel == "Date, as of 10 Jan 1990")
+    }
+
+    @Test func undatedRowShowsTheFieldWithRecords() {
+        let all = [occurrence, startProperty, endProperty, asOfProperty]
+        func page(_ fields: [CatalogConclusionField]) -> ReconciledValueRowModel {
+            content(detail(fields: fields, summary: dated(properties: all))).rows[0]
+        }
+        func unshown(_ key: String, _ id: String) -> CatalogConclusionField {
+            D.field(
+                "single", key: key, label: key, valueType: "date", [],
+                outcomes: [D.outcome(id, "kept", title: "Census", recorded: .date(year(1849)))]
+            )
+        }
+        let one = page([unshown("date", "d")])
+        #expect(one.label == "Date" && one.shown.emptyText == "Nothing recorded")
+        #expect(one.provenanceContent().records.map(\.id) == ["d"])
+
+        let asOf = page([D.field(
+            "multiple", key: "as_of", label: "As of", valueType: "date", [],
+            outcomes: [D.outcome("a", "denied", rank: nil, title: "Census", recorded: .date(year(1849)))]
+        )])
+        #expect(asOf.label == "Date" && asOf.shown.emptyText == "Nothing recorded")
+        #expect(asOf.provenanceContent().records.map(\.id) == ["a"])
+
+        let both = page([unshown("date", "d"), unshown("start_date", "s")])
+        #expect(both.shown.lead == nil && both.shown.emptyText == "No date recorded")
+        #expect(both.whyTitle == "Why “Date”")
+        #expect(both.provenanceContent().records.map(\.id) == ["d", "s"])
+
+        let none = page([])
+        #expect(none.shown.emptyText == "No date recorded" && none.provenanceContent().records.isEmpty && none.whyTitle == "")
+    }
+
+    @Test func aLongListFoldsTwentyThenFifty() {
+        let fold = ReconciledValueRowModel.listFold
+        let lines = (0..<900).map { PVProvenanceSheetContent.Value(rank: $0 + 1, text: "as of \(1100 + $0)", support: "1 Source") }
+        let first = fold.shown(lines, pages: 0)
+        #expect(first.shown.count == 20 && first.hidden == 880)
+        #expect(fold.nextPageCount(hidden: first.hidden) == 50)
+        #expect(fold.shown(lines, pages: 1).shown.count == 70)
+        #expect(fold.shown(Array(lines.prefix(21)), pages: 0).shown.count == 21)
+        let shown = PVProvenanceSheetContent.Shown(
+            face: .date, lead: nil, listedValues: lines, emptyText: "", badge: nil
+        )
+        #expect(ReconciledValueRowModel.spokenValue(shown)?.split(separator: ";").count == 20)
+    }
+
+    @Test func missingDateIsAnEmptyDateRow() {
+        let page = content(detail(summary: dated()))
+        let date = page.rows[0]
+        #expect(date.label == "Date" && date.shown.face == .date && date.shown.lead == nil)
+        #expect(date.shown.emptyText == "No date recorded")
+        #expect(date.provenanceContent().records.isEmpty)
+        #expect(page.secondaryDate == nil)
     }
 
     @Test func summarySuppliesSubjectsAndPlace() {
@@ -221,15 +437,6 @@ struct EventDetailTests {
         #expect(place.label == "Place" && place.shown.face == .place && place.shown.lead == nil)
         #expect(place.shown.emptyText == "No place recorded")
         #expect(place.provenanceContent().records.isEmpty)
-    }
-
-    @Test func missingDateIsAnEmptyDateRow() {
-        let page = content(detail(summary: dated()))
-        let date = page.rows[0]
-        #expect(date.label == "Date" && date.shown.face == .date && date.shown.lead == nil)
-        #expect(date.shown.emptyText == "No date recorded")
-        #expect(date.provenanceContent().records.isEmpty)
-        #expect(page.secondaryDate == nil)
     }
 
     @Test func noPictureLeavesTheMarkAndNoGallery() {
