@@ -1222,13 +1222,6 @@ func placeDating(d valuecompare.Dating) placedDating {
 	if !lowOK && !highOK {
 		return placedDating{}
 	}
-	from, to := low, high
-	if !lowOK {
-		from = high
-	}
-	if !highOK {
-		to = low
-	}
 	if !lowOK {
 		low = high
 	}
@@ -1239,9 +1232,9 @@ func placeDating(d valuecompare.Dating) placedDating {
 	return placedDating{
 		key: dateKey{at: key, ok: true},
 		span: TimelineSpan{
-			From: from.span.From, To: to.span.To,
-			OpenStart: d.OpenLow || from.span.OpenStart,
-			OpenEnd:   d.OpenHigh || to.span.OpenEnd,
+			From: low.span.From, To: high.span.To,
+			OpenStart: d.OpenLow || low.span.OpenStart,
+			OpenEnd:   d.OpenHigh || high.span.OpenEnd,
 		},
 		first: low.first, last: high.last,
 	}

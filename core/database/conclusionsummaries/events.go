@@ -35,7 +35,7 @@ func (t *Term) ProductKey() string {
 // EventSummary is one Event as a row. A rank-1 date wins over a start/end
 // span; the span's counts are still reported. Subjects are the subject-role
 // persons, participation ref then person ref. Places are every location's
-// kept names with hierarchical parents at the event's date.
+// kept names with hierarchical parents at the date Dating.Low gives, else Dating.High.
 type EventSummary struct {
 	Entity         canonicalentities.Entity
 	EventName      string
