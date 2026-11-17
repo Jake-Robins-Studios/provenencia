@@ -37,18 +37,6 @@ func Side(kind vocabkey.SubjectType, key vocabkey.PropertyKey, values Values, ru
 	return out
 }
 
-// Samples is the positive values v records for the samples property of key's
-// period, nil when key has no period or its period names no samples. It is
-// the one reading of a side's samples, for compare, the shortlist and the
-// lifespan (through PeriodSamples).
-func Samples(kind vocabkey.SubjectType, key vocabkey.PropertyKey, v Values, rules Rules) []propertycompare.Value {
-	p, ok := rules.Period(kind, key)
-	if !ok {
-		return nil
-	}
-	return PeriodSamples(v, p)
-}
-
 // CountSamples is how many positive values v records for p's samples property,
 // counted without copying any. Zero when p names none.
 func CountSamples(v Values, p Period) int {
@@ -66,8 +54,9 @@ func CountSamples(v Values, p Period) int {
 
 // PeriodSamples is the positive values v records for p's samples property,
 // nil when p names none or v records more than p.MaxSamples: the count comes
-// first, so a crafted side is never copied. It is the one place the cap holds,
-// for compare, the shortlist and the lifespan.
+// first, so a crafted side is never copied. It is the one reading of a side's
+// samples and the one place the cap holds, for compare, the shortlist and the
+// lifespan.
 func PeriodSamples(v Values, p Period) []propertycompare.Value {
 	if n := CountSamples(v, p); n == 0 || n > p.MaxSamples {
 		return nil
@@ -87,7 +76,9 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // period; mine's own value for key does not stop it. The samples are read with
 // AboutEnds as the comparer reads a date and picked in one pass by
 // valuecompare.SampleExtremes; a tie on the extreme end is broken by the
-// lowest typed Same key, so the picks never depend on input order. Each pick is
+// lowest typed Same key, so the picks never depend on input order (the event
+// dating's pick, valuecompare.DatingOf, breaks it on the dates instead, as it
+// shows them). Each pick is
 // compared with the period by propertycompare.Compare under meta, the lead's,
 // with the period on its own side (swapped puts it on side A). A period with
 // an open end bounds but does not agree: an agree or partial against it is
@@ -95,7 +86,7 @@ func PeriodSamples(v Values, p Period) []propertycompare.Value {
 // extreme samples only. A side with more than the period's MaxSamples samples has none (PeriodSamples).
 func samplesAgainst(kind vocabkey.SubjectType, key vocabkey.PropertyKey, mine, other Values, rules Rules, swapped bool, meta propertymeta.Meta, value valuecompare.Rules) []propertycompare.Result {
 	p, ok := rules.Period(kind, key)
-	if !ok || p.Samples == "" || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
+	if !ok || slices.ContainsFunc(other[key], propertycompare.Value.Positive) {
 		return nil
 	}
 	standIn, open, ok := period(other[p.Start], other[p.End])
