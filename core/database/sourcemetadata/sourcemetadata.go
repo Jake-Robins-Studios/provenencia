@@ -90,7 +90,8 @@ type LayoutRow struct {
 
 // Set upserts a metadata value for (owner, field). The caller records the
 // returned changes. An unchanged value returns the existing row and no changes.
-// A refused value is ErrInvalid naming its field.
+// A refused mark is valuemark.ErrInvalid and any other refused value is
+// ErrInvalid, each naming its field.
 func Set(tx *database.Tx, userID []byte, owner Owner, in Input) (Row, []rowchange.Change, error) {
 	st, err := storeFor(owner)
 	if err != nil {
@@ -336,8 +337,9 @@ func CreateAll(tx *database.Tx, userID []byte, owner Owner, d Draft) ([]rowchang
 // the draft leaves out stays, so a draft never undoes a dismiss by omission.
 // Apply appends no layout row for a new value: a caller with a board sends the
 // whole order as d.Layout. Only differing rows are written. The caller records
-// the returned changes. A refused value is ErrInvalid naming its field (the
-// first in draft order); any other refusal is a bare ErrInvalid.
+// the returned changes. A refused mark is valuemark.ErrInvalid and any other
+// refused value is ErrInvalid, each naming its field (the first in draft
+// order); any other refusal is a bare ErrInvalid.
 func Apply(tx *database.Tx, userID []byte, owner Owner, d Draft) ([]rowchange.Change, error) {
 	st, err := storeFor(owner)
 	if err != nil {
