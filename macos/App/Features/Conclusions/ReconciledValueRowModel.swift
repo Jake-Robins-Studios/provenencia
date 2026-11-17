@@ -105,15 +105,14 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
     /// What VoiceOver says for the row once `pages` pages of its list are revealed: the lines the
     /// fold shows then. At no pages, the first 20.
     func accessibilityLabel(pages: Int) -> String {
-        let lines = pages > 0
-            ? Self.listFold.shown(shown.listedValues, pages: pages).shown.count
-            : Self.listFold.limit
+        let lines = Self.listFold.shown(shown.listedValues, pages: pages).shown.count
         let lead = Self.spokenValue(shown, lines: lines)
         switch voice {
         case .field(let field):
             return ReconciledValueDisplay.accessibilityLabel(label: label, lead: lead, field: field)
         case .joined:
-            return lead.map { L10n.DesignSystem.spokenJoin(label, $0) }
+            let mixed = shown.badge == .mixed ? L10n.string(L10n.ProvenanceSheet.badgeMixed) : nil
+            return lead.flatMap { L10n.DesignSystem.spokenJoin([label, $0] + [mixed].compactMap { $0 }) }
                 ?? ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
         }
     }
@@ -185,21 +184,15 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
         orders: NameFormatOrders = NameFormatOrders()
     ) -> Self {
         let lead = lead.isEmpty ? nil : lead
-        let spoken: String
-        if let lead {
-            let parts = [label, lead] + (mixed ? [L10n.string(L10n.ProvenanceSheet.badgeMixed)] : [])
-            spoken = L10n.DesignSystem.spokenJoin(parts) ?? label
-        } else {
-            spoken = ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil)
-        }
         var row = Self(
             id: id, label: label,
             shown: .init(face: face, lead: lead, emptyText: emptyText, badge: mixed && lead != nil ? .mixed : nil),
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [],
-            whyTitle: "", accessibilityLabel: spoken,
+            whyTitle: "", accessibilityLabel: "",
             source: .derived(owners: owners, shownOwnerID: shownOwnerID, kind: kind), voice: .joined,
             locale: locale, orders: orders
         )
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
         if row.recordCount > 0 { row.whyTitle = L10n.Conclusions.whyTitle(lead ?? label) }
         row.opens = opens
         return row
@@ -207,13 +200,15 @@ struct ReconciledValueRowModel: Equatable, Identifiable {
 
     /// A row with nothing behind it yet.
     static func empty(id: String, label: String, face: PVProvenanceFace, emptyText: String) -> Self {
-        Self(
+        var row = Self(
             id: id, label: label,
             shown: .init(face: face, lead: nil, emptyText: emptyText, badge: nil),
             count: nil, against: nil, otherValuesLabel: nil, otherValues: [], whyTitle: "",
-            accessibilityLabel: ReconciledValueDisplay.accessibilityLabel(label: label, lead: nil, field: nil),
+            accessibilityLabel: "",
             source: .spanning([]), voice: .joined, locale: .autoupdatingCurrent, orders: NameFormatOrders()
         )
+        row.accessibilityLabel = row.accessibilityLabel(pages: 0)
+        return row
     }
 
     private init(

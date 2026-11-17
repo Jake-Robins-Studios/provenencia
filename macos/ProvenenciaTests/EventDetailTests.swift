@@ -409,6 +409,24 @@ struct EventDetailTests {
         )
         #expect(lines(dates.accessibilityLabel(pages: 0)) == 20)
         #expect(lines(dates.accessibilityLabel(pages: 1)) == 70)
+        #expect(dates.accessibilityLabel(pages: 0) == dates.accessibilityLabel)
+
+        let twentyOne = asOfPage(
+            fields: [multiDateField("as_of", (0..<21).map { (date: year(Int32(1100 + $0)), support: 1) })],
+            dating: CatalogEventDating(kind: .asOf, low: year(1100), high: year(1120), openLow: true, openHigh: true)
+        )
+        #expect(lines(twentyOne.accessibilityLabel(pages: 0)) == 21)
+        #expect(twentyOne.accessibilityLabel(pages: 0) == twentyOne.accessibilityLabel)
+        let spanning = ReconciledValueRowModel.spanning(
+            id: "s", label: "Date", lead: "1990–2015", emptyText: "No date", fields: [], locale: en
+        )
+        #expect(spanning.accessibilityLabel(pages: 0) == spanning.accessibilityLabel)
+        let derived = ReconciledValueRowModel.derived(
+            id: "d", label: "Place", face: .place, lead: "York", emptyText: "None", mixed: true
+        )
+        #expect(derived.accessibilityLabel(pages: 0) == derived.accessibilityLabel)
+        let empty = ReconciledValueRowModel.empty(id: "e", label: "Date", face: .date, emptyText: "No date")
+        #expect(empty.accessibilityLabel(pages: 0) == empty.accessibilityLabel)
 
         let ranks: [Int] = Array(1...25)
         let names = D.field(
@@ -420,6 +438,25 @@ struct EventDetailTests {
         #expect(lines(place.accessibilityLabel(pages: 0)) == 20)
         #expect(lines(place.accessibilityLabel(pages: 1)) == 25)
         #expect(place.accessibilityLabel(pages: 0) == place.accessibilityLabel)
+    }
+
+    @Test func aMixedDerivedRowSpeaksTheSameLabelAtNoPages() {
+        let york = CatalogCanonicalEntity(id: "pl1", ref: "PLC-1", subjectTypeID: "t", label: "")
+        let toronto = CatalogCanonicalEntity(id: "pl2", ref: "PLC-2", subjectTypeID: "t", label: "")
+        let summary = CatalogEventSummary(
+            entity: CatalogCanonicalEntity(id: "e1", ref: "EVT-8PL22", subjectTypeID: "t", label: ""),
+            eventTypeKey: "birth", eventTypeOrigin: CatalogOrigin.provenencia, eventTypeLabel: "Birth",
+            subjects: [],
+            places: [CatalogChainedPlace(entity: york, names: ["York"]), CatalogChainedPlace(entity: toronto, names: ["Toronto"])],
+            title: CatalogEventTitle(
+                rule: .subject, ref: "EVT-8PL22", typeKey: "birth", typeOrigin: CatalogOrigin.provenencia, typeLabel: "Birth",
+                subjects: [], place: "York"
+            )
+        )
+        let row = EventDetailContent(detail: detail(summary: summary), locale: en).rows[1]
+        #expect(row.shown.badge == .mixed)
+        #expect(row.accessibilityLabel(pages: 0) == row.accessibilityLabel)
+        #expect(row.accessibilityLabel.hasSuffix(L10n.string(L10n.ProvenanceSheet.badgeMixed)))
     }
 
     @Test func missingDateIsAnEmptyDateRow() {
