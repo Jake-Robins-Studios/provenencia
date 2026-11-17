@@ -2,15 +2,18 @@ import SwiftUI
 
 extension View {
     /// The Copy type sheet, presented while `model` is non-nil. A successful copy clears `model`
-    /// and opens the new type's page, with no toast, as Add type does.
-    func sourceTypeCopyDialog(_ model: Binding<SourceTypeCopyModel?>) -> some View {
-        modifier(SourceTypeCopyDialogModifier(model: model))
+    /// and hands the copy to `onCopied`, which opens the new type's page.
+    func sourceTypeCopyDialog(
+        _ model: Binding<SourceTypeCopyModel?>,
+        onCopied: @escaping (CatalogSourceType) -> Void
+    ) -> some View {
+        modifier(SourceTypeCopyDialogModifier(model: model, onCopied: onCopied))
     }
 }
 
 private struct SourceTypeCopyDialogModifier: ViewModifier {
-    @Environment(WorkspaceNavigation.self) private var navigation
     @Binding var model: SourceTypeCopyModel?
+    let onCopied: (CatalogSourceType) -> Void
 
     func body(content: Content) -> some View {
         content.pvFormDialog(
@@ -28,7 +31,7 @@ private struct SourceTypeCopyDialogModifier: ViewModifier {
             accessibilityIdentifierPrefix: "sourceTypes.copy",
             onConfirm: { current in
                 guard let created = await current.copy() else { return false }
-                navigation.go(to: .sourceTypePage(typeId: created.id, title: created.label))
+                onCopied(created)
                 return true
             },
             form: { SourceTypeCopyForm(model: $0) }
@@ -44,7 +47,7 @@ private struct SourceTypeCopyForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if let copyError = model.copyError {
-                PVCallout(tone: .danger, title: L10n.SourceTypes.copyErrorTitle, message: copyError)
+                PVCallout(tone: .danger, title: L10n.SourceTypes.copyErrorTitle, message: copyError, announces: true)
                     .accessibilityIdentifier("sourceTypes.copy.error")
             }
             VStack(alignment: .leading, spacing: PVSpacing.space6) {
@@ -83,56 +86,48 @@ private struct SourceTypeCopyForm: View {
 
     private var ticks: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            tick(
+            PVCopyPartTick(
                 label: L10n.SourceTypes.copyIcon,
                 hint: model.iconHint,
+                absentHint: absentHint,
                 isChecked: $model.choices.includeIcon,
-                available: true,
-                id: "sourceTypes.copy.icon"
+                isAvailable: true,
+                isDisabled: model.isSaving
             )
-            tick(
+            .accessibilityIdentifier("sourceTypes.copy.icon")
+            PVCopyPartTick(
                 label: L10n.SourceTypes.copyDescription,
                 hint: L10n.string(L10n.SourceTypes.copyDescriptionHint),
+                absentHint: absentHint,
                 isChecked: $model.choices.includeDescription,
-                available: model.descriptionAvailable,
-                id: "sourceTypes.copy.description"
+                isAvailable: model.descriptionAvailable,
+                isDisabled: model.isSaving
             )
-            tick(
+            .accessibilityIdentifier("sourceTypes.copy.description")
+            PVCopyPartTick(
                 label: L10n.SourceTypes.copyFormats,
                 hint: model.formatsHint,
+                absentHint: absentHint,
                 isChecked: $model.choices.includeFormats,
-                available: model.formatsAvailable,
-                id: "sourceTypes.copy.formats"
+                isAvailable: model.formatsAvailable,
+                isDisabled: model.isSaving
             )
+            .accessibilityIdentifier("sourceTypes.copy.formats")
             ForEach(Level.metadataLevels, id: \.self) { level in
-                tick(
+                PVCopyPartTick(
                     label: L10n.SourceTypes.level(level).copyTick,
                     hint: model.levelHint(level),
+                    absentHint: absentHint,
                     isChecked: levelBinding(level),
-                    available: model.levelAvailable(level),
-                    id: "sourceTypes.copy.\(level.rawValue)"
+                    isAvailable: model.levelAvailable(level),
+                    isDisabled: model.isSaving
                 )
+                .accessibilityIdentifier("sourceTypes.copy.\(level.rawValue)")
             }
         }
     }
 
-    private func tick(
-        label: LocalizedStringResource,
-        hint: String,
-        isChecked: Binding<Bool>,
-        available: Bool,
-        id: String
-    ) -> some View {
-        PVCopyPartTick(
-            label: L10n.string(label),
-            hint: hint,
-            absentHint: L10n.string(L10n.SourceTypes.copyPartAbsent),
-            isChecked: isChecked,
-            isAvailable: available,
-            isDisabled: model.isSaving
-        )
-        .accessibilityIdentifier(id)
-    }
+    private var absentHint: String { L10n.string(L10n.SourceTypes.copyPartAbsent) }
 
     private func levelBinding(_ level: Level) -> Binding<Bool> {
         Binding(

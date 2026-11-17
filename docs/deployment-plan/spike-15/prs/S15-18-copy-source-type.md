@@ -383,4 +383,5 @@ None.
 - The kit's `DesignSystem/README.md` gained rows for `FormLoadArea` and `CopyPartTick` (the guidance check requires one per kit folder).
 - The Copy button's accessibility id is `sourceTypes.page.copy`; the sheet's tick ids are `sourceTypes.copy.icon`, `.description`, `.formats`, `.source`, `.artifact` and `.graph`.
 - `SourceTypeCopyModelTests` also covers `unticksSkipTheirParts`, `aBlankOrUnslugifiableLabelCannotBeCopied` and `aFailedListReadFailsTheSheetAndReloads`; `TestCopyType` and `TestCreateUpdateGetByID` hold T-1's and T-2's cases as table rows.
+- Review round 1 (user, 2026-11-17): when the move to the new page is held by unsaved Details and the researcher keeps editing, a notice toast says `Copied as “<label>”.`; this supersedes D-10's "no toast" for that path only. The page-opens path stays toast-free (CT-7).
 - The in-app manual check (§ 10) was not run in the implementing session.

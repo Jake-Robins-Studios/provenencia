@@ -7984,7 +7984,6 @@ enum L10n {
         }
     }
 
-    /// Maps stable Go/FFI error codes to localized user-facing copy.
     /// The names of a Source type's three citation formats.
     enum CitationForms {
         static func name(_ form: CitationForm) -> LocalizedStringResource {
@@ -8461,6 +8460,14 @@ enum L10n {
                 "sourceTypes.copy.subtitle",
                 defaultValue: "Start a new type of yours from %@. Its Sources and their values are not copied.",
                 comment: "Subtitle of the Copy source type sheet; argument is the original type's label"
+            ), label)
+        }
+
+        static func copyMadeKeptEditing(_ label: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.copy.madeKeptEditing",
+                defaultValue: "Copied as “%@”.",
+                comment: "Toast on a Source type's page when Copy type made the copy but the move to it was held by unsaved edits and the researcher kept editing; argument is the new type's label"
             ), label)
         }
 
@@ -11122,6 +11129,7 @@ enum L10n {
         }
     }
 
+    /// Maps stable Go/FFI error codes to localized user-facing copy.
     enum Errors {
         static let catalogAlreadyExists = LocalizedStringResource(
             "error.catalog.already_exists",

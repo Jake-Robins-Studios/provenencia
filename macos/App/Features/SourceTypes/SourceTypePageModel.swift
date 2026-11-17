@@ -14,13 +14,15 @@ final class SourceTypePageModel {
     /// The Details form's values; set from the saved type once it is known (`syncDraft()`).
     var draft: SourceTypeDraft?
     private(set) var isSaving = false
-    /// The Label's validation message, shown under Label as the researcher edits.
+    /// The Label's error, shown under Label as the researcher edits.
     private(set) var labelCheck = SourceTypeLabelCheck()
     /// A refused or failed Save, shown beside Save and announced.
     private(set) var saveError: String?
     var toast: VocabularyToast?
     /// The Copy type sheet, while it is open (`View.sourceTypeCopyDialog`).
     var copying: SourceTypeCopyModel?
+    /// The label of a copy whose move to its page the leave guard is holding; nil otherwise.
+    private var heldCopyLabel: String?
 
     /// The one suggestion write in flight, across all three lists.
     enum SuggestionWrite: Equatable {
@@ -220,6 +222,14 @@ final class SourceTypePageModel {
         copying = SourceTypeCopyModel(original: type, session: session, userID: userID, store: store)
     }
 
+    /// Opens the page of a copy just made. When unsaved Details hold the move, the copy is not
+    /// lost to the researcher: Keep editing says it was made (`keepEditing()`). A move that goes
+    /// through says nothing, as Add type does.
+    func open(copy created: CatalogSourceType) {
+        navigation?.go(to: .sourceTypePage(typeId: created.id, title: created.label))
+        heldCopyLabel = navigation?.heldNavigation == nil ? nil : created.label
+    }
+
     // MARK: Suggested fields
 
     var canEditAssociations: Bool {
@@ -391,12 +401,20 @@ extension SourceTypePageModel: WorkspaceLeaveGuard {
     func discardAndLeave() {
         revertEdit()
         pendingLeave = nil
+        heldCopyLabel = nil
         navigation?.resumeHeldNavigation()
     }
 
-    /// Keep editing: the page stays and the held move is dropped.
+    /// Keep editing: the page stays and the held move is dropped. If the held move was to a copy
+    /// just made, a toast says the copy exists.
     func keepEditing() {
         pendingLeave = nil
+        if let label = heldCopyLabel {
+            heldCopyLabel = nil
+            session.noticeToast = VocabularyToast(
+                title: L10n.SourceTypes.copyMadeKeptEditing(label), body: "", tone: .info
+            )
+        }
         navigation?.cancelHeldNavigation()
     }
 }

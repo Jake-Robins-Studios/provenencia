@@ -715,6 +715,51 @@ struct SourceTypePageModelTests {
         _ = session
     }
 
+    /// A copy whose move to the new page is held says it was made once the researcher keeps
+    /// editing; a move that goes through (not held, or held then Discard) says nothing.
+    @Test func copyMadeWhileMoveHeldIsToastedOnKeepEditing() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("type-page-copy-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let navigation = WorkspaceNavigation()
+        navigation.attachProject(
+            uuid: "00000000-0000-7000-8000-0000000000cd", fileURL: dir.appendingPathComponent("history.json")
+        )
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        let (model, session) = await makePageModel(typeID: "t1", types: [seededSourceType()])
+        model.navigation = navigation
+        navigation.leaveGuard = model
+        let copy = userSourceType(id: "t9", label: "State census")
+
+        // Not held: the new page opens and there is no toast.
+        model.open(copy: copy)
+        #expect(navigation.currentLocation.typeId == "t9")
+        #expect(session.noticeToast == nil)
+
+        // Held, then Keep editing: the toast names the copy.
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        model.draft?.description = "Changed"
+        model.open(copy: copy)
+        #expect(navigation.currentLocation.typeId == "t1")
+        #expect(session.noticeToast == nil)
+        model.keepEditing()
+        #expect(session.noticeToast?.title.contains("State census") == true)
+
+        // Held, then Discard: the move goes through and says nothing.
+        session.noticeToast = nil
+        model.open(copy: copy)
+        model.discardAndLeave()
+        #expect(navigation.currentLocation.typeId == "t9")
+        #expect(session.noticeToast == nil)
+
+        // A later, unrelated Keep editing does not repeat it.
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        model.draft?.description = "Changed again"
+        navigation.goBack()
+        model.keepEditing()
+        #expect(session.noticeToast == nil)
+    }
+
     /// T-9: a move is not held while a Save runs, since the draft is about to be the saved row.
     @Test func aSaveInFlightIsNotHeld() async {
         let store = FakeStore()

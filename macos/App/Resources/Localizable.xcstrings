@@ -24087,6 +24087,18 @@
         }
       }
     },
+    "sourceTypes.copy.madeKeptEditing": {
+      "comment": "Toast on a Source type's page when Copy type made the copy but the move to it was held by unsaved edits and the researcher kept editing; argument is the new type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied as “%@”."
+          }
+        }
+      }
+    },
     "sourceTypes.suggested.level.source.copyTick": {
       "comment": "Label of the Copy source type tick for the type's source-level suggested fields; its hint is the field count",
       "extractionState": "manual",
