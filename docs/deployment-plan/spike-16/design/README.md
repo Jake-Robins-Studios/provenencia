@@ -6,7 +6,9 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 ## Scheduled
 
-None.
+| Brief | View | Board | Gates |
+| --- | --- | --- | --- |
+| [S16-D4](S16-D4-event-date-line.md) | The shared event date line on an Events list row, and the Timeline lifeline: every dating case (occurrence, span, as-of only, as-of with a start or an end) | not drawn yet | S16-42 |
 
 ## Archived
 
