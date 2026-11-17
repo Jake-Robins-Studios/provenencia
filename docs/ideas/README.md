@@ -57,7 +57,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 ### Kit and structural debt
 
 - [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
-- [`shared-list-helpers.md`](shared-list-helpers.md) — Source section counts, silent sidebar recount, Return adding a combo box pick the field no longer shows
+- [`shared-list-helpers.md`](shared-list-helpers.md) — bare counts in two section headers, silent sidebar recount, Return adding a combo box pick the field no longer shows
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
 - [`stacked-toasts.md`](stacked-toasts.md) — toasts that stack and expire on their own timers instead of replacing each other
 - [`structural-debt.md`](structural-debt.md) — audit refactors with no visible change; leftover test artifact and Subject fixtures

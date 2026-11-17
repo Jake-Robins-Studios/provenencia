@@ -74,6 +74,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 26. **The omnibar's results work like a combo box's list.** In the results, Home/End and Page Up/Down move the highlight, the card matches the combo box's, and the list stays on screen at a narrow window or near the screen edge.
 27. **The history menu behaves like every other menu.** Holding Back shows the same rows as today, which move with ↑/↓ and open with Return. Escape, a click outside and an app switch close it, and switching between Back and Forward still works.
 28. **Catalog tests make a test image one way.** `rg -n "png.Encode" core/database --glob '*_test.go'` finds no hit outside the shared test helper.
+29. **A Source page's section counts read alike.** A Source with 3 notes, 3 Artifacts and 3 Evidence graphs shows "3 notes", "3 artifacts" and "3 evidence graphs" in the three section headers. A section with none shows no count.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -135,6 +136,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Source page section counts differ" (S12-11 M-8, dogfood 2026-10-25; 2026-11-17) | S16-55 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
 
@@ -219,6 +221,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 6) One read querier and one write querier, in a leaf package** (user, 2026-11-17). `database.Querier` (`Query`, `QueryRow`) and a new write surface that adds `Exec` (for example `database.Execer`) are defined once in a leaf package that imports nothing from `core/database`, and `core/database` re-exports them as aliases. Then `graphcache` and `effects`, which `core/database` imports, can use them without an import cycle. A package needing less than the full read surface (`sqlbatch` uses only `Query`) still takes `database.Querier`. Every package-local copy goes: `sqlbatch`, `graphcache`, `namealiases`, `searchindex`, `nameformats`, `conclusionsummaries`, `autoreconciler`, `effects`, and the inline interfaces in `datevalues`, `namevalues` and `canonicalentities`. [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md) says a package never declares its own. The two identical private `nullIfEmpty` binders (`datevalues`, `audit`: trim, then bind an empty result as NULL) move to `database.NullTrimmed` beside `NullString`, which keeps not trimming (user, 2026-11-17). Binds S16-49.
 - **(Batch 6) One kit popup presenter, with the shared closing rules** (user, 2026-11-17). A kit presenter (`.pvPopup`, named in S16-50's plan) owns the event watcher of every floating popup. Its defaults: Escape closes; a left click outside closes on mouse-up; the press or click that opened it never closes it; the window resigning key (an app switch) closes it. A popup's real differences are options on the presenter, never a second watcher: the history menu ignores right-clicks (they switch between Back and Forward); the combo box stays open on a click in its own field and keeps its two-step Escape; a popup whose keys belong to its field (`PVSelect`'s closed field) keeps them. A menu's keyboard skips disabled rows: type-select, ↑/↓ and Home/End never land on one, as `PVComboBoxMatch.move` already skips them, and Return on a row with no action leaves the menu open (user, 2026-11-17). Binds S16-50 – S16-53. Updates [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) and the kit README's ContextMenu row (the history menu's "own presenter" note goes).
 - **(Batch 6) One kit popup list under the combo box and the omnibar** (user, 2026-11-17). The floating list is a kit component on `.pvPopup`. It owns its window and placement (today's `PVComboBoxPlacement`), the keys (↑/↓, Home/End, ⌘↑/⌘↓, Page Up/Down, Return), the highlight that pointer and keyboard share (skipping disabled rows), scrolling to the highlight, and the loading, empty and error lines. `PVComboBox` keeps its picked-value field on top; the omnibar keeps its command field (Return opens and clears; Escape keeps the query). The omnibar's highlight (`CatalogSearchModel.selectedIndex`, `moveSelection`, `selectedHit`) moves to `OmnibarResultsModel`. Binds S16-51, S16-52.
+- **(Batch 6) A Source page section count is a localized plural, hidden at zero** (user, 2026-11-17). Notes, Artifacts and Evidence graphs each pass `PVSectionHeader` a plural string from `L10n.Sources` ("3 notes"), and no count when the section is empty, since its empty state says so. `PVSectionHeader` keeps taking `meta` as a plain string: no count form in the kit (user, 2026-11-17). The change is copy in a header the page already draws, so it needs no brief. Binds S16-55.
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
 ## PR map
@@ -279,6 +282,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-52 | The omnibar's results use the kit popup list | 6d | Swift: `OmnibarResultsHost` draws the kit popup list (its window, card, keys); the highlight moves to `OmnibarResultsModel`; the raw key-code watcher goes | S16-D9 | S16-51, S16-D9 | — | Scoped |
 | S16-53 | The history menu uses the kit presenter and a kit menu row | 6d | Swift: a kit menu row with a glyph, a two-part label and a trailing ref; the history menu draws it and moves onto `.pvPopup`, its own watcher and `activeIndex` go; rows look as today | — | S16-50 | — | Scoped |
 | S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
+| S16-55 | A Source page's section counts read alike | 6c | Swift: Notes' bare number becomes `L10n.Sources.notesCount` (plural); Evidence graphs hides its count at zero | — | — | quick-pr | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -391,7 +395,8 @@ SLICE 6c — Shared list helpers                       (any time)
   ✎ S16-D8 ──▶ S16-48  A Properties search with no match shows the kit's empty state
   S16-49  One read querier and one write querier for every catalog package
   S16-54  Catalog tests write a test PNG through one helper   (quick-pr)
-  Check: bar 23, 24, 28. The three PRs share no file and run in parallel.
+  S16-55  A Source page's section counts read alike           (quick-pr)
+  Check: bar 23, 24, 28, 29. The four PRs share no file and run in parallel.
 
 SLICE 6d — Popups                                    (any time; a chain)
   S16-50  One kit popup presenter, and the kit menus use it
@@ -461,6 +466,7 @@ S16-47: none
 S16-D8 ──▶ S16-48
 S16-49: none
 S16-54: none
+S16-55: none
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
@@ -795,6 +801,13 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 **Not this PR.** The image helpers outside `core/database` (`raster_test.go`'s `tinyPNG` and `pngBytes`, `ingest/stage_test.go`'s `stagePNG`, `derivatives/thumbnail_test.go`), which `dbtest` does not reach and which test the image code itself.
 **Check.** Bar 28; the three packages' tests pass unchanged.
 **Context.** [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) history (S12-01 ship log); `core/database/dbtest/dbtest.go`; [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+#### S16-55 — A Source page's section counts read alike
+
+**Ships.** Quick-pr, Swift and strings. `SourcePageNotesView` passes `L10n.Sources.notesCount(n)` (a new key, "%lld notes", with plural variations) instead of `"\(model.notes.items.count)"`. `SourcePageGraphsView` passes no count when its rows are empty, as Notes and Artifacts already do. Wrong today: Notes shows a bare "3" that skips the strings catalog, and Evidence graphs shows "0 evidence graphs" where the other two show nothing (`SourcePageNotesView.swift:14`, `SourcePageGraphsView.swift:12`).
+**Not this PR.** A count form on `PVSectionHeader` (declined, user 2026-11-17); other headers' bare counts (the citation composer's evidence column, the Conclusion Gallery section), back in [`shared-list-helpers.md`](../../ideas/shared-list-helpers.md); an Add button in the Notes header.
+**Check.** Bar 29; `scripts/check-localizable-xcstrings.py` passes with the new key.
+**Context.** Rule "(Batch 6) A Source page section count is a localized plural, hidden at zero"; `macos/App/Features/Sources/SourcePageNotesView.swift`, `SourcePageArtifactsView.swift` (the pattern to match), `SourcePageGraphsView.swift`; [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
 
 ### Slice 6d — Popups
 
