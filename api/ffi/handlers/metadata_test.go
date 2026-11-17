@@ -155,24 +155,56 @@ func TestMetadataValueMarks(t *testing.T) {
 		return metadataByField(out.GetMetadata(), m.suggested), nil
 	}
 
-	got, err := set(&engine.SetMetadataRequest{Mark: &engine.ValueMark{Unknown: true}})
-	if err != nil || !got.GetHasValue() || got.GetValueText() != "" || !got.GetMark().GetUnknown() || got.GetMark().GetSupplied() {
-		t.Fatalf("unknown = %+v, %v", got, err)
+	// The steps run in order: each sets over the value the one before left.
+	steps := []struct {
+		name  string
+		in    *engine.SetMetadataRequest
+		check func(t *testing.T, got *engine.MetadataWorkspaceEntry, err error)
+	}{
+		{"unknown", &engine.SetMetadataRequest{Mark: &engine.ValueMark{Unknown: true}},
+			func(t *testing.T, got *engine.MetadataWorkspaceEntry, err error) {
+				if err != nil || !got.GetHasValue() || got.GetValueText() != "" || !got.GetMark().GetUnknown() || got.GetMark().GetSupplied() {
+					t.Fatalf("unknown = %+v, %v", got, err)
+				}
+			}},
+		{"a set with no mark over the unknown value clears the mark", &engine.SetMetadataRequest{ValueText: "FamilySearch"},
+			func(t *testing.T, got *engine.MetadataWorkspaceEntry, err error) {
+				if err != nil || got.GetValueText() != "FamilySearch" || got.GetMark() != nil {
+					t.Fatalf("no mark = %+v, %v", got, err)
+				}
+			}},
+		{"supplied", &engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Supplied: true}},
+			func(t *testing.T, got *engine.MetadataWorkspaceEntry, err error) {
+				if err != nil || got.GetValueText() != "Topeka" || !got.GetMark().GetSupplied() || got.GetMark().GetUnknown() {
+					t.Fatalf("supplied = %+v, %v", got, err)
+				}
+			}},
+		{"unknown with text is refused, naming the field", &engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Unknown: true}},
+			func(t *testing.T, got *engine.MetadataWorkspaceEntry, err error) {
+				if !errors.Is(err, valuemark.ErrInvalid) || !slices.Equal(errParams(t, err), []string{m.suggested}) {
+					t.Fatalf("unknown with text = %v, params %v", err, errParams(t, err))
+				}
+			}},
 	}
-	// A set with no mark over the unknown value clears the mark.
-	got, err = set(&engine.SetMetadataRequest{ValueText: "FamilySearch"})
-	if err != nil || got.GetValueText() != "FamilySearch" || got.GetMark() != nil {
-		t.Fatalf("no mark = %+v, %v", got, err)
+	for _, tt := range steps {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := set(tt.in)
+			tt.check(t, got, err)
+		})
 	}
-	got, err = set(&engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Supplied: true}})
-	if err != nil || got.GetValueText() != "Topeka" || !got.GetMark().GetSupplied() || got.GetMark().GetUnknown() {
-		t.Fatalf("supplied = %+v, %v", got, err)
-	}
-	// Unknown with text is refused, naming the field.
-	_, err = set(&engine.SetMetadataRequest{ValueText: "Topeka", Mark: &engine.ValueMark{Unknown: true}})
-	if !errors.Is(err, valuemark.ErrInvalid) || !slices.Equal(errParams(t, err), []string{m.suggested}) {
-		t.Fatalf("unknown with text = %v, params %v", err, errParams(t, err))
-	}
+
+	t.Run("a board entry's field carries the field's unknown text", func(t *testing.T) {
+		entry := metadataByField(boardEntries(t, m.dir, m.artifact), m.suggested)
+		mustRPC(t, UpdateMetadataField, &engine.UpdateMetadataFieldRequest{
+			ProjectDir: m.dir, UserId: m.userID, FieldId: m.suggested,
+			Label: entry.GetField().GetLabel(), DataType: entry.GetField().GetDataType(),
+			UnknownText: proto.String("n.p."),
+		}, &engine.UpdateMetadataFieldResponse{})
+		got, err := set(&engine.SetMetadataRequest{Mark: &engine.ValueMark{Unknown: true}})
+		if err != nil || got.GetField().GetUnknownText() != "n.p." {
+			t.Fatalf("entry field unknown_text = %q, %v", got.GetField().GetUnknownText(), err)
+		}
+	})
 }
 
 // metadataByField is the entry for a field id, or nil.
