@@ -172,8 +172,10 @@ extension CatalogQueryKey.Kind {
         case .metadataFieldsList:
             // A field write reports `source_vocabulary`, which this key follows.
             // `usedBy` counts Sources, Artifacts and Evidence graphs holding a
-            // value for the field, and it gates Delete: a value created or
-            // released on any of them reports `metadata_field_usage`.
+            // value for the field and Source types naming it in a citation
+            // format, and it gates Delete: a value created or released on any
+            // of them reports `metadata_field_usage`; a format write reports
+            // `source_vocabulary`, which this key follows.
             return .make(
                 kind: self,
                 refreshes: [
