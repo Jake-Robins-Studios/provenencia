@@ -1,16 +1,6 @@
 # Shared list helpers
 
-**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, and the tiny-PNG test writer to S16-54 (2026-11-17).
-
-## History menu row labels
-
-Dogfood 2026-10-29; S14-35 widened the panel to 600pt and left these.
-
-> "The drop-down menu for the navigation bar's back and forward needs to be wider because they're truncating the last part of the breadcrumb and so all the entries look the same."
-
-- **Truncation mode.** Keep the distinguishing suffix of a long leaf with head or middle truncation on the row leaf in `HistoryJumpMenuPanel` (and on the mono ref when it is the unique part).
-- **Richer or reordered labels.** The row leaf is `WorkspaceLocationLabels.labels(for:names:)` joined to its section by `L10n.Conclusions.pageSectionLeaf`, at a width from `HistoryJumpMenuModel.fittedPanelWidth`. Build it from the full `WorkspaceToolbar.breadcrumbItems` (Source title before graph name), or leaf-first, and drop the section prefix when the leaf already carries it.
-- **Multi-line rows.** Allow two lines for long composer and entity labels, trading vertical space against scan speed.
+**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, and the tiny-PNG test writer to S16-54 (2026-11-17). "History menu row labels" moved to its own idea file, [`history-menu-labels.md`](history-menu-labels.md) (2026-11-17).
 
 ## Type-select can land on a disabled menu row
 

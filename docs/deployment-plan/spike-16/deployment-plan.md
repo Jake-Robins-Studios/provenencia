@@ -821,6 +821,6 @@ Working rules: [Batch 6](#batch-6--idea-follow-ups).
 #### S16-53 — The history menu uses the kit presenter and a kit menu row
 
 **Ships.** A kit menu row (in `ContextMenu/`, beside `PVContextMenuItem`) with a leading glyph, a two-part label (a muted root, `›`, the leaf), a trailing mono ref and the leaf's help tooltip. `HistoryJumpMenuPanel` draws it, so its hand-built `Button` rows and `activeIndex` go. `HistoryJumpMenuHost` moves onto `.pvPopup` with the "ignore right-clicks" and "anchor to the button" options, so its own watcher and `handleKeyDown` go. Rows look as today, and the kit README's "keeps its own presenter" note goes.
-**Not this PR.** The row labels' truncation and wording ([`shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "History menu row labels"); type-select in the history menu.
+**Not this PR.** The row labels' truncation and wording ([`ideas/history-menu-labels.md`](../../ideas/history-menu-labels.md)); type-select in the history menu.
 **Check.** Bar 27; a long press and a right-click on Back and on Forward each open the menu, switching between them works, and a row opens its place.
 **Context.** Rule "(Batch 6) One kit popup presenter"; `macos/App/Features/Workspace/WorkspaceToolbar.swift` (`HistoryJumpMenuPanel`, `HistoryJumpMenuHost`, `HistoryJumpMenuModel`), `DesignSystem/Components/ContextMenu/PVContextMenu.swift` (`PVContextMenuPanel`, `PVMenuRowButtonStyle`); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md) (the jump menu).
