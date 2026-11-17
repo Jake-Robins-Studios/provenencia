@@ -79,8 +79,8 @@ struct EventDetailContent: ConclusionDetailBody {
         return .spanning(id: "date", label: label, lead: lead, emptyText: empty, fields: behind.map(\.field), locale: locale)
     }
 
-    /// A field's lines on the Date row: every displayed as-of, else the first displayed value
-    /// (a start or an end, even when mixed). A line that reads as nothing is left out.
+    /// A field's lines on the Date row: every displayed value of a multiple field, else the first
+    /// displayed value (a start or an end, even when mixed), each worded by the field's role.
     private static func lines(
         _ field: CatalogConclusionField,
         role: CatalogEventDatingProperty.Role,
@@ -93,10 +93,8 @@ struct EventDetailContent: ConclusionDetailBody {
         case .asOf: words = .asOf
         case .end: words = .until
         }
-        let shown = role == .asOf ? field.displayedValues : Array(field.displayedValues.prefix(1))
-        return shown
-            .map { PVProvenanceSheetContent.value($0, propertyKey: field.propertyKey, role: words, locale: locale) }
-            .filter { !$0.text.isEmpty }
+        let shown = field.state == .multiple ? field.displayedValues : Array(field.displayedValues.prefix(1))
+        return PVProvenanceSheetContent.listed(shown, propertyKey: field.propertyKey, role: words, locale: locale)
     }
 
     /// The Place row. The first kept name, mixed when more survived. No Why:

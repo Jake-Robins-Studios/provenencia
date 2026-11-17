@@ -216,10 +216,7 @@ extension PVProvenanceSheetContent.Shown {
             .map { ReconciledValueDisplay.string(for: $0.value, propertyKey: field.propertyKey, locale: locale, orders: orders) }
             .flatMap { $0.isEmpty ? nil : $0 }
         let listed = field.state == .multiple
-            ? field.displayedValues.compactMap { value -> PVProvenanceSheetContent.Value? in
-                let listed = PVProvenanceSheetContent.value(value, propertyKey: field.propertyKey, locale: locale, orders: orders)
-                return listed.text.isEmpty ? nil : listed
-            }
+            ? PVProvenanceSheetContent.listed(field.displayedValues, propertyKey: field.propertyKey, locale: locale, orders: orders)
             : []
         self.init(
             face: PVProvenanceFace(field: field),
@@ -357,6 +354,20 @@ extension PVProvenanceSheetContent {
             styled: styled,
             propertyKey: propertyKey
         )
+    }
+
+    /// Values as lines, in order: the one listing rule of a field's lines. A line that reads as
+    /// nothing is left out (a weak spelling is not displayed, so it never reaches `values`).
+    static func listed(
+        _ values: [CatalogReconciledValue],
+        propertyKey: String,
+        role: DateRowDisplay.Role = .plain,
+        locale: Locale = .autoupdatingCurrent,
+        orders: NameFormatOrders = NameFormatOrders()
+    ) -> [Value] {
+        values
+            .map { value($0, propertyKey: propertyKey, role: role, locale: locale, orders: orders) }
+            .filter { !$0.text.isEmpty }
     }
 
     /// A group's records in runs of equal `groupRank`, in the order Go sent them.
