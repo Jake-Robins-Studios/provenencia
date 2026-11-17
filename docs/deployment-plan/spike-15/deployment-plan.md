@@ -113,7 +113,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
 | S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings, on the Source type page | S15-D16 | S15-16, S15-12, S15-48, S15-D16 | — | Scoped |
 | S15-18 | A Source type can be copied | 4 | Go and Swift: one copy write; **Copy** in the type page's header opens a sheet of ticks (icon, description, formats, suggestions at each level), as Copy Source | [S15-D7](design/archive/S15-D7-copy-source-type.md) | S15-15, S15-06, S15-48, S15-12, S15-D7 | [plan](prs/S15-18-copy-source-type.md) | Landed #877 |
-| S15-19 | Seed the citation types, fields, suggestions and formats | 4 | Go: `sourcevocab` registry and Install for 26 types, 63 fields, levelled suggestions, `unknown_text` and each type's three formats; a render test per type. **Merged with S15-20 (user, 2026-11-17)** | — | S15-06, S15-15, S15-37 | — | Scoped |
+| S15-19 | Seed the citation types, fields, suggestions and formats | 4 | Go: `sourcevocab` registry and Install for 26 types, 63 fields, levelled suggestions, `unknown_text` and each type's three formats; a render test per type. **Merged with S15-20 (user, 2026-11-17)** | — | S15-06, S15-15, S15-37, S15-52 | [plan](prs/S15-19-seed-citation-types.md) | Blocked — on S15-52 |
+| S15-52 | The Source seed writes through `writes.Run` | 4 | Preparatory, Go: `sourcetypes.UpsertTx` and `metadatafields.UpsertTx` return row changes; `Install` runs in one `writes.Run`, so the effects registry reprojects search (the type's Sources too); `Upsert(c, …)` and its hand reprojection go; tests through a helper. No visible change (user, 2026-11-17) | — | — | — | Scoped |
 | S15-20 | Seed the citation formats | 4 | Merged into S15-19: one seed PR, one dogfood Install run (user, 2026-11-17) | — | — | — | Descoped (2026-11-17) → S15-19 |
 | S15-21 | The provenance sheet shows formatted citations | 6 | Swift: the sheet's on-open key renders and groups; Copy citation copies rich text | S15-D9 | S15-16, S16-30, S16-04, S15-D9 | — | Scoped |
 | S15-22 | The Sources section groups a Source's Citations by citation | 6 | Swift: the section renders on demand and groups | S15-D15 | S15-16, S15-05, S16-03, S16-06, S16-07, S15-D15 | — | Scoped |
@@ -221,6 +222,7 @@ SLICE 4 — Formats as data                             (alongside Spike 16)
   S15-15  Source types store citation formats
   ✎ S15-D7 ──▶ S15-18  A Source type can be copied
   S15-37  Metadata values can be marked unknown or supplied
+  S15-52  The Source seed writes through writes.Run
   S15-19  Seed the citation types, fields, suggestions and formats
   S15-43  The Source date can be marked unknown or supplied
   S15-44  The printed page can be marked unknown or supplied
@@ -285,6 +287,7 @@ S15-50 ──▶ S15-13 ──▶ S15-45
 S15-14 ──▶ S15-15 ──▶ S15-16, S15-18, S15-19, S15-38
 S15-14 ──▶ S15-37, S15-43, S15-44
 S15-37 ──▶ S15-16, S15-19, S15-38, S15-41, S15-46
+S15-52 ──▶ S15-19
 S15-43 ──▶ S15-16, S15-42      S15-44 ──▶ S15-16, S15-45
 S15-38 ──▶ S15-39, S15-42, S15-45
 S15-39 ──▶ S15-40, S15-41 ──▶ S15-42, S15-45
@@ -524,10 +527,18 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-19 — Seed the citation types, fields, suggestions and formats
 
 **Ships.** `sourcevocab`'s registry gains the 26 types (with icons from `sourcetypes/icons.go`), 63 fields (with descriptions) and suggestions at their levels in format order (map § 6.8); `birth_certificate` stops suggesting `record_date` and `issue_date`. Each seeded type's three formats, as in map § 6.8, install with the types: Install writes them after the fields through `sourcetypes.ToStored` with origin `provenencia`, so keys resolve to ids. Says in the PR how to run Install against an existing dogfood project. S15-20 merged in here (user, 2026-11-17): one seed PR, one dogfood run.
-**Also (structural debt, 2026-11-17).** The seed `Upsert`s (`sourcetypes.go`, `metadatafields.go`, and the properties path if it does the same) reproject their search documents by hand off `writes.Run` (`searchindex.ReprojectSourceType` after a raw `Exec`). Since this PR adds most of the seeded rows, the Upserts it calls write through `writes.Run` and let the effects registry reproject, as [`core/writes/README.md`](../../../core/writes/README.md) says. If this pushes the plan past one PR's size, it becomes a preparatory PR ahead of this one.
+**Also (structural debt, 2026-11-17).** The seed's `Upsert`s moving onto `writes.Run` became the preparatory S15-52 (user, 2026-11-17); this PR builds on its `UpsertTx` and passes formats and unknown text through it.
 **Not this PR.** Rendering the formats in the app (S15-16 on).
 **Check.** A new project lists the 26 types; a census Source suggests its Source fields, its Artifacts the copy fields, its graphs the item fields; Install run twice changes nothing. A test renders every seeded format in all three forms against an invented Source of its type and compares the expected text. It deletes S15-14's seed-format corpus (`core/citationformat/testdata/seed-formats.txt`) and `TestSeedFormatsParse`, which this test supersedes.
+**Dogfood run (user, 2026-11-17).** No command ships in the PR: the product owner asks the implementer for a one-off command after it lands; the PR description says what a re-run of Install does.
 **Context.** Rules "Follow the style; never copy the book", "The seed is the product default", "Formats name fields by id"; map § 6.8 (with "Formats"); skill `add-seeded-vocabulary`. `seedField` gains `UnknownText`, seeded through `Install` ("n.p." on `publication_place` and `publisher`); lands after S15-37. [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) keeps `Install` out of FFI, Swift and open, so the plan names how the dogfood run happens (a test-harness or developer command against a copy of the catalog) and warns that re-running `Install` overwrites edited product labels and formats and restores deleted product rows. Updates [`seeded-vocabulary.md`](../../seeded-vocabulary.md) § 2 and [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) (the `seedFields` shape).
+
+#### S15-52 — The Source seed writes through `writes.Run`
+
+**Ships.** Preparatory (S15-19 planning, user 2026-11-17). `sourcetypes.Upsert(c, t)` and `metadatafields.Upsert(c, f)` become `UpsertTx(tx *database.Tx, …) ([]byte, []rowchange.Change, error)`: a create change for a new row, an update change carrying only the columns that differ, and no change when nothing differs; neither reprojects search by hand. `sourcevocab.Install` runs its fields, types and suggestions in one `writes.Run` (no user id), so the effects registry reprojects the type and field documents and, on a label or icon change, the type's Sources; a second Install records no revision. The suggestion write Install uses takes the transaction. The ~90 test call sites of the two `Upsert`s move to a small test helper per package (`writes.Call` around `UpsertTx`). [`core/writes/README.md`](../../../core/writes/README.md) stops listing these two as hand-reprojecting seed paths.
+**Not this PR.** Formats and unknown text in the upserts and the new seed (S15-19); the subject vocabulary, grades and properties seeds (S16-60).
+**Check.** `Install` twice on an empty catalog records one revision; a renamed product type's Sources' search documents carry the seed label again after a re-run; `rg -n "sourcetypes.Upsert\(|metadatafields.Upsert\(" core api` finds nothing.
+**Context.** [`core/writes/README.md`](../../../core/writes/README.md); `core/database/effects/registry.go` (`source_types`, `source_metadata_fields`); skills `add-seeded-vocabulary`, `add-audit-scope`.
 
 #### S15-20 — Seed the citation formats
 
