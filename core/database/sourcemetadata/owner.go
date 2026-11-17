@@ -69,12 +69,12 @@ func newStore(level vocabkey.Level, ownerTable, ownerColumn, values, layout, typ
 		typeIn:      typeIn,
 		typeSuffix:  `)`,
 		ownerExists: f(`SELECT 1 FROM %s WHERE id = ?`, ownerTable),
-		insert: f(`INSERT INTO %s (id, %s, field_id, value_text)
-			VALUES (?, ?, ?, ?)`, values, ownerColumn),
-		update:  f(`UPDATE %s SET value_text = ? WHERE id = ?`, values),
+		insert: f(`INSERT INTO %s (id, %s, field_id, value_text, is_unknown, is_supplied)
+			VALUES (?, ?, ?, ?, ?, ?)`, values, ownerColumn),
+		update:  f(`UPDATE %s SET value_text = ?, is_unknown = ?, is_supplied = ? WHERE id = ?`, values),
 		delete:  f(`DELETE FROM %s WHERE %s = ? AND field_id = ?`, values, ownerColumn),
-		getPair: f(`SELECT id, %[2]s, field_id, COALESCE(value_text, '') FROM %[1]s WHERE %[2]s = ? AND field_id = ?`, values, ownerColumn),
-		listIn: f(`SELECT id, %[2]s, field_id, COALESCE(value_text, '')
+		getPair: f(`SELECT id, %[2]s, field_id, COALESCE(value_text, ''), is_unknown, is_supplied FROM %[1]s WHERE %[2]s = ? AND field_id = ?`, values, ownerColumn),
+		listIn: f(`SELECT id, %[2]s, field_id, COALESCE(value_text, ''), is_unknown, is_supplied
 			FROM %[1]s WHERE %[2]s IN (`, values, ownerColumn),
 		listSuffix: f(`) ORDER BY %s, field_id`, ownerColumn),
 		layoutListIn: f(`SELECT %[2]s, field_id, sort_order, dismissed
