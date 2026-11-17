@@ -10,6 +10,7 @@ import (
 
 	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
 	"github.com/mendahu/provenencia/core/matchregistry"
+	"github.com/mendahu/provenencia/core/propertycompare"
 	pt "github.com/mendahu/provenencia/core/propertycompare/propertycomparetest"
 	"github.com/mendahu/provenencia/core/subjectcompare"
 	"github.com/mendahu/provenencia/core/subjectcompare/subjectcomparetest"
@@ -68,7 +69,8 @@ var propertyPools = map[vocabkey.PropertyKey][]V{
 	date:   {year(1817), year(1818), year(1830), pt.Date(datevaluetest.About(1817, 0, 0))},
 	start:  {year(1815), year(1816)},
 	end:    {year(1820)},
-	asOf: {year(1817), pt.Date(datevaluetest.About(1817, 0, 0)), pt.Date(datevaluetest.Before(1818, 0, 0)),
+	// 1805 and 1830 lie outside every period the pools above can build.
+	asOf: {year(1817), year(1805), year(1830), pt.Date(datevaluetest.About(1817, 0, 0)), pt.Date(datevaluetest.Before(1818, 0, 0)),
 		pt.Date(datevaluetest.After(1816, 0, 0))},
 	topo: {pt.Text("York"), pt.Text("york"), pt.Text("Montréal"), pt.Text("Montreal"), pt.Text("London")},
 	lifeWindow: {pt.Date(datevaluetest.Between(1850, 0, 0, 1960, 0, 0)), pt.Date(datevaluetest.Between(1730, 0, 0, 1840, 0, 0)),
@@ -261,5 +263,28 @@ func TestInvariants(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestInvariantsReachSampleConflicts checks the drawn events include ones
+// whose date conflicts only because an as-of lies outside the other side's
+// period, so the invariants above exercise the sample branch's conflicts.
+func TestInvariantsReachSampleConflicts(t *testing.T) {
+	gs := groups(t, vocabkey.Event)
+	r := rand.New(rand.NewSource(invariantSeed))
+	conflicts := 0
+	for range invariantCases * 10 {
+		a, b := draw(r, gs), draw(r, gs)
+		if len(a[date]) > 0 || len(b[date]) > 0 {
+			continue
+		}
+		for _, p := range compare(vocabkey.Event, a, b).Properties {
+			if p.Key == date && p.Result.Outcome == propertycompare.OutcomeConflict {
+				conflicts++
+			}
+		}
+	}
+	if conflicts == 0 {
+		t.Fatal("no draw made a sample conflict")
 	}
 }
