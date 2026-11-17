@@ -56,30 +56,14 @@ private struct SourceTypeAddForm: View {
             isSaving: model.isSaving,
             rightWidth: Self.iconColumnWidth
         ) {
-            PVField(
-                label: L10n.SourceTypes.formLabel,
-                error: model.labelError,
-                marker: .required,
-                announcesError: model.labelErrorFromWrite
-            ) {
-                PVInput(
-                    text: Binding(get: { model.draft.label }, set: { model.editLabel($0) }),
-                    prompt: L10n.SourceTypes.formLabelPlaceholder,
-                    isInvalid: model.labelError != nil,
-                    focus: PVFieldFocus($focus, equals: .label, in: order),
-                    activateOnAppear: true
-                )
-                .accessibilityIdentifier("sourceTypes.add.label")
-            }
-            PVField(label: L10n.SourceTypes.addKey, hint: L10n.SourceTypes.keyHintAdd) {
-                PVInput(
-                    text: .constant(model.key),
-                    mono: true,
-                    isReadOnly: true,
-                    prompt: L10n.SourceTypes.addKeyPlaceholder
-                )
-                .accessibilityIdentifier("sourceTypes.add.key")
-            }
+            SourceTypeLabelKeyFields(
+                label: Binding(get: { model.draft.label }, set: { model.editLabel($0) }),
+                check: model.labelCheck,
+                key: model.key,
+                placeholder: L10n.SourceTypes.formLabelPlaceholder,
+                focus: PVFieldFocus($focus, equals: .label, in: order),
+                accessibilityIdentifierPrefix: "sourceTypes.add"
+            )
             PVField(label: L10n.SourceTypes.formDescription, hint: L10n.SourceTypes.formDescriptionHint) {
                 PVTextArea(
                     text: $model.draft.description,

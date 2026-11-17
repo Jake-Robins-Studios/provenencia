@@ -41,6 +41,7 @@ struct SourceTypePageView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(PVColor.surfacePage)
             .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.page.toast")
+            .sourceTypeCopyDialog($model.copying) { model.open(copy: $0) }
             .workspaceLeaveGuard(model)
             .leavesForSectionRoot(when: model.isGone, notice: model.goneNotice)
             .workspaceLeaveConfirm(
@@ -180,10 +181,10 @@ private struct SourceTypePageContent: View {
     private var form: some View {
         if let draft = Binding($model.draft) {
             VStack(alignment: .leading, spacing: PVSpacing.space7) {
-                PVField(label: L10n.SourceTypes.formLabel, error: model.labelError, marker: .required) {
+                PVField(label: L10n.SourceTypes.formLabel, error: model.labelCheck.error, marker: .required) {
                     PVInput(
                         text: Binding(get: { draft.wrappedValue.label }, set: { model.editLabel($0) }),
-                        isInvalid: model.labelError != nil
+                        isInvalid: model.labelCheck.error != nil
                     )
                     .accessibilityIdentifier("sourceTypes.form.label")
                 }

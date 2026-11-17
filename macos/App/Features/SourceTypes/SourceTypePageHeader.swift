@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The Source type page's pinned header (S15-D27 TP-3): the eyebrow with Delete at its trailing
-/// edge, the saved mark beside the saved label, the origin, the mono key and the usage line, the
-/// key hint, and a failed delete's callout. It shows saved values; the draft shows only in
+/// The Source type page's pinned header (S15-D27 TP-3): the eyebrow with Copy and Delete at its
+/// trailing edge, the saved mark beside the saved label, the origin, the mono key and the usage
+/// line, the key hint, and a failed delete's callout. It shows saved values; the draft shows only in
 /// Details. Before the type is known it draws the same places as skeleton bars. The page's
 /// `PVPageColumns` draws the band's width and the rule under it.
 struct SourceTypePageHeader: View {
@@ -24,11 +24,14 @@ struct SourceTypePageHeader: View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
             HStack(alignment: .top, spacing: PVSpacing.space5) {
                 eyebrow
-                PVIconButton(.trash, label: model.deleteTooltip, size: .sm, tone: .danger) {
-                    Task { await model.askDelete() }
+                HStack(alignment: .top, spacing: PVSpacing.space4) {
+                    copyButton
+                    PVIconButton(.trash, label: model.deleteTooltip, size: .sm, tone: .danger) {
+                        Task { await model.askDelete() }
+                    }
+                    .accessibilityLabel(Text(verbatim: model.deleteAccessibilityLabel))
+                    .accessibilityIdentifier("sourceTypes.delete")
                 }
-                .accessibilityLabel(Text(verbatim: model.deleteAccessibilityLabel))
-                .accessibilityIdentifier("sourceTypes.delete")
             }
             HStack(alignment: .center, spacing: PVSpacing.space6) {
                 PVThumbnail(.init(glyph: .mark(PVMarkKey(catalogKey: type.iconKey))), size: 52)
@@ -67,6 +70,15 @@ struct SourceTypePageHeader: View {
         }
     }
 
+    /// Copy on every origin, before the trash (board CT-1); disabled until the type is known.
+    private var copyButton: some View {
+        PVIconButton(.duplicate, label: L10n.SourceTypes.copyEntry, size: .sm) {
+            model.openCopy()
+        }
+        .disabled(!model.canOpenCopy)
+        .accessibilityIdentifier("sourceTypes.page.copy")
+    }
+
     private var eyebrow: some View {
         Text(L10n.SourceTypes.detailEyebrowType)
             .pvMicroCaps()
@@ -79,7 +91,10 @@ struct SourceTypePageHeader: View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
             HStack(alignment: .top, spacing: PVSpacing.space5) {
                 eyebrow
-                PVSkeletonBar(width: 28, height: 28)
+                HStack(alignment: .top, spacing: PVSpacing.space4) {
+                    copyButton
+                    PVSkeletonBar(width: 28, height: 28)
+                }
             }
             HStack(alignment: .center, spacing: PVSpacing.space6) {
                 PVSkeletonBar(width: 52, height: 52)

@@ -1118,7 +1118,7 @@ func TestListWorkspaces(t *testing.T) {
 	}
 	other, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
 		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
-			return sourcetypes.Create(tx, "Ledger", "", "")
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Ledger"})
 		})
 	if err != nil {
 		t.Fatal(err)

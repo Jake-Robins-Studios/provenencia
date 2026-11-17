@@ -1260,6 +1260,23 @@ struct CatalogSourceType: Sendable, Equatable, Identifiable {
     var suggestedFieldCount: Int = 0
 }
 
+/// A Source type's three citation formats, each as the engine stores it with
+/// its fields shown by key. Empty text is no format.
+struct CatalogCitationFormats: Sendable, Equatable {
+    var typeID: String
+    var full: String
+    var short: String
+    var list: String
+
+    func text(_ form: CitationForm) -> String {
+        switch form {
+        case .full: full
+        case .short: short
+        case .list: list
+        }
+    }
+}
+
 extension [CatalogSourceType] {
     /// The `iconKey` of the type with this id; nil when the id is nil or unlisted.
     func iconKey(forTypeID typeID: String?) -> String? {
@@ -1646,6 +1663,24 @@ protocol GenealogyStore: Sendable {
         description: String,
         iconKey: String
     ) async throws -> (CatalogSourceType, CatalogWriteEffects)
+    /// Starts a new `user` type from `typeID`, with the parts chosen, in one
+    /// audited write: its icon, description, citation formats (as stored), and
+    /// the suggested fields at each of `levels`, in order. The key is minted from
+    /// `label` as `createSourceType` does. Sources of the type and their values
+    /// are never copied. The reply's type carries `suggestedFieldCount`.
+    func copySourceType(
+        projectDir: String,
+        userID: String,
+        typeID: String,
+        label: String,
+        copyIcon: Bool,
+        copyDescription: Bool,
+        copyFormats: Bool,
+        levels: [Level]
+    ) async throws -> (CatalogSourceType, CatalogWriteEffects)
+    /// A type's three citation formats. A stored text that does not parse comes
+    /// back as stored.
+    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormats
     /// Patches label, description, and icon for a `user` or `provenencia` type.
     /// The key never changes here, so a rename keeps existing sources
     /// attached. Fails for `plugin:…` rows.

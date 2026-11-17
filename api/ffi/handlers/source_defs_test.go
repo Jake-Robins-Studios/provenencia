@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -863,6 +864,77 @@ func suggestionIDs(t *testing.T, dir, typeID, level string) []string {
 	return out
 }
 
+func TestCopySourceType(t *testing.T) {
+	dir, userID, _ := sourceFixture(t)
+	var orig engine.CreateSourceTypeResponse
+	mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{
+		ProjectDir: dir, UserId: userID, Label: "Census", Description: "A head count", IconKey: "type_scroll",
+	}, &orig)
+	typeID := orig.GetType().GetId()
+	var line engine.CreateMetadataFieldResponse
+	mustRPC(t, CreateMetadataField, &engine.CreateMetadataFieldRequest{
+		ProjectDir: dir, UserId: userID, Label: "Line number", DataType: "text",
+	}, &line)
+	for _, level := range []string{"source", "source", "graph"} {
+		mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
+			ProjectDir: dir, TypeId: typeID, FieldId: line.GetField().GetId(), Level: level,
+		}, &engine.AssignTypeFieldResponse{})
+	}
+	mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
+		ProjectDir: dir, UserId: userID, TypeId: typeID,
+		Full: "{source.title}[, line {graph.meta.line-number}]", List: "{source.title}",
+	}, &engine.UpdateCitationFormatsResponse{})
+	copyReq := func(mutate func(*engine.CopySourceTypeRequest)) *engine.CopySourceTypeRequest {
+		req := &engine.CopySourceTypeRequest{
+			ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "State census",
+			CopyIcon: true, CopyDescription: true, CopyFormats: true, Levels: []string{"source", "artifact", "graph"},
+		}
+		if mutate != nil {
+			mutate(req)
+		}
+		return req
+	}
+
+	t.Run("copies the ticked parts and answers with the count", func(t *testing.T) {
+		var resp engine.CopySourceTypeResponse
+		mustRPC(t, CopySourceType, copyReq(nil), &resp)
+		got := resp.GetType()
+		if got.GetOrigin() != "user" || got.GetKey() != "state-census" || got.GetIconKey() != "type_scroll" ||
+			got.GetDescription() != "A head count" || got.GetSuggestedFieldCount() != 2 || got.GetId() == typeID {
+			t.Fatalf("type %v", got)
+		}
+		if resp.GetEffects().GetRevision() <= 0 {
+			t.Fatalf("effects %v", resp.GetEffects())
+		}
+		assertLatestAuditAction(t, dir, "copy_source_type")
+		assertLatestAuditUser(t, dir, userID)
+		var have, want engine.GetCitationFormatsResponse
+		mustRPC(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: got.GetId()}, &have)
+		mustRPC(t, GetCitationFormats, &engine.GetCitationFormatsRequest{ProjectDir: dir, TypeId: typeID}, &want)
+		if have.GetFormats().GetFull() == "" || have.GetFormats().GetFull() != want.GetFormats().GetFull() ||
+			have.GetFormats().GetShort() != want.GetFormats().GetShort() ||
+			have.GetFormats().GetList() != want.GetFormats().GetList() {
+			t.Fatalf("formats %v vs %v", have.GetFormats(), want.GetFormats())
+		}
+	})
+
+	t.Run("errors", func(t *testing.T) {
+		if err := rpc(t, CopySourceType, copyReq(func(r *engine.CopySourceTypeRequest) { r.UserId = "nope" }), &engine.CopySourceTypeResponse{}); err == nil {
+			t.Fatal("a bad user_id must fail")
+		}
+		if err := rpc(t, CopySourceType, copyReq(func(r *engine.CopySourceTypeRequest) { r.TypeId = "nope" }), &engine.CopySourceTypeResponse{}); !errors.Is(err, errInvalidID) {
+			t.Fatalf("bad type_id: %v", err)
+		}
+		missing := "0192f3a4-0000-7000-8000-000000000001"
+		if err := rpc(t, CopySourceType, copyReq(func(r *engine.CopySourceTypeRequest) { r.TypeId = missing }), &engine.CopySourceTypeResponse{}); !errors.Is(err, sourcetypes.ErrInvalid) {
+			t.Fatalf("unknown type_id: %v", err)
+		}
+		if err := rpc(t, CopySourceType, copyReq(func(r *engine.CopySourceTypeRequest) { r.Levels = []string{"citation"} }), &engine.CopySourceTypeResponse{}); !errors.Is(err, sourcevocab.ErrInvalid) {
+			t.Fatalf("citation level: %v", err)
+		}
+	})
+}
+
 func TestCitationFormats(t *testing.T) {
 	dir, userID, typeID := sourceFixture(t)
 	var field engine.CreateMetadataFieldResponse
@@ -944,4 +1016,30 @@ func TestCitationFormats(t *testing.T) {
 			t.Fatalf("got %v, want ErrInUse", err)
 		}
 	})
+}
+
+// assertLatestAuditUser fails unless the newest audit transaction names wantUserID.
+func assertLatestAuditUser(t *testing.T, projectDir, wantUserID string) {
+	t.Helper()
+	err := catalogsession.Do(projectDir, func(c *database.Catalog) error {
+		db, err := c.DB()
+		if err != nil {
+			return err
+		}
+		want, err := parseUserID(wantUserID)
+		if err != nil {
+			return err
+		}
+		var got []byte
+		if err := db.QueryRow(`SELECT user_id FROM audit_transactions ORDER BY revision DESC LIMIT 1`).Scan(&got); err != nil {
+			return err
+		}
+		if got == nil || !bytes.Equal(got, want) {
+			t.Fatalf("audit user_id = %x, want %x", got, want)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }

@@ -37,6 +37,25 @@ struct SourceTypePageModelTests {
         return (model, session)
     }
 
+    // MARK: Copy
+
+    /// T-5 (AC-1.5): Copy opens once the type is loaded, on a plugin's type too, over the saved row.
+    @Test func openCopyOnLoadedTypeOnly() async {
+        let store = FakeStore()
+        let (missing, _) = await makePageModel(typeID: "t3", store: store, types: [])
+        #expect(!missing.canOpenCopy)
+        missing.openCopy()
+        #expect(missing.copying == nil)
+
+        let (model, _) = await makePageModel(typeID: "t3", store: store, types: [pluginSourceType()])
+        #expect(model.isLocked)
+        #expect(model.canOpenCopy)
+        model.draft?.label = "Unsaved edit"
+        model.openCopy()
+        #expect(model.copying?.original.id == "t3")
+        #expect(model.copying?.original.label == "Grave memorial")
+    }
+
     // MARK: Details
 
     @Test func seededOrUserTypeEditsAndPluginTypeLocks() async {
@@ -98,7 +117,7 @@ struct SourceTypePageModelTests {
         #expect(!model.canSubmit)
         await model.submit()
 
-        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(model.saveError == nil)
         #expect(store.sourceTypesByProject[projectDir]?.first?.label == "Book")
         #expect(model.toast == nil)
@@ -109,11 +128,11 @@ struct SourceTypePageModelTests {
     @Test func clearingTheLabelShowsTheRequiredMessage() async {
         let (model, _) = await makePageModel(typeID: "t1", types: [seededSourceType()])
         model.editLabel("")
-        #expect(model.labelError == L10n.string(L10n.SourceTypes.errorLabelRequired))
+        #expect(model.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(!model.canSubmit)
 
         model.editLabel("Tome")
-        #expect(model.labelError == nil)
+        #expect(model.labelCheck.error == nil)
         #expect(model.canSubmit)
     }
 
@@ -125,7 +144,7 @@ struct SourceTypePageModelTests {
         model.editLabel("Tome")
         await model.submit()
 
-        #expect(model.labelError == nil)
+        #expect(model.labelCheck.error == nil)
         #expect(model.saveError != nil)
         #expect(model.toast == nil)
 
@@ -694,6 +713,51 @@ struct SourceTypePageModelTests {
         #expect(model.draft?.description == "A published monograph.")
         #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
         _ = session
+    }
+
+    /// A copy whose move to the new page is held says it was made once the researcher keeps
+    /// editing; a move that goes through (not held, or held then Discard) says nothing.
+    @Test func copyMadeWhileMoveHeldIsToastedOnKeepEditing() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("type-page-copy-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let navigation = WorkspaceNavigation()
+        navigation.attachProject(
+            uuid: "00000000-0000-7000-8000-0000000000cd", fileURL: dir.appendingPathComponent("history.json")
+        )
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        let (model, session) = await makePageModel(typeID: "t1", types: [seededSourceType()])
+        model.navigation = navigation
+        navigation.leaveGuard = model
+        let copy = userSourceType(id: "t9", label: "State census")
+
+        // Not held: the new page opens and there is no toast.
+        model.open(copy: copy)
+        #expect(navigation.currentLocation.typeId == "t9")
+        #expect(session.noticeToast == nil)
+
+        // Held, then Keep editing: the toast names the copy.
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        model.draft?.description = "Changed"
+        model.open(copy: copy)
+        #expect(navigation.currentLocation.typeId == "t1")
+        #expect(session.noticeToast == nil)
+        model.keepEditing()
+        #expect(session.noticeToast?.title.contains("State census") == true)
+
+        // Held, then Discard: the move goes through and says nothing.
+        session.noticeToast = nil
+        model.open(copy: copy)
+        model.discardAndLeave()
+        #expect(navigation.currentLocation.typeId == "t9")
+        #expect(session.noticeToast == nil)
+
+        // A later, unrelated Keep editing does not repeat it.
+        navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
+        model.draft?.description = "Changed again"
+        navigation.goBack()
+        model.keepEditing()
+        #expect(session.noticeToast == nil)
     }
 
     /// T-9: a move is not held while a Save runs, since the draft is about to be the saved row.

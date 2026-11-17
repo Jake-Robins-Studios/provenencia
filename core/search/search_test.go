@@ -810,7 +810,7 @@ func uuidString(id []byte) string {
 func runSourceTypeCreate(c *database.Catalog, label, description, iconKey string) (sourcetypes.Type, error) {
 	got, _, err := writes.Run(c, writes.Op{Action: "create_source_type"},
 		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
-			return sourcetypes.Create(tx, label, description, iconKey)
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: label, Description: description, IconKey: iconKey})
 		})
 	return got, err
 }

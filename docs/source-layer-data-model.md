@@ -185,6 +185,21 @@ Copy Source makes a new Source from an existing one so a researcher starts from 
 
 The copy is one audited write, action `copy_source`, built by `core/database/sourcecopy` from the owner packages' own writes. It is the engine under the Copy form; it is not a way to link two Sources. How to relate Sources that belong together is a separate decision, in [the two tools](deployment-plan/archive/spike-12/source-structure.md#the-two-tools).
 
+## 4.3 Copy a Source type
+
+Copy a Source type makes a new Source type from an existing one so a researcher who wants a type close to one they have (a state census beside the census) starts from its suggested fields and citation formats instead of rebuilding them. The copy is a `user` type of its own: its key is minted from the label the researcher gives it, as for any new type, and it is editable whatever the original's origin (a Provenencia or plugin type copies to the researcher's own).
+
+**Copied, each only when chosen:**
+
+- the icon (otherwise the default mark);
+- the description (otherwise none);
+- the three citation formats, as stored, with their fields named by id, so the copy's formats name the same fields as the original's (a field either type names cannot be deleted while it does);
+- the suggested fields at each chosen level (Source, Artifact, Evidence graph), in the original's order; a level the original has no suggestions at copies none.
+
+**Never copied:** the Sources of the type and their metadata values, and the key.
+
+The copy is one audited write, action `copy_source_type`, built by `sourcevocab.CopyType` from `sourcetypes.Create`. One `source_type` create change records the type, its icon, description and each non-empty `citation_*` column. The suggested-field join rows are not audited, as for any assignment of a suggested field.
+
 ---
 
 # 5. Source metadata

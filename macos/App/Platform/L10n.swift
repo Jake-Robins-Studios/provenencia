@@ -101,6 +101,11 @@ enum L10n {
             defaultValue: "(optional)",
             comment: "Marks an optional PVField, shown muted beside its label"
         )
+        static let formReadAgain = LocalizedStringResource(
+            "designSystem.formLoad.readAgain",
+            defaultValue: "Read again",
+            comment: "Button that reads a form's loaded parts again after they failed to load"
+        )
         static let checkboxPartlyChecked = LocalizedStringResource(
             "designSystem.checkbox.partlyChecked",
             defaultValue: "partly checked",
@@ -5726,12 +5731,6 @@ enum L10n {
             ), error)
         }
 
-        static let formReadAgain = LocalizedStringResource(
-            "sources.form.readAgain",
-            defaultValue: "Read again",
-            comment: "Button that reads a Source-page form's loaded parts again after they failed to load"
-        )
-
         static let copySourceSaveErrorTitle = LocalizedStringResource(
             "sources.copy.saveErrorTitle",
             defaultValue: "The copy could not be saved.",
@@ -7985,7 +7984,32 @@ enum L10n {
         }
     }
 
-    /// Maps stable Go/FFI error codes to localized user-facing copy.
+    /// The names of a Source type's three citation formats.
+    enum CitationForms {
+        static func name(_ form: CitationForm) -> LocalizedStringResource {
+            switch form {
+            case .full:
+                return LocalizedStringResource(
+                    "citationForms.full",
+                    defaultValue: "Full note",
+                    comment: "Name of a Source type's full citation format, the first note a Source is cited by"
+                )
+            case .short:
+                return LocalizedStringResource(
+                    "citationForms.short",
+                    defaultValue: "Short note",
+                    comment: "Name of a Source type's short citation format, for later notes to the same Source"
+                )
+            case .list:
+                return LocalizedStringResource(
+                    "citationForms.list",
+                    defaultValue: "Source-list entry",
+                    comment: "Name of a Source type's citation format for the Source list or bibliography"
+                )
+            }
+        }
+    }
+
     enum SourceTypes {
         static let description = LocalizedStringResource(
             "sourceTypes.list.description",
@@ -8353,6 +8377,100 @@ enum L10n {
             ), count)
         }
 
+        static let copyEntry = LocalizedStringResource(
+            "sourceTypes.copy.entry",
+            defaultValue: "Copy…",
+            comment: "Tooltip and spoken label of the Copy button in a Source type page's header; opens the Copy source type sheet"
+        )
+
+        static let copyDialogTitle = LocalizedStringResource(
+            "sourceTypes.copy.title",
+            defaultValue: "Copy source type",
+            comment: "Title of the sheet that copies a Source type"
+        )
+
+        static let copyLabelPlaceholder = LocalizedStringResource(
+            "sourceTypes.copy.labelPlaceholder",
+            defaultValue: "State census",
+            comment: "Placeholder of the Label field in the Copy source type sheet"
+        )
+
+        static let copyPartsHeading = LocalizedStringResource(
+            "sourceTypes.copy.parts",
+            defaultValue: "Copy from the original",
+            comment: "Heading above the parts the Copy source type sheet can bring over from the original type"
+        )
+
+        static let copyIcon = LocalizedStringResource(
+            "sourceTypes.copy.icon",
+            defaultValue: "Icon",
+            comment: "Label of the tick that copies the original type's icon"
+        )
+
+        static let copyDescription = LocalizedStringResource(
+            "sourceTypes.copy.description",
+            defaultValue: "Description",
+            comment: "Label of the tick that copies the original type's description"
+        )
+
+        static let copyFormats = LocalizedStringResource(
+            "sourceTypes.copy.formats",
+            defaultValue: "Citation formats",
+            comment: "Label of the tick that copies the original type's three citation formats"
+        )
+
+        static let copyDescriptionHint = LocalizedStringResource(
+            "sourceTypes.copy.descriptionHint",
+            defaultValue: "The original's description, as written",
+            comment: "Hint under the Description tick of the Copy source type sheet"
+        )
+
+        static let copyPartAbsent = LocalizedStringResource(
+            "sourceTypes.copy.partAbsent",
+            defaultValue: "None on this type",
+            comment: "Hint of a Copy source type tick whose part the original type lacks; the tick is unchecked and disabled"
+        )
+
+        static let copyLoading = LocalizedStringResource(
+            "sourceTypes.copy.loading",
+            defaultValue: "Reading the original's formats and suggested fields",
+            comment: "Caption under the skeleton bars while the Copy source type sheet reads the original"
+        )
+
+        static let copyLoadErrorTitle = LocalizedStringResource(
+            "sourceTypes.copy.loadErrorTitle",
+            defaultValue: "The original's parts could not be read.",
+            comment: "Title of the callout shown when the Copy source type sheet could not read the original"
+        )
+
+        static let copyConfirm = LocalizedStringResource(
+            "sourceTypes.copy.confirm",
+            defaultValue: "Copy type",
+            comment: "Primary button of the Copy source type sheet"
+        )
+
+        static let copyErrorTitle = LocalizedStringResource(
+            "sourceTypes.copy.errorTitle",
+            defaultValue: "The type was not copied",
+            comment: "Title of the callout shown when copying a Source type failed"
+        )
+
+        static func copyDialogSubtitle(_ label: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.copy.subtitle",
+                defaultValue: "Start a new type of yours from %@. Its Sources and their values are not copied.",
+                comment: "Subtitle of the Copy source type sheet; argument is the original type's label"
+            ), label)
+        }
+
+        static func copyMadeKeptEditing(_ label: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sourceTypes.copy.madeKeptEditing",
+                defaultValue: "Copied as “%@”.",
+                comment: "Toast on a Source type's page when Copy type made the copy but the move to it was held by unsaved edits and the researcher kept editing; argument is the new type's label"
+            ), label)
+        }
+
         /// The copy that names one suggestion list: its title, the meaning under it, its empty card,
         /// its picker's label and the phrase the toasts, tooltips and spoken labels take. One switch
         /// over `Level` keeps the four in step.
@@ -8364,6 +8482,8 @@ enum L10n {
             /// A format taking the type's label ("on each Artifact of %@ Sources"), whole, so no
             /// article agrees with the label.
             let phrase: LocalizedStringResource
+            /// The Copy source type sheet's tick for this list.
+            let copyTick: LocalizedStringResource
         }
 
         static func level(_ level: Level) -> LevelCopy {
@@ -8394,6 +8514,11 @@ enum L10n {
                         "sourceTypes.suggested.level.source.phrase",
                         defaultValue: "on each %@ Source",
                         comment: "Whole phrase naming the Source-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    ),
+                    copyTick: LocalizedStringResource(
+                        "sourceTypes.suggested.level.source.copyTick",
+                        defaultValue: "Suggested fields on the Source",
+                        comment: "Label of the Copy source type tick for the type's source-level suggested fields; its hint is the field count"
                     )
                 )
             case .artifact:
@@ -8422,6 +8547,11 @@ enum L10n {
                         "sourceTypes.suggested.level.artifact.phrase",
                         defaultValue: "on each Artifact of %@ Sources",
                         comment: "Whole phrase naming the Artifact-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    ),
+                    copyTick: LocalizedStringResource(
+                        "sourceTypes.suggested.level.artifact.copyTick",
+                        defaultValue: "Suggested fields on each Artifact",
+                        comment: "Label of the Copy source type tick for the type's artifact-level suggested fields; its hint is the field count"
                     )
                 )
             case .graph:
@@ -8450,6 +8580,11 @@ enum L10n {
                         "sourceTypes.suggested.level.graph.phrase",
                         defaultValue: "on each Evidence graph of %@ Sources",
                         comment: "Whole phrase naming the Evidence-graph-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label"
+                    ),
+                    copyTick: LocalizedStringResource(
+                        "sourceTypes.suggested.level.graph.copyTick",
+                        defaultValue: "Suggested fields on each Evidence graph",
+                        comment: "Label of the Copy source type tick for the type's graph-level suggested fields; its hint is the field count"
                     )
                 )
             case .citation:
@@ -10994,6 +11129,7 @@ enum L10n {
         }
     }
 
+    /// Maps stable Go/FFI error codes to localized user-facing copy.
     enum Errors {
         static let catalogAlreadyExists = LocalizedStringResource(
             "error.catalog.already_exists",

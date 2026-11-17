@@ -1,19 +1,26 @@
 import SwiftUI
 
-/// Which body a Source-page form's loaded area shows.
-enum SourceFormLoadState: Equatable {
+/// Which body a form's loaded area shows.
+enum PVFormLoadState: Equatable {
     case loading
     case failed(String)
     case ready
+
+    /// The first failure in `states`; else loading while any is loading; else ready (an empty
+    /// list is ready).
+    static func combining(_ states: [PVFormLoadState]) -> PVFormLoadState {
+        if let failed = states.first(where: { if case .failed = $0 { true } else { false } }) { return failed }
+        return states.contains(.loading) ? .loading : .ready
+    }
 }
 
-/// The area of a Source-page form that waits on a read (the Copy form's parts,
-/// the graph form's kept links, an Artifact's graph links): skeleton bars
+/// The area of a form that waits on a read (the Copy forms' parts, the graph
+/// form's kept links, an Artifact's graph links): skeleton bars
 /// with a caption while loading (three, or one half-width bar when `compact`,
 /// for the Artifact sheet), a compact danger callout with **Read again** when the read
 /// failed, and `ready` once it has a value. One body for every form.
-struct SourceFormLoadArea<Ready: View>: View {
-    let state: SourceFormLoadState
+struct PVFormLoadArea<Ready: View>: View {
+    let state: PVFormLoadState
     let loadingText: LocalizedStringResource
     let errorTitle: LocalizedStringResource
     let errorMessage: (String) -> String
@@ -34,7 +41,7 @@ struct SourceFormLoadArea<Ready: View>: View {
             PVRetryCallout(
                 title: errorTitle,
                 message: errorMessage(message),
-                retry: L10n.Sources.formReadAgain,
+                retry: L10n.DesignSystem.formReadAgain,
                 isRetrying: false,
                 compact: true,
                 retryIdentifier: "\(accessibilityIdentifierPrefix).readAgain",

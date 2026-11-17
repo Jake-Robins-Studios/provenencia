@@ -144,7 +144,7 @@ private struct ArtifactSheetForm: View {
                     label: L10n.Sources.artifactGraphsLabel,
                     hint: L10n.Sources.artifactGraphsHint
                 ) {
-                    SourceFormLoadArea(
+                    PVFormLoadArea(
                         state: .loading,
                         loadingText: L10n.Sources.artifactGraphsLoading,
                         errorTitle: L10n.Sources.artifactGraphsLoadErrorTitle,
@@ -161,7 +161,7 @@ private struct ArtifactSheetForm: View {
                     label: L10n.Sources.artifactGraphsLabel,
                     hint: L10n.Sources.artifactGraphsHint
                 ) {
-                    SourceFormLoadArea(
+                    PVFormLoadArea(
                         state: model.linkLoadState,
                         loadingText: L10n.Sources.artifactGraphsLoading,
                         errorTitle: L10n.Sources.artifactGraphsLoadErrorTitle,

@@ -1,9 +1,9 @@
 # S15-18 — A Source type can be copied
 
-**Status:** Planned
+**Status:** Landed in [#877](https://github.com/mendahu/provenencia/pull/877) (2026-11-17)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D7](../design/S15-D7-copy-source-type.md), board agreed 2026-11-17
+**Brief:** [S15-D7](../design/archive/S15-D7-copy-source-type.md), board agreed 2026-11-17
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), artboard *S15-D27 · S15-D6 · S15-D7 · Source type page board*, the frames named "S15-D7" in its menu (D7-1a, D7-1b, D7-2a, D7-2b, D7-3 – D7-6, D7-7, D7-7b, D7-8 – D7-10) and its decision notes (CT-1 the button, CT-4 ticks, CT-9 leaving, CT-5, CT-3 · CT-8, CT-10, Handoff), drawn by *Source type page · component* (`Source-Type-Page.dc.html`). Board decisions: the kit's `copy` glyph (the app's `.duplicate`), shown disabled while the page loads; Escape or a click outside closes at once when nothing changed; frame 7 split into 7 (duplicate key) and 7b (save failed). The board writes its own duplicate-key sentence; the app keeps the engine's message, as Add type does (D-8)
 **Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782)), S15-12 (landed [#856](https://github.com/mendahu/provenencia/pull/856)), S15-15 (landed [#871](https://github.com/mendahu/provenencia/pull/871)), S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D7
 **Blocks:** —
@@ -374,3 +374,14 @@ None.
 
 **Title:** S15-18 — A Source type can be copied
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-18-copy-source-type.md`.
+
+## Landed
+
+- The version bump is 0.20.0 → 0.21.0: `main` was already at 0.20.0 when the PR was cut.
+- `OnboardingModelTests.ThrowingStore` conforms to `GenealogyStore`, so it gained `copySourceType` and `citationFormats` stubs (its own commit).
+- STEP-7 and STEP-8 landed in one commit (the sheet, its model, and Copy in the page header and host).
+- The kit's `DesignSystem/README.md` gained rows for `FormLoadArea` and `CopyPartTick` (the guidance check requires one per kit folder).
+- The Copy button's accessibility id is `sourceTypes.page.copy`; the sheet's tick ids are `sourceTypes.copy.icon`, `.description`, `.formats`, `.source`, `.artifact` and `.graph`.
+- `SourceTypeCopyModelTests` also covers `unticksSkipTheirParts`, `aBlankOrUnslugifiableLabelCannotBeCopied` and `aFailedListReadFailsTheSheetAndReloads`; `TestCopyType` and `TestCreateUpdateGetByID` hold T-1's and T-2's cases as table rows.
+- Review round 1 (user, 2026-11-17): when the move to the new page is held by unsaved Details and the researcher keeps editing, a notice toast says `Copied as “<label>”.`; this supersedes D-10's "no toast" for that path only. The page-opens path stays toast-free (CT-7).
+- The in-app manual check (§ 10) was not run in the implementing session.

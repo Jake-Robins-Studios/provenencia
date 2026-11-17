@@ -6596,8 +6596,8 @@
         }
       }
     },
-    "sources.form.readAgain": {
-      "comment": "Button that reads a Source-page form's loaded parts again after they failed to load",
+    "designSystem.formLoad.readAgain": {
+      "comment": "Button that reads a form's loaded parts again after they failed to load",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -23879,6 +23879,258 @@
           "stringUnit": {
             "state": "translated",
             "value": "Link %@ to an evidence graph"
+          }
+        }
+      }
+    },
+    "citationForms.full": {
+      "comment": "Name of a Source type's full citation format, the first note a Source is cited by",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full note"
+          }
+        }
+      }
+    },
+    "citationForms.short": {
+      "comment": "Name of a Source type's short citation format, for later notes to the same Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short note"
+          }
+        }
+      }
+    },
+    "citationForms.list": {
+      "comment": "Name of a Source type's citation format for the Source list or bibliography",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source-list entry"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.entry": {
+      "comment": "Tooltip and spoken label of the Copy button in a Source type page's header; opens the Copy source type sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy…"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.title": {
+      "comment": "Title of the sheet that copies a Source type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy source type"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.labelPlaceholder": {
+      "comment": "Placeholder of the Label field in the Copy source type sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "State census"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.parts": {
+      "comment": "Heading above the parts the Copy source type sheet can bring over from the original type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy from the original"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.icon": {
+      "comment": "Label of the tick that copies the original type's icon",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.description": {
+      "comment": "Label of the tick that copies the original type's description",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Description"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.formats": {
+      "comment": "Label of the tick that copies the original type's three citation formats",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citation formats"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.descriptionHint": {
+      "comment": "Hint under the Description tick of the Copy source type sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original's description, as written"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.partAbsent": {
+      "comment": "Hint of a Copy source type tick whose part the original type lacks; the tick is unchecked and disabled",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None on this type"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.loading": {
+      "comment": "Caption under the skeleton bars while the Copy source type sheet reads the original",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the original's formats and suggested fields"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.loadErrorTitle": {
+      "comment": "Title of the callout shown when the Copy source type sheet could not read the original",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original's parts could not be read."
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.confirm": {
+      "comment": "Primary button of the Copy source type sheet",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy type"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.errorTitle": {
+      "comment": "Title of the callout shown when copying a Source type failed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The type was not copied"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.subtitle": {
+      "comment": "Subtitle of the Copy source type sheet; argument is the original type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a new type of yours from %@. Its Sources and their values are not copied."
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.madeKeptEditing": {
+      "comment": "Toast on a Source type's page when Copy type made the copy but the move to it was held by unsaved edits and the researcher kept editing; argument is the new type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied as “%@”."
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.level.source.copyTick": {
+      "comment": "Label of the Copy source type tick for the type's source-level suggested fields; its hint is the field count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested fields on the Source"
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.level.artifact.copyTick": {
+      "comment": "Label of the Copy source type tick for the type's artifact-level suggested fields; its hint is the field count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested fields on each Artifact"
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.level.graph.copyTick": {
+      "comment": "Label of the Copy source type tick for the type's graph-level suggested fields; its hint is the field count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested fields on each Evidence graph"
           }
         }
       }

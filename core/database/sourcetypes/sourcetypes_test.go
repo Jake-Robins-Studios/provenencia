@@ -367,6 +367,66 @@ func TestCreateUpdateGetByID(t *testing.T) {
 			},
 		},
 		{
+			name: "create with stored formats keeps them and audits the non-empty forms",
+			run: func(t *testing.T, c *database.Catalog) {
+				in := Formats{Full: "{source.title}", List: "{source.title}."}
+				var changes []rowchange.Change
+				got, _, err := writes.Run(c, writes.Op{Action: "create_source_type"},
+					func(tx *database.Tx) (Type, []rowchange.Change, error) {
+						typ, ch, err := Create(tx, CreateInput{Label: "State census", Formats: in})
+						changes = ch
+						return typ, ch, err
+					})
+				if err != nil {
+					t.Fatal(err)
+				}
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				tx, err := db.Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = tx.Rollback() }()
+				stored, err := StoredFormatsTx(tx, [][]byte{got.ID})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if stored[string(got.ID)] != in {
+					t.Fatalf("stored %+v", stored[string(got.ID)])
+				}
+				if len(changes) != 1 {
+					t.Fatalf("changes %+v", changes)
+				}
+				f := changes[0].Fields
+				if f["citation_full"].New != in.Full || f["citation_full"].Old != nil ||
+					f["citation_list"].New != in.List {
+					t.Fatalf("fields %+v", f)
+				}
+				if _, ok := f["citation_short"]; ok {
+					t.Fatalf("empty short form audited: %+v", f)
+				}
+			},
+		},
+		{
+			name: "get by id on a tx refuses a short id",
+			run: func(t *testing.T, c *database.Catalog) {
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				tx, err := db.Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer func() { _ = tx.Rollback() }()
+				if _, err := GetByIDTx(tx, make([]byte, 15)); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("got %v", err)
+				}
+			},
+		},
+		{
 			name: "create may reuse a provenencia key under user origin",
 			run: func(t *testing.T, c *database.Catalog) {
 				if _, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"}); err != nil {
@@ -574,7 +634,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 func runCreate(c *database.Catalog, label, description, iconKey string) (Type, error) {
 	got, _, err := writes.Run(c, writes.Op{Action: "create_source_type"},
 		func(tx *database.Tx) (Type, []rowchange.Change, error) {
-			return Create(tx, label, description, iconKey)
+			return Create(tx, CreateInput{Label: label, Description: description, IconKey: iconKey})
 		})
 	return got, err
 }

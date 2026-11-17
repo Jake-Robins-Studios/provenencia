@@ -50,7 +50,9 @@ func CreateSourceType(in []byte) ([]byte, error) {
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "create_source_type"},
 			func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
-				return sourcetypes.Create(tx, req.GetLabel(), req.GetDescription(), req.GetIconKey())
+				return sourcetypes.Create(tx, sourcetypes.CreateInput{
+					Label: req.GetLabel(), Description: req.GetDescription(), IconKey: req.GetIconKey(),
+				})
 			})
 		if err != nil {
 			return err
@@ -92,6 +94,53 @@ func UpdateSourceType(in []byte) ([]byte, error) {
 			return err
 		}
 		out = &engine.UpdateSourceTypeResponse{Type: sourceTypeProto(got), Effects: writeEffectsProto(wrote)}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return proto.Marshal(out)
+}
+
+// CopySourceType starts a new user type from an existing one with the parts the
+// request ticks, in one write.
+func CopySourceType(in []byte) ([]byte, error) {
+	var req engine.CopySourceTypeRequest
+	if err := proto.Unmarshal(in, &req); err != nil {
+		return nil, unmarshalErr("copy_source_type", err)
+	}
+	userID, err := parseUserID(req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
+	typeID, err := parseID(req.GetTypeId())
+	if err != nil {
+		return nil, err
+	}
+	levels := make([]vocabkey.Level, len(req.GetLevels()))
+	for i, level := range req.GetLevels() {
+		levels[i] = vocabkey.Level(level)
+	}
+	var out *engine.CopySourceTypeResponse
+	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		got, wrote, err := writes.Run(c, writes.Op{Action: "copy_source_type", UserID: userID},
+			func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+				return sourcevocab.CopyType(tx, sourcevocab.CopyTypeInput{
+					TypeID:      typeID,
+					Label:       req.GetLabel(),
+					Icon:        req.GetCopyIcon(),
+					Description: req.GetCopyDescription(),
+					Formats:     req.GetCopyFormats(),
+					Levels:      levels,
+				})
+			})
+		if err != nil {
+			return err
+		}
+		if got.SuggestedFields, err = sourcetypes.SuggestedFields(c, got.ID); err != nil {
+			return err
+		}
+		out = &engine.CopySourceTypeResponse{Type: sourceTypeProto(got), Effects: writeEffectsProto(wrote)}
 		return nil
 	})
 	if err != nil {

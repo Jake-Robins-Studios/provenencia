@@ -28,6 +28,17 @@ enum QueryRead<Value> {
     }
 }
 
+extension QueryRead {
+    /// What a form that waits on this read shows: a value is ready, a failure carries its message.
+    var formLoadState: PVFormLoadState {
+        switch self {
+        case .loaded: .ready
+        case .failed(let error): .failed(L10n.Errors.message(for: error))
+        case .loading: .loading
+        }
+    }
+}
+
 /// What a reader that shows a refresh failure beside its value sees: nothing
 /// yet, a failure with no value, or a value with the failure of its latest
 /// reload (nil when that reload succeeded).

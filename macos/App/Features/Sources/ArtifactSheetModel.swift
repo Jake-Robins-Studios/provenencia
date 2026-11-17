@@ -65,7 +65,7 @@ final class ArtifactSheetModel {
     /// The engine's refusals to unlink this Artifact, from its preflight. Each
     /// locks its graph; Swift decides no lock.
     private let locks: UnlinkLocks
-    var linkLoadState: SourceFormLoadState { locks.state }
+    var linkLoadState: PVFormLoadState { locks.state }
     /// The graph link read, so a test can await it.
     @ObservationIgnored var linkLoadTask: Task<Void, Never>?
 

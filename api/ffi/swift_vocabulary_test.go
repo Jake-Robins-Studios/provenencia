@@ -13,6 +13,7 @@ import (
 
 	"github.com/mendahu/provenencia/core/apperr"
 	"github.com/mendahu/provenencia/core/autoreconcile"
+	"github.com/mendahu/provenencia/core/citationformat"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/deleteimpact"
@@ -55,6 +56,7 @@ const (
 	swiftNamePartType               = "../../macos/App/Platform/NamePartType.swift"
 	swiftWorkspaceLocation          = "../../macos/App/Features/Workspace/WorkspaceLocation.swift"
 	swiftLevel                      = "../../macos/App/Platform/Level.swift"
+	swiftCitationForm               = "../../macos/App/Platform/CitationForm.swift"
 
 	swiftRegionGeometry     = "../../macos/App/Features/ArtifactViewer/ArtifactRegionGeometry.swift"
 	swiftProjectFiles       = "../../macos/App/Platform/ProjectFiles.swift"
@@ -541,6 +543,10 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 		{
 			name: "levels", path: swiftLevel, enum: "Level", re: rawCase,
 			want: sorted(strs(vocabkey.Levels())...),
+		},
+		{
+			name: "citation forms", path: swiftCitationForm, enum: "CitationForm", re: rawCase,
+			want: sorted(strs(citationformat.Forms())...),
 		},
 		{
 			name: "metadata levels", path: swiftLevel, enum: "Level", re: levelListEntry,

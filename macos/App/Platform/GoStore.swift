@@ -669,6 +669,48 @@ struct GoStore: GenealogyStore {
         return (Self.mapSourceType(resp.type), Self.mapWriteEffects(resp.effects))
     }
 
+    func copySourceType(
+        projectDir: String,
+        userID: String,
+        typeID: String,
+        label: String,
+        copyIcon: Bool,
+        copyDescription: Bool,
+        copyFormats: Bool,
+        levels: [Level]
+    ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
+        var req = Provenencia_Engine_V1_CopySourceTypeRequest()
+        req.projectDir = projectDir
+        req.userID = userID
+        req.typeID = typeID
+        req.label = label
+        req.copyIcon = copyIcon
+        req.copyDescription = copyDescription
+        req.copyFormats = copyFormats
+        req.levels = levels.map(\.rawValue)
+        let resp: Provenencia_Engine_V1_CopySourceTypeResponse = try await provenenciaCall(
+            method: CoreMethod.copySourceType,
+            request: req
+        )
+        return (Self.mapSourceType(resp.type), Self.mapWriteEffects(resp.effects))
+    }
+
+    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormats {
+        var req = Provenencia_Engine_V1_GetCitationFormatsRequest()
+        req.projectDir = projectDir
+        req.typeID = typeID
+        let resp: Provenencia_Engine_V1_GetCitationFormatsResponse = try await provenenciaCall(
+            method: CoreMethod.getCitationFormats,
+            request: req
+        )
+        return CatalogCitationFormats(
+            typeID: resp.formats.typeID,
+            full: resp.formats.full,
+            short: resp.formats.short,
+            list: resp.formats.list
+        )
+    }
+
     func updateSourceType(
         projectDir: String,
         userID: String,

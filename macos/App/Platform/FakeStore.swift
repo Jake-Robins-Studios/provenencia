@@ -75,6 +75,18 @@ final class FakeHold: @unchecked Sendable {
     }
 }
 
+/// One `FakeStore.copySourceType` call's arguments, for tests to assert on.
+struct CopySourceTypeCall: Equatable, Sendable {
+    var projectDir: String
+    var userID: String
+    var typeID: String
+    var label: String
+    var copyIcon: Bool
+    var copyDescription: Bool
+    var copyFormats: Bool
+    var levels: [Level]
+}
+
 /// In-memory `GenealogyStore` for SwiftUI previews and tests. Not used in the shipped app.
 /// Store methods run on the cooperative pool, so callers like the citation
 /// composer can have several in flight at once. Every method body that touches
@@ -333,6 +345,17 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var ingestArtifactFileError: Error?
     /// When set, `createSourceType` throws instead of the built-in duplicate/slug checks.
     var createSourceTypeError: Error?
+    /// What `copySourceType` answers; the fake never computes which parts copy
+    /// (the engine's tests do). Nil makes the call throw.
+    var copySourceTypeResult: (CatalogSourceType, CatalogWriteEffects)?
+    /// When set, `copySourceType` throws instead of answering.
+    var copySourceTypeError: Error?
+    /// The arguments of every `copySourceType` call, in order.
+    private(set) var copySourceTypeCalls: [CopySourceTypeCall] = []
+    /// What `citationFormats` answers, by type id; a type with no entry reads as no formats.
+    var citationFormatsByType: [String: CatalogCitationFormats] = [:]
+    /// When set, `citationFormats` throws.
+    var citationFormatsError: Error?
     var lastResult = OnboardingResult(
         projectDir: "/tmp/robins-family.provenencia",
         userID: "00000000-0000-7000-8000-000000000001",
@@ -1212,6 +1235,41 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             )
             sourceTypesByProject[projectDir, default: []].append(type)
             return (type, nextWriteEffects)
+        }
+    }
+
+    func copySourceType(
+        projectDir: String,
+        userID: String,
+        typeID: String,
+        label: String,
+        copyIcon: Bool,
+        copyDescription: Bool,
+        copyFormats: Bool,
+        levels: [Level]
+    ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
+        return try withState {
+            copySourceTypeCalls.append(CopySourceTypeCall(
+                projectDir: projectDir,
+                userID: userID,
+                typeID: typeID,
+                label: label,
+                copyIcon: copyIcon,
+                copyDescription: copyDescription,
+                copyFormats: copyFormats,
+                levels: levels
+            ))
+            if let copySourceTypeError { throw copySourceTypeError }
+            guard let copySourceTypeResult else { throw StoreBoom.boom }
+            return copySourceTypeResult
+        }
+    }
+
+    func citationFormats(projectDir _: String, typeID: String) async throws -> CatalogCitationFormats {
+        return try withState {
+            if let citationFormatsError { throw citationFormatsError }
+            return citationFormatsByType[typeID]
+                ?? CatalogCitationFormats(typeID: typeID, full: "", short: "", list: "")
         }
     }
 

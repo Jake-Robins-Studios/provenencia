@@ -48,7 +48,8 @@ private struct SourceCopyForm: View {
                 PVCallout(
                     tone: .danger,
                     title: L10n.Sources.copySourceSaveErrorTitle,
-                    message: L10n.Sources.copySourceSaveErrorMessage(copyError)
+                    message: L10n.Sources.copySourceSaveErrorMessage(copyError),
+                    announces: true
                 )
                 .accessibilityIdentifier("sources.copy.error")
             }
@@ -71,7 +72,7 @@ private struct SourceCopyForm: View {
                 Text(L10n.Sources.copySourcePartsHeading)
                     .pvMicroCaps()
                     .foregroundStyle(PVColor.textFaint)
-                SourceFormLoadArea(
+                PVFormLoadArea(
                     state: model.loadState,
                     loadingText: L10n.Sources.copySourceLoading,
                     errorTitle: L10n.Sources.copySourceLoadErrorTitle,
@@ -97,63 +98,44 @@ private struct SourceCopyForm: View {
 
     private var partCheckboxes: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
-            partTick(
-                L10n.Sources.copySourceDate,
+            PVCopyPartTick(
+                label: L10n.Sources.copySourceDate,
                 hint: model.dateLine ?? "",
-                keyPath: \.includeDate,
-                available: model.dateAvailable,
-                id: "sources.copy.date"
+                absentHint: absentHint,
+                isChecked: $model.choices.includeDate,
+                isAvailable: model.dateAvailable,
+                isDisabled: model.isSaving
             )
-            partTick(
-                L10n.Sources.copySourceDescription,
+            .accessibilityIdentifier("sources.copy.date")
+            PVCopyPartTick(
+                label: L10n.Sources.copySourceDescription,
                 hint: L10n.string(L10n.Sources.copySourceDescriptionHint),
-                keyPath: \.includeDescription,
-                available: model.descriptionAvailable,
-                id: "sources.copy.description"
+                absentHint: absentHint,
+                isChecked: $model.choices.includeDescription,
+                isAvailable: model.descriptionAvailable,
+                isDisabled: model.isSaving
             )
-            partTick(
-                L10n.Sources.copySourceMetadata,
+            .accessibilityIdentifier("sources.copy.description")
+            PVCopyPartTick(
+                label: L10n.Sources.copySourceMetadata,
                 hint: L10n.string(L10n.Sources.copySourceMetadataHint),
-                keyPath: \.includeMetadata,
-                available: model.metadataAvailable,
-                id: "sources.copy.metadata"
+                absentHint: absentHint,
+                isChecked: $model.choices.includeMetadata,
+                isAvailable: model.metadataAvailable,
+                isDisabled: model.isSaving
             )
-            partTick(
-                L10n.Sources.copySourceCredibility,
+            .accessibilityIdentifier("sources.copy.metadata")
+            PVCopyPartTick(
+                label: L10n.Sources.copySourceCredibility,
                 hint: L10n.string(L10n.Sources.copySourceCredibilityHint),
-                keyPath: \.includeCredibility,
-                available: model.credibilityAvailable,
-                id: "sources.copy.credibility"
+                absentHint: absentHint,
+                isChecked: $model.choices.includeCredibility,
+                isAvailable: model.credibilityAvailable,
+                isDisabled: model.isSaving
             )
+            .accessibilityIdentifier("sources.copy.credibility")
         }
     }
 
-    /// One part tick. An unavailable part reads unchecked and disabled, with
-    /// "None on this Source" in place of its hint.
-    private func partTick(
-        _ label: LocalizedStringResource,
-        hint: String,
-        keyPath: WritableKeyPath<SourceCopyChoices, Bool>,
-        available: Bool,
-        id: String
-    ) -> some View {
-        PVCheckbox(
-            verbatim: L10n.string(label),
-            description: available ? hint : L10n.string(L10n.Sources.copySourcePartAbsent),
-            isChecked: partBinding(keyPath, available: available),
-            isDisabled: !available || model.isSaving
-        )
-        .accessibilityIdentifier(id)
-    }
-
-    /// An unavailable part reads unchecked whatever the stored choice is.
-    private func partBinding(
-        _ keyPath: WritableKeyPath<SourceCopyChoices, Bool>,
-        available: Bool
-    ) -> Binding<Bool> {
-        Binding(
-            get: { available && model.choices[keyPath: keyPath] },
-            set: { model.choices[keyPath: keyPath] = $0 }
-        )
-    }
+    private var absentHint: String { L10n.string(L10n.Sources.copySourcePartAbsent) }
 }

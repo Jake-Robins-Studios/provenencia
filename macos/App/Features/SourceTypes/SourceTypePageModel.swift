@@ -14,11 +14,15 @@ final class SourceTypePageModel {
     /// The Details form's values; set from the saved type once it is known (`syncDraft()`).
     var draft: SourceTypeDraft?
     private(set) var isSaving = false
-    /// The Label's validation message, shown under Label as the researcher edits.
-    private(set) var labelError: String?
+    /// The Label's error, shown under Label as the researcher edits.
+    private(set) var labelCheck = SourceTypeLabelCheck()
     /// A refused or failed Save, shown beside Save and announced.
     private(set) var saveError: String?
     var toast: VocabularyToast?
+    /// The Copy type sheet, while it is open (`View.sourceTypeCopyDialog`).
+    var copying: SourceTypeCopyModel?
+    /// The label of a copy whose move to its page the leave guard is holding; nil otherwise.
+    private var heldCopyLabel: String?
 
     /// The one suggestion write in flight, across all three lists.
     enum SuggestionWrite: Equatable {
@@ -165,26 +169,22 @@ final class SourceTypePageModel {
         return draft.labelError == nil && !isSaving && isDirty
     }
 
-    /// Sets the label and shows or clears its error as the researcher types, as
-    /// `SourceTypeAddModel.editLabel(_:)` does.
     func editLabel(_ new: String) {
-        guard var draft, new != draft.label else { return }
-        draft.label = new
+        guard var draft else { return }
+        labelCheck.edit(new, in: &draft)
         self.draft = draft
-        labelError = draft.labelError
     }
 
     func revertEdit() {
         guard let type else { return }
         draft = Self.draft(of: type)
-        labelError = nil
+        labelCheck.clear()
         saveError = nil
     }
 
     func submit() async {
         guard let draft, let type, !isLocked else { return }
-        labelError = draft.labelError
-        guard labelError == nil else { return }
+        guard labelCheck.validate(draft) else { return }
         isSaving = true
         saveError = nil
         defer { isSaving = false }
@@ -207,6 +207,27 @@ final class SourceTypePageModel {
 
     private static func draft(of type: CatalogSourceType) -> SourceTypeDraft {
         SourceTypeDraft(label: type.label, description: type.description, iconKey: type.iconKey)
+    }
+
+    // MARK: Copy
+
+    /// Copy is offered once the type is known and until it is gone, on every origin: copying only
+    /// reads the original, and the copy is the researcher's.
+    var canOpenCopy: Bool { type != nil && !isGone }
+
+    /// Opens the Copy type sheet for the saved type. The sheet copies saved values, never the
+    /// Details draft.
+    func openCopy() {
+        guard canOpenCopy, let type else { return }
+        copying = SourceTypeCopyModel(original: type, session: session, userID: userID, store: store)
+    }
+
+    /// Opens the page of a copy just made. When unsaved Details hold the move, the copy is not
+    /// lost to the researcher: Keep editing says it was made (`keepEditing()`). A move that goes
+    /// through says nothing, as Add type does.
+    func open(copy created: CatalogSourceType) {
+        navigation?.go(to: .sourceTypePage(typeId: created.id, title: created.label))
+        heldCopyLabel = navigation?.heldNavigation == nil ? nil : created.label
     }
 
     // MARK: Suggested fields
@@ -380,12 +401,20 @@ extension SourceTypePageModel: WorkspaceLeaveGuard {
     func discardAndLeave() {
         revertEdit()
         pendingLeave = nil
+        heldCopyLabel = nil
         navigation?.resumeHeldNavigation()
     }
 
-    /// Keep editing: the page stays and the held move is dropped.
+    /// Keep editing: the page stays and the held move is dropped. If the held move was to a copy
+    /// just made, a toast says the copy exists.
     func keepEditing() {
         pendingLeave = nil
+        if let label = heldCopyLabel {
+            heldCopyLabel = nil
+            session.noticeToast = VocabularyToast(
+                title: L10n.SourceTypes.copyMadeKeptEditing(label), body: "", tone: .info
+            )
+        }
         navigation?.cancelHeldNavigation()
     }
 }
