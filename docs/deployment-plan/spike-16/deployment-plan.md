@@ -75,6 +75,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 27. **The history menu behaves like every other menu.** Holding Back shows the same rows as today, which move with ↑/↓ and open with Return. Escape, a click outside and an app switch close it, and switching between Back and Forward still works.
 28. **Catalog tests make a test image one way.** `rg -n "png.Encode" core/database --glob '*_test.go'` finds no hit outside the shared test helper.
 29. **Section counts read alike.** A Source with 3 notes, 3 Artifacts and 3 Evidence graphs shows "3 notes", "3 artifacts" and "3 evidence graphs" in the three section headers. A Person with 3 likenesses shows "3 likenesses" over the Gallery, an Event or a Place "3 pictures", and the citation composer's Citation column "3 citations". A section with none shows no count.
+30. **A failed sidebar recount says so.** When the recount after a write fails (adding a Source with the catalog session refusing), the "Couldn't refresh catalog counts" toast shows, as it does when the first count at launch fails, and the badges keep their last values.
 
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
@@ -136,6 +137,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Properties empty search state" (2026-11-17) | S16-48 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
+| [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "A failed sidebar recount is silent" (2026-11-17) | S16-56 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Source page section counts differ" (S12-11 M-8, dogfood 2026-10-25), with the composer's and the Gallery's bare counts (2026-11-17) | S16-55 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | [`ideas/shared-list-helpers.md`](../../ideas/shared-list-helpers.md) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
@@ -283,6 +285,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-53 | The history menu uses the kit presenter and a kit menu row | 6d | Swift: a kit menu row with a glyph, a two-part label and a trailing ref; the history menu draws it and moves onto `.pvPopup`, its own watcher and `activeIndex` go; rows look as today | — | S16-50 | — | Scoped |
 | S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
 | S16-55 | Section counts read alike | 6c | Swift: the bare numbers on Source page Notes, the composer's Citation column and the Gallery become plural strings; Evidence graphs hides its count at zero | — | — | quick-pr | Scoped |
+| S16-56 | A failed sidebar recount says so | 6c | Swift: `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the launch's counts toast for every failure; `clearRefreshError` is used or goes | — | — | quick-pr | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -396,7 +399,8 @@ SLICE 6c — Shared list helpers                       (any time)
   S16-49  One read querier and one write querier for every catalog package
   S16-54  Catalog tests write a test PNG through one helper   (quick-pr)
   S16-55  Section counts read alike                           (quick-pr)
-  Check: bar 23, 24, 28, 29. The four PRs share no file and run in parallel.
+  S16-56  A failed sidebar recount says so                    (quick-pr)
+  Check: bar 23, 24, 28 to 30. The five PRs share no file and run in parallel.
 
 SLICE 6d — Popups                                    (any time; a chain)
   S16-50  One kit popup presenter, and the kit menus use it
@@ -467,6 +471,7 @@ S16-D8 ──▶ S16-48
 S16-49: none
 S16-54: none
 S16-55: none
+S16-56: none
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
@@ -814,6 +819,13 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 **Not this PR.** A count form on `PVSectionHeader` (declined, user 2026-11-17); an Add button in the Notes header; headers that pass other meta text ("4 checked", Promote's and the Conclusion lists' own strings).
 **Check.** Bar 29; `rg -n 'meta: .*("\\\(|String\()' macos/App` finds nothing (today it finds the three); `scripts/check-localizable-xcstrings.py` passes with the four new keys.
 **Context.** Rule "(Batch 6) A section count is a localized plural, hidden at zero"; `macos/App/Features/Sources/SourcePageNotesView.swift`, `SourcePageArtifactsView.swift` (the pattern to match), `SourcePageGraphsView.swift`; `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift`; `macos/App/Features/Conclusions/ConclusionDetailGallery.swift`, `ConclusionGallerySection.swift`, `PersonDetailContent.swift` and `ConclusionDetailGallery.swift`'s Event and Place gallery (where each gallery is built); [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+#### S16-56 — A failed sidebar recount says so
+
+**Ships.** Quick-pr, Swift. `WorkspaceView` observes `catalogCounts.lastRefreshError` (`.onChange`) and shows the existing `countsToast` ("Couldn't refresh catalog counts", `L10n.Workspace.countsRefreshFailedTitle`) whenever it becomes non-nil, so the launch `.task` no longer reads it on its own. `CatalogCounts.clearRefreshError()` is called when the toast is shown, so a second failure shows again, or is deleted if the plan finds no use. Wrong today: only the first count at launch reads the error (`WorkspaceView.swift:81`); a recount after a write (`session.onNavCountsMoved`, line 48) sets it and nothing reads it, so the badges go stale with no word.
+**Not this PR.** A marker on the sidebar badge itself (new chrome; not planned unless dogfood shows the toast is missed); retrying the recount.
+**Check.** Bar 30; a test drives `CatalogCounts` with a `FakeStore` whose `workspaceNavCounts` fails on the second call and sees the error set after a write; the launch failure still toasts once.
+**Context.** `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/App/Features/Workspace/WorkspaceView.swift` (`countsToast`, `presentHistoryIssueIfNeeded` for the toast pattern); [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
 
 ### Slice 6d — Popups
 

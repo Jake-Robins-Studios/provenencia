@@ -1,10 +1,6 @@
 # Shared list helpers
 
-**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, the tiny-PNG test writer to S16-54, type-select on a disabled row into S16-50, and the section counts to S16-55 (2026-11-17). "History menu row labels" moved to its own idea file, [`history-menu-labels.md`](history-menu-labels.md) (2026-11-17).
-
-## A failed sidebar recount is silent
-
-`WorkspaceView` reads `lastRefreshError` only in its first `.task`, so a sidebar recount that fails after a write says nothing. Observe it with `.onChange` and show it where the counts are.
+**Status:** idea only — not roadmapped. "Go reads every Swift mirror" and "Fake store keys" closed by Spike 12 S12-35 (2026-10-28). Small duplication found while planning S10-41 (the Sources list filters). Each item is a cleanup, not a feature. "In-list text matching" (closed by S11-08: `TextMatch`) and "Primary Subject kinds" (S11-23) moved into Spike 11. "Properties empty search state" , "One catalog querier" and "Trimmed empty-string binder" went to Spike 16 (S16-48, S16-49), the popup dismissal, the popup list and the history menu's rows to its S16-50 – S16-53, the tiny-PNG test writer to S16-54, type-select on a disabled row into S16-50, the section counts to S16-55, and the silent sidebar recount to S16-56 (2026-11-17). "History menu row labels" moved to its own idea file, [`history-menu-labels.md`](history-menu-labels.md) (2026-11-17).
 
 ## Return adds a pick the combo box no longer shows
 
