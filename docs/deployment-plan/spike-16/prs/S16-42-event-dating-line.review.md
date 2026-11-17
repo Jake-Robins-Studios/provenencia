@@ -1,7 +1,7 @@
 # Review — S16-42 Every event date line reads the engine's dating
 
-**Verdict:** round 1: Fits with changes — Not ready; every finding answered below. Round 2 runs once the S16-D4 board is agreed and its wording is in the plan.
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet). Both read the plan and the brief S16-D4.
+**Verdict:** Fits with changes — Ready with changes; both rounds' findings Fixed; no open blocker.
+**Rounds:** 2 (round 2 after the S16-D4 and S16-D7 boards were agreed, 2026-11-17). **Reviewers:** maintainability (opus), executability (sonnet). Both read the plan and the brief S16-D4.
 
 ## To user
 
@@ -57,3 +57,16 @@
 | X-11 | minor | STEP-2 and STEP-8 too big | **Fixed.** Split into STEP-3/STEP-4 and STEP-10/STEP-11 (13 steps; the user kept S16-42 whole, map review K3-3) |
 | X-12 | minor | Go and Swift Observation order may differ | **Declined.** Both read `ORDER BY o.ref COLLATE NOCASE` (`core/database/graphfill/load.go:179`, `core/database/observations/observations.go:102`); D-9 says so |
 | X-13 | nit | Backticked idea path warnings | Logged; the links resolve |
+
+## Round 2
+
+Both reviewers confirmed every round-1 answer against the plan and the code at `2dd631e`, except X-7 (half reflected, M2-3).
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M2-1 / X2-1 | blocker | A lone range as-of: D-4 gave High nil, T-1 and Edges gave High = Low; the Swift line differs | **Fixed.** D-3, D-4, Edges and T-1: High nil exactly when both sides are one sample; T-13 row `as of bet 1985 and 1995` |
+| M2-2 | blocker | `oneEvent` and `lifeDate` kept hand-written date keys, against "One dating" | **Fixed.** D-7: every key read through `eventLead` / `eventPeriod`; DoD sweep for `vocabkey.Property(StartDate|EndDate|AsOf)` in both packages |
+| M2-3 | major | Two Swift tests build `dateLine` from Observations | **Fixed.** §4, STEP-11, Deletes, D-15: one test deleted (T-15 replaces it), the Promote test seeds `eventTitlesByGraph`; `swift-tests.mdc` in Rules that bind |
+| M2-4 / X2-2 | major | `Keys` had no stated way to get the period, and the `MaxBuckets` flip was not split | **Fixed.** D-7 `Rules.Period` is the one lookup (six readers move); D-12 names the `Keys` line and the `indexOpen` / `lookupOpen` rule |
+| X2-3 | minor | The `rg` sweep missed multi-line callers | **Fixed.** The build is the check (the chooser is deleted) |
+| X2-4 | minor | Where `eventDating` comes from; AC-4.3 noise | **Fixed.** D-9 names the `CatalogSourceEventTitle` entry; AC-4.3 and its stop condition use the median of 3 runs and their spread |
