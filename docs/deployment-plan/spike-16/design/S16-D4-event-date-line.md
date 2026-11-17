@@ -97,7 +97,7 @@ This board decides **how the date line reads** in each dating case and **how the
 | One as-of | One day, open on both sides |
 | An as-of before the start, or after the end | Contradictory data. The line dates from the as-of, that side open; a notice for it is later work, not this board |
 | Sort | An as-of event sorts at its earliest date (10 Jan 1990), between the events dated that day as any date does |
-| Lifeline | An event with a span is a vertical bar; a side that is open fades out (today: a `bef`/`aft` date, an open range). A span of one day or less is a dot today. A bar's tether leaves at its middle, or 8 pt in from its known end when one side is open |
+| Lifeline | An event with a span is a vertical bar; a side that is open fades out (today: a `bef`/`aft` date, an open range). A span of one day or less is a dot today. A bar's tether leaves at its middle, or 8 pt in from its known end when one side is open. After this board a dot means a closed day only |
 | VoiceOver | The row's own label speaks the date line; the line itself is hidden from VoiceOver. Whatever marks an open side must be in words, not only a glyph or a fade |
 
 ### 2.1 What this board is not
@@ -126,9 +126,9 @@ This board decides **how the date line reads** in each dating case and **how the
 | ED-3 | **One as-of.** The line names the one date and shows it is an attestation, not when it happened. Recommendation, consistent with ED-2: `as of 10 Jan 1990`. It must not read like an occurrence (`10 Jan 1990`) |
 | ED-4 | **As-of with a start.** `start_date` 1985, as-ofs 10 Jan 1990 and 10 Feb 2015: closed at 1985, open after 10 Feb 2015. The board decides the wording; it must differ from the closed span `1985–10 Feb 2015` |
 | ED-5 | **As-of with an end.** As-of 1990, `end_date` 2015: open before 1990, closed at 2015. Wording by the board, mirroring ED-4 |
-| ED-6 | **Qualified as-ofs.** Each date keeps its own qualifier and the words the source gave, as today: `as of abt 1990–bef 2015` (with the ED-2 recommendation). The open-side wording never replaces a date's own `bef` / `aft` |
+| ED-6 | **Qualified as-ofs.** Each date keeps its own qualifier and the words the source gave, as today: as-ofs `abt 1990` and `bef 2015` read `as of abt 1990–bef 2015` (with the ED-2 recommendation). The open-side wording never replaces a date's own `bef` / `aft` |
 | ED-7 | **The lifeline.** An as-of event's bar spans its dating with each open side faded as today's open sides are: two as-ofs → a bar faded at both ends; a start of 1985 closes its left end; an end closes its right end. A bar open at both ends tethers from its middle. A start-only or end-only event (no as-of) now draws its bar too, faded on the side it does not record (user, 2026-11-17); a start-and-end event draws its whole span, both ends closed |
-| ED-8 | **One day, open both sides.** A single as-of (one day) is drawn so its open sides show: **the board decides** the mark. Recommendation: a short bar centred on the day, faded at both ends, at the lifeline's minimum bar length, never a plain dot (a dot is an occurrence). Its click target and tether are as a dot's |
+| ED-8 | **One day with an open side.** A single as-of (one day, open both sides) is drawn so its open sides show, as the ED-7 bar at a short fixed length centred on the day, faded on each open side: **the board decides** that length (at least twice the 16 pt fade; 32 pt recommended). It is a bar, not a new kind of mark, and tethers from its middle. The same rule draws a day-precision `bef 14 May 1880` or `aft 14 May 1880` occurrence, faded on its one open side, as a year-precision `bef 1880` is already a faded bar. A closed day stays a dot |
 | ED-9 | **Every surface reads the same line.** The Events list row, the Event page header's date and place line, the Timeline's event row, a search hit's second line, Promote's candidate menus and Promote's record rows all show the ED-1 – ED-6 text; the board draws the Events list row and names the others in a note. A long line truncates at its end as today; the place after it keeps its "+N". VoiceOver hears the row label with the same words |
 | ED-W1 | The line's wording and the lifeline mark are the same at Regular and Wide. The Events list and the Timeline keep the Wide arrangements already agreed; nothing moves between widths |
 
@@ -150,7 +150,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | 1a / 1b | ED-1 – ED-6, ED-9, ED-W1 | Events list, sorted by date, with these rows in order: "Baptism of Anna Weber" `14 May 1817`; "Residence of John Smith" start 1985 and as-ofs 10 Jan 1990, 10 Feb 2015 (ED-4) in Town Y; "Residence of Mary Smith" as-of 10 Jan 1990 only (ED-3) in Town Y; "Residence of X" as-ofs 10 Jan 1990 and 10 Feb 2015 (ED-2) in Town Y; "Occupation of X" as-of abt 1990 and bef 2015 (ED-6); "Residence of Peter Smith" as-of 1990, end 2015 (ED-5); "Residence of Ruth Smith" start 1990, end 2015 (ED-1). Each as-of row sorts at its earliest date |
 | 2 | ED-9 | Regular only: one row of each surface named in ED-9 with the ED-2 event, side by side, as a reference (Event page header line, Timeline row, search hit, Promote menu item, Promote record row) |
 | 3a / 3b | ED-7, ED-8, ED-W1 | Person page Timeline for X, born 1955: rows for a birth (dot), the ED-2 residence (bar 1990–2015 faded both ends), the ED-4 residence (bar 1985–2015, left closed, right faded), a single as-of 10 Jan 1990 (ED-8's mark), a start-only occupation 1975 (faded after), a start-and-end residence 1960–1970 (closed both). Tethers from each mark to its row |
-| 4 | ED-8 | Regular only, zoomed on the lifeline: the ED-8 one-day mark beside a dot (an occurrence) and an `aft 1990` bar, so the three read apart |
+| 4 | ED-8 | Regular only, zoomed on the lifeline: the ED-8 one-day as-of, a `bef 14 May 1880` day (faded before only), a closed `14 May 1880` dot and an `aft 1990` bar, so the four read apart |
 
 ---
 
@@ -159,9 +159,10 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Date and place line | Component | Ship | `macos/App/DesignSystem/Components/DatePlaceLine/PVDatePlaceLine.swift` `PVDatePlaceLine` | Unchanged; it takes the date text S16-42 formats. No new parameter |
-| Event secondary line | Snowflake | Ship | `macos/App/Features/Conclusions/EventsListView.swift` `EventSecondaryLine`, `EventSecondaryDisplay` | Every surface in ED-9 builds its line here; only where the date text comes from changes |
-| Row date text | Snowflake (formatter) | Extend | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay` | Formats the engine's dating (ED-1 – ED-6); the as-of wording is new `L10n.Dates` copy |
-| Lifeline mark | Snowflake | Extend | `macos/App/Features/Conclusions/PersonTimelineLifeline.swift` `PersonTimelineLifeline.Shape`; drawing in `PersonTimelineSection.swift` | The bar's open-side fade is reused for ED-7; ED-8 adds the one-day open mark; no new color or token |
+| Event secondary line | Snowflake | Ship | `macos/App/Features/Conclusions/EventsListView.swift` `EventSecondaryLine`, `EventSecondaryDisplay` | The Events list, Event page header, Timeline rows, search hits and Promote's menus build their line here; only where the date text comes from changes |
+| Graph Event line | Snowflake | Extend | `macos/App/Features/Workspace/Session/EvidenceGraphSnapshot.swift` `EvidenceGraphPlacedSubject.dateLine` | Promote's record rows; reads the engine's dating for the graph Subject instead of its Observations |
+| Row date text | Shared Platform formatter | Extend | `macos/App/Platform/DateRowDisplay.swift` `DateRowDisplay` | Formats the engine's dating (ED-1 – ED-6); the as-of wording is new `L10n.Dates` copy |
+| Lifeline mark | Snowflake | Extend | `macos/App/Features/Conclusions/PersonTimelineLifeline.swift` `PersonTimelineLifeline.Shape` `.bar`; drawing in `PersonTimelineSection.swift` | The bar's open-side fade draws ED-7 and ED-8; ED-8 is a bar at a fixed short length. No new `Shape` case, color or token |
 | List row | Component | Ship | `PVList` | Unchanged |
 
 **Non-goals.** No new kit primitive, no badge or chip for "as of", no icon, no new color or token, no tooltip listing the as-ofs (the Event page Date row lists them, S16-44).

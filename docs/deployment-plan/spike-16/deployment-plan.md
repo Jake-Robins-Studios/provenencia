@@ -656,7 +656,7 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 
 #### S16-44 — The Event page's Date row shows as-ofs
 
-**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`).
+**Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`). Then the old date fields retire (user, 2026-11-17; S16-42 review M-9): `EventSummary.Date`, `StartDate`, `EndDate` leave Go, the proto, `GoStore` and `CatalogEventSummary` (their counts stay if the row needs them), with `oneEvent`'s rule that clears start and end when `date` is set, and `DateRowDisplay.span(start:end:)` loses its last event caller.
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause.
 **Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; brief S16-D6.
