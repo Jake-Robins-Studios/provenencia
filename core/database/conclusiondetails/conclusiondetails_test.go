@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mendahu/provenencia/core/autoreconcile"
 	"github.com/mendahu/provenencia/core/database"
@@ -32,6 +34,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
+	"github.com/mendahu/provenencia/core/datevalue"
 	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
 	"github.com/mendahu/provenencia/core/namevalue"
 	"github.com/mendahu/provenencia/core/propertymeta"
@@ -50,6 +53,7 @@ type fixture struct {
 	name   properties.Property
 	sex    properties.Property
 	date   properties.Property
+	asOf   properties.Property
 }
 
 func must(t testing.TB, err error) {
@@ -73,6 +77,8 @@ func newFixture(t *testing.T) *fixture {
 	f.sex, err = properties.Lookup(c, "sex_at_birth", vocabkey.OriginProvenencia)
 	must(t, err)
 	f.date, err = properties.Lookup(c, "date", vocabkey.OriginProvenencia)
+	must(t, err)
+	f.asOf, err = properties.Lookup(c, "as_of", vocabkey.OriginProvenencia)
 	must(t, err)
 	return f
 }
@@ -679,6 +685,134 @@ func TestDetailValuesFollowAnEdit(t *testing.T) {
 
 func (f *fixture) dateIn(s subjects.Subject, year int) observations.Input {
 	return observations.Input{SubjectID: s.ID, PropertyID: f.date.ID, Date: datevaluetest.YMD(year, 0, 0)}
+}
+
+func (f *fixture) asOfIn(s subjects.Subject, d *datevalue.Value) observations.Input {
+	return observations.Input{SubjectID: s.ID, PropertyID: f.asOf.ID, Date: d}
+}
+
+// A multiple date field sends its values in date order; rank stays the wire's.
+func TestForEntityMultipleDatesInDateOrder(t *testing.T) {
+	type rec struct {
+		key  string // "as_of", "date", "name"
+		date *datevalue.Value
+		name string
+	}
+	asOf := func(d *datevalue.Value) rec { return rec{key: "as_of", date: d} }
+	tests := []struct {
+		name    string
+		recs    []rec // one Source each, in order
+		field   string
+		wantFst func(v conclusiondetails.Value) bool
+		wantYrs []int // start years of the values, in order; 0 = no date
+	}{
+		{"two sources on 2015, one on 1990", []rec{asOf(datevaluetest.YMD(2015, 0, 0)), asOf(datevaluetest.YMD(2015, 0, 0)), asOf(datevaluetest.YMD(1990, 0, 0))}, "as_of", nil, []int{1990, 2015}},
+		{"range sorts by its first day", []rec{asOf(datevaluetest.YMD(1990, 0, 0)), asOf(datevaluetest.Between(1950, 0, 0, 1955, 0, 0))}, "as_of", nil, []int{1950, 1990}},
+		{"a qualified date sorts at its point", []rec{asOf(datevaluetest.After(1960, 0, 0)), asOf(datevaluetest.YMD(1950, 0, 0))}, "as_of", nil, []int{1950, 1960}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newFixture(t)
+			var subs []subjects.Subject
+			for i, r := range tt.recs {
+				s := f.subjectOn(f.source(fmt.Sprintf("Source %d", i)), "event")
+				f.cite(s, f.asOfIn(s, r.date))
+				subs = append(subs, s)
+			}
+			h := f.promote(subs[0], nil)
+			for _, s := range subs[1:] {
+				f.promote(s, h)
+			}
+			fld := field(f.detail(h), tt.field)
+			var got []int
+			for _, v := range fld.Values {
+				y := 0
+				if v.Value.Date != nil && v.Value.Date.StartYear != nil {
+					y = *v.Value.Date.StartYear
+				}
+				got = append(got, y)
+			}
+			if !slices.Equal(got, tt.wantYrs) {
+				t.Fatalf("value years %v, want %v (%+v)", got, tt.wantYrs, fld.Values)
+			}
+			// Outcomes follow the values' order.
+			var seen []int
+			for _, o := range fld.Outcomes {
+				for i, v := range fld.Values {
+					if v.Rank == o.ValueRank {
+						seen = append(seen, i)
+					}
+				}
+			}
+			if !slices.IsSorted(seen) {
+				t.Fatalf("outcome value positions %v not in value order", seen)
+			}
+		})
+	}
+
+	t.Run("support rank is kept on a reordered value", func(t *testing.T) {
+		f := newFixture(t)
+		a, b, c := f.subjectOn(f.source("A"), "event"), f.subjectOn(f.source("B"), "event"), f.subjectOn(f.source("C"), "event")
+		f.cite(a, f.asOfIn(a, datevaluetest.YMD(2015, 0, 0)))
+		f.cite(b, f.asOfIn(b, datevaluetest.YMD(2015, 0, 0)))
+		f.cite(c, f.asOfIn(c, datevaluetest.YMD(1990, 0, 0)))
+		h := f.promote(a, nil)
+		f.promote(b, h)
+		f.promote(c, h)
+		fld := field(f.detail(h), "as_of")
+		if len(fld.Values) != 2 || fld.Values[0].Rank != 2 || fld.Values[1].Rank != 1 ||
+			fld.Values[0].Support != 1 || fld.Values[1].Support != 2 {
+			t.Fatalf("values %+v", fld.Values)
+		}
+		if len(fld.Outcomes) != 3 || fld.Outcomes[0].ValueRank != 2 || fld.Outcomes[1].ValueRank != 1 || fld.Outcomes[2].ValueRank != 1 ||
+			fld.Outcomes[0].GroupRank != 2 || fld.Outcomes[1].GroupRank != 1 {
+			t.Fatalf("outcomes %+v", fld.Outcomes)
+		}
+	})
+
+	t.Run("a single-valued date field keeps rank order", func(t *testing.T) {
+		f := newFixture(t)
+		a, b, c := f.subjectOn(f.source("A"), "event"), f.subjectOn(f.source("B"), "event"), f.subjectOn(f.source("C"), "event")
+		f.cite(a, f.dateIn(a, 1849))
+		f.cite(b, f.dateIn(b, 1849))
+		f.cite(c, f.dateIn(c, 1817))
+		h := f.promote(a, nil)
+		f.promote(b, h)
+		f.promote(c, h)
+		fld := field(f.detail(h), "date")
+		if len(fld.Values) != 2 || fld.Values[0].Rank != 1 || *fld.Values[0].Value.Date.StartYear != 1849 || fld.Values[1].Rank != 2 || *fld.Values[1].Value.Date.StartYear != 1817 {
+			t.Fatalf("values %+v", fld.Values)
+		}
+	})
+}
+
+// A crafted event with 10,000 as-ofs still reads in date order, and the read
+// stays cheap.
+func TestForEntityManyAsOfs(t *testing.T) {
+	f := newFixture(t)
+	s := f.subjectOn(f.source("Directory"), "event")
+	var ins []observations.Input
+	for i := 0; i < 10000; i++ {
+		ins = append(ins, f.asOfIn(s, datevaluetest.YMD(1100+(i*7919)%900, 0, 0)))
+	}
+	res, _, err := observationstest.Cite(f.C, userID, s.GraphID, f.arts[string(s.SourceID)].ID, locator, ins...)
+	must(t, err)
+	if len(res.Observations) != 10000 {
+		t.Fatalf("filed %d", len(res.Observations))
+	}
+	h := f.promote(s, nil)
+	start := time.Now()
+	d := f.detail(h)
+	t.Logf("ForEntity took %v", time.Since(start))
+	fld := field(d, "as_of")
+	if len(fld.Values) != 900 {
+		t.Fatalf("%d values", len(fld.Values))
+	}
+	for i := 1; i < len(fld.Values); i++ {
+		if *fld.Values[i-1].Value.Date.StartYear >= *fld.Values[i].Value.Date.StartYear {
+			t.Fatalf("value %d out of date order", i)
+		}
+	}
 }
 
 func TestFieldsOf(t *testing.T) {
