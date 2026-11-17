@@ -39,6 +39,10 @@ type catalogShape struct {
 	Name                                           func(i int) string
 	Rand                                           *rand.Rand
 	Dates                                          bool
+	// AsOfShare is the share of town deaths whose date is written on the as_of
+	// Property instead of date. Each is chosen from a stream of its own, so the
+	// catalog at 0 is the catalog without the field, byte for byte.
+	AsOfShare float64
 	// TreeGenerations, when above 0, adds a parent tree of 2^TreeGenerations - 1
 	// persons whose root is named TreeRoot: person n has parents 2n and 2n+1,
 	// each as a filed parent relationship, and each couple has a marriage with
@@ -286,6 +290,10 @@ func bulkCanon(db *sql.DB, city []byte, shape catalogShape) error {
 	if err != nil {
 		return err
 	}
+	asOfP, err := idOf(db, "properties", "as_of")
+	if err != nil {
+		return err
+	}
 	roleTerm, err := termOf(db, "role", "subject")
 	if err != nil {
 		return err
@@ -416,7 +424,7 @@ func bulkCanon(db *sql.DB, city []byte, shape catalogShape) error {
 	}
 	// event writes one event with its subject participation, its place and,
 	// when it has one, its date.
-	event := func(eventID, partID, locID, n, refN int, person, place, typeTerm []byte, d *datevalue.Value) error {
+	event := func(eventID, partID, locID, n, refN int, person, place, typeTerm, dateProp []byte, d *datevalue.Value) error {
 		ev := databasetest.BenchID(0xB0, eventID+n)
 		if _, err := ent.Exec(ev, eventT, benchRef("EVT", refN)); err != nil {
 			return err
@@ -429,7 +437,7 @@ func bulkCanon(db *sql.DB, city []byte, shape catalogShape) error {
 			if err != nil {
 				return err
 			}
-			if _, err := dateVal.Exec(ev, dateP, b); err != nil {
+			if _, err := dateVal.Exec(ev, dateProp, b); err != nil {
 				return err
 			}
 		}
@@ -470,14 +478,19 @@ func bulkCanon(db *sql.DB, city []byte, shape catalogShape) error {
 			p, term = i%shape.Persons, deathTerm
 			year = deathYear[p]
 		}
-		if err := event(100000, 200000, 400000, i, i, persons[p], cities[i%shape.Cities], term, dateFor(year)); err != nil {
+		if err := event(100000, 200000, 400000, i, i, persons[p], cities[i%shape.Cities], term, dateP, dateFor(year)); err != nil {
 			return err
 		}
 	}
+	asOf := rand.New(rand.NewPCG(3, 4))
 	for j := 0; j < shape.TownEvents; j++ {
 		p := r.IntN(shape.Persons)
 		k := r.IntN(shape.Towns)
-		if err := event(600000, 700000, 800000, j, 500000+j, persons[p], towns[k], deathTerm, dateFor(deathYear[p])); err != nil {
+		dateProp := dateP
+		if asOf.Float64() < shape.AsOfShare {
+			dateProp = asOfP
+		}
+		if err := event(600000, 700000, 800000, j, 500000+j, persons[p], towns[k], deathTerm, dateProp, dateFor(deathYear[p])); err != nil {
 			return err
 		}
 	}
@@ -661,21 +674,25 @@ func BenchmarkCacheSizes(b *testing.B) {
 }
 
 // BenchmarkLargeSourcePropose reports Promote's proposal of Source A on the
-// large fixture at 4,000 and 16,000 persons: warm, and right after a handle
-// commit. Reported, not gated: TestLargeSourceBudgets gates the figures at 4,000
-// persons. It ignores b.N, as BenchmarkCacheSizes does.
+// large fixture at 4,000 and 16,000 persons, with none and with 30% of the
+// deaths (the town deaths in the catalog, Source A's own deaths) dated by an
+// as-of instead of a date: warm, and right after a handle commit. Reported, not
+// gated: TestLargeSourceBudgets gates the figures at 4,000 persons. It ignores
+// b.N, as BenchmarkCacheSizes does.
 func BenchmarkLargeSourcePropose(b *testing.B) {
 	for _, persons := range []int{4000, 16000} {
-		b.Run(fmt.Sprintf("persons=%d", persons), func(b *testing.B) {
-			lf := newLargeFixture(b, persons)
-			ms := func(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
-			warm := lf.warmProposal()
-			n := 0
-			after := lf.proposalAfterCommit(&n)
-			b.ReportMetric(ms(warm), "warm-ms")
-			b.ReportMetric(ms(after), "after-commit-ms")
-			b.ReportMetric(float64(after)/float64(warm), "after-commit-x")
-		})
+		for _, share := range []float64{0, 0.3} {
+			b.Run(fmt.Sprintf("persons=%d/asof=%g", persons, share), func(b *testing.B) {
+				lf := newLargeFixtureAsOf(b, persons, share)
+				ms := func(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
+				warm := lf.warmProposal()
+				n := 0
+				after := lf.proposalAfterCommit(&n)
+				b.ReportMetric(ms(warm), "warm-ms")
+				b.ReportMetric(ms(after), "after-commit-ms")
+				b.ReportMetric(float64(after)/float64(warm), "after-commit-x")
+			})
+		}
 	}
 }
 
