@@ -75,18 +75,4 @@ No new blockers.
 Nits (logged): `MNT-6 · impact_test.go · failure message still prints the literal "leavesNoGraph", not ViaLeavesNoGraph`
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: none
-
-## Round 1 — fix
-Head `bc5ba301d`. Gate PASS (orchestrator run; xcode-test 61s). F-1 to F-7 done; F-5 and F-6 share one commit (`024deeb`, the table rewrite and the helper swap edit the same lines). Orchestrator checked F-1: `Localizable.xcstrings` 16997 and 17003 read "won’t … can’t".
-
-## Round 2 — review
-Reviewers: CON, MNT (the lenses with a Fix-now blocker or major). Scope `5dd8cb6de...bc5ba301d`.
-- CON-1 to CON-6: Resolved. MNT-1 to MNT-5: Resolved.
-- UX-1 (minor, same fix as CON-1): Resolved, read by the orchestrator.
-No new blockers.
-
-Nits (logged): `MNT-6 · impact_test.go · failure message still prints the literal "leavesNoGraph", not ViaLeavesNoGraph`
-
-## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: none
+Gate PASS · CI green (`715c0b153`) · open: none · follow-ups: none · to user: none
