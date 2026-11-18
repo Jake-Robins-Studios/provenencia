@@ -2,6 +2,8 @@ package deleteimpact
 
 import (
 	"database/sql"
+	"maps"
+	"slices"
 
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 )
@@ -68,24 +70,31 @@ func buildCascadeEdges() []inboundEdge {
 	return []inboundEdge{lastMemberEdge, leavesHandle, leavesNoGraph}
 }
 
-// CascadeVias returns the Via of every Named facet release and every
-// cascadeEdgeList entry. TestSwiftVocabularyMatchesGo reads it for the
-// "cascade vias" row: a new cascade fails the parity test until Swift has its
-// case (D-9).
-func CascadeVias() []string {
-	seen := map[string]bool{}
-	var out []string
+// cascadeEdges returns every cascade edge: Named facet releases converted to
+// inboundEdge (facets first), then cascadeEdgeList. Used by cascadesFor and
+// CascadeVias to share one edge set.
+func cascadeEdges() []inboundEdge {
+	var out []inboundEdge
 	for _, f := range facetReleases() {
-		if f.Named && !seen[f.Via] {
-			seen[f.Via] = true
-			out = append(out, f.Via)
+		if !f.Named {
+			continue
 		}
+		out = append(out, inboundEdge{
+			Parent: f.Parent, Via: f.Via, Child: f.Child, Bucket: catalogmodel.BucketFacet,
+			Count: f.Count, List: f.List,
+		})
 	}
-	for _, e := range cascadeEdgeList {
-		if !seen[e.Via] {
-			seen[e.Via] = true
-			out = append(out, e.Via)
-		}
-	}
+	out = append(out, cascadeEdgeList...)
 	return out
+}
+
+// CascadeVias returns the Via of every cascade edge, sorted. TestSwiftVocabularyMatchesGo
+// reads it for the "cascade vias" row: a new cascade fails the parity test until Swift
+// has its case.
+func CascadeVias() []string {
+	vias := map[string]bool{}
+	for _, e := range cascadeEdges() {
+		vias[e.Via] = true
+	}
+	return slices.Sorted(maps.Keys(vias))
 }
