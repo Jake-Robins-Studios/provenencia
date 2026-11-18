@@ -1,6 +1,19 @@
+import AppKit
 import SwiftUI
 
+/// The app has one workspace window: closing it quits, and it never becomes a tab.
+final class ProvenenciaAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        true
+    }
+}
+
 struct ProvenenciaApp: App {
+    @NSApplicationDelegateAdaptor(ProvenenciaAppDelegate.self) private var appDelegate
     // Owned here (not inside the view hierarchy) because `.commands` builds
     // the app menu at the Scene level, outside the views that hold
     // `OnboardingModel` / `WorkspaceModel` — see `SignOutCoordinator` and
@@ -17,7 +30,7 @@ struct ProvenenciaApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        Window(Text(verbatim: "Provenencia"), id: "workspace") {
             OnboardingView()
                 .environment(signOutCoordinator)
                 .environment(navigationCoordinator)
