@@ -152,7 +152,7 @@ struct SourceTypePageModelTests {
         #expect(model.saveError == nil)
     }
 
-    /// UX-3: a type deleted elsewhere leaves with a notice that names it.
+    /// UX-3: a deleted type leaves with a notice that names it.
     @Test func goneTypeNamesItselfInTheNotice() async {
         let (model, session) = await makePageModel(typeID: "t1", types: [seededSourceType()])
         model.noteLabel(model.type?.label)

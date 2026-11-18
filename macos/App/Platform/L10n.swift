@@ -6082,7 +6082,7 @@ enum L10n {
             return L10n.format(LocalizedStringResource(
                 "sources.page.deletedNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source page whose Source another window deleted; argument is the Source title"
+                comment: "Notice after leaving a Source page whose Source was deleted (Back to it, or a write on its cached page); argument is the Source title"
             ), title)
         }
 
@@ -8165,7 +8165,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.page.goneNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source type page whose type another window deleted; argument is the type label"
+                comment: "Notice after leaving a Source type page whose type was deleted; argument is the type label"
             ), label)
         }
 
@@ -9897,7 +9897,7 @@ enum L10n {
                 return LocalizedStringResource(
                     "conclusions.person.gone",
                     defaultValue: "This person no longer exists. They may have been merged into another person.",
-                    comment: "Toast and notice when a Person page's person was deleted or merged in another window"
+                    comment: "Toast and notice when a Person page's person was deleted or merged"
                 )
             default:
                 return L10n.Errors.conclusionDetailsNotFound
@@ -11312,7 +11312,7 @@ enum L10n {
         static let sourcesNotFound = LocalizedStringResource(
             "error.sources.not_found",
             defaultValue: "This Source no longer exists.",
-            comment: "FFI error sources.not_found: the Source was deleted in another window"
+            comment: "FFI error sources.not_found: the Source was deleted"
         )
         static let subjectPositionsInvalid = LocalizedStringResource(
             "error.subjectpositions.invalid",

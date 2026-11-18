@@ -7289,7 +7289,7 @@
       }
     },
     "sourceTypes.page.goneNotice": {
-      "comment": "Notice after leaving a Source type page whose type another window deleted; argument is the type label",
+      "comment": "Notice after leaving a Source type page whose type was deleted; argument is the type label",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9251,7 +9251,7 @@
       }
     },
     "sources.page.deletedNotice": {
-      "comment": "Notice after leaving a Source page whose Source another window deleted; argument is the Source title",
+      "comment": "Notice after leaving a Source page whose Source was deleted (Back to it, or a write on its cached page); argument is the Source title",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9263,7 +9263,7 @@
       }
     },
     "error.sources.not_found": {
-      "comment": "FFI error sources.not_found: the Source was deleted in another window",
+      "comment": "FFI error sources.not_found: the Source was deleted",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -18021,7 +18021,7 @@
       }
     },
     "conclusions.person.gone": {
-      "comment": "Toast and notice when a Person page's person was deleted or merged in another window",
+      "comment": "Toast and notice when a Person page's person was deleted or merged",
       "extractionState": "manual",
       "localizations": {
         "en": {

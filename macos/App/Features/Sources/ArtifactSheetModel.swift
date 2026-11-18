@@ -303,8 +303,7 @@ final class ArtifactSheetModel {
             }
             guard let message = context.fail(error) else { return true }
             if board.showRefusal(error) { return false }
-            // Read the locks again: a Citation may have taken the Artifact
-            // since the sheet opened, and the engine's preflight says which graph keeps it.
+            // Read the locks again: the engine's refusal says which graph keeps the Artifact.
             if !isCreate, editGraphIDs != nil { await loadLinkLocks() }
             saveError = saveErrorBody(message)
             scrollToTop()

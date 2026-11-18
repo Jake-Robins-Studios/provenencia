@@ -30,7 +30,7 @@ final class SourcePageContext {
     /// it into its scroll-reset key so a new error scrolls up to the banner.
     private(set) var pageErrorShownCount = 0
     var toast: VocabularyToast?
-    /// The notice to show when a write found this Source deleted elsewhere; the page leaves
+    /// The notice to show when a write found this Source deleted; the page leaves
     /// for the Sources list while it is set.
     var gone: String?
 
@@ -45,7 +45,7 @@ final class SourcePageContext {
         pageErrorShownCount += 1
     }
 
-    /// The one door for a failed Source page write. A Source another window deleted sets `gone`
+    /// The one door for a failed Source page write. A Source deleted while this page was cached sets `gone`
     /// and returns nil: the caller returns without writing any state, the page is leaving.
     /// Any other failure returns its message for the caller to show.
     func fail(_ error: Error) -> String? {
@@ -58,7 +58,7 @@ final class SourcePageContext {
 
     /// A failed write whose answer is the page banner: `fail`, then the banner, with `wrap`
     /// shaping the message (and `title` heading it). False when the Source was deleted
-    /// elsewhere and the page is leaving, so the caller returns without writing state.
+    /// and the page is leaving, so the caller returns without writing state.
     @discardableResult
     func showFailure(
         _ error: Error,

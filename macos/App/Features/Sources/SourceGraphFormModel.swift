@@ -3,8 +3,7 @@ import Observation
 
 /// What the Evidence graph form lets the researcher choose. One value, so
 /// "did anything change" is one comparison against the prefill. State is the
-/// unchecked Artifacts, so an Artifact added while the form is open starts
-/// checked.
+/// unchecked Artifacts.
 struct SourceGraphFormDraft: Equatable {
     var name = ""
     var description = ""
@@ -228,9 +227,7 @@ final class SourceGraphFormModel {
             let message = L10n.Sources.graphFormSaveErrorMessage(L10n.Errors.message(for: error))
             saveError = message
             scrollToTop()
-            // Any refusal of an edit: the engine's locks may have moved since
-            // the form opened (a Citation took an Artifact), so read them again
-            // and keep the refusal in view.
+            // Any refusal of an edit: read the engine's locks again and keep the refusal in view.
             if let graph, graph.hasArtifact {
                 await loadKeptLinks()
                 saveError = message

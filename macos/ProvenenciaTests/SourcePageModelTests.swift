@@ -2541,7 +2541,7 @@ struct SourcePageModelTests {
         #expect(store.updateArtifactGraphIDs.allSatisfy { $0 == nil })
     }
 
-    // MARK: Source date, Private and a Source deleted elsewhere (S15-03)
+    // MARK: Source date, Private and a deleted Source (S15-03)
 
     private func pointDraft(year: Int32, in model: SourceDateFormModel) {
         var draft = model.draft

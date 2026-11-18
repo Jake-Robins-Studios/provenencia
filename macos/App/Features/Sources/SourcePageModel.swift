@@ -76,7 +76,7 @@ final class SourcePageModel {
     var pageError: SourcePageContext.PageError? { context.pageError }
     var pageErrorShownCount: Int { context.pageErrorShownCount }
 
-    /// The notice a write set when it found this Source deleted elsewhere; the page leaves while it is set.
+    /// The notice a write set when it found this Source deleted; the page leaves while it is set.
     var gone: String? { context.gone }
 
     /// The notice to show as the page leaves: the write path's (`context.gone`), else the
