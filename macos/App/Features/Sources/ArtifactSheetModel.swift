@@ -162,12 +162,6 @@ final class ArtifactSheetModel {
         }
     }
 
-    /// The graph ids that are still in the session's graph list; a graph
-    /// deleted since the sheet opened drops out of every count and write.
-    private var liveGraphIDs: [String] {
-        (graphIDs ?? []).filter { context.session.evidenceGraph(id: $0) != nil }
-    }
-
     /// Graph id to the hint under its locked row: one lock per graph, from the
     /// first block that names it.
     var lockedGraphs: [String: String] {
@@ -178,12 +172,11 @@ final class ArtifactSheetModel {
     var checkedGraphIDs: [String] {
         guard graphIDs != nil else { return [] }
         return PVChecklistState.checkedIDs(
-            ids: liveGraphIDs, excluded: excludedGraphIDs, locked: Set(lockedGraphs.keys)
+            ids: graphIDs ?? [], excluded: excludedGraphIDs, locked: Set(lockedGraphs.keys)
         )
     }
 
-    /// The graphs the sheet offers, read from the session in the order they
-    /// were captured; a graph deleted since then drops out.
+    /// The graphs the sheet offers, read from the session in the order they were captured.
     var graphs: [CatalogEvidenceGraph] {
         (graphIDs ?? []).compactMap { context.session.evidenceGraph(id: $0) }
     }
@@ -197,17 +190,6 @@ final class ArtifactSheetModel {
     var linksChanged: Bool {
         guard graphIDs != nil else { return false }
         return Set(checkedGraphIDs) != Set(linkedGraphIDs)
-    }
-
-    /// The full set of graph ids a links Save sends: the checked ones in list
-    /// order, then the graphs made since the sheet opened that link the Artifact
-    /// (it never showed them, so a Save must not drop them).
-    private var savedGraphIDs: [String] {
-        let shown = Set(graphIDs ?? [])
-        let added = (context.session.evidenceGraphs(sourceID: context.sourceID) ?? [])
-            .filter { !shown.contains($0.id) && links($0) }
-            .map(\.id)
-        return checkedGraphIDs + added
     }
 
     /// Reads which graphs must keep the Artifact: one unlink preflight over a
@@ -290,7 +272,7 @@ final class ArtifactSheetModel {
         case .edit:
             if graphIDs != nil, linkLoadState != .ready { return false }
         }
-        let editGraphIDs: [String]? = linksChanged ? savedGraphIDs : nil
+        let editGraphIDs: [String]? = linksChanged ? checkedGraphIDs : nil
         let metadata = host.draft
         if !isCreate, !textChanged, editGraphIDs == nil, metadata == nil { return true }
         context.clearPageError()
@@ -372,7 +354,7 @@ final class ArtifactSheetModel {
                 label: label,
                 description: description,
                 // Nil when the boxes are hidden: the engine links every graph.
-                graphIDs: graphIDs == nil ? nil : savedGraphIDs,
+                graphIDs: graphIDs == nil ? nil : checkedGraphIDs,
                 metadata: metadata
             )
             // Shown before the file is ingested: if the file is refused, the Artifact the
