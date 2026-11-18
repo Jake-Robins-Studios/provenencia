@@ -4,7 +4,7 @@ One short paragraph per landed PR, newest first. Written by the PR that lands it
 
 ## S16-61 — Nothing in the app waits on a second window
 
-**Landed 2026-11-18** in [#886](https://github.com/mendahu/provenencia/pull/886). The Artifact sheet no longer closes or fires a toast when its Artifact leaves the page behind it; the graph guards (`liveGraphIDs`, `savedGraphIDs`) go, and the edit and create Saves send `checkedGraphIDs` directly. Seven tests that simulated a second window are removed. The metadata Add row's taken notice is reworded from "added in another window" to "is now on the board", and a new end-to-end test (`typeChangeClearsTheAddRowsTakenField`) drives a type change through the page and asserts the notice. Comments and strings across the Source page, Go core, and the UX review lens now describe what one window meets. Product 0.23.2.
+**Landed 2026-11-18** in [#886](https://github.com/mendahu/provenencia/pull/886). The Artifact sheet no longer closes or fires a toast when its Artifact leaves the page behind it; the graph guards (`liveGraphIDs`, `savedGraphIDs`) go, and the edit and create Saves send `checkedGraphIDs` directly. Seven tests that simulated a second window are removed. The metadata Add row's taken notice is reworded from "added in another window" to "is now suggested by this type", and a new end-to-end test (`typeChangeClearsTheAddRowsTakenField`) drives a type change through the page and asserts the notice. Comments and strings across the Source page, Go core, and the UX review lens now describe what one window meets. Product 0.23.2.
 
 ## S16-60 — The app opens one window, and closing it quits
 

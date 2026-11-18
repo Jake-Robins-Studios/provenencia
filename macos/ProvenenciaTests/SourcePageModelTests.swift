@@ -178,7 +178,7 @@ struct SourcePageModelTests {
         #expect(model.metadata.addRow?.takenFieldLabel == "Film number")
         #expect(
             L10n.Sources.metadataAddRowFieldTaken(field: "Film number")
-                == "Film number is now on the board. Pick another field."
+                == "Film number is now suggested by this type."
         )
     }
 

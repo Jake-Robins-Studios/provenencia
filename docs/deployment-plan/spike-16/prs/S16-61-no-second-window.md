@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/macos-l10n.mdc`, `.cursor/rules/swift-tests.mdc`, `.cursor/rules/macos-client.mdc`
 **Context:** working rules "(Batch 7) One workspace window, and closing it quits", "(Batch 7) Nothing is built for a second window"; [S15-34 plan](../../spike-15/prs/S15-34-artifact-edit-sheet.md) D-13, AC-3.5, AC-5.5; [S15-10 plan](../../spike-15/prs/S15-10-artifact-sheet-add-mode.md) AC-3.4, AC-4.4, T-11
 **Planned:** 2026-11-18 against `main` @ `a8b782880`
-**Landed:** No code differences from the plan.
+**Landed:** D-5 copy changed in review (UX-1, user 2026-11-18): "%@ is now suggested by this type."
 **Review:** [`S16-61-no-second-window.review.md`](S16-61-no-second-window.review.md) — Fits with changes, Ready
 
 ### Implementer — read this first
@@ -250,7 +250,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 ## 10. Manual check
 
 1. Open a project with a Source that has Artifacts and two Evidence graphs. Open an Artifact's sheet, uncheck one graph, Save: the Artifact's row shows the remaining graph. Add an Artifact with both graphs checked: it is in both.
-2. On a Photograph Source, open the Metadata Add field row, pick a field the Census type suggests, type a value, then change the Source's type to Census: the row clears its pick, keeps the value, and reads "‹Field› is now on the board. Pick another field."
+2. On a Photograph Source, open the Metadata Add field row, pick a field the Census type suggests, type a value, then change the Source's type to Census: the row clears its pick, keeps the value, and reads "‹Field› is now suggested by this type."
 3. Choose Delete on an Artifact row and, before the confirm appears, open another Artifact's sheet (or open the sheet, then use the row's Delete if it is reachable). No delete confirm shows over the sheet; after closing the sheet, the confirm shows or not, and confirming deletes only the row chosen (D-11).
 
 ## 11. Risks and stop conditions

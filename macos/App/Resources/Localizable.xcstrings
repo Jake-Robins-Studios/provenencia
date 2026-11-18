@@ -10145,7 +10145,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ is now on the board. Pick another field."
+            "value": "%@ is now suggested by this type."
           }
         }
       }
