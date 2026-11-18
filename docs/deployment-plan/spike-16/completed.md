@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-60 — The app opens one window, and closing it quits
+
+**Landed 2026-11-18** in [#884](https://github.com/mendahu/provenencia/pull/884). The workspace is one SwiftUI `Window` scene instead of a `WindowGroup`, so the File menu has no New Window, ⌘N is only the Properties page's Create property, and the window never merges into tabs. Closing the window quits the app, through `ProvenenciaAppDelegate` (`applicationShouldTerminateAfterLastWindowClosed`, and `NSWindow.allowsAutomaticWindowTabbing` off at launch), tested in `AppLaunchTests`. `macos-client-patterns.md` § 8 names the one-window rule. Quick PR. Product 0.23.1.
+
 ## S16-44 — The Event page's Date row shows as-ofs
 
 **Landed 2026-11-17** in [#881](https://github.com/mendahu/provenencia/pull/881). An event dated only by its As of dates no longer reads "No date recorded" on its Event page under an `as of …` header. The engine now names the Properties behind each event's dating with their roles (`EventSummary.dating_properties`, from the event period registry), and the Date row lists the start (`from 1985`), each kept as-of with its Source count (`as of 10 Jan 1990`) earliest first, and the end (`until 2015`), the role word in secondary ink, with a Why over every record behind them and no badge. A long list folds at 20 lines, then `Show 50 more` (`ReconciledValueRowModel.listFold`, which a Place's Names row now shares), and the spoken label reads the lines shown, 20 and then each page revealed. A multi-valued date field's values arrive in date order from `conclusiondetails` (`autoreconcile.SortKey`), measured at 10,000 as-ofs on one event. An event with a `date`, or a start and an end, keeps its row. `EventSummary.Date`, `StartDate`, `EndDate` and their counts are gone on every layer (proto fields 6 – 11 reserved), with `oneEvent`'s clear rule. Version 0.23.0.
