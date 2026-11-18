@@ -1,7 +1,7 @@
 # S16-45 — A graph delete names the Artifacts it leaves in no graph
 
 **Status:** Landed in [#888](https://github.com/mendahu/provenencia/pull/888) (2026-11-18)
-**Landed:** No differences from the plan.
+**Landed:** Two differences from the plan: (1) `cascadeEdges()` *(new)* in `cascades.go` is shared by both `cascadesFor` (which now filters it by `Parent`) and `CascadeVias` (which now returns sorted vias from it), replacing the separate iteration each had over facet releases and `cascadeEdgeList` (MNT-2); (2) `evidencegraphstest.Unlink` *(new)* in `evidencegraphstest.go` wraps the unlink write, and `Split`'s loop and `TestImpactEvidenceGraphLeavesNoGraph` both call it instead of inlining the same write (MNT-4).
 **Spike / slice:** Spike 16 · Slice 6a — A graph delete warns about its Artifacts
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: one more sentence in the graph delete confirm the kit already draws; Batch 6 working rule)

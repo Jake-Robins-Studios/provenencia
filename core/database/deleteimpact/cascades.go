@@ -64,8 +64,8 @@ func buildCascadeEdges() []inboundEdge {
 		Via:    ViaLeavesNoGraph,
 		Child:  catalogmodel.KindArtifact,
 		Bucket: catalogmodel.BucketFacet,
-		Count: countSQLFn(`SELECT COUNT(*) ` + soleLinkFrom),
-		List:  listSQLFn(`SELECT a.id, a.ref FROM artifacts a WHERE a.id IN (SELECT l.artifact_id ` + soleLinkFrom + `) ORDER BY a.ref COLLATE NOCASE LIMIT ?`),
+		Count:  countSQLFn(`SELECT COUNT(*) ` + soleLinkFrom),
+		List:   listSQLFn(`SELECT a.id, a.ref FROM artifacts a WHERE a.id IN (SELECT l.artifact_id ` + soleLinkFrom + `) ORDER BY a.ref COLLATE NOCASE LIMIT ?`),
 	}
 	return []inboundEdge{lastMemberEdge, leavesHandle, leavesNoGraph}
 }
