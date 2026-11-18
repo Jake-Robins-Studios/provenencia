@@ -93,8 +93,7 @@ final class SourceCopyModel {
 
     var credibilityAvailable: Bool { workspace?.credibility != nil }
 
-    /// The original's Artifacts in workspace order, minus the unchecked ones. A
-    /// deleted Artifact drops out and a new one starts checked.
+    /// The original's Artifacts in workspace order, minus the unchecked ones.
     var artifactIDsToCopy: [String] {
         PVChecklistState.checkedIDs(
             ids: (workspace?.artifacts ?? []).map(\.id),
