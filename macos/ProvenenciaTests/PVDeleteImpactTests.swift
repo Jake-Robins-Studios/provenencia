@@ -116,7 +116,7 @@ struct PVDeleteImpactCopyTests {
                 ),
             ]
         )
-        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A won't be in an evidence graph. Citations can't use it until it is linked."])
+        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A won\u{2019}t be in an evidence graph. Citations can\u{2019}t use it until it is linked."])
     }
 
     @Test func graphDeleteConfirmNamesArtifactsInThePlural() {
@@ -136,7 +136,7 @@ struct PVDeleteImpactCopyTests {
                 ),
             ]
         )
-        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A and ART-C won't be in an evidence graph. Citations can't use them until they are linked."])
+        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A and ART-C won\u{2019}t be in an evidence graph. Citations can\u{2019}t use them until they are linked."])
     }
 
     @Test func graphDeleteConfirmCountsArtifactsBeyondTheListedCap() {
@@ -153,7 +153,7 @@ struct PVDeleteImpactCopyTests {
         #expect(lines.count == 1)
         #expect(lines[0].hasPrefix("ART-1, "))
         #expect(lines[0].contains(", and 5 more"))
-        #expect(lines[0].hasSuffix("Citations can't use them until they are linked."))
+        #expect(lines[0].hasSuffix("Citations can\u{2019}t use them until they are linked."))
     }
 
     @Test func graphDeleteConfirmNamesCitationsThenArtifacts() {
@@ -182,7 +182,7 @@ struct PVDeleteImpactCopyTests {
         let lines = PVDeleteImpactCopy.cascadeLines(report)
         #expect(lines.count == 2)
         #expect(lines[0].contains("CIT-A") && lines[0].contains("CIT-B"))
-        #expect(lines[1] == "ART-A won't be in an evidence graph. Citations can't use it until it is linked.")
+        #expect(lines[1] == "ART-A won\u{2019}t be in an evidence graph. Citations can\u{2019}t use it until it is linked.")
     }
 
     @Test func blockedCitationListsThreeObservations() {

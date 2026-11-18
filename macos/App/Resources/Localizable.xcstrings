@@ -16994,13 +16994,13 @@
                   "one": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "won't be in an evidence graph. Citations can't use it until it is linked."
+                      "value": "won’t be in an evidence graph. Citations can’t use it until it is linked."
                     }
                   },
                   "other": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "won't be in an evidence graph. Citations can't use them until they are linked."
+                      "value": "won’t be in an evidence graph. Citations can’t use them until they are linked."
                     }
                   }
                 }
