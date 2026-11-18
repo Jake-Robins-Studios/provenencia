@@ -42,4 +42,4 @@ No new blockers.
 Nits (logged): `UX-4 · L10n.swift:6751 · translator comment still says "on the board"`
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: UX-1 (answered)
+Gate PASS · CI green (Go tests rerun once: `TestLargeSourceBudgets/warm_at_open` 2.519s over its 2.5s budget, a timing flake; this PR changes one Go comment) · open: none · follow-ups: none · to user: UX-1 (answered)
