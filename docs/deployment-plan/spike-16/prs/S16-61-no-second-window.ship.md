@@ -1,7 +1,7 @@
 # Ship log — S16-61 Nothing in the app waits on a second window
 
 **Plan:** [`S16-61-no-second-window.md`](S16-61-no-second-window.md) · **Branch:** `s16-61-no-second-window` · **PR:** [#886](https://github.com/mendahu/provenencia/pull/886)
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Base `de9921e0b`. Head `3cdb843bf`. Gate PASS (orchestrator run; xcode-test 59s). Report: deviations none.
@@ -29,3 +29,17 @@ Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrin
 Failing test first: `typeChangeClearsTheAddRowsTakenField` — change its copy assertion to `"Film number is now suggested by this type."`; it fails.
 Do: `sources.page.metadataAddRowFieldTaken` (same key) English becomes "%@ is now suggested by this type." in the `L10n` `defaultValue` and the catalog value; its comment is unchanged. In the plan, add to the Landed note: "D-5 copy changed in review (UX-1, user 2026-11-18): \"%@ is now suggested by this type.\"" and update §10 Manual check step 2's quoted text to "‹Field› is now suggested by this type.". Do not edit D-5 itself.
 Check: the test passes; `rg -n "on the board" macos` finds nothing; scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `0761030aa`. Gate PASS (orchestrator run; xcode-test 56s). F-1 done (`81eca7ba5`); F-2 done (`0761030aa`, test red first). F-2's check `rg "on the board" macos` was too broad: the four remaining hits are code, test and translator comments naming the metadata board, not on-screen copy.
+
+## Round 2 — review
+Reviewers: UX (the only lens with a Fix-now major). Scope `3cdb843bf...0761030aa`.
+- UX-1: Resolved — `L10n.swift:6750` and the catalog read "%@ is now suggested by this type."; T-1 pins it.
+- CON-1 / MNT-1 / UX-2 (minor, read by the orchestrator): Resolved — `L10n.swift:9892` reads "…deleted or merged."
+No new blockers.
+
+Nits (logged): `UX-4 · L10n.swift:6751 · translator comment still says "on the board"`
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: none · to user: UX-1 (answered)
