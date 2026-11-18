@@ -18,8 +18,8 @@ const (
 
 // soleLinkFrom is the predicate fragment shared by the count and list queries
 // for ViaLeavesNoGraph: Artifact links of a graph whose Artifact has no other
-// graph. Count uses SELECT COUNT(*) + soleLinkFrom; list joins artifacts and
-// appends ORDER BY a.ref COLLATE NOCASE LIMIT ?.
+// graph. Count uses SELECT COUNT(*) + soleLinkFrom; list uses SELECT a.id,
+// a.ref FROM artifacts a WHERE a.id IN (SELECT l.artifact_id + soleLinkFrom).
 const soleLinkFrom = `FROM evidence_graph_artifacts l WHERE l.graph_id = ? AND NOT EXISTS (SELECT 1 FROM evidence_graph_artifacts o WHERE o.artifact_id = l.artifact_id AND o.graph_id != l.graph_id)`
 
 var (
@@ -62,12 +62,8 @@ func buildCascadeEdges() []inboundEdge {
 		Via:    ViaLeavesNoGraph,
 		Child:  catalogmodel.KindArtifact,
 		Bucket: catalogmodel.BucketFacet,
-		Count:  countSQLFn(`SELECT COUNT(*) ` + soleLinkFrom),
-		List: listSQLFn(`SELECT a.id, a.ref` +
-			` FROM evidence_graph_artifacts l JOIN artifacts a ON a.id = l.artifact_id` +
-			` WHERE l.graph_id = ? AND NOT EXISTS` +
-			` (SELECT 1 FROM evidence_graph_artifacts o WHERE o.artifact_id = l.artifact_id AND o.graph_id != l.graph_id)` +
-			` ORDER BY a.ref COLLATE NOCASE LIMIT ?`),
+		Count: countSQLFn(`SELECT COUNT(*) ` + soleLinkFrom),
+		List:  listSQLFn(`SELECT a.id, a.ref FROM artifacts a WHERE a.id IN (SELECT l.artifact_id ` + soleLinkFrom + `) ORDER BY a.ref COLLATE NOCASE LIMIT ?`),
 	}
 	return []inboundEdge{lastMemberEdge, leavesHandle, leavesNoGraph}
 }
