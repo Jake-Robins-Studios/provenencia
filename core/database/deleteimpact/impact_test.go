@@ -1375,3 +1375,208 @@ func TestInboundTotals(t *testing.T) {
 		}
 	})
 }
+
+func TestImpactEvidenceGraphLeavesNoGraph(t *testing.T) {
+	// newBase creates a fresh catalog, source and Default graph with a "keep"
+	// anchor artifact that stays in Default so it never loses its last link.
+	newBase := func(t *testing.T) (c *database.Catalog, userID []byte, src sources.Source, def evidencegraphs.Graph) {
+		t.Helper()
+		c, userID = testCatalog(t)
+		if err := subjectvocab.Install(c); err != nil {
+			t.Fatal(err)
+		}
+		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		src, _, err = writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
+			return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: "Register"})
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		def = evidencegraphstest.SoleGraph(t, c, src.ID)
+		// keep stays in Default throughout so it never loses its last artifact.
+		if _, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Keep"}); err != nil {
+			t.Fatal(err)
+		}
+		return c, userID, src, def
+	}
+
+	// unlinkDef unlinks artifact id from Default inside one write.
+	unlinkDef := func(t *testing.T, c *database.Catalog, userID, defID, id []byte) {
+		t.Helper()
+		if _, _, err := writes.Run(c, writes.Op{Action: "unlink_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			changes, err := evidencegraphs.Unlink(tx, userID, defID, id)
+			return struct{}{}, changes, err
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// newArt creates an artifact linked to all graphs of src (Default at this point).
+	newArt := func(t *testing.T, c *database.Catalog, userID []byte, src sources.Source, label string) artifacts.Artifact {
+		t.Helper()
+		a, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: label})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a
+	}
+
+	t.Run("sole link", func(t *testing.T) {
+		// A in Jones only, B in both → one ViaLeavesNoGraph group, Total 1.
+		c, userID, src, def := newBase(t)
+		a := newArt(t, c, userID, src, "Page A")
+		b := newArt(t, c, userID, src, "Page B")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", a.ID, b.ID)
+		unlinkDef(t, c, userID, def.ID, a.ID)
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		g := findCascade(t, got, deleteimpact.ViaLeavesNoGraph)
+		if g.Kind != catalogmodel.KindArtifact || g.Total != 1 || len(g.Listed) != 1 {
+			t.Fatalf("cascade %+v", g)
+		}
+		if g.Listed[0].Ref != a.Ref {
+			t.Fatalf("ref %q want %q", g.Listed[0].Ref, a.Ref)
+		}
+		if g.Listed[0].Location.ArtifactID != idString(a.ID) {
+			t.Fatalf("location %+v", g.Listed[0].Location)
+		}
+	})
+
+	t.Run("two sole links", func(t *testing.T) {
+		// A and C in Jones only, B in both → Total 2, refs sorted.
+		c, userID, src, def := newBase(t)
+		a := newArt(t, c, userID, src, "Page A")
+		b := newArt(t, c, userID, src, "Page B")
+		cv := newArt(t, c, userID, src, "Page C")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", a.ID, b.ID, cv.ID)
+		unlinkDef(t, c, userID, def.ID, a.ID)
+		unlinkDef(t, c, userID, def.ID, cv.ID)
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		g := findCascade(t, got, deleteimpact.ViaLeavesNoGraph)
+		if g.Total != 2 || len(g.Listed) != 2 {
+			t.Fatalf("cascade %+v", g)
+		}
+		for i := 1; i < len(g.Listed); i++ {
+			if g.Listed[i].Ref < g.Listed[i-1].Ref {
+				t.Fatalf("not sorted: %q before %q", g.Listed[i-1].Ref, g.Listed[i].Ref)
+			}
+		}
+	})
+
+	t.Run("no sole links", func(t *testing.T) {
+		// Every Artifact in Jones is also in Default → no ViaLeavesNoGraph group.
+		c, userID, src, _ := newBase(t)
+		a := newArt(t, c, userID, src, "Page A")
+		b := newArt(t, c, userID, src, "Page B")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", a.ID, b.ID)
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		for _, g := range got.Cascades {
+			if g.Via == deleteimpact.ViaLeavesNoGraph {
+				t.Fatalf("unexpected ViaLeavesNoGraph group %+v", g)
+			}
+		}
+	})
+
+	t.Run("empty graph", func(t *testing.T) {
+		// Jones made with X, then X deleted → Jones has no artifact links.
+		c, userID, src, _ := newBase(t)
+		x := newArt(t, c, userID, src, "Page X")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", x.ID)
+		if _, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			changes, err := artifacts.Delete(tx, userID, x.ID)
+			return struct{}{}, changes, err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		for _, g := range got.Cascades {
+			if g.Via == deleteimpact.ViaLeavesNoGraph {
+				t.Fatalf("unexpected ViaLeavesNoGraph group %+v", g)
+			}
+		}
+	})
+
+	t.Run("unlinked Artifact", func(t *testing.T) {
+		// C unlinked from Default and never in Jones; Jones has only B in Default → no group.
+		c, userID, src, def := newBase(t)
+		b := newArt(t, c, userID, src, "Page B")
+		cv := newArt(t, c, userID, src, "Page C")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", b.ID)
+		unlinkDef(t, c, userID, def.ID, cv.ID)
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		for _, g := range got.Cascades {
+			if g.Via == deleteimpact.ViaLeavesNoGraph {
+				t.Fatalf("unexpected ViaLeavesNoGraph group %+v", g)
+			}
+		}
+	})
+
+	t.Run("25 sole links", func(t *testing.T) {
+		// 25 Artifacts in Jones only → Total 25, 20 listed.
+		c, userID, src, def := newBase(t)
+		keep2 := newArt(t, c, userID, src, "Keep2") // stays in both; not a sole link
+		ids := make([][]byte, 0, 26)
+		ids = append(ids, keep2.ID)
+		for i := 0; i < 25; i++ {
+			a := newArt(t, c, userID, src, fmt.Sprintf("Page %02d", i+1))
+			ids = append(ids, a.ID)
+		}
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", ids...)
+		// Unlink the 25 sole-link artifacts from Default; keep2 stays in both.
+		for _, id := range ids[1:] {
+			unlinkDef(t, c, userID, def.ID, id)
+		}
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		g := findCascade(t, got, deleteimpact.ViaLeavesNoGraph)
+		if g.Total != 25 || len(g.Listed) != 20 {
+			t.Fatalf("total=%d listed=%d, want 25/20", g.Total, len(g.Listed))
+		}
+	})
+
+	t.Run("with Citations", func(t *testing.T) {
+		// 2 Citations and one sole Artifact → Citations cascade first, then ViaLeavesNoGraph.
+		c, userID, src, def := newBase(t)
+		a := newArt(t, c, userID, src, "Page A")
+		b := newArt(t, c, userID, src, "Page B")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", a.ID, b.ID)
+		unlinkDef(t, c, userID, def.ID, a.ID)
+		if _, _, err := observationstest.Cite(c, userID, jones.ID, b.ID, testLocator); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := observationstest.Cite(c, userID, jones.ID, b.ID, testLocator); err != nil {
+			t.Fatal(err)
+		}
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		if len(got.Cascades) != 2 {
+			t.Fatalf("cascades %+v", got.Cascades)
+		}
+		if got.Cascades[0].Via != deleteimpact.ViaDeletesCitations {
+			t.Fatalf("first cascade %q, want citations", got.Cascades[0].Via)
+		}
+		if got.Cascades[1].Via != deleteimpact.ViaLeavesNoGraph {
+			t.Fatalf("second cascade %q, want leaves_no_graph", got.Cascades[1].Via)
+		}
+	})
+
+	t.Run("refused graph", func(t *testing.T) {
+		// A Subject in Jones → Allowed false (GateInbound), group still in Cascades.
+		c, userID, src, def := newBase(t)
+		a := newArt(t, c, userID, src, "Page A")
+		b := newArt(t, c, userID, src, "Page B")
+		jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", a.ID, b.ID)
+		unlinkDef(t, c, userID, def.ID, a.ID)
+		subjectstest.On(t, c, userID, jones.ID, "person", "Alice")
+		got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+		if got.Allowed || got.Gate != deleteimpact.GateInbound {
+			t.Fatalf("gate %+v", got)
+		}
+		g := findCascade(t, got, deleteimpact.ViaLeavesNoGraph)
+		if g.Total != 1 {
+			t.Fatalf("cascade %+v", g)
+		}
+	})
+}
