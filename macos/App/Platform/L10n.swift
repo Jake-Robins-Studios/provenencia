@@ -9889,7 +9889,7 @@ enum L10n {
             ), error)
         }
 
-        /// The line a record page leaves with when its record was deleted or merged elsewhere.
+        /// The line a record page leaves with when its record was deleted or merged.
         /// The kind of the page supplies it; a kind without its own line says the generic one.
         static func goneNotice(section: WorkspaceSection) -> LocalizedStringResource {
             switch section {
