@@ -140,6 +140,48 @@ struct SourcePageModelTests {
         #expect(store.sourcesByProject[projectDir]?.first?.sourceTypeID == "t2")
     }
 
+    @Test func typeChangeClearsTheAddRowsTakenField() async throws {
+        let store = makeStore()
+        store.sourceTypesByProject[projectDir] = [
+            photoType(),
+            CatalogSourceType(
+                id: "t2", key: "census", origin: "provenencia", label: "Census", description: ""
+            ),
+        ]
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        session.apply(location: WorkspaceLocation.sourcePage(sourceId: sourceID))
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+
+        model.metadata.openAddRow()
+        model.metadata.pickAddRowField("film")
+        model.metadata.setAddRowValue("F-7")
+
+        // Seed the metadata the census type's reload will return: film is now a suggestion on the board.
+        store.metadataByOwner[MetadataOwner(level: .source, id: sourceID)] = [
+            catalogMetadataEntry(catalogMetadataField("film", label: "Film number"), suggested: true),
+        ]
+
+        model.identity.beginEditType()
+        model.identity.typeDraftID = "t2"
+        await model.identity.saveType()
+        await session.settleWrites()
+
+        // Apply the refreshed workspace, as the view's status onChange does.
+        let handle: QueryHandle<CatalogSourceWorkspace> = try #require(
+            session.queryHandle(.sourceWorkspace(project: session.projectKey, sourceId: sourceID))
+        )
+        model.sync(from: handle)
+
+        #expect(model.metadata.addRow?.fieldID == "")
+        #expect(model.metadata.addRow?.value == "F-7")
+        #expect(model.metadata.addRow?.takenFieldLabel == "Film number")
+        #expect(
+            L10n.Sources.metadataAddRowFieldTaken(field: "Film number")
+                == "Film number is now on the board. Pick another field."
+        )
+    }
+
     @Test func cancelEditTypeRestoresSavedType() async {
         let store = makeStore()
         let model = makeModel(store: store)

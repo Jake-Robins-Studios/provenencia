@@ -6747,8 +6747,8 @@ enum L10n {
         static func metadataAddRowFieldTaken(field: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataAddRowFieldTaken",
-                defaultValue: "%@ was added in another window. Pick another field.",
-                comment: "Notice under the inline Add field row when its picked field was added elsewhere; argument is the field label"
+                defaultValue: "%@ is now on the board. Pick another field.",
+                comment: "Notice under the inline Add field row when a change of the Source's type put its picked field on the board; argument is the field label"
             ), field)
         }
 

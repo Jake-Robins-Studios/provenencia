@@ -10139,13 +10139,13 @@
       }
     },
     "sources.page.metadataAddRowFieldTaken": {
-      "comment": "Notice under the inline Add field row when its picked field was added elsewhere; argument is the field label",
+      "comment": "Notice under the inline Add field row when a change of the Source's type put its picked field on the board; argument is the field label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ was added in another window. Pick another field."
+            "value": "%@ is now on the board. Pick another field."
           }
         }
       }
