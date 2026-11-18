@@ -50,8 +50,9 @@ do; leave how it looks to the agreed board and the user's manual check.
   name the control that reaches it in the running app. A branch only a test
   reaches (a model method called directly) is not shipped.
 - **An id held across a round trip.** For each id the view keeps between
-  requests (a selection, a draft, a decided row), ask what happens when
-  another window deletes or merges it meanwhile. The page names the item,
+  requests (a selection, a draft, a decided row), ask what happens when the id
+  is gone by the time it is used: Back or Forward to a deleted or merged item,
+  a write on a cached page that answers not-found. The page names the item,
   recovers, and keeps the user's other work; it does not loop on an error.
 
 ### Copy
@@ -147,9 +148,9 @@ lens ([`review-pr`](../SKILL.md) "Close the loop").
   directly, and the plan's manual check was not run. Name the control.
 - **A header that kept the old default.** A behavior change swept the copy
   for one phrasing; a sentence saying the same thing in other words stayed.
-- **A deleted item that blocks the page.** After another window deleted an
-  item the page held, every request failed with an error naming nothing, and
-  only Cancel, losing every decision, got out.
+- **A deleted item that blocks the page.** After Back to an item that had been
+  deleted, every request failed with an error naming nothing, and only Cancel,
+  losing every decision, got out.
 
 ## Good finding shape
 
