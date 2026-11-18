@@ -7289,7 +7289,7 @@
       }
     },
     "sourceTypes.page.goneNotice": {
-      "comment": "Notice after leaving a Source type page whose type another window deleted; argument is the type label",
+      "comment": "Notice after leaving a Source type page whose type was deleted; argument is the type label",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9251,7 +9251,7 @@
       }
     },
     "sources.page.deletedNotice": {
-      "comment": "Notice after leaving a Source page whose Source another window deleted; argument is the Source title",
+      "comment": "Notice after leaving a Source page whose Source was deleted (Back to it, or a write on its cached page); argument is the Source title",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9263,7 +9263,7 @@
       }
     },
     "error.sources.not_found": {
-      "comment": "FFI error sources.not_found: the Source was deleted in another window",
+      "comment": "FFI error sources.not_found: the Source was deleted",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -10139,13 +10139,13 @@
       }
     },
     "sources.page.metadataAddRowFieldTaken": {
-      "comment": "Notice under the inline Add field row when its picked field was added elsewhere; argument is the field label",
+      "comment": "Notice under the inline Add field row when a change of the Source's type put its picked field on the board; argument is the field label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ was added in another window. Pick another field."
+            "value": "%@ is now suggested by this type."
           }
         }
       }
@@ -10372,30 +10372,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "sources.page.toastArtifactGoneBody": {
-      "comment": "Toast body when the Artifact whose sheet is open is gone; argument is its label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” was deleted or moved in another window."
-          }
-        }
-      }
-    },
-    "sources.page.toastArtifactGoneTitle": {
-      "comment": "Toast title when the Artifact whose sheet is open was deleted or moved in another window",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Artifact no longer here"
           }
         }
       }
@@ -18045,7 +18021,7 @@
       }
     },
     "conclusions.person.gone": {
-      "comment": "Toast and notice when a Person page's person was deleted or merged in another window",
+      "comment": "Toast and notice when a Person page's person was deleted or merged",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -21034,45 +21010,45 @@
           },
           "substitutions": {
             "subjects": {
-                "argNum": 1,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg subject"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg subjects"
-                      }
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg subject"
                     }
-                  }
-                }
-              },
-            "connections": {
-                "argNum": 2,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg connection"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg connections"
-                      }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg subjects"
                     }
                   }
                 }
               }
+            },
+            "connections": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg connection"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg connections"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -21148,25 +21124,25 @@
           },
           "substitutions": {
             "rows": {
-                "argNum": 1,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg row"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg rows"
-                      }
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg row"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rows"
                     }
                   }
                 }
               }
+            }
           }
         }
       }

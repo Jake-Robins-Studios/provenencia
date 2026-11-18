@@ -6082,7 +6082,7 @@ enum L10n {
             return L10n.format(LocalizedStringResource(
                 "sources.page.deletedNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source page whose Source another window deleted; argument is the Source title"
+                comment: "Notice after leaving a Source page whose Source was deleted (Back to it, or a write on its cached page); argument is the Source title"
             ), title)
         }
 
@@ -6747,8 +6747,8 @@ enum L10n {
         static func metadataAddRowFieldTaken(field: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataAddRowFieldTaken",
-                defaultValue: "%@ was added in another window. Pick another field.",
-                comment: "Notice under the inline Add field row when its picked field was added elsewhere; argument is the field label"
+                defaultValue: "%@ is now suggested by this type.",
+                comment: "Notice under the inline Add field row when a change of the Source's type put its picked field on the board; argument is the field label"
             ), field)
         }
 
@@ -6931,20 +6931,6 @@ enum L10n {
             defaultValue: "Finish the open field first: save its value or clear it.",
             comment: "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed"
         )
-
-        static let toastArtifactGoneTitle = LocalizedStringResource(
-            "sources.page.toastArtifactGoneTitle",
-            defaultValue: "Artifact no longer here",
-            comment: "Toast title when the Artifact whose sheet is open was deleted or moved in another window"
-        )
-
-        static func toastArtifactGoneBody(label: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.page.toastArtifactGoneBody",
-                defaultValue: "“%@” was deleted or moved in another window.",
-                comment: "Toast body when the Artifact whose sheet is open is gone; argument is its label"
-            ), label)
-        }
 
         /// VoiceOver label for an artifact preview that has a file. Argument is the file name.
         static func openArtifactFile(name: String) -> String {
@@ -8179,7 +8165,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.page.goneNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source type page whose type another window deleted; argument is the type label"
+                comment: "Notice after leaving a Source type page whose type was deleted; argument is the type label"
             ), label)
         }
 
@@ -9903,7 +9889,7 @@ enum L10n {
             ), error)
         }
 
-        /// The line a record page leaves with when its record was deleted or merged elsewhere.
+        /// The line a record page leaves with when its record was deleted or merged.
         /// The kind of the page supplies it; a kind without its own line says the generic one.
         static func goneNotice(section: WorkspaceSection) -> LocalizedStringResource {
             switch section {
@@ -9911,7 +9897,7 @@ enum L10n {
                 return LocalizedStringResource(
                     "conclusions.person.gone",
                     defaultValue: "This person no longer exists. They may have been merged into another person.",
-                    comment: "Toast and notice when a Person page's person was deleted or merged in another window"
+                    comment: "Toast and notice when a Person page's person was deleted or merged"
                 )
             default:
                 return L10n.Errors.conclusionDetailsNotFound
@@ -11326,7 +11312,7 @@ enum L10n {
         static let sourcesNotFound = LocalizedStringResource(
             "error.sources.not_found",
             defaultValue: "This Source no longer exists.",
-            comment: "FFI error sources.not_found: the Source was deleted in another window"
+            comment: "FFI error sources.not_found: the Source was deleted"
         )
         static let subjectPositionsInvalid = LocalizedStringResource(
             "error.subjectpositions.invalid",

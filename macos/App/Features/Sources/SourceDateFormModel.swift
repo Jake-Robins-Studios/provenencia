@@ -48,7 +48,7 @@ final class SourceDateFormModel {
     }
 
     /// One write. True when the date was saved, or when the Source turned out to be deleted
-    /// elsewhere (the page is leaving); false keeps the dialog open with its draft and error.
+    /// (the page is leaving); false keeps the dialog open with its draft and error.
     func save() async -> Bool {
         guard canSave else { return false }
         isSaving = true
