@@ -1,7 +1,7 @@
 # Ship log — S16-45 A graph delete names the Artifacts it leaves in no graph
 
 **Plan:** [`S16-45-graph-delete-names-no-graph-artifacts.md`](S16-45-graph-delete-names-no-graph-artifacts.md) · **Branch:** `s16-45-graph-delete-names-no-graph-artifacts` · **PR:** [#888](https://github.com/mendahu/provenencia/pull/888)
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Base: `docs/s16-45-plan-refresh` @ `4d571aa0a` (the plan refresh, PR #887, not yet merged; `main` @ `505d1222c` below it).
@@ -62,3 +62,17 @@ Check: `rg -n "func unlinkDef|func newBase" core/database/deleteimpact` prints n
 Files: `docs/deployment-plan/spike-16/prs/S16-45-graph-delete-names-no-graph-artifacts.md`.
 Do: the Landed note lists the differences from the plan after this round: `cascadeEdges()` shared by `cascadesFor` and `CascadeVias` (MNT-2), and `evidencegraphstest.Unlink` (MNT-4). F-1 and F-2 bring the code back to the plan and are not differences.
 Check: scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `bc5ba301d`. Gate PASS (orchestrator run; xcode-test 61s). F-1 to F-7 done; F-5 and F-6 share one commit (`024deeb`, the table rewrite and the helper swap edit the same lines). Orchestrator checked F-1: `Localizable.xcstrings` 16997 and 17003 read "won’t … can’t".
+
+## Round 2 — review
+Reviewers: CON, MNT (the lenses with a Fix-now blocker or major). Scope `5dd8cb6de...bc5ba301d`.
+- CON-1 to CON-6: Resolved. MNT-1 to MNT-5: Resolved.
+- UX-1 (minor, same fix as CON-1): Resolved, read by the orchestrator.
+No new blockers.
+
+Nits (logged): `MNT-6 · impact_test.go · failure message still prints the literal "leavesNoGraph", not ViaLeavesNoGraph`
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: none · to user: none
