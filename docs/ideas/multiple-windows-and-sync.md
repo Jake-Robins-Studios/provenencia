@@ -12,7 +12,7 @@ Every window lives in one process and calls one Go core, so the catalog's exclus
 4. **Menu commands follow the key window.** `SignOutCoordinator`, `NavigationCoordinator` and `OmnibarFocusCoordinator` are app-wide; they become `@FocusedValue` / `.focusedSceneValue`.
 5. **Per-window restore.** Navigation history is saved per project; two windows on one project need per-window state (`@SceneStorage`).
 6. **Sign-out is app-wide.** Signing out in one window signs out all.
-7. **What S16-61 removed comes back, built on point 3.** The Artifact sheet closing with a toast when its Artifact leaves the page (`SourceArtifactsSection.workspaceChanged`, S15-34 AC-3.5), and the sheet's live-graph filter and lock re-read, if S16-61 removed them. Git has the old versions.
+7. **What S16-61 removed comes back, built on point 3.** The Artifact sheet closing with a toast when its Artifact leaves the page (`SourceArtifactsSection.workspaceChanged`, S15-34 AC-3.5), and the sheet's handling of a graph deleted or made while it is open (`liveGraphIDs`, `savedGraphIDs`, S15-10 AC-3.4). Git has the old versions.
 
 The one-window-per-project variant (opening an open project focuses its window) avoids 2, 3 and 5.
 
