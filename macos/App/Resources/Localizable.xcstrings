@@ -10376,30 +10376,6 @@
         }
       }
     },
-    "sources.page.toastArtifactGoneBody": {
-      "comment": "Toast body when the Artifact whose sheet is open is gone; argument is its label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%@” was deleted or moved in another window."
-          }
-        }
-      }
-    },
-    "sources.page.toastArtifactGoneTitle": {
-      "comment": "Toast title when the Artifact whose sheet is open was deleted or moved in another window",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Artifact no longer here"
-          }
-        }
-      }
-    },
     "sources.page.artifactSheet.fileNotAttachedTitle": {
       "comment": "Callout title on the Artifact sheet when the artifact was made but its file failed to attach for a reason other than the file being refused",
       "extractionState": "manual",
@@ -21034,45 +21010,45 @@
           },
           "substitutions": {
             "subjects": {
-                "argNum": 1,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg subject"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg subjects"
-                      }
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg subject"
                     }
-                  }
-                }
-              },
-            "connections": {
-                "argNum": 2,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg connection"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg connections"
-                      }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg subjects"
                     }
                   }
                 }
               }
+            },
+            "connections": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg connection"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg connections"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -21148,25 +21124,25 @@
           },
           "substitutions": {
             "rows": {
-                "argNum": 1,
-                "formatSpecifier": "lld",
-                "variations": {
-                  "plural": {
-                    "one": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg row"
-                      }
-                    },
-                    "other": {
-                      "stringUnit": {
-                        "state": "translated",
-                        "value": "%arg rows"
-                      }
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg row"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg rows"
                     }
                   }
                 }
               }
+            }
           }
         }
       }

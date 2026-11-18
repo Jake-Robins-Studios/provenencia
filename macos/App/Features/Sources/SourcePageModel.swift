@@ -167,11 +167,6 @@ final class SourcePageModel {
         if previous?.notes != workspace.notes {
             notes.reset()
         }
-        // `shown` is the baseline: an Artifact the Artifact sheet made reached the page
-        // without reaching `previous`, and its leaving must still close that sheet.
-        if shown?.artifacts != workspace.artifacts {
-            artifacts.workspaceChanged()
-        }
         appliedWorkspace = workspace
     }
 

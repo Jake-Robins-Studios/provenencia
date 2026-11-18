@@ -6932,20 +6932,6 @@ enum L10n {
             comment: "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed"
         )
 
-        static let toastArtifactGoneTitle = LocalizedStringResource(
-            "sources.page.toastArtifactGoneTitle",
-            defaultValue: "Artifact no longer here",
-            comment: "Toast title when the Artifact whose sheet is open was deleted or moved in another window"
-        )
-
-        static func toastArtifactGoneBody(label: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.page.toastArtifactGoneBody",
-                defaultValue: "“%@” was deleted or moved in another window.",
-                comment: "Toast body when the Artifact whose sheet is open is gone; argument is its label"
-            ), label)
-        }
-
         /// VoiceOver label for an artifact preview that has a file. Argument is the file name.
         static func openArtifactFile(name: String) -> String {
             L10n.format(LocalizedStringResource(

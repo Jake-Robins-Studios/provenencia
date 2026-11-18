@@ -29,9 +29,6 @@ final class ArtifactSheetModel {
 
     let mode: Mode
     let opensAt: Section
-    /// The label the sheet opened with (in add mode, the label the last write sent), for the
-    /// notice when the Artifact goes.
-    private(set) var openedLabel: String
 
     var draft: ArtifactSheetDraft
     /// What the text fields are measured against: what the sheet opened with, or what the
@@ -91,13 +88,11 @@ final class ArtifactSheetModel {
         let initial: ArtifactSheetDraft
         switch mode {
         case .edit(let artifact):
-            openedLabel = artifact.label
             initial = ArtifactSheetDraft(label: artifact.label, description: artifact.description)
             let rows = context.metadataRows(for: MetadataOwner(level: .artifact, id: artifact.id))
             host = MetadataDraftHost(entries: rows, fields: context.fields)
             locks = UnlinkLocks()
         case .create(let suggestions):
-            openedLabel = ""
             initial = ArtifactSheetDraft()
             host = MetadataDraftHost(entries: suggestions, fields: context.fields)
             // A new Artifact is in no graph yet: nothing can keep it, so no lock is read.
@@ -386,7 +381,6 @@ final class ArtifactSheetModel {
             created = art
         }
         prefill = ArtifactSheetDraft(label: label, description: description)
-        openedLabel = label
         host.markSaved()
         guard var art = created else { return }
         if let path = file.filePath {

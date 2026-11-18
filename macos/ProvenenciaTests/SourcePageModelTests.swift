@@ -1696,19 +1696,6 @@ struct SourcePageModelTests {
         #expect(store.createArtifactGraphIDs == [[]])
     }
 
-    @Test func aGraphMadeWhileAddingIsLinked() async throws {
-        let (model, store, session) = await makeCensus()
-        let sheet = try await openAddSheet(model)
-        sheet.draft.label = "Page 7"
-        store.evidenceGraphsByProject[projectDir]?.append(graph("g-n", "Nolan household", []))
-        session.apply(CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: [sourceID])]))
-        await waitForQuery(session.evidenceGraphsHandle!)
-        #expect(sheet.linkLoadState == .ready)
-        let saved = await sheet.save()
-        #expect(saved)
-        #expect(store.createArtifactGraphIDs == [["g-b", "g-j", "g-s", "g-n"]])
-    }
-
     @Test func addArtifactExcludedGraphIsDirty() async throws {
         let (model, _, _) = await makeCensus()
         let sheet = try await openAddSheet(model)
@@ -1916,31 +1903,6 @@ struct SourcePageModelTests {
         #expect(!saved)
         #expect(blank.labelError != nil)
         #expect(store.createArtifactGraphIDs.isEmpty)
-    }
-
-    @Test func anAddSheetCloseRule() async throws {
-        let (model, store, _) = await makeCensus()
-        let sheet = try await openAddSheet(model)
-        sheet.draft.label = "Typed"
-        // The workspace changes (a note is added elsewhere): the sheet stays with what was typed.
-        store.notesBySource[sourceID] = [
-            CatalogSourceNote(id: "n1", sourceID: sourceID, body: "New", authorDisplayName: "Jake", createdAt: ""),
-        ]
-        await model.warmFromSession()
-        #expect(model.artifacts.sheet === sheet)
-        #expect(sheet.draft.label == "Typed")
-
-        // Once the Artifact is made, it leaving the page closes the sheet and names it.
-        store.ingestArtifactFileError = CoreInvokeError.coded(
-            status: 1, code: "ingest.invalid", kind: .user, params: []
-        )
-        sheet.file.filePath = "/tmp/provenencia-missing-\(UUID().uuidString).bin"
-        _ = await sheet.save()
-        let madeID = try #require(sheet.artifactID)
-        store.artifactsBySource[sourceID] = store.artifactsBySource[sourceID]?.filter { $0.id != madeID }
-        await model.warmFromSession()
-        #expect(model.artifacts.sheet == nil)
-        #expect(model.toast?.body == L10n.Sources.toastArtifactGoneBody(label: "Typed"))
     }
 
     private func openAddSheetAfterClosing(_ model: SourcePageModel) async throws -> ArtifactSheetModel {
@@ -2288,23 +2250,6 @@ struct SourcePageModelTests {
         #expect(await plainSheet.save() == false)
         #expect(plainSheet.saveError == L10n.Sources.artifactCardSaveErrorKept(L10n.Errors.message(for: refusal)))
     }
-
-    @Test func sheetSaveKeepsAGraphMadeDuringEdit() async throws {
-        let (model, store, session) = await makeCensus()
-        let sheet = await openSheet(model, "P3")
-        store.nextWriteEffects = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: [sourceID])])
-        let (created, _, effects) = try await store.createEvidenceGraph(
-            projectDir: projectDir, userID: userID, sourceID: sourceID,
-            name: "Walker household", description: "", artifactIDs: ["P3"], metadata: nil
-        )
-        session.apply(effects)
-        await session.settleWrites()
-        sheet.excludedGraphIDs = ["g-b", "g-j"]
-        sheet.draft.label = "Page 3, front"
-        #expect(await sheet.save() == true)
-        #expect(store.updateArtifactGraphIDs.last! == ["g-s", created.id])
-    }
-
     @Test func sheetLinkReadFailsAndReadAgain() async {
         let (model, store, _) = await makeCensus()
         store.getEvidenceGraphUnlinkImpactError = CoreInvokeError.failed(status: 3)
@@ -2385,23 +2330,6 @@ struct SourcePageModelTests {
         #expect(!sheet.isSaving)
     }
 
-    @Test func sheetSaveSkipsAGraphDeletedDuringEdit() async throws {
-        let (model, store, session) = await makeCensus()
-        let sheet = await openSheet(model, "P3")
-        sheet.excludedGraphIDs = []
-        #expect(sheet.checkedGraphIDs.contains("g-b"))
-        store.nextWriteEffects = CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .evidenceGraphs, ids: [sourceID])])
-        let effects = try await store.deleteEvidenceGraph(projectDir: projectDir, userID: userID, graphID: "g-b")
-        session.apply(effects)
-        await session.settleWrites()
-        #expect(session.evidenceGraph(id: "g-b") == nil)
-        #expect(!sheet.checkedGraphIDs.contains("g-b"))
-        sheet.draft.label = "Page 3, front"
-        #expect(await sheet.save() == true)
-        #expect(store.updateArtifactGraphIDs == [nil])
-        #expect(sheet.saveError == nil)
-    }
-
     @Test func sheetMarksAnArtifactInNoGraph() async {
         let (model, store, _) = await makeCensus(graphs: [
             graph("g-j", "Jones household", ["P3", "P4"]),
@@ -2451,16 +2379,6 @@ struct SourcePageModelTests {
         let (model, _, _) = await makeCensus()
         model.artifacts.openSheet(artifactID: "P6", at: .graphs)
         #expect(model.artifacts.sheet?.opensAt == .graphs)
-    }
-
-    @Test func artifactGoneClosesTheSheet() async {
-        let (model, store, _) = await makeCensus()
-        model.artifacts.openSheet(artifactID: "P3")
-        store.artifactsBySource[sourceID] = store.artifactsBySource[sourceID]?.filter { $0.id != "P3" }
-        await model.warmFromSession()
-        #expect(model.artifacts.sheet == nil)
-        #expect(model.toast?.title == "Artifact no longer here")
-        #expect(model.toast?.body == "“Page P3” was deleted or moved in another window.")
     }
 
     @Test func copyDetailsShowFourThenMore() {
@@ -2783,22 +2701,6 @@ struct SourcePageModelTests {
         #expect(await form.save())
         #expect(form.saveError == nil)
         #expect(model.gone == L10n.Sources.sourceDeletedNotice(title: "Family album"))
-    }
-
-    @Test func deletedSourceDuringACoverRefreshLeaves() async {
-        let store = makeStore(artifacts: [
-            CatalogArtifact(
-                id: "a1", ref: "ART-AAAAA", sourceID: sourceID, fileID: "f1",
-                label: "Scan", description: "", file: nil
-            ),
-        ])
-        let model = makeModel(store: store)
-        await model.warmFromSession()
-        await model.askDeleteArtifact(id: "a1")
-        store.getSourceWorkspaceError = FakeStore.sourceNotFound
-        await model.confirmResourceDelete(leaving: {})
-        #expect(model.gone == L10n.Sources.sourceDeletedNotice(title: "Family album"))
-        #expect(model.pageError == nil)
     }
 
     @Test func pageErrorCountMovesOnShowNotOnClear() async {

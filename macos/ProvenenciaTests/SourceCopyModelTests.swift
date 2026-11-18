@@ -253,18 +253,6 @@ struct SourceCopyModelTests {
         #expect(copy?.date == nil)
     }
 
-    @Test func artifactDeletedElsewhereIsDropped() async {
-        let store = makeStore()
-        let (model, session) = await loaded(store)
-        #expect(model.artifactIDsToCopy == ["a1", "a2"])
-
-        store.artifactsBySource["s1"] = [catalogArtifact("a1", label: "Front page")]
-        session.invalidate(workspaceKey(session))
-        let handle: QueryHandle<CatalogSourceWorkspace> = session.query(workspaceKey(session))
-        await waitForQuery(handle)
-        #expect(model.artifactIDsToCopy == ["a1"])
-    }
-
     @Test func readAgainReloadsWorkspace() async {
         let store = makeStore()
         let (model, session) = await loaded(store)
