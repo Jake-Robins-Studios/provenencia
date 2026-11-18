@@ -121,16 +121,7 @@ func facetReleasesFor(kind catalogmodel.Kind) []facetRelease {
 // cascadesFor is the Named facets of kind plus cascade-only edges, as non-blocking Impact edges.
 func cascadesFor(kind catalogmodel.Kind) []inboundEdge {
 	var out []inboundEdge
-	for _, f := range facetReleasesFor(kind) {
-		if !f.Named {
-			continue
-		}
-		out = append(out, inboundEdge{
-			Parent: f.Parent, Via: f.Via, Child: f.Child, Bucket: catalogmodel.BucketFacet,
-			Count: f.Count, List: f.List,
-		})
-	}
-	for _, e := range cascadeEdgeList {
+	for _, e := range cascadeEdges() {
 		if e.Parent == kind {
 			out = append(out, e)
 		}

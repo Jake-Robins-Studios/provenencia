@@ -92,15 +92,20 @@ func Split(t testing.TB, c *database.Catalog, userID, sourceID []byte, name stri
 	def = SoleGraph(t, c, sourceID)
 	graph = Create(t, c, userID, sourceID, name, artifactIDs...)
 	for _, id := range artifactIDs {
-		_, _, err := writes.Run(c, writes.Op{Action: "unlink_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := evidencegraphs.Unlink(tx, userID, def.ID, id)
-			return struct{}{}, changes, err
-		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		Unlink(t, c, userID, def.ID, id)
 	}
 	return def, graph
+}
+
+// Unlink unlinks one Artifact from a graph inside one write; the test fails on error.
+func Unlink(t testing.TB, c *database.Catalog, userID, graphID, artifactID []byte) {
+	t.Helper()
+	if _, _, err := writes.Run(c, writes.Op{Action: "unlink_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := evidencegraphs.Unlink(tx, userID, graphID, artifactID)
+		return struct{}{}, changes, err
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // ArtifactGraphs returns the ids of the graphs the Artifact is linked to,

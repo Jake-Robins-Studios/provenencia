@@ -9188,6 +9188,15 @@ enum L10n {
             ), count, handleRefs)
         }
 
+        /// Allowed graph delete confirm: Artifacts left in no evidence graph. Arguments: count, artifact refs (joined).
+        static func leavesNoGraph(count: Int, refs: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "deleteImpact.confirm.leavesNoGraph",
+                defaultValue: "%2$@ %#@graphs@",
+                comment: "Allowed graph delete confirm, appended after the Citations line; arguments are how many Artifacts and the artifact ref(s), such as ART-7KD45"
+            ), count, refs)
+        }
+
         /// Fallback for a cascade via the Mac has no specific copy for. Arguments: kind noun, refs.
         static func alsoAffects(noun: String, refs: String) -> String {
             return L10n.format(LocalizedStringResource(

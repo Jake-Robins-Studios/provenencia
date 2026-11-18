@@ -16976,6 +16976,40 @@
         }
       }
     },
+    "deleteImpact.confirm.leavesNoGraph": {
+      "comment": "Allowed graph delete confirm, appended after the Citations line; arguments are how many Artifacts and the artifact ref(s), such as ART-7KD45",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$@ %#@graphs@"
+          },
+          "substitutions": {
+            "graphs": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "won’t be in an evidence graph. Citations can’t use it until it is linked."
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "won’t be in an evidence graph. Citations can’t use them until they are linked."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "unpromote.unpromotedAnnouncement": {
       "comment": "VoiceOver announcement after a record is unpromoted and its person, event or place stays; the argument is the record's name",
       "extractionState": "manual",

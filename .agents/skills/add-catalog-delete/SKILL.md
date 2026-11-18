@@ -36,6 +36,7 @@ Every facet `CASCADE` FK is registered as `facet` and classified:
   - `rowFacet(...)` for plain rows. List the parent FK column in `cols`: the released delete change is how audit scopes find the owner once the row is gone ([`add-audit-scope`](../add-audit-scope/SKILL.md)).
   - A custom `Release` when the row has facets of its own.
   - `Named: true` with `Count` / `List` / `Child` when the confirm should name what's affected. That fills `Report.Cascades` and never gates.
+  - An informing cascade that is not a release (a consequence such as `canonical_entities.last_member` or `evidence_graph_artifacts.last_graph`) is an edge in `buildCascadeEdges` in `core/database/deleteimpact/cascades.go`, with its via in that file's const block and a `DeleteImpactCascadeVia` case; `TestSwiftVocabularyMatchesGo` reads `CascadeVias()` and fails until the case exists.
 
 Every `BucketOptional` `SET NULL` FK whose parent is deletable needs exactly one `optionalPointer(...)` entry (update change before the parent delete; pass side-effect columns as typed `col{...}` entries — for example `col{"cover_mode", colText}` — when a trigger may rewrite them). Do not set `Audited: true` on optional FKs — `Audited` stays CASCADE-only.
 
