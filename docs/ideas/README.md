@@ -67,6 +67,10 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
 
+### App shell and collaboration
+
+- [`multiple-windows-and-sync.md`](multiple-windows-and-sync.md) — what a return to several workspace windows needs, and what sync between two researchers' copies adds on top
+
 Closed spikes (decisions, not PR order): [`docs/deployment-plan/archive/`](../deployment-plan/archive/).
 
 Pulled into [Spike 15](../deployment-plan/spike-15/): nested Sources / derivation / templates ([`source-structure-later.md`](../deployment-plan/spike-15/source-structure-later.md)); Source privacy toggle; credibility field UX; rethink of Source metadata and type suggestions.
