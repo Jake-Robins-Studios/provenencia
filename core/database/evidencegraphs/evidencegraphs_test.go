@@ -1576,14 +1576,7 @@ func TestDelete(t *testing.T) {
 			t.Fatalf("no ViaLeavesNoGraph cascade %+v", report.Cascades)
 			return deleteimpact.Group{}
 		}()
-		db, err := f.c.DB()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var aRef string
-		if err := db.QueryRow(`SELECT ref FROM artifacts WHERE id = ?`, a).Scan(&aRef); err != nil {
-			t.Fatal(err)
-		}
+		aRef := artifactRef(t, f.c, a)
 		if g.Total != 1 || len(g.Listed) != 1 || g.Listed[0].Ref != aRef {
 			t.Fatalf("cascade %+v", g)
 		}
