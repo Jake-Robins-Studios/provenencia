@@ -102,6 +102,89 @@ struct PVDeleteImpactCopyTests {
         #expect(PVDeleteImpactCopy.cascadeLines(report) == ["The graph’s 1 citation is deleted with it: CIT-A."])
     }
 
+    @Test func graphDeleteConfirmNamesTheArtifactItLeavesInNoGraph() {
+        let report = CatalogDeleteImpact(
+            allowed: true,
+            gate: .ok,
+            groups: [],
+            cascades: [
+                CatalogDeleteImpactGroup(
+                    via: "evidence_graph_artifacts.last_graph",
+                    kind: "artifact",
+                    total: 1,
+                    listed: [PVDeleteImpactPreviewData.listed(ref: "ART-A", title: "ART-A")]
+                ),
+            ]
+        )
+        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A won't be in an evidence graph. Citations can't use it until it is linked."])
+    }
+
+    @Test func graphDeleteConfirmNamesArtifactsInThePlural() {
+        let report = CatalogDeleteImpact(
+            allowed: true,
+            gate: .ok,
+            groups: [],
+            cascades: [
+                CatalogDeleteImpactGroup(
+                    via: "evidence_graph_artifacts.last_graph",
+                    kind: "artifact",
+                    total: 2,
+                    listed: [
+                        PVDeleteImpactPreviewData.listed(ref: "ART-A", title: "ART-A"),
+                        PVDeleteImpactPreviewData.listed(ref: "ART-C", title: "ART-C"),
+                    ]
+                ),
+            ]
+        )
+        #expect(PVDeleteImpactCopy.cascadeLines(report) == ["ART-A and ART-C won't be in an evidence graph. Citations can't use them until they are linked."])
+    }
+
+    @Test func graphDeleteConfirmCountsArtifactsBeyondTheListedCap() {
+        let listed = (1...20).map { PVDeleteImpactPreviewData.listed(ref: "ART-\($0)", title: "ART-\($0)") }
+        let report = CatalogDeleteImpact(
+            allowed: true,
+            gate: .ok,
+            groups: [],
+            cascades: [
+                CatalogDeleteImpactGroup(via: "evidence_graph_artifacts.last_graph", kind: "artifact", total: 25, listed: listed),
+            ]
+        )
+        let lines = PVDeleteImpactCopy.cascadeLines(report)
+        #expect(lines.count == 1)
+        #expect(lines[0].hasPrefix("ART-1, "))
+        #expect(lines[0].contains(", and 5 more"))
+        #expect(lines[0].hasSuffix("Citations can't use them until they are linked."))
+    }
+
+    @Test func graphDeleteConfirmNamesCitationsThenArtifacts() {
+        let report = CatalogDeleteImpact(
+            allowed: true,
+            gate: .ok,
+            groups: [],
+            cascades: [
+                CatalogDeleteImpactGroup(
+                    via: "citations.graph_id",
+                    kind: "citation",
+                    total: 2,
+                    listed: [
+                        PVDeleteImpactPreviewData.listed(ref: "CIT-A", title: "CIT-A"),
+                        PVDeleteImpactPreviewData.listed(ref: "CIT-B", title: "CIT-B"),
+                    ]
+                ),
+                CatalogDeleteImpactGroup(
+                    via: "evidence_graph_artifacts.last_graph",
+                    kind: "artifact",
+                    total: 1,
+                    listed: [PVDeleteImpactPreviewData.listed(ref: "ART-A", title: "ART-A")]
+                ),
+            ]
+        )
+        let lines = PVDeleteImpactCopy.cascadeLines(report)
+        #expect(lines.count == 2)
+        #expect(lines[0].contains("CIT-A") && lines[0].contains("CIT-B"))
+        #expect(lines[1] == "ART-A won't be in an evidence graph. Citations can't use it until it is linked.")
+    }
+
     @Test func blockedCitationListsThreeObservations() {
         let report = PVDeleteImpactPreviewData.blockedCitation
         #expect(!PVDeleteImpactControls.showsDestructiveAction(report))
