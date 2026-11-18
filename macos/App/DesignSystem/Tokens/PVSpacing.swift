@@ -57,7 +57,7 @@ enum PVSpacing {
     static let widthWindowMin: CGFloat = 700
     static let heightWindowMin: CGFloat = 460
     /// Preferred first-open window size (sidebar + catalog/vocabulary).
-    /// Applied via `WindowGroup.defaultSize` / `WindowSizing.fittedDefaultSize`
+    /// Applied via the `Window` scene's `.defaultSize` / `WindowSizing.fittedDefaultSize`
     /// (clamped to the screen). Not a locked minimum — users can resize
     /// down to `widthWindowMin` / `heightWindowMin`.
     static let widthWorkspaceDefault: CGFloat = 1366

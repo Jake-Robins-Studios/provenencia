@@ -231,7 +231,7 @@ CI for Go runs on Linux. Swift tests run on a macOS GitHub runner (`.github/work
 
 - **Bundle id** (`app.provenencia`) is the OS identity of the app (defaults, later UTIs), not the product SemVer.
 - **`App` / `Scene` / `View`:** process entry and windows vs content inside a window. Keep `ProvenenciaApp` thin (scenes, menus). Screens live in their own files.
-- **`WindowGroup`** is a generic window. A real `.provenencia` document flow may later use a document scene; do not force that until we open files.
+- **One `Window` scene.** The app opens one workspace window: no New Window, no window tabs, and closing it quits (`ProvenenciaAppDelegate`). Nothing is built for a second window (Spike 16 Batch 7); several windows are parked in [`ideas/multiple-windows-and-sync.md`](ideas/multiple-windows-and-sync.md). A real `.provenencia` document flow may later use a document scene; do not force that until we open files.
 
 Product version remains [`versioning.md`](versioning.md) (`VERSION` / About box), not the bundle id.
 
