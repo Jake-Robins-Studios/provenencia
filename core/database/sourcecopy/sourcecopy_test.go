@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -823,6 +824,27 @@ func TestCopy(t *testing.T) {
 						}
 					}
 				})
+			},
+		},
+		{
+			name: "a stored phrase over the cap is refused",
+			run: func(t *testing.T) {
+				c, userID, orig, arts := seedObituary(t)
+				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
+				db := dbtest.MustDB(t, c)
+				if _, err := db.Exec(`UPDATE date_values SET phrase = ? WHERE id = ?`,
+					strings.Repeat("a", datevalue.MaxPhraseBytes+1), orig.DateValueID); err != nil {
+					t.Fatal(err)
+				}
+				before := dbtest.Count(t, db, `SELECT COUNT(*) FROM sources`)
+				in := allParts(orig, arts)
+				in.Date = true
+				if _, err := runCopy(c, userID, in); !errors.Is(err, datevalue.ErrInvalid) {
+					t.Fatalf("err %v", err)
+				}
+				if n := dbtest.Count(t, db, `SELECT COUNT(*) FROM sources`); n != before {
+					t.Fatalf("sources %d -> %d", before, n)
+				}
 			},
 		},
 		{

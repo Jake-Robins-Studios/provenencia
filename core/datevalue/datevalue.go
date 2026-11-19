@@ -8,7 +8,8 @@
 //   - kind "point": one date; precision = whichever start_* components the
 //     evidence asserts (gaps allowed); optional start_tz; qualifier
 //     "" / "ABT" / "BEF" / "AFT"; no end_* (including end_tz). Phrase-only
-//     points are allowed when no civil components are set.
+//     points are allowed when no civil components are set. A phrase is at most
+//     MaxPhraseBytes bytes.
 //   - kind "range": one date in a bounded uncertainty window (BET); each side
 //     needs at least one civil component; optional start_tz / end_tz;
 //     start <= end when shared fields can be compared; qualifier empty only
@@ -30,6 +31,11 @@ import (
 )
 
 var ErrInvalid = apperr.New(apperr.CodeDateValuesInvalid, apperr.KindUser)
+
+// MaxPhraseBytes is the longest phrase Validate accepts, on any kind. It is one
+// high cap far above any real dating phrase, so a crafted catalog's huge phrase
+// cannot be copied again by a date write. It is not a product limit.
+const MaxPhraseBytes = 4096
 
 const (
 	KindPoint = "point"
@@ -74,6 +80,9 @@ type side struct {
 // Validate reports ErrInvalid when v is not a storable DateValue. Callers
 // trim string fields first.
 func Validate(v Value) error {
+	if len(v.Phrase) > MaxPhraseBytes {
+		return ErrInvalid
+	}
 	start, end := v.startSide(), v.endSide()
 	qual := v.Qualifier
 

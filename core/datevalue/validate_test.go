@@ -2,6 +2,7 @@ package datevalue
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -22,6 +23,10 @@ func TestValidate(t *testing.T) {
 		{name: "range end year below the window", v: Value{Kind: KindRange, StartYear: n(-10000), EndYear: n(1900)}, wantErr: true},
 		{name: "point year at the window edge", v: Value{Kind: KindPoint, StartYear: n(MaxYear)}},
 		{name: "range across the window", v: Value{Kind: KindRange, StartYear: n(MinYear), EndYear: n(MaxYear)}},
+		{name: "phrase at the cap", v: Value{Kind: KindPoint, Phrase: strings.Repeat("a", MaxPhraseBytes)}},
+		{name: "phrase over the cap", v: Value{Kind: KindPoint, Phrase: strings.Repeat("a", MaxPhraseBytes+1)}, wantErr: true},
+		{name: "point year with a phrase over the cap", v: Value{Kind: KindPoint, StartYear: n(1880), Phrase: strings.Repeat("a", MaxPhraseBytes+1)}, wantErr: true},
+		{name: "range with a phrase over the cap", v: Value{Kind: KindRange, StartYear: n(1880), EndYear: n(1890), Phrase: strings.Repeat("a", MaxPhraseBytes+1)}, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
