@@ -16,6 +16,7 @@ import (
 func TestBeginOnlyInDatabaseAndWrites(t *testing.T) {
 	root := filepath.Join("..", "..")
 	var hits []string
+	parsed := 0
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -25,7 +26,7 @@ func TestBeginOnlyInDatabaseAndWrites(t *testing.T) {
 			case "vendor", ".git", "testdata":
 				return filepath.SkipDir
 			}
-			if strings.HasPrefix(d.Name(), ".") && d.Name() != "." {
+			if path != root && strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -45,6 +46,7 @@ func TestBeginOnlyInDatabaseAndWrites(t *testing.T) {
 		if err != nil {
 			return err
 		}
+		parsed++
 		ast.Inspect(f, func(n ast.Node) bool {
 			sel, ok := n.(*ast.SelectorExpr)
 			if ok && sel.Sel != nil && sel.Sel.Name == "Begin" {
@@ -56,6 +58,9 @@ func TestBeginOnlyInDatabaseAndWrites(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if parsed == 0 {
+		t.Fatal("parsed no Go files: the walk skipped its own root")
 	}
 	if len(hits) > 0 {
 		t.Fatalf(".Begin() outside core/database and core/writes: %s", strings.Join(hits, ", "))

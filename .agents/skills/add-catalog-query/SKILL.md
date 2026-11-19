@@ -38,7 +38,8 @@ Official **resource / vocab `Delete`**: follow `.agents/skills/add-catalog-delet
 - Take `*database.Catalog`. Get the handle with `c.DB()`; return that error (`database.ErrClosed`).
 - Keep SQL as unexported consts next to the functions. Do not add `core/database/queries/`.
 - Domain validation sentinels stay in this package (`users.ErrInvalid`), except for a value type that a matching layer or the reconciler carries: that lives in a pure `core/<singular>` package (`core/datevalue`, `core/namevalue`, `core/depictionvalue`) that owns its type, `Validate` and `ErrInvalid`, and the table package keeps only the queries. Do **not** add them to `core/database/errors.go` (that file is lock/format/folder/closed only).
-- A by-id `IN` read goes through `core/database/sqlbatch` (`sqlbatch.Query`), never a hand-built `SQLInPlaceholders` list: SQLite binds at most 32,766 values per statement.
+- A by-id `IN` read goes through `core/database/sqlbatch` (`sqlbatch.Query`). A hand-built `SQLInPlaceholders` list is allowed only over a set something else already bounds: one `sqlbatch.Each` chunk, one page of search hits, or a fixed vocabulary of keys or levels. The function's comment names that bound. SQLite binds at most 32,766 values per statement.
+- Bind an optional value with `database.NullBlob`, `NullString`, `NullInt`, `NullInt64` or `NullBool`; `NullTrimmed` when the text is trimmed first.
 - `database` must **not** import table packages (import cycle). Use-cases (`onboarding`, later FFI) import both.
 - `Delete` for a resource or vocab row calls `deleteimpact.Impact` in the same tx, then deletes the parent, then owned-outbound release. Facet/field deletes (notes, metadata clear) stay ordinary writes.
 - Research writes call `audit.Record` in the same tx. A new audited `EntityType` needs a non-`None` effect, and delete changes carry the parent FK — follow `.agents/skills/add-audit-scope/SKILL.md`. "Last activity" reads (`Updated`) come from the display cache, `Graph.Activity`, which loads `audit_transaction_scopes` once and follows commits.
@@ -46,6 +47,8 @@ Official **resource / vocab `Delete`**: follow `.agents/skills/add-catalog-delet
 ## Reads inside a write
 
 The catalog has one connection, so a read through `c.DB()` inside `writes.Run` waits on the transaction that is already open. A read a write needs takes the `*sql.Tx` through an exported `…Tx` twin (`sources.GetTx`, `artifacts.ListBySourceTx`, `sourcemetadata.ReadDraftTx`). Write the SQL and scan once in an unexported function over `database.Querier`; the Catalog read and its Tx twin both call it.
+
+A package never declares its own querier or scanner interface, named or inline: a read takes `database.Querier`, a write `database.Execer`, a row scan `database.Scanner`, even when it calls one method. `sqlbatch`, `graphcache`, `effects` and `dbtest`, which cannot import `core/database`, take the `dbsql` types those alias. `dbsql`'s guard test refuses a copy.
 
 A read made of more than one query straight on `c.DB()` opens one read transaction (`db.Begin`, deferred `Rollback`), as `deleteimpact.Snapshot` does, so its queries see one state. A registry entry's loader runs on the session graph under `catalogsession.Do`'s lock and opens no transaction, as `sources.loadRecords` and `evidencegraphs.list` do. Either way the unexported body takes `database.Querier` and the package's writes call it with their `tx.Tx`; add an exported `…Tx` twin only with its first caller outside the package.
 
