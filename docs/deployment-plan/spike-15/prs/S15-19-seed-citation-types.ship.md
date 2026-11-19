@@ -1,7 +1,7 @@
 # Ship log — S15-19 Seed the citation types, fields, suggestions and formats
 
 **Plan:** [`S15-19-seed-citation-types.md`](S15-19-seed-citation-types.md) · **Branch:** `s15-19-seed-citation-types` · **PR:** #897
-**State:** fixing 1
+**State:** ready
 
 Base: `main` @ `2d48e41`.
 
@@ -57,3 +57,25 @@ Check: `git grep -n StoredFormatsTx -- 'core/**/*_test.go'` prints exactly one l
 Files: `core/database/sourcetypes/sourcetypes.go`.
 Do: in `UpsertTx`'s update branch compute `rowDiff := updateChange(existing, next, nil)` once, gate `sqlUpdate` on `rowDiff != nil`, then build the audited change with the diffs.
 Check: `TestUpsertTx` and the effects test pass; scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `0230dc3ca`. Gate PASS (orchestrator re-run). F-1 – F-5 done. F-1 mutation (constant sort order) failed the new check, reverted. F-2 failing check hit 9 lines first; plan Fields table, formats, map § 6.8 corpus and Landed note updated. Deviation: F-4's grep also prints `sourcetypes/formats_test.go:452,466`, the dedicated `StoredFormatsTx` test — accepted, it exercises that function directly.
+MNT-3 (minor): **Resolved** — read `0230dc3ca`; `sqlUpdate` gated on one `rowDiff`.
+
+## Round 2 — review
+Reviewers: CON (CON-1, CON-2 majors), MNT (MNT-1, MNT-2 majors). Not sent: SEC+PRF (no findings in round 1). Scope: `3e9f3ab17...0230dc3ca`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1 | CON | major | (round 1) suggestion lists unchecked | Resolved | `TestInstall` checks every list's keys, origin, `SortOrder == i`, and empty unlisted (type, level) pairs |
+| CON-2 | CON | major | (round 1) `edition`/`holder` wording | Resolved | descriptions and nine formats changed per the user; golden regenerated; `TestSeedCitations` guards `..` and `. held` |
+| MNT-1 | MNT | major | (round 1) form → text switch copies | Resolved | only `formats.go` `Text` and `with` switch on `FormShort` |
+| MNT-2 | MNT | major | (round 1) stored-formats read copies | Resolved | one `storedFormats` per test package; `formats_test.go` keeps its direct `StoredFormatsTx` test |
+
+No new findings. Nits (logged): `MNT-6 · sourcevocab/copy_test.go:109 · copyFixture.formats only forwards to storedFormats; call sites could call it directly`
+
+## Finish
+Merged `origin/main` @ `04e916c` (S16-48 plan docs only). Gate PASS after merge.
+
+## Result
+Gate PASS · CI see PR #897 · open: none · follow-ups: none · to user: CON-2 (answered 2026-11-19: formats write "ed." and "held by")
