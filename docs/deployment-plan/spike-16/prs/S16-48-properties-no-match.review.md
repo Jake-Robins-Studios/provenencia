@@ -1,14 +1,18 @@
 # Review — S16-48 A Properties search with no match shows the kit's empty state
 
-**Verdict:** Fits with changes — Ready with changes (plan); the brief is ready to paste once its source board is named
+**Verdict:** Fits with changes — Ready with changes
 **Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet). Plan and brief S16-D8 reviewed together.
 
 No round 2: round 1's only blockers were M-1 (fixed by deleting a trim, no reshape) and X-1 / X-2 (the board, which is the user's).
 
 ## To user
 
-- **X-2 · Which board holds the Properties page frames?** The brief says "the board that holds the Properties page frames", but no archived brief or doc links a Properties board. Recommendation: give the board's link (and turn), and it goes on the brief's **Depends on** and the plan's **Board** line. If no Properties board exists, the brief's turn draws the page from a screenshot of today's app as its starting frame.
-- **How the agreed board reaches the implementer** (plan-pr step 3). Recommendation: the artifact link and turn on the **Board** line, as S16-D6 did.
+- **X-2 · Which board holds the Properties page frames?** Answered (user, 2026-11-19): the "Properties View" board, page `S7-D2 Subject Fields`; the S16-D8 turn is drawn there. Linked on the brief's and the plan's **Board** lines.
+- **How the agreed board reaches the implementer.** The artifact link and section on the **Board** line, as S16-D6 did.
+
+## Board check (2026-11-19)
+
+The "S16-D8 · No match" section draws N1a, N1b, N2, N3a, N3b and N4. Against the brief: all four strings exactly; icons `text-search` (`PVSymbol.searchEmpty`) and `list-tree` (`WorkspaceSection.properties.glyph`); each state top-aligned with a `space6` inset (D-4); identifiers `properties.noMatch`, `properties.emptyType`, `properties.clearSearch` (D-7); the body order rows → no match → empty type → nothing (D-1); the 120-character title wraps; Wide spans the card beside the 340 pt inspector. One difference: Clear search is drawn `sm`, the toolbar's size, where the Sources precedent uses the default `md`. Taken into D-3. Plan → Planned.
 
 ## Writer's own calls
 

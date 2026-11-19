@@ -4,8 +4,8 @@
 **Spike:** Provenencia Spike 16 (odds and ends), batch 6
 **View:** the Properties page: the body of its property table
 **Implements later as:** PR **S16-48** (A Properties search with no match shows the kit's empty state)
-**Board:** — (not drawn yet)
-**Depends on:** the agreed Properties page frames (type strip, the property table card with its search field and Add combo, the inspector card)
+**Board:** [agreed 2026-11-19](https://claude.ai/artifact/XRS4WQDZbaDa7jAzVKYQdc) — Claude Design "Properties View", page `S7-D2 Subject Fields`, section "S16-D8 · No match" (frames N1a, N1b, N2, N3a, N3b, N4). Copy, icons (`text-search`, `list-tree`), the `space6` top-aligned inset and the wrapping title as briefed; Clear search drawn at the small size (`sm`), like the toolbar's controls
+**Depends on:** the agreed Properties page frames on the same board (type strip, the property table card with its search field and Add combo, the inspector card)
 **Related:** the Sources list's no-filter-match state (`SourcesListView.listBody`, the precedent); plan [`../prs/S16-48-properties-no-match.md`](../prs/S16-48-properties-no-match.md); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
@@ -151,7 +151,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Empty state | Component | Extend | `macos/App/DesignSystem/Components/EmptyState/PVEmptyState.swift` `PVEmptyState` (`icon:verbatimTitle:…`; S16-48 adds the missing `glyph:verbatimTitle:…` init, no visual change) | Both states, compact. The title carries the query or the type's label, so it is a verbatim title |
-| Clear search | Component | Ship | `PVButton`, `.secondary` | The no-match state's only action, as Clear filters on the Sources list. Not an IconButton, not a link |
+| Clear search | Component | Ship | `PVButton`, `.secondary`, `.sm` (agreed board) | The no-match state's only action, as Clear filters on the Sources list. Not an IconButton, not a link |
 | Icons | Component | Ship | `PVSymbol.searchEmpty`; `WorkspaceSection.properties.glyph` (`list.bullet.indent`) | Search-empty for no match; the Properties section's own glyph for an empty type, read from the section as the Metadata and Source types lists do. No type mark: the strip card above already shows it |
 | Property table body | Snowflake | Extend | `macos/App/Features/Properties/PropertiesView.swift` `PropertiesContent.propertyTable` | Its hand-built no-match text goes; it shows the table, PN-1 or PN-3 |
 | Table card and toolbar | Snowflake | Ship | `PropertiesContent.listCard`, `listToolbar` (`PVCard`, `PVInput`, `PVComboBox`) | Unchanged; the toolbar stays above both states |

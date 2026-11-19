@@ -1,11 +1,11 @@
 # S16-48 — A Properties search with no match shows the kit's empty state
 
-**Status:** Blocked — on board S16-D8
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D8](../design/S16-D8-properties-no-match.md), board not agreed yet
-**Board:** — (filled when S16-D8 is agreed)
-**Depends on:** S16-D8
+**Brief:** [S16-D8](../design/S16-D8-properties-no-match.md), board agreed 2026-11-19
+**Board:** [agreed 2026-11-19](https://claude.ai/artifact/XRS4WQDZbaDa7jAzVKYQdc) — Claude Design "Properties View", page `S7-D2 Subject Fields`, section "S16-D8 · No match" (frames N1a, N1b, N2, N3a, N3b, N4). Copy, icons (`text-search`, `list-tree`), the `space6` top-aligned inset and the wrapping title as briefed; Clear search drawn at the small size (`sm`), like the toolbar's controls
+**Depends on:** S16-D8 (board agreed 2026-11-19)
 **Blocks:** —
 **Branch:** `s16-48-properties-no-match`
 **Version bump:** patch — the next patch after `VERSION` on `main` when the branch is cut (0.23.5 → 0.23.6 at the planning base): two empty states a researcher sees on an existing page; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -13,7 +13,7 @@
 **Rules that bind:** —
 **Context:** brief [S16-D8](../design/S16-D8-properties-no-match.md); map scope entry [S16-48](../deployment-plan.md#s16-48--a-properties-search-with-no-match-shows-the-kits-empty-state); bar 23; the precedent `SourcesListView.listBody`
 **Planned:** 2026-11-19 against `main` @ `2d48e41`
-**Review:** [`S16-48-properties-no-match.review.md`](S16-48-properties-no-match.review.md) — Fits with changes / Ready with changes, 1 round; board still to draw
+**Review:** [`S16-48-properties-no-match.review.md`](S16-48-properties-no-match.review.md) — Fits with changes / Ready with changes, 1 round; board checked 2026-11-19
 
 ### Implementer — read this first
 
@@ -111,8 +111,8 @@ When a Properties search matches nothing, the table card's body shows the kit's 
 | --- | --- | --- | --- |
 | D-1 | `PropertiesModel.tablePresentation` *(new)*, of type `PropertiesTablePresentation` *(new)*, decides the body: `.rows` when `visibleProperties` is non-empty; else `.nothing` when `snapshot.properties` is empty (no Properties loaded: the first load, or an empty catalog), which draws an empty body, so a query typed during the first load shows no no-match state; else `.noMatch(query:)` when `TextMatch.Query(searchQuery)` is not empty, with the query trimmed of whitespace and newlines; else `.emptyType(label: selectedType.label)` when `selectedType` is set; else `.nothing` (unreachable with Properties loaded and no type: All properties lists them all). A `selectedTypeKey` missing from `snapshot.types` gives `selectedType == nil` and no type filter (`visibleProperties` skips it), so the body is `.rows` | A pure value is tested without a window (AC-1.x, AC-2.x); the view only switches on it. "Searching" uses the same key the filter uses, so `"  "` and `"-"` never show a no-match state over rows (AC-1.6). Search wins (PN-4) | Branching on `searchQuery.isEmpty` in the view — whitespace and punctuation queries would show no-match while rows show; untestable |
 | D-2 | `PropertiesModel.clearSearch()` *(new)* sets `searchQuery = ""` and calls `focusSearch()` | One model method, as `SourcesModel.clearFilters`; focus goes to the field because the button that had it disappears (PN-2). `focusSearch()` already drives the field's focus through the view's `onChange` | Setting `searchQuery` inline in the view — focus would be lost, and the behavior untested |
-| D-3 | No match: `PVEmptyState(icon: .searchEmpty, verbatimTitle: L10n.Properties.noMatchTitle(query:), message: L10n.string(L10n.Properties.noMatchMessage), compact: true) { PVButton(L10n.Properties.clearSearch, variant: .secondary) { model.clearSearch() } }`. Empty type: `PVEmptyState(glyph: WorkspaceSection.properties.glyph, verbatimTitle: L10n.Properties.emptyTypeTitle(typeLabel:), message: L10n.string(L10n.Properties.emptyTypeMessage), compact: true)`, through the init D-9 adds | Brief inventory; the titles carry runtime text so they are verbatim. The empty type reads the section's glyph, as `MetadataListPane` and `SourceTypesListPane` do, so the Properties icon is declared once (`WorkspaceSection.glyph`) | `icon: .listTree` — a second declaration of the section icon; a type mark — the strip card above already shows it |
-| D-4 | Each state: `.padding(PVSpacing.space6)` then `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)`, inside `propertyTable` where the hand-built `VStack` was | PN-5's recommended inset; top-aligned as the Sources state. If the agreed board changes the inset, this line is updated when the plan moves to Planned | Centered in the card — not the Sources shape |
+| D-3 | No match: `PVEmptyState(icon: .searchEmpty, verbatimTitle: L10n.Properties.noMatchTitle(query:), message: L10n.string(L10n.Properties.noMatchMessage), compact: true) { PVButton(L10n.Properties.clearSearch, variant: .secondary, size: .sm) { model.clearSearch() } }`. Empty type: `PVEmptyState(glyph: WorkspaceSection.properties.glyph, verbatimTitle: L10n.Properties.emptyTypeTitle(typeLabel:), message: L10n.string(L10n.Properties.emptyTypeMessage), compact: true)`, through the init D-9 adds | Brief inventory; the board draws Clear search `sm`, the size of the card's toolbar controls (`PVInput` and `PVComboBox` are `.sm`), where the Sources list keeps the default `.md`; the titles carry runtime text so they are verbatim. The empty type reads the section's glyph, as `MetadataListPane` and `SourceTypesListPane` do, so the Properties icon is declared once (`WorkspaceSection.glyph`) | `icon: .listTree` — a second declaration of the section icon; a type mark — the strip card above already shows it |
+| D-4 | Each state: `.padding(PVSpacing.space6)` then `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)`, inside `propertyTable` where the hand-built `VStack` was | PN-5's inset as the agreed board draws it (`padding: var(--space-6)`, `justify-content: flex-start`); top-aligned as the Sources state | Centered in the card — not the Sources shape |
 | D-5 | Copy: `emptySearchTitle(query:)` becomes `noMatchTitle(query:)`, a plain `L10n.format` of the unchanged key `properties.table.emptySearchTitleQuery` with no trim of its own (D-1's `tablePresentation` is the one place that trims, as `CatalogSearchModel.trimmedQuery` feeds `L10n.Workspace.omnibarNoMatchesTitle(query:)`); its empty-query branch and the key `properties.table.emptySearchTitle` go (D-1 never calls it with an empty query). Replace `emptySearch` with `noMatchMessage` *(new)*, a new key, because its meaning changes (no "create" any more). Add `clearSearch`, `emptyTypeTitle(typeLabel:)`, `emptyTypeMessage` *(new)*. Exact words in **Strings** | A changed meaning gets a new key (add-localized-string); an unchanged title keeps its key | Rewording `properties.table.emptySearch` in place — a stale comment and meaning under an old key |
 | D-6 | `openCreate(prefillLabel:)` loses its parameter: `openCreate()`, `draft.label` starts `""` | The user chose no Create button (2026-11-19), so the parameter's only intended caller will not exist; it never had one | Keeping it "for later" — dead code the next reader has to trace |
 | D-7 | Accessibility identifiers: `properties.noMatch` and `properties.emptyType` on each `PVEmptyState`, applied after its `.padding` and `.frame` (D-4), as `sources.filterEmpty`; `properties.clearSearch` on the `PVButton`, as `sources.clearFilters`. `.nothing` has none. No `.accessibilityElement` modifier: the kit's title, message and button stay separate elements (AC-3.1) | Same scheme as `sources.filterEmpty` / `sources.clearFilters`; UI tests and the manual check can find them | — |
@@ -174,7 +174,7 @@ None —
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| No-match state | `PVEmptyState` (compact, `.searchEmpty`) + `PVButton` `.secondary` | `PropertiesView.swift` `propertyTable` | D-3, D-4, D-7 |
+| No-match state | `PVEmptyState` (compact, `.searchEmpty`) + `PVButton` `.secondary`, `.sm` | `PropertiesView.swift` `propertyTable` | D-3, D-4, D-7 |
 | Empty-type state | `PVEmptyState` (compact, `WorkspaceSection.properties.glyph`), no action | same | D-3, D-4, D-7 |
 | Body decision | `PropertiesModel.tablePresentation` | `PropertiesModel.swift` | D-1 |
 | Table | `PVTable` | same | Unchanged, drawn for `.rows` |
@@ -196,7 +196,7 @@ L10n keys, all in `L10n.Properties`:
 
 Kinds: `noMatchMessage`, `clearSearch` and `emptyTypeMessage` are `static let … = LocalizedStringResource(key, defaultValue:, comment:)`, as `L10n.Sources.clearFilters`; `emptyTypeTitle(typeLabel:)` is a `static func … -> String` returning `L10n.format(LocalizedStringResource(…), typeLabel)`, as `noMatchTitle(query:)`. Each sits beside `noMatchTitle` in `L10n.Properties`. In `Localizable.xcstrings` each entry copies the shape of `properties.table.emptySearchTitleQuery` (`comment`, `extractionState: manual`, an `en` `stringUnit` `translated`).
 
-If the agreed board changes any of these words, this list is updated before the plan is Planned.
+The agreed board (2026-11-19) uses these words exactly.
 
 ## 7. Steps
 
@@ -277,7 +277,7 @@ Open a project at the default window size (Regular), go to Properties.
 | Risk | Mitigation |
 | --- | --- |
 | The focus bridge does not move focus when `clearSearch()` sets `searchFocused` (the model flag was already true) | T-6 starts from `false`, as after a click on the button; manual check 1 confirms focus |
-| The board changes copy or inset | Strings and D-4 are updated from the board before Planned |
+| The board and the plan drift | Checked 2026-11-19: copy, icons, inset, states and Wide match; only the button size was new (D-3) |
 
 **Stop and report if:**
 
