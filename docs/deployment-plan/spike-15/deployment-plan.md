@@ -716,6 +716,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Ships.** The printed page in the composer takes Unknown and Supplied (S15-41's control) and is flagged when the type needs `{citation.page}` and it is empty.
 **Check.** A Citation with its page marked unknown cites "unpaginated" and is not flagged.
 **Context.** S15-D24; S15-13, S15-38, S15-41, S15-44; `CitationLocatorDraft.swift`.
+**Review note (S15-44 ship log).** Go's `encoding/json` reads locator keys case-insensitively (`"Page_Unknown"` sets the mark); `CitationLocatorDraft` reads them by exact key. When the draft starts reading `page_unknown` / `page_supplied`, read the mark from Go's settled `PageRef.Mark` or match Go's key rule, so a crafted catalog cannot make the composer and the citation disagree.
 
 #### S15-46 — A field's unknown text is editable
 
