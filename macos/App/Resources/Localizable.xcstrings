@@ -19261,7 +19261,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%#@records@ from %2$lld birth events"
+            "value": "%#@records@ from %#@events@"
           },
           "substitutions": {
             "records": {
@@ -19283,6 +19283,26 @@
                   }
                 }
               }
+            },
+            "events": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg birth event"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg birth events"
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -19295,7 +19315,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%#@records@ from %2$lld death events"
+            "value": "%#@records@ from %#@events@"
           },
           "substitutions": {
             "records": {
@@ -19313,6 +19333,26 @@
                     "stringUnit": {
                       "state": "translated",
                       "value": "%arg records"
+                    }
+                  }
+                }
+              }
+            },
+            "events": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg death event"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg death events"
                     }
                   }
                 }
