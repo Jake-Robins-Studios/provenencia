@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-56 — A failed sidebar recount says so
+
+**Landed 2026-11-19** in [#909](https://github.com/Jake-Robins-Studios/provenencia/pull/909). `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the counts toast through `presentCountsErrorIfNeeded`, then calls `clearRefreshError()`, so the launch count and every write's recount toast each failure, a repeat of the same message included. Before, only the launch `.task` read the error. `CatalogCountsTests.writeRecountFailureSetsErrorEachTime` covers the model; the view's `.onChange` has no test seam, and the review's QCK-1 (a model-owned counts toast a test can drive) moved to S16-58. 0.26.1 → 0.26.2.
+
 ## S16-55 — Section counts read alike
 
 **Landed 2026-11-19** in [#907](https://github.com/Jake-Robins-Studios/provenencia/pull/907). Section headers that count their items pass a plural string and nothing at zero: the Source page's Notes (`notesCount`), the composer's Citation column (`citationsCount`) and, from the review, its Observations header (`observationsCount`), and the Conclusion Gallery (`ConclusionDetailGallery.countLabel`, `likenessesCount` for a Person, `picturesCount` for an Event or a Place). The composer's two counts and Evidence graphs' count live on their models (`citationsMeta`, `observationsMeta`, `SourceGraphsSection.countLabel`), so the zero case is tested. Evidence graphs never showed "0" in practice: a Source with no graph reads as loading. 0.26.0 → 0.26.1.
