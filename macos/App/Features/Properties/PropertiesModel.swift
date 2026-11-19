@@ -347,7 +347,7 @@ final class PropertiesModel {
         focusSearch()
     }
 
-    func openCreate(prefillLabel: String = "") {
+    func openCreate() {
         formError = nil
         lockedCallout = nil
         createOpen = true
@@ -355,9 +355,8 @@ final class PropertiesModel {
         if let selectedType {
             bind.insert(selectedType.id)
         }
-        let label = prefillLabel
         draft = Draft(
-            label: label,
+            label: "",
             valueType: PropertyValueType.text.rawValue,
             description: "",
             cardinality: PropertyCardinality.single.rawValue,
