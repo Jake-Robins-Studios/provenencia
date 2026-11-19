@@ -122,7 +122,10 @@ final class PropertiesModel {
         if !rows.isEmpty { return .rows(rows) }
         if snapshot.properties.isEmpty { return .nothing }
         if !TextMatch.Query(searchQuery).isEmpty {
-            return .noMatch(query: searchQuery.trimmingCharacters(in: .whitespacesAndNewlines))
+            return .noMatch(
+                query: searchQuery.trimmingCharacters(in: .whitespacesAndNewlines),
+                typeLabel: selectedType?.label
+            )
         }
         if let selectedType { return .emptyType(label: selectedType.label) }
         return .nothing
@@ -610,7 +613,7 @@ final class PropertiesModel {
 /// What the Properties table card's body shows.
 enum PropertiesTablePresentation: Equatable {
     case rows([CatalogProperty])
-    case noMatch(query: String)
+    case noMatch(query: String, typeLabel: String?)
     case emptyType(label: String)
     case nothing
 }

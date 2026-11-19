@@ -7639,12 +7639,19 @@ enum L10n {
                 comment: "VoiceOver label of a Properties table row; 1 = label, 2 = key (tells Properties that share a label apart), 3 = value type, 4 = origin, 5 = how many types it is bound to"
             ), label, key, valueType, origin, bound)
         }
-        static func noMatchTitle(query: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "properties.table.emptySearchTitleQuery",
-                defaultValue: "No property matches “%@”",
-                comment: "Empty table title when search matches nothing; argument is the query"
-            ), query)
+        static func noMatchTitle(query: String, typeLabel: String?) -> String {
+            guard let typeLabel else {
+                return L10n.format(LocalizedStringResource(
+                    "properties.table.emptySearchTitleQuery",
+                    defaultValue: "No property matches “%@”",
+                    comment: "Empty table title when search matches nothing; argument is the query"
+                ), query)
+            }
+            return L10n.format(LocalizedStringResource(
+                "properties.table.noMatchOnTypeTitle",
+                defaultValue: "No property on %1$@ matches “%2$@”",
+                comment: "Title of the Properties empty state when the search matches none of the selected subject type's Properties; argument 1 is the type's label, argument 2 the query"
+            ), typeLabel, query)
         }
         static let noMatchMessage = LocalizedStringResource(
             "properties.table.noMatchMessage",

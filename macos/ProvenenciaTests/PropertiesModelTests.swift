@@ -253,9 +253,9 @@ struct PropertiesModelTests {
         )
         await warm(model, session: session)
         model.searchQuery = "zzz"
-        #expect(model.tablePresentation == .noMatch(query: "zzz"))
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: nil))
         model.searchQuery = "  zzz  "
-        #expect(model.tablePresentation == .noMatch(query: "zzz"))
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: nil))
         model.searchQuery = "name"
         #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
@@ -272,7 +272,7 @@ struct PropertiesModelTests {
         await warm(model, session: session)
         model.selectType("person")
         model.searchQuery = "zzz"
-        #expect(model.tablePresentation == .noMatch(query: "zzz"))
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: "Person"))
     }
 
     @Test func tablePresentationTreatsSpacesAndPunctuationAsNoSearch() async {
@@ -301,7 +301,7 @@ struct PropertiesModelTests {
         model.searchQuery = ""
         #expect(model.tablePresentation == .emptyType(label: "Source"))
         model.searchQuery = "zzz"
-        #expect(model.tablePresentation == .noMatch(query: "zzz"))
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: "Source"))
         model.selectType("person")
         model.searchQuery = ""
         #expect(model.tablePresentation == .rows(model.visibleProperties))

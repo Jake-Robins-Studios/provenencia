@@ -297,10 +297,10 @@ private struct PropertiesContent: View {
                     rowAccessibilityIdentifier: { "properties.row.\($0.id)" },
                     content: { EmptyView() }
                 )
-            case .noMatch(let query):
+            case .noMatch(let query, let typeLabel):
                 PVEmptyState(
                     icon: .searchEmpty,
-                    verbatimTitle: L10n.Properties.noMatchTitle(query: query),
+                    verbatimTitle: L10n.Properties.noMatchTitle(query: query, typeLabel: typeLabel),
                     message: L10n.string(L10n.Properties.noMatchMessage),
                     compact: true
                 ) {

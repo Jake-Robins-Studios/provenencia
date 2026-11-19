@@ -11384,6 +11384,18 @@
         }
       }
     },
+    "properties.table.noMatchOnTypeTitle": {
+      "comment": "Title of the Properties empty state when the search matches none of the selected subject type's Properties; argument 1 is the type's label, argument 2 the query",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No property on %1$@ matches “%2$@”"
+          }
+        }
+      }
+    },
     "properties.table.originSeeded": {
       "comment": "Table origin column for Provenencia-seeded properties",
       "extractionState": "manual",
