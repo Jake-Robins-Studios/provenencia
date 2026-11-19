@@ -41,7 +41,7 @@ var fieldValues = map[string]string{
 	"published_in":         "Calder Valley Gazette",
 	"publisher":            "Ashby Press",
 	"publication_place":    "Port Ellis",
-	"edition":              "2nd ed.",
+	"edition":              "2nd",
 	"series":               "Calder County Records Series",
 	"volume":               "3",
 	"issue":                "12",
@@ -66,7 +66,7 @@ var fieldValues = map[string]string{
 	"lot":                  "112",
 	"kit_number":           "GL-55120",
 	"match_identifier":     "R. Venn",
-	"holder":               "held in 2025 by Clara Venn, Port Ellis",
+	"holder":               "Clara Venn, Port Ellis, 2025",
 	"medium":               "cabinet card",
 	"format":               "digital image",
 	"provider":             "Westmark Heritage",
@@ -271,6 +271,18 @@ func TestSeedCitations(t *testing.T) {
 	} {
 		if got[id] != want {
 			t.Errorf("%s =\n%q\nwant\n%q", id, got[id], want)
+		}
+	}
+
+	// A value that carries its own "ed." or "held in" would collide with the
+	// format around it: no full-fixture line has a doubled period or starts a
+	// sentence in lowercase "held".
+	for id, text := range got {
+		if !strings.Contains(id, "\tfull\t") {
+			continue
+		}
+		if strings.Contains(text, "..") || strings.Contains(text, ". held") {
+			t.Errorf("%s = %q has a doubled period or a lowercase sentence start", id, text)
 		}
 	}
 

@@ -1033,71 +1033,71 @@ list:  {source.meta.jurisdiction}. {source.meta.creator}. Grave markers.
 
 ```text
 full:  {source.title}[, *{source.meta.published_in}*][ ([{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}])]
-       [, {graph.meta.item|source.meta.item}][; {source.meta.holder}].
+       [, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].
 short: {source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].
-list:  {source.title}[, {source.meta.coverage}].[ *{source.meta.published_in}*.][ {source.meta.holder}.]
+list:  {source.title}[, {source.meta.coverage}].[ *{source.meta.published_in}*.][ Held by {source.meta.holder}.]
 ```
 
 **Photograph**
 
 ```text
-full:  {source.title}[, {source.meta.medium}][, {source.date:full}][, {source.meta.photographer|source.meta.studio}][; {source.meta.holder}].
+full:  {source.title}[, {source.meta.medium}][, {source.date:full}][, {source.meta.photographer|source.meta.studio}][; held by {source.meta.holder}].
 short: {source.meta.short_title|source.title}[, {source.date:year}].
-list:  {source.title}.[ {source.meta.medium}.][ {source.meta.holder}.]
+list:  {source.title}.[ {source.meta.medium}.][ Held by {source.meta.holder}.]
 ```
 
 **Private papers**
 
 ```text
-full:  [{source.meta.creator}, ]{source.title}[, {source.date:full}][, {graph.meta.item|source.meta.item}][; {source.meta.holder}].
+full:  [{source.meta.creator}, ]{source.title}[, {source.date:full}][, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].
 short: [{source.meta.creator}, ]{source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].
-list:  [{source.meta.creator}. ]{source.title}[, {source.meta.coverage}].[ {source.meta.holder}.]
+list:  [{source.meta.creator}. ]{source.title}[, {source.meta.coverage}].[ Held by {source.meta.holder}.]
 ```
 
 **DNA match report**
 
 ```text
 full:  {source.meta.testing_company}, {source.title}[, kit {source.meta.kit_number}][, match {source.meta.match_identifier}]
-       [, {graph.meta.item|source.meta.item}][, report dated {source.date:full}][; {source.meta.holder}].
+       [, {graph.meta.item|source.meta.item}][, report dated {source.date:full}][; held by {source.meta.holder}].
 short: {source.meta.testing_company}, {source.meta.short_title|source.title}[, match {source.meta.match_identifier}].
-list:  {source.meta.testing_company}. {source.title}.[ {source.meta.holder}.]
+list:  {source.meta.testing_company}. {source.title}.[ Held by {source.meta.holder}.]
 ```
 
 **GEDCOM file**
 
 ```text
 full:  [{source.meta.creator}, ]{source.title}[, GEDCOM file exported from {source.meta.software}][, {source.date:full}]
-       [, {graph.meta.item|source.meta.item}][; {source.meta.holder}].
+       [, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].
 short: [{source.meta.creator}, ]{source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].
-list:  [{source.meta.creator}. ]{source.title}.[ {source.meta.holder}.]
+list:  [{source.meta.creator}. ]{source.title}.[ Held by {source.meta.holder}.]
 ```
 
 **Interview** (oral testimony: the same, with `interview by` inside an optional group)
 
 ```text
 full:  {source.meta.interviewee}[ ({source.meta.jurisdiction})], interview by {source.meta.interviewer}, {source.date:full}
-       [, {graph.meta.item|source.meta.item}][; {source.meta.holder}].
+       [, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].
 short: {source.meta.interviewee}, interview, {source.date:full}.
-list:  {source.meta.interviewee}. Interview by {source.meta.interviewer}.[ {source.meta.jurisdiction},] {source.date:full}.[ {source.meta.holder}.]
+list:  {source.meta.interviewee}. Interview by {source.meta.interviewer}.[ {source.meta.jurisdiction},] {source.date:full}.[ Held by {source.meta.holder}.]
 ```
 
 **Correspondence**
 
 ```text
-full:  {source.meta.creator}[ ({source.meta.jurisdiction})] to {source.meta.recipient}, {source.title}, {source.date:full}[; {source.meta.holder}].
+full:  {source.meta.creator}[ ({source.meta.jurisdiction})] to {source.meta.recipient}, {source.title}, {source.date:full}[; held by {source.meta.holder}].
 short: {source.meta.creator} to {source.meta.recipient}, {source.date:full}.
-list:  {source.meta.creator}. Correspondence to {source.meta.recipient}[, {source.meta.coverage}].[ {source.meta.holder}.]
+list:  {source.meta.creator}. Correspondence to {source.meta.recipient}[, {source.meta.coverage}].[ Held by {source.meta.holder}.]
 ```
 
 **Book**
 
 ```text
 full:  {source.meta.author}[, ed. {source.meta.editor}][, comp. {source.meta.compiler}][, trans. {source.meta.translator}], *{source.title}*
-       [, {source.meta.edition}][, vol. {source.meta.volume}][, {source.meta.series}][ ([{source.meta.publication_place}: ]{source.meta.publisher}
+       [, {source.meta.edition} ed.][, vol. {source.meta.volume}][, {source.meta.series}][ ([{source.meta.publication_place}: ]{source.meta.publisher}
        [, {source.date:year}])][, {citation.page}][; {artifact.meta.format}, *{artifact.meta.provider}*]
        [ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])].
 short: {source.meta.author}, *{source.meta.short_title|source.title}*[, {citation.page}].
-list:  {source.meta.author_sort|source.meta.author}. *{source.title}*.[ {source.meta.edition}.][ [{source.meta.publication_place}: ]{source.meta.publisher}
+list:  {source.meta.author_sort|source.meta.author}. *{source.title}*.[ {source.meta.edition} ed.][ [{source.meta.publication_place}: ]{source.meta.publisher}
        [, {source.date:year}].]
 ```
 

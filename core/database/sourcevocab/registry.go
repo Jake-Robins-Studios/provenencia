@@ -154,9 +154,9 @@ var seedTypes = []seedType{
 		Description: "The family record pages of a Bible.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.title}[, *{source.meta.published_in}*][ ([{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}])][, {graph.meta.item|source.meta.item}][; {source.meta.holder}].`,
+			Full:  `{source.title}[, *{source.meta.published_in}*][ ([{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}])][, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].`,
 			Short: `{source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].`,
-			List:  `{source.title}[, {source.meta.coverage}].[ *{source.meta.published_in}*.][ {source.meta.holder}.]`,
+			List:  `{source.title}[, {source.meta.coverage}].[ *{source.meta.published_in}*.][ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -164,9 +164,9 @@ var seedTypes = []seedType{
 		Description: "A photograph or portrait.",
 		IconKey:     "type_photograph",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.title}[, {source.meta.medium}][, {source.date:full}][, {source.meta.photographer|source.meta.studio}][; {source.meta.holder}].`,
+			Full:  `{source.title}[, {source.meta.medium}][, {source.date:full}][, {source.meta.photographer|source.meta.studio}][; held by {source.meta.holder}].`,
 			Short: `{source.meta.short_title|source.title}[, {source.date:year}].`,
-			List:  `{source.title}.[ {source.meta.medium}.][ {source.meta.holder}.]`,
+			List:  `{source.title}.[ {source.meta.medium}.][ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -174,9 +174,9 @@ var seedTypes = []seedType{
 		Description: "Letters, diaries, research notes or a compiled family file in private hands.",
 		IconKey:     "type_document",
 		Formats: sourcetypes.Formats{
-			Full:  `[{source.meta.creator}, ]{source.title}[, {source.date:full}][, {graph.meta.item|source.meta.item}][; {source.meta.holder}].`,
+			Full:  `[{source.meta.creator}, ]{source.title}[, {source.date:full}][, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].`,
 			Short: `[{source.meta.creator}, ]{source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].`,
-			List:  `[{source.meta.creator}. ]{source.title}[, {source.meta.coverage}].[ {source.meta.holder}.]`,
+			List:  `[{source.meta.creator}. ]{source.title}[, {source.meta.coverage}].[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -184,9 +184,9 @@ var seedTypes = []seedType{
 		Description: "A DNA test result or match list.",
 		IconKey:     "type_dna",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.meta.testing_company}, {source.title}[, kit {source.meta.kit_number}][, match {source.meta.match_identifier}][, {graph.meta.item|source.meta.item}][, report dated {source.date:full}][; {source.meta.holder}].`,
+			Full:  `{source.meta.testing_company}, {source.title}[, kit {source.meta.kit_number}][, match {source.meta.match_identifier}][, {graph.meta.item|source.meta.item}][, report dated {source.date:full}][; held by {source.meta.holder}].`,
 			Short: `{source.meta.testing_company}, {source.meta.short_title|source.title}[, match {source.meta.match_identifier}].`,
-			List:  `{source.meta.testing_company}. {source.title}.[ {source.meta.holder}.]`,
+			List:  `{source.meta.testing_company}. {source.title}.[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -194,9 +194,9 @@ var seedTypes = []seedType{
 		Description: "A family file exported from genealogy software.",
 		IconKey:     "type_gedcom",
 		Formats: sourcetypes.Formats{
-			Full:  `[{source.meta.creator}, ]{source.title}[, GEDCOM file exported from {source.meta.software}][, {source.date:full}][, {graph.meta.item|source.meta.item}][; {source.meta.holder}].`,
+			Full:  `[{source.meta.creator}, ]{source.title}[, GEDCOM file exported from {source.meta.software}][, {source.date:full}][, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].`,
 			Short: `[{source.meta.creator}, ]{source.meta.short_title|source.title}[, {graph.meta.item|source.meta.item}].`,
-			List:  `[{source.meta.creator}. ]{source.title}.[ {source.meta.holder}.]`,
+			List:  `[{source.meta.creator}. ]{source.title}.[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -204,9 +204,9 @@ var seedTypes = []seedType{
 		Description: "A recorded or published interview.",
 		IconKey:     "type_oral_history",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.meta.interviewee}[ ({source.meta.jurisdiction})], interview by {source.meta.interviewer}, {source.date:full}[, {graph.meta.item|source.meta.item}][; {source.meta.holder}].`,
+			Full:  `{source.meta.interviewee}[ ({source.meta.jurisdiction})], interview by {source.meta.interviewer}, {source.date:full}[, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].`,
 			Short: `{source.meta.interviewee}, interview, {source.date:full}.`,
-			List:  `{source.meta.interviewee}. Interview by {source.meta.interviewer}.[ {source.meta.jurisdiction},] {source.date:full}.[ {source.meta.holder}.]`,
+			List:  `{source.meta.interviewee}. Interview by {source.meta.interviewer}.[ {source.meta.jurisdiction},] {source.date:full}.[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -214,9 +214,9 @@ var seedTypes = []seedType{
 		Description: "Informal family testimony, told to the researcher or someone else.",
 		IconKey:     "type_oral_history",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.meta.interviewee}[ ({source.meta.jurisdiction})][, interview by {source.meta.interviewer}], {source.date:full}[, {graph.meta.item|source.meta.item}][; {source.meta.holder}].`,
+			Full:  `{source.meta.interviewee}[ ({source.meta.jurisdiction})][, interview by {source.meta.interviewer}], {source.date:full}[, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].`,
 			Short: `{source.meta.interviewee}, oral testimony, {source.date:full}.`,
-			List:  `{source.meta.interviewee}.[ Interview by {source.meta.interviewer}.][ {source.meta.jurisdiction},] {source.date:full}.[ {source.meta.holder}.]`,
+			List:  `{source.meta.interviewee}.[ Interview by {source.meta.interviewer}.][ {source.meta.jurisdiction},] {source.date:full}.[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -224,9 +224,9 @@ var seedTypes = []seedType{
 		Description: "A letter or email written to the researcher.",
 		IconKey:     "type_email",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.meta.creator}[ ({source.meta.jurisdiction})] to {source.meta.recipient}, {source.title}, {source.date:full}[; {source.meta.holder}].`,
+			Full:  `{source.meta.creator}[ ({source.meta.jurisdiction})] to {source.meta.recipient}, {source.title}, {source.date:full}[; held by {source.meta.holder}].`,
 			Short: `{source.meta.creator} to {source.meta.recipient}, {source.date:full}.`,
-			List:  `{source.meta.creator}. Correspondence to {source.meta.recipient}[, {source.meta.coverage}].[ {source.meta.holder}.]`,
+			List:  `{source.meta.creator}. Correspondence to {source.meta.recipient}[, {source.meta.coverage}].[ Held by {source.meta.holder}.]`,
 		},
 	},
 	{
@@ -234,9 +234,9 @@ var seedTypes = []seedType{
 		Description: "A book, chapter, map, CD or film.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.meta.author}[, ed. {source.meta.editor}][, comp. {source.meta.compiler}][, trans. {source.meta.translator}], *{source.title}*[, {source.meta.edition}][, vol. {source.meta.volume}][, {source.meta.series}][ ([{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}])][, {citation.page}][; {artifact.meta.format}, *{artifact.meta.provider}*][ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])].`,
+			Full:  `{source.meta.author}[, ed. {source.meta.editor}][, comp. {source.meta.compiler}][, trans. {source.meta.translator}], *{source.title}*[, {source.meta.edition} ed.][, vol. {source.meta.volume}][, {source.meta.series}][ ([{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}])][, {citation.page}][; {artifact.meta.format}, *{artifact.meta.provider}*][ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])].`,
 			Short: `{source.meta.author}, *{source.meta.short_title|source.title}*[, {citation.page}].`,
-			List:  `{source.meta.author_sort|source.meta.author}. *{source.title}*.[ {source.meta.edition}.][ [{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}].]`,
+			List:  `{source.meta.author_sort|source.meta.author}. *{source.title}*.[ {source.meta.edition} ed.][ [{source.meta.publication_place}: ]{source.meta.publisher}[, {source.date:year}].]`,
 		},
 	},
 	{

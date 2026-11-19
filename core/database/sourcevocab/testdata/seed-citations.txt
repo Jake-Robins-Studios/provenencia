@@ -64,57 +64,57 @@ cemetery_marker	full	list	Calder County, Westmark. Hillcrest Cemetery. Grave mar
 cemetery_marker	bare	full	, Grave of Ada Robins.
 cemetery_marker	bare	short	, Grave of Ada Robins.
 cemetery_marker	bare	list	. . Grave markers.
-family_bible	full	full	Venn family Bible, *Calder Valley Gazette* (Port Ellis: Ashby Press, 1880), Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+family_bible	full	full	Venn family Bible, *Calder Valley Gazette* (Port Ellis: Ashby Press, 1880), Ada Robins; held by Clara Venn, Port Ellis, 2025.
 family_bible	full	short	Calder Register, Ada Robins.
-family_bible	full	list	Venn family Bible, 1850–1899. *Calder Valley Gazette*. held in 2025 by Clara Venn, Port Ellis.
+family_bible	full	list	Venn family Bible, 1850–1899. *Calder Valley Gazette*. Held by Clara Venn, Port Ellis, 2025.
 family_bible	bare	full	Venn family Bible.
 family_bible	bare	short	Venn family Bible.
 family_bible	bare	list	Venn family Bible.
-photograph	full	full	Portrait of Ada Robins, cabinet card, 14 June 1880, Silas Pell; held in 2025 by Clara Venn, Port Ellis.
+photograph	full	full	Portrait of Ada Robins, cabinet card, 14 June 1880, Silas Pell; held by Clara Venn, Port Ellis, 2025.
 photograph	full	short	Calder Register, 1880.
-photograph	full	list	Portrait of Ada Robins. cabinet card. held in 2025 by Clara Venn, Port Ellis.
+photograph	full	list	Portrait of Ada Robins. cabinet card. Held by Clara Venn, Port Ellis, 2025.
 photograph	bare	full	Portrait of Ada Robins, 14 June 1880.
 photograph	bare	short	Portrait of Ada Robins, 1880.
 photograph	bare	list	Portrait of Ada Robins.
-private_papers	full	full	Clara Venn, Notes on the Venn family, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+private_papers	full	full	Clara Venn, Notes on the Venn family, 14 June 1880, Ada Robins; held by Clara Venn, Port Ellis, 2025.
 private_papers	full	short	Clara Venn, Calder Register, Ada Robins.
-private_papers	full	list	Clara Venn. Notes on the Venn family, 1850–1899. held in 2025 by Clara Venn, Port Ellis.
+private_papers	full	list	Clara Venn. Notes on the Venn family, 1850–1899. Held by Clara Venn, Port Ellis, 2025.
 private_papers	bare	full	Notes on the Venn family, 14 June 1880.
 private_papers	bare	short	Notes on the Venn family.
 private_papers	bare	list	Notes on the Venn family.
-dna_match_report	full	full	GeneLine Labs, Match list for Clara Venn, kit GL-55120, match R. Venn, Ada Robins, report dated 14 June 1880; held in 2025 by Clara Venn, Port Ellis.
+dna_match_report	full	full	GeneLine Labs, Match list for Clara Venn, kit GL-55120, match R. Venn, Ada Robins, report dated 14 June 1880; held by Clara Venn, Port Ellis, 2025.
 dna_match_report	full	short	GeneLine Labs, Calder Register, match R. Venn.
-dna_match_report	full	list	GeneLine Labs. Match list for Clara Venn. held in 2025 by Clara Venn, Port Ellis.
+dna_match_report	full	list	GeneLine Labs. Match list for Clara Venn. Held by Clara Venn, Port Ellis, 2025.
 dna_match_report	bare	full	, Match list for Clara Venn, report dated 14 June 1880.
 dna_match_report	bare	short	, Match list for Clara Venn.
 dna_match_report	bare	list	. Match list for Clara Venn.
-gedcom_file	full	full	Mabel Thorne, Venn family tree, GEDCOM file exported from FamilyLedger 4.2, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+gedcom_file	full	full	Mabel Thorne, Venn family tree, GEDCOM file exported from FamilyLedger 4.2, 14 June 1880, Ada Robins; held by Clara Venn, Port Ellis, 2025.
 gedcom_file	full	short	Mabel Thorne, Calder Register, Ada Robins.
-gedcom_file	full	list	Mabel Thorne. Venn family tree. held in 2025 by Clara Venn, Port Ellis.
+gedcom_file	full	list	Mabel Thorne. Venn family tree. Held by Clara Venn, Port Ellis, 2025.
 gedcom_file	bare	full	Venn family tree, 14 June 1880.
 gedcom_file	bare	short	Venn family tree.
 gedcom_file	bare	list	Venn family tree.
-interview	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+interview	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held by Clara Venn, Port Ellis, 2025.
 interview	full	short	Clara Venn, interview, 14 June 1880.
-interview	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. held in 2025 by Clara Venn, Port Ellis.
+interview	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. Held by Clara Venn, Port Ellis, 2025.
 interview	bare	full	, interview by , 14 June 1880.
 interview	bare	short	, interview, 14 June 1880.
 interview	bare	list	. Interview by . 14 June 1880.
-oral_testimony	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+oral_testimony	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held by Clara Venn, Port Ellis, 2025.
 oral_testimony	full	short	Clara Venn, oral testimony, 14 June 1880.
-oral_testimony	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. held in 2025 by Clara Venn, Port Ellis.
+oral_testimony	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. Held by Clara Venn, Port Ellis, 2025.
 oral_testimony	bare	full	, 14 June 1880.
 oral_testimony	bare	short	, oral testimony, 14 June 1880.
 oral_testimony	bare	list	. 14 June 1880.
-correspondence	full	full	Clara Venn (Calder County, Westmark) to Harold Venn, Letter about Ada Robins, 14 June 1880; held in 2025 by Clara Venn, Port Ellis.
+correspondence	full	full	Clara Venn (Calder County, Westmark) to Harold Venn, Letter about Ada Robins, 14 June 1880; held by Clara Venn, Port Ellis, 2025.
 correspondence	full	short	Clara Venn to Harold Venn, 14 June 1880.
-correspondence	full	list	Clara Venn. Correspondence to Harold Venn, 1850–1899. held in 2025 by Clara Venn, Port Ellis.
+correspondence	full	list	Clara Venn. Correspondence to Harold Venn, 1850–1899. Held by Clara Venn, Port Ellis, 2025.
 correspondence	bare	full	 to , Letter about Ada Robins, 14 June 1880.
 correspondence	bare	short	 to , 14 June 1880.
 correspondence	bare	list	. Correspondence to .
 book	full	full	Mabel Thorne, ed. Owen Pryce, comp. Lena Marsh, trans. Ivo Karsk, *The Families of Calder County*, 2nd ed., vol. 3, Calder County Records Series (Port Ellis: Ashby Press, 1880), 14; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025).
 book	full	short	Mabel Thorne, *Calder Register*, 14.
-book	full	list	Thorne, Mabel. *The Families of Calder County*. 2nd ed.. Port Ellis: Ashby Press, 1880.
+book	full	list	Thorne, Mabel. *The Families of Calder County*. 2nd ed. Port Ellis: Ashby Press, 1880.
 book	bare	full	, *The Families of Calder County*.
 book	bare	short	, *The Families of Calder County*.
 book	bare	list	. *The Families of Calder County*.
