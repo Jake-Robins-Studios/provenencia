@@ -321,7 +321,8 @@ A row may exist for a field with no value, which is what makes a dismiss durable
 
 `ListWorkspace` is the single reader that merges the three tables into the Source page metadata area:
 
-- **Dismiss** — a suggested field with `dismissed = 1` is omitted while it holds no value. A field that has a value stays visible regardless, so dismissing an already-filled field is a no-op rather than a way to hide catalog data.
+- **Dismiss** — a field with `dismissed = 1` is omitted while it holds no value, unless the type's citation formats need it: a needed field always shows, and dismissing it is refused (`sourcemetadata.invalid`, the field's id as its first param). A field that has a value stays visible regardless, so dismissing an already-filled field is a no-op rather than a way to hide catalog data.
+- **Citation** — the merge also reads the type's three citation formats. Each entry carries what they ask of it: needed (outside every group), used (inside one) or none, and for a needed entry whether another option of its chain already has a value (`met elsewhere`) and what those options are. A chain is flagged on its first option; its later options are only used, and show only where the type suggests them or they hold a value. A field that heads a chain shows even when the type does not suggest it. A Source's board also carries what the formats ask of the Source date and of the printed page.
 - **Order** — once a Source has any layout row, entries are returned by `sort_order`; fields with no row yet sort after them, keeping suggestion-then-extra order among themselves. A Source with no layout rows keeps the type's suggestion order followed by extra values.
 
 Reorder rewrites `sort_order` as `0..n-1` over the fields it is given and leaves `dismissed` alone. Setting a value for a field with no layout row appends one at the end of the existing order, so filling in a field does not disturb a hand-sorted Source.
