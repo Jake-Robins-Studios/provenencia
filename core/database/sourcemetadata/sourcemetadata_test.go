@@ -16,6 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
@@ -2631,5 +2632,100 @@ func TestValueMarkChanges(t *testing.T) {
 		checkChange(t, changes[0],
 			[]string{"field_id", "id", "is_supplied", "is_unknown", "source_id", "value_text"},
 			[]markDiff{{"is_unknown", false, nil}, {"is_supplied", true, nil}, {"value_text", "A", nil}})
+	})
+}
+
+// TestDamagedMarksReadSettled damages stored mark pairs the table checks refuse,
+// as a crafted catalog holds them. Every read returns the pair settled for the
+// value (valuemark.Settle); a write over the row diffs against the stored pair.
+func TestDamagedMarksReadSettled(t *testing.T) {
+	unknown, supplied := valuemark.Mark{Unknown: true}, valuemark.Mark{Supplied: true}
+	cases := []struct {
+		name   string
+		in     Input
+		damage string
+		want   Input
+	}{
+		{"unknown beside text reads unmarked", Input{ValueText: "Lawrence"}, "is_unknown = 1", Input{ValueText: "Lawrence"}},
+		{"both beside text reads supplied", Input{ValueText: "Lawrence", Mark: supplied}, "is_unknown = 1", Input{ValueText: "Lawrence", Mark: supplied}},
+		{"both without text reads unknown", Input{Mark: unknown}, "is_supplied = 1", Input{Mark: unknown}},
+		{"supplied without text reads unmarked", Input{Mark: unknown}, "is_unknown = 0, is_supplied = 1", Input{}},
+	}
+	for _, level := range []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph} {
+		for _, tc := range cases {
+			t.Run(string(level)+"/"+tc.name, func(t *testing.T) {
+				c, userID, src, _, _, f1, _ := applyWorld(t)
+				owner := sourceOwner(src.ID)
+				if level != vocabkey.LevelSource {
+					owner = newLevelOwner(t, c, userID, src, level)
+				}
+				o := ownerOps{t: t, c: c, userID: userID, owner: owner}
+				in := tc.in
+				in.FieldID = f1.ID
+				if _, _, err := o.set(in); err != nil {
+					t.Fatal(err)
+				}
+				db := dbtest.MustDB(t, c)
+				dbtest.Damage(t, db, `UPDATE `+stores[level].values+` SET `+tc.damage+` WHERE field_id = ?`, f1.ID)
+
+				want := tc.want
+				want.FieldID = f1.ID
+				tx, err := db.Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				d, err := ReadDraftTx(tx, owner)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rows, err := ListByOwnersTx(tx, []Owner{owner})
+				if err != nil {
+					t.Fatal(err)
+				}
+				_ = tx.Rollback()
+				if len(d.Values) != 1 || !reflect.DeepEqual(d.Values[0], want) {
+					t.Errorf("draft = %+v, want %+v", d.Values, want)
+				}
+				if len(rows) != 1 || rows[0].ValueText != want.ValueText || rows[0].Mark != want.Mark {
+					t.Errorf("rows = %+v, want %+v", rows, want)
+				}
+				ws, err := ListWorkspace(c, owner)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var found bool
+				for _, e := range ws {
+					if e.Value != nil && bytes.Equal(e.Value.FieldID, f1.ID) {
+						found = true
+						if e.Value.ValueText != want.ValueText || e.Value.Mark != want.Mark {
+							t.Errorf("workspace value = %+v, want %+v", e.Value, want)
+						}
+					}
+				}
+				if !found {
+					t.Errorf("workspace has no value for the field: %+v", ws)
+				}
+			})
+		}
+	}
+
+	t.Run("a write over a damaged row diffs against the stored pair", func(t *testing.T) {
+		c, userID, src, _, _, f1, _ := applyWorld(t)
+		o := ownerOps{t: t, c: c, userID: userID, owner: sourceOwner(src.ID)}
+		if _, _, err := o.set(Input{FieldID: f1.ID, ValueText: "Lawrence"}); err != nil {
+			t.Fatal(err)
+		}
+		dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE source_metadata SET is_unknown = 1 WHERE field_id = ?`, f1.ID)
+		_, changes, err := o.set(Input{FieldID: f1.ID, ValueText: "Lawrence"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate ||
+			!reflect.DeepEqual(changes[0].Fields, map[string]rowchange.FieldDiff{"is_unknown": {Old: true, New: false}}) {
+			t.Fatalf("changes = %+v, want is_unknown true → false", changes)
+		}
+		if _, u, s, n := o.stored(f1.ID); n != 1 || u != 0 || s != 0 {
+			t.Fatalf("stored = %d %d %d", u, s, n)
+		}
 	})
 }

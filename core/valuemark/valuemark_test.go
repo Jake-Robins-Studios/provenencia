@@ -43,3 +43,32 @@ func TestValidate(t *testing.T) {
 		})
 	}
 }
+
+func TestSettle(t *testing.T) {
+	tests := []struct {
+		name     string
+		stored   valuemark.Mark
+		hasValue bool
+		want     valuemark.Mark
+	}{
+		{"neither with a value", valuemark.Mark{}, true, valuemark.Mark{}},
+		{"neither without a value", valuemark.Mark{}, false, valuemark.Mark{}},
+		{"unknown with a value reads unmarked", valuemark.Mark{Unknown: true}, true, valuemark.Mark{}},
+		{"unknown without a value stays unknown", valuemark.Mark{Unknown: true}, false, valuemark.Mark{Unknown: true}},
+		{"supplied with a value stays supplied", valuemark.Mark{Supplied: true}, true, valuemark.Mark{Supplied: true}},
+		{"supplied without a value reads unmarked", valuemark.Mark{Supplied: true}, false, valuemark.Mark{}},
+		{"both with a value reads supplied", valuemark.Mark{Unknown: true, Supplied: true}, true, valuemark.Mark{Supplied: true}},
+		{"both without a value reads unknown", valuemark.Mark{Unknown: true, Supplied: true}, false, valuemark.Mark{Unknown: true}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := valuemark.Settle(tt.stored, tt.hasValue)
+			if got != tt.want {
+				t.Fatalf("Settle = %+v, want %+v", got, tt.want)
+			}
+			if err := valuemark.Validate(got, tt.hasValue); err != nil {
+				t.Fatalf("Validate(Settle) = %v", err)
+			}
+		})
+	}
+}

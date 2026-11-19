@@ -35,3 +35,17 @@ func Validate(m Mark, hasValue bool) error {
 	}
 	return nil
 }
+
+// Settle is the mark a read returns for a stored mark: a value that is there
+// cannot be unknown (Unknown cleared), and a value that is not there cannot be
+// supplied (Supplied cleared). The result always passes Validate, so a pair the
+// stores refuse, read from a crafted catalog, never leaves a read. Writes and
+// the audit keep the stored pair. hasValue is as Validate's.
+func Settle(m Mark, hasValue bool) Mark {
+	if hasValue {
+		m.Unknown = false
+	} else {
+		m.Supplied = false
+	}
+	return m
+}
