@@ -1,6 +1,6 @@
 # S15-19 — Seed the citation types, fields, suggestions and formats
 
-**Status:** Planned
+**Status:** Landed in [#897](https://github.com/Jake-Robins-Studios/provenencia/pull/897) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go seed data only. The Source types list, the type page and the boards draw the new rows with the views they have today)
@@ -14,6 +14,8 @@
 **Context:** working rules "Follow the *Evidence Explained* style; never copy the book", "The seed is the product default", "Formats name fields by id", "Every placeholder names its level; fallback is written", "The item is a graph field", "No transforms on metadata", "A value can be marked unknown or supplied", "Suggestions have a level" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) §§ 6.3, 6.4, 6.8; [`../README.md`](../README.md#working-rules); [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) §§ 1, 2; [`core/writes/README.md`](../../../../core/writes/README.md)
 **Planned:** 2026-11-17 against `main` @ `6d49722`; refreshed 2026-11-19 against `main` @ `809833a` after S15-52 landed (compare with `origin/main` after `git fetch origin main`)
 **Review:** [`S15-19-seed-citation-types.review.md`](S15-19-seed-citation-types.review.md) — Fits / Ready, 2 rounds and a refresh round after S15-52 landed (2026-11-19); every finding Fixed or Logged; nothing open
+
+**Landed.** The handler tests that read the old seed needed more than D-11 named, because the birth certificate type now suggests Artifact and graph fields: `graphFixture` (`evidence_graphs_test.go`) detaches its Source type's Artifact and graph suggestions so the boards those tests read start empty, `TestUpdateSourceType` expects 4 + 10 + 2 + 1 suggested fields, and `TestSearchCatalogHandleKinds` queries "James Kenneth" because the seeded `item` field's example names "Ada Robins". `TestUpsertTx` and the effects case gained the format cases T-9 names. No other difference from the plan.
 
 ### Implementer — read this first
 
