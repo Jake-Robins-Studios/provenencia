@@ -1,7 +1,6 @@
 package sourcetypes
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
 	"slices"
@@ -35,8 +34,8 @@ var formColumns = []struct {
 // they name fields by key (see FormatsView).
 type Formats struct{ Full, Short, List string }
 
-// text returns the text of one form.
-func (f Formats) text(form citationformat.Form) string {
+// Text returns the text of one form.
+func (f Formats) Text(form citationformat.Form) string {
 	switch form {
 	case citationformat.FormFull:
 		return f.Full
@@ -69,10 +68,10 @@ func (f Formats) with(form citationformat.Form, text string) Formats {
 func formatFieldDiffs(before, after Formats) map[string]rowchange.FieldDiff {
 	fields := map[string]rowchange.FieldDiff{}
 	for _, fc := range formColumns {
-		if before.text(fc.form) != after.text(fc.form) {
+		if before.Text(fc.form) != after.Text(fc.form) {
 			fields[fc.column] = rowchange.FieldDiff{
-				Old: database.NullString(before.text(fc.form)),
-				New: database.NullString(after.text(fc.form)),
+				Old: database.NullString(before.Text(fc.form)),
+				New: database.NullString(after.Text(fc.form)),
 			}
 		}
 	}
@@ -150,7 +149,7 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 	templates := map[citationformat.Form]*citationformat.Template{}
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.text(form)
+		text := in.Text(form)
 		view.Formats = view.Formats.with(form, text)
 		if text == "" {
 			continue
@@ -254,7 +253,7 @@ func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string
 	var keys []string
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.text(form)
+		text := in.Text(form)
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
@@ -394,16 +393,12 @@ func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldCh
 	}
 	// Update reports a missing type as sql.ErrNoRows; a formats write names the
 	// type by id alone, so a missing one is a bad argument (D-13).
-	if _, err := editableTx(tx.Tx, typeID); errors.Is(err, sql.ErrNoRows) {
+	existing, err := editableTx(tx.Tx, typeID)
+	if errors.Is(err, sql.ErrNoRows) {
 		return FormatsView{}, nil, ErrInvalid
 	} else if err != nil {
 		return FormatsView{}, nil, err
 	}
-	stored, err := StoredFormatsTx(tx.Tx, [][]byte{typeID})
-	if err != nil {
-		return FormatsView{}, nil, err
-	}
-	before := stored[string(typeID)]
 	next, diags, err := ToStored(tx.Tx, in, choices, "")
 	if err != nil {
 		return FormatsView{}, nil, err
@@ -416,24 +411,36 @@ func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldCh
 		view.Diagnostics = diags
 		return view, nil, nil
 	}
-	fields := formatFieldDiffs(before, next)
-	if len(fields) > 0 {
-		if _, err := tx.Exec(sqlUpdateFormats,
-			database.NullString(next.Full), database.NullString(next.Short), database.NullString(next.List), typeID); err != nil {
-			return FormatsView{}, nil, err
-		}
+	fields, err := writeStoredTx(tx, typeID, next)
+	if err != nil {
+		return FormatsView{}, nil, err
 	}
 	view, err := viewTx(tx.Tx, typeID)
 	if err != nil {
 		return FormatsView{}, nil, err
 	}
-	if len(fields) == 0 {
+	change := updateChange(existing, existing, fields)
+	if change == nil {
 		return view, nil, nil
 	}
-	return view, []rowchange.Change{{
-		EntityType: "source_type",
-		EntityID:   bytes.Clone(typeID),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return view, []rowchange.Change{*change}, nil
+}
+
+// writeStoredTx stores next (fields by id) as a type's three formats and
+// returns the diff of each format column that changed; nothing differing
+// writes nothing. It is the one write and audit of the format columns, shared
+// by UpdateFormats and UpsertTx.
+func writeStoredTx(tx *database.Tx, typeID []byte, next Formats) (map[string]rowchange.FieldDiff, error) {
+	stored, err := StoredFormatsTx(tx.Tx, [][]byte{typeID})
+	if err != nil {
+		return nil, err
+	}
+	fields := formatFieldDiffs(stored[string(typeID)], next)
+	if len(fields) > 0 {
+		if _, err := tx.Exec(sqlUpdateFormats,
+			database.NullString(next.Full), database.NullString(next.Short), database.NullString(next.List), typeID); err != nil {
+			return nil, err
+		}
+	}
+	return fields, nil
 }

@@ -1,6 +1,6 @@
 # S15-19 — Seed the citation types, fields, suggestions and formats
 
-**Status:** Planned
+**Status:** Landed in [#897](https://github.com/Jake-Robins-Studios/provenencia/pull/897) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go seed data only. The Source types list, the type page and the boards draw the new rows with the views they have today)
@@ -14,6 +14,8 @@
 **Context:** working rules "Follow the *Evidence Explained* style; never copy the book", "The seed is the product default", "Formats name fields by id", "Every placeholder names its level; fallback is written", "The item is a graph field", "No transforms on metadata", "A value can be marked unknown or supplied", "Suggestions have a level" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) §§ 6.3, 6.4, 6.8; [`../README.md`](../README.md#working-rules); [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) §§ 1, 2; [`core/writes/README.md`](../../../../core/writes/README.md)
 **Planned:** 2026-11-17 against `main` @ `6d49722`; refreshed 2026-11-19 against `main` @ `809833a` after S15-52 landed (compare with `origin/main` after `git fetch origin main`)
 **Review:** [`S15-19-seed-citation-types.review.md`](S15-19-seed-citation-types.review.md) — Fits / Ready, 2 rounds and a refresh round after S15-52 landed (2026-11-19); every finding Fixed or Logged; nothing open
+
+**Landed.** The handler tests that read the old seed needed more than D-11 named, because the birth certificate type now suggests Artifact and graph fields: `graphFixture` (`evidence_graphs_test.go`) detaches its Source type's Artifact and graph suggestions so the boards those tests read start empty, `TestUpdateSourceType` expects 4 + 10 + 2 + 1 suggested fields, and `TestSearchCatalogHandleKinds` queries "James Kenneth" because the seeded `item` field's example names "Ada Robins". `TestUpsertTx` and the effects case gained the format cases T-9 names. **Product owner's decision (2026-11-19, round 1 review):** the formats write "ed." after `edition` and "held by" / "Held by" before `holder`, so the `edition` example is "2nd" and the `holder` example is "Clara Venn, Port Ellis, 2025". This supersedes D-3's two descriptions and D-5's text for those formats. No other difference from the plan.
 
 ### Implementer — read this first
 
@@ -209,7 +211,7 @@ Description shape: what the field holds, then ", as it should appear in a citati
 | `published_in` | Published in | The newspaper, journal, programme or statute book, as it should appear in a citation (Calder Valley Gazette). | |
 | `publisher` | Publisher | The publisher or network, as it should appear in a citation (Ashby Press). | n.p. |
 | `publication_place` | Place of publication | Where it was published, as it should appear in a citation (Port Ellis). | n.p. |
-| `edition` | Edition | The edition, as it should appear in a citation (2nd ed.). | |
+| `edition` | Edition | The edition, as it should appear before "ed." in a citation (2nd). | |
 | `series` | Series | The series, as it should appear in a citation (Calder County Records Series). | |
 | `volume` | Volume | The volume, as it should appear in a citation (3). | |
 | `issue` | Issue | The issue number, as it should appear in a citation (12). | |
@@ -234,7 +236,7 @@ Description shape: what the field holds, then ", as it should appear in a citati
 | `lot` | Lot | The cemetery lot, as it should appear in a citation (112). | |
 | `kit_number` | Kit number | The DNA kit number, as it should appear in a citation (GL-55120). | |
 | `match_identifier` | Match | The match's name or kit as the report gives it, as it should appear in a citation (R. Venn). | |
-| `holder` | Held by | Who holds a privately held original, and where, as it should appear in a citation (held in 2025 by Clara Venn, Port Ellis). | |
+| `holder` | Held by | Who holds a privately held original, where, and the year, as it should appear after "held by" in a citation (Clara Venn, Port Ellis, 2025). | |
 | `medium` | Medium | What the item is made of or how it was made, as it should appear in a citation (cabinet card). | |
 | `format` | Format | What kind of copy you used, as it should appear in a citation (digital image). | |
 | `provider` | Provider | Who provides the copy, as it should appear in a citation (Westmark Heritage). | |
@@ -278,9 +280,9 @@ list:  {source.meta.jurisdiction}.[ {source.meta.creator}.] Marriage certificate
 death_certificate: the same with "death certificate" and "Death certificates."
 
 oral_testimony
-full:  {source.meta.interviewee}[ ({source.meta.jurisdiction})][, interview by {source.meta.interviewer}], {source.date:full}[, {graph.meta.item|source.meta.item}][; {source.meta.holder}].
+full:  {source.meta.interviewee}[ ({source.meta.jurisdiction})][, interview by {source.meta.interviewer}], {source.date:full}[, {graph.meta.item|source.meta.item}][; held by {source.meta.holder}].
 short: {source.meta.interviewee}, oral testimony, {source.date:full}.
-list:  {source.meta.interviewee}.[ Interview by {source.meta.interviewer}.][ {source.meta.jurisdiction},] {source.date:full}.[ {source.meta.holder}.]
+list:  {source.meta.interviewee}.[ Interview by {source.meta.interviewer}.][ {source.meta.jurisdiction},] {source.date:full}.[ Held by {source.meta.holder}.]
 
 broadcast: journal_article's three lines unchanged.
 ```

@@ -32,11 +32,14 @@ new Install into **`onboarding.createCatalog` only**.
 
 ### Source vocabulary (`sourcevocab`)
 
-1. Edit **`core/database/sourcevocab/registry.go`** — declarative lists:
-   - `seedTypes` — `key`, `label`, `description`
-   - `seedFields` — `key`, `label`, `data_type` (`text`|`url`), optional description. Date-named keys (`record_date`, …) are `text`.
-   - `seedSuggestions` — one entry per `(type_key, level)` with its `FieldKeys` in order; a field's position is its sort order
-2. Prefer a tiny starter set. New projects get whatever is in the registry at
+1. Edit the registry in **`core/database/sourcevocab/`** — declarative lists:
+   - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`.
+   - `registry_fields.go` `seedFields` — `key`, `label`, `data_type` (`text`|`url`), `Description`, `UnknownText` (what a value marked unknown prints, "" for none; no date key is seeded)
+   - `registry_suggestions.go` `seedSuggestions` — one entry per `(type_key, level)` with its `FieldKeys` in order; a field's position is its sort order. The lists follow each type's full format; `TestSeedSuggestionsFollowFormats` derives them and fails on a difference.
+   After a format edit, `go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update` rewrites `testdata/seed-citations.txt` (every seeded format rendered against an invented Source); read the diff.
+2. The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one
+   exception to a small starter: the Spike 15 rule "The seed is the product
+   default" decided it. New projects get whatever is in the registry at
    create time; existing catalogs are not backfilled on open.
 3. All registry rows are **`origin = provenencia`**. Researcher rows use `Create` (`user`);
    plugin rows use `UpsertTx` (`plugin:<id>`) — never put those in the registry.
@@ -46,8 +49,7 @@ new Install into **`onboarding.createCatalog` only**.
 4. **No seed `INSERT`s** in `migrations/*.sql`. DDL-only migrations for new tables.
 5. Adding rows to the registry is enough for normal growth of the create-time
    starter. Do not reintroduce open-time heal.
-6. Tests in `sourcevocab_test.go`: empty → trimmed counts; user twin left alone;
-   deleted rows stay deleted without re-Install. Onboarding: open does not heal.
+6. Tests: `TestInstall` in `sourcevocab_test.go` (empty catalog gets the registry row for row and the stored formats; a second install changes nothing; a user field with a seeded key does not capture a format; user twin left alone; deleted rows stay deleted without re-Install) and the registry tests in `registry_test.go` (`TestSeedSuggestionsFollowFormats`, `TestSeedFieldsAreRead`, `TestSeedTypes`). Onboarding: open does not heal.
 7. Run `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/onboarding/...`.
 
 ### Subject vocabulary / credibility grades
@@ -92,7 +94,7 @@ Uniqueness is **`UNIQUE (key, origin)`**. Lookup is always `(key, origin)`, neve
   `writes.Run`; `createCatalog` runs it in one `writes.Call` (action
   `install_source_vocabulary`, no user), so it is atomic: a failed install leaves
   nothing. A second run over unchanged rows records nothing (no revision), and
-  one over a renamed product row records an update. Tests make types and fields
+  one over a renamed product row, or changed formats or unknown text, records an update. Tests make types and fields
   through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`.
 - Unused-vocab delete goes through `deleteimpact` after that page’s PR (**S8-15** types, **S8-16** fields, **S8-17** properties) — not a private `sqlInUse`. **Origin:** plugin never; seeded types/fields may erase when unused; seeded properties/terms stay locked. See [`add-catalog-delete`](../add-catalog-delete/SKILL.md).
 
@@ -148,6 +150,6 @@ Join/suggestion tables have **no `origin`** column.
 - Call domain `Install` from FFI handlers, Swift, `OpenCatalog`, or `catalogsession.Do`
 - Put seed install inside `database.Open`/`Create` (import cycle; couples migrate to product policy)
 - Treat `provenencia` as a `builtin` boolean — use `origin`
-- Expand the full horizon catalog in one PR “just because” it is listed in the docs
+- Expand the full horizon catalog in one PR “just because” it is listed in the docs (the Source seed is the exception the Spike 15 rule "The seed is the product default" decided)
 - Reintroduce open-time Ensure/heal for seeded vocabulary
 - Write `"provenencia"`, `"plugin:"`, a primary kind or a `vocabkey` Property key as a Go string literal outside the seed (SQL text keeps its literals)

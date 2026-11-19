@@ -39,7 +39,26 @@ func newGraphFixture(t *testing.T) graphFixture {
 	var types engine.ListSourceTypesResponse
 	mustRPC(t, ListSourceTypes, &engine.ListSourceTypesRequest{ProjectDir: dir}, &types)
 	f.typeID = types.Types[0].GetId()
+	f.clearBoardSuggestions(t)
 	return f
+}
+
+// clearBoardSuggestions detaches the artifact and graph fields the Source's
+// seeded type suggests, so the boards these tests read start with no suggested
+// rows. The product seed suggests copy and item fields at those levels; the
+// tests here are about the rows they add themselves.
+func (f graphFixture) clearBoardSuggestions(t *testing.T) {
+	t.Helper()
+	var ws engine.GetSourceWorkspaceResponse
+	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: f.dir, SourceId: f.sourceID}, &ws)
+	typeID := ws.GetSource().GetSourceTypeId()
+	for _, level := range []string{"artifact", "graph"} {
+		for _, s := range listSuggestions(t, f.dir, typeID, level) {
+			mustRPC(t, RemoveTypeField, &engine.RemoveTypeFieldRequest{
+				ProjectDir: f.dir, TypeId: typeID, FieldId: s.GetField().GetId(), Level: level,
+			}, &engine.RemoveTypeFieldResponse{})
+		}
+	}
 }
 
 // createArtifact sends links as given: nil is absent, the default (every graph).

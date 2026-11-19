@@ -382,21 +382,8 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				db, err := c.DB()
-				if err != nil {
-					t.Fatal(err)
-				}
-				tx, err := db.Begin()
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer func() { _ = tx.Rollback() }()
-				stored, err := StoredFormatsTx(tx, [][]byte{got.ID})
-				if err != nil {
-					t.Fatal(err)
-				}
-				if stored[string(got.ID)] != in {
-					t.Fatalf("stored %+v", stored[string(got.ID)])
+				if stored := storedFormats(t, c, got.ID); stored != in {
+					t.Fatalf("stored %+v", stored)
 				}
 				if len(changes) != 1 {
 					t.Fatalf("changes %+v", changes)
@@ -658,16 +645,39 @@ func runDelete(c *database.Catalog, userID, id []byte) error {
 	return err
 }
 
+// storedFormats reads a type's formats as stored (fields by id).
+func storedFormats(t *testing.T, c *database.Catalog, id []byte) Formats {
+	t.Helper()
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	got, err := StoredFormatsTx(tx, [][]byte{id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got[string(id)]
+}
+
 func TestUpsertTx(t *testing.T) {
-	run := func(t *testing.T, c *database.Catalog, in Type) ([]byte, []rowchange.Change, error) {
+	runWith := func(t *testing.T, c *database.Catalog, in Type, formats *Formats) ([]byte, []rowchange.Change, error) {
 		t.Helper()
 		var changes []rowchange.Change
 		id, err := writes.Call(c, writes.Op{Action: "upsert_source_type"}, func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
-			id, cs, err := UpsertTx(tx, in)
+			id, cs, err := UpsertTx(tx, in, formats)
 			changes = cs
 			return id, cs, err
 		})
 		return id, changes, err
+	}
+	run := func(t *testing.T, c *database.Catalog, in Type) ([]byte, []rowchange.Change, error) {
+		t.Helper()
+		return runWith(t, c, in, nil)
 	}
 	census := Type{Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census", IconKey: "type_census"}
 	tests := []struct {
@@ -735,6 +745,78 @@ func TestUpsertTx(t *testing.T) {
 			}
 			if _, ok := changes[0].Fields["icon_key"]; !ok {
 				t.Fatalf("%+v", changes[0].Fields)
+			}
+		}},
+		{"formats are stored and recorded on create", func(t *testing.T, c *database.Catalog) {
+			want := Formats{Full: "{source.title}", Short: "{source.title}.", List: "{source.title}"}
+			id, changes, err := runWith(t, c, census, &want)
+			if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionCreate {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			for _, column := range []string{"citation_full", "citation_short", "citation_list"} {
+				if _, ok := changes[0].Fields[column]; !ok {
+					t.Fatalf("create change lacks %s: %+v", column, changes[0].Fields)
+				}
+			}
+			if got := storedFormats(t, c, id); got != want {
+				t.Fatalf("stored %+v, want %+v", got, want)
+			}
+		}},
+		{"the same formats again change nothing", func(t *testing.T, c *database.Catalog) {
+			want := Formats{Full: "{source.title}", Short: "{source.title}.", List: "{source.title}"}
+			if _, _, err := runWith(t, c, census, &want); err != nil {
+				t.Fatal(err)
+			}
+			if _, changes, err := runWith(t, c, census, &want); err != nil || len(changes) != 0 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+		}},
+		{"different formats are one change naming only the changed columns", func(t *testing.T, c *database.Catalog) {
+			first := Formats{Full: "{source.title}", Short: "{source.title}.", List: "{source.title}"}
+			if _, _, err := runWith(t, c, census, &first); err != nil {
+				t.Fatal(err)
+			}
+			next := first
+			next.Short = "{source.title}!"
+			id, changes, err := runWith(t, c, census, &next)
+			if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate || len(changes[0].Fields) != 1 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			if d := changes[0].Fields["citation_short"]; d.Old != first.Short || d.New != next.Short {
+				t.Fatalf("diff %+v", d)
+			}
+			if got := storedFormats(t, c, id); got != next {
+				t.Fatalf("stored %+v, want %+v", got, next)
+			}
+		}},
+		{"a label and formats together are one change", func(t *testing.T, c *database.Catalog) {
+			if _, _, err := run(t, c, census); err != nil {
+				t.Fatal(err)
+			}
+			next := census
+			next.Label = "Census schedule"
+			f := Formats{Full: "{source.title}"}
+			id, changes, err := runWith(t, c, next, &f)
+			if err != nil || len(changes) != 1 || len(changes[0].Fields) != 2 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			if got := storedFormats(t, c, id); got != f {
+				t.Fatalf("stored %+v", got)
+			}
+		}},
+		{"nil formats keep the stored formats", func(t *testing.T, c *database.Catalog) {
+			want := Formats{Full: "{source.title}", Short: "{source.title}.", List: "{source.title}"}
+			if _, _, err := runWith(t, c, census, &want); err != nil {
+				t.Fatal(err)
+			}
+			next := census
+			next.Label = "Census schedule"
+			id, changes, err := run(t, c, next)
+			if err != nil || len(changes) != 1 || len(changes[0].Fields) != 1 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			if got := storedFormats(t, c, id); got != want {
+				t.Fatalf("stored %+v, want %+v", got, want)
 			}
 		}},
 		{"a plugin origin is accepted", func(t *testing.T, c *database.Catalog) {

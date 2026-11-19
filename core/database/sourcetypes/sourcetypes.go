@@ -88,11 +88,15 @@ func rowFields(t Type) map[string]any {
 }
 
 // updateChange is the update change from prev to next, naming only the columns
-// that differ (a missing key reads nil); nil when none does. id, key and
+// that differ (a missing key reads nil), plus formats, the diffs of the format
+// columns that changed (nil for none); nil when nothing differs. id, key and
 // origin are never compared.
-func updateChange(prev, next Type) *rowchange.Change {
+func updateChange(prev, next Type, formats map[string]rowchange.FieldDiff) *rowchange.Change {
 	old, now := rowFields(prev), rowFields(next)
 	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
+	for column, diff := range formats {
+		fields[column] = diff
+	}
 	if len(fields) == 0 {
 		return nil
 	}
@@ -120,12 +124,14 @@ func createChange(t Type, formats Formats) rowchange.Change {
 }
 
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and
-// the row changes. Missing: a new type with no formats, one create change.
-// Present: label, description and icon are written (an empty icon is the
-// default mark) and one update change names what differs; nothing differing
-// writes nothing and returns no change. A non-empty t.ID is ErrInvalid. The
-// caller records the changes.
-func UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error) {
+// the row changes. formats are stored (fields by id, as ToStored returns
+// them): nil keeps what is stored, non-nil sets all three. Missing: a new type,
+// one create change. Present: label, description and icon are written (an
+// empty icon is the default mark), the formats through the one format write,
+// and one update change names what differs; nothing differing writes nothing
+// and returns no change. A non-empty t.ID is ErrInvalid. The caller records
+// the changes.
+func UpsertTx(tx *database.Tx, t Type, formats *Formats) ([]byte, []rowchange.Change, error) {
 	if tx == nil || len(t.ID) != 0 {
 		return nil, nil, ErrInvalid
 	}
@@ -148,22 +154,36 @@ func UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error) {
 			return nil, nil, err
 		}
 		t.ID = uid[:]
-		if _, err := tx.Exec(sqlInsert, t.ID, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.IconKey, nil, nil, nil); err != nil {
+		var in Formats
+		if formats != nil {
+			in = *formats
+		}
+		if _, err := tx.Exec(sqlInsert, t.ID, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.IconKey,
+			database.NullString(in.Full), database.NullString(in.Short), database.NullString(in.List)); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t, Formats{})}, nil
+		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t, in)}, nil
 	}
 	if err != nil {
 		return nil, nil, err
 	}
 	next := existing
 	next.Label, next.Description, next.IconKey = t.Label, t.Description, t.IconKey
-	change := updateChange(existing, next)
+	var diffs map[string]rowchange.FieldDiff
+	if formats != nil {
+		if diffs, err = writeStoredTx(tx, existing.ID, *formats); err != nil {
+			return nil, nil, err
+		}
+	}
+	rowDiff := updateChange(existing, next, nil)
+	change := updateChange(existing, next, diffs)
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.IconKey, existing.ID); err != nil {
-		return nil, nil, err
+	if rowDiff != nil {
+		if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.IconKey, existing.ID); err != nil {
+			return nil, nil, err
+		}
 	}
 	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
@@ -318,7 +338,7 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	}
 	next := existing
 	next.Label, next.Description, next.IconKey = label, description, normalizedIcon
-	change := updateChange(existing, next)
+	change := updateChange(existing, next, nil)
 	if change == nil {
 		return existing, nil, nil
 	}

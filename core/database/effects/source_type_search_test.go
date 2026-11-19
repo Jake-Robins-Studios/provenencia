@@ -111,10 +111,29 @@ func TestSourceTypeSearchGates(t *testing.T) {
 		})
 	}
 
+	t.Run("an upsert of only new formats reprojects no search document", func(t *testing.T) {
+		_, changes, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
+			Key: "census", Origin: vocabkey.OriginUser, Label: "Census returns", Description: "Decennial", IconKey: "type_book",
+		}, &sourcetypes.Formats{Full: "{source.title}!"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(changes) != 1 || len(changes[0].Fields) != 1 {
+			t.Fatalf("changes %+v, want one format change", changes)
+		}
+		if _, ok := changes[0].Fields["citation_full"]; !ok {
+			t.Fatalf("fields %+v, want citation_full", changes[0].Fields)
+		}
+		set := resolve(changes)
+		if len(set.Search) != 0 {
+			t.Fatalf("search %+v, want none", set.Search)
+		}
+	})
+
 	t.Run("an upsert label change reprojects the type and its Sources", func(t *testing.T) {
 		_, changes, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
 			Key: "census", Origin: vocabkey.OriginUser, Label: "Census schedule", Description: "Decennial", IconKey: "type_book",
-		})
+		}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

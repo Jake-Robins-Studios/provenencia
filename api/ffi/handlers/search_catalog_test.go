@@ -243,11 +243,13 @@ func TestSearchLocationProtoRoundTrip(t *testing.T) {
 	}
 }
 
+// The query avoids "Robins": the seeded Item cited field's description uses it
+// in its example, and a metadata_field hit would join the person.
 func TestSearchCatalogHandleKinds(t *testing.T) {
 	dir, handleRef := namedPerson(t)
 	search := func(kinds ...string) *engine.SearchCatalogResponse {
 		t.Helper()
-		out, err := SearchCatalog(marshalProto(t, &engine.SearchCatalogRequest{ProjectDir: dir, Query: "James Robins", Kinds: kinds}))
+		out, err := SearchCatalog(marshalProto(t, &engine.SearchCatalogRequest{ProjectDir: dir, Query: "James Kenneth", Kinds: kinds}))
 		if err != nil {
 			t.Fatal(err)
 		}
