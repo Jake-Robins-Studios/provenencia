@@ -140,7 +140,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-41 | A metadata row can be marked unknown or supplied | 9 | Swift: the Unknown and Supplied control, built once; on every board's row | S15-D22 | S15-37, S15-39, S15-D22, S16-61 | — | Scoped |
 | S15-42 | The Source date can be unknown, supplied or flagged | 9 | Swift: the date dialog's No date and Supplied (S15-41's control); the header shows them and flags an empty date the type needs | S15-D23 | S15-43, S15-38, S15-41, S15-D23 | — | Scoped |
 | S15-43 | The Source date can be marked unknown or supplied | 4 | Go: one migration (`date_unknown`, `date_supplied` on `sources`); the Source read and date write; Copy Source with its date tick; audit | — | S15-02, S15-14 | [plan](prs/S15-43-source-date-marks.md) | Landed #900 |
-| S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `validatePage`; `locator.Page` returns the mark | — | S15-14 | — | Scoped |
+| S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `Validate` refuses a bad pair; `locator.Page` returns the settled mark | — | S15-14 | [plan](prs/S15-44-page-marks.md) | Planned |
 | S15-45 | The composer marks and flags the printed page | 9 | Swift: Unknown and Supplied on the printed page (S15-41's control); flagged when the type needs `{citation.page}` | S15-D24 | S15-13, S15-38, S15-41, S15-44, S15-D24 | — | Scoped |
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
@@ -573,10 +573,10 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-44 — The printed page can be marked unknown or supplied
 
-**Ships.** The locator's page selector gains `page_unknown` and `page_supplied` beside `page_label`, checked in `validatePage` through `valuemark.Validate`; `locator.Page` returns the mark, so `graphfill` and the resolver read it. No migration (the locator is JSON).
+**Ships.** The locator's page selector gains `page_unknown` and `page_supplied` beside `page_label`; a selector may hold `page_unknown` alone. `locator.Validate` (the write) refuses a pair `valuemark.Validate` refuses; `locator.Page` (the read) returns the mark settled with `valuemark.Settle`, so the resolver reads it. `graphfill` is unchanged (rule "Today's line stays the fallback"). No migration (the locator is JSON).
 **Not this PR.** The composer (S15-45).
 **Check.** Locator tests: an unknown page has no label; both facts are refused; an old locator reads as unmarked.
-**Context.** Rule "A value can be marked unknown or supplied"; `core/locator/validate.go` (`selectorRaw`, `validatePage`), `core/locator/depiction.go` (`Page`), `core/database/graphfill/load.go`. Updates [`interpretation-layer-data-model.md`](../../interpretation-layer-data-model.md) § 3.2 ("An unnumbered page simply omits `page_label`" becomes "is marked unknown").
+**Context.** Rule "A value can be marked unknown or supplied"; `core/locator/validate.go` (`selectorRaw`, `validatePage`), `core/locator/depiction.go` (`Page`). Updates [`interpretation-layer-data-model.md`](../../interpretation-layer-data-model.md) § 3.2 (an unnumbered page is marked `page_unknown`).
 
 #### S15-38 — Boards carry their citation's requirements
 
