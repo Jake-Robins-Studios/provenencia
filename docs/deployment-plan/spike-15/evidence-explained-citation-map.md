@@ -762,6 +762,8 @@ The **new type** dialog has **Copy from**: pick an existing type, and the new on
 
 **Descoped (user, 2026-11-09).** The seed installs at create only, as it does today ([`seeded-vocabulary.md`](../../seeded-vocabulary.md) § 1). Provenencia is not in production, and the only existing projects are a few dogfood catalogs. When the seed PR lands, the product owner gets a one-off command to add the new types, fields and suggestions to their own project. It is not product code: no install on open, no seed-version row. `Install` already writes with upserts (`ON CONFLICT (key, origin)` for types and fields, and for suggestions), so the one-off command can run it against an existing catalog: it adds what is missing and resets the product rows' labels, suggestion order and formats to the seed, and restores product rows that were deleted. [`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md) keeps `Install` out of FFI, Swift and project open, so the run is a developer command or test harness, named in S15-19's plan (S15-20 merged into it).
 
+**Update (user, 2026-11-17):** no one-off command either; the product owner updates the dogfood projects by hand, and S15-19 concerns new projects only.
+
 Revisit before release, when existing projects belong to other researchers.
 
 ### 6.5 The item
