@@ -109,7 +109,7 @@ For a **count with a noun** ("3 fields"), use one key with `plural` variations i
       "other" : { "stringUnit" : { "state" : "translated", "value" : "%arg citations" } } } } } } } } }
 ```
 
-A count in copy is a plural key: `scripts/check-localizable-xcstrings.py` fails on an English `%lld <word>` with no variations or substitutions (add a word that takes no plural, like "of" or "more", to `NON_INFLECTING`). A plural word that prints no number (a bare noun or verb picked by a count) is a substitution with value `%#@noun@` and forms without `%arg`, as `deleteImpact.kind.citation`; a top-level `plural` variation must reference the number, or the catalog does not compile.
+A count in copy is a plural key: `scripts/check-localizable-xcstrings.py` fails on an English `%lld <word>` in an entry with no plural variations (add a word that takes no plural, like "of" or "more", to `NON_INFLECTING`). An entry with substitutions is checked too: each bare count beside a `%#@…@` token needs its own plural substitution, as `provenanceSheet.recordsFromPlaces`. A plural word that prints no number (a bare noun or verb picked by a count) is a substitution with value `%#@noun@` and forms without `%arg`, as `deleteImpact.kind.citation`; a top-level `plural` variation must reference the number, or the catalog does not compile.
 
 The format function is the same `L10n.format(resource, kind, count)`; the catalog picks the form. `L10n.format` picks a formatting locale that matches the resolved localization, so plural variations choose the right form — don't call `String(format:)` on copy yourself.
 
