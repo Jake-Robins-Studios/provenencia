@@ -189,7 +189,7 @@ Every metadata board the engine returns says, for each field, whether its Source
 | --- | --- | --- |
 | An unsuggested empty entry (D-6) | `MetadataBoardModel.saved` / `suggested` | In neither list: not drawn, and a reorder (`moveSaved`) drops it from `host.entries` until the next read. No write sends it: `Reorder` takes the saved ids only. S15-39 draws it |
 | A dismissed needed field coming back (D-7) | the board | Not drawn until S15-39 (same lists) |
-| `DismissMetadataSuggestion` on a needed field | `L10n.Errors` `sourcemetadata.invalid` | Mapped today; no screen offers it (no X on an undrawn row) |
+| `DismissMetadataSuggestion` on a needed field | `L10n.Errors` `sourcemetadata.invalid` | Mapped today. A needed field the type also suggests is drawn as a suggestion row with a dismiss X (`MetadataBoardModel.suggested`, `MetadataBoardView.swift` `MetadataBoardSuggestionRow`); after this PR that X shows "This metadata change can't be saved." (24 seeded needed suggestions, e.g. census `jurisdiction`) until S15-39 hides it |
 | A format naming a field id with no field row | `needsAt`, alternatives | Dropped (D-15); T-6 |
 
 ### Scale
@@ -339,7 +339,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: wh
 No view changes, so the check is that the app still works on the new replies.
 
 1. Build and run the app on a new project (the seed installs). Add a Source of type Birth certificate and one of type Census. Each page opens with no error and its Metadata section looks as before (the unsuggested Jurisdiction entry is not drawn yet, §4 Swift board).
-2. On the census Source, add a value to a suggested field, reorder two saved rows and dismiss an empty suggestion: each saves as before.
+2. On the census Source, add a value to a suggested field, reorder two saved rows and dismiss an empty suggestion the type does not need: each saves as before. Dismissing a needed one (e.g. census `jurisdiction`) shows the save error (known, S15-39).
 3. Open the citation composer on the census Source's graph: it opens as before.
 
 ## 11. Risks and stop conditions
@@ -349,6 +349,7 @@ No view changes, so the check is that the app still works on the new replies.
 | Whole-board handler tests break on the seeded birth certificate | STEP-6 updates only those expectations and lists them in the PR body |
 | A reorder drops an undrawn unsuggested entry from the client copy until the next read | No write sends it; S15-39 draws and keeps it |
 | One more Source read per page | One row by primary key (D-14) |
+| The dismiss X on an empty suggestion the type also needs fails with the save error | Accepted by the user (2026-11-19); S15-39 hides the X |
 
 **Stop and report if:**
 
@@ -376,3 +377,4 @@ None.
 - `sourcemetadata_test.go` splits `testWorld` into `emptyWorld` (a user, no vocabulary) and `testWorld`; `seededWorld` is `emptyWorld` plus the seed.
 - Commits: the shared parse; the board annotations with the dismiss refusal; the draft board read; the version bump (which also carries the § 5.4 text).
 - The in-app manual check (§ 10) was not run in the implementing session.
+- The dismiss X on an empty needed suggestion shows the save error until S15-39 hides it (accepted by the user, 2026-11-19; § 6 Reach row and § 11 Risks).
