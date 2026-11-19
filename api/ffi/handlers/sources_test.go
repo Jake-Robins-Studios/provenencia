@@ -14,6 +14,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -1125,12 +1126,14 @@ func TestSetSourceDate(t *testing.T) {
 		}, &created)
 		return dir, userID, created.Source.Id
 	}
-	set := func(t *testing.T, dir, userID, sourceID string, date *engine.DateValueInput) (*engine.SetSourceDateResponse, error) {
+	set := func(t *testing.T, dir, userID, sourceID string, date *engine.DateValueInput, mark ...*engine.ValueMark) (*engine.SetSourceDateResponse, error) {
 		t.Helper()
 		var resp engine.SetSourceDateResponse
-		err := rpc(t, SetSourceDate, &engine.SetSourceDateRequest{
-			ProjectDir: dir, UserId: userID, SourceId: sourceID, Date: date,
-		}, &resp)
+		req := &engine.SetSourceDateRequest{ProjectDir: dir, UserId: userID, SourceId: sourceID, Date: date}
+		if len(mark) > 0 {
+			req.Mark = mark[0]
+		}
+		err := rpc(t, SetSourceDate, req, &resp)
 		return &resp, err
 	}
 	dateRows := func(t *testing.T, dir string) int {
@@ -1212,6 +1215,69 @@ func TestSetSourceDate(t *testing.T) {
 		}
 		if resp.Source.GetDate().GetPhrase() == "" || resp.Source.DateSortKey != nil {
 			t.Fatalf("source %+v", resp.Source)
+		}
+	})
+	t.Run("marks", func(t *testing.T) {
+		t.Cleanup(func() { _ = catalogsession.CloseAll() })
+		dir, userID, id := newSource(t)
+		unknown := &engine.ValueMark{Unknown: true}
+		supplied := &engine.ValueMark{Supplied: true}
+		read := func(t *testing.T) (ws, list *engine.Source) {
+			t.Helper()
+			var w engine.GetSourceWorkspaceResponse
+			mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: id}, &w)
+			var l engine.ListSourcesResponse
+			mustRPC(t, ListSources, &engine.ListSourcesRequest{ProjectDir: dir}, &l)
+			if len(l.Sources) != 1 {
+				t.Fatalf("list %+v", l.Sources)
+			}
+			return w.Source, l.Sources[0]
+		}
+
+		resp, err := set(t, dir, userID, id, nil, unknown)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !resp.Source.GetDateMark().GetUnknown() || resp.Source.GetDate() != nil || resp.Source.DateSortKey != nil || resp.Effects.GetRevision() <= 0 {
+			t.Fatalf("unknown %+v effects %+v", resp.Source, resp.Effects)
+		}
+		if ws, list := read(t); !ws.GetDateMark().GetUnknown() || !list.GetDateMark().GetUnknown() {
+			t.Fatalf("read unknown: %+v / %+v", ws.GetDateMark(), list.GetDateMark())
+		}
+		if resp, err = set(t, dir, userID, id, nil, unknown); err != nil || resp.Effects.GetRevision() != 0 {
+			t.Fatalf("repeat err=%v effects %+v", err, resp.Effects)
+		}
+		// A blank kind is no date.
+		if resp, err = set(t, dir, userID, id, &engine.DateValueInput{Kind: " "}, unknown); err != nil || !resp.Source.GetDateMark().GetUnknown() {
+			t.Fatalf("blank kind err=%v source %+v", err, resp.Source)
+		}
+
+		if resp, err = set(t, dir, userID, id, pointDate(1880, 0, 0), supplied); err != nil {
+			t.Fatal(err)
+		}
+		if !resp.Source.GetDateMark().GetSupplied() || resp.Source.GetDateMark().GetUnknown() || resp.Source.DateSortKey == nil {
+			t.Fatalf("supplied %+v", resp.Source)
+		}
+		if ws, list := read(t); !ws.GetDateMark().GetSupplied() || !list.GetDateMark().GetSupplied() {
+			t.Fatalf("read supplied: %+v / %+v", ws.GetDateMark(), list.GetDateMark())
+		}
+		if resp, err = set(t, dir, userID, id, pointDate(1880, 0, 0), supplied); err != nil || resp.Effects.GetRevision() != 0 {
+			t.Fatalf("repeat err=%v effects %+v", err, resp.Effects)
+		}
+
+		if _, err = set(t, dir, userID, id, pointDate(1890, 0, 0), unknown); !errors.Is(err, valuemark.ErrInvalid) {
+			t.Fatalf("date with unknown: %v", err)
+		}
+		if ws, _ := read(t); ws.GetDate().GetStartYear() != 1880 || !ws.GetDateMark().GetSupplied() {
+			t.Fatalf("stored changed: %+v", ws)
+		}
+
+		// No mark over a supplied date clears the mark and keeps the date.
+		if resp, err = set(t, dir, userID, id, pointDate(1880, 0, 0)); err != nil {
+			t.Fatal(err)
+		}
+		if resp.Source.GetDateMark() != nil || resp.Source.GetDate().GetStartYear() != 1880 {
+			t.Fatalf("no mark %+v", resp.Source)
 		}
 	})
 	t.Run("unknown source", func(t *testing.T) {

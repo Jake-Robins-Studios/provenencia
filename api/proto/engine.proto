@@ -280,6 +280,9 @@ message Source {
   optional int64 date_sort_key = 15;
   // False when the researcher marked the Source not public. Stored only.
   bool is_public = 16;
+  // The date's unknown or supplied mark; absent for no mark. Unknown has no
+  // date; supplied has one.
+  ValueMark date_mark = 17;
 }
 
 message SourceNote {
@@ -610,6 +613,9 @@ message SetSourceDateRequest {
   string user_id = 2;
   string source_id = 3;
   DateValueInput date = 4; // absent or blank kind clears
+  // Absent is no mark, and clears a stored one. Unknown needs no date;
+  // supplied needs one.
+  ValueMark mark = 5;
 }
 
 message SetSourceDateResponse {

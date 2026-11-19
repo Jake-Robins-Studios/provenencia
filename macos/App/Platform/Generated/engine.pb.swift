@@ -1276,78 +1276,130 @@ public nonisolated struct Provenencia_Engine_V1_GetProjectInfoResponse: Sendable
   fileprivate var _project: Provenencia_Engine_V1_ProjectInfo? = nil
 }
 
-public nonisolated struct Provenencia_Engine_V1_Source: Sendable {
+public nonisolated struct Provenencia_Engine_V1_Source: @unchecked Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  public var id: String = String()
+  public var id: String {
+    get {_storage._id}
+    set {_uniqueStorage()._id = newValue}
+  }
 
-  public var ref: String = String()
+  public var ref: String {
+    get {_storage._ref}
+    set {_uniqueStorage()._ref = newValue}
+  }
 
-  public var sourceTypeID: String = String()
+  public var sourceTypeID: String {
+    get {_storage._sourceTypeID}
+    set {_uniqueStorage()._sourceTypeID = newValue}
+  }
 
-  public var title: String = String()
+  public var title: String {
+    get {_storage._title}
+    set {_uniqueStorage()._title = newValue}
+  }
 
-  public var description_p: String = String()
+  public var description_p: String {
+    get {_storage._description_p}
+    set {_uniqueStorage()._description_p = newValue}
+  }
 
   /// Thumbnail JPEG under objects/… for list cells (empty = no raster cover).
-  public var thumbnailRelPath: String = String()
+  public var thumbnailRelPath: String {
+    get {_storage._thumbnailRelPath}
+    set {_uniqueStorage()._thumbnailRelPath = newValue}
+  }
 
   /// Reserved / unused for Source cover. File-type glyphs stay on Artifact
   /// rows only; Source paints type icon or raster.
-  public var thumbnailMediaType: String = String()
+  public var thumbnailMediaType: String {
+    get {_storage._thumbnailMediaType}
+    set {_uniqueStorage()._thumbnailMediaType = newValue}
+  }
 
-  public var thumbnailOriginalFilename: String = String()
+  public var thumbnailOriginalFilename: String {
+    get {_storage._thumbnailOriginalFilename}
+    set {_uniqueStorage()._thumbnailOriginalFilename = newValue}
+  }
 
   /// Cover preference: "artifact" (primary_artifact_id) or "type_icon".
-  public var coverMode: String = String()
+  public var coverMode: String {
+    get {_storage._coverMode}
+    set {_uniqueStorage()._coverMode = newValue}
+  }
 
   /// Set when cover_mode is artifact; empty for type_icon.
-  public var primaryArtifactID: String = String()
+  public var primaryArtifactID: String {
+    get {_storage._primaryArtifactID}
+    set {_uniqueStorage()._primaryArtifactID = newValue}
+  }
 
   /// True when this Source has at least one Artifact row (fileless counts).
   /// Used by Sources list Evidence graph gate — not cover presence.
-  public var hasArtifact_p: Bool = false
+  public var hasArtifact_p: Bool {
+    get {_storage._hasArtifact_p}
+    set {_uniqueStorage()._hasArtifact_p = newValue}
+  }
 
   /// Max audit_transactions.revision scoped to this Source (audit_transaction_scopes):
   /// its row and any work under it. Sources list "Updated" sort.
-  public var updatedRevision: Int64 = 0
+  public var updatedRevision: Int64 {
+    get {_storage._updatedRevision}
+    set {_uniqueStorage()._updatedRevision = newValue}
+  }
 
   /// When that revision was recorded (RFC3339 UTC); empty when updated_revision is 0.
-  public var updatedAt: String = String()
+  public var updatedAt: String {
+    get {_storage._updatedAt}
+    set {_uniqueStorage()._updatedAt = newValue}
+  }
 
   /// The Source's own date (original publication, or when the record was made);
   /// absent when undated.
   public var date: Provenencia_Engine_V1_DateValueInput {
-    get {_date ?? Provenencia_Engine_V1_DateValueInput()}
-    set {_date = newValue}
+    get {_storage._date ?? Provenencia_Engine_V1_DateValueInput()}
+    set {_uniqueStorage()._date = newValue}
   }
   /// Returns true if `date` has been explicitly set.
-  public var hasDate: Bool {self._date != nil}
+  public var hasDate: Bool {_storage._date != nil}
   /// Clears the value of `date`. Subsequent reads from it will return its default value.
-  public mutating func clearDate() {self._date = nil}
+  public mutating func clearDate() {_uniqueStorage()._date = nil}
 
   /// Its place in date order (valuecompare.DateKey); absent when undated or not
   /// placeable. Sort ascending, absent last.
   public var dateSortKey: Int64 {
-    get {_dateSortKey ?? 0}
-    set {_dateSortKey = newValue}
+    get {_storage._dateSortKey ?? 0}
+    set {_uniqueStorage()._dateSortKey = newValue}
   }
   /// Returns true if `dateSortKey` has been explicitly set.
-  public var hasDateSortKey: Bool {self._dateSortKey != nil}
+  public var hasDateSortKey: Bool {_storage._dateSortKey != nil}
   /// Clears the value of `dateSortKey`. Subsequent reads from it will return its default value.
-  public mutating func clearDateSortKey() {self._dateSortKey = nil}
+  public mutating func clearDateSortKey() {_uniqueStorage()._dateSortKey = nil}
 
   /// False when the researcher marked the Source not public. Stored only.
-  public var isPublic: Bool = false
+  public var isPublic: Bool {
+    get {_storage._isPublic}
+    set {_uniqueStorage()._isPublic = newValue}
+  }
+
+  /// The date's unknown or supplied mark; absent for no mark. Unknown has no
+  /// date; supplied has one.
+  public var dateMark: Provenencia_Engine_V1_ValueMark {
+    get {_storage._dateMark ?? Provenencia_Engine_V1_ValueMark()}
+    set {_uniqueStorage()._dateMark = newValue}
+  }
+  /// Returns true if `dateMark` has been explicitly set.
+  public var hasDateMark: Bool {_storage._dateMark != nil}
+  /// Clears the value of `dateMark`. Subsequent reads from it will return its default value.
+  public mutating func clearDateMark() {_uniqueStorage()._dateMark = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _date: Provenencia_Engine_V1_DateValueInput? = nil
-  fileprivate var _dateSortKey: Int64? = nil
+  fileprivate var _storage = _StorageClass.defaultInstance
 }
 
 public nonisolated struct Provenencia_Engine_V1_SourceNote: Sendable {
@@ -1820,64 +1872,50 @@ public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceRequest: Senda
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
-  public var notes: [Provenencia_Engine_V1_SourceNote] {
-    get {_storage._notes}
-    set {_uniqueStorage()._notes = newValue}
-  }
+  public var notes: [Provenencia_Engine_V1_SourceNote] = []
 
-  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] {
-    get {_storage._metadata}
-    set {_uniqueStorage()._metadata = newValue}
-  }
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
 
-  public var artifacts: [Provenencia_Engine_V1_Artifact] {
-    get {_storage._artifacts}
-    set {_uniqueStorage()._artifacts = newValue}
-  }
+  public var artifacts: [Provenencia_Engine_V1_Artifact] = []
 
   /// Omitted when no assessment row (UI may display Standard without a row).
   public var credibility: Provenencia_Engine_V1_SourceCredibilityAssessment {
-    get {_storage._credibility ?? Provenencia_Engine_V1_SourceCredibilityAssessment()}
-    set {_uniqueStorage()._credibility = newValue}
+    get {_credibility ?? Provenencia_Engine_V1_SourceCredibilityAssessment()}
+    set {_credibility = newValue}
   }
   /// Returns true if `credibility` has been explicitly set.
-  public var hasCredibility: Bool {_storage._credibility != nil}
+  public var hasCredibility: Bool {self._credibility != nil}
   /// Clears the value of `credibility`. Subsequent reads from it will return its default value.
-  public mutating func clearCredibility() {_uniqueStorage()._credibility = nil}
+  public mutating func clearCredibility() {self._credibility = nil}
 
   /// One board per Artifact, in the order of artifacts: its type's artifact-level
   /// suggestions plus extras, by its layout.
-  public var artifactMetadata: [Provenencia_Engine_V1_MetadataBoard] {
-    get {_storage._artifactMetadata}
-    set {_uniqueStorage()._artifactMetadata = newValue}
-  }
+  public var artifactMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
 
   /// One board per Evidence graph of the Source, in graph list order: its type's
   /// graph-level suggestions plus extras, by its layout.
-  public var graphMetadata: [Provenencia_Engine_V1_MetadataBoard] {
-    get {_storage._graphMetadata}
-    set {_uniqueStorage()._graphMetadata = newValue}
-  }
+  public var graphMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _credibility: Provenencia_Engine_V1_SourceCredibilityAssessment? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_CreateSourceRequest: Sendable {
@@ -1901,34 +1939,35 @@ public nonisolated struct Provenencia_Engine_V1_CreateSourceRequest: Sendable {
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_CreateSourceResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_CreateSourceResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 /// CopySource creates a new Source from an existing one in one audited write.
@@ -1969,34 +2008,35 @@ public nonisolated struct Provenencia_Engine_V1_CopySourceRequest: Sendable {
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_CopySourceResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_CopySourceResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_EvidenceGraph: Sendable {
@@ -2299,34 +2339,35 @@ public nonisolated struct Provenencia_Engine_V1_UpdateSourceRequest: Sendable {
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_UpdateSourceResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_UpdateSourceResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_DeleteSourceRequest: Sendable {
@@ -2388,34 +2429,35 @@ public nonisolated struct Provenencia_Engine_V1_SetSourceCoverRequest: Sendable 
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_SetSourceCoverResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_SetSourceCoverResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_SetSourceDateRequest: Sendable {
@@ -2439,41 +2481,54 @@ public nonisolated struct Provenencia_Engine_V1_SetSourceDateRequest: Sendable {
   /// Clears the value of `date`. Subsequent reads from it will return its default value.
   public mutating func clearDate() {self._date = nil}
 
+  /// Absent is no mark, and clears a stored one. Unknown needs no date;
+  /// supplied needs one.
+  public var mark: Provenencia_Engine_V1_ValueMark {
+    get {_mark ?? Provenencia_Engine_V1_ValueMark()}
+    set {_mark = newValue}
+  }
+  /// Returns true if `mark` has been explicitly set.
+  public var hasMark: Bool {self._mark != nil}
+  /// Clears the value of `mark`. Subsequent reads from it will return its default value.
+  public mutating func clearMark() {self._mark = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _date: Provenencia_Engine_V1_DateValueInput? = nil
+  fileprivate var _mark: Provenencia_Engine_V1_ValueMark? = nil
 }
 
-public nonisolated struct Provenencia_Engine_V1_SetSourceDateResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_SetSourceDateResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_SetSourcePublicRequest: Sendable {
@@ -2494,34 +2549,35 @@ public nonisolated struct Provenencia_Engine_V1_SetSourcePublicRequest: Sendable
   public init() {}
 }
 
-public nonisolated struct Provenencia_Engine_V1_SetSourcePublicResponse: @unchecked Sendable {
+public nonisolated struct Provenencia_Engine_V1_SetSourcePublicResponse: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
   public var source: Provenencia_Engine_V1_Source {
-    get {_storage._source ?? Provenencia_Engine_V1_Source()}
-    set {_uniqueStorage()._source = newValue}
+    get {_source ?? Provenencia_Engine_V1_Source()}
+    set {_source = newValue}
   }
   /// Returns true if `source` has been explicitly set.
-  public var hasSource: Bool {_storage._source != nil}
+  public var hasSource: Bool {self._source != nil}
   /// Clears the value of `source`. Subsequent reads from it will return its default value.
-  public mutating func clearSource() {_uniqueStorage()._source = nil}
+  public mutating func clearSource() {self._source = nil}
 
   public var effects: Provenencia_Engine_V1_WriteEffects {
-    get {_storage._effects ?? Provenencia_Engine_V1_WriteEffects()}
-    set {_uniqueStorage()._effects = newValue}
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
   }
   /// Returns true if `effects` has been explicitly set.
-  public var hasEffects: Bool {_storage._effects != nil}
+  public var hasEffects: Bool {self._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
-  public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+  public mutating func clearEffects() {self._effects = nil}
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
-  fileprivate var _storage = _StorageClass.defaultInstance
+  fileprivate var _source: Provenencia_Engine_V1_Source? = nil
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_AddSourceNoteRequest: Sendable {
@@ -9725,108 +9781,181 @@ nonisolated extension Provenencia_Engine_V1_GetProjectInfoResponse: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Source"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}ref\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0\u{3}thumbnail_rel_path\0\u{3}thumbnail_media_type\0\u{3}thumbnail_original_filename\0\u{3}cover_mode\0\u{3}primary_artifact_id\0\u{3}has_artifact\0\u{3}updated_revision\0\u{3}updated_at\0\u{1}date\0\u{3}date_sort_key\0\u{3}is_public\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}ref\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0\u{3}thumbnail_rel_path\0\u{3}thumbnail_media_type\0\u{3}thumbnail_original_filename\0\u{3}cover_mode\0\u{3}primary_artifact_id\0\u{3}has_artifact\0\u{3}updated_revision\0\u{3}updated_at\0\u{1}date\0\u{3}date_sort_key\0\u{3}is_public\0\u{3}date_mark\0")
+
+  fileprivate class _StorageClass {
+    var _id: String = String()
+    var _ref: String = String()
+    var _sourceTypeID: String = String()
+    var _title: String = String()
+    var _description_p: String = String()
+    var _thumbnailRelPath: String = String()
+    var _thumbnailMediaType: String = String()
+    var _thumbnailOriginalFilename: String = String()
+    var _coverMode: String = String()
+    var _primaryArtifactID: String = String()
+    var _hasArtifact_p: Bool = false
+    var _updatedRevision: Int64 = 0
+    var _updatedAt: String = String()
+    var _date: Provenencia_Engine_V1_DateValueInput? = nil
+    var _dateSortKey: Int64? = nil
+    var _isPublic: Bool = false
+    var _dateMark: Provenencia_Engine_V1_ValueMark? = nil
+
+      // This property is used as the initial default value for new instances of the type.
+      // The type itself is protecting the reference to its storage via CoW semantics.
+      // This will force a copy to be made of this reference when the first mutation occurs;
+      // hence, it is safe to mark this as `nonisolated(unsafe)`.
+      static nonisolated(unsafe) let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _id = source._id
+      _ref = source._ref
+      _sourceTypeID = source._sourceTypeID
+      _title = source._title
+      _description_p = source._description_p
+      _thumbnailRelPath = source._thumbnailRelPath
+      _thumbnailMediaType = source._thumbnailMediaType
+      _thumbnailOriginalFilename = source._thumbnailOriginalFilename
+      _coverMode = source._coverMode
+      _primaryArtifactID = source._primaryArtifactID
+      _hasArtifact_p = source._hasArtifact_p
+      _updatedRevision = source._updatedRevision
+      _updatedAt = source._updatedAt
+      _date = source._date
+      _dateSortKey = source._dateSortKey
+      _isPublic = source._isPublic
+      _dateMark = source._dateMark
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    while let fieldNumber = try decoder.nextFieldNumber() {
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every case branch when no optimizations are
-      // enabled. https://github.com/apple/swift-protobuf/issues/1034
-      switch fieldNumber {
-      case 1: try { try decoder.decodeSingularStringField(value: &self.id) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.ref) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.sourceTypeID) }()
-      case 4: try { try decoder.decodeSingularStringField(value: &self.title) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.description_p) }()
-      case 6: try { try decoder.decodeSingularStringField(value: &self.thumbnailRelPath) }()
-      case 7: try { try decoder.decodeSingularStringField(value: &self.thumbnailMediaType) }()
-      case 8: try { try decoder.decodeSingularStringField(value: &self.thumbnailOriginalFilename) }()
-      case 9: try { try decoder.decodeSingularStringField(value: &self.coverMode) }()
-      case 10: try { try decoder.decodeSingularStringField(value: &self.primaryArtifactID) }()
-      case 11: try { try decoder.decodeSingularBoolField(value: &self.hasArtifact_p) }()
-      case 12: try { try decoder.decodeSingularInt64Field(value: &self.updatedRevision) }()
-      case 13: try { try decoder.decodeSingularStringField(value: &self.updatedAt) }()
-      case 14: try { try decoder.decodeSingularMessageField(value: &self._date) }()
-      case 15: try { try decoder.decodeSingularInt64Field(value: &self._dateSortKey) }()
-      case 16: try { try decoder.decodeSingularBoolField(value: &self.isPublic) }()
-      default: break
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        // The use of inline closures is to circumvent an issue where the compiler
+        // allocates stack space for every case branch when no optimizations are
+        // enabled. https://github.com/apple/swift-protobuf/issues/1034
+        switch fieldNumber {
+        case 1: try { try decoder.decodeSingularStringField(value: &_storage._id) }()
+        case 2: try { try decoder.decodeSingularStringField(value: &_storage._ref) }()
+        case 3: try { try decoder.decodeSingularStringField(value: &_storage._sourceTypeID) }()
+        case 4: try { try decoder.decodeSingularStringField(value: &_storage._title) }()
+        case 5: try { try decoder.decodeSingularStringField(value: &_storage._description_p) }()
+        case 6: try { try decoder.decodeSingularStringField(value: &_storage._thumbnailRelPath) }()
+        case 7: try { try decoder.decodeSingularStringField(value: &_storage._thumbnailMediaType) }()
+        case 8: try { try decoder.decodeSingularStringField(value: &_storage._thumbnailOriginalFilename) }()
+        case 9: try { try decoder.decodeSingularStringField(value: &_storage._coverMode) }()
+        case 10: try { try decoder.decodeSingularStringField(value: &_storage._primaryArtifactID) }()
+        case 11: try { try decoder.decodeSingularBoolField(value: &_storage._hasArtifact_p) }()
+        case 12: try { try decoder.decodeSingularInt64Field(value: &_storage._updatedRevision) }()
+        case 13: try { try decoder.decodeSingularStringField(value: &_storage._updatedAt) }()
+        case 14: try { try decoder.decodeSingularMessageField(value: &_storage._date) }()
+        case 15: try { try decoder.decodeSingularInt64Field(value: &_storage._dateSortKey) }()
+        case 16: try { try decoder.decodeSingularBoolField(value: &_storage._isPublic) }()
+        case 17: try { try decoder.decodeSingularMessageField(value: &_storage._dateMark) }()
+        default: break
+        }
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    // The use of inline closures is to circumvent an issue where the compiler
-    // allocates stack space for every if/case branch local when no optimizations
-    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-    // https://github.com/apple/swift-protobuf/issues/1182
-    if !self.id.isEmpty {
-      try visitor.visitSingularStringField(value: self.id, fieldNumber: 1)
-    }
-    if !self.ref.isEmpty {
-      try visitor.visitSingularStringField(value: self.ref, fieldNumber: 2)
-    }
-    if !self.sourceTypeID.isEmpty {
-      try visitor.visitSingularStringField(value: self.sourceTypeID, fieldNumber: 3)
-    }
-    if !self.title.isEmpty {
-      try visitor.visitSingularStringField(value: self.title, fieldNumber: 4)
-    }
-    if !self.description_p.isEmpty {
-      try visitor.visitSingularStringField(value: self.description_p, fieldNumber: 5)
-    }
-    if !self.thumbnailRelPath.isEmpty {
-      try visitor.visitSingularStringField(value: self.thumbnailRelPath, fieldNumber: 6)
-    }
-    if !self.thumbnailMediaType.isEmpty {
-      try visitor.visitSingularStringField(value: self.thumbnailMediaType, fieldNumber: 7)
-    }
-    if !self.thumbnailOriginalFilename.isEmpty {
-      try visitor.visitSingularStringField(value: self.thumbnailOriginalFilename, fieldNumber: 8)
-    }
-    if !self.coverMode.isEmpty {
-      try visitor.visitSingularStringField(value: self.coverMode, fieldNumber: 9)
-    }
-    if !self.primaryArtifactID.isEmpty {
-      try visitor.visitSingularStringField(value: self.primaryArtifactID, fieldNumber: 10)
-    }
-    if self.hasArtifact_p != false {
-      try visitor.visitSingularBoolField(value: self.hasArtifact_p, fieldNumber: 11)
-    }
-    if self.updatedRevision != 0 {
-      try visitor.visitSingularInt64Field(value: self.updatedRevision, fieldNumber: 12)
-    }
-    if !self.updatedAt.isEmpty {
-      try visitor.visitSingularStringField(value: self.updatedAt, fieldNumber: 13)
-    }
-    try { if let v = self._date {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 14)
-    } }()
-    try { if let v = self._dateSortKey {
-      try visitor.visitSingularInt64Field(value: v, fieldNumber: 15)
-    } }()
-    if self.isPublic != false {
-      try visitor.visitSingularBoolField(value: self.isPublic, fieldNumber: 16)
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every if/case branch local when no optimizations
+      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+      // https://github.com/apple/swift-protobuf/issues/1182
+      if !_storage._id.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 1)
+      }
+      if !_storage._ref.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._ref, fieldNumber: 2)
+      }
+      if !_storage._sourceTypeID.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._sourceTypeID, fieldNumber: 3)
+      }
+      if !_storage._title.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._title, fieldNumber: 4)
+      }
+      if !_storage._description_p.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._description_p, fieldNumber: 5)
+      }
+      if !_storage._thumbnailRelPath.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._thumbnailRelPath, fieldNumber: 6)
+      }
+      if !_storage._thumbnailMediaType.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._thumbnailMediaType, fieldNumber: 7)
+      }
+      if !_storage._thumbnailOriginalFilename.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._thumbnailOriginalFilename, fieldNumber: 8)
+      }
+      if !_storage._coverMode.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._coverMode, fieldNumber: 9)
+      }
+      if !_storage._primaryArtifactID.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._primaryArtifactID, fieldNumber: 10)
+      }
+      if _storage._hasArtifact_p != false {
+        try visitor.visitSingularBoolField(value: _storage._hasArtifact_p, fieldNumber: 11)
+      }
+      if _storage._updatedRevision != 0 {
+        try visitor.visitSingularInt64Field(value: _storage._updatedRevision, fieldNumber: 12)
+      }
+      if !_storage._updatedAt.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._updatedAt, fieldNumber: 13)
+      }
+      try { if let v = _storage._date {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 14)
+      } }()
+      try { if let v = _storage._dateSortKey {
+        try visitor.visitSingularInt64Field(value: v, fieldNumber: 15)
+      } }()
+      if _storage._isPublic != false {
+        try visitor.visitSingularBoolField(value: _storage._isPublic, fieldNumber: 16)
+      }
+      try { if let v = _storage._dateMark {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 17)
+      } }()
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_Source, rhs: Provenencia_Engine_V1_Source) -> Bool {
-    if lhs.id != rhs.id {return false}
-    if lhs.ref != rhs.ref {return false}
-    if lhs.sourceTypeID != rhs.sourceTypeID {return false}
-    if lhs.title != rhs.title {return false}
-    if lhs.description_p != rhs.description_p {return false}
-    if lhs.thumbnailRelPath != rhs.thumbnailRelPath {return false}
-    if lhs.thumbnailMediaType != rhs.thumbnailMediaType {return false}
-    if lhs.thumbnailOriginalFilename != rhs.thumbnailOriginalFilename {return false}
-    if lhs.coverMode != rhs.coverMode {return false}
-    if lhs.primaryArtifactID != rhs.primaryArtifactID {return false}
-    if lhs.hasArtifact_p != rhs.hasArtifact_p {return false}
-    if lhs.updatedRevision != rhs.updatedRevision {return false}
-    if lhs.updatedAt != rhs.updatedAt {return false}
-    if lhs._date != rhs._date {return false}
-    if lhs._dateSortKey != rhs._dateSortKey {return false}
-    if lhs.isPublic != rhs.isPublic {return false}
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._id != rhs_storage._id {return false}
+        if _storage._ref != rhs_storage._ref {return false}
+        if _storage._sourceTypeID != rhs_storage._sourceTypeID {return false}
+        if _storage._title != rhs_storage._title {return false}
+        if _storage._description_p != rhs_storage._description_p {return false}
+        if _storage._thumbnailRelPath != rhs_storage._thumbnailRelPath {return false}
+        if _storage._thumbnailMediaType != rhs_storage._thumbnailMediaType {return false}
+        if _storage._thumbnailOriginalFilename != rhs_storage._thumbnailOriginalFilename {return false}
+        if _storage._coverMode != rhs_storage._coverMode {return false}
+        if _storage._primaryArtifactID != rhs_storage._primaryArtifactID {return false}
+        if _storage._hasArtifact_p != rhs_storage._hasArtifact_p {return false}
+        if _storage._updatedRevision != rhs_storage._updatedRevision {return false}
+        if _storage._updatedAt != rhs_storage._updatedAt {return false}
+        if _storage._date != rhs_storage._date {return false}
+        if _storage._dateSortKey != rhs_storage._dateSortKey {return false}
+        if _storage._isPublic != rhs_storage._isPublic {return false}
+        if _storage._dateMark != rhs_storage._dateMark {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -10646,109 +10775,61 @@ nonisolated extension Provenencia_Engine_V1_GetSourceWorkspaceResponse: SwiftPro
   public static let protoMessageName: String = _protobuf_package + ".GetSourceWorkspaceResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}notes\0\u{1}metadata\0\u{1}artifacts\0\u{1}credibility\0\u{4}\u{4}artifact_metadata\0\u{3}graph_metadata\0\u{c}\u{6}\u{1}\u{c}\u{7}\u{1}\u{c}\u{8}\u{1}")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _notes: [Provenencia_Engine_V1_SourceNote] = []
-    var _metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
-    var _artifacts: [Provenencia_Engine_V1_Artifact] = []
-    var _credibility: Provenencia_Engine_V1_SourceCredibilityAssessment? = nil
-    var _artifactMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
-    var _graphMetadata: [Provenencia_Engine_V1_MetadataBoard] = []
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _notes = source._notes
-      _metadata = source._metadata
-      _artifacts = source._artifacts
-      _credibility = source._credibility
-      _artifactMetadata = source._artifactMetadata
-      _graphMetadata = source._graphMetadata
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeRepeatedMessageField(value: &_storage._notes) }()
-        case 3: try { try decoder.decodeRepeatedMessageField(value: &_storage._metadata) }()
-        case 4: try { try decoder.decodeRepeatedMessageField(value: &_storage._artifacts) }()
-        case 5: try { try decoder.decodeSingularMessageField(value: &_storage._credibility) }()
-        case 9: try { try decoder.decodeRepeatedMessageField(value: &_storage._artifactMetadata) }()
-        case 10: try { try decoder.decodeRepeatedMessageField(value: &_storage._graphMetadata) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.notes) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.metadata) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.artifacts) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &self._credibility) }()
+      case 9: try { try decoder.decodeRepeatedMessageField(value: &self.artifactMetadata) }()
+      case 10: try { try decoder.decodeRepeatedMessageField(value: &self.graphMetadata) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      if !_storage._notes.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._notes, fieldNumber: 2)
-      }
-      if !_storage._metadata.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._metadata, fieldNumber: 3)
-      }
-      if !_storage._artifacts.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._artifacts, fieldNumber: 4)
-      }
-      try { if let v = _storage._credibility {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
-      } }()
-      if !_storage._artifactMetadata.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._artifactMetadata, fieldNumber: 9)
-      }
-      if !_storage._graphMetadata.isEmpty {
-        try visitor.visitRepeatedMessageField(value: _storage._graphMetadata, fieldNumber: 10)
-      }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    if !self.notes.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.notes, fieldNumber: 2)
+    }
+    if !self.metadata.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.metadata, fieldNumber: 3)
+    }
+    if !self.artifacts.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.artifacts, fieldNumber: 4)
+    }
+    try { if let v = self._credibility {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    } }()
+    if !self.artifactMetadata.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.artifactMetadata, fieldNumber: 9)
+    }
+    if !self.graphMetadata.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.graphMetadata, fieldNumber: 10)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_GetSourceWorkspaceResponse, rhs: Provenencia_Engine_V1_GetSourceWorkspaceResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._notes != rhs_storage._notes {return false}
-        if _storage._metadata != rhs_storage._metadata {return false}
-        if _storage._artifacts != rhs_storage._artifacts {return false}
-        if _storage._credibility != rhs_storage._credibility {return false}
-        if _storage._artifactMetadata != rhs_storage._artifactMetadata {return false}
-        if _storage._graphMetadata != rhs_storage._graphMetadata {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs.notes != rhs.notes {return false}
+    if lhs.metadata != rhs.metadata {return false}
+    if lhs.artifacts != rhs.artifacts {return false}
+    if lhs._credibility != rhs._credibility {return false}
+    if lhs.artifactMetadata != rhs.artifactMetadata {return false}
+    if lhs.graphMetadata != rhs.graphMetadata {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -10808,74 +10889,36 @@ nonisolated extension Provenencia_Engine_V1_CreateSourceResponse: SwiftProtobuf.
   public static let protoMessageName: String = _protobuf_package + ".CreateSourceResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_CreateSourceResponse, rhs: Provenencia_Engine_V1_CreateSourceResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -10960,74 +11003,36 @@ nonisolated extension Provenencia_Engine_V1_CopySourceResponse: SwiftProtobuf.Me
   public static let protoMessageName: String = _protobuf_package + ".CopySourceResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_CopySourceResponse, rhs: Provenencia_Engine_V1_CopySourceResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -11682,74 +11687,36 @@ nonisolated extension Provenencia_Engine_V1_UpdateSourceResponse: SwiftProtobuf.
   public static let protoMessageName: String = _protobuf_package + ".UpdateSourceResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_UpdateSourceResponse, rhs: Provenencia_Engine_V1_UpdateSourceResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -11883,74 +11850,36 @@ nonisolated extension Provenencia_Engine_V1_SetSourceCoverResponse: SwiftProtobu
   public static let protoMessageName: String = _protobuf_package + ".SetSourceCoverResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_SetSourceCoverResponse, rhs: Provenencia_Engine_V1_SetSourceCoverResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -11958,7 +11887,7 @@ nonisolated extension Provenencia_Engine_V1_SetSourceCoverResponse: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_SetSourceDateRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".SetSourceDateRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}source_id\0\u{1}date\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}source_id\0\u{1}date\0\u{1}mark\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -11970,6 +11899,7 @@ nonisolated extension Provenencia_Engine_V1_SetSourceDateRequest: SwiftProtobuf.
       case 2: try { try decoder.decodeSingularStringField(value: &self.userID) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.sourceID) }()
       case 4: try { try decoder.decodeSingularMessageField(value: &self._date) }()
+      case 5: try { try decoder.decodeSingularMessageField(value: &self._mark) }()
       default: break
       }
     }
@@ -11992,6 +11922,9 @@ nonisolated extension Provenencia_Engine_V1_SetSourceDateRequest: SwiftProtobuf.
     try { if let v = self._date {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
     } }()
+    try { if let v = self._mark {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -12000,6 +11933,7 @@ nonisolated extension Provenencia_Engine_V1_SetSourceDateRequest: SwiftProtobuf.
     if lhs.userID != rhs.userID {return false}
     if lhs.sourceID != rhs.sourceID {return false}
     if lhs._date != rhs._date {return false}
+    if lhs._mark != rhs._mark {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -12009,74 +11943,36 @@ nonisolated extension Provenencia_Engine_V1_SetSourceDateResponse: SwiftProtobuf
   public static let protoMessageName: String = _protobuf_package + ".SetSourceDateResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_SetSourceDateResponse, rhs: Provenencia_Engine_V1_SetSourceDateResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -12131,74 +12027,36 @@ nonisolated extension Provenencia_Engine_V1_SetSourcePublicResponse: SwiftProtob
   public static let protoMessageName: String = _protobuf_package + ".SetSourcePublicResponse"
   public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}source\0\u{1}effects\0")
 
-  fileprivate class _StorageClass {
-    var _source: Provenencia_Engine_V1_Source? = nil
-    var _effects: Provenencia_Engine_V1_WriteEffects? = nil
-
-      // This property is used as the initial default value for new instances of the type.
-      // The type itself is protecting the reference to its storage via CoW semantics.
-      // This will force a copy to be made of this reference when the first mutation occurs;
-      // hence, it is safe to mark this as `nonisolated(unsafe)`.
-      static nonisolated(unsafe) let defaultInstance = _StorageClass()
-
-    private init() {}
-
-    init(copying source: _StorageClass) {
-      _source = source._source
-      _effects = source._effects
-    }
-  }
-
-  fileprivate mutating func _uniqueStorage() -> _StorageClass {
-    if !isKnownUniquelyReferenced(&_storage) {
-      _storage = _StorageClass(copying: _storage)
-    }
-    return _storage
-  }
-
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
-    _ = _uniqueStorage()
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      while let fieldNumber = try decoder.nextFieldNumber() {
-        // The use of inline closures is to circumvent an issue where the compiler
-        // allocates stack space for every case branch when no optimizations are
-        // enabled. https://github.com/apple/swift-protobuf/issues/1034
-        switch fieldNumber {
-        case 1: try { try decoder.decodeSingularMessageField(value: &_storage._source) }()
-        case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
-        default: break
-        }
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._source) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
-      // The use of inline closures is to circumvent an issue where the compiler
-      // allocates stack space for every if/case branch local when no optimizations
-      // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
-      // https://github.com/apple/swift-protobuf/issues/1182
-      try { if let v = _storage._source {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
-      } }()
-      try { if let v = _storage._effects {
-        try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
-      } }()
-    }
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._source {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_SetSourcePublicResponse, rhs: Provenencia_Engine_V1_SetSourcePublicResponse) -> Bool {
-    if lhs._storage !== rhs._storage {
-      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
-        let _storage = _args.0
-        let rhs_storage = _args.1
-        if _storage._source != rhs_storage._source {return false}
-        if _storage._effects != rhs_storage._effects {return false}
-        return true
-      }
-      if !storagesAreEqual {return false}
-    }
+    if lhs._source != rhs._source {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
