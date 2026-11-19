@@ -43,6 +43,7 @@ A stack entry must be enough to **restore** a view. MVP pieces:
 | Deep location | Sources list vs Source page `id`/`ref`; selected field/type id; later File / Node / entity id | **Required** |
 | UI ephemera | List search query, focus, dirty form drafts | **Omit** |
 | List scroll | Id of the top row on a Sources, People, Events, or Places list | **On the entry, ignored for identity.** Written when you leave the list, not on each scroll. A missing value opens at the top. |
+| Section anchor | The row of a Person, Event or Place page's section (a tile, an event or card, a Source or record line, a field row's open arrow, a picture, a related place) that the page last opened another place from | **On the entry, ignored for identity.** Written as the row opens the place, on the entry being left; Back, the sidebar and the omnibar leave it as it was. Back and Forward scroll to the row and give it the keyboard, never revealing a fold (a folded row's Show more takes the keyboard). A section switch clears it. A missing or unreadable value opens the page at its top. |
 
 Push (or replace) when the user **commits** a navigation, including:
 

@@ -31,7 +31,7 @@ Authoritative behavior: [`docs/deployment-plan/archive/spike-3/navigation-histor
 | List → detail page (Source-style) | **Yes** — deep id on the location |
 | Master–detail row select (fields pattern) | **Yes** — selection is a place |
 | Omnibar / breadcrumb / cross-link → a place | **Yes** — call `go(to:)` |
-| Search query, scroll, focus, dirty drafts | **No** — UI ephemera, omit |
+| Search query, scroll, focus, dirty drafts | **No** — UI ephemera, omit, except a record page's section anchor (the row it opened another place from; Step 5) |
 | Modal/sheet that is not a restoreable place | **No** — unless product says Back should return into it |
 
 ## Checklist
@@ -111,6 +111,8 @@ A record page can offer sections (the Person page: Vitals, Family, Timeline, Gal
 
 - `openPageSection` is the section the page shows: the stored one, else the first the kind offers. The place registry, the page and the fill all read it; never write `pageSection ?? …` or `offered[0]`.
 - The stored `pageSection` is history identity and the crumb, where the first section adds none (`WorkspaceLocationLabels`).
+
+A section also remembers the row it opened another place from, so Back puts the scroll and the keyboard there. `WorkspaceLocation.sectionAnchor` (a `ConclusionSectionAnchor`: a frozen `Part`, an id, and the row that holds it when the stop is inside a row) is not identity, decodes as nil from older files and unknown parts, and is cleared by `withPageSection(_:)`. It is written as the row opens: a section's rows call `navigation.go(to:from:)`, which stamps the entry being left (`stampSectionAnchor`) and pushes, so Back, the sidebar or the omnibar never write one. Each section's content answers `anchorTarget(for:)` from ids its build keeps (the stop that takes the keyboard and the id to scroll to; the fold's Show more when a fold hides the row; nil when the row is gone), and one `conclusionAnchorRestore` call per section scrolls and focuses once per mount. Folds are never revealed by a restore. A new Conclusion section adds a `Part`, an `anchorTarget(for:)` and that call.
 
 A kind that adopts sections adds its cases to `ConclusionPageSection.offered(by:)` and `reads(project:entityId:)`, gives its place spec the same open-section line as `.personDetail`, and supplies its own fill. See [`add-workspace-place`](../add-workspace-place/SKILL.md) for the read list.
 
