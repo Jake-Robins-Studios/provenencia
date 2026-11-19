@@ -279,20 +279,10 @@ private struct PropertiesContent: View {
 
     private var propertyTable: some View {
         Group {
-            if model.visibleProperties.isEmpty {
-                VStack(spacing: PVSpacing.space3) {
-                    Text(verbatim: L10n.Properties.emptySearchTitle(query: model.searchQuery))
-                        .font(PVFont.display(size: PVTypeScale.h4))
-                        .foregroundStyle(PVColor.textSecondary)
-                    Text(L10n.Properties.emptySearch)
-                        .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                        .foregroundStyle(PVColor.textMuted)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(PVSpacing.space9)
-            } else {
+            switch model.tablePresentation {
+            case .rows(let rows):
                 PVTable(
-                    rows: model.visibleProperties,
+                    rows: rows,
                     columns: tableColumns,
                     selection: Binding(
                         get: { model.selectedPropertyID },
@@ -307,6 +297,33 @@ private struct PropertiesContent: View {
                     rowAccessibilityIdentifier: { "properties.row.\($0.id)" },
                     content: { EmptyView() }
                 )
+            case .noMatch(let query, let typeLabel):
+                PVEmptyState(
+                    icon: .searchEmpty,
+                    verbatimTitle: L10n.Properties.noMatchTitle(query: query, typeLabel: typeLabel),
+                    message: L10n.string(L10n.Properties.noMatchMessage),
+                    compact: true
+                ) {
+                    PVButton(L10n.Properties.clearSearch, variant: .secondary, size: .sm) {
+                        model.clearSearch()
+                    }
+                    .accessibilityIdentifier("properties.clearSearch")
+                }
+                .padding(PVSpacing.space6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .accessibilityIdentifier("properties.noMatch")
+            case .emptyType(let label):
+                PVEmptyState(
+                    glyph: WorkspaceSection.properties.glyph,
+                    verbatimTitle: L10n.Properties.emptyTypeTitle(typeLabel: label),
+                    message: L10n.string(L10n.Properties.emptyTypeMessage),
+                    compact: true
+                )
+                .padding(PVSpacing.space6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .accessibilityIdentifier("properties.emptyType")
+            case .nothing:
+                Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }

@@ -1,17 +1,18 @@
 # S16-48 — A Properties search with no match shows the kit's empty state
 
-**Status:** Planned
+**Status:** Landed in [#899](https://github.com/Jake-Robins-Studios/provenencia/pull/899) (2026-11-19)
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D8](../design/S16-D8-properties-no-match.md), board agreed 2026-11-19
+**Brief:** [S16-D8](../design/archive/S16-D8-properties-no-match.md), board agreed 2026-11-19
 **Board:** [agreed 2026-11-19](https://claude.ai/artifact/XRS4WQDZbaDa7jAzVKYQdc) — Claude Design "Properties View", page `S7-D2 Subject Fields`, section "S16-D8 · No match" (frames N1a, N1b, N2, N3a, N3b, N4). Copy, icons (`text-search`, `list-tree`), the `space6` top-aligned inset and the wrapping title as briefed; Clear search drawn at the small size (`sm`), like the toolbar's controls
 **Depends on:** S16-D8 (board agreed 2026-11-19)
 **Blocks:** —
+**Landed:** Differences from the plan: UX-2: a type-scoped no-match title, at the user's request on 2026-11-19, over the board's single title. Otherwise none beyond the version (0.24.0 → 0.24.1, `main` had moved) and the copy and view changes sharing one commit, as the app does not build with only one of them. Review round 1: `PropertiesTablePresentation.rows` carries its rows so the body filters once; every `PVEmptyState` icon init forwards to its glyph init (no behavior change, superseding D-9's "no change to any other init"); and the user approved centering the kit title (`.multilineTextAlignment(.center)`) over D-9's "No change to the body" (UX-1).
 **Branch:** `s16-48-properties-no-match`
 **Version bump:** patch — the next patch after `VERSION` on `main` when the branch is cut (0.23.5 → 0.23.6 at the planning base): two empty states a researcher sees on an existing page; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** —
-**Context:** brief [S16-D8](../design/S16-D8-properties-no-match.md); map scope entry [S16-48](../deployment-plan.md#s16-48--a-properties-search-with-no-match-shows-the-kits-empty-state); bar 23; the precedent `SourcesListView.listBody`
+**Context:** brief [S16-D8](../design/archive/S16-D8-properties-no-match.md); map scope entry [S16-48](../deployment-plan.md#s16-48--a-properties-search-with-no-match-shows-the-kits-empty-state); bar 23; the precedent `SourcesListView.listBody`
 **Planned:** 2026-11-19 against `main` @ `2d48e41`
 **Review:** [`S16-48-properties-no-match.review.md`](S16-48-properties-no-match.review.md) — Fits with changes / Ready with changes, 1 round; board checked 2026-11-19
 
@@ -43,7 +44,7 @@ When a Properties search matches nothing, the table card's body shows the kit's 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-1.1 | All properties selected; type `zzz` in the search field | The table body is a compact empty state: search-empty icon, title `No property matches “zzz”`, message `Try another word, or clear the search.`, a secondary **Clear search** button. No table header, no rows |
-| AC-1.2 | Person selected; type `zzz` | The same state; the toolbar still shows the Add combo |
+| AC-1.2 | Person selected; type `zzz` | The same state with the title `No property on Person matches “zzz”`; the toolbar still shows the Add combo |
 | AC-1.3 | Search `  zzz  ` (spaces around) | The title reads `No property matches “zzz”` |
 | AC-1.4 | AC-1.1's state; press Clear search | The field is empty, every row shows again, and the search field has focus |
 | AC-1.5 | Search `name` | The table shows the matching rows as today |
@@ -187,7 +188,7 @@ States: as above. Wide: nothing moves; the card is wider and the box spans it (P
 
 L10n keys, all in `L10n.Properties`:
 
-- `noMatchTitle(query:)` (renamed from `emptySearchTitle(query:)`) formats key `properties.table.emptySearchTitleQuery` = "No property matches “%@”" (key and words unchanged), with no trim; the empty-query branch and key `properties.table.emptySearchTitle` ("No properties match") are removed.
+- `noMatchTitle(query:typeLabel:)` (renamed from `emptySearchTitle(query:)`): with a `nil` type label it formats key `properties.table.emptySearchTitleQuery` = "No property matches “%@”" (key and words unchanged), with no trim; with a label it formats new key `properties.table.noMatchOnTypeTitle` = "No property on %1$@ matches “%2$@”"; the empty-query branch and key `properties.table.emptySearchTitle` ("No properties match") are removed.
 - `noMatchMessage` *(new)*: key `properties.table.noMatchMessage` = "Try another word, or clear the search." Comment: "Message of the Properties empty state when the search matches no Property".
 - `clearSearch` *(new)*: key `properties.table.clearSearch` = "Clear search". Comment: "Button in the Properties empty state: empty the search field".
 - `emptyTypeTitle(typeLabel:)` *(new)*: key `properties.table.emptyTypeTitle` = "No properties on %@". Comment: "Title of the Properties empty state when the selected subject type has no Properties; argument is the type's label".
@@ -233,10 +234,10 @@ All in `macos/ProvenenciaTests/PropertiesModelTests.swift`, built with `makeMode
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `PropertiesModelTests` `tablePresentationShowsNoMatchForASearchThatMatchesNothing` *(new)* | Name and Event type loaded, All properties: `"zzz"` → `.noMatch(query: "zzz")`; `"  zzz  "` → `.noMatch(query: "zzz")`; `"name"` → `.rows` | AC-1.1, AC-1.3, AC-1.5, D-1 |
-| T-2 | Swift | `tablePresentationShowsNoMatchWithATypeSelected` *(new)* | Person selected (Name bound), `"zzz"` → `.noMatch(query: "zzz")` | AC-1.2, D-1 |
+| T-1 | Swift | `PropertiesModelTests` `tablePresentationShowsNoMatchForASearchThatMatchesNothing` *(new)* | Name and Event type loaded, All properties: `"zzz"` → `.noMatch(query: "zzz", typeLabel: nil)`; `"  zzz  "` → `.noMatch(query: "zzz", typeLabel: nil)`; `"name"` → `.rows` | AC-1.1, AC-1.3, AC-1.5, D-1 |
+| T-2 | Swift | `tablePresentationShowsNoMatchWithATypeSelected` *(new)* | Person selected (Name bound), `"zzz"` → `.noMatch(query: "zzz", typeLabel: "Person")` | AC-1.2, D-1 |
 | T-3 | Swift | `tablePresentationTreatsSpacesAndPunctuationAsNoSearch` *(new)* | All properties: `"   "` → `.rows`; `"-"` → `.rows` | AC-1.6, D-1 |
-| T-4 | Swift | `tablePresentationShowsEmptyTypeUnlessSearching` *(new)* | Source selected with no bindings: `""` → `.emptyType(label: "Source")`; `"zzz"` → `.noMatch(query: "zzz")`; Person selected, `""` → `.rows` | AC-2.1, AC-2.2, D-1 |
+| T-4 | Swift | `tablePresentationShowsEmptyTypeUnlessSearching` *(new)* | Source selected with no bindings: `""` → `.emptyType(label: "Source")`; `"zzz"` → `.noMatch(query: "zzz", typeLabel: "Source")`; Person selected, `""` → `.rows` | AC-2.1, AC-2.2, D-1 |
 | T-5 | Swift | `tablePresentationIsNothingWithNoPropertiesLoaded` *(new)* | No Properties, Source in types and selected, `""` → `.nothing`; `"zzz"` → `.nothing` | D-1 |
 | T-6 | Swift | `clearSearchEmptiesTheQueryAndFocusesTheField` *(new)* | `"zzz"`, `searchFocused == false`; `clearSearch()` → `searchQuery == ""`, `searchFocused == true`, `tablePresentation == .rows` | AC-1.4, D-2 |
 
@@ -266,8 +267,8 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `P
 Open a project at the default window size (Regular), go to Properties.
 
 1. All properties; type `zzz`. The table body shows the compact empty state under the toolbar, top-aligned and inset: search-empty icon, `No property matches “zzz”`, `Try another word, or clear the search.`, **Clear search**. Press it: the field is empty and focused, every row is back (AC-1.1, AC-1.4, PN-5).
-2. Select Person; type `zzz`: the same state with the Add combo still in the toolbar (AC-1.2). Type `name`: the Name row shows (AC-1.5). Type three spaces: every Person row shows (AC-1.6).
-3. Select Source; remove Mentions and Remark (select each, turn off Source in the inspector). With the search empty: `No properties on Source`, `Add one with the field above.`, no button (AC-2.1). Type `zzz`: the no-match state (AC-2.2). Clear it, then add Remark with the Add combo: the table shows Remark (AC-2.3). Put Mentions back.
+2. Select Person; type `zzz`: the same state, titled `No property on Person matches “zzz”`, with the Add combo still in the toolbar (AC-1.2). Type `name`: the Name row shows (AC-1.5). Type three spaces: every Person row shows (AC-1.6).
+3. Select Source; remove Mentions and Remark (select each, turn off Source in the inspector). With the search empty: `No properties on Source`, `Add one with the field above.`, no button (AC-2.1). Type `zzz`: the no-match state titled `No property on Source matches “zzz”` (AC-2.2). Clear it, then add Remark with the Add combo: the table shows Remark (AC-2.3). Put Mentions back.
 4. All properties; paste a 120-character query: the title wraps inside the box (PN-6).
 5. Widen the window so the pane passes 1600 pt and repeat 1 and 3: the box spans the table card, its content centered, the inspector keeps its width (PN-W1).
 6. VoiceOver on: in state 1, moving through the card reads the title, the message, then "Clear search, button"; in state 3, the title and message (AC-3.1, AC-3.2).

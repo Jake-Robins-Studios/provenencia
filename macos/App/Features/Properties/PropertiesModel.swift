@@ -86,12 +86,6 @@ final class PropertiesModel {
         session.queryHandle(Self.workspaceKey(for: session))?.value ?? .empty
     }
 
-    var isLoading: Bool {
-        guard let handle: QueryHandle<PropertiesSnapshot> = session.queryHandle(Self.workspaceKey(for: session))
-        else { return true }
-        return handle.status == .loading && snapshot.properties.isEmpty
-    }
-
     var loadError: Error? {
         guard snapshot.properties.isEmpty else { return nil }
         let handle: QueryHandle<PropertiesSnapshot>? = session.queryHandle(Self.workspaceKey(for: session))
@@ -118,6 +112,23 @@ final class PropertiesModel {
                 return q.matches(property.label, property.key)
             }
             .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+    }
+
+    /// What the table card's body draws. Searching means what the filter means
+    /// by it (`TextMatch.Query`), so spaces or a lone `-` never show a no-match
+    /// state over rows. A search wins over an empty type.
+    var tablePresentation: PropertiesTablePresentation {
+        let rows = visibleProperties
+        if !rows.isEmpty { return .rows(rows) }
+        if snapshot.properties.isEmpty { return .nothing }
+        if !TextMatch.Query(searchQuery).isEmpty {
+            return .noMatch(
+                query: searchQuery.trimmingCharacters(in: .whitespacesAndNewlines),
+                typeLabel: selectedType?.label
+            )
+        }
+        if let selectedType { return .emptyType(label: selectedType.label) }
+        return .nothing
     }
 
     /// Unbound properties offered by the “Add a property to {Type}” combo.
@@ -333,7 +344,14 @@ final class PropertiesModel {
         searchFocused = true
     }
 
-    func openCreate(prefillLabel: String = "") {
+    /// Empties the search and focuses the field: the empty state's button,
+    /// which had the pointer, disappears with the query.
+    func clearSearch() {
+        searchQuery = ""
+        focusSearch()
+    }
+
+    func openCreate() {
         formError = nil
         lockedCallout = nil
         createOpen = true
@@ -341,9 +359,8 @@ final class PropertiesModel {
         if let selectedType {
             bind.insert(selectedType.id)
         }
-        let label = prefillLabel
         draft = Draft(
-            label: label,
+            label: "",
             valueType: PropertyValueType.text.rawValue,
             description: "",
             cardinality: PropertyCardinality.single.rawValue,
@@ -591,4 +608,12 @@ final class PropertiesModel {
     func isBound(propertyID: String, typeID: String) -> Bool {
         snapshot.binding(propertyID: propertyID, typeID: typeID) != nil
     }
+}
+
+/// What the Properties table card's body shows.
+enum PropertiesTablePresentation: Equatable {
+    case rows([CatalogProperty])
+    case noMatch(query: String, typeLabel: String?)
+    case emptyType(label: String)
+    case nothing
 }

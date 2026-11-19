@@ -19,11 +19,9 @@ struct PVEmptyState<Action: View>: View {
         compact: Bool = false,
         @ViewBuilder action: () -> Action
     ) {
-        self.glyph = .symbol(icon)
-        self.title = title.map { Text($0) }
-        self.message = message
-        self.compact = compact
-        self.action = action()
+        self.init(
+            glyph: .symbol(icon), title: title, message: message, compact: compact, action: action
+        )
     }
 
     /// The icon slot holds a symbol or a mark, e.g. a list kind's mark.
@@ -50,7 +48,21 @@ struct PVEmptyState<Action: View>: View {
         compact: Bool = false,
         @ViewBuilder action: () -> Action
     ) {
-        self.glyph = .symbol(icon)
+        self.init(
+            glyph: .symbol(icon), verbatimTitle: verbatimTitle, message: message,
+            compact: compact, action: action
+        )
+    }
+
+    /// The same, with a symbol or a mark in the icon slot.
+    init(
+        glyph: PVGlyph,
+        verbatimTitle: String,
+        message: String? = nil,
+        compact: Bool = false,
+        @ViewBuilder action: () -> Action
+    ) {
+        self.glyph = glyph
         self.title = Text(verbatim: verbatimTitle)
         self.message = message
         self.compact = compact
@@ -65,6 +77,7 @@ struct PVEmptyState<Action: View>: View {
                 title
                     .font(PVFont.display(size: PVTypeScale.h3))
                     .foregroundStyle(PVColor.textDisplay)
+                    .multilineTextAlignment(.center)
             }
             if let message {
                 Text(message)
@@ -97,9 +110,7 @@ extension PVEmptyState where Action == EmptyView {
         message: String? = nil,
         compact: Bool = false
     ) {
-        self.init(icon: icon, title: title, message: message, compact: compact) {
-            EmptyView()
-        }
+        self.init(glyph: .symbol(icon), title: title, message: message, compact: compact)
     }
 
     init(
@@ -114,7 +125,13 @@ extension PVEmptyState where Action == EmptyView {
     }
 
     init(icon: PVSymbol, verbatimTitle: String, message: String? = nil, compact: Bool = false) {
-        self.init(icon: icon, verbatimTitle: verbatimTitle, message: message, compact: compact) {
+        self.init(
+            glyph: .symbol(icon), verbatimTitle: verbatimTitle, message: message, compact: compact
+        )
+    }
+
+    init(glyph: PVGlyph, verbatimTitle: String, message: String? = nil, compact: Bool = false) {
+        self.init(glyph: glyph, verbatimTitle: verbatimTitle, message: message, compact: compact) {
             EmptyView()
         }
     }

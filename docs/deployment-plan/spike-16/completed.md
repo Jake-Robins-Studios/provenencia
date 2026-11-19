@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-48 — A Properties search with no match shows the kit's empty state
+
+**Landed 2026-11-19** in [#899](https://github.com/Jake-Robins-Studios/provenencia/pull/899). A Properties search that matches nothing shows the kit's compact empty state, "No property matches “…”", with a Clear search button that empties the field and focuses it. A selected type with no Properties and an empty search (Source, once Mentions and Remark are removed) shows "No properties on Source" instead. `PropertiesModel.tablePresentation` decides the body (rows, no match, empty type, nothing) from the same key the filter uses, so spaces or a lone `-` never show no-match over rows. `PVEmptyState` gains the `glyph:verbatimTitle:` init; the unused `isLoading` and `openCreate`'s `prefillLabel` are gone.
+
 ## S16-47 — Birth and death event counts have plurals, and the strings check sees them
 
 **Landed 2026-11-19** in [#894](https://github.com/Jake-Robins-Studios/provenencia/pull/894). `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` count their events through an `events` plural substitution, like `recordsFromPlaces`; the sheet still reads "4 records from 2 birth events". `uninflected_counts` in `scripts/check-localizable-xcstrings.py` now skips only entries with plural variations, so a bare `%n$lld <word>` beside a substitution fails; the origin labels of the Properties and Source types count lines (`seeded`, `yours`, `plugin`) join `NON_INFLECTING`, and `add-localized-string` states the rule. Quick PR. Product 0.23.5.

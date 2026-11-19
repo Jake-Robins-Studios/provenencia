@@ -34,6 +34,18 @@ struct PropertiesModelTests {
         )
     }
 
+    private func sourceType() -> CatalogSubjectType {
+        CatalogSubjectType(
+            id: "type-source",
+            key: "source",
+            origin: "provenencia",
+            label: "Source",
+            description: "",
+            refPrefix: "SRN",
+            candidateRefPrefix: "CSR"
+        )
+    }
+
     private func placeType() -> CatalogSubjectType {
         CatalogSubjectType(
             id: "type-place",
@@ -232,6 +244,91 @@ struct PropertiesModelTests {
         await warm(model, session: session)
         model.selectType("person")
         #expect(model.visibleProperties.map(\.key) == ["name"])
+    }
+
+    @Test func tablePresentationShowsNoMatchForASearchThatMatchesNothing() async {
+        let (model, session, _) = makeModel(
+            properties: [nameProperty(), eventTypeProperty()],
+            types: [personType(), eventType()]
+        )
+        await warm(model, session: session)
+        model.searchQuery = "zzz"
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: nil))
+        model.searchQuery = "  zzz  "
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: nil))
+        model.searchQuery = "name"
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
+    }
+
+    @Test func tablePresentationShowsNoMatchWithATypeSelected() async {
+        let person = personType()
+        let (model, session, _) = makeModel(
+            properties: [nameProperty(), eventTypeProperty()],
+            types: [person, eventType()],
+            fieldsByType: [
+                person.id: [CatalogSubjectTypeProperty(property: nameProperty(), sortOrder: 0, locked: false)],
+            ]
+        )
+        await warm(model, session: session)
+        model.selectType("person")
+        model.searchQuery = "zzz"
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: "Person"))
+    }
+
+    @Test func tablePresentationTreatsSpacesAndPunctuationAsNoSearch() async {
+        let (model, session, _) = makeModel(
+            properties: [nameProperty(), eventTypeProperty()],
+            types: [personType()]
+        )
+        await warm(model, session: session)
+        model.searchQuery = "   "
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
+        model.searchQuery = "-"
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
+    }
+
+    @Test func tablePresentationShowsEmptyTypeUnlessSearching() async {
+        let person = personType()
+        let (model, session, _) = makeModel(
+            properties: [nameProperty()],
+            types: [person, sourceType()],
+            fieldsByType: [
+                person.id: [CatalogSubjectTypeProperty(property: nameProperty(), sortOrder: 0, locked: false)],
+            ]
+        )
+        await warm(model, session: session)
+        model.selectType("source")
+        model.searchQuery = ""
+        #expect(model.tablePresentation == .emptyType(label: "Source"))
+        model.searchQuery = "zzz"
+        #expect(model.tablePresentation == .noMatch(query: "zzz", typeLabel: "Source"))
+        model.selectType("person")
+        model.searchQuery = ""
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
+    }
+
+    @Test func tablePresentationIsNothingWithNoPropertiesLoaded() async {
+        let (model, session, _) = makeModel(types: [sourceType()])
+        await warm(model, session: session)
+        model.selectType("source")
+        model.searchQuery = ""
+        #expect(model.tablePresentation == .nothing)
+        model.searchQuery = "zzz"
+        #expect(model.tablePresentation == .nothing)
+    }
+
+    @Test func clearSearchEmptiesTheQueryAndFocusesTheField() async {
+        let (model, session, _) = makeModel(
+            properties: [nameProperty()],
+            types: [personType()]
+        )
+        await warm(model, session: session)
+        model.searchQuery = "zzz"
+        model.searchFocused = false
+        model.clearSearch()
+        #expect(model.searchQuery == "")
+        #expect(model.searchFocused == true)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
 
     @Test func searchMatchesLabelOrKeyIgnoringAccentsAndWordBreaks() async {

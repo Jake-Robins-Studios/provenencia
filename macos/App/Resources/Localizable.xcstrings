@@ -11324,26 +11324,50 @@
         }
       }
     },
-    "properties.table.emptySearch": {
-      "comment": "Empty state when search/filter matches no properties",
+    "properties.table.clearSearch": {
+      "comment": "Button in the Properties empty state: empty the search field",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear the search, or create it as a user property"
+            "value": "Clear search"
           }
         }
       }
     },
-    "properties.table.emptySearchTitle": {
-      "comment": "Empty table title when no properties are visible",
+    "properties.table.emptyTypeMessage": {
+      "comment": "Message of the Properties empty state for a type with no Properties; the field above is the Add a property combo box",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No properties match"
+            "value": "Add one with the field above."
+          }
+        }
+      }
+    },
+    "properties.table.emptyTypeTitle": {
+      "comment": "Title of the Properties empty state when the selected subject type has no Properties; argument is the type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No properties on %@"
+          }
+        }
+      }
+    },
+    "properties.table.noMatchMessage": {
+      "comment": "Message of the Properties empty state when the search matches no Property",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another word, or clear the search."
           }
         }
       }
@@ -11356,6 +11380,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "No property matches “%@”"
+          }
+        }
+      }
+    },
+    "properties.table.noMatchOnTypeTitle": {
+      "comment": "Title of the Properties empty state when the search matches none of the selected subject type's Properties; argument 1 is the type's label, argument 2 the query",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No property on %1$@ matches “%2$@”"
           }
         }
       }

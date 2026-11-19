@@ -7639,25 +7639,41 @@ enum L10n {
                 comment: "VoiceOver label of a Properties table row; 1 = label, 2 = key (tells Properties that share a label apart), 3 = value type, 4 = origin, 5 = how many types it is bound to"
             ), label, key, valueType, origin, bound)
         }
-        static func emptySearchTitle(query: String) -> String {
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty {
-                return L10n.string(LocalizedStringResource(
-                    "properties.table.emptySearchTitle",
-                    defaultValue: "No properties match",
-                    comment: "Empty table title when no properties are visible"
-                ))
+        static func noMatchTitle(query: String, typeLabel: String?) -> String {
+            guard let typeLabel else {
+                return L10n.format(LocalizedStringResource(
+                    "properties.table.emptySearchTitleQuery",
+                    defaultValue: "No property matches “%@”",
+                    comment: "Empty table title when search matches nothing; argument is the query"
+                ), query)
             }
             return L10n.format(LocalizedStringResource(
-                "properties.table.emptySearchTitleQuery",
-                defaultValue: "No property matches “%@”",
-                comment: "Empty table title when search matches nothing; argument is the query"
-            ), trimmed)
+                "properties.table.noMatchOnTypeTitle",
+                defaultValue: "No property on %1$@ matches “%2$@”",
+                comment: "Title of the Properties empty state when the search matches none of the selected subject type's Properties; argument 1 is the type's label, argument 2 the query"
+            ), typeLabel, query)
         }
-        static let emptySearch = LocalizedStringResource(
-            "properties.table.emptySearch",
-            defaultValue: "Clear the search, or create it as a user property",
-            comment: "Empty state when search/filter matches no properties"
+        static let noMatchMessage = LocalizedStringResource(
+            "properties.table.noMatchMessage",
+            defaultValue: "Try another word, or clear the search.",
+            comment: "Message of the Properties empty state when the search matches no Property"
+        )
+        static let clearSearch = LocalizedStringResource(
+            "properties.table.clearSearch",
+            defaultValue: "Clear search",
+            comment: "Button in the Properties empty state: empty the search field"
+        )
+        static func emptyTypeTitle(typeLabel: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "properties.table.emptyTypeTitle",
+                defaultValue: "No properties on %@",
+                comment: "Title of the Properties empty state when the selected subject type has no Properties; argument is the type's label"
+            ), typeLabel)
+        }
+        static let emptyTypeMessage = LocalizedStringResource(
+            "properties.table.emptyTypeMessage",
+            defaultValue: "Add one with the field above.",
+            comment: "Message of the Properties empty state for a type with no Properties; the field above is the Add a property combo box"
         )
         static let newProperty = LocalizedStringResource(
             "properties.toolbar.newProperty",
