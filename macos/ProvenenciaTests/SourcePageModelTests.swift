@@ -1353,7 +1353,7 @@ struct SourcePageModelTests {
         #expect(L10n.CitationComposer.observationsCount(3) == "3 observations")
     }
 
-    @Test func graphsCountIsHiddenUntilLoadedAndAtZero() async {
+    @Test func graphsCountIsHiddenWithoutGraphs() async {
         let store = makeStore()
         store.evidenceGraphsByProject[projectDir] = [evidenceGraph("g-other", sourceID: "src-2", name: "Other source")]
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
@@ -1361,7 +1361,8 @@ struct SourcePageModelTests {
         #expect(model.graphs.countLabel == nil)
         await model.warmFromSession()
         await waitForQuery(session.evidenceGraphsHandle!)
-        #expect(model.graphs.rows?.isEmpty == true)
+        // A Source with no graph reads as loading (every Source has its Default graph).
+        #expect(model.graphs.rows == nil)
         #expect(model.graphs.countLabel == nil)
     }
 
