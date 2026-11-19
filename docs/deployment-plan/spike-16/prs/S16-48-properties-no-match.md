@@ -7,7 +7,7 @@
 **Board:** [agreed 2026-11-19](https://claude.ai/artifact/XRS4WQDZbaDa7jAzVKYQdc) — Claude Design "Properties View", page `S7-D2 Subject Fields`, section "S16-D8 · No match" (frames N1a, N1b, N2, N3a, N3b, N4). Copy, icons (`text-search`, `list-tree`), the `space6` top-aligned inset and the wrapping title as briefed; Clear search drawn at the small size (`sm`), like the toolbar's controls
 **Depends on:** S16-D8 (board agreed 2026-11-19)
 **Blocks:** —
-**Landed:** Differences from the plan: none beyond the version (0.24.0 → 0.24.1, `main` had moved) and the copy and view changes sharing one commit, as the app does not build with only one of them.
+**Landed:** Differences from the plan: none beyond the version (0.24.0 → 0.24.1, `main` had moved) and the copy and view changes sharing one commit, as the app does not build with only one of them. Review round 1: `PropertiesTablePresentation.rows` carries its rows so the body filters once; every `PVEmptyState` icon init forwards to its glyph init (no behavior change, superseding D-9's "no change to any other init"); and the user approved centering the kit title (`.multilineTextAlignment(.center)`) over D-9's "No change to the body" (UX-1).
 **Branch:** `s16-48-properties-no-match`
 **Version bump:** patch — the next patch after `VERSION` on `main` when the branch is cut (0.23.5 → 0.23.6 at the planning base): two empty states a researcher sees on an existing page; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
