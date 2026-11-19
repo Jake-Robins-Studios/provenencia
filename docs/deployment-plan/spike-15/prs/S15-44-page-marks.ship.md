@@ -22,4 +22,4 @@ Nits (logged): `MNT-1 / CON-1 · core/locator/depiction.go:13-19 · re-wrap the 
 No fix plan: nothing is Fix now. No round 2.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
