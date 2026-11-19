@@ -1,6 +1,6 @@
 # S15-44 — The printed page can be marked unknown or supplied
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go only. No view sets or shows the page's mark yet; S15-45 adds the composer's control, gated by S15-D24)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests; "Fuzz targets": `core/locator` parses `locator_json` the app may not have written)
 **Context:** working rule "A value can be marked unknown or supplied" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md) § 6.10 "Unknown and supplied"; [`docs/interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 3.2 (`page` selector); the precedent plans [`S15-13-composer-printed-page.md`](S15-13-composer-printed-page.md) (the label-only selector, `PageRef`) and [`S15-43-source-date-marks.md`](S15-43-source-date-marks.md) (a mark checked with `valuemark.Validate`)
 **Planned:** 2026-11-19 against `main` @ `5a8e505` (compare with `origin/main` after `git fetch origin main`; a local `main` may be stale)
-**Review:** — (not reviewed yet)
+**Review:** [`S15-44-page-marks.review.md`](S15-44-page-marks.review.md) — Fits with changes / Ready with changes, 2 rounds; every finding answered; nothing open
 
 ### Implementer — read this first
 
@@ -117,7 +117,7 @@ A Citation's printed page (`page_label` on the locator's `page` selector, S15-13
 | --- | --- | --- | --- |
 | D-1 | The mark is about the printed page: `hasValue` for `valuemark.Validate` is `sel.PageLabel != nil && strings.TrimSpace(*sel.PageLabel) != ""`. `artifact_page` does not count as a value | The file page is where the Citation is in the file, always known when present; the printed page is what the original says (§ 3.2). The rule's "unknown has no text" is about the label. A blank label counts as none, as `validatePage` and the composer already treat it | Counting `artifact_page` as a value — an image page with a file page could never be unknown, and a supplied mark could sit on a file page with no label to bracket |
 | D-2 | `selectorRaw` gains `PageUnknown bool \`json:"page_unknown"\`` and `PageSupplied bool \`json:"page_supplied"\``. Absent, `null` and `false` all read false. A non-bool value fails `json.Unmarshal`, so the document is `locator.ErrInvalid` | The map names the keys (rule "A value can be marked unknown or supplied", Storage). Plain `bool`: there is no difference to keep between absent and false; S15-45 writes each key only when true | `*bool` — a third state nobody reads |
-| D-3 | Two checks, split between read and write. `validatePage` (in `parse`, so on read and write): (1) `artifact_page` present and below 1 → `locator.ErrInvalid` (today's first check); (2) the selector must hold a file page, a non-blank label, or `page_unknown` → else `locator.ErrInvalid`. `Validate` (write only): after `parse`, `validateMarks(doc)` *(new)* runs `valuemark.Validate(mark, hasLabel)` on the page selector and returns its error bare (`valuemark.invalid`). One method `selectorRaw.pageMark() (mark valuemark.Mark, hasLabel bool)` *(new)* computes the mark and D-1's `hasLabel`; `validatePage`, `validateMarks` and `citationPage` all call it | Writes refuse and reads settle, the split S15-53 made for metadata and S15-43 for the date. A refused pair carries the same code as the Source date and metadata values, and its copy already says what is wrong (§ 4 Copy). Step 2 widens S15-13's "file page or label" by one case: an image whose original prints no number is `{"type":"page","page_unknown":true}`. One `pageMark` keeps the write's and the read's "has a label" from drifting | The pair check inside `validatePage` — `parse` would refuse a stored pair, so a stray key on a locator that reads today (`{"artifact_page":1,"page_label":"3","page_unknown":true}`) would lose its page in `graphfill` and its depictions in `depictionvalue.Readable` (review M-2 "Outside my lens"); wrapping the pair error as `locator.ErrInvalid` — a second code for one rule |
+| D-3 | Two checks, split between read and write. `validatePage` (in `parse`, so on read and write): (1) `artifact_page` present and below 1 → `locator.ErrInvalid` (today's first check); (2) the selector must hold a file page, a non-blank label, or `page_unknown` → else `locator.ErrInvalid`. `Validate` (write only): after `parse`, it finds the page selector with `pageSelector(doc)` *(new)* and runs `valuemark.Validate(sel.pageMark())`, returning its error bare (`valuemark.invalid`). One finder `pageSelector(doc document) (selectorRaw, bool)` *(new)* returns the one page selector of a parsed document; `Validate` and `citationPage` both use it. One method `selectorRaw.pageMark() (mark valuemark.Mark, hasLabel bool)` *(new)* computes the mark and D-1's `hasLabel`; `validatePage`, `Validate` and `citationPage` all call it | Writes refuse and reads settle, the split S15-53 made for metadata and S15-43 for the date. A refused pair carries the same code as the Source date and metadata values, and its copy already says what is wrong (§ 4 Copy). Step 2 widens S15-13's "file page or label" by one case: an image whose original prints no number is `{"type":"page","page_unknown":true}`. One `pageMark` keeps the write's and the read's "has a label" from drifting | The pair check inside `validatePage` — `parse` would refuse a stored pair, so a stray key on a locator that reads today (`{"artifact_page":1,"page_label":"3","page_unknown":true}`) would lose its page in `graphfill` and its depictions in `depictionvalue.Readable` (review M-2 "Outside my lens"); wrapping the pair error as `locator.ErrInvalid` — a second code for one rule |
 | D-4 | `PageRef` gains `Mark valuemark.Mark` *(new field)*. `citationPage(doc document) (PageRef, bool)` *(changed)* builds the whole `PageRef` (trimmed label, the settled mark of D-6); a page above `math.MaxInt32` still returns `(PageRef{}, false)`. `Page` returns what `citationPage` returns. `ValidateDepictionRegion` reads `ref.ArtifactPage` from it | S15-13 D-4 shaped `PageRef` for this field. One reader builds the value, so a third field does not widen a tuple again | Keeping the tuple and adding a fourth return — the widening S15-13 review M-5 removed |
 | D-5 | A region document's page selector goes through the same `validatePage` (through `parse`); its mark is never pair-checked (`ValidateDepictionRegion` reads through `parse`, not `Validate`), and `regionDocPages` keeps reading only `artifact_page`. A mark on a region document is ignored, as its `page_label` is (AC-3.4) | One structural page rule for every document, as S15-13 D-2 kept the selector count in one place. No writer puts a mark on a region document | Pair-checking region documents — a case no writer reaches |
 | D-6 | `citationPage` settles the stored mark: `Mark: valuemark.Settle(mark, label != "")`, with the trimmed label (AC-2.4) | The map's S15-53 entry names this read as `Settle`'s next caller; a crafted catalog can hold any pair, and S15-16 prints from `PageRef.Mark`, so it must never see "unpaginated" beside a label | Refusing the stored pair in `parse` — D-3 Rejected; reading the raw pair — the resolver would print a refused pair |
@@ -134,7 +134,7 @@ A Citation's printed page (`page_label` on the locator's `page` selector, S15-13
 | `selectorRaw.PageUnknown`, `selectorRaw.PageSupplied` *(new fields)* | field | `selectorRaw.PageLabel` | Extends the existing struct; the keys sit beside `page_label` in the same selector |
 | `PageRef.Mark` *(new field)* | field | `valuemark.Mark` (searched `rg "valuemark.Mark" core`) | Reuses the one mark type, as `sourcemetadata.Row.Mark` and `sources.Source.DateMark` do |
 | `selectorRaw.pageMark` *(new method)* | func | `validatePage`'s blank-label test, `citationPage`'s trim | One place computes the mark and "has a label" for the write check and the read settle |
-| `validateMarks` *(new func)* | func | `validateDoc` | `validateDoc` runs on read; the pair check is write-only (D-3) |
+| `pageSelector` *(new func)* | func | `core/locator/depiction.go` `citationPage`'s loop | Moved out of `citationPage` so the write check and the read settle find the selector in one place (review M-7) |
 | `core/locator/fuzz_test.go` `FuzzValidate` *(new)* | test | `core/citationformat/fuzz_test.go` `FuzzParse` | Same shape over a different parser |
 
 No new type or package. `citationPage` changes its return; `Validate` gains the pair check.
@@ -172,8 +172,8 @@ None — the locator is JSON in `citations.locator_json`; no migration.
 
 | Package | Change |
 | --- | --- |
-| `core/locator` `validate.go` | `selectorRaw`: `PageUnknown bool \`json:"page_unknown"\``, `PageSupplied bool \`json:"page_supplied"\`` *(new fields)* after `PageLabel`. `func (sel selectorRaw) pageMark() (valuemark.Mark, bool)` *(new)*. `validatePage`: D-3's two checks. `Validate`: `doc, err := parse(locatorJSON)`; on error return it; then `return validateMarks(doc)`. `func validateMarks(doc document) error` *(new)*: for the `page` selector (trimmed type), `valuemark.Validate(sel.pageMark())`. Package comment: a page selector holds `artifact_page`, `page_label`, or both, or is marked `page_unknown`; it may mark the printed page `page_unknown` or `page_supplied`; `Validate` refuses a pair `valuemark.Validate` refuses, and `Page` settles a stored one |
-| `core/locator` `depiction.go` | `PageRef.Mark valuemark.Mark` *(new field)*, doc comment "Mark is the printed page's unknown and supplied facts, settled against Label (valuemark.Settle)." `PageRef` doc gains: "A selector marked unknown alone gives a PageRef with no file page and no label but a Mark; test for no page with ArtifactPage == 0 && Label == \"\" && Mark is zero, not with ==." `ArtifactPage` doc: "0 when the selector holds no file page." `ValidateDepictionRegion` doc: the clause "which may hold only a page_label" becomes "which may hold no file page (only a page_label, or page_unknown)". `citationPage(doc document) (PageRef, bool)` *(changed)*, D-6. `Page` returns its result. `ValidateDepictionRegion`: `ref, ok := citationPage(citation)`; `hasPage := ok && ref.ArtifactPage > 0`; compares `ref.ArtifactPage` |
+| `core/locator` `validate.go` | `selectorRaw`: `PageUnknown bool \`json:"page_unknown"\``, `PageSupplied bool \`json:"page_supplied"\`` *(new fields)* after `PageLabel`. `func (sel selectorRaw) pageMark() (valuemark.Mark, bool)` *(new)*. `func pageSelector(doc document) (selectorRaw, bool)` *(new)*: the first selector whose trimmed type is `TypePage` (a parsed document holds at most one). `validatePage`: D-3's two checks. `Validate`: `doc, err := parse(locatorJSON)`; on error return it; then, when `sel, ok := pageSelector(doc)` is ok, `return valuemark.Validate(sel.pageMark())`. `Validate`'s doc comment: "Validate is the write check: it checks locator JSON against version-1 invariants for known selector types, and refuses a page mark pair valuemark.Validate refuses (valuemark.ErrInvalid). Reads go through parse, which does not check the pair." Package comment: a page selector holds `artifact_page`, `page_label`, or both, or is marked `page_unknown`; it may mark the printed page `page_unknown` or `page_supplied`; `Validate` refuses a pair `valuemark.Validate` refuses, and `Page` settles a stored one |
+| `core/locator` `depiction.go` | `PageRef.Mark valuemark.Mark` *(new field)*, doc comment "Mark is the printed page's unknown and supplied facts, settled against Label (valuemark.Settle)." `PageRef` doc gains: "A selector marked unknown alone gives no file page and no label, with Mark.Unknown set; only the zero value means no page selector." `ArtifactPage` doc: "0 when the selector holds no file page." `ValidateDepictionRegion` doc: "Both documents must pass Validate." becomes "Both documents must parse (Validate without its page mark check)."; the clause "which may hold only a page_label" becomes "which may hold no file page (only a page_label, or page_unknown)". `citationPage(doc document) (PageRef, bool)` *(changed)* builds its `PageRef` from `pageSelector`, D-6. `Page` returns its result. `ValidateDepictionRegion`: `ref, ok := citationPage(citation)`; `hasPage := ok && ref.ArtifactPage > 0`; compares `ref.ArtifactPage` |
 
 Sketch:
 
@@ -194,19 +194,28 @@ func validatePage(sel selectorRaw) error { // read and write
 	return nil
 }
 
-func validateMarks(doc document) error { // write only, from Validate
+func pageSelector(doc document) (selectorRaw, bool) {
 	for _, sel := range doc.Selectors {
 		if strings.TrimSpace(sel.Type) == TypePage {
-			if err := valuemark.Validate(sel.pageMark()); err != nil {
-				return err
-			}
+			return sel, true
 		}
+	}
+	return selectorRaw{}, false
+}
+
+func Validate(locatorJSON string) error { // the write check
+	doc, err := parse(locatorJSON)
+	if err != nil {
+		return err
+	}
+	if sel, ok := pageSelector(doc); ok {
+		return valuemark.Validate(sel.pageMark())
 	}
 	return nil
 }
 ```
 
-In `citationPage`, the mark is `valuemark.Settle(mark, hasLabel)` from `sel.pageMark()`; `hasLabel` is true exactly when the trimmed label is non-empty, so it agrees with `Label != ""`.
+In `citationPage`, the selector comes from `pageSelector` and the mark is `valuemark.Settle(mark, hasLabel)` from `sel.pageMark()`; `hasLabel` is true exactly when the trimmed label is non-empty, so it agrees with `Label != ""`.
 
 Errors: `valuemark.invalid` → a refused pair (AC-1.4, AC-1.5, AC-1.6); `locator.invalid` → everything else, as today.
 
@@ -251,9 +260,9 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `core/locator/validate_test.go` `TestValidate` | New rows: unknown-only selector → nil; file page + unknown → nil; label + supplied, with and without a file page → nil; file page + blank label + unknown → nil; label + unknown → `valuemark.ErrInvalid`; supplied alone, file page + supplied, file page + blank label + supplied → `valuemark.ErrInvalid`; both facts, with and without a file page → `valuemark.ErrInvalid`; `page_unknown:false` alone, `page_supplied:false` alone → `ErrInvalid`; `"page_unknown":"yes"`, `"page_supplied":1` → `ErrInvalid`; file page 0 + unknown → `ErrInvalid`; existing rows unchanged | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-1.6, AC-1.7, AC-1.8, AC-1.9, D-1, D-2, D-3 |
-| T-2 | Go | `core/locator/validate_test.go` `TestPage` | Unknown-only → `PageRef{Mark: {Unknown: true}}`; artifact + file page 37 + " 23 " + supplied → `{37, "23", {Supplied: true}}`; AC-2.4's four stored pairs → their settled `PageRef`s; every existing row → its old `ArtifactPage` and `Label` with the zero `Mark` | AC-2.1, AC-2.2, AC-2.3, AC-2.4, D-4, D-6 |
+| T-2 | Go | `core/locator/validate_test.go` `TestPage` | Unknown-only → `PageRef{Mark: {Unknown: true}}`; artifact + file page 37 + " 23 " + supplied → `{37, "23", {Supplied: true}}`; AC-2.4's four stored pairs → their settled `PageRef`s; `{"type":"page","artifact_page":3000000000,"page_unknown":true}` → `PageRef{}` (above `math.MaxInt32`, D-4); every existing row → its old `ArtifactPage` and `Label` with the zero `Mark` | AC-2.1, AC-2.2, AC-2.3, AC-2.4, D-4, D-6 |
 | T-3 | Go | `core/locator/depiction_test.go` `TestValidateDepictionRegion` | Region on page 1, Citation page 1 + unknown → nil; region without page, Citation `art` + unknown-only → nil; region on page 1, Citation `art` + unknown-only → `ErrInvalid`; AC-3.4's two cases → nil | AC-3.1, AC-3.2, AC-3.3, AC-3.4, D-5 |
-| T-5 | Go | `core/locator/fuzz_test.go` `FuzzValidate` *(new)* | Seeds (`f.Add`): AC-1.1, AC-1.3, AC-1.4, AC-1.6 and AC-2.4's documents, `{"version":1,"selectors":[{"type":"artifact"}]}` and `{`. For each input: no panic; `ref := Page(doc)` has `valuemark.Validate(ref.Mark, ref.Label != "") == nil`; when `Validate(doc) == nil` and `Page(doc) != PageRef{}`, the raw pair equals `Page(doc).Mark` (settling changed nothing on a written document). The raw pair is read in the test, which is in package `locator`: `d, _ := decode(doc)`, take the selector whose trimmed type is `TypePage`, and call its `pageMark()`. A file page above `math.MaxInt32` reads as the zero `PageRef` (D-4), which the `!= PageRef{}` guard excludes. 5-minute run, no crasher | D-3, D-6, `.cursor/rules/go-tests.mdc` |
+| T-5 | Go | `core/locator/fuzz_test.go` `FuzzValidate` *(new)* | Seeds (`f.Add`): AC-1.1, AC-1.3, AC-1.4, AC-1.6 and AC-2.4's documents, `{"version":1,"selectors":[{"type":"page","artifact_page":3000000000,"page_unknown":true}]}`, `{"version":1,"selectors":[{"type":"artifact"}]}` and `{`. For each input: no panic; `ref := Page(doc)` has `valuemark.Validate(ref.Mark, ref.Label != "") == nil`; when `Validate(doc) == nil` and `Page(doc) != PageRef{}`, the raw pair equals `Page(doc).Mark` (settling changed nothing on a written document). The raw pair is read in the test, which is in package `locator`: `d, _ := decode(doc)`, `sel, _ := pageSelector(d)`, and `sel.pageMark()`; no test-side decoder. A file page above `math.MaxInt32` reads as the zero `PageRef` (D-4), which the `!= PageRef{}` guard excludes. 5-minute run, no crasher | D-3, D-6, `.cursor/rules/go-tests.mdc` |
 | T-4 | Go | `core/database/citations/citations_test.go` `TestCitations` case "a printed page can be marked unknown, not unknown with a label" *(new)* | `createCitation` with the unknown-only locator → no error, `Citation.LocatorJSON` equals the input; `Update` with label + unknown → `errors.Is(err, valuemark.ErrInvalid)`; `Get` after → the create's locator | AC-1.10 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/locator` (the table column changes), `core/database/graphfill` (compiles against `PageRef`), `core/database/observations` (depiction checks).
@@ -267,7 +276,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left (none expected)
 - [ ] Fuzz: `FuzzValidate` ran 5 minutes with no crasher (command and output in the report)
-- [ ] Sweep: `rg "citationPage\(" core` shows only the `(PageRef, bool)` form; `rg "simply omits|holds only a page_label|holds only a printed page" docs core --glob '!**/S15-44-*'` has no hit; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `rg "citationPage\(" core` shows only the `(PageRef, bool)` form; `rg -U "simply omits|hold only a\s+(//\s+)?page_label|holds only a\s+(//\s+)?printed page|must pass Validate|checked in .validatePage." docs core --glob '!**/S15-44-*'` has no hit; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated (none)
 - [ ] UI matches the brief inventory (no UI)
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)

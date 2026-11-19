@@ -1,7 +1,7 @@
 # Review — S15-44 The printed page can be marked unknown or supplied
 
-**Verdict:** pending round 2
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -12,6 +12,7 @@ None.
 - D-1: the mark is about the printed page only; `artifact_page` never counts as a value, and a blank label counts as none.
 - D-3: a refused pair returns `valuemark.invalid`, not `locator.invalid`, as the Source date and metadata values do.
 - D-3 / D-6 (changed in round 1): writes refuse a bad pair (`Validate`), and reads settle it (`Page` through `valuemark.Settle`). `parse` checks only that the selector holds something. A selector holding `page_unknown` alone is valid: an image whose original prints no number.
+- D-3 (round 2): one `pageSelector` finder serves the write check and the read settle.
 - D-5: a mark on a depiction's region document is ignored, not checked.
 - D-7: `graphfill` and the wire stay unchanged. The resolver (S15-16) reads `locator.Page` itself.
 - The version bump is minor (0.26.0), as S15-13 did for the label-only selector.
@@ -26,7 +27,7 @@ None.
 ### M-2 · major · D-6 and D-7 contradict the map's own lines and leave them false
 The map's S15-53 entry names "S15-44's page read" as `valuemark.Settle`'s next caller. The S15-44 entry says `graphfill` reads the mark. Outside the reviewer's lens: with the pair check in `parse`, a stored locator that reads today, with a stray `page_unknown` beside a label, would lose its page in `graphfill` and its depictions in `depictionvalue.Readable`.
 **Answer:** Fixed, with a reshape. Checking this showed the S15-53 split fits better than defending D-6.
-- D-3 now splits the work. `validatePage` (in `parse`) does the structural checks. `validateMarks` *(new)* in `Validate` (write only) runs the pair check.
+- D-3 now splits the work. `validatePage` (in `parse`) does the structural checks. `Validate` (write only) runs the pair check (round 2 M-7 replaced the planned `validateMarks` with one `pageSelector` finder).
 - D-6 settles the mark in `citationPage`. One `selectorRaw.pageMark` computes "has a label" for both paths.
 - AC-2.4 and AC-3.4 pin the crafted-data reads.
 - STEP-4 rewrites the map's S15-44 entry for D-7. The S15-53 entry is now true as written.
@@ -60,3 +61,29 @@ The map's S15-53 entry names "S15-44's page read" as `valuemark.Settle`'s next c
 
 ### X-6 · nit · The `unknown` helper in `TestValidateDepictionRegion`
 **Answer:** Fixed. STEP-2 names a local `unknown` variable beside `label`.
+
+## Round 2
+
+The round-1 answers were checked. M-1 through M-6 hold. M-3's sweep and T-5 needed more work, recorded below.
+
+### M-7 · blocker · `validateMarks` is a second scan for the page selector beside `citationPage`
+**Answer:** Fixed. `pageSelector(doc) (selectorRaw, bool)` *(new)* is the one finder. `Validate` and `citationPage` both use it, and `validateMarks` is gone from D-3, Codebase fit, Go core and the sketch. The stale text is now covered:
+- `ValidateDepictionRegion`'s "Both documents must pass Validate" is reworded (§6 Go core).
+- `Validate`'s doc comment is reworded (§6 Go core).
+- The map's S15-44 entry and row were reworded at planning and no longer say `validatePage` checks the pair.
+- The DoD sweep is now `rg -U` over the wrapped comment text. At planning it hits exactly the lines this PR edits.
+
+### M-8 · blocker · T-5's raw-pair property fails above `math.MaxInt32`; how the test reads the raw pair
+**Answer:** Fixed. T-5 now applies the property only when `Page(doc) != PageRef{}`. It reads the raw pair in package `locator` through `decode`, `pageSelector` and `pageMark`, with no second decoder. The MaxInt32 document is a seed, and it is a T-2 row expecting `PageRef{}`.
+
+### X-1 · blocker · T-5's second property fails above int32
+**Answer:** Fixed with M-8.
+
+### X-2 · blocker · The DoD sweep hits the plan and the map's Context
+**Answer:** Fixed. The sweep excludes `S15-44-*`. The map's Context line was reworded at planning and no longer says "simply omits".
+
+### X-3 · minor · The map's Ships sentence keeps "checked in `validatePage`"
+**Answer:** Fixed. The whole Ships sentence and the map row were rewritten at planning, and STEP-4 no longer touches the map entry.
+
+### X-4 · nit · `TestPage` rows as `PageRef` literals
+Logged. STEP-2 says to move to a `want PageRef` column that keeps every row's values.
