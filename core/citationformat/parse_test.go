@@ -1,7 +1,6 @@
 package citationformat_test
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -100,40 +99,5 @@ func TestParseNilTemplate(t *testing.T) {
 	var tpl *citationformat.Template
 	if tpl.Text() != "" || tpl.Form() != "" || tpl.Fields() != nil {
 		t.Fatal("nil template is not empty")
-	}
-}
-
-type seedFormat struct {
-	form citationformat.Form
-	text string
-}
-
-// seedFormats reads the seed corpus, the one reader of it.
-func seedFormats(tb testing.TB) []seedFormat {
-	tb.Helper()
-	raw, err := os.ReadFile("testdata/seed-formats.txt")
-	if err != nil {
-		tb.Fatal(err)
-	}
-	var out []seedFormat
-	for i, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
-		form, text, ok := strings.Cut(line, "\t")
-		if !ok {
-			tb.Fatalf("line %d has no tab", i+1)
-		}
-		out = append(out, seedFormat{citationformat.Form(form), text})
-	}
-	return out
-}
-
-func TestSeedFormatsParse(t *testing.T) {
-	seeds := seedFormats(t)
-	if len(seeds) != 66 {
-		t.Fatalf("seed has %d formats, want 66", len(seeds))
-	}
-	for i, s := range seeds {
-		if _, diags := citationformat.Parse(s.text, s.form); len(diags) > 0 {
-			t.Errorf("line %d (%s): %v", i+1, s.form, diags)
-		}
 	}
 }

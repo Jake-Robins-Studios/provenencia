@@ -1,0 +1,157 @@
+census	full	full	1880 Westmark census, Calder County, Westmark, population schedule, ED 236, piece 1047, fol. 22, p. 14, schedule 9, dwelling 112, family 118, line 14, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); citing county film 7, item 3.
+census	full	short	1880 Westmark census, Calder County, Westmark, ED 236, fol. 22, p. 14, dwell. 112, fam. 118, Ada Robins.
+census	full	list	Calder County, Westmark. 1880 Westmark census, population schedule.
+census	bare	full	1880 census, .
+census	bare	short	1880 census, .
+census	bare	list	. 1880 census.
+birth_certificate	full	full	Calder County Clerk, birth certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+birth_certificate	full	short	Calder County Clerk, birth certificate no. 1880-0412, Ada Robins.
+birth_certificate	full	list	Calder County, Westmark. Calder County Clerk. Birth certificates. Calder County Archives, Port Ellis.
+birth_certificate	bare	full	birth certificate (14 June 1880).
+birth_certificate	bare	short	birth certificate.
+birth_certificate	bare	list	. Birth certificates.
+marriage_certificate	full	full	Calder County Clerk, marriage certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+marriage_certificate	full	short	Calder County Clerk, marriage certificate no. 1880-0412, Ada Robins.
+marriage_certificate	full	list	Calder County, Westmark. Calder County Clerk. Marriage certificates. Calder County Archives, Port Ellis.
+marriage_certificate	bare	full	marriage certificate (14 June 1880).
+marriage_certificate	bare	short	marriage certificate.
+marriage_certificate	bare	list	. Marriage certificates.
+death_certificate	full	full	Calder County Clerk, death certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+death_certificate	full	short	Calder County Clerk, death certificate no. 1880-0412, Ada Robins.
+death_certificate	full	list	Calder County, Westmark. Calder County Clerk. Death certificates. Calder County Archives, Port Ellis.
+death_certificate	bare	full	death certificate (14 June 1880).
+death_certificate	bare	short	death certificate.
+death_certificate	bare	list	. Death certificates.
+church_register	full	full	St. Brendan's Church, Port Ellis (Calder County, Westmark), *Baptisms and burials, 1850–1899*, vol. 3, p. 14, fol. 22, no. 57, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); film 1022345, item 3; Calder County Archives, Port Ellis.
+church_register	full	short	St. Brendan's Church, Port Ellis, *Calder Register*, vol. 3, p. 14, no. 57.
+church_register	full	list	St. Brendan's Church, Port Ellis (Calder County, Westmark). *Baptisms and burials, 1850–1899*, 1850–1899. Calder County Archives, Port Ellis.
+church_register	bare	full	, *Baptisms and burials, 1850–1899*.
+church_register	bare	short	, *Baptisms and burials, 1850–1899*.
+church_register	bare	list	. *Baptisms and burials, 1850–1899*.
+record_book	full	full	Calder County, Westmark, Calder County Recorder, Deed Book F: 14, entry 57, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); film 1022345; Calder County Archives, Port Ellis.
+record_book	full	short	Calder County, Westmark, Deed Book F: 14.
+record_book	full	list	Calder County, Westmark. Calder County Recorder. Deeds, 1878–1882, 1850–1899. Calder County Archives, Port Ellis.
+record_book	bare	full	, Deeds, 1878–1882.
+record_book	bare	short	, Deeds, 1878–1882.
+record_book	bare	list	. Deeds, 1878–1882.
+passenger_list	full	full	Passengers of the SS Marigold, June 1880, p. 14, line 14, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); citing county film 7, item 3; Westmark microfilm publication W12, roll 393.
+passenger_list	full	short	Calder Register, p. 14, line 14.
+passenger_list	full	list	Port Ellis Customs House. Venn Family Papers. Calder County Archives, Port Ellis.
+passenger_list	bare	full	Passengers of the SS Marigold, June 1880.
+passenger_list	bare	short	Passengers of the SS Marigold, June 1880.
+passenger_list	bare	list	Passengers of the SS Marigold, June 1880.
+case_file	full	full	Calder County, Westmark, Calder County Court, Venn v. Thorne no. 2231, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+case_file	full	short	Calder County, Westmark, Calder Register no. 2231, Ada Robins.
+case_file	full	list	Calder County, Westmark. Calder County Court. Venn Family Papers. Calder County Archives, Port Ellis.
+case_file	bare	full	, Venn v. Thorne.
+case_file	bare	short	, Venn v. Thorne.
+case_file	bare	list	. Venn v. Thorne.
+manuscript	full	full	Ellis Trading Company, Letter book of Ellis Trading Company (14 June 1880), Ada Robins; Venn Family Papers, MS 1123, box 4, folder 17; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+manuscript	full	short	Ellis Trading Company, Calder Register, Venn Family Papers, box 4, folder 17.
+manuscript	full	list	Venn Family Papers, 1850–1899. MS 1123. Calder County Archives, Port Ellis.
+manuscript	bare	full	Letter book of Ellis Trading Company (14 June 1880); .
+manuscript	bare	short	Letter book of Ellis Trading Company.
+manuscript	bare	list	Letter book of Ellis Trading Company. .
+government_file	full	full	Pension file of Harold Venn (14 June 1880), Ada Robins; Venn Family Papers; Record Group 45; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Westmark microfilm publication W12, roll 393; Calder County Archives, Port Ellis.
+government_file	full	short	Calder Register, Ada Robins.
+government_file	full	list	Calder County Archives, Port Ellis. Record Group 45. Venn Family Papers.
+government_file	bare	full	Pension file of Harold Venn (14 June 1880); .
+government_file	bare	short	Pension file of Harold Venn.
+government_file	bare	list	. Pension file of Harold Venn.
+cemetery_marker	full	full	Hillcrest Cemetery (Calder County, Westmark), Ada Robins, section 4, lot 112; photographed by Silas Pell, 12 March 2025.
+cemetery_marker	full	short	Hillcrest Cemetery (Calder County, Westmark), Ada Robins.
+cemetery_marker	full	list	Calder County, Westmark. Hillcrest Cemetery. Grave markers.
+cemetery_marker	bare	full	, Grave of Ada Robins.
+cemetery_marker	bare	short	, Grave of Ada Robins.
+cemetery_marker	bare	list	. . Grave markers.
+family_bible	full	full	Venn family Bible, *Calder Valley Gazette* (Port Ellis: Ashby Press, 1880), Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+family_bible	full	short	Calder Register, Ada Robins.
+family_bible	full	list	Venn family Bible, 1850–1899. *Calder Valley Gazette*. held in 2025 by Clara Venn, Port Ellis.
+family_bible	bare	full	Venn family Bible.
+family_bible	bare	short	Venn family Bible.
+family_bible	bare	list	Venn family Bible.
+photograph	full	full	Portrait of Ada Robins, cabinet card, 14 June 1880, Silas Pell; held in 2025 by Clara Venn, Port Ellis.
+photograph	full	short	Calder Register, 1880.
+photograph	full	list	Portrait of Ada Robins. cabinet card. held in 2025 by Clara Venn, Port Ellis.
+photograph	bare	full	Portrait of Ada Robins, 14 June 1880.
+photograph	bare	short	Portrait of Ada Robins, 1880.
+photograph	bare	list	Portrait of Ada Robins.
+private_papers	full	full	Clara Venn, Notes on the Venn family, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+private_papers	full	short	Clara Venn, Calder Register, Ada Robins.
+private_papers	full	list	Clara Venn. Notes on the Venn family, 1850–1899. held in 2025 by Clara Venn, Port Ellis.
+private_papers	bare	full	Notes on the Venn family, 14 June 1880.
+private_papers	bare	short	Notes on the Venn family.
+private_papers	bare	list	Notes on the Venn family.
+dna_match_report	full	full	GeneLine Labs, Match list for Clara Venn, kit GL-55120, match R. Venn, Ada Robins, report dated 14 June 1880; held in 2025 by Clara Venn, Port Ellis.
+dna_match_report	full	short	GeneLine Labs, Calder Register, match R. Venn.
+dna_match_report	full	list	GeneLine Labs. Match list for Clara Venn. held in 2025 by Clara Venn, Port Ellis.
+dna_match_report	bare	full	, Match list for Clara Venn, report dated 14 June 1880.
+dna_match_report	bare	short	, Match list for Clara Venn.
+dna_match_report	bare	list	. Match list for Clara Venn.
+gedcom_file	full	full	Mabel Thorne, Venn family tree, GEDCOM file exported from FamilyLedger 4.2, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+gedcom_file	full	short	Mabel Thorne, Calder Register, Ada Robins.
+gedcom_file	full	list	Mabel Thorne. Venn family tree. held in 2025 by Clara Venn, Port Ellis.
+gedcom_file	bare	full	Venn family tree, 14 June 1880.
+gedcom_file	bare	short	Venn family tree.
+gedcom_file	bare	list	Venn family tree.
+interview	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+interview	full	short	Clara Venn, interview, 14 June 1880.
+interview	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. held in 2025 by Clara Venn, Port Ellis.
+interview	bare	full	, interview by , 14 June 1880.
+interview	bare	short	, interview, 14 June 1880.
+interview	bare	list	. Interview by . 14 June 1880.
+oral_testimony	full	full	Clara Venn (Calder County, Westmark), interview by Ruth Abernant, 14 June 1880, Ada Robins; held in 2025 by Clara Venn, Port Ellis.
+oral_testimony	full	short	Clara Venn, oral testimony, 14 June 1880.
+oral_testimony	full	list	Clara Venn. Interview by Ruth Abernant. Calder County, Westmark, 14 June 1880. held in 2025 by Clara Venn, Port Ellis.
+oral_testimony	bare	full	, 14 June 1880.
+oral_testimony	bare	short	, oral testimony, 14 June 1880.
+oral_testimony	bare	list	. 14 June 1880.
+correspondence	full	full	Clara Venn (Calder County, Westmark) to Harold Venn, Letter about Ada Robins, 14 June 1880; held in 2025 by Clara Venn, Port Ellis.
+correspondence	full	short	Clara Venn to Harold Venn, 14 June 1880.
+correspondence	full	list	Clara Venn. Correspondence to Harold Venn, 1850–1899. held in 2025 by Clara Venn, Port Ellis.
+correspondence	bare	full	 to , Letter about Ada Robins, 14 June 1880.
+correspondence	bare	short	 to , 14 June 1880.
+correspondence	bare	list	. Correspondence to .
+book	full	full	Mabel Thorne, ed. Owen Pryce, comp. Lena Marsh, trans. Ivo Karsk, *The Families of Calder County*, 2nd ed., vol. 3, Calder County Records Series (Port Ellis: Ashby Press, 1880), 14; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025).
+book	full	short	Mabel Thorne, *Calder Register*, 14.
+book	full	list	Thorne, Mabel. *The Families of Calder County*. 2nd ed.. Port Ellis: Ashby Press, 1880.
+book	bare	full	, *The Families of Calder County*.
+book	bare	short	, *The Families of Calder County*.
+book	bare	list	. *The Families of Calder County*.
+journal_article	full	full	Mabel Thorne, "Ada Robins and the Calder flood," *Calder Valley Gazette* 3, no. 12 (14 June 1880): 41–58, specifically 14.
+journal_article	full	short	Mabel Thorne, "Calder Register", 14.
+journal_article	full	list	Thorne, Mabel. "Ada Robins and the Calder flood." *Calder Valley Gazette* 3, no. 12 (14 June 1880): 41–58.
+journal_article	bare	full	, "Ada Robins and the Calder flood,"  (14 June 1880).
+journal_article	bare	short	, "Ada Robins and the Calder flood".
+journal_article	bare	list	. "Ada Robins and the Calder flood."  (14 June 1880).
+broadcast	full	full	Mabel Thorne, "Ada Robins and the Calder flood," *Calder Valley Gazette* 3, no. 12 (14 June 1880): 41–58, specifically 14.
+broadcast	full	short	Mabel Thorne, "Calder Register", 14.
+broadcast	full	list	Thorne, Mabel. "Ada Robins and the Calder flood." *Calder Valley Gazette* 3, no. 12 (14 June 1880): 41–58.
+broadcast	bare	full	, "Ada Robins and the Calder flood,"  (14 June 1880).
+broadcast	bare	short	, "Ada Robins and the Calder flood".
+broadcast	bare	list	. "Ada Robins and the Calder flood."  (14 June 1880).
+newspaper_item	full	full	"Death of Ada Robins," *Calder Valley Gazette* (Calder County, Westmark), 14 June 1880, p. 14, col. 3; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025).
+newspaper_item	full	short	"Calder Register," *Calder Valley Gazette*, 14 June 1880.
+newspaper_item	full	list	*Calder Valley Gazette* (Calder County, Westmark).
+newspaper_item	bare	full	"Death of Ada Robins," , 14 June 1880.
+newspaper_item	bare	short	"Death of Ada Robins," , 14 June 1880.
+newspaper_item	bare	list	.
+website	full	full	Calder Historical Society, "Ada Robins memorial," digital image, *Calder Archives Online* (https://example.org/calder/1880 : accessed 12 March 2025), Ada Robins; citing county film 7, item 3.
+website	full	short	"Calder Register", Ada Robins.
+website	full	list	Calder Historical Society. "Ada Robins memorial." *Calder Archives Online*. https://example.org/calder/1880.
+website	bare	full	"Ada Robins memorial," .
+website	bare	short	"Ada Robins memorial".
+website	bare	list	"Ada Robins memorial." .
+statute	full	full	Calder County, Westmark, *Calder Valley Gazette* 1880, vol. 3, chap. 88, sec. 4, p. 14.
+statute	full	short	Calder County, Westmark, *Calder Valley Gazette* 1880, chap. 88.
+statute	full	list	Calder County, Westmark. *Calder Valley Gazette*, 1880.
+statute	bare	full	,  1880.
+statute	bare	short	,  1880.
+statute	bare	list	. , 1880.
+court_report	full	full	*Venn v. Thorne*, 3 Calder Valley Gazette 14 (1880).
+court_report	full	short	*Calder Register*, 14.
+court_report	full	list	*Venn v. Thorne*. 3 Calder Valley Gazette (1880).
+court_report	bare	full	*Venn v. Thorne*,   (1880).
+court_report	bare	short	*Venn v. Thorne*.
+court_report	bare	list	*Venn v. Thorne*.  (1880).
+court_report	nopage	full	*Venn v. Thorne*, 3 Calder Valley Gazette 41–58 (1880).

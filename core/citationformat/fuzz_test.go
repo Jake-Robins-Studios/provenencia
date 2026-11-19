@@ -26,9 +26,8 @@ func FuzzParse(f *testing.F) {
 	for _, c := range parseCases {
 		f.Add(c.text, string(c.form))
 	}
-	for _, s := range seedFormats(f) {
-		f.Add(s.text, string(s.form))
-	}
+	f.Add(censusFull, string(citationformat.FormFull))
+	f.Add(censusShort, string(citationformat.FormShort))
 	f.Fuzz(func(t *testing.T, text, form string) {
 		tpl, diags := citationformat.Parse(text, citationformat.Form(form))
 		if (tpl == nil) != (len(diags) > 0) {
