@@ -1,6 +1,6 @@
 # S15-52 — The Source seed writes through `writes.Run`
 
-**Status:** Planned
+**Status:** Landed in [#891](https://github.com/mendahu/provenencia/pull/891) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of the seed's write path; no view draws anything different)
@@ -14,6 +14,8 @@
 **Context:** map scope entry S15-52 ([`../deployment-plan.md`](../deployment-plan.md)); working rule "The seed is the product default"; [`core/writes/README.md`](../../../../core/writes/README.md); [`S15-19-seed-citation-types.md`](S15-19-seed-citation-types.md) (the next PR, which builds on this one)
 **Planned:** 2026-11-19 against `main` @ `f757b45` (compare with `origin/main` after `git fetch origin main`)
 **Review:** [`S15-52-source-seed-through-writes-run.review.md`](S15-52-source-seed-through-writes-run.review.md) — Fits / Ready after 2 rounds; every finding Fixed or Logged; nothing open
+
+**Landed.** `Upsert` was deleted in the same commit that moved its callers, not in STEP-5, and Steps 1-5 landed as one commit; no other difference from the plan.
 
 ### Implementer — read this first
 
