@@ -1,7 +1,7 @@
 # Review — S16-46 Back returns to the row you opened in a section
 
-**Verdict:** round 1: Fits with changes — Not ready (two blockers each); all answered Fixed. Round 2 pending.
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes (every blocker of both rounds Fixed)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 None.
@@ -14,6 +14,9 @@ None.
 - A card or line whose row is folded, or shown with a non-empty fold, resolves to the fold's Show more even if the person or record is gone (§ Edges): no participant ids are kept.
 - Timeline restore waits for every item to be measured (D-13).
 - The bump is a patch.
+- The working rule's "written when leaving" is reworded to "written as a row opens another place" (X-8): the write is on the leave an open causes.
+- The Place relationship row moves from `.plain` to `PVFocusRingButtonStyle()` so a restored focus is visible (X-3); nothing draws until it is focused.
+- An unfold's reveal scroll now also waits until every Timeline item is measured (D-13), one gate for both.
 
 ## Round 1
 
@@ -63,3 +66,51 @@ Every anchored Back would rebuild the section (one memo per key per session); th
 
 ### X-9 · minor · Timeline restore timing; `widthStop` and Show more
 **Answer:** Fixed — D-13: wait for every item measured; the width case is stated as matching today.
+
+## Round 2
+
+Both reviewers confirmed the round-1 answers hold against the code, except where noted below.
+
+### M-7 · blocker · The Show more row and the sections' scroll pairs overlap S15-30, which is not named
+**Answer:** Fixed — D-6: the restore modifier owns its scroll (`pvScrollsRowIntoView` inside it); no section gains a pair; header **Blocks** names the order with S15-30; both maps say whichever lands second rebases and `PVShowMoreRow` keeps the `stop`.
+
+### M-8 / X-1 · blocker · A second Return handler on the Source title (`PVInkLink` already has one)
+**Answer:** Fixed — D-10: the title gets `.focused` only; § 4 Sources row corrected.
+
+### M-9 · blocker · A second "scroll once placed" rule in the Timeline
+**Answer:** Fixed — D-13: the restore goes through `pendingReveal`; `rebuild()`'s one gate waits for every item measured, for unfold and restore alike.
+
+### M-10 · blocker · The empty-id rule is bypassed by the stamp
+**Answer:** Fixed — D-1: `ConclusionSectionAnchor`'s failable init and decode own the rule; `WorkspaceLocation` adds none; T-2 covers an empty id and an empty row.
+
+### X-2 · blocker · The relationship row cannot take `.focused` and Return as described
+**Answer:** Fixed — the row takes `focus` and `anchorID` and applies `.id`, `.focused` and Return itself (§ macOS, Codebase fit).
+
+### X-3 · blocker · The focus ring on the `.plain` relationship row was left to a Stop condition
+**Answer:** Fixed — decided: `PVFocusRingButtonStyle()` replaces `.plain` (draws nothing until focused); the Stop condition is gone.
+
+### X-4 · major · `Part` lacks `CaseIterable`; `row` and empty-id placement
+**Answer:** Fixed — D-1.
+
+### X-5 · major · The restore's anchor source and its "once" rule
+**Answer:** Fixed — D-6: it reads `currentLocation.sectionAnchor`; `didRestore` is set on the first attempt where `isReady` is true.
+
+### X-6 · major · D-11 said Back draws no highlight
+**Answer:** Fixed — D-11: a restored `.graph` or `.node` highlights its graph as keyboard focus does today; `.title` and `.more` give nil.
+
+### X-7 · major · Small picture tiles do not answer Return
+**Answer:** Fixed — D-10 keeps today's keys (Space opens them); the Keyboard sentence says so.
+
+### X-8 · minor · D-2 vs the rule's "written when leaving"
+**Answer:** Fixed — the write happens on the leave an open causes; STEP-8 rewords the rule to "written as a row opens another place", and the map row says the same. Listed under Writer's own calls for the user.
+
+### X-9 · minor · Timeline scroll before placement
+**Answer:** Fixed — with M-9.
+
+### X-10 · minor · `.id` placements; the Sources scroll modifier move
+**Answer:** Fixed — § macOS names each `.id`'s view; the move is dropped (the proxy reaches any `.id` in the page's scroll view).
+
+### Below the bar (noted)
+- Show more ids now all read `"more.<…>"` (Family's changed from `"more-…"`).
+
+**Result:** no open blocker after round 2; the round cap is reached, so the round-2 fixes are unreviewed plan text.
