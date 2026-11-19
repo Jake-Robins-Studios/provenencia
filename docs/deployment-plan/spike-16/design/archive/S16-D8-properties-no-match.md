@@ -6,9 +6,9 @@
 **Implements later as:** PR **S16-48** (A Properties search with no match shows the kit's empty state)
 **Board:** [agreed 2026-11-19](https://claude.ai/artifact/XRS4WQDZbaDa7jAzVKYQdc) — Claude Design "Properties View", page `S7-D2 Subject Fields`, section "S16-D8 · No match" (frames N1a, N1b, N2, N3a, N3b, N4). Copy, icons (`text-search`, `list-tree`), the `space6` top-aligned inset and the wrapping title as briefed; Clear search drawn at the small size (`sm`), like the toolbar's controls
 **Depends on:** the agreed Properties page frames on the same board (type strip, the property table card with its search field and Add combo, the inspector card)
-**Related:** the Sources list's no-filter-match state (`SourcesListView.listBody`, the precedent); plan [`../prs/S16-48-properties-no-match.md`](../prs/S16-48-properties-no-match.md); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
+**Related:** the Sources list's no-filter-match state (`SourcesListView.listBody`, the precedent); plan [`../../prs/S16-48-properties-no-match.md`](../../prs/S16-48-properties-no-match.md); [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../../.agents/skills/add-localized-string/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
