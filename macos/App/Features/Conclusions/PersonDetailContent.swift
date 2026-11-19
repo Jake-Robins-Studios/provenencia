@@ -44,23 +44,25 @@ struct PersonDetailContent: ConclusionDetailBody {
         lifeLines = PersonLifeDisplay.lifeLines(summary, locale: locale, missing: .stated)
         rows = Self.rows(detail.fields, summary: summary, derivedRows: detail.derivedRows, locale: locale, orders: orders)
         treatment = PVGenderTreatment.read(summary)
+        let likenesses = ConclusionDetailGallery.tiles(
+            from: detail,
+            tileLabel: L10n.Conclusions.likenessLabel,
+            leadTileLabel: L10n.Conclusions.likenessTileLabelLead,
+            useAsLabel: L10n.Conclusions.useAsPortraitLabel,
+            chosenBody: L10n.Conclusions.toastPortraitChosenBody,
+            viewerLabel: { index, count, line, leads in
+                leads
+                    ? L10n.Conclusions.likenessViewerLabelLead(index: index, count: count, line: line)
+                    : L10n.Conclusions.likenessViewerLabel(index: index, count: count, line: line)
+            }
+        )
         gallery = ConclusionDetailGallery(
             title: L10n.Conclusions.likenessesSection,
+            countLabel: L10n.Conclusions.likenessesCount(likenesses.count),
             openTip: L10n.Conclusions.likenessViewHint,
             fallbackMark: .subjectPerson,
             fallbackColors: treatment?.thumbnailColors,
-            tiles: ConclusionDetailGallery.tiles(
-                from: detail,
-                tileLabel: L10n.Conclusions.likenessLabel,
-                leadTileLabel: L10n.Conclusions.likenessTileLabelLead,
-                useAsLabel: L10n.Conclusions.useAsPortraitLabel,
-                chosenBody: L10n.Conclusions.toastPortraitChosenBody,
-                viewerLabel: { index, count, line, leads in
-                    leads
-                        ? L10n.Conclusions.likenessViewerLabelLead(index: index, count: count, line: line)
-                        : L10n.Conclusions.likenessViewerLabel(index: index, count: count, line: line)
-                }
-            ),
+            tiles: likenesses,
             choose: .personPortrait,
             viewer: .likeness(title: L10n.Conclusions.likenessViewerTitle(title.text))
         )

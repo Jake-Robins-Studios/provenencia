@@ -395,6 +395,7 @@ struct ConclusionPictureViewer: View {
     }
     let gallery = ConclusionDetailGallery(
         title: L10n.Conclusions.likenessesSection,
+        countLabel: L10n.Conclusions.likenessesCount(tiles.count),
         openTip: L10n.Conclusions.likenessViewHint,
         fallbackMark: .subjectPerson,
         tiles: tiles,

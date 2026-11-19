@@ -32,6 +32,9 @@ struct ConclusionDetailPicture: Equatable, Identifiable {
 /// (S14-02 D-1, D-2).
 struct ConclusionDetailGallery: Equatable {
     var title: LocalizedStringResource
+    /// The section's count beside `title`, a plural ("3 likenesses"). The section is not drawn
+    /// without tiles, so it never reads zero.
+    var countLabel: String
     var openTip: LocalizedStringResource
     var fallbackMark: PVMarkKey
     /// The tint of the fallback mark (a Person's gender colors); nil for none.
@@ -109,17 +112,19 @@ struct ConclusionDetailGallery: Equatable {
         fallbackMark: PVMarkKey,
         choose: LeadCopy
     ) -> ConclusionDetailGallery {
-        ConclusionDetailGallery(
+        let tiles = tiles(
+            from: detail,
+            tileLabel: L10n.Conclusions.pictureFrom,
+            leadTileLabel: L10n.Conclusions.pictureTileLabelLead,
+            useAsLabel: L10n.Conclusions.useAsThumbnailLabel,
+            chosenBody: L10n.Conclusions.toastThumbnailChosenBody
+        )
+        return ConclusionDetailGallery(
             title: L10n.Conclusions.picturesSection,
+            countLabel: L10n.Conclusions.picturesCount(tiles.count),
             openTip: L10n.Conclusions.pictureOpenTip,
             fallbackMark: fallbackMark,
-            tiles: tiles(
-                from: detail,
-                tileLabel: L10n.Conclusions.pictureFrom,
-                leadTileLabel: L10n.Conclusions.pictureTileLabelLead,
-                useAsLabel: L10n.Conclusions.useAsThumbnailLabel,
-                chosenBody: L10n.Conclusions.toastThumbnailChosenBody
-            ),
+            tiles: tiles,
             choose: choose
         )
     }

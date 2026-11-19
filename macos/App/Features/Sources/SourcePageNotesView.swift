@@ -11,7 +11,9 @@ struct SourcePageNotesView: View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             PVSectionHeader(
                 title: L10n.Sources.notesHeading,
-                meta: model.notes.items.isEmpty ? nil : "\(model.notes.items.count)"
+                meta: model.notes.items.isEmpty
+                    ? nil
+                    : L10n.Sources.notesCount(model.notes.items.count)
             )
 
             if model.notes.items.isEmpty {

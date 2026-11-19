@@ -24256,6 +24256,102 @@
           }
         }
       }
+    },
+    "sources.page.notesCount": {
+      "comment": "Notes section count; argument is note count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld note"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld notes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citationComposer.citationsCount": {
+      "comment": "Citation column count in the composer's side layout; argument is citation count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citation"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citations"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "conclusions.detail.likenessesCount": {
+      "comment": "Likenesses section count on a Person page; argument is likeness count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld likeness"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld likenesses"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "conclusions.detail.picturesCount": {
+      "comment": "Pictures section count on an Event or Place page; argument is picture count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld picture"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld pictures"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.1"

@@ -27,7 +27,7 @@ struct ConclusionGallerySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PVSectionHeader(title: gallery.title, meta: String(gallery.tiles.count))
+            PVSectionHeader(title: gallery.title, meta: gallery.countLabel)
             LazyVGrid(
                 columns: [GridItem(
                     .adaptive(minimum: look.column, maximum: look.column),

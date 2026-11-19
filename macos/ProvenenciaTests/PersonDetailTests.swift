@@ -179,6 +179,8 @@ struct PersonDetailTests {
         #expect(gallery.tiles.map(\.id) == ["a", "b"])
         #expect(gallery.tiles.map(\.citation.title) == ["Register", "OBS-2"])
         #expect(gallery.title == L10n.Conclusions.likenessesSection)
+        #expect(gallery.countLabel == "2 likenesses")
+        #expect(L10n.Conclusions.likenessesCount(1) == "1 likeness")
         #expect(gallery.tiles.map(\.accessibilityLabel) == [
             L10n.Conclusions.likenessLabel("Register"), L10n.Conclusions.likenessLabel("OBS-2"),
         ])

@@ -4602,6 +4602,14 @@ enum L10n {
             comment: "Eyebrow above the citation stepper"
         )
 
+        static func citationsCount(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "citationComposer.citationsCount",
+                defaultValue: "%lld citations",
+                comment: "Citation column count in the composer's side layout; argument is citation count"
+            ), count)
+        }
+
         static let newPosition = LocalizedStringResource(
             "citationComposer.newPosition",
             defaultValue: "New",
@@ -6404,6 +6412,14 @@ enum L10n {
                 "sources.page.artifactsCount",
                 defaultValue: "%lld artifacts",
                 comment: "Artifacts section count; argument is artifact count"
+            ), count)
+        }
+
+        static func notesCount(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.page.notesCount",
+                defaultValue: "%lld notes",
+                comment: "Notes section count; argument is note count"
             ), count)
         }
 
@@ -9957,6 +9973,14 @@ enum L10n {
             comment: "Section heading over a Person's likeness crops"
         )
 
+        static func likenessesCount(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "conclusions.detail.likenessesCount",
+                defaultValue: "%lld likenesses",
+                comment: "Likenesses section count on a Person page; argument is likeness count"
+            ), count)
+        }
+
         static let personLikenessThumb = LocalizedStringResource(
             "conclusions.person.likeness",
             defaultValue: "Likeness",
@@ -10530,6 +10554,14 @@ enum L10n {
             defaultValue: "Pictures",
             comment: "Section heading over an Event's or Place's picture crops"
         )
+
+        static func picturesCount(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "conclusions.detail.picturesCount",
+                defaultValue: "%lld pictures",
+                comment: "Pictures section count on an Event or Place page; argument is picture count"
+            ), count)
+        }
 
         static let pictureOpenTip = LocalizedStringResource(
             "conclusions.picture.open",

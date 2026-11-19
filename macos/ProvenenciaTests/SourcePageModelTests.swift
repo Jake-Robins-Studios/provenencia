@@ -1343,6 +1343,13 @@ struct SourcePageModelTests {
         #expect(L10n.Sources.graphsCount(3) == "3 evidence graphs")
     }
 
+    @Test func sectionCountsArePlurals() {
+        #expect(L10n.Sources.notesCount(1) == "1 note")
+        #expect(L10n.Sources.notesCount(3) == "3 notes")
+        #expect(L10n.CitationComposer.citationsCount(1) == "1 citation")
+        #expect(L10n.CitationComposer.citationsCount(4) == "4 citations")
+    }
+
     @Test func graphRowsNilUntilListLoadsAndErrorWhenItFails() async {
         let store = makeStore()
         store.evidenceGraphsByProject[projectDir] = [evidenceGraph("g-default", name: "Default")]
