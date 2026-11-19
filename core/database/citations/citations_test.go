@@ -27,6 +27,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"github.com/google/uuid"
@@ -399,6 +400,43 @@ func TestCitations(t *testing.T) {
 				}, obs)
 				if !errors.Is(err, locator.ErrInvalid) {
 					t.Fatalf("create with two page selectors: got %v want locator.ErrInvalid", err)
+				}
+			},
+		},
+		{
+			name: "a printed page can be marked unknown, not unknown with a label",
+			run: func(t *testing.T) {
+				c, s := mustSeed(t)
+				obs := []observations.Input{{
+					SubjectID: s.person.ID, PropertyID: s.sexProp.ID,
+					ValueTermID: s.femaleTerm.ID,
+				}}
+				const unknown = `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_unknown":true}]}`
+				res, err := createCitation(c, userID, CreateInput{
+					GraphID:     s.graph,
+					ArtifactID:  s.artifact.ID,
+					LocatorJSON: " " + unknown + " ",
+				}, obs)
+				if err != nil {
+					t.Fatalf("create with an unknown page: %v", err)
+				}
+				if res.Citation.LocatorJSON != unknown {
+					t.Fatalf("LocatorJSON = %q, want %q", res.Citation.LocatorJSON, unknown)
+				}
+				_, err = writes.Call(c, writes.Op{Action: "update_citation", UserID: userID}, func(tx *database.Tx) (Citation, []rowchange.Change, error) {
+					return Update(tx, userID, res.Citation.ID, CitationFieldsInput{
+						LocatorJSON: `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","page_label":"14","page_unknown":true}]}`,
+					})
+				})
+				if !errors.Is(err, valuemark.ErrInvalid) {
+					t.Fatalf("update with a label and unknown: got %v want valuemark.ErrInvalid", err)
+				}
+				got, err := Get(c, res.Citation.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got.LocatorJSON != unknown {
+					t.Fatalf("stored LocatorJSON = %q, want %q", got.LocatorJSON, unknown)
 				}
 			},
 		},

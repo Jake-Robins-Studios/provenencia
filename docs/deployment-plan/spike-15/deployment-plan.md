@@ -140,7 +140,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-41 | A metadata row can be marked unknown or supplied | 9 | Swift: the Unknown and Supplied control, built once; on every board's row | S15-D22 | S15-37, S15-39, S15-D22, S16-61 | — | Scoped |
 | S15-42 | The Source date can be unknown, supplied or flagged | 9 | Swift: the date dialog's No date and Supplied (S15-41's control); the header shows them and flags an empty date the type needs | S15-D23 | S15-43, S15-38, S15-41, S15-D23 | — | Scoped |
 | S15-43 | The Source date can be marked unknown or supplied | 4 | Go: one migration (`date_unknown`, `date_supplied` on `sources`); the Source read and date write; Copy Source with its date tick; audit | — | S15-02, S15-14 | [plan](prs/S15-43-source-date-marks.md) | Landed #900 |
-| S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `Validate` refuses a bad pair; `locator.Page` returns the settled mark | — | S15-14 | [plan](prs/S15-44-page-marks.md) | Planned |
+| S15-44 | The printed page can be marked unknown or supplied | 4 | Go: `page_unknown` and `page_supplied` in the locator's page selector; `Validate` refuses a bad pair; `locator.Page` returns the settled mark | — | S15-14 | [plan](prs/S15-44-page-marks.md) | Landed #905 |
 | S15-45 | The composer marks and flags the printed page | 9 | Swift: Unknown and Supplied on the printed page (S15-41's control); flagged when the type needs `{citation.page}` | S15-D24 | S15-13, S15-38, S15-41, S15-44, S15-D24 | — | Scoped |
 | S15-46 | A field's unknown text is editable | 9 | Swift: the Metadata page edits a field's unknown text | S15-D25 | S15-37, S15-D25 | — | Scoped |
 | S15-47 | Adding a Source type opens a dialog | 2 | Swift: Add type at the list's top right opens a form dialog (label, icon, description); Save opens the new type; the side pane's add mode goes | [S15-D26](design/archive/S15-D26-add-source-type-dialog.md) | S15-D26 | [plan](prs/S15-47-add-source-type-dialog.md) | Landed #843 |
@@ -716,6 +716,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Ships.** The printed page in the composer takes Unknown and Supplied (S15-41's control) and is flagged when the type needs `{citation.page}` and it is empty.
 **Check.** A Citation with its page marked unknown cites "unpaginated" and is not flagged.
 **Context.** S15-D24; S15-13, S15-38, S15-41, S15-44; `CitationLocatorDraft.swift`.
+**Review note (S15-44 ship log).** Go's `encoding/json` reads locator keys case-insensitively (`"Page_Unknown"` sets the mark); `CitationLocatorDraft` reads them by exact key. When the draft starts reading `page_unknown` / `page_supplied`, read the mark from Go's settled `PageRef.Mark` or match Go's key rule, so a crafted catalog cannot make the composer and the citation disagree.
 
 #### S15-46 — A field's unknown text is editable
 

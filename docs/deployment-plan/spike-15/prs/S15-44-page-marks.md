@@ -1,6 +1,6 @@
 # S15-44 — The printed page can be marked unknown or supplied
 
-**Status:** Planned
+**Status:** Landed in [#905](https://github.com/Jake-Robins-Studios/provenencia/pull/905) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go only. No view sets or shows the page's mark yet; S15-45 adds the composer's control, gated by S15-D24)
@@ -310,6 +310,10 @@ None in the app — no view writes or shows the mark (S15-45). The slice Check l
 ## 12. Open questions
 
 None.
+
+## Landed
+
+No difference from the plan.
 
 ## 13. PR
 
