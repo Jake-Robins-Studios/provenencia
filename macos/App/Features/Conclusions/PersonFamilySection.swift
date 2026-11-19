@@ -50,7 +50,7 @@ struct PersonFamilyDiagram: View {
     let projectDir: String
     let widthClass: PVWidthClass
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     var expand: (PersonFamilyContent.Fold) -> Void = { _ in }
 
     @State private var width: CGFloat = 0
@@ -95,9 +95,8 @@ struct PersonFamilyDiagram: View {
                     ForEach(group.tiles, id: \.id) { placed in
                         if let tile = tiles[placed.id] {
                             PVPersonCard(content: tile.content, projectDir: projectDir) {
-                                if let location = tile.location,
-                                   let anchor = ConclusionSectionAnchor(part: .family, id: placed.id) {
-                                    open(location, anchor)
+                                if let location = tile.location {
+                                    open(location, ConclusionSectionAnchor(part: .family, id: placed.id))
                                 }
                             }
                             .frame(width: placed.frame.width, height: placed.frame.height)

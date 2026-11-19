@@ -53,11 +53,7 @@ struct PlaceRelationshipRow: View {
             ref: relationship.entity.ref,
             title: relationship.title.isEmpty ? nil : relationship.title
         )
-        guard let anchor = ConclusionSectionAnchor(part: .related, id: anchorID) else {
-            navigation.go(to: location)
-            return
-        }
-        navigation.go(to: location, from: anchor)
+        navigation.go(to: location, from: ConclusionSectionAnchor(part: .related, id: anchorID))
     }
 
     private var displayTitle: String {

@@ -140,7 +140,7 @@ struct PersonSourcesList: View {
     let content: PersonSourcesContent
     let entityId: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let expand: (PersonSourcesContent.Fold) -> Void
     let unpromote: UnpromoteFlow
     let beginUnpromote: (PersonSourcesContent.Line) -> Void
@@ -223,15 +223,13 @@ struct PersonSourcesList: View {
                 hover: hover,
                 focusedGraphID: focused,
                 open: { id in
-                    if let location = links.locations[id], let anchor = ConclusionSectionAnchor(part: .recordLinks, id: id) {
-                        open(location, anchor)
+                    if let location = links.locations[id] {
+                        open(location, ConclusionSectionAnchor(part: .recordLinks, id: id))
                     }
                 },
-                focus: { PVFieldFocus($focus, equals: .node(graphID: $0)) },
-                anchorFocus: $focus,
+                focus: $focus,
                 anchorScrollID: Self.diagramScrollID
             )
-
         }
     }
 
@@ -358,7 +356,7 @@ private struct PersonSourcesRowsShowMore: View {
 private struct PersonSourcesRowView: View {
     let row: PersonSourcesContent.Row
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let expand: () -> Void
     var focused: FocusState<PersonSourcesFocus?>.Binding
     /// The graph link the next page of this Source's lines starts with; nil when it folds nothing.
@@ -406,7 +404,7 @@ private struct PersonSourcesRowView: View {
 
     private var title: some View {
         PVInkLink(ink: .primary, action: {
-            if let anchor = ConclusionSectionAnchor(part: .sourceTitle, id: row.id) { open(row.location, anchor) }
+            open(row.location, ConclusionSectionAnchor(part: .sourceTitle, id: row.id))
         }) {
             PVTitleText(row.title, style: .rowLink, lineLimit: 2)
         }
@@ -464,7 +462,7 @@ private struct PersonSourcesLineView: View {
     /// The Source whose row holds the line, named on the anchor an open writes.
     let sourceID: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     var focused: FocusState<PersonSourcesFocus?>.Binding
     /// The line's graph is the one highlighted, from a node or from the line itself.
     let highlighted: Bool
@@ -473,7 +471,7 @@ private struct PersonSourcesLineView: View {
     let beginUnpromote: (PersonSourcesContent.Line) -> Void
 
     private func openGraph() {
-        if let anchor = ConclusionSectionAnchor(part: .sourceLine, id: line.id, row: sourceID) { open(line.location, anchor) }
+        open(line.location, ConclusionSectionAnchor(part: .sourceLine, id: line.id, row: sourceID))
     }
 
     var body: some View {

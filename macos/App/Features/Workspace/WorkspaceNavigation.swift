@@ -112,9 +112,10 @@ final class WorkspaceNavigation {
     }
 
     /// Committed navigation from a row of a record page's section. Writes the row onto the
-    /// entry being left so Back can return to it; a visit to the place already open writes nothing.
-    func go(to location: WorkspaceLocation, from anchor: ConclusionSectionAnchor) {
-        if location != currentLocation {
+    /// entry being left so Back can return to it; a visit to the place already open writes
+    /// nothing, and a nil anchor (a row id that cannot be kept) navigates all the same.
+    func go(to location: WorkspaceLocation, from anchor: ConclusionSectionAnchor?) {
+        if let anchor, location != currentLocation {
             history?.stampSectionAnchor(anchor)
         }
         go(to: location)

@@ -56,7 +56,7 @@ struct PersonTimelineList: View {
     let content: PersonTimelineContent
     let projectDir: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let expand: (PersonTimelineContent.Fold) -> Void
     /// Unfolds a list through a page (the fewest that show a row a click on the lifeline names).
     let expandThrough: (PersonTimelineContent.Fold, Int) -> Void
@@ -204,7 +204,7 @@ private struct PersonTimelineItemView: View {
     let projectDir: String
     let accessibilityIdentifierRoot: String
     let stacksPeople: Bool
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     /// The id of the first item the next page of a fold adds, from the content that was drawn.
     let revealed: (PersonTimelineContent.Fold) -> String?
     let expand: (PersonTimelineContent.Fold) -> Void
@@ -265,7 +265,7 @@ private struct PersonTimelineEventRow: View {
     let accessibilityIdentifierRoot: String
     /// The list is too narrow for the people beside the text: they go under it.
     let stacksPeople: Bool
-    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let revealed: (PersonTimelineContent.Fold) -> String?
     let expand: (PersonTimelineContent.Fold) -> Void
     let focused: FocusState<String?>.Binding
@@ -322,8 +322,7 @@ private struct PersonTimelineEventRow: View {
     /// Opens `location` from this row's title (`id` the event) or from one of its cards (`id`
     /// the card, `row` the event), so Back can return to it.
     private func opening(_ location: WorkspaceLocation, id: String, row: String? = nil) {
-        guard let anchor = ConclusionSectionAnchor(part: .timeline, id: id, row: row) else { return }
-        open(location, anchor)
+        open(location, ConclusionSectionAnchor(part: .timeline, id: id, row: row))
     }
 
     private var people: some View {

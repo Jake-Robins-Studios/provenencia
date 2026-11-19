@@ -164,8 +164,7 @@ struct ReconciledValueRow: View {
     /// Opens the place the row leads to, writing the row onto the page's history entry.
     private func open(_ opens: ReconciledValueRowModel.Opens) -> () -> Void {
         {
-            guard let anchor = ConclusionSectionAnchor(part: .detailRow, id: model.id) else { return }
-            navigation.go(to: opens.location, from: anchor)
+            navigation.go(to: opens.location, from: ConclusionSectionAnchor(part: .detailRow, id: model.id))
         }
     }
 

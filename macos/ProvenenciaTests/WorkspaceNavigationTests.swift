@@ -460,6 +460,15 @@ struct WorkspaceNavigationTests {
         let reloaded = WorkspaceNavigation()
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
         #expect(reloaded.currentLocation.sectionAnchor == anchor)
+
+        // A row whose anchor cannot be built still opens its place and writes nothing.
+        let (plain, _) = try attachedNavigation()
+        plain.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
+        plain.go(to: .personDetail(entityId: "p2", ref: "PER-2", title: "Bo"), from: nil)
+        #expect(plain.currentLocation.entityId == "p2")
+        plain.goBack()
+        #expect(plain.currentLocation.entityId == "p1")
+        #expect(plain.currentLocation.sectionAnchor == nil)
     }
 
     /// T-2 (AC-6.2, D-1): the anchor is not identity and decodes leniently.
@@ -511,7 +520,7 @@ struct WorkspaceNavigationTests {
         let p1 = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
         navigation.go(to: p1)
         let count = entryCount(navigation)
-        navigation.go(to: p1, from: try #require(ConclusionSectionAnchor(part: .family, id: "r-0-p1")))
+        navigation.go(to: p1, from: ConclusionSectionAnchor(part: .family, id: "r-0-p1"))
         #expect(entryCount(navigation) == count)
         #expect(navigation.currentLocation.sectionAnchor == nil)
     }

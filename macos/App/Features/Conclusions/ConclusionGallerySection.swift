@@ -114,9 +114,7 @@ struct ConclusionGallerySection: View {
             if gallery.viewer != nil {
                 viewing = ConclusionPictureViewerItem(shownID: tile.id)
             } else {
-                if let anchor = ConclusionSectionAnchor(part: .picture, id: tile.id) {
-                    navigation.go(to: tile.location, from: anchor)
-                }
+                navigation.go(to: tile.location, from: ConclusionSectionAnchor(part: .picture, id: tile.id))
             }
         }
         return VStack(alignment: .leading, spacing: PVSpacing.space3) {
