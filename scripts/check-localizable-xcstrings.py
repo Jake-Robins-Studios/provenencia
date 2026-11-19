@@ -18,9 +18,11 @@ so translations can reorder them. Plural substitutions (%#@count@) are bound
 to their argument by argNum and count as numbered.
 
 A count in copy is a plural key: an English value with %lld (or %N$lld) followed
-by a word, in an entry with no plural variations or substitutions, reads "1
-subjects". Give the key plural variations, or add the word to NON_INFLECTING
-when the word is not a noun that takes a plural ("of", "more", "px").
+by a word, in an entry with no plural variations, reads "1 subjects". Give the
+key plural variations, or a plural substitution (%#@name@) for that count, or
+add the word to NON_INFLECTING when the word is not a noun that takes a plural
+("of", "more", "px"). An entry with substitutions is checked too: its bare
+counts are not substitution tokens, so they need the same rule.
 
 No LocalizedStringResource may interpolate (defaultValue: "\\(count) items").
 Copy with arguments is a catalog format filled by an L10n format function
@@ -79,8 +81,12 @@ def unnumbered_arguments(value: str) -> bool:
     return any(m.group(1) is None and not m.group(2).startswith("#@") for m in specifiers)
 
 
-# Words that follow a count without agreeing with it: "%lld of", "%lld more".
-NON_INFLECTING = {"of", "more", "percent", "set", "up", "down", "cannot", "to", "unselected", "already", "px"}
+# Words that follow a count without agreeing with it: "%lld of", "%lld more",
+# and the origin labels of a list's count line ("%2$lld seeded · %3$lld yours").
+NON_INFLECTING = {
+    "of", "more", "percent", "set", "up", "down", "cannot", "to", "unselected", "already", "px",
+    "seeded", "yours", "plugin",
+}
 
 # A count and the word after it: "%lld subjects", "%2$lld rows".
 COUNT_WORD_RE = re.compile(r"%(?:\d+\$)?lld\s+([A-Za-z]+)")
@@ -93,7 +99,7 @@ def uninflected_counts(strings: dict) -> list[str]:
         if not isinstance(entry, dict):
             continue
         en = entry.get("localizations", {}).get("en", {})
-        if "variations" in en or "substitutions" in en:
+        if "variations" in en:
             continue
         value = en.get("stringUnit", {}).get("value")
         if not value:
@@ -102,8 +108,8 @@ def uninflected_counts(strings: dict) -> list[str]:
             if match.group(1).lower() not in NON_INFLECTING:
                 problems.append(
                     f"{key!r}: {value!r} counts {match.group(1)!r} with no plural rule — "
-                    f"give the key plural variations (or add the word to NON_INFLECTING "
-                    f"when it does not take a plural)"
+                    f"give the key plural variations or a plural substitution for that "
+                    f"count (or add the word to NON_INFLECTING when it does not take a plural)"
                 )
                 break
     return problems
