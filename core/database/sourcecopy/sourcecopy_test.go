@@ -367,6 +367,40 @@ func TestCopy(t *testing.T) {
 		run  func(t *testing.T)
 	}{
 		{
+			name: "a damaged metadata mark copies settled",
+			run: func(t *testing.T) {
+				c, userID, orig, arts := seedObituary(t)
+				publication, err := metadatafields.Lookup(c, "publication", vocabkey.OriginUser)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// seedObituary sets publication to text; the damage marks it unknown beside it.
+				dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE source_metadata SET is_unknown = 1 WHERE source_id = ? AND field_id = ?`, orig.ID, publication.ID)
+				cp, err := runCopy(c, userID, allParts(orig, arts))
+				if err != nil {
+					t.Fatal(err)
+				}
+				tx, err := dbtest.MustDB(t, c).Begin()
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer tx.Rollback()
+				d, err := sourcemetadata.ReadDraftTx(tx, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: cp.ID})
+				if err != nil {
+					t.Fatal(err)
+				}
+				var got *sourcemetadata.Input
+				for i, v := range d.Values {
+					if bytes.Equal(v.FieldID, publication.ID) {
+						got = &d.Values[i]
+					}
+				}
+				if got == nil || got.Mark != (valuemark.Mark{}) || got.ValueText != "Medicine Hat News" {
+					t.Fatalf("copied publication %+v", got)
+				}
+			},
+		},
+		{
 			name: "marks travel with the values",
 			run: func(t *testing.T) {
 				c, userID, orig, arts := seedObituary(t)

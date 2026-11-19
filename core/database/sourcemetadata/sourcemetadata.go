@@ -660,7 +660,7 @@ func ReadDraftsTx(tx *sql.Tx, owners []Owner) ([]Draft, error) {
 	if len(owners) == 0 {
 		return nil, nil
 	}
-	values, err := listByOwners(tx, owners)
+	values, err := readByOwners(tx, owners)
 	if err != nil {
 		return nil, err
 	}
@@ -679,11 +679,12 @@ func ReadDraftsTx(tx *sql.Tx, owners []Owner) ([]Draft, error) {
 	return out, nil
 }
 
-// ListByOwnersTx returns the stored values of many owners on an open
-// transaction, one query per level: each owner's rows by field id, the owners
-// in the order of their ids within a level, each row carrying its Owner. A
-// repeated owner counts once. No owners returns nil without a query. An owner
-// at a level with no store is ErrInvalid before any query.
+// ListByOwnersTx returns the values of many owners on an open transaction,
+// each mark settled for its text (readByOwners), one query per level: each
+// owner's rows by field id, the owners in the order of their ids within a
+// level, each row carrying its Owner. A repeated owner counts once. No owners
+// returns nil without a query. An owner at a level with no store is ErrInvalid
+// before any query.
 func ListByOwnersTx(tx *sql.Tx, owners []Owner) ([]Row, error) {
 	for _, o := range owners {
 		if _, err := storeFor(o); err != nil {
@@ -696,10 +697,22 @@ func ListByOwnersTx(tx *sql.Tx, owners []Owner) ([]Row, error) {
 	if len(owners) == 0 {
 		return nil, nil
 	}
-	return listByOwners(tx, owners)
+	return readByOwners(tx, owners)
 }
 
-// listByOwners reads the values of the owners, one query per level, each
+// readByOwners is listByOwners as a read returns it: each row's mark settled
+// for its text (valuemark.Settle), blank text counting as none, as normalizeFor
+// counts it. The writes read listByOwners, so their changes diff against the
+// stored pair.
+func readByOwners(q database.Querier, owners []Owner) ([]Row, error) {
+	rows, err := listByOwners(q, owners)
+	for i := range rows {
+		rows[i].Mark = valuemark.Settle(rows[i].Mark, strings.TrimSpace(rows[i].ValueText) != "")
+	}
+	return rows, err
+}
+
+// listByOwners reads the stored values of the owners, one query per level, each
 // owner's rows by field id. The owners must already have passed storeFor.
 func listByOwners(q database.Querier, owners []Owner) ([]Row, error) {
 	var out []Row
@@ -879,7 +892,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, er
 		suggested[k] = list
 	}
 
-	valueRows, err := listByOwners(tx, uniq)
+	valueRows, err := readByOwners(tx, uniq)
 	if err != nil {
 		return nil, err
 	}
