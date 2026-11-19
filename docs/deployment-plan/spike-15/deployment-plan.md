@@ -110,7 +110,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-13 | The composer records the printed page | 3 | Go and Swift: a Printed page field on image and PDF Citations, written as `page_label` (a page selector may hold the label alone); the composer on Regular and Wide (user, 2026-11-16) | [S15-D8](design/archive/S15-D8-citation-composer-printed-page.md) | S15-50, S15-D8 | [plan](prs/S15-13-composer-printed-page.md) | Landed [#863](https://github.com/Jake-Robins-Studios/provenencia/pull/863) — stacked on S15-50 (#862) |
 | S15-14 | The citation format engine | 4 | Go: `core/citationformat` parse (levels named, no shorthand), render (unknown, supplied, citation dates through `core/datevalue`), needed and used requirements, `core/valuemark`, diagnostics, the built-ins table and the field-id token; table tests; syntax doc | — | S15-06 | [plan](prs/S15-14-citation-format-engine.md) | Landed [#868](https://github.com/Jake-Robins-Studios/provenencia/pull/868) |
 | S15-15 | Source types store citation formats | 4 | Go: migration (three columns), id-keyed storage, delete impact, the format read and write RPCs | — | S15-14 | [plan](prs/S15-15-type-stores-citation-formats.md) | Landed [#871](https://github.com/Jake-Robins-Studios/provenencia/pull/871) |
-| S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44 | — | Scoped |
+| S15-16 | Citations render through their type's formats | 4 | Go: the SQL resolver with unknown and supplied values; one batch render RPC (no missing list); one render request for previews; built-ins over FFI | — | S15-08, S15-15, S15-02, S15-37, S15-43, S15-44, S15-53 | — | Scoped |
 | S15-17 | The format editor | 5 | Swift: three formats, Insert field by level, live preview, warnings, on the Source type page | S15-D16 | S15-16, S15-12, S15-48, S15-D16 | — | Scoped |
 | S15-18 | A Source type can be copied | 4 | Go and Swift: one copy write; **Copy** in the type page's header opens a sheet of ticks (icon, description, formats, suggestions at each level), as Copy Source | [S15-D7](design/archive/S15-D7-copy-source-type.md) | S15-15, S15-06, S15-48, S15-12, S15-D7 | [plan](prs/S15-18-copy-source-type.md) | Landed #877 |
 | S15-19 | Seed the citation types, fields, suggestions and formats | 4 | Go: `sourcevocab` registry and Install for 26 types, 63 fields, levelled suggestions, `unknown_text` and each type's three formats; a render test per type. **Merged with S15-20 (user, 2026-11-17)** | — | S15-06, S15-15, S15-37, S15-52 | [plan](prs/S15-19-seed-citation-types.md) | Landed #897 |
@@ -133,6 +133,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-35 | The Artifact list shows each Artifact's copy details | 2 | Swift: the list's new layout (rows), a 64pt square thumbnail; Wide's copy-details column; the header's type pill as a ported `PVTag` (Badge unchanged) and a meta row that never clips; the description at caption size | S15-D14 | S15-34, S15-D14 | [plan](prs/S15-35-artifact-list-rows.md) | Landed [#824](https://github.com/Jake-Robins-Studios/provenencia/pull/824) |
 | S15-36 | A metadata board can hold a draft | 2 | Preparatory, Swift: the draft board host, a Swift metadata draft, `metadata:` on the four Artifact and graph writes; no chrome | — | S15-26, S15-33 | [plan](prs/S15-36-metadata-board-holds-a-draft.md) | Landed #810 |
 | S15-37 | Metadata values can be marked unknown or supplied | 4 | Go: one migration (the two facts on the three value tables, `unknown_text` on fields); `sourcemetadata` and `metadatafields` writes and reads, FFI, Copy Source, audit | — | S15-08, S15-14 | [plan](prs/S15-37-metadata-value-marks.md) | Landed #879 |
+| S15-53 | A metadata value never reads a mark it cannot have | 4 | Go: `valuemark.Settle` makes a stored pair valid for the value read; `sourcemetadata`'s read and `sources.settleDate` call it. No visible change (S15-43 review SEC-3, user 2026-11-19) | — | — | quick-pr | Scoped |
 | S15-38 | Boards carry their citation's requirements | 4 | Go: `listWorkspaces` and `TypeSuggestion` annotate each entry needed, used or none and met elsewhere; `DismissSuggestion` refuses a needed field; the date's and page's requirements; the cache signal | — | S15-14, S15-15, S15-37 | — | Scoped |
 | S15-39 | Metadata boards flag needed fields | 9 | Swift: every board (Source page, Artifact sheet in both modes, graph form) draws needed and used entries; a needed row offers no dismiss | S15-D20 | S15-38, S15-34, S15-11, S15-D20, S16-61 | — | Scoped |
 | S15-40 | The Artifact list marks a missing citation field | 9 | Swift: an Artifact list entry with a needed field empty carries a mark that opens the sheet at Copy details | S15-D21 | S15-39, S15-35, S15-D21 | — | Scoped |
@@ -225,6 +226,7 @@ SLICE 4 — Formats as data                             (alongside Spike 16)
   S15-52  The Source seed writes through writes.Run
   S15-19  Seed the citation types, fields, suggestions and formats
   S15-43  The Source date can be marked unknown or supplied
+  S15-53  A metadata value never reads a mark it cannot have
   S15-44  The printed page can be marked unknown or supplied
   S15-38  Boards carry their citation's requirements
   S15-16  Citations render through their type's formats
@@ -289,6 +291,7 @@ S15-14 ──▶ S15-37, S15-43, S15-44
 S15-37 ──▶ S15-16, S15-19, S15-38, S15-41, S15-46
 S15-52 ──▶ S15-19
 S15-43 ──▶ S15-16, S15-42      S15-44 ──▶ S15-16, S15-45
+S15-53 ──▶ S15-16
 S15-38 ──▶ S15-39, S15-42, S15-45
 S15-39 ──▶ S15-40, S15-41 ──▶ S15-42, S15-45
 S15-16 ──▶ S15-17, S15-21, S15-22, S15-23
@@ -560,6 +563,13 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 **Not this PR.** The date dialog (S15-42).
 **Check.** Handler tests: a Source marked no date reads back unknown with no date; supplied keeps its DateValue; Copy Source with the tick off carries neither.
 **Context.** Rules "The Source date is one optional DateValue on `sources`", "A value can be marked unknown or supplied"; skills `add-catalog-migration`, `add-date-value`. Updates [`source-provenance-date.md`](source-provenance-date.md).
+
+#### S15-53 — A metadata value never reads a mark it cannot have
+
+**Ships.** A crafted catalog can store a metadata value's `is_unknown` / `is_supplied` pair that the table checks refuse (written with the checks off). `sourcemetadata.scanRow` (`core/database/sourcemetadata/sourcemetadata.go`) reads the pair as stored, so a value with text can read unknown, or both facts together; Copy Source then fails `valuemark.invalid`, and S15-16's renderer would print "n.p." beside the text. One pure `valuemark.Settle(m Mark, hasValue bool) Mark` *(new)* holds the read rule S15-43 put in `sources.settleDate`: a value that is there cannot be unknown (clear `Unknown`); a value that is not there cannot be supplied (clear `Supplied`). Its result always passes `Validate`. `scanRow` and `settleDate` call it; S15-44's page read is its next caller. Writes and the audit keep the stored pair.
+**Not this PR.** Cleaning the stored rows (reads do not write); the page (S15-44).
+**Check.** `valuemark` table test: every stored pair × `hasValue` settles to a pair `Validate` accepts. A `sourcemetadata` test damages a row to unknown with text through `dbtest.Damage` and reads it back unmarked; Copy Source of that Source succeeds.
+**Context.** S15-43 ship log SEC-1 and SEC-3 ([`prs/S15-43-source-date-marks.ship.md`](prs/S15-43-source-date-marks.ship.md)); rule "A value can be marked unknown or supplied"; `core/valuemark/valuemark.go`.
 
 #### S15-44 — The printed page can be marked unknown or supplied
 

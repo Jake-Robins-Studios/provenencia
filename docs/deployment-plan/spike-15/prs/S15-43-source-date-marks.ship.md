@@ -16,7 +16,7 @@ Reviewers: CON, MNT, SEC+PRF. Skipped: UX (the only `macos/App/**` file is the g
 | MNT-1 | MNT | minor | Three copies of the pinned-connection pragma fixture, plus `autoreconciler_test.go`'s `damage` | Fix now → F-3 (same-pass cleanup) | verified: `grep -rniE "foreign_keys *= *(OFF\|0)\|ignore_check_constraints" --include='*_test.go' core api` prints `sourcecopy_test.go:798`, `sources_test.go:1158`, `sources_test.go:1327`, `autoreconciler_test.go:2051`; F-1's test would be a fifth |
 | MNT-2 | MNT | minor | `TestSourceDate`'s `set` and the delete-change capture repeat `runSetDateChanges` / a capture block | Fix now → F-4 | minor in a file this PR changes |
 | SEC-2 | SEC | minor | The phrase cap bounds writes only; a crafted long phrase still reads | Rejected | D-9 decides "Reads do not validate, so a stored long phrase still reads"; the write cap is the one high cap ([[caps-for-adversarial-only]]); the read is bounded by SQLite's blob limit and the row count |
-| SEC-3 (outside-lens note) | SEC | minor | `sourcemetadata.go:1024` (S15-37) reads its stored pair from a crafted row unsettled, same class as SEC-1 | Follow-up | code this PR does not add or change |
+| SEC-3 (outside-lens note) | SEC | minor | `sourcemetadata.go:1024` (S15-37) reads its stored pair from a crafted row unsettled, same class as SEC-1 | Follow-up → S15-53 (user, 2026-11-19) | code this PR does not add or change |
 
 Nits (logged): `CON-2 · api/ffi/handlers/sources_test.go TestSetSourceDate/marks · check no date_mark on a read after the last write` · `CON-3 · core/database/sourcecopy/sourcecopy_test.go "a stored phrase over the cap is refused" · also count date_values` · `MNT-3 · core/database/sources/sources_test.go:1493 · use dbtest.Revisions` · `MNT-4 · core/database/sources/sources.go:332 · dateChange and sourcemetadata.updateValueTx both diff the pair; extract when a third column pair appears` · `MNT-5 · api/ffi/handlers/sources_test.go:1129 · variadic mark stands in for an optional argument`
 
@@ -61,4 +61,4 @@ Reviewers: SEC+PRF (SEC-1 was a Fix-now major). Skipped: CON, MNT (minors only; 
 No new findings. Verdict: Clean.
 
 ## Result
-Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: SEC-3 (S15-37's `sourcemetadata` reads its stored pair unsettled, same class as SEC-1) · to user: —
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: SEC-3 → map row S15-53 (user, 2026-11-19) · to user: —
