@@ -280,10 +280,6 @@ func getByRef(c *database.Catalog, subjectRef string) (Subject, error) {
 	return scanSubject(db.QueryRow(sqlGetByRef, subjectRef))
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
 // GetTx returns a Subject by id on an open transaction, or sql.ErrNoRows.
 func GetTx(tx *sql.Tx, id []byte) (Subject, error) {
 	if len(id) != 16 {
@@ -296,7 +292,7 @@ func getTx(tx *sql.Tx, id []byte) (Subject, error) {
 	return scanSubject(tx.QueryRow(sqlGet, id))
 }
 
-func scanSubject(row rowScanner) (Subject, error) {
+func scanSubject(row database.Scanner) (Subject, error) {
 	var s Subject
 	if err := row.Scan(&s.ID, &s.Ref, &s.SourceID, &s.GraphID, &s.SubjectTypeID, &s.Label, &s.Description); err != nil {
 		return Subject{}, err

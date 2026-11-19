@@ -417,11 +417,7 @@ func cardinalityOK(cardinality string) bool {
 	return cardinality == propertymeta.CardinalitySingle || cardinality == propertymeta.CardinalityMultiple
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanProperty(row rowScanner) (Property, error) {
+func scanProperty(row database.Scanner) (Property, error) {
 	var p Property
 	err := row.Scan(&p.ID, &p.Key, &p.Origin, &p.Label, &p.Description, &p.ValueType, &p.Cardinality)
 	if err != nil {

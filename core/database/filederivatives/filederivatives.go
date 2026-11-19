@@ -128,11 +128,7 @@ func NewID() ([]byte, error) {
 	return id[:], nil
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanLink(row rowScanner) (Link, error) {
+func scanLink(row database.Scanner) (Link, error) {
 	var link Link
 	if err := row.Scan(&link.ID, &link.SourceFileID, &link.DerivedFileID, &link.DerivativeType); err != nil {
 		return Link{}, err

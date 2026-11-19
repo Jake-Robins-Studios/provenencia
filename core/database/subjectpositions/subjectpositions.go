@@ -149,11 +149,7 @@ func ListByEvidenceGraph(c *database.Catalog, graphID []byte) ([]Position, error
 	return out, rows.Err()
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanPosition(row rowScanner) (Position, error) {
+func scanPosition(row database.Scanner) (Position, error) {
 	var p Position
 	if err := row.Scan(&p.SubjectID, &p.GridX, &p.GridY); err != nil {
 		return Position{}, err

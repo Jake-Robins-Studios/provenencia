@@ -170,7 +170,7 @@ func list(q database.Querier, sourceID []byte) ([]Graph, error) {
 }
 
 // scanGraph scans the columns sqlList and sqlGet select.
-func scanGraph(row interface{ Scan(dest ...any) error }) (Graph, error) {
+func scanGraph(row database.Scanner) (Graph, error) {
 	var g Graph
 	err := row.Scan(&g.ID, &g.Ref, &g.SourceID, &g.Name, &g.Description)
 	return g, err

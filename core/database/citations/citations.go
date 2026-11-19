@@ -559,11 +559,7 @@ func CountByEvidenceGraph(c *database.Catalog, graphID []byte) (map[string]int32
 	return out, rows.Err()
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanOne(row rowScanner) (Citation, error) {
+func scanOne(row database.Scanner) (Citation, error) {
 	cit, err := scanRow(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Citation{}, err
@@ -571,7 +567,7 @@ func scanOne(row rowScanner) (Citation, error) {
 	return cit, err
 }
 
-func scanRow(row rowScanner) (Citation, error) {
+func scanRow(row database.Scanner) (Citation, error) {
 	var (
 		c         Citation
 		uncertain int
@@ -587,7 +583,7 @@ func scanRow(row rowScanner) (Citation, error) {
 	return c, nil
 }
 
-func scanListedRow(row rowScanner) (ListedCitation, error) {
+func scanListedRow(row database.Scanner) (ListedCitation, error) {
 	var (
 		listed    ListedCitation
 		uncertain int

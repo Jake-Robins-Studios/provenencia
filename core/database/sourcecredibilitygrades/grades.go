@@ -121,11 +121,7 @@ func List(c *database.Catalog) ([]Grade, error) {
 	return out, rows.Err()
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanGrade(row rowScanner) (Grade, error) {
+func scanGrade(row database.Scanner) (Grade, error) {
 	var g Grade
 	if err := row.Scan(&g.ID, &g.Key, &g.Origin, &g.Label, &g.SortOrder); err != nil {
 		return Grade{}, err

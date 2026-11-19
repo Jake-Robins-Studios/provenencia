@@ -473,7 +473,7 @@ func Columns(alias string) string {
 
 // ScanField scans a row of Columns, in that order, then any trailing columns
 // into extra.
-func ScanField(row interface{ Scan(dest ...any) error }, extra ...any) (Field, error) {
+func ScanField(row database.Scanner, extra ...any) (Field, error) {
 	var f Field
 	err := row.Scan(append([]any{&f.ID, &f.Key, &f.Origin, &f.Label, &f.DataType, &f.Description, &f.UnknownText}, extra...)...)
 	return f, err

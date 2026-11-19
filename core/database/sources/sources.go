@@ -592,13 +592,9 @@ func Count(c *database.Catalog) (int, error) {
 	return n, nil
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
 // scanSource reads the sqlColumns, then extra. Date and DateMark are left for
 // fillDates.
-func scanSource(row rowScanner, extra ...any) (Source, error) {
+func scanSource(row database.Scanner, extra ...any) (Source, error) {
 	var s Source
 	var isPublic, unknown, supplied int64
 	dest := append([]any{
@@ -631,9 +627,7 @@ func settleDate(dates map[string]datevalue.Value, id []byte, stored valuemark.Ma
 
 // fillDates sets Date and DateMark on each Source from one batched read of its
 // date rows.
-func fillDates(q interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}, out []Source) error {
+func fillDates(q database.Querier, out []Source) error {
 	var ids [][]byte
 	for _, s := range out {
 		if len(s.DateValueID) == 16 {
@@ -664,10 +658,7 @@ func getTx(tx *sql.Tx, id []byte) (Source, error) {
 
 // getOne reads one Source by the query's key and fills its date. A missing
 // Source is ErrNotFound, mapped here once for every reader.
-func getOne(q interface {
-	QueryRow(query string, args ...any) *sql.Row
-	Query(query string, args ...any) (*sql.Rows, error)
-}, query string, key any) (Source, error) {
+func getOne(q database.Querier, query string, key any) (Source, error) {
 	s, err := scanSource(q.QueryRow(query, key))
 	if errors.Is(err, sql.ErrNoRows) {
 		return Source{}, ErrNotFound

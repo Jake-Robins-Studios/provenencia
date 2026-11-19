@@ -1023,11 +1023,7 @@ func normalizeValue(dataType, valueText string) (string, error) {
 	}
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanRow(row rowScanner, st *store) (Row, error) {
+func scanRow(row database.Scanner, st *store) (Row, error) {
 	var r Row
 	var ownerID []byte
 	var unknown, supplied int
@@ -1043,7 +1039,7 @@ func getPairTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (Row, error) 
 	return scanRow(tx.QueryRow(st.getPair, owner.ID, fieldID), st)
 }
 
-func scanLayoutRow(row rowScanner) (LayoutRow, error) {
+func scanLayoutRow(row database.Scanner) (LayoutRow, error) {
 	var l LayoutRow
 	var dismissed int
 	if err := row.Scan(&l.FieldID, &l.SortOrder, &dismissed); err != nil {

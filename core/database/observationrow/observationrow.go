@@ -32,13 +32,8 @@ type Row struct {
 	ValueDepictionID []byte
 }
 
-// Scanner is *sql.Row or *sql.Rows.
-type Scanner interface {
-	Scan(dest ...any) error
-}
-
 // Scan reads one row selected with Columns. Its byte slices are copies.
-func Scan(s Scanner) (Row, error) {
+func Scan(s database.Scanner) (Row, error) {
 	var (
 		r                                         Row
 		scalar                                    scalarcols.Columns

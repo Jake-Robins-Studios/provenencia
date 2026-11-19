@@ -189,11 +189,7 @@ func List(c *database.Catalog) ([]Type, error) {
 	return out, rows.Err()
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanType(row rowScanner) (Type, error) {
+func scanType(row database.Scanner) (Type, error) {
 	var t Type
 	if err := row.Scan(
 		&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description,
