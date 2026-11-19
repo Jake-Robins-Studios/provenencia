@@ -20,6 +20,20 @@ struct DateRowDisplayTests {
         CatalogDateValueInput(kind: "point", qualifier: qualifier, startYear: year, startMonth: month, startDay: day)
     }
 
+    @Test func lineWordsADatesRole() throws {
+        let from = DateRowDisplay.line(date: point(1985), role: .from, locale: en)
+        #expect(from.text == "from 1985")
+        let styled = try #require(from.styled)
+        let dateText = styled.runs.filter { $0.attributes[DateRowDisplay.DateRun.self] == true }.map { String(styled[$0.range].characters) }
+        #expect(dateText == ["1985"])
+        #expect(DateRowDisplay.line(date: point(1990, qualifier: "ABT"), role: .asOf, locale: en).text == "as of abt 1990")
+        #expect(DateRowDisplay.line(date: point(2015), role: .until, locale: en).text == "until 2015")
+        let plain = DateRowDisplay.line(date: point(1985), role: .plain, locale: en)
+        #expect(plain.text == "1985" && plain.styled == nil)
+        let none = DateRowDisplay.line(date: nil, role: .from, locale: en)
+        #expect(none.text == "" && none.styled == nil)
+    }
+
     @Test func datingLinesKeepTheStringsEveryEventWithADateHadBefore() {
         func line(_ dating: CatalogEventDating) -> String { DateRowDisplay.line(dating: dating, locale: en) }
         #expect(line(CatalogEventDating(kind: .occurrence, low: point(1817, 5, 14))) == "14 May 1817")

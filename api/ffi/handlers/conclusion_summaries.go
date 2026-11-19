@@ -202,22 +202,10 @@ func eventSummaryProto(h conclusionsummaries.EventSummary, paths map[string]stri
 		EventName:           h.EventName,
 		EventNameCount:      int32(h.EventNameCount),
 		EventTypeCount:      int32(h.Type.Count),
-		DateCount:           int32(h.DateCount),
-		StartDateCount:      int32(h.StartDateCount),
-		EndDateCount:        int32(h.EndDateCount),
 		UpdatedRevision:     h.Updated.Revision,
 		UpdatedAt:           h.Updated.At,
 	}
 	eh.EventType = termProto(h.Type.Term)
-	if h.Date != nil {
-		eh.Date = valuecodec.DateToProto(*h.Date)
-	}
-	if h.StartDate != nil {
-		eh.StartDate = valuecodec.DateToProto(*h.StartDate)
-	}
-	if h.EndDate != nil {
-		eh.EndDate = valuecodec.DateToProto(*h.EndDate)
-	}
 	for _, s := range h.Subjects {
 		sub := &engine.EventSubject{
 			Entity:         canonicalEntityProto(s.Entity),
@@ -233,6 +221,7 @@ func eventSummaryProto(h conclusionsummaries.EventSummary, paths map[string]stri
 	}
 	eh.Title = eventTitleProto(h.Title)
 	eh.Dating = eventDatingProto(h.Dating)
+	eh.DatingProperties = eventDatingPropertiesProto(h.DatingProperties)
 	return eh
 }
 
@@ -251,6 +240,23 @@ func eventDatingProto(d valuecompare.Dating) *engine.EventDating {
 	}
 	if d.High != nil {
 		out.High = valuecodec.DateToProto(*d.High)
+	}
+	return out
+}
+
+var eventDatingRoles = map[conclusionsummaries.DatingRole]engine.EventDatingRole{
+	conclusionsummaries.DatingRoleOccurrence: engine.EventDatingRole_EVENT_DATING_ROLE_OCCURRENCE,
+	conclusionsummaries.DatingRoleStart:      engine.EventDatingRole_EVENT_DATING_ROLE_START,
+	conclusionsummaries.DatingRoleEnd:        engine.EventDatingRole_EVENT_DATING_ROLE_END,
+	conclusionsummaries.DatingRoleAsOf:       engine.EventDatingRole_EVENT_DATING_ROLE_AS_OF,
+}
+
+// eventDatingPropertiesProto maps the Properties behind an event's dating, in
+// order.
+func eventDatingPropertiesProto(in []conclusionsummaries.DatingProperty) []*engine.EventDatingProperty {
+	out := make([]*engine.EventDatingProperty, 0, len(in))
+	for _, p := range in {
+		out = append(out, &engine.EventDatingProperty{PropertyKey: string(p.Key), Role: eventDatingRoles[p.Role]})
 	}
 	return out
 }

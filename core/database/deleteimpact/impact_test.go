@@ -3,6 +3,7 @@ package deleteimpact_test
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
@@ -1374,4 +1375,159 @@ func TestInboundTotals(t *testing.T) {
 			t.Errorf("nil tx: %v", err)
 		}
 	})
+}
+
+func TestImpactEvidenceGraphLeavesNoGraph(t *testing.T) {
+	tests := []struct {
+		name        string
+		jonesOnly   int  // Artifacts linked to Jones and unlinked from Default
+		jonesAndDef int  // Artifacts linked to both Jones and Default
+		unlinked    int  // Artifacts unlinked from Default but never in Jones
+		deleteX     bool // create X in Jones, then delete X (empty graph)
+		citations   int  // Citations in Jones (using jonesAndDef[0])
+		subject     bool // Subject in Jones
+		wantTotal   int  // 0 means no ViaLeavesNoGraph group expected
+		wantListed  int  // expected len(Listed) when wantTotal > 0
+		checkLoc    bool // check Location.ArtifactID on listed[0]
+		citFirst    bool // ViaDeletesCitations must come before ViaLeavesNoGraph
+		wantAllowed bool
+	}{
+		{name: "sole link", jonesOnly: 1, jonesAndDef: 1, wantTotal: 1, wantListed: 1, checkLoc: true, wantAllowed: true},
+		{name: "two sole links", jonesOnly: 2, jonesAndDef: 1, wantTotal: 2, wantListed: 2, wantAllowed: true},
+		{name: "no sole links", jonesAndDef: 2, wantAllowed: true},
+		{name: "empty graph", deleteX: true, wantAllowed: true},
+		{name: "unlinked Artifact", jonesAndDef: 1, unlinked: 1, wantAllowed: true},
+		{name: "25 sole links", jonesOnly: 25, jonesAndDef: 1, wantTotal: 25, wantListed: 20, wantAllowed: true},
+		{name: "with Citations", jonesOnly: 1, jonesAndDef: 1, citations: 2, wantTotal: 1, wantListed: 1, citFirst: true, wantAllowed: true},
+		{name: "refused graph", jonesOnly: 1, jonesAndDef: 1, subject: true, wantTotal: 1, wantListed: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, userID := testCatalog(t)
+			if err := subjectvocab.Install(c); err != nil {
+				t.Fatal(err)
+			}
+			src := mustSource(t, c, userID)
+			def := evidencegraphstest.SoleGraph(t, c, src.ID)
+
+			newArt := func(label string) artifacts.Artifact {
+				t.Helper()
+				a, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: label})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return a
+			}
+
+			// Create jonesOnly artifacts (will be unlinked from Default).
+			jonesOnlyArts := make([]artifacts.Artifact, tt.jonesOnly)
+			for i := 0; i < tt.jonesOnly; i++ {
+				jonesOnlyArts[i] = newArt(fmt.Sprintf("Jones-only %02d", i+1))
+			}
+			// Create jonesAndDef artifacts (stay in both Jones and Default).
+			jonesAndDefArts := make([]artifacts.Artifact, tt.jonesAndDef)
+			for i := 0; i < tt.jonesAndDef; i++ {
+				jonesAndDefArts[i] = newArt(fmt.Sprintf("Both %02d", i+1))
+			}
+			// Create unlinked artifacts (not in Jones).
+			for i := 0; i < tt.unlinked; i++ {
+				a := newArt(fmt.Sprintf("Unlinked %02d", i+1))
+				evidencegraphstest.Unlink(t, c, userID, def.ID, a.ID)
+			}
+
+			// Build Jones membership.
+			var jonesAllIDs [][]byte
+			var xArt artifacts.Artifact
+			if tt.deleteX {
+				xArt = newArt("X")
+				jonesAllIDs = [][]byte{xArt.ID}
+			} else {
+				for _, a := range jonesOnlyArts {
+					jonesAllIDs = append(jonesAllIDs, a.ID)
+				}
+				for _, a := range jonesAndDefArts {
+					jonesAllIDs = append(jonesAllIDs, a.ID)
+				}
+			}
+			jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", jonesAllIDs...)
+
+			if tt.deleteX {
+				if _, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+					changes, err := artifacts.Delete(tx, userID, xArt.ID)
+					return struct{}{}, changes, err
+				}); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				for _, a := range jonesOnlyArts {
+					evidencegraphstest.Unlink(t, c, userID, def.ID, a.ID)
+				}
+			}
+
+			for i := 0; i < tt.citations; i++ {
+				if _, _, err := observationstest.Cite(c, userID, jones.ID, jonesAndDefArts[0].ID, testLocator); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tt.subject {
+				subjectstest.On(t, c, userID, jones.ID, "person", "Alice")
+			}
+
+			got := mustImpact(t, c, catalogmodel.KindEvidenceGraph, jones.ID)
+			if got.Allowed != tt.wantAllowed {
+				t.Fatalf("Allowed=%v, want %v", got.Allowed, tt.wantAllowed)
+			}
+			if tt.wantTotal == 0 {
+				for _, g := range got.Cascades {
+					if g.Via == deleteimpact.ViaLeavesNoGraph {
+						t.Fatalf("unexpected ViaLeavesNoGraph group %+v", g)
+					}
+				}
+				return
+			}
+
+			g := findCascade(t, got, deleteimpact.ViaLeavesNoGraph)
+			if g.Kind != catalogmodel.KindArtifact {
+				t.Fatalf("kind %v, want KindArtifact", g.Kind)
+			}
+			if g.Total != tt.wantTotal || len(g.Listed) != tt.wantListed {
+				t.Fatalf("total=%d listed=%d, want %d/%d", g.Total, len(g.Listed), tt.wantTotal, tt.wantListed)
+			}
+			// Listed refs must be sorted.
+			for i := 1; i < len(g.Listed); i++ {
+				if g.Listed[i].Ref < g.Listed[i-1].Ref {
+					t.Fatalf("refs not sorted: %q before %q", g.Listed[i-1].Ref, g.Listed[i].Ref)
+				}
+			}
+			// When all jonesOnly artifacts are listed, refs must equal their sorted refs.
+			if len(jonesOnlyArts) > 0 && len(jonesOnlyArts) == tt.wantListed {
+				wantRefs := make([]string, len(jonesOnlyArts))
+				for i, a := range jonesOnlyArts {
+					wantRefs[i] = a.Ref
+				}
+				sort.Strings(wantRefs)
+				for i, l := range g.Listed {
+					if l.Ref != wantRefs[i] {
+						t.Fatalf("listed[%d].Ref=%q, want %q", i, l.Ref, wantRefs[i])
+					}
+				}
+			}
+			if tt.checkLoc && len(g.Listed) > 0 && len(jonesOnlyArts) > 0 {
+				if g.Listed[0].Location.ArtifactID != idString(jonesOnlyArts[0].ID) {
+					t.Fatalf("location %+v", g.Listed[0].Location)
+				}
+			}
+			if tt.citFirst {
+				if len(got.Cascades) != 2 {
+					t.Fatalf("cascades %+v", got.Cascades)
+				}
+				if got.Cascades[0].Via != deleteimpact.ViaDeletesCitations {
+					t.Fatalf("first cascade %q, want citations", got.Cascades[0].Via)
+				}
+				if got.Cascades[1].Via != deleteimpact.ViaLeavesNoGraph {
+					t.Fatalf("second cascade %q, want leavesNoGraph", got.Cascades[1].Via)
+				}
+			}
+		})
+	}
 }

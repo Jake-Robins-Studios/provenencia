@@ -155,7 +155,6 @@ struct ConclusionListKindTests {
         }
         var event = CatalogEventSummary(
             entity: CatalogCanonicalEntity(id: "ev1", ref: "EVT-1", subjectTypeID: "t", label: ""),
-            date: CatalogDateValueInput(kind: "point", startYear: 1844, startMonth: 6, startDay: 4),
             dating: CatalogEventDating(
                 kind: .occurrence, low: CatalogDateValueInput(kind: "point", startYear: 1844, startMonth: 6, startDay: 4)
             ),

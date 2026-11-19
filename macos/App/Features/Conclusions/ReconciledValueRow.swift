@@ -21,6 +21,15 @@ struct ReconciledValueRow: View {
     @Environment(WorkspaceNavigation.self) private var navigation
     @State private var showsOtherValues = false
     @State private var showsWhy = false
+    /// How many pages of a long list of lines the row has revealed (`ReconciledValueRowModel.listFold`).
+    @State private var folds = ConclusionFoldState<String>()
+    /// Where the keyboard goes when the last page of lines is revealed and Show more leaves.
+    @FocusState private var focusedStop: Stop?
+
+    /// A disclosure stop of the row.
+    private enum Stop: Hashable {
+        case why, provenance, others
+    }
 
     /// The value column starts after the label column and its gap.
     static let labelWidth: CGFloat = 132
@@ -38,6 +47,18 @@ struct ReconciledValueRow: View {
             }
             .frame(minHeight: 52)
             .padding(.vertical, PVSpacing.space3)
+            if folded.hidden > 0 {
+                ConclusionShowMoreRow(
+                    hidden: folded.hidden,
+                    fold: ReconciledValueRowModel.listFold,
+                    focus: $focusedStop,
+                    revealed: revealsLastPage ? firstStop : nil,
+                    expand: { folds.revealPage(model.id) }
+                )
+                .padding(.leading, Self.disclosureInset)
+                .padding(.bottom, PVSpacing.space3)
+                .accessibilityIdentifier("conclusion.detail.row.\(model.id).more")
+            }
             if showsOtherValues {
                 otherValues
                     .padding(.leading, Self.disclosureInset)
@@ -50,6 +71,27 @@ struct ReconciledValueRow: View {
             }
         }
         .accessibilityIdentifier("conclusion.detail.row.\(model.id)")
+        .onChange(of: model.shown.listedValues.map(\.id)) { folds = ConclusionFoldState<String>() }
+    }
+
+    /// The row's first disclosure stop: the Why (`.why`) or the provenance control (`.sheet`), else the
+    /// other values. Nil when the row has none.
+    private var firstStop: Stop? {
+        if model.recordCount > 0 { return provenance == .why ? .why : .provenance }
+        return model.otherValuesLabel == nil ? nil : .others
+    }
+
+    /// Whether the next Show more press reveals every line left.
+    private var revealsLastPage: Bool {
+        ReconciledValueRowModel.listFold.shown(model.shown.listedValues, pages: folds.pages(model.id) + 1).hidden == 0
+    }
+
+    /// The row's lines at the pages revealed, and how many the fold leaves out.
+    private var folded: (shown: PVProvenanceSheetContent.Shown, hidden: Int) {
+        var shown = model.shown
+        let fold = ReconciledValueRowModel.listFold.shown(shown.listedValues, pages: folds.pages(model.id))
+        shown.listedValues = fold.shown
+        return (shown, fold.hidden)
     }
 
     /// Label, value and state: one VoiceOver element with the row's spoken
@@ -65,11 +107,11 @@ struct ReconciledValueRow: View {
             state
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.accessibilityLabel)
+        .accessibilityLabel(model.accessibilityLabel(pages: folds.pages(model.id)))
     }
 
     private var value: some View {
-        PVProvenanceValueList(model.shown)
+        PVProvenanceValueList(folded.shown)
     }
 
     private var state: some View {
@@ -97,10 +139,12 @@ struct ReconciledValueRow: View {
         HStack(spacing: PVSpacing.space2) {
             if let label = model.otherValuesLabel {
                 PVDisclosureButton(label, isExpanded: $showsOtherValues)
+                    .focused($focusedStop, equals: .others)
                     .accessibilityIdentifier("conclusion.detail.row.\(model.id).others")
             }
             if provenance == .why, model.recordCount > 0 {
                 PVDisclosureButton(L10n.Conclusions.whyButton, isExpanded: $showsWhy)
+                    .focused($focusedStop, equals: .why)
                     .accessibilityIdentifier("conclusion.detail.row.\(model.id).why")
             }
             if let opens = model.opens {
@@ -123,6 +167,7 @@ struct ReconciledValueRow: View {
                 .accessibilityHidden(true)
         } else {
             PVIconButton(.info, label: L10n.Conclusions.provenanceOpen(model.label), size: .sm, action: openProvenance)
+                .focused($focusedStop, equals: .provenance)
                 .frame(width: 28, height: 28)
                 .accessibilityIdentifier("conclusion.detail.row.\(model.id).provenance")
         }

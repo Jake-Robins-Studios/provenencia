@@ -26,8 +26,8 @@ import (
 
 var ErrInvalid = apperr.New(apperr.CodeSourcesInvalid, apperr.KindUser)
 
-// ErrNotFound is returned when no Source has the id: a read or write of a Source
-// another window deleted. A malformed id or user stays ErrInvalid.
+// ErrNotFound is returned when no Source has the id: a read or write of a deleted Source.
+// A malformed id or user stays ErrInvalid.
 var ErrNotFound = apperr.New(apperr.CodeSourcesNotFound, apperr.KindNotFound)
 
 // ErrInUse is returned by Delete when Artifacts or Subjects still belong to the Source.

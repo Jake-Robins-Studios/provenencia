@@ -33,7 +33,7 @@ struct OnboardingView: View {
             }
         }
         // Hard resize floor only. Preferred opening size is
-        // `WindowSizing.fittedDefaultSize` on the `WindowGroup` scene —
+        // `WindowSizing.fittedDefaultSize` on the `Window` scene —
         // not an ideal frame here, which `.contentMinSize` would ignore
         // as a lock and `.contentSize` would collapse to during `.loading`.
         .frame(minWidth: PVSpacing.widthWindowMin, minHeight: PVSpacing.heightWindowMin)

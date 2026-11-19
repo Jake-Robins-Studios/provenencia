@@ -528,14 +528,12 @@ struct CatalogEventSummary: Sendable, Equatable, Identifiable {
     var eventTypeOrigin: String = ""
     var eventTypeLabel: String = ""
     var eventTypeCount: Int = 0
-    var date: CatalogDateValueInput?
-    var dateCount: Int = 0
-    var startDate: CatalogDateValueInput?
-    var startDateCount: Int = 0
-    var endDate: CatalogDateValueInput?
-    var endDateCount: Int = 0
     /// The one dating Go reads from the event's date, start, end and as-ofs.
     var dating = CatalogEventDating()
+    /// The Properties whose values stand behind `dating`, each with its role, in
+    /// the order the Date row shows them. Go reads them from the event period
+    /// registry; Swift never chooses which keys date an event.
+    var datingProperties: [CatalogEventDatingProperty] = []
     /// Subject-role persons, then every location's kept names.
     var subjects: [CatalogEventSubject] = []
     var places: [CatalogChainedPlace] = []
@@ -567,6 +565,19 @@ struct CatalogEventDating: Sendable, Equatable {
     var high: CatalogDateValueInput?
     var openLow = false
     var openHigh = false
+}
+
+/// One Property behind an Event's dating: its key and the part it plays.
+struct CatalogEventDatingProperty: Sendable, Equatable {
+    enum Role: Sendable, Equatable {
+        case occurrence
+        case start
+        case end
+        case asOf
+    }
+
+    var key: String
+    var role: Role
 }
 
 /// An Event Subject's title and dating on an Evidence graph, as Go read them

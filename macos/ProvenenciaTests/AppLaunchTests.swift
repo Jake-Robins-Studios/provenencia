@@ -14,4 +14,19 @@ struct AppLaunchTests {
         let visible = NSApplication.shared.windows.filter(\.isVisible)
         #expect(visible.isEmpty)
     }
+
+    @Test func closingTheWindowQuits() {
+        let delegate = ProvenenciaAppDelegate()
+        #expect(delegate.applicationShouldTerminateAfterLastWindowClosed(NSApplication.shared))
+    }
+
+    @Test func launchTurnsOffWindowTabs() {
+        let before = NSWindow.allowsAutomaticWindowTabbing
+        defer { NSWindow.allowsAutomaticWindowTabbing = before }
+        NSWindow.allowsAutomaticWindowTabbing = true
+        ProvenenciaAppDelegate().applicationWillFinishLaunching(
+            Notification(name: NSApplication.willFinishLaunchingNotification)
+        )
+        #expect(!NSWindow.allowsAutomaticWindowTabbing)
+    }
 }

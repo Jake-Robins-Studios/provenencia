@@ -53,12 +53,16 @@ enum PVProvenanceLink: Equatable {
 /// No view code goes in an extension of this type: its nested `Group` shadows
 /// SwiftUI's.
 struct PVProvenanceSheetContent: Equatable {
-    /// A displayed value as a line: its text and its Source count.
+    /// A displayed value as a line: its text and its Source count. `styled` is the text with its
+    /// date's own run marked (`DateRowDisplay.DateRun`), set for a date line worded by its role.
+    /// `rank` is the wire's; lines from several fields share ranks, so `id` adds the Property.
     struct Value: Equatable, Identifiable {
         var rank: Int
         var text: String
         var support: String
-        var id: Int { rank }
+        var styled: AttributedString? = nil
+        var propertyKey: String = ""
+        var id: String { "\(propertyKey)#\(rank)" }
     }
 
     /// One record in a field's provenance: what it was read as, its Source, and
@@ -212,10 +216,7 @@ extension PVProvenanceSheetContent.Shown {
             .map { ReconciledValueDisplay.string(for: $0.value, propertyKey: field.propertyKey, locale: locale, orders: orders) }
             .flatMap { $0.isEmpty ? nil : $0 }
         let listed = field.state == .multiple
-            ? field.displayedValues.compactMap { value -> PVProvenanceSheetContent.Value? in
-                let listed = PVProvenanceSheetContent.value(value, propertyKey: field.propertyKey, locale: locale, orders: orders)
-                return listed.text.isEmpty ? nil : listed
-            }
+            ? PVProvenanceSheetContent.listed(field.displayedValues, propertyKey: field.propertyKey, locale: locale, orders: orders)
             : []
         self.init(
             face: PVProvenanceFace(field: field),
@@ -332,17 +333,41 @@ extension PVProvenanceSheetContent {
 
     /// A displayed value as a line: its text and its Source count. The one
     /// builder of a `Value`.
+    /// A date value worded by `role` reads as that role's line (`DateRowDisplay.line(date:role:)`).
     static func value(
         _ value: CatalogReconciledValue,
         propertyKey: String,
+        role: DateRowDisplay.Role = .plain,
         locale: Locale = .autoupdatingCurrent,
         orders: NameFormatOrders = NameFormatOrders()
     ) -> Value {
-        Value(
+        var text = ReconciledValueDisplay.string(for: value.value, propertyKey: propertyKey, locale: locale, orders: orders)
+        var styled: AttributedString?
+        if role != .plain, case .date(let date) = value.value {
+            let line = DateRowDisplay.line(date: date, role: role, locale: locale)
+            (text, styled) = (line.text, line.styled)
+        }
+        return Value(
             rank: value.rank,
-            text: ReconciledValueDisplay.string(for: value.value, propertyKey: propertyKey, locale: locale, orders: orders),
-            support: ReconciledValueDisplay.sourceCountLine(value.support)
+            text: text,
+            support: ReconciledValueDisplay.sourceCountLine(value.support),
+            styled: styled,
+            propertyKey: propertyKey
         )
+    }
+
+    /// Values as lines, in order: the one listing rule of a field's lines. A line that reads as
+    /// nothing is left out (a weak spelling is not displayed, so it never reaches `values`).
+    static func listed(
+        _ values: [CatalogReconciledValue],
+        propertyKey: String,
+        role: DateRowDisplay.Role = .plain,
+        locale: Locale = .autoupdatingCurrent,
+        orders: NameFormatOrders = NameFormatOrders()
+    ) -> [Value] {
+        values
+            .map { value($0, propertyKey: propertyKey, role: role, locale: locale, orders: orders) }
+            .filter { !$0.text.isEmpty }
     }
 
     /// A group's records in runs of equal `groupRank`, in the order Go sent them.

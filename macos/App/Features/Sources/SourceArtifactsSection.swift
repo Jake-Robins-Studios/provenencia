@@ -83,18 +83,6 @@ final class SourceArtifactsSection {
         art.thumbnailTypeIconKey(sourceTypeIconKey: context.sourceTypeIconKey)
     }
 
-    /// The page's workspace changed: a sheet whose Artifact is no longer on the
-    /// page closes with its draft and says so. An Artifact still there keeps its draft.
-    func workspaceChanged() {
-        guard let sheet, let id = sheet.artifactID, !items.contains(where: { $0.id == id }) else { return }
-        self.sheet = nil
-        context.toast = VocabularyToast(
-            title: L10n.string(L10n.Sources.toastArtifactGoneTitle),
-            body: L10n.Sources.toastArtifactGoneBody(label: sheet.openedLabel),
-            tone: .info
-        )
-    }
-
     /// Opens the Artifact sheet at `section`. Nothing happens while a sheet is
     /// open or when the Artifact is not on the page.
     func openSheet(artifactID: String, at section: ArtifactSheetModel.Section = .top) {

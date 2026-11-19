@@ -425,7 +425,7 @@ struct PersonDetailTests {
         let row = ReconciledValueRowModel(field: mixed)
         #expect(row.shown.lead == "farmer" && row.shown.badge == .mixed)
         #expect(row.otherValuesLabel == "1 other value")
-        #expect(row.otherValues == [.init(rank: 2, text: "labourer", support: "1 Source")])
+        #expect(row.otherValues == [.init(rank: 2, text: "labourer", support: "1 Source", propertyKey: "x")])
         let dated = ReconciledValueRowModel(field: D.field("single", key: "d", label: "Date", valueType: "date", [D.value(1, "kept", .date(date))]))
         #expect(dated.shown.face == .date)
     }

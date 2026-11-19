@@ -8,7 +8,7 @@ struct MetadataBoardAddRow: Equatable {
     var value = ""
     var error: String?
     /// The label of the field the row had picked when a reload put it on the board
-    /// (another window added it); the row says so until a field is picked again.
+    /// (a change of the Source's type suggested it); the row says so until a field is picked again.
     var takenFieldLabel: String?
 }
 

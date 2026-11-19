@@ -1,6 +1,6 @@
 # Deployment plan — Spike 16
 
-Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host. Batch 5 (2026-11-16) adds an event's **As of** date: a day a lasting event was known to be under way, kept beside its start and end and read as a sample, never as when it happened ([design](event-as-of.md)). Batch 6 (2026-11-17) takes parked ideas one PR at a time; the first is the graph delete confirm naming the Artifacts it leaves in no Evidence graph ([design](graph-delete-leaves-no-graph.md)).
+Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-spikes)): small fixes, UX refinements and follow-ups, in batches, each a slice with its own Check. Batch 1 takes the high and medium findings of the [Person page audit](person-page-audit.md) (2026-11-08), an area audit of Spike 13's Person page with all five [`review-pr`](../../../.agents/skills/review-pr/SKILL.md) lenses. Findings that edit the same code or the same concern share a PR (user, 2026-11-08), unless the map review found a reason to keep them apart ([review](deployment-plan.review.md)); the rest are parked in idea files ([Where the notes went](#where-the-notes-went)). Batch 2 (2026-11-08) reworks the catalog's caches so the conclusion layer's code gets simpler: entities and indexes held in Go memory and updated exactly on commit, answers composed from them, and Swift following what each value was built from ([design](cache-architecture.md)). A last pass the same day combined PRs with heavy domain or file overlap to cut review cycles, from 33 to 25 ([review](deployment-plan.review.md#consolidation-2026-11-08)). Batch 3 (2026-11-10) quiets the Swift test runs: no window on screen and no project opened by the test host. Batch 5 (2026-11-16) adds an event's **As of** date: a day a lasting event was known to be under way, kept beside its start and end and read as a sample, never as when it happened ([design](event-as-of.md)). Batch 6 (2026-11-17) takes parked ideas one PR at a time; the first is the graph delete confirm naming the Artifacts it leaves in no Evidence graph ([design](graph-delete-leaves-no-graph.md)). Batch 7 (2026-11-18) lands ahead of Batch 6: the app opens one workspace window, and what was built for a second window goes ([rules](#batch-7--one-window); the long-term idea is parked in [`ideas/multiple-windows-and-sync.md`](../../ideas/multiple-windows-and-sync.md)).
 
 **A brief covers one view.** A PR that adds, changes or removes chrome waits on a brief for each view it touches. Briefs and PR plans are written just before the PR ([`add-design-brief`](../../../.agents/skills/add-design-brief/SKILL.md), [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md)). A bugfix or a behavior change with no new chrome is not gated.
 
@@ -27,6 +27,7 @@ Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-e
 | S16-09 | S15-29 | `.conclusionDetail`'s Source follow: once its records move to the sheet's key, S15-29 restates what the detail key follows |
 | S16-25 | — | Converts any `CatalogQueryKey` cases Spike 15 adds before it lands (likely S15-11, S15-17, S15-21's sheet key, S15-23) along with the rest; Spike 15 keys added after it use the value keys |
 | S16-37 | S15-12 | `CatalogLastUpdated.swift`: S16-37 moves the list merge out, so the line numbers S15-12's plan cites for `CatalogQueryPatch.typeSuggestions()` and `.typeSuggestionCount()` shift by about 166 lines; the symbols stay |
+| S16-61 | S15-39, S15-41, S15-25 | `MetadataBoardModel.swift` (the Add row's taken notice is reworded), which S15-39 and S15-41 change on every board; `SourceArtifactsSection.workspaceChanged` goes, so S15-25's move, if started from an open Artifact sheet, closes the sheet itself |
 
 
 Spike 16's Apply for Source records and the graph catalog must handle an Artifact or graph whose `source_id` changes (S15-24): both Sources are in the write's `source_records` read (Source records) and its `evidence_graphs` read (the graph index).
@@ -39,12 +40,12 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 
 1. **A burial-only life reads in order.** A person known only from a parish burial reads Birth unknown, the undated events, Death unknown, then the burial, in the list and on the lifeline. A person with a dated baptism and burial and no death has Death unknown just before the burial, on the list and on the lifeline, so the life between them is drawn before the death.
 2. **A crafted project cannot stall the Person page.** A project holding an event with 10,000 places, a person with 20,000 children, a person with 50,000 parents, and 20,000 of one person's records in one Evidence graph opens, and each Person section draws in under a second.
-3. **A long list unfolds a page at a time.** A person with 2,000 events, one of them with 500 participants, opens on Timeline without a stall; each Show more, in any section, reveals at most a page of 50 and moves focus to the first item it reveals; every event still has its point on the lifeline. Hovering a graph on the record links diagram whose record line is folded lights up that Source's Show more, and a date edit from another window rescales the lifeline to the new range.
+3. **A long list unfolds a page at a time.** A person with 2,000 events, one of them with 500 participants, opens on Timeline without a stall; each Show more, in any section, reveals at most a page of 50 and moves focus to the first item it reveals; every event still has its point on the lifeline. Hovering a graph on the record links diagram whose record line is folded lights up that Source's Show more, and editing one of the person's event dates, then pressing Back to the person, rescales the lifeline to the new range (reworded for one window, Batch 7, 2026-11-18).
 4. **Provenance shows today's words.** Rename a Source, or fix a Citation's label or page: the Vitals provenance sheet, the Gallery captions and the likeness viewer's record row show the new words, as the Sources section does.
 5. **A failed reload says so.** When a section's reload fails, its rows stay and a notice with Try again sits above them; a first load that fails offers Try again too; VoiceOver hears both.
 6. **The diagram says when it is partial.** A person whose records were too many to compare, or too many to draw, shows a note in the diagram column instead of drawing every link thin or dropping graphs silently.
 7. **Keyboard and VoiceOver keep their place.** ⌘1–⌘5 announces the section and leaves focus on the selected segment; removing a record that keeps the person is announced; Show more in Family, Timeline and Sources moves focus to the first item it reveals (bar 3).
-8. **One word for a person's records.** The Person page's header counts "7 records" (the Event and Place headers too), the Remove confirm ends "…, and the person stays", and a person deleted from another window leaves with "This person no longer exists".
+8. **One word for a person's records.** The Person page's header counts "7 records" (the Event and Place headers too), the Remove confirm ends "…, and the person stays", and a person whose last record is unpromoted from an Evidence graph leaves, when Back returns to their page, with "This person no longer exists" (reworded for one window, Batch 7, 2026-11-18).
 
 **Batch 2 — Cache architecture** (user, 2026-11-08; [design](cache-architecture.md)):
 
@@ -80,11 +81,18 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 32. **Toasts stack instead of replacing each other.** Choose two portraits in a row: both toasts show, stacked, newest on top, and each leaves five seconds after it appeared. Dismissing the lower one leaves the upper one's timer untouched. A workspace notice and a page's toast never overlap. The same failure twice shows one card whose timer restarts.
 33. **Every seed writes through one transaction.** `rg -n "searchindex.Reproject" core/database --glob '!*_test.go' --glob '!searchindex/**'` finds no seed `Upsert` reprojecting by hand: the subject vocabulary, Properties and credibility grades install through `writes.Run`. Nothing in the app changes.
 
+**Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
+
+33. **One window.** The File menu has no New Window and the Window menu no tab commands; ⌘N on the Properties page opens Create property; closing the window quits Provenencia, and the next launch opens as it does after ⌘Q.
+34. **Nothing waits on a second window.** `rg -n "another window|second window" macos/App core .agents/skills` finds nothing; on a Source page the Artifact sheet (edit and add) works as before, and the inline Add field row keeps working across a change of the Source's type, saying the picked field is now on the board; the review lenses no longer ask what another window does meanwhile.
+
 **Scale.** Real data, which must stay as fast as today: a person in 50 Evidence graphs (Spike 13's budget) with one or two records per graph, 200 events with 10 participants each (12 shown per event at Wide), 20 children in four parent sets, one to three places per event. Crafted data, which only has to stay bounded: each axis in bar 2 and 3, at least 20 times past its cap.
 
 **Scale (Batch 2).** The S11-21 large fixture at 4,000 and 16,000 persons (8,000 town events; 18,000 and 37,000 handles); one place with 6,000 events, and 24,000 for growth; a person in 50 and in 80 Evidence graphs; for the entity records, 3,000 Sources, 10,000 Evidence graphs and 50,000 Observations. Every speed claim is measured at 4,000 and 16,000 (or at the input it grows with) against today on the same machine.
 
 **Scale (Batch 5).** Real data: an event with up to 20 as-ofs (a directory run), on a person with 200 events (the Batch 1 line). Crafted data: 10,000 as-ofs on one event, which only has to stay bounded: matching and the dating read two extremes after one pass. The auto-reconciler's fold is quadratic in a Property's distinct values for every `multiple` Property today (1,000 distinct dates 0.6 s, 10,000 61 s; measured 2026-11-16); that is not Batch 5's to fix; it is parked in [`ideas/share-packages.md`](../../ideas/share-packages.md) (user, 2026-11-16).
+
+**Scale (Batch 7).** No read, write or list changes; nothing to measure.
 
 ## Where the notes went
 
@@ -147,6 +155,15 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
+
+**Batch 7** comes from a multi-window review with the user (2026-11-18):
+
+| Source | PR |
+| --- | --- |
+| `WindowGroup` lets ⌘N open a second workspace on the same catalog, whose pages never learn of the first's writes; ⌘N is also Properties' Create property | S16-60 |
+| The UX lens's "what happens when another window deletes or merges it meanwhile" check and its Known trap, which keep pulling plans toward a second window | S16-61 |
+| Code only a second window reaches: the Artifact sheet's close when its Artifact leaves the page (S15-34 AC-3.5, S15-10 AC-4.4) and the sheet's graph-deleted and graph-made handling (the lock re-reads after a refused save stay); the metadata Add row's taken notice (S15-34 D-13), which a type change also reaches and so is reworded; code comments naming another window | S16-61 |
+| Several windows with live data, and sync between two researchers' copies | Parked: [`ideas/multiple-windows-and-sync.md`](../../ideas/multiple-windows-and-sync.md) |
 
 **Back in the ideas folder** (user, 2026-11-08) —
 - [`ideas/person-page-performance.md`](../../ideas/person-page-performance.md): P-8 (participants sent once per event), P-9 (record links memo and a household-sized budget), P-23 (siblings sent two or three times), and lazy Timeline cards after an unfold. Memoising section content went to Batch 2's S16-27.
@@ -239,6 +256,11 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 6) One toast stack per window** (user, 2026-11-17). The workspace window holds one toast list that every workspace surface adds to, drawn by a kit `PVToastStack` top-trailing, newest first. Each entry leaves on its own five-second timer or its dismiss. There is no cap: nothing is pushed out early, and a burst taller than the window clips at its bottom (S16-D10 draws it). A toast equal to one on screen (tone, title, body) restarts that card's timer and moves it to the top, with no second card and no second announcement. Reduce Motion fades. A sheet (the likeness viewer) and Onboarding keep their own single toast. Binds S16-58, S16-59. Design: [`stacked-toasts.md`](stacked-toasts.md).
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
 
+### Batch 7 — One window
+
+- **(Batch 7) One workspace window, and closing it quits** (user, 2026-11-18). `ProvenenciaApp` declares one `Window` scene in place of `WindowGroup`, keeping today's size, resizability, style and commands: no File › New Window, so ⌘N is only Properties' Create property; no window tabs (`NSWindow.allowsAutomaticWindowTabbing = false`); launch restores one window. Closing the window quits the app, through an app delegate's `applicationShouldTerminateAfterLastWindowClosed` (user, 2026-11-18, over staying open in the Dock); quitting leaves the catalog as ⌘Q does today. The app-wide coordinators (sign-out, Back and Forward, ⌘K) stay as they are: with one window they are right. Several windows and sync are parked, not refused for good ([idea](../../ideas/multiple-windows-and-sync.md)). Binds S16-60.
+- **(Batch 7) Nothing is built for a second window** (user, 2026-11-18). A plan, brief or review does not ask what another window does meanwhile, and code that only a second window reaches goes. What one window still meets stays handled: Back or Forward to a place whose entity was deleted or merged (`sources.not_found`, `leavesForSectionRoot`, "This person no longer exists"), and a write's effects on the caches of other places. Copy and comments name what one window meets, not another window. Replaces Spike 15's rule "No engineering for two windows editing the same data" (edited there, 2026-11-18). The UX lens's check and Known trap change with S16-61. Binds S16-60, S16-61 and every later plan.
+
 ## PR map
 
 | PR | Title | Slice | Scope | Brief | Depends on | Plan | Status |
@@ -286,8 +308,10 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-41 | Matching and Promote read an as-of as a pair of bounds | 5a | Merged into S16-40 once the composer rule was dropped (user, 2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-40 |
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Landed #876 |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
-| S16-44 | The Event page's Date row shows as-ofs | 5a | Go and Swift: the summary names the Properties behind its dating; the Date row shows those fields and lists the as-ofs with their records, earliest first (Go sends a multi-valued date field's values in date order), folded past 20; the summary's old date fields retire | [S16-D6](design/S16-D6-event-date-row.md) | S16-42, S16-D6 | [plan](prs/S16-44-event-date-row.md) | Planned |
-| S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Planned |
+| S16-44 | The Event page's Date row shows as-ofs | 5a | Go and Swift: the summary names the Properties behind its dating; the Date row shows those fields and lists the as-ofs with their records, earliest first (Go sends a multi-valued date field's values in date order), folded past 20; the summary's old date fields retire | [S16-D6](design/archive/S16-D6-event-date-row.md) | S16-42, S16-D6 | [plan](prs/S16-44-event-date-row.md) | Landed #881 |
+| S16-60 | The app opens one window, and closing it quits | 7a | Swift: `WindowGroup` becomes one `Window` scene; no New Window, no window tabs; closing the window quits through an app delegate; comments and the client patterns doc name the `Window` scene | — (no view changes: the File menu loses New Window) | — | quick-pr | Landed [#884](https://github.com/mendahu/provenencia/pull/884) |
+| S16-61 | Nothing in the app waits on a second window | 7a | Swift, strings and skills: the Artifact sheet's close when its Artifact leaves the page goes, with its graph-deleted and graph-made handling and the tests that simulate a second window; the metadata Add row's taken notice stays (a type change reaches it) and is reworded; the UX lens and the comments that name another window say what one window meets | — (copy only: the Add row's notice is reworded; the removed states have no way in once S16-60 lands) | S16-60 | [plan](prs/S16-61-no-second-window.md) | Landed [#886](https://github.com/mendahu/provenencia/pull/886) |
+| S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Landed [#888](https://github.com/mendahu/provenencia/pull/888) |
 | S16-46 | Back returns to the row you opened in a section | 6b | Swift: `WorkspaceLocation.sectionAnchor` written on leaving a Conclusion page section; Back and Forward scroll to the row and focus it; folds unchanged | — | — | — | Scoped |
 | S16-47 | Birth and death event counts have plurals, and the strings check sees them | 6b | Strings and script: an `events` substitution on the two keys; the check tests bare counts in entries with substitutions | — | — | quick-pr | Scoped |
 | S16-48 | A Properties search with no match shows the kit's empty state | 6c | Swift: `PropertiesView`'s hand-built no-match text becomes a compact `PVEmptyState` with Clear search, as the Sources list's no-filter-match state | S16-D8 | S16-D8 | — | Scoped |
@@ -318,7 +342,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-D8 | Properties: the no-match state of a search, as the kit's empty state with Clear search; whether it also offers Create property with the query as its label | **S16-48** | Copies the Sources list's no-filter-match state |
 | S16-D9 | Omnibar results on the kit popup list: its own window under the field instead of the 640 pt overlay, the combo box's card, where the loading, empty and error lines sit | **S16-52** | Starts from today's omnibar board and the combo box's list |
 | S16-D10 | Toast stack: two and more toasts stacked top-trailing in the workspace window, newest on top; entering and leaving (and Reduce Motion's fade); a refreshed card; a burst clipped at the window's bottom; the Citation composer's toast, which moves there from the foot of its observations column | **S16-58** | Starts from `PVToast`'s board |
-| [S16-D6](design/S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames on the Event Detail board |
+| [S16-D6](design/archive/S16-D6-event-date-row.md) | Event page: the Date row for an event dated by as-ofs | **S16-44** | Extends the S9-D6 Event page frames on the Event Detail board |
 
 ## Slices
 
@@ -400,6 +424,13 @@ SLICE 5a — An attestation is a sample
   ✎ S16-D4, S16-D7 ──▶ S16-42  Every event date line reads the engine's dating
   ✎ S16-D6 ──▶ S16-44  The Event page's Date row shows as-ofs
   Check: bar 16 to 19.
+
+BATCH 7 — One window                                 (lands before Batch 6; user, 2026-11-18)
+
+SLICE 7a — One window
+  S16-60  The app opens one window, and closing it quits     (quick-pr)
+  S16-61  Nothing in the app waits on a second window
+  Check: bar 33, 34.
 
 BATCH 6 — Idea follow-ups
 
@@ -490,6 +521,8 @@ S16-D4 ──▶ S16-42
 S16-D7 ──▶ S16-42
 S16-D6 ──▶ S16-44
 
+S16-60 ──▶ S16-61
+
 S16-03, S16-07 (landed) ──▶ S16-46
 S16-47: none
 S16-D8 ──▶ S16-48
@@ -507,6 +540,8 @@ S16-D9 ──▶ S16-52
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
+
+Batch 7 lands before any Batch 6 PR (user, 2026-11-18), so no Batch 6 plan or review spends time on a second window. S16-60 shares no file with an open PR. S16-61 waits for S16-60, since its deletions are safe only once no second window can open. It lands before S16-59, which then has one toast caller fewer to move (`SourceArtifactsSection.workspaceChanged`; order, not a dependency: whichever lands second rebases), and before Spike 15's S15-39, S15-41 and S15-25 ([Shared with Spike 15](#shared-with-spike-15)).
 
 Batch 6's S16-45 has no dependency and shares no file with an open PR. Slice 6b needs nothing open: S16-46 builds on S16-03 (sections as places) and S16-07 (folds), both landed. S16-47 is a quick-pr. S16-46 edits `WorkspaceLocation.swift` and `NavigationHistoryStore.swift`, which S16-25 also touches if it is still open, so whichever lands second rebases.
 
@@ -782,7 +817,34 @@ Design: [`event-as-of.md`](event-as-of.md). Working rules: [Batch 5](#batch-5--e
 **Ships.** `EventDetailContent.dateRow` chooses its fields by the summary's dating instead of branching on `SeededPropertyKey.date`, `.startDate`, `.endDate`; an as-of event's row lists its as-ofs with their records (the Why from `detail.fields`). Go sends the Properties behind each event's dating with their roles, so Swift picks no key (review M-1). The as-ofs list earliest first: Go's Conclusion detail sends a multi-valued date field's values in date order (user, 2026-11-17); a long list folds 20 then 50 at a time with the Conclusion page fold (user, 2026-11-17). The Why at 10,000 records is bounded by S15-27 (Spike 15), not here. Then the old date fields retire (user, 2026-11-17; S16-42 review M-9): `EventSummary.Date`, `StartDate`, `EndDate` leave Go, the proto, `GoStore` and `CatalogEventSummary` (their counts stay if the row needs them), with `oneEvent`'s rule that clears start and end when `date` is set, and `DateRowDisplay.span(start:end:)` loses its last event caller.
 **Not this PR.** The header line (S16-42).
 **Check.** Bar 18's Event page clause. An event dated only by as-ofs no longer shows "No date recorded" in its Date row under an "as of …" header (S16-42 ship log UX-1: until this PR the two contradict).
-**Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; `core/database/conclusiondetails` `finish`; brief [S16-D6](design/S16-D6-event-date-row.md); plan [`prs/S16-44-event-date-row.md`](prs/S16-44-event-date-row.md).
+**Context.** `Features/Conclusions/EventDetailContent.swift`; `ReconciledValueRowModel.spanning`; `core/database/conclusiondetails` `finish`; brief [S16-D6](design/archive/S16-D6-event-date-row.md); plan [`prs/S16-44-event-date-row.md`](prs/S16-44-event-date-row.md).
+
+### Batch 7 — One window
+
+Working rules: [Batch 7](#batch-7--one-window). Lands before Batch 6.
+
+### Slice 7a — One window
+
+#### S16-60 — The app opens one window, and closing it quits
+
+**Ships.** Quick-pr, Swift. `ProvenenciaApp.body` declares one `Window` scene (title `Text(verbatim:)` with the app name, a fixed id) in place of `WindowGroup`, keeping `.windowResizability(.contentMinSize)`, `.defaultSize(WindowSizing.fittedDefaultSize)`, `.windowStyle(.hiddenTitleBar)` and `.commands`. A small app delegate in the same file (`@NSApplicationDelegateAdaptor`) answers `applicationShouldTerminateAfterLastWindowClosed` with true and turns off `NSWindow.allowsAutomaticWindowTabbing` at launch. The comments that name `WindowGroup` (`PVSpacing.swift`, `OnboardingView.swift`) and [`macos-client-patterns.md`](../../macos-client-patterns.md)'s window line name the `Window` scene. Three non-test Swift files; the product `VERSION` bump, if it ships as a release, is outside the count. A scene has no unit-test seam, so bar 33 is checked by hand; the File and Window menus losing New Window and the tab items is the change itself, and no view draws differently, so there is no brief. Wrong today: File › New Window (⌘N) opens a second workspace on the same catalog whose pages never learn of the first's writes, and ⌘N on the Properties page means both New Window and Create property.
+**Not this PR.** Removing or rewording what was built for a second window, the UX lens included (S16-61); several windows and sync ([idea](../../ideas/multiple-windows-and-sync.md)).
+**Check.** Bar 33; `rg -n WindowGroup macos docs/*.md` finds nothing; the test host (`TestHostApp`, S16-34) still launches its `Settings` scene only.
+**Context.** Rule "(Batch 7) One workspace window, and closing it quits"; `macos/App/App/ProvenenciaApp.swift`, `ProvenenciaMain.swift`; `WorkspaceView.onDisappear` (closes the catalog session); `PropertiesView.swift` (⌘N); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
+
+#### S16-61 — Nothing in the app waits on a second window
+
+**Ships.** Swift, strings and skills. The plan first confirms, for each item, whether a path in one window reaches it; an unreachable one goes, a reachable one stays and is reworded for one window.
+- **The Artifact sheet's close when its Artifact leaves the page goes:** `SourceArtifactsSection.workspaceChanged`, its call and the `shown` comparison in `SourcePageModel.apply`, `toastArtifactGoneTitle` and `toastArtifactGoneBody` (Batch 7 map review K7-1 found no one-window path: a save from the sheet keeps its Artifact, a failed ingest keeps the made one, and S15-25's move closes the sheet itself).
+- **The sheet's own second-window guards go:** `ArtifactSheetModel`'s `liveGraphIDs` filter ("a graph deleted since the sheet opened") and `savedGraphIDs`' graphs made since the sheet opened, with S15-10's AC-3.4 (user, 2026-11-18: remove what only a second window reaches). Its re-read of the link locks after a refused save stays, since an engine refusal reaches it in one window; only its comment changes (Batch 7 map review K7-4).
+- **The metadata Add row's taken notice stays, reworded:** one window reaches it. A type change from the Source's identity section while the Add row is open refetches the board, and `MetadataBoardModel.resetDrafts` clears a picked field the new type now suggests (Batch 7 map review K7-1). The clear stays, since the picker no longer offers the field. `L10n.Sources.metadataAddRowFieldTaken` reads "%@ is now on the board. Pick another field." (wording the plan may refine), and its string comment and `MetadataBoardAddRow.takenFieldLabel`'s doc comment name the type change.
+- **The UX lens says what one window meets:** in [`review-pr`](../../../.agents/skills/review-pr/SKILL.md)'s `lenses/ux.md`, the check "An id held across a round trip" asks what happens when the id is gone after Back, or a write answers not-found, not when another window deletes it, and the Known trap "A deleted item that blocks the page" is worded the same way (moved from S16-60 to keep that one quick, Batch 7 map review K7-2).
+- **Comments and string comments that name another window, or a deletion "elsewhere" that only a second window makes, say what one window meets** (Back to a deleted Source or type, a merged person): `sources.page.deletedNotice`, `sourceTypes.page.goneNotice`, `conclusions.person.gone`, `error.sources.not_found`, `SourcePageContext.swift` (`fail`, and "deleted elsewhere"), `SourcePageModel.swift`, `ConclusionVocabulary.swift`, `FakeStore.swift`, `core/database/sources/sources.go`; those strings' user-facing copy is unchanged.
+
+The tests that simulate a second window go: six in `SourcePageModelTests` and `SourceCopyModelTests.artifactDeletedElsewhereIsDropped`. A new `SourcePageModelTests` test drives the notice through a type change.
+**Not this PR.** Not-found handling, leave-on-deleted and a write's effects on other places' caches, which one window still needs (rule "(Batch 7) Nothing is built for a second window"); landed plans and ship logs, which are history; `plan-pr` and the executability rubric's "deleted meanwhile", which mean an input the app itself changed and still hold.
+**Check.** Bar 34; with the Add row open on Collection, change the Source's type to one that suggests Collection: the row clears its pick and says "Collection is now on the board. Pick another field."; `scripts/check-localizable-xcstrings.py` passes with the two Artifact toast keys gone.
+**Context.** Rule "(Batch 7) Nothing is built for a second window"; [S15-34 plan](../spike-15/prs/S15-34-artifact-edit-sheet.md) D-13, AC-3.5, AC-5.5; [S15-10 plan](../spike-15/prs/S15-10-artifact-sheet-add-mode.md) AC-4.4, T-11; `macos/App/Features/Sources/MetadataBoardModel.swift` (`resetDrafts`, `fieldComboOptions`), `MetadataBoardView.swift`, `SourceArtifactsSection.swift`, `SourcePageModel.swift` (`apply`), `SourceIdentitySection.swift` (the type change), `ArtifactSheetModel.swift`; `.agents/skills/review-pr/lenses/ux.md`; [Shared with Spike 15](#shared-with-spike-15); [`add-localized-string`](../../../.agents/skills/add-localized-string/SKILL.md).
 
 ### Batch 6 — Idea follow-ups
 

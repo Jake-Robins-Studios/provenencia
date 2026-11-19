@@ -32,8 +32,8 @@ func (t *Term) ProductKey() string {
 	return t.Key
 }
 
-// EventSummary is one Event as a row. A rank-1 date wins over a start/end
-// span; the span's counts are still reported. Subjects are the subject-role
+// EventSummary is one Event as a row. Its date is its Dating and the
+// Properties behind it (DatingProperties). Subjects are the subject-role
 // persons, participation ref then person ref. Places are every location's
 // kept names with hierarchical parents at the date Dating.Low gives, else Dating.High.
 type EventSummary struct {
@@ -41,18 +41,16 @@ type EventSummary struct {
 	EventName      string
 	EventNameCount int
 	// Type is the event_type term, with how many values are displayed.
-	Type           TermFacts
-	Date           *datevalue.Value
-	DateCount      int
-	StartDate      *datevalue.Value
-	StartDateCount int
-	EndDate        *datevalue.Value
-	EndDateCount   int
+	Type TermFacts
 	// Dating is when the event was under way: the one reading of its date,
 	// start, end and as-of dates (valuecompare.DatingOf). Order, the Timeline
 	// and every date line read it.
-	Dating   valuecompare.Dating
-	Subjects []EventSubject
+	Dating valuecompare.Dating
+	// DatingProperties are the Properties whose values stand behind Dating, in
+	// the order a reader shows them (event period registry). The slice is
+	// shared: read only.
+	DatingProperties []DatingProperty
+	Subjects         []EventSubject
 	// Participants are every person on the event through any role, by id and
 	// roles, in the order their participations are linked. The roles are not
 	// finished: a reader that shows them labels them (TermLabeler).
@@ -69,6 +67,22 @@ type EventSummary struct {
 	// ListKey is the key the row's list sorts by. The list reads fill it onto
 	// the rows they return, after composing; the finished rows never hold it.
 	ListKey ListKey
+}
+
+// DatingRole is the part a Property plays in an event's dating.
+type DatingRole int
+
+const (
+	DatingRoleOccurrence DatingRole = iota + 1
+	DatingRoleStart
+	DatingRoleEnd
+	DatingRoleAsOf
+)
+
+// DatingProperty is one Property behind an event's dating, with its role.
+type DatingProperty struct {
+	Key  vocabkey.PropertyKey
+	Role DatingRole
 }
 
 // EventSubject is one person on an event through a subject-role participation.

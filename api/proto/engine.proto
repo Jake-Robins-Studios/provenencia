@@ -1552,12 +1552,8 @@ message EventSummary {
   int32 event_name_count = 3;
   ConclusionTerm event_type = 4;
   int32 event_type_count = 5;
-  DateValueInput date = 6;
-  int32 date_count = 7;
-  DateValueInput start_date = 8;
-  int32 start_date_count = 9;
-  DateValueInput end_date = 10;
-  int32 end_date_count = 11;
+  reserved 6, 7, 8, 9, 10, 11;
+  reserved "date", "date_count", "start_date", "start_date_count", "end_date", "end_date_count";
   // subjects are subject-role persons, participation ref then person ref.
   // places are every location's kept names with hierarchical parents at the
   // event's date (Locations that share part_of fold into one chain).
@@ -1579,6 +1575,24 @@ message EventSummary {
   // dating is when the event was under way, read by the engine from its date,
   // start, end and as-of dates. Every event date line and the list order read it.
   EventDating dating = 19;
+  // dating_properties are the Properties whose values stand behind dating, each
+  // with its role, in the order the Date row shows them.
+  repeated EventDatingProperty dating_properties = 20;
+}
+
+// EventDatingRole is the part a Property plays in an event's dating.
+enum EventDatingRole {
+  EVENT_DATING_ROLE_UNSPECIFIED = 0;
+  EVENT_DATING_ROLE_OCCURRENCE = 1;
+  EVENT_DATING_ROLE_START = 2;
+  EVENT_DATING_ROLE_END = 3;
+  EVENT_DATING_ROLE_AS_OF = 4;
+}
+
+// EventDatingProperty is one Property behind an event's dating.
+message EventDatingProperty {
+  string property_key = 1;
+  EventDatingRole role = 2;
 }
 
 // EventDatingKind says what an EventDating is. UNSPECIFIED is no dating.

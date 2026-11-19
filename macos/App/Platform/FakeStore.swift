@@ -675,8 +675,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    /// The one Source write: look the Source up (the engine's not-found for a Source another
-    /// window deleted), apply `change`, stamp the next revision and return it with the effects.
+    /// The one Source write: look the Source up (the engine's not-found for a deleted Source),
+    /// apply `change`, stamp the next revision and return it with the effects.
     /// Call inside `withState`.
     private func mutateSource(
         projectDir: String,
@@ -694,7 +694,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         return (enrichCoverFields(list[idx]), nextWriteEffects)
     }
 
-    /// The engine's answer for a Source another window deleted.
+    /// The engine's answer for a deleted Source.
     static let sourceNotFound: Error = CoreInvokeError.coded(
         status: 1, code: "sources.not_found", kind: .notFound, params: []
     )

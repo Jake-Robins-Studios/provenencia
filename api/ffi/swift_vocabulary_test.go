@@ -510,7 +510,7 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 		},
 		{
 			name: "cascade vias", path: swiftVocabulary, enum: "DeleteImpactCascadeVia", re: wireCase,
-			want: sorted(deleteimpact.ViaLeavesHandle, deleteimpact.ViaDeletesCitations, deleteimpact.ViaLastMember),
+			want: sorted(deleteimpact.CascadeVias()...),
 		},
 		{
 			name: "promote row targets", path: swiftVocabulary, enum: "PromoteTargetCode", re: wireCase,

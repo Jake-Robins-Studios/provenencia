@@ -6,9 +6,9 @@
 **Implements later as:** PR **S16-44** (The Event page's Date row shows as-ofs)
 **Board:** agreed 2026-11-17 — [Claude Design — Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page `project/Event Detail.dc.html`, turn "S16-D6 · As-of dates" (frames 8a, 8b, 9, 10). DR-2, DR-3: `from`, `as of`, `until` before each date, the role word in secondary ink and the date in primary. DR-8: `Show 50 more` under the lines. The Why's own fold drawn in frame 10 is S15-27's
 **Depends on:** S16-42 (landed [#876](https://github.com/mendahu/provenencia/pull/876)): the engine sends each event's dating, and the Event page header reads it (S16-D4's wording); the agreed Event page frames 1 – 7
-**Related:** [S16-D4](archive/S16-D4-event-date-line.md) (the shared date line, whose wording this row reuses); feature doc [`../event-as-of.md`](../event-as-of.md); working rules "The engine sends the dating, not the as-ofs" and "As-ofs alone make a span open on both sides" in [`../deployment-plan.md`](../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-44-event-date-row.md`](../prs/S16-44-event-date-row.md)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
+**Related:** [S16-D4](S16-D4-event-date-line.md) (the shared date line, whose wording this row reuses); feature doc [`../event-as-of.md`](../../event-as-of.md); working rules "The engine sends the dating, not the as-ofs" and "As-ofs alone make a span open on both sides" in [`../deployment-plan.md`](../../deployment-plan.md#batch-5--event-as-of-dates); [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide); plan [`../prs/S16-44-event-date-row.md`](../../prs/S16-44-event-date-row.md)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../../.agents/skills/add-localized-string/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -102,7 +102,7 @@ This board decides **how the Date row shows an event dated by as-ofs**: each as-
 - Not the header's date line (S16-D4, shipped in S16-42).
 - Not the Events list, the Timeline or any other surface.
 - Not the date editor or the composer: As of is entered with today's date editor.
-- Not a notice when an as-of falls outside the start or end ([idea](../../../ideas/event-as-of-followups.md)).
+- Not a notice when an as-of falls outside the start or end ([idea](../../../../ideas/event-as-of-followups.md)).
 - Not a row for the as-ofs of an event that also has a `date`: the occurrence wins, as the start and end of such an event are not shown today.
 
 ---
@@ -111,7 +111,7 @@ This board decides **how the Date row shows an event dated by as-ofs**: each as-
 
 | S16-44 ships | Not S16-44 |
 | --- | --- |
-| DR-1 – DR-8, DR-W1 | The header line (S16-42); an out-of-bounds as-of notice ([idea](../../../ideas/event-as-of-followups.md)); as-ofs on an event with a `date` (not planned) |
+| DR-1 – DR-8, DR-W1 | The header line (S16-42); an out-of-bounds as-of notice ([idea](../../../../ideas/event-as-of-followups.md)); as-ofs on an event with a `date` (not planned) |
 
 ---
 

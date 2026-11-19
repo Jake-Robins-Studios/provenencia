@@ -84,6 +84,8 @@ enum PVDeleteImpactCopy {
                 return L10n.DeleteImpact.deletesCitations(count: group.total, refs: joined)
             case .deletesHandles:
                 return L10n.DeleteImpact.deletesHandles(count: group.total, handleRefs: joined)
+            case .leavesNoGraph:
+                return L10n.DeleteImpact.leavesNoGraph(count: group.total, refs: joined)
             case .unrecognized:
                 return L10n.DeleteImpact.alsoAffects(
                     noun: noun(group.kind, count: group.total),

@@ -49,3 +49,16 @@ The const block, `cascadeEdgeList` and `buildCascadeEdges` live beside handle he
 
 ### X-8 · nit · T-6 is not a whole-string compare
 **Answer:** Fixed — §11 says T-6 checks prefix, overflow and suffix, as the Citations cap test does.
+
+## Round 2 — refresh (2026-11-18, `main` @ `505d1222c`)
+The plan was refreshed after Batch 7 and Spike 15 work landed (`main` moved from 0.19.0 to 0.23.2). Fresh reviewers: maintainability (Claude Fable 5 thinking), executability (default model). Planning base, version line and D-2's file (now `cascades.go`, per D-1) updated.
+
+Maintainability: Fits, no new findings. The three commits since `09f7398` that touch the plan's files (`5219e91e4` `metadataValueFacet`, `1fc05b261` citation forms parity row, `344ce8642` a comment) leave every §4 row true; the citation forms row is a second registry-read parity row beside D-9's precedent.
+
+### X-9 · major · T-1's fixture recipe fails for the multi-Artifact cases
+`evidencegraphstest.Split` makes its own graph and unlinks every id from Default; `Unlink` refuses Default's last link (`ErrLastArtifact`), so "two sole links" and "25 sole links" fail, and `Split` plus `Create` make two graphs named Jones.
+**Answer:** Fixed — T-1 names one recipe: an anchor Artifact `keep` stays in Default; Jones is made once with `evidencegraphstest.Create`; Jones-only Artifacts are unlinked from Default with `evidencegraphs.Unlink` in `writes.Run`; `Split` is not used.
+
+### X-10 · major · The "empty graph" case cannot be built through the API
+`evidencegraphs.Create` needs an Artifact and `Unlink` refuses a graph's last link.
+**Answer:** Fixed — Jones is made with one Artifact X, then X is deleted with `artifacts.Delete` in `writes.Run` (precedent `facets_test.go` 564); a stop condition covers a refusal.

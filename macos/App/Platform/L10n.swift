@@ -2715,14 +2715,29 @@ enum L10n {
             return L10n.format(resource, locale: locale, start, end)
         }
 
+        /// The format of an As of line: the one resource the header's date line and an event's Date
+        /// row both word it by, so the row can draw its words muted around the date.
+        static let rowAsOfFormat = LocalizedStringResource(
+            "dates.row.asOf",
+            defaultValue: "as of %@",
+            comment: "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date. Also each As of line on an event's Date row, where the words around the date are drawn muted."
+        )
+
         static func rowAsOf(_ date: String, locale: Locale = .autoupdatingCurrent) -> String {
-            let resource = LocalizedStringResource(
-                "dates.row.asOf",
-                defaultValue: "as of %@",
-                comment: "Event date line when only an as-of date dates the event and its period is open on both sides. Argument is the formatted as-of date."
-            )
-            return L10n.format(resource, locale: locale, date)
+            L10n.format(rowAsOfFormat, locale: locale, date)
         }
+
+        static let rowFromFormat = LocalizedStringResource(
+            "dates.row.from",
+            defaultValue: "from %@",
+            comment: "An event's recorded start on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
+        )
+
+        static let rowUntilFormat = LocalizedStringResource(
+            "dates.row.until",
+            defaultValue: "until %@",
+            comment: "An event's recorded end on its Date row, beside its As of dates; argument is the date. The words around the date are drawn muted."
+        )
 
         static func rowAsOfRange(start: String, end: String, locale: Locale = .autoupdatingCurrent) -> String {
             let resource = LocalizedStringResource(
@@ -6067,7 +6082,7 @@ enum L10n {
             return L10n.format(LocalizedStringResource(
                 "sources.page.deletedNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source page whose Source another window deleted; argument is the Source title"
+                comment: "Notice after leaving a Source page whose Source was deleted (Back to it, or a write on its cached page); argument is the Source title"
             ), title)
         }
 
@@ -6732,8 +6747,8 @@ enum L10n {
         static func metadataAddRowFieldTaken(field: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataAddRowFieldTaken",
-                defaultValue: "%@ was added in another window. Pick another field.",
-                comment: "Notice under the inline Add field row when its picked field was added elsewhere; argument is the field label"
+                defaultValue: "%@ is now suggested by this type.",
+                comment: "Notice under the inline Add field row when a change of the Source's type put its picked field on the board; argument is the field label"
             ), field)
         }
 
@@ -6916,20 +6931,6 @@ enum L10n {
             defaultValue: "Finish the open field first: save its value or clear it.",
             comment: "Callout on any form that holds a draft metadata board when Save is pressed while a field holds text not yet confirmed"
         )
-
-        static let toastArtifactGoneTitle = LocalizedStringResource(
-            "sources.page.toastArtifactGoneTitle",
-            defaultValue: "Artifact no longer here",
-            comment: "Toast title when the Artifact whose sheet is open was deleted or moved in another window"
-        )
-
-        static func toastArtifactGoneBody(label: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.page.toastArtifactGoneBody",
-                defaultValue: "“%@” was deleted or moved in another window.",
-                comment: "Toast body when the Artifact whose sheet is open is gone; argument is its label"
-            ), label)
-        }
 
         /// VoiceOver label for an artifact preview that has a file. Argument is the file name.
         static func openArtifactFile(name: String) -> String {
@@ -8164,7 +8165,7 @@ enum L10n {
             L10n.format(LocalizedStringResource(
                 "sourceTypes.page.goneNotice",
                 defaultValue: "“%@” was deleted.",
-                comment: "Notice after leaving a Source type page whose type another window deleted; argument is the type label"
+                comment: "Notice after leaving a Source type page whose type was deleted; argument is the type label"
             ), label)
         }
 
@@ -9187,6 +9188,15 @@ enum L10n {
             ), count, handleRefs)
         }
 
+        /// Allowed graph delete confirm: Artifacts left in no evidence graph. Arguments: count, artifact refs (joined).
+        static func leavesNoGraph(count: Int, refs: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "deleteImpact.confirm.leavesNoGraph",
+                defaultValue: "%2$@ %#@graphs@",
+                comment: "Allowed graph delete confirm, appended after the Citations line; arguments are how many Artifacts and the artifact ref(s), such as ART-7KD45"
+            ), count, refs)
+        }
+
         /// Fallback for a cascade via the Mac has no specific copy for. Arguments: kind noun, refs.
         static func alsoAffects(noun: String, refs: String) -> String {
             return L10n.format(LocalizedStringResource(
@@ -9888,7 +9898,7 @@ enum L10n {
             ), error)
         }
 
-        /// The line a record page leaves with when its record was deleted or merged elsewhere.
+        /// The line a record page leaves with when its record was deleted or merged.
         /// The kind of the page supplies it; a kind without its own line says the generic one.
         static func goneNotice(section: WorkspaceSection) -> LocalizedStringResource {
             switch section {
@@ -9896,7 +9906,7 @@ enum L10n {
                 return LocalizedStringResource(
                     "conclusions.person.gone",
                     defaultValue: "This person no longer exists. They may have been merged into another person.",
-                    comment: "Toast and notice when a Person page's person was deleted or merged in another window"
+                    comment: "Toast and notice when a Person page's person was deleted or merged"
                 )
             default:
                 return L10n.Errors.conclusionDetailsNotFound
@@ -11311,7 +11321,7 @@ enum L10n {
         static let sourcesNotFound = LocalizedStringResource(
             "error.sources.not_found",
             defaultValue: "This Source no longer exists.",
-            comment: "FFI error sources.not_found: the Source was deleted in another window"
+            comment: "FFI error sources.not_found: the Source was deleted"
         )
         static let subjectPositionsInvalid = LocalizedStringResource(
             "error.subjectpositions.invalid",

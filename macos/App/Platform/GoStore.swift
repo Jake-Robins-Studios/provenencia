@@ -1138,6 +1138,21 @@ struct GoStore: GenealogyStore {
         )
     }
 
+    /// An entry with no role this client knows is dropped.
+    private static func mapEventDatingProperty(
+        _ p: Provenencia_Engine_V1_EventDatingProperty
+    ) -> CatalogEventDatingProperty? {
+        let role: CatalogEventDatingProperty.Role
+        switch p.role {
+        case .occurrence: role = .occurrence
+        case .start: role = .start
+        case .end: role = .end
+        case .asOf: role = .asOf
+        case .unspecified, .UNRECOGNIZED: return nil
+        }
+        return CatalogEventDatingProperty(key: p.propertyKey, role: role)
+    }
+
     private static func mapEventTitle(_ t: Provenencia_Engine_V1_EventTitle) -> CatalogEventTitle {
         let rule: CatalogEventTitle.Rule
         switch t.rule {
@@ -1307,13 +1322,8 @@ struct GoStore: GenealogyStore {
             eventTypeOrigin: h.hasEventType ? h.eventType.origin : "",
             eventTypeLabel: h.hasEventType ? h.eventType.label : "",
             eventTypeCount: Int(h.eventTypeCount),
-            date: h.hasDate ? mapDateValue(h.date) : nil,
-            dateCount: Int(h.dateCount),
-            startDate: h.hasStartDate ? mapDateValue(h.startDate) : nil,
-            startDateCount: Int(h.startDateCount),
-            endDate: h.hasEndDate ? mapDateValue(h.endDate) : nil,
-            endDateCount: Int(h.endDateCount),
             dating: mapEventDating(h.dating),
+            datingProperties: h.datingProperties.compactMap(mapEventDatingProperty),
             subjects: h.subjects.map(mapEventSubject),
             places: h.places.map(mapChainedPlace),
             title: mapEventTitle(h.title),

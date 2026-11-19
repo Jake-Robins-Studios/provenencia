@@ -1554,6 +1554,44 @@ func TestDelete(t *testing.T) {
 		}
 	})
 
+	t.Run("a graph delete leaves its sole Artifacts in no graph", func(t *testing.T) {
+		f := newFixture(t)
+		s, _ := f.createSource(t, "Census 1881")
+		def := evidencegraphstest.SoleGraph(t, f.c, s.ID)
+		a := f.newArtifact(t, s, "Page A") // no link: Jones only after Create
+		b := f.newArtifact(t, s, "Page B") // linked to Default below: in both
+		f.link(t, def.ID, b)
+		jones, _, err := f.createGraph(t, evidencegraphs.CreateInput{SourceID: s.ID, Name: "Jones", ArtifactIDs: [][]byte{a, b}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Impact: A is Jones-only, B is in both → one ViaLeavesNoGraph group for A.
+		report := graphImpact(t, f.c, jones.ID)
+		g := func() deleteimpact.Group {
+			for _, c := range report.Cascades {
+				if c.Via == deleteimpact.ViaLeavesNoGraph {
+					return c
+				}
+			}
+			t.Fatalf("no ViaLeavesNoGraph cascade %+v", report.Cascades)
+			return deleteimpact.Group{}
+		}()
+		aRef := artifactRef(t, f.c, a)
+		if g.Total != 1 || len(g.Listed) != 1 || g.Listed[0].Ref != aRef {
+			t.Fatalf("cascade %+v", g)
+		}
+		// Delete Jones: A loses its last link, B stays in Default.
+		if _, err := f.deleteGraph(t, jones.ID); err != nil {
+			t.Fatal(err)
+		}
+		if got := evidencegraphstest.ArtifactGraphs(t, f.c, a); len(got) != 0 {
+			t.Fatalf("A linked %x", got)
+		}
+		if got := evidencegraphstest.ArtifactGraphs(t, f.c, b); !sameIDs(got, [][]byte{def.ID}) {
+			t.Fatalf("B linked %x", got)
+		}
+	})
+
 	t.Run("an Artifact without Citations may be left in no graph", func(t *testing.T) {
 		f := newFixture(t)
 		s, _ := f.createSource(t, "Census 1881")

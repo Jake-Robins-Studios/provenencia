@@ -146,3 +146,29 @@ Left apart, and why:
 - **S16-12 and S16-13**, **S16-18 and S16-19**, **S16-20 and S16-32**: different stores or K-22's size splits; each pair together is near 20 steps.
 - **S16-24 and S16-25.** A Go half and a Swift half; S16-25 already carries S16-28.
 - **S16-26, S16-27, S16-29.** Separate concerns: the lists' merged read, a derived-value primitive, and prefetch.
+
+## Batch 7 map review (2026-11-18)
+
+One fresh maintainability reviewer on Batch 7 (S16-60, S16-61) and its Spike 15 edits. No blockers; all findings answered in the map.
+
+### K7-1 · major · The Add row's taken notice is reachable in one window
+A type change from the Source's identity section refetches the board, and `MetadataBoardModel.resetDrafts` clears a picked field the new type now suggests and sets `takenFieldLabel`, so "added in another window" shows with one window open.
+**Answer:** Fixed. S16-61 keeps the clear and the notice and rewords it ("%@ is now on the board. Pick another field."); its Check drives the type change; bar 34 says the row keeps working across a type change. `workspaceChanged` has no one-window path (a save from the sheet keeps its Artifact; a failed ingest keeps the made one; S15-25's move closes the sheet itself) and still goes.
+
+### K7-2 · minor · S16-60 is borderline on the quick-pr fit list
+Three behaviors (scene, quit on close, the UX lens) and possibly four files.
+**Answer:** Fixed. The UX lens rewrite moves to S16-61; the app delegate stays in `ProvenenciaApp.swift`; the entry states the file count, that a `VERSION` bump is outside it, that the scene has no unit-test seam (bar 33 is checked by hand) and why there is no brief.
+
+### K7-3 · minor · Comments and docs that name `WindowGroup`
+`PVSpacing.swift`, `OnboardingView.swift`, `docs/macos-client-patterns.md`.
+**Answer:** Fixed. Added to S16-60's Ships; its Check runs `rg -n WindowGroup macos docs/*.md`.
+
+### K7-4 · minor · The Artifact sheet's own second-window guards
+`ArtifactSheetModel`'s `liveGraphIDs` filter and its re-read of the link locks; "deleted elsewhere" comments in `SourcePageContext.swift` and `SourcePageModel.swift`.
+**Answer:** Fixed. Added to S16-61's confirm-then-remove list and its comment list. Bar 34's search stays on "another window|second window", since "elsewhere" also names one-window cases (another page).
+
+### K7-5 · minor · S16-59's order against S16-61
+**Answer:** Fixed. The order note says it is order, not a dependency: whichever lands second rebases.
+
+### K7-6 · minor · The idea file does not list what S16-61 removes
+**Answer:** Fixed. `ideas/multiple-windows-and-sync.md` point 7.

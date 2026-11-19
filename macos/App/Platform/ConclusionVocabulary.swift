@@ -287,6 +287,7 @@ enum DeleteImpactCascadeVia: Sendable, Equatable {
     case leavesHandle
     case deletesCitations
     case deletesHandles
+    case leavesNoGraph
     case unrecognized(String)
 
     init(rawValue: String) {
@@ -294,6 +295,7 @@ enum DeleteImpactCascadeVia: Sendable, Equatable {
         case "identity_claims.subject_id": self = .leavesHandle
         case "citations.graph_id": self = .deletesCitations
         case "canonical_entities.last_member": self = .deletesHandles
+        case "evidence_graph_artifacts.last_graph": self = .leavesNoGraph
         default: self = .unrecognized(rawValue)
         }
     }
@@ -303,6 +305,7 @@ enum DeleteImpactCascadeVia: Sendable, Equatable {
         case .leavesHandle: "identity_claims.subject_id"
         case .deletesCitations: "citations.graph_id"
         case .deletesHandles: "canonical_entities.last_member"
+        case .leavesNoGraph: "evidence_graph_artifacts.last_graph"
         case .unrecognized(let code): code
         }
     }
@@ -311,7 +314,7 @@ enum DeleteImpactCascadeVia: Sendable, Equatable {
 /// The engine error codes the client branches on (the code of a `CoreInvokeError`); every other
 /// code only has its message. `conclusiondetails.not_found` is an unknown, deleted or merged
 /// handle; `promote.stale` a Done that lost the revision race; `sourcemetadata.invalid` a value
-/// the field refuses; `sources.not_found` a Source another window deleted;
+/// the field refuses; `sources.not_found` a deleted Source;
 /// `sourcetypes.duplicate_key` a Source type whose key the researcher already has.
 enum EngineErrorCode: Sendable, Equatable {
     case conclusionNotFound
