@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"errors"
-	"image"
-	"image/png"
 	"os"
 	"testing"
 
@@ -115,18 +113,6 @@ func runDeleteNote(c *database.Catalog, userID, noteID []byte) error {
 			return struct{}{}, changes, err
 		})
 	return err
-}
-
-func writeTinyPNG(t *testing.T, path string) {
-	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestSources(t *testing.T) {
@@ -577,7 +563,7 @@ func TestSources(t *testing.T) {
 					t.Fatal(err)
 				}
 				path := t.TempDir() + "/scan.png"
-				writeTinyPNG(t, path)
+				dbtest.WritePNG(t, path, 8, 8)
 				fres, err := ingest.File(c, path, userID)
 				if err != nil {
 					t.Fatal(err)
@@ -643,7 +629,7 @@ func TestSources(t *testing.T) {
 					t.Fatal(err)
 				}
 				path := t.TempDir() + "/a.png"
-				writeTinyPNG(t, path)
+				dbtest.WritePNG(t, path, 8, 8)
 				f1, err := ingest.File(c, path, userID)
 				if err != nil {
 					t.Fatal(err)
@@ -916,7 +902,7 @@ func TestNormalizeCoverNeedsThumbnail(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := t.TempDir() + "/scan.png"
-	writeTinyPNG(t, path)
+	dbtest.WritePNG(t, path, 8, 8)
 	fres, err := ingest.File(c, path, userID)
 	if err != nil {
 		t.Fatal(err)

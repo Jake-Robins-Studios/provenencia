@@ -3,8 +3,12 @@
 package dbtest
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"image"
+	"image/png"
+	"os"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
@@ -83,5 +87,17 @@ func Damage(t testing.TB, db *sql.DB, query string, args ...any) {
 	}
 	if execErr != nil {
 		t.Fatal(execErr)
+	}
+}
+
+// WritePNG writes a blank w x h PNG to path, failing the test on error.
+func WritePNG(t testing.TB, path string, w, h int) {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, image.NewRGBA(image.Rect(0, 0, w, h))); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
-	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -646,14 +644,7 @@ func TestArtifactDelete(t *testing.T) {
 		newCoverArtifact := func() artifacts.Artifact {
 			t.Helper()
 			pngPath := filepath.Join(t.TempDir(), "cover.png")
-			img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-			var buf bytes.Buffer
-			if err := png.Encode(&buf, img); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-				t.Fatal(err)
-			}
+			dbtest.WritePNG(t, pngPath, 8, 8)
 			ingested, err := ingest.File(c, pngPath, userID)
 			if err != nil {
 				t.Fatal(err)
@@ -703,14 +694,7 @@ func TestArtifactDelete(t *testing.T) {
 			coverFor := func(sourceID []byte) artifacts.Artifact {
 				t.Helper()
 				pngPath := filepath.Join(t.TempDir(), "cover.png")
-				img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-				var buf bytes.Buffer
-				if err := png.Encode(&buf, img); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-					t.Fatal(err)
-				}
+				dbtest.WritePNG(t, pngPath, 8, 8)
 				ingested, err := ingest.File(c, pngPath, userID)
 				if err != nil {
 					t.Fatal(err)
@@ -842,14 +826,7 @@ func TestArtifactDeletePurgesDisk(t *testing.T) {
 
 	t.Run("fileless leaves other objects", func(t *testing.T) {
 		pngPath := filepath.Join(t.TempDir(), "keep.png")
-		img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		dbtest.WritePNG(t, pngPath, 8, 8)
 		kept, err := ingest.File(c, pngPath, userID)
 		if err != nil {
 			t.Fatal(err)
@@ -871,14 +848,7 @@ func TestArtifactDeletePurgesDisk(t *testing.T) {
 
 	t.Run("shared file keeps blob until last pointer", func(t *testing.T) {
 		pngPath := filepath.Join(t.TempDir(), "share.png")
-		img := image.NewRGBA(image.Rect(0, 0, 10, 10))
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		dbtest.WritePNG(t, pngPath, 10, 10)
 		ingested, err := ingest.File(c, pngPath, userID)
 		if err != nil {
 			t.Fatal(err)
@@ -918,14 +888,7 @@ func TestArtifactDeletePurgesDisk(t *testing.T) {
 
 	t.Run("last pointer drops original and derivative", func(t *testing.T) {
 		pngPath := filepath.Join(t.TempDir(), "cover.png")
-		img := image.NewRGBA(image.Rect(0, 0, 32, 32))
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		dbtest.WritePNG(t, pngPath, 32, 32)
 		ingested, err := ingest.File(c, pngPath, userID)
 		if err != nil {
 			t.Fatal(err)
@@ -971,14 +934,7 @@ func TestArtifactDeletePurgesDisk(t *testing.T) {
 
 	t.Run("prunes empty shard folders", func(t *testing.T) {
 		pngPath := filepath.Join(t.TempDir(), "shard.png")
-		img := image.NewRGBA(image.Rect(0, 0, 40, 40))
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, img); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(pngPath, buf.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		dbtest.WritePNG(t, pngPath, 40, 40)
 		ingested, err := ingest.File(c, pngPath, userID)
 		if err != nil {
 			t.Fatal(err)
