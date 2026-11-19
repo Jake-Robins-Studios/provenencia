@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 )
 
 // ErrWriteReentry is a second writes.Run on a catalog that is already inside
@@ -23,10 +24,13 @@ type Tx struct {
 // one read function over it and exposes a Catalog entry point and a Tx twin, so
 // the SQL and scan exist once. A read inside writes.Run must use the Tx: the
 // catalog has one connection.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
+type Querier = dbsql.Querier
+
+// Execer is Querier plus Exec: the surface a write takes.
+type Execer = dbsql.Execer
+
+// Scanner is *sql.Row or *sql.Rows.
+type Scanner = dbsql.Scanner
 
 // Catalog is the catalog this write began on. It is nil for a Tx built outside
 // BeginWrite.
