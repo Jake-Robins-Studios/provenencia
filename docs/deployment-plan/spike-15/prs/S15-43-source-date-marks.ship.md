@@ -1,7 +1,7 @@
 # Ship log — S15-43 The Source date can be marked unknown or supplied
 
 **Plan:** [`S15-43-source-date-marks.md`](S15-43-source-date-marks.md) · **Branch:** `s15-43-source-date-marks` · **PR:** #900
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `8444750fd`. Gate PASS (orchestrator re-ran: all 9 checks). Report deviations: `List` scans `has_artifact` into a local and sets it on the returned Source (D-2's `&s.HasArtifact` cannot work since `scanSource` returns a new Source; noted in the Landed note); `engine.pb.swift` diff is large because the generator switched `Source` to storage-backed accessors; manual check (§ 10) not run. VERSION 0.24.1 → 0.25.0 (main was 0.24.1).
@@ -42,3 +42,23 @@ Check: `grep -rniE "foreign_keys *= *(OFF|0)|ignore_check_constraints" --include
 Files: `core/database/sources/sources_test.go`.
 Do: point `TestSourceDate`'s `set` closure at `runSetDateChanges`. Add `runDeleteChanges` beside `runDelete` (line ~51) returning the changes; "dated source releases its date" and "a date mark is in the delete change" both use it; `runDelete` calls it and drops the changes.
 Check: `go test ./core/database/sources/` passes; scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `131eda959`. Gate PASS (orchestrator re-ran). F-1 done (both new tests red first: `Get` read `{Unknown:true}`; Copy Source failed `valuemark.invalid`); F-2 done (red by a wrong expected `New`); F-3 done (grep prints nothing; `dbtest.Damage` restores both pragmas even when the statement fails); F-4 done. One commit for all four (they share `sources_test.go`). Landed note and `completed.md` gain one clause; no Decision text edited.
+
+Minors checked by the orchestrator (no round-2 reviewer):
+- CON-1 → **Resolved**: `sources_test.go:1400-1408` compares `date_value_id` to `{Old: UUIDJSON(prevID), New: nil}` and `{Old: nil, New: UUIDJSON(got.DateValueID)}`.
+- MNT-1 → **Resolved**: one `dbtest.Damage` (`dbtest.go`); the pragma grep over `*_test.go` (minus `migrate_test`) prints nothing; `autoreconciler_test.go` moved onto it.
+- MNT-2 → **Resolved**: `runDeleteChanges` beside `runDelete` (line 55), used by three delete subtests; `TestSourceDate`'s `set` calls `runSetDateChanges` (line 1034).
+
+## Round 2 — review
+Reviewers: SEC+PRF (SEC-1 was a Fix-now major). Skipped: CON, MNT (minors only; checked above). Scope `8444750fd...131eda959`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| SEC-1 (re-check) | SEC | — | `settleDate` clears `Unknown` when the date row exists | Resolved | `sources.go:624-633`; every read mark is now a pair `valuemark.Validate` accepts; `Get`, `List` and Copy Source covered by the new tests |
+
+No new findings. Verdict: Clean.
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: SEC-3 (S15-37's `sourcemetadata` reads its stored pair unsettled, same class as SEC-1) · to user: —
