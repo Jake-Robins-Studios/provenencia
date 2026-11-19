@@ -189,7 +189,7 @@ Every metadata board the engine returns says, for each field, whether its Source
 | --- | --- | --- |
 | An unsuggested empty entry (D-6) | `MetadataBoardModel.saved` / `suggested` | In neither list: not drawn, and a reorder (`moveSaved`) drops it from `host.entries` until the next read. No write sends it: `Reorder` takes the saved ids only. S15-39 draws it |
 | A dismissed needed field coming back (D-7) | the board | Not drawn until S15-39 (same lists) |
-| `DismissMetadataSuggestion` on a needed field | `L10n.Errors` `sourcemetadata.invalid` | Mapped today. A needed field the type also suggests is drawn as a suggestion row with a dismiss X (`MetadataBoardModel.suggested`, `MetadataBoardView.swift` `MetadataBoardSuggestionRow`); after this PR that X shows "This metadata change can't be saved." (24 seeded needed suggestions, e.g. census `jurisdiction`) until S15-39 hides it |
+| `DismissMetadataSuggestion` on a needed field | `L10n.Errors` `sourcemetadata.invalid` | Mapped today. A needed field the type also suggests is drawn as a suggestion row with a dismiss X (`MetadataBoardModel.suggested`, `MetadataBoardView.swift` `MetadataBoardSuggestionRow`); after this PR that X shows "This metadata change can't be saved." (24 seeded needed suggestions, such as census `jurisdiction`) until S15-39 hides it |
 | A format naming a field id with no field row | `needsAt`, alternatives | Dropped (D-15); T-6 |
 
 ### Scale
