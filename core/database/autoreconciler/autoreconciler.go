@@ -203,17 +203,17 @@ func HandlesForSubjects(q database.Querier, subjectIDs [][]byte) ([][]byte, erro
 
 // HandlesForSource is the handle list a Source credibility change recomputes.
 func HandlesForSource(q database.Querier, sourceID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForSource, sourceID)
+	return database.QueryIDs(q, sqlHandlesForSource, sourceID)
 }
 
 // HandlesForCitation is the handle list a Citation certainty change recomputes.
 func HandlesForCitation(q database.Querier, citationID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForCitation, citationID)
+	return database.QueryIDs(q, sqlHandlesForCitation, citationID)
 }
 
 // HandlesForProperty is the handle list a Property cardinality change recomputes.
 func HandlesForProperty(q database.Querier, propertyID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForProperty, propertyID)
+	return database.QueryIDs(q, sqlHandlesForProperty, propertyID)
 }
 
 // Rebuild clears the table, recomputes every handle, reprojects every handle's
@@ -226,7 +226,7 @@ func Rebuild(q database.Execer) error {
 	if _, err := q.Exec(`DELETE FROM auto_reconciler_outcomes`); err != nil {
 		return err
 	}
-	ids, err := listIDs(q, sqlAllEntities)
+	ids, err := database.QueryIDs(q, sqlAllEntities)
 	if err != nil {
 		return err
 	}
@@ -535,21 +535,4 @@ func insertRow(q database.Execer, g *group, row graphcache.TruthRow, v autorecon
 	_, err := q.Exec(sqlInsert, g.entityID, g.propertyID, row.Rank, text, database.NullInt64(integer), database.NullBool(boolean), termID, valueEntity, dateBlob, name, imageFileID, dateLo, dateHi, sortKey,
 		row.Support, row.Against, row.Reason)
 	return err
-}
-
-func listIDs(q database.Querier, query string, args ...any) ([][]byte, error) {
-	rows, err := q.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out [][]byte
-	for rows.Next() {
-		var id []byte
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, rows.Err()
 }

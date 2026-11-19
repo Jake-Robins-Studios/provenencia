@@ -183,7 +183,7 @@ func dependentsOf(q database.Querier, keys []graphcache.InputKey) ([][]byte, err
 		for _, k := range batch {
 			args = append(args, k.ID, k.Bridge, k.Endpoint)
 		}
-		ids, err := listIDs(q, sqlDependentsOfKeys+marks+`)`, args...)
+		ids, err := database.QueryIDs(q, sqlDependentsOfKeys+marks+`)`, args...)
 		if err != nil {
 			return nil, err
 		}

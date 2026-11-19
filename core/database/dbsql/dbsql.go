@@ -50,3 +50,22 @@ func BlobArgs(ids [][]byte) []any {
 	}
 	return args
 }
+
+// QueryIDs runs a query that selects one id column and returns each row's
+// value in order, unfiltered.
+func QueryIDs(q Querier, query string, args ...any) ([][]byte, error) {
+	rows, err := q.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out [][]byte
+	for rows.Next() {
+		var id []byte
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}

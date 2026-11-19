@@ -65,7 +65,7 @@ func reprojectOn(q database.Execer, g *graphcache.Graph, ids [][]byte) error {
 
 // reprojectAllHandles reprojects every handle (RebuildAll).
 func reprojectAllHandles(q database.Execer) error {
-	ids, err := listIDs(q, sqlAllHandles)
+	ids, err := database.QueryIDs(q, sqlAllHandles)
 	if err != nil {
 		return err
 	}

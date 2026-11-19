@@ -537,7 +537,7 @@ func RebuildAll(q database.Execer) error {
 	if err := ClearAll(q); err != nil {
 		return err
 	}
-	typeIDs, err := listIDs(q, `SELECT id FROM source_types`)
+	typeIDs, err := database.QueryIDs(q, `SELECT id FROM source_types`)
 	if err != nil {
 		return err
 	}
@@ -546,7 +546,7 @@ func RebuildAll(q database.Execer) error {
 			return err
 		}
 	}
-	fieldIDs, err := listIDs(q, `SELECT id FROM source_metadata_fields`)
+	fieldIDs, err := database.QueryIDs(q, `SELECT id FROM source_metadata_fields`)
 	if err != nil {
 		return err
 	}
@@ -555,7 +555,7 @@ func RebuildAll(q database.Execer) error {
 			return err
 		}
 	}
-	sourceIDs, err := listIDs(q, `SELECT id FROM sources`)
+	sourceIDs, err := database.QueryIDs(q, `SELECT id FROM sources`)
 	if err != nil {
 		return err
 	}
@@ -564,7 +564,7 @@ func RebuildAll(q database.Execer) error {
 			return err
 		}
 	}
-	graphIDs, err := listIDs(q, `SELECT id FROM evidence_graphs`)
+	graphIDs, err := database.QueryIDs(q, `SELECT id FROM evidence_graphs`)
 	if err != nil {
 		return err
 	}
@@ -585,7 +585,7 @@ func ReprojectSourcesForType(q database.Execer, typeID []byte) error {
 	if len(typeID) != 16 {
 		return nil
 	}
-	ids, err := listIDs(q, `SELECT id FROM sources WHERE source_type_id = ?`, typeID)
+	ids, err := database.QueryIDs(q, `SELECT id FROM sources WHERE source_type_id = ?`, typeID)
 	if err != nil {
 		return err
 	}
@@ -602,7 +602,7 @@ func SourceIDsForFile(q database.Querier, fileID []byte) ([][]byte, error) {
 	if len(fileID) != 16 {
 		return nil, nil
 	}
-	return listIDs(q, `SELECT DISTINCT source_id FROM artifacts WHERE file_id = ?`, fileID)
+	return database.QueryIDs(q, `SELECT DISTINCT source_id FROM artifacts WHERE file_id = ?`, fileID)
 }
 
 // EnsureCatalog rebuilds when needed. Prefer calling after Open/Create ensures.
@@ -627,23 +627,6 @@ func EnsureCatalog(c *database.Catalog) error {
 		return err
 	}
 	return tx.Commit()
-}
-
-func listIDs(q database.Querier, query string, args ...any) ([][]byte, error) {
-	rows, err := q.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out [][]byte
-	for rows.Next() {
-		var id []byte
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, rows.Err()
 }
 
 // existingSourceCoverThumb returns objects/… when cover is an artifact and a

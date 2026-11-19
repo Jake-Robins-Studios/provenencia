@@ -2,7 +2,10 @@ package dbsql
 
 import (
 	"bytes"
+	"database/sql"
 	"testing"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestSQLInPlaceholders(t *testing.T) {
@@ -42,6 +45,43 @@ func TestBlobArgs(t *testing.T) {
 				id, ok := g.([]byte)
 				if !ok || !bytes.Equal(id, tt.ids[i]) {
 					t.Errorf("arg %d = %v, want %v", i, g, tt.ids[i])
+				}
+			}
+		})
+	}
+}
+
+func TestQueryIDs(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`CREATE TABLE t (id BLOB); INSERT INTO t VALUES (x'01'), (x'0203')`); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name    string
+		query   string
+		want    [][]byte
+		wantErr bool
+	}{
+		{"two rows in order", `SELECT id FROM t ORDER BY rowid`, [][]byte{{1}, {2, 3}}, false},
+		{"no rows", `SELECT id FROM t WHERE 0`, nil, false},
+		{"query error", `SELECT id FROM missing`, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := QueryIDs(db, tt.query)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if !bytes.Equal(got[i], tt.want[i]) {
+					t.Errorf("row %d = %v, want %v", i, got[i], tt.want[i])
 				}
 			}
 		})

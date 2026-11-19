@@ -39,3 +39,7 @@ func BlobArgs(ids [][]byte) []any {
 func ContainsBlobID(ids [][]byte, id []byte) bool {
 	return slices.ContainsFunc(ids, func(x []byte) bool { return bytes.Equal(x, id) })
 }
+
+// QueryIDs runs a query that selects one id column and returns each row's
+// value in order.
+var QueryIDs = dbsql.QueryIDs
