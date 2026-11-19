@@ -196,7 +196,7 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 			Label:       t.Label,
 			Description: t.Description,
 			IconKey:     t.IconKey,
-		})
+		}, nil)
 		if err != nil {
 			return nil, err
 		}

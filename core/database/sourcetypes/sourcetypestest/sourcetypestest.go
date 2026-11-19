@@ -12,6 +12,6 @@ import (
 func Upsert(c *database.Catalog, t sourcetypes.Type) ([]byte, error) {
 	return writes.Call(c, writes.Op{Action: "upsert_source_type"},
 		func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
-			return sourcetypes.UpsertTx(tx, t)
+			return sourcetypes.UpsertTx(tx, t, nil)
 		})
 }
