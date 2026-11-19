@@ -13,6 +13,17 @@ const (
 	NeedUsed Need = "used"
 )
 
+// Max is the greater need: needed over used over none.
+func (n Need) Max(o Need) Need {
+	switch {
+	case n == NeedNeeded || o == NeedNeeded:
+		return NeedNeeded
+	case n == NeedUsed || o == NeedUsed:
+		return NeedUsed
+	}
+	return ""
+}
+
 // Requirement is one chain of targets a format reads, met when any has a value.
 type Requirement struct {
 	Targets []Target
@@ -60,9 +71,7 @@ func collect(nodes []node, inGroup bool, out *[]Requirement) {
 func add(out *[]Requirement, targets []Target, need Need) {
 	for i := range *out {
 		if slices.Equal((*out)[i].Targets, targets) {
-			if need == NeedNeeded {
-				(*out)[i].Need = NeedNeeded
-			}
+			(*out)[i].Need = (*out)[i].Need.Max(need)
 			return
 		}
 	}

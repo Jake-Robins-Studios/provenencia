@@ -110,3 +110,16 @@ func TestMissing(t *testing.T) {
 		})
 	}
 }
+
+func TestNeedMax(t *testing.T) {
+	const none citationformat.Need = ""
+	needs := []citationformat.Need{none, citationformat.NeedUsed, citationformat.NeedNeeded}
+	for i, a := range needs {
+		for j, b := range needs {
+			want := needs[max(i, j)]
+			if got := a.Max(b); got != want {
+				t.Errorf("%q.Max(%q) = %q, want %q", a, b, got, want)
+			}
+		}
+	}
+}

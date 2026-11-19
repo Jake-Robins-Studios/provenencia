@@ -122,17 +122,6 @@ type levelNeeds struct {
 	builtinHeads map[citationformat.Target][]citationformat.Requirement
 }
 
-// stronger is the greater need: needed over used over none.
-func stronger(a, b citationformat.Need) citationformat.Need {
-	switch {
-	case a == citationformat.NeedNeeded || b == citationformat.NeedNeeded:
-		return citationformat.NeedNeeded
-	case a == citationformat.NeedUsed || b == citationformat.NeedUsed:
-		return citationformat.NeedUsed
-	}
-	return ""
-}
-
 // fieldAt is the id of t when it is a field, named by id, at level.
 func fieldAt(t citationformat.Target, level vocabkey.Level) (uuid.UUID, bool) {
 	if t.Builtin != "" || t.Level != level || !t.Field.ByID() {
@@ -158,14 +147,14 @@ func needsAt(chains []citationformat.Requirement, level vocabkey.Level) levelNee
 			id, isField := fieldAt(t, level)
 			switch {
 			case i > 0 && isField:
-				ln.need[id] = stronger(ln.need[id], citationformat.NeedUsed)
+				ln.need[id] = ln.need[id].Max(citationformat.NeedUsed)
 			case i > 0:
 			case isField:
 				if _, seen := ln.heads[id]; !seen {
 					ln.order = append(ln.order, id)
 				}
 				ln.heads[id] = append(ln.heads[id], ch)
-				ln.need[id] = stronger(ln.need[id], ch.Need)
+				ln.need[id] = ln.need[id].Max(ch.Need)
 			case ln.builtinHeads != nil && (t == dateHead || t == pageHead):
 				ln.builtinHeads[t] = append(ln.builtinHeads[t], ch)
 			}
@@ -212,7 +201,7 @@ func annotate(ln levelNeeds, head citationformat.Target, r citationformat.Resolv
 	if head.Builtin != "" {
 		chains = ln.builtinHeads[head]
 		for _, ch := range chains {
-			need = stronger(need, ch.Need)
+			need = need.Max(ch.Need)
 		}
 	} else {
 		need = ln.need[head.Field.ID]

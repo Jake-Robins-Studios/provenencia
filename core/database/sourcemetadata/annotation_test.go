@@ -66,7 +66,7 @@ func TestNeedsAt(t *testing.T) {
 			}
 			var page citationformat.Need
 			for _, ch := range ln.builtinHeads[pageHead] {
-				page = stronger(page, ch.Need)
+				page = page.Max(ch.Need)
 			}
 			if page != tt.page {
 				t.Errorf("page need = %q, want %q", page, tt.page)
