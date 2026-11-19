@@ -14,21 +14,10 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/raster/rastertest"
 	"google.golang.org/protobuf/proto"
 )
-
-func writePNG(t *testing.T, path string) {
-	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
 
 // writeCrop writes a w x h JPEG filled with opaque gray shade to a temp folder
 // as crop.jpg and returns its absolute path. A JPEG, so the PNG Go stores
@@ -393,7 +382,7 @@ func TestWorkspaceThumbnailPass(t *testing.T) {
 	t.Run("two Artifacts on one File decode once", func(t *testing.T) {
 		s := newThumbSource(t)
 		p := filepath.Join(t.TempDir(), "p.png")
-		writePNG(t, p)
+		dbtest.WritePNG(t, p, 8, 8)
 		first := s.addArtifact(t, "Page", p)
 		s.addArtifactOnFile(t, "Again", first.File.Id)
 		damageCatalog(t, s.dir, "DELETE FROM file_derivatives")
@@ -447,7 +436,7 @@ func TestWorkspaceThumbnailPass(t *testing.T) {
 	t.Run("every derivative present changes nothing", func(t *testing.T) {
 		s := newThumbSource(t)
 		p := filepath.Join(t.TempDir(), "p.png")
-		writePNG(t, p)
+		dbtest.WritePNG(t, p, 8, 8)
 		s.addArtifact(t, "Page", p)
 		first := s.workspace(t)
 		links, objects := s.count(t, derivativeCount), len(objectRelPaths(t, s.dir))

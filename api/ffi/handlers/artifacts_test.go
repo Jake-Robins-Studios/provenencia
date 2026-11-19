@@ -12,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
@@ -52,7 +53,7 @@ func TestCreateArtifactAndIngest(t *testing.T) {
 				cr := req.(*engine.CreateArtifactRequest)
 				assertLatestAuditAction(t, cr.ProjectDir, "create_artifact")
 				path := filepath.Join(t.TempDir(), "scan.png")
-				writePNG(t, path)
+				dbtest.WritePNG(t, path, 8, 8)
 				iout, err := IngestArtifactFile(marshalProto(t, &engine.IngestArtifactFileRequest{
 					ProjectDir: cr.ProjectDir, UserId: cr.UserId, ArtifactId: art.Artifact.Id, Path: path,
 				}))
@@ -77,7 +78,7 @@ func TestCreateArtifactAndIngest(t *testing.T) {
 				assertLatestAuditAction(t, cr.ProjectDir, "update_artifact")
 
 				path2 := filepath.Join(t.TempDir(), "scan2.png")
-				writePNG(t, path2)
+				dbtest.WritePNG(t, path2, 8, 8)
 				_, err = IngestArtifactFile(marshalProto(t, &engine.IngestArtifactFileRequest{
 					ProjectDir: cr.ProjectDir, UserId: cr.UserId, ArtifactId: art.Artifact.Id, Path: path2,
 				}))
@@ -535,7 +536,7 @@ func filelessArtifact(t *testing.T) (dir, userID, artifactID string) {
 func TestIngestStagesBeforeSession(t *testing.T) {
 	t.Cleanup(func() { _ = catalogsession.CloseAll() })
 	path := filepath.Join(t.TempDir(), "page.png")
-	writePNG(t, path)
+	dbtest.WritePNG(t, path, 8, 8)
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)

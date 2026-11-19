@@ -17,6 +17,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
@@ -95,7 +96,7 @@ func depictionFixture(t *testing.T, kind, key string) (dir, userID, sourceID, ar
 	}
 	artifactID = art.Artifact.GetId()
 	photo := filepath.Join(t.TempDir(), "photo.png")
-	writePNG(t, photo)
+	dbtest.WritePNG(t, photo, 8, 8)
 	if _, err := IngestArtifactFile(marshalProto(t, &engine.IngestArtifactFileRequest{
 		ProjectDir: dir, UserId: userID, ArtifactId: artifactID, Path: photo,
 	})); err != nil {

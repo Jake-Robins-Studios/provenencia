@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"google.golang.org/protobuf/proto"
 )
@@ -166,7 +167,7 @@ func TestSetCoverMakesThumbnailFirst(t *testing.T) {
 	t.Run("a raster Artifact with no derivative gets its thumbnail and the cover", func(t *testing.T) {
 		s := newThumbSource(t)
 		p := filepath.Join(t.TempDir(), "p.png")
-		writePNG(t, p)
+		dbtest.WritePNG(t, p, 8, 8)
 		ingested := s.addArtifact(t, "Page", p)
 		damageCatalog(t, s.dir, "DELETE FROM file_derivatives")
 		resp, err := setCover(s, "artifact", ingested.Artifact.Id)
@@ -203,7 +204,7 @@ func TestSetCoverMakesThumbnailFirst(t *testing.T) {
 			}, &created)
 			other.sourceID = created.Source.Id
 			p := filepath.Join(t.TempDir(), "p.png")
-			writePNG(t, p)
+			dbtest.WritePNG(t, p, 8, 8)
 			return other.addArtifact(t, "Page", p).Artifact.Id
 		}},
 	}
@@ -224,7 +225,7 @@ func TestSetCoverMakesThumbnailFirst(t *testing.T) {
 	t.Run("type icon mode makes no thumbnail and stages nothing", func(t *testing.T) {
 		s := newThumbSource(t)
 		p := filepath.Join(t.TempDir(), "p.png")
-		writePNG(t, p)
+		dbtest.WritePNG(t, p, 8, 8)
 		s.addArtifact(t, "Page", p)
 		damageCatalog(t, s.dir, "DELETE FROM file_derivatives")
 		before := objectRelPaths(t, s.dir)
