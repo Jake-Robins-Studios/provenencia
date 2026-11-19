@@ -59,7 +59,7 @@ Any subset of year / month / day / hour / minute / second / millisecond may be s
 
 `StartTZ` / `EndTZ` are **free text**. Empty = unspecified. Do **not** parse to UTC in this package.
 
-Phrase-only `point` values (no civil components) are valid when `Phrase` is set. `range` needs at least one civil component on each side (year is not required).
+Phrase-only `point` values (no civil components) are valid when `Phrase` is set. A phrase is at most `datevalue.MaxPhraseBytes` bytes. `range` needs at least one civil component on each side (year is not required).
 
 ## Owning a DateValue
 
