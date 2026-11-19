@@ -23,6 +23,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/files"
 	"github.com/mendahu/provenencia/core/database/identityclaims"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/observations"
 	"github.com/mendahu/provenencia/core/database/properties"
 	"github.com/mendahu/provenencia/core/database/propertyterms"
@@ -31,6 +32,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
@@ -77,7 +79,7 @@ func TestImpactGates(t *testing.T) {
 	})
 
 	t.Run("plugin vocab origin_locked", func(t *testing.T) {
-		id, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		id, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "plugbook", Origin: "plugin:acme", Label: "Plug book",
 		})
 		if err != nil {
@@ -116,7 +118,7 @@ func TestImpactGates(t *testing.T) {
 	})
 
 	t.Run("seeded unused source type allowed", func(t *testing.T) {
-		id, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		id, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "unused_book", Origin: vocabkey.OriginProvenencia, Label: "Unused book",
 		})
 		if err != nil {
@@ -186,7 +188,7 @@ func TestImpactGates(t *testing.T) {
 	})
 
 	t.Run("plugin field origin_locked", func(t *testing.T) {
-		id, err := metadatafields.Upsert(c, metadatafields.Field{
+		id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 			Key: "plug_author", Origin: "plugin:acme", Label: "Plug author", DataType: metadatafields.DataTypeText,
 		})
 		if err != nil {
@@ -204,7 +206,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -564,7 +566,7 @@ func TestImpactCitationAndSubject(t *testing.T) {
 
 func TestSnapshotOwnedThenRelease(t *testing.T) {
 	c, userID := testCatalog(t)
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -669,7 +671,7 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -774,7 +776,7 @@ func TestImpactEvidenceGraph(t *testing.T) {
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -849,7 +851,7 @@ func TestImpactEvidenceGraph(t *testing.T) {
 
 func TestImpactAgreesWithSQLite(t *testing.T) {
 	c, userID := testCatalog(t)
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -986,7 +988,7 @@ func testCatalog(t *testing.T) (*database.Catalog, []byte) {
 
 func TestListedGroup(t *testing.T) {
 	c, userID := testCatalog(t)
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -1075,7 +1077,7 @@ func TestLocationsNameTheirGraph(t *testing.T) {
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -1210,7 +1212,7 @@ func TestSubjectCascadesSplitHandles(t *testing.T) {
 // TestInboundTotal checks the Used by total against the groups Impact lists.
 func TestInboundTotal(t *testing.T) {
 	c, userID := testCatalog(t)
-	fieldID, err := metadatafields.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
+	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1275,7 +1277,7 @@ func TestInboundTotals(t *testing.T) {
 		t.Fatal(err)
 	}
 	field := func(key string) []byte {
-		id, err := metadatafields.Upsert(c, metadatafields.Field{Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: "text"})
+		id, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: "text"})
 		if err != nil {
 			t.Fatal(err)
 		}

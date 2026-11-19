@@ -20,6 +20,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjectpositions"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
@@ -101,7 +102,7 @@ func Open(t testing.TB, c *database.Catalog) *Records {
 	r, err := ref.Mint(ref.PrefixUser)
 	Must(t, err)
 	Must(t, users.Upsert(c, UserID, "Tester", r))
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	Must(t, err)
 	src, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: UserID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
 		return sources.Create(tx, UserID, sources.CreateInput{SourceTypeID: typeID, Title: "Register"})
@@ -115,7 +116,7 @@ func Open(t testing.TB, c *database.Catalog) *Records {
 // NewSource is another Source in the catalog, with one Artifact.
 func (r *Records) NewSource(title string) (sources.Source, artifacts.Artifact) {
 	r.T.Helper()
-	typeID, err := sourcetypes.Upsert(r.C, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(r.C, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	Must(r.T, err)
 	src, _, err := writes.Run(r.C, writes.Op{Action: "create_source", UserID: UserID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
 		return sources.Create(tx, UserID, sources.CreateInput{SourceTypeID: typeID, Title: title})

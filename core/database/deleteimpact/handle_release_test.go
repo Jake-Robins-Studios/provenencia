@@ -15,6 +15,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
@@ -321,7 +322,7 @@ func releaseAndAssertHandleGone(t *testing.T, c *database.Catalog, userID, claim
 
 func mustSource(t *testing.T, c *database.Catalog, userID []byte) sources.Source {
 	t.Helper()
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 // Package metadatafields accesses the source_metadata_fields vocabulary table.
-// Create, Update, and Delete run inside writes.Run and return the row changes
-// that Run records. Upsert is the un-audited seed path.
+// Create, Update, Delete, and UpsertTx run inside writes.Run and return the row
+// changes that Run records. UpsertTx is the seed's write, run inside writes.Run.
 package metadatafields
 
 import (
@@ -15,7 +15,6 @@ import (
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/deleteimpact"
 	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/database/searchindex"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/slug"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -42,14 +41,10 @@ const (
 	DataTypeText = "text"
 	DataTypeURL  = "url"
 
-	sqlUpsert = `INSERT INTO source_metadata_fields (id, key, origin, label, data_type, description)
-		VALUES (?, ?, ?, ?, ?, ?)
-		ON CONFLICT(key, origin) DO UPDATE SET
-			label = excluded.label,
-			data_type = excluded.data_type,
-			description = excluded.description`
+	sqlInsert = `INSERT INTO source_metadata_fields (id, key, origin, label, data_type, description, unknown_text)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 	sqlKeysIn = `SELECT id, key, origin FROM source_metadata_fields WHERE key IN (`
-	sqlUpdate = `UPDATE source_metadata_fields SET label = ?, description = ?, unknown_text = ? WHERE id = ?`
+	sqlUpdate = `UPDATE source_metadata_fields SET label = ?, data_type = ?, description = ?, unknown_text = ? WHERE id = ?`
 	sqlDelete = `DELETE FROM source_metadata_fields WHERE id = ?`
 )
 
@@ -83,44 +78,97 @@ type Field struct {
 	UsedBy int
 }
 
-// Upsert inserts or updates by (key, origin). Mints a UUIDv7 id when ID is empty on insert.
-func Upsert(c *database.Catalog, f Field) ([]byte, error) {
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
+// rowFields is the audit view of a field: the one column list that create,
+// update and delete changes are built from. Description and unknown_text are
+// present only when not empty.
+func rowFields(f Field) map[string]any {
+	fields := map[string]any{
+		"id":        database.UUIDString(f.ID),
+		"key":       f.Key,
+		"origin":    f.Origin,
+		"label":     f.Label,
+		"data_type": f.DataType,
+	}
+	if f.Description != "" {
+		fields["description"] = f.Description
+	}
+	if f.UnknownText != "" {
+		fields["unknown_text"] = f.UnknownText
+	}
+	return fields
+}
+
+// updateChange is the update change from prev to next, naming only the columns
+// that differ (a missing key reads nil); nil when none does. id, key and
+// origin are never compared.
+func updateChange(prev, next Field) *rowchange.Change {
+	old, now := rowFields(prev), rowFields(next)
+	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
+		EntityType: "metadata_field",
+		EntityID:   append([]byte(nil), prev.ID...),
+		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// createChange is the create change of a new field row: every column.
+func createChange(f Field) rowchange.Change {
+	return rowchange.Change{
+		EntityType: "metadata_field",
+		EntityID:   append([]byte(nil), f.ID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(rowFields(f)),
+	}
+}
+
+// UpsertTx inserts or updates by (key, origin) on tx and returns the id and
+// the row changes. It writes every column the input carries: label, data type,
+// description and unknown text ("" is NULL). Missing: one create change.
+// Present: one update change names what differs; nothing differing writes
+// nothing and returns no change. A non-empty f.ID is ErrInvalid. The caller
+// records the changes.
+func UpsertTx(tx *database.Tx, f Field) ([]byte, []rowchange.Change, error) {
+	if tx == nil || len(f.ID) != 0 {
+		return nil, nil, ErrInvalid
 	}
 	f.Key = strings.TrimSpace(f.Key)
 	f.Origin = strings.TrimSpace(f.Origin)
 	f.Label = strings.TrimSpace(f.Label)
 	f.DataType = strings.TrimSpace(f.DataType)
 	f.Description = strings.TrimSpace(f.Description)
+	f.UnknownText = strings.TrimSpace(f.UnknownText)
 	if f.Key == "" || f.Label == "" || !vocabkey.ValidOrigin(f.Origin) || !dataTypeOK(f.DataType) {
-		return nil, ErrInvalid
+		return nil, nil, ErrInvalid
 	}
-	id := f.ID
-	if len(id) == 0 {
-		existing, err := Lookup(c, f.Key, f.Origin)
-		if err == nil {
-			id = existing.ID
-		} else if errors.Is(err, sql.ErrNoRows) {
-			uid, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
-			id = uid[:]
-		} else {
-			return nil, err
+	existing, err := lookupTx(tx.Tx, f.Key, f.Origin)
+	if errors.Is(err, sql.ErrNoRows) {
+		uid, err := uuid.NewV7()
+		if err != nil {
+			return nil, nil, err
 		}
-	} else if len(id) != 16 {
-		return nil, ErrInvalid
+		f.ID = uid[:]
+		if _, err := tx.Exec(sqlInsert, f.ID, f.Key, f.Origin, f.Label, f.DataType, database.NullString(f.Description), database.NullString(f.UnknownText)); err != nil {
+			return nil, nil, err
+		}
+		return append([]byte(nil), f.ID...), []rowchange.Change{createChange(f)}, nil
 	}
-	if _, err := db.Exec(sqlUpsert, id, f.Key, f.Origin, f.Label, f.DataType, database.NullString(f.Description)); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, nil, err
 	}
-	if err := searchindex.ReprojectMetadataField(db, id); err != nil {
-		return nil, err
+	next := existing
+	next.Label, next.DataType, next.Description, next.UnknownText = f.Label, f.DataType, f.Description, f.UnknownText
+	change := updateChange(existing, next)
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	return append([]byte(nil), id...), nil
+	if _, err := tx.Exec(sqlUpdate, next.Label, next.DataType, database.NullString(next.Description), database.NullString(next.UnknownText), existing.ID); err != nil {
+		return nil, nil, err
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
 
 // Create mints a kebab-case key from label (see core/slug.Kebab) and
@@ -152,29 +200,15 @@ func Create(tx *database.Tx, label, dataType, description string) (Field, []rowc
 		return Field{}, nil, err
 	}
 	id := uid[:]
-	if _, err := tx.Exec(sqlUpsert, id, key, vocabkey.OriginUser, label, dataType, database.NullString(description)); err != nil {
+	if _, err := tx.Exec(sqlInsert, id, key, vocabkey.OriginUser, label, dataType, database.NullString(description), nil); err != nil {
 		return Field{}, nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":        {Old: nil, New: uid.String()},
-		"key":       {Old: nil, New: key},
-		"origin":    {Old: nil, New: vocabkey.OriginUser},
-		"label":     {Old: nil, New: label},
-		"data_type": {Old: nil, New: dataType},
-	}
-	if description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: description}
-	}
+	created := Field{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, DataType: dataType, Description: description}
 	got, err := getByID(tx.Tx, id)
 	if err != nil {
 		return Field{}, nil, err
 	}
-	return got, []rowchange.Change{{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, nil
+	return got, []rowchange.Change{createChange(created)}, nil
 }
 
 // Update patches label, description and unknown text for a project field (user
@@ -208,32 +242,20 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string, unk
 	if unknownText != nil {
 		unknown = strings.TrimSpace(*unknownText)
 	}
-	fields := map[string]rowchange.FieldDiff{}
-	if existing.Label != label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(existing.Label), New: database.NullString(label)}
-	}
-	if existing.Description != description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(existing.Description), New: database.NullString(description)}
-	}
-	if existing.UnknownText != unknown {
-		fields["unknown_text"] = rowchange.FieldDiff{Old: database.NullString(existing.UnknownText), New: database.NullString(unknown)}
-	}
-	if len(fields) == 0 {
+	next := existing
+	next.Label, next.Description, next.UnknownText = label, description, unknown
+	change := updateChange(existing, next)
+	if change == nil {
 		return existing, nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), database.NullString(unknown), id); err != nil {
+	if _, err := tx.Exec(sqlUpdate, label, existing.DataType, database.NullString(description), database.NullString(unknown), id); err != nil {
 		return Field{}, nil, err
 	}
 	got, err := getByID(tx.Tx, id)
 	if err != nil {
 		return Field{}, nil, err
 	}
-	return got, []rowchange.Change{{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return got, []rowchange.Change{*change}, nil
 }
 
 // GetByID returns the field with the given id, or sql.ErrNoRows.
@@ -418,19 +440,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":        {Old: database.UUIDString(id), New: nil},
-		"key":       {Old: prev.Key, New: nil},
-		"origin":    {Old: prev.Origin, New: nil},
-		"label":     {Old: prev.Label, New: nil},
-		"data_type": {Old: prev.DataType, New: nil},
-	}
-	if prev.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: prev.Description, New: nil}
-	}
-	if prev.UnknownText != "" {
-		fields["unknown_text"] = rowchange.FieldDiff{Old: prev.UnknownText, New: nil}
-	}
+	fields := rowchange.DeletedRow(rowFields(prev))
 	return append(released, rowchange.Change{
 		EntityType: "metadata_field",
 		EntityID:   append([]byte(nil), id...),

@@ -16,6 +16,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/evidencegraphs"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
@@ -135,7 +136,7 @@ func TestSources(t *testing.T) {
 	}
 	mustType := func(t *testing.T, c *database.Catalog) []byte {
 		t.Helper()
-		id, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		id, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 		})
 		if err != nil {
@@ -681,7 +682,7 @@ func TestSourceDelete(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -848,7 +849,7 @@ func TestNormalizeCoverNeedsThumbnail(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -948,7 +949,7 @@ func sourceFixture(t *testing.T) (c *database.Catalog, userID, typeID []byte) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err = sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err = sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {

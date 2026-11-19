@@ -9,6 +9,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/databasetest"
 	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
@@ -36,7 +37,7 @@ type ScaleSeed struct {
 // book source type and opens the transaction. It seeds nothing.
 func NewScaleSeed(tb testing.TB, c *database.Catalog) *ScaleSeed {
 	tb.Helper()
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		tb.Fatal(err)
 	}

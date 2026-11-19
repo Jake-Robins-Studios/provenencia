@@ -7,14 +7,25 @@ import (
 	"testing"
 
 	"github.com/mendahu/provenencia/core/database"
+	"github.com/mendahu/provenencia/core/database/dbtest"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
 )
+
+// install runs Install the way createCatalog does: one writes.Call, no user.
+func install(c *database.Catalog) error {
+	_, err := writes.Call(c, writes.Op{Action: ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := Install(tx)
+		return struct{}{}, changes, err
+	})
+	return err
+}
 
 func TestInstall(t *testing.T) {
 	tests := []struct {
@@ -24,7 +35,7 @@ func TestInstall(t *testing.T) {
 		{
 			name: "empty catalog gets trimmed seed",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				types, err := sourcetypes.List(c)
@@ -72,15 +83,24 @@ func TestInstall(t *testing.T) {
 				saved := seedSuggestions
 				t.Cleanup(func() { seedSuggestions = saved })
 				seedSuggestions = []seedSuggestion{{TypeKey: "no_such_type", Level: vocabkey.LevelSource}}
-				if err := Install(c); !errors.Is(err, ErrInvalid) {
+				if err := install(c); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("Install = %v, want ErrInvalid", err)
+				}
+				// The valid fields and type ahead of the bad suggestion are rolled back.
+				fields, err := metadatafields.List(c)
+				if err != nil || len(fields) != 0 {
+					t.Fatalf("fields after a failed install: %v %v", fields, err)
+				}
+				types, err := sourcetypes.List(c)
+				if err != nil || len(types) != 0 {
+					t.Fatalf("types after a failed install: %v %v", types, err)
 				}
 			},
 		},
 		{
 			name: "install twice keeps same ids",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
@@ -88,7 +108,7 @@ func TestInstall(t *testing.T) {
 					t.Fatal(err)
 				}
 				id1 := append([]byte(nil), cert.ID...)
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				cert, err = sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
@@ -102,12 +122,98 @@ func TestInstall(t *testing.T) {
 				if err != nil || len(types) != 1 {
 					t.Fatalf("types %v %d", err, len(types))
 				}
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := dbtest.Revisions(t, db); got != 1 {
+					t.Fatalf("revisions after a second install = %d, want 1", got)
+				}
+			},
+		},
+		{
+			name: "a second install does not restore a deleted suggestion",
+			run: func(t *testing.T, c *database.Catalog) {
+				if err := install(c); err != nil {
+					t.Fatal(err)
+				}
+				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
+				if err != nil {
+					t.Fatal(err)
+				}
+				field, err := metadatafields.Lookup(c, "issue_date", vocabkey.OriginProvenencia)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := DeleteSuggestion(c, cert.ID, field.ID, vocabkey.LevelSource); err != nil {
+					t.Fatal(err)
+				}
+				if err := install(c); err != nil {
+					t.Fatal(err)
+				}
+				sugs, err := ListSuggestions(c, cert.ID, vocabkey.LevelSource)
+				if err != nil || len(sugs) != 2 {
+					t.Fatalf("after second install %v %d", err, len(sugs))
+				}
+			},
+		},
+		{
+			name: "install records one revision",
+			run: func(t *testing.T, c *database.Catalog) {
+				if err := install(c); err != nil {
+					t.Fatal(err)
+				}
+				db, err := c.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := dbtest.Revisions(t, db); got != 1 {
+					t.Fatalf("revisions = %d, want 1", got)
+				}
+				action, changes := dbtest.LatestRevision(t, db)
+				if action != ActionInstall {
+					t.Fatalf("action = %q", action)
+				}
+				counts := map[string]int{}
+				for _, ch := range changes {
+					if ch.Action != rowchange.ActionCreate {
+						t.Fatalf("change %+v", ch)
+					}
+					counts[ch.EntityType]++
+				}
+				if len(counts) != 2 || counts["source_type"] != 1 || counts["metadata_field"] != 3 {
+					t.Fatalf("changes by entity = %v", counts)
+				}
+				docs := map[string]int{}
+				rows, err := db.Query(`SELECT kind, COUNT(*) FROM catalog_search_docs GROUP BY kind`)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var kind string
+					var n int
+					if err := rows.Scan(&kind, &n); err != nil {
+						t.Fatal(err)
+					}
+					docs[kind] = n
+				}
+				if err := rows.Err(); err != nil {
+					t.Fatal(err)
+				}
+				if len(docs) != 2 || docs["source_type"] != 1 || docs["metadata_field"] != 3 {
+					t.Fatalf("search docs by kind = %v", docs)
+				}
+				var nullUser int
+				if err := db.QueryRow(`SELECT COUNT(*) FROM audit_transactions WHERE user_id IS NULL`).Scan(&nullUser); err != nil || nullUser != 1 {
+					t.Fatalf("null-user revisions = %d %v", nullUser, err)
+				}
 			},
 		},
 		{
 			name: "deleted provenencia type stays deleted without reinstall",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
@@ -134,7 +240,7 @@ func TestInstall(t *testing.T) {
 		{
 			name: "deleted suggestion join stays deleted without reinstall",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
@@ -157,12 +263,12 @@ func TestInstall(t *testing.T) {
 		{
 			name: "user origin twin left alone",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				if _, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "birth_certificate", Origin: vocabkey.OriginUser, Label: "My Birth Cert",
 				}); err != nil {
 					t.Fatal(err)
 				}
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				userRow, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginUser)
@@ -202,7 +308,7 @@ func TestAppendSuggestion(t *testing.T) {
 		{
 			name: "appends in call order and is idempotent",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -252,7 +358,7 @@ func TestAppendSuggestion(t *testing.T) {
 		{
 			name: "removing a suggestion leaves the field in the vocabulary",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -305,7 +411,7 @@ func TestAppendSuggestion(t *testing.T) {
 		{
 			name: "ListSuggestionsTx reads what ListSuggestions reads",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -370,7 +476,7 @@ func TestAppendSuggestion(t *testing.T) {
 		{
 			name: "levels that hold no metadata are rejected",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -384,8 +490,11 @@ func TestAppendSuggestion(t *testing.T) {
 					if err := AppendSuggestion(c, typeID, f.ID, l); !errors.Is(err, ErrInvalid) {
 						t.Fatalf("AppendSuggestion(%q) = %v", l, err)
 					}
-					if err := EnsureSuggestion(c, typeID, f.ID, l, 0); !errors.Is(err, ErrInvalid) {
-						t.Fatalf("EnsureSuggestion(%q) = %v", l, err)
+					_, err := writes.Call(c, writes.Op{Action: "ensure_suggestion"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+						return struct{}{}, nil, ensureSuggestionTx(tx, typeID, f.ID, l, 0)
+					})
+					if !errors.Is(err, ErrInvalid) {
+						t.Fatalf("ensureSuggestionTx(%q) = %v", l, err)
 					}
 					if _, err := ListSuggestions(c, typeID, l); !errors.Is(err, ErrInvalid) {
 						t.Fatalf("ListSuggestions(%q) = %v", l, err)

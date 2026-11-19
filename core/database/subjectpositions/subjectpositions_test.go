@@ -13,6 +13,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjectpositions"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
@@ -37,7 +38,7 @@ func TestSubjectPositions(t *testing.T) {
 	}
 	mustSource := func(t *testing.T, c *database.Catalog, title string) sources.Source {
 		t.Helper()
-		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book_" + title, Origin: vocabkey.OriginProvenencia, Label: title,
 		})
 		if err != nil {

@@ -1,6 +1,7 @@
 package sourcetypes
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/deleteimpact"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/users"
@@ -25,7 +27,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "upsert lookup and list",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{
+				id, err := upsert(c, Type{
 					Key: "photograph", Origin: vocabkey.OriginProvenencia, Label: "Photograph", Description: "Photo",
 				})
 				if err != nil {
@@ -38,7 +40,7 @@ func TestUpsertLookupList(t *testing.T) {
 				if string(got.ID) != string(id) || got.Label != "Photograph" || got.Description != "Photo" {
 					t.Fatalf("got %+v", got)
 				}
-				id2, err := Upsert(c, Type{
+				id2, err := upsert(c, Type{
 					Key: "photograph", Origin: vocabkey.OriginProvenencia, Label: "Photo", Description: "Updated",
 				})
 				if err != nil {
@@ -63,10 +65,10 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "same key different origins",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"}); err != nil {
+				if _, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"}); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "My Book"}); err != nil {
+				if _, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "My Book"}); err != nil {
 					t.Fatal(err)
 				}
 				all, err := List(c)
@@ -78,7 +80,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "rejects blank key",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Type{Key: "  ", Origin: vocabkey.OriginUser, Label: "X"}); !errors.Is(err, ErrInvalid) {
+				if _, err := upsert(c, Type{Key: "  ", Origin: vocabkey.OriginUser, Label: "X"}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("got %v", err)
 				}
 			},
@@ -141,7 +143,7 @@ func TestDelete(t *testing.T) {
 			name: "unused provenencia ok",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Type{Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census"})
+				id, err := upsert(c, Type{Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -161,7 +163,7 @@ func TestDelete(t *testing.T) {
 			name: "in use refuses",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				id, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -182,7 +184,7 @@ func TestDelete(t *testing.T) {
 			name: "unused plugin is origin locked",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Type{
+				id, err := upsert(c, Type{
 					Key: "memorial", Origin: "plugin:findagrave", Label: "Grave memorial",
 				})
 				if err != nil {
@@ -211,11 +213,11 @@ func TestDelete(t *testing.T) {
 			name: "unused type with suggestions still erases",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				id, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
-				fieldID, err := metadatafields.Upsert(c, metadatafields.Field{
+				fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -252,7 +254,7 @@ func TestDelete(t *testing.T) {
 			name: "keeps its formats in the delete change",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := Upsert(c, Type{Key: "census", Origin: vocabkey.OriginUser, Label: "Census"})
+				id, err := upsert(c, Type{Key: "census", Origin: vocabkey.OriginUser, Label: "Census"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -429,7 +431,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "create may reuse a provenencia key under user origin",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"}); err != nil {
+				if _, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"}); err != nil {
 					t.Fatal(err)
 				}
 				got, err := runCreate(c, "Book", "", "type_book")
@@ -444,7 +446,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update patches label and description, keeping the key",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book", Description: "Old"})
+				id, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book", Description: "Old"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -463,7 +465,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update empty icon_key preserves existing",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{
+				id, err := upsert(c, Type{
 					Key: "scroll", Origin: vocabkey.OriginUser, Label: "Scroll", IconKey: "type_scroll",
 				})
 				if err != nil {
@@ -481,7 +483,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update refuses a plugin type",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{Key: "memorial", Origin: "plugin:findagrave", Label: "Grave memorial"})
+				id, err := upsert(c, Type{Key: "memorial", Origin: "plugin:findagrave", Label: "Grave memorial"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -493,7 +495,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update refuses a blank label",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				id, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -505,7 +507,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "get by id round-trips, missing is ErrNoRows",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				id, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -529,11 +531,11 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				if err := users.Upsert(c, userID, "Jake", r); err != nil {
 					t.Fatal(err)
 				}
-				used, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				used, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := Upsert(c, Type{Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter"}); err != nil {
+				if _, err := upsert(c, Type{Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter"}); err != nil {
 					t.Fatal(err)
 				}
 				for _, title := range []string{"One", "Two"} {
@@ -575,14 +577,14 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "list counts the fields a type suggests at every level",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := Upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
+				typeID, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := Upsert(c, Type{Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter"}); err != nil {
+				if _, err := upsert(c, Type{Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter"}); err != nil {
 					t.Fatal(err)
 				}
-				fieldID, err := metadatafields.Upsert(c, metadatafields.Field{
+				fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -654,4 +656,129 @@ func runDelete(c *database.Catalog, userID, id []byte) error {
 			return struct{}{}, changes, err
 		})
 	return err
+}
+
+func TestUpsertTx(t *testing.T) {
+	run := func(t *testing.T, c *database.Catalog, in Type) ([]byte, []rowchange.Change, error) {
+		t.Helper()
+		var changes []rowchange.Change
+		id, err := writes.Call(c, writes.Op{Action: "upsert_source_type"}, func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+			id, cs, err := UpsertTx(tx, in)
+			changes = cs
+			return id, cs, err
+		})
+		return id, changes, err
+	}
+	census := Type{Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census", IconKey: "type_census"}
+	tests := []struct {
+		name string
+		run  func(t *testing.T, c *database.Catalog)
+	}{
+		{"insert records a create change with Create's keys", func(t *testing.T, c *database.Catalog) {
+			census := census
+			census.Description = "Decennial"
+			id, changes, err := run(t, c, census)
+			if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionCreate || changes[0].EntityType != "source_type" {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			for _, k := range []string{"id", "key", "origin", "label", "icon_key", "description"} {
+				if _, ok := changes[0].Fields[k]; !ok {
+					t.Fatalf("create change lacks %s: %+v", k, changes[0].Fields)
+				}
+			}
+			if len(changes[0].Fields) != 6 || !bytes.Equal(changes[0].EntityID, id) {
+				t.Fatalf("fields %+v", changes[0].Fields)
+			}
+			_, createChanges, err := Create(mustBegin(t, c), CreateInput{Label: "Letter", Description: "x", IconKey: "type_book"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for k := range createChanges[0].Fields {
+				if _, ok := changes[0].Fields[k]; !ok {
+					t.Fatalf("Create records %s, UpsertTx does not", k)
+				}
+			}
+		}},
+		{"the same values change nothing", func(t *testing.T, c *database.Catalog) {
+			id, _, err := run(t, c, census)
+			if err != nil {
+				t.Fatal(err)
+			}
+			id2, changes, err := run(t, c, census)
+			if err != nil || len(changes) != 0 || !bytes.Equal(id, id2) {
+				t.Fatalf("%v %x %x %+v", err, id, id2, changes)
+			}
+		}},
+		{"a label change is one label diff", func(t *testing.T, c *database.Catalog) {
+			if _, _, err := run(t, c, census); err != nil {
+				t.Fatal(err)
+			}
+			next := census
+			next.Label = "Census schedule"
+			_, changes, err := run(t, c, next)
+			if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate || len(changes[0].Fields) != 1 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			if d := changes[0].Fields["label"]; d.Old != "Census" || d.New != "Census schedule" {
+				t.Fatalf("diff %+v", d)
+			}
+		}},
+		{"an icon change is one icon_key diff", func(t *testing.T, c *database.Catalog) {
+			if _, _, err := run(t, c, census); err != nil {
+				t.Fatal(err)
+			}
+			next := census
+			next.IconKey = "type_book"
+			_, changes, err := run(t, c, next)
+			if err != nil || len(changes) != 1 || len(changes[0].Fields) != 1 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			if _, ok := changes[0].Fields["icon_key"]; !ok {
+				t.Fatalf("%+v", changes[0].Fields)
+			}
+		}},
+		{"a plugin origin is accepted", func(t *testing.T, c *database.Catalog) {
+			in := census
+			in.Origin = "plugin:acme"
+			if _, changes, err := run(t, c, in); err != nil || len(changes) != 1 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+		}},
+		{"invalid input writes nothing", func(t *testing.T, c *database.Catalog) {
+			for _, in := range []Type{
+				{Key: "  ", Origin: vocabkey.OriginUser, Label: "X"},
+				{Key: "x", Origin: vocabkey.OriginUser, Label: " "},
+				{Key: "x", Origin: "bogus", Label: "X"},
+				{ID: make([]byte, 16), Key: "x", Origin: vocabkey.OriginUser, Label: "X"},
+			} {
+				if _, _, err := run(t, c, in); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("%+v: %v", in, err)
+				}
+			}
+			if types, err := List(c); err != nil || len(types) != 0 {
+				t.Fatalf("%v %v", types, err)
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := database.Create(t.TempDir(), "t.provenencia")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			tt.run(t, c)
+		})
+	}
+}
+
+func mustBegin(t *testing.T, c *database.Catalog) *database.Tx {
+	t.Helper()
+	tx, err := c.BeginWrite()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(c.EndWrite)
+	t.Cleanup(func() { _ = tx.Rollback() })
+	return tx
 }

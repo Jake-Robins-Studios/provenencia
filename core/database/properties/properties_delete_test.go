@@ -20,6 +20,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
@@ -325,7 +326,7 @@ func latestAction(t *testing.T, c *database.Catalog) string {
 
 func insertObservationOn(t *testing.T, c *database.Catalog, userID, propertyID []byte) []byte {
 	t.Helper()
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -504,7 +505,7 @@ func TestUsedByCountsObservationsAndTerms(t *testing.T) {
 		t.Fatalf("two terms, no Observation: UsedBy %d, List %d, Update %d; want 2", n, listed, updated)
 	}
 
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}

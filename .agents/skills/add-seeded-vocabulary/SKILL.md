@@ -38,8 +38,8 @@ new Install into **`onboarding.createCatalog` only**.
    - `seedSuggestions` — one entry per `(type_key, level)` with its `FieldKeys` in order; a field's position is its sort order
 2. Prefer a tiny starter set. New projects get whatever is in the registry at
    create time; existing catalogs are not backfilled on open.
-3. All registry rows are **`origin = provenencia`**. Researcher/plugin rows use
-   Upsert APIs with `user` / `plugin:<id>` — never put those in the registry.
+3. All registry rows are **`origin = provenencia`**. Researcher rows use `Create` (`user`);
+   plugin rows use `UpsertTx` (`plugin:<id>`) — never put those in the registry.
    Origins, primary kinds and the Property keys code reads by name come from
    `core/vocabkey`. A vocabulary package does not declare its own
    `OriginProvenencia` or origin check; it calls `vocabkey.ValidOrigin`.
@@ -82,13 +82,18 @@ Uniqueness is **`UNIQUE (key, origin)`**. Lookup is always `(key, origin)`, neve
 
 ### Install semantics (pinned)
 
-- Each domain’s `Install` upserts its registry into a new catalog.
+- Each domain’s `Install` upserts its registry into a new catalog (the Source one on the caller's transaction, as below).
 - Call **only** from `onboarding.createCatalog` (after `database.Create`). Today that is:
-  `sourcevocab.Install` → `sourcecredibilitygrades.Install` → `subjectvocab.Install` → `nameformats.Install` → `namealiases.Install`
+  `sourcevocab.Install` (in a `writes.Call`) → `sourcecredibilitygrades.Install` → `subjectvocab.Install` → `nameformats.Install` → `namealiases.Install`
   (then `catalogsession.ReconcileOnOpen`).
 - **Do not** call `Install` from `OpenCatalog`, `catalogsession.Do`, or on every open.
 - **Do not** heal deleted `provenencia` rows or restored suggestion joins on open.
-- Calling `Install` twice would refresh labels via Upsert — create path calls each once.
+- `sourcevocab.Install(tx)` composes on the caller's transaction and never calls
+  `writes.Run`; `createCatalog` runs it in one `writes.Call` (action
+  `install_source_vocabulary`, no user), so it is atomic: a failed install leaves
+  nothing. A second run over unchanged rows records nothing (no revision), and
+  one over a renamed product row records an update. Tests make types and fields
+  through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`.
 - Unused-vocab delete goes through `deleteimpact` after that page’s PR (**S8-15** types, **S8-16** fields, **S8-17** properties) — not a private `sqlInUse`. **Origin:** plugin never; seeded types/fields may erase when unused; seeded properties/terms stay locked. See [`add-catalog-delete`](../add-catalog-delete/SKILL.md).
 
 ## Where create vs open run

@@ -1,9 +1,11 @@
 // Package sourcevocab owns type↔field suggestions per level and provenencia create-time seed.
 //
 // Install upserts the shipped vocabulary registry (origin=provenencia) once at
-// catalog create. Call it only from onboarding.createCatalog — not on open.
-// It does not heal deleted rows on later opens; calling it twice would refresh
-// labels via Upsert (create path invokes it once).
+// catalog create. It composes on the caller's transaction and never calls
+// writes.Run: onboarding.createCatalog runs it in one writes.Call, so the seed
+// is one revision and a failed install leaves nothing. Call it only from there
+// — not on open. It does not heal deleted rows on later opens; a second run
+// over unchanged rows records nothing.
 //
 // CopyType also lives here: it copies a type with its suggested fields inside
 // the caller's writes.Run and never calls it.
@@ -16,11 +18,15 @@ import (
 	"github.com/mendahu/provenencia/core/apperr"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeSourceVocabInvalid, apperr.KindUser)
+
+// ActionInstall is the audit action of the create-time seed revision.
+const ActionInstall = "install_source_vocabulary"
 
 const (
 	sqlEnsureSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order)
@@ -49,20 +55,13 @@ type Suggestion struct {
 	SortOrder int
 }
 
-// EnsureSuggestion inserts or updates the join row's sort_order. A level
-// outside vocabkey.MetadataLevels is ErrInvalid.
-func EnsureSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabkey.Level, sortOrder int) error {
-	if !level.HoldsMetadata() {
+// ensureSuggestionTx inserts or updates the join row's sort_order on tx. A
+// level outside vocabkey.MetadataLevels is ErrInvalid.
+func ensureSuggestionTx(tx *database.Tx, typeID, fieldID []byte, level vocabkey.Level, sortOrder int) error {
+	if !level.HoldsMetadata() || len(typeID) != 16 || len(fieldID) != 16 {
 		return ErrInvalid
 	}
-	db, err := c.DB()
-	if err != nil {
-		return err
-	}
-	if len(typeID) != 16 || len(fieldID) != 16 {
-		return ErrInvalid
-	}
-	_, err = db.Exec(sqlEnsureSuggestion, typeID, fieldID, string(level), sortOrder)
+	_, err := tx.Exec(sqlEnsureSuggestion, typeID, fieldID, string(level), sortOrder)
 	return err
 }
 
@@ -165,15 +164,18 @@ func DeleteSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabke
 	return err
 }
 
-// Install writes the provenencia seed registry into a new catalog.
-// Call only at create time (onboarding.createCatalog).
-func Install(c *database.Catalog) error {
-	if _, err := c.DB(); err != nil {
-		return err
+// Install writes the provenencia seed registry into a new catalog on tx and
+// returns the type and field changes (the suggestion rows are written and are
+// not changes). Call only at create time, inside writes.Call
+// (onboarding.createCatalog); never call writes.Run here.
+func Install(tx *database.Tx) ([]rowchange.Change, error) {
+	if tx == nil {
+		return nil, ErrInvalid
 	}
+	var changes []rowchange.Change
 	fieldIDs := make(map[string][]byte, len(seedFields))
 	for _, f := range seedFields {
-		id, err := metadatafields.Upsert(c, metadatafields.Field{
+		id, cs, err := metadatafields.UpsertTx(tx, metadatafields.Field{
 			Key:         f.Key,
 			Origin:      vocabkey.OriginProvenencia,
 			Label:       f.Label,
@@ -181,13 +183,14 @@ func Install(c *database.Catalog) error {
 			Description: f.Description,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
+		changes = append(changes, cs...)
 		fieldIDs[f.Key] = id
 	}
 	typeIDs := make(map[string][]byte, len(seedTypes))
 	for _, t := range seedTypes {
-		id, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		id, cs, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
 			Key:         t.Key,
 			Origin:      vocabkey.OriginProvenencia,
 			Label:       t.Label,
@@ -195,24 +198,25 @@ func Install(c *database.Catalog) error {
 			IconKey:     t.IconKey,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
+		changes = append(changes, cs...)
 		typeIDs[t.Key] = id
 	}
 	for _, s := range seedSuggestions {
 		typeID := typeIDs[s.TypeKey]
 		if len(typeID) == 0 {
-			return ErrInvalid
+			return nil, ErrInvalid
 		}
 		for order, key := range s.FieldKeys {
 			fieldID := fieldIDs[key]
 			if len(fieldID) == 0 {
-				return ErrInvalid
+				return nil, ErrInvalid
 			}
-			if err := EnsureSuggestion(c, typeID, fieldID, s.Level, order); err != nil {
-				return err
+			if err := ensureSuggestionTx(tx, typeID, fieldID, s.Level, order); err != nil {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return changes, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -31,7 +32,7 @@ func TestAssessments(t *testing.T) {
 	}
 	mustSource := func(t *testing.T, c *database.Catalog) sources.Source {
 		t.Helper()
-		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 		})
 		if err != nil {

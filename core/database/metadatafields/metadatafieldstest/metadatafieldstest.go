@@ -1,0 +1,17 @@
+// Package metadatafieldstest holds the metadata field fixture for tests.
+package metadatafieldstest
+
+import (
+	"github.com/mendahu/provenencia/core/database"
+	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/mendahu/provenencia/core/writes"
+)
+
+// Upsert inserts or updates a field by (key, origin) through the write pipeline.
+func Upsert(c *database.Catalog, f metadatafields.Field) ([]byte, error) {
+	return writes.Call(c, writes.Op{Action: "upsert_metadata_field"},
+		func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+			return metadatafields.UpsertTx(tx, f)
+		})
+}

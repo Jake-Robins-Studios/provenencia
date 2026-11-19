@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"slices"
 	"strings"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
@@ -36,7 +38,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "upsert lookup refresh data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -49,7 +51,7 @@ func TestUpsertLookupList(t *testing.T) {
 				if string(got.ID) != string(id) || got.DataType != metadatafields.DataTypeText {
 					t.Fatalf("got %+v", got)
 				}
-				if _, err := metadatafields.Upsert(c, metadatafields.Field{
+				if _, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeURL,
 				}); err != nil {
 					t.Fatal(err)
@@ -66,7 +68,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "rejects bad data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := metadatafields.Upsert(c, metadatafields.Field{
+				if _, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "x", Origin: vocabkey.OriginUser, Label: "X", DataType: "number",
 				}); !errors.Is(err, metadatafields.ErrInvalid) {
 					t.Fatalf("got %v", err)
@@ -76,7 +78,7 @@ func TestUpsertLookupList(t *testing.T) {
 		{
 			name: "upsert accepts url data type",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "landing-page", Origin: vocabkey.OriginUser, Label: "Landing page", DataType: metadatafields.DataTypeURL,
 				})
 				if err != nil {
@@ -149,7 +151,7 @@ func TestDelete(t *testing.T) {
 			name: "unused provenencia ok",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -171,7 +173,7 @@ func TestDelete(t *testing.T) {
 			name: "in use refuses",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -218,7 +220,7 @@ func TestDelete(t *testing.T) {
 					t.Fatal(err)
 				}
 				mustType := func(label string) []byte {
-					id, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: label, Origin: vocabkey.OriginUser, Label: label})
+					id, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: label, Origin: vocabkey.OriginUser, Label: label})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -356,7 +358,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "huge", Origin: vocabkey.OriginUser, Label: "Huge"})
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "huge", Origin: vocabkey.OriginUser, Label: "Huge"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -468,7 +470,7 @@ func TestDelete(t *testing.T) {
 			name: "unused plugin is origin locked",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -497,7 +499,7 @@ func TestDelete(t *testing.T) {
 			name: "unused field with suggestion and layout still erases",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
 				})
 				if err != nil {
@@ -509,7 +511,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -614,7 +616,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "same key different origin does not collide",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := metadatafields.Upsert(c, metadatafields.Field{
+				if _, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "photographer", Origin: vocabkey.OriginProvenencia, Label: "Photographer", DataType: metadatafields.DataTypeText,
 				}); err != nil {
 					t.Fatal(err)
@@ -667,7 +669,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update provenencia field",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "author", Origin: vocabkey.OriginProvenencia, Label: "Author", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -687,7 +689,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 		{
 			name: "update rejects plugin field",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := metadatafields.Upsert(c, metadatafields.Field{
+				id, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -920,7 +922,7 @@ func runDelete(c *database.Catalog, userID, id []byte) error {
 // Source, the Artifact id and the type id.
 func fieldHolders(t *testing.T, c *database.Catalog, userID []byte) (src sources.Source, artifactID, typeID []byte) {
 	t.Helper()
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "ledger", Origin: vocabkey.OriginUser, Label: "Ledger"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "ledger", Origin: vocabkey.OriginUser, Label: "Ledger"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -960,7 +962,7 @@ func TestResolveKeysTx(t *testing.T) {
 	defer c.Close()
 	upsert := func(key, origin string) []byte {
 		t.Helper()
-		id, err := metadatafields.Upsert(c, metadatafields.Field{Key: key, Origin: origin, Label: key, DataType: metadatafields.DataTypeText})
+		id, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: key, Origin: origin, Label: key, DataType: metadatafields.DataTypeText})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1016,6 +1018,145 @@ func TestResolveKeysTx(t *testing.T) {
 			if fmt.Sprint(got.Unknown) != fmt.Sprint(tc.unknown) || fmt.Sprint(got.Ambiguous) != fmt.Sprint(tc.ambiguous) {
 				t.Fatalf("unknown %v ambiguous %v, want %v %v", got.Unknown, got.Ambiguous, tc.unknown, tc.ambiguous)
 			}
+		})
+	}
+}
+
+func TestUpsertTx(t *testing.T) {
+	run := func(t *testing.T, c *database.Catalog, in metadatafields.Field) ([]byte, []rowchange.Change, error) {
+		t.Helper()
+		var changes []rowchange.Change
+		id, err := writes.Call(c, writes.Op{Action: "upsert_metadata_field"}, func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+			id, cs, err := metadatafields.UpsertTx(tx, in)
+			changes = cs
+			return id, cs, err
+		})
+		return id, changes, err
+	}
+	piece := metadatafields.Field{Key: "piece", Origin: vocabkey.OriginProvenencia, Label: "Piece", DataType: metadatafields.DataTypeText}
+	only := func(t *testing.T, changes []rowchange.Change, column string) rowchange.FieldDiff {
+		t.Helper()
+		if len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate || len(changes[0].Fields) != 1 {
+			t.Fatalf("want one update of %s, got %+v", column, changes)
+		}
+		d, ok := changes[0].Fields[column]
+		if !ok {
+			t.Fatalf("want %s, got %+v", column, changes[0].Fields)
+		}
+		return d
+	}
+	tests := []struct {
+		name string
+		run  func(t *testing.T, c *database.Catalog)
+	}{
+		{"insert records a create change with Create's keys", func(t *testing.T, c *database.Catalog) {
+			in := piece
+			in.Description = "Which piece"
+			id, changes, err := run(t, c, in)
+			if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionCreate || changes[0].EntityType != "metadata_field" {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			for _, k := range []string{"id", "key", "origin", "label", "data_type", "description"} {
+				if _, ok := changes[0].Fields[k]; !ok {
+					t.Fatalf("create change lacks %s: %+v", k, changes[0].Fields)
+				}
+			}
+			if len(changes[0].Fields) != 6 || !bytes.Equal(changes[0].EntityID, id) {
+				t.Fatalf("fields %+v", changes[0].Fields)
+			}
+		}},
+		{"the same values change nothing", func(t *testing.T, c *database.Catalog) {
+			id, _, err := run(t, c, piece)
+			if err != nil {
+				t.Fatal(err)
+			}
+			id2, changes, err := run(t, c, piece)
+			if err != nil || len(changes) != 0 || !bytes.Equal(id, id2) {
+				t.Fatalf("%v %+v", err, changes)
+			}
+		}},
+		{"unknown text: cleared by an empty input, kept when it matches", func(t *testing.T, c *database.Catalog) {
+			in := piece
+			in.UnknownText = "n.p."
+			if _, _, err := run(t, c, in); err != nil {
+				t.Fatal(err)
+			}
+			in.UnknownText = " n.p. "
+			if _, changes, err := run(t, c, in); err != nil || len(changes) != 0 {
+				t.Fatalf("%v %+v", err, changes)
+			}
+			in.UnknownText = ""
+			_, changes, err := run(t, c, in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if d := only(t, changes, "unknown_text"); d.Old != "n.p." || d.New != nil {
+				t.Fatalf("diff %+v", d)
+			}
+			got, err := metadatafields.Lookup(c, "piece", vocabkey.OriginProvenencia)
+			if err != nil || got.UnknownText != "" {
+				t.Fatalf("%v %+v", err, got)
+			}
+			db, err := c.DB()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var isNull bool
+			if err := db.QueryRow(`SELECT unknown_text IS NULL FROM source_metadata_fields WHERE id = ?`, got.ID).Scan(&isNull); err != nil || !isNull {
+				t.Fatalf("unknown_text not NULL: %v %v", isNull, err)
+			}
+		}},
+		{"a description change is one description diff", func(t *testing.T, c *database.Catalog) {
+			if _, _, err := run(t, c, piece); err != nil {
+				t.Fatal(err)
+			}
+			in := piece
+			in.Description = "Which piece"
+			_, changes, err := run(t, c, in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			only(t, changes, "description")
+		}},
+		{"a data type change is one data_type diff", func(t *testing.T, c *database.Catalog) {
+			if _, _, err := run(t, c, piece); err != nil {
+				t.Fatal(err)
+			}
+			in := piece
+			in.DataType = metadatafields.DataTypeURL
+			_, changes, err := run(t, c, in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if d := only(t, changes, "data_type"); d.Old != "text" || d.New != "url" {
+				t.Fatalf("diff %+v", d)
+			}
+		}},
+		{"invalid input writes nothing", func(t *testing.T, c *database.Catalog) {
+			for _, in := range []metadatafields.Field{
+				{Key: " ", Origin: vocabkey.OriginUser, Label: "X", DataType: "text"},
+				{Key: "x", Origin: vocabkey.OriginUser, Label: " ", DataType: "text"},
+				{Key: "x", Origin: "bogus", Label: "X", DataType: "text"},
+				{Key: "x", Origin: vocabkey.OriginUser, Label: "X", DataType: "number"},
+				{ID: make([]byte, 16), Key: "x", Origin: vocabkey.OriginUser, Label: "X", DataType: "text"},
+			} {
+				if _, _, err := run(t, c, in); !errors.Is(err, metadatafields.ErrInvalid) {
+					t.Fatalf("%+v: %v", in, err)
+				}
+			}
+			if fields, err := metadatafields.List(c); err != nil || len(fields) != 0 {
+				t.Fatalf("%v %v", fields, err)
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := database.Create(t.TempDir(), "t.provenencia")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.Close()
+			tt.run(t, c)
 		})
 	}
 }

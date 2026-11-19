@@ -18,10 +18,12 @@ import (
 	"github.com/mendahu/provenencia/core/database/artifacts/artifactstest"
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
+	"github.com/mendahu/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
@@ -253,7 +255,7 @@ func TestSourceMetadata(t *testing.T) {
 				if _, err := runSet(c, userID, src.ID, Input{FieldID: doc.ID, ValueText: "12345"}); err != nil {
 					t.Fatal(err)
 				}
-				extraID, err := metadatafields.Upsert(c, metadatafields.Field{
+				extraID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "shelf_mark", Origin: vocabkey.OriginUser, Label: "Shelf mark", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -294,7 +296,7 @@ func TestSourceMetadata(t *testing.T) {
 			name: "list workspace suggests the source level only",
 			run: func(t *testing.T, c *database.Catalog) {
 				src := birthOfAlice(t, c, userID)
-				fieldID, err := metadatafields.Upsert(c, metadatafields.Field{
+				fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "shelf_mark", Origin: vocabkey.OriginUser, Label: "Shelf mark", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -461,7 +463,7 @@ func TestSourceMetadata(t *testing.T) {
 			name: "set gives a new field a layout slot at the end",
 			run: func(t *testing.T, c *database.Catalog) {
 				src := birthOfAlice(t, c, userID)
-				extraID, err := metadatafields.Upsert(c, metadatafields.Field{
+				extraID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 					Key: "shelf_mark", Origin: vocabkey.OriginUser, Label: "Shelf mark", DataType: metadatafields.DataTypeText,
 				})
 				if err != nil {
@@ -983,7 +985,7 @@ func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcevocab.Install(c); err != nil {
+	if err := sourcevocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	return c, userID

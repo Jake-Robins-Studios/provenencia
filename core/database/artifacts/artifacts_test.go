@@ -26,6 +26,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/derivatives"
 	"github.com/mendahu/provenencia/core/ingest"
@@ -70,7 +71,7 @@ func TestArtifacts(t *testing.T) {
 	}
 	mustSource := func(t *testing.T, c *database.Catalog) sources.Source {
 		t.Helper()
-		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 		})
 		if err != nil {
@@ -342,7 +343,7 @@ func TestArtifacts(t *testing.T) {
 			name: "list by source only",
 			run: func(t *testing.T, c *database.Catalog) {
 				mustUser(t, c)
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "photo", Origin: vocabkey.OriginProvenencia, Label: "Photo",
 				})
 				if err != nil {
@@ -483,7 +484,7 @@ func TestArtifactDelete(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -817,7 +818,7 @@ func TestArtifactDeletePurgesDisk(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -1035,7 +1036,7 @@ func TestArtifactDeleteKeepsSharedThumbnail(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1156,7 +1157,7 @@ func TestArtifactUpdateGraphs(t *testing.T) {
 	if err := users.Upsert(c, userID, "Jake", userRef); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}

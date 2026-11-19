@@ -17,6 +17,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
 
@@ -144,7 +145,7 @@ func TestRecordsApply(t *testing.T) {
 	g := r.C.Graph()
 	src := r.Source
 	records(t, r)
-	letter, err := sourcetypes.Upsert(r.C, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
+	letter, err := sourcetypestest.Upsert(r.C, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
 	evidencelayertest.Must(t, err)
 	var extra artifacts.Artifact
 

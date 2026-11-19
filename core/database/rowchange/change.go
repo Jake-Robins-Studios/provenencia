@@ -42,3 +42,22 @@ func DeletedRow(fields map[string]any) map[string]FieldDiff {
 	}
 	return out
 }
+
+// UpdatedRow is an update change: a key is present only when its value differs
+// between old and now (a key missing from one side reads nil), and the keys
+// named in fixed are never compared. It is empty when nothing differs.
+func UpdatedRow(old, now map[string]any, fixed ...string) map[string]FieldDiff {
+	skip := make(map[string]bool, len(fixed))
+	for _, k := range fixed {
+		skip[k] = true
+	}
+	out := map[string]FieldDiff{}
+	for _, m := range []map[string]any{old, now} {
+		for k := range m {
+			if !skip[k] && old[k] != now[k] {
+				out[k] = FieldDiff{Old: old[k], New: now[k]}
+			}
+		}
+	}
+	return out
+}

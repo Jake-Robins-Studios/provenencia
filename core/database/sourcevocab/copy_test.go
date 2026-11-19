@@ -14,6 +14,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/metadatafields"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -46,14 +47,14 @@ func newCopyFixture(t *testing.T) *copyFixture {
 	if err := users.Upsert(c, f.userID, "Tester", r); err != nil {
 		t.Fatal(err)
 	}
-	f.census, err = sourcetypes.Upsert(c, sourcetypes.Type{
+	f.census, err = sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census",
 		Description: "A head count", IconKey: "type_scroll",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.plugin, err = sourcetypes.Upsert(c, sourcetypes.Type{
+	f.plugin, err = sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "memorial", Origin: "plugin:findagrave", Label: "Grave memorial", IconKey: "type_book",
 	})
 	if err != nil {

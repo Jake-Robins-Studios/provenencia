@@ -24,6 +24,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/matchregistry"
@@ -177,7 +178,7 @@ func TestClaimsAfterSourceEdit(t *testing.T) {
 	if got := f.claims(s.person.ID); got[0].Source.Title != "Parish register" {
 		t.Fatalf("title before %q", got[0].Source.Title)
 	}
-	letter, err := sourcetypes.Upsert(f.C, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
+	letter, err := sourcetypestest.Upsert(f.C, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
 	must(t, err)
 	src := s.src
 	src.Title = "Registry of parish"
