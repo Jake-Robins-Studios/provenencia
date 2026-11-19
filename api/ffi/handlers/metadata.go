@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
@@ -59,19 +60,14 @@ func applyDraft(tx *database.Tx, userID []byte, owner sourcemetadata.Owner, d *s
 	return sourcemetadata.Apply(tx, userID, owner, *d)
 }
 
-// ownerBoardsProto reads every owner's board in one batch, in the order of
-// owners; an Owner carries its level, so one call serves a page's Source,
-// Artifacts and Evidence graphs in one read snapshot.
-func ownerBoardsProto(c *database.Catalog, owners []sourcemetadata.Owner) ([]*engine.MetadataBoard, error) {
-	lists, err := sourcemetadata.ListWorkspaces(c, owners)
-	if err != nil {
-		return nil, err
-	}
-	boards := make([]*engine.MetadataBoard, len(owners))
+// boardsProto is each owner's board as wire boards, in the order of owners
+// (sourcemetadata.ListWorkspaces' boards, index-aligned).
+func boardsProto(owners []sourcemetadata.Owner, boards []sourcemetadata.Board) []*engine.MetadataBoard {
+	out := make([]*engine.MetadataBoard, len(owners))
 	for i, o := range owners {
-		boards[i] = &engine.MetadataBoard{OwnerId: database.UUIDString(o.ID), Entries: metadataEntriesProto(lists[i])}
+		out[i] = &engine.MetadataBoard{OwnerId: database.UUIDString(o.ID), Entries: metadataEntriesProto(boards[i].Entries)}
 	}
-	return boards, nil
+	return out
 }
 
 func SetMetadata(in []byte) ([]byte, error) {
@@ -287,15 +283,39 @@ func metadataEntriesProto(entries []sourcemetadata.WorkspaceEntry) []*engine.Met
 
 func metadataEntryProto(e sourcemetadata.WorkspaceEntry) *engine.MetadataWorkspaceEntry {
 	out := &engine.MetadataWorkspaceEntry{
-		Field:     metadataFieldProto(e.Field),
-		Suggested: e.Suggested,
-		SortOrder: int32(e.SortOrder),
-		OpenHref:  e.OpenHref(),
+		Field:       metadataFieldProto(e.Field),
+		Suggested:   e.Suggested,
+		SortOrder:   int32(e.SortOrder),
+		OpenHref:    e.OpenHref(),
+		Requirement: requirementProto(e.Annotation),
 	}
 	if e.Value != nil {
 		out.HasValue = true
 		out.ValueText = e.Value.ValueText
 		out.Mark = valueMarkProto(e.Value.Mark)
+	}
+	return out
+}
+
+// requirementProto is what the formats ask of a head as a wire requirement, nil
+// when they do not read it.
+func requirementProto(a sourcemetadata.Annotation) *engine.CitationRequirement {
+	var need engine.CitationNeed
+	switch a.Need {
+	case citationformat.NeedNeeded:
+		need = engine.CitationNeed_CITATION_NEED_NEEDED
+	case citationformat.NeedUsed:
+		need = engine.CitationNeed_CITATION_NEED_USED
+	default:
+		return nil
+	}
+	out := &engine.CitationRequirement{Need: need, MetElsewhere: a.MetElsewhere}
+	for _, alt := range a.Alternatives {
+		opt := &engine.CitationRequirementOption{Level: string(alt.Level), Builtin: alt.Builtin}
+		if alt.Field != nil {
+			opt.Field = metadataFieldProto(*alt.Field)
+		}
+		out.Alternatives = append(out.Alternatives, opt)
 	}
 	return out
 }

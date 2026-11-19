@@ -11,13 +11,17 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/urlshape"
@@ -55,11 +59,16 @@ type Draft struct {
 	Layout []LayoutRow // written verbatim
 }
 
-// WorkspaceEntry is a suggested or extra field for the owner's edit UI.
+// WorkspaceEntry is a suggested, headed or extra field for the owner's edit UI:
+// a field the type suggests, one its citation formats head, or a stored value.
 type WorkspaceEntry struct {
-	Field     metadatafields.Field
-	Value     *Row // nil when suggested but unset
+	Field metadatafields.Field
+	Value *Row // nil when suggested or headed but unset
+	// Suggested is true when the type suggests the field at this level; a
+	// field only its formats head is not suggested.
 	Suggested bool
+	// Annotation is what the type's citation formats ask of the field.
+	Annotation Annotation
 	// SortOrder is the position ListWorkspace returned the entry in: the
 	// layout order once the owner has any layout row, otherwise the type's
 	// suggestion order (0 for extras).
@@ -498,13 +507,15 @@ func Clear(tx *database.Tx, userID []byte, owner Owner, fieldID []byte) ([]rowch
 	return []rowchange.Change{change}, nil
 }
 
-// DismissSuggestion hides one of the type's metadata suggestions for a single
-// owner. The caller records the returned changes.
+// DismissSuggestion hides one empty field of an owner's board for that owner:
+// a suggestion, or a field the type's citation formats read. The caller records
+// the returned changes.
 //
-// Dismissing is only meaningful while the field is an empty suggestion. A field
-// that already holds a value stays visible, so the call is a no-op rather than
-// an error — the editor's X is offered on empty suggestion rows only. An
-// already-dismissed suggestion is also a no-op. Both return no changes.
+// A field the formats need is refused (ErrInvalid, with the field's wire id as
+// params[0]): a needed field always shows. A field that already holds a value
+// stays visible, so the call is a no-op rather than an error, and so is an
+// already-dismissed field; both return no changes. Any other empty field is
+// dismissed.
 func DismissSuggestion(tx *database.Tx, userID []byte, owner Owner, fieldID []byte) ([]rowchange.Change, error) {
 	st, err := storeFor(owner)
 	if err != nil {
@@ -530,6 +541,14 @@ func DismissSuggestion(tx *database.Tx, userID []byte, owner Owner, fieldID []by
 		return nil, nil
 	case !errors.Is(err, sql.ErrNoRows):
 		return nil, err
+	}
+
+	need, err := needOfTx(tx.Tx, st, owner, fieldID)
+	if err != nil {
+		return nil, err
+	}
+	if need == citationformat.NeedNeeded {
+		return nil, ErrInvalid.WithParams(database.UUIDString(fieldID))
 	}
 
 	prev, err := getLayoutTx(tx.Tx, st, owner, fieldID)
@@ -790,27 +809,29 @@ func idsAt(owners []Owner, level vocabkey.Level) [][]byte {
 	return database.UniqueBlobIDs(ids)
 }
 
-// ListWorkspace returns suggested fields for the owner's type plus any extra
-// stored values, filtered and ordered by the owner's layout. A missing owner is
-// ErrInvalid.
+// ListWorkspace returns the owner's board entries: the type's suggestions, the
+// fields its citation formats head, and any extra stored values, filtered and
+// ordered by the owner's layout. A missing owner is ErrInvalid.
 //
-// Dismissed suggestions are omitted while they hold no value. Once the owner
-// has any layout row the entries come back in layout order, with fields that
-// have no row yet sorting after them in suggestion-then-extra order; an owner
-// with no layout at all keeps the original suggestion-then-extra order.
+// A dismissed field is omitted while it holds no value, unless its formats need
+// it. Once the owner has any layout row the entries come back in layout order,
+// with fields that have no row yet sorting after them in suggestion, head, then
+// extra order; an owner with no layout at all keeps that original order. Each
+// entry carries what the formats ask of it (Annotation).
 func ListWorkspace(c *database.Catalog, owner Owner) ([]WorkspaceEntry, error) {
-	lists, err := ListWorkspaces(c, []Owner{owner})
+	boards, err := ListWorkspaces(c, []Owner{owner})
 	if err != nil {
 		return nil, err
 	}
-	return lists[0], nil
+	return boards[0].Entries, nil
 }
 
 // ListWorkspaces is ListWorkspace over many owners in one read transaction: the
-// list at index i is owners[i]'s, and a repeated owner gets the same list. No
-// owners returns nil without opening a transaction. An owner at a level with no
-// store, or one that does not exist, is ErrInvalid.
-func ListWorkspaces(c *database.Catalog, owners []Owner) ([][]WorkspaceEntry, error) {
+// board at index i is owners[i]'s, and a repeated owner gets the same board. A
+// Source owner's board also carries what its type asks of the Source date and
+// the printed page. No owners returns nil without opening a transaction. An
+// owner at a level with no store, or one that does not exist, is ErrInvalid.
+func ListWorkspaces(c *database.Catalog, owners []Owner) ([]Board, error) {
 	for _, o := range owners {
 		if _, err := storeFor(o); err != nil {
 			return nil, err
@@ -832,17 +853,25 @@ func ListWorkspaces(c *database.Catalog, owners []Owner) ([][]WorkspaceEntry, er
 	if err != nil {
 		return nil, err
 	}
-	out := make([][]WorkspaceEntry, len(owners))
+	out := make([]Board, len(owners))
 	for i, o := range owners {
 		out[i] = byOwner[o.key()]
 	}
 	return out, nil
 }
 
+// typeLevel keys what is read once per Source type and level.
+type typeLevel struct {
+	typeID string
+	level  vocabkey.Level
+}
+
 // listWorkspaces is ListWorkspace over many owners, keyed by Owner.key: each
-// level's types in one query, the suggestions once per distinct (type, level),
-// then the values, the layout and every extra value's field in one read each.
-func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, error) {
+// level's types and Sources in one query, the suggestions, the formats'
+// requirements and their heads once per distinct (type, level), the values of
+// the owners and of their Sources, the layout, each distinct Source, and every
+// field a board names in one read each.
+func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	var uniq []Owner
 	seenOwner := make(map[string]struct{}, len(owners))
 	for _, o := range owners {
@@ -857,30 +886,34 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, er
 	}
 
 	typeOf := make(map[string][]byte, len(uniq))
+	sourceOf := make(map[string][]byte, len(uniq))
 	err := eachLevel(uniq, func(st *store, ids [][]byte) error {
-		return sqlbatch.Query(tx, st.typeIn, st.typeSuffix, nil, ids, func(rows *sql.Rows) error {
-			var id, typeID []byte
-			if err := rows.Scan(&id, &typeID); err != nil {
-				return err
-			}
-			typeOf[Owner{Level: st.level, ID: id}.key()] = typeID
-			return nil
+		return typesIn(tx, st, ids, func(id, typeID, sourceID []byte) {
+			k := Owner{Level: st.level, ID: id}.key()
+			typeOf[k] = typeID
+			sourceOf[k] = sourceID
 		})
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	type typeLevel struct {
-		typeID string
-		level  vocabkey.Level
-	}
-	suggested := make(map[typeLevel][]sourcevocab.Suggestion)
+	var typeIDs [][]byte
 	for _, o := range uniq {
 		typeID, ok := typeOf[o.key()]
 		if !ok {
 			return nil, ErrInvalid
 		}
+		typeIDs = append(typeIDs, typeID)
+	}
+	reqs, err := sourcetypes.RequirementsTx(tx, typeIDs)
+	if err != nil {
+		return nil, err
+	}
+	suggested := make(map[typeLevel][]sourcevocab.Suggestion)
+	needs := make(map[typeLevel]levelNeeds)
+	for _, o := range uniq {
+		typeID := typeOf[o.key()]
 		k := typeLevel{string(typeID), o.Level}
 		if _, ok := suggested[k]; ok {
 			continue
@@ -890,15 +923,38 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, er
 			return nil, err
 		}
 		suggested[k] = list
+		needs[k] = needsAt(reqs[string(typeID)], o.Level)
 	}
 
-	valueRows, err := readByOwners(tx, uniq)
+	// The Sources' values answer a graph's or an Artifact's chains, so each
+	// distinct Source joins the one values read unless a board already asks.
+	all := slices.Clone(uniq)
+	for _, o := range uniq {
+		so := Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}
+		if _, dup := seenOwner[so.key()]; !dup {
+			seenOwner[so.key()] = struct{}{}
+			all = append(all, so)
+		}
+	}
+	valueRows, err := readByOwners(tx, all)
 	if err != nil {
 		return nil, err
 	}
-	valuesOf := make(map[string][]Row, len(uniq))
+	valuesOf := make(map[string][]Row, len(all))
 	for _, v := range valueRows {
 		valuesOf[v.Owner.key()] = append(valuesOf[v.Owner.key()], v)
+	}
+	dateOf := make(map[string]citationformat.Value)
+	for _, o := range uniq {
+		id := sourceOf[o.key()]
+		if _, ok := dateOf[string(id)]; ok {
+			continue
+		}
+		src, err := sources.GetTx(tx, id)
+		if err != nil {
+			return nil, err
+		}
+		dateOf[string(id)] = sources.CitationDate(src)
 	}
 	layoutOf, err := listLayoutByOwners(tx, uniq)
 	if err != nil {
@@ -917,72 +973,155 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string][]WorkspaceEntry, er
 			}
 		}
 	}
-	var extras map[string]metadatafields.Field
-	if len(extraIDs) > 0 {
-		if extras, err = loadFields(tx, extraIDs); err != nil {
-			return nil, err
+	wanted := slices.Clone(extraIDs)
+	for _, ln := range needs {
+		wanted = append(wanted, ln.fieldIDs()...)
+	}
+	fields, err := fieldsByID(tx, wanted)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range extraIDs {
+		if _, ok := fields[string(id)]; !ok {
+			return nil, ErrInvalid
 		}
 	}
 
-	out := make(map[string][]WorkspaceEntry, len(uniq))
+	out := make(map[string]Board, len(uniq))
 	for _, o := range uniq {
-		suggestions := suggested[typeLevel{string(typeOf[o.key()]), o.Level}]
-		values := valuesOf[o.key()]
-		layoutRows := make(map[string]LayoutRow, len(layoutOf[o.key()]))
-		maxOrder := -1
-		for _, l := range layoutOf[o.key()] {
-			layoutRows[string(l.FieldID)] = l
-			if l.SortOrder > maxOrder {
-				maxOrder = l.SortOrder
-			}
+		k := typeLevel{string(typeOf[o.key()]), o.Level}
+		ln := needs[k]
+		r := ownerValues{
+			level:  o.Level,
+			own:    rowsByField(valuesOf[o.key()]),
+			source: rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
+			fields: fields,
+			date:   dateOf[string(sourceOf[o.key()])],
 		}
-		byField := make(map[string]Row, len(values))
-		for _, v := range values {
-			byField[string(v.FieldID)] = v
+		board := Board{Entries: buildEntries(o.Level, boardInput{
+			suggestions: suggested[k],
+			values:      valuesOf[o.key()],
+			layout:      layoutOf[o.key()],
+			needs:       ln,
+			fields:      fields,
+			resolver:    r,
+		})}
+		if o.Level == vocabkey.LevelSource {
+			board.Date = annotate(ln, dateHead, r, fields)
+			board.Page = annotate(ln, pageHead, r, fields)
 		}
-
-		entries := make([]WorkspaceEntry, 0, len(suggestions)+len(values))
-		seen := make(map[string]struct{}, len(suggestions))
-		for _, s := range suggestions {
-			key := string(s.Field.ID)
-			seen[key] = struct{}{}
-			entry := WorkspaceEntry{Field: s.Field, Suggested: true, SortOrder: s.SortOrder}
-			if v, ok := byField[key]; ok {
-				vv := v
-				entry.Value = &vv
-			}
-			if entry.Value == nil && layoutRows[key].Dismissed {
-				continue
-			}
-			entries = append(entries, entry)
-		}
-		for _, v := range values {
-			if _, ok := seen[string(v.FieldID)]; ok {
-				continue
-			}
-			vv := v
-			entries = append(entries, WorkspaceEntry{
-				Field:     extras[string(v.FieldID)],
-				Value:     &vv,
-				Suggested: false,
-				SortOrder: 0,
-			})
-		}
-
-		if len(layoutRows) > 0 {
-			fallback := maxOrder + 1
-			for i := range entries {
-				if l, ok := layoutRows[string(entries[i].Field.ID)]; ok {
-					entries[i].SortOrder = l.SortOrder
-					continue
-				}
-				entries[i].SortOrder = fallback + i
-			}
-			sort.SliceStable(entries, func(i, j int) bool { return entries[i].SortOrder < entries[j].SortOrder })
-		}
-		out[o.key()] = entries
+		out[o.key()] = board
 	}
 	return out, nil
+}
+
+// fieldsByID reads the fields with the given ids in one query, keyed by id; an
+// id with no field is absent.
+func fieldsByID(tx *sql.Tx, ids [][]byte) (map[string]metadatafields.Field, error) {
+	found, err := metadatafields.ListByIDsTx(tx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]metadatafields.Field, len(found))
+	for _, f := range found {
+		out[string(f.ID)] = f
+	}
+	return out, nil
+}
+
+// boardInput is what one owner's board is built from.
+type boardInput struct {
+	suggestions []sourcevocab.Suggestion
+	values      []Row
+	layout      []LayoutRow
+	needs       levelNeeds
+	// fields holds the rows of the extras' fields and of the heads and
+	// alternatives the formats name; a head with no row is dropped.
+	fields   map[string]metadatafields.Field
+	resolver citationformat.Resolver
+}
+
+// buildEntries is the owner's board at one level: the type's suggestions, then
+// each field the formats head that is neither suggested nor valued (empty), then
+// the valued extras, each once and each annotated; a dismissed field with no
+// value is left out unless its formats need it; then the layout's order.
+func buildEntries(level vocabkey.Level, in boardInput) []WorkspaceEntry {
+	layoutRows := make(map[string]LayoutRow, len(in.layout))
+	maxOrder := -1
+	for _, l := range in.layout {
+		layoutRows[string(l.FieldID)] = l
+		if l.SortOrder > maxOrder {
+			maxOrder = l.SortOrder
+		}
+	}
+	byField := rowsByField(in.values)
+	annotation := func(fieldID []byte) Annotation {
+		id, err := uuid.FromBytes(fieldID)
+		if err != nil {
+			return Annotation{}
+		}
+		return annotate(in.needs, citationformat.Target{Level: level, Field: citationformat.FieldRef{ID: id}}, in.resolver, in.fields)
+	}
+	hidden := func(key string, note Annotation) bool {
+		return note.Need != citationformat.NeedNeeded && layoutRows[key].Dismissed
+	}
+
+	entries := make([]WorkspaceEntry, 0, len(in.suggestions)+len(in.values))
+	seen := make(map[string]struct{}, len(in.suggestions))
+	for _, s := range in.suggestions {
+		key := string(s.Field.ID)
+		seen[key] = struct{}{}
+		entry := WorkspaceEntry{Field: s.Field, Suggested: true, SortOrder: s.SortOrder, Annotation: annotation(s.Field.ID)}
+		if v, ok := byField[key]; ok {
+			entry.Value = &v
+		}
+		if entry.Value == nil && hidden(key, entry.Annotation) {
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	for _, id := range in.needs.order {
+		key := string(id[:])
+		field, ok := in.fields[key]
+		if _, done := seen[key]; done || !ok {
+			continue
+		}
+		if _, valued := byField[key]; valued {
+			continue
+		}
+		seen[key] = struct{}{}
+		entry := WorkspaceEntry{Field: field, Annotation: annotation(field.ID)}
+		if hidden(key, entry.Annotation) {
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	for _, v := range in.values {
+		if _, ok := seen[string(v.FieldID)]; ok {
+			continue
+		}
+		v := v
+		entries = append(entries, WorkspaceEntry{
+			Field:      in.fields[string(v.FieldID)],
+			Value:      &v,
+			Suggested:  false,
+			SortOrder:  0,
+			Annotation: annotation(v.FieldID),
+		})
+	}
+
+	if len(layoutRows) > 0 {
+		fallback := maxOrder + 1
+		for i := range entries {
+			if l, ok := layoutRows[string(entries[i].Field.ID)]; ok {
+				entries[i].SortOrder = l.SortOrder
+				continue
+			}
+			entries[i].SortOrder = fallback + i
+		}
+		sort.SliceStable(entries, func(i, j int) bool { return entries[i].SortOrder < entries[j].SortOrder })
+	}
+	return entries
 }
 
 // normalizeFor trims text, checks it against the mark, and normalizes it for

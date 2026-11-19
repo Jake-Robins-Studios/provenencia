@@ -410,6 +410,63 @@ func TestGetSourceWorkspace(t *testing.T) {
 			},
 		},
 		{
+			name: "census asks the Source date and the page",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, userID, _ := sourceFixture(t)
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: seededSourceOfType(t, dir, userID, "census")}
+			},
+			after: func(t *testing.T, raw []byte, _ proto.Message) {
+				var resp engine.GetSourceWorkspaceResponse
+				if err := proto.Unmarshal(raw, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if got := resp.GetDateRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED || got.GetMetElsewhere() {
+					t.Errorf("date_requirement %+v, want needed, not met", got)
+				}
+				if got := resp.GetPageRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
+					t.Errorf("page_requirement %+v, want used", got)
+				}
+			},
+		},
+		{
+			name: "a birth certificate's date sits in a group",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, userID, _ := sourceFixture(t)
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: seededSourceOfType(t, dir, userID, "birth_certificate")}
+			},
+			after: func(t *testing.T, raw []byte, _ proto.Message) {
+				var resp engine.GetSourceWorkspaceResponse
+				if err := proto.Unmarshal(raw, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if got := resp.GetDateRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
+					t.Errorf("date_requirement %+v, want used", got)
+				}
+			},
+		},
+		{
+			name: "a type with no formats asks nothing",
+			reqFn: func(t *testing.T) proto.Message {
+				dir, userID, _ := sourceFixture(t)
+				var ty engine.CreateSourceTypeResponse
+				mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: dir, UserId: userID, Label: "Plain ledger"}, &ty)
+				var src engine.CreateSourceResponse
+				mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+					ProjectDir: dir, UserId: userID, SourceTypeId: ty.GetType().GetId(), Title: "Plain",
+				}, &src)
+				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: src.GetSource().GetId()}
+			},
+			after: func(t *testing.T, raw []byte, _ proto.Message) {
+				var resp engine.GetSourceWorkspaceResponse
+				if err := proto.Unmarshal(raw, &resp); err != nil {
+					t.Fatal(err)
+				}
+				if resp.GetDateRequirement() != nil || resp.GetPageRequirement() != nil {
+					t.Errorf("date %+v, page %+v; want both absent", resp.GetDateRequirement(), resp.GetPageRequirement())
+				}
+			},
+		},
+		{
 			name: "artifact boards",
 			reqFn: func(t *testing.T) proto.Message {
 				m := newMetadataOwners(t)
@@ -431,7 +488,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 					if board.GetOwnerId() != resp.Artifacts[i].GetId() {
 						t.Fatalf("board %d is for %s, want the Artifact at that index, %s", i, board.GetOwnerId(), resp.Artifacts[i].GetId())
 					}
-					if len(board.GetEntries()) != 1 || !board.GetEntries()[0].GetSuggested() {
+					if len(withoutFormatRows(board.GetEntries())) != 1 || !board.GetEntries()[0].GetSuggested() {
 						t.Fatalf("board %d = %+v, want the artifact-level suggestion only", i, board)
 					}
 					entry := board.GetEntries()[0]
@@ -478,7 +535,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 					if board.GetOwnerId() != listed.GetGraphs()[i].GetId() {
 						t.Fatalf("board %d is for %s, want the graph at that index, %s", i, board.GetOwnerId(), listed.GetGraphs()[i].GetId())
 					}
-					if len(board.GetEntries()) != 2 {
+					if len(withoutFormatRows(board.GetEntries())) != 2 {
 						t.Fatalf("board %d = %+v, want both graph-level suggestions", i, board)
 					}
 					entry := metadataByField(board.GetEntries(), graphBoardSuggested)

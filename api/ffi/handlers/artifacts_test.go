@@ -422,7 +422,7 @@ func TestUpdateArtifactMetadata(t *testing.T) {
 		if got := latestRevisionTypes(t, m.dir); !slices.Equal(got, want) {
 			t.Fatalf("changes %v, want %v", got, want)
 		}
-		if got := metadataFieldIDs(resp.GetMetadata()); !slices.Equal(got, []string{accessed, provider}) {
+		if got := metadataFieldIDs(withoutFormatRows(resp.GetMetadata())); !slices.Equal(got, []string{accessed, provider}) {
 			t.Fatalf("board order %v, want accessed, provider", got)
 		}
 		assertReplyBoard(t, m.dir, m.artifact, resp.GetMetadata())

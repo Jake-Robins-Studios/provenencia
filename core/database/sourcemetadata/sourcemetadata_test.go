@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
@@ -24,6 +25,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -1001,6 +1003,25 @@ func seedBirthCertificate(t *testing.T, c *database.Catalog) {
 // testWorld is a catalog with a user and a Source of a birth certificate type.
 func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	t.Helper()
+	c, userID = emptyWorld(t)
+	seedBirthCertificate(t, c)
+	return c, userID
+}
+
+// seededWorld is a catalog with a user and the product seed (sourcevocabtest.Install).
+// It never calls seedBirthCertificate, whose format-less type the seed's would collide with.
+func seededWorld(t *testing.T) (c *database.Catalog, userID []byte) {
+	t.Helper()
+	c, userID = emptyWorld(t)
+	if err := sourcevocabtest.Install(c); err != nil {
+		t.Fatal(err)
+	}
+	return c, userID
+}
+
+// emptyWorld is a catalog with a user and no vocabulary.
+func emptyWorld(t *testing.T) (c *database.Catalog, userID []byte) {
+	t.Helper()
 	userID = []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
 	c, err := database.Create(t.TempDir(), "t.provenencia")
 	if err != nil {
@@ -1014,7 +1035,6 @@ func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	seedBirthCertificate(t, c)
 	return c, userID
 }
 
@@ -1230,17 +1250,17 @@ func TestListWorkspaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, src := range []sources.Source{a, b} {
-		if !reflect.DeepEqual(got[sourceOwner(src.ID).key()], alone[src.Title]) {
-			t.Fatalf("%s: batch\n%+v\nalone\n%+v", src.Title, got[sourceOwner(src.ID).key()], alone[src.Title])
+		if !reflect.DeepEqual(got[sourceOwner(src.ID).key()].Entries, alone[src.Title]) {
+			t.Fatalf("%s: batch\n%+v\nalone\n%+v", src.Title, got[sourceOwner(src.ID).key()].Entries, alone[src.Title])
 		}
 	}
 	// B has no layout: its entries follow the type's suggestion order.
-	gotB := got[sourceOwner(b.ID).key()]
+	gotB := got[sourceOwner(b.ID).key()].Entries
 	if len(gotB) != 2 || !bytes.Equal(gotB[0].Field.ID, f2.ID) || !bytes.Equal(gotB[1].Field.ID, f1.ID) {
 		t.Fatalf("B entries %+v", gotB)
 	}
 	// A has a layout row for document_number: it leads.
-	gotA := got[sourceOwner(a.ID).key()]
+	gotA := got[sourceOwner(a.ID).key()].Entries
 	if len(gotA) == 0 || !bytes.Equal(gotA[0].Field.ID, doc.ID) || gotA[0].Value == nil {
 		t.Fatalf("A entries %+v", gotA)
 	}
@@ -1841,7 +1861,7 @@ func listByOwnersBatches(t *testing.T) {
 			t.Fatalf("got %d owners, want %d", len(got), n)
 		}
 		for _, o := range owners {
-			if len(got[o.key()]) == 0 {
+			if len(got[o.key()].Entries) == 0 {
 				t.Fatalf("owner %x has no entries", o.ID)
 			}
 		}
@@ -2049,18 +2069,18 @@ func TestListWorkspacesExported(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got[i], alone) {
+		if !reflect.DeepEqual(got[i].Entries, alone) {
 			t.Errorf("list %d differs from the owner read alone", i)
 		}
 	}
-	if !reflect.DeepEqual(got[1], got[3]) {
+	if !reflect.DeepEqual(got[1].Entries, got[3].Entries) {
 		t.Error("a repeated owner got different lists")
 	}
-	if len(got[1]) != 1 || got[1][0].Value == nil || got[1][0].Value.ValueText != "No. 7" {
-		t.Errorf("A1's list = %+v", got[1])
+	if len(got[1].Entries) != 1 || got[1].Entries[0].Value == nil || got[1].Entries[0].Value.ValueText != "No. 7" {
+		t.Errorf("A1's list = %+v", got[1].Entries)
 	}
-	if len(got[2]) != 1 || got[2][0].Value != nil || !got[2][0].Suggested {
-		t.Errorf("A2's list = %+v, want the suggestion only", got[2])
+	if len(got[2].Entries) != 1 || got[2].Entries[0].Value != nil || !got[2].Entries[0].Suggested {
+		t.Errorf("A2's list = %+v, want the suggestion only", got[2].Entries)
 	}
 
 	if none, err := ListWorkspaces(c, nil); err != nil || none != nil {
@@ -2137,6 +2157,7 @@ func TestReadDraftsTx(t *testing.T) {
 // MetadataDraftHostParityTests: the rules the client's draft board mirrors.
 type draftBoardFile struct {
 	Suggestions []string        `json:"suggestions"`
+	Needed      []string        `json:"needed"`
 	Extras      []string        `json:"extras"`
 	Scenarios   []draftScenario `json:"scenarios"`
 }
@@ -2166,6 +2187,8 @@ type draftAction struct {
 	Field  string  `json:"field"`
 	Value  string  `json:"value"`
 	Before *string `json:"before"`
+	// Refused is an action the engine refuses with sourcemetadata.invalid.
+	Refused bool `json:"refused"`
 }
 
 // draftBoard is a board as it is drawn: the saved rows in order, then the empty suggestions.
@@ -2204,6 +2227,21 @@ func TestDraftBoardScenarios(t *testing.T) {
 		t.Helper()
 		c, userID := testWorld(t)
 		w := world{c: c, userID: userID, src: birthOfAlice(t, c, userID), byKey: map[string]metadatafields.Field{}}
+		// The type's list format reads each needed field outside any group.
+		var list string
+		for _, key := range file.Needed {
+			list += "{source.meta." + key + "}."
+		}
+		cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
+			func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
+				return sourcetypes.UpdateFormats(tx, cert.ID, sourcetypes.Formats{List: list}, nil)
+			}); err != nil {
+			t.Fatal(err)
+		}
 		for _, key := range file.Suggestions {
 			f, err := metadatafields.Lookup(c, key, vocabkey.OriginProvenencia)
 			if err != nil {
@@ -2274,6 +2312,12 @@ func TestDraftBoardScenarios(t *testing.T) {
 				err = runReorder(w.c, w.userID, w.src.ID, ids)
 			default:
 				t.Fatalf("unknown op %q", a.Op)
+			}
+			if a.Refused {
+				if !errors.Is(err, ErrInvalid) {
+					t.Fatalf("%s %s: %v, want sourcemetadata.invalid", a.Op, a.Field, err)
+				}
+				continue
 			}
 			if err != nil {
 				t.Fatalf("%s %s: %v", a.Op, a.Field, err)
@@ -2729,4 +2773,506 @@ func TestDamagedMarksReadSettled(t *testing.T) {
 			t.Fatalf("stored = %d %d %d", u, s, n)
 		}
 	})
+}
+
+// seededType is the product-seeded Source type with the key.
+func seededType(t *testing.T, c *database.Catalog, key string) sourcetypes.Type {
+	t.Helper()
+	ty, err := sourcetypes.Lookup(c, key, vocabkey.OriginProvenencia)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ty
+}
+
+// seededField is the product-seeded metadata field with the key.
+func seededField(t *testing.T, c *database.Catalog, key string) metadatafields.Field {
+	t.Helper()
+	f, err := metadatafields.Lookup(c, key, vocabkey.OriginProvenencia)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+// entryOf is the entry for the field key, and whether the board holds one.
+func entryOf(entries []WorkspaceEntry, key string) (WorkspaceEntry, bool) {
+	for _, e := range entries {
+		if e.Field.Key == key {
+			return e, true
+		}
+	}
+	return WorkspaceEntry{}, false
+}
+
+// boardOf reads one owner's board.
+func boardOf(t *testing.T, c *database.Catalog, o Owner) Board {
+	t.Helper()
+	boards, err := ListWorkspaces(c, []Owner{o})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return boards[0]
+}
+
+// ledger is a custom type whose full format reads line_number from a graph, else the Source.
+type ledger struct {
+	typeID []byte
+	line   metadatafields.Field
+	src    sources.Source
+	graph  Owner
+}
+
+// newLedger makes the line-number type (suggesting line_number at graph) in a seeded
+// world, a Source of it and one graph.
+func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
+	t.Helper()
+	l := ledger{line: seededField(t, c, "line_number")}
+	ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
+		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Line ledger"})
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.typeID = ty.ID
+	if err := sourcevocab.AppendSuggestion(c, ty.ID, l.line.ID, vocabkey.LevelGraph); err != nil {
+		t.Fatal(err)
+	}
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{graph.meta.line_number|source.meta.line_number}."})
+	l.src = newSource(t, c, userID, ty.ID, "Ledger 1")
+	l.graph = newLevelOwner(t, c, userID, l.src, vocabkey.LevelGraph)
+	return l
+}
+
+func (l ledger) setFormats(t *testing.T, c *database.Catalog, userID []byte, f sourcetypes.Formats) {
+	t.Helper()
+	if _, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
+		func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
+			return sourcetypes.UpdateFormats(tx, l.typeID, f, nil)
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestListWorkspacesAnnotations(t *testing.T) {
+	c, userID := seededWorld(t)
+	needed := citationformat.NeedNeeded
+
+	t.Run("census", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+		boards, err := ListWorkspaces(c, []Owner{sourceOwner(src.ID), art})
+		if err != nil {
+			t.Fatal(err)
+		}
+		jur, ok := entryOf(boards[0].Entries, "jurisdiction")
+		if !ok || !reflect.DeepEqual(jur.Annotation, Annotation{Need: needed}) {
+			t.Errorf("jurisdiction = %+v, %v; want needed, not met, no alternatives", jur.Annotation, ok)
+		}
+		if e, ok := entryOf(boards[0].Entries, "creator"); !ok || e.Annotation.Need != citationformat.NeedUsed {
+			t.Errorf("creator = %+v, %v; want used", e.Annotation, ok)
+		}
+		if e, ok := entryOf(boards[1].Entries, "url"); !ok || e.Annotation.Need != citationformat.NeedUsed {
+			t.Errorf("artifact url = %+v, %v; want used", e.Annotation, ok)
+		}
+		for _, key := range []string{"item", "line_number", "folio", "dwelling_number", "family_number", "schedule_number"} {
+			if _, ok := entryOf(boards[0].Entries, key); ok {
+				t.Errorf("%s is on the census Source board; a later option shows only where suggested or valued", key)
+			}
+		}
+	})
+
+	t.Run("birth certificate shows an unsuggested head after the suggestions", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Alice")
+		entries := boardOf(t, c, sourceOwner(src.ID)).Entries
+		last := entries[len(entries)-1]
+		if last.Field.Key != "jurisdiction" || last.Suggested || last.Value != nil || last.Annotation.Need != needed {
+			t.Fatalf("last entry = %+v, want the empty unsuggested needed jurisdiction", last)
+		}
+		for _, e := range entries[:len(entries)-1] {
+			if !e.Suggested {
+				t.Errorf("%s comes before the suggestions end", e.Field.Key)
+			}
+		}
+	})
+
+	t.Run("a valued field the formats read is met elsewhere", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "book").ID, "A book")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "author").ID, ValueText: "Ada Robins"}); err != nil {
+			t.Fatal(err)
+		}
+		e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author_sort")
+		if !ok || e.Suggested || e.Annotation.Need != needed || !e.Annotation.MetElsewhere {
+			t.Fatalf("author_sort = %+v, %v; want unsuggested, needed, met elsewhere", e, ok)
+		}
+	})
+
+	t.Run("a valued extra is annotated once", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "census").ID, "1910 census")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "item").ID, ValueText: "Roll 4"}); err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, e := range boardOf(t, c, sourceOwner(src.ID)).Entries {
+			if e.Field.Key == "item" {
+				n++
+				if e.Value == nil || e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
+					t.Errorf("item = %+v, want a valued extra, used", e)
+				}
+			}
+		}
+		if n != 1 {
+			t.Errorf("item comes out %d times", n)
+		}
+	})
+
+	t.Run("the line-number type", func(t *testing.T) {
+		l := newLedger(t, c, userID)
+		note := func() Annotation {
+			e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line_number")
+			if !ok {
+				t.Fatal("no line_number entry on the graph board")
+			}
+			return e.Annotation
+		}
+		alt := []Alternative{{Level: vocabkey.LevelSource, Field: &l.line}}
+		check := func(name string, got Annotation, met bool) {
+			t.Helper()
+			want := Annotation{Need: needed, MetElsewhere: met, Alternatives: alt}
+			if !reflect.DeepEqual(got, want) {
+				t.Errorf("%s = %+v, want %+v", name, got, want)
+			}
+		}
+		check("neither holds it", note(), false)
+		if _, err := runSet(c, userID, l.src.ID, Input{FieldID: l.line.ID, ValueText: "14"}); err != nil {
+			t.Fatal(err)
+		}
+		check("the Source holds it", note(), true)
+		if _, err := runSet(c, userID, l.src.ID, Input{FieldID: l.line.ID, Mark: valuemark.Mark{Unknown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		check("the Source's is unknown", note(), true)
+	})
+
+	t.Run("a type with no formats", func(t *testing.T) {
+		ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
+			func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+				return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Plain ledger"})
+			})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := sourcevocab.AppendSuggestion(c, ty.ID, seededField(t, c, "folio").ID, vocabkey.LevelSource); err != nil {
+			t.Fatal(err)
+		}
+		src := newSource(t, c, userID, ty.ID, "Plain")
+		b := boardOf(t, c, sourceOwner(src.ID))
+		if len(b.Entries) != 1 || !reflect.DeepEqual(b.Entries[0].Annotation, Annotation{}) {
+			t.Errorf("entries = %+v, want the one suggestion with no annotation", b.Entries)
+		}
+		if b.Date.Need != "" || b.Page.Need != "" {
+			t.Errorf("date %+v, page %+v; want none", b.Date, b.Page)
+		}
+	})
+}
+
+func TestDismissNeeded(t *testing.T) {
+	c, userID := seededWorld(t)
+	layoutRows := func() int { return countRows(t, c, "source_metadata_layout") }
+
+	cert := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Alice")
+	jur := seededField(t, c, "jurisdiction")
+	err := runDismissSuggestion(c, userID, cert.ID, jur.ID)
+	if !errors.Is(err, ErrInvalid) {
+		t.Fatalf("dismissing a needed field = %v, want ErrInvalid", err)
+	}
+	if got := errParams(t, err); !reflect.DeepEqual(got, []string{database.UUIDString(jur.ID)}) {
+		t.Errorf("params = %v, want the field's id", got)
+	}
+	if n := layoutRows(); n != 0 {
+		t.Errorf("%d layout rows after a refused dismissal", n)
+	}
+
+	t.Run("a dismissed row for a needed field still shows, in its place", func(t *testing.T) {
+		if _, err := runApply(c, userID, cert.ID, Draft{Layout: []LayoutRow{{FieldID: jur.ID, SortOrder: 0, Dismissed: true}}}); err != nil {
+			t.Fatal(err)
+		}
+		entries := boardOf(t, c, sourceOwner(cert.ID)).Entries
+		if len(entries) == 0 || entries[0].Field.Key != "jurisdiction" {
+			t.Fatalf("entries lead with %+v, want jurisdiction at its layout position", entries)
+		}
+	})
+
+	t.Run("a used unsuggested field hides when dismissed", func(t *testing.T) {
+		reg := newSource(t, c, userID, seededType(t, c, "church_register").ID, "Register")
+		cov := seededField(t, c, "coverage")
+		if e, ok := entryOf(boardOf(t, c, sourceOwner(reg.ID)).Entries, "coverage"); !ok || e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
+			t.Fatalf("coverage = %+v, %v; want unsuggested, used", e, ok)
+		}
+		if err := runDismissSuggestion(c, userID, reg.ID, cov.ID); err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := entryOf(boardOf(t, c, sourceOwner(reg.ID)).Entries, "coverage"); ok {
+			t.Error("a dismissed used field is still on the board")
+		}
+	})
+
+	t.Run("a used suggested field is dismissed as before", func(t *testing.T) {
+		census := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+		creator := seededField(t, c, "creator")
+		before := layoutRows()
+		if err := runDismissSuggestion(c, userID, census.ID, creator.ID); err != nil {
+			t.Fatal(err)
+		}
+		if layoutRows() != before+1 {
+			t.Errorf("layout rows %d, want %d", layoutRows(), before+1)
+		}
+		if _, ok := entryOf(boardOf(t, c, sourceOwner(census.ID)).Entries, "creator"); ok {
+			t.Error("a dismissed suggestion is still on the board")
+		}
+	})
+}
+
+func TestAnnotationsFollowFormats(t *testing.T) {
+	c, userID := seededWorld(t)
+	l := newLedger(t, c, userID)
+	line := func() (WorkspaceEntry, bool) { return entryOf(boardOf(t, c, l.graph).Entries, "line_number") }
+	if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		ch, err := Apply(tx, userID, l.graph, Draft{Layout: []LayoutRow{{FieldID: l.line.ID, SortOrder: 0, Dismissed: true}}})
+		return struct{}{}, ch, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if e, ok := line(); !ok || e.Annotation.Need != citationformat.NeedNeeded {
+		t.Fatalf("with the format, line_number = %+v, %v; want shown and needed despite its dismissed row", e, ok)
+	}
+
+	l.setFormats(t, c, userID, sourcetypes.Formats{})
+	if e, ok := line(); ok {
+		t.Errorf("formats cleared: the dismissed suggestion = %+v is back", e)
+	}
+	// The kept layout row hides it again; clearing the dismissal's row is the editor's job.
+	b := boardOf(t, c, l.graph)
+	for _, e := range b.Entries {
+		if e.Annotation.Need != "" {
+			t.Errorf("formats cleared: %s still annotated %+v", e.Field.Key, e.Annotation)
+		}
+	}
+}
+
+func TestAnnotationsDanglingField(t *testing.T) {
+	c, userID := seededWorld(t)
+	l := newLedger(t, c, userID)
+	dangling := uuid.New()
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	full := "{graph.meta.#" + uuid.UUID(l.line.ID).String() + "|source.meta.#" + dangling.String() + "}.{source.meta.#" + dangling.String() + "}"
+	if _, err := db.Exec(`UPDATE source_types SET citation_full = ? WHERE id = ?`, full, l.typeID); err != nil {
+		t.Fatal(err)
+	}
+	if entries := boardOf(t, c, sourceOwner(l.src.ID)).Entries; len(entries) != 0 {
+		t.Errorf("source board = %+v, want no entry for a dangling head", entries)
+	}
+	e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line_number")
+	if !ok || e.Annotation.Need != citationformat.NeedNeeded || len(e.Annotation.Alternatives) != 0 || e.Annotation.MetElsewhere {
+		t.Errorf("graph line_number = %+v, %v; want needed with no alternative", e.Annotation, ok)
+	}
+}
+
+func TestSourceBoardBuiltins(t *testing.T) {
+	c, userID := seededWorld(t)
+	census := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	court := newSource(t, c, userID, seededType(t, c, "court_report").ID, "Report")
+	plain := sourcetypesLedger(t, c, userID)
+
+	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere || b.Page.Need != citationformat.NeedUsed {
+		t.Errorf("census date %+v, page %+v; want date needed and unmet, page used", b.Date, b.Page)
+	}
+	b := boardOf(t, c, sourceOwner(court.ID))
+	pages := seededField(t, c, "page_range")
+	if b.Page.Need != citationformat.NeedNeeded || b.Page.MetElsewhere || len(b.Page.Alternatives) != 1 ||
+		b.Page.Alternatives[0].Level != vocabkey.LevelSource || b.Page.Alternatives[0].Field == nil ||
+		!bytes.Equal(b.Page.Alternatives[0].Field.ID, pages.ID) {
+		t.Errorf("court report page = %+v, want needed, unmet, alternative [source page_range]", b.Page)
+	}
+	if _, err := runSet(c, userID, court.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := boardOf(t, c, sourceOwner(court.ID)).Page; !got.MetElsewhere {
+		t.Errorf("court report page with page_range = %+v, want met elsewhere", got)
+	}
+	art := newLevelOwner(t, c, userID, census, vocabkey.LevelArtifact)
+	if ab := boardOf(t, c, art); ab.Date.Need != "" || ab.Page.Need != "" {
+		t.Errorf("artifact board date %+v, page %+v; want none", ab.Date, ab.Page)
+	}
+	if lb := boardOf(t, c, sourceOwner(plain.ID)); lb.Date.Need != "" || lb.Page.Need != "" {
+		t.Errorf("ledger date %+v, page %+v; want none", lb.Date, lb.Page)
+	}
+}
+
+// sourcetypesLedger is a Source of a new type with no formats.
+func sourcetypesLedger(t *testing.T, c *database.Catalog, userID []byte) sources.Source {
+	t.Helper()
+	ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
+		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Ledger"})
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newSource(t, c, userID, ty.ID, "Ledger")
+}
+
+// seedExpect is what the seeded formats ask of one Source type's Source board,
+// measured over full, short and list at planning.
+type seedExpect struct {
+	needed  []string // Source fields needed, valued or not
+	unsug   []string // empty unsuggested heads, "key:need"
+	omitted []string // later options the board leaves off
+	date    citationformat.Need
+	page    citationformat.Need
+}
+
+var seedExpectations = map[string]seedExpect{
+	"birth_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"book":                 {needed: []string{"author", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"short_title:used", "collection:used"}, omitted: []string{"item"}},
+	"cemetery_marker":      {needed: []string{"creator", "jurisdiction"}, omitted: []string{"item"}},
+	"census":               {needed: []string{"jurisdiction"}, omitted: []string{"dwelling_number", "family_number", "folio", "item", "line_number", "schedule_number"}, date: "needed", page: "used"},
+	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"entry_number", "folio", "item"}, page: "used"},
+	"correspondence":       {needed: []string{"creator", "recipient"}, unsug: []string{"coverage:used"}, date: "needed"},
+	"court_report":         {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "used", page: "needed"},
+	"death_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
+	"family_bible":         {unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
+	"gedcom_file":          {unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
+	"government_file":      {needed: []string{"repository"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
+	"interview":            {needed: []string{"interviewee", "interviewer"}, omitted: []string{"item"}, date: "needed"},
+	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"manuscript":           {needed: []string{"repository"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
+	"marriage_certificate": {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, omitted: []string{"column"}, date: "needed", page: "used"},
+	"oral_testimony":       {needed: []string{"interviewee"}, omitted: []string{"item"}, date: "needed"},
+	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}, omitted: []string{"item", "line_number"}, page: "used"},
+	"photograph":           {unsug: []string{"short_title:used"}, date: "used"},
+	"private_papers":       {unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
+	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"coverage:used"}, omitted: []string{"entry_number", "item"}, page: "used"},
+	"statute":              {needed: []string{"jurisdiction", "published_in"}, date: "used", page: "used"},
+	"website":              {needed: []string{"site_name"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}},
+}
+
+func TestSeedAnnotations(t *testing.T) {
+	c, userID := seededWorld(t)
+	list, err := sourcetypes.List(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seeded []sourcetypes.Type
+	for _, ty := range list {
+		if ty.Origin == vocabkey.OriginProvenencia {
+			seeded = append(seeded, ty)
+		}
+	}
+	if len(seeded) != len(seedExpectations) {
+		t.Fatalf("%d seeded types, the table holds %d", len(seeded), len(seedExpectations))
+	}
+	var neededAtSource, neededBelow, unsuggested, dates, pages, omittedPairs int
+	for _, ty := range seeded {
+		want, ok := seedExpectations[ty.Key]
+		if !ok {
+			t.Errorf("no expectation for %s", ty.Key)
+			continue
+		}
+		t.Run(ty.Key, func(t *testing.T) {
+			src := newSource(t, c, userID, ty.ID, ty.Key)
+			art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+			gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+			boards, err := ListWorkspaces(c, []Owner{sourceOwner(src.ID), art, gr})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var needed, unsug []string
+			for _, e := range boards[0].Entries {
+				if e.Annotation.Need == citationformat.NeedNeeded {
+					needed = append(needed, e.Field.Key)
+				}
+				if !e.Suggested && e.Value == nil && e.Annotation.Need != "" {
+					unsug = append(unsug, e.Field.Key+":"+string(e.Annotation.Need))
+				}
+			}
+			for _, key := range want.omitted {
+				if _, ok := entryOf(boards[0].Entries, key); ok {
+					t.Errorf("%s is on the Source board; a later option shows only where suggested or valued", key)
+				}
+			}
+			for _, b := range boards[1:] {
+				for _, e := range b.Entries {
+					if e.Annotation.Need == citationformat.NeedNeeded {
+						neededBelow++
+						t.Errorf("%s is needed on an Artifact or graph board", e.Field.Key)
+					}
+				}
+			}
+			slices.Sort(needed)
+			wantNeeded := slices.Clone(want.needed)
+			slices.Sort(wantNeeded)
+			if !slices.Equal(needed, wantNeeded) {
+				t.Errorf("needed = %v, want %v", needed, wantNeeded)
+			}
+			if !slices.Equal(unsug, want.unsug) {
+				t.Errorf("unsuggested heads = %v, want %v", unsug, want.unsug)
+			}
+			if boards[0].Date.Need != want.date || boards[0].Page.Need != want.page {
+				t.Errorf("date %q, page %q; want %q, %q", boards[0].Date.Need, boards[0].Page.Need, want.date, want.page)
+			}
+			neededAtSource += len(needed)
+			unsuggested += len(unsug)
+			omittedPairs += len(want.omitted)
+			if boards[0].Date.Need == citationformat.NeedNeeded {
+				dates++
+			}
+			if boards[0].Page.Need == citationformat.NeedNeeded {
+				pages++
+			}
+		})
+	}
+	if neededAtSource != 30 || neededBelow != 0 || unsuggested != 32 || dates != 5 || pages != 1 || omittedPairs != 31 {
+		t.Errorf("needed %d (want 30), needed below %d (0), unsuggested heads %d (32), needed dates %d (5), needed pages %d (1), omitted %d (31)",
+			neededAtSource, neededBelow, unsuggested, dates, pages, omittedPairs)
+	}
+}
+
+// TestListWorkspacesAnnotationsScale reads a census Source with 60 Artifacts and
+// 60 graphs in one call: every board comes back annotated.
+func TestListWorkspacesAnnotationsScale(t *testing.T) {
+	c, userID := seededWorld(t)
+	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	owners := []Owner{sourceOwner(src.ID)}
+	for i := 0; i < 60; i++ {
+		owners = append(owners, newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact))
+	}
+	for i := 0; i < 60; i++ {
+		owners = append(owners, newLevelOwner(t, c, userID, src, vocabkey.LevelGraph))
+	}
+	boards, err := ListWorkspaces(c, owners)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(boards) != 121 {
+		t.Fatalf("%d boards, want 121", len(boards))
+	}
+	key := map[vocabkey.Level]string{vocabkey.LevelSource: "jurisdiction", vocabkey.LevelArtifact: "url", vocabkey.LevelGraph: "item"}
+	want := map[vocabkey.Level]citationformat.Need{
+		vocabkey.LevelSource: citationformat.NeedNeeded, vocabkey.LevelArtifact: citationformat.NeedUsed, vocabkey.LevelGraph: citationformat.NeedUsed,
+	}
+	for i, o := range owners {
+		e, ok := entryOf(boards[i].Entries, key[o.Level])
+		if !ok || e.Annotation.Need != want[o.Level] {
+			t.Fatalf("board %d (%s) %s = %+v, %v; want %q", i, o.Level, key[o.Level], e.Annotation, ok, want[o.Level])
+		}
+	}
 }

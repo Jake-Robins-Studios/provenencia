@@ -1,0 +1,286 @@
+package sourcemetadata
+
+import (
+	"database/sql"
+
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/google/uuid"
+)
+
+// Annotation is what the owner's Source type's citation formats ask of one
+// head on a board: a metadata field, or the Source date or the printed page.
+// The zero Annotation is none: the formats do not read the head.
+type Annotation struct {
+	// Need is needed or used; "" is none.
+	Need citationformat.Need
+	// MetElsewhere is set only on a needed head: another option of every
+	// needed chain it heads already answers (the Source's value standing in
+	// for an empty graph value). A marked-unknown value answers.
+	MetElsewhere bool
+	// Alternatives are the later options of the needed chains the head
+	// heads, in chain order, without repeats. Set only on a needed head.
+	Alternatives []Alternative
+}
+
+// Alternative is one later option of a chain: exactly one of Field (a metadata
+// field, whose row loaded) and Builtin (the bare name, "date") is set, at Level.
+type Alternative struct {
+	Level   vocabkey.Level
+	Field   *metadatafields.Field
+	Builtin string
+}
+
+// Board is one owner's entries. A Source owner's board also carries what its
+// type asks of the Source date and of the printed page; every other owner's are
+// none.
+type Board struct {
+	Entries    []WorkspaceEntry
+	Date, Page Annotation
+}
+
+// boardBuiltins are the built-in heads a Source board annotates besides its
+// fields: the Source date and the printed page.
+var (
+	dateHead = citationformat.Target{Level: vocabkey.LevelSource, Builtin: "date"}
+	pageHead = citationformat.Target{Level: vocabkey.LevelCitation, Builtin: "page"}
+)
+
+// CitationValue is what a stored metadata value gives a citation: its text and
+// settled mark, and the unknown text its field prints. The boards' resolver and
+// the renderer's both build a field's value from it.
+func CitationValue(r Row, f metadatafields.Field) citationformat.Value {
+	return citationformat.Value{Text: r.ValueText, Mark: r.Mark, UnknownText: f.UnknownText}
+}
+
+// ownerValues answers a format's targets for one board: a field at the owner's
+// level from the owner's rows, a field at the Source level from the Source's
+// rows, and the Source date from the Source. Any other target answers the zero
+// Value: another Artifact or graph, a Citation's own built-ins, the always-set
+// built-ins (a chain that holds one is never needed, so Missing never asks), and
+// a field named by key (stored formats name fields by id).
+type ownerValues struct {
+	level  vocabkey.Level
+	own    map[string]Row
+	source map[string]Row
+	// fields holds the field rows that loaded; a value whose field row did not
+	// load still answers, with no unknown text.
+	fields map[string]metadatafields.Field
+	date   citationformat.Value
+}
+
+// Resolve implements citationformat.Resolver.
+func (v ownerValues) Resolve(t citationformat.Target) citationformat.Value {
+	if t.Builtin != "" {
+		if t == dateHead {
+			return v.date
+		}
+		return citationformat.Value{}
+	}
+	if !t.Field.ByID() {
+		return citationformat.Value{}
+	}
+	var rows map[string]Row
+	switch t.Level {
+	case v.level:
+		rows = v.own
+	case vocabkey.LevelSource:
+		rows = v.source
+	default:
+		return citationformat.Value{}
+	}
+	id := string(t.Field.ID[:])
+	row, ok := rows[id]
+	if !ok {
+		return citationformat.Value{}
+	}
+	return CitationValue(row, v.fields[id])
+}
+
+// rowsByField keys rows by field id.
+func rowsByField(rows []Row) map[string]Row {
+	out := make(map[string]Row, len(rows))
+	for _, r := range rows {
+		out[string(r.FieldID)] = r
+	}
+	return out
+}
+
+// levelNeeds is what a type's formats ask at one level: each field's need, the
+// fields that head a chain in order of first appearance, and the chains each
+// heads. A chain is flagged on its first option (its head): empty everywhere,
+// that is where the researcher fills it. Its later options are only used.
+type levelNeeds struct {
+	need  map[uuid.UUID]citationformat.Need
+	order []uuid.UUID
+	heads map[uuid.UUID][]citationformat.Requirement
+	// builtinHeads holds the chains headed by the Source date and the printed
+	// page, keyed by that head. It is filled only for the source level.
+	builtinHeads map[citationformat.Target][]citationformat.Requirement
+}
+
+// stronger is the greater need: needed over used over none.
+func stronger(a, b citationformat.Need) citationformat.Need {
+	switch {
+	case a == citationformat.NeedNeeded || b == citationformat.NeedNeeded:
+		return citationformat.NeedNeeded
+	case a == citationformat.NeedUsed || b == citationformat.NeedUsed:
+		return citationformat.NeedUsed
+	}
+	return ""
+}
+
+// fieldAt is the id of t when it is a field, named by id, at level.
+func fieldAt(t citationformat.Target, level vocabkey.Level) (uuid.UUID, bool) {
+	if t.Builtin != "" || t.Level != level || !t.Field.ByID() {
+		return uuid.Nil, false
+	}
+	return t.Field.ID, true
+}
+
+// needsAt reads the chains of one type at one level. The first option of a chain
+// is its head and takes the chain's need; every later option that is a field at
+// level is used. A field's need is the strongest over its chains. At the source
+// level it also keeps the chains headed by the Source date and the printed page.
+func needsAt(chains []citationformat.Requirement, level vocabkey.Level) levelNeeds {
+	ln := levelNeeds{
+		need:  map[uuid.UUID]citationformat.Need{},
+		heads: map[uuid.UUID][]citationformat.Requirement{},
+	}
+	if level == vocabkey.LevelSource {
+		ln.builtinHeads = map[citationformat.Target][]citationformat.Requirement{}
+	}
+	for _, ch := range chains {
+		for i, t := range ch.Targets {
+			id, isField := fieldAt(t, level)
+			switch {
+			case i > 0 && isField:
+				ln.need[id] = stronger(ln.need[id], citationformat.NeedUsed)
+			case i > 0:
+			case isField:
+				if _, seen := ln.heads[id]; !seen {
+					ln.order = append(ln.order, id)
+				}
+				ln.heads[id] = append(ln.heads[id], ch)
+				ln.need[id] = stronger(ln.need[id], ch.Need)
+			case ln.builtinHeads != nil && (t == dateHead || t == pageHead):
+				ln.builtinHeads[t] = append(ln.builtinHeads[t], ch)
+			}
+		}
+	}
+	return ln
+}
+
+// fieldIDs is every field id annotating this level can name: the heads and the
+// field options after them, at any level.
+func (ln levelNeeds) fieldIDs() [][]byte {
+	var out [][]byte
+	for _, id := range ln.order {
+		out = append(out, id[:])
+	}
+	each := func(chains []citationformat.Requirement) {
+		for _, ch := range chains {
+			for _, t := range ch.Targets[1:] {
+				if t.Builtin == "" && t.Field.ByID() {
+					out = append(out, t.Field.ID[:])
+				}
+			}
+		}
+	}
+	for _, chains := range ln.heads {
+		each(chains)
+	}
+	for _, chains := range ln.builtinHeads {
+		each(chains)
+	}
+	return out
+}
+
+// annotate is what the formats ask of one head, answered from r. A field head
+// reads its need from the level; a built-in head from the chains it heads. A
+// needed head is met elsewhere when every needed chain it heads has a later
+// option that answers (citationformat.Missing on the chain's tail, built needed
+// because Missing skips the others); a one-option chain has no tail and is not
+// met. The alternatives are those tails' options, a field only when its row
+// loaded.
+func annotate(ln levelNeeds, head citationformat.Target, r citationformat.Resolver, fields map[string]metadatafields.Field) Annotation {
+	var need citationformat.Need
+	var chains []citationformat.Requirement
+	if head.Builtin != "" {
+		chains = ln.builtinHeads[head]
+		for _, ch := range chains {
+			need = stronger(need, ch.Need)
+		}
+	} else {
+		need = ln.need[head.Field.ID]
+		chains = ln.heads[head.Field.ID]
+	}
+	a := Annotation{Need: need}
+	if need != citationformat.NeedNeeded {
+		return a
+	}
+	a.MetElsewhere = true
+	seen := map[citationformat.Target]bool{}
+	for _, ch := range chains {
+		if ch.Need != citationformat.NeedNeeded {
+			continue
+		}
+		tail := ch.Targets[1:]
+		unmet := citationformat.Missing([]citationformat.Requirement{{Targets: tail, Need: citationformat.NeedNeeded}}, r)
+		if len(tail) == 0 || len(unmet) > 0 {
+			a.MetElsewhere = false
+		}
+		for _, t := range tail {
+			if seen[t] {
+				continue
+			}
+			seen[t] = true
+			switch {
+			case t.Builtin != "":
+				a.Alternatives = append(a.Alternatives, Alternative{Level: t.Level, Builtin: t.Builtin})
+			case t.Field.ByID():
+				if f, ok := fields[string(t.Field.ID[:])]; ok {
+					a.Alternatives = append(a.Alternatives, Alternative{Level: t.Level, Field: &f})
+				}
+			}
+		}
+	}
+	return a
+}
+
+// typesIn reads the owners' Source type and Source ids at one level, calling
+// fn per owner. ids are bounded by the caller as sqlbatch.Query batches them.
+func typesIn(tx *sql.Tx, st *store, ids [][]byte, fn func(id, typeID, sourceID []byte)) error {
+	return sqlbatch.Query(tx, st.typeIn, st.typeSuffix, nil, ids, func(rows *sql.Rows) error {
+		var id, typeID, sourceID []byte
+		if err := rows.Scan(&id, &typeID, &sourceID); err != nil {
+			return err
+		}
+		fn(id, typeID, sourceID)
+		return nil
+	})
+}
+
+// needOfTx is how much the owner's type's formats need the field on a board at
+// the owner's level. An owner that does not exist is ErrInvalid.
+func needOfTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (citationformat.Need, error) {
+	var typeID []byte
+	if err := typesIn(tx, st, [][]byte{owner.ID}, func(_, t, _ []byte) { typeID = t }); err != nil {
+		return "", err
+	}
+	if typeID == nil {
+		return "", ErrInvalid
+	}
+	reqs, err := sourcetypes.RequirementsTx(tx, [][]byte{typeID})
+	if err != nil {
+		return "", err
+	}
+	id, err := uuid.FromBytes(fieldID)
+	if err != nil {
+		return "", ErrInvalid
+	}
+	return needsAt(reqs[string(typeID)], owner.Level).need[id], nil
+}

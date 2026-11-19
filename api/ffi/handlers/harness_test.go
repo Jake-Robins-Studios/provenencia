@@ -322,6 +322,25 @@ func sourceFixture(t *testing.T) (projectDir, userID, typeID string) {
 	return "", "", ""
 }
 
+// seededSourceOfType creates a Source of the product-seeded type with the key
+// and returns its id.
+func seededSourceOfType(t *testing.T, projectDir, userID, key string) string {
+	t.Helper()
+	var types engine.ListSourceTypesResponse
+	mustRPC(t, ListSourceTypes, &engine.ListSourceTypesRequest{ProjectDir: projectDir}, &types)
+	for _, ty := range types.GetTypes() {
+		if ty.GetKey() == key && ty.GetOrigin() == vocabkey.OriginProvenencia {
+			var created engine.CreateSourceResponse
+			mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+				ProjectDir: projectDir, UserId: userID, SourceTypeId: ty.GetId(), Title: key,
+			}, &created)
+			return created.GetSource().GetId()
+		}
+	}
+	t.Fatalf("no seeded source type %q", key)
+	return ""
+}
+
 func assertIdentityNotFound(t *testing.T, out []byte, _ proto.Message) {
 	t.Helper()
 	var resp engine.GetInstallIdentityResponse

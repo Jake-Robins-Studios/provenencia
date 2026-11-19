@@ -65,14 +65,14 @@ func TestMetadataOwners(t *testing.T) {
 			mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
 				ProjectDir: m.dir, UserId: m.userID, Owner: owner, FieldId: m.extra, ValueText: "14",
 			}, &setExtra)
-			if ids := metadataFieldIDs(setExtra.GetMetadata()); !slices.Equal(ids, []string{m.suggested, m.extra}) {
+			if ids := metadataFieldIDs(withoutFormatRows(setExtra.GetMetadata())); !slices.Equal(ids, []string{m.suggested, m.extra}) {
 				t.Fatalf("set extra order %v, want suggested then extra", ids)
 			}
 			var reordered engine.ReorderMetadataResponse
 			mustRPC(t, ReorderMetadata, &engine.ReorderMetadataRequest{
 				ProjectDir: m.dir, UserId: m.userID, Owner: owner, FieldIds: []string{m.extra, m.suggested},
 			}, &reordered)
-			if len(reordered.GetMetadata()) != 2 || reordered.GetMetadata()[0].GetField().GetId() != m.extra ||
+			if rows := withoutFormatRows(reordered.GetMetadata()); len(rows) != 2 || rows[0].GetField().GetId() != m.extra ||
 				!slices.Contains(reordered.GetEffects().GetSourceScopes(), m.sourceID) {
 				t.Fatalf("reordered %+v", &reordered)
 			}
@@ -217,6 +217,19 @@ func metadataByField(entries []*engine.MetadataWorkspaceEntry, fieldID string) *
 	return nil
 }
 
+// withoutFormatRows is the board without the empty entries only the Source
+// type's citation formats put on it (not suggested, no value): the seeded
+// type's formats head fields these boards' tests do not set.
+func withoutFormatRows(entries []*engine.MetadataWorkspaceEntry) []*engine.MetadataWorkspaceEntry {
+	var out []*engine.MetadataWorkspaceEntry
+	for _, e := range entries {
+		if e.GetSuggested() || e.GetHasValue() || e.GetRequirement() == nil {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // metadataFieldIDs lists the field ids of a board in its order.
 func metadataFieldIDs(entries []*engine.MetadataWorkspaceEntry) []string {
 	ids := make([]string, len(entries))
@@ -234,7 +247,7 @@ func TestGetMetadataBoard(t *testing.T) {
 	var got engine.GetMetadataBoardResponse
 	mustRPC(t, GetMetadataBoard, &engine.GetMetadataBoardRequest{ProjectDir: m.dir, Owner: m.graph}, &got)
 	board := got.GetBoard()
-	if board.GetOwnerId() != m.defaultGraphID || len(board.GetEntries()) != 2 {
+	if board.GetOwnerId() != m.defaultGraphID || len(withoutFormatRows(board.GetEntries())) != 2 {
 		t.Fatalf("board %+v", board)
 	}
 	byField := map[string]*engine.MetadataWorkspaceEntry{}
@@ -343,7 +356,7 @@ func TestMetadataBoardsKeepTheirLevel(t *testing.T) {
 		"graph":    {m.graph, sorted(m.suggested, graphOnly)},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if got := ids(boardEntries(t, m.dir, tt.owner)); !slices.Equal(got, tt.want) {
+			if got := ids(withoutFormatRows(boardEntries(t, m.dir, tt.owner))); !slices.Equal(got, tt.want) {
 				t.Fatalf("board fields %v, want %v", got, tt.want)
 			}
 		})
@@ -352,8 +365,81 @@ func TestMetadataBoardsKeepTheirLevel(t *testing.T) {
 	var after engine.GetSourceWorkspaceResponse
 	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &after)
 	for _, board := range after.GetArtifactMetadata() {
-		if got, want := ids(board.GetEntries()), sorted(m.suggested, artifactOnly); !slices.Equal(got, want) {
+		if got, want := ids(withoutFormatRows(board.GetEntries())), sorted(m.suggested, artifactOnly); !slices.Equal(got, want) {
 			t.Fatalf("Artifact board fields %v, want %v", got, want)
 		}
 	}
+}
+
+// metadataByKey is the entry for the field key, nil when the board holds none.
+func metadataByKey(entries []*engine.MetadataWorkspaceEntry, key string) *engine.MetadataWorkspaceEntry {
+	for _, e := range entries {
+		if e.GetField().GetKey() == key {
+			return e
+		}
+	}
+	return nil
+}
+
+func TestMetadataBoardRequirements(t *testing.T) {
+	dir, userID, _ := sourceFixture(t)
+	sourceID := seededSourceOfType(t, dir, userID, "census")
+	owner := &engine.MetadataOwner{Level: "source", Id: sourceID}
+	board := boardEntries(t, dir, owner)
+	jurisdiction := metadataByKey(board, "jurisdiction")
+	if jurisdiction == nil || jurisdiction.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED ||
+		jurisdiction.GetRequirement().GetMetElsewhere() || len(jurisdiction.GetRequirement().GetAlternatives()) != 0 {
+		t.Fatalf("jurisdiction %+v, want needed, not met, no alternatives", jurisdiction)
+	}
+	if creator := metadataByKey(board, "creator"); creator.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
+		t.Fatalf("creator %+v, want used", creator)
+	}
+	fieldID := jurisdiction.GetField().GetId()
+	needed := func(t *testing.T, entries []*engine.MetadataWorkspaceEntry) *engine.MetadataWorkspaceEntry {
+		t.Helper()
+		e := metadataByField(entries, fieldID)
+		if e == nil || e.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED {
+			t.Fatalf("reply entry %+v, want jurisdiction, needed", e)
+		}
+		return e
+	}
+
+	var set engine.SetMetadataResponse
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: dir, UserId: userID, Owner: owner, FieldId: fieldID, ValueText: "Massachusetts",
+	}, &set)
+	if e := needed(t, set.GetMetadata()); !e.GetHasValue() || e.GetValueText() != "Massachusetts" {
+		t.Fatalf("set reply %+v, want the value", e)
+	}
+	assertReplyBoard(t, dir, owner, set.GetMetadata())
+
+	var reordered engine.ReorderMetadataResponse
+	mustRPC(t, ReorderMetadata, &engine.ReorderMetadataRequest{
+		ProjectDir: dir, UserId: userID, Owner: owner, FieldIds: []string{fieldID},
+	}, &reordered)
+	needed(t, reordered.GetMetadata())
+	assertReplyBoard(t, dir, owner, reordered.GetMetadata())
+
+	var cleared engine.ClearMetadataResponse
+	mustRPC(t, ClearMetadata, &engine.ClearMetadataRequest{
+		ProjectDir: dir, UserId: userID, Owner: owner, FieldId: fieldID,
+	}, &cleared)
+	needed(t, cleared.GetMetadata())
+	assertReplyBoard(t, dir, owner, cleared.GetMetadata())
+
+	err := rpc(t, DismissMetadataSuggestion, &engine.DismissMetadataSuggestionRequest{
+		ProjectDir: dir, UserId: userID, Owner: owner, FieldId: fieldID,
+	}, &engine.DismissMetadataSuggestionResponse{})
+	if !errors.Is(err, sourcemetadata.ErrInvalid) || !slices.Equal(errParams(t, err), []string{fieldID}) {
+		t.Fatalf("dismissing a needed field = %v, params %v, want sourcemetadata.invalid [%s]", err, errParams(t, err), fieldID)
+	}
+
+	var creator engine.DismissMetadataSuggestionResponse
+	mustRPC(t, DismissMetadataSuggestion, &engine.DismissMetadataSuggestionRequest{
+		ProjectDir: dir, UserId: userID, Owner: owner, FieldId: metadataByKey(board, "creator").GetField().GetId(),
+	}, &creator)
+	if metadataByKey(creator.GetMetadata(), "creator") != nil {
+		t.Errorf("a used field's dismissal left it on the board: %+v", creator.GetMetadata())
+	}
+	assertReplyBoard(t, dir, owner, creator.GetMetadata())
 }

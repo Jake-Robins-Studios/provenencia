@@ -232,7 +232,7 @@ func TestCreateEvidenceGraph(t *testing.T) {
 			t.Fatalf("changes %v, want the graph's, then its value and layout creates", types)
 		}
 		board := boardEntries(t, f.dir, &engine.MetadataOwner{Level: "graph", Id: resp.GetGraph().GetId()})
-		if len(board) != 1 || board[0].GetValueText() != "14" {
+		if board = withoutFormatRows(board); len(board) != 1 || board[0].GetValueText() != "14" {
 			t.Fatalf("board %+v", board)
 		}
 	})
