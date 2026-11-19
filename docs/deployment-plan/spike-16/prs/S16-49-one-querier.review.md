@@ -1,7 +1,7 @@
 # Review — S16-49 One read querier and one write querier for every catalog package
 
-**Verdict:** round 1: Fits with changes — Ready with changes. Round 2: pending.
-**Rounds:** 1 (round 2 pending). **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (both rounds); no blocker open.
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -9,7 +9,13 @@
 - **M-4 · Fold the `Scan` copies into S16-49.** Answered (user, 2026-11-19): fold in. D-2, D-3, D-12; STEP-6; the map scope entry's "Not this PR" line changes.
 - **`blobArgs` and `uniqueIDs` (planning).** Answered (user, 2026-11-19): `blobArgs` moves, `uniqueIDs` stays.
 
+- **M-10 · The IN-list rule, corrected.** Round 1's answer rested on a count of two hand-built lists; there are eight. Answered again (user, 2026-11-19), after a plain explanation with examples: the rule is a condition (a hand-built list only over a set already bounded, its function comment naming the bound); the bounded ones stay; the test-only `Verify` one is fine; the unbounded delete query (`deleteimpact.handleGoesWithout`) is fixed. The writer put that fix in its own map row, S16-63, so S16-49 stays a no-behaviour change; the user can move it into S16-49.
+
 ## Writer's own calls
+
+- S16-63 as its own PR rather than inside S16-49 (above).
+- D-16: every bounded hand-built list gets a comment naming its bound in this PR, so D-10's rule is true on landing.
+- D-15: `begin_test.go`'s walk is fixed in this PR (one line), with a zero-files check in both guards.
 
 - D-1: the leaf package is `dbsql`.
 - D-5: a function typed with a write copy that never calls `Exec` takes `Querier` (from M-2); subsets widen to `Querier`.
@@ -70,3 +76,38 @@ Nine `searchindex` functions never call `Exec`.
 
 ### X-7 · nit · Overlap with S16-54 on `dbtest.go`
 **Answer:** Fixed — a Risks row.
+
+## Round 2
+
+The round-1 answers held against the code (both reviewers: an AST pass with D-15's rule finds exactly §4's 39 interfaces; every scanner package already imports `core/database`; D-14's counter counts the same statements).
+
+### M-10 · blocker · D-10 part 2 names two hand-built lists; there are eight
+**Answer:** To user → answered (above). D-10 part 2 is a condition; §4's Skill row lists the eight; D-16 adds the bound comments; **Rules this plan bends** updated; the unbounded one is S16-63.
+
+### M-11 · blocker · The guard walk copied from `begin_test.go` skips its own root and checks nothing
+Verified: `begin_test.go` walks from `../..`, whose name starts with `.`, so `WalkDir` skips it.
+**Answer:** Fixed — D-15 walks `core` and `api` by name, skips dot directories only below the root, fails on zero files; `begin_test.go` gets the same fix (T-8); a Known traps line in `maintainability.md`.
+
+### X-8 · major · The map's scope entry contradicts the plan
+**Answer:** Fixed — the scope entry, the map row and the Batch 6 rule were updated at planning time; STEP-9 says so.
+
+### X-9 · major · "over one `sqlbatch.Each` chunk" is false for test-only `Verify`
+**Answer:** Fixed — same as M-10; §4 and D-16 name `Verify`.
+
+### X-10 · minor · The `LoadQueryCount` stop condition has no baseline
+**Answer:** Fixed — STEP-4 records the counts for 1 and 60 handles before editing.
+
+### X-11 · minor · `searchindex` `export_test.go` wrappers get no type
+**Answer:** Fixed — D-8 names them, `database.Querier`.
+
+### X-12 · minor · D-4 omits `core/database`; `dbtest.Count` listed in STEP-5
+**Answer:** Fixed — D-4 and §3.
+
+### X-13 · minor · `\|` still in AC-1.3 and AC-2.3
+**Answer:** Fixed — C-4 and C-5 in code blocks.
+
+### X-14 · minor · D-15's walk shape open
+**Answer:** Fixed — with M-11.
+
+### X-15 · minor · Two §4 counts did not reproduce
+**Answer:** Fixed — counts dropped.

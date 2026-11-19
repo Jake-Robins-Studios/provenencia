@@ -1,19 +1,19 @@
 # S16-49 — One read querier and one write querier for every catalog package
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go types and helpers move; nothing the app draws or does changes)
 **Board:** —
 **Depends on:** —
-**Blocks:** —
+**Blocks:** — (S16-63 is independent: it replaces a query this PR leaves alone)
 **Branch:** `s16-49-one-querier`
 **Version bump:** none — no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-catalog-query`](../../../../.agents/skills/add-catalog-query/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table-driven tests)
 **Context:** working rule "(Batch 6) One read querier and one write querier, in a leaf package"; map scope entry [S16-49](../deployment-plan.md#s16-49--one-read-querier-and-one-write-querier-for-every-catalog-package); bar 24
 **Planned:** 2026-11-19 against `main` @ `31d9902`
-**Review:** [`S16-49-one-querier.review.md`](S16-49-one-querier.review.md) — round 1 Fits with changes / Ready with changes; round 2 pending
+**Review:** [`S16-49-one-querier.review.md`](S16-49-one-querier.review.md) — Fits with changes — Ready with changes, 2 rounds; no blocker open; To user answered (2026-11-19)
 
 ### Implementer — read this first
 
@@ -44,7 +44,7 @@ The catalog packages declare the same `database/sql` surfaces over and over. The
 | --- | --- | --- |
 | AC-1.1 | Command C-1 below (bar 24) | One line: `core/database/dbsql/dbsql.go` *(new)* `type Querier interface` |
 | AC-1.2 | Command C-2 below | Two lines, both in `core/database/dbsql/dbsql.go` *(new)*: `type Querier interface` and `type Execer interface` |
-| AC-1.3 | `go list -deps ./core/database/dbsql \| rg provenencia`, and T-7 | Only `github.com/Jake-Robins-Studios/provenencia/core/database/dbsql` |
+| AC-1.3 | Command C-4 below, and T-7 | Only `github.com/Jake-Robins-Studios/provenencia/core/database/dbsql` |
 | AC-1.4 | `add-catalog-query` SKILL.md | Says a package never declares its own querier or scanner; names `database.Querier`, `database.Execer`, `database.Scanner`, and `dbsql` for the four packages that cannot import `core/database` |
 | AC-1.5 | Command C-3 below | One line: `core/database/dbsql/dbsql.go` *(new)* `type Scanner interface` |
 | AC-1.6 | A new file under `core/` declares `type q interface { QueryRow(string, ...any) *sql.Row }` (or an inline `interface{ Scan(dest ...any) error }` parameter) | T-6 fails and names the file and line |
@@ -66,13 +66,23 @@ rg -n -B3 "^\s+(Query|QueryRow|Exec)\(\w* ?string, (\w+ )?\.\.\.any\)" --type go
 rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core api | rg "interface"
 ```
 
+```bash
+# C-4: expect only github.com/Jake-Robins-Studios/provenencia/core/database/dbsql
+go list -deps ./core/database/dbsql | rg provenencia
+```
+
+```bash
+# C-5: expect no line
+rg "func nullIfEmpty|func nullInt\b" core
+```
+
 **US-2.** As a contributor binding an optional column, I call one helper per shape.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-2.1 | `database.NullTrimmed("  abc ")` | `"abc"` |
 | AC-2.2 | `database.NullTrimmed(" \t\n")` and `database.NullTrimmed("")` | `nil` |
-| AC-2.3 | `rg "func nullIfEmpty\|func nullInt\b" core` | No hit |
+| AC-2.3 | Command C-5 below | No hit |
 | AC-2.4 | `database.NullInt(nil)`, `NullInt(&0)`, `NullInt(&1890)` | `nil`, `0`, `1890` (as `int`) |
 
 **US-3.** As the engine, every query, write and audit row is the same as before.
@@ -91,7 +101,7 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | `sqlbatch`, `graphcache`, `effects` use `dbsql` directly; `core/database/graphcache/sql.go`'s `placeholders` and `blobArgs` and `sqlbatch`'s inline placeholder build go (D-4, D-6) | STEP-2 |
 | `namealiases`, `nameformats`, `conclusionsummaries`, `searchindex` drop their `Querier`; `searchindex`'s nine read functions take `database.Querier` (D-5) | STEP-3 |
 | `autoreconciler` drops its `Querier`, `rowQuerier` and test `countingQuerier` (D-7, D-14) | STEP-4 |
-| Inline querier interfaces in `datevalues`, `namevalues`, `canonicalentities`, `sources.getOne`, `dbtest.Count`, `autoreconcilertest.dump`; `graphcachetest.execer`; `core/search/fts.go`'s IN list (D-5, D-11) | STEP-5 |
+| Inline querier interfaces in `datevalues`, `namevalues`, `canonicalentities`, `sources.getOne`, `autoreconcilertest.dump` (`dbtest.Count` is STEP-2); `graphcachetest.execer`; `core/search/fts.go`'s IN list (D-5, D-11) | STEP-5 |
 | The nineteen `Scan` copies become `database.Scanner` (D-12) | STEP-6, AC-1.5 |
 | `database.NullTrimmed` and `database.NullInt` replace `nullIfEmpty` (`datevalues`, `audit`) and `nullInt` (`datevalues`) (D-9, D-13) | STEP-7, AC-2.* |
 | Guard test refuses a local querier or scanner, and an import into `dbsql` (D-15) | STEP-8, AC-1.6, AC-1.3 |
@@ -104,19 +114,20 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | Changing which functions take `*sql.Tx`, `*sql.DB` or `*database.Tx` | not planned (map scope entry) |
 | `core/database/graphcache/sql.go` `uniqueIDs` (a near-copy of `database.UniqueBlobIDs` that does not copy the ids) | not planned (user, 2026-11-19) |
 | The scan-side `sql.NullInt64 → *int` pair (`datevalues.intPtr`, `observations.nullIntPtr`) | not planned: a decoder, not a binder; two copies |
-| Batching `core/search/fts.go`'s IN list through `sqlbatch` | not planned: one page of hits on `QueryContext`, which `sqlbatch` does not take (D-10 names it as an exception) |
+| `deleteimpact.handleGoesWithout`'s unbounded `NOT IN` over every Subject leaving a handle | S16-63 (user, 2026-11-19: fix it) |
+| Batching `core/search/fts.go`'s IN list through `sqlbatch` | not planned: one page of hits on `QueryContext`, which `sqlbatch` does not take (bounded by the page, D-16) |
 | `ScaleSeed.Exec` (`evidencegraphstest`), `observations.StagedFile` | not planned: not a `database/sql` surface |
 
 ## 4. Current state
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Shared read surface | `core/database/tx.go` `Querier` | `interface { Query; QueryRow }`, with the doc comment on reads inside `writes.Run`. 11 uses of `database.Querier` |
+| Shared read surface | `core/database/tx.go` `Querier` | `interface { Query; QueryRow }`, with the doc comment on reads inside `writes.Run`; used across the catalog packages |
 | Placeholders / args | `core/database/sqlin.go` `SQLInPlaceholders`, `BlobArgs` | `strings.Repeat("?,", n-1) + "?"`, `""` for `n <= 0`; `BlobArgs` copies ids into `[]any`. No test |
 | Null binders | `core/database/null.go` `NullBlob`, `NullString`, `NullInt64`, `NullBool`; `null_test.go` table tests | No trimming binder, no `*int` binder |
 | Import graph | `go list -deps ./core/database` | `core/database` imports `effects`, `graphcache`, `sqlbatch` (via `graphcache`), `catalogmodel`, `rowchange`, `scalarcols`, `apperr`, `ref`, and pure `core/*` packages. It does not import `audit` or `observationrow` |
 | `sqlbatch` | `core/database/sqlbatch/sqlbatch.go` `Querier` (Query only), `Query`, `Scan` | Own `Querier`; line 46 builds `strings.Repeat("?,", len(batch)-1)+"?"` (batch is never empty: `Each` skips empty) |
-| `graphcache` | `core/database/graphcache/graph.go` `Querier` (Query, QueryRow), `Over`, `SetQueryCounterForTest`; `verify.go` `TruthFunc`; `sql.go` `placeholders`, `blobArgs`, `uniqueIDs`; `load.go` four IN reads, each over one `sqlbatch.Each` chunk | Own `Querier`; `placeholders`/`blobArgs` are copies of `database.SQLInPlaceholders`/`BlobArgs` |
+| `graphcache` | `core/database/graphcache/graph.go` `Querier` (Query, QueryRow), `Over`, `SetQueryCounterForTest`; `verify.go` `TruthFunc`; `sql.go` `placeholders`, `blobArgs`, `uniqueIDs`; `load.go` four IN reads, each over one `sqlbatch.Each` chunk from `loadIDs`, and over every loaded node from test-only `verifyIDs` | Own `Querier`; `placeholders`/`blobArgs` are copies of `database.SQLInPlaceholders`/`BlobArgs` |
 | `graphcache.Querier` users | `core/database/graphfill/load.go` (`graphcache.Querier(g)` line 64, five loaders); `core/database/sources/records.go` `loadRecords`; `core/database/autoreconciler/truth.go` `rowQuerier`, `truthRows`; `core/database/conclusionsummaries/conclusionsummariestest/inputs.go` `type Querier = graphcache.Querier`; `core/database/searchindex/export_test.go` `SetNewGraphForTest`, `core/database/searchindex/inputs_test.go` (two) | 13 references |
 | `effects` | `core/database/effects/path.go` `querier` (Query, QueryRow), `walk.q`, `queryIDs`; `path_test.go` `countingQuerier` embeds `querier`, literal at line 42; `export_test.go` `SourceScopeOfChange(q querier, …)` | Private copy |
 | `namealiases` | `core/database/namealiases/namealiases.go` `Querier` | Read copy, used in the package |
@@ -124,7 +135,7 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | `conclusionsummaries` | `core/database/conclusionsummaries/conclusionsummaries.go` `Querier` | Declared and never used: deleted, nothing to retype |
 | `searchindex` | `core/database/searchindex/searchindex.go` `Querier` (Exec, Query, QueryRow) | Write copy on every function. Nine call no `Exec`, directly or through a callee: `ProjectionVersionStored`, `NeedsRebuild`, `SourceIDsForFile`, `listIDs`, `existingSourceCoverThumb` (`searchindex.go`), `loadHandleValues` (`handles.go`), `dependentsOf`, `dependentsOfHandles`, `oldEnds` (`inputs.go`) |
 | `autoreconciler` | `core/database/autoreconciler/autoreconciler.go` `Querier` (Exec, Query, QueryRow) on `RecomputeReported`, `recompute`, `HandlesForSubjects`, `HandlesForSource`, `HandlesForCitation`, `HandlesForProperty`, `Rebuild`, `StoredVersion`, `NeedsRebuild`, `recomputeBatch`, `load`, `acceptedEntities`, `insertRow`, `listIDs`; `truth.go` `rowQuerier` (adapts the graph's read surface with a no-op `Exec` so `truthRows` can call `load`); `export_test.go` `countingQuerier` (counts `Query`/`QueryRow`), `LoadQueryCount(q Querier, …)`; `autoreconciler_test.go` four helpers take `autoreconciler.Querier`, and line 1098 calls `LoadQueryCount(db, …)` | Write copy; the read functions demand `Exec` they never call; a second query counter beside the graph's |
-| `datevalues` | `core/database/datevalues/datevalues.go` `InsertTx`, `insert` (Exec-only inline), `LookupManyTx` (Query-only), `LookupTx` (QueryRow-only), `scanValue` (inline `Scan`); `nullIfEmpty` (10 calls); `nullInt` (`*int` → `*p` or nil, 42 calls) | Inline copies; private binders |
+| `datevalues` | `core/database/datevalues/datevalues.go` `InsertTx`, `insert` (Exec-only inline), `LookupManyTx` (Query-only), `LookupTx` (QueryRow-only), `scanValue` (inline `Scan`); `nullIfEmpty` (10 calls); `nullInt` (`*int` → `*p` or nil) | Inline copies; private binders |
 | `namevalues` | `core/database/namevalues/namevalues.go` `LookupTx` (QueryRow+Query inline, param `q`), `LookupManyTx` (Query-only inline, param `db`) | Inline copies |
 | `canonicalentities` | `core/database/canonicalentities/canonicalentities.go` `GetManyTx` (Query-only inline); `rowScanner` | Inline copy; scanner copy |
 | `sources` | `core/database/sources/sources.go` `getOne` (QueryRow-only inline); `rowScanner` | Inline copy matched by bar 24; scanner copy |
@@ -132,10 +143,10 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | `audit` | `core/database/audit/audit.go` `nullIfEmpty` (2 calls in `Record`'s insert) | Private trim binder; imports `effects`, `rowchange`, `apperr`, not `core/database` |
 | `core/search` | `core/search/fts.go` `fillMemberCounts` line 292 `marks := strings.TrimSuffix(strings.Repeat("?, ", len(ids)), ", ")`, over one page of hits, guarded by `len(ids) == 0` return above | Hand-built IN list; already imports `core/database` |
 | Test helpers | `core/database/dbtest/dbtest.go` `Count` (QueryRow-only inline; imports only `rowchange` today); `core/database/autoreconciler/autoreconcilertest/autoreconcilertest.go` `dump` (Query-only inline); `core/database/graphcache/graphcachetest/graphcachetest.go` `execer` (Exec-only) used by `member` with `k.db` and a `*sql.Tx` | Copies; `Count` and `dump` are matched by bar 24 |
-| Guard precedent | `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` | `go/parser` walk over the repo that refuses a pattern outside named trees |
-| Skill | `.agents/skills/add-catalog-query/SKILL.md` "Functions" (line 41: a by-id `IN` read goes through `sqlbatch`, never a hand-built `SQLInPlaceholders` list) and "Reads inside a write" | Names `database.Querier`; no rule against a local copy; no binder line; the IN-list rule names no exception, though `graphcache` and `core/search` build lists by hand |
+| Guard precedent | `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` | `go/parser` walk from `../..` that refuses `Begin` outside named trees. Its skip of names starting with `.` also skips the root `..`, so it parses zero files and always passes |
+| Skill | `.agents/skills/add-catalog-query/SKILL.md` "Functions" (line 41: a by-id `IN` read goes through `sqlbatch`, never a hand-built `SQLInPlaceholders` list) and "Reads inside a write" | Names `database.Querier`; no rule against a local copy; no binder line; the IN-list rule names no exception. Eight functions build a list by hand: `autoreconciler.recomputeBatch`, `searchindex.reprojectHandleBatch` and `writeInputs`, `core/database/graphcache/load.go`'s four loads (also reached unbounded from test-only `verify.go` `verifyIDs`), `core/database/sourcevocab/copy.go` (levels), `identityclaims.bridgeHeadsSQL` (type keys), `core/search` `fillMemberCounts` (one page), `deleteimpact.handleGoesWithout` (unbounded: every Subject leaving a handle) |
 
-**Precedent.** `core/database/sqlbatch` is the existing leaf: its package doc says "It imports nothing from the catalog, so the graph cache, which the database package depends on, can use it too." Copy that doc sentence's shape for `dbsql`. `database.Querier` itself (S12-01) is the shape the aliases keep. `core/writes/begin_test.go` is the walk to copy for T-6.
+**Precedent.** `core/database/sqlbatch` is the existing leaf: its package doc says "It imports nothing from the catalog, so the graph cache, which the database package depends on, can use it too." Copy that doc sentence's shape for `dbsql`. `database.Querier` itself (S12-01) is the shape the aliases keep. `core/writes/begin_test.go` is the AST check to copy for T-6, but not its walk: it skips its own root (D-15).
 
 ## 5. Decisions
 
@@ -144,20 +155,21 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | D-1 | The leaf package is `core/database/dbsql` *(new)*, files `dbsql.go`, `dbsql_test.go`, `guard_test.go`, all in package `dbsql`. `dbsql.go` imports only `database/sql` and `strings` | Names what it holds (the `database/sql` surface the catalog packages share) without stuttering (`querier.Querier`) | `core/database/querier` — stutters and would also hold placeholders; putting the types in `sqlbatch` — a batching package is the wrong home for the connection surface |
 | D-2 | `dbsql.Querier` = `Query(query string, args ...any) (*sql.Rows, error)` + `QueryRow(query string, args ...any) *sql.Row`. `dbsql.Execer` = `Querier` embedded + `Exec(query string, args ...any) (sql.Result, error)`; its doc says "Execer is Querier plus Exec: the surface a write takes". `dbsql.Scanner` = `Scan(dest ...any) error`; doc "Scanner is *sql.Row or *sql.Rows". Compile-time assertions in `dbsql.go`: `var _ Execer = (*sql.DB)(nil)`, `(*sql.Tx)(nil)`; `var _ Scanner = (*sql.Row)(nil)`, `(*sql.Rows)(nil)` | Same method sets as today's copies, so every caller still compiles. `Execer` is the working rule's name; its doc removes the Exec-only reading | `Writer` / `QueryExecer` — the rule names `Execer`, and the one Exec-only `execer` in the repo is deleted here |
 | D-3 | In `core/database/tx.go`, the `Querier` interface becomes `type Querier = dbsql.Querier` (keeping today's doc comment), followed by `type Execer = dbsql.Execer` and `type Scanner = dbsql.Scanner` *(new)*, each with a one-line doc. In `sqlin.go`, `SQLInPlaceholders` and `BlobArgs` keep their names and doc comments and become one-line forwarders to `dbsql.SQLInPlaceholders` and `dbsql.BlobArgs` | Callers outside the leaf users keep `database.*`; no call site moves; each concept has one identifier in both packages | Moving all callers to `dbsql` — 6 + 4 call sites churn, and `dbsql` becomes a second spelling |
-| D-4 | Only `sqlbatch`, `graphcache`, `effects` (which `core/database` imports) and `dbtest` import `dbsql`. Every other package, test and helper uses `database.Querier` / `Execer` / `Scanner` | Those three cannot import `core/database`; `dbtest` keeps importing nothing from `core/database` so an internal test of the three can still use it | Everyone on `dbsql` — the skill teaches `database.Querier` |
+| D-4 | Only `core/database` itself (the aliases), `sqlbatch`, `graphcache`, `effects` (which `core/database` imports) and `dbtest` import `dbsql`. Every other package, test and helper uses `database.Querier` / `Execer` / `Scanner` | Those three cannot import `core/database`; `dbtest` keeps importing nothing from `core/database` so an internal test of the three can still use it | Everyone on `dbsql` — the skill teaches `database.Querier` |
 | D-5 | Each local querier type is replaced by the shared type with the same method set: a read copy (Query, QueryRow, or a subset) → `Querier`; a copy with `Exec` → `Execer`. Subsets widen to `Querier` (`sqlbatch.Querier`, `datevalues.LookupManyTx`/`LookupTx`, `namevalues.LookupManyTx`, `canonicalentities.GetManyTx`, `sources.getOne`, `dbtest.Count`, `autoreconcilertest.dump`); Exec-only types (`datevalues.InsertTx`, `insert`, `graphcachetest.execer`) become `Execer`. A function typed with a write copy that never calls `Exec`, directly or through a callee, takes `Querier`: `searchindex`'s nine (§4) and `autoreconciler`'s (D-7). Every other `searchindex` function takes `database.Execer`. Parameter names stay (`namevalues.LookupManyTx` keeps `db`) | Working rule: "a package needing less than the full read surface still takes `database.Querier`"; D-10's sentence "a read takes `Querier`, a write `Execer`" is then true everywhere. Every caller passes `*sql.DB`, `*sql.Tx`, `*database.Tx` or `*graphcache.Graph` | Narrowing every function to the methods it calls — a larger diff for no rule anyone states |
 | D-6 | `dbsql.SQLInPlaceholders(n int) string` and `dbsql.BlobArgs(ids [][]byte) []any` *(new)* take `database.SQLInPlaceholders`'s and `BlobArgs`'s bodies verbatim. `core/database/graphcache/sql.go` `placeholders` and `blobArgs` are deleted and `load.go`'s eight calls use the `dbsql` pair. `sqlbatch.go` line 46 uses `dbsql.SQLInPlaceholders(len(batch))` | Map "Also" for placeholders; `blobArgs` added by the user (2026-11-19); `sqlbatch`'s inline build is a third copy | Keeping the `sqlbatch` inline build |
 | D-7 | In `autoreconciler`, functions that only read take `database.Querier`: `HandlesForSubjects`, `HandlesForSource`, `HandlesForCitation`, `HandlesForProperty`, `StoredVersion`, `NeedsRebuild`, `load`, `acceptedEntities`, `listIDs`. Functions that write take `database.Execer`: `RecomputeReported`, `recompute`, `Rebuild`, `recomputeBatch`, `insertRow`. `truth.go` `rowQuerier` is deleted and `truthRows` calls `load(q, chunk)` with its `database.Querier`. The four `autoreconciler_test.go` helpers take `database.Querier` | `rowQuerier` and its no-op `Exec` exist only because `load` demanded `Exec` | Keeping every function on `Execer` — keeps a fake `Exec` that returns `sql.ErrNoRows` |
-| D-8 | `graphcache.Querier` users outside `graphcache`: `core/database/graphfill/load.go` (`database.Querier(g)` and the five loaders), `core/database/sources/records.go`, `core/database/autoreconciler/truth.go`, `core/database/searchindex/export_test.go`, `core/database/searchindex/inputs_test.go` take `database.Querier`. `core/database/conclusionsummaries/conclusionsummariestest/inputs.go`'s `type Querier = graphcache.Querier` line and its doc comment are deleted and its functions take `database.Querier`. `graphcache.TruthFunc` and `graphcache` internals take `dbsql.Querier` | One name per layer (D-4) | Keeping `graphcache.Querier` as an alias — a second exported spelling |
+| D-8 | `graphcache.Querier` users outside `graphcache`: `core/database/graphfill/load.go` (`database.Querier(g)` and the five loaders), `core/database/sources/records.go`, `core/database/autoreconciler/truth.go`, `core/database/searchindex/export_test.go` (`SetNewGraphForTest`, and `DependentsOfForTest`, `DependentsOfHandlesForTest`, `OldEndsForTest`, which wrap read functions), `core/database/searchindex/inputs_test.go` take `database.Querier`. `core/database/conclusionsummaries/conclusionsummariestest/inputs.go`'s `type Querier = graphcache.Querier` line and its doc comment are deleted and its functions take `database.Querier`. `graphcache.TruthFunc` and `graphcache` internals take `dbsql.Querier` | One name per layer (D-4) | Keeping `graphcache.Querier` as an alias — a second exported spelling |
 | D-9 | `func NullTrimmed(s string) any` *(new)* in `core/database/null.go`, after `NullString`: `strings.TrimSpace`, then `nil` when empty, else the trimmed string. Doc: "NullTrimmed trims s and binds an empty result as SQL NULL. NullString does not trim." `datevalues` and `audit` delete `nullIfEmpty` and call it; `audit` imports `core/database` (no cycle) | Working rule; identical bodies today | In `dbsql` — it is a binder beside the other `Null*`, and neither caller is a leaf |
-| D-10 | `add-catalog-query` changes in three places. (1) "Reads inside a write" gains: "A package never declares its own querier or scanner interface, named or inline: a read takes `database.Querier`, a write `database.Execer`, a row scan `database.Scanner`, even when it calls one method. `sqlbatch`, `graphcache`, `effects` and `dbtest`, which cannot import `core/database`, take the `dbsql` types those alias. `dbsql`'s guard test refuses a copy." (2) Functions line 41 becomes: "A by-id `IN` read goes through `core/database/sqlbatch` (`sqlbatch.Query`), never a hand-built `SQLInPlaceholders` list: SQLite binds at most 32,766 values per statement. Two lists are built by hand, both already bounded: `graphcache`'s loads, over one `sqlbatch.Each` chunk, and `core/search`'s member count, over one page of hits on `QueryContext`. A new hand-built list needs the same bound." (3) Functions gains: "Bind an optional value with `database.NullBlob`, `NullString`, `NullInt`, `NullInt64` or `NullBool`; `NullTrimmed` when the text is trimmed first." | Bar 24; M-1 of the review: the skill must describe the hand-built lists the code keeps (user deferred to the recommendation, 2026-11-19) | Leaving `fts.go` off the shared helper — a fourth placeholder copy outside any rule |
+| D-10 | `add-catalog-query` changes in three places. (1) "Reads inside a write" gains: "A package never declares its own querier or scanner interface, named or inline: a read takes `database.Querier`, a write `database.Execer`, a row scan `database.Scanner`, even when it calls one method. `sqlbatch`, `graphcache`, `effects` and `dbtest`, which cannot import `core/database`, take the `dbsql` types those alias. `dbsql`'s guard test refuses a copy." (2) Functions line 41 becomes: "A by-id `IN` read goes through `core/database/sqlbatch` (`sqlbatch.Query`). A hand-built `SQLInPlaceholders` list is allowed only over a set something else already bounds: one `sqlbatch.Each` chunk, one page of search hits, or a fixed vocabulary of keys or levels. The function's comment names that bound. SQLite binds at most 32,766 values per statement." (3) Functions gains: "Bind an optional value with `database.NullBlob`, `NullString`, `NullInt`, `NullInt64` or `NullBool`; `NullTrimmed` when the text is trimmed first." | Bar 24; review M-1 and M-10: the rule is a condition every site meets, not a list of files (user, 2026-11-19) | Naming the allowed files — false on landing (eight sites, not two) and silent on the next one |
 | D-11 | `core/search/fts.go` builds `marks` with `database.SQLInPlaceholders(len(ids))`; the `strings` import stays only if another use remains | Map "Also"; `"?,?"` and `"?, ?"` are the same SQL | — |
 | D-12 | The nineteen `Scan` copies (§4 Scanner copies) are deleted. Every function that took `rowScanner`, `observationrow.Scanner` or an inline `interface{ Scan(dest ...any) error }` takes `database.Scanner`; parameter names stay. `observationrow.Scanner` is deleted outright (no alias); its callers outside the package, if any, move too (`rg "observationrow\.Scanner"` finds none at the base) | User, 2026-11-19: fold the scanner into S16-49. `*sql.Row` and `*sql.Rows` share `Scan` as `*sql.DB` and `*sql.Tx` share `Query` | A `dbsql.Scanner` with the copies left in place — not a cleanup |
 | D-13 | `func NullInt(p *int) any` *(new)* in `core/database/null.go`, before `NullInt64`: nil → `nil`, else `*p` (an `int`, as `datevalues.nullInt` returns today). `datevalues` deletes `nullInt` and calls it | The binder list the skill names (D-10) is complete in the file STEP-7 edits | A generic `NullInt64` over `~int \| ~int64` — changes the bound value's type for today's `*int64` callers |
 | D-14 | `autoreconciler`'s `export_test.go` `countingQuerier` is deleted. `LoadQueryCount(q database.Querier, ids [][]byte) (int, error)` builds `g := graphcache.Over(q)`, sets `g.SetQueryCounterForTest(func() { n++ })`, calls `load(g, ids)` and returns `n` | The graph already counts `Query` and `QueryRow`; `persondetail` and `evidencelayer` tests use it. `effects`' own counter stays: `graphcache` imports `effects` | Keeping a second counter |
-| D-15 | `core/database/dbsql/guard_test.go` *(new)*: `TestNoLocalSQLSurface` walks `core/` and `api/` from `filepath.Join("..", "..", "..")` with `begin_test.go`'s skips (`vendor`, `.git`, `testdata`, dot directories), parses every `.go` file, test files included, and fails on each `*ast.InterfaceType` (named or inline) outside `core/database/dbsql/` that has at least one named method and whose named methods are all in {`Query`, `QueryRow`, `Exec`, `Scan`}. The message names `path:line` and says to use `database.Querier`, `Execer` or `Scanner`. `TestImportsNoModulePackage` parses `dbsql`'s non-test files and fails on any import with the prefix `github.com/Jake-Robins-Studios/provenencia/` | Bar 24 holds every day, not only on the PR day (review M-3); precedent `TestBeginOnlyInDatabaseAndWrites` | A script in `check-pr.sh` — CI already runs `go test` |
+| D-15 | `core/database/dbsql/guard_test.go` *(new)*: `TestNoLocalSQLSurface` runs two `filepath.WalkDir` calls, on `filepath.Join("..", "..", "..", "core")` and `filepath.Join("..", "..", "..", "api")`, skipping `vendor`, `testdata` and dot directories other than the walk's own root. It parses every `.go` file, test files included, and builds `rel` with `filepath.Rel` from the repo root and `filepath.ToSlash`. It fails on each `*ast.InterfaceType` (named or inline) in a file whose `rel` does not start with `core/database/dbsql/` that has at least one named method and whose named methods are all in {`Query`, `QueryRow`, `Exec`, `Scan`}; the message names `rel:line` and says to use `database.Querier`, `Execer` or `Scanner`. It also fails when it parsed zero files. `TestImportsNoModulePackage` parses `dbsql`'s non-test files and fails on any import with the prefix `github.com/Jake-Robins-Studios/provenencia/`. In the same step, `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` gets the same fix: its dot-directory skip applies only when `path != root`, and it fails when it parsed zero files (today it skips its root `../..` and parses none; no non-test file outside `core/database/` and `core/writes/` calls `.Begin()`, so it passes) | Bar 24 holds every day (review M-3); the walk `begin_test.go` uses never ran (review M-11) | A script in `check-pr.sh` — CI already runs `go test` |
+| D-16 | Each hand-built `SQLInPlaceholders` list gets a one-line comment on its function naming its bound: `autoreconciler.recomputeBatch` (one `sqlbatch.Each` chunk from `recompute`), `searchindex.reprojectHandleBatch` and `writeInputs` (one chunk from `reprojectOn`), `graphcache` `StoredValues`, `loadMembers`, `loadOutcomes`, `linkLoadSQL` (one chunk from `loadIDs`, or every loaded node in test-only `Verify`), `sourcevocab` `CopyType`'s suggestion copy (the record levels), `identityclaims.bridgeHeadsSQL` (the bridge type keys), `core/search` `fillMemberCounts` (one page of hits). `deleteimpact.handleGoesWithout` gets no comment: S16-63 replaces its query | D-10's rule is true at every site on landing | Comments at call sites — the bound belongs to the function that builds the list |
 
-**Rules this plan bends.** `add-catalog-query` line 41 ("never a hand-built `SQLInPlaceholders` list") → the code keeps two bounded hand-built lists and this PR moves them onto the shared helper → the user asked for the most maintainable option and accepted the recommendation to name both exceptions and the bound a new one needs (2026-11-19) → STEP-8 (D-10 part 2).
+**Rules this plan bends.** `add-catalog-query` line 41 ("never a hand-built `SQLInPlaceholders` list") → the code keeps eight hand-built lists; six are bounded by a chunk, a page or a fixed vocabulary, `graphcache.Verify` is test-only, and `deleteimpact.handleGoesWithout` is unbounded → the user accepted the rule as a condition: a hand-built list only over a set already bounded, its comment naming the bound; the unbounded delete query is fixed (2026-11-19) → STEP-8 (D-10 part 2, D-16); the delete query is S16-63.
 
 ## 6. Design
 
@@ -175,7 +187,7 @@ rg -n -B1 "^\s+Scan\(\w* ?\.\.\.any\) error|interface\{ ?Scan\(" --type go core 
 | `database.NullInt` *(new)* | func | `database.NullInt64` | Takes `*int`, binds an `int` as `nullInt` does today |
 | `TestSQLInPlaceholders`, `TestBlobArgs` *(new)* | test | none | First tests of the moved bodies |
 | `TestNullTrimmed`, `TestNullInt` *(new)* | test | `TestNullBlob` in `null_test.go` | Copies its table shape |
-| `TestNoLocalSQLSurface`, `TestImportsNoModulePackage` *(new)* | test | `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` | Copies its walk; a different rule |
+| `TestNoLocalSQLSurface`, `TestImportsNoModulePackage` *(new)* | test | `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` | A different rule; both walks get the root fix (D-15) |
 
 Searched: `rg "interface \{" core --type go`, C-2, C-3, `rg "strings.Repeat\(\"\?"`, `rg "func nullIfEmpty|func nullInt"`, `rg "func blobArgs|func placeholders"`, `rg "SetQueryCounterForTest"`, `rg "go/parser" core`.
 
@@ -267,8 +279,8 @@ Check: `rg -n "type Querier" core --type go` prints only `core/database/dbsql/db
 
 **STEP-4 — `autoreconciler`**
 Files: `core/database/autoreconciler/autoreconciler.go`, `truth.go`, `export_test.go`, `autoreconciler_test.go`.
-Do: D-7, D-14. Delete `Querier`, `rowQuerier` and `countingQuerier`.
-Check: `rg -n "rowQuerier|countingQuerier|autoreconciler\.Querier" core/database/autoreconciler` prints nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/database/autoreconciler/... ./core/writes/...` passes, including the test at `autoreconciler_test.go:1098` with its expected count unchanged.
+Do: first, before any edit in this step, record `LoadQueryCount` for 1 and for 60 handles on the fixture `TestLoaderQueryCountIsConstant` builds (a throwaway `t.Logf`, not committed). Then D-7, D-14. Delete `Querier`, `rowQuerier` and `countingQuerier`.
+Check: `rg -n "rowQuerier|countingQuerier|autoreconciler\.Querier" core/database/autoreconciler` prints nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/database/autoreconciler/... ./core/writes/...` passes, and `LoadQueryCount` returns the two numbers recorded before the edit.
 
 **STEP-5 — Inline querier interfaces and the last IN list**
 Files: `core/database/datevalues/datevalues.go`, `core/database/namevalues/namevalues.go`, `core/database/canonicalentities/canonicalentities.go`, `core/database/sources/sources.go`, `core/database/autoreconciler/autoreconcilertest/autoreconcilertest.go`, `core/database/graphcache/graphcachetest/graphcachetest.go`, `core/search/fts.go`.
@@ -286,13 +298,13 @@ Do: D-9, D-13; T-1, T-5.
 Check: `rg "func nullIfEmpty|nullIfEmpty\(|func nullInt\b|nullInt\(" core` prints nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/database/... ./core/writes/...` passes.
 
 **STEP-8 — Guard and skill**
-Files: `core/database/dbsql/guard_test.go` *(new)*, `.agents/skills/add-catalog-query/SKILL.md`.
-Do: D-15 (T-6, T-7); D-10.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/dbsql` passes; adding a scratch `type q interface { QueryRow(string, ...any) *sql.Row }` to any `core/` file makes T-6 fail with that `path:line` (remove it after); `python3 scripts/check-guidance-names.py` passes; `scripts/check-pr.sh` per the DoD.
+Files: `core/database/dbsql/guard_test.go` *(new)*, `core/writes/begin_test.go`, `.agents/skills/add-catalog-query/SKILL.md`, `.agents/skills/review-pr/lenses/maintainability.md`, and the D-16 files.
+Do: D-15 (T-6, T-7, T-8); D-10; D-16. Add to **Known traps** in `maintainability.md`: "A repo walk from `..` that skips names starting with `.` skips its own root and checks nothing: skip only below the root, and fail on zero files (S16-49)."
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/dbsql` passes; adding a scratch `type q interface { QueryRow(string, ...any) *sql.Row }` to any `core/` file makes T-6 fail with that `path:line`, and a scratch `db.Begin()` in a `core/search` non-test file makes T-8 fail (remove both after); `CGO_ENABLED=1 go test -tags fts5 ./core/writes` passes; `python3 scripts/check-guidance-names.py` passes; `scripts/check-pr.sh` per the DoD.
 
 **STEP-9 — Docs**
 Files: `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md`, this plan (status, Landed note).
-Do: per the Definition of done. In `deployment-plan.md`, the S16-49 map row names `dbsql`, the nineteen querier and nineteen scanner copies and the guard test, and bar 24 says the `rg` finds one line, `dbsql`'s `Querier` (C-1).
+Do: per the Definition of done. In `deployment-plan.md`: the S16-49 map row status; bar 24 says the `rg` finds one line, `dbsql`'s `Querier` (C-1). The row text, scope entry and Batch 6 rule were brought in line with this plan at planning time.
 Check: links resolve.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed, ending in a period, like the rest of `git log` ("Define the catalog's read and write queriers once, in a leaf package."). No WIP commits.
@@ -308,6 +320,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-5 | Go | `core/database/null_test.go` `TestNullInt` *(new)*, table | nil → nil; `&0` → `0`; `&1890` → `1890`, each compared with `==` against an `int` | AC-2.4, D-13 |
 | T-6 | Go | `core/database/dbsql/guard_test.go` `TestNoLocalSQLSurface` *(new)* | the repo after STEP-6 → passes; STEP-8's scratch interface → fails naming its `path:line` | AC-1.6, AC-1.1, AC-1.2, AC-1.5, D-15 |
 | T-7 | Go | `core/database/dbsql/guard_test.go` `TestImportsNoModulePackage` *(new)* | `dbsql.go` imports only standard library → passes | AC-1.3, D-15 |
+| T-8 | Go | `core/writes/begin_test.go` `TestBeginOnlyInDatabaseAndWrites` (fixed) | the repo → passes having parsed more than zero files; STEP-8's scratch `Begin` → fails | D-15 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/database/autoreconciler` (D-7, D-14), `core/database/graphcache` and `graphfill` (D-8), `core/database/effects` (`countingQuerier`), `core/database/observations` (D-12).
 
@@ -332,7 +345,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `c
 
 ## 10. Manual check
 
-None in the app: nothing it draws or does changes. The reviewer runs C-1 (AC-1.1), C-2 (AC-1.2), C-3 (AC-1.5) and the AC-1.3 and AC-2.3 commands and sees the outputs §2 names; adds the scratch interface from STEP-8 and sees T-6 fail (AC-1.6); and reads `.agents/skills/add-catalog-query/SKILL.md` for D-10's three changes (AC-1.4).
+None in the app: nothing it draws or does changes. The reviewer runs C-1 (AC-1.1), C-2 (AC-1.2), C-3 (AC-1.5) C-4 (AC-1.3) and C-5 (AC-2.3) and sees the outputs §2 names; adds the scratch interface from STEP-8 and sees T-6 fail (AC-1.6); and reads `.agents/skills/add-catalog-query/SKILL.md` for D-10's three changes (AC-1.4).
 
 ## 11. Risks and stop conditions
 
@@ -351,7 +364,7 @@ None in the app: nothing it draws or does changes. The reviewer runs C-1 (AC-1.1
 - `audit` cannot import `core/database` without a cycle.
 - A function D-5 or D-7 lists as read-only calls `Exec`, directly or through a callee.
 - T-6 fails on an interface that §4 does not list.
-- `LoadQueryCount` through `graphcache.Over` reports a different count than today for the test at `autoreconciler_test.go:1098`.
+- `LoadQueryCount` through `graphcache.Over` returns a different count than the one STEP-4 recorded before its edit.
 - A test assertion (not a helper's parameter type) has to change for the suite to pass.
 
 ## 12. Open questions
