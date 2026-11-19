@@ -14,7 +14,7 @@ on:
 jobs:
   test:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
