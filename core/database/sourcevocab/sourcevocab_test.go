@@ -193,6 +193,41 @@ func TestInstall(t *testing.T) {
 				if view.Formats != findSeedType(t, "census").Formats || len(view.Choices) != 0 || len(view.Diagnostics) != 0 {
 					t.Fatalf("GetFormats = %+v", view)
 				}
+
+				// Every suggestion list is written in registry order, and a
+				// (type, level) the registry does not list has no rows.
+				listed := map[string]bool{}
+				for _, want := range seedSuggestions {
+					ty, err := sourcetypes.Lookup(c, want.TypeKey, vocabkey.OriginProvenencia)
+					if err != nil {
+						t.Fatalf("type %s: %v", want.TypeKey, err)
+					}
+					listed[want.TypeKey+"/"+string(want.Level)] = true
+					sugs, err := ListSuggestions(c, ty.ID, want.Level)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if len(sugs) != len(want.FieldKeys) {
+						t.Fatalf("%s/%s lists %d fields, want %d", want.TypeKey, want.Level, len(sugs), len(want.FieldKeys))
+					}
+					for i, s := range sugs {
+						if s.Field.Key != want.FieldKeys[i] || s.Field.Origin != vocabkey.OriginProvenencia || s.SortOrder != i {
+							t.Fatalf("%s/%s[%d] = %s origin %s sort %d, want %s origin provenencia sort %d",
+								want.TypeKey, want.Level, i, s.Field.Key, s.Field.Origin, s.SortOrder, want.FieldKeys[i], i)
+						}
+					}
+				}
+				for _, ty := range types {
+					for _, level := range vocabkey.MetadataLevels() {
+						if listed[ty.Key+"/"+string(level)] {
+							continue
+						}
+						sugs, err := ListSuggestions(c, ty.ID, level)
+						if err != nil || len(sugs) != 0 {
+							t.Fatalf("%s/%s = %+v, %v, want no suggestions", ty.Key, level, sugs, err)
+						}
+					}
+				}
 			},
 		},
 		{
