@@ -50,7 +50,21 @@ struct PVEmptyState<Action: View>: View {
         compact: Bool = false,
         @ViewBuilder action: () -> Action
     ) {
-        self.glyph = .symbol(icon)
+        self.init(
+            glyph: .symbol(icon), verbatimTitle: verbatimTitle, message: message,
+            compact: compact, action: action
+        )
+    }
+
+    /// The same, with a symbol or a mark in the icon slot.
+    init(
+        glyph: PVGlyph,
+        verbatimTitle: String,
+        message: String? = nil,
+        compact: Bool = false,
+        @ViewBuilder action: () -> Action
+    ) {
+        self.glyph = glyph
         self.title = Text(verbatim: verbatimTitle)
         self.message = message
         self.compact = compact
@@ -115,6 +129,12 @@ extension PVEmptyState where Action == EmptyView {
 
     init(icon: PVSymbol, verbatimTitle: String, message: String? = nil, compact: Bool = false) {
         self.init(icon: icon, verbatimTitle: verbatimTitle, message: message, compact: compact) {
+            EmptyView()
+        }
+    }
+
+    init(glyph: PVGlyph, verbatimTitle: String, message: String? = nil, compact: Bool = false) {
+        self.init(glyph: glyph, verbatimTitle: verbatimTitle, message: message, compact: compact) {
             EmptyView()
         }
     }
