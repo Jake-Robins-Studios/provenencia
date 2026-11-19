@@ -175,11 +175,12 @@ func UpsertTx(tx *database.Tx, t Type, formats *Formats) ([]byte, []rowchange.Ch
 			return nil, nil, err
 		}
 	}
+	rowDiff := updateChange(existing, next, nil)
 	change := updateChange(existing, next, diffs)
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	if updateChange(existing, next, nil) != nil {
+	if rowDiff != nil {
 		if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.IconKey, existing.ID); err != nil {
 			return nil, nil, err
 		}
