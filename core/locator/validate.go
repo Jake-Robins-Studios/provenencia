@@ -5,7 +5,11 @@
 // losslessly (Validate does not fail solely for an unrecognized type).
 //
 // A page selector holds artifact_page (the page of the file), page_label (the
-// page the original prints), or both. A document has at most one.
+// page the original prints), or both, or is marked page_unknown. It may mark
+// the printed page page_unknown (the original prints none) or page_supplied
+// (the number is not printed on the page). Validate refuses a pair
+// valuemark.Validate refuses, and Page settles a stored one. A document has at
+// most one page selector.
 package locator
 
 import (
@@ -14,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeLocatorInvalid, apperr.KindUser)
@@ -46,6 +51,8 @@ type selectorRaw struct {
 	// page
 	ArtifactPage *int    `json:"artifact_page"`
 	PageLabel    *string `json:"page_label"`
+	PageUnknown  bool    `json:"page_unknown"`
+	PageSupplied bool    `json:"page_supplied"`
 	// region
 	Points []point `json:"points"`
 	Unit   string  `json:"unit"`
@@ -60,10 +67,38 @@ type point struct {
 	Y float64 `json:"y"`
 }
 
-// Validate checks locator JSON against version-1 invariants for known selector types.
+// Validate is the write check: it checks locator JSON against version-1
+// invariants for known selector types, and refuses a page mark pair
+// valuemark.Validate refuses (valuemark.ErrInvalid). Reads go through parse,
+// which does not check the pair.
 func Validate(locatorJSON string) error {
-	_, err := parse(locatorJSON)
-	return err
+	doc, err := parse(locatorJSON)
+	if err != nil {
+		return err
+	}
+	if sel, ok := pageSelector(doc); ok {
+		return valuemark.Validate(sel.pageMark())
+	}
+	return nil
+}
+
+// pageMark returns the printed page's mark and whether the selector holds a
+// non-blank page_label (the mark's value). artifact_page is not a value: it is
+// where the Citation is in the file, not what the original prints.
+func (sel selectorRaw) pageMark() (valuemark.Mark, bool) {
+	hasLabel := sel.PageLabel != nil && strings.TrimSpace(*sel.PageLabel) != ""
+	return valuemark.Mark{Unknown: sel.PageUnknown, Supplied: sel.PageSupplied}, hasLabel
+}
+
+// pageSelector returns the page selector of a parsed document, which has at
+// most one.
+func pageSelector(doc document) (selectorRaw, bool) {
+	for _, sel := range doc.Selectors {
+		if strings.TrimSpace(sel.Type) == TypePage {
+			return sel, true
+		}
+	}
+	return selectorRaw{}, false
 }
 
 // parse decodes locator JSON and validates every selector.
@@ -139,16 +174,15 @@ func validateDoc(doc document) error {
 	return nil
 }
 
-// validatePage accepts a file page of 1 or more, or no file page and a
-// non-blank printed page (an image has no file page).
+// validatePage accepts a file page of 1 or more, a non-blank printed page, or
+// a selector marked page_unknown (an image whose original prints no page). The
+// mark pair is checked on write only, by Validate.
 func validatePage(sel selectorRaw) error {
-	if sel.ArtifactPage != nil {
-		if *sel.ArtifactPage < 1 {
-			return ErrInvalid
-		}
-		return nil
+	if sel.ArtifactPage != nil && *sel.ArtifactPage < 1 {
+		return ErrInvalid
 	}
-	if sel.PageLabel == nil || strings.TrimSpace(*sel.PageLabel) == "" {
+	mark, hasLabel := sel.pageMark()
+	if sel.ArtifactPage == nil && !hasLabel && !mark.Unknown {
 		return ErrInvalid
 	}
 	return nil
