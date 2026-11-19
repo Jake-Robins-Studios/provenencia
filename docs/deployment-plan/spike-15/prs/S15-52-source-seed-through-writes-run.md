@@ -6,7 +6,7 @@
 **Brief:** — (no chrome change: a Go refactor of the seed's write path; no view draws anything different)
 **Board:** —
 **Depends on:** —
-**Blocks:** S15-19, S16-60
+**Blocks:** S15-19, S16-62
 **Branch:** `s15-52-source-seed-through-writes-run`
 **Version bump:** none — a preparatory refactor with no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md), [`add-catalog-query`](../../../../.agents/skills/add-catalog-query/SKILL.md), [`add-audit-scope`](../../../../.agents/skills/add-audit-scope/SKILL.md)
@@ -34,7 +34,7 @@ The Source vocabulary seed stops writing beside the catalog's one write path. `s
 
 **Why now.** S15-19 seeds 26 types and 63 fields and passes formats and unknown text through these upserts (user, 2026-11-17: this PR first). [`core/writes/README.md`](../../../../core/writes/README.md) already names these two as the hand-reprojecting exceptions.
 
-**What stays.** The seed's content (one type, three fields, one suggestion entry). Install runs at create only, from `onboarding.createCatalog`. The subject vocabulary, grade and property seeds keep their own `Upsert`s (S16-60). Every test keeps the fixtures it has: only the function it calls to make them changes.
+**What stays.** The seed's content (one type, three fields, one suggestion entry). Install runs at create only, from `onboarding.createCatalog`. The subject vocabulary, grade and property seeds keep their own `Upsert`s (S16-62). Every test keeps the fixtures it has: only the function it calls to make them changes.
 
 ## 2. User stories
 
@@ -79,9 +79,7 @@ The Source vocabulary seed stops writing beside the catalog's one write path. `s
 | Out | Home |
 | --- | --- |
 | Formats and unknown text in the seed; the new seed content | S15-19 |
-| The subject vocabulary, grade and property seeds' `Upsert`s and `subjectvocab.EnsureBinding` | S16-60 |
-| `sourcetypes.Create` writing formats with its own `sqlInsert` (a second insert path beside `UpsertTx`'s) | Not planned: `Create` mints a user key from a label and checks duplicates, which the seed does not; both build their change through D-1's shared builder |
-| Making `EnsureSuggestion(c, …)`'s two test callers transactional | Not planned: suggestion rows are effect `None` and never a change, so a `writes.Call` around them would roll back (D-4) |
+| The subject vocabulary, grade and property seeds' `Upsert`s and `subjectvocab.EnsureBinding` | S16-62 |
 
 ## 4. Current state
 
@@ -106,13 +104,14 @@ The Source vocabulary seed stops writing beside the catalog's one write path. `s
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `sourcetypes.UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error)` *(new)*. Same validation as today's `Upsert` (trim; key, label non-empty; `vocabkey.ValidOrigin`; `NormalizeIconKey`; a non-empty `t.ID` must be 16 bytes). Looks up by (key, origin) with `lookupTx`. **Missing:** insert with `sqlUpsert` (the conflict branch cannot fire) and return a create change built by `createChange(id, key, origin, label, description, iconKey string, formats Formats) rowchange.Change` *(new, unexported)*, which `Create` also calls. **Present:** diff with `updateDiffs(existing Type, label, description, iconKey string) map[string]rowchange.FieldDiff` *(new, unexported)*, which `Update` also calls; write with `sqlUpdate` only when the map is not empty; return an `update` change, or no change. No hand reprojection | One way to build each change; the effects registry reprojects the type and, on a label or icon change, its Sources (AC-1.3) | Reusing `Create` — it mints a user-origin kebab key and refuses duplicates; keeping `sqlUpsert`'s blind write — it cannot say what changed |
-| D-2 | `metadatafields.UpsertTx(tx *database.Tx, f Field) ([]byte, []rowchange.Change, error)` *(new)*, the same shape. Create change from `createChange(id, key, origin, label, dataType, description string) rowchange.Change` *(new, unexported)*, also called by `Create`. Update diff from `updateDiffs(existing Field, label, description, unknownText string) map[string]rowchange.FieldDiff` *(new, unexported)*, also called by `Update` (trim; `database.NullString` on both sides). `UpsertTx` passes `existing.UnknownText`, so it keeps the stored unknown text; it also diffs `data_type` (old → new) when it differs, which `Update` refuses and today's `sqlUpsert` writes. The update writes `label`, `description`, `data_type` with one new statement `sqlUpsertUpdate` *(new)*: `UPDATE source_metadata_fields SET label = ?, data_type = ?, description = ? WHERE id = ?` | The map entry: `UpsertTx`'s update branch and `Update` share one per-column diff, so S15-19 adds unknown text as one argument. `data_type` keeps today's upsert behavior | Sending `f.UnknownText` now — the seed has none, and it would clear S15-37's stored text on a re-run |
+| D-1 | `sourcetypes.UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error)` *(new)*. Same validation as today's `Upsert` (trim; key, label non-empty; `vocabkey.ValidOrigin`; `NormalizeIconKey`); a non-empty `t.ID` is `ErrInvalid` (no caller sets it, and the row is found by key and origin). Looks up by (key, origin) with `lookupTx`. **Missing:** mint a UUIDv7 and insert with `sqlInsert`, the one insert `Create` already uses, formats NULL; `sqlUpsert` is deleted. **Present:** build `next` from the stored row plus the input's label, description and icon, write with `sqlUpdate` only when the update change is not nil. Changes come from one column list (D-9). No hand reprojection | One insert and one update statement per table; the effects registry reprojects the type and, on a label or icon change, its Sources (AC-1.3); S15-19 puts a new type's formats in the same insert (plan review M-1) | Reusing `Create` — it mints a user-origin kebab key and refuses duplicates; keeping `sqlUpsert` — a second insert statement whose conflict branch can no longer fire |
+| D-2 | `metadatafields.UpsertTx(tx *database.Tx, f Field) ([]byte, []rowchange.Change, error)` *(new)*, the same shape. `sqlUpsert` becomes `sqlInsert` *(renamed)* without its `ON CONFLICT` clause, used by `Create` and `UpsertTx`. `sqlUpdate` grows to `UPDATE source_metadata_fields SET label = ?, data_type = ?, description = ?, unknown_text = ? WHERE id = ?`, the one update statement: `Update` passes the stored data type (it already refuses a different one), `UpsertTx` passes the input's. `UpsertTx` keeps the stored unknown text (`next.UnknownText = existing.UnknownText`), so S15-19 changes that one assignment. Changes come from one column list (D-9) | One insert, one update and one diff for the table, so S15-19 adds unknown text without new SQL (plan review M-2). `data_type` keeps today's upsert behavior | A second `UPDATE` for the upsert — two writes of one row shape; sending `f.UnknownText` now — the seed has none, and it would clear S15-37's stored text |
 | D-3 | `sourcetypes.Upsert` and `metadatafields.Upsert` are deleted, with their `searchindex.ReprojectSourceType` / `ReprojectMetadataField` calls. Those two reprojection functions stay: `searchindex.Reproject` and `RebuildAll` call them | No caller is left once tests move (D-5) | Keeping `Upsert` as a wrapper — a second path the README would still have to name |
-| D-4 | `sourcevocab.Install` runs `writes.Run(c, writes.Op{Action: ActionInstall}, …)`, no `UserID`, `ActionInstall = "install_source_vocabulary"` *(new, exported const in `sourcevocab.go`)*. Inside: fields (`metadatafields.UpsertTx`), types (`sourcetypes.UpsertTx`), suggestions through `ensureSuggestionTx(tx *database.Tx, typeID, fieldID []byte, level vocabkey.Level, sortOrder int) error` *(new, unexported)*, which runs `tx.Exec(sqlEnsureSuggestion, …)` with the same checks as `EnsureSuggestion`. `EnsureSuggestion(c, …)` keeps its signature for its two test callers (`core/database/sourcecopy/sourcecopy_test.go`, `sourcevocab_test.go`) and runs the same `sqlEnsureSuggestion` constant on `c.DB()`: one statement, two one-line callers (the repo has no shared exec interface; `database.Querier` is read-only). All changes are collected and returned; the closure's value is `struct{}`. An error anywhere returns it and `Run` rolls back | One transaction, one revision, atomic. Suggestion rows are effect `None` with no `Entity`, so they ride the transaction without being changes. A second Install has no changes, so `Run` rolls back identical rows and records nothing (AC-2.2) | One `writes.Run` per row — 4 revisions for one seed, and partial failure stays; giving the suggestion join an `Entity` — audits suggestion rows, which the app never did |
-| D-5 | Test helper packages *(new)*: `core/database/sourcetypes/sourcetypestest/sourcetypestest.go` `Upsert(c *database.Catalog, t sourcetypes.Type) ([]byte, error)` and `core/database/metadatafields/metadatafieldstest/metadatafieldstest.go` `Upsert(c *database.Catalog, f metadatafields.Field) ([]byte, error)`. Each is `writes.Call(c, writes.Op{Action: ActionUpsert}, …UpsertTx…)` with `ActionUpsert` = `"upsert_source_type"` / `"upsert_metadata_field"` *(new consts in each helper package)*, no user. The signatures equal the deleted functions', so a caller changes only its package qualifier and import | Precedent `artifactstest.Create`; the move is mechanical and reviewable | A fatal `t`-taking helper — every caller's error handling would change |
+| D-4 | `sourcevocab.Install` runs `writes.Run(c, writes.Op{Action: ActionInstall}, …)`, no `UserID`, `ActionInstall = "install_source_vocabulary"` *(new, exported const in `sourcevocab.go`)*. Inside: fields (`metadatafields.UpsertTx`), types (`sourcetypes.UpsertTx`), suggestions through `ensureSuggestionTx(tx *database.Tx, typeID, fieldID []byte, level vocabkey.Level, sortOrder int) error` *(new, unexported)*, which holds `EnsureSuggestion`'s level and id checks and runs `sqlEnsureSuggestion` on the tx. `EnsureSuggestion(c, …)` is deleted: `core/database/sourcecopy/sourcecopy_test.go` appends its three fields with `sourcevocab.AppendSuggestion` (same order 0, 1, 2), and `sourcevocab_test.go`'s refusal check calls `ensureSuggestionTx` inside `writes.Call`. All changes are collected and returned; the closure's value is `struct{}`. An error anywhere returns it and `Run` rolls back | One transaction, one revision, atomic; one suggestion write (plan review M-3). Suggestion rows are written on the tx beside the changes, as `CopyType`'s join copy is, and are not changes. A second Install has no changes, so `Run` rolls back identical rows and records nothing (AC-2.2) | One `writes.Run` per row — four revisions for one seed, and partial failure stays; keeping `EnsureSuggestion` for tests — product code only tests call |
+| D-5 | Test helper packages *(new)*: `core/database/sourcetypes/sourcetypestest/sourcetypestest.go` `Upsert(c *database.Catalog, t sourcetypes.Type) ([]byte, error)` and `core/database/metadatafields/metadatafieldstest/metadatafieldstest.go` `Upsert(c *database.Catalog, f metadatafields.Field) ([]byte, error)`. Each is `writes.Call(c, writes.Op{Action: "upsert_source_type"}, …UpsertTx…)` (`"upsert_metadata_field"` for fields), the action a string literal as in `artifactstest.Create`, no user. The signatures equal the deleted functions', so a caller changes only its package qualifier and import | Precedent `artifactstest.Create`; the move is mechanical and reviewable | A fatal `t`-taking helper — every caller's error handling would change |
 | D-6 | `core/database/sourcetypes`' internal tests (`sourcetypes_test.go`, `formats_test.go`, `package sourcetypes`) cannot import `sourcetypestest` (import cycle). They call `upsert(c *database.Catalog, t Type) ([]byte, error)` *(new)*, a test-file helper in `core/database/sourcetypes/upsert_test.go` with the same body as `sourcetypestest.Upsert`. Their calls to `metadatafields.Upsert` use `metadatafieldstest.Upsert` | Go forbids the cycle; one five-line test-only copy is the cost | An exported non-test `UpsertCatalog` in `sourcetypes` — product code that only tests call |
 | D-7 | `TestUpsertLookupList` in both packages keeps its cases and exercises `UpsertTx` through the helper; new table cases cover AC-1.1 – AC-1.7 by calling `UpsertTx` inside `writes.Call` and inspecting the returned changes | The behavior moved; its tests follow it | — |
+| D-9 | Each package's changes come from one column list, as `core/database/datevalues/datevalues.go` `RowMap`, `CreateChange` and `UpdateChange` do: `rowFields(t Type) map[string]any` *(new, unexported)* (`id` as `database.UUIDString`, `key`, `origin`, `label`, `icon_key`, and `description` only when not empty; for fields `data_type`, and `description` and `unknown_text` only when not empty), so today's audit JSON keys are unchanged. Create change: `rowchange.FullRow(rowFields(t))` (types add `formatFieldDiffs(Formats{}, formats)`). Delete change: `rowchange.DeletedRow(rowFields(prev))` (types keep their format diffs). Update change: `updateChange(prev, next) *rowchange.Change` *(new, unexported)*, a diff over the union of both maps' keys, a missing key reading nil, `id`, `key` and `origin` never compared; nil when nothing differs. `Create`, `Update`, `Delete` and `UpsertTx` all use them; the inline field maps go | One column list per table drives create, update and delete; S15-19's unknown text and S16-62's copies inherit it (plan review M-4) | Positional `createChange(id, key, origin, label, …)` builders — a seven-string signature, and `Delete` keeps a third copy |
 | D-8 | A test that counts `audit_transactions` or asserts a revision number and now sees extra revisions from a fixture's upsert takes its count as a delta from after the fixture (the pattern `core/database/observations/observations_test.go` uses at its `before` / `after`), not a new literal | Fixtures now audit; a delta does not depend on how many | Bumping literals — breaks again when a fixture changes |
 
 **Rules this plan bends.** None.
@@ -124,15 +123,15 @@ The Source vocabulary seed stops writing beside the catalog's one write path. `s
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
 | `sourcetypes.UpsertTx` | func | `sourcetypes.Upsert`, `Create`, `Update` | Replaces `Upsert`; shares `Create`'s and `Update`'s change builders (D-1) |
-| `sourcetypes.createChange`, `updateDiffs` | func | inline code in `Create`, `Update` | Extracted, not new (D-1) |
-| `metadatafields.UpsertTx`, `createChange`, `updateDiffs`, `sqlUpsertUpdate` | func, const | `Upsert`, `Create`, `Update`, `sqlUpdate` | Same as above; `sqlUpdate` does not write `data_type` (D-2) |
-| `sourcevocab.ActionInstall`, `ensureSuggestionTx` | const, func | `EnsureSuggestion`, `subjectvocab.ActionAssign` | Same SQL, run on the tx (D-4) |
+| `sourcetypes.rowFields`, `updateChange` | func | `datevalues.RowMap`, `CreateChange`, `UpdateChange`; inline maps in `Create`, `Update`, `Delete` | Same shape as `datevalues` (D-9) |
+| `metadatafields.UpsertTx`, `rowFields`, `updateChange` | func | `Upsert`, `Create`, `Update`, `Delete` | Same as above; `sqlUpsert` → `sqlInsert`, `sqlUpdate` gains `data_type` (D-2, D-9) |
+| `sourcevocab.ActionInstall`, `ensureSuggestionTx` | const, func | `EnsureSuggestion` (deleted), `subjectvocab.ActionAssign` | Replaces `EnsureSuggestion` (D-4) |
 | `sourcetypestest`, `metadatafieldstest` | packages | `artifactstest`, `subjectvocabtest` | Same pattern (D-5) |
 | `core/database/sourcetypes/upsert_test.go` *(new)* `upsert` | test helper | `sourcetypestest.Upsert` | Import cycle (D-6) |
 
 **Builds on.** `writes.Run` and the effects registry's `source_types` and `source_metadata_fields` entries, unchanged.
-**Deletes.** `sourcetypes.Upsert`, `metadatafields.Upsert`, their hand reprojection; the inline change construction in `Create` and `Update` of both packages (moved into the builders); the README and package-comment lines that name the un-audited seed path.
-**Next adds.** S15-19 passes formats (`*Formats`) and unknown text through these `UpsertTx`s. S16-60 copies this shape for `subjectvocab`, grades and properties.
+**Deletes.** `sourcetypes.Upsert` and `sqlUpsert`, `metadatafields.Upsert`, their hand reprojection; `sourcevocab.EnsureSuggestion`; the inline change maps in `Create`, `Update` and `Delete` of both packages (D-9); the README and package-comment lines that name the un-audited seed path.
+**Next adds.** S15-19 passes formats (`*Formats`) and unknown text through these `UpsertTx`s. S16-62 copies this shape for `subjectvocab`, grades and properties.
 
 ### Reach
 
@@ -158,9 +157,9 @@ None — no catalog change.
 
 | Package | Change |
 | --- | --- |
-| `core/database/sourcetypes` | `UpsertTx`, `createChange`, `updateDiffs` *(new)*; `Create` and `Update` call the builders; `Upsert` deleted; package comment: "UpsertTx is the seed's write, run inside writes.Run" |
-| `core/database/metadatafields` | `UpsertTx`, `createChange`, `updateDiffs`, `sqlUpsertUpdate` *(new)*; `Create`, `Update` call the builders; `Upsert` deleted; package comment as above |
-| `core/database/sourcevocab` | `ActionInstall`, `ensureSuggestionTx` *(new)*; `Install` in one `writes.Run`; package comment says Install is one audited revision |
+| `core/database/sourcetypes` | `UpsertTx`, `rowFields`, `updateChange` *(new)*; `Create`, `Update`, `Delete` build their changes from them; `Upsert` and `sqlUpsert` deleted; package comment: "UpsertTx is the seed's write, run inside writes.Run" |
+| `core/database/metadatafields` | `UpsertTx`, `rowFields`, `updateChange` *(new)*; `sqlUpsert` → `sqlInsert`; `sqlUpdate` writes `data_type`; `Create`, `Update`, `Delete` build their changes from them; `Upsert` deleted; package comment as above |
+| `core/database/sourcevocab` | `ActionInstall`, `ensureSuggestionTx` *(new)*; `EnsureSuggestion` deleted; `Install` in one `writes.Run`; package comment says Install is one audited revision |
 | `core/database/sourcetypes/sourcetypestest`, `core/database/metadatafields/metadatafieldstest` | *(new)* D-5 |
 
 Errors: none new.
@@ -181,12 +180,12 @@ None — no user-facing copy.
 
 **STEP-1 — Types upsert inside a transaction**
 Files: `core/database/sourcetypes/sourcetypes.go`, `sourcetypes_test.go`. Skill: `add-catalog-query`.
-Do: D-1. Extract `createChange` and `updateDiffs` from `Create` and `Update` first and run the package tests; then add `UpsertTx`. Keep `Upsert` for now (deleted in STEP-4) but make it call `UpsertTx` inside `writes.Call` so callers keep working between steps.
+Do: D-1, D-9. Build `rowFields` and `updateChange` and move `Create`, `Update` and `Delete` onto them first, and run the package tests (audit JSON unchanged); then add `UpsertTx`. Keep `Upsert` for now (deleted in STEP-4) but make it call `UpsertTx` inside `writes.Call` so callers keep working between steps.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcetypes/...` passes with T-1.
 
 **STEP-2 — Fields upsert inside a transaction**
 Files: `core/database/metadatafields/metadatafields.go`, `metadatafields_test.go`. Skill: `add-catalog-query`.
-Do: D-2, in the same order as STEP-1 (builders, then `UpsertTx`, then `Upsert` as a temporary wrapper).
+Do: D-2, D-9, in the same order as STEP-1 (column list, `sqlInsert` rename and `sqlUpdate` with `data_type`, then `UpsertTx`, then `Upsert` as a temporary wrapper).
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/metadatafields/...` passes with T-2.
 
 **STEP-3 — The helper packages**
@@ -200,13 +199,13 @@ Do: replace `sourcetypes.Upsert(` with `sourcetypestest.Upsert(` and `metadatafi
 Check: AC-3.1's `rg` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./core/... ./api/...` passes.
 
 **STEP-5 — Install in one `writes.Run`**
-Files: `core/database/sourcevocab/sourcevocab.go`, `sourcevocab_test.go`, `core/database/effects/source_type_search_test.go`. Skill: `add-seeded-vocabulary`, `add-audit-scope`.
-Do: D-4. Add T-3 – T-5 and T-6.
+Files: `core/database/sourcevocab/sourcevocab.go`, `sourcevocab_test.go`, `core/database/sourcecopy/sourcecopy_test.go`, `core/database/effects/source_type_search_test.go`. Skill: `add-seeded-vocabulary`, `add-audit-scope`.
+Do: D-4; move the two `EnsureSuggestion` test callers. Add T-3 – T-5 and T-6.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/effects/... ./core/onboarding/...` passes.
 
 **STEP-6 — Docs**
 Files: `core/writes/README.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-15/completed.md`, `docs/deployment-plan/spike-15/deployment-plan.md` (map row), this plan.
-Do: README's last paragraph: the Source seed writes through `writes.Run` (`UpsertTx`); the subject-type, property and grade `Upsert`s and `EnsureBinding` remain the hand-reprojecting seed paths (S16-60). The skill's "Install semantics (pinned)": Install runs in one `writes.Run` (action `install_source_vocabulary`, no user), atomic; a second run on a catalog it wrote records nothing; tests make types and fields through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`. Then the Definition of done.
+Do: README's last paragraph: the Source seed writes through `writes.Run` (`UpsertTx`); the subject-type, property and grade `Upsert`s and `EnsureBinding` remain the hand-reprojecting seed paths (S16-62). The skill's "Install semantics (pinned)": Install runs in one `writes.Run` (action `install_source_vocabulary`, no user), atomic; a second run on a catalog it wrote records nothing; tests make types and fields through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`. Also its Source vocabulary step 3, "Researcher/plugin rows use Upsert APIs with `user` / `plugin:<id>`": researcher rows use `Create`, plugin rows `UpsertTx`. Then the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-52-source-seed-through-writes-run.md` reports no errors.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
@@ -215,7 +214,7 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/sourcetypes/sourcetypes_test.go` `TestUpsertTx` *(new)* | Table: insert → create change with Create's fields; same values → no change; label change → `update` with only `label`; icon change → only `icon_key`; `plugin:acme` → accepted; blank key, blank label, origin `bogus`, a 3-byte ID → `ErrInvalid` | AC-1.1, AC-1.2, AC-1.6, AC-1.7, D-1 |
+| T-1 | Go | `core/database/sourcetypes/sourcetypes_test.go` `TestUpsertTx` *(new)* | Table: insert → create change with Create's fields; same values → no change; label change → `update` with only `label`; icon change → only `icon_key`; `plugin:acme` → accepted; blank key, blank label, origin `bogus`, a non-empty ID → `ErrInvalid`; the create change's keys equal today's `Create` audit keys | AC-1.1, AC-1.2, AC-1.6, AC-1.7, D-1 |
 | T-2 | Go | `core/database/metadatafields/metadatafields_test.go` `TestUpsertTx` *(new)* | Table: insert → create change with Create's fields; same → no change; description change on a field with unknown text "n.p." → only `description`, unknown text kept; data type change → `data_type` diff; invalid inputs → `ErrInvalid` | AC-1.4, AC-1.5, AC-1.6, D-2 |
 | T-3 | Go | `core/database/sourcevocab/sourcevocab_test.go` `TestInstall` "install records one revision" *(new case)* | Empty catalog, Install → one `audit_transactions` row, `action_type` `install_source_vocabulary`, `user_id` NULL, four create changes | AC-2.1, D-4 |
 | T-4 | Go | `TestInstall` "install twice keeps same ids" (extended) | Second Install → `audit_transactions` count unchanged | AC-2.2 |
@@ -234,7 +233,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: te
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left (none)
-- [ ] Sweep: `sourcetypes.Upsert`, `metadatafields.Upsert` and "un-audited seed path" `rg`'d across `.agents/`, `.cursor/rules/`, `docs/*.md`, `core/**/README.md` and `L10n.swift` with no stale hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `sourcetypes.Upsert`, `metadatafields.Upsert`, `EnsureSuggestion`, "Upsert APIs" and "un-audited seed path" `rg`'d across `.agents/`, `.cursor/rules/`, `docs/*.md`, `core/**/README.md` and `L10n.swift` with no stale hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated (none)
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New (no UI)
 - [ ] Version bump as the header says (none)

@@ -88,7 +88,7 @@ A new project starts with the citation vocabulary of map § 6.8: 26 Source types
 | --- | --- |
 | Moving the Source seed onto `writes.Run` (`UpsertTx`, Install's one transaction, test helpers) | S15-52 |
 | Running `Install` against an existing dogfood project, or any re-run behavior on an old catalog beyond AC-4.1 | Not planned: the product owner updates the dogfood projects by hand (user, 2026-11-17) |
-| The subject vocabulary's, grades' and properties' seed Upserts reprojecting by hand | S16-60 |
+| The subject vocabulary's, grades' and properties' seed Upserts reprojecting by hand | S16-62 |
 | Rendering formats in the app; the batch render RPC | S15-16 |
 | Requirements on the boards (needed, used) | S15-38 |
 | The format editor | S15-17 |

@@ -150,7 +150,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "A failed sidebar recount is silent" (2026-11-17) | S16-56 |
-| S15-19 planning (2026-11-17): the other seeds' `Upsert`s reproject search by hand off `writes.Run`, as the Source seed did before S15-52 | S16-60 |
+| S15-19 planning (2026-11-17): the other seeds' `Upsert`s reproject search by hand off `writes.Run`, as the Source seed did before S15-52 | S16-62 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Source page section counts differ" (S12-11 M-8, dogfood 2026-10-25), with the composer's and the Gallery's bare counts (2026-11-17) | S16-55 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
@@ -324,7 +324,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Scoped |
 | S16-55 | Section counts read alike | 6c | Swift: the bare numbers on Source page Notes, the composer's Citation column and the Gallery become plural strings; Evidence graphs hides its count at zero | — | — | quick-pr | Scoped |
 | S16-56 | A failed sidebar recount says so | 6c | Swift: `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the launch's counts toast for every failure; `clearRefreshError` is used or goes | — | — | quick-pr | Scoped |
-| S16-60 | The subject and grade seeds write through `writes.Run` | 6c | Preparatory, Go: the Property, subject-type, grade and binding `Upsert`s / `EnsureBinding` that only `Install` calls return row changes, and `subjectvocab.Install` and `sourcecredibilitygrades.Install` each run in one `writes.Run`; the hand reprojection goes. Follows S15-52's shape for the Source seed | — | S15-52 | — | Scoped |
+| S16-62 | The subject and grade seeds write through `writes.Run` | 6c | Preparatory, Go: the Property, subject-type, grade and binding `Upsert`s / `EnsureBinding` that only `Install` calls return row changes, and `subjectvocab.Install` and `sourcecredibilitygrades.Install` each run in one `writes.Run`; the hand reprojection goes. Follows S15-52's shape for the Source seed | — | S15-52 | — | Scoped |
 | S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once; the Citation composer's toast moves from the foot of its observations column into the stack | S16-D10 | S16-56, S16-D10 | — | Scoped |
 | S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to the window list instead of setting a `toast` binding; the forwarding goes; no visible change | — | S16-58 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
@@ -449,8 +449,8 @@ SLICE 6c — Shared list helpers                       (any time)
   S16-54  Catalog tests write a test PNG through one helper   (quick-pr)
   S16-55  Section counts read alike                           (quick-pr)
   S16-56  A failed sidebar recount says so                    (quick-pr)
-  S16-60  The subject and grade seeds write through writes.Run   (after S15-52)
-  Check: bar 23, 24, 28 to 30, 33. The six PRs share no file and run in parallel; S16-60 waits for S15-52.
+  S16-62  The subject and grade seeds write through writes.Run   (after S15-52)
+  Check: bar 23, 24, 28 to 30, 33. The six PRs share no file and run in parallel; S16-62 waits for S15-52.
 
 SLICE 6d — Popups                                    (any time; a chain)
   S16-50  One kit popup presenter, and the kit menus use it
@@ -530,7 +530,7 @@ S16-49: none
 S16-54: none
 S16-55: none
 S16-56: none
-S15-52 ──▶ S16-60
+S15-52 ──▶ S16-62
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-57 ──▶ S16-51
 S16-56 ──▶ S16-58 ──▶ S16-59
@@ -919,7 +919,7 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 **Check.** Bar 30; a test drives `CatalogCounts` with a `FakeStore` whose `workspaceNavCounts` fails on the second call and sees the error set after a write; the launch failure still toasts once.
 **Context.** `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/App/Features/Workspace/WorkspaceView.swift` (`countsToast`, `presentHistoryIssueIfNeeded` for the toast pattern); [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md); [`quick-pr`](../../../.agents/skills/quick-pr/SKILL.md).
 
-#### S16-60 — The subject and grade seeds write through `writes.Run`
+#### S16-62 — The subject and grade seeds write through `writes.Run`
 
 **Ships.** Preparatory, Go (S15-19 planning, user 2026-11-17). The seed-only writes `core/writes/README.md` lists as un-audited and hand-reprojecting (Property, subject-type and grade `Upsert`, `subjectvocab.EnsureBinding`) take a `*database.Tx` and return row changes; `subjectvocab.Install` and `sourcecredibilitygrades.Install` each run in one `writes.Run`, so the effects registry does what the hand reprojection did. Copies S15-52's shape for the Source seed. `writes/README.md` drops the paragraph's last hand-reprojecting seed paths.
 **Not this PR.** `nameformats` and `namealiases` Install (no search documents); any seed content.
