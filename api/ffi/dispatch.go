@@ -58,6 +58,7 @@ const (
 	MethodGetCitationFormats                = int32(engine.Method_METHOD_GET_CITATION_FORMATS)
 	MethodUpdateCitationFormats             = int32(engine.Method_METHOD_UPDATE_CITATION_FORMATS)
 	MethodCopySourceType                    = int32(engine.Method_METHOD_COPY_SOURCE_TYPE)
+	MethodGetDraftMetadataBoard             = int32(engine.Method_METHOD_GET_DRAFT_METADATA_BOARD)
 	MethodSearchCatalog                     = int32(engine.Method_METHOD_SEARCH_CATALOG)
 	MethodCreateSubject                     = int32(engine.Method_METHOD_CREATE_SUBJECT)
 	MethodUpdateSubject                     = int32(engine.Method_METHOD_UPDATE_SUBJECT)
@@ -232,6 +233,8 @@ func route(method int32, in []byte) ([]byte, error) {
 		return handlers.UpdateCitationFormats(in)
 	case MethodCopySourceType:
 		return handlers.CopySourceType(in)
+	case MethodGetDraftMetadataBoard:
+		return handlers.GetDraftMetadataBoard(in)
 	case MethodSearchCatalog:
 		return handlers.SearchCatalog(in)
 	case MethodCreateSubject:

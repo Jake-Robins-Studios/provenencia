@@ -134,6 +134,7 @@ enum Method {
   METHOD_GET_CITATION_FORMATS = 120;
   METHOD_UPDATE_CITATION_FORMATS = 121;
   METHOD_COPY_SOURCE_TYPE = 122;
+  METHOD_GET_DRAFT_METADATA_BOARD = 123;
 }
 
 message PingRequest {
@@ -820,6 +821,19 @@ message GetMetadataBoardRequest {
 
 message GetMetadataBoardResponse {
   MetadataBoard board = 1;
+}
+
+// GetDraftMetadataBoard is the board a new Artifact or graph starts with on a
+// Source: its type's suggestions at level, empty, then the fields its citation
+// formats head, each with its requirement. level is "artifact" or "graph".
+message GetDraftMetadataBoardRequest {
+  string project_dir = 1;
+  string source_id = 2;
+  string level = 3;
+}
+
+message GetDraftMetadataBoardResponse {
+  repeated MetadataWorkspaceEntry entries = 1;
 }
 
 message CreateArtifactRequest {

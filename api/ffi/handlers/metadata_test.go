@@ -443,3 +443,100 @@ func TestMetadataBoardRequirements(t *testing.T) {
 	}
 	assertReplyBoard(t, dir, owner, creator.GetMetadata())
 }
+
+// lineLedgerSource is a Source of a new type whose full format reads line_number
+// from a graph, else the Source, with line_number suggested at graph and "14" on
+// the Source.
+func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string) {
+	t.Helper()
+	var fields engine.ListMetadataFieldsResponse
+	mustRPC(t, ListMetadataFields, &engine.ListMetadataFieldsRequest{ProjectDir: dir}, &fields)
+	for _, f := range fields.GetFields() {
+		if f.GetKey() == "line_number" {
+			lineID = f.GetId()
+		}
+	}
+	var ty engine.CreateSourceTypeResponse
+	mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: dir, UserId: userID, Label: "Line ledger"}, &ty)
+	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
+		ProjectDir: dir, TypeId: ty.GetType().GetId(), FieldId: lineID, Level: "graph",
+	}, &engine.AssignTypeFieldResponse{})
+	var formats engine.UpdateCitationFormatsResponse
+	mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
+		ProjectDir: dir, UserId: userID, TypeId: ty.GetType().GetId(), Full: "{graph.meta.line_number|source.meta.line_number}.",
+	}, &formats)
+	if len(formats.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics %+v", formats.GetDiagnostics())
+	}
+	var src engine.CreateSourceResponse
+	mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+		ProjectDir: dir, UserId: userID, SourceTypeId: ty.GetType().GetId(), Title: "Ledger",
+	}, &src)
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: dir, UserId: userID, Owner: &engine.MetadataOwner{Level: "source", Id: src.GetSource().GetId()},
+		FieldId: lineID, ValueText: "14",
+	}, &engine.SetMetadataResponse{})
+	return src.GetSource().GetId(), lineID
+}
+
+func TestGetDraftMetadataBoard(t *testing.T) {
+	dir, userID, _ := sourceFixture(t)
+	census := seededSourceOfType(t, dir, userID, "census")
+	ledger, lineID := lineLedgerSource(t, dir, userID)
+	draft := func(source, level string) ([]*engine.MetadataWorkspaceEntry, error) {
+		var out engine.GetDraftMetadataBoardResponse
+		err := rpc(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: dir, SourceId: source, Level: level}, &out)
+		return out.GetEntries(), err
+	}
+
+	t.Run("census artifact", func(t *testing.T) {
+		var ws engine.GetSourceWorkspaceResponse
+		mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: census}, &ws)
+		entries, err := draft(census, "artifact")
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := listSuggestions(t, dir, ws.GetSource().GetSourceTypeId(), "artifact")
+		if len(entries) != len(want) {
+			t.Fatalf("%d entries, want the type's %d suggestions", len(entries), len(want))
+		}
+		for i, e := range entries {
+			if e.GetField().GetId() != want[i].GetField().GetId() || e.GetHasValue() || !e.GetSuggested() {
+				t.Errorf("entry %d = %+v, want suggestion %s, empty", i, e, want[i].GetField().GetId())
+			}
+		}
+		if url := metadataByKey(entries, "url"); url.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
+			t.Errorf("url = %+v, want used", url)
+		}
+	})
+	t.Run("the Source answers a graph's needed field", func(t *testing.T) {
+		entries, err := draft(ledger, "graph")
+		if err != nil {
+			t.Fatal(err)
+		}
+		e := metadataByField(entries, lineID)
+		if e == nil || e.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED || !e.GetRequirement().GetMetElsewhere() ||
+			len(e.GetRequirement().GetAlternatives()) != 1 || e.GetRequirement().GetAlternatives()[0].GetLevel() != "source" ||
+			e.GetRequirement().GetAlternatives()[0].GetField().GetId() != lineID {
+			t.Errorf("line_number = %+v, want needed, met elsewhere, alternative [source line_number]", e)
+		}
+	})
+	t.Run("refusals", func(t *testing.T) {
+		for name, tt := range map[string]struct {
+			source, level string
+			want          error
+		}{
+			"no such Source": {"01890000-0000-7000-8000-000000000001", "artifact", sourcemetadata.ErrInvalid},
+			"source level":   {census, "source", sourcemetadata.ErrInvalid},
+			"citation level": {census, "citation", sourcemetadata.ErrInvalid},
+			"malformed id":   {"not-an-id", "artifact", errInvalidID},
+			"unknown level":  {census, "page", sourcemetadata.ErrInvalid},
+			"an empty level": {census, "", sourcemetadata.ErrInvalid},
+			"a version 4 id": {"01890000-0000-4000-8000-000000000001", "graph", errInvalidID},
+		} {
+			if _, err := draft(tt.source, tt.level); !errors.Is(err, tt.want) {
+				t.Errorf("%s: %v, want %v", name, err, tt.want)
+			}
+		}
+	})
+}

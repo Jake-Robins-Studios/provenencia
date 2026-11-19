@@ -860,6 +860,63 @@ func ListWorkspaces(c *database.Catalog, owners []Owner) ([]Board, error) {
 	return out, nil
 }
 
+// ListDraftWorkspace is the board a new Artifact or graph starts with on the
+// Source: the type's suggestions at level, empty, then the fields its formats
+// head there, each annotated against the Source's values and date. Any other
+// level, or a Source that does not exist, is ErrInvalid.
+func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Level) ([]WorkspaceEntry, error) {
+	if level != vocabkey.LevelArtifact && level != vocabkey.LevelGraph {
+		return nil, ErrInvalid
+	}
+	if len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	db, err := c.DB()
+	if err != nil {
+		return nil, err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	src, err := sources.GetTx(tx, sourceID)
+	if errors.Is(err, sources.ErrNotFound) {
+		return nil, ErrInvalid
+	} else if err != nil {
+		return nil, err
+	}
+	rows, err := readByOwners(tx, []Owner{{Level: vocabkey.LevelSource, ID: sourceID}})
+	if err != nil {
+		return nil, err
+	}
+	reqs, err := sourcetypes.RequirementsTx(tx, [][]byte{src.SourceTypeID})
+	if err != nil {
+		return nil, err
+	}
+	suggestions, err := sourcevocab.ListSuggestionsTx(tx, src.SourceTypeID, level)
+	if err != nil {
+		return nil, err
+	}
+	ln := needsAt(reqs[string(src.SourceTypeID)], level)
+	fields, err := fieldsByID(tx, ln.fieldIDs())
+	if err != nil {
+		return nil, err
+	}
+	return buildEntries(level, boardInput{
+		suggestions: suggestions,
+		needs:       ln,
+		fields:      fields,
+		resolver: ownerValues{
+			level:  level,
+			source: rowsByField(rows),
+			fields: fields,
+			date:   sources.CitationDate(src),
+		},
+	}), nil
+}
+
 // typeLevel keys what is read once per Source type and level.
 type typeLevel struct {
 	typeID string

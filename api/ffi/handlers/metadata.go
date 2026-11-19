@@ -262,6 +262,34 @@ func GetMetadataBoard(in []byte) ([]byte, error) {
 	return proto.Marshal(out)
 }
 
+// GetDraftMetadataBoard reads the board a new Artifact or graph starts with on a
+// Source: the type's suggestions at the level, empty, then the fields its
+// citation formats head, each with its requirement. A Source that does not
+// exist, or a level other than artifact or graph, is sourcemetadata.invalid.
+func GetDraftMetadataBoard(in []byte) ([]byte, error) {
+	var req engine.GetDraftMetadataBoardRequest
+	if err := proto.Unmarshal(in, &req); err != nil {
+		return nil, unmarshalErr("get_draft_metadata_board", err)
+	}
+	sourceID, err := parseID(req.GetSourceId())
+	if err != nil {
+		return nil, err
+	}
+	var out *engine.GetDraftMetadataBoardResponse
+	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		entries, err := sourcemetadata.ListDraftWorkspace(c, sourceID, vocabkey.Level(req.GetLevel()))
+		if err != nil {
+			return err
+		}
+		out = &engine.GetDraftMetadataBoardResponse{Entries: metadataEntriesProto(entries)}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return proto.Marshal(out)
+}
+
 // ownerBoardProto is the owner's board in display order: ListWorkspace as wire
 // entries. A missing owner is sourcemetadata.ErrInvalid.
 func ownerBoardProto(c *database.Catalog, owner sourcemetadata.Owner) ([]*engine.MetadataWorkspaceEntry, error) {
