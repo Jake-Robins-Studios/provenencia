@@ -190,6 +190,7 @@ struct ConclusionPageSectionHost<Value, Extra: Equatable, Content: Equatable, Bo
                         .accessibilityIdentifier("\(idRoot).empty")
                 } else {
                     content(value)
+                        .environment(\.conclusionReadSettled, handle.isSettled)
                         .accessibilityIdentifier(idRoot)
                 }
             }

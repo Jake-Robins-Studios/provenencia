@@ -11,8 +11,9 @@ struct ConclusionAnchorTarget<Stop: Hashable>: Equatable {
 extension View {
     /// Back or Forward to the page entry that opened a place from one of this section's rows
     /// scrolls to that row and gives it the keyboard, once per mount (a page mounts per entity,
-    /// a section per switch), the first time `isReady` is true. A later reload or fold change
-    /// never moves the keyboard. An anchor of another part, or one `resolve` finds nothing for,
+    /// a section per switch), the first time `isReady` is true and the read behind the content has
+    /// settled (`conclusionReadSettled`), so a value being replaced is never resolved against. A
+    /// later reload or fold change never moves the keyboard. An anchor of another part, or one `resolve` finds nothing for,
     /// leaves the page at its top. A fold is never revealed: `resolve` names its Show more.
     ///
     /// - Parameters:
@@ -47,6 +48,20 @@ extension View {
     }
 }
 
+private struct ConclusionReadSettledKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// False while the read the drawn content came from is reloading or stale: the content is
+    /// the last value, not the latest, so Back to a row waits for it. The page's read sets it
+    /// for the default sections and a section host for its own; the nearer one wins.
+    var conclusionReadSettled: Bool {
+        get { self[ConclusionReadSettledKey.self] }
+        set { self[ConclusionReadSettledKey.self] = newValue }
+    }
+}
+
 private struct ConclusionAnchorRestore<Stop: Hashable>: ViewModifier {
     let parts: Set<ConclusionSectionAnchor.Part>
     let isReady: Bool
@@ -58,6 +73,7 @@ private struct ConclusionAnchorRestore<Stop: Hashable>: ViewModifier {
     let resolve: (ConclusionSectionAnchor) -> ConclusionAnchorTarget<Stop>?
 
     @Environment(WorkspaceNavigation.self) private var navigation
+    @Environment(\.conclusionReadSettled) private var settled
     @State private var didRestore = false
     @State private var scrollTarget: String?
     @State private var scrollRequest = 0
@@ -66,11 +82,11 @@ private struct ConclusionAnchorRestore<Stop: Hashable>: ViewModifier {
         content
             .pvScrollsRowIntoView(scrollTarget, anchor: scrollAnchor, animated: false, whenRequested: scrollRequest)
             .onAppear(perform: restore)
-            .onChange(of: isReady) { restore() }
+            .onChange(of: isReady && settled) { restore() }
     }
 
     private func restore() {
-        guard isReady, !didRestore else { return }
+        guard isReady, settled, !didRestore else { return }
         didRestore = true
         guard let anchor = navigation.currentLocation.sectionAnchor, parts.contains(anchor.part),
               let target = resolve(anchor) else { return }
