@@ -257,7 +257,7 @@ struct PropertiesModelTests {
         model.searchQuery = "  zzz  "
         #expect(model.tablePresentation == .noMatch(query: "zzz"))
         model.searchQuery = "name"
-        #expect(model.tablePresentation == .rows)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
 
     @Test func tablePresentationShowsNoMatchWithATypeSelected() async {
@@ -282,9 +282,9 @@ struct PropertiesModelTests {
         )
         await warm(model, session: session)
         model.searchQuery = "   "
-        #expect(model.tablePresentation == .rows)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
         model.searchQuery = "-"
-        #expect(model.tablePresentation == .rows)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
 
     @Test func tablePresentationShowsEmptyTypeUnlessSearching() async {
@@ -304,7 +304,7 @@ struct PropertiesModelTests {
         #expect(model.tablePresentation == .noMatch(query: "zzz"))
         model.selectType("person")
         model.searchQuery = ""
-        #expect(model.tablePresentation == .rows)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
 
     @Test func tablePresentationIsNothingWithNoPropertiesLoaded() async {
@@ -328,7 +328,7 @@ struct PropertiesModelTests {
         model.clearSearch()
         #expect(model.searchQuery == "")
         #expect(model.searchFocused == true)
-        #expect(model.tablePresentation == .rows)
+        #expect(model.tablePresentation == .rows(model.visibleProperties))
     }
 
     @Test func searchMatchesLabelOrKeyIgnoringAccentsAndWordBreaks() async {

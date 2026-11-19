@@ -280,9 +280,9 @@ private struct PropertiesContent: View {
     private var propertyTable: some View {
         Group {
             switch model.tablePresentation {
-            case .rows:
+            case .rows(let rows):
                 PVTable(
-                    rows: model.visibleProperties,
+                    rows: rows,
                     columns: tableColumns,
                     selection: Binding(
                         get: { model.selectedPropertyID },

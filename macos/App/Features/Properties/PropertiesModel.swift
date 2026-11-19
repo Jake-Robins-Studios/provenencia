@@ -118,7 +118,8 @@ final class PropertiesModel {
     /// by it (`TextMatch.Query`), so spaces or a lone `-` never show a no-match
     /// state over rows. A search wins over an empty type.
     var tablePresentation: PropertiesTablePresentation {
-        if !visibleProperties.isEmpty { return .rows }
+        let rows = visibleProperties
+        if !rows.isEmpty { return .rows(rows) }
         if snapshot.properties.isEmpty { return .nothing }
         if !TextMatch.Query(searchQuery).isEmpty {
             return .noMatch(query: searchQuery.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -608,7 +609,7 @@ final class PropertiesModel {
 
 /// What the Properties table card's body shows.
 enum PropertiesTablePresentation: Equatable {
-    case rows
+    case rows([CatalogProperty])
     case noMatch(query: String)
     case emptyType(label: String)
     case nothing
