@@ -61,4 +61,4 @@ Reviewers: SEC+PRF (SEC-1 was a Fix-now major). Skipped: CON, MNT (minors only; 
 No new findings. Verdict: Clean.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: SEC-3 (S15-37's `sourcemetadata` reads its stored pair unsettled, same class as SEC-1) · to user: —
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: SEC-3 (S15-37's `sourcemetadata` reads its stored pair unsettled, same class as SEC-1) · to user: —
