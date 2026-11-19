@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/identity"
 	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -311,10 +312,13 @@ func sourceFixture(t *testing.T) (projectDir, userID, typeID string) {
 	if err := proto.Unmarshal(listOut, &types); err != nil {
 		t.Fatal(err)
 	}
-	if len(types.Types) == 0 {
-		t.Fatal("expected seeded types")
+	for _, ty := range types.Types {
+		if ty.Key == "birth_certificate" && ty.Origin == vocabkey.OriginProvenencia {
+			return res.ProjectDir, res.Identity.UserID.String(), ty.Id
+		}
 	}
-	return res.ProjectDir, res.Identity.UserID.String(), types.Types[0].Id
+	t.Fatal("expected the seeded birth certificate type")
+	return "", "", ""
 }
 
 func assertIdentityNotFound(t *testing.T, out []byte, _ proto.Message) {

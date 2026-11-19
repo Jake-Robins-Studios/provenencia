@@ -111,12 +111,8 @@ func TestComplete(t *testing.T) {
 				if len(res.Project.Info.UUID) != 16 {
 					t.Fatalf("result missing uuid %v", res.Project.Info.UUID)
 				}
-				types, err := sourcetypes.List(p)
-				if err != nil {
+				if _, err := sourcetypes.Lookup(p, "census", vocabkey.OriginProvenencia); err != nil {
 					t.Fatal(err)
-				}
-				if len(types) != 1 {
-					t.Fatalf("seeded source types %d", len(types))
 				}
 				if _, err := sourcetypes.Lookup(p, "birth_certificate", vocabkey.OriginProvenencia); err != nil {
 					t.Fatal(err)

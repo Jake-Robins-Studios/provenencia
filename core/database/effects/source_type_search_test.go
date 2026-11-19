@@ -113,7 +113,7 @@ func TestSourceTypeSearchGates(t *testing.T) {
 
 	t.Run("an upsert of only new formats reprojects no search document", func(t *testing.T) {
 		_, changes, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
-			Key: "census", Origin: vocabkey.OriginUser, Label: "Census returns", Description: "", IconKey: "type_book",
+			Key: "census", Origin: vocabkey.OriginUser, Label: "Census returns", Description: "Decennial", IconKey: "type_book",
 		}, &sourcetypes.Formats{Full: "{source.title}!"})
 		if err != nil {
 			t.Fatal(err)

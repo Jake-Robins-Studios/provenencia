@@ -21,8 +21,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -969,7 +969,35 @@ func TestCreateAll(t *testing.T) {
 	}
 }
 
-// testWorld is a catalog with a user and a Source of a seeded type.
+// seedBirthCertificate gives the catalog its own small vocabulary, not the
+// product seed: a provenencia birth certificate type suggesting three Source
+// fields, which these tests are about.
+func seedBirthCertificate(t *testing.T, c *database.Catalog) {
+	t.Helper()
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
+		Key: "birth_certificate", Origin: vocabkey.OriginProvenencia, Label: "Birth certificate", IconKey: "type_certificate",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []struct{ key, label string }{
+		{"document_number", "Document number"},
+		{"record_date", "Record date"},
+		{"issue_date", "Issue date"},
+	} {
+		fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
+			Key: f.key, Origin: vocabkey.OriginProvenencia, Label: f.label, DataType: metadatafields.DataTypeText,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := sourcevocab.AppendSuggestion(c, typeID, fieldID, vocabkey.LevelSource); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// testWorld is a catalog with a user and a Source of a birth certificate type.
 func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	t.Helper()
 	userID = []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
@@ -985,9 +1013,7 @@ func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcevocabtest.Install(c); err != nil {
-		t.Fatal(err)
-	}
+	seedBirthCertificate(t, c)
 	return c, userID
 }
 
@@ -1002,7 +1028,7 @@ func newSource(t *testing.T, c *database.Catalog, userID, typeID []byte, title s
 	return s
 }
 
-// birthOfAlice is a Source of the seeded birth certificate type.
+// birthOfAlice is a Source of testWorld's birth certificate type.
 func birthOfAlice(t *testing.T, c *database.Catalog, userID []byte) sources.Source {
 	t.Helper()
 	cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
