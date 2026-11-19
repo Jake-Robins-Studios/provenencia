@@ -1,6 +1,6 @@
 # S15-47 — Adding a Source type opens a dialog
 
-**Status:** Landed in [#843](https://github.com/mendahu/provenencia/pull/843) (2026-11-14)
+**Status:** Landed in [#843](https://github.com/Jake-Robins-Studios/provenencia/pull/843) (2026-11-14)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D26](../design/archive/S15-D26-add-source-type-dialog.md), board redrawn and agreed 2026-11-14 (user)

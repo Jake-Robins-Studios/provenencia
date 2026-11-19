@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/raster/rastertest"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster/rastertest"
 	"google.golang.org/protobuf/proto"
 )
 

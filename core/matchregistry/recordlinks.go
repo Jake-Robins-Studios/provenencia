@@ -1,6 +1,6 @@
 package matchregistry
 
-import "github.com/mendahu/provenencia/core/recordlinks"
+import "github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
 
 // defaultRecordLinks is the record-links comparison's shipped section.
 func defaultRecordLinks() recordlinks.Rules {

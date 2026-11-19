@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/autoreconciler"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/autoreconciler"
 )
 
 // AssertCacheMatchesRebuild fails the test when the cache the writes upkept

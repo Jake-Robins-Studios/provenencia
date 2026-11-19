@@ -13,9 +13,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/writes"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 func TestWriteEffectsProto(t *testing.T) {

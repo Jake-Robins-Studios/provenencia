@@ -4,11 +4,11 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // Date builders shared by the date tests. A month or day of 0 is not named.

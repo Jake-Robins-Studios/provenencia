@@ -4,17 +4,17 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
-	"github.com/mendahu/provenencia/core/database/valuerules"
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/eventtitle"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecodec"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/eventtitle"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Handle documents (Conclusion layer) are match text from the summary

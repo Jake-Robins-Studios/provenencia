@@ -3,7 +3,7 @@ package propertycompare
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // TestEveryRelationHasAnOutcome fails until a new relation has an outcome in

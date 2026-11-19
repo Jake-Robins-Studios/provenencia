@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 )
 
 // GraphIndex holds every Evidence graph's row and counts, and each Source's

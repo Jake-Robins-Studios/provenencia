@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/graphalign"
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/shortlist"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/shortlist"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // HandlesHeldForTest is how many handle profiles the graph's match index holds,

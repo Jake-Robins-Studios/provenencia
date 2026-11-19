@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/searchindex"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
-	"github.com/mendahu/provenencia/core/workspacelocation"
 )
 
 // FTSSearcher retrieves hits from catalog_search_fts + catalog_search_docs.

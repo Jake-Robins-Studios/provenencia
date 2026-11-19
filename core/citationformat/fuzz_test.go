@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/citationformat"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
-	"github.com/mendahu/provenencia/core/slug"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/slug"
 )
 
 type answerAll struct{}

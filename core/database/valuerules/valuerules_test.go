@@ -4,15 +4,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/namealiases"
-	"github.com/mendahu/provenencia/core/database/nameformats"
-	"github.com/mendahu/provenencia/core/database/valuerules"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namealiases"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 func given(text string) valuecompare.Value {

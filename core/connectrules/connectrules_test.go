@@ -3,7 +3,7 @@ package connectrules
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestProductMatrix(t *testing.T) {

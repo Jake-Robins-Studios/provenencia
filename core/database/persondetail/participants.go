@@ -4,8 +4,8 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // participantRoleOrder is the order roles come in on an event: the people who

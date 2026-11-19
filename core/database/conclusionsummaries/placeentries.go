@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/hops"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // maxPlaceEntries caps the place entries one graph holds. It matches the other

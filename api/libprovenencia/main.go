@@ -12,8 +12,8 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/mendahu/provenencia/api/ffi"
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/api/ffi"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 func bytesFromC(ptr *C.uint8_t, n C.size_t) []byte {

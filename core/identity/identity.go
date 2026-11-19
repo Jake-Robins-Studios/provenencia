@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/ref"
 )
 
 const FileName = "identity.json"

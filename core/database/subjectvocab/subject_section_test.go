@@ -3,10 +3,10 @@ package subjectvocab
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/subjectcompare/subjectcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare/subjectcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // The registry's subject section names only seeded types and the properties

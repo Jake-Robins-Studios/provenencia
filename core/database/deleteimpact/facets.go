@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/files"
-	"github.com/mendahu/provenencia/core/database/observationrow"
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observationrow"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 // Facet release: research rows an official Delete removes explicitly — and

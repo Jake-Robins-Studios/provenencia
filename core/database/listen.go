@@ -1,6 +1,6 @@
 package database
 
-import "github.com/mendahu/provenencia/core/database/effects"
+import "github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 
 // CommitListener hears a committed write. OnCommit applies the notice.
 // Drop discards the listener's state. writes.Run calls Drop on every

@@ -1,8 +1,8 @@
 package autoreconcile
 
 import (
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // A module is what one value type supplies to the shared pipeline

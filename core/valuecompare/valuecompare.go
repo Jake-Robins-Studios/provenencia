@@ -11,10 +11,10 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/namevalue"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Relation is how two values relate.

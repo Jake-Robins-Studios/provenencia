@@ -3,7 +3,7 @@ package valuecompare
 import (
 	"strconv"
 
-	"github.com/mendahu/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 )
 
 // date compares dates as spans of days (comparison-layers.md §Layer 1). Each

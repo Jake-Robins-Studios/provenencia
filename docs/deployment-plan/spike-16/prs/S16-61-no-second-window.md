@@ -1,11 +1,11 @@
 # S16-61 — Nothing in the app waits on a second window
 
-**Status:** Landed in [#886](https://github.com/mendahu/provenencia/pull/886) (2026-11-18)
+**Status:** Landed in [#886](https://github.com/Jake-Robins-Studios/provenencia/pull/886) (2026-11-18)
 **Spike / slice:** Spike 16 · Slice 7a — One window
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the states this PR removes have no way in once S16-60 landed, and the one kept notice changes copy only)
 **Board:** —
-**Depends on:** S16-60 (landed [#884](https://github.com/mendahu/provenencia/pull/884))
+**Depends on:** S16-60 (landed [#884](https://github.com/Jake-Robins-Studios/provenencia/pull/884))
 **Blocks:** — (lands before S16-59, Spike 15's S15-25, S15-39 and S15-41; order, not a dependency)
 **Branch:** `s16-61-no-second-window`
 **Version bump:** patch — it changes shipped app code and copy ([`docs/versioning.md`](../../../versioning.md))

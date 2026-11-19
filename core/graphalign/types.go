@@ -4,9 +4,9 @@
 package graphalign
 
 import (
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Subject is one primary Subject on the Evidence layer.

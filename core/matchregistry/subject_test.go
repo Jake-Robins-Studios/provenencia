@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // The subject section's structure: a pair belongs to a weighted lead, and no

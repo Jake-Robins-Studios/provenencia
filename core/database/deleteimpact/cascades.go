@@ -5,7 +5,7 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 )
 
 // Cascade vias shared with Swift DeleteImpactCascadeVia (swift_vocabulary_test).

@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/namevalue"
-	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // Default word weights under the Western pattern: family F, first given G1,

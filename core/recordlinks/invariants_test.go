@@ -6,14 +6,14 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/propertycompare"
-	pt "github.com/mendahu/provenencia/core/propertycompare/propertycomparetest"
-	"github.com/mendahu/provenencia/core/recordlinks"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/subjectcompare/subjectcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertycompare"
+	pt "github.com/Jake-Robins-Studios/provenencia/core/propertycompare/propertycomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare/subjectcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // A random model of one Evidence graph: who is in it, what they record and

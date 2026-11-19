@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 )
 
 var refPrefixForm = regexp.MustCompile(`^[A-Z]{3}-[0-9A-HJKMNP-TV-Z]{0,4}$`)

@@ -1,8 +1,8 @@
 package identityclaims
 
 import (
-	"github.com/mendahu/provenencia/core/database/canonicalentities"
-	"github.com/mendahu/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 )
 
 // Membership is a read-only view of one Subject's accepted Identity Claim:

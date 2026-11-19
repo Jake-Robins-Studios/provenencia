@@ -5,13 +5,13 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	pt "github.com/mendahu/provenencia/core/propertycompare/propertycomparetest"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/subjectcompare/subjectcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	pt "github.com/Jake-Robins-Studios/provenencia/core/propertycompare/propertycomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare/subjectcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // fuzzDate is a date from raw numbers: any kind, qualifier and year the fuzzer

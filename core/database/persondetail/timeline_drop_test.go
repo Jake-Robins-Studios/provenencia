@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/canonicalentities"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 )
 
 // TestDropUnreadEvents covers D-7: a summary missing mid-read cannot be built

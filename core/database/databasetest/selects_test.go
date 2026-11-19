@@ -5,8 +5,8 @@ package databasetest_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 )
 
 func TestCountSelects(t *testing.T) {

@@ -2,10 +2,10 @@
 package sourcevocabtest
 
 import (
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/database/sourcevocab"
-	"github.com/mendahu/provenencia/core/writes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 // Install writes the Source seed in one audited write, as catalog creation does.

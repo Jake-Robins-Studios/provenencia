@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Index maps shortlist keys to handle ids, per kind. It keeps the rules it was

@@ -1,11 +1,11 @@
 # S15-09 — Artifacts show their metadata on the Source page
 
-**Status:** Landed in [#802](https://github.com/mendahu/provenencia/pull/802) (2026-11-12)
+**Status:** Landed in [#802](https://github.com/Jake-Robins-Studios/provenencia/pull/802) (2026-11-12)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D1](../design/S15-D1-source-page.md) SD-9, SD-10, board drawn and validated 2026-11-10
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*, row "Artifact cards", frame "Copy details" (`art-details`, the board's frames 9a / 9b: twelve Artifacts, ART-0615's Copy details open), and the decisions panel entry "S15-D1 · SD-9 – SD-14". The implementer reads it with the Artifact tool's `read` on that link, `path` "project/Source.dc.html" (the card at its `metaShow` / `metaBoard` lines, `artMetaBoard(a)`, and the panel) and "project/Source page.dc.html" (frame list). §6 macOS describes the frame in words
-**Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-26 (landed [#798](https://github.com/mendahu/provenencia/pull/798)), S15-D1 (board validated 2026-11-10)
+**Depends on:** S15-08 (landed [#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791)), S15-26 (landed [#798](https://github.com/Jake-Robins-Studios/provenencia/pull/798)), S15-D1 (board validated 2026-11-10)
 **Blocks:** — (S15-10 and S15-11 reuse the board without this PR; S15-25 adds Move to the same cards)
 **Branch:** `s15-09-artifact-metadata-boards`
 **Version bump:** minor, 0.10.3 → **0.11.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a backward-compatible feature on a screen (each Artifact card gains its metadata board); no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))

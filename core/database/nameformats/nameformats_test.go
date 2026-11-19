@@ -7,14 +7,14 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/databasetest"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/namevalue"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
 )
 
 func TestMissingDefaultUsesWestern(t *testing.T) {

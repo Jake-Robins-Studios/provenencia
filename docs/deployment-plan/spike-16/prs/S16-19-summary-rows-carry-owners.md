@@ -1,11 +1,11 @@
 # S16-19 — Summary composers read the place entries and keep what readers re-derive
 
-**Status:** Landed in [#821](https://github.com/mendahu/provenencia/pull/821) (2026-11-13)
+**Status:** Landed in [#821](https://github.com/Jake-Robins-Studios/provenencia/pull/821) (2026-11-13)
 **Spike / slice:** Spike 16 · Slice 2c — Walks
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; every summary row, life row, Timeline row and title reads as today)
 **Board:** —
-**Depends on:** S16-18 (landed [#817](https://github.com/mendahu/provenencia/pull/817)), S16-01 (landed [#756](https://github.com/mendahu/provenencia/pull/756)), S16-02 (landed [#764](https://github.com/mendahu/provenencia/pull/764))
+**Depends on:** S16-18 (landed [#817](https://github.com/Jake-Robins-Studios/provenencia/pull/817)), S16-01 (landed [#756](https://github.com/Jake-Robins-Studios/provenencia/pull/756)), S16-02 (landed [#764](https://github.com/Jake-Robins-Studios/provenencia/pull/764))
 **Blocks:** S16-24 (reports the inputs of the Person reads this PR rewrites), S15-28 (composes from the settled life-row owners)
 **Branch:** `s16-19-summary-rows-carry-owners`
 **Version bump:** none — no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -133,7 +133,7 @@ Verified at `origin/main` @ `7455758`.
 | Large fixture | `core/database/promotealign/perf_test.go` `TestLargeSourceBudgets` | Logs keys per kind ("inputs match isolated composition") and "first part_of from the city (untimed by the budget)" |
 | Tests | `core/database/conclusionsummaries/placechains_test.go` `TestPersonLifeOwners`, `TestPersonDerivedRows`, `fixture.lifePerson`, `fixture.lifeEvent`, `fixture.placeSubject`; `conclusionsummaries_test.go` `newFixture`, `fixture.citeToponyms`; `eventplaces_cap_test.go` `TestCraftedEventPlaces`, `TestEventPlacesCapInputs`, `placesWorld.owners`; `inputs_test.go` `TestInputsMatchIsolatedComposition`; `walks_test.go`; `core/database/persondetail/timeline_test.go` `TestPersonEvents`, `TestPersonEventsQueryCount`, `TestPersonEventsLifeline`; `timeline_drop_test.go` `TestRolesByNeighbor`, `TestRolesByNeighborManyLinks`, `TestDropUnreadEvents`; `participants_test.go` `TestParticipantOrder`; `core/database/autoreconciler/autoreconciler_test.go` rebuild-equals-upkeep | Hold today's results |
 
-**Precedent.** S16-18 ([#817](https://github.com/mendahu/provenencia/pull/817)) moved the chain build onto the place entries while every row kept its inputs: copy how a composer reads an entry and lets `inputBudget.addClosure` hand the entry's keys to the row, and `composeEvents`' shape (follow the locations once, pass them on, `rec.addClosure` over their places). S16-30 ([#812](https://github.com/mendahu/provenencia/pull/812)) removed `PersonDerivedRows`' second pass: copy its test of the derived rows staying equal. Do not copy S16-18's registry work: this PR adds no cache.
+**Precedent.** S16-18 ([#817](https://github.com/Jake-Robins-Studios/provenencia/pull/817)) moved the chain build onto the place entries while every row kept its inputs: copy how a composer reads an entry and lets `inputBudget.addClosure` hand the entry's keys to the row, and `composeEvents`' shape (follow the locations once, pass them on, `rec.addClosure` over their places). S16-30 ([#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812)) removed `PersonDerivedRows`' second pass: copy its test of the derived rows staying equal. Do not copy S16-18's registry work: this PR adds no cache.
 
 ## 5. Decisions
 

@@ -3,7 +3,7 @@ package graphcache
 import (
 	"sort"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Vocabulary is the catalog's properties, terms, subject types, and the

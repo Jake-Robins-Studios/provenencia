@@ -8,15 +8,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/conclusiondetails"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/graphfill"
-	"github.com/mendahu/provenencia/core/database/sources"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // ClaimGroup is the accepted claims of one Person that come from one Source.

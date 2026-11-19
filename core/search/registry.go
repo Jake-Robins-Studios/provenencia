@@ -3,10 +3,10 @@ package search
 import (
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/searchindex"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 )
 
 // FieldWeight relative importance for FTS / registry scoring.

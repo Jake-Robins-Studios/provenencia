@@ -1,8 +1,8 @@
 package matchregistry
 
 import (
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // defaultSubject is layer 3's shipped section: what each property counts when

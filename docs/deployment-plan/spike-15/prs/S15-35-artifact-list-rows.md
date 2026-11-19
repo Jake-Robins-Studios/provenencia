@@ -1,11 +1,11 @@
 # S15-35 — The Artifact list shows each Artifact's copy details
 
-**Status:** Landed in [#824](https://github.com/mendahu/provenencia/pull/824) (2026-11-13)
+**Status:** Landed in [#824](https://github.com/Jake-Robins-Studios/provenencia/pull/824) (2026-11-13)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D14](../design/S15-D14-source-page-artifacts.md) SA-1 – SA-3, SA-5 (without Move), SA-10, SA-11, SA-W1, board agreed 2026-11-13; plus the user's 2026-11-13 additions on the same board (the header's type pill as the kit Tag, the meta row that never clips, the description at caption size)
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*: row "Artifacts" (`art-list`, `art-list-wide`, `art-sixty`, `art-menu`, `art-empty`) and row "The page" (`page`, `page-wide`, `header-wrap`); decisions panel entry "S15-D14". The implementer reads it with the Artifact tool's `read` on that link, `path` "project/Source.dc.html" (the list at `id="artifacts"`, its `artVals()` with `rowStyle`; the header's `PVTag`; the resting description `descResting`) and "project/_ds/provenencia-design-system-0f6c1f29-8408-4735-b114-5ae4c4c18445/_ds_bundle.js" (`components/PVTag.jsx`). § 6 macOS describes each frame in words, so the plan stands without the board
-**Depends on:** S15-34 (landed [#819](https://github.com/mendahu/provenencia/pull/819)), S15-D14 (board agreed 2026-11-13)
+**Depends on:** S15-34 (landed [#819](https://github.com/Jake-Robins-Studios/provenencia/pull/819)), S15-D14 (board agreed 2026-11-13)
 **Blocks:** S15-25, S15-40
 **Branch:** `s15-35-artifact-list-rows`
 **Version bump:** minor, 0.12.0 → **0.13.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a backward-compatible feature on a screen (the Artifacts section becomes a list of rows with a menu; a new kit component); no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))

@@ -1,11 +1,11 @@
 # S16-06 — Section switches and removals are spoken
 
-**Status:** Landed in [#785](https://github.com/mendahu/provenencia/pull/785) (2026-11-11)
+**Status:** Landed in [#785](https://github.com/Jake-Robins-Studios/provenencia/pull/785) (2026-11-11)
 **Spike / slice:** Spike 16 · Slice 1c — Keyboard and VoiceOver
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the copy changes sit in slots that exist today, and the focus ring on the selected segment is `PVChip`'s existing ring; user, 2026-11-11)
 **Board:** —
-**Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769))
+**Depends on:** S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769))
 **Blocks:** —
 **Branch:** `s16-06-spoken-switches-and-removals`
 **Version bump:** patch — a fix: a section switch and a Remove that keeps the person are spoken, and the header and the confirm use the page's word; no catalog change: 0.8.1 → 0.8.2, or the next patch on `main` ([`docs/versioning.md`](../../../versioning.md))

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/mendahu/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 )
 
 // loadPrimary loads a Subject and refuses non-primary types (associations).

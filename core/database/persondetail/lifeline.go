@@ -3,9 +3,9 @@ package persondetail
 import (
 	"bytes"
 
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // lifelineTypes names the event-and-role pairs that may sit outside the years

@@ -12,16 +12,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/artifacts"
-	"github.com/mendahu/provenencia/core/database/citations"
-	"github.com/mendahu/provenencia/core/database/observations"
-	"github.com/mendahu/provenencia/core/database/properties"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/depictionvalue/depictionvaluetest"
-	"github.com/mendahu/provenencia/core/ingest"
-	"github.com/mendahu/provenencia/core/vocabkey"
-	"github.com/mendahu/provenencia/core/writes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 // A depiction's region sits on the page its Citation cites.

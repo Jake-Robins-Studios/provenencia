@@ -7,7 +7,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // VerifyMode reports whether PROVENENCIA_GRAPH_VERIFY=1, which rebuilds and checks the cache after every commit.

@@ -7,10 +7,10 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/propertycompare"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertycompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Weights are one lead property's part in a Subject comparison, in points.

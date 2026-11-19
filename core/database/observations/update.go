@@ -5,14 +5,14 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/depictionvalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namevalues"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/datevalues"
-	"github.com/mendahu/provenencia/core/database/deleteimpact"
-	"github.com/mendahu/provenencia/core/database/depictionvalues"
-	"github.com/mendahu/provenencia/core/database/namevalues"
 )
 
 const (

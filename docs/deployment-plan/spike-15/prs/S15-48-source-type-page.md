@@ -1,11 +1,11 @@
 # S15-48 — Source types open on their own page
 
-**Status:** Landed in [#848](https://github.com/mendahu/provenencia/pull/848) (2026-11-15)
+**Status:** Landed in [#848](https://github.com/Jake-Robins-Studios/provenencia/pull/848) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D27](../design/archive/S15-D27-source-type-page.md), board agreed 2026-11-15 (user)
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): artboard *S15-D27 · Source type page board* (frames 2, 2b, 3 – 13 and its decision notes), the component *Source type page · component* (`Source-Type-Page.dc.html`) and *Source type icon grid* (`Source-Type-Icon-Grid.dc.html`). Board decisions: TP-4 is today's Change icon button opening the "Choose an icon" sheet; TP-3 is a new `SourceTypePageHeader`; TP-W1 is one layout at every width (Details 560pt beside Suggested fields, the pair centred). Agreed without Wide, failure or list frames (user, 2026-11-15): Wide is the same centred pair; failures use the existing field error, Callouts and retry callout; the list is today's minus its side pane. Open the link in a browser; if you cannot, D-11, D-13, D-15, D-16 and § 6 macOS describe each frame
-**Depends on:** S15-47 (landed [#843](https://github.com/mendahu/provenencia/pull/843)), S15-D27
+**Depends on:** S15-47 (landed [#843](https://github.com/Jake-Robins-Studios/provenencia/pull/843)), S15-D27
 **Blocks:** S15-49, S15-12, S15-17, S15-18 (`SourceTypeDraft`)
 **Branch:** `s15-48-source-type-page`
 **Version bump:** patch, 0.15.1 (today's `VERSION`) → **0.15.2** (or the next patch after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a Mac UI change to an existing destination, no new capability and no wire change ([`docs/versioning.md`](../../../versioning.md))

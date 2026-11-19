@@ -4,7 +4,7 @@ package namevaluetest
 import (
 	"strings"
 
-	"github.com/mendahu/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 )
 
 // Western reads a form as given names then one surname, the way a fixture

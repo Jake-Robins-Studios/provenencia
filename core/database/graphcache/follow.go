@@ -3,8 +3,8 @@ package graphcache
 import (
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 )
 
 // Follow returns this node's links that match hop. The node is loaded on

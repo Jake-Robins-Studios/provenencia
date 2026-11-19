@@ -1,11 +1,11 @@
 # S15-07 — Metadata operations take an owner
 
-**Status:** Landed in [#787](https://github.com/mendahu/provenencia/pull/787) (2026-11-11)
+**Status:** Landed in [#787](https://github.com/Jake-Robins-Studios/provenencia/pull/787) (2026-11-11)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor; the wire and every view stay as they are)
 **Board:** —
-**Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782))
+**Depends on:** S15-06 (landed [#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782))
 **Blocks:** S15-08
 **Branch:** `s15-07-metadata-operations-take-an-owner`
 **Version bump:** none — a preparatory refactor with no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))

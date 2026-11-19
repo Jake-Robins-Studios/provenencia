@@ -5,12 +5,12 @@ package artifactstest
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/artifacts"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/writes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 // Create makes an Artifact through the write pipeline.

@@ -1,11 +1,11 @@
 # S16-04 — The Person page says when a reload failed or the diagram is partial
 
-**Status:** Landed in [#776](https://github.com/mendahu/provenencia/pull/776) (2026-11-10)
+**Status:** Landed in [#776](https://github.com/Jake-Robins-Studios/provenencia/pull/776) (2026-11-10)
 **Spike / slice:** Spike 16 · Slice 1b — Current data and honest notices
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D1](../design/archive/S16-D1-person-page-notices.md), board agreed 2026-11-10 (one brief for the Person page's notices and the record links note: PN-1 – PN-10, PN-W1, PN-W2)
 **Board:** agreed 2026-11-10 — [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), turn 17 "S16-D1 · Notices" on three pages: *Person Detail - Family* (F1a, F1b, F5), *Person Detail - Sources* (F2a, F2b, F2c, a reference frame for a record links reload over a drawn diagram, F6a, F6b, F7, F8) and *Person Detail - Timeline* (F3a, F3b, F4, F9). Each turn's decisions panel restates its PN rows. Two details: a section's notice sits 24 pt above the content, and the header band's notice 20 pt below the switcher, both at most 1180 pt (`PVSpacing.widthContentMax`). The board draws the leave Toast as a title and a body; it is built as one line, as Event and Place do (user, 2026-11-10). The implementer reads it with the Artifact tool's `read` on that link (paths `project/Person Detail - Family.dc.html`, `… - Sources.dc.html`, `… - Timeline.dc.html`; search for `t17`)
-**Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769)), S16-01 (landed [#756](https://github.com/mendahu/provenencia/pull/756)), S16-D1 (board agreed 2026-11-10)
+**Depends on:** S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769)), S16-01 (landed [#756](https://github.com/Jake-Robins-Studios/provenencia/pull/756)), S16-D1 (board agreed 2026-11-10)
 **Blocks:** S16-09; Spike 15's S15-21 (the provenance sheet's key reads the same failure reading and `PVRetryCallout`)
 **Branch:** `s16-04-person-page-notices`
 **Version bump:** patch — a fix: a failed reload and a partial diagram now say so, a gone person is named a person, and a not-counted record links read sends no lines (old clients draw none); no catalog change: 0.6.0 → 0.6.1, or the next patch on `main` ([`docs/versioning.md`](../../../versioning.md))

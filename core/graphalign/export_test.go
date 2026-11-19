@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
 )
 
 // NominatedForTest runs Align's procedure and returns the ids of the handles

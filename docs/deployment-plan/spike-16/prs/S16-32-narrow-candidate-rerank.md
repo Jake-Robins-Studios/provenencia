@@ -1,11 +1,11 @@
 # S16-32 — Promote re-ranks only the Subjects a write moved
 
-**Status:** Landed in [#832](https://github.com/mendahu/provenencia/pull/832) (2026-11-14)
+**Status:** Landed in [#832](https://github.com/Jake-Robins-Studios/provenencia/pull/832) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine change; Promote's suggestions read the same as today)
 **Board:** —
-**Depends on:** S16-20 (landed [#827](https://github.com/mendahu/provenencia/pull/827)), S16-13 (landed)
+**Depends on:** S16-20 (landed [#827](https://github.com/Jake-Robins-Studios/provenencia/pull/827)), S16-13 (landed)
 **Blocks:** —
 **Branch:** `s16-32-narrow-candidate-rerank`
 **Version bump:** none — no change a researcher can see, and no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -122,7 +122,7 @@ Promote remembers each Evidence graph's ranked candidates per Subject (`promotea
 
 **Measured on the planning base** (scratch test, removed; Xeon 2.1 GHz, 4 cores): Source A's 100 Subjects have 677 lookup keys (259 person, 418 event), at most 8 per Subject, 7,225 bytes of key text. A scan of 64 memos of 10,000 Subjects with 7 keys each against a set of 20 moved keys takes about 200 ms (scratch program); 64 memos of 100 Subjects, about 2 ms by the same rate. S16-20's Landed figures (Apple M1): `warm-ms` 114.1 / 124.2, `after-commit-ms` 390.8 / 666.9 at 4,000 / 16,000.
 
-**Precedent.** S16-20 ([#827](https://github.com/mendahu/provenencia/pull/827)): `applyMatchIndex`'s patch-in-place Apply and its tests (`TestMatchIndexFollowsCommits` with Verify on, `TestMatchIndexApplyFanOut` with a `// decided:` ceiling). Copy the test shapes. S16-16 ([#814](https://github.com/mendahu/provenencia/pull/814)) is the precedent for figures before and after in the ship log.
+**Precedent.** S16-20 ([#827](https://github.com/Jake-Robins-Studios/provenencia/pull/827)): `applyMatchIndex`'s patch-in-place Apply and its tests (`TestMatchIndexFollowsCommits` with Verify on, `TestMatchIndexApplyFanOut` with a `// decided:` ceiling). Copy the test shapes. S16-16 ([#814](https://github.com/Jake-Robins-Studios/provenencia/pull/814)) is the precedent for figures before and after in the ship log.
 
 ## 5. Decisions
 

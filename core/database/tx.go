@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 // ErrWriteReentry is a second writes.Run on a catalog that is already inside

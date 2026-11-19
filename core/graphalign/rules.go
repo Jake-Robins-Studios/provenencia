@@ -1,10 +1,10 @@
 package graphalign
 
 import (
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/shortlist"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/shortlist"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // Config holds every section Align reads.

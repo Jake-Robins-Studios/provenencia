@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/ref"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestSubjectTypes(t *testing.T) {

@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/conclusiondetails"
-	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
-	"github.com/mendahu/provenencia/core/database/nameformats"
-	"github.com/mendahu/provenencia/core/database/persondetail"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache/graphcachetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // kin is a catalog of canonical people named for a test, and the Canon that

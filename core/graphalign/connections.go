@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // ConnectionOutcome is what Done will do with one connection, as a code the

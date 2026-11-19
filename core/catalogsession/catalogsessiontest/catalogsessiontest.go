@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 )
 
 // Project creates an empty catalog in a new temp folder, closes it, and

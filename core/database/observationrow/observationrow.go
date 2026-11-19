@@ -5,9 +5,9 @@
 package observationrow
 
 import (
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/scalarcols"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Columns is the SELECT list of Scan, in scan order.

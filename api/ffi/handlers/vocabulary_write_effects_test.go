@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 )
 
 // TestVocabularyWritesReturnEffects: every vocabulary write reports which

@@ -1,6 +1,6 @@
 # S15-01 — The credibility argument is a text area
 
-**Status:** Landed in [#758](https://github.com/mendahu/provenencia/pull/758) (2026-11-09)
+**Status:** Landed in [#758](https://github.com/Jake-Robins-Studios/provenencia/pull/758) (2026-11-09)
 **Spike / slice:** Spike 15 · Slice 1 — Source date, privacy, credibility
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change beyond the control: the argument becomes the `PVTextArea` the Source page already draws for its description and notes; working rule "The credibility fix is idiomatic and needs no brief")
@@ -210,7 +210,7 @@ Check: `cat VERSION`, `rg -n "Version = " core/version.go`, `rg -n "MARKETING_VE
 
 **STEP-6 — Docs**
 Files: `docs/deployment-plan/spike-15/completed.md`, `docs/deployment-plan/spike-15/deployment-plan.md` (map row), this plan.
-Do: after the PR is opened (so #N exists): set this plan's Status to `Landed in [#N](https://github.com/mendahu/provenencia/pull/N) (YYYY-MM-DD)` with a **Landed** note listing differences from the plan (or "None."); set the map row's Status to `Landed #N`; add under the heading of `completed.md` a paragraph in this form: "**S15-01 — The credibility argument is a text area** ([#N](https://github.com/mendahu/provenencia/pull/N)). The Source page's credibility argument is a multi-line text area that wraps and grows to 12 lines; Return adds a line and Save saves it with its line breaks. `PVTextArea` takes its own accessibility label." The note `2026-10-18-credibility-field-truncates-and-ignores-enter.md` stays; spike close handles it ([`archive-docs`](../../../../.agents/skills/archive-docs/SKILL.md)).
+Do: after the PR is opened (so #N exists): set this plan's Status to `Landed in [#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N) (YYYY-MM-DD)` with a **Landed** note listing differences from the plan (or "None."); set the map row's Status to `Landed #N`; add under the heading of `completed.md` a paragraph in this form: "**S15-01 — The credibility argument is a text area** ([#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N)). The Source page's credibility argument is a multi-line text area that wraps and grows to 12 lines; Return adds a line and Save saves it with its line breaks. `PVTextArea` takes its own accessibility label." The note `2026-10-18-credibility-field-truncates-and-ignores-enter.md` stays; spike close handles it ([`archive-docs`](../../../../.agents/skills/archive-docs/SKILL.md)).
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-01-credibility-argument-text-area.md` reports no errors.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits. Suggested: STEP-1 "Let a text area name itself to VoiceOver with its own label."; STEP-2 to STEP-4 "Let the credibility argument wrap and hold several lines on the Source page."; then the version bump; then docs.

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 )
 
 // ApplicationID is the SQLite application_id FourCC 'PROV' (0x50524F56).

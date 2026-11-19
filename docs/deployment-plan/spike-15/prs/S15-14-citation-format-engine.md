@@ -1,11 +1,11 @@
 # S15-14 — The citation format engine
 
-**Status:** Landed in [#868](https://github.com/mendahu/provenencia/pull/868) (2026-11-16)
+**Status:** Landed in [#868](https://github.com/Jake-Robins-Studios/provenencia/pull/868) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: three pure Go packages that nothing in the app calls yet; every view looks the same)
 **Board:** —
-**Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782))
+**Depends on:** S15-06 (landed [#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782))
 **Blocks:** S15-15, S15-37, S15-38, S15-43, S15-44
 **Branch:** `s15-14-citation-format-engine`
 **Version bump:** none — new engine packages with no caller, no wire and no catalog change; nothing a researcher can see ([`docs/versioning.md`](../../../versioning.md))

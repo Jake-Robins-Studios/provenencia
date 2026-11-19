@@ -1,6 +1,6 @@
 # S16-34 — Tests run without showing a window or opening the researcher's project
 
-**Status:** Landed in [#772](https://github.com/mendahu/provenencia/pull/772) (2026-11-10)
+**Status:** Landed in [#772](https://github.com/Jake-Robins-Studios/provenencia/pull/772) (2026-11-10)
 **Spike / slice:** Spike 16 · Slice 3a — Quiet test runs
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the app looks the same; only the test host and the test helpers change)
@@ -11,7 +11,7 @@
 **Version bump:** none — no change a researcher can see in the shipped app; the launch only differs when Xcode hosts the test bundle ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/swift-tests.mdc`, `.cursor/rules/versioning.mdc`
-**Context:** working rule "(Batch 3) A test run shows no window and touches no install"; S16-03's ship log on [#769](https://github.com/mendahu/provenencia/pull/769) (the `WorkspaceDestinationHostTests` timeouts under load)
+**Context:** working rule "(Batch 3) A test run shows no window and touches no install"; S16-03's ship log on [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769) (the `WorkspaceDestinationHostTests` timeouts under load)
 **Landed:** No version bump, as planned. Differences from the plan: `HostedWindows()` is built without `await` in `provideScope` (the sketched `await` warns); T-4 counts `willClose` with one observer per window and a small counter (the shared observer warned); the `add-swift-test` sentence leaves out the literal `window.sendEvent` because `check-guidance-names` rejects an undefined name. D-12 and D-13 were added while implementing. Review round 1: T-7 (`HostedWindowTests`: `theTraitClosesWindowsWhenTheBodyReturns` and `...WhenTheBodyThrows`, AC-2.2) calls the trait's `provideScope` directly and counts `willClose`; the hosting helpers and `testWindow` are `@discardableResult`, and callers that read no window no longer return or bind one (this supersedes D-10's Out line for those callers); `ProvenenciaMain.isTestHost` is the one test-host check.
 **Planned:** 2026-11-10 against `main` @ `16efd08f`
 **Review:** [`S16-34-hidden-test-windows.review.md`](S16-34-hidden-test-windows.review.md) — Fits with changes — Ready with changes, 2 rounds; no open blocker; To user: none

@@ -6,10 +6,10 @@ import (
 	"slices"
 	"strings"
 
-	pt "github.com/mendahu/provenencia/core/propertycompare/propertycomparetest"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	pt "github.com/Jake-Robins-Studios/provenencia/core/propertycompare/propertycomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Metas returns a new map of the seeded value type and cardinality of every

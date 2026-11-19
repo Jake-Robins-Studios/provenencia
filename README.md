@@ -26,7 +26,7 @@ The first `xcodebuild` resolves the SwiftProtobuf package from GitHub. `macos/Co
 
 ## Go core
 
-The Go module is `github.com/mendahu/provenencia`. It requires **Go 1.27** or later.
+The Go module is `github.com/Jake-Robins-Studios/provenencia`. It requires **Go 1.27** or later.
 
 ```sh
 CGO_ENABLED=1 go test -tags fts5 ./api/... ./core/...

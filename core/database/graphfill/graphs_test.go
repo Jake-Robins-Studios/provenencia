@@ -4,11 +4,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
-	"github.com/mendahu/provenencia/core/database/evidencelayer/evidencelayertest"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/graphfill"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer/evidencelayertest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
 )
 
 type capStep struct {

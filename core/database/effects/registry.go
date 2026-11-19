@@ -3,8 +3,8 @@ package effects
 import (
 	"slices"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 )
 
 // Search document kinds. Nothing reads these until the write orchestrator does.

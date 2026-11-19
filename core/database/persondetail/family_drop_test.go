@@ -3,9 +3,9 @@ package persondetail
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/canonicalentities"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
 )
 
 // TestDropUnread covers D-10: a relative whose summary was not read is dropped

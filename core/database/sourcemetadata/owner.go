@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Owner is the record metadata hangs off: a Source, an Artifact or an Evidence graph. Level names which

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // PatternSharedParent is how a sibling is implied through a parent both have.

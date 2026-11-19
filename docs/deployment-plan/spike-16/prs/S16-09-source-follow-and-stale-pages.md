@@ -1,11 +1,11 @@
 # S16-09 — Conclusion pages refresh from the Sources they cite and show their last value while they refresh
 
-**Status:** Landed in [#780](https://github.com/mendahu/provenencia/pull/780) (2026-11-10)
+**Status:** Landed in [#780](https://github.com/Jake-Robins-Studios/provenencia/pull/780) (2026-11-10)
 **Spike / slice:** Spike 16 · Slice 1b — Current data and honest notices
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a page shown stale draws the header's existing "Refreshing" line and its existing content; no view gains or loses a part)
 **Board:** —
-**Depends on:** S16-04 (landed [#776](https://github.com/mendahu/provenencia/pull/776))
+**Depends on:** S16-04 (landed [#776](https://github.com/Jake-Robins-Studios/provenencia/pull/776))
 **Blocks:** S16-25, S16-29; Spike 15's S15-29 (restates what the detail key follows)
 **Branch:** `s16-09-source-follow-and-stale-pages`
 **Version bump:** patch — Vitals, the Gallery and the viewer show a renamed Source's words and Back shows a page at once; a behavior fix with no new screen, RPC or schema ([`docs/versioning.md`](../../../versioning.md))

@@ -1,6 +1,6 @@
 # Ship log — S16-61 Nothing in the app waits on a second window
 
-**Plan:** [`S16-61-no-second-window.md`](S16-61-no-second-window.md) · **Branch:** `s16-61-no-second-window` · **PR:** [#886](https://github.com/mendahu/provenencia/pull/886)
+**Plan:** [`S16-61-no-second-window.md`](S16-61-no-second-window.md) · **Branch:** `s16-61-no-second-window` · **PR:** [#886](https://github.com/Jake-Robins-Studios/provenencia/pull/886)
 **State:** ready
 
 ## Round 0 — implement

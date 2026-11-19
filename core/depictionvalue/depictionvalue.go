@@ -5,8 +5,8 @@
 package depictionvalue
 
 import (
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/locator"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeDepictionValuesInvalid, apperr.KindUser)

@@ -1,6 +1,6 @@
 package kinship
 
-import "github.com/mendahu/provenencia/core/vocabkey"
+import "github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 
 // eventPattern is one fact an event implies between two of its participants:
 // the event type, the roles at each end of the implied link, and the

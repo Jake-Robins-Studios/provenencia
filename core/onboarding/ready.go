@@ -1,15 +1,15 @@
 package onboarding
 
 import (
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/namealiases"
-	"github.com/mendahu/provenencia/core/database/nameformats"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/database/sourcecredibilitygrades"
-	"github.com/mendahu/provenencia/core/database/sourcevocab"
-	"github.com/mendahu/provenencia/core/database/subjectvocab"
-	"github.com/mendahu/provenencia/core/writes"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namealiases"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 // createCatalog installs a new catalog (create path). OpenCatalog is a one-shot

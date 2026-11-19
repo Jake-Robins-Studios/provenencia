@@ -3,8 +3,8 @@ package kinship
 import (
 	"bytes"
 
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // linkKey identifies one edge, whichever end listed it, by its ends and the

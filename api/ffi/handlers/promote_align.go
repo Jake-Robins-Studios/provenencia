@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/database/promotealign"
-	"github.com/mendahu/provenencia/core/graphalign"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promotealign"
+	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
 	"google.golang.org/protobuf/proto"
 )
 

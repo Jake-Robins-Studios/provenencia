@@ -7,8 +7,8 @@ package hops
 import (
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // TermFilter keeps an association only when its kept rank-1 value of the

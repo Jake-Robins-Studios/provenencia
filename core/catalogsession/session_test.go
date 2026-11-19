@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/catalogsession/catalogsessiontest"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
-	"github.com/mendahu/provenencia/core/onboarding"
-	"github.com/mendahu/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 )
 
 func TestDo(t *testing.T) {

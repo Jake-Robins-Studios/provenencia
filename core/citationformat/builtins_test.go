@@ -3,8 +3,8 @@ package citationformat_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/citationformat"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestBuiltins(t *testing.T) {

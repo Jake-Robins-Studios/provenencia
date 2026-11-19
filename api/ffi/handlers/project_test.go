@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -23456,7 +23456,7 @@ const file_engine_proto_rawDesc = "" +
 	"\x0fERROR_KIND_USER\x10\x01\x12\x17\n" +
 	"\x13ERROR_KIND_CONFLICT\x10\x02\x12\x18\n" +
 	"\x14ERROR_KIND_NOT_FOUND\x10\x03\x12\x17\n" +
-	"\x13ERROR_KIND_INTERNAL\x10\x04B1Z/github.com/mendahu/provenencia/api/proto/engineb\x06proto3"
+	"\x13ERROR_KIND_INTERNAL\x10\x04B=Z;github.com/Jake-Robins-Studios/provenencia/api/proto/engineb\x06proto3"
 
 var (
 	file_engine_proto_rawDescOnce sync.Once

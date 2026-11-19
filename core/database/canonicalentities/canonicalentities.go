@@ -8,15 +8,15 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/gallery"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/gallery"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
-	"github.com/mendahu/provenencia/core/ref"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeCanonicalEntitiesInvalid, apperr.KindUser)

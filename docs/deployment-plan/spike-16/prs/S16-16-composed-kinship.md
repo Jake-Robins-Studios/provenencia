@@ -1,11 +1,11 @@
 # S16-16 — Kinship answers are composed from the pivots, and the Family read is one pass
 
-**Status:** Landed in [#814](https://github.com/mendahu/provenencia/pull/814) (2026-11-13)
+**Status:** Landed in [#814](https://github.com/Jake-Robins-Studios/provenencia/pull/814) (2026-11-13)
 **Spike / slice:** Spike 16 · Slice 2c — Walks
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; the Family section draws the same units)
 **Board:** —
-**Depends on:** S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789)), S16-01 (landed [#756](https://github.com/mendahu/provenencia/pull/756))
+**Depends on:** S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789)), S16-01 (landed [#756](https://github.com/Jake-Robins-Studios/provenencia/pull/756))
 **Blocks:** S16-22 (reads each handle's links from the kinship pivots), S16-24 (instruments the Family read this PR rewrites)
 **Branch:** `s16-16-composed-kinship`
 **Version bump:** none — no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -116,7 +116,7 @@ Verified at `d1d1347`.
 | Tests | `core/database/promotealign/perf_test.go` `TestLargeSourceBudgets` (4,000 persons; `budgetWarm` 500 ms, `budgetAfterCommit` 2.5 s), `newLargeFixture`; `bench_test.go` `BenchmarkCacheSizes` "kinship" fill (calls `r.Relationships(id, …)` per person) | Promote's budgets at 4,000 only; no 16,000 proposal measurement exists |
 | Tests | `core/catalogsession/cache_doc_test.go` `TestCacheDocListsEveryEntry` | Holds the doc's first table to the registry's names |
 
-**Precedent.** [#789](https://github.com/mendahu/provenencia/pull/789) (S16-10) moved the three `canonlinks` slots onto the registry and left these two entries marked for deletion: copy its `docs/catalog-caches.md` row edits and `BenchmarkCacheSizes` reporting. [#809](https://github.com/mendahu/provenencia/pull/809) (S16-13) deleted a stored mechanism in favour of entries and recorded before/after kinship figures in its ship log: copy that measuring (same machine, before and after, in the ship log). The batched read follows `graphcache.Keyed.GetMany`'s convention: a map keyed by `string(id)`, an id that is no node absent.
+**Precedent.** [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789) (S16-10) moved the three `canonlinks` slots onto the registry and left these two entries marked for deletion: copy its `docs/catalog-caches.md` row edits and `BenchmarkCacheSizes` reporting. [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809) (S16-13) deleted a stored mechanism in favour of entries and recorded before/after kinship figures in its ship log: copy that measuring (same machine, before and after, in the ship log). The batched read follows `graphcache.Keyed.GetMany`'s convention: a map keyed by `string(id)`, an id that is no node absent.
 
 ## 5. Decisions
 

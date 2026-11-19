@@ -3,9 +3,9 @@ package handlers
 import (
 	"fmt"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
 	"google.golang.org/protobuf/proto"
 )
 

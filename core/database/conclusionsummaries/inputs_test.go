@@ -8,16 +8,16 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries/conclusionsummariestest"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/observations"
-	"github.com/mendahu/provenencia/core/database/propertyterms"
-	"github.com/mendahu/provenencia/core/database/subjects"
-	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries/conclusionsummariestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // inputsWorld is the scenario the input tests share. It holds the handle ids

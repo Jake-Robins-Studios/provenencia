@@ -3,9 +3,9 @@ package segmentcomparetest_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/segmentcompare/segmentcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare/segmentcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestKeysMatchSeededBridges(t *testing.T) {

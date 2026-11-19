@@ -1,11 +1,11 @@
 # S15-08 — Artifacts and graphs hold metadata
 
-**Status:** Landed in [#791](https://github.com/mendahu/provenencia/pull/791) (2026-11-11)
+**Status:** Landed in [#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791) (2026-11-11)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the engine, the wire and three strings in existing copy; the delete notice draws its groups as today, and S15-09 – S15-11 add every board; user, 2026-11-11)
 **Board:** —
-**Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782)), S15-07 (landed [#787](https://github.com/mendahu/provenencia/pull/787))
+**Depends on:** S15-06 (landed [#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782)), S15-07 (landed [#787](https://github.com/Jake-Robins-Studios/provenencia/pull/787))
 **Blocks:** S15-09, S15-10, S15-11, S15-16
 **Branch:** `s15-08-artifacts-and-graphs-hold-metadata`
 **Version bump:** minor, 0.9.1 → **0.10.0** (if `main`'s `VERSION` is no longer 0.9.1 when you rebase, the next minor after it): additive schema and new RPCs ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
@@ -163,7 +163,7 @@ An Artifact (the copy used) and an Evidence graph (the item cited) hold metadata
 | Swift copy | `macos/App/Platform/L10n.swift` `"source_metadata.field_id"` via heading ("%lld sources record a value for this field"); `L10n.SourceTypes.toastRemovedBody` and `removedBodyWithValues` ("…the %3$lld sources already carrying a value keep it."), called from `macos/App/Features/SourceTypes/SourceTypesModel.swift` with `field.usedBy`; `macos/App/Features/CatalogVocabulary/VocabularyPane.swift` `CatalogVocabularyRow.usedBy` doc ("How many sources refer to this row"); `macos/App/Resources/Localizable.xcstrings` | Name Sources only |
 | Docs | `docs/source-layer-data-model.md` §§ 4.2, 5.3, 5.4, 7, 7.1, 10; `docs/catalog-deletes.md` "Facet release" table | Source-level metadata only |
 
-**Precedent.** S15-06 ([#782](https://github.com/mendahu/provenencia/pull/782)) for a level on the wire as a plain string checked by Go, and for regenerating the proto with the Swift store edits in the same commit. `rowFacet(KindSource, "source_metadata", …)` and `rowFacet(KindSource, "source_metadata_layout", …)` for the four new releases: same columns with the owner column renamed. `joinEdge(KindMetadataField, "source_metadata.field_id", …)` for the two new probes. `releaseCitation` for a release that runs a child's own facets before deleting it. `GraphLinks` on `CreateArtifactRequest` for an optional sub-message whose presence means "given".
+**Precedent.** S15-06 ([#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782)) for a level on the wire as a plain string checked by Go, and for regenerating the proto with the Swift store edits in the same commit. `rowFacet(KindSource, "source_metadata", …)` and `rowFacet(KindSource, "source_metadata_layout", …)` for the four new releases: same columns with the owner column renamed. `joinEdge(KindMetadataField, "source_metadata.field_id", …)` for the two new probes. `releaseCitation` for a release that runs a child's own facets before deleting it. `GraphLinks` on `CreateArtifactRequest` for an optional sub-message whose presence means "given".
 
 ## 5. Decisions
 

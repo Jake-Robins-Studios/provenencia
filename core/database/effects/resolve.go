@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 )
 
 type ghostMap map[string]map[string]any

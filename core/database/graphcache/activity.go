@@ -3,7 +3,7 @@ package graphcache
 import (
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 )
 
 // Activity returns the last activity of one scope id (a Source id for

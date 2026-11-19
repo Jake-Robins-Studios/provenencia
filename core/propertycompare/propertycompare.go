@@ -10,8 +10,8 @@ package propertycompare
 import (
 	"slices"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // Value is one value a Subject records for the property. Type is ignored:

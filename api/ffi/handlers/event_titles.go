@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/grapheventtitles"
-	"github.com/mendahu/provenencia/core/database/graphfill"
-	"github.com/mendahu/provenencia/core/eventtitle"
-	"github.com/mendahu/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/grapheventtitles"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
+	"github.com/Jake-Robins-Studios/provenencia/core/eventtitle"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
 	"google.golang.org/protobuf/proto"
 )
 

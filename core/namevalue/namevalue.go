@@ -12,7 +12,7 @@
 // and project defaults live elsewhere (structured-name-model §4).
 package namevalue
 
-import "github.com/mendahu/provenencia/core/apperr"
+import "github.com/Jake-Robins-Studios/provenencia/core/apperr"
 
 var ErrInvalid = apperr.New(apperr.CodeNameValuesInvalid, apperr.KindUser)
 

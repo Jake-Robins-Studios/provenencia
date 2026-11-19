@@ -6,12 +6,12 @@ import (
 	"maps"
 	"reflect"
 
-	"github.com/mendahu/provenencia/core/database/canonlinks"
-	"github.com/mendahu/provenencia/core/database/evidencelayer"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/graphalign"
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // candidatesMemo is the ranking of each Subject the graph's Evidence graph has

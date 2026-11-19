@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/rowchange"
 )
 
 // Path walks foreign keys declared in catalogmodel. A zero Path resolves nothing.

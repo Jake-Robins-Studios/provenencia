@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/citationformat"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
 )
 
 // ViaCitationFormats is the inbound via of a Source type naming a metadata

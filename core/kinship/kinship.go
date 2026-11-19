@@ -12,9 +12,9 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Rules is the kinship section of the registry: what Derive reads, and the page's bounds on a person's kin.

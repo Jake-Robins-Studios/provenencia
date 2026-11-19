@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/derivatives"
-	"github.com/mendahu/provenencia/core/ingest"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/derivatives"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 )
 
 // thumbnailBatch is how many thumbnails one session commits, and so how many

@@ -1,6 +1,6 @@
 package database
 
-import "github.com/mendahu/provenencia/core/apperr"
+import "github.com/Jake-Robins-Studios/provenencia/core/apperr"
 
 var (
 	ErrAlreadyExists      = apperr.New(apperr.CodeCatalogAlreadyExists, apperr.KindConflict)

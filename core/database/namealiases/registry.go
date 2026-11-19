@@ -3,8 +3,8 @@ package namealiases
 import (
 	"sync"
 
-	"github.com/mendahu/provenencia/core/valuecompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // productAliasTables is the create-time seed. Install writes this list.

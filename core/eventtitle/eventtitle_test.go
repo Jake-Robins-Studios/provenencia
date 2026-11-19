@@ -3,8 +3,8 @@ package eventtitle_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/eventtitle"
-	"github.com/mendahu/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/eventtitle"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 )
 
 func named(forms ...string) []eventtitle.Subject {

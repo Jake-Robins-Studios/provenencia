@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 )
 
 // The registry of derived caches. An owner registers one typed handle per

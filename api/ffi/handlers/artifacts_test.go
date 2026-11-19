@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/catalogsession/catalogsessiontest"
-	"github.com/mendahu/provenencia/core/database/artifacts"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs"
-	"github.com/mendahu/provenencia/core/database/sourcemetadata"
-	"github.com/mendahu/provenencia/core/ingest"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"google.golang.org/protobuf/proto"
 )
 

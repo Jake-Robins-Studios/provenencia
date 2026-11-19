@@ -16,7 +16,7 @@ import (
 
 	"golang.org/x/image/tiff"
 
-	"github.com/mendahu/provenencia/core/raster/rastertest"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster/rastertest"
 )
 
 // fakeConfigCalls counts calls to the fake format's config func.

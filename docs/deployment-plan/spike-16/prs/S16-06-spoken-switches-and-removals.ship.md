@@ -1,6 +1,6 @@
 # Ship log — S16-06 Section switches and removals are spoken
 
-**Plan:** [`S16-06-spoken-switches-and-removals.md`](S16-06-spoken-switches-and-removals.md) · **Branch:** `s16-06-spoken-switches-and-removals` · **PR:** [#785](https://github.com/mendahu/provenencia/pull/785)
+**Plan:** [`S16-06-spoken-switches-and-removals.md`](S16-06-spoken-switches-and-removals.md) · **Branch:** `s16-06-spoken-switches-and-removals` · **PR:** [#785](https://github.com/Jake-Robins-Studios/provenencia/pull/785)
 **State:** ready
 
 ## Before round 0

@@ -1,11 +1,11 @@
 # S16-37 — The list merge has a file of its own and no test-only parameters
 
-**Status:** Landed in [#858](https://github.com/mendahu/provenencia/pull/858) (2026-11-16)
+**Status:** Landed in [#858](https://github.com/Jake-Robins-Studios/provenencia/pull/858) (2026-11-16)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: code moves between files and a test-only parameter goes; nothing a researcher sees changes)
 **Board:** —
-**Depends on:** S16-26 (landed [#851](https://github.com/mendahu/provenencia/pull/851): `CatalogListRows`, `indexedMergeLimit`, `CatalogListMergeTests`)
+**Depends on:** S16-26 (landed [#851](https://github.com/Jake-Robins-Studios/provenencia/pull/851): `CatalogListRows`, `indexedMergeLimit`, `CatalogListMergeTests`)
 **Blocks:** —
 **Branch:** `s16-37-list-merge-file`
 **Version bump:** none — no behavior changes, as for S16-03's file split ([`docs/versioning.md`](../../../versioning.md))
@@ -105,7 +105,7 @@ Verified at `04e76c4`.
 | Another spike's plan | `docs/deployment-plan/spike-15/prs/S15-12-type-suggestions-at-each-level.md` line 106 | Cites `CatalogQueryPatch.typeSuggestions()` at "~378" and `.typeSuggestionCount()` at "~392" in `CatalogLastUpdated.swift`; STEP-1 shifts them up by about 166 lines. The symbols stay; the map's "Shared with Spike 15" table says so |
 | Docs | `.agents/skills/add-workspace-place/SKILL.md` lines 63 and 178, `docs/macos-client-patterns.md` line 101 | Name `CatalogListRows`, `indexedMergeLimit`, `Array.mergeSorted` by type, not by file: true after the move. `rg "CatalogLastUpdated.swift"` finds no doc that places the merge there outside Spike 15/16 plans |
 
-**Precedent.** S16-03 ([#769](https://github.com/mendahu/provenencia/pull/769)) split `ConclusionDetailPage.swift` into the files its types belong to, verbatim, with no version bump. Copy that: move the declarations byte for byte, then change them in a separate commit, so the move's diff is a pure move.
+**Precedent.** S16-03 ([#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769)) split `ConclusionDetailPage.swift` into the files its types belong to, verbatim, with no version bump. Copy that: move the declarations byte for byte, then change them in a separate commit, so the move's diff is a pure move.
 
 ## 5. Decisions
 

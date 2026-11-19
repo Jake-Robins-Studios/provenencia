@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/mendahu/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 )
 
 var testID = uuid.MustParse("0192f3a4-0000-7000-8000-000000000001")

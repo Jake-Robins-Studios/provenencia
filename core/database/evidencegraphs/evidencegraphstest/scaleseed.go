@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/databasetest"
-	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
-	"github.com/mendahu/provenencia/core/database/sourcetypes"
-	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache/graphcachetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // The batch's Scale (spike 16): what Base files.

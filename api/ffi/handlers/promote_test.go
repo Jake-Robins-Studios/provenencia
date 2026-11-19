@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promote/promotetest"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/deleteimpact"
-	"github.com/mendahu/provenencia/core/database/promote"
-	"github.com/mendahu/provenencia/core/database/promote/promotetest"
 	"google.golang.org/protobuf/proto"
 )
 

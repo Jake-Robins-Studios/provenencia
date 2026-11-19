@@ -1,11 +1,11 @@
 # S16-10 — One cache registry
 
-**Status:** Landed in [#789](https://github.com/mendahu/provenencia/pull/789) (2026-11-11)
+**Status:** Landed in [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789) (2026-11-11)
 **Spike / slice:** Spike 16 · Slice 2a — One home for caches
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; no view, wire or catalog changes)
 **Board:** —
-**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/mendahu/provenencia/pull/748))
+**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/Jake-Robins-Studios/provenencia/pull/748))
 **Blocks:** S16-12, S16-15, S16-16, S16-18, S16-20 (each registers its cache as an entry and adds its row to `docs/catalog-caches.md` *(new)*)
 **Branch:** `s16-10-one-cache-registry`
 **Version bump:** none — a preparatory refactor with no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))

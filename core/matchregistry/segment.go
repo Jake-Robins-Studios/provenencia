@@ -1,8 +1,8 @@
 package matchregistry
 
 import (
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // defaultSegment is layer 5's shipped section: what a matching or differing

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/graphalign"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestConnections(t *testing.T) {

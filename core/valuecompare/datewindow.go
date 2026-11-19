@@ -1,6 +1,6 @@
 package valuecompare
 
-import "github.com/mendahu/provenencia/core/datevalue"
+import "github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 
 // Date ends and day windows: a date read as the days it covers. Pure calendar
 // arithmetic lives in core/datevalue.

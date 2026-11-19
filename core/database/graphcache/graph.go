@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"database/sql"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Graph is one catalog's canonical graph. Nodes are immutable: a commit

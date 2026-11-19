@@ -1,11 +1,11 @@
 # S15-32 — Copy Source can carry the date
 
-**Status:** Landed in [#778](https://github.com/mendahu/provenencia/pull/778) (2026-11-10)
+**Status:** Landed in [#778](https://github.com/Jake-Robins-Studios/provenencia/pull/778) (2026-11-10)
 **Spike / slice:** Spike 15 · Slice 1 — Source date, privacy, credibility
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D13](../design/archive/S15-D13-copy-source-dialog.md), board agreed 2026-11-10
 **Board:** [Claude Design — Source page](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK#artboard-32c863db011e), page *Source page*, row "Copy Source": frames `copy-dated` (1a), `copy-dated-wide` (1b), `copy-undated` (2), `copy-phrase` (3), `copy-date-off` (4), beside the dialog's earlier frames (`copy-page`, `copy-loading`, `copy-absent`, `copy-forty`, `copy-error`, `copy-failed`, `copy-discard`), which are unchanged. Read it with the Artifact tool's `read` on that link, `path` "project/Source page.dc.html" (the frame list) and "project/Source.dc.html" (the dialog markup near `copyParts`, the parts builder `part(…)`, and `openCopy`). As drawn: Published date is the first of four `PVCheckbox` part ticks, all built by one `part` helper; its hint is the date as the row display writes it ("4 Jul 1881", or the phrase); an undated original reads "None on this Source", unticked and disabled; the dialog is 520pt and centered at Wide. No board decision differs from the brief. §6 macOS describes each frame in words
-**Depends on:** S15-02 (landed [#762](https://github.com/mendahu/provenencia/pull/762)), S15-D13
+**Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)), S15-D13
 **Blocks:** —
 **Branch:** `s15-32-copy-source-date`
 **Version bump:** minor, 0.7.0 → **0.8.0** (if `main`'s `VERSION` is no longer 0.7.0 when you rebase, the next minor after it): `VERSION`, `core/version.go`, and all four `MARKETING_VERSION` lines in `macos/Provenencia.xcodeproj/project.pbxproj` — a new choice on the Copy form and a new field on `CopySourceRequest` that old clients ignore ([`docs/versioning.md`](../../../versioning.md))

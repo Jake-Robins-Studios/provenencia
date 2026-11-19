@@ -4,9 +4,9 @@ package segmentcomparetest
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Terms returns a new map of every seeded term of role, relationship_type and

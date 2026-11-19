@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
 	"github.com/mattn/go-sqlite3"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/files"
 )
 
 func insertFile(t *testing.T, c *database.Catalog, sum string) []byte {

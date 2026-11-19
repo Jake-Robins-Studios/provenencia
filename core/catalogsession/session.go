@@ -12,15 +12,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/autoreconciler"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs"
-	"github.com/mendahu/provenencia/core/database/namealiases"
-	"github.com/mendahu/provenencia/core/database/nameformats"
-	"github.com/mendahu/provenencia/core/database/project"
-	"github.com/mendahu/provenencia/core/database/promotealign"
-	"github.com/mendahu/provenencia/core/database/searchindex"
-	"github.com/mendahu/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/autoreconciler"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namealiases"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/project"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promotealign"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 )
 
 type session struct {

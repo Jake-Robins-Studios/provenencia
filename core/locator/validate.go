@@ -13,7 +13,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeLocatorInvalid, apperr.KindUser)

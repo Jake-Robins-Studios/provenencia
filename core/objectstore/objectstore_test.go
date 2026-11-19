@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/objectstore"
+	"github.com/Jake-Robins-Studios/provenencia/core/objectstore"
 )
 
 func TestRemoveObject(t *testing.T) {

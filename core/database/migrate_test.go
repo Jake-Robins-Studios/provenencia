@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 func TestParseMigrations(t *testing.T) {

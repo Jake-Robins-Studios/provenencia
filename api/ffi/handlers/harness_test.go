@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/identity"
-	"github.com/mendahu/provenencia/core/onboarding"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/identity"
+	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )

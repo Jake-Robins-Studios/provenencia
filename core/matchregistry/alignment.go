@@ -1,9 +1,9 @@
 package matchregistry
 
 import (
-	"github.com/mendahu/provenencia/core/graphalign"
-	"github.com/mendahu/provenencia/core/shortlist"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
+	"github.com/Jake-Robins-Studios/provenencia/core/shortlist"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // defaultAlignment is layer 6's shipped section.

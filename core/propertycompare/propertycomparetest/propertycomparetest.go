@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
-	"github.com/mendahu/provenencia/core/propertycompare"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertycompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // The builders leave Type empty: Compare sets it from the property.

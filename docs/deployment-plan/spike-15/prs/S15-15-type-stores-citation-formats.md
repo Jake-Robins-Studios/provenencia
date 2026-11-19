@@ -1,11 +1,11 @@
 # S15-15 — Source types store citation formats
 
-**Status:** Landed in [#871](https://github.com/mendahu/provenencia/pull/871) (2026-11-16)
+**Status:** Landed in [#871](https://github.com/Jake-Robins-Studios/provenencia/pull/871) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire, three delete-notice headings (one new edge, two existing edges that fell back to generic text; user, 2026-11-17) and one toast sentence in existing copy; the delete notice draws its groups as today, and S15-17 adds the editor; precedent S15-08, user 2026-11-11)
 **Board:** —
-**Depends on:** S15-14 (landed [#868](https://github.com/mendahu/provenencia/pull/868))
+**Depends on:** S15-14 (landed [#868](https://github.com/Jake-Robins-Studios/provenencia/pull/868))
 **Blocks:** S15-16, S15-17, S15-18, S15-20, S15-38
 **Branch:** `s15-15-type-stores-citation-formats`
 **Version bump:** minor, 0.17.0 → **0.18.0** (if `main`'s `VERSION` is no longer 0.17.0 when you rebase, the next minor after it): a format step that old apps refuse by `user_version`, and two new RPCs ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
@@ -121,7 +121,7 @@ A Source type stores its three citation formats (full note, short note, source-l
 | Swift copy | `macos/App/Platform/L10n.swift` delete-impact via headings (`"source_metadata.field_id"` …), `SourceTypes.toastRemovedBody` / `removedBodyWithValues` (called from `SourceTypePageModel.swift` with `field.usedBy`); `macos/App/Resources/Localizable.xcstrings`; `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` `.metadataFieldsList` comment | The toast says "the %3$lld Sources, Artifacts and graphs already carrying a value keep it"; the registry comment says `usedBy` counts Sources, Artifacts and graphs |
 | Tests | `core/database/metadatafields/metadatafields_test.go` `TestDelete`, `TestListByIDsTx`; `core/database/sourcetypes/sourcetypes_test.go`; `api/ffi/handlers/source_defs_test.go` `TestDeleteMetadataField`, `TestUpdateSourceType`; `api/ffi/handlers/vocabulary_write_effects_test.go` `TestVocabularyWritesReturnEffects`; `macos/ProvenenciaTests/PVDeleteImpactTests.swift` `knownViaHeadingsMatchEngineEdges` | Cover today's field delete groups, type update, effects, via headings |
 
-**Precedent.** S15-08 ([#791](https://github.com/mendahu/provenencia/pull/791); plan [`S15-08-artifacts-and-graphs-hold-metadata.md`](S15-08-artifacts-and-graphs-hold-metadata.md) D-5, D-17): two new field-delete edges in `inboundEdgeList`, a via heading per edge in `L10n.swift` with a row in `knownViaHeadingsMatchEngineEdges`, the toast and `used_by` comment rewritten for the new scope, no brief. Copy that shape. S15-02 ([#762](https://github.com/mendahu/provenencia/pull/762)) for new RPCs shipped Go-only with the generated Swift proto as the only Swift code diff. `sourcetypes.Update` for the audited change shape.
+**Precedent.** S15-08 ([#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791); plan [`S15-08-artifacts-and-graphs-hold-metadata.md`](S15-08-artifacts-and-graphs-hold-metadata.md) D-5, D-17): two new field-delete edges in `inboundEdgeList`, a via heading per edge in `L10n.swift` with a row in `knownViaHeadingsMatchEngineEdges`, the toast and `used_by` comment rewritten for the new scope, no brief. Copy that shape. S15-02 ([#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)) for new RPCs shipped Go-only with the generated Swift proto as the only Swift code diff. `sourcetypes.Update` for the audited change shape.
 
 ## 5. Decisions
 

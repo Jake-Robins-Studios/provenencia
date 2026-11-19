@@ -1,6 +1,6 @@
 # S15-02 — Sources carry a date and a not-public flag
 
-**Status:** Landed in [#762](https://github.com/mendahu/provenencia/pull/762) (2026-11-09)
+**Status:** Landed in [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762) (2026-11-09)
 **Spike / slice:** Spike 15 · Slice 1 — Source date, privacy, credibility
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go and the wire only; no Swift view reads the new fields until S15-03 and S15-04)

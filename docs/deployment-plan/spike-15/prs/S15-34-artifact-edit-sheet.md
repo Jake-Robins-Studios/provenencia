@@ -1,11 +1,11 @@
 # S15-34 — Artifacts are edited in a sheet
 
-**Status:** Landed in [#819](https://github.com/mendahu/provenencia/pull/819) (2026-11-13)
+**Status:** Landed in [#819](https://github.com/Jake-Robins-Studios/provenencia/pull/819) (2026-11-13)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D14](../design/S15-D14-source-page-artifacts.md) SA-4, SA-6, SA-8, SA-9, SA-12 – SA-15 and the Wide rows for the Metadata section and the sheet, board agreed 2026-11-13; plus the user's 2026-11-13 additions on the same board (the Metadata section header: help tooltip, no field count)
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*: rows "Artifact sheet" (`sheet-edit`, `sheet-editing`, `sheet-discard`, `sheet-saving`, `sheet-refused`, `sheet-failed`, `sheet-eight`, `sheet-no-sugg`, `art-loading`, `art-only`, `art-twelve`, `art-error`, `art-refused`), "Artifacts" (`art-gone`) and "Metadata" (`meta-add-row`, `meta-add-row-wide`); decisions panel entry "S15-D14". The implementer reads it with the Artifact tool's `read` on that link, `path` "project/Source.dc.html" (the sheet at `PVFormDialog open="{{ sheetOpen }}"`, `sheetBoardEl`, `addRowEl`, `valueEl`, `srcAddVals`, `metaHelp`) and "project/Source page.dc.html" (the frame list). §6 macOS describes each frame in words, so the plan stands without the board
-**Depends on:** S15-09 (landed [#802](https://github.com/mendahu/provenencia/pull/802), trimmed), S15-33 (landed [#806](https://github.com/mendahu/provenencia/pull/806)), S15-36 (landed [#810](https://github.com/mendahu/provenencia/pull/810)), S15-D14 (board agreed 2026-11-13)
+**Depends on:** S15-09 (landed [#802](https://github.com/Jake-Robins-Studios/provenencia/pull/802), trimmed), S15-33 (landed [#806](https://github.com/Jake-Robins-Studios/provenencia/pull/806)), S15-36 (landed [#810](https://github.com/Jake-Robins-Studios/provenencia/pull/810)), S15-D14 (board agreed 2026-11-13)
 **Blocks:** S15-35, S15-10, S15-11
 **Branch:** `s15-34-artifact-edit-sheet`
 **Version bump:** minor, 0.11.1 → **0.12.0** (or the next minor after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a backward-compatible feature on a screen (an Artifact is edited in a sheet with its copy details; every board adds a field inline); no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))

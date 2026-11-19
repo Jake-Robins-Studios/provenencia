@@ -1,8 +1,8 @@
 package sourcecredibilitygrades
 
 import (
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // DefaultKey is the provenencia grade a Source with no assessment reads as:

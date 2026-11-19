@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // The shared reconciliation pipeline (conclusion-reconciliation.md §5). Every

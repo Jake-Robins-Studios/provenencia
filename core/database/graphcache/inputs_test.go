@@ -5,11 +5,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/dbtest"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
-	"github.com/mendahu/provenencia/core/hops"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache/graphcachetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func keyOf(id []byte, bridge, endpoint string) graphcache.InputKey {

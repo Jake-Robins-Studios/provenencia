@@ -1,11 +1,11 @@
 # S16-30 — Provenance records compose from cached records
 
-**Status:** Landed in [#812](https://github.com/mendahu/provenencia/pull/812) (2026-11-13)
+**Status:** Landed in [#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812) (2026-11-13)
 **Spike / slice:** Spike 16 · Slice 2b — Entity records
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the provenance sheet, the Gallery captions and the life rows show the same records; only where the engine reads them from moves)
 **Board:** —
-**Depends on:** S16-11 (landed [#793](https://github.com/mendahu/provenencia/pull/793), outcome rows on the node), S16-12 (landed [#800](https://github.com/mendahu/provenencia/pull/800), Source records), S16-13 (landed [#809](https://github.com/mendahu/provenencia/pull/809), per-graph records)
+**Depends on:** S16-11 (landed [#793](https://github.com/Jake-Robins-Studios/provenencia/pull/793), outcome rows on the node), S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800), Source records), S16-13 (landed [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809), per-graph records)
 **Blocks:** S16-24 (the detail read reports its inputs), S15-21 (the provenance sheet's citations), S15-28 (the records read by (owner, Property) pairs)
 **Branch:** `s16-30-provenance-from-records`
 **Version bump:** none — no change a researcher can see; the wire is unchanged ([`docs/versioning.md`](../../../versioning.md))
@@ -122,7 +122,7 @@ A Conclusion page's records (the Vitals provenance sheet, each Gallery picture's
 | Vocabulary | `core/database/graphcache/vocab.go` `Vocabulary.TypeKeysByID` (provenencia types only), `TermsByID` (every term) | Cached; drops on `ListPropertyVocabulary` |
 | Tests | `core/database/conclusiondetails/conclusiondetails_test.go` `TestForEntity`, `TestForEntityCitationParts`, `TestForEntityEvidence`, `TestForEntityQueryCountIsConstant` (asserts equal graph-query counts and that `sqlRecords` reads no Source tables), `TestForEntityAfterSourceEdit`, `TestFieldsOf`; `placerecords_test.go` `TestLinkRecordReadsAsItsPlacesToponym`, `TestLinkRecordReadsKeepQueriesConstant` (`CountFieldsOfQueries`), `TestForEntityDropsSubjectValuedFields`, `TestToponymLoadUsesSubjectIndex` (`ToponymPlan`); `core/database/conclusionsummaries/placechains_test.go` `TestPersonDerivedRows`; `api/ffi/handlers/conclusion_detail_test.go` `TestGetConclusionDetailWarmReadsNoReconcilerOrGallerySQL`, `TestGetConclusionDetailCarriesDerivedRows`; `core/database/graphfill/records_test.go` `TestGraphRecordsFill`; `core/database/graphfill/records_bench_test.go` `BenchmarkGraphRecords` (budgets 2 s, 35 MB); `core/database/persondetail/claims_budget_test.go` `TestClaimsBudgets`, `recordlinks_perf_test.go` `households` | Green at the planning base |
 
-**Precedent.** S16-13 ([#809](https://github.com/mendahu/provenencia/pull/809), `ab521b8`) composed the claims read from the same three pieces: `core/database/persondetail/claims.go` `claims` takes graph ids from the node's members, one `graphfill.RecordsOf` call, `records[graph].Subject(m.SubjectID)`, Source words from `sources.RecordsOf`. Copy that shape (members → graph ids → one fill → lookups). S16-12 ([#800](https://github.com/mendahu/provenencia/pull/800), `048751f`) moved the shells' Source words to `RecordIndex.Artifact`; keep its missing-record error. `TestClaimsBudgets` is the budget test to copy.
+**Precedent.** S16-13 ([#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809), `ab521b8`) composed the claims read from the same three pieces: `core/database/persondetail/claims.go` `claims` takes graph ids from the node's members, one `graphfill.RecordsOf` call, `records[graph].Subject(m.SubjectID)`, Source words from `sources.RecordsOf`. Copy that shape (members → graph ids → one fill → lookups). S16-12 ([#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800), `048751f`) moved the shells' Source words to `RecordIndex.Artifact`; keep its missing-record error. `TestClaimsBudgets` is the budget test to copy.
 
 ## 5. Decisions
 

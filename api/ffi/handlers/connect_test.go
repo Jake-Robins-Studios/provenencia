@@ -6,12 +6,12 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/connect"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/identityclaims"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/connect"
-	"github.com/mendahu/provenencia/core/database/identityclaims"
-	"github.com/mendahu/provenencia/core/ingest"
 	"google.golang.org/protobuf/proto"
 )
 

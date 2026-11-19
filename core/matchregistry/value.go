@@ -1,8 +1,8 @@
 package matchregistry
 
 import (
-	"github.com/mendahu/provenencia/core/namevalue"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // defaultValue is the value section. Each number says where it came from.

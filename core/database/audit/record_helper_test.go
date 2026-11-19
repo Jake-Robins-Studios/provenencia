@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 )
 
 // recordResolved is what writes.Run does: resolve the change list once, then

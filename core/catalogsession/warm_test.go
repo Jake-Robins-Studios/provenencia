@@ -4,16 +4,16 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/catalogsession"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/databasetest"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/graphcache/graphcachetest"
-	"github.com/mendahu/provenencia/core/database/namealiases"
-	"github.com/mendahu/provenencia/core/database/nameformats"
-	"github.com/mendahu/provenencia/core/database/promotealign"
-	"github.com/mendahu/provenencia/core/database/valuerules"
-	"github.com/mendahu/provenencia/core/onboarding"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache/graphcachetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namealiases"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promotealign"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/valuerules"
+	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
 )
 
 // A project opened through Do has its default name format warm on the graph,

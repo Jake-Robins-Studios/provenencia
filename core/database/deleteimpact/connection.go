@@ -3,9 +3,9 @@ package deleteimpact
 import (
 	"database/sql"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 
-	"github.com/mendahu/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
 )
 
 const sqlSubjectObservations = `SELECT o.id, o.ref, o.value_date_id, o.value_name_id, st.key, p.key, p.origin

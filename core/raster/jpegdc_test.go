@@ -10,7 +10,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/raster/rastertest"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster/rastertest"
 )
 
 // segment is one marker segment found by jpegSegments.

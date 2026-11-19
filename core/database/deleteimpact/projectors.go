@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/vocabkey"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 )
 
 const listedSnippetMaxRunes = 80

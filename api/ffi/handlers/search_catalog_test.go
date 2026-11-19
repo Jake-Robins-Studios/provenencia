@@ -3,9 +3,9 @@ package handlers
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/search"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/search"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 	"google.golang.org/protobuf/proto"
 )
 

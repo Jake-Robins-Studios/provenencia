@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 )
 
 // TestPragmaHonesty keeps the hand-written catalog model in step with a

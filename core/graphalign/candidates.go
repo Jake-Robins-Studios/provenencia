@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Candidates are the shortlisted handles a Subject is compared with:

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/project"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/project"
 )
 
 const (

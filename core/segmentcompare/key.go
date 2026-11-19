@@ -1,8 +1,8 @@
 package segmentcompare
 
 import (
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Link is a bridge as recorded, read from the end whose endpoint Property is

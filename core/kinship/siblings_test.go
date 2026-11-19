@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/kinship/kinshiptest"
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/segmentcompare/segmentcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship/kinshiptest"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare/segmentcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // sib is a sibling link as a test reads it: ends and pivot as person numbers

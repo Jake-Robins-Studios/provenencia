@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 )
 
 type diag struct {

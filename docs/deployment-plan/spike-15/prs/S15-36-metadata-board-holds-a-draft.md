@@ -1,11 +1,11 @@
 # S15-36 — A metadata board can hold a draft
 
-**Status:** Landed in [#810](https://github.com/mendahu/provenencia/pull/810) (2026-11-13)
+**Status:** Landed in [#810](https://github.com/Jake-Robins-Studios/provenencia/pull/810) (2026-11-13)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the draft host, the add row's state and the refusal mapping have no view until S15-34; the Source page's board draws and behaves as today)
 **Board:** —
-**Depends on:** S15-26 (landed [#798](https://github.com/mendahu/provenencia/pull/798)), S15-33 (landed [#806](https://github.com/mendahu/provenencia/pull/806))
+**Depends on:** S15-26 (landed [#798](https://github.com/Jake-Robins-Studios/provenencia/pull/798)), S15-33 (landed [#806](https://github.com/Jake-Robins-Studios/provenencia/pull/806))
 **Blocks:** S15-34, S15-10, S15-11
 **Branch:** `s15-36-metadata-board-holds-a-draft`
 **Version bump:** none — a preparatory change with no change a researcher can see, no wire and no catalog change: the app sends no draft until S15-34 ([`docs/versioning.md`](../../../versioning.md))
@@ -130,7 +130,7 @@ The metadata board can work on rows that nothing has saved yet, so the Artifact 
 | Fixtures | `macos/ProvenenciaTests/CatalogFixtures.swift` `catalogArtifact`, `catalogMetadataField`, `catalogMetadataEntry` | Shared builders (S15-09) |
 | Docs | `.agents/skills/add-workspace-place/SKILL.md` § 6 "Metadata values"; map S15-36 **Ships** | The skill says every board's host applies `.wroteMetadataBoard`; the map says the draft host "trims values, empty `openHref`" and that its starting rows come "from `listTypeSuggestions`" |
 
-**Precedent.** S15-26 ([#798](https://github.com/mendahu/provenencia/pull/798), commit `cef790e`) added `MetadataBoardHost` and its first host, and the S15-26 plan's **Next adds** wrote this host's rules: copy that list. `ingestArtifactFile` answers a named tuple (`artifact:`, `file:`, `reused:`, `effects:`): copy that shape for the Artifact writes. S15-08's `graphIDs: [String]?` on `createArtifact` is the precedent for an optional request part that every caller states. `GoStore.mapObservationDraft` / `mapDepictionInput` are the shape for a Swift-to-proto map. `FakeStore.createArtifactGraphIDs` is the shape for recording what a write received. `CoreInvokeError.code` / `engineCode` are the shape for `params`.
+**Precedent.** S15-26 ([#798](https://github.com/Jake-Robins-Studios/provenencia/pull/798), commit `cef790e`) added `MetadataBoardHost` and its first host, and the S15-26 plan's **Next adds** wrote this host's rules: copy that list. `ingestArtifactFile` answers a named tuple (`artifact:`, `file:`, `reused:`, `effects:`): copy that shape for the Artifact writes. S15-08's `graphIDs: [String]?` on `createArtifact` is the precedent for an optional request part that every caller states. `GoStore.mapObservationDraft` / `mapDepictionInput` are the shape for a Swift-to-proto map. `FakeStore.createArtifactGraphIDs` is the shape for recording what a write received. `CoreInvokeError.code` / `engineCode` are the shape for `params`.
 
 ## 5. Decisions
 

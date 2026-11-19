@@ -7,7 +7,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 )
 
 func ids(n int) [][]byte {

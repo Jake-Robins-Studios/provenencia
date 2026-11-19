@@ -1,6 +1,6 @@
 package matchregistry
 
-import "github.com/mendahu/provenencia/core/kinship"
+import "github.com/Jake-Robins-Studios/provenencia/core/kinship"
 
 // defaultKinship is the kinship patterns' shipped section.
 func defaultKinship() kinship.Rules {

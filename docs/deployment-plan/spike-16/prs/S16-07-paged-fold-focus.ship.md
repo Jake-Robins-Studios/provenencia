@@ -1,6 +1,6 @@
 # Ship log — S16-07 One paged fold that moves focus
 
-**Plan:** [`S16-07-paged-fold-focus.md`](S16-07-paged-fold-focus.md) · **Branch:** `s16-07-paged-fold-focus` · **PR:** [#761](https://github.com/mendahu/provenencia/pull/761)
+**Plan:** [`S16-07-paged-fold-focus.md`](S16-07-paged-fold-focus.md) · **Branch:** `s16-07-paged-fold-focus` · **PR:** [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761)
 **State:** ready
 
 ## Round 0 — implement

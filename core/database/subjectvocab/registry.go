@@ -1,8 +1,8 @@
 package subjectvocab
 
 import (
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Declarative provenencia Interpretation subject vocabulary (create-time starter).

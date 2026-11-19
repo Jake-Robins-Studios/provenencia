@@ -3,11 +3,11 @@ package autoreconciler
 import (
 	"database/sql"
 
-	"github.com/mendahu/provenencia/core/autoreconcile"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
-	"github.com/mendahu/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
 )
 
 func init() {

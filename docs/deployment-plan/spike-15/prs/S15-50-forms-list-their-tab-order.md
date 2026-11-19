@@ -1,6 +1,6 @@
 # S15-50 — Forms list their tab order
 
-**Status:** Landed in [#862](https://github.com/mendahu/provenencia/pull/862) (2026-11-16)
+**Status:** Landed in [#862](https://github.com/Jake-Robins-Studios/provenencia/pull/862) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 3 — Printed page (preparatory)
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every form looks and tabs the same before and after)

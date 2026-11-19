@@ -3,13 +3,13 @@ package conclusionsummaries_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/observations"
-	"github.com/mendahu/provenencia/core/database/promote"
-	"github.com/mendahu/provenencia/core/database/promote/promotetest"
-	"github.com/mendahu/provenencia/core/database/propertyterms"
-	"github.com/mendahu/provenencia/core/database/subjects"
-	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/promote/promotetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 )
 
 // promotedBirth promotes a person and their birth event, files the
