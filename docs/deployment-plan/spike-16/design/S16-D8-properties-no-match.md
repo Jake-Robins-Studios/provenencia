@@ -150,9 +150,9 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Empty state | Component | Ship | `macos/App/DesignSystem/Components/EmptyState/PVEmptyState.swift` `PVEmptyState` (`icon:verbatimTitle:message:compact:action:`) | Both states, compact. The title carries the query or the type's label, so it is a verbatim title |
+| Empty state | Component | Extend | `macos/App/DesignSystem/Components/EmptyState/PVEmptyState.swift` `PVEmptyState` (`icon:verbatimTitle:…`; S16-48 adds the missing `glyph:verbatimTitle:…` init, no visual change) | Both states, compact. The title carries the query or the type's label, so it is a verbatim title |
 | Clear search | Component | Ship | `PVButton`, `.secondary` | The no-match state's only action, as Clear filters on the Sources list. Not an IconButton, not a link |
-| Icons | Component | Ship | `PVSymbol.searchEmpty`, `PVSymbol.listTree` | Search-empty for no match; the Properties section's own icon for an empty type. No type mark: the strip card above already shows it |
+| Icons | Component | Ship | `PVSymbol.searchEmpty`; `WorkspaceSection.properties.glyph` (`list.bullet.indent`) | Search-empty for no match; the Properties section's own glyph for an empty type, read from the section as the Metadata and Source types lists do. No type mark: the strip card above already shows it |
 | Property table body | Snowflake | Extend | `macos/App/Features/Properties/PropertiesView.swift` `PropertiesContent.propertyTable` | Its hand-built no-match text goes; it shows the table, PN-1 or PN-3 |
 | Table card and toolbar | Snowflake | Ship | `PropertiesContent.listCard`, `listToolbar` (`PVCard`, `PVInput`, `PVComboBox`) | Unchanged; the toolbar stays above both states |
 | Sources no-match state | Precedent | Ship | `macos/App/Features/Sources/SourcesListView.swift` `listBody` | The shape to copy: compact EmptyState, one secondary button, top-aligned under the toolbar |
