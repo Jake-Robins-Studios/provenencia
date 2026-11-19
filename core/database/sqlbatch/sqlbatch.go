@@ -6,7 +6,8 @@ package sqlbatch
 
 import (
 	"database/sql"
-	"strings"
+
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 )
 
 // Size bounds one IN list. A batch stays far under SQLite's bind limit, with
@@ -26,29 +27,24 @@ func Each[T any](ids []T, fn func(batch []T) error) error {
 	return nil
 }
 
-// Querier runs a query: *sql.DB, *sql.Tx, or a wrapper around either.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}
-
 // Query runs head + placeholders + tail once per batch of ids, binding args
 // first and the batch after them, and calls scan for each row. head ends
 // inside the IN list ("… IN (") and tail closes it (")", or ") ORDER BY …").
 // Rows arrive batch by batch, so a caller that needs one order across
 // batches sorts afterwards.
-func Query[T any](q Querier, head, tail string, args []any, ids []T, scan func(rows *sql.Rows) error) error {
+func Query[T any](q dbsql.Querier, head, tail string, args []any, ids []T, scan func(rows *sql.Rows) error) error {
 	return Each(ids, func(batch []T) error {
 		bound := make([]any, 0, len(args)+len(batch))
 		bound = append(bound, args...)
 		for _, id := range batch {
 			bound = append(bound, id)
 		}
-		return Scan(q, head+strings.Repeat("?,", len(batch)-1)+"?"+tail, bound, scan)
+		return Scan(q, head+dbsql.SQLInPlaceholders(len(batch))+tail, bound, scan)
 	})
 }
 
 // Scan runs one query and calls scan for each row.
-func Scan(q Querier, query string, args []any, scan func(rows *sql.Rows) error) error {
+func Scan(q dbsql.Querier, query string, args []any, scan func(rows *sql.Rows) error) error {
 	rows, err := q.Query(query, args...)
 	if err != nil {
 		return err

@@ -561,6 +561,8 @@ func associationSQL(typeKey string, ends []endpoint, termKey string, termID []by
 // JOIN keeps SQLite starting at s through cond's selective seek; left to
 // order the join, it starts at the type index and reads every bridge Subject
 // in the catalog (see graphcache/load.go linkLoadSQL).
+//
+// The IN list is bounded: nKeys is the registered bridge type keys.
 func bridgeHeadsSQL(cond string, nKeys int) string {
 	return `SELECT s.id, st.key, s.subject_type_id, ic.id, ic.entity_id
 		FROM subjects s

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
@@ -198,6 +199,8 @@ func (g *Graph) entityRows(ids [][]byte) (map[string]entityRow, error) {
 // of stored rows into Value; the reconciler's upkeep compares it to the rows it
 // is about to write. An image is kept only when its File is a PNG
 // (depictionvalue.ReadableImage), so every node reader gets a readable one.
+//
+// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
 func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error) {
 	out := map[string]map[string][]Value{}
 	q := `SELECT r.entity_id, r.property_id, r.rank, r.reason,
@@ -206,9 +209,9 @@ func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error
 		FROM ` + g.valueTable + ` r
 		LEFT JOIN property_terms t ON t.id = r.value_term_id
 		LEFT JOIN ` + g.fileTable + ` f ON f.id = r.value_image_file_id
-		WHERE r.entity_id IN (` + placeholders(len(ids)) + `)
+		WHERE r.entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 		ORDER BY r.entity_id, r.property_id, r.rank`
-	rows, err := g.query(q, blobArgs(ids)...)
+	rows, err := g.query(q, dbsql.BlobArgs(ids)...)
 	if err != nil {
 		return nil, err
 	}
@@ -250,13 +253,14 @@ func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error
 	return out, rows.Err()
 }
 
+// loadMembers reads the accepted members of ids. The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
 func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 	out := map[string][]Member{}
 	q := `SELECT c.entity_id, c.subject_id, s.source_id, s.graph_id, c.status FROM ` + g.claimTable + ` c
 		JOIN subjects s ON s.id = c.subject_id
-		WHERE c.status IN ('accepted', 'provisional') AND c.entity_id IN (` + placeholders(len(ids)) + `)
+		WHERE c.status IN ('accepted', 'provisional') AND c.entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 		ORDER BY c.id`
-	rows, err := g.query(q, blobArgs(ids)...)
+	rows, err := g.query(q, dbsql.BlobArgs(ids)...)
 	if err != nil {
 		return nil, err
 	}
@@ -280,15 +284,17 @@ func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 // loadOutcomes reads the outcome rows of ids: entity id, then property id to
 // the rows in ascending Observation id. A row whose Observation is gone keeps
 // a nil SubjectID. An id with no rows is absent.
+//
+// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
 func (g *Graph) loadOutcomes(ids [][]byte) (map[string]map[string][]Outcome, error) {
 	out := map[string]map[string][]Outcome{}
 	q := `SELECT ao.entity_id, ao.property_id, ao.observation_id, o.subject_id, ao.reason,
 			COALESCE(ao.value_rank, 0), ao.denied_by, COALESCE(ao.vote_support, 0), COALESCE(ao.vote_total, 0)
 		FROM ` + g.outcomeTable + ` ao
 		LEFT JOIN observations o ON o.id = ao.observation_id
-		WHERE ao.entity_id IN (` + placeholders(len(ids)) + `)
+		WHERE ao.entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 		ORDER BY ao.entity_id, ao.property_id, ao.observation_id`
-	rows, err := g.query(q, blobArgs(ids)...)
+	rows, err := g.query(q, dbsql.BlobArgs(ids)...)
 	if err != nil {
 		return nil, err
 	}
@@ -382,6 +388,8 @@ func LinkLoadSQL(ids [][]byte) (string, []any) {
 // registered bridges, each at its own origin. CROSS JOIN and INDEXED BY keep
 // SQLite on auto_reconciler_values_edge_idx (property_id, value_entity_id)
 // instead of starting at every unmerged entity.
+//
+// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
 func linkLoadSQL(valueTable, entityTable string, ids [][]byte, bridges []string) (string, []any) {
 	types, props := bridgePredicates(bridges)
 	q := `SELECT a.value_entity_id, a.entity_id, assoc.ref, ast.key, a.property_id, ap.key, bp.key,
@@ -396,11 +404,11 @@ func linkLoadSQL(valueTable, entityTable string, ids [][]byte, bridges []string)
 		CROSS JOIN ` + entityTable + ` n ON n.id = b.value_entity_id AND n.merged_into_id IS NULL
 		CROSS JOIN subject_types nt ON nt.id = n.subject_type_id
 		WHERE a.rank = 1 AND a.reason = 'kept' AND a.value_entity_id IS NOT NULL
-			AND a.value_entity_id IN (` + placeholders(len(ids)) + `)
+			AND a.value_entity_id IN (` + dbsql.SQLInPlaceholders(len(ids)) + `)
 			AND a.property_id IN (SELECT id FROM properties WHERE ` + pairIn("key", "origin", len(props)) + `)`
 	args := make([]any, 0, len(types)*2+len(ids)+len(props)*2)
 	args = append(args, pairArgs(types)...)
-	args = append(args, blobArgs(ids)...)
+	args = append(args, dbsql.BlobArgs(ids)...)
 	args = append(args, pairArgs(props)...)
 	return q, args
 }

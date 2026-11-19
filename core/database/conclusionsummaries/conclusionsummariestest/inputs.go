@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -17,12 +18,9 @@ import (
 // Kinds are the handle kinds that have summary rows.
 var Kinds = []string{vocabkey.Person, vocabkey.Event, vocabkey.Place}
 
-// Querier is the read surface the checks use.
-type Querier = graphcache.Querier
-
 // HandleIDs returns the ids of every unmerged canonical entity of a subject
 // type key, in id order.
-func HandleIDs(t testing.TB, q Querier, kind string) [][]byte {
+func HandleIDs(t testing.TB, q database.Querier, kind string) [][]byte {
 	t.Helper()
 	rows, err := q.Query(`SELECT e.id FROM canonical_entities e
 		JOIN subject_types st ON st.id = e.subject_type_id
@@ -63,7 +61,7 @@ type isolator struct {
 	seen []graphcache.InputKey
 }
 
-func newIsolator(t testing.TB, q Querier) *isolator {
+func newIsolator(t testing.TB, q database.Querier) *isolator {
 	iso := &isolator{t: t, g: graphcache.Over(q)}
 	iso.g.SetInputRecorderForTest(func(k graphcache.InputKey) {
 		if k.Bridge == "" && bytes.Equal(k.ID, iso.id) {
@@ -105,7 +103,7 @@ func (s Stats) Median() int {
 
 // Rows composes every id of each kind in one batch over a fresh graph and
 // returns the summaries, whose Inputs the checks read.
-func Rows(t testing.TB, q Querier, ids map[string][][]byte) conclusionsummaries.Summaries {
+func Rows(t testing.TB, q database.Querier, ids map[string][][]byte) conclusionsummaries.Summaries {
 	t.Helper()
 	var w conclusionsummaries.Want
 	for kind, list := range ids {
@@ -123,7 +121,7 @@ func Rows(t testing.TB, q Querier, ids map[string][][]byte) conclusionsummaries.
 // CheckMatchIsolated fails when the batch-composed Inputs of any id differ
 // from the keys that row reads composed alone. It returns the key counts per
 // kind.
-func CheckMatchIsolated(t testing.TB, q Querier, ids map[string][][]byte) map[string]Stats {
+func CheckMatchIsolated(t testing.TB, q database.Querier, ids map[string][][]byte) map[string]Stats {
 	t.Helper()
 	rows := Rows(t, q, ids)
 	iso := newIsolator(t, q)
@@ -149,7 +147,7 @@ func CheckMatchIsolated(t testing.TB, q Querier, ids map[string][][]byte) map[st
 
 // LargestBatch composes each kind's ids in calls of size rows and returns, per
 // kind, the largest number of keys one call's rows hold together.
-func LargestBatch(t testing.TB, q Querier, ids map[string][][]byte, size int) map[string]int {
+func LargestBatch(t testing.TB, q database.Querier, ids map[string][][]byte, size int) map[string]int {
 	t.Helper()
 	out := map[string]int{}
 	for _, kind := range Kinds {

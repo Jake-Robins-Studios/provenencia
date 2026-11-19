@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
 )
@@ -19,15 +20,10 @@ type Path struct {
 func (p Path) zero() bool { return p.run == nil }
 
 type walk struct {
-	q      querier
+	q      dbsql.Querier
 	ch     rowchange.Change
 	ghosts ghostMap
 	table  string
-}
-
-type querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
 }
 
 func self() Path {
@@ -462,7 +458,7 @@ func readRowsColumn(w *walk, table string, ids [][]byte, col string) ([][]byte, 
 	return out, nil
 }
 
-func queryIDs(q querier, query string, args ...any) ([][]byte, error) {
+func queryIDs(q dbsql.Querier, query string, args ...any) ([][]byte, error) {
 	rows, err := q.Query(query, args...)
 	if err != nil {
 		return nil, err

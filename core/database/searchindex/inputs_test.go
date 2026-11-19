@@ -27,7 +27,7 @@ func TestReprojectChangedLoadsWrittenInBatches(t *testing.T) {
 		t.Fatal(err)
 	}
 	queries := 0
-	restore := searchindex.SetNewGraphForTest(func(q graphcache.Querier) *graphcache.Graph {
+	restore := searchindex.SetNewGraphForTest(func(q database.Querier) *graphcache.Graph {
 		g := graphcache.Over(q)
 		g.SetQueryCounterForTest(func() { queries++ })
 		return g
@@ -56,7 +56,7 @@ func TestReprojectHandlesBuildsOneGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 	calls := 0
-	restore := searchindex.SetNewGraphForTest(func(q graphcache.Querier) *graphcache.Graph {
+	restore := searchindex.SetNewGraphForTest(func(q database.Querier) *graphcache.Graph {
 		calls++
 		return graphcache.Over(q)
 	})

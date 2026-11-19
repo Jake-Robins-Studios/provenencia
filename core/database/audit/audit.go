@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
@@ -81,8 +82,8 @@ func Record(tx *sql.Tx, rev Revision, set effects.Set) (int64, error) {
 		txID[:],
 		revision,
 		userID,
-		nullIfEmpty(rev.ActionType),
-		nullIfEmpty(rev.Description),
+		database.NullTrimmed(rev.ActionType),
+		database.NullTrimmed(rev.Description),
 		createdAt,
 	); err != nil {
 		return 0, err
@@ -137,12 +138,4 @@ func validateChange(ch rowchange.Change) error {
 		return ErrInvalid
 	}
 	return nil
-}
-
-func nullIfEmpty(s string) any {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil
-	}
-	return s
 }

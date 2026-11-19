@@ -37,6 +37,8 @@ type CopyTypeInput struct {
 // as stored. The suggestion join is not audited, so the one change returned is
 // the new type's. The caller records the changes; CopyType never calls
 // writes.Run.
+//
+// The suggestion copy's IN list is bounded: it is the fixed record levels.
 func CopyType(tx *database.Tx, in CopyTypeInput) (sourcetypes.Type, []rowchange.Change, error) {
 	if tx == nil {
 		return sourcetypes.Type{}, nil, ErrInvalid

@@ -144,7 +144,7 @@ func newRecordIndex(recs map[string]Record) *RecordIndex {
 
 // loadRecords reads the Records of the Sources with these ids, or of every
 // Source when ids is nil. A Source with no row is absent from the result.
-func loadRecords(q graphcache.Querier, ids [][]byte) (map[string]Record, error) {
+func loadRecords(q database.Querier, ids [][]byte) (map[string]Record, error) {
 	out := map[string]Record{}
 	scanSource := func(rows *sql.Rows) error {
 		var r Record

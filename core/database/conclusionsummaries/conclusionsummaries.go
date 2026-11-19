@@ -12,19 +12,11 @@
 package conclusionsummaries
 
 import (
-	"database/sql"
-
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 )
-
-// Querier is *sql.Tx or *sql.DB.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
 
 // PersonSummary is one Person as a row.
 type PersonSummary struct {

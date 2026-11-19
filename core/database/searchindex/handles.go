@@ -46,7 +46,7 @@ var newGraph = graphcache.Over
 // removed. One graph serves every batch, so a place many events share loads
 // once. A reprojection writes documents and inputs, not the value rows the
 // graph caches, so the graph stays right for the whole call.
-func ReprojectHandles(q Querier, entityIDs [][]byte) error {
+func ReprojectHandles(q database.Execer, entityIDs [][]byte) error {
 	ids := database.UniqueBlobIDs(entityIDs)
 	if len(ids) == 0 {
 		return nil
@@ -56,7 +56,7 @@ func ReprojectHandles(q Querier, entityIDs [][]byte) error {
 
 // reprojectOn is ReprojectHandles on a graph the caller built, so a write that
 // has already read the graph composes its rows on it.
-func reprojectOn(q Querier, g *graphcache.Graph, ids [][]byte) error {
+func reprojectOn(q database.Execer, g *graphcache.Graph, ids [][]byte) error {
 	ids = database.UniqueBlobIDs(ids)
 	return sqlbatch.Each(ids, func(batch [][]byte) error {
 		return reprojectHandleBatch(q, g, batch)
@@ -64,7 +64,7 @@ func reprojectOn(q Querier, g *graphcache.Graph, ids [][]byte) error {
 }
 
 // reprojectAllHandles reprojects every handle (RebuildAll).
-func reprojectAllHandles(q Querier) error {
+func reprojectAllHandles(q database.Execer) error {
 	ids, err := listIDs(q, sqlAllHandles)
 	if err != nil {
 		return err
@@ -80,7 +80,8 @@ type handleHead struct {
 // handleText values for one handle: Property key → values in rank order.
 type handleValues map[string][]string
 
-func reprojectHandleBatch(q Querier, g *graphcache.Graph, ids [][]byte) error {
+// reprojectHandleBatch writes one batch of handles. The IN list is bounded: ids is one sqlbatch.Each chunk from reprojectOn.
+func reprojectHandleBatch(q database.Execer, g *graphcache.Graph, ids [][]byte) error {
 	in := database.SQLInPlaceholders(len(ids)) + `)`
 	args := database.BlobArgs(ids)
 
@@ -147,7 +148,7 @@ func reprojectHandleBatch(q Querier, g *graphcache.Graph, ids [][]byte) error {
 	return writeInputs(q, g, ids, heads, summaries)
 }
 
-func loadHandleValues(q Querier, in string, args []any) (map[string]handleValues, error) {
+func loadHandleValues(q database.Querier, in string, args []any) (map[string]handleValues, error) {
 	rows, err := q.Query(sqlHandleValues+in+` ORDER BY r.entity_id, p.key, r.rank`, args...)
 	if err != nil {
 		return nil, err

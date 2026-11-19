@@ -282,10 +282,7 @@ func Lookup(c *database.Catalog, id []byte) (namevalue.Value, error) {
 }
 
 // LookupTx returns the name_values row and ordered parts on an existing connection or transaction.
-func LookupTx(q interface {
-	QueryRow(query string, args ...any) *sql.Row
-	Query(query string, args ...any) (*sql.Rows, error)
-}, id []byte) (namevalue.Value, error) {
+func LookupTx(q database.Querier, id []byte) (namevalue.Value, error) {
 	if q == nil || len(id) != 16 {
 		return namevalue.Value{}, namevalue.ErrInvalid
 	}
@@ -330,9 +327,7 @@ func LookupMany(c *database.Catalog, ids [][]byte) (map[string]namevalue.Value, 
 
 // LookupManyTx is LookupMany on an existing connection or transaction: two
 // queries per sqlbatch.Size ids.
-func LookupManyTx(db interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}, ids [][]byte) (map[string]namevalue.Value, error) {
+func LookupManyTx(db database.Querier, ids [][]byte) (map[string]namevalue.Value, error) {
 	ids = database.UniqueBlobIDs(ids)
 	out := make(map[string]namevalue.Value, len(ids))
 	if len(ids) == 0 {

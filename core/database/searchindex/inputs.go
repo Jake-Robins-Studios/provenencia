@@ -36,7 +36,9 @@ const (
 // writeInputs replaces the inputs of every id in the batch as a dependent: the
 // composed keys of a person, event or place that is not merged, and the ends
 // of an association handle. A gone or merged id keeps none.
-func writeInputs(q Querier, g *graphcache.Graph, ids [][]byte, heads map[string]handleHead, s conclusionsummaries.Summaries) error {
+//
+// The IN list is bounded: ids is one sqlbatch.Each chunk from reprojectOn.
+func writeInputs(q database.Execer, g *graphcache.Graph, ids [][]byte, heads map[string]handleHead, s conclusionsummaries.Summaries) error {
 	if _, err := q.Exec(sqlDeleteInputs+database.SQLInPlaceholders(len(ids))+`)`, database.BlobArgs(ids)...); err != nil {
 		return err
 	}
@@ -107,7 +109,7 @@ type inputRow struct {
 // reprojects written and those rows on one graph and returns the rows it found
 // plus the ends of the changed links, which are the handles whose pages the
 // app reloads. An end that no row reads through is reported, not reprojected.
-func ReprojectChanged(q Querier, written, moved [][]byte) ([][]byte, error) {
+func ReprojectChanged(q database.Execer, written, moved [][]byte) ([][]byte, error) {
 	written = database.UniqueBlobIDs(written)
 	if len(written) == 0 {
 		return nil, nil
@@ -171,7 +173,7 @@ func ReprojectChanged(q Querier, written, moved [][]byte) ([][]byte, error) {
 }
 
 // dependentsOf is the rows whose inputs hold any of the exact keys.
-func dependentsOf(q Querier, keys []graphcache.InputKey) ([][]byte, error) {
+func dependentsOf(q database.Querier, keys []graphcache.InputKey) ([][]byte, error) {
 	unique := graphcache.UniqueInputKeys(keys)
 	var out [][]byte
 	for start := 0; start < len(unique); start += keysPerLookup {
@@ -191,7 +193,7 @@ func dependentsOf(q Querier, keys []graphcache.InputKey) ([][]byte, error) {
 }
 
 // dependentsOfHandles is the rows whose inputs hold any key of the handles.
-func dependentsOfHandles(q Querier, ids [][]byte) ([][]byte, error) {
+func dependentsOfHandles(q database.Querier, ids [][]byte) ([][]byte, error) {
 	var out [][]byte
 	err := sqlbatch.Query(q, sqlDependentsOfHandles, `)`, nil, database.UniqueBlobIDs(ids), func(rows *sql.Rows) error {
 		var id []byte
@@ -209,7 +211,7 @@ func dependentsOfHandles(q Querier, ids [][]byte) ([][]byte, error) {
 
 // oldEnds is the ends the index recorded for each association in ids, by raw
 // id. A row that is not an association has none.
-func oldEnds(q Querier, ids [][]byte) (map[string][]graphcache.InputKey, error) {
+func oldEnds(q database.Querier, ids [][]byte) (map[string][]graphcache.InputKey, error) {
 	out := map[string][]graphcache.InputKey{}
 	err := sqlbatch.Query(q, sqlOldEnds, `)`, nil, database.UniqueBlobIDs(ids), func(rows *sql.Rows) error {
 		var dep, input []byte
