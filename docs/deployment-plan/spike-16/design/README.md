@@ -8,7 +8,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
-| S16-D8 | Properties: a search's no-match state as the kit's empty state, with Clear search | — (written just before S16-48) | S16-48 |
+| [S16-D8](S16-D8-properties-no-match.md) | Properties: a search's no-match state as the kit's empty state, with Clear search; a selected type with no Properties | — (written 2026-11-19, not drawn yet) | S16-48 |
 | S16-D9 | Omnibar results on the kit popup list: its own window, the combo box's card, the loading, empty and error lines | — (written just before S16-52) | S16-52 |
 | S16-D10 | Toast stack: several toasts stacked top-trailing in the workspace window, a refreshed card, a burst clipped at the bottom, the composer's toast moved into it | — (written just before S16-58) | S16-58 |
 
