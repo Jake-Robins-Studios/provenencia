@@ -124,7 +124,7 @@ struct PersonTimelineContent: Equatable {
             case .event(let id): id
             case .marker(let kind, let rowID): rowID ?? (kind == .birth ? "birth" : "death")
             case .undatedHeader: "undated"
-            case .more(let fold, _): fold == .dated ? "more.dated" : "more.undated"
+            case .more(let fold, _): PersonTimelineContent.moreID(fold)
             }
         }
 
@@ -173,6 +173,16 @@ struct PersonTimelineContent: Equatable {
     /// the opened card is hidden.
     static func participantsMoreID(eventId: String) -> String { "more.\(eventId)" }
 
+    /// The id of a fold's "Show more" row: the stop and scroll target Back restores when the
+    /// opened row is hidden.
+    static func moreID(_ fold: Fold) -> String {
+        switch fold {
+        case .dated: "more.dated"
+        case .undated: "more.undated"
+        case .participants(let eventId): participantsMoreID(eventId: eventId)
+        }
+    }
+
     /// Where Back puts the keyboard for `anchor`: the row's title or the card it opened, else the
     /// Show more of the fold that hides it. Nil for a row that is gone.
     func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<String>? {
@@ -185,8 +195,14 @@ struct PersonTimelineContent: Equatable {
             guard row.participantsHidden > 0 else { return nil }
             return ConclusionAnchorTarget(stop: Self.participantsMoreID(eventId: row.id), scrollID: row.id)
         }
-        if hiddenUndatedIDs.contains(eventID) { return ConclusionAnchorTarget(stop: "more.undated", scrollID: "more.undated") }
-        if datedFoldIDs.contains(eventID) { return ConclusionAnchorTarget(stop: "more.dated", scrollID: "more.dated") }
+        if hiddenUndatedIDs.contains(eventID) {
+            let more = Self.moreID(.undated)
+            return ConclusionAnchorTarget(stop: more, scrollID: more)
+        }
+        if datedFoldIDs.contains(eventID) {
+            let more = Self.moreID(.dated)
+            return ConclusionAnchorTarget(stop: more, scrollID: more)
+        }
         return nil
     }
 

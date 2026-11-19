@@ -230,8 +230,8 @@ struct PersonTimelineContentTests {
         let allRows = content(Data.lise, of: [.dated]).items.compactMap(\.eventRow).map(\.id)
         let hidden = try #require(allRows.first { !shownRows.contains($0) })
         #expect(target(lise, shownRows[29]) == at(shownRows[29], shownRows[29]))
-        #expect(target(lise, hidden) == at("more.dated", "more.dated"))
-        #expect(target(lise, "no-such-" + "-" + "x", row: hidden) == at("more.dated", "more.dated"))
+        #expect(target(lise, hidden) == at(PersonTimelineContent.moreID(.dated), PersonTimelineContent.moreID(.dated)))
+        #expect(target(lise, "no-such-" + "-" + "x", row: hidden) == at(PersonTimelineContent.moreID(.dated), PersonTimelineContent.moreID(.dated)))
         #expect(target(lise, "unknown") == nil)
 
         // A recorded birth's row is its event id like any row.
@@ -243,7 +243,7 @@ struct PersonTimelineContentTests {
         timeline.events = (0..<52).map { Data.event("u\($0)", type: "residence") }
         let undated = content(timeline)
         #expect(target(undated, "u49") == at("u49", "u49"))
-        #expect(target(undated, "u51") == at("more.undated", "more.undated"))
+        #expect(target(undated, "u51") == at(PersonTimelineContent.moreID(.undated), PersonTimelineContent.moreID(.undated)))
 
         // Cards: 41 on one event, five shown at Regular and twelve at Wide.
         let regular = content(Data.largeEvent)
