@@ -200,7 +200,7 @@ func (g *Graph) entityRows(ids [][]byte) (map[string]entityRow, error) {
 // is about to write. An image is kept only when its File is a PNG
 // (depictionvalue.ReadableImage), so every node reader gets a readable one.
 //
-// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
+// The IN list is bounded in production: one `sqlbatch.Each` chunk (readNodes' chunk, or autoreconciler.recomputeBatch's one `recompute` chunk); test-only `Verify` passes every loaded node.
 func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error) {
 	out := map[string]map[string][]Value{}
 	q := `SELECT r.entity_id, r.property_id, r.rank, r.reason,
@@ -253,7 +253,9 @@ func (g *Graph) StoredValues(ids [][]byte) (map[string]map[string][]Value, error
 	return out, rows.Err()
 }
 
-// loadMembers reads the accepted members of ids. The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
+// loadMembers reads the accepted members of ids.
+//
+// The IN list is bounded in production: one `sqlbatch.Each` chunk (readNodes' chunk); test-only `Verify` passes every loaded node.
 func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 	out := map[string][]Member{}
 	q := `SELECT c.entity_id, c.subject_id, s.source_id, s.graph_id, c.status FROM ` + g.claimTable + ` c
@@ -285,7 +287,7 @@ func (g *Graph) loadMembers(ids [][]byte) (map[string][]Member, error) {
 // the rows in ascending Observation id. A row whose Observation is gone keeps
 // a nil SubjectID. An id with no rows is absent.
 //
-// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
+// The IN list is bounded in production: one `sqlbatch.Each` chunk (readNodes' chunk); test-only `Verify` passes every loaded node.
 func (g *Graph) loadOutcomes(ids [][]byte) (map[string]map[string][]Outcome, error) {
 	out := map[string]map[string][]Outcome{}
 	q := `SELECT ao.entity_id, ao.property_id, ao.observation_id, o.subject_id, ao.reason,
@@ -389,7 +391,7 @@ func LinkLoadSQL(ids [][]byte) (string, []any) {
 // SQLite on auto_reconciler_values_edge_idx (property_id, value_entity_id)
 // instead of starting at every unmerged entity.
 //
-// The IN list is bounded: ids is one sqlbatch.Each chunk from loadIDs, or every loaded node in test-only Verify.
+// The IN list is bounded in production: one `sqlbatch.Each` chunk (readNodes' chunk through loadLinks); test-only `Verify` passes every loaded node.
 func linkLoadSQL(valueTable, entityTable string, ids [][]byte, bridges []string) (string, []any) {
 	types, props := bridgePredicates(bridges)
 	q := `SELECT a.value_entity_id, a.entity_id, assoc.ref, ast.key, a.property_id, ap.key, bp.key,
