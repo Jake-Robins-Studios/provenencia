@@ -47,4 +47,4 @@ Resolved by orchestrator read of `d2c29f47b..88b020ff8`: MNT-1 **Resolved** (`ta
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: UX-2 · to user: UX-1 (answered: fix on this PR)
+Gate PASS · CI green (Go tests re-run once: `TestLargeSourceBudgets/after_a_handle_commit` in `core/database/promotealign`, untouched by this PR, missed its relative budget by 0.3 ms: 40.51 ms vs 40.24 ms) · open: none · follow-ups: UX-2 · to user: UX-1 (answered: fix on this PR)
