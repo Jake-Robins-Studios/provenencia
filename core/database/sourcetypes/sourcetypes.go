@@ -92,17 +92,7 @@ func rowFields(t Type) map[string]any {
 // origin are never compared.
 func updateChange(prev, next Type) *rowchange.Change {
 	old, now := rowFields(prev), rowFields(next)
-	fields := map[string]rowchange.FieldDiff{}
-	for _, m := range []map[string]any{old, now} {
-		for k := range m {
-			if k == "id" || k == "key" || k == "origin" {
-				continue
-			}
-			if old[k] != now[k] {
-				fields[k] = rowchange.FieldDiff{Old: old[k], New: now[k]}
-			}
-		}
-	}
+	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
 	if len(fields) == 0 {
 		return nil
 	}
@@ -110,6 +100,21 @@ func updateChange(prev, next Type) *rowchange.Change {
 		EntityType: "source_type",
 		EntityID:   append([]byte(nil), prev.ID...),
 		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// createChange is the create change of a new type row: every column, plus the
+// format columns that carry text.
+func createChange(t Type, formats Formats) rowchange.Change {
+	fields := rowchange.FullRow(rowFields(t))
+	for column, diff := range formatFieldDiffs(Formats{}, formats) {
+		fields[column] = diff
+	}
+	return rowchange.Change{
+		EntityType: "source_type",
+		EntityID:   append([]byte(nil), t.ID...),
+		Action:     rowchange.ActionCreate,
 		Fields:     fields,
 	}
 }
@@ -146,12 +151,7 @@ func UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, t.ID, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.IconKey, nil, nil, nil); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), t.ID...), []rowchange.Change{{
-			EntityType: "source_type",
-			EntityID:   append([]byte(nil), t.ID...),
-			Action:     rowchange.ActionCreate,
-			Fields:     rowchange.FullRow(rowFields(t)),
-		}}, nil
+		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t, Formats{})}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -280,20 +280,12 @@ func Create(tx *database.Tx, in CreateInput) (Type, []rowchange.Change, error) {
 		database.NullString(in.Formats.Full), database.NullString(in.Formats.Short), database.NullString(in.Formats.List)); err != nil {
 		return Type{}, nil, err
 	}
-	fields := rowchange.FullRow(rowFields(Type{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, Description: description, IconKey: iconKey}))
-	for column, diff := range formatFieldDiffs(Formats{}, in.Formats) {
-		fields[column] = diff
-	}
 	got, err := getByIDTx(tx.Tx, id)
 	if err != nil {
 		return Type{}, nil, err
 	}
-	return got, []rowchange.Change{{
-		EntityType: "source_type",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, nil
+	created := Type{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, Description: description, IconKey: iconKey}
+	return got, []rowchange.Change{createChange(created, in.Formats)}, nil
 }
 
 // Update patches label, description, and icon_key for a project type (user

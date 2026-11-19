@@ -250,12 +250,7 @@ func CreateChange(id []byte, v datevalue.Value) rowchange.Change {
 // that differ; nil when none does.
 func UpdateChange(prev, next datevalue.Value) *rowchange.Change {
 	old, now := RowMap(prev.ID, prev), RowMap(next.ID, next)
-	fields := map[string]rowchange.FieldDiff{}
-	for k, o := range old {
-		if k != "id" && o != now[k] {
-			fields[k] = rowchange.FieldDiff{Old: o, New: now[k]}
-		}
-	}
+	fields := rowchange.UpdatedRow(old, now, "id")
 	if len(fields) == 0 {
 		return nil
 	}

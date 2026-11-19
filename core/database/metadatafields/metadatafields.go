@@ -103,17 +103,7 @@ func rowFields(f Field) map[string]any {
 // origin are never compared.
 func updateChange(prev, next Field) *rowchange.Change {
 	old, now := rowFields(prev), rowFields(next)
-	fields := map[string]rowchange.FieldDiff{}
-	for _, m := range []map[string]any{old, now} {
-		for k := range m {
-			if k == "id" || k == "key" || k == "origin" {
-				continue
-			}
-			if old[k] != now[k] {
-				fields[k] = rowchange.FieldDiff{Old: old[k], New: now[k]}
-			}
-		}
-	}
+	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
 	if len(fields) == 0 {
 		return nil
 	}
@@ -122,6 +112,16 @@ func updateChange(prev, next Field) *rowchange.Change {
 		EntityID:   append([]byte(nil), prev.ID...),
 		Action:     rowchange.ActionUpdate,
 		Fields:     fields,
+	}
+}
+
+// createChange is the create change of a new field row: every column.
+func createChange(f Field) rowchange.Change {
+	return rowchange.Change{
+		EntityType: "metadata_field",
+		EntityID:   append([]byte(nil), f.ID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(rowFields(f)),
 	}
 }
 
@@ -154,12 +154,7 @@ func UpsertTx(tx *database.Tx, f Field) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, f.ID, f.Key, f.Origin, f.Label, f.DataType, database.NullString(f.Description), database.NullString(f.UnknownText)); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), f.ID...), []rowchange.Change{{
-			EntityType: "metadata_field",
-			EntityID:   append([]byte(nil), f.ID...),
-			Action:     rowchange.ActionCreate,
-			Fields:     rowchange.FullRow(rowFields(f)),
-		}}, nil
+		return append([]byte(nil), f.ID...), []rowchange.Change{createChange(f)}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -208,17 +203,12 @@ func Create(tx *database.Tx, label, dataType, description string) (Field, []rowc
 	if _, err := tx.Exec(sqlInsert, id, key, vocabkey.OriginUser, label, dataType, database.NullString(description), nil); err != nil {
 		return Field{}, nil, err
 	}
-	fields := rowchange.FullRow(rowFields(Field{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, DataType: dataType, Description: description}))
+	created := Field{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, DataType: dataType, Description: description}
 	got, err := getByID(tx.Tx, id)
 	if err != nil {
 		return Field{}, nil, err
 	}
-	return got, []rowchange.Change{{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, nil
+	return got, []rowchange.Change{createChange(created)}, nil
 }
 
 // Update patches label, description and unknown text for a project field (user
