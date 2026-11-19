@@ -13,6 +13,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/identity"
 	"github.com/Jake-Robins-Studios/provenencia/core/onboarding"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -191,7 +192,7 @@ func sourceWithPNG(t *testing.T) pngSource {
 		ProjectDir: dir, UserId: userID, SourceId: created.Source.Id, Label: "Page",
 	}, &art)
 	path := filepath.Join(t.TempDir(), "page.png")
-	writePNG(t, path)
+	dbtest.WritePNG(t, path, 8, 8)
 	var ingested engine.IngestArtifactFileResponse
 	mustRPC(t, IngestArtifactFile, &engine.IngestArtifactFileRequest{
 		ProjectDir: dir, UserId: userID, ArtifactId: art.Artifact.Id, Path: path,

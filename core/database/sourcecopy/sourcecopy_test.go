@@ -3,8 +3,6 @@ package sourcecopy
 import (
 	"bytes"
 	"errors"
-	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -40,18 +38,6 @@ import (
 )
 
 const originalDescription = "Medicine Hat News"
-
-func writeTinyPNG(t *testing.T, path string) {
-	t.Helper()
-	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
-}
 
 func runCopy(c *database.Catalog, userID []byte, in CopyInput) (sources.Source, error) {
 	src, _, err := writes.Run(c, writes.Op{Action: "copy_source", UserID: userID},
@@ -156,7 +142,7 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 	}
 
 	pngPath := filepath.Join(t.TempDir(), "page1.png")
-	writeTinyPNG(t, pngPath)
+	dbtest.WritePNG(t, pngPath, 8, 8)
 	otherPath := filepath.Join(t.TempDir(), "page2.bin")
 	if err := os.WriteFile(otherPath, []byte("page two bytes"), 0o644); err != nil {
 		t.Fatal(err)

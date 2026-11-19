@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-54 — Catalog tests write a test PNG through one helper
+
+**Landed 2026-11-19** in [#906](https://github.com/Jake-Robins-Studios/provenencia/pull/906). `dbtest.WritePNG(t, path, w, h)` writes a blank PNG of that size and fails the test on error. It replaces the two `writeTinyPNG` copies in the `sources` and `sourcecopy` tests, the six inline encoders in the `artifacts` tests, and, from the review, the FFI handler tests' `writePNG` (eleven callers), each keeping its size. The helpers that fill a color (`observationstest`, the handlers' `writeShadedPNG`) and the image packages' own helpers stay. Tests only, so no version bump.
+
 ## S16-49 — One read querier and one write querier for every catalog package
 
 **Landed 2026-11-19** in [#903](https://github.com/Jake-Robins-Studios/provenencia/pull/903). `core/database/dbsql`, a leaf that imports nothing from the catalog, defines `Querier`, `Execer` and `Scanner` and builds IN lists (`SQLInPlaceholders`, `BlobArgs`) and reads an id column (`QueryIDs`, replacing three local copies); `core/database` aliases the three, so `sqlbatch`, `graphcache` and `effects` share them without a cycle. Every package-local copy is gone: the named `Querier` types, `autoreconciler`'s `rowQuerier` and counting wrapper (its `LoadQueryCount` now counts through the graph's query counter), the inline interface parameters, and nineteen `Scan` interfaces. `searchindex` and `autoreconciler` read functions take `Querier`, not the write surface. `database.NullTrimmed` and `database.NullInt` replace the private `nullIfEmpty` and `nullInt`. `TestNoLocalSQLSurface` refuses a new copy; `TestBeginOnlyInDatabaseAndWrites` had skipped its own root and now parses the repo, and the guard tests that walk Go source share `core/internal/gosrc`. `add-catalog-query` forbids a local surface and makes the IN-list rule a condition, with each hand-built list's function naming its bound. No change a researcher can see, so no version bump.
