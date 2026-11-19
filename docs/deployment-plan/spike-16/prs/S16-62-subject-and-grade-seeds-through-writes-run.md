@@ -1,19 +1,19 @@
 # S16-62 — The subject and grade seeds write through `writes.Run`
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of the create-time seed's write path; no view draws anything different)
 **Board:** —
 **Depends on:** S15-52 (landed [#891](https://github.com/Jake-Robins-Studios/provenencia/pull/891))
-**Blocks:** —
+**Blocks:** S16-64
 **Branch:** `s16-62-subject-and-grade-seeds-through-writes-run`
 **Version bump:** none — a preparatory refactor with no change a researcher can see, no wire and no catalog format change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-seeded-vocabulary`](../../../../.agents/skills/add-seeded-vocabulary/SKILL.md), [`add-catalog-query`](../../../../.agents/skills/add-catalog-query/SKILL.md), [`add-audit-scope`](../../../../.agents/skills/add-audit-scope/SKILL.md)
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S16-62 ([`../deployment-plan.md`](../deployment-plan.md#s16-62--the-subject-and-grade-seeds-write-through-writesrun)); bar 33 (Batch 6); [`core/writes/README.md`](../../../../core/writes/README.md); the precedent plan [`S15-52-source-seed-through-writes-run.md`](../../spike-15/prs/S15-52-source-seed-through-writes-run.md) (Spike 15)
 **Planned:** 2026-11-19 against `main` @ `ca6790b` (compare with `origin/main` after `git fetch origin main`)
-**Review:** [`S16-62-subject-and-grade-seeds-through-writes-run.review.md`](S16-62-subject-and-grade-seeds-through-writes-run.review.md) — Fits with changes / Ready with changes, 1 round; both blockers Fixed; one To user item open
+**Review:** [`S16-62-subject-and-grade-seeds-through-writes-run.review.md`](S16-62-subject-and-grade-seeds-through-writes-run.review.md) — Fits with changes / Ready with changes, 1 round; both blockers Fixed; the To user item answered (user, 2026-11-19: the shared builders go in S16-64)
 
 ### Implementer — read this first
 
@@ -36,7 +36,7 @@ The last create-time seeds that write beside the catalog's one write path move o
 
 **What stays.** The seed's content. Install runs at create only. `nameformats.Install` and `namealiases.Install` keep writing as today (Out). Every researcher path (property, term and binding create, update, delete, reorder) keeps its audit JSON key for key, except that a Property delete now also records `cardinality` (D-3). Every test keeps the fixtures it has: only the function it calls to make them changes.
 
-**A correction to the map.** The map row and `core/writes/README.md` call these the "hand-reprojecting" seed paths. They are not: none of the five calls `searchindex`, and no Subject type, Property, term or grade has a search document. What they lack is the transaction, the audit and the effects (`ListPropertyVocabulary`, the term `Structure` and `Reads`). STEP-8 rewords the map row, its Check and bar 33's `rg` (§ 9).
+**A correction to the map.** The map row and `core/writes/README.md` call these the "hand-reprojecting" seed paths. They are not: none of the five calls `searchindex`, and no Subject type, Property, term or grade has a search document. What they lack is the transaction, the audit and the effects (`ListPropertyVocabulary`, the term `Structure` and `Reads`). Planning reworded the map row, its scope entry and bar 33's `rg` (2026-11-19); STEP-8 rewords `core/writes/README.md`.
 
 ## 2. User stories
 
@@ -85,7 +85,7 @@ The last create-time seeds that write beside the catalog's one write path move o
 | `subjectvocab.EnsureBindingTx` *(new)*; `EnsureBinding` deleted (D-7) | STEP-5, STEP-7, AC-1.9 |
 | `subjectvocab.Install(tx)` and `sourcecredibilitygrades.Install(tx)` compose on the caller's transaction; `ActionInstall` in each *(new)*; `onboarding.createCatalog` runs each in one `writes.Call` through `installSeed` *(new)* (D-8) | STEP-6, AC-2.1 – AC-2.5 |
 | Test helpers *(new)*: `propertiestest.Upsert`, `subjecttypestest.Upsert`, `sourcecredibilitygradestest.Install`, `subjectvocabtest.Install`, `subjectvocabtest.EnsureBinding`; in-package test-file helpers; every caller moved (D-9, D-10) | STEP-5, STEP-6, STEP-7, AC-3.1, AC-3.2 |
-| Docs: `core/writes/README.md`, package comments, `add-seeded-vocabulary`, the map row, its Check and bar 33 | STEP-8 |
+| Docs: `core/writes/README.md`, package comments, `add-seeded-vocabulary`, the map row's status | STEP-8 |
 
 | Out | Home |
 | --- | --- |
@@ -93,8 +93,8 @@ The last create-time seeds that write beside the catalog's one write path move o
 | Auditing grade writes (dropping `None` from `source_credibility_grades`) | not planned — no researcher writes a grade, and the registry entry says a grade write moves nothing (D-6) |
 | One transaction for the whole create-time seed (all five Installs) | not planned — the map keeps one write per domain; a failed later Install still leaves the earlier domains, as today |
 | Any seed content | not planned |
-| `rowchange.Created` / `Updated` / `Deleted` taking an entity and id, so every package keeps only `rowFields` (`sourcetypes`, `metadatafields`, the four packages here, `datevalues`, `namevalues`, `depictionvalues`) | a Batch 6 follow-up PR, if the user agrees (review log M-3, To user); this PR keeps the precedent's per-package `createChange` / `updateChange` |
-| `writes.Apply(c, op, fn func(*database.Tx) ([]rowchange.Change, error)) error` replacing the ~127 `return struct{}{}, changes, err` adaptors | the same follow-up PR, if the user agrees (review log M-5, To user) |
+| `rowchange.Created` / `Updated` / `Deleted` taking an entity and id, so every package keeps only `rowFields` (`sourcetypes`, `metadatafields`, the four packages here, `datevalues`, `namevalues`, `depictionvalues`) | S16-64 (user, 2026-11-19); this PR keeps the precedent's per-package `createChange` / `updateChange` |
+| `writes.Apply(c, op, fn func(*database.Tx) ([]rowchange.Change, error)) error` replacing the ~127 `return struct{}{}, changes, err` adaptors | S16-64 (user, 2026-11-19) |
 
 ## 4. Current state
 
@@ -249,8 +249,8 @@ Do: replace each call with its D-9 / D-10 helper (`subjecttypes_test.go` `Upsert
 Check: AC-3.1's `rg` finds nothing; `go build ./... && CGO_ENABLED=1 go test -tags fts5 ./core/... ./api/...` passes.
 
 **STEP-8 — Docs**
-Files: `core/writes/README.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row, scope entry, bar 33), `docs/deployment-plan/spike-16/completed.md`, this plan.
-Do: README paragraph 6: replace the "remain the hand-reprojecting seed paths" sentence with: "The subject vocabulary and the credibility grades seed the same way: `properties`, `propertyterms`, `subjecttypes` and `sourcecredibilitygrades` `UpsertTx` and `subjectvocab.EnsureBindingTx` return row changes, and each `Install(tx)` composes on a transaction `createCatalog` opens (`install_subject_vocabulary`, one revision; `install_source_credibility_grades`, none: its table is `None`)." Skill line 21 ("Each domain owns a declarative `registry.go` + `Install(c) error`") and "Future vocabulary domains" steps 3–4: a domain whose tables have effects writes `Install(tx) ([]rowchange.Change, error)` and `ActionInstall` and runs through `installSeed`; a domain whose tables are all `None` (`nameformats`, `namealiases`) keeps `Install(c) error`, because `Run` would add only a transaction. "Install semantics (pinned)": the bullet on `sourcevocab.Install(tx)` names all three tx Installs and `installSeed`; tests install through `sourcevocabtest.Install`, `sourcecredibilitygradestest.Install`, `subjectvocabtest.Install`, and make rows through `propertiestest.Upsert`, `subjecttypestest.Upsert`, `subjectvocabtest.EnsureBinding`. "Where create vs open run": unchanged order. Map: scope entry **Ships** drops "hand reprojection" and names the terms and the None grades; **Check** reads "Bar 33; a second subject `Install` records no revision; `TestInstallMatchesRegistry` stays green"; bar 33's command becomes AC-3.1's `rg`. Then the Definition of done.
+Files: `core/writes/README.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row status), `docs/deployment-plan/spike-16/completed.md`, this plan.
+Do: README paragraph 6: replace the "remain the hand-reprojecting seed paths" sentence with: "The subject vocabulary and the credibility grades seed the same way: `properties`, `propertyterms`, `subjecttypes` and `sourcecredibilitygrades` `UpsertTx` and `subjectvocab.EnsureBindingTx` return row changes, and each `Install(tx)` composes on a transaction `createCatalog` opens (`install_subject_vocabulary`, one revision; `install_source_credibility_grades`, none: its table is `None`)." Skill line 21 ("Each domain owns a declarative `registry.go` + `Install(c) error`") and "Future vocabulary domains" steps 3–4: a domain whose tables have effects writes `Install(tx) ([]rowchange.Change, error)` and `ActionInstall` and runs through `installSeed`; a domain whose tables are all `None` (`nameformats`, `namealiases`) keeps `Install(c) error`, because `Run` would add only a transaction. "Install semantics (pinned)": the bullet on `sourcevocab.Install(tx)` names all three tx Installs and `installSeed`; tests install through `sourcevocabtest.Install`, `sourcecredibilitygradestest.Install`, `subjectvocabtest.Install`, and make rows through `propertiestest.Upsert`, `subjecttypestest.Upsert`, `subjectvocabtest.EnsureBinding`. "Where create vs open run": unchanged order. The map's scope entry and bar 33 were reworded in planning; leave them. Then the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-62-subject-and-grade-seeds-through-writes-run.md` reports no errors.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
@@ -284,7 +284,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: te
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New (no UI)
 - [ ] Version bump as the header says (none)
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
-- [ ] deployment-plan.md: map row status, scope entry and bar 33 (STEP-8); completed.md: one short paragraph of what shipped
+- [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] core/writes/README.md and add-seeded-vocabulary updated (STEP-8)
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
