@@ -23,6 +23,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
+	"github.com/mendahu/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/mendahu/provenencia/core/database/sqlbatch"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
@@ -984,10 +985,7 @@ func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writes.Call(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := sourcevocab.Install(tx)
-		return struct{}{}, changes, err
-	}); err != nil {
+	if err := sourcevocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	return c, userID
