@@ -6,16 +6,15 @@ struct PlaceRelationshipRow: View {
     let relationship: CatalogPlaceRelationship
     /// Optional role line under the title (Succeeded / Succeeded by).
     var role: String? = nil
+    /// The section's `ConclusionDetailRelationship.id` for this row: the stop and scroll id Back
+    /// restores, and what an open writes onto the page's history entry.
+    let anchorID: String
+    /// The section's focus: `anchorID` when this row has the keyboard.
+    let focus: FocusState<String?>.Binding
     @Environment(WorkspaceNavigation.self) private var navigation
 
     var body: some View {
-        Button {
-            navigation.go(to: .placeDetail(
-                entityId: relationship.entity.id,
-                ref: relationship.entity.ref,
-                title: relationship.title.isEmpty ? nil : relationship.title
-            ))
-        } label: {
+        Button(action: open) {
             HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space4) {
                 VStack(alignment: .leading, spacing: PVSpacing.space1) {
                     Text(verbatim: displayTitle)
@@ -40,9 +39,25 @@ struct PlaceRelationshipRow: View {
             .padding(.vertical, PVSpacing.space4)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PVFocusRingButtonStyle())
+        .id(anchorID)
+        .focused(focus, equals: anchorID)
+        .pvActivatesOnReturn(when: focus.wrappedValue == anchorID, open)
         .accessibilityLabel(Text(verbatim: accessibilityLabel))
         .accessibilityIdentifier("places.detail.relationship.\(relationship.id)")
+    }
+
+    private func open() {
+        let location = WorkspaceLocation.placeDetail(
+            entityId: relationship.entity.id,
+            ref: relationship.entity.ref,
+            title: relationship.title.isEmpty ? nil : relationship.title
+        )
+        guard let anchor = ConclusionSectionAnchor(part: .related, id: anchorID) else {
+            navigation.go(to: location)
+            return
+        }
+        navigation.go(to: location, from: anchor)
     }
 
     private var displayTitle: String {
@@ -113,6 +128,8 @@ struct ConclusionDetailSection: Equatable, Identifiable {
 struct ConclusionDetailRelationshipSection: View {
     let section: ConclusionDetailSection
 
+    @FocusState private var focused: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             PVSectionHeader(title: section.title, aside: {
@@ -129,7 +146,7 @@ struct ConclusionDetailRelationshipSection: View {
                     .padding(.vertical, PVSpacing.space5)
             } else {
                 ForEach(section.relationships) { row in
-                    PlaceRelationshipRow(relationship: row.relationship, role: row.role)
+                    PlaceRelationshipRow(relationship: row.relationship, role: row.role, anchorID: row.id, focus: $focused)
                 }
                 if section.omittedCount > 0 {
                     Text(verbatim: L10n.Conclusions.placeContainsMore(section.omittedCount))
@@ -138,6 +155,10 @@ struct ConclusionDetailRelationshipSection: View {
                         .padding(.vertical, PVSpacing.space3)
                 }
             }
+        }
+        .conclusionAnchorRestore([.related], isReady: true, focus: $focused) { anchor in
+            section.relationships.contains { $0.id == anchor.id }
+                ? ConclusionAnchorTarget(stop: anchor.id, scrollID: anchor.id) : nil
         }
         .accessibilityElement(children: section.relationships.isEmpty ? .combine : .contain)
         .accessibilityLabel(
