@@ -84,4 +84,4 @@ No new blockers. Nits (logged): `MNT-7 · PersonTimelineContentTests.swift:91,14
 Merged `origin/main` @ `2faf6f728` (docs only); gate PASS.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: UX-1, MNT-1, CON-2/UX-2 (answered 2026-11-19)
+Gate PASS · CI green (macOS tests re-run once: first attempt never got a hosted runner) · open: none · follow-ups: none · to user: UX-1, MNT-1, CON-2/UX-2 (answered 2026-11-19)
