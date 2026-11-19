@@ -2,7 +2,6 @@ package sourcecopy
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"image"
 	"image/png"
@@ -786,28 +785,25 @@ func TestCopy(t *testing.T) {
 						}
 					}
 				})
+				t.Run("a damaged unknown mark on a dated source copies supplied", func(t *testing.T) {
+					c, userID, orig, arts := seedObituary(t)
+					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{Supplied: true})
+					dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE sources SET date_unknown = 1 WHERE id = ?`, orig.ID)
+					in := allParts(orig, arts)
+					in.Date = true
+					cp, err := runCopy(c, userID, in)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if cp.Date == nil || *cp.Date.StartYear != 1880 || cp.DateMark != (valuemark.Mark{Supplied: true}) {
+						t.Fatalf("copy %+v mark %+v", cp.Date, cp.DateMark)
+					}
+				})
 				t.Run("date row missing", func(t *testing.T) {
 					c, userID, orig, arts := seedObituary(t)
 					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
 					db := dbtest.MustDB(t, c)
-					ctx := context.Background()
-					conn, err := db.Conn(ctx)
-					if err != nil {
-						t.Fatal(err)
-					}
-					if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=OFF`); err != nil {
-						t.Fatal(err)
-					}
-					if _, err := conn.ExecContext(ctx, `DELETE FROM date_values WHERE id = ?`, orig.DateValueID); err != nil {
-						t.Fatal(err)
-					}
-					if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=ON`); err != nil {
-						t.Fatal(err)
-					}
-					// Release the connection: the catalog holds one, and the copy needs it.
-					if err := conn.Close(); err != nil {
-						t.Fatal(err)
-					}
+					dbtest.Damage(t, db, `DELETE FROM date_values WHERE id = ?`, orig.DateValueID)
 					in := allParts(orig, arts)
 					in.Date = true
 					cp, err := runCopy(c, userID, in)

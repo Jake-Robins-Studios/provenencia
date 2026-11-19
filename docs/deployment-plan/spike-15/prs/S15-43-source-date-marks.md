@@ -333,3 +333,4 @@ None.
 - `List` scans `HasArtifact` into a local and sets it on the returned Source: `scanSource` returns a new `Source`, so `&s.HasArtifact` as D-2 words it cannot reach the result.
 - The version bump is 0.24.1 → 0.25.0: `main` was at 0.24.1 when the PR was cut.
 - The in-app manual check (§ 10) was not run in the implementing session.
+- `settleDate` also clears `Unknown` when the date row exists (D-3 worded only the `Supplied` clear): a crafted row with a date and `date_unknown` 1 reads without the unknown mark, so a read never carries a pair `valuemark.Validate` refuses and Copy Source of it succeeds.

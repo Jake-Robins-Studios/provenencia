@@ -2,7 +2,6 @@ package sources
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"errors"
 	"image"
@@ -49,12 +48,20 @@ func runUpdate(c *database.Catalog, userID []byte, s Source) error {
 }
 
 func runDelete(c *database.Catalog, userID, id []byte) error {
+	_, err := runDeleteChanges(c, userID, id)
+	return err
+}
+
+// runDeleteChanges is runDelete that also returns the changes Delete made.
+func runDeleteChanges(c *database.Catalog, userID, id []byte) ([]rowchange.Change, error) {
+	var changes []rowchange.Change
 	_, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID},
 		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, id)
-			return struct{}{}, changes, err
+			ch, err := Delete(tx, userID, id)
+			changes = ch
+			return struct{}{}, ch, err
 		})
-	return err
+	return changes, err
 }
 
 func runSetCover(c *database.Catalog, userID, sourceID []byte, mode string, primaryArtifactID []byte) (Source, error) {
@@ -762,12 +769,8 @@ func TestSourceDelete(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var got []rowchange.Change
-		if _, err := writes.Call(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, graphed.ID)
-			got = changes
-			return struct{}{}, changes, err
-		}); err != nil {
+		got, err := runDeleteChanges(c, userID, graphed.ID)
+		if err != nil {
 			t.Fatal(err)
 		}
 		var n int
@@ -801,12 +804,8 @@ func TestSourceDelete(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var got []rowchange.Change
-		if _, err := writes.Call(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, dated.ID)
-			got = changes
-			return struct{}{}, changes, err
-		}); err != nil {
+		got, err := runDeleteChanges(c, userID, dated.ID)
+		if err != nil {
 			t.Fatal(err)
 		}
 		var n int
@@ -825,12 +824,8 @@ func TestSourceDelete(t *testing.T) {
 	t.Run("a date mark is in the delete change", func(t *testing.T) {
 		deleteChange := func(id []byte) rowchange.Change {
 			t.Helper()
-			var got []rowchange.Change
-			if _, err := writes.Call(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := Delete(tx, userID, id)
-				got = changes
-				return struct{}{}, changes, err
-			}); err != nil {
+			got, err := runDeleteChanges(c, userID, id)
+			if err != nil {
 				t.Fatal(err)
 			}
 			return got[len(got)-1]
@@ -1036,13 +1031,8 @@ func TestSourceDate(t *testing.T) {
 		changes []rowchange.Change
 	)
 	set := func(d *datevalue.Value) (Source, error) {
-		changes = nil
-		s, _, err := writes.Run(c, writes.Op{Action: "set_source_date", UserID: userID},
-			func(tx *database.Tx) (Source, []rowchange.Change, error) {
-				s, ch, err := SetDate(tx, userID, src.ID, d, valuemark.Mark{})
-				changes = ch
-				return s, ch, err
-			})
+		s, ch, err := runSetDateChanges(c, userID, src.ID, d, valuemark.Mark{})
+		changes = ch
 		return s, err
 	}
 
@@ -1148,24 +1138,11 @@ func TestSourceDate(t *testing.T) {
 	})
 	t.Run("dangling date row reads undated", func(t *testing.T) {
 		dangle := func() []byte {
-			ctx := context.Background()
-			db := dbtest.MustDB(t, c)
-			conn, err := db.Conn(ctx)
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer conn.Close()
-			if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=OFF`); err != nil {
-				t.Fatal(err)
-			}
-			defer conn.ExecContext(ctx, `PRAGMA foreign_keys=ON`)
 			id := make([]byte, 16)
 			if _, err := rand.Read(id); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := conn.ExecContext(ctx, `UPDATE sources SET date_value_id = ? WHERE id = ?`, id, other.ID); err != nil {
-				t.Fatal(err)
-			}
+			dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE sources SET date_value_id = ? WHERE id = ?`, id, other.ID)
 			return id
 		}
 		danglingID := dangle()
@@ -1318,20 +1295,8 @@ func TestMissingSourceIsNotFound(t *testing.T) {
 // off, leaving the Source's date_value_id (and any mark) behind.
 func dangleDate(t *testing.T, c *database.Catalog, sourceID []byte) {
 	t.Helper()
-	ctx := context.Background()
-	conn, err := dbtest.MustDB(t, c).Conn(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-	if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=OFF`); err != nil {
-		t.Fatal(err)
-	}
-	defer conn.ExecContext(ctx, `PRAGMA foreign_keys=ON`)
-	if _, err := conn.ExecContext(ctx,
-		`DELETE FROM date_values WHERE id = (SELECT date_value_id FROM sources WHERE id = ?)`, sourceID); err != nil {
-		t.Fatal(err)
-	}
+	dbtest.Damage(t, dbtest.MustDB(t, c),
+		`DELETE FROM date_values WHERE id = (SELECT date_value_id FROM sources WHERE id = ?)`, sourceID)
 }
 
 // runSetDateChanges is runSetDate that also returns the changes SetDate made.
@@ -1400,6 +1365,7 @@ func TestSourceDateMarks(t *testing.T) {
 			{"source", rowchange.ActionUpdate, map[string]diff{"date_unknown": {Old: true, New: false}}},
 		}},
 	}
+	var prevID []byte
 	for _, st := range steps {
 		t.Run(st.name, func(t *testing.T) {
 			got, changes, err := runSetDateChanges(c, userID, src.ID, st.date, st.mark)
@@ -1428,13 +1394,21 @@ func TestSourceDateMarks(t *testing.T) {
 						t.Fatalf("change %d field %s = %+v, want %+v", i, k, ch.Fields[k], f)
 					}
 				}
-				// date_value_id moves with the date row, so it is checked by key.
-				_, idMoved := ch.Fields["date_value_id"]
-				if idMoved != (st.name == "unknown to supplied date" || st.name == "dated to unknown") ||
+				// date_value_id moves with the date row: checked old to new.
+				var wantID *diff
+				switch st.name {
+				case "unknown to supplied date":
+					wantID = &diff{Old: nil, New: database.UUIDJSON(got.DateValueID)}
+				case "dated to unknown":
+					wantID = &diff{Old: database.UUIDJSON(prevID), New: nil}
+				}
+				idDiff, idMoved := ch.Fields["date_value_id"]
+				if idMoved != (wantID != nil) || (idMoved && idDiff != *wantID) ||
 					len(ch.Fields) != len(w.fields)+boolInt(idMoved) {
 					t.Fatalf("change %d fields %+v", i, ch.Fields)
 				}
 			}
+			prevID = got.DateValueID
 			read, err := Get(c, src.ID)
 			if err != nil || read.DateMark != st.wantMark {
 				t.Fatalf("Get %+v err=%v", read, err)
@@ -1567,6 +1541,34 @@ func TestSourceDateMarks(t *testing.T) {
 		set, err := runSetDate(c, userID, again.ID, datevaluetest.YMD(1900, 0, 0), supplied)
 		if err != nil || set.Date == nil || *set.Date.StartYear != 1900 || set.DateMark != supplied {
 			t.Fatalf("SetDate %+v err=%v", set, err)
+		}
+	})
+	t.Run("a damaged unknown mark on a dated source reads without unknown", func(t *testing.T) {
+		for name, tc := range map[string]struct {
+			mark valuemark.Mark
+			want valuemark.Mark
+		}{
+			"supplied": {supplied, supplied},
+			"no mark":  {valuemark.Mark{}, valuemark.Mark{}},
+		} {
+			s := mkSource(t, "Damaged "+name)
+			if _, err := runSetDate(c, userID, s.ID, datevaluetest.YMD(1880, 0, 0), tc.mark); err != nil {
+				t.Fatal(err)
+			}
+			dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE sources SET date_unknown = 1 WHERE id = ?`, s.ID)
+			got, err := Get(c, s.ID)
+			if err != nil || got.Date == nil || *got.Date.StartYear != 1880 || got.DateMark != tc.want {
+				t.Fatalf("%s: Get %+v err=%v", name, got, err)
+			}
+			all, err := List(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, l := range all {
+				if bytes.Equal(l.ID, s.ID) && (l.Date == nil || l.DateMark != tc.want) {
+					t.Fatalf("%s: List %+v", name, l)
+				}
+			}
 		}
 	})
 }

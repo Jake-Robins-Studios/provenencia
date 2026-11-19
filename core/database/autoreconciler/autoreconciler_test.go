@@ -2,7 +2,6 @@ package autoreconciler_test
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -22,6 +21,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusiondetails"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer/evidencelayertest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/gallery"
@@ -2045,15 +2045,7 @@ func TestOutOfDomainBooleanReadsAbsent(t *testing.T) {
 	must(t, err)
 	damage := func(query string, args ...any) {
 		t.Helper()
-		conn, err := db.Conn(context.Background())
-		must(t, err)
-		defer func() { _ = conn.Close() }()
-		_, err = conn.ExecContext(context.Background(), `PRAGMA ignore_check_constraints = ON`)
-		must(t, err)
-		_, err = conn.ExecContext(context.Background(), query, args...)
-		must(t, err)
-		_, err = conn.ExecContext(context.Background(), `PRAGMA ignore_check_constraints = OFF`)
-		must(t, err)
+		dbtest.Damage(t, db, query, args...)
 	}
 
 	damage(`UPDATE auto_reconciler_values SET value_boolean = 2 WHERE entity_id = ? AND property_id = ?`, h, id)

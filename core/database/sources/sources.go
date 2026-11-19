@@ -617,12 +617,14 @@ func scanSource(row rowScanner, extra ...any) (Source, error) {
 }
 
 // settleDate is the one place a read decides a Source's date and mark. The date
-// is the row for id in dates, nil when id is not 16 bytes or its row is gone. A
-// date that is gone reads as undated, so it cannot be supplied: the read mark is
-// the stored one with Supplied false then.
+// is the row for id in dates, nil when id is not 16 bytes or its row is gone. The
+// read mark is the stored one made valid for what the read found: a date that is
+// gone reads as undated, so it cannot be supplied (Supplied cleared); a date that
+// is there cannot be unknown (Unknown cleared).
 func settleDate(dates map[string]datevalue.Value, id []byte, stored valuemark.Mark) (*datevalue.Value, valuemark.Mark) {
 	if len(id) == 16 {
 		if d, ok := dates[string(id)]; ok {
+			stored.Unknown = false
 			return &d, stored
 		}
 	}
