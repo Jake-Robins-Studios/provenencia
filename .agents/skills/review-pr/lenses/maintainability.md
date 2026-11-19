@@ -300,6 +300,7 @@ the rule; do not restate it.
 - A new kit primitive for one call site — [`add-ui-component`](../../add-ui-component/SKILL.md).
 - A cache that empties itself on any write, or a drop rule written in `OnCommit` instead of an entry's `Inputs`, Apply, DerivedFrom and Narrow — [`docs/catalog-caches.md`](../../../../docs/catalog-caches.md), rule "Every cache names the signal that updates it".
 - A feature model copying `handle.value` into its own array — Q9.
+- A guard test that walks the repo uses `core/internal/gosrc.Files`; a hand-written walk from `..` can skip its own root and check nothing (S16-49).
 - Domain logic in an `api/ffi/handlers` function — Q3.
 - New files in legacy `DesignSystem/Components/Core|Forms|Research/` or loose at a layer root — Q4.
 - A screen-shaped value type that formats beside an existing shared formatter — Q14.

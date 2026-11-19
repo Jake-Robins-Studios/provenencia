@@ -92,13 +92,6 @@ const CacheVersion = 24
 // caller passes this one value.
 var ValueRules = valuerules.Product()
 
-// Querier is *sql.Tx or *sql.DB.
-type Querier interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
-
 // One row per Observation on an accepted or provisional member of the
 // batch (rejected members don't count), with its evidence: polarity, the
 // Source it is cited under, and provenance as grade sort_order relative to
@@ -169,7 +162,7 @@ const (
 // links that changed: the handles whose stored rows and open pages the commit
 // drops. A removed member updates the rows that named it because Run passes the
 // released handles through this call after the rows are gone.
-func RecomputeReported(q Querier, entityIDs [][]byte) ([][]byte, error) {
+func RecomputeReported(q database.Execer, entityIDs [][]byte) ([][]byte, error) {
 	ids := database.UniqueBlobIDs(entityIDs)
 	moved, err := recompute(q, ids)
 	if err != nil {
@@ -180,7 +173,7 @@ func RecomputeReported(q Querier, entityIDs [][]byte) ([][]byte, error) {
 
 // recompute rewrites the rows of ids, a batch at a time, and returns the ids
 // whose displayed rows differ from the ones it replaced.
-func recompute(q Querier, ids [][]byte) (moved [][]byte, err error) {
+func recompute(q database.Execer, ids [][]byte) (moved [][]byte, err error) {
 	err = sqlbatch.Each(ids, func(batch [][]byte) error {
 		m, err := recomputeBatch(q, batch)
 		moved = append(moved, m...)
@@ -191,7 +184,7 @@ func recompute(q Querier, ids [][]byte) (moved [][]byte, err error) {
 
 // HandlesForSubjects is the handle list a subject-membership change recomputes.
 // Unpromoted Subjects are ignored.
-func HandlesForSubjects(q Querier, subjectIDs [][]byte) ([][]byte, error) {
+func HandlesForSubjects(q database.Querier, subjectIDs [][]byte) ([][]byte, error) {
 	ids := database.UniqueBlobIDs(subjectIDs)
 	var handles [][]byte
 	err := sqlbatch.Query(q, sqlHandlesForSubjects, `)`, nil, ids, func(rows *sql.Rows) error {
@@ -209,31 +202,31 @@ func HandlesForSubjects(q Querier, subjectIDs [][]byte) ([][]byte, error) {
 }
 
 // HandlesForSource is the handle list a Source credibility change recomputes.
-func HandlesForSource(q Querier, sourceID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForSource, sourceID)
+func HandlesForSource(q database.Querier, sourceID []byte) ([][]byte, error) {
+	return database.QueryIDs(q, sqlHandlesForSource, sourceID)
 }
 
 // HandlesForCitation is the handle list a Citation certainty change recomputes.
-func HandlesForCitation(q Querier, citationID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForCitation, citationID)
+func HandlesForCitation(q database.Querier, citationID []byte) ([][]byte, error) {
+	return database.QueryIDs(q, sqlHandlesForCitation, citationID)
 }
 
 // HandlesForProperty is the handle list a Property cardinality change recomputes.
-func HandlesForProperty(q Querier, propertyID []byte) ([][]byte, error) {
-	return listIDs(q, sqlHandlesForProperty, propertyID)
+func HandlesForProperty(q database.Querier, propertyID []byte) ([][]byte, error) {
+	return database.QueryIDs(q, sqlHandlesForProperty, propertyID)
 }
 
 // Rebuild clears the table, recomputes every handle, reprojects every handle's
 // search document (every row moved, so the input index has nothing to find
 // outside the ids), and stores CacheVersion.
-func Rebuild(q Querier) error {
+func Rebuild(q database.Execer) error {
 	if _, err := q.Exec(`DELETE FROM auto_reconciler_values`); err != nil {
 		return err
 	}
 	if _, err := q.Exec(`DELETE FROM auto_reconciler_outcomes`); err != nil {
 		return err
 	}
-	ids, err := listIDs(q, sqlAllEntities)
+	ids, err := database.QueryIDs(q, sqlAllEntities)
 	if err != nil {
 		return err
 	}
@@ -248,14 +241,14 @@ func Rebuild(q Querier) error {
 }
 
 // StoredVersion returns the cache version the catalog was last built at.
-func StoredVersion(q Querier) (int, error) {
+func StoredVersion(q database.Querier) (int, error) {
 	var v int
 	err := q.QueryRow(`SELECT cache_version FROM auto_reconciler_meta WHERE id = 1`).Scan(&v)
 	return v, err
 }
 
 // NeedsRebuild reports whether the stored version differs from CacheVersion.
-func NeedsRebuild(q Querier) (bool, error) {
+func NeedsRebuild(q database.Querier) (bool, error) {
 	v, err := StoredVersion(q)
 	if err != nil {
 		return false, err
@@ -293,7 +286,9 @@ func EnsureCatalog(c *database.Catalog) error {
 // recomputeBatch rewrites the batch's rows and returns the ids whose displayed
 // rows differ from the ones it replaced (graphcache.SameDisplay: everything but
 // the vote counts).
-func recomputeBatch(q Querier, ids [][]byte) (moved [][]byte, err error) {
+//
+// The IN list is bounded: ids is one sqlbatch.Each chunk from recompute.
+func recomputeBatch(q database.Execer, ids [][]byte) (moved [][]byte, err error) {
 	in := database.SQLInPlaceholders(len(ids)) + `)`
 	stored, err := graphcache.Over(q).StoredValues(ids)
 	if err != nil {
@@ -365,7 +360,7 @@ type group struct {
 // load reads every candidate for the batch in a fixed number of queries: the
 // candidates, then their date values, name values, and name parts. Groups
 // come back ordered by (entity id, property id).
-func load(q Querier, ids [][]byte) ([]*group, error) {
+func load(q database.Querier, ids [][]byte) ([]*group, error) {
 	ids = database.UniqueBlobIDs(ids)
 	type pending struct {
 		g      *group
@@ -470,7 +465,7 @@ func load(q Querier, ids [][]byte) ([]*group, error) {
 	return groups, nil
 }
 
-func acceptedEntities(q Querier, ids [][]byte) (map[string][]byte, error) {
+func acceptedEntities(q database.Querier, ids [][]byte) (map[string][]byte, error) {
 	out := map[string][]byte{}
 	ids = database.UniqueBlobIDs(ids)
 	err := sqlbatch.Query(q, sqlAcceptedEntities, `)`, nil, ids, func(rows *sql.Rows) error {
@@ -489,7 +484,7 @@ func acceptedEntities(q Querier, ids [][]byte) (map[string][]byte, error) {
 
 // insertRow writes row, the one build of a value row (truthRow), and computes
 // only what the stored row adds: the date window and the sort key from v.
-func insertRow(q Querier, g *group, row graphcache.TruthRow, v autoreconcile.Value) error {
+func insertRow(q database.Execer, g *group, row graphcache.TruthRow, v autoreconcile.Value) error {
 	var (
 		text, sortKey  any
 		termID         any
@@ -540,21 +535,4 @@ func insertRow(q Querier, g *group, row graphcache.TruthRow, v autoreconcile.Val
 	_, err := q.Exec(sqlInsert, g.entityID, g.propertyID, row.Rank, text, database.NullInt64(integer), database.NullBool(boolean), termID, valueEntity, dateBlob, name, imageFileID, dateLo, dateHi, sortKey,
 		row.Support, row.Against, row.Reason)
 	return err
-}
-
-func listIDs(q Querier, query string, args ...any) ([][]byte, error) {
-	rows, err := q.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out [][]byte
-	for rows.Next() {
-		var id []byte
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, rows.Err()
 }

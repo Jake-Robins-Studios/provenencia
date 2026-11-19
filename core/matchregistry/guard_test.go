@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-)
 
-const modulePath = "github.com/Jake-Robins-Studios/provenencia/"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/gosrc"
+)
 
 // layerPackages are the packages the matching stack builds on. Each is pure:
 // it builds and tests with no build tags and no path to core/database.
@@ -98,7 +98,7 @@ func checkForbids(t *testing.T, root, dir string, forbids []string) {
 	pkg := importPkg(t, root, dir)
 	for _, imp := range pkg.Imports {
 		for _, f := range forbids {
-			if imp == modulePath+f {
+			if imp == gosrc.Module+f {
 				t.Errorf("%s imports %s", dir, f)
 			}
 		}
@@ -138,12 +138,12 @@ func checkPure(t *testing.T, root, dir string, numbers bool) {
 	walk = func(pkg *build.Package, chain []string, prodOnly bool) {
 		step := func(imp string, prodOnly bool) {
 			key := visit{imp, prodOnly}
-			if !strings.HasPrefix(imp, modulePath) || visited[key] {
+			if !strings.HasPrefix(imp, gosrc.Module) || visited[key] {
 				return
 			}
 			visited[key] = true
 			next := append(slices.Clone(chain), imp)
-			rest := strings.TrimPrefix(imp, modulePath)
+			rest := strings.TrimPrefix(imp, gosrc.Module)
 			if rest == "core/database" || strings.HasPrefix(rest, "core/database/") {
 				t.Errorf("%s reaches the catalog: %s", dir, strings.Join(next, " -> "))
 				return
@@ -170,7 +170,7 @@ func checkPure(t *testing.T, root, dir string, numbers bool) {
 			step(imp, false)
 		}
 	}
-	walk(pkg, []string{modulePath + dir}, true)
+	walk(pkg, []string{gosrc.Module + dir}, true)
 }
 
 // checkNumbers fails on every numeric literal in a non-test file other than 0

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/depictionvalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
@@ -61,7 +62,7 @@ func PeekEvidenceGraph(g *graphcache.Graph, graphID []byte) (graphcache.Evidence
 // LoadEvidenceGraph reads an Evidence graph from the catalog and stores
 // nothing: EvidenceGraph's fill, and what a Check compares a stored value to.
 func LoadEvidenceGraph(g *graphcache.Graph, graphID []byte) (graphcache.EvidenceGraph, error) {
-	q := graphcache.Querier(g)
+	q := database.Querier(g)
 	head, found, err := loadGraphHead(q, graphID)
 	if err != nil {
 		return graphcache.EvidenceGraph{}, err
@@ -94,7 +95,7 @@ func LoadEvidenceGraph(g *graphcache.Graph, graphID []byte) (graphcache.Evidence
 // loadGraphRows reads a graph's Subjects, Observations and accepted claims
 // (members): the rows both the loaded graph and the graph's records are made
 // from. A graph with no row has none.
-func loadGraphRows(q graphcache.Querier, graphID []byte) ([]graphcache.EvidenceSubject, []graphcache.EvidenceObservation, []graphcache.EvidenceMember, error) {
+func loadGraphRows(q database.Querier, graphID []byte) ([]graphcache.EvidenceSubject, []graphcache.EvidenceObservation, []graphcache.EvidenceMember, error) {
 	subjects, err := loadGraphSubjects(q, graphID)
 	if err != nil {
 		return nil, nil, nil, err
@@ -118,7 +119,7 @@ type graphHead struct {
 
 // loadGraphHead reads an Evidence graph's ref, name and Source id, and whether
 // the graph exists. A graph's ref may be NULL and reads "".
-func loadGraphHead(q graphcache.Querier, graphID []byte) (graphHead, bool, error) {
+func loadGraphHead(q database.Querier, graphID []byte) (graphHead, bool, error) {
 	var h graphHead
 	err := q.QueryRow(`SELECT COALESCE(ref, ''), name, source_id FROM evidence_graphs WHERE id = ?`, graphID).
 		Scan(&h.ref, &h.name, &h.sourceID)
@@ -132,7 +133,7 @@ func loadGraphHead(q graphcache.Querier, graphID []byte) (graphHead, bool, error
 	return h, true, nil
 }
 
-func loadGraphSubjects(q graphcache.Querier, graphID []byte) ([]graphcache.EvidenceSubject, error) {
+func loadGraphSubjects(q database.Querier, graphID []byte) ([]graphcache.EvidenceSubject, error) {
 	rows, err := q.Query(`SELECT s.id, s.ref, s.source_id, s.subject_type_id,
 			COALESCE(s.label, ''), COALESCE(s.description, ''), st.key, st.origin
 		FROM subjects s
@@ -165,7 +166,7 @@ type citationWords struct {
 	uncertain        bool
 }
 
-func loadGraphObservations(q graphcache.Querier, graphID []byte) ([]graphcache.EvidenceObservation, error) {
+func loadGraphObservations(q database.Querier, graphID []byte) ([]graphcache.EvidenceObservation, error) {
 	rows, err := q.Query(`SELECT o.id, o.ref, o.citation_id, o.subject_id, o.property_id, o.polarity,
 			o.value_text, o.value_integer, o.value_boolean, o.value_date_id, o.value_name_id, o.value_subject_id, o.value_term_id, o.value_depiction_id,
 			dpv.region_json, dpv.image_file_id, dc.locator_json, dpf.media_type,
@@ -264,7 +265,7 @@ func loadGraphObservations(q graphcache.Querier, graphID []byte) ([]graphcache.E
 	return out, nil
 }
 
-func loadGraphMembers(q graphcache.Querier, graphID []byte) ([]graphcache.EvidenceMember, error) {
+func loadGraphMembers(q database.Querier, graphID []byte) ([]graphcache.EvidenceMember, error) {
 	rows, err := q.Query(`SELECT s.id, ic.id, e.id, st.key
 		FROM subjects s
 		JOIN identity_claims ic ON ic.subject_id = s.id AND ic.status = 'accepted'

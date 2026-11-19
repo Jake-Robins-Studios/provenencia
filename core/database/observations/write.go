@@ -134,7 +134,7 @@ func getRowTx(tx *sql.Tx, id []byte) (Observation, error) {
 	return scanRawObservation(tx.QueryRow(sqlGetRow, id))
 }
 
-func scanRawObservation(row rowScanner) (Observation, error) {
+func scanRawObservation(row database.Scanner) (Observation, error) {
 	r, err := observationrow.Scan(row)
 	if err != nil {
 		return Observation{}, err
@@ -227,8 +227,4 @@ func getListedTx(tx *sql.Tx, id []byte) (Listed, error) {
 		return Listed{}, ErrInvalid
 	}
 	return listed[0], nil
-}
-
-type rowScanner interface {
-	Scan(dest ...any) error
 }

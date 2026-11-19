@@ -147,13 +147,8 @@ func (k *Canon) Entity(kind string) []byte {
 	return id
 }
 
-// execer is the Exec method *sql.DB and *sql.Tx share.
-type execer interface {
-	Exec(query string, args ...any) (sql.Result, error)
-}
-
 // member inserts a Subject that is an accepted member of entityID.
-func (k *Canon) member(x execer, subjectID, entityID, typeID []byte, ref string) {
+func (k *Canon) member(x database.Execer, subjectID, entityID, typeID []byte, ref string) {
 	k.t.Helper()
 	if _, err := x.Exec(`INSERT INTO subjects (id, ref, source_id, graph_id, subject_type_id) VALUES (?, ?, ?, ?, ?)`, subjectID, ref, k.source, k.graph, typeID); err != nil {
 		k.t.Fatal(err)

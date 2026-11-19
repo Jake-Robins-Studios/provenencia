@@ -162,11 +162,7 @@ func Upsert(tx *database.Tx, userID []byte, in UpsertInput) (Assessment, []rowch
 		}}, nil
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanAssessment(row rowScanner) (Assessment, error) {
+func scanAssessment(row database.Scanner) (Assessment, error) {
 	var a Assessment
 	if err := row.Scan(&a.ID, &a.SourceID, &a.CredibilityGradeID, &a.Argument); err != nil {
 		return Assessment{}, err

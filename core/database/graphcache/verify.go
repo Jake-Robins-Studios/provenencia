@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
@@ -32,7 +33,7 @@ type TruthRow struct {
 
 // TruthFunc recomputes values from observations. autoreconciler registers it.
 // Repeating the auto-reconciler read would hide a short recompute set.
-type TruthFunc func(q Querier, ids [][]byte) (map[string][]TruthRow, error)
+type TruthFunc func(q dbsql.Querier, ids [][]byte) (map[string][]TruthRow, error)
 
 var truthFn TruthFunc
 

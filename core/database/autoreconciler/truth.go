@@ -1,8 +1,6 @@
 package autoreconciler
 
 import (
-	"database/sql"
-
 	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
@@ -14,31 +12,15 @@ func init() {
 	graphcache.SetTruth(truthRows)
 }
 
-// rowQuerier adapts the graph's read surface to this package's Querier.
-type rowQuerier struct{ q graphcache.Querier }
-
-func (r rowQuerier) Query(query string, args ...any) (*sql.Rows, error) {
-	return r.q.Query(query, args...)
-}
-
-func (r rowQuerier) QueryRow(query string, args ...any) *sql.Row {
-	return r.q.QueryRow(query, args...)
-}
-
-func (r rowQuerier) Exec(string, ...any) (sql.Result, error) {
-	return nil, sql.ErrNoRows
-}
-
 // truthRows is the reconcile Verify compares to a loaded node. It does not write.
-func truthRows(q graphcache.Querier, ids [][]byte) (map[string][]graphcache.TruthRow, error) {
+func truthRows(q database.Querier, ids [][]byte) (map[string][]graphcache.TruthRow, error) {
 	out := map[string][]graphcache.TruthRow{}
 	ids = database.UniqueBlobIDs(ids)
 	if len(ids) == 0 {
 		return out, nil
 	}
-	rq := rowQuerier{q}
 	err := sqlbatch.Each(ids, func(chunk [][]byte) error {
-		groups, err := load(rq, chunk)
+		groups, err := load(q, chunk)
 		if err != nil {
 			return err
 		}

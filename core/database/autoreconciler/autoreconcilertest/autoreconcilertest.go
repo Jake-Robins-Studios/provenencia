@@ -3,7 +3,6 @@
 package autoreconcilertest
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
 	"testing"
@@ -35,9 +34,7 @@ func AssertCacheMatchesRebuild(t testing.TB, c *database.Catalog) {
 	}
 }
 
-func dump(t testing.TB, q interface {
-	Query(string, ...any) (*sql.Rows, error)
-}) string {
+func dump(t testing.TB, q database.Querier) string {
 	t.Helper()
 	var b strings.Builder
 	for _, table := range []string{"auto_reconciler_values", "auto_reconciler_outcomes"} {

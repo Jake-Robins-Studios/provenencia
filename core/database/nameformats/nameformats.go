@@ -31,12 +31,6 @@ const (
 	settingDefaultNameFormatID = "default_name_format_id"
 )
 
-// Querier is *sql.DB or *sql.Tx.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
-
 // PartOrder is one part type in a display style, plus the separator that
 // follows that group. Empty TrailingSeparator is a normal space.
 type PartOrder struct {
@@ -227,7 +221,7 @@ func LoadFor(g *graphcache.Graph) (Loaded, error) {
 
 // Load reads the project default. A missing or empty setting returns the
 // built-in Western pattern.
-func Load(q Querier) (Loaded, error) {
+func Load(q database.Querier) (Loaded, error) {
 	var raw sql.NullString
 	err := q.QueryRow(`SELECT value_text FROM project_settings WHERE key = ?`, settingDefaultNameFormatID).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) || !raw.Valid || strings.TrimSpace(raw.String) == "" {
@@ -257,7 +251,7 @@ func Load(q Querier) (Loaded, error) {
 const maxWeight = 1000
 
 // LoadID reads one profile. sql.ErrNoRows when the id is absent.
-func LoadID(q Querier, id []byte) (Profile, error) {
+func LoadID(q database.Querier, id []byte) (Profile, error) {
 	var p Profile
 	var description sql.NullString
 	err := q.QueryRow(`SELECT id, key, origin, label, description FROM name_format_profiles WHERE id = ?`, id).

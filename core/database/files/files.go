@@ -214,7 +214,7 @@ func NewID() ([]byte, error) {
 	return id[:], nil
 }
 
-func scanFile(row interface{ Scan(dest ...any) error }) (File, error) {
+func scanFile(row database.Scanner) (File, error) {
 	var f File
 	if err := row.Scan(&f.ID, &f.ChecksumSHA256, &f.OriginalFilename, &f.MediaType, &f.ByteSize); err != nil {
 		return File{}, err

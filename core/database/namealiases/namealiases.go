@@ -8,7 +8,6 @@
 package namealiases
 
 import (
-	"database/sql"
 	"errors"
 	"reflect"
 	"sort"
@@ -18,12 +17,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 	"github.com/google/uuid"
 )
-
-// Querier is *sql.DB or *sql.Tx.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
 
 // Install writes the registered alias tables into a new catalog. Call only
 // from catalog create. A table that already exists is left alone, including
@@ -81,7 +74,7 @@ func Install(c *database.Catalog) error {
 // Load reads every alias table. No rows returns a nil slice. A table's Sets
 // are the stored sets in ascending set_idx order; a position is not a set_idx,
 // so a stored index far above the rest costs nothing.
-func Load(q Querier) ([]valuecompare.AliasTable, error) {
+func Load(q database.Querier) ([]valuecompare.AliasTable, error) {
 	rows, err := q.Query(`SELECT id, key, origin, label, kind FROM name_alias_tables ORDER BY key, origin`)
 	if err != nil {
 		return nil, err

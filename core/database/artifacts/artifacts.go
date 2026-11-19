@@ -395,11 +395,7 @@ func HasAnyForSource(c *database.Catalog, sourceID []byte) (bool, error) {
 	return true, nil
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanArtifact(row rowScanner) (Artifact, error) {
+func scanArtifact(row database.Scanner) (Artifact, error) {
 	var a Artifact
 	var fileID []byte
 	if err := row.Scan(&a.ID, &a.Ref, &a.SourceID, &fileID, &a.Label, &a.Description); err != nil {

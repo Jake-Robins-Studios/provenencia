@@ -1,11 +1,14 @@
 package effects
 
-import "github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+import (
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+)
 
 // SourceScopeOfChange resolves the Source scope of changes[i] alone, with every
 // delete in changes as a ghost. It is visible to the external test package,
 // which can run the real deletes; no production code reaches it.
-func SourceScopeOfChange(q querier, changes []rowchange.Change, i int) ([][]byte, error) {
+func SourceScopeOfChange(q dbsql.Querier, changes []rowchange.Change, i int) ([][]byte, error) {
 	table, ok := entityTable[changes[i].EntityType]
 	if !ok {
 		return nil, errf("effects: no entry for %s", changes[i].EntityType)

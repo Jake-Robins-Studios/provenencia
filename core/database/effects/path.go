@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
 )
@@ -19,15 +20,10 @@ type Path struct {
 func (p Path) zero() bool { return p.run == nil }
 
 type walk struct {
-	q      querier
+	q      dbsql.Querier
 	ch     rowchange.Change
 	ghosts ghostMap
 	table  string
-}
-
-type querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
 }
 
 func self() Path {
@@ -167,11 +163,11 @@ func inbound(table, col string) Path {
 				if len(id) != 16 {
 					continue
 				}
-				got, err := queryIDs(w.q, q, id)
+				got, err := dbsql.QueryIDs(w.q, q, id)
 				if err != nil {
 					return nil, err
 				}
-				out = append(out, got...)
+				out = append(out, uuidsOnly(got)...)
 			}
 			return out, nil
 		},
@@ -216,11 +212,11 @@ func across(table, fromCol, toCol string, statuses ...string) Path {
 				if len(id) != 16 {
 					continue
 				}
-				got, err := queryIDs(w.q, q, id)
+				got, err := dbsql.QueryIDs(w.q, q, id)
 				if err != nil {
 					return nil, err
 				}
-				out = append(out, got...)
+				out = append(out, uuidsOnly(got)...)
 			}
 			return out, nil
 		},
@@ -367,11 +363,11 @@ func sqlPath(query string) Path {
 				if len(id) != 16 {
 					continue
 				}
-				got, err := queryIDs(w.q, query, id)
+				got, err := dbsql.QueryIDs(w.q, query, id)
 				if err != nil {
 					return nil, err
 				}
-				out = append(out, got...)
+				out = append(out, uuidsOnly(got)...)
 			}
 			return out, nil
 		},
@@ -462,25 +458,6 @@ func readRowsColumn(w *walk, table string, ids [][]byte, col string) ([][]byte, 
 	return out, nil
 }
 
-func queryIDs(q querier, query string, args ...any) ([][]byte, error) {
-	rows, err := q.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out [][]byte
-	for rows.Next() {
-		var id []byte
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		if len(id) == 16 {
-			out = append(out, append([]byte(nil), id...))
-		}
-	}
-	return out, rows.Err()
-}
-
 func uuidPair(old, new any) [][]byte {
 	var out [][]byte
 	for _, v := range []any{new, old} {
@@ -517,4 +494,15 @@ func uuidValue(v any) []byte {
 func asString(v any) string {
 	s, _ := v.(string)
 	return s
+}
+
+// uuidsOnly keeps the 16-byte ids of a queried column and drops the rest.
+func uuidsOnly(ids [][]byte) [][]byte {
+	var out [][]byte
+	for _, id := range ids {
+		if len(id) == 16 {
+			out = append(out, id)
+		}
+	}
+	return out
 }

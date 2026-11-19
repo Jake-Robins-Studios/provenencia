@@ -5,8 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/fs"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/gosrc"
 )
 
 // TestResolversCoverEveryEntityType parses non-test Go under core/ for every
@@ -22,41 +21,33 @@ import (
 // recorded instead of failing at runtime. An entity whose effect is None is
 // committed without a revision and is left out of an audited change list.
 func TestResolversCoverEveryEntityType(t *testing.T) {
-	root := filepath.Join("..", "..")
 	found := map[string]string{}
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
+	for _, file := range gosrc.Files(t, "core") {
+		if strings.HasSuffix(file.Rel, "_test.go") {
+			continue
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-			return nil
-		}
-		f, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		f, err := parser.ParseFile(token.NewFileSet(), file.Path, nil, 0)
 		if err != nil {
-			return err
+			t.Fatal(err)
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
 			switch x := n.(type) {
 			case *ast.KeyValueExpr:
 				if k, ok := x.Key.(*ast.Ident); ok && k.Name == "EntityType" {
 					if s, ok := stringLit(x.Value); ok {
-						found[s] = path
+						found[s] = file.Rel
 					}
 				}
 			case *ast.CallExpr:
 				// rowFacet(parent, table, fkCol, entityType, entityIDCol, cols...)
 				if fn, ok := x.Fun.(*ast.Ident); ok && fn.Name == "rowFacet" && len(x.Args) >= 4 {
 					if s, ok := stringLit(x.Args[3]); ok {
-						found[s] = path
+						found[s] = file.Rel
 					}
 				}
 			}
 			return true
 		})
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
 	}
 	if len(found) < 10 {
 		t.Fatalf("found only %d entity types; parser walk broken? %v", len(found), found)

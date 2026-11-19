@@ -264,7 +264,7 @@ type row struct {
 	ImageFileID          []byte
 }
 
-func snapshot(t testing.TB, q autoreconciler.Querier) []row {
+func snapshot(t testing.TB, q database.Querier) []row {
 	t.Helper()
 	rows, err := q.Query(`SELECT entity_id, property_id, rank, value_text, value_integer, value_term_id,
 		value_date, value_name, date_lo, date_hi, sort_key, support, against, reason, value_entity_id, value_image_file_id
@@ -307,7 +307,7 @@ type outcome struct {
 	VoteSupport, VoteTotal              *int
 }
 
-func outcomesSnapshot(t testing.TB, q autoreconciler.Querier) []outcome {
+func outcomesSnapshot(t testing.TB, q database.Querier) []outcome {
 	t.Helper()
 	rows, err := q.Query(`SELECT entity_id, property_id, observation_id, reason, value_rank, denied_by,
 			vote_support, vote_total
@@ -1191,7 +1191,7 @@ func (f *fixture) assertUpkeepEqualsRebuild(at string) {
 }
 
 // inputRows is every row of catalog_search_inputs, as text, sorted.
-func inputRows(t testing.TB, q autoreconciler.Querier) []string {
+func inputRows(t testing.TB, q database.Querier) []string {
 	t.Helper()
 	rows, err := q.Query(`SELECT hex(dependent_id), hex(input_id), bridge, endpoint, dependent_is_association FROM catalog_search_inputs
 		ORDER BY dependent_id, input_id, bridge, endpoint`)
@@ -1209,7 +1209,7 @@ func inputRows(t testing.TB, q autoreconciler.Querier) []string {
 }
 
 // handleDocs is every person / event / place search document, as text.
-func handleDocs(t testing.TB, q autoreconciler.Querier) []string {
+func handleDocs(t testing.TB, q database.Querier) []string {
 	t.Helper()
 	rows, err := q.Query(`SELECT kind, entity_id, display_ref, display_title, title, ref, secondary
 		FROM catalog_search_docs WHERE kind IN ('person', 'event', 'place') ORDER BY kind, entity_id`)

@@ -60,13 +60,6 @@ const (
 	SecondaryTagAlias   = "~\t"
 )
 
-// Querier is *sql.Tx or *sql.DB.
-type Querier interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
-
 // Document is one navigable search root ready to write.
 type Document struct {
 	Kind                    string
@@ -85,7 +78,7 @@ type Document struct {
 }
 
 // Delete removes a root from docs + FTS. No-op if missing.
-func Delete(q Querier, kind, entityID string) error {
+func Delete(q database.Execer, kind, entityID string) error {
 	kind = strings.TrimSpace(kind)
 	entityID = strings.TrimSpace(entityID)
 	if kind == "" || entityID == "" {
@@ -120,7 +113,7 @@ func Delete(q Querier, kind, entityID string) error {
 }
 
 // Upsert replaces the document for (kind, entity_id).
-func Upsert(q Querier, doc Document) error {
+func Upsert(q database.Execer, doc Document) error {
 	doc.Kind = strings.TrimSpace(doc.Kind)
 	doc.EntityID = strings.TrimSpace(doc.EntityID)
 	if doc.Kind == "" || doc.EntityID == "" || strings.TrimSpace(doc.DisplayTitle) == "" {
@@ -244,7 +237,7 @@ func foldedWords(texts ...string) string {
 }
 
 // ClearAll wipes the projection (FTS + docs + summary inputs). Meta version is left unchanged.
-func ClearAll(q Querier) error {
+func ClearAll(q database.Execer) error {
 	if _, err := q.Exec(`INSERT INTO catalog_search_fts(catalog_search_fts) VALUES('delete-all')`); err != nil {
 		return err
 	}
@@ -259,7 +252,7 @@ func ClearAll(q Querier) error {
 }
 
 // ProjectionVersionStored returns the meta row version (0 if missing).
-func ProjectionVersionStored(q Querier) (int, error) {
+func ProjectionVersionStored(q database.Querier) (int, error) {
 	var v int
 	err := q.QueryRow(`SELECT projection_version FROM catalog_search_meta WHERE id = 1`).Scan(&v)
 	if err == sql.ErrNoRows {
@@ -269,7 +262,7 @@ func ProjectionVersionStored(q Querier) (int, error) {
 }
 
 // SetProjectionVersion writes the meta singleton.
-func SetProjectionVersion(q Querier, version int) error {
+func SetProjectionVersion(q database.Execer, version int) error {
 	_, err := q.Exec(
 		`INSERT INTO catalog_search_meta (id, projection_version) VALUES (1, ?)
 		 ON CONFLICT(id) DO UPDATE SET projection_version = excluded.projection_version`,
@@ -279,7 +272,7 @@ func SetProjectionVersion(q Querier, version int) error {
 }
 
 // NeedsRebuild reports lagging or empty-vs-inconsistent index.
-func NeedsRebuild(q Querier) (bool, error) {
+func NeedsRebuild(q database.Querier) (bool, error) {
 	v, err := ProjectionVersionStored(q)
 	if err != nil {
 		return false, err
@@ -303,7 +296,7 @@ func NeedsRebuild(q Querier) (bool, error) {
 
 // Reproject refreshes the documents effects.Resolve named. A source-type id
 // also refreshes every Source that uses that type.
-func Reproject(q Querier, docs []effects.SearchIDs) error {
+func Reproject(q database.Execer, docs []effects.SearchIDs) error {
 	for _, doc := range docs {
 		for _, id := range doc.IDs {
 			var err error
@@ -331,7 +324,7 @@ func Reproject(q Querier, docs []effects.SearchIDs) error {
 }
 
 // ReprojectSource builds the Source navigable document (own fields + rolled children).
-func ReprojectSource(q Querier, sourceID []byte) error {
+func ReprojectSource(q database.Execer, sourceID []byte) error {
 	if len(sourceID) != 16 {
 		return nil
 	}
@@ -455,7 +448,7 @@ func ReprojectSource(q Querier, sourceID []byte) error {
 }
 
 // ReprojectSourceType indexes one source_types root.
-func ReprojectSourceType(q Querier, typeID []byte) error {
+func ReprojectSourceType(q database.Execer, typeID []byte) error {
 	if len(typeID) != 16 {
 		return nil
 	}
@@ -481,7 +474,7 @@ func ReprojectSourceType(q Querier, typeID []byte) error {
 }
 
 // ReprojectMetadataField indexes one source_metadata_fields root.
-func ReprojectMetadataField(q Querier, fieldID []byte) error {
+func ReprojectMetadataField(q database.Execer, fieldID []byte) error {
 	if len(fieldID) != 16 {
 		return nil
 	}
@@ -507,7 +500,7 @@ func ReprojectMetadataField(q Querier, fieldID []byte) error {
 
 // ReprojectEvidenceGraph indexes one Evidence graph: its name, ref and
 // description are the match text, and its Source rides in the display columns.
-func ReprojectEvidenceGraph(q Querier, graphID []byte) error {
+func ReprojectEvidenceGraph(q database.Execer, graphID []byte) error {
 	if len(graphID) != 16 {
 		return nil
 	}
@@ -540,11 +533,11 @@ func ReprojectEvidenceGraph(q Querier, graphID []byte) error {
 }
 
 // RebuildAll clears and reprojects every navigable root, then stamps the version.
-func RebuildAll(q Querier) error {
+func RebuildAll(q database.Execer) error {
 	if err := ClearAll(q); err != nil {
 		return err
 	}
-	typeIDs, err := listIDs(q, `SELECT id FROM source_types`)
+	typeIDs, err := database.QueryIDs(q, `SELECT id FROM source_types`)
 	if err != nil {
 		return err
 	}
@@ -553,7 +546,7 @@ func RebuildAll(q Querier) error {
 			return err
 		}
 	}
-	fieldIDs, err := listIDs(q, `SELECT id FROM source_metadata_fields`)
+	fieldIDs, err := database.QueryIDs(q, `SELECT id FROM source_metadata_fields`)
 	if err != nil {
 		return err
 	}
@@ -562,7 +555,7 @@ func RebuildAll(q Querier) error {
 			return err
 		}
 	}
-	sourceIDs, err := listIDs(q, `SELECT id FROM sources`)
+	sourceIDs, err := database.QueryIDs(q, `SELECT id FROM sources`)
 	if err != nil {
 		return err
 	}
@@ -571,7 +564,7 @@ func RebuildAll(q Querier) error {
 			return err
 		}
 	}
-	graphIDs, err := listIDs(q, `SELECT id FROM evidence_graphs`)
+	graphIDs, err := database.QueryIDs(q, `SELECT id FROM evidence_graphs`)
 	if err != nil {
 		return err
 	}
@@ -588,11 +581,11 @@ func RebuildAll(q Querier) error {
 
 // ReprojectSourcesForType refreshes every Source document that uses typeID
 // (type label rolls into Source secondary / subtitle).
-func ReprojectSourcesForType(q Querier, typeID []byte) error {
+func ReprojectSourcesForType(q database.Execer, typeID []byte) error {
 	if len(typeID) != 16 {
 		return nil
 	}
-	ids, err := listIDs(q, `SELECT id FROM sources WHERE source_type_id = ?`, typeID)
+	ids, err := database.QueryIDs(q, `SELECT id FROM sources WHERE source_type_id = ?`, typeID)
 	if err != nil {
 		return err
 	}
@@ -605,11 +598,11 @@ func ReprojectSourcesForType(q Querier, typeID []byte) error {
 }
 
 // SourceIDsForFile returns owning Source ids for artifacts that reference fileID.
-func SourceIDsForFile(q Querier, fileID []byte) ([][]byte, error) {
+func SourceIDsForFile(q database.Querier, fileID []byte) ([][]byte, error) {
 	if len(fileID) != 16 {
 		return nil, nil
 	}
-	return listIDs(q, `SELECT DISTINCT source_id FROM artifacts WHERE file_id = ?`, fileID)
+	return database.QueryIDs(q, `SELECT DISTINCT source_id FROM artifacts WHERE file_id = ?`, fileID)
 }
 
 // EnsureCatalog rebuilds when needed. Prefer calling after Open/Create ensures.
@@ -636,28 +629,11 @@ func EnsureCatalog(c *database.Catalog) error {
 	return tx.Commit()
 }
 
-func listIDs(q Querier, query string, args ...any) ([][]byte, error) {
-	rows, err := q.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out [][]byte
-	for rows.Next() {
-		var id []byte
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		out = append(out, id)
-	}
-	return out, rows.Err()
-}
-
 // existingSourceCoverThumb returns objects/… when cover is an artifact and a
 // thumbnail derivative already exists (lookup-only; no EnsureThumbnail).
 // The path is files.ReadRelPath's: a thumbnail whose type is off the
 // allowlist (a damaged row) gives the Source no cover thumbnail.
-func existingSourceCoverThumb(q Querier, sourceID []byte) (string, error) {
+func existingSourceCoverThumb(q database.Querier, sourceID []byte) (string, error) {
 	var checksum, mediaType string
 	err := q.QueryRow(`
 		SELECT COALESCE(f.checksum_sha256, ''), COALESCE(f.media_type, '')

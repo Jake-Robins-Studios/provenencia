@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
@@ -12,13 +13,13 @@ import (
 
 // countingQuerier counts the single-row lookups a walk issues.
 type countingQuerier struct {
-	querier
+	dbsql.Querier
 	rows int
 }
 
 func (c *countingQuerier) QueryRow(query string, args ...any) *sql.Row {
 	c.rows++
-	return c.querier.QueryRow(query, args...)
+	return c.Querier.QueryRow(query, args...)
 }
 
 // TestReadRowsColumnLooksUpEachIDOnce pins that a path step looks each
@@ -39,7 +40,7 @@ func TestReadRowsColumnLooksUpEachIDOnce(t *testing.T) {
 		id(1), id(9), id(2), id(8)); err != nil {
 		t.Fatal(err)
 	}
-	cq := &countingQuerier{querier: db}
+	cq := &countingQuerier{Querier: db}
 	w := &walk{q: cq, table: "subjects"}
 	got, err := readRowsColumn(w, "subjects", [][]byte{id(1), id(1), id(2), id(1)}, "graph_id")
 	if err != nil {

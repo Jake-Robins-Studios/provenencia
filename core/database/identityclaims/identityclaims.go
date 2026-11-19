@@ -215,11 +215,7 @@ func acceptedForSubject(tx *sql.Tx, subjectID []byte) (Claim, error) {
 	return scanClaim(tx.QueryRow(sqlAcceptedForSubject, subjectID))
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanClaim(row rowScanner) (Claim, error) {
+func scanClaim(row database.Scanner) (Claim, error) {
 	var cl Claim
 	if err := row.Scan(&cl.ID, &cl.SubjectID, &cl.EntityID, &cl.SubjectTypeID,
 		&cl.Status); err != nil {

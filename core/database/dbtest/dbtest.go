@@ -6,6 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 )
 
 // QueryPlan runs EXPLAIN QUERY PLAN on query with args and returns the detail
@@ -33,9 +35,7 @@ func QueryPlan(t testing.TB, db *sql.DB, query string, args ...any) []string {
 }
 
 // Count runs a single-integer query (SELECT COUNT(*) …) on a *sql.DB or *sql.Tx.
-func Count(t testing.TB, q interface {
-	QueryRow(string, ...any) *sql.Row
-}, query string, args ...any) int {
+func Count(t testing.TB, q dbsql.Querier, query string, args ...any) int {
 	t.Helper()
 	var n int
 	if err := q.QueryRow(query, args...).Scan(&n); err != nil {

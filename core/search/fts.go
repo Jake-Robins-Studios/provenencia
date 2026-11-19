@@ -270,6 +270,8 @@ func isHandleKind(kind string) bool {
 }
 
 // fillMemberCounts sets MemberCount on handle hits: one query for the page.
+//
+// The IN list is bounded: ids is one page of hits.
 func fillMemberCounts(ctx context.Context, db *sql.DB, hits []Hit) error {
 	var ids []any
 	index := map[string][]int{}
@@ -289,7 +291,7 @@ func fillMemberCounts(ctx context.Context, db *sql.DB, hits []Hit) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	marks := strings.TrimSuffix(strings.Repeat("?, ", len(ids)), ", ")
+	marks := database.SQLInPlaceholders(len(ids))
 	rows, err := db.QueryContext(ctx, `SELECT entity_id, COUNT(*) FROM identity_claims
 		WHERE status = 'accepted' AND entity_id IN (`+marks+`) GROUP BY entity_id`, ids...)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"database/sql"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
@@ -40,7 +41,7 @@ type Graph struct {
 	displays map[string]any
 	labels   any
 	labelsOK bool
-	alt      Querier
+	alt      dbsql.Querier
 
 	// activity is last activity per scope type, then per scope id, loaded by
 	// the first Activity read of that type and patched by OnCommit.
@@ -191,12 +192,6 @@ type Link struct {
 	NeighborTypeID           []byte
 	BridgeTypeKey            string
 	NeighborTypeKey          string
-}
-
-// Querier is the read surface Verify's truth check and tests use.
-type Querier interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
 }
 
 // New returns an empty graph bound to db. Open and Create attach it and Listen.
@@ -367,7 +362,7 @@ func (g *Graph) note() {
 // Over is a graph that reads q and stores nothing the caller keeps. A save
 // composes rows from its open transaction this way, because the catalog
 // graph is still on the previous commit and the catalog has one connection.
-func Over(q Querier) *Graph {
+func Over(q dbsql.Querier) *Graph {
 	g := New(nil)
 	g.alt = q
 	return g

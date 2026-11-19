@@ -62,9 +62,7 @@ func Insert(c *database.Catalog, v datevalue.Value) ([]byte, error) {
 }
 
 // InsertTx validates and inserts on an existing connection or transaction.
-func InsertTx(q interface {
-	Exec(query string, args ...any) (sql.Result, error)
-}, v datevalue.Value) ([]byte, error) {
+func InsertTx(q database.Execer, v datevalue.Value) ([]byte, error) {
 	v = normalize(v)
 	if err := datevalue.Validate(v); err != nil {
 		return nil, err
@@ -73,9 +71,7 @@ func InsertTx(q interface {
 }
 
 // insert stores a value already normalized and validated.
-func insert(q interface {
-	Exec(query string, args ...any) (sql.Result, error)
-}, v datevalue.Value) ([]byte, error) {
+func insert(q database.Execer, v datevalue.Value) ([]byte, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
 		return nil, err
@@ -84,25 +80,25 @@ func insert(q interface {
 		sqlInsert,
 		id[:],
 		v.Kind,
-		nullIfEmpty(v.Qualifier),
-		nullIfEmpty(v.Calendar),
-		nullInt(v.StartYear),
-		nullInt(v.StartMonth),
-		nullInt(v.StartDay),
-		nullInt(v.StartHour),
-		nullInt(v.StartMinute),
-		nullInt(v.StartSecond),
-		nullInt(v.StartMillisecond),
-		nullIfEmpty(v.StartTZ),
-		nullInt(v.EndYear),
-		nullInt(v.EndMonth),
-		nullInt(v.EndDay),
-		nullInt(v.EndHour),
-		nullInt(v.EndMinute),
-		nullInt(v.EndSecond),
-		nullInt(v.EndMillisecond),
-		nullIfEmpty(v.EndTZ),
-		nullIfEmpty(v.Phrase),
+		database.NullTrimmed(v.Qualifier),
+		database.NullTrimmed(v.Calendar),
+		database.NullInt(v.StartYear),
+		database.NullInt(v.StartMonth),
+		database.NullInt(v.StartDay),
+		database.NullInt(v.StartHour),
+		database.NullInt(v.StartMinute),
+		database.NullInt(v.StartSecond),
+		database.NullInt(v.StartMillisecond),
+		database.NullTrimmed(v.StartTZ),
+		database.NullInt(v.EndYear),
+		database.NullInt(v.EndMonth),
+		database.NullInt(v.EndDay),
+		database.NullInt(v.EndHour),
+		database.NullInt(v.EndMinute),
+		database.NullInt(v.EndSecond),
+		database.NullInt(v.EndMillisecond),
+		database.NullTrimmed(v.EndTZ),
+		database.NullTrimmed(v.Phrase),
 	)
 	if err != nil {
 		return nil, err
@@ -134,25 +130,25 @@ func update(tx *sql.Tx, id []byte, v datevalue.Value) error {
 	_, err := tx.Exec(
 		sqlUpdate,
 		v.Kind,
-		nullIfEmpty(v.Qualifier),
-		nullIfEmpty(v.Calendar),
-		nullInt(v.StartYear),
-		nullInt(v.StartMonth),
-		nullInt(v.StartDay),
-		nullInt(v.StartHour),
-		nullInt(v.StartMinute),
-		nullInt(v.StartSecond),
-		nullInt(v.StartMillisecond),
-		nullIfEmpty(v.StartTZ),
-		nullInt(v.EndYear),
-		nullInt(v.EndMonth),
-		nullInt(v.EndDay),
-		nullInt(v.EndHour),
-		nullInt(v.EndMinute),
-		nullInt(v.EndSecond),
-		nullInt(v.EndMillisecond),
-		nullIfEmpty(v.EndTZ),
-		nullIfEmpty(v.Phrase),
+		database.NullTrimmed(v.Qualifier),
+		database.NullTrimmed(v.Calendar),
+		database.NullInt(v.StartYear),
+		database.NullInt(v.StartMonth),
+		database.NullInt(v.StartDay),
+		database.NullInt(v.StartHour),
+		database.NullInt(v.StartMinute),
+		database.NullInt(v.StartSecond),
+		database.NullInt(v.StartMillisecond),
+		database.NullTrimmed(v.StartTZ),
+		database.NullInt(v.EndYear),
+		database.NullInt(v.EndMonth),
+		database.NullInt(v.EndDay),
+		database.NullInt(v.EndHour),
+		database.NullInt(v.EndMinute),
+		database.NullInt(v.EndSecond),
+		database.NullInt(v.EndMillisecond),
+		database.NullTrimmed(v.EndTZ),
+		database.NullTrimmed(v.Phrase),
 		id,
 	)
 	return err
@@ -216,21 +212,21 @@ func RowMap(id []byte, v datevalue.Value) map[string]any {
 		"kind":              database.NullString(v.Kind),
 		"qualifier":         database.NullString(v.Qualifier),
 		"calendar":          database.NullString(v.Calendar),
-		"start_year":        nullInt(v.StartYear),
-		"start_month":       nullInt(v.StartMonth),
-		"start_day":         nullInt(v.StartDay),
-		"start_hour":        nullInt(v.StartHour),
-		"start_minute":      nullInt(v.StartMinute),
-		"start_second":      nullInt(v.StartSecond),
-		"start_millisecond": nullInt(v.StartMillisecond),
+		"start_year":        database.NullInt(v.StartYear),
+		"start_month":       database.NullInt(v.StartMonth),
+		"start_day":         database.NullInt(v.StartDay),
+		"start_hour":        database.NullInt(v.StartHour),
+		"start_minute":      database.NullInt(v.StartMinute),
+		"start_second":      database.NullInt(v.StartSecond),
+		"start_millisecond": database.NullInt(v.StartMillisecond),
 		"start_tz":          database.NullString(v.StartTZ),
-		"end_year":          nullInt(v.EndYear),
-		"end_month":         nullInt(v.EndMonth),
-		"end_day":           nullInt(v.EndDay),
-		"end_hour":          nullInt(v.EndHour),
-		"end_minute":        nullInt(v.EndMinute),
-		"end_second":        nullInt(v.EndSecond),
-		"end_millisecond":   nullInt(v.EndMillisecond),
+		"end_year":          database.NullInt(v.EndYear),
+		"end_month":         database.NullInt(v.EndMonth),
+		"end_day":           database.NullInt(v.EndDay),
+		"end_hour":          database.NullInt(v.EndHour),
+		"end_minute":        database.NullInt(v.EndMinute),
+		"end_second":        database.NullInt(v.EndSecond),
+		"end_millisecond":   database.NullInt(v.EndMillisecond),
 		"end_tz":            database.NullString(v.EndTZ),
 		"phrase":            database.NullString(v.Phrase),
 	}
@@ -277,9 +273,7 @@ func Lookup(c *database.Catalog, id []byte) (datevalue.Value, error) {
 
 // LookupManyTx returns date_values rows for the given ids, one query per
 // sqlbatch.Size ids, keyed by string(id). Missing ids are omitted.
-func LookupManyTx(q interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}, ids [][]byte) (map[string]datevalue.Value, error) {
+func LookupManyTx(q database.Querier, ids [][]byte) (map[string]datevalue.Value, error) {
 	ids = database.UniqueBlobIDs(ids)
 	out := make(map[string]datevalue.Value, len(ids))
 	if len(ids) == 0 {
@@ -302,9 +296,7 @@ func LookupManyTx(q interface {
 }
 
 // LookupTx returns the date_values row for id on an existing connection or transaction.
-func LookupTx(q interface {
-	QueryRow(query string, args ...any) *sql.Row
-}, id []byte) (datevalue.Value, error) {
+func LookupTx(q database.Querier, id []byte) (datevalue.Value, error) {
 	if q == nil || len(id) != 16 {
 		return datevalue.Value{}, datevalue.ErrInvalid
 	}
@@ -316,21 +308,6 @@ func LookupTx(q interface {
 	return v, nil
 }
 
-func nullIfEmpty(s string) any {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil
-	}
-	return s
-}
-
-func nullInt(p *int) any {
-	if p == nil {
-		return nil
-	}
-	return *p
-}
-
 func intPtr(n sql.NullInt64) *int {
 	if !n.Valid {
 		return nil
@@ -340,7 +317,7 @@ func intPtr(n sql.NullInt64) *int {
 }
 
 // scanValue reads the sqlLookup column list, after any leading columns.
-func scanValue(row interface{ Scan(dest ...any) error }, lead ...any) (datevalue.Value, error) {
+func scanValue(row database.Scanner, lead ...any) (datevalue.Value, error) {
 	var (
 		v                                                         datevalue.Value
 		qual, cal, phrase, startTZ, endTZ                         sql.NullString

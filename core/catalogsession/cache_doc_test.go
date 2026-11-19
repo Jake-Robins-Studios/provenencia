@@ -3,9 +3,8 @@ package catalogsession_test
 import (
 	"go/parser"
 	"go/token"
-	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 	"slices"
 	"strings"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	_ "github.com/Jake-Robins-Studios/provenencia/core/database/promotealign"
 	_ "github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/internal/doctable"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/gosrc"
 )
 
 // TestCacheDocListsEveryEntry holds docs/catalog-caches.md to the cache
@@ -51,28 +51,17 @@ func TestCacheDocListsEveryEntry(t *testing.T) {
 // graphcache.RegisterKeyed or RegisterWhole is imported here, so the registry
 // this package reads is the app's.
 func TestCacheDocSeesEveryOwner(t *testing.T) {
-	const module = "github.com/Jake-Robins-Studios/provenencia/"
 	owners := map[string]bool{}
-	for _, root := range []string{"core", "api"} {
-		err := filepath.WalkDir(filepath.Join("../..", root), func(path string, d fs.DirEntry, err error) error {
-			if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-				return err
-			}
-			src, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			if strings.Contains(string(src), "graphcache.RegisterKeyed(") || strings.Contains(string(src), "graphcache.RegisterWhole(") {
-				dir, err := filepath.Rel("../..", filepath.Dir(path))
-				if err != nil {
-					return err
-				}
-				owners[module+filepath.ToSlash(dir)] = true
-			}
-			return nil
-		})
+	for _, file := range gosrc.Files(t, "core", "api") {
+		if strings.HasSuffix(file.Rel, "_test.go") {
+			continue
+		}
+		src, err := os.ReadFile(file.Path)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if strings.Contains(string(src), "graphcache.RegisterKeyed(") || strings.Contains(string(src), "graphcache.RegisterWhole(") {
+			owners[gosrc.Module+path.Dir(file.Rel)] = true
 		}
 	}
 	if len(owners) == 0 {

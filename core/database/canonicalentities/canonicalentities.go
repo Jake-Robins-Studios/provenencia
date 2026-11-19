@@ -158,9 +158,7 @@ func GetTx(tx *sql.Tx, id []byte) (Entity, error) {
 // GetManyTx returns the handles with the given ids, keyed by string(id), on
 // an existing connection or transaction: one query per sqlbatch.Size ids.
 // Unknown ids are absent.
-func GetManyTx(q interface {
-	Query(query string, args ...any) (*sql.Rows, error)
-}, ids [][]byte) (map[string]Entity, error) {
+func GetManyTx(q database.Querier, ids [][]byte) (map[string]Entity, error) {
 	ids = database.UniqueBlobIDs(ids)
 	out := make(map[string]Entity, len(ids))
 	if len(ids) == 0 {
@@ -234,11 +232,7 @@ func CountByTypeKey(c *database.Catalog, typeKey string) (int, error) {
 	return n, err
 }
 
-type rowScanner interface {
-	Scan(dest ...any) error
-}
-
-func scanEntity(row rowScanner) (Entity, error) {
+func scanEntity(row database.Scanner) (Entity, error) {
 	var e Entity
 	if err := row.Scan(&e.ID, &e.SubjectTypeID, &e.Ref, &e.Argument, &e.Label, &e.MergedIntoID); err != nil {
 		return Entity{}, err
