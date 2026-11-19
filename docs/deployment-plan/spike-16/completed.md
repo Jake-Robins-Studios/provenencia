@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-46 — Back returns to the row you opened in a section
+
+**Landed 2026-11-19** in [#890](https://github.com/mendahu/provenencia/pull/890). A Person, Event or Place page now remembers the row it opened another place from, as `WorkspaceLocation.sectionAnchor` on the history entry (not identity, nil from older files and unknown parts, cleared by a section switch), written by `navigation.go(to:from:)`. Back and Forward scroll to that row and give it the keyboard through one `conclusionAnchorRestore` modifier, answered by each content's `anchorTarget(for:)`: Family tiles, Timeline titles and cards, Sources titles, record lines and diagram nodes, field rows' open arrows, Event and Place pictures and Place relationship rows. A row a fold hides gives the keyboard to the fold's Show more; folds stay closed. `ConclusionShowMoreRow` takes its stop in the section's focus state. Product 0.23.4.
+
 ## S16-45 — A graph delete names the Artifacts it leaves in no graph
 
 **Landed 2026-11-18** in [#888](https://github.com/mendahu/provenencia/pull/888). The graph delete confirm now names the Artifacts it leaves in no evidence graph, through a new `deleteimpact` cascade (`evidence_graph_artifacts.last_graph`) that counts and lists, by ref, the Artifacts linked only to that graph. `cascades.go` moves the cascade registry out of `handle_gone.go` and adds the new edge and `CascadeVias()`, which the Swift vocabulary parity test reads instead of a hand-kept list. Swift maps the new via to `L10n.DeleteImpact.leavesNoGraph` — singular and plural — in the Artifact sheet's words. Product 0.23.3.

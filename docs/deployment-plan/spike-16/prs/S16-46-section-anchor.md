@@ -1,6 +1,7 @@
 # S16-46 — Back returns to the row you opened in a section
 
-**Status:** Planned
+**Status:** Landed in [#890](https://github.com/mendahu/provenencia/pull/890) (2026-11-19)
+**Landed:** Differences from the plan: `PersonRecordLinksColumn` takes `anchorFocus` and `anchorScrollID` and applies the node restore itself, because the diagram host's content closure must return that exact type, so D-11's modifier could not wrap it from outside; `ConclusionDetailRowsSection.anchorTarget(rows:anchor:)` is `static`, and `ConclusionAnchorRestoreTests` is `@MainActor`, so the test reaches it without a Swift warning; `PlaceRelationshipRow` falls back to a plain `go(to:)` if the anchor cannot be built.
 **Spike / slice:** Spike 16 · Slice 6b — Person page follow-ups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Back moves the scroll and the keyboard to a row the page already draws; nothing on any page looks different, working rule "(Batch 6) Back restores a section's scroll and focus, not its folds")
