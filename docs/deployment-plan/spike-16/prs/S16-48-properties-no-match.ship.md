@@ -16,7 +16,7 @@ Reviewers: CON, MNT, UX (`macos/App/**`, `Localizable.xcstrings`), SEC+PRF (`mac
 | MNT-1 | MNT | minor | `.rows` has no payload; the view filters and sorts `visibleProperties` a second time | Fix now → F-1 | verified: `PropertiesModel.swift:120` reads `visibleProperties` to pick `.rows`, `PropertiesView.swift:284` reads it again; contradicts the plan's Edges ("reads `visibleProperties` once per body"); `ConclusionListPresentation.rows([Row], …)` is the precedent |
 | MNT-2 | MNT | minor | `PVEmptyState`'s `icon:title:` init and its `icon:` `EmptyView` overloads copy the `glyph:` bodies instead of forwarding | Fix now → F-2 | verified: `PVEmptyState.swift:15-42` differ only in `.symbol(icon)`; same-pass cleanup of a grid this PR changes. Supersedes D-9's "no change to … any other init" (no behavior change) |
 | UX-1 | UX | minor | A wrapped verbatim title is left-aligned while the message under it is centered | To user → Fix now → F-3 (user 2026-11-19) | verified: `PVEmptyState.swift:79-81` title has no `.multilineTextAlignment(.center)`, message at :87 has it; a 120-character query (PN-6) wraps. The one-line fix changes the kit body, which D-9 says not to touch |
-| UX-2 | UX | minor | With a type selected, "No property matches" shows for a Property that exists but is not bound to that type | Follow-up | board-agreed copy (S16-D8); a type-scoped title is a copy decision for a later pass |
+| UX-2 | UX | minor | With a type selected, "No property matches" shows for a Property that exists but is not bound to that type | Follow-up → Fix now → F-4 (user 2026-11-19) | board-agreed copy (S16-D8); a type-scoped title is a copy decision for a later pass |
 
 Nits (logged): `CON-1 · deployment-plan.md:317 · Landed #899 has no PR link, unlike S16-45/46` · `CON-2 · PropertiesModelTests T-6 checks the model flag only; real focus rests on manual check 1` · `MNT-3 · PropertiesView.swift:312-324 · padding+frame written twice, once per empty state` · `MNT-4 · PropertiesModel.swift:124 · third inline query trim after SourcesModel/CatalogSearchModel.trimmedQuery` · `UX-3 · no VoiceOver announcement when the no-match state appears; matches the rest of the app`
 SEC+PRF: no findings. CON: no findings beyond nits.
@@ -47,4 +47,23 @@ Resolved by orchestrator read of `d2c29f47b..88b020ff8`: MNT-1 **Resolved** (`ta
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI green (Go tests re-run once: `TestLargeSourceBudgets/after_a_handle_commit` in `core/database/promotealign`, untouched by this PR, missed its relative budget by 0.3 ms: 40.51 ms vs 40.24 ms) · open: none · follow-ups: UX-2 · to user: UX-1 (answered: fix on this PR)
+Gate PASS · CI green at `6bebef7fd` (Go tests re-run once: `TestLargeSourceBudgets/after_a_handle_commit` in `core/database/promotealign`, untouched by this PR, missed its relative budget by 0.3 ms: 40.51 ms vs 40.24 ms) · open: none · follow-ups: none · to user: UX-1, UX-2 (both answered: fix on this PR)
+
+## User request — fix UX-2 (2026-11-19)
+The user asked to fix UX-2 on this PR, overriding the board-agreed single title for the type-selected case.
+
+### Fix plan 2
+
+**F-4 — With a type selected, the no-match title names the type** (from UX-2; user 2026-11-19)
+Files: `macos/App/Features/Properties/PropertiesModel.swift`, `macos/App/Features/Properties/PropertiesView.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/ProvenenciaTests/PropertiesModelTests.swift`, the plan. Skills: `add-localized-string`, `add-swift-test`.
+Failing test first: T-2 `tablePresentationShowsNoMatchWithATypeSelected` expects `.noMatch(query: "zzz", typeLabel: "Person")`; T-1, T-3 and T-4's All-properties no-match expectations become `.noMatch(query: "zzz", typeLabel: nil)`. In T-4, the empty-type-plus-search case expects the type's label. Run red first.
+Do:
+- `PropertiesTablePresentation.noMatch(query: String, typeLabel: String?)`. In `tablePresentation`, pass `selectedType?.label`, read from the same `selectedType` the `.emptyType` arm uses.
+- `L10n.Properties.noMatchTitle(query:typeLabel:)`: with `nil`, format the unchanged key `properties.table.emptySearchTitleQuery` ("No property matches “%@”"). With a label, format a new key `properties.table.noMatchOnTypeTitle` = "No property on %1$@ matches “%2$@”". Use positional arguments so a translation can reorder them. Comment: "Title of the Properties empty state when the search matches none of the selected subject type's Properties; argument 1 is the type's label, argument 2 the query". Add the xcstrings entry in the shape of `properties.table.emptyTypeTitle`. Mirror how `emptyTypeTitle(typeLabel:)` uses `L10n.format`.
+- `PropertiesView`: `case .noMatch(let query, let typeLabel)` passes both. Leave the message, button, identifiers and layout unchanged.
+- In the plan: change AC-1.2's expected title to `No property on Person matches “zzz”`, add the key to **Strings**, and add a Landed-note line: "UX-2: a type-scoped no-match title, at the user's request on 2026-11-19, over the board's single title." Change manual check 2 to expect that title. Change manual check 3's `zzz` step to expect `No property on Source matches “zzz”`.
+Check: tests pass; `python3 scripts/check-localizable-xcstrings.py` OK; `rg -n "noMatch\(query" macos` shows every match with a `typeLabel`; scripts/check-pr.sh PASS.
+
+## Round 2 — fix (user request)
+Head `7c0be36d0`. Gate PASS (orchestrator run; `origin/main` unchanged at `b0477ee68`). F-4 done (`7c0be36d0`). The tests were changed first; against the old enum they fail to compile, so there was no separate red run. Not re-reviewed: a minor copy change the user asked for, and no blocker or major was open.
+**Orchestrator read:** UX-2 **Resolved**. `tablePresentation` passes `selectedType?.label`. `noMatchTitle(query:typeLabel:)` keeps `properties.table.emptySearchTitleQuery` for All properties and uses `properties.table.noMatchOnTypeTitle` ("No property on %1$@ matches “%2$@”") for a selected type. The view, the message and the identifiers are unchanged. The plan's AC-1.2, manual checks 2 and 3, and Landed note are updated.
