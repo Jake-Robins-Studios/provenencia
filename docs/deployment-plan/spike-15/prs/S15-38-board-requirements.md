@@ -1,6 +1,6 @@
 # S15-38 — Boards carry their citation's requirements
 
-**Status:** Planned
+**Status:** Landed in [#910](https://github.com/Jake-Robins-Studios/provenencia/pull/910) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go and the wire only. The board draws neither an unsuggested empty entry nor the annotation yet (`MetadataBoardModel.saved` / `suggested`); S15-39 draws them, gated by S15-D20; S15-42 and S15-45 draw the date's and the page's)
@@ -367,3 +367,12 @@ None.
 
 **Title:** S15-38 — Boards carry their citation's requirements
 **Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence; deviations from the plan; the whole-board tests whose expectations changed; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-38-board-requirements.md`.
+
+## Landed
+
+- The version bump is 0.26.2 → 0.27.0: `main` was at 0.26.2 when the PR was cut (the header said 0.26.0 → 0.27.0).
+- `listWorkspaces` returns `map[string]Board`, so besides `TestListWorkspacesExported` the same one-line `.Entries` read changed in `TestListWorkspaces` and in the `workspaces read every owner` subtest of `TestListByOwnersTx`; neither asserts anything new.
+- The seeded birth certificate's formats head artifact and graph fields (`format`, `provider`, `url`, `accessed_date`, `item`, `entry_number`) that the handler fixtures detach from the type's suggestions, so those boards gain empty used entries. `withoutFormatRows` (`metadata_test.go`) drops the entries only the formats put on a board, in `TestMetadataOwners`, `TestGetMetadataBoard`, `TestMetadataBoardsKeepTheirLevel`, `TestUpdateArtifactMetadata` (`artifacts_test.go`), `TestCreateEvidenceGraph` (`evidence_graphs_test.go`) and the artifact and graph board cases of `TestGetSourceWorkspace`. The Source board tests needed no change. The measured seed has no unsuggested head below the Source level (T-8 reads only the Source boards).
+- `sourcemetadata_test.go` splits `testWorld` into `emptyWorld` (a user, no vocabulary) and `testWorld`; `seededWorld` is `emptyWorld` plus the seed.
+- Commits: the shared parse; the board annotations with the dismiss refusal; the draft board read; the version bump (which also carries the § 5.4 text).
+- The in-app manual check (§ 10) was not run in the implementing session.
