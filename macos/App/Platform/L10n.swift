@@ -3968,6 +3968,14 @@ enum L10n {
             comment: "Section header for the Observations list"
         )
 
+        static func observationsCount(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "citationComposer.observationsCount",
+                defaultValue: "%lld observations",
+                comment: "Observations section count in the composer; argument is saved line count"
+            ), count)
+        }
+
         static let savedBadge = LocalizedStringResource(
             "citationComposer.savedBadge",
             defaultValue: "Saved",

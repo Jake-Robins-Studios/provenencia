@@ -1340,6 +1340,7 @@ struct SourcePageModelTests {
         await waitForQuery(session.evidenceGraphsHandle!)
         #expect(model.graphs.rows?.map(\.name) == ["Smith household", "Default", "Jones household"])
         #expect(model.graphs.rows?.first?.name == "Smith household")
+        #expect(model.graphs.countLabel == "3 evidence graphs")
         #expect(L10n.Sources.graphsCount(3) == "3 evidence graphs")
     }
 
@@ -1348,6 +1349,20 @@ struct SourcePageModelTests {
         #expect(L10n.Sources.notesCount(3) == "3 notes")
         #expect(L10n.CitationComposer.citationsCount(1) == "1 citation")
         #expect(L10n.CitationComposer.citationsCount(4) == "4 citations")
+        #expect(L10n.CitationComposer.observationsCount(1) == "1 observation")
+        #expect(L10n.CitationComposer.observationsCount(3) == "3 observations")
+    }
+
+    @Test func graphsCountIsHiddenUntilLoadedAndAtZero() async {
+        let store = makeStore()
+        store.evidenceGraphsByProject[projectDir] = [evidenceGraph("g-other", sourceID: "src-2", name: "Other source")]
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        #expect(model.graphs.countLabel == nil)
+        await model.warmFromSession()
+        await waitForQuery(session.evidenceGraphsHandle!)
+        #expect(model.graphs.rows?.isEmpty == true)
+        #expect(model.graphs.countLabel == nil)
     }
 
     @Test func graphRowsNilUntilListLoadsAndErrorWhenItFails() async {

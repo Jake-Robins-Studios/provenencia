@@ -570,10 +570,20 @@ struct CitationComposerModelTests {
         await jones.prepare()
         #expect(jones.listedCitations.map(\.citation.ref).sorted() == ["CIT-A", "CIT-B", "CIT-C"])
         #expect(jones.listedCount(for: "art-0") == 3)
+        #expect(jones.citationsMeta == "3 citations")
 
         let smith = makeModel(store: store, graphID: "g-2", subjectID: "sub-person-2")
         await smith.prepare()
         #expect(smith.listedCitations.map(\.citation.ref).sorted() == ["CIT-A", "CIT-B", "CIT-C"])
+    }
+
+    @Test func emptyComposerHeadersShowNoCount() async {
+        let model = makeModel(store: makeStore())
+        await model.prepare()
+        #expect(model.listedCitations.isEmpty)
+        #expect(model.citationsMeta == nil)
+        #expect(model.savedLineCount == 0)
+        #expect(model.observationsMeta == nil)
     }
 
     @Test func firstObservationMovesANewCitationIntoTheGraph() async {

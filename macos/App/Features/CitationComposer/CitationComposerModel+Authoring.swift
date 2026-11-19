@@ -20,8 +20,14 @@ extension CitationComposerModel {
         return properties + bridges
     }
 
-    var observationsMeta: String {
-        "\(savedLineCount)"
+    /// The Observations header's count; nil when no line is saved, since the empty list says so.
+    var observationsMeta: String? {
+        savedLineCount == 0 ? nil : L10n.CitationComposer.observationsCount(savedLineCount)
+    }
+
+    /// The Citation column header's count; nil when no Citation is listed.
+    var citationsMeta: String? {
+        listedCitations.isEmpty ? nil : L10n.CitationComposer.citationsCount(listedCitations.count)
     }
 
     var authoringCanConfirm: Bool {

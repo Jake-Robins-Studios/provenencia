@@ -24352,6 +24352,30 @@
           }
         }
       }
+    },
+    "citationComposer.observationsCount": {
+      "comment": "Observations section count in the composer; argument is saved line count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld observation"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld observations"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.1"

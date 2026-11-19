@@ -23,6 +23,11 @@ final class SourceGraphsSection {
     /// graph list has no value.
     var rows: [CatalogEvidenceGraph]? { context.evidenceGraphs }
 
+    /// The section header's count; nil while the list has no value and when the Source has no graph.
+    var countLabel: String? {
+        rows.flatMap { $0.isEmpty ? nil : L10n.Sources.graphsCount($0.count) }
+    }
+
     /// The graph list's error while it has no value to show.
     var loadError: Error? {
         guard case .failed(let error) = context.session.evidenceGraphsRead(sourceID: context.sourceID) else { return nil }
