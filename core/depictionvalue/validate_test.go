@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/depictionvalue/depictionvaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 )
 
 func TestValidate(t *testing.T) {

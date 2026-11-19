@@ -3,9 +3,9 @@ package valuecompare_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/datevalue/datevaluetest"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 func TestDatingOfTiedHiTakesLowestLo(t *testing.T) {

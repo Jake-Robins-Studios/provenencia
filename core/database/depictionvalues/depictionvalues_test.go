@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/files"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/depictionvalue/depictionvaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 )
 
 func TestDepictionValues(t *testing.T) {

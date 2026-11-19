@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // vocabkey names the seed's primary kinds and the Property keys code reads by

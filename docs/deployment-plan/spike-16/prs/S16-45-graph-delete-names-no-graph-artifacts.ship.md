@@ -1,6 +1,6 @@
 # Ship log — S16-45 A graph delete names the Artifacts it leaves in no graph
 
-**Plan:** [`S16-45-graph-delete-names-no-graph-artifacts.md`](S16-45-graph-delete-names-no-graph-artifacts.md) · **Branch:** `s16-45-graph-delete-names-no-graph-artifacts` · **PR:** [#888](https://github.com/mendahu/provenencia/pull/888)
+**Plan:** [`S16-45-graph-delete-names-no-graph-artifacts.md`](S16-45-graph-delete-names-no-graph-artifacts.md) · **Branch:** `s16-45-graph-delete-names-no-graph-artifacts` · **PR:** [#888](https://github.com/Jake-Robins-Studios/provenencia/pull/888)
 **State:** ready
 
 ## Round 0 — implement

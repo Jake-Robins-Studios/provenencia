@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/ffi"
-	"github.com/mendahu/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/api/ffi"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"google.golang.org/protobuf/proto"
 )
 

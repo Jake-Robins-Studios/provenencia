@@ -3,8 +3,8 @@ package valuecompare_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 func TestBoolean(t *testing.T) {

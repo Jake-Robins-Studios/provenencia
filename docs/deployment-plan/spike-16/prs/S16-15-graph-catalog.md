@@ -1,11 +1,11 @@
 # S16-15 — An Evidence-graph catalog in the graph cache
 
-**Status:** Landed in [#805](https://github.com/mendahu/provenencia/pull/805) (2026-11-12)
+**Status:** Landed in [#805](https://github.com/Jake-Robins-Studios/provenencia/pull/805) (2026-11-12)
 **Spike / slice:** Spike 16 · Slice 2b — Entity records
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Sources list shows the same counts and graph rows; only where the engine reads them from moves)
 **Board:** —
-**Depends on:** S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789), the cache registry this entry joins); S16-12 (landed [#800](https://github.com/mendahu/provenencia/pull/800)) is not a dependency but is the precedent whole entry
+**Depends on:** S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789), the cache registry this entry joins); S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800)) is not a dependency but is the precedent whole entry
 **Blocks:** S16-13 (reads a graph's ref, name and Source from `Graph` instead of a loaded graph; the Person page keeps `conclusionsummaries.SortByTitle` for its graph order), S15-24 (a move re-lists both Sources; this entry's Apply handles a graph that changes Source)
 **Branch:** `s16-15-graph-catalog`
 **Version bump:** none — no change a researcher can see; the project-wide graph list's order changes on the wire and no client reads it ([`docs/versioning.md`](../../../versioning.md))
@@ -115,7 +115,7 @@ The Sources list shows each Evidence graph's Subject, filed and Observation coun
 | Size benchmark | `core/database/promotealign/bench_test.go` `BenchmarkCacheSizes` | One `measure` per cache; `sourceRecords` is the latest |
 | Indexes | `core/database/migrations/000055.sql` `subjects_graph_id_idx`; `000029.sql` `observations_subject_id_idx` | A per-graph recount seeks both |
 
-**Precedent.** [#800](https://github.com/mendahu/provenencia/pull/800) (S16-12) registered `sources.Records`: copy its file layout (entry, value type, read function and `ErrRecordsOnWrite`-style error in one file of the table's package), its Build/Apply/Check through the table's loaders (here two: `list` per Source, `loadProgress` per id list, D-5, D-6), its "remove every named key before inserting any" Apply, its `TestRecordsApply` table with `g.Verify()` and a derived probe entry, and `BenchmarkSourceRecords`' direct-SQL fixture and `g.OnCommit` timing. Do not copy its Source-scoped signal: this entry follows `Set.Reads`.
+**Precedent.** [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800) (S16-12) registered `sources.Records`: copy its file layout (entry, value type, read function and `ErrRecordsOnWrite`-style error in one file of the table's package), its Build/Apply/Check through the table's loaders (here two: `list` per Source, `loadProgress` per id list, D-5, D-6), its "remove every named key before inserting any" Apply, its `TestRecordsApply` table with `g.Verify()` and a derived probe entry, and `BenchmarkSourceRecords`' direct-SQL fixture and `g.OnCommit` timing. Do not copy its Source-scoped signal: this entry follows `Set.Reads`.
 
 ## 5. Decisions
 

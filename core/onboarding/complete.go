@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/project"
-	"github.com/mendahu/provenencia/core/database/users"
-	"github.com/mendahu/provenencia/core/identity"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/project"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
+	"github.com/Jake-Robins-Studios/provenencia/core/identity"
 )
 
 var ErrBlankName = apperr.New(apperr.CodeOnboardingBlankName, apperr.KindUser)

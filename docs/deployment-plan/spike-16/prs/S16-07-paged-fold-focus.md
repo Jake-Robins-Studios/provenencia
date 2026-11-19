@@ -1,6 +1,6 @@
 # S16-07 — One paged fold that moves focus
 
-**Status:** Landed in [#761](https://github.com/mendahu/provenencia/pull/761) (2026-11-09)
+**Status:** Landed in [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761) (2026-11-09)
 **Spike / slice:** Spike 16 · Slice 1a — Bounded reads, folds and the Timeline
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D2](../design/archive/S16-D2-person-page-folds.md), board agreed 2026-11-09 (one brief for the Person page's Family, Timeline and Sources folds: FH-1 – FH-5, FH-W1, FH-W2)

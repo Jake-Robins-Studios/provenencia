@@ -1,11 +1,11 @@
 # S16-26 — Conclusion lists merge the rows a write touched
 
-**Status:** Landed in [#851](https://github.com/mendahu/provenencia/pull/851) (2026-11-15)
+**Status:** Landed in [#851](https://github.com/Jake-Robins-Studios/provenencia/pull/851) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the three lists draw the same rows in the same order; only how a write reaches them changes)
 **Board:** —
-**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/mendahu/provenencia/pull/748): the exact touched set), S16-25 (landed [#847](https://github.com/mendahu/provenencia/pull/847): keys as values, `CatalogQueryFollows: Hashable`)
+**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/Jake-Robins-Studios/provenencia/pull/748): the exact touched set), S16-25 (landed [#847](https://github.com/Jake-Robins-Studios/provenencia/pull/847): keys as values, `CatalogQueryFollows: Hashable`)
 **Blocks:** —
 **Branch:** `s16-26-lists-merge-touched-rows`
 **Version bump:** patch — a write re-reads only its rows of the Persons, Events and Places lists, and the list RPCs gain an optional id filter and a list key old clients ignore; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))

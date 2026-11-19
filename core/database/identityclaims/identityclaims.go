@@ -8,11 +8,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database"
 )
 
 var (

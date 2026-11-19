@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/depictionvalue/depictionvaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue/depictionvaluetest"
 )
 
 func TestReadable(t *testing.T) {

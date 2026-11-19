@@ -3,7 +3,7 @@ package database
 import (
 	"errors"
 
-	"github.com/mendahu/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 )
 
 // MaxRefRetries is how many refs InsertWithRef tries before giving up. A ref

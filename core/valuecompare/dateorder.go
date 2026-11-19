@@ -1,6 +1,6 @@
 package valuecompare
 
-import "github.com/mendahu/provenencia/core/datevalue"
+import "github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 
 // The one date order: where a date sits among other dates. Timelines, birth
 // order, a Source's date and the auto-reconciler's stored sort key all read it.

@@ -1,8 +1,8 @@
 package autoreconcile
 
 import (
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 // The date module (conclusion-reconciliation.md §7.1). A date is the span of

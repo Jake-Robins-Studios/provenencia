@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestGrades(t *testing.T) {

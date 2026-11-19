@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 const (

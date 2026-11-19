@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 )
 
 func TestCollected(t *testing.T) {

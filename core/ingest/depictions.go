@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"github.com/mendahu/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 )
 
 // StageDepictions stages the image of every Observation input that carries a

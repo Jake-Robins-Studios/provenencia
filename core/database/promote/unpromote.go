@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/deleteimpact"
-	"github.com/mendahu/provenencia/core/database/identityclaims"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/identityclaims"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 )
 
 // Unpromote is the inverse of Save for one primary Subject: it deletes the

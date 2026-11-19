@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/autoreconcile"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/observations"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/propertymeta"
-	"github.com/mendahu/provenencia/core/valuecodec"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Decode is the one row decoder for both sides: a Source Observation and a

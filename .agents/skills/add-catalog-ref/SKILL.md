@@ -16,7 +16,7 @@ Short user-facing ids are **`{PREFIX}-{TOKEN}`** — one format, every layer. Ma
 Package: [`core/ref`](../../../core/ref/ref.go).
 
 ```go
-import "github.com/mendahu/provenencia/core/ref"
+import "github.com/Jake-Robins-Studios/provenencia/core/ref"
 
 r, err := ref.Mint(ref.PrefixSource) // or "SRC"
 if err != nil {

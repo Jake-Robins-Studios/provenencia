@@ -1,6 +1,6 @@
 # Ship log — S16-35 Layout tests compute their frames instead of waiting on a window
 
-**Plan:** [`S16-35-layout-tests-without-waits.md`](S16-35-layout-tests-without-waits.md) · **Branch:** `plan/s16-35-layout-tests-without-waits` · **PR:** [#775](https://github.com/mendahu/provenencia/pull/775)
+**Plan:** [`S16-35-layout-tests-without-waits.md`](S16-35-layout-tests-without-waits.md) · **Branch:** `plan/s16-35-layout-tests-without-waits` · **PR:** [#775](https://github.com/Jake-Robins-Studios/provenencia/pull/775)
 **State:** ready
 
 ## Before round 0

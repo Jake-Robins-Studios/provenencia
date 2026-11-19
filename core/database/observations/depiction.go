@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/depictionvalues"
-	"github.com/mendahu/provenencia/core/database/files"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/locator"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/depictionvalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 )
 
 // StagedFile is an image already checked and re-encoded by Go and not yet

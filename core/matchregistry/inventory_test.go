@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/internal/doctable"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/doctable"
 )
 
 // notYetBuilt are the prefixes of inventory rows whose registry fields land

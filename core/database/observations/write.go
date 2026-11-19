@@ -5,14 +5,14 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/observationrow"
-	"github.com/mendahu/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observationrow"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/deleteimpact"
 )
 
 // Update rewrites one Observation. Edge rows are always locked, including no-ops.

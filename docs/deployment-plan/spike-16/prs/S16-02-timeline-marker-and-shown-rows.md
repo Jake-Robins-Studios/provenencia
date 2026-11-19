@@ -1,11 +1,11 @@
 # S16-02 — The Timeline places a missing death and builds what it shows
 
-**Status:** Landed in [#764](https://github.com/mendahu/provenencia/pull/764) (2026-11-09)
+**Status:** Landed in [#764](https://github.com/Jake-Robins-Studios/provenencia/pull/764) (2026-11-09)
 **Spike / slice:** Spike 16 · Slice 1a — Bounded reads, folds and the Timeline
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the placeholder marker, its dashed stub and the points are drawn as board S13-D4 draws them; only the row a placeholder sits beside changes, a bugfix back to R-24a; user, 2026-11-09. The amendment's order fix moves a burial or funeral row below the death row and draws nothing new, the same kind of fix)
 **Board:** —
-**Depends on:** S16-07 (landed [#761](https://github.com/mendahu/provenencia/pull/761))
+**Depends on:** S16-07 (landed [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761))
 **Blocks:** S16-19
 **Branch:** `s16-02-timeline-marker-and-shown-rows`
 **Version bump:** patch — a fix: a missing death no longer sits after a burial, a burial or funeral the dates cannot place before the death no longer sits above it, a long Timeline builds only what it shows, and a date edit rescales the line; the wire change ships in the same bundle as both of its ends. 0.5.0 → 0.5.1 is already on the branch; the amendment adds no second bump ([`docs/versioning.md`](../../../versioning.md))
@@ -142,7 +142,7 @@ A person with no recorded death and a dated burial or funeral reads "Death unkno
 | Fixtures | `macos/App/Features/Conclusions/PersonTimelinePreviewData.swift` `unknownEnds` (`besideEventId: "2"` / `"9"`); `PersonTimelineSection.swift` preview "Row sheet" (`besideEventId: "4"` / `"11"`). `johann`, `ernst`, `largeEvent`, `lise`, `ida` use `eventId` or empty markers only | The two named fixtures are written in `besideEventId` |
 | Tests | `macos/ProvenenciaTests/PersonTimelineContentTests.swift` (`itemsInOrder`, `markerInsideHiddenRunStaysShown`, `foldedMarkersStayAfterPagedRun`, `pointsAreNamedByTheirRow` and others), `PersonTimelineLifelineTests.swift` (`placeholdersAndShortLives`, its funeral case with `besideEventId: "c"` for both markers, the recorded-birth case `CatalogLifeMarker(eventId: "1", besideEventId: "2")`, `oneHundredTwentyEvents`), `PersonTimelinePlacementTests.swift`, `CatalogQueryRegistryTests.swift` (lines 1586–1598, a `CatalogLifeMarker(eventId:besideEventId:)` round trip and the defaults) | `rg besideEventId macos` lists every site STEP-3 rewrites |
 
-**Precedent.** S16-01 ([#756](https://github.com/mendahu/provenencia/pull/756)) changed a Person page read's wire message, regenerated with `./scripts/generate-proto.sh`, and mapped it in `GoStore`: copy its shape for the field change. A wire `oneof` is mapped in `GoStore.mapConclusionSummary` (`switch summary.kind { case .person(let p): … case nil: nil }`): copy that switch for `m.place`. S16-07 ([#761](https://github.com/mendahu/provenencia/pull/761)) D-10 added `pages(toShow:)` and `select`: keep both as they are.
+**Precedent.** S16-01 ([#756](https://github.com/Jake-Robins-Studios/provenencia/pull/756)) changed a Person page read's wire message, regenerated with `./scripts/generate-proto.sh`, and mapped it in `GoStore`: copy its shape for the field change. A wire `oneof` is mapped in `GoStore.mapConclusionSummary` (`switch summary.kind { case .person(let p): … case nil: nil }`): copy that switch for `m.place`. S16-07 ([#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761)) D-10 added `pages(toShow:)` and `select`: keep both as they are.
 
 ## 5. Decisions
 
@@ -357,7 +357,7 @@ Do: D-20: write T-14 and see it fail; change the `.before(row)` case of the `ins
 Check: `scripts/check-pr.sh` prints `check-pr: PASS` (its Xcode tests run T-13, T-14 and T-6 unchanged).
 
 **STEP-12 — Docs**
-Files: `docs/structured-date-model.md` (§ 3.4, D-21's sentence), `.agents/skills/add-date-value/SKILL.md` and `.cursor/rules/date-values.mdc` (D-22's sentence each), `docs/deployment-plan/spike-16/deployment-plan.md` (the S16-02 row's Status becomes `Landed #764`; its Scope, the scope entry and the working rule were updated with this amendment), `docs/deployment-plan/spike-16/completed.md` (restore the S16-02 paragraph from commit `59e4a6a1` above the S16-07 entry, with "**Landed 2026-11-09**" replaced by the date STEP-12 runs (`date +%F`), and add one sentence for US-4), this plan (Status `Landed in [#764](https://github.com/mendahu/provenencia/pull/764) (<the same date>)`; delete the "Amendment" section; rename "Deviations in rounds 0 and 1" back to "Landed", add the bullet "Amended 2026-11-09 after rounds 0 and 1: US-4, D-16 – D-22 (the Timeline order)" and any amendment deviation).
+Files: `docs/structured-date-model.md` (§ 3.4, D-21's sentence), `.agents/skills/add-date-value/SKILL.md` and `.cursor/rules/date-values.mdc` (D-22's sentence each), `docs/deployment-plan/spike-16/deployment-plan.md` (the S16-02 row's Status becomes `Landed #764`; its Scope, the scope entry and the working rule were updated with this amendment), `docs/deployment-plan/spike-16/completed.md` (restore the S16-02 paragraph from commit `59e4a6a1` above the S16-07 entry, with "**Landed 2026-11-09**" replaced by the date STEP-12 runs (`date +%F`), and add one sentence for US-4), this plan (Status `Landed in [#764](https://github.com/Jake-Robins-Studios/provenencia/pull/764) (<the same date>)`; delete the "Amendment" section; rename "Deviations in rounds 0 and 1" back to "Landed", add the bullet "Amended 2026-11-09 after rounds 0 and 1: US-4, D-16 – D-22 (the Timeline order)" and any amendment deviation).
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-02-timeline-marker-and-shown-rows.md` reports no errors; `rg -n 'earliest dated burial or funeral' docs/deployment-plan/spike-16/deployment-plan.md api/proto/engine.proto core/database/persondetail` finds nothing.
 

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/valuemark"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
 // valueMarkProto is a mark on the wire: nil for the zero mark, so a value with

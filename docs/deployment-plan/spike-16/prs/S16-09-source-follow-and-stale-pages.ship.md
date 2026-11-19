@@ -1,6 +1,6 @@
 # Ship log — S16-09 Conclusion pages refresh from the Sources they cite and show their last value while they refresh
 
-**Plan:** [`S16-09-source-follow-and-stale-pages.md`](S16-09-source-follow-and-stale-pages.md) · **Branch:** `s16-09-source-follow-and-stale-pages` · **PR:** [#780](https://github.com/mendahu/provenencia/pull/780)
+**Plan:** [`S16-09-source-follow-and-stale-pages.md`](S16-09-source-follow-and-stale-pages.md) · **Branch:** `s16-09-source-follow-and-stale-pages` · **PR:** [#780](https://github.com/Jake-Robins-Studios/provenencia/pull/780)
 **State:** ready
 
 ## Before round 0
@@ -8,7 +8,7 @@
 - Branch base: `main` @ `43b7247f` (plan planned against `cd03582`; the planning PR #779 merged into `43b7247f`).
 
 ## Round 0 — implement
-Head `33bd9403` (code head `50f993fb`). Gate PASS (orchestrator run on `33bd9403`). PR [#780](https://github.com/mendahu/provenencia/pull/780) (draft). Report deviations: version bump 0.8.0 → 0.8.1 (main was already 0.8.0, plan said 0.7.1); STEP-2–4 in one commit `9ac956f8` (same descriptors and tests); two test expectations changed beyond the plan's list (`invalidationsComeFromRegistrySpecs` refreshes gain `.source`; `applyTriggerStalesHiddenDetailPagesAndRevalidatesTheVisibleOne` expects stale, not nil); manual check not run. Landing commit `33bd9403` not pushed: `git push` fails from the sandbox (SSH host not resolvable).
+Head `33bd9403` (code head `50f993fb`). Gate PASS (orchestrator run on `33bd9403`). PR [#780](https://github.com/Jake-Robins-Studios/provenencia/pull/780) (draft). Report deviations: version bump 0.8.0 → 0.8.1 (main was already 0.8.0, plan said 0.7.1); STEP-2–4 in one commit `9ac956f8` (same descriptors and tests); two test expectations changed beyond the plan's list (`invalidationsComeFromRegistrySpecs` refreshes gain `.source`; `applyTriggerStalesHiddenDetailPagesAndRevalidatesTheVisibleOne` expects stale, not nil); manual check not run. Landing commit `33bd9403` not pushed: `git push` fails from the sandbox (SSH host not resolvable).
 
 ## Round 1 — review
 Reviewers: CON, MNT, UX, SEC+PRF. UX: diff touches `macos/App/**`. SEC+PRF: cache code in `macos/App/Features/Workspace/Session/**` (hidden-entity cap, eviction loops).

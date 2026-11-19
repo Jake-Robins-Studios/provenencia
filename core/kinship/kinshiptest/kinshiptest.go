@@ -3,9 +3,9 @@
 package kinshiptest
 
 import (
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/segmentcompare/segmentcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare/segmentcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Part is a participation edge with the person at A and the event at B, its

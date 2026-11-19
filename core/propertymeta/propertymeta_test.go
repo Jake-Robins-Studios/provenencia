@@ -3,7 +3,7 @@ package propertymeta_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 func TestCardinalityOrSingle(t *testing.T) {

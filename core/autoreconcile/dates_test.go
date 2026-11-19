@@ -3,8 +3,8 @@ package autoreconcile
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/datevalue"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 func ymd(y int, m, d *int) datevalue.Value {

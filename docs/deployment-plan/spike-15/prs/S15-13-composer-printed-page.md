@@ -1,6 +1,6 @@
 # S15-13 — The composer records the printed page
 
-**Status:** Landed in [#863](https://github.com/mendahu/provenencia/pull/863) (2026-11-16)
+**Status:** Landed in [#863](https://github.com/Jake-Robins-Studios/provenencia/pull/863) (2026-11-16)
 **Spike / slice:** Spike 15 · Slice 3 — Printed page
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D8](../design/archive/S15-D8-citation-composer-printed-page.md), board agreed 2026-11-16

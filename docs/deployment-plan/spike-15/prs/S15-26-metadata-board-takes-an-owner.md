@@ -1,11 +1,11 @@
 # S15-26 — The metadata board takes an owner
 
-**Status:** Landed in [#798](https://github.com/mendahu/provenencia/pull/798) (2026-11-12)
+**Status:** Landed in [#798](https://github.com/Jake-Robins-Studios/provenencia/pull/798) (2026-11-12)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Source page's Metadata board is drawn by the same views with the same copy, spacing and identifiers; only the types behind it change)
 **Board:** —
-**Depends on:** — (S15-08, which gave the four board RPCs an owner on the wire, landed in [#791](https://github.com/mendahu/provenencia/pull/791))
+**Depends on:** — (S15-08, which gave the four board RPCs an owner on the wire, landed in [#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791))
 **Blocks:** S15-09, S15-10, S15-11
 **Branch:** `s15-26-metadata-board-takes-an-owner`
 **Version bump:** patch, 0.10.0 → **0.10.1** (or the next patch after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — two response fields old clients ignore (`SetMetadataResponse.metadata`, `ClearMetadataResponse.metadata`; `SetMetadataResponse.entry` reserved, its only reader `GoStore` ships in the same bundle), no screen or catalog change ([`docs/versioning.md`](../../../versioning.md))

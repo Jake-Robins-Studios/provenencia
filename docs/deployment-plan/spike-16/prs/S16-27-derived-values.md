@@ -1,11 +1,11 @@
 # S16-27 — One primitive for values derived from cached data
 
-**Status:** Landed in [#854](https://github.com/mendahu/provenencia/pull/854) (2026-11-15)
+**Status:** Landed in [#854](https://github.com/Jake-Robins-Studios/provenencia/pull/854) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view draws the same content; only how often the app builds it changes)
 **Board:** —
-**Depends on:** S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769): one list of section reads), S16-07 (landed [#761](https://github.com/mendahu/provenencia/pull/761): `ConclusionFoldState`, one fold state per section)
+**Depends on:** S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769): one list of section reads), S16-07 (landed [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761): `ConclusionFoldState`, one fold state per section)
 **Blocks:** —
 **Branch:** `s16-27-derived-values`
 **Version bump:** patch, 0.15.5 → 0.15.6 — the app builds what it derives for display once per change of its inputs; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))
@@ -115,7 +115,7 @@ The app derives display values from cached reads in four hand-written ways (the 
 | Section reads | `macos/App/Features/Workspace/ConclusionPageSection.swift` `reads(project:entityId:)` | One list per section: own, companion, supporting |
 | Tests | `macos/ProvenenciaTests/WorkspaceSessionTests.swift` `evidenceGraphIndexFollowsTheListRevision`, `evidenceGraphSnapshotReadsTheThreeKeys`, `graphListMergeSplicesTheIndex`, `deletedEntitiesLoseTheirHiddenKeys` (line 1353), `hiddenConclusionPagesAreCappedAtFifty` (line 1457); `EvidenceGraphModelTests.swift` `displayTextFollowsTheSnapshot`, `makeModel`; `SourcesModelTests.swift` (two tests read `visibleSourcesBuildCount`: lines 295–318 and 455–497); `PromoteModelTests.swift`; `UnpromoteFlowTests.swift`; `CitationComposerModelTests.swift` | Cover today's memos and their behavior |
 
-**Precedent.** `SourcesModel.visibleSources` is the shape to copy for a call: handle revisions plus plain values, built in a closure, a build counter for tests. `spliceEvidenceGraphIndex` (S16-12, [#800](https://github.com/mendahu/provenencia/pull/800)) is the shape `carryDerived` keeps. Go's `graphcache` `DerivedFrom` (an entry derived from another entry) is the shape `DerivedInput.derived` copies. Do not copy `EvidenceGraphModel.snapshotMemo`'s comparison of whole values.
+**Precedent.** `SourcesModel.visibleSources` is the shape to copy for a call: handle revisions plus plain values, built in a closure, a build counter for tests. `spliceEvidenceGraphIndex` (S16-12, [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800)) is the shape `carryDerived` keeps. Go's `graphcache` `DerivedFrom` (an entry derived from another entry) is the shape `DerivedInput.derived` copies. Do not copy `EvidenceGraphModel.snapshotMemo`'s comparison of whole values.
 
 ## 5. Decisions
 

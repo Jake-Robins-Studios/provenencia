@@ -3,9 +3,9 @@
 package deleteimpact
 
 import (
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 )
 
 // Gate is the Impact extra-gate / inbound outcome.

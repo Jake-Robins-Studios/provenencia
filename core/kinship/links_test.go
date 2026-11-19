@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/kinship/kinshiptest"
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship/kinshiptest"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // The link set merges a recorded link and an implied one of the same ends and

@@ -3,8 +3,8 @@ package matchregistry
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // The segment section's structure: a one-cardinality fact is a participation

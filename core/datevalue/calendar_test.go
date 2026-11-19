@@ -3,7 +3,7 @@ package datevalue_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 )
 
 func ip(v int) *int { return &v }

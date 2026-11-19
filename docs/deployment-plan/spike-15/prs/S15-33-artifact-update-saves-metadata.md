@@ -1,11 +1,11 @@
 # S15-33 — Editing an Artifact can save its metadata
 
-**Status:** Landed in [#806](https://github.com/mendahu/provenencia/pull/806) (2026-11-12)
+**Status:** Landed in [#806](https://github.com/Jake-Robins-Studios/provenencia/pull/806) (2026-11-12)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: engine and wire only; the app sends no draft and reads no new field until S15-36 and S15-34)
 **Board:** —
-**Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791))
+**Depends on:** S15-08 (landed [#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791))
 **Blocks:** S15-36, S15-34, S15-10
 **Branch:** `s15-33-artifact-update-saves-metadata`
 **Version bump:** patch, 0.11.0 → **0.11.1** (or the next patch after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — one request field and two response fields that old clients ignore, and a param on an existing error code; no screen or catalog change. Same call as S15-26's response fields ([`docs/versioning.md`](../../../versioning.md))
@@ -117,7 +117,7 @@ Verified at `9732554`.
 | Tests | `api/ffi/handlers/evidence_graphs_test.go` `TestUpdateEvidenceGraph` "metadata: absent changes nothing, present replaces" | The update-with-draft precedent test |
 | Test helpers | `api/ffi/handlers/metadata_test.go` `draftOf`, `latestRevisionTypes`, `newMetadataOwners`, `metadataByField`, `metadataFieldIDs`; `source_defs_test.go` `newUserField` (hard-codes `DataType: "text"`); `harness_test.go` `sourceFixture`, `rpc`, `mustRPC` | Reuse them. Url fields are created inline today (`sources_test.go` `urlMetadataSetFixture` and three cases) |
 
-**Precedent.** S15-08 ([#791](https://github.com/mendahu/provenencia/pull/791)) put `MetadataDraft` on `UpdateEvidenceGraphRequest` (field 7) and `CreateArtifactRequest` (field 9): copy `UpdateEvidenceGraph`'s parse-then-`applyDraft` shape line for line. S15-26 ([#798](https://github.com/mendahu/provenencia/pull/798)) made `SetMetadataResponse` return the owner's board: copy its `ListWorkspace` after the write.
+**Precedent.** S15-08 ([#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791)) put `MetadataDraft` on `UpdateEvidenceGraphRequest` (field 7) and `CreateArtifactRequest` (field 9): copy `UpdateEvidenceGraph`'s parse-then-`applyDraft` shape line for line. S15-26 ([#798](https://github.com/Jake-Robins-Studios/provenencia/pull/798)) made `SetMetadataResponse` return the owner's board: copy its `ListWorkspace` after the write.
 
 ## 5. Decisions
 

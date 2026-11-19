@@ -1,8 +1,8 @@
 package ffi
 
 import (
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"google.golang.org/protobuf/proto"
 )
 

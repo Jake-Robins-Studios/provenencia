@@ -1,6 +1,6 @@
 package namealiases
 
-import "github.com/mendahu/provenencia/core/valuecompare"
+import "github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 
 // nicknameDirections says which name a fold keeps where nicknameSets lists two
 // names both ways (bill heads a set holding william, and william one holding

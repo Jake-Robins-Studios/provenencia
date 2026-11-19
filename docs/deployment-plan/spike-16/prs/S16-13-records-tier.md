@@ -1,11 +1,11 @@
 # S16-13 — Per-graph records in the cache registry, and the Sources section reads them
 
-**Status:** Landed in [#809](https://github.com/mendahu/provenencia/pull/809) (2026-11-12)
+**Status:** Landed in [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809) (2026-11-12)
 **Spike / slice:** Spike 16 · Slice 2b — Entity records
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Sources section shows the same groups, claims and rows; only where the engine reads them from moves)
 **Board:** —
-**Depends on:** S16-12 (landed [#800](https://github.com/mendahu/provenencia/pull/800), Source records), S16-15 (landed [#805](https://github.com/mendahu/provenencia/pull/805), the graph index's shells); S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789), the registry this PR extends)
+**Depends on:** S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800), Source records), S16-15 (landed [#805](https://github.com/Jake-Robins-Studios/provenencia/pull/805), the graph index's shells); S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789), the registry this PR extends)
 **Blocks:** S16-30 (a provenance record composes the Subject record, and adds each Observation's Citation words to it), S16-32 (re-ranks inside the candidates entry this PR registers), S16-24 (the claims read reports its inputs), S15-05, S15-22, S15-24
 **Branch:** `s16-13-records-tier`
 **Version bump:** none — no change a researcher can see; the wire is unchanged ([`docs/versioning.md`](../../../versioning.md))
@@ -153,7 +153,7 @@ The Person page's claims read (the Sources section's groups and claims) stops lo
 | Tests | `core/database/graphcache/cache_test.go` `TestEntryCap`; `core/database/graphcache/evidence_graph_memo_test.go`; `core/database/graphcache/evidence_graph_cap_test.go` `TestEvidenceGraphCap` (memo steps); `core/database/graphfill/load_test.go` (memo lines in `TestRetitleKeepsEvidenceGraph`, `TestGraphWriteDropsOnlyThatGraph`); `core/database/evidencelayer/evidencelayer_test.go` (the memo check after the `ErrNoGraph` loop); `core/database/promotealign/memo_test.go` `TestMemoFollowsCommit`, `TestLoadSharesPromotesMemo`, `TestCandidatesMemoFollowsCommits`; `core/database/persondetail/claims_test.go`, `caps_test.go`, `recordlinks_test.go`, `recordlinks_perf_test.go` (`households`, `TestRecordLinksBudgets`, `budgetLinksPast`); `api/ffi/handlers/person_detail_test.go` `TestListPersonClaims`, the `SourcedGraph` literal | Cover today's behavior; the memo tests read the API this PR removes |
 | Benchmarks | `core/database/promotealign/bench_test.go` `BenchmarkCacheSizes`; `core/database/evidencegraphs/index_bench_test.go` `BenchmarkGraphIndex` (inline closures `graph`, `subject`, `obs` over one transaction, then a crafted heavy graph and 10,000 Wide graphs) | Sizes per entry; the Scale seed lives inside one benchmark |
 
-**Precedent.** S16-12 ([#800](https://github.com/mendahu/provenencia/pull/800)) and S16-15 ([#805](https://github.com/mendahu/provenencia/pull/805)): an owner package registers an entry from `init`, exports a typed read (`RecordsOf`, `IndexOf`), its Check rebuilds from SQL and `reflect.DeepEqual`s, and the claims read composes from it. Copy the owner-registers-and-exports shape and the Check. `canonlinks`' `pivots` is the precedent keyed entry. `shortlistInputs(g, true)` is the precedent for a Check that rebuilds with fresh inputs.
+**Precedent.** S16-12 ([#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800)) and S16-15 ([#805](https://github.com/Jake-Robins-Studios/provenencia/pull/805)): an owner package registers an entry from `init`, exports a typed read (`RecordsOf`, `IndexOf`), its Check rebuilds from SQL and `reflect.DeepEqual`s, and the claims read composes from it. Copy the owner-registers-and-exports shape and the Check. `canonlinks`' `pivots` is the precedent keyed entry. `shortlistInputs(g, true)` is the precedent for a Check that rebuilds with fresh inputs.
 
 ## 5. Decisions
 

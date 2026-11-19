@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/persondetail"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
 )
 
 // shape builds one family around a Person: a pair of parents from a birth, the

@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 )
 
 func fkEdge(parent catalogmodel.Kind, via string, child catalogmodel.Kind, table, fkCol, refCol string) inboundEdge {

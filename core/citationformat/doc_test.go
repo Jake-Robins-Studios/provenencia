@@ -4,8 +4,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/citationformat"
-	"github.com/mendahu/provenencia/core/internal/doctable"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/doctable"
 )
 
 // TestDocMatchesEngine holds docs/citation-formats.md to the engine: its

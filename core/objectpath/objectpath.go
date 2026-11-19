@@ -8,7 +8,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/ingest/mediatypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest/mediatypes"
 )
 
 // ErrInvalidChecksum means the checksum is not 64 lowercase hex characters.

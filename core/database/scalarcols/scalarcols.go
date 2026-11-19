@@ -5,7 +5,7 @@ package scalarcols
 import (
 	"database/sql"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Columns is the three scalar value columns as a row scan fills them. Scan

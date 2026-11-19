@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/catalogsession/catalogsessiontest"
-	"github.com/mendahu/provenencia/core/database/databasetest"
-	"github.com/mendahu/provenencia/core/database/persondetail"
-	"github.com/mendahu/provenencia/core/recordlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
+	"github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
 )
 
 // Budgets of S13-27 D-15, on a person in 50 household graphs (the map's Scale).

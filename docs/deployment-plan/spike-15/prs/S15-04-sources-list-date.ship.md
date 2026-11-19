@@ -1,6 +1,6 @@
 # Ship log — S15-04 The Sources list shows and sorts by the date
 
-**Plan:** [`S15-04-sources-list-date.md`](S15-04-sources-list-date.md) · **Branch:** `s15-04-sources-list-date` · **PR:** [#774](https://github.com/mendahu/provenencia/pull/774)
+**Plan:** [`S15-04-sources-list-date.md`](S15-04-sources-list-date.md) · **Branch:** `s15-04-sources-list-date` · **PR:** [#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774)
 **State:** ready
 
 ## Before round 0

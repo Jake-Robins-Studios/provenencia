@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/objectpath"
+	"github.com/Jake-Robins-Studios/provenencia/core/objectpath"
 )
 
 func TestRel(t *testing.T) {

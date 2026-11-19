@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/objectstore"
+	"github.com/Jake-Robins-Studios/provenencia/core/objectstore"
 )
 
 func TestOpenObjectFIFO(t *testing.T) {

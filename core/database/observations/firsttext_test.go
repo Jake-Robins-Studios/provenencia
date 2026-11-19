@@ -3,8 +3,8 @@ package observations_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/observations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 )
 
 func TestFirstText(t *testing.T) {

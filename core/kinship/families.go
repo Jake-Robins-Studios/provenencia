@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"slices"
 
-	"github.com/mendahu/provenencia/core/segmentcompare"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/segmentcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Role is a nuclear-family role of a relative, read from the person's end.

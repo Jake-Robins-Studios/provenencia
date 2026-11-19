@@ -9,9 +9,9 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/autoreconcile"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/autoreconcile"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Picture is one depiction value a gallery shows.

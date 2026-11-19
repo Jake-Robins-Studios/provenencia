@@ -1,11 +1,11 @@
 # S16-42 — Every event date line reads the engine's dating
 
-**Status:** Landed in [#876](https://github.com/mendahu/provenencia/pull/876) (2026-11-17)
+**Status:** Landed in [#876](https://github.com/Jake-Robins-Studios/provenencia/pull/876) (2026-11-17)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D4](../design/archive/S16-D4-event-date-line.md) (Events list: the shared event date line, ED-1 – ED-7, ED-W1) and [S16-D7](../design/archive/S16-D7-timeline-lifeline-dating.md) (Person page Timeline: the lifeline, TL-1 – TL-3, TL-W1); both boards agreed 2026-11-17
 **Board:** agreed 2026-11-17. [Claude Design — Events List](https://claude.ai/artifact/HP8p5mK3BFhNzFRrP5UK9w), page `project/Events List.dc.html`, section `#s16-d4` "S16-D4 · Event dates": frames 1a (Regular, with the table of every dating case, its VoiceOver words and the four new keys), 1b (Wide), 2 (every surface). [Claude Design — Person Detail](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page `project/Person Detail - Timeline.dc.html`, turn 18 "S16-D7 · Lifeline dating" (search `Turn 18`; drawing in `spanMark`): frames 18a (Regular), 18b (Wide), 18c (the four marks zoomed). The implementer reads each with the Artifact tool's `read` on its link and that `path`. Turn 18's row date texts are stand-ins; S16-D4's wording is the one to build (§ Strings)
-**Depends on:** S16-40 (landed [#869](https://github.com/mendahu/provenencia/pull/869)), S16-D4, S16-D7
+**Depends on:** S16-40 (landed [#869](https://github.com/Jake-Robins-Studios/provenencia/pull/869)), S16-D4, S16-D7
 **Blocks:** S16-44
 **Branch:** `s16-42-event-dating-line`
 **Version bump:** minor — the next minor after `VERSION` on `main` when the branch is cut (0.18.0 → 0.19.0 at the planning base): additive wire fields (`EventSummary.dating`, `SourceEventTitle.dating`) and a change a researcher sees on every event date line ([`docs/versioning.md`](../../../versioning.md))
@@ -128,7 +128,7 @@ An event dated only by its **As of** dates (S16-40) shows no date anywhere today
 | Lifeline | `macos/App/Features/Conclusions/PersonTimelineLifeline.swift`: the nested `point(_:_:stubsBefore:)` in the layout builder (line 182), `Mark.pointY`; drawing in `PersonTimelineSection.swift` lines 529–550 | A span of a day or less is a `.dot` (open flags dropped); a `.bar` fades its open sides (`fade = min(16, height)`); a bar open at both ends tethers 8 pt in from `to` |
 | Tests | `core/database/conclusionsummaries/conclusionsummaries_test.go` `TestEventSpan`, `TestEventSpanDays`, `TestEventOrderAtKnownEnd`, `TestEventAge`, `TestListEvents`; `core/database/persondetail/timeline_test.go` `TestPersonEventsLifeline`; `core/database/searchindex/searchindex_test.go`; `core/database/grapheventtitles/grapheventtitles_test.go` `TestForEvidenceGraph`; `core/shortlist/shortlist_test.go` `TestKeys`, `TestFind`; `core/valuecompare/datewindow_test.go` `TestSampleExtremes`; `api/ffi/handlers/conclusion_summaries_test.go` `TestListEventSummaries`; `core/graphalign/align_test.go` `TestGracieObituaryGolden`; Swift `DateRowDisplayTests`, `EventDetailTests`, `EvidenceGraphSnapshotTests`, `PersonTimelineLifelineTests`, `CatalogSearchTests`, `PersonsListTests` | `TestEventSpan` pins "start date only" (closed), "end date only" (undated) and "date with no year, dated start" (1860), which D-2, D-4 and D-5 change |
 
-**Precedent.** S16-40 ([#869](https://github.com/mendahu/provenencia/pull/869)) added `SampleExtremes` beside `Earliest`/`Latest` with the reading supplied by the caller, and broke its ties so picks never depend on input order (`samplesAgainst`): copy both. For wire on a graph Subject, copy how `ListEvidenceGraphEventTitles` sends Go's title per Event Subject (S9 R4): one field more on `SourceEventTitle`, not a new RPC. For a `ProjectionVersion` bump with its comment line, copy S14-40's 11.
+**Precedent.** S16-40 ([#869](https://github.com/Jake-Robins-Studios/provenencia/pull/869)) added `SampleExtremes` beside `Earliest`/`Latest` with the reading supplied by the caller, and broke its ties so picks never depend on input order (`samplesAgainst`): copy both. For wire on a graph Subject, copy how `ListEvidenceGraphEventTitles` sends Go's title per Event Subject (S9 R4): one field more on `SourceEventTitle`, not a new RPC. For a `ProjectionVersion` bump with its comment line, copy S14-40's 11.
 
 ## 5. Decisions
 

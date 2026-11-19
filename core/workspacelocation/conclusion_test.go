@@ -3,8 +3,8 @@ package workspacelocation_test
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 )
 
 func TestConclusion(t *testing.T) {

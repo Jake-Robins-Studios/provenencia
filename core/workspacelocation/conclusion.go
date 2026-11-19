@@ -1,6 +1,6 @@
 package workspacelocation
 
-import "github.com/mendahu/provenencia/core/vocabkey"
+import "github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 
 // Conclusion maps a primary conclusion type key to a Person, Event or Place
 // workspace location. Association types return false.

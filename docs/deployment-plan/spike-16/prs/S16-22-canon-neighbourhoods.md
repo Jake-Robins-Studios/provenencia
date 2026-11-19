@@ -1,11 +1,11 @@
 # S16-22 — Promote reads each handle's neighbourhood instead of walking the catalog
 
-**Status:** Landed in [#844](https://github.com/mendahu/provenencia/pull/844) (2026-11-14)
+**Status:** Landed in [#844](https://github.com/Jake-Robins-Studios/provenencia/pull/844) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine change; Promote's suggestions read the same as today)
 **Board:** —
-**Depends on:** S16-16 (landed [#814](https://github.com/mendahu/provenencia/pull/814)), S16-20 (landed [#827](https://github.com/mendahu/provenencia/pull/827)), S16-21 (landed [#836](https://github.com/mendahu/provenencia/pull/836)), S16-36 (landed [#841](https://github.com/mendahu/provenencia/pull/841))
+**Depends on:** S16-16 (landed [#814](https://github.com/Jake-Robins-Studios/provenencia/pull/814)), S16-20 (landed [#827](https://github.com/Jake-Robins-Studios/provenencia/pull/827)), S16-21 (landed [#836](https://github.com/Jake-Robins-Studios/provenencia/pull/836)), S16-36 (landed [#841](https://github.com/Jake-Robins-Studios/provenencia/pull/841))
 **Blocks:** —
 **Branch:** `s16-22-canon-neighbourhoods`
 **Version bump:** none — no change a researcher can see but speed, and no wire or catalog change ([`docs/versioning.md`](../../../versioning.md); S16-32 precedent)
@@ -104,7 +104,7 @@ Verified at `292b421`.
 | Benchmark | `core/database/promotealign/bench_test.go` `BenchmarkLargeSourcePropose` | Reports `warm-ms`, `after-commit-ms` at 4,000 and 16,000; not gated |
 | Tests | `promotealign_test.go`, `memo_test.go` (`TestProposeWarmIssuesNoQuery`, `TestMemoIsNotMutated`), `core/graphalign/align_test.go`, `invariants_test.go`, `core/database/canonlinks/reader_test.go` | Cover today's behavior; all must pass unchanged except where §8 names a change |
 
-**Precedent.** S16-21 ([#836](https://github.com/mendahu/provenencia/pull/836)) moved `Align` onto `CanonView` while the walk still ran, so the goldens proved the move changed no answer: copy that order (the view and its equivalence run first, the deletions after). S16-16 D-8 (`BenchmarkLargeSourcePropose`, `warmProposal`, `proposalAfterCommit`) and S16-32 (figures before and after at 4,000 and 16,000, with `hostname`, in the PR description): copy how figures are recorded. Do not copy `Relationships`' batching or page inputs: the view reads one handle at a time from cached nodes.
+**Precedent.** S16-21 ([#836](https://github.com/Jake-Robins-Studios/provenencia/pull/836)) moved `Align` onto `CanonView` while the walk still ran, so the goldens proved the move changed no answer: copy that order (the view and its equivalence run first, the deletions after). S16-16 D-8 (`BenchmarkLargeSourcePropose`, `warmProposal`, `proposalAfterCommit`) and S16-32 (figures before and after at 4,000 and 16,000, with `hostname`, in the PR description): copy how figures are recorded. Do not copy `Relationships`' batching or page inputs: the view reads one handle at a time from cached nodes.
 
 ## 5. Decisions
 

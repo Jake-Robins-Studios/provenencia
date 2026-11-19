@@ -6,7 +6,7 @@
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Person page draws the same rows and lines on real data; the diagram's partial note is S16-04's, brief S16-D1)
 **Board:** —
-**Depends on:** S14-40 (Spike 14, landed [#746](https://github.com/mendahu/provenencia/pull/746))
+**Depends on:** S14-40 (Spike 14, landed [#746](https://github.com/Jake-Robins-Studios/provenencia/pull/746))
 **Blocks:** S16-04, S16-12, S16-16, S16-19
 **Branch:** `s16-01-cap-person-page-reads`
 **Version bump:** patch — a fix: crafted projects no longer stall the Person page, and two wire fields old clients ignore ([`docs/versioning.md`](../../../versioning.md))

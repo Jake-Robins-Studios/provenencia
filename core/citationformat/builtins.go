@@ -3,7 +3,7 @@ package citationformat
 import (
 	"slices"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Builtin is a placeholder that is not metadata, named directly under its

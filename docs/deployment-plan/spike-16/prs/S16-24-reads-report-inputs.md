@@ -1,11 +1,11 @@
 # S16-24 — Person, Event and Place reads report their inputs
 
-**Status:** Landed in [#839](https://github.com/mendahu/provenencia/pull/839) (2026-11-14)
+**Status:** Landed in [#839](https://github.com/Jake-Robins-Studios/provenencia/pull/839) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every page draws the same values; the reads only gain a list the app does not read yet)
 **Board:** —
-**Depends on:** S16-16 (landed [#814](https://github.com/mendahu/provenencia/pull/814), composed kinship), S16-30 (landed [#812](https://github.com/mendahu/provenencia/pull/812), provenance from records), S16-13 (landed [#809](https://github.com/mendahu/provenencia/pull/809), records tier), S16-19 (landed [#821](https://github.com/mendahu/provenencia/pull/821), summary rows carry owners), S14-42 (landed [#748](https://github.com/mendahu/provenencia/pull/748), exact summary dependents)
+**Depends on:** S16-16 (landed [#814](https://github.com/Jake-Robins-Studios/provenencia/pull/814), composed kinship), S16-30 (landed [#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812), provenance from records), S16-13 (landed [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809), records tier), S16-19 (landed [#821](https://github.com/Jake-Robins-Studios/provenencia/pull/821), summary rows carry owners), S14-42 (landed [#748](https://github.com/Jake-Robins-Studios/provenencia/pull/748), exact summary dependents)
 **Blocks:** S16-25 (follows the inputs in Swift), S15-28 (its records read reports its inputs as these reads do)
 **Branch:** `s16-24-reads-report-inputs`
 **Version bump:** none — no change a researcher can see; the wire change ships inside the one app binary ([`docs/versioning.md`](../../../versioning.md))

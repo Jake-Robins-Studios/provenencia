@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/objectpath"
+	"github.com/Jake-Robins-Studios/provenencia/core/objectpath"
 )
 
 // ErrNotRegular means an object path is a symlink, FIFO, folder, or device

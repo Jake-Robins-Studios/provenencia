@@ -1,11 +1,11 @@
 # S16-36 — A link from a record to itself is refused where links are read
 
-**Status:** Landed in [#841](https://github.com/mendahu/provenencia/pull/841) (2026-11-14)
+**Status:** Landed in [#841](https://github.com/Jake-Robins-Studios/provenencia/pull/841) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a hand-edited catalog's self-loop stops being read; no view the app can reach looks different)
 **Board:** —
-**Depends on:** S16-21 (landed [#836](https://github.com/mendahu/provenencia/pull/836))
+**Depends on:** S16-21 (landed [#836](https://github.com/Jake-Robins-Studios/provenencia/pull/836))
 **Blocks:** S16-22 (its session-graph view reads links through `kinship.Edge.From` and handles no self-loop)
 **Branch:** `s16-36-refuse-self-loops`
 **Version bump:** none — no change a researcher can reach through the app, and no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -113,7 +113,7 @@ Verified at `1255b24`.
 | Tests | `core/graphalign/invariants_test.go` `placePartOfItself`, `TestPlacePartOfItselfPlaces`, `TestAlignInvariants` row "a place part of itself on both sides" | Hold D-16 |
 | Tests | `core/database/conclusionsummaries/placeentries_test.go` `TestPlaceEntries` case "self-loop"; `TestPlaceEntryInputsMatchReads` `pageReads` (adds the `ParentsOfPlace` from-end key); `TestFiledPlaceLinks` row "a place part of itself" | Hold the `selfOnly` hop and the loop's chain |
 
-**Precedent.** The drop sits beside the existing one in `linkRaws`: a row whose bridge is not registered is skipped with `continue`, and `WalkEvidenceGraph` returns nothing past `maxWalkEdges` (crafted data reads as nothing). The reader removals undo S16-21 ([#836](https://github.com/mendahu/provenencia/pull/836)) D-14 and D-16: for a link with two different ends, `newState`'s layer loop reads `From` from `A` then from `B`, the readings and order `Ends`/`Readings` give today. Copy the walk test's SQL `UPDATE` of an endpoint Observation (`evidence_graph_walk_test.go`, "A to-end on another Source") to make the Evidence self-loop.
+**Precedent.** The drop sits beside the existing one in `linkRaws`: a row whose bridge is not registered is skipped with `continue`, and `WalkEvidenceGraph` returns nothing past `maxWalkEdges` (crafted data reads as nothing). The reader removals undo S16-21 ([#836](https://github.com/Jake-Robins-Studios/provenencia/pull/836)) D-14 and D-16: for a link with two different ends, `newState`'s layer loop reads `From` from `A` then from `B`, the readings and order `Ends`/`Readings` give today. Copy the walk test's SQL `UPDATE` of an endpoint Observation (`evidence_graph_walk_test.go`, "A to-end on another Source") to make the Evidence self-loop.
 
 ## 5. Decisions
 

@@ -1,6 +1,6 @@
 package propertycompare_test
 
-import "github.com/mendahu/provenencia/core/datevalue/datevaluetest"
+import "github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 
 var (
 	y1817     = datevaluetest.YMD(1817, 0, 0)

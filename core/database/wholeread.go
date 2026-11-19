@@ -3,7 +3,7 @@ package database
 import (
 	"errors"
 
-	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 )
 
 // ErrWholeOnWrite is returned by ReadWhole on a write's graph: a graph-lifetime

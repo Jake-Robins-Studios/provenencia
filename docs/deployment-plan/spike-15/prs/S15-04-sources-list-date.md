@@ -1,11 +1,11 @@
 # S15-04 — The Sources list shows and sorts by the date
 
-**Status:** Landed in [#774](https://github.com/mendahu/provenencia/pull/774) (2026-11-10)
+**Status:** Landed in [#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774) (2026-11-10)
 **Spike / slice:** Spike 15 · Slice 1 — Source date, privacy, credibility
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D2](../design/archive/S15-D2-sources-list.md), board agreed 2026-11-10
 **Board:** [Claude Design — Sources List](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page *S2-04 Sources list*, turn "S15-D2 · Sources list": frames 1a/1b, 2a/2b, 3, 4, 5, 6 and the panel "S15-D2 · Requirements as drawn"; the row and list code is the component *Sources List Frame* (presets `s15added`, `s15asc`, `s15sortmenu`, `s15desc`, `s15narrow`, `s15census`). Read it with the Artifact tool's `read` on that link, `path` "project/S2-04 Sources list.dc.html" (frames and requirements) and "project/Sources List Frame.dc.html" (the row). §6 macOS describes each frame in words
-**Depends on:** S15-02 (landed [#762](https://github.com/mendahu/provenencia/pull/762)), S15-03 (landed [#766](https://github.com/mendahu/provenencia/pull/766)), S15-D2
+**Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)), S15-03 (landed [#766](https://github.com/Jake-Robins-Studios/provenencia/pull/766)), S15-D2
 **Blocks:** —
 **Branch:** `s15-04-sources-list-date`
 **Version bump:** minor, the next minor at merge (0.6.0 → 0.7.0 at the planning base) — the date on list rows, two new sorts and a Wide arrangement ([`docs/versioning.md`](../../../versioning.md))
@@ -97,7 +97,7 @@ A researcher sees each Source's own date on its Sources list row, named as its p
 | `.az` and `.za` reading `titleOrder` | not planned (D-3); reversed by the user (2026-11-10, F-4) |
 | The date in the list's search keys (`SourcesModel.searchKeys`) | not planned |
 | Truncating titles to one line at Wide | not planned: the board's "titles stay on one line" is the effect of the width, not a line limit |
-| Rewriting Wide rule 3 in `docs/macos-client-patterns.md` § 9 and the `add-design-brief` Paste block | done in the planning PR [#770](https://github.com/mendahu/provenencia/pull/770) |
+| Rewriting Wide rule 3 in `docs/macos-client-patterns.md` § 9 and the `add-design-brief` Paste block | done in the planning PR [#770](https://github.com/Jake-Robins-Studios/provenencia/pull/770) |
 
 ## 4. Current state
 
@@ -142,7 +142,7 @@ A researcher sees each Source's own date on its Sources list row, named as its p
 | D-13 | No change to `SourcesListSettings` decoding | The per-field fallback covers an unknown raw value (AC-2.6) | A settings migration |
 | D-14 | "Published" is the date's one name (user, 2026-11-10). On the Source page: `sourceDateAdd` → "Add published date", `sourceDateEdit` → "Edit published date", `sourceDateAccessibility(date:)` → "Published, %@", `sourceDateDialogTitle` → "Published date", `sourceDateClearsCaption` → "Saving removes this Source's published date." Keys unchanged; values and comments change in `L10n.swift` and `Localizable.xcstrings`. The dialog subtitle "When the record was made or first published." stays | One word for one concept in copy, VoiceOver and tests; S15-05 uses it too | Leaving "Source date" / "publication date" on the page beside "Published" on the list |
 
-**Rules this plan bends.** `docs/macos-client-patterns.md` § 9 Wide rule 3 ("Lists, tables, grids and canvases fill the width", also in the `add-design-brief` Paste block) → the board centers the list at 1600 instead → user, 2026-11-10: "fill the width if you have something useful to fill it with, but otherwise constrain it" → rule 3 rewritten in § 9, the Paste block, `docs/ideas/wide-layout.md` and this brief in the planning PR [#770](https://github.com/mendahu/provenencia/pull/770); STEP-8 checks the token sentence names the landed token. Also: the S15-D1 board shows "Add publication date" and the S15-D2 board "Source date, oldest first" and "newest first" sorts; D-14 changes that copy without a new board (user, 2026-11-10); STEP-8 records it on both briefs' **Board** lines.
+**Rules this plan bends.** `docs/macos-client-patterns.md` § 9 Wide rule 3 ("Lists, tables, grids and canvases fill the width", also in the `add-design-brief` Paste block) → the board centers the list at 1600 instead → user, 2026-11-10: "fill the width if you have something useful to fill it with, but otherwise constrain it" → rule 3 rewritten in § 9, the Paste block, `docs/ideas/wide-layout.md` and this brief in the planning PR [#770](https://github.com/Jake-Robins-Studios/provenencia/pull/770); STEP-8 checks the token sentence names the landed token. Also: the S15-D1 board shows "Add publication date" and the S15-D2 board "Source date, oldest first" and "newest first" sorts; D-14 changes that copy without a new board (user, 2026-11-10); STEP-8 records it on both briefs' **Board** lines.
 
 ## 6. Design
 

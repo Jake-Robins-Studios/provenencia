@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/kinship/kinshiptest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship/kinshiptest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // isEvent reports whether an id is one of e(n): a participation edge has one.

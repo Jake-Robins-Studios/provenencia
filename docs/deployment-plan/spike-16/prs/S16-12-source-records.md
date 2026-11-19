@@ -1,11 +1,11 @@
 # S16-12 — Source records in the graph cache
 
-**Status:** Landed in [#800](https://github.com/mendahu/provenencia/pull/800) (2026-11-12)
+**Status:** Landed in [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800) (2026-11-12)
 **Spike / slice:** Spike 16 · Slice 2b — Entity records
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Sources section, the record links diagram and the provenance sheet draw the same words; only where they are read from moves)
 **Board:** —
-**Depends on:** S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789), the cache registry this entry joins), S16-01 (landed [#756](https://github.com/mendahu/provenencia/pull/756), same `claims.go` and `recordlinks.go`); S16-11 (landed [#793](https://github.com/mendahu/provenencia/pull/793)) left the outcome record shells as the one SQL read this PR narrows
+**Depends on:** S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789), the cache registry this entry joins), S16-01 (landed [#756](https://github.com/Jake-Robins-Studios/provenencia/pull/756), same `claims.go` and `recordlinks.go`); S16-11 (landed [#793](https://github.com/Jake-Robins-Studios/provenencia/pull/793)) left the outcome record shells as the one SQL read this PR narrows
 **Blocks:** S16-13 (composes claims from the records tier and these records), S16-30 (a provenance record composes the Source record), S16-25 (replaces this PR's `.source` follows with `.followsInputs`), S15-05 (adds the Source date to the record), S15-24 (the move changes an Artifact's Source; this entry's Apply sees both)
 **Branch:** `s16-12-source-records`
 **Version bump:** none — no change a researcher can see; the wire change ships inside the one app binary ([`docs/versioning.md`](../../../versioning.md))
@@ -133,7 +133,7 @@ A Source's words (ref, title, type, credibility, its Artifacts' labels) are copi
 | Go tests | `api/ffi/handlers/person_detail_test.go` `TestListPersonClaims`, `TestRecordLinksProto` (builds `PersonRecordLinks{Graphs: []graphcache.EvidenceGraph{…SourceTypeID…}}`), `TestGetPersonRecordLinks` | Read `GetSourceTypeId()` |
 | Swift tests | `macos/ProvenenciaTests/WorkspaceSessionTests.swift` `personClaimsFollowHandlesAndGraphs`, `deletedEntitiesLoseTheirHiddenKeys`, `personRecordLinksFollowEveryGraphUntilLoaded`; `macos/ProvenenciaTests/CatalogQueryRegistryTests.swift` `invalidationsComeFromRegistrySpecs`, `personRecordLinksRevalidate`, `personRecordLinksLoadThroughTheStore`; `macos/ProvenenciaTests/PersonRecordLinksContentTests.swift` `aGraphWithNoRefIsLabelledWithItsName` and the fixture helper; `macos/ProvenenciaTests/PersonSourcesContentTests.swift` `rowsKeepTheReadsOrder`, `cellsAndFallbacks`, `graphLocationsClaimGraphsAndSourceRefsCoverFoldedLines` | Pin today's refreshes, build `CatalogRecordLinksGraph(…, sourceTypeID:)`, and use fixtures with an empty Source title or graph name |
 
-**Precedent.** [#789](https://github.com/mendahu/provenencia/pull/789) (S16-10) registered `namealiases.Index` as a whole entry in its own package: copy its `init()` shape, its `Check` by rebuild and `reflect.DeepEqual`, and its `docs/catalog-caches.md` row; do not copy its `LifeCatalog` lifetime (D-2). [#780](https://github.com/mendahu/provenencia/pull/780) (S16-09) added `.applyHiddenPolicy(followsValue: .source) { … }` to `.conclusionDetail`: copy it for the two keys, through `personGraphsSection` (D-10). [#793](https://github.com/mendahu/provenencia/pull/793) (S16-11) narrowed `sqlRecords` the same way: the cache supplies one half, SQL the rest.
+**Precedent.** [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789) (S16-10) registered `namealiases.Index` as a whole entry in its own package: copy its `init()` shape, its `Check` by rebuild and `reflect.DeepEqual`, and its `docs/catalog-caches.md` row; do not copy its `LifeCatalog` lifetime (D-2). [#780](https://github.com/Jake-Robins-Studios/provenencia/pull/780) (S16-09) added `.applyHiddenPolicy(followsValue: .source) { … }` to `.conclusionDetail`: copy it for the two keys, through `personGraphsSection` (D-10). [#793](https://github.com/Jake-Robins-Studios/provenencia/pull/793) (S16-11) narrowed `sqlRecords` the same way: the cache supplies one half, SQL the rest.
 
 ## 5. Decisions
 

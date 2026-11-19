@@ -1,11 +1,11 @@
 # S15-37 — Metadata values can be marked unknown or supplied
 
-**Status:** Landed in [#879](https://github.com/mendahu/provenencia/pull/879) (2026-11-17)
+**Status:** Landed in [#879](https://github.com/Jake-Robins-Studios/provenencia/pull/879) (2026-11-17)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, one migration, the wire and one error message. No view can set or show a mark yet; S15-41 adds the control and S15-46 the unknown text editor)
 **Board:** —
-**Depends on:** S15-08 (landed [#791](https://github.com/mendahu/provenencia/pull/791)), S15-14 (landed [#868](https://github.com/mendahu/provenencia/pull/868))
+**Depends on:** S15-08 (landed [#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791)), S15-14 (landed [#868](https://github.com/Jake-Robins-Studios/provenencia/pull/868))
 **Blocks:** S15-16, S15-19, S15-38, S15-41, S15-46
 **Branch:** `s15-37-metadata-value-marks`
 **Version bump:** minor, 0.20.0 → **0.21.0** (if `main`'s `VERSION` is no longer 0.20.0 when you rebase, the next minor after it): a format step that old apps refuse by `user_version`, and new wire fields ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
@@ -129,7 +129,7 @@ A metadata value on a Source, an Artifact or an Evidence graph can carry the two
 | Swift test | `macos/ProvenenciaTests/L10nResolutionTests.swift` `errorCodesHaveCopy` | A table of code → sentence |
 | Tests | `core/database/sourcemetadata/sourcemetadata_test.go` `TestSourceMetadata`, `TestApply`, `TestCreateAll`, `TestReadDraftsTx`, `TestListWorkspaces`; `core/database/metadatafields/metadatafields_test.go` `TestCreateUpdateGetByID`, `TestUpsertLookupList`, `TestListByIDsTx`; `core/database/sourcecopy/sourcecopy_test.go` `TestCopy`; `core/database/deleteimpact/facets_test.go` `TestFacetReleaseAuditsSourceSide`; `api/ffi/handlers/metadata_test.go` `TestMetadataOwners`; `api/ffi/handlers/artifacts_test.go` (drafts on `UpdateArtifact`) | Assert value changes and boards without marks; some compare a create change's `Fields` map exactly and will gain the two mark keys |
 
-**Precedent.** S15-08 ([#791](https://github.com/mendahu/provenencia/pull/791)) added the Artifact and graph value tables behind the same `store` and facet releases: copy its shape (one SQL string per level in `newStore`, one facet per table). `000066.sql` (S15-15) is the `ALTER TABLE … ADD COLUMN` step to copy. S15-33 ([#806](https://github.com/mendahu/provenencia/pull/806)) added `MetadataDraft` to the wire: `parseDraft` is where the mark is read. `updateLayoutTx` is the "carry only the columns that differ" update change to copy for values.
+**Precedent.** S15-08 ([#791](https://github.com/Jake-Robins-Studios/provenencia/pull/791)) added the Artifact and graph value tables behind the same `store` and facet releases: copy its shape (one SQL string per level in `newStore`, one facet per table). `000066.sql` (S15-15) is the `ALTER TABLE … ADD COLUMN` step to copy. S15-33 ([#806](https://github.com/Jake-Robins-Studios/provenencia/pull/806)) added `MetadataDraft` to the wire: `parseDraft` is where the mark is read. `updateLayoutTx` is the "carry only the columns that differ" update change to copy for values.
 
 ## 5. Decisions
 

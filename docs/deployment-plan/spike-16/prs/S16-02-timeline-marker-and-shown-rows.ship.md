@@ -1,6 +1,6 @@
 # Ship log — S16-02 The Timeline places a missing death and builds what it shows
 
-**Plan:** [`S16-02-timeline-marker-and-shown-rows.md`](S16-02-timeline-marker-and-shown-rows.md) · **Branch:** `s16-02-timeline-marker-and-shown-rows` · **PR:** [#764](https://github.com/mendahu/provenencia/pull/764)
+**Plan:** [`S16-02-timeline-marker-and-shown-rows.md`](S16-02-timeline-marker-and-shown-rows.md) · **Branch:** `s16-02-timeline-marker-and-shown-rows` · **PR:** [#764](https://github.com/Jake-Robins-Studios/provenencia/pull/764)
 **State:** ready
 
 ## Round 0 — implement

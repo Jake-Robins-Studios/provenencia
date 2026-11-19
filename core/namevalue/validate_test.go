@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/namevalue"
-	"github.com/mendahu/provenencia/core/namevalue/namevaluetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 )
 
 func TestPartValueOK(t *testing.T) {

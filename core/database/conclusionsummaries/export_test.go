@@ -1,9 +1,9 @@
 package conclusionsummaries
 
 import (
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 )
 
 func countList(c *database.Catalog, list func(*database.Catalog) error) (int, error) {

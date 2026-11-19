@@ -10,17 +10,17 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/mendahu/provenencia/core/database/canonlinks"
-	_ "github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	_ "github.com/mendahu/provenencia/core/database/evidencegraphs"
-	_ "github.com/mendahu/provenencia/core/database/evidencelayer"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	_ "github.com/mendahu/provenencia/core/database/graphfill"
-	_ "github.com/mendahu/provenencia/core/database/namealiases"
-	_ "github.com/mendahu/provenencia/core/database/nameformats"
-	_ "github.com/mendahu/provenencia/core/database/promotealign"
-	_ "github.com/mendahu/provenencia/core/database/sources"
-	"github.com/mendahu/provenencia/core/internal/doctable"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/canonlinks"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/evidencelayer"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/namealiases"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/promotealign"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/sources"
+	"github.com/Jake-Robins-Studios/provenencia/core/internal/doctable"
 )
 
 // TestCacheDocListsEveryEntry holds docs/catalog-caches.md to the cache
@@ -51,7 +51,7 @@ func TestCacheDocListsEveryEntry(t *testing.T) {
 // graphcache.RegisterKeyed or RegisterWhole is imported here, so the registry
 // this package reads is the app's.
 func TestCacheDocSeesEveryOwner(t *testing.T) {
-	const module = "github.com/mendahu/provenencia/"
+	const module = "github.com/Jake-Robins-Studios/provenencia/"
 	owners := map[string]bool{}
 	for _, root := range []string{"core", "api"} {
 		err := filepath.WalkDir(filepath.Join("../..", root), func(path string, d fs.DirEntry, err error) error {

@@ -1,7 +1,7 @@
 // Package datevaluetest builds date values for test fixtures.
 package datevaluetest
 
-import "github.com/mendahu/provenencia/core/datevalue"
+import "github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 
 // Part is a date part for a datevalue.Value literal: nil for 0.
 func Part(n int) *int {

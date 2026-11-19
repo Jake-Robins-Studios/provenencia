@@ -1,8 +1,8 @@
 package conclusiondetails
 
 import (
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 )
 
 // FieldsOf composes the fields of several handles at once, keyed by entity

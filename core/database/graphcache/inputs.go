@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 )
 
 // InputKey is one thing a row was composed from. Bridge "" is the handle ID's

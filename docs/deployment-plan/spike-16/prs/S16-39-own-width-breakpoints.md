@@ -1,18 +1,18 @@
 # S16-39 — One container measures its own width and tells its content which layout fits
 
-**Status:** Landed in [#866](https://github.com/mendahu/provenencia/pull/866) (2026-11-16)
+**Status:** Landed in [#866](https://github.com/Jake-Robins-Studios/provenencia/pull/866) (2026-11-16)
 **Landed:** No version bump, as planned. Differences from the plan: the § 10 manual check was not run by the implementer (no UI session); the user runs steps 1–3 and 6 before merge, and step 2 checks the Sources list draws no compact frame before full rows. `PVBreakpointsMet`'s two fields are `private let`, not `let` (D-2). The `add-ui-component` comment line opens the GOOD half of the new anti-pattern block, there being no earlier width example to attach it to.
 **Spike / slice:** Spike 16 · Slice 4a — Layout by a container's own width
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every view switches layout at the same widths as today and draws the same on each side of them)
 **Board:** —
-**Depends on:** S15-49 (landed [#852](https://github.com/mendahu/provenencia/pull/852))
+**Depends on:** S15-49 (landed [#852](https://github.com/Jake-Robins-Studios/provenencia/pull/852))
 **Blocks:** —
 **Branch:** `s16-39-own-width-breakpoints`
 **Version bump:** none — no change a researcher can see in the shipped app ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** `.cursor/rules/swift-tests.mdc`, `.cursor/rules/versioning.mdc`
-**Context:** user, 2026-11-15, on S15-49 ([#852](https://github.com/mendahu/provenencia/pull/852)): unify the table's own-width breakpoint into a general-purpose tool; [S15-49's ship log](../../spike-15/prs/S15-49-source-types-list.ship.md) (F-7, F-10, F-11, the MNT round 3 note on `compactBelow`, UX-5 "Description may pop in a pass late"); [§ 9 of macos-client-patterns.md](../../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3; working rule "(Batch 3) A test run shows no window and touches no install"
+**Context:** user, 2026-11-15, on S15-49 ([#852](https://github.com/Jake-Robins-Studios/provenencia/pull/852)): unify the table's own-width breakpoint into a general-purpose tool; [S15-49's ship log](../../spike-15/prs/S15-49-source-types-list.ship.md) (F-7, F-10, F-11, the MNT round 3 note on `compactBelow`, UX-5 "Description may pop in a pass late"); [§ 9 of macos-client-patterns.md](../../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3; working rule "(Batch 3) A test run shows no window and touches no install"
 **Planned:** 2026-11-16 against `main` @ `5b64138`; refreshed 2026-11-16 against `eb7ee08e9` (the Citation composer left scope: S15-13 moved it onto the width class, user 2026-11-16)
 **Review:** [`S16-39-own-width-breakpoints.review.md`](S16-39-own-width-breakpoints.review.md) — Fits with changes — Ready with changes, 2 rounds; no open blocker; To user: M-1 (answered 2026-11-16: rebuild the pane measure on the container)
 
@@ -33,7 +33,7 @@
 
 Three views choose a layout from a width they measure themselves, each with its own `onGeometryChange` or `GeometryReader` and its own state: the Source types table's Description column (`PVTable`, from 1200pt), the Sources list's compact rows (below 880pt), the Person Timeline's people cards stacked under the title (below 772pt at Regular, 1402pt at Wide). This PR gives the kit one container, `PVWidthBreakpoints`, that measures the width it fills and hands its content which of the caller's breakpoints that width meets, and moves all three onto it. The researcher sees each view switch at the same widths as before, with the right layout on the first frame and no redraw while a resize stays between two breakpoints.
 
-**Why now.** S15-49 gave `PVTable` its own width gate the day after the Sources list's; the user asked on [#852](https://github.com/mendahu/provenencia/pull/852) for one tool before a third copy lands (2026-11-15).
+**Why now.** S15-49 gave `PVTable` its own width gate the day after the Sources list's; the user asked on [#852](https://github.com/Jake-Robins-Studios/provenencia/pull/852) for one tool before a third copy lands (2026-11-15).
 
 **What stays.** The pane's width class (`PVWidthClass`, read from `\.pvWidthClass`, measured once at `WorkspaceDestinationHost`) and its 1600pt breakpoint; `pvMeasuresWidthClass()` keeps its name and behavior and is rebuilt on the container (user, 2026-11-16, plan review M-1). Every breakpoint's value. Views that use a measured size as geometry (§ 6 Codebase fit, survey table). The Citation composer: since S15-13 it chooses its layout from the width class (`CitationComposerColumnLayout`), not from its own width, so it has no own-width breakpoint to move (user, 2026-11-16).
 

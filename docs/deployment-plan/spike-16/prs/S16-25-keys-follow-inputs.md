@@ -1,11 +1,11 @@
 # S16-25 — Swift keys become plain values and follow their inputs
 
-**Status:** Landed in [#847](https://github.com/mendahu/provenencia/pull/847) (2026-11-15)
+**Status:** Landed in [#847](https://github.com/Jake-Robins-Studios/provenencia/pull/847) (2026-11-15)
 **Spike / slice:** Spike 16 · Slice 2e — The app's cache
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every page draws the same values; only when a cached value reloads changes)
 **Board:** —
-**Depends on:** S16-24 (landed [#839](https://github.com/mendahu/provenencia/pull/839), reads report their inputs), S16-03 (landed [#769](https://github.com/mendahu/provenencia/pull/769)), S16-09 (landed [#780](https://github.com/mendahu/provenencia/pull/780), `.source` follow and stale pages), S16-12 (landed [#800](https://github.com/mendahu/provenencia/pull/800), Source records)
+**Depends on:** S16-24 (landed [#839](https://github.com/Jake-Robins-Studios/provenencia/pull/839), reads report their inputs), S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769)), S16-09 (landed [#780](https://github.com/Jake-Robins-Studios/provenencia/pull/780), `.source` follow and stale pages), S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800), Source records)
 **Blocks:** S16-29 (prefetch, once a write no longer throws the warmed sections away)
 **Branch:** `s16-25-keys-follow-inputs`
 **Version bump:** patch — the app reloads fewer pages after a write and the engine reports a new keyed read; nothing new on screen ([`docs/versioning.md`](../../../versioning.md))

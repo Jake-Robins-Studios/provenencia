@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package provenencia.engine.v1;
 
-option go_package = "github.com/mendahu/provenencia/api/proto/engine";
+option go_package = "github.com/Jake-Robins-Studios/provenencia/api/proto/engine";
 
 // Method identifies the FFI operation. The C ABI is one call that takes this
 // discriminant plus a protobuf payload; it is not a per-field getter surface.

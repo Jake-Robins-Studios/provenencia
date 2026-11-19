@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database/persondetail"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // roleTerm adds a researcher's own role term.

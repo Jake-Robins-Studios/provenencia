@@ -1,11 +1,11 @@
 # S16-21 — Promote's alignment reads a canon view and the place entries
 
-**Status:** Landed in [#836](https://github.com/mendahu/provenencia/pull/836) (2026-11-14)
+**Status:** Landed in [#836](https://github.com/Jake-Robins-Studios/provenencia/pull/836) (2026-11-14)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; every Promote row, connection subrow and footer count reads as today)
 **Board:** —
-**Depends on:** S16-18 (landed [#817](https://github.com/mendahu/provenencia/pull/817))
+**Depends on:** S16-18 (landed [#817](https://github.com/Jake-Robins-Studios/provenencia/pull/817))
 **Blocks:** S16-22 (serves the `CanonView` from the session graph and removes `loadCanon`'s walk)
 **Branch:** `s16-21-canon-view-place-links`
 **Version bump:** none — no change a researcher can see, and no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -102,8 +102,8 @@ Promote's alignment reads the canonical graph through one small interface, `grap
 | Tests | `core/graphalign/align_test.go` (`edge`, `canonOf`, `withCandidates`, `alignWith`, two direct `graphalign.Align` calls at lines 2105 and 2132), `invariants_test.go` `TestAlignInvariants`, `export_test.go` `NominatedForTest`, `connections_test.go` `TestConnections`, `TestConnectionsGrowsWithThePageNotPageTimesCanon`; `core/connectrules/filing_test.go` `TestLinksClosesCycle`, `TestDecide`; `core/database/conclusionsummaries/placeentries_test.go` `TestPlaceEntries` ("bad succession date", "chain fills no page"), `TestPlaceEntriesFollowLinkMoves`, `TestPlaceEntryInputsMatchReads`; `export_test.go` `PlacePageForTest`, `FillPlacePagesForTest`; `core/database/promotealign/promotealign_test.go` `TestProposeReportsEachConnection`, `TestProposePlacePartOfChain`, `TestProposeQueryCountStaysFlatWhenWarm`; `memo_test.go` `TestProposeWarmIssuesNoQuery`; `perf_test.go` `TestLargeSourceBudgets`; `bench_test.go` `BenchmarkCacheSizes` (`placePages` measure), `BenchmarkLargeSourcePropose` | |
 
 **Precedent.**
-- [#827](https://github.com/mendahu/provenencia/pull/827) (S16-20) folded `graphalign.Handle` onto `subjectcompare.Subject`: copy its shape for `CanonEdge` → `kinship.Link` (the type goes, every reader uses the shared one, tests change only their literals).
-- [#817](https://github.com/mendahu/provenencia/pull/817) (S16-18), round 1 fix F-1, split the chain entry from the page entry so a read takes only the links it needs (ship log `S16-18-place-entries.ship.md`, "Fix plan 1"): copy it for the succession entry (its registration, fill through `followPlaces`, `Inputs` from the followed links, `Check` by rebuild, test hooks, `BenchmarkCacheSizes` measure, cache-doc row).
+- [#827](https://github.com/Jake-Robins-Studios/provenencia/pull/827) (S16-20) folded `graphalign.Handle` onto `subjectcompare.Subject`: copy its shape for `CanonEdge` → `kinship.Link` (the type goes, every reader uses the shared one, tests change only their literals).
+- [#817](https://github.com/Jake-Robins-Studios/provenencia/pull/817) (S16-18), round 1 fix F-1, split the chain entry from the page entry so a read takes only the links it needs (ship log `S16-18-place-entries.ship.md`, "Fix plan 1"): copy it for the succession entry (its registration, fill through `followPlaces`, `Inputs` from the followed links, `Check` by rebuild, test hooks, `BenchmarkCacheSizes` measure, cache-doc row).
 - S14-22 D-1 made `Decide`'s `filed` a callback "to keep the filer's SQL read lazy": the on-demand set extends the same laziness to each record.
 
 ## 5. Decisions

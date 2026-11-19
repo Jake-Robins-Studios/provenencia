@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/catalogsession/catalogsessiontest"
-	"github.com/mendahu/provenencia/core/database/canonlinks"
-	"github.com/mendahu/provenencia/core/database/databasetest"
-	"github.com/mendahu/provenencia/core/database/persondetail"
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
 )
 
 // capBudget is bar 2 of Spike 16: a crafted project's section draws in under a second.

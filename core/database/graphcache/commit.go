@@ -1,9 +1,9 @@
 package graphcache
 
 import (
-	"github.com/mendahu/provenencia/core/connectrules"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 )
 
 // OnCommit applies a committed write. Structure drops the store. A handle

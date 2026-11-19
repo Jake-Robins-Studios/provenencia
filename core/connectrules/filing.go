@@ -3,7 +3,7 @@ package connectrules
 import (
 	"slices"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // This file is the filing rule: whether a bridge Subject is filed onto an

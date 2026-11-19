@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/catalogsession/catalogsessiontest"
-	"github.com/mendahu/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession/catalogsessiontest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 )
 
 // Budgets of S16-13 D-15, on a person in 80 Evidence graphs (past the 64 the

@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // text compares free text (toponyms, remarks) word by word, in order.

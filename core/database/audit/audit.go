@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/google/uuid"
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/rowchange"
 )
 
 var ErrInvalid = apperr.New(apperr.CodeAuditInvalid, apperr.KindUser)

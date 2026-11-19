@@ -1,6 +1,6 @@
 # S15-06 — Type suggestions have a level
 
-**Status:** Landed in [#782](https://github.com/mendahu/provenencia/pull/782) (2026-11-10)
+**Status:** Landed in [#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782) (2026-11-10)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire and a store parameter; the Source page and the Source types page draw the same rows as today)

@@ -6,7 +6,7 @@
 // engine (core/citationformat) prints a mark.
 package valuemark
 
-import "github.com/mendahu/provenencia/core/apperr"
+import "github.com/Jake-Robins-Studios/provenencia/core/apperr"
 
 // ErrInvalid is the one refusal of a bad mark, passed through by every store
 // that checks one, as datevalue.ErrInvalid is.

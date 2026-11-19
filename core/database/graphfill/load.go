@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mendahu/provenencia/core/database/datevalues"
-	"github.com/mendahu/provenencia/core/database/depictionvalues"
-	"github.com/mendahu/provenencia/core/database/graphcache"
-	"github.com/mendahu/provenencia/core/database/namevalues"
-	"github.com/mendahu/provenencia/core/database/scalarcols"
-	"github.com/mendahu/provenencia/core/hops"
-	"github.com/mendahu/provenencia/core/locator"
-	"github.com/mendahu/provenencia/core/valuecodec"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/depictionvalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/namevalues"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/scalarcols"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/locator"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // MaxEvidenceGraphs is how many Evidence graphs stay loaded, and how many

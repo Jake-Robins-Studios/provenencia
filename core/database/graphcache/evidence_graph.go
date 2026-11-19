@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/mendahu/provenencia/core/hops"
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/hops"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // EvidenceSubject is one subject on an Evidence graph. TypeKey and TypeOrigin are the

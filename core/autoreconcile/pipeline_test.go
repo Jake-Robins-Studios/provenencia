@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/propertymeta"
+	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 )
 
 // Evidence helpers: a Source, weak evidence each way, high trust, a negative,

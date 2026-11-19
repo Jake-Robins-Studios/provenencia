@@ -1,6 +1,6 @@
 package graphalign
 
-import "github.com/mendahu/provenencia/core/subjectcompare"
+import "github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
 
 // Scored is the pairwise + edge result ScoreCandidate returns.
 type Scored struct {

@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database/evidencegraphs"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"google.golang.org/protobuf/proto"
 )
 

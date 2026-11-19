@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mendahu/provenencia/core/database/catalogmodel"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 type inboundEdge struct {

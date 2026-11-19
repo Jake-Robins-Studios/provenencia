@@ -1,6 +1,6 @@
 package valuecompare
 
-import "github.com/mendahu/provenencia/core/datevalue"
+import "github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 
 // The one dating: when an event, or any period, was under way, read from its
 // recorded date, start, end and as-of samples. Pure; the caller places it

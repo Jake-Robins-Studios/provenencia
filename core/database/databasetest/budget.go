@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/database/graphcache"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 )
 
 // Fastest is the least of n timed runs of run; each run's own setup stays

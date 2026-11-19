@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-const modulePath = "github.com/mendahu/provenencia/"
+const modulePath = "github.com/Jake-Robins-Studios/provenencia/"
 
 // layerPackages are the packages the matching stack builds on. Each is pure:
 // it builds and tests with no build tags and no path to core/database.

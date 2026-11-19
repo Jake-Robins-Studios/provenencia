@@ -1,11 +1,11 @@
 # S16-11 — Outcome records live on the canonical node
 
-**Status:** Landed in [#793](https://github.com/mendahu/provenencia/pull/793) (2026-11-12)
+**Status:** Landed in [#793](https://github.com/Jake-Robins-Studios/provenencia/pull/793) (2026-11-12)
 **Spike / slice:** Spike 16 · Slice 2b — Entity records
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; every page draws the same values, records and pictures)
 **Board:** —
-**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/mendahu/provenencia/pull/748)); S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789), which this plan's `docs/catalog-caches.md` row and `BenchmarkCacheSizes` build on)
+**Depends on:** S14-42 (Spike 14, landed [#748](https://github.com/Jake-Robins-Studios/provenencia/pull/748)); S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789), which this plan's `docs/catalog-caches.md` row and `BenchmarkCacheSizes` build on)
 **Blocks:** S16-30 (composes a provenance record from the node's outcome row); S15-28 (`FieldRecordCounts` from the node's outcome rows)
 **Branch:** `s16-11-outcomes-on-node`
 **Version bump:** none — no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))

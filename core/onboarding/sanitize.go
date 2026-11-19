@@ -4,8 +4,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/mendahu/provenencia/core/apperr"
-	"github.com/mendahu/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 )
 
 var ErrInvalidFamilyName = apperr.New(apperr.CodeOnboardingInvalidFamilyName, apperr.KindUser)

@@ -3,12 +3,12 @@ package handlers
 import (
 	"context"
 
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/conclusionsummaries"
-	"github.com/mendahu/provenencia/core/database/files"
-	"github.com/mendahu/provenencia/core/search"
-	"github.com/mendahu/provenencia/core/workspacelocation"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/conclusionsummaries"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
+	"github.com/Jake-Robins-Studios/provenencia/core/search"
+	"github.com/Jake-Robins-Studios/provenencia/core/workspacelocation"
 	"google.golang.org/protobuf/proto"
 )
 

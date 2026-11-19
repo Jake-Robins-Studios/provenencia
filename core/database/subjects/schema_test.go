@@ -3,7 +3,7 @@ package subjects
 import (
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 )
 
 func TestMigrationCreatesSubjectTables(t *testing.T) {

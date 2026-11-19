@@ -1,11 +1,11 @@
 # S16-18 — Place entries
 
-**Status:** Landed in [#817](https://github.com/mendahu/provenencia/pull/817) (2026-11-13)
+**Status:** Landed in [#817](https://github.com/Jake-Robins-Studios/provenencia/pull/817) (2026-11-13)
 **Spike / slice:** Spike 16 · Slice 2c — Walks
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; every place chain, place page and summary row reads the same as today)
 **Board:** —
-**Depends on:** S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789)), S14-42 (Spike 14, landed [#748](https://github.com/mendahu/provenencia/pull/748))
+**Depends on:** S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789)), S14-42 (Spike 14, landed [#748](https://github.com/Jake-Robins-Studios/provenencia/pull/748))
 **Blocks:** S16-19 (reads an event's own places from the entries), S16-21 (reads the filed `part_of` and `succeeded_by` links from the entries)
 **Branch:** `s16-18-place-entries`
 **Version bump:** none — no change a researcher can see, no wire and no catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -141,7 +141,7 @@ Verified at `aa150de`.
 | Test builders | `core/database/graphcache/graphcachetest/graphcachetest.go` `Canon` (`Entity`, `Link`, `Location`, `Join`, `Merge`, `Remove`, `Commit`, `CommitVocabulary`, `Bulk`) | No place-link builder |
 | Tests | `placechains_test.go` (`TestPlaceParentsAtDateFromPeriods` … `TestUndatedPlacesAlwaysHold`, `TestAttachPlaceRelationships*`, `TestPersonLifeOwners`), `placechains_internal_test.go`, `inputs_test.go`, `display_cache_test.go`, `eventplaces_cap_test.go`, `walks_test.go`, `conclusionsummaries_test.go` `TestListPlacesQueryCountIsConstant`; `core/database/graphcache/inputs_test.go` `TestInputScope`; `core/database/promotealign/perf_test.go` `TestLargeSourceBudgets` | Must stay green |
 
-**Precedent.** S16-10 ([#789](https://github.com/mendahu/provenencia/pull/789)) registered `canonlinks.kinship` (`core/database/canonlinks/reader.go` `pivots`): a keyed entry from `init()` with `DerivedFrom: Vocabulary{}`, an Apply that drops roots, a `Check` that re-derives and `reflect.DeepEqual`s, `Cap: maxKeys` (65,536). Copy that registration shape. S16-13 ([#809](https://github.com/mendahu/provenencia/pull/809), `core/database/graphfill/records.go` `RecordsOf`) fills a keyed entry through `GetMany` with a batched fill closure; copy its fill-closure shape. Do not copy `pivots`' Apply (`deps` walks cached neighbours, which misses a removed link whose ends are not loaded: the gap D-16 closes).
+**Precedent.** S16-10 ([#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789)) registered `canonlinks.kinship` (`core/database/canonlinks/reader.go` `pivots`): a keyed entry from `init()` with `DerivedFrom: Vocabulary{}`, an Apply that drops roots, a `Check` that re-derives and `reflect.DeepEqual`s, `Cap: maxKeys` (65,536). Copy that registration shape. S16-13 ([#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809), `core/database/graphfill/records.go` `RecordsOf`) fills a keyed entry through `GetMany` with a batched fill closure; copy its fill-closure shape. Do not copy `pivots`' Apply (`deps` walks cached neighbours, which misses a removed link whose ends are not loaded: the gap D-16 closes).
 
 ## 5. Decisions
 

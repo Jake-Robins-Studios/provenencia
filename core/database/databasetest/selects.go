@@ -12,7 +12,7 @@ import (
 
 	"github.com/mattn/go-sqlite3"
 
-	"github.com/mendahu/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 )
 
 // Selects counts the SELECT statements a catalog prepares and remembers which

@@ -28,7 +28,7 @@ Nits (logged): `MNT-6 · graphcache/commit.go:13-14, graph.go Drop, evidence_gra
 
 **F-1 — The doc test fails when a cache owner is not linked** (from MNT-1)
 Files: `core/catalogsession/cache_doc_test.go`.
-Failing test first: add `TestCacheDocSeesEveryOwner` (same file). It walks `core/` and `api/` for non-`_test.go` Go files that call `graphcache.RegisterKeyed(` or `graphcache.RegisterWhole(`, maps each to its package import path (`github.com/mendahu/provenencia/` + dir), parses `cache_doc_test.go`'s own imports with `go/parser`, and fails naming each owner package not imported. Prove it red by temporarily removing the `promotealign` blank import, then restore.
+Failing test first: add `TestCacheDocSeesEveryOwner` (same file). It walks `core/` and `api/` for non-`_test.go` Go files that call `graphcache.RegisterKeyed(` or `graphcache.RegisterWhole(`, maps each to its package import path (`github.com/Jake-Robins-Studios/provenencia/` + dir), parses `cache_doc_test.go`'s own imports with `go/parser`, and fails naming each owner package not imported. Prove it red by temporarily removing the `promotealign` blank import, then restore.
 Do: keep the test in `catalogsession` (D-19). Update the comment: the companion test proves this file imports every owner.
 Check: both tests pass; scripts/check-pr.sh PASS.
 

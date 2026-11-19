@@ -1,6 +1,6 @@
 # S16-03 — One open section and one list of section reads
 
-**Status:** Landed in [#769](https://github.com/mendahu/provenencia/pull/769) (2026-11-09)
+**Status:** Landed in [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769) (2026-11-09)
 **Spike / slice:** Spike 16 · Slice 1b — Current data and honest notices
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Person page draws the same header, switcher, sections and states before and after)

@@ -1,6 +1,6 @@
 package searchindex
 
-import "github.com/mendahu/provenencia/core/database/graphcache"
+import "github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 
 // SetNewGraphForTest replaces the graph builder ReprojectHandles uses and
 // returns a function that restores it.

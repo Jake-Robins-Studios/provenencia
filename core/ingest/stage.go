@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mendahu/provenencia/core/database"
-	"github.com/mendahu/provenencia/core/database/files"
-	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/depictionvalue"
-	"github.com/mendahu/provenencia/core/ingest/mediatypes"
-	"github.com/mendahu/provenencia/core/objectstore"
-	"github.com/mendahu/provenencia/core/raster"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/files"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest/mediatypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/objectstore"
+	"github.com/Jake-Robins-Studios/provenencia/core/raster"
 )
 
 // imageMaxBytes is the largest image file StageImage reads (32 MiB).

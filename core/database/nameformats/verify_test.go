@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/database"
-	_ "github.com/mendahu/provenencia/core/database/autoreconciler" // registers Verify's truth recompute
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/database/nameformats"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	_ "github.com/Jake-Robins-Studios/provenencia/core/database/autoreconciler" // registers Verify's truth recompute
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/nameformats"
 )
 
 // With PROVENENCIA_GRAPH_VERIFY=1 a commit reloads the default name format and

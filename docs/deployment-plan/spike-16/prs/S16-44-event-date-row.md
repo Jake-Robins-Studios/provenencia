@@ -1,11 +1,11 @@
 # S16-44 — The Event page's Date row shows as-ofs
 
-**Status:** Landed in [#881](https://github.com/mendahu/provenencia/pull/881) (2026-11-17)
+**Status:** Landed in [#881](https://github.com/Jake-Robins-Studios/provenencia/pull/881) (2026-11-17)
 **Spike / slice:** Spike 16 · Batch 5 · Slice 5a — An attestation is a sample
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D6](../design/archive/S16-D6-event-date-row.md) (Event page: the Date row for an event dated by as-ofs, DR-1 – DR-8, DR-W1), board agreed 2026-11-17
 **Board:** agreed 2026-11-17. [Claude Design — Event Detail](https://claude.ai/artifact/5ciAxv86fYtrUvuCHPuuJ5), page `project/Event Detail.dc.html`, turn "S16-D6 · As-of dates": frames 8a (Regular), 8b (Wide), 9 (the Why open) and 10 (the strip of every case, with Residence of Z's 10,000 as-ofs folded). The implementer reads it with the Artifact tool's `read` on that link and that `path`, as S16-42 read its boards. Wording: `from`, `as of`, `until` before each date, the role word in secondary ink (D-3); `Show 50 more` (D-5). Two things the board draws are not built here: the Why's own `Show 50 more` (S15-27), and `; 9,980 more` at the end of the spoken label (the label speaks the 20 lines it shows; the Show more button speaks the rest)
-**Depends on:** S16-42 (landed [#876](https://github.com/mendahu/provenencia/pull/876)), S16-D6 (agreed 2026-11-17)
+**Depends on:** S16-42 (landed [#876](https://github.com/Jake-Robins-Studios/provenencia/pull/876)), S16-D6 (agreed 2026-11-17)
 **Blocks:** —
 **Branch:** `s16-44-event-date-row`
 **Version bump:** minor — the next minor after `VERSION` on `main` when the branch is cut (0.21.0 → 0.22.0 at the planning base): a change a researcher sees on every as-of event's page, and wire fields removed from `EventSummary` that client and core drop together ([`docs/versioning.md`](../../../versioning.md))

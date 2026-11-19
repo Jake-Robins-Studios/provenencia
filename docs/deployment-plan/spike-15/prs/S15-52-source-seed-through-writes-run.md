@@ -1,6 +1,6 @@
 # S15-52 — The Source seed writes through `writes.Run`
 
-**Status:** Landed in [#891](https://github.com/mendahu/provenencia/pull/891) (2026-11-19)
+**Status:** Landed in [#891](https://github.com/Jake-Robins-Studios/provenencia/pull/891) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of the seed's write path; no view draws anything different)

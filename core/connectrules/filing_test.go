@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // readerOf is a reader over links that records each call's records.

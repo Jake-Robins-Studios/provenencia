@@ -3,9 +3,9 @@ package conclusionsummaries
 import (
 	"time"
 
-	"github.com/mendahu/provenencia/core/database/canonicalentities"
-	"github.com/mendahu/provenencia/core/database/effects"
-	"github.com/mendahu/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/canonicalentities"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 )
 
 // PlaceRelationshipKind is how a related Place appears on a Place detail.

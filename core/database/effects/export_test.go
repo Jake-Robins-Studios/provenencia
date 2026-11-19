@@ -1,6 +1,6 @@
 package effects
 
-import "github.com/mendahu/provenencia/core/database/rowchange"
+import "github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
 // SourceScopeOfChange resolves the Source scope of changes[i] alone, with every
 // delete in changes as a ghost. It is visible to the external test package,

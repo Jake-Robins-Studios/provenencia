@@ -4,8 +4,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/matchregistry"
-	"github.com/mendahu/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
 )
 
 func TestNormalizeForm(t *testing.T) {

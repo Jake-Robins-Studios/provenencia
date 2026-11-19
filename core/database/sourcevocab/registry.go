@@ -1,8 +1,8 @@
 package sourcevocab
 
 import (
-	"github.com/mendahu/provenencia/core/database/metadatafields"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Declarative provenencia seed registry (create-time starter for new catalogs).

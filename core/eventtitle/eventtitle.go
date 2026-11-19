@@ -12,7 +12,7 @@ package eventtitle
 import (
 	"strings"
 
-	"github.com/mendahu/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 )
 
 // Rule is one row of the naming matrix, in precedence order.

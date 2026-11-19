@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mendahu/provenencia/core/kinship"
-	"github.com/mendahu/provenencia/core/matchregistry"
-	pt "github.com/mendahu/provenencia/core/propertycompare/propertycomparetest"
-	"github.com/mendahu/provenencia/core/recordlinks"
-	"github.com/mendahu/provenencia/core/subjectcompare"
-	"github.com/mendahu/provenencia/core/subjectcompare/subjectcomparetest"
-	"github.com/mendahu/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
+	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
+	pt "github.com/Jake-Robins-Studios/provenencia/core/propertycompare/propertycomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/subjectcompare/subjectcomparetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // FuzzLines reads a byte string as two Evidence graphs (three bytes per item:

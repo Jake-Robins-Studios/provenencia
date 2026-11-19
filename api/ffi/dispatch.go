@@ -5,9 +5,9 @@ import (
 	"runtime/debug"
 	"strconv"
 
-	"github.com/mendahu/provenencia/api/ffi/handlers"
-	"github.com/mendahu/provenencia/api/proto/engine"
-	"github.com/mendahu/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/api/ffi/handlers"
+	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
+	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 )
 
 const (

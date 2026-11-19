@@ -1,11 +1,11 @@
 # S15-49 — The Source types list is redesigned
 
-**Status:** Landed in [#852](https://github.com/mendahu/provenencia/pull/852) (2026-11-15)
+**Status:** Landed in [#852](https://github.com/Jake-Robins-Studios/provenencia/pull/852) (2026-11-15)
 **Spike / slice:** Spike 15 · Slice 2 — Metadata at three levels
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D28](../design/archive/S15-D28-source-types-list.md), board agreed 2026-11-15 (user)
 **Board:** [Claude Design — Source Types](https://claude.ai/artifact/R94Wfp97eC9cBLaSNBQEga): page *S2-03 Source Types Board*, section "01 Columns, sort and the Wide band" (frames L1a / L1b, L2a / L2b, L3, L4a / L4b and its notes on TL-1, TL-W1, TL-W2), drawn by the component *Source Types List* (`Source Types List.dc.html`, its `columns`). The board confirms D-1 – D-4 as written (Used by 120pt with Associated fields' count cell; Description a flexible column splitting the free width evenly with Label, 562pt each in the band; the band; no sort on Description) and adds one thing: the full description as a hover tooltip (D-3). Section 02 is S15-D26's Add type dialog, already built. Open the link in a browser; if you cannot, D-1 – D-4 and § 6 macOS describe each frame
-**Depends on:** S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D28
+**Depends on:** S15-48 (landed [#848](https://github.com/Jake-Robins-Studios/provenencia/pull/848)), S15-D28
 **Blocks:** —
 **Branch:** `s15-49-source-types-list`
 **Version bump:** patch, 0.15.3 (today's `VERSION`) → **0.15.4** (or the next patch after `main`'s `VERSION` when you rebase): `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj` — a Mac UI change to an existing destination, no new capability and no wire change ([`docs/versioning.md`](../../../versioning.md))
@@ -99,7 +99,7 @@ The Source types list shows how many Sources use each type, sortable, and at Wid
 | Tests | `macos/ProvenenciaTests/SourceTypesModelTests.swift` `sortingTogglesWithinAColumnAndResetsAcrossColumns`; fixtures `macos/ProvenenciaTests/CatalogFixtures.swift` `catalogSourceType(_:label:key:origin:description:usedBy:)` | Sort covered for label and fields; no column test |
 | Docs | `docs/macos-client-patterns.md` § 9 pattern row "List with a side pane (Properties, Metadata, Source types)" and the rule-3 paragraph ("as the Sources list does"); `docs/ideas/wide-layout.md` row "Properties, Metadata" | Still name Source types as a list with a side pane; S15-48 left both to this PR |
 
-**Precedent.** S15-04 ([#774](https://github.com/mendahu/provenencia/pull/774)) gave the Sources list its Wide frame: `.pvListBand(widthClass)` right after the content `VStack`'s `.frame(maxWidth: .infinity, maxHeight: .infinity)` in `SourcesListView`, with `.background`, the toast and the dialogs after it, and a column that exists only at Wide (Published, `SourcesListColumns.published`). Copy the band's placement and the Wide-only column idea; do not copy `SourcesListColumns` (that list is a hand-built row layout; this one is a `PVTable` whose columns are already the single source of widths).
+**Precedent.** S15-04 ([#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774)) gave the Sources list its Wide frame: `.pvListBand(widthClass)` right after the content `VStack`'s `.frame(maxWidth: .infinity, maxHeight: .infinity)` in `SourcesListView`, with `.background`, the toast and the dialogs after it, and a column that exists only at Wide (Published, `SourcesListColumns.published`). Copy the band's placement and the Wide-only column idea; do not copy `SourcesListColumns` (that list is a hand-built row layout; this one is a `PVTable` whose columns are already the single source of widths).
 
 ## 5. Decisions
 

@@ -1,11 +1,11 @@
 # S15-18 — A Source type can be copied
 
-**Status:** Landed in [#877](https://github.com/mendahu/provenencia/pull/877) (2026-11-17)
+**Status:** Landed in [#877](https://github.com/Jake-Robins-Studios/provenencia/pull/877) (2026-11-17)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D7](../design/archive/S15-D7-copy-source-type.md), board agreed 2026-11-17
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), artboard *S15-D27 · S15-D6 · S15-D7 · Source type page board*, the frames named "S15-D7" in its menu (D7-1a, D7-1b, D7-2a, D7-2b, D7-3 – D7-6, D7-7, D7-7b, D7-8 – D7-10) and its decision notes (CT-1 the button, CT-4 ticks, CT-9 leaving, CT-5, CT-3 · CT-8, CT-10, Handoff), drawn by *Source type page · component* (`Source-Type-Page.dc.html`). Board decisions: the kit's `copy` glyph (the app's `.duplicate`), shown disabled while the page loads; Escape or a click outside closes at once when nothing changed; frame 7 split into 7 (duplicate key) and 7b (save failed). The board writes its own duplicate-key sentence; the app keeps the engine's message, as Add type does (D-8)
-**Depends on:** S15-06 (landed [#782](https://github.com/mendahu/provenencia/pull/782)), S15-12 (landed [#856](https://github.com/mendahu/provenencia/pull/856)), S15-15 (landed [#871](https://github.com/mendahu/provenencia/pull/871)), S15-48 (landed [#848](https://github.com/mendahu/provenencia/pull/848)), S15-D7
+**Depends on:** S15-06 (landed [#782](https://github.com/Jake-Robins-Studios/provenencia/pull/782)), S15-12 (landed [#856](https://github.com/Jake-Robins-Studios/provenencia/pull/856)), S15-15 (landed [#871](https://github.com/Jake-Robins-Studios/provenencia/pull/871)), S15-48 (landed [#848](https://github.com/Jake-Robins-Studios/provenencia/pull/848)), S15-D7
 **Blocks:** —
 **Branch:** `s15-18-copy-source-type`
 **Version bump:** minor, 0.19.0 → **0.20.0** (if `main`'s `VERSION` is no longer 0.19.0 when you rebase, the next minor after it): a new RPC and a new action on the type page ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
@@ -114,7 +114,7 @@ A researcher who wants a type close to one they have (a state census beside the 
 | Mark name | `macos/App/DesignSystem/Recipes/Marks/PVMark.swift` `PVMarkKey.typePickerTitle`, `PVMarkKey(catalogKey:)` | The mark's name |
 | Tests | `core/database/sourcetypes/sourcetypes_test.go` `TestCreateUpdateGetByID`; `core/database/sourcevocab/sourcevocab_test.go`; `api/ffi/handlers/source_defs_test.go` `TestCreateSourceTypeMintsKeyFromLabel`, `TestCitationFormats`; `macos/ProvenenciaTests/SourceCopyModelTests.swift`, `SourceTypePageModelTests.swift`, `SourceTypesModelTests.swift` | Cover create, formats, Copy Source, the page |
 
-**Precedent.** Copy Source (Spike 12; S15-32 [#778](https://github.com/mendahu/provenencia/pull/778) added its date tick): copy its RPC shape (a `Copy…Request` with one bool per part), its composing core function inside the handler's `writes.Run`, its model (`choices` vs `prefill` for `isDirty`, availability per part, "None on this …"), its dialog modifier and its header button. Do not copy its workspace read (a type has no workspace) or its Artifact checklist.
+**Precedent.** Copy Source (Spike 12; S15-32 [#778](https://github.com/Jake-Robins-Studios/provenencia/pull/778) added its date tick): copy its RPC shape (a `Copy…Request` with one bool per part), its composing core function inside the handler's `writes.Run`, its model (`choices` vs `prefill` for `isDirty`, availability per part, "None on this …"), its dialog modifier and its header button. Do not copy its workspace read (a type has no workspace) or its Artifact checklist.
 
 ## 5. Decisions
 

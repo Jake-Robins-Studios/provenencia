@@ -1,11 +1,11 @@
 # S16-20 — One match index that Apply keeps current
 
-**Status:** Landed in [#827](https://github.com/mendahu/provenencia/pull/827) (2026-11-13)
+**Status:** Landed in [#827](https://github.com/Jake-Robins-Studios/provenencia/pull/827) (2026-11-13)
 **Spike / slice:** Spike 16 · Slice 2d — Promote
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: an engine refactor; Promote's suggestions read the same as today)
 **Board:** —
-**Depends on:** S16-10 (landed [#789](https://github.com/mendahu/provenencia/pull/789))
+**Depends on:** S16-10 (landed [#789](https://github.com/Jake-Robins-Studios/provenencia/pull/789))
 **Blocks:** S16-32 (narrows the candidates' re-rank with the keys `Put` and `Remove` change), S16-22 (serves each handle's profile from this entry)
 **Branch:** `s16-20-match-index-apply`
 **Version bump:** none — no change a researcher can see, and no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
@@ -137,7 +137,7 @@ Promote's match index (the shortlist postings that find each Source Subject's ca
 
 **Measured on the planning base** (scratch benchmarks, removed; Xeon 2.1 GHz, 4 cores, 2026-11-13): full profiles of every unmerged person, event and place take 121 ms and 20.7 MB at 4,000 persons (18,233 handles) and 202 ms and about 34 MB at 16,000 (30,233 handles); today's `Warm` keying takes 169 / 290 ms. The index keys of the full profile equal those of `keyValues` for all 18,233 and 30,233 handles. A proposal of Source A after only the candidates are cleared: 723 ms against a 226 ms warm one at 4,000, 1,187 ms against 226 ms at 16,000.
 
-**Precedent.** S16-12's Source records ([#800](https://github.com/mendahu/provenencia/pull/800), `core/database/sources/records.go` `Records`): a whole `LifeGraph` entry over a pointer with a Build, an Apply that patches the held value in place and calls `w.Set(g, idx)`, and a Check that compares with a fresh build by `reflect.DeepEqual`. Copy that shape. Do not copy its `w.Get` inside Apply: Apply runs only when the entry is held (`applyEntries`), so read the held value with `MatchIndex.Get` once and use it. S16-16 ([#814](https://github.com/mendahu/provenencia/pull/814)) is the precedent for the before / after figures in the ship log (`BenchmarkLargeSourcePropose`).
+**Precedent.** S16-12's Source records ([#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800), `core/database/sources/records.go` `Records`): a whole `LifeGraph` entry over a pointer with a Build, an Apply that patches the held value in place and calls `w.Set(g, idx)`, and a Check that compares with a fresh build by `reflect.DeepEqual`. Copy that shape. Do not copy its `w.Get` inside Apply: Apply runs only when the entry is held (`applyEntries`), so read the held value with `MatchIndex.Get` once and use it. S16-16 ([#814](https://github.com/Jake-Robins-Studios/provenencia/pull/814)) is the precedent for the before / after figures in the ship log (`BenchmarkLargeSourcePropose`).
 
 ## 5. Decisions
 

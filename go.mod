@@ -1,4 +1,4 @@
-module github.com/mendahu/provenencia
+module github.com/Jake-Robins-Studios/provenencia
 
 go 1.27
 

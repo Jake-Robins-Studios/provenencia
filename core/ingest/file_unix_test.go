@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mendahu/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database"
 )
 
 func TestFileRejectsFIFO(t *testing.T) {
