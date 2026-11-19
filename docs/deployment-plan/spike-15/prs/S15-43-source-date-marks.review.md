@@ -1,6 +1,6 @@
 # Review — S15-43 The Source date can be marked unknown or supplied
 
-**Verdict:** (round 2 pending)
+**Verdict:** Fits with changes — Ready with changes
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -60,3 +60,30 @@
 **Answer:** Fixed — §8 "Most likely to break" names the `datevalue`, `datevalues` and Observation date tests.
 
 Other: the `add-date-value` line STEP-6 edits is named by its opening words.
+
+## Round 2
+
+Maintainability: round-1 answers hold (M-4's decline checked). Executability: Current state still true at `d3abece`; every transition of D-4 walked.
+
+### M-7 · blocker · D-7 audits a Source delete from the settled mark, against the rule D-5 now sets
+**Answer:** Fixed — D-7 reads `storedDateMark`; D-2 adds the `Source` doc comment line (readers `DateMark`, writes and audits `storedDateMark`); T-3 gains the dangling supplied delete case.
+
+### M-8 · blocker · `fillDates` is typed to `[]Source`, so the named S15-05 add on the Source record must copy the date rules
+**Answer:** Fixed — D-3 puts both rules in `settleDate(dates, id, stored)`; `fillDates` loops over it; Codebase fit and Next adds name S15-05's `loadRecords`.
+
+### M-1 note · `sqlGet` and friends can stay `const`
+**Answer:** Fixed — D-2 says they stay `const`s built by concatenation, as `identityclaims.sqlGet`.
+
+### X-7 · major · STEP-3 and T-4 give no way to set an unknown or supplied original
+**Answer:** Fixed — STEP-2 gives `sourcecopy_test.go`'s `setDate` a `mark` parameter.
+
+### X-8 · minor · `getOne`'s query parameter must be widened
+**Answer:** Fixed — D-3 says `getOne`'s `q` gains `Query`.
+
+### X-9 · minor · D-4 steps 5 and 6 lean on unstated definitions
+**Answer:** Fixed — step 3 defines `held`; step 6 counts the `PutTx` change.
+
+### X-10 · minor · T-5 and T-8 do not name their source fixture or DB handle
+**Answer:** Fixed — T-5 names `dbtest.MustDB(t, c)`; T-8 makes its own Source with `runCreate`.
+
+The loop stops here (two rounds). The round-2 fixes are small and local; no blocker is open.
