@@ -32,14 +32,11 @@ func install(c *database.Catalog) error {
 	return err
 }
 
-// storedFormats reads a type's formats as stored (fields by id).
+// storedFormats reads a type's formats as stored (fields by id). It opens and
+// closes its own transaction, so call it with none held.
 func storedFormats(t *testing.T, c *database.Catalog, typeID []byte) sourcetypes.Formats {
 	t.Helper()
-	db, err := c.DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	tx, err := db.Begin()
+	tx, err := dbtest.MustDB(t, c).Begin()
 	if err != nil {
 		t.Fatal(err)
 	}

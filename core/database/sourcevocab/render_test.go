@@ -222,15 +222,6 @@ func TestSeedCitations(t *testing.T) {
 		}
 		typeIDs[st.Key] = ty.ID
 	}
-	db, err := c.DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	tx, err := db.Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = tx.Rollback() }()
 
 	var lines []string
 	got := map[string]string{} // "type<TAB>fixture<TAB>form" -> text
@@ -240,11 +231,7 @@ func TestSeedCitations(t *testing.T) {
 		lines = append(lines, id+"\t"+text)
 	}
 	for _, st := range seedTypes {
-		all, err := sourcetypes.StoredFormatsTx(tx, [][]byte{typeIDs[st.Key]})
-		if err != nil {
-			t.Fatal(err)
-		}
-		stored := all[string(typeIDs[st.Key])]
+		stored := storedFormats(t, c, typeIDs[st.Key])
 		render := func(name string, fx fixture, form citationformat.Form) {
 			tpl, diags := citationformat.Parse(stored.Text(form), form)
 			if len(diags) > 0 {

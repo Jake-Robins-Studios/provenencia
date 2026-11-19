@@ -107,17 +107,7 @@ func (f *copyFixture) copyType(in CopyTypeInput) (sourcetypes.Type, []rowchange.
 }
 
 func (f *copyFixture) formats(t *testing.T, typeID []byte) sourcetypes.Formats {
-	t.Helper()
-	tx, err := dbtest.MustDB(t, f.c).Begin()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	got, err := sourcetypes.StoredFormatsTx(tx, [][]byte{typeID})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return got[string(typeID)]
+	return storedFormats(t, f.c, typeID)
 }
 
 func (f *copyFixture) ids(t *testing.T, typeID []byte, level vocabkey.Level) [][]byte {

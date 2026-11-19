@@ -382,21 +382,8 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				db, err := c.DB()
-				if err != nil {
-					t.Fatal(err)
-				}
-				tx, err := db.Begin()
-				if err != nil {
-					t.Fatal(err)
-				}
-				defer func() { _ = tx.Rollback() }()
-				stored, err := StoredFormatsTx(tx, [][]byte{got.ID})
-				if err != nil {
-					t.Fatal(err)
-				}
-				if stored[string(got.ID)] != in {
-					t.Fatalf("stored %+v", stored[string(got.ID)])
+				if stored := storedFormats(t, c, got.ID); stored != in {
+					t.Fatalf("stored %+v", stored)
 				}
 				if len(changes) != 1 {
 					t.Fatalf("changes %+v", changes)
@@ -658,6 +645,25 @@ func runDelete(c *database.Catalog, userID, id []byte) error {
 	return err
 }
 
+// storedFormats reads a type's formats as stored (fields by id).
+func storedFormats(t *testing.T, c *database.Catalog, id []byte) Formats {
+	t.Helper()
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	got, err := StoredFormatsTx(tx, [][]byte{id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got[string(id)]
+}
+
 func TestUpsertTx(t *testing.T) {
 	runWith := func(t *testing.T, c *database.Catalog, in Type, formats *Formats) ([]byte, []rowchange.Change, error) {
 		t.Helper()
@@ -672,23 +678,6 @@ func TestUpsertTx(t *testing.T) {
 	run := func(t *testing.T, c *database.Catalog, in Type) ([]byte, []rowchange.Change, error) {
 		t.Helper()
 		return runWith(t, c, in, nil)
-	}
-	stored := func(t *testing.T, c *database.Catalog, id []byte) Formats {
-		t.Helper()
-		db, err := c.DB()
-		if err != nil {
-			t.Fatal(err)
-		}
-		tx, err := db.Begin()
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() { _ = tx.Rollback() }()
-		got, err := StoredFormatsTx(tx, [][]byte{id})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return got[string(id)]
 	}
 	census := Type{Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census", IconKey: "type_census"}
 	tests := []struct {
@@ -769,7 +758,7 @@ func TestUpsertTx(t *testing.T) {
 					t.Fatalf("create change lacks %s: %+v", column, changes[0].Fields)
 				}
 			}
-			if got := stored(t, c, id); got != want {
+			if got := storedFormats(t, c, id); got != want {
 				t.Fatalf("stored %+v, want %+v", got, want)
 			}
 		}},
@@ -796,7 +785,7 @@ func TestUpsertTx(t *testing.T) {
 			if d := changes[0].Fields["citation_short"]; d.Old != first.Short || d.New != next.Short {
 				t.Fatalf("diff %+v", d)
 			}
-			if got := stored(t, c, id); got != next {
+			if got := storedFormats(t, c, id); got != next {
 				t.Fatalf("stored %+v, want %+v", got, next)
 			}
 		}},
@@ -811,7 +800,7 @@ func TestUpsertTx(t *testing.T) {
 			if err != nil || len(changes) != 1 || len(changes[0].Fields) != 2 {
 				t.Fatalf("%v %+v", err, changes)
 			}
-			if got := stored(t, c, id); got != f {
+			if got := storedFormats(t, c, id); got != f {
 				t.Fatalf("stored %+v", got)
 			}
 		}},
@@ -826,7 +815,7 @@ func TestUpsertTx(t *testing.T) {
 			if err != nil || len(changes) != 1 || len(changes[0].Fields) != 1 {
 				t.Fatalf("%v %+v", err, changes)
 			}
-			if got := stored(t, c, id); got != want {
+			if got := storedFormats(t, c, id); got != want {
 				t.Fatalf("stored %+v, want %+v", got, want)
 			}
 		}},
