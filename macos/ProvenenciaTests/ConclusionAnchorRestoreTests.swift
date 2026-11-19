@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Provenencia
 
+@MainActor
 struct ConclusionAnchorRestoreTests {
     /// T-9 (D-1): the part names are written to history files, so they are frozen.
     @Test func anchorPartsAreFrozen() {
