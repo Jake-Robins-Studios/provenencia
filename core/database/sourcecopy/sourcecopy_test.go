@@ -206,10 +206,10 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 }
 
 // setDate dates a Source through the one owner write.
-func setDate(t *testing.T, c *database.Catalog, userID, sourceID []byte, d *datevalue.Value) sources.Source {
+func setDate(t *testing.T, c *database.Catalog, userID, sourceID []byte, d *datevalue.Value, mark valuemark.Mark) sources.Source {
 	t.Helper()
 	src, err := writeOne(c, userID, "set_source_date", func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-		return sources.SetDate(tx, userID, sourceID, d)
+		return sources.SetDate(tx, userID, sourceID, d, mark)
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -655,7 +655,7 @@ func TestCopy(t *testing.T) {
 				} {
 					t.Run(tc.name, func(t *testing.T) {
 						c, userID, orig, arts := seedObituary(t)
-						orig = setDate(t, c, userID, orig.ID, tc.date)
+						orig = setDate(t, c, userID, orig.ID, tc.date, valuemark.Mark{})
 						in := allParts(orig, arts)
 						in.Date = true
 						cp, err := runCopy(c, userID, in)
@@ -690,7 +690,7 @@ func TestCopy(t *testing.T) {
 						}
 
 						// The two rows are independent: dating the copy leaves the original.
-						setDate(t, c, userID, cp.ID, datevaluetest.YMD(1841, 0, 0))
+						setDate(t, c, userID, cp.ID, datevaluetest.YMD(1841, 0, 0), valuemark.Mark{})
 						got, err := sources.Get(c, orig.ID)
 						if err != nil {
 							t.Fatal(err)
@@ -726,7 +726,7 @@ func TestCopy(t *testing.T) {
 				})
 				t.Run("date row missing", func(t *testing.T) {
 					c, userID, orig, arts := seedObituary(t)
-					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0))
+					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
 					db := dbtest.MustDB(t, c)
 					ctx := context.Background()
 					conn, err := db.Conn(ctx)
@@ -768,7 +768,7 @@ func TestCopy(t *testing.T) {
 			name: "date not chosen",
 			run: func(t *testing.T) {
 				c, userID, orig, arts := seedObituary(t)
-				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 7, 4))
+				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 7, 4), valuemark.Mark{})
 				db := dbtest.MustDB(t, c)
 				before := dbtest.Count(t, db, `SELECT COUNT(*) FROM date_values`)
 				cp, err := runCopy(c, userID, allParts(orig, arts))

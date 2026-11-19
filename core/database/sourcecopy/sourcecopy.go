@@ -22,6 +22,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -122,7 +123,7 @@ func CreateFromDraft(tx *database.Tx, userID []byte, d Draft) (sources.Source, [
 
 	if d.Date != nil {
 		var more []rowchange.Change
-		src, more, err = sources.SetDate(tx, userID, src.ID, d.Date)
+		src, more, err = sources.SetDate(tx, userID, src.ID, d.Date, valuemark.Mark{})
 		if err != nil {
 			return sources.Source{}, nil, err
 		}

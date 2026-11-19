@@ -12,6 +12,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest/mediatypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"google.golang.org/protobuf/proto"
@@ -384,7 +385,7 @@ func SetSourceDate(in []byte) ([]byte, error) {
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "set_source_date", UserID: userID},
 			func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-				return sources.SetDate(tx, userID, sourceID, date)
+				return sources.SetDate(tx, userID, sourceID, date, valuemark.Mark{})
 			})
 		if err != nil {
 			return err
