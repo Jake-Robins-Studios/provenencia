@@ -8,6 +8,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -32,7 +33,7 @@ func TestSourceTypeSearchGates(t *testing.T) {
 	if err := users.Upsert(c, userID, "Tester", ur); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "census", Origin: vocabkey.OriginUser, Label: "Census"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "census", Origin: vocabkey.OriginUser, Label: "Census"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,4 +110,24 @@ func TestSourceTypeSearchGates(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("an upsert label change reprojects the type and its Sources", func(t *testing.T) {
+		_, changes, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
+			Key: "census", Origin: vocabkey.OriginUser, Label: "Census schedule", Description: "Decennial", IconKey: "type_book",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(changes) != 1 || len(changes[0].Fields) != 1 || changes[0].Fields["label"].New != "Census schedule" {
+			t.Fatalf("changes %+v, want one label change", changes)
+		}
+		set := resolve(changes)
+		if len(docs(set, effects.DocSourceType)) != 1 {
+			t.Fatalf("type docs %x", docs(set, effects.DocSourceType))
+		}
+		got := docs(set, effects.DocSource)
+		if len(got) != len(sourceIDs) || !database.ContainsBlobID(got, sourceIDs[0]) || !database.ContainsBlobID(got, sourceIDs[1]) {
+			t.Fatalf("source docs %x, want both Sources", got)
+		}
+	})
 }

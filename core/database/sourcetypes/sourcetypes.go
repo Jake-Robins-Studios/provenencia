@@ -1,6 +1,6 @@
 // Package sourcetypes accesses the source_types vocabulary table.
-// Create, Update, and Delete run inside writes.Run and return the row changes
-// that Run records. Upsert is the un-audited seed path.
+// Create, Update, Delete, and UpsertTx run inside writes.Run and return the row
+// changes that Run records. UpsertTx is the seed's write, run inside writes.Run.
 package sourcetypes
 
 import (
@@ -14,7 +14,6 @@ import (
 	"github.com/mendahu/provenencia/core/database/catalogmodel"
 	"github.com/mendahu/provenencia/core/database/deleteimpact"
 	"github.com/mendahu/provenencia/core/database/rowchange"
-	"github.com/mendahu/provenencia/core/database/searchindex"
 	"github.com/mendahu/provenencia/core/slug"
 	"github.com/mendahu/provenencia/core/vocabkey"
 )
@@ -36,12 +35,6 @@ var ErrInUse = apperr.New(apperr.CodeSourceTypesInUse, apperr.KindConflict)
 var ErrOriginLocked = apperr.New(apperr.CodeSourceTypesOriginLocked, apperr.KindConflict)
 
 const (
-	sqlUpsert = `INSERT INTO source_types (id, key, origin, label, description, icon_key)
-		VALUES (?, ?, ?, ?, ?, ?)
-		ON CONFLICT(key, origin) DO UPDATE SET
-			label = excluded.label,
-			description = excluded.description,
-			icon_key = excluded.icon_key`
 	// sqlInsert is the one insert of a new type with its citation formats.
 	sqlInsert = `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -77,11 +70,59 @@ type Type struct {
 	SuggestedFields int
 }
 
-// Upsert inserts or updates by (key, origin). Mints a UUIDv7 id when ID is empty on insert.
-func Upsert(c *database.Catalog, t Type) ([]byte, error) {
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
+// rowFields is the audit view of a type: the one column list that create,
+// update and delete changes are built from. Description is present only when
+// not empty.
+func rowFields(t Type) map[string]any {
+	fields := map[string]any{
+		"id":       database.UUIDString(t.ID),
+		"key":      t.Key,
+		"origin":   t.Origin,
+		"label":    t.Label,
+		"icon_key": t.IconKey,
+	}
+	if t.Description != "" {
+		fields["description"] = t.Description
+	}
+	return fields
+}
+
+// updateChange is the update change from prev to next, naming only the columns
+// that differ (a missing key reads nil); nil when none does. id, key and
+// origin are never compared.
+func updateChange(prev, next Type) *rowchange.Change {
+	old, now := rowFields(prev), rowFields(next)
+	fields := map[string]rowchange.FieldDiff{}
+	for _, m := range []map[string]any{old, now} {
+		for k := range m {
+			if k == "id" || k == "key" || k == "origin" {
+				continue
+			}
+			if old[k] != now[k] {
+				fields[k] = rowchange.FieldDiff{Old: old[k], New: now[k]}
+			}
+		}
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
+		EntityType: "source_type",
+		EntityID:   append([]byte(nil), prev.ID...),
+		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// UpsertTx inserts or updates by (key, origin) on tx and returns the id and
+// the row changes. Missing: a new type with no formats, one create change.
+// Present: label, description and icon are written (an empty icon is the
+// default mark) and one update change names what differs; nothing differing
+// writes nothing and returns no change. A non-empty t.ID is ErrInvalid. The
+// caller records the changes.
+func UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error) {
+	if tx == nil || len(t.ID) != 0 {
+		return nil, nil, ErrInvalid
 	}
 	t.Key = strings.TrimSpace(t.Key)
 	t.Origin = strings.TrimSpace(t.Origin)
@@ -89,36 +130,42 @@ func Upsert(c *database.Catalog, t Type) ([]byte, error) {
 	t.Description = strings.TrimSpace(t.Description)
 	iconKey, err := NormalizeIconKey(t.IconKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	t.IconKey = iconKey
 	if t.Key == "" || t.Label == "" || !vocabkey.ValidOrigin(t.Origin) {
-		return nil, ErrInvalid
+		return nil, nil, ErrInvalid
 	}
-	id := t.ID
-	if len(id) == 0 {
-		existing, err := Lookup(c, t.Key, t.Origin)
-		if err == nil {
-			id = existing.ID
-		} else if errors.Is(err, sql.ErrNoRows) {
-			uid, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
-			id = uid[:]
-		} else {
-			return nil, err
+	existing, err := lookupTx(tx.Tx, t.Key, t.Origin)
+	if errors.Is(err, sql.ErrNoRows) {
+		uid, err := uuid.NewV7()
+		if err != nil {
+			return nil, nil, err
 		}
-	} else if len(id) != 16 {
-		return nil, ErrInvalid
+		t.ID = uid[:]
+		if _, err := tx.Exec(sqlInsert, t.ID, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.IconKey, nil, nil, nil); err != nil {
+			return nil, nil, err
+		}
+		return append([]byte(nil), t.ID...), []rowchange.Change{{
+			EntityType: "source_type",
+			EntityID:   append([]byte(nil), t.ID...),
+			Action:     rowchange.ActionCreate,
+			Fields:     rowchange.FullRow(rowFields(t)),
+		}}, nil
 	}
-	if _, err := db.Exec(sqlUpsert, id, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.IconKey); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, nil, err
 	}
-	if err := searchindex.ReprojectSourceType(db, id); err != nil {
-		return nil, err
+	next := existing
+	next.Label, next.Description, next.IconKey = t.Label, t.Description, t.IconKey
+	change := updateChange(existing, next)
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	return append([]byte(nil), id...), nil
+	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.IconKey, existing.ID); err != nil {
+		return nil, nil, err
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
 
 // Lookup returns the type for (key, origin), or sql.ErrNoRows.
@@ -233,16 +280,7 @@ func Create(tx *database.Tx, in CreateInput) (Type, []rowchange.Change, error) {
 		database.NullString(in.Formats.Full), database.NullString(in.Formats.Short), database.NullString(in.Formats.List)); err != nil {
 		return Type{}, nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":       {Old: nil, New: uid.String()},
-		"key":      {Old: nil, New: key},
-		"origin":   {Old: nil, New: vocabkey.OriginUser},
-		"label":    {Old: nil, New: label},
-		"icon_key": {Old: nil, New: iconKey},
-	}
-	if description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: description}
-	}
+	fields := rowchange.FullRow(rowFields(Type{ID: id, Key: key, Origin: vocabkey.OriginUser, Label: label, Description: description, IconKey: iconKey}))
 	for column, diff := range formatFieldDiffs(Formats{}, in.Formats) {
 		fields[column] = diff
 	}
@@ -286,17 +324,10 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	} else if normalizedIcon == "" {
 		normalizedIcon = DefaultIconKey
 	}
-	fields := map[string]rowchange.FieldDiff{}
-	if existing.Label != label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(existing.Label), New: database.NullString(label)}
-	}
-	if existing.Description != description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(existing.Description), New: database.NullString(description)}
-	}
-	if existing.IconKey != normalizedIcon {
-		fields["icon_key"] = rowchange.FieldDiff{Old: database.NullString(existing.IconKey), New: database.NullString(normalizedIcon)}
-	}
-	if len(fields) == 0 {
+	next := existing
+	next.Label, next.Description, next.IconKey = label, description, normalizedIcon
+	change := updateChange(existing, next)
+	if change == nil {
 		return existing, nil, nil
 	}
 	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), normalizedIcon, id); err != nil {
@@ -306,12 +337,7 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	if err != nil {
 		return Type{}, nil, err
 	}
-	return got, []rowchange.Change{{
-		EntityType: "source_type",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return got, []rowchange.Change{*change}, nil
 }
 
 // GetByID returns the type with the given id, or sql.ErrNoRows.
@@ -381,18 +407,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":     {Old: database.UUIDString(id), New: nil},
-		"key":    {Old: prev.Key, New: nil},
-		"origin": {Old: prev.Origin, New: nil},
-		"label":  {Old: prev.Label, New: nil},
-	}
-	if prev.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: prev.Description, New: nil}
-	}
-	if prev.IconKey != "" {
-		fields["icon_key"] = rowchange.FieldDiff{Old: prev.IconKey, New: nil}
-	}
+	fields := rowchange.DeletedRow(rowFields(prev))
 	// A deleted type's formats stay in the revision.
 	for column, diff := range formatFieldDiffs(formats[string(id)], Formats{}) {
 		fields[column] = diff

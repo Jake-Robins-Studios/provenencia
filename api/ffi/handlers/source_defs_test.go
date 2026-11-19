@@ -9,7 +9,9 @@ import (
 	"github.com/mendahu/provenencia/core/catalogsession"
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
 	"google.golang.org/protobuf/proto"
 )
@@ -296,7 +298,7 @@ func TestUpdateMetadataField(t *testing.T) {
 				var id []byte
 				err := catalogsession.Do(dir, func(c *database.Catalog) error {
 					var err error
-					id, err = metadatafields.Upsert(c, metadatafields.Field{
+					id, err = metadatafieldstest.Upsert(c, metadatafields.Field{
 						Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id", DataType: metadatafields.DataTypeText,
 					})
 					return err
@@ -364,7 +366,7 @@ func TestDeleteSourceType(t *testing.T) {
 				var id []byte
 				err := catalogsession.Do(dir, func(c *database.Catalog) error {
 					var err error
-					id, err = sourcetypes.Upsert(c, sourcetypes.Type{
+					id, err = sourcetypestest.Upsert(c, sourcetypes.Type{
 						Key: "grave_memorial", Origin: "plugin:findagrave", Label: "Grave memorial",
 					})
 					return err
@@ -482,7 +484,7 @@ func TestDeleteMetadataField(t *testing.T) {
 				var id []byte
 				err := catalogsession.Do(dir, func(c *database.Catalog) error {
 					var err error
-					id, err = metadatafields.Upsert(c, metadatafields.Field{
+					id, err = metadatafieldstest.Upsert(c, metadatafields.Field{
 						Key: "memorial_id", Origin: "plugin:findagrave", Label: "Memorial id",
 						DataType: metadatafields.DataTypeText,
 					})
@@ -597,7 +599,7 @@ func TestUpdateSourceType(t *testing.T) {
 				var id []byte
 				err := catalogsession.Do(dir, func(c *database.Catalog) error {
 					var err error
-					id, err = sourcetypes.Upsert(c, sourcetypes.Type{
+					id, err = sourcetypestest.Upsert(c, sourcetypes.Type{
 						Key: "grave_memorial", Origin: "plugin:findagrave", Label: "Grave memorial",
 					})
 					return err

@@ -12,6 +12,7 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/effects"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
@@ -50,14 +51,14 @@ func newFormatFixture(t *testing.T) *formatFixture {
 		t.Fatal(err)
 	}
 	mustType := func(key, origin string) []byte {
-		id, err := Upsert(c, Type{Key: key, Origin: origin, Label: key})
+		id, err := upsert(c, Type{Key: key, Origin: origin, Label: key})
 		if err != nil {
 			t.Fatal(err)
 		}
 		return id
 	}
 	mustField := func(key, origin string) []byte {
-		id, err := metadatafields.Upsert(c, metadatafields.Field{Key: key, Origin: origin, Label: key, DataType: metadatafields.DataTypeText})
+		id, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: key, Origin: origin, Label: key, DataType: metadatafields.DataTypeText})
 		if err != nil {
 			t.Fatal(err)
 		}

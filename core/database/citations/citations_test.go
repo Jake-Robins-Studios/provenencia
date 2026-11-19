@@ -19,6 +19,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
@@ -63,7 +64,7 @@ func TestCitations(t *testing.T) {
 		if err := subjectvocab.Install(c); err != nil {
 			t.Fatal(err)
 		}
-		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 		})
 		if err != nil {

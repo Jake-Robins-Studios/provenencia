@@ -15,6 +15,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjectpositions"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
@@ -39,7 +40,7 @@ func TestSubjects(t *testing.T) {
 	}
 	mustSource := func(t *testing.T, c *database.Catalog) sources.Source {
 		t.Helper()
-		typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 			Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 		})
 		if err != nil {
@@ -387,7 +388,7 @@ func TestSubjects(t *testing.T) {
 				mustUser(t, c)
 				mustSubjectTypes(t, c)
 				srcA := mustSource(t, c)
-				typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 					Key: "census", Origin: vocabkey.OriginProvenencia, Label: "Census",
 				})
 				if err != nil {
@@ -468,7 +469,7 @@ func TestInsertReadsTheGraphsSource(t *testing.T) {
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,7 +29,10 @@ func SeedRefless(t *testing.T, c *database.Catalog) []byte {
 	if err := users.Upsert(c, userID, "Jake", r); err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcevocab.Install(c); err != nil {
+	if _, err := writes.Call(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := sourcevocab.Install(tx)
+		return struct{}{}, changes, err
+	}); err != nil {
 		t.Fatal(err)
 	}
 	typ, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)

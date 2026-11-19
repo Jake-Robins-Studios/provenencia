@@ -5,9 +5,11 @@ import (
 	"github.com/mendahu/provenencia/core/database"
 	"github.com/mendahu/provenencia/core/database/namealiases"
 	"github.com/mendahu/provenencia/core/database/nameformats"
+	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
+	"github.com/mendahu/provenencia/core/writes"
 )
 
 // createCatalog installs a new catalog (create path). OpenCatalog is a one-shot
@@ -22,7 +24,11 @@ func createCatalog(parent, folder string) (*database.Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := sourcevocab.Install(c); err != nil {
+	_, err = writes.Call(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := sourcevocab.Install(tx)
+		return struct{}{}, changes, err
+	})
+	if err != nil {
 		_ = c.Close()
 		return nil, err
 	}

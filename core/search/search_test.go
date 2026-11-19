@@ -16,6 +16,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/searchindex"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/users"
 	"github.com/mendahu/provenencia/core/ref"
 	"github.com/mendahu/provenencia/core/vocabkey"
@@ -789,7 +790,7 @@ func seedUser(t testing.TB, c *database.Catalog) []byte {
 
 func seedType(t testing.TB, c *database.Catalog, label, desc string) []byte {
 	t.Helper()
-	id, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	id, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: label, Description: desc,
 	})
 	if err != nil {

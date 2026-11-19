@@ -17,6 +17,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/subjects"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjecttypes"
@@ -51,11 +52,11 @@ func newSingleSource(t *testing.T) (c *database.Catalog, src sources.Source, boo
 	if err := subjectvocab.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	book, err = sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	book, err = sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	letter, err = sourcetypes.Upsert(c, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
+	letter, err = sourcetypestest.Upsert(c, sourcetypes.Type{Key: "letter", Origin: vocabkey.OriginProvenencia, Label: "Letter"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +199,7 @@ func newTwoGraphs(t *testing.T) twoGraphs {
 		t.Fatal(err)
 	}
 	f := twoGraphs{c: c}
-	f.typeID, err = sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	f.typeID, err = sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}

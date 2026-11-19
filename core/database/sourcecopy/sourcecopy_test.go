@@ -17,12 +17,14 @@ import (
 	"github.com/mendahu/provenencia/core/database/dbtest"
 	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcecredibility"
 	"github.com/mendahu/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/database/sourcevocab"
 	"github.com/mendahu/provenencia/core/database/subjects/subjectstest"
 	"github.com/mendahu/provenencia/core/database/subjectvocab"
@@ -79,15 +81,15 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 		t.Fatal(err)
 	}
 
-	obit, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "obituary", Origin: vocabkey.OriginUser, Label: "Obituary"})
+	obit, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "obituary", Origin: vocabkey.OriginUser, Label: "Obituary"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "newspaper", Origin: vocabkey.OriginUser, Label: "Newspaper"}); err != nil {
+	if _, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "newspaper", Origin: vocabkey.OriginUser, Label: "Newspaper"}); err != nil {
 		t.Fatal(err)
 	}
 	field := func(key string, dataType string) []byte {
-		id, err := metadatafields.Upsert(c, metadatafields.Field{Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: dataType})
+		id, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: dataType})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -96,8 +98,8 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 	publication := field("publication", metadatafields.DataTypeText)
 	link := field("url", metadatafields.DataTypeURL)
 	page := field("page", metadatafields.DataTypeText)
-	for i, f := range [][]byte{publication, link, page} {
-		if err := sourcevocab.EnsureSuggestion(c, obit, f, vocabkey.LevelSource, i); err != nil {
+	for _, f := range [][]byte{publication, link, page} {
+		if err := sourcevocab.AppendSuggestion(c, obit, f, vocabkey.LevelSource); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -372,7 +374,7 @@ func TestCopy(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				provider, err := metadatafields.Upsert(c, metadatafields.Field{Key: "provider", Origin: vocabkey.OriginUser, Label: "Provider", DataType: metadatafields.DataTypeText})
+				provider, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "provider", Origin: vocabkey.OriginUser, Label: "Provider", DataType: metadatafields.DataTypeText})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -865,11 +867,11 @@ func TestReadDraftMissingSourceIsNotFound(t *testing.T) {
 // original's rows stay as they were.
 func copyArtifactMetadata(t *testing.T, metadataTick bool) {
 	c, userID, orig, arts := seedObituary(t)
-	provider, err := metadatafields.Upsert(c, metadatafields.Field{Key: "provider", Origin: vocabkey.OriginUser, Label: "Provider", DataType: metadatafields.DataTypeText})
+	provider, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "provider", Origin: vocabkey.OriginUser, Label: "Provider", DataType: metadatafields.DataTypeText})
 	if err != nil {
 		t.Fatal(err)
 	}
-	film, err := metadatafields.Upsert(c, metadatafields.Field{Key: "film", Origin: vocabkey.OriginUser, Label: "Film", DataType: metadatafields.DataTypeText})
+	film, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "film", Origin: vocabkey.OriginUser, Label: "Film", DataType: metadatafields.DataTypeText})
 	if err != nil {
 		t.Fatal(err)
 	}

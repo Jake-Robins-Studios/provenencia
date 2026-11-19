@@ -20,6 +20,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/effects"
 	"github.com/mendahu/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/mendahu/provenencia/core/database/metadatafields"
+	"github.com/mendahu/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/mendahu/provenencia/core/database/observations/observationstest"
 	"github.com/mendahu/provenencia/core/database/rowchange"
 	"github.com/mendahu/provenencia/core/database/sourcecredibility"
@@ -27,6 +28,7 @@ import (
 	"github.com/mendahu/provenencia/core/database/sourcemetadata"
 	"github.com/mendahu/provenencia/core/database/sources"
 	"github.com/mendahu/provenencia/core/database/sourcetypes"
+	"github.com/mendahu/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/mendahu/provenencia/core/valuemark"
 	"github.com/mendahu/provenencia/core/vocabkey"
 	"github.com/mendahu/provenencia/core/writes"
@@ -36,7 +38,7 @@ import (
 // explicitly and land in the parent's delete revision.
 func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 	c, userID := testCatalog(t)
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -49,13 +51,13 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fieldID, err := metadatafields.Upsert(c, metadatafields.Field{
+	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 		Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	other, err := metadatafields.Upsert(c, metadatafields.Field{
+	other, err := metadatafieldstest.Upsert(c, metadatafields.Field{
 		Key: "box", Origin: vocabkey.OriginUser, Label: "Box", DataType: "text",
 	})
 	if err != nil {
@@ -352,7 +354,7 @@ func runFieldDelete(c *database.Catalog, userID, id []byte) error {
 // new column fails here until the release carries it.
 func TestReleaseCitationChangeNamesEveryColumn(t *testing.T) {
 	c, userID := testCatalog(t)
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
 		Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book",
 	})
 	if err != nil {
@@ -422,7 +424,7 @@ func TestReleaseCitationChangeNamesEveryColumn(t *testing.T) {
 // graph, for the Artifact and graph metadata cases.
 func ownerFixture(t *testing.T, c *database.Catalog, userID []byte, title string) (src sources.Source, artifact, graph sourcemetadata.Owner) {
 	t.Helper()
-	typeID, err := sourcetypes.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,7 +468,7 @@ func runOwnerDismiss(t *testing.T, c *database.Catalog, userID []byte, o sourcem
 // value on any of the three levels blocks, once per holder, in level order.
 func TestImpactMetadataFieldHolders(t *testing.T) {
 	c, userID := testCatalog(t)
-	fieldID, err := metadatafields.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
+	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,11 +510,11 @@ func TestMetadataValueAuditParity(t *testing.T) {
 	for _, level := range []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph} {
 		t.Run(string(level), func(t *testing.T) {
 			c, userID := testCatalog(t)
-			unknownField, err := metadatafields.Upsert(c, metadatafields.Field{Key: "place", Origin: vocabkey.OriginUser, Label: "Place", DataType: "text"})
+			unknownField, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "place", Origin: vocabkey.OriginUser, Label: "Place", DataType: "text"})
 			if err != nil {
 				t.Fatal(err)
 			}
-			suppliedField, err := metadatafields.Upsert(c, metadatafields.Field{Key: "town", Origin: vocabkey.OriginUser, Label: "Town", DataType: "text"})
+			suppliedField, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "town", Origin: vocabkey.OriginUser, Label: "Town", DataType: "text"})
 			if err != nil {
 				t.Fatal(err)
 			}
