@@ -14,6 +14,7 @@ package sourcevocab
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -181,6 +182,7 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 			Label:       f.Label,
 			DataType:    f.DataType,
 			Description: f.Description,
+			UnknownText: f.UnknownText,
 		})
 		if err != nil {
 			return nil, err
@@ -190,13 +192,22 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 	}
 	typeIDs := make(map[string][]byte, len(seedTypes))
 	for _, t := range seedTypes {
+		// The one storage step: keys become the product fields' ids, so a
+		// researcher's field with the same key never captures a seeded format.
+		stored, diags, err := sourcetypes.ToStored(tx.Tx, t.Formats, nil, vocabkey.OriginProvenencia)
+		if err != nil {
+			return nil, err
+		}
+		if len(diags) > 0 {
+			return nil, fmt.Errorf("sourcevocab: seed type %s: %v: %w", t.Key, diags, ErrInvalid)
+		}
 		id, cs, err := sourcetypes.UpsertTx(tx, sourcetypes.Type{
 			Key:         t.Key,
 			Origin:      vocabkey.OriginProvenencia,
 			Label:       t.Label,
 			Description: t.Description,
 			IconKey:     t.IconKey,
-		}, nil)
+		}, &stored)
 		if err != nil {
 			return nil, err
 		}

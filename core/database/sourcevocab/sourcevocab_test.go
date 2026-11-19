@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"fmt"
+	"reflect"
+	"slices"
 	"testing"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -27,13 +32,91 @@ func install(c *database.Catalog) error {
 	return err
 }
 
+// storedFormats reads a type's formats as stored (fields by id).
+func storedFormats(t *testing.T, c *database.Catalog, typeID []byte) sourcetypes.Formats {
+	t.Helper()
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	got, err := sourcetypes.StoredFormatsTx(tx, [][]byte{typeID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return got[string(typeID)]
+}
+
+func formatText(f sourcetypes.Formats, form citationformat.Form) string {
+	switch form {
+	case citationformat.FormFull:
+		return f.Full
+	case citationformat.FormShort:
+		return f.Short
+	}
+	return f.List
+}
+
+func findSeedType(t *testing.T, key string) seedType {
+	t.Helper()
+	for _, st := range seedTypes {
+		if st.Key == key {
+			return st
+		}
+	}
+	t.Fatalf("no seed type %s", key)
+	return seedType{}
+}
+
+// catalogSnapshot is everything Install wrote that a second run must leave alone.
+type catalogSnapshot struct {
+	Types       map[string]string // key -> id, label, stored formats
+	Fields      map[string]string // key -> id, label, unknown text
+	Suggestions map[string][]string
+}
+
+func snapshot(t *testing.T, c *database.Catalog) catalogSnapshot {
+	t.Helper()
+	snap := catalogSnapshot{Types: map[string]string{}, Fields: map[string]string{}, Suggestions: map[string][]string{}}
+	fields, err := metadatafields.List(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range fields {
+		snap.Fields[f.Key] = string(f.ID) + "|" + f.Label + "|" + f.UnknownText
+	}
+	types, err := sourcetypes.List(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ty := range types {
+		f := storedFormats(t, c, ty.ID)
+		snap.Types[ty.Key] = string(ty.ID) + "|" + ty.Label + "|" + f.Full + "|" + f.Short + "|" + f.List
+		for _, level := range vocabkey.MetadataLevels() {
+			sugs, err := ListSuggestions(c, ty.ID, level)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, s := range sugs {
+				k := ty.Key + "/" + string(level)
+				snap.Suggestions[k] = append(snap.Suggestions[k], fmt.Sprintf("%s@%d", s.Field.Key, s.SortOrder))
+			}
+		}
+	}
+	return snap
+}
+
 func TestInstall(t *testing.T) {
 	tests := []struct {
 		name string
 		run  func(t *testing.T, c *database.Catalog)
 	}{
 		{
-			name: "empty catalog gets trimmed seed",
+			name: "empty catalog gets the seed",
 			run: func(t *testing.T, c *database.Catalog) {
 				if err := install(c); err != nil {
 					t.Fatal(err)
@@ -46,34 +129,69 @@ func TestInstall(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if len(types) != 1 || len(fields) != 3 {
+				// The map's counts, asserted once; every other check reads the registry.
+				if len(seedTypes) != 26 || len(seedFields) != 63 {
+					t.Fatalf("registry holds %d types and %d fields, the map says 26 and 63", len(seedTypes), len(seedFields))
+				}
+				if len(types) != len(seedTypes) || len(fields) != len(seedFields) {
 					t.Fatalf("types=%d fields=%d", len(types), len(fields))
 				}
-				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
+				byKey := map[string]metadatafields.Field{}
+				byID := map[string]metadatafields.Field{}
+				for _, f := range fields {
+					byKey[f.Key] = f
+					byID[string(f.ID)] = f
+				}
+				for _, want := range seedFields {
+					got, ok := byKey[want.Key]
+					if !ok || got.Origin != vocabkey.OriginProvenencia || got.Label != want.Label ||
+						got.DataType != want.DataType || got.Description != want.Description || got.UnknownText != want.UnknownText {
+						t.Fatalf("field %s = %+v, want %+v", want.Key, got, want)
+					}
+				}
+				for _, want := range seedTypes {
+					got, err := sourcetypes.Lookup(c, want.Key, vocabkey.OriginProvenencia)
+					if err != nil {
+						t.Fatalf("type %s: %v", want.Key, err)
+					}
+					if got.Label != want.Label || got.Description != want.Description || got.IconKey != want.IconKey {
+						t.Fatalf("type %s = %+v, want %+v", want.Key, got, want)
+					}
+				}
+
+				census, err := sourcetypes.Lookup(c, "census", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if cert.IconKey != "type_certificate" {
-					t.Fatalf("seeded icon_key %+v", cert)
+				stored := storedFormats(t, c, census.ID)
+				for _, form := range citationformat.Forms() {
+					text := formatText(stored, form)
+					tpl, diags := citationformat.Parse(text, form)
+					if len(diags) > 0 {
+						t.Fatalf("stored %s: %v", form, diags)
+					}
+					want, _ := citationformat.Parse(formatText(findSeedType(t, "census").Formats, form), form)
+					var wantKeys, gotKeys []string
+					for _, f := range want.Fields() {
+						wantKeys = append(wantKeys, f.Key)
+					}
+					for _, f := range tpl.Fields() {
+						field, ok := byID[string(f.ID[:])]
+						if !f.ByID() || !ok || field.Origin != vocabkey.OriginProvenencia {
+							t.Fatalf("stored %s names %+v, want a provenencia field id", form, f)
+						}
+						gotKeys = append(gotKeys, field.Key)
+					}
+					if !slices.Equal(gotKeys, wantKeys) {
+						t.Fatalf("stored %s reads %v, want %v", form, gotKeys, wantKeys)
+					}
 				}
-				sugs, err := ListSuggestions(c, cert.ID, vocabkey.LevelSource)
+				view, err := sourcetypes.GetFormats(c, census.ID)
 				if err != nil {
 					t.Fatal(err)
 				}
-				wantKeys := []string{"document_number", "record_date", "issue_date"}
-				if len(sugs) != 3 {
-					t.Fatalf("suggestions %+v", sugs)
-				}
-				for i, want := range wantKeys {
-					if sugs[i].Field.Key != want || sugs[i].SortOrder != i {
-						t.Fatalf("suggestion %d = %+v, want %s at %d", i, sugs[i], want, i)
-					}
-				}
-				for _, l := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
-					other, err := ListSuggestions(c, cert.ID, l)
-					if err != nil || len(other) != 0 {
-						t.Fatalf("%s suggestions %+v %v", l, other, err)
-					}
+				if view.Formats != findSeedType(t, "census").Formats || len(view.Choices) != 0 || len(view.Diagnostics) != 0 {
+					t.Fatalf("GetFormats = %+v", view)
 				}
 			},
 		},
@@ -98,29 +216,17 @@ func TestInstall(t *testing.T) {
 			},
 		},
 		{
-			name: "install twice keeps same ids",
+			name: "install twice changes nothing",
 			run: func(t *testing.T, c *database.Catalog) {
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				id1 := append([]byte(nil), cert.ID...)
+				before := snapshot(t, c)
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				cert, err = sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if string(cert.ID) != string(id1) {
-					t.Fatal("id changed on second install")
-				}
-				types, err := sourcetypes.List(c)
-				if err != nil || len(types) != 1 {
-					t.Fatalf("types %v %d", err, len(types))
+				if after := snapshot(t, c); !reflect.DeepEqual(before, after) {
+					t.Fatalf("a second install changed the catalog:\nbefore %+v\nafter  %+v", before, after)
 				}
 				db, err := c.DB()
 				if err != nil {
@@ -137,22 +243,22 @@ func TestInstall(t *testing.T) {
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
+				census, err := sourcetypes.Lookup(c, "census", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				field, err := metadatafields.Lookup(c, "issue_date", vocabkey.OriginProvenencia)
+				field, err := metadatafields.Lookup(c, "piece", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := DeleteSuggestion(c, cert.ID, field.ID, vocabkey.LevelSource); err != nil {
+				if err := DeleteSuggestion(c, census.ID, field.ID, vocabkey.LevelSource); err != nil {
 					t.Fatal(err)
 				}
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				sugs, err := ListSuggestions(c, cert.ID, vocabkey.LevelSource)
-				if err != nil || len(sugs) != 2 {
+				sugs, err := ListSuggestions(c, census.ID, vocabkey.LevelSource)
+				if err != nil || len(sugs) != 4 {
 					t.Fatalf("after second install %v %d", err, len(sugs))
 				}
 			},
@@ -181,7 +287,7 @@ func TestInstall(t *testing.T) {
 					}
 					counts[ch.EntityType]++
 				}
-				if len(counts) != 2 || counts["source_type"] != 1 || counts["metadata_field"] != 3 {
+				if len(counts) != 2 || counts["source_type"] != len(seedTypes) || counts["metadata_field"] != len(seedFields) {
 					t.Fatalf("changes by entity = %v", counts)
 				}
 				docs := map[string]int{}
@@ -201,7 +307,7 @@ func TestInstall(t *testing.T) {
 				if err := rows.Err(); err != nil {
 					t.Fatal(err)
 				}
-				if len(docs) != 2 || docs["source_type"] != 1 || docs["metadata_field"] != 3 {
+				if len(docs) != 2 || docs["source_type"] != len(seedTypes) || docs["metadata_field"] != len(seedFields) {
 					t.Fatalf("search docs by kind = %v", docs)
 				}
 				var nullUser int
@@ -243,20 +349,66 @@ func TestInstall(t *testing.T) {
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
+				census, err := sourcetypes.Lookup(c, "census", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				field, err := metadatafields.Lookup(c, "issue_date", vocabkey.OriginProvenencia)
+				field, err := metadatafields.Lookup(c, "piece", vocabkey.OriginProvenencia)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := DeleteSuggestion(c, cert.ID, field.ID, vocabkey.LevelSource); err != nil {
+				if err := DeleteSuggestion(c, census.ID, field.ID, vocabkey.LevelSource); err != nil {
 					t.Fatal(err)
 				}
-				sugs, err := ListSuggestions(c, cert.ID, vocabkey.LevelSource)
-				if err != nil || len(sugs) != 2 {
+				sugs, err := ListSuggestions(c, census.ID, vocabkey.LevelSource)
+				if err != nil || len(sugs) != 4 {
 					t.Fatalf("after delete %v %d", err, len(sugs))
+				}
+			},
+		},
+		{
+			name: "a user field with a seeded key does not capture a format",
+			run: func(t *testing.T, c *database.Catalog) {
+				userAuthor, err := metadatafieldstest.Upsert(c, metadatafields.Field{
+					Key: "author", Origin: vocabkey.OriginUser, Label: "My author", DataType: metadatafields.DataTypeText,
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := install(c); err != nil {
+					t.Fatal(err)
+				}
+				book, err := sourcetypes.Lookup(c, "book", vocabkey.OriginProvenencia)
+				if err != nil {
+					t.Fatal(err)
+				}
+				fields, err := metadatafields.List(c)
+				if err != nil {
+					t.Fatal(err)
+				}
+				origin := map[string]string{}
+				for _, f := range fields {
+					origin[string(f.ID)] = f.Origin
+				}
+				stored := storedFormats(t, c, book.ID)
+				named := 0
+				for _, form := range citationformat.Forms() {
+					tpl, diags := citationformat.Parse(formatText(stored, form), form)
+					if len(diags) > 0 {
+						t.Fatal(diags)
+					}
+					for _, f := range tpl.Fields() {
+						named++
+						if bytes.Equal(f.ID[:], userAuthor) {
+							t.Fatalf("book's %s format names the user's author", form)
+						}
+						if origin[string(f.ID[:])] != vocabkey.OriginProvenencia {
+							t.Fatalf("book's %s format names %+v, not a provenencia field", form, f)
+						}
+					}
+				}
+				if named == 0 {
+					t.Fatal("book's formats name no field")
 				}
 			},
 		},
