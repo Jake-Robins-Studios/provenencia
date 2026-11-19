@@ -91,6 +91,34 @@ struct CatalogCountsTests {
         #expect(counts.sources == 0)
     }
 
+    /// A write's recount that fails after a good launch count sets the error the workspace
+    /// toasts and keeps the last badges. Once the toast clears it, the next failure, with the
+    /// same message, sets it again, so `WorkspaceView`'s `.onChange` sees a new value.
+    @Test func writeRecountFailureSetsErrorEachTime() async {
+        let store = FakeStore()
+        store.sourcesByProject[projectDir] = [
+            CatalogSource(id: "1", ref: "SRC-1", sourceTypeID: "", title: "A", description: ""),
+        ]
+        let counts = makeCounts(store: store)
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        session.onNavCountsMoved = { await counts.refreshAll() }
+        await counts.refreshAll()
+        #expect(counts.lastRefreshError == nil)
+
+        enum Boom: Error { case boom }
+        store.workspaceNavCountsError = Boom.boom
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        await session.settleWrites()
+        #expect(counts.lastRefreshError == L10n.string(L10n.Errors.unknown))
+        #expect(counts.sources == 1)
+
+        counts.clearRefreshError()
+        #expect(counts.lastRefreshError == nil)
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        await session.settleWrites()
+        #expect(counts.lastRefreshError == L10n.string(L10n.Errors.unknown))
+    }
+
     /// Two recounts overlap: the one started last reads the newest catalog, so the earlier,
     /// slower one finishing after it must not overwrite its counts.
     @Test func newestRecountWins() async throws {

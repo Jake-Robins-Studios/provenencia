@@ -79,13 +79,6 @@ struct WorkspaceView: View {
         .task {
             await session.loadNameFormat()
             await catalogCounts.refreshAll()
-            if let message = catalogCounts.lastRefreshError {
-                countsToast = VocabularyToast(
-                    title: L10n.string(L10n.Workspace.countsRefreshFailedTitle),
-                    body: message,
-                    tone: .danger
-                )
-            }
         }
         .onAppear {
             session.apply(location: navigation.currentLocation)
@@ -100,6 +93,7 @@ struct WorkspaceView: View {
         .onChange(of: navigation.canGoForward) { _, _ in bindNavigationCommands() }
         .onChange(of: navigation.currentLocation) { _, _ in bindNavigationCommands() }
         .onChange(of: navigation.lastHistoryIssue) { _, _ in presentHistoryIssueIfNeeded() }
+        .onChange(of: catalogCounts.lastRefreshError) { _, _ in presentCountsErrorIfNeeded() }
         .onChange(of: model.project?.uuid) { _, uuid in
             if let uuid, !uuid.isEmpty {
                 navigation.attachProject(uuid: uuid)
@@ -133,6 +127,17 @@ struct WorkspaceView: View {
         navigationCoordinator.canGoForward = navigation.canGoForward
         navigationCoordinator.goBack = { navigation.goBack() }
         navigationCoordinator.goForward = { navigation.goForward() }
+    }
+
+    /// The launch count and every write's recount land here, so each failure toasts once.
+    private func presentCountsErrorIfNeeded() {
+        guard let message = catalogCounts.lastRefreshError else { return }
+        countsToast = VocabularyToast(
+            title: L10n.string(L10n.Workspace.countsRefreshFailedTitle),
+            body: message,
+            tone: .danger
+        )
+        catalogCounts.clearRefreshError()
     }
 
     private func presentHistoryIssueIfNeeded() {

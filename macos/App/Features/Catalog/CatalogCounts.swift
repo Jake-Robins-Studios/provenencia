@@ -14,7 +14,8 @@ final class CatalogCounts {
     private(set) var persons: Int?
     private(set) var events: Int?
     private(set) var places: Int?
-    /// Set when `refreshAll` fails; cleared on the next successful refresh.
+    /// Set when `refreshAll` fails; cleared on the next successful refresh, and by
+    /// `WorkspaceView` once it toasts the failure, so the next one toasts again.
     private(set) var lastRefreshError: String?
 
     private let projectDir: String
