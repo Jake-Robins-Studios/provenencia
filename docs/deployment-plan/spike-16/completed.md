@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-47 — Birth and death event counts have plurals, and the strings check sees them
+
+**Landed 2026-11-19** in [#894](https://github.com/Jake-Robins-Studios/provenencia/pull/894). `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` count their events through an `events` plural substitution, like `recordsFromPlaces`; the sheet still reads "4 records from 2 birth events". `uninflected_counts` in `scripts/check-localizable-xcstrings.py` now skips only entries with plural variations, so a bare `%n$lld <word>` beside a substitution fails; the origin labels of the Properties and Source types count lines (`seeded`, `yours`, `plugin`) join `NON_INFLECTING`, and `add-localized-string` states the rule. Quick PR. Product 0.23.5.
+
 ## S16-46 — Back returns to the row you opened in a section
 
 **Landed 2026-11-19** in [#890](https://github.com/Jake-Robins-Studios/provenencia/pull/890). A Person, Event or Place page now remembers the row it opened another place from, as `WorkspaceLocation.sectionAnchor` on the history entry (not identity, nil from older files and unknown parts, cleared by a section switch), written by `navigation.go(to:from:)`. Back and Forward scroll to that row and give it the keyboard through one `conclusionAnchorRestore` modifier, answered by each content's `anchorTarget(for:)`: Family tiles, Timeline titles and cards, Sources titles, record lines and diagram nodes, field rows' open arrows, Event and Place pictures and Place relationship rows. A row a fold hides gives the keyboard to the fold's Show more; folds stay closed. The restore waits for a settled read, so a row deleted elsewhere is not scrolled to; an anchor that cannot be built still opens the place; a focused icon button draws its focus ring. `ConclusionShowMoreRow` takes its stop in the section's focus state. Product 0.23.4.
