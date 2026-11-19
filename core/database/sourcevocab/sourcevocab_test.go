@@ -184,6 +184,26 @@ func TestInstall(t *testing.T) {
 				if len(counts) != 2 || counts["source_type"] != 1 || counts["metadata_field"] != 3 {
 					t.Fatalf("changes by entity = %v", counts)
 				}
+				docs := map[string]int{}
+				rows, err := db.Query(`SELECT kind, COUNT(*) FROM catalog_search_docs GROUP BY kind`)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer rows.Close()
+				for rows.Next() {
+					var kind string
+					var n int
+					if err := rows.Scan(&kind, &n); err != nil {
+						t.Fatal(err)
+					}
+					docs[kind] = n
+				}
+				if err := rows.Err(); err != nil {
+					t.Fatal(err)
+				}
+				if len(docs) != 2 || docs["source_type"] != 1 || docs["metadata_field"] != 3 {
+					t.Fatalf("search docs by kind = %v", docs)
+				}
 				var nullUser int
 				if err := db.QueryRow(`SELECT COUNT(*) FROM audit_transactions WHERE user_id IS NULL`).Scan(&nullUser); err != nil || nullUser != 1 {
 					t.Fatalf("null-user revisions = %d %v", nullUser, err)
