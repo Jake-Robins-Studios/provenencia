@@ -891,29 +891,21 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 	if err != nil {
 		return nil, err
 	}
-	reqs, err := sourcetypes.RequirementsTx(tx, [][]byte{src.SourceTypeID})
+	k := typeLevel{string(src.SourceTypeID), level}
+	tbs, err := readTypeBoards(tx, []typeLevel{k})
 	if err != nil {
 		return nil, err
 	}
-	suggestions, err := sourcevocab.ListSuggestionsTx(tx, src.SourceTypeID, level)
-	if err != nil {
-		return nil, err
-	}
-	ln := needsAt(reqs[string(src.SourceTypeID)], level)
-	fields, err := fieldsByID(tx, ln.fieldIDs())
+	tb := tbs[k]
+	fields, err := fieldsByID(tx, tb.needs.fieldIDs())
 	if err != nil {
 		return nil, err
 	}
 	return buildEntries(level, boardInput{
-		suggestions: suggestions,
-		needs:       ln,
+		suggestions: tb.suggestions,
+		needs:       tb.needs,
 		fields:      fields,
-		resolver: ownerValues{
-			level:  level,
-			source: rowsByField(rows),
-			fields: fields,
-			date:   sources.CitationDate(src),
-		},
+		resolver:    newOwnerValues(level, nil, rowsByField(rows), fields, sources.CitationDate(src)),
 	}), nil
 }
 
@@ -921,6 +913,48 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 type typeLevel struct {
 	typeID string
 	level  vocabkey.Level
+}
+
+// typeBoard is what a board reads once per (type, level): the type's
+// suggestions there and what its formats ask of that level.
+type typeBoard struct {
+	suggestions []sourcevocab.Suggestion
+	needs       levelNeeds
+}
+
+// readTypeBoards reads the formats' requirements of every distinct type once,
+// then the suggestions and needs of each distinct (type, level).
+func readTypeBoards(tx *sql.Tx, keys []typeLevel) (map[typeLevel]typeBoard, error) {
+	var typeIDs [][]byte
+	seenType := make(map[string]struct{}, len(keys))
+	for _, k := range keys {
+		if _, dup := seenType[k.typeID]; !dup {
+			seenType[k.typeID] = struct{}{}
+			typeIDs = append(typeIDs, []byte(k.typeID))
+		}
+	}
+	reqs, err := sourcetypes.RequirementsTx(tx, typeIDs)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[typeLevel]typeBoard, len(keys))
+	for _, k := range keys {
+		if _, ok := out[k]; ok {
+			continue
+		}
+		list, err := sourcevocab.ListSuggestionsTx(tx, []byte(k.typeID), k.level)
+		if err != nil {
+			return nil, err
+		}
+		out[k] = typeBoard{suggestions: list, needs: needsAt(reqs[k.typeID], k.level)}
+	}
+	return out, nil
+}
+
+// newOwnerValues is the resolver of one owner's board: its own rows, its
+// Source's rows and the Source's citation date.
+func newOwnerValues(level vocabkey.Level, own, source map[string]Row, fields map[string]metadatafields.Field, date citationformat.Value) ownerValues {
+	return ownerValues{level: level, own: own, source: source, fields: fields, date: date}
 }
 
 // listWorkspaces is ListWorkspace over many owners, keyed by Owner.key: each
@@ -955,32 +989,17 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		return nil, err
 	}
 
-	var typeIDs [][]byte
+	keys := make([]typeLevel, 0, len(uniq))
 	for _, o := range uniq {
 		typeID, ok := typeOf[o.key()]
 		if !ok {
 			return nil, ErrInvalid
 		}
-		typeIDs = append(typeIDs, typeID)
+		keys = append(keys, typeLevel{string(typeID), o.Level})
 	}
-	reqs, err := sourcetypes.RequirementsTx(tx, typeIDs)
+	boards, err := readTypeBoards(tx, keys)
 	if err != nil {
 		return nil, err
-	}
-	suggested := make(map[typeLevel][]sourcevocab.Suggestion)
-	needs := make(map[typeLevel]levelNeeds)
-	for _, o := range uniq {
-		typeID := typeOf[o.key()]
-		k := typeLevel{string(typeID), o.Level}
-		if _, ok := suggested[k]; ok {
-			continue
-		}
-		list, err := sourcevocab.ListSuggestionsTx(tx, typeID, o.Level)
-		if err != nil {
-			return nil, err
-		}
-		suggested[k] = list
-		needs[k] = needsAt(reqs[string(typeID)], o.Level)
 	}
 
 	// The Sources' values answer a graph's or an Artifact's chains, so each
@@ -1021,7 +1040,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	var extraIDs [][]byte
 	for _, o := range uniq {
 		inSuggestions := make(map[string]struct{})
-		for _, s := range suggested[typeLevel{string(typeOf[o.key()]), o.Level}] {
+		for _, s := range boards[typeLevel{string(typeOf[o.key()]), o.Level}].suggestions {
 			inSuggestions[string(s.Field.ID)] = struct{}{}
 		}
 		for _, v := range valuesOf[o.key()] {
@@ -1031,32 +1050,27 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		}
 	}
 	wanted := slices.Clone(extraIDs)
-	for _, ln := range needs {
-		wanted = append(wanted, ln.fieldIDs()...)
+	for _, tb := range boards {
+		wanted = append(wanted, tb.needs.fieldIDs()...)
 	}
 	fields, err := fieldsByID(tx, wanted)
 	if err != nil {
 		return nil, err
 	}
-	for _, id := range extraIDs {
-		if _, ok := fields[string(id)]; !ok {
-			return nil, ErrInvalid
-		}
+	if err := requireFields(fields, extraIDs); err != nil {
+		return nil, err
 	}
 
 	out := make(map[string]Board, len(uniq))
 	for _, o := range uniq {
 		k := typeLevel{string(typeOf[o.key()]), o.Level}
-		ln := needs[k]
-		r := ownerValues{
-			level:  o.Level,
-			own:    rowsByField(valuesOf[o.key()]),
-			source: rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
-			fields: fields,
-			date:   dateOf[string(sourceOf[o.key()])],
-		}
+		ln := boards[k].needs
+		r := newOwnerValues(o.Level,
+			rowsByField(valuesOf[o.key()]),
+			rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
+			fields, dateOf[string(sourceOf[o.key()])])
 		board := Board{Entries: buildEntries(o.Level, boardInput{
-			suggestions: suggested[k],
+			suggestions: boards[k].suggestions,
 			values:      valuesOf[o.key()],
 			layout:      layoutOf[o.key()],
 			needs:       ln,
@@ -1252,20 +1266,24 @@ func getLayoutTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (LayoutRow,
 // loadFields reads the fields with the given ids in one query, keyed by id; an
 // id with no field is ErrInvalid.
 func loadFields(tx *sql.Tx, ids [][]byte) (map[string]metadatafields.Field, error) {
-	found, err := metadatafields.ListByIDsTx(tx, ids)
+	out, err := fieldsByID(tx, ids)
 	if err != nil {
 		return nil, err
 	}
-	out := make(map[string]metadatafields.Field, len(found))
-	for _, f := range found {
-		out[string(f.ID)] = f
-	}
-	for _, id := range ids {
-		if _, ok := out[string(id)]; !ok {
-			return nil, ErrInvalid
-		}
+	if err := requireFields(out, ids); err != nil {
+		return nil, err
 	}
 	return out, nil
+}
+
+// requireFields is ErrInvalid when an id has no field in the map.
+func requireFields(fields map[string]metadatafields.Field, ids [][]byte) error {
+	for _, id := range ids {
+		if _, ok := fields[string(id)]; !ok {
+			return ErrInvalid
+		}
+	}
+	return nil
 }
 
 func boolInt(b bool) int {
