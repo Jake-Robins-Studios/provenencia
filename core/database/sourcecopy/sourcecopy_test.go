@@ -703,6 +703,67 @@ func TestCopy(t *testing.T) {
 			},
 		},
 		{
+			name: "carries the date's mark with the date",
+			run: func(t *testing.T) {
+				unknown := valuemark.Mark{Unknown: true}
+				supplied := valuemark.Mark{Supplied: true}
+				for _, tc := range []struct {
+					name string
+					date *datevalue.Value
+					mark valuemark.Mark
+				}{
+					{"unknown", nil, unknown},
+					{"supplied", datevaluetest.About(1880, 0, 0), supplied},
+				} {
+					t.Run(tc.name+" with the tick on", func(t *testing.T) {
+						c, userID, orig, arts := seedObituary(t)
+						orig = setDate(t, c, userID, orig.ID, tc.date, tc.mark)
+						before := dbtest.Count(t, dbtest.MustDB(t, c), `SELECT COUNT(*) FROM date_values`)
+						in := allParts(orig, arts)
+						in.Date = true
+						cp, err := runCopy(c, userID, in)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if cp.DateMark != tc.mark {
+							t.Fatalf("copy mark %+v, want %+v", cp.DateMark, tc.mark)
+						}
+						got, err := sources.Get(c, cp.ID)
+						if err != nil || got.DateMark != tc.mark {
+							t.Fatalf("Get %+v err=%v", got, err)
+						}
+						rows := dbtest.Count(t, dbtest.MustDB(t, c), `SELECT COUNT(*) FROM date_values`)
+						if tc.date == nil {
+							if cp.Date != nil || cp.DateValueID != nil || rows != before {
+								t.Fatalf("copy %+v, date rows %d -> %d", cp.Date, before, rows)
+							}
+							return
+						}
+						if cp.Date == nil || bytes.Equal(cp.DateValueID, orig.DateValueID) || rows != before+1 {
+							t.Fatalf("copy date %+v, date rows %d -> %d", cp.Date, before, rows)
+						}
+						want, have := *orig.Date, *cp.Date
+						want.ID, have.ID = nil, nil
+						if !reflect.DeepEqual(want, have) {
+							t.Fatalf("date\nwant %+v\nhave %+v", want, have)
+						}
+					})
+					t.Run(tc.name+" with the tick off", func(t *testing.T) {
+						c, userID, orig, arts := seedObituary(t)
+						orig = setDate(t, c, userID, orig.ID, tc.date, tc.mark)
+						cp, err := runCopy(c, userID, allParts(orig, arts))
+						if err != nil {
+							t.Fatal(err)
+						}
+						got, err := sources.Get(c, cp.ID)
+						if err != nil || got.Date != nil || got.DateMark != (valuemark.Mark{}) || cp.DateMark != (valuemark.Mark{}) {
+							t.Fatalf("copy %+v err=%v", got, err)
+						}
+					})
+				}
+			},
+		},
+		{
 			name: "date chosen on an undated original",
 			run: func(t *testing.T) {
 				t.Run("undated", func(t *testing.T) {
