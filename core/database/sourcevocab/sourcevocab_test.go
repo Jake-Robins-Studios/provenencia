@@ -51,16 +51,6 @@ func storedFormats(t *testing.T, c *database.Catalog, typeID []byte) sourcetypes
 	return got[string(typeID)]
 }
 
-func formatText(f sourcetypes.Formats, form citationformat.Form) string {
-	switch form {
-	case citationformat.FormFull:
-		return f.Full
-	case citationformat.FormShort:
-		return f.Short
-	}
-	return f.List
-}
-
 func findSeedType(t *testing.T, key string) seedType {
 	t.Helper()
 	for _, st := range seedTypes {
@@ -165,12 +155,12 @@ func TestInstall(t *testing.T) {
 				}
 				stored := storedFormats(t, c, census.ID)
 				for _, form := range citationformat.Forms() {
-					text := formatText(stored, form)
+					text := stored.Text(form)
 					tpl, diags := citationformat.Parse(text, form)
 					if len(diags) > 0 {
 						t.Fatalf("stored %s: %v", form, diags)
 					}
-					want, _ := citationformat.Parse(formatText(findSeedType(t, "census").Formats, form), form)
+					want, _ := citationformat.Parse(findSeedType(t, "census").Formats.Text(form), form)
 					var wantKeys, gotKeys []string
 					for _, f := range want.Fields() {
 						wantKeys = append(wantKeys, f.Key)
@@ -428,7 +418,7 @@ func TestInstall(t *testing.T) {
 				stored := storedFormats(t, c, book.ID)
 				named := 0
 				for _, form := range citationformat.Forms() {
-					tpl, diags := citationformat.Parse(formatText(stored, form), form)
+					tpl, diags := citationformat.Parse(stored.Text(form), form)
 					if len(diags) > 0 {
 						t.Fatal(diags)
 					}

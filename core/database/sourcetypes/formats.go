@@ -34,8 +34,8 @@ var formColumns = []struct {
 // they name fields by key (see FormatsView).
 type Formats struct{ Full, Short, List string }
 
-// text returns the text of one form.
-func (f Formats) text(form citationformat.Form) string {
+// Text returns the text of one form.
+func (f Formats) Text(form citationformat.Form) string {
 	switch form {
 	case citationformat.FormFull:
 		return f.Full
@@ -68,10 +68,10 @@ func (f Formats) with(form citationformat.Form, text string) Formats {
 func formatFieldDiffs(before, after Formats) map[string]rowchange.FieldDiff {
 	fields := map[string]rowchange.FieldDiff{}
 	for _, fc := range formColumns {
-		if before.text(fc.form) != after.text(fc.form) {
+		if before.Text(fc.form) != after.Text(fc.form) {
 			fields[fc.column] = rowchange.FieldDiff{
-				Old: database.NullString(before.text(fc.form)),
-				New: database.NullString(after.text(fc.form)),
+				Old: database.NullString(before.Text(fc.form)),
+				New: database.NullString(after.Text(fc.form)),
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 	templates := map[citationformat.Form]*citationformat.Template{}
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.text(form)
+		text := in.Text(form)
 		view.Formats = view.Formats.with(form, text)
 		if text == "" {
 			continue
@@ -253,7 +253,7 @@ func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string
 	var keys []string
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.text(form)
+		text := in.Text(form)
 		if strings.TrimSpace(text) == "" {
 			continue
 		}

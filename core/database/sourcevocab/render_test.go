@@ -246,7 +246,7 @@ func TestSeedCitations(t *testing.T) {
 		}
 		stored := all[string(typeIDs[st.Key])]
 		render := func(name string, fx fixture, form citationformat.Form) {
-			tpl, diags := citationformat.Parse(formatText(stored, form), form)
+			tpl, diags := citationformat.Parse(stored.Text(form), form)
 			if len(diags) > 0 {
 				t.Fatalf("%s %s: %v", st.Key, form, diags)
 			}

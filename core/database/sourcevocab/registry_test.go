@@ -56,16 +56,6 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 	return tpl
 }
 
-func (st seedType) text(form citationformat.Form) string {
-	switch form {
-	case citationformat.FormFull:
-		return st.Formats.Full
-	case citationformat.FormShort:
-		return st.Formats.Short
-	}
-	return st.Formats.List
-}
-
 // derivedSuggestions is the suggestion rule applied to a type's full format:
 // each field once, at its usual level when the format reads it there and else
 // at the level it first appears at, in the order the format first reads it; the
@@ -176,7 +166,7 @@ func TestSeedFieldsAreRead(t *testing.T) {
 	read := map[string]bool{}
 	for _, st := range seedTypes {
 		for _, form := range citationformat.Forms() {
-			tpl := mustParseForm(t, st.Key, st.text(form), form)
+			tpl := mustParseForm(t, st.Key, st.Formats.Text(form), form)
 			for _, f := range tpl.Fields() {
 				read[f.Key] = true
 			}
@@ -211,11 +201,11 @@ func TestSeedTypes(t *testing.T) {
 			t.Errorf("type %s has unknown icon %q", st.Key, st.IconKey)
 		}
 		for _, form := range citationformat.Forms() {
-			if st.text(form) == "" {
+			if st.Formats.Text(form) == "" {
 				t.Errorf("type %s has no %s format", st.Key, form)
 				continue
 			}
-			tpl := mustParseForm(t, st.Key, st.text(form), form)
+			tpl := mustParseForm(t, st.Key, st.Formats.Text(form), form)
 			if form != citationformat.FormList {
 				continue
 			}
