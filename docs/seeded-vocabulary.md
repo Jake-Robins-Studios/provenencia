@@ -80,7 +80,7 @@ edge-lock. Catalog row Install for types/properties/terms stays in
 
 ### Implementation (Source seed today)
 
-Product-seeded Source types/fields/suggestions live in a **code registry** (`core/database/sourcevocab/registry.go`) and are installed once by `sourcevocab.Install` at catalog **create** via `onboarding.createCatalog` (see `core/onboarding/ready.go`). Opens (`OpenCatalog`) do **not** re-install or heal deleted seed rows. Do not put seed rows in SQL migrations. The current create-time starter is a single `birth_certificate` type plus a few suggested fields — the §2 lists below remain a horizon catalog of suggested keys, not a ship commitment.
+Product-seeded Source types/fields/suggestions live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`, `registry_suggestions.go`) and are installed once by `sourcevocab.Install` at catalog **create** via `onboarding.createCatalog` (see `core/onboarding/ready.go`). Opens (`OpenCatalog`) do **not** re-install or heal deleted seed rows, and existing projects are not updated. Do not put seed rows in SQL migrations. The create-time Source seed is the citation vocabulary of [`evidence-explained-citation-map.md`](deployment-plan/spike-15/evidence-explained-citation-map.md) § 6.8: 26 types, each with its three citation formats, 63 fields and each type's suggested fields at the Source, the Artifact and the Evidence graph. It is the exception to "implement small" in §1: the Spike 15 rule "The seed is the product default" decided it.
 
 When extending or adding another vocabulary domain’s seed, follow the project skill [`.agents/skills/add-seeded-vocabulary/SKILL.md`](../.agents/skills/add-seeded-vocabulary/SKILL.md).
 
@@ -88,20 +88,37 @@ When extending or adding another vocabulary domain’s seed, follow the project 
 
 # 2. Source layer
 
-Schema: [`source-layer-data-model.md`](source-layer-data-model.md).
+Schema: [`source-layer-data-model.md`](source-layer-data-model.md). The formats of each type are in the map's § 6.8; `core/database/sourcevocab/testdata/seed-citations.txt` holds every one rendered against an invented Source.
 
 ## 2.1 `source_types`
 
 ```text
-birth_certificate
 census
+birth_certificate
+marriage_certificate
+death_certificate
+church_register
+record_book
+passenger_list
+case_file
+manuscript
+government_file
+cemetery_marker
+family_bible
 photograph
-oral_testimony
-interview
+private_papers
 dna_match_report
-book
-website
 gedcom_file
+interview
+oral_testimony
+correspondence
+book
+journal_article
+broadcast
+newspaper_item
+website
+statute
+court_report
 ```
 
 `website` is the evidentiary website or page. A local capture (screenshot, WARC, PDF print) is an Artifact of that Source, not a separate Source type.
@@ -110,168 +127,31 @@ gedcom_file
 
 ## 2.2 `source_metadata_fields`
 
-Catalog fields only. Values stay descriptive text or text-shaped URLs; they do not resolve to Interpretation subjects or canonical entities, and they do not attach a DateValue. Date-named keys (`publication_date`, `record_date`, …) are still `data_type = text`.
+Catalog fields only. Values stay descriptive text or text-shaped URLs; they do not resolve to Interpretation subjects or canonical entities, and they do not attach a DateValue. `url` is the only `url` field; every other seeded field is `text`. Each description says to enter the value as it should appear in a citation. `publisher` and `publication_place` carry the unknown text "n.p."; no other field does.
+
+Grouped by the level a field is usually set at (a type's suggestions follow §2.3):
 
 ```text
-key                     data_type   typical use
-creator                 text        generic credited creator when a more specific role field is not used
-author                  text        book, website, GEDCOM submitter
-photographer            text        photograph
-studio                  text        photograph studio or imprint
-interviewer             text        interview, oral testimony
-interviewee             text        interview, oral testimony
-publisher               text        book, website host/organization
-publication_place       text        book imprint place
-edition                 text        book
-isbn                    text        book
-series                  text        book series; census microfilm series
-volume                  text        book volume; vital-record volume
-page                    text        catalog page/sheet identity for a record-as-source
-url                     url         originating website, vendor report, or download location
-site_name               text        website
-software                text        GEDCOM exporting program
-gedcom_version          text        GEDCOM
-testing_company         text        DNA match report
-kit_number              text        DNA kit belonging to the researcher
-match_identifier        text        vendor match name or kit id as printed on the report
-medium                  text        photograph process (cabinet card, daguerreotype, …)
-jurisdiction            text        civil records, census geography as printed
-civil_division          text        census township, ward, or equivalent
-enumeration_district    text        census
-sheet                   text        census sheet
-line_number             text        census
-dwelling_number         text        census
-family_number           text        census
-roll                    text        microfilm roll
-certificate_number      text        vital record
-registration_number     text        vital record local/state file number
-form_number             text        vital record or census form
-repository              text        archive, library, or civil office holding the evidence
-collection              text        archival or vendor collection name
-call_number             text        repository shelf/call number
-box                     text        archival box
-folder                  text        archival folder
-record_group            text        archival record group
-language                text        interview, oral testimony, book, website
-publication_date        text        book, website page (as-written; not a DateValue)
-issue_date              text        certificate issuance
-record_date             text        date the record was made or filed
-census_date             text        census day / enumeration year
-taken_date              text        photograph
-interview_date          text        interview, oral testimony
-accessed_date           text        website
-export_date             text        GEDCOM
-report_date             text        DNA match report
+source    creator author author_sort editor compiler translator photographer studio
+          interviewer interviewee recipient testing_company software jurisdiction
+          published_in publisher publication_place edition series volume issue
+          page_range site_name short_title coverage repository collection
+          record_group call_number box folder document_number book case_number
+          enumeration_district schedule piece chapter section lot kit_number
+          match_identifier holder medium
+artifact  format provider database_title url accessed_date citing film_publication
+          roll film_number item_number
+graph     item entry_number line_number dwelling_number family_number
+          schedule_number folio column record_id
 ```
 
-`url` and `accessed_date` describe Source provenencia. The bytes of a capture still live on an Artifact/File.
+`record_date` and `issue_date` are not seeded (the Source has its own date); a project made before they were dropped keeps its rows. `url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File.
 
 ## 2.3 `source_type_metadata_fields`
 
-Suggested fields per type for cataloging UI. Not required; a Source may use fields not listed for its type. Each row carries a level (`source`, `artifact` or `graph`); the seed's rows are all `source`.
+Suggested fields per type for cataloging UI. Not required; a Source may use fields not listed for its type. Each row carries a level (`source`, `artifact` or `graph`).
 
-```text
-birth_certificate
-  jurisdiction
-  certificate_number
-  registration_number
-  form_number
-  volume
-  page
-  record_date
-  issue_date
-  repository
-  collection
-  call_number
-  box
-  folder
-
-census
-  jurisdiction
-  civil_division
-  census_date
-  enumeration_district
-  sheet
-  page
-  line_number
-  dwelling_number
-  family_number
-  form_number
-  series
-  roll
-  repository
-  collection
-  call_number
-
-photograph
-  photographer
-  studio
-  taken_date
-  medium
-  creator
-  repository
-  collection
-  call_number
-  box
-  folder
-
-oral_testimony
-  interviewee
-  interviewer
-  interview_date
-  language
-  creator
-
-interview
-  interviewee
-  interviewer
-  interview_date
-  language
-  publisher
-  publication_date
-  url
-  accessed_date
-
-dna_match_report
-  testing_company
-  kit_number
-  match_identifier
-  report_date
-  url
-  accessed_date
-  collection
-
-book
-  author
-  publisher
-  publication_place
-  publication_date
-  edition
-  isbn
-  series
-  volume
-  repository
-  collection
-  call_number
-  language
-
-website
-  url
-  site_name
-  author
-  publisher
-  publication_date
-  accessed_date
-  language
-
-gedcom_file
-  author
-  software
-  gedcom_version
-  export_date
-  url
-  accessed_date
-```
+The seed lists each type's fields by the map's § 6.8 rule, over the type's full format: a field is suggested once, at the level it is usually set at when the full format reads it there (otherwise at the level it first appears at), in the order the format first reads it. Two exceptions: a type whose format reads a copy field only at the Source (`website` reads `url` and `accessed_date` there) suggests it at the Source, and the record types (`census`, `birth_certificate`, `marriage_certificate`, `death_certificate`, `church_register`, `record_book`, `passenger_list`, `case_file`, `manuscript`, `government_file`) suggest every copy field on their Artifacts. `TestSeedSuggestionsFollowFormats` derives the lists from the formats and fails on any difference. A census Source suggests `creator`, `jurisdiction`, `schedule`, `enumeration_district` and `piece`; its Artifacts suggest the copy fields; its graphs suggest `folio`, `schedule_number`, `dwelling_number`, `family_number`, `line_number` and `item`.
 
 ---
 
