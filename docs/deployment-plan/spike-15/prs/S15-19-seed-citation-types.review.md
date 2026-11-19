@@ -47,3 +47,23 @@ Maintainability: **Fits with changes**. Executability: **Ready with changes**. E
 ## Verdict
 
 **Fits / Ready.** No blocker open; nothing To user open. Status stays **Blocked — on S15-52**, and § 4 is redone when S15-52 lands.
+
+## Refresh round (2026-11-19, after S15-52 landed in #891)
+
+§ 4 redone against `main` @ `809833a`; every row verified by the executability reviewer. Maintainability: **Fits with changes**. Executability: **Ready with changes**.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| R-M1 | major | A formats-only re-upsert would need a third hand-built `source_type` update change (`updateChange` returns nil; `UpdateFormats` builds its own) | **Fixed.** D-8: `updateChange(prev, next, formats)` merges format diffs; `Update` passes nil; `UpdateFormats` builds through it; `UpsertTx` computes the format diffs first, then the change, then `sqlUpdate` only for row columns |
+| R-X4 | minor | Same gap: no change to merge into when only formats differ | **Fixed** by R-M1's answer |
+| R-M2 / R-X1 | major / blocker | Direct `UpsertTx` callers S15-52 added (`effects/source_type_search_test.go`, `sourcetypes_test.go` `TestUpsertTx`'s `run`) would not compile | **Fixed.** D-8 and STEP-1 name both (pass nil); STEP-1's check runs `./core/database/effects/...`; a formats-only case pins "no search reprojection" |
+| R-M3 / R-X7 | minor | Text described suggestion work S15-52 already did; `UpsertTx`'s doc comment not named | **Fixed.** § 3 row, Go core row and STEP-5 title say "unchanged"; D-8 names the doc comment |
+| R-X2 | minor | 29 → 33 lines in `sourcemetadata_test.go` | **Fixed** |
+| R-X3 | major | STEP-9 quoted skill text S15-52 rewrote; skill's date-key line and two docs mentions | **Fixed.** STEP-9 quotes the current sentence, drops the date-key sentence, and says the two `docs/*.md` `issue_date` examples stay |
+| R-X5 | minor | D-10's reason half true: a re-run is a no-op only because `writes.Run` rolls back an empty change list | **Fixed.** D-10's reason says so; T-4's revision count is the assertion |
+| R-X6 | minor | Fixture mechanics (value map, transaction, `usualLevel`) | **Fixed.** § 6: a 63-entry map in the test, `db.Begin()` on `c.DB()`, `usualLevel` built from the two group lists |
+| R-X8 | minor | `metadataSetFixture`, seed-twin user keys, a handler comment | **Fixed.** D-11 says they stay; the comment changes only if its test fails |
+
+## Verdict (refresh)
+
+**Planned.** No blocker open; nothing To user open.
