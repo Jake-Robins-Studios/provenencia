@@ -71,6 +71,11 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
     /// Ignored for navigation identity, like `title` and `ref`. Written when leaving
     /// the list. A missing key in older history files decodes as nil, which opens at the top.
     var listScrollAnchor: String?
+    /// The row of a record page's section the researcher last opened another place from.
+    /// Ignored for navigation identity. Written as a row opens a place, cleared by
+    /// `withPageSection`. A missing key, or a value this build cannot read, decodes as nil,
+    /// which opens the page at its top.
+    var sectionAnchor: ConclusionSectionAnchor?
     /// The section of a record page that is open (Person: Vitals, Family, …). Part of
     /// identity: a section is a place. Nil is the first section the kind offers, so a
     /// link without a section and one to the first section are equal.
@@ -88,7 +93,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         case section, sourceId, graphId, fieldId, typeId, subjectId, citationId, artifactId, observationId
         case connectFromSubjectId, connectToSubjectId, connectBridgeTypeKey
         case subjectTypeKey, propertyId, entityId
-        case sourceSurface, promoteAll, ref, title, sourceTitle, listScrollAnchor, pageSection
+        case sourceSurface, promoteAll, ref, title, sourceTitle, listScrollAnchor, sectionAnchor, pageSection
     }
 
     init(
@@ -113,7 +118,8 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         ref: String? = nil,
         title: String? = nil,
         sourceTitle: String? = nil,
-        listScrollAnchor: String? = nil
+        listScrollAnchor: String? = nil,
+        sectionAnchor: ConclusionSectionAnchor? = nil
     ) {
         self.section = section
         self.sourceId = Self.nilIfEmpty(sourceId)
@@ -137,6 +143,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         self.title = Self.nilIfEmpty(title)
         self.sourceTitle = Self.nilIfEmpty(sourceTitle)
         self.listScrollAnchor = Self.nilIfEmpty(listScrollAnchor)
+        self.sectionAnchor = sectionAnchor
     }
 
     init(from decoder: Decoder) throws {
@@ -170,6 +177,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         title = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .title))
         sourceTitle = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .sourceTitle))
         listScrollAnchor = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .listScrollAnchor))
+        sectionAnchor = try? container.decodeIfPresent(ConclusionSectionAnchor.self, forKey: .sectionAnchor)
     }
 
     /// Section list root (no deep id).
@@ -315,15 +323,17 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
     }
 
     /// Same record, on another section of its page. Nil, an unoffered section, or the
-    /// first section the kind offers is stored as nil. `ref`, `title` and `sourceTitle` are kept.
+    /// first section the kind offers is stored as nil. `ref`, `title` and `sourceTitle` are kept;
+    /// `sectionAnchor` is cleared (a new section opens at its top).
     func withPageSection(_ pageSection: ConclusionPageSection?) -> WorkspaceLocation {
         var copy = self
         copy.pageSection = Self.normalizedPageSection(pageSection, section: section, entityId: entityId)
+        copy.sectionAnchor = nil
         return copy
     }
 
     /// Identity used for coalesce / equality of navigation — deep ids only.
-    /// `ref`, `title`, `sourceTitle`, and `listScrollAnchor` are not identity; `pageSection` is.
+    /// `ref`, `title`, `sourceTitle`, `listScrollAnchor` and `sectionAnchor` are not identity; `pageSection` is.
     static func == (lhs: WorkspaceLocation, rhs: WorkspaceLocation) -> Bool {
         lhs.section == rhs.section
             && lhs.sourceId == rhs.sourceId

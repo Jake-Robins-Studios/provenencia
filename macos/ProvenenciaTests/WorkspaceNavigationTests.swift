@@ -433,6 +433,98 @@ struct WorkspaceNavigationTests {
         #expect(decoded == location)
     }
 
+    /// T-1 (AC-2.5, AC-6.1, D-2): an open from a row writes the row onto the entry being left.
+    @Test func sectionAnchorStampsTheEntryBeingLeft() throws {
+        let (navigation, url) = try attachedNavigation()
+        let anchor = try #require(ConclusionSectionAnchor(part: .family, id: "r-0-p2"))
+        navigation.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
+        navigation.go(
+            to: .personDetail(entityId: "p2", ref: "PER-2", title: "Bo"), from: anchor
+        )
+        #expect(navigation.currentLocation.entityId == "p2")
+        #expect(navigation.currentLocation.sectionAnchor == nil)
+
+        navigation.goBack()
+        #expect(navigation.currentLocation.entityId == "p1")
+        #expect(navigation.currentLocation.sectionAnchor == anchor)
+
+        navigation.goForward()
+        navigation.goBack()
+        #expect(navigation.currentLocation.sectionAnchor == anchor)
+
+        navigation.go(to: .sectionRoot(.places))
+        navigation.goBack()
+        #expect(navigation.currentLocation.entityId == "p1")
+        #expect(navigation.currentLocation.sectionAnchor == anchor)
+
+        let reloaded = WorkspaceNavigation()
+        reloaded.attachProject(uuid: projectUuid, fileURL: url)
+        #expect(reloaded.currentLocation.sectionAnchor == anchor)
+
+        // A row whose anchor cannot be built still opens its place and writes nothing.
+        let (plain, _) = try attachedNavigation()
+        plain.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
+        plain.go(to: .personDetail(entityId: "p2", ref: "PER-2", title: "Bo"), from: nil)
+        #expect(plain.currentLocation.entityId == "p2")
+        plain.goBack()
+        #expect(plain.currentLocation.entityId == "p1")
+        #expect(plain.currentLocation.sectionAnchor == nil)
+    }
+
+    /// T-2 (AC-6.2, D-1): the anchor is not identity and decodes leniently.
+    @Test func sectionAnchorIsNotIdentityAndDecodesLeniently() throws {
+        let plain = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil)
+        var anchored = plain
+        anchored.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "x")
+        #expect(plain == anchored)
+
+        for anchor in [
+            ConclusionSectionAnchor(part: .family, id: "x"),
+            ConclusionSectionAnchor(part: .timeline, id: "e-p", row: "e"),
+        ] {
+            var location = plain
+            location.sectionAnchor = anchor
+            let decoded = try JSONDecoder().decode(
+                WorkspaceLocation.self, from: JSONEncoder().encode(location)
+            )
+            #expect(decoded.sectionAnchor == anchor)
+        }
+
+        for extra in [
+            "",
+            ",\"sectionAnchor\":{\"part\":\"zzz\",\"id\":\"x\"}",
+            ",\"sectionAnchor\":{\"part\":\"family\",\"id\":\"\"}",
+            ",\"sectionAnchor\":\"family:x\"",
+        ] {
+            let json = Data("{\"section\":\"persons\",\"entityId\":\"p1\"\(extra)}".utf8)
+            let decoded = try JSONDecoder().decode(WorkspaceLocation.self, from: json)
+            #expect(decoded.sectionAnchor == nil)
+            #expect(decoded.entityId == "p1")
+        }
+
+        #expect(ConclusionSectionAnchor(part: .family, id: "") == nil)
+        #expect(ConclusionSectionAnchor(part: .timeline, id: "c", row: "")?.row == nil)
+    }
+
+    /// T-3 (AC-6.3, D-3): a section switch opens the new section at its top.
+    @Test func withPageSectionClearsTheSectionAnchor() throws {
+        var location = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil, pageSection: .family)
+        location.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "r-0-p2")
+        #expect(location.sectionAnchor != nil)
+        #expect(location.withPageSection(.timeline).sectionAnchor == nil)
+    }
+
+    /// T-4 (D-2): a visit to the place already open pushes nothing and writes no anchor.
+    @Test func sectionAnchorSkipsACoalescedVisit() throws {
+        let (navigation, _) = try attachedNavigation()
+        let p1 = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
+        navigation.go(to: p1)
+        let count = entryCount(navigation)
+        navigation.go(to: p1, from: ConclusionSectionAnchor(part: .family, id: "r-0-p1"))
+        #expect(entryCount(navigation) == count)
+        #expect(navigation.currentLocation.sectionAnchor == nil)
+    }
+
     /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not,
     /// and a noted scroll survives the page and Back.
     @Test func sourceTypesListIsAListRoot() throws {

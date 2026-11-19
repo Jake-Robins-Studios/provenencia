@@ -18,6 +18,9 @@ struct ReconciledValueRow: View {
     var provenance: Provenance = .why
     /// Opens the provenance sheet on this row (`.sheet` mode only).
     var openProvenance: () -> Void = {}
+    /// The section's focus for the open arrow: the row's id when the arrow has the keyboard, so
+    /// Back can give it back (`ConclusionDetailRowsSection`).
+    let openFocus: FocusState<String?>.Binding
     @Environment(WorkspaceNavigation.self) private var navigation
     @State private var showsOtherValues = false
     @State private var showsWhy = false
@@ -28,7 +31,7 @@ struct ReconciledValueRow: View {
 
     /// A disclosure stop of the row.
     private enum Stop: Hashable {
-        case why, provenance, others
+        case why, provenance, others, more
     }
 
     /// The value column starts after the label column and its gap.
@@ -52,6 +55,7 @@ struct ReconciledValueRow: View {
                     hidden: folded.hidden,
                     fold: ReconciledValueRowModel.listFold,
                     focus: $focusedStop,
+                    stop: .more,
                     revealed: revealsLastPage ? firstStop : nil,
                     expand: { folds.revealPage(model.id) }
                 )
@@ -148,13 +152,20 @@ struct ReconciledValueRow: View {
                     .accessibilityIdentifier("conclusion.detail.row.\(model.id).why")
             }
             if let opens = model.opens {
-                PVIconButton(.arrowUpRight, label: opens.label, size: .sm) {
-                    navigation.go(to: opens.location)
-                }
+                PVIconButton(.arrowUpRight, label: opens.label, size: .sm, action: open(opens))
+                    .focused(openFocus, equals: model.id)
+                    .pvActivatesOnReturn(when: openFocus.wrappedValue == model.id, open(opens))
                 .accessibilityIdentifier("conclusion.detail.row.\(model.id).open")
             }
         }
         .frame(minWidth: 72, alignment: .trailing)
+    }
+
+    /// Opens the place the row leads to, writing the row onto the page's history entry.
+    private func open(_ opens: ReconciledValueRowModel.Opens) -> () -> Void {
+        {
+            navigation.go(to: opens.location, from: ConclusionSectionAnchor(part: .detailRow, id: model.id))
+        }
     }
 
     /// The 28pt slot at the row's end: the provenance control when the row has
@@ -215,6 +226,18 @@ struct ConclusionDetailRowsSection: View {
     @Environment(\.pvWidthClass) private var widthClass
     /// The row whose provenance sheet is open (`.sheet` mode); one presenter for all rows.
     @State private var provenanceItem: ProvenanceSheetItem?
+    /// The row whose open arrow has the keyboard (`ReconciledValueRow.openFocus`).
+    @FocusState private var openFocus: String?
+
+    /// Where Back puts the keyboard for `anchor`: the open arrow of the row it opened from. Nil
+    /// for a row that is gone or no longer leads anywhere.
+    static func anchorTarget(
+        rows: [ReconciledValueRowModel], anchor: ConclusionSectionAnchor
+    ) -> ConclusionAnchorTarget<String>? {
+        guard anchor.part == .detailRow, let row = rows.first(where: { $0.id == anchor.id }), row.opens != nil
+        else { return nil }
+        return ConclusionAnchorTarget(stop: row.id, scrollID: row.id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -228,9 +251,14 @@ struct ConclusionDetailRowsSection: View {
             ForEach(rows) { row in
                 ReconciledValueRow(
                     model: row, provenance: provenance,
-                    openProvenance: { provenanceItem = ProvenanceSheetItem(id: row.id) }
+                    openProvenance: { provenanceItem = ProvenanceSheetItem(id: row.id) },
+                    openFocus: $openFocus
                 )
+                .id(row.id)
             }
+        }
+        .conclusionAnchorRestore([.detailRow], isReady: true, focus: $openFocus) {
+            Self.anchorTarget(rows: rows, anchor: $0)
         }
         .pvSheet(item: $provenanceItem) { item in
             if let row = item.row(in: rows) {

@@ -109,6 +109,8 @@ private struct PVIconButtonBody: View {
     let tone: PVIconButtonTone
     let isSelected: Bool
 
+    @Environment(\.isFocused) private var isFocused
+
     var body: some View {
         PVHoverEffect(isPressed: configuration.isPressed) { showHover in
             configuration.label
@@ -118,6 +120,8 @@ private struct PVIconButtonBody: View {
                     RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
                         .fill(fill(showHover: showHover))
                 )
+                // Always applied; focus only changes opacity (README § "Interaction state").
+                .pvFocusRing(isFocused, cornerRadius: PVRadius.sm)
         }
     }
 

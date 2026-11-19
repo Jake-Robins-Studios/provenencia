@@ -68,6 +68,8 @@ struct PersonSourcesContent: Equatable {
     private let revealed: [Fold: String]
     /// The graphs a fold hides all of: the ones a "Show more" stands for.
     private let foldedGraphs: [Fold: Set<String>]
+    /// The ids of the Sources the row fold leaves out.
+    private let hiddenSourceIDs: Set<String>
 
     var isEmpty: Bool { rows.isEmpty }
 
@@ -80,6 +82,35 @@ struct PersonSourcesContent: Equatable {
     /// graphs of the Sources the fold leaves out. The record links diagram highlights its Show
     /// more for them (S16-D2 FH-1, FH-2).
     func foldedGraphIDs(by fold: Fold) -> Set<String> { foldedGraphs[fold] ?? [] }
+
+    /// Where Back puts the keyboard for `anchor`: the Source's title or the record's graph link, else
+    /// the Show more of the fold that hides it. Nil for a Source or record that is gone.
+    func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<PersonSourcesFocus>? {
+        let sourceID: String
+        switch anchor.part {
+        case .sourceTitle: sourceID = anchor.id
+        case .sourceLine: guard let row = anchor.row else { return nil }; sourceID = row
+        default: return nil
+        }
+        if hiddenSourceIDs.contains(sourceID) {
+            return ConclusionAnchorTarget(stop: .more(.rows), scrollID: Self.moreRowsID)
+        }
+        guard let row = rows.first(where: { $0.id == sourceID }) else { return nil }
+        if anchor.part == .sourceTitle {
+            return ConclusionAnchorTarget(stop: .title(sourceID: sourceID), scrollID: sourceID)
+        }
+        if row.lines.contains(where: { $0.id == anchor.id }) {
+            return ConclusionAnchorTarget(stop: .graph(claimID: anchor.id), scrollID: anchor.id)
+        }
+        guard row.hiddenCount > 0 else { return nil }
+        return ConclusionAnchorTarget(stop: .more(.lines(sourceID: sourceID)), scrollID: Self.moreLinesID(sourceID: sourceID))
+    }
+
+    /// The scroll id of the Sources' own "Show more".
+    static let moreRowsID = "more.rows"
+
+    /// The scroll id of one Source's lines' "Show more".
+    static func moreLinesID(sourceID: String) -> String { "more.\(sourceID)" }
 
     /// `folds` holds the pages revealed of the Sources' lines and of the Sources past the fold.
     init(
@@ -168,6 +199,7 @@ struct PersonSourcesContent: Equatable {
         }
         self.revealed = revealed
         self.foldedGraphs = foldedGraphs
+        hiddenSourceIDs = Set(all.dropFirst(fold.shown.count).map(\.id))
         self.graphLocations = graphLocations
         self.claimGraphs = claimGraphs
         hiddenRowCount = fold.hidden

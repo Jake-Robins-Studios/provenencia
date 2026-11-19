@@ -72,6 +72,8 @@ struct PersonFamilyContent: Equatable {
     var rightCaption: String?
     /// The focus id of the first tile each fold's next page adds; absent when it hides nothing.
     private var revealed: [Fold: String] = [:]
+    /// Each tile the folds hide, by the id it would have, and the fold that hides it.
+    private var hiddenTiles: [String: Fold] = [:]
 
     /// The id of the tile that the next "Show more" of `fold` adds first, for the keyboard to
     /// land on; nil when the list hides nothing.
@@ -80,6 +82,29 @@ struct PersonFamilyContent: Equatable {
     /// A tile's focus and scroll id: the column (`l` or `r`), the group in it and the person.
     static func tileID(column: String, group: String, personID: String) -> String {
         "\(column)-\(group)-\(personID)"
+    }
+
+    /// The id of a fold's "Show more" row: the stop and scroll target Back restores when the
+    /// opened tile is hidden. Tile ids start `l-` or `r-`, so they cannot collide.
+    static func moreID(_ fold: Fold) -> String {
+        switch fold {
+        case .parentSets: "more.parentSets"
+        case .siblings: "more.siblings"
+        case .partners: "more.partners"
+        case .children(let index): "more.children.\(index)"
+        }
+    }
+
+    /// Where Back puts the keyboard for `anchor`: the tile it opened, or its fold's Show more
+    /// when the fold hides it. Nil when no tile has that id (the focus person's tile opens nothing).
+    func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<String>? {
+        guard anchor.part == .family else { return nil }
+        if allTiles.contains(where: { $0.id == anchor.id && $0.location != nil }) {
+            return ConclusionAnchorTarget(stop: anchor.id, scrollID: anchor.id)
+        }
+        guard let fold = hiddenTiles[anchor.id] else { return nil }
+        let more = Self.moreID(fold)
+        return ConclusionAnchorTarget(stop: more, scrollID: more)
     }
 
     /// Every tile on the page, in reading order.
@@ -109,6 +134,7 @@ struct PersonFamilyContent: Equatable {
             rule.firstRevealed(list, pages: folds.pages(fold))
         }
         var revealed: [Fold: String] = [:]
+        var hiddenTiles: [String: Fold] = [:]
         let focusID = family.person?.entity.id
         func tile(_ member: CatalogFamilyMember, role: PersonFamilyRole, column: String, group: String) -> PersonCardLink {
             let summary = member.person
@@ -128,6 +154,11 @@ struct PersonFamilyContent: Equatable {
         parentSetsHidden = allParentUnits.count - parentUnits.count
         if let unit = revealedAt(allParentUnits, .parentSets), let first = unit.partners.first {
             revealed[.parentSets] = Self.tileID(column: "l", group: "p\(parentUnits.count)", personID: first.person.entity.id)
+        }
+        for (k, unit) in allParentUnits.enumerated() where k >= parentUnits.count {
+            for member in unit.partners {
+                hiddenTiles[Self.tileID(column: "l", group: "p\(k)", personID: member.person.entity.id)] = .parentSets
+            }
         }
         parentSets = parentUnits.enumerated().map { k, unit in
             unit.partners.map { tile($0, role: .parent, column: "l", group: "p\(k)") }
@@ -151,6 +182,9 @@ struct PersonFamilyContent: Equatable {
         siblingsHidden = otherSiblings.count - shownSiblings.count
         if let first = revealedAt(otherSiblings, .siblings) {
             revealed[.siblings] = Self.tileID(column: "l", group: "s", personID: first.member.person.entity.id)
+        }
+        for origin in otherSiblings.dropFirst(shownSiblings.count) {
+            hiddenTiles[Self.tileID(column: "l", group: "s", personID: origin.member.person.entity.id)] = .siblings
         }
         if let focusAt {
             shownSiblings.insert(family.originSiblings[focusAt], at: min(focusAt, shownSiblings.count))
@@ -185,10 +219,18 @@ struct PersonFamilyContent: Equatable {
             let first = unit.kind == .partner ? unit.partners.first : unit.children.first
             if let first { revealed[.partners] = Self.tileID(column: "r", group: "\(index)", personID: first.person.entity.id) }
         }
+        for (index, unit) in allUnits.enumerated() where index >= shownUnits.count {
+            for member in (unit.kind == .partner ? [unit.partners[0]] : []) + unit.children {
+                hiddenTiles[Self.tileID(column: "r", group: "\(index)", personID: member.person.entity.id)] = .partners
+            }
+        }
         func children(_ unit: CatalogFamilyUnit, group index: Int) -> (tiles: [PersonCardLink], hidden: Int) {
             let shown = folded(unit.children, .children(index))
             if let first = revealedAt(unit.children, .children(index)) {
                 revealed[.children(index)] = Self.tileID(column: "r", group: "\(index)", personID: first.person.entity.id)
+            }
+            for member in unit.children.dropFirst(shown.count) {
+                hiddenTiles[Self.tileID(column: "r", group: "\(index)", personID: member.person.entity.id)] = .children(index)
             }
             return (shown.map { tile($0, role: .child, column: "r", group: "\(index)") }, unit.children.count - shown.count)
         }
@@ -217,6 +259,7 @@ struct PersonFamilyContent: Equatable {
         }
         self.groups = groups
         self.revealed = revealed
+        self.hiddenTiles = hiddenTiles
         groupsHidden = allUnits.count - groups.count
         let anyChildren = allUnits.contains { !$0.children.isEmpty }
         if allUnits.isEmpty {

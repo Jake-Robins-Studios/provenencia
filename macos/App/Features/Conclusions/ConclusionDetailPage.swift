@@ -359,6 +359,7 @@ private struct ConclusionDetailLoaded<Content: ConclusionDetailBody, Secondary: 
                             )
                         }
                         .focusedValue(\.conclusionSectionsFocused, true)
+                        .environment(\.conclusionReadSettled, handle.isSettled)
                     }
                 )
             }

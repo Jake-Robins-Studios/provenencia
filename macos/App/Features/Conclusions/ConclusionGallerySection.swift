@@ -53,6 +53,10 @@ struct ConclusionGallerySection: View {
             map: map,
             scroll: scroll
         )
+        .conclusionAnchorRestore([.picture], isReady: true, focus: $focused, keeper: $keeper, map: map) { anchor in
+            gallery.tiles.contains { $0.id == anchor.id }
+                ? ConclusionAnchorTarget(stop: .image(anchor.id), scrollID: anchor.id) : nil
+        }
         .pvSheet(item: $viewing) { item in
             // The shown picture has just left the gallery: draw its first tile until the item catches up.
             if let viewer = gallery.viewer,
@@ -110,7 +114,7 @@ struct ConclusionGallerySection: View {
             if gallery.viewer != nil {
                 viewing = ConclusionPictureViewerItem(shownID: tile.id)
             } else {
-                navigation.go(to: tile.location)
+                navigation.go(to: tile.location, from: ConclusionSectionAnchor(part: .picture, id: tile.id))
             }
         }
         return VStack(alignment: .leading, spacing: PVSpacing.space3) {

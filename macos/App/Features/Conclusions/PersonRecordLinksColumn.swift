@@ -10,7 +10,11 @@ struct PersonRecordLinksColumn: View {
     let hover: CircularLinkHover<String>
     let focusedGraphID: String?
     let open: (String) -> Void
-    let focus: (String) -> PVFieldFocus
+    /// The section's focus state: a node's ring, and where Back puts the keyboard.
+    let focus: FocusState<PersonSourcesFocus?>.Binding
+    /// The id of the view Back scrolls to (the diagram column, which stacks under the rows at
+    /// narrow widths).
+    let anchorScrollID: String
 
     @Environment(\.pvPageViewportSize) private var viewport
     /// Zero until the first layout pass has measured the column; the diagram is not drawn before.
@@ -59,7 +63,7 @@ struct PersonRecordLinksColumn: View {
                         accessibilityLabel: L10n.Conclusions.recordLinksGroupAccessibility(count: content.dataset.nodes.count),
                         accessibilityIdentifierRoot: accessibilityIdentifierRoot,
                         onOpen: open,
-                        focus: focus
+                        focus: { PVFieldFocus(focus, equals: .node(graphID: $0)) }
                     )
                     if single {
                         Text(L10n.Conclusions.recordLinksOneRecord)
@@ -72,6 +76,10 @@ struct PersonRecordLinksColumn: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            .conclusionAnchorRestore([.recordLinks], isReady: width > 0, focus: focus) { anchor in
+                content.locations[anchor.id] == nil
+                    ? nil : ConclusionAnchorTarget(stop: .node(graphID: anchor.id), scrollID: anchorScrollID)
+            }
         }
     }
 }

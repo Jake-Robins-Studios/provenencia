@@ -41,7 +41,7 @@ struct PersonTimelineSection: View {
                 content: content,
                 projectDir: session.projectKey.projectDir,
                 accessibilityIdentifierRoot: root,
-                open: { navigation.go(to: $0) },
+                open: { navigation.go(to: $0, from: $1) },
                 expand: { self.folds.revealPage($0) },
                 expandThrough: { self.folds.reveal($0, pages: $1) }
             )
@@ -56,7 +56,7 @@ struct PersonTimelineList: View {
     let content: PersonTimelineContent
     let projectDir: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let expand: (PersonTimelineContent.Fold) -> Void
     /// Unfolds a list through a page (the fewest that show a row a click on the lifeline names).
     let expandThrough: (PersonTimelineContent.Fold, Int) -> Void
@@ -127,6 +127,13 @@ struct PersonTimelineList: View {
             map: { $0 },
             scroll: { _ in }
         )
+        .conclusionAnchorRestore(
+            [.timeline],
+            isReady: !content.items.isEmpty,
+            focus: $focused,
+            keeper: $keeper,
+            scroll: { pendingReveal = $0; rebuild() }
+        ) { content.anchorTarget(for: $0) }
         .onChange(of: heights) { rebuild() }
         .onChange(of: content) { rebuild() }
         .onChange(of: viewportSize.height) { rebuild() }
@@ -145,7 +152,7 @@ struct PersonTimelineList: View {
         let scale = current.count == ids.count && !ids.isEmpty
             ? PersonTimelinePlacement.KeptScale(content: content, viewportHeight: viewportSize.height, pointsPerYear: next.pointsPerYear) : nil
         if scale != keptScale { keptScale = scale }
-        if let target = pendingReveal, current[target] != nil {
+        if let target = pendingReveal, current[target] != nil, scale != nil {
             pendingReveal = nil
             scrollTarget = target
             scrollRequest += 1
@@ -197,7 +204,7 @@ private struct PersonTimelineItemView: View {
     let projectDir: String
     let accessibilityIdentifierRoot: String
     let stacksPeople: Bool
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     /// The id of the first item the next page of a fold adds, from the content that was drawn.
     let revealed: (PersonTimelineContent.Fold) -> String?
     let expand: (PersonTimelineContent.Fold) -> Void
@@ -240,6 +247,7 @@ private struct PersonTimelineItemView: View {
                 hidden: count,
                 fold: PersonTimelineContent.eventFold,
                 focus: focused,
+                stop: item.id,
                 revealed: revealed(fold)
             ) { expand(fold) }
         }
@@ -257,7 +265,7 @@ private struct PersonTimelineEventRow: View {
     let accessibilityIdentifierRoot: String
     /// The list is too narrow for the people beside the text: they go under it.
     let stacksPeople: Bool
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor?) -> Void
     let revealed: (PersonTimelineContent.Fold) -> String?
     let expand: (PersonTimelineContent.Fold) -> Void
     let focused: FocusState<String?>.Binding
@@ -286,13 +294,13 @@ private struct PersonTimelineEventRow: View {
             )
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Button { open(row.location) } label: {
+                Button { opening(row.location, id: row.id) } label: {
                     PVTitleText(row.title, style: .heading, lineLimit: 2)
                         .multilineTextAlignment(.leading)
                 }
                 .buttonStyle(PVFocusRingButtonStyle())
                 .focused(focused, equals: row.id)
-                .pvActivatesOnReturn(when: focused.wrappedValue == row.id) { open(row.location) }
+                .pvActivatesOnReturn(when: focused.wrappedValue == row.id) { opening(row.location, id: row.id) }
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).title.\(row.id)")
                 HStack(spacing: 8) {
                     ForEach(Array(row.roles.enumerated()), id: \.offset) { _, role in
@@ -309,6 +317,12 @@ private struct PersonTimelineEventRow: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(row.spokenLabel)
+    }
+
+    /// Opens `location` from this row's title (`id` the event) or from one of its cards (`id`
+    /// the card, `row` the event), so Back can return to it.
+    private func opening(_ location: WorkspaceLocation, id: String, row: String? = nil) {
+        open(location, ConclusionSectionAnchor(part: .timeline, id: id, row: row))
     }
 
     private var people: some View {
@@ -329,6 +343,7 @@ private struct PersonTimelineEventRow: View {
                     hidden: row.participantsHidden,
                     fold: PersonTimelineContent.participantFold(widthClass),
                     focus: focused,
+                    stop: PersonTimelineContent.participantsMoreID(eventId: row.id),
                     revealed: revealed(.participants(eventId: row.id))
                 ) {
                     expand(.participants(eventId: row.id))
@@ -341,7 +356,7 @@ private struct PersonTimelineEventRow: View {
 
     private func card(_ link: PersonCardLink) -> some View {
         PVPersonCard(content: link.content, projectDir: projectDir, size: .compact) {
-            if let location = link.location { open(location) }
+            if let location = link.location { opening(location, id: link.id, row: row.id) }
         }
         .frame(height: PVTileCardSize.compact.height)
         .focused(focused, equals: link.id)
@@ -582,7 +597,7 @@ private struct PersonTimelinePreview: View {
                 content: PersonTimelineContent(timeline: timeline, folds: folds, widthClass: PVWidthClass(paneWidth: width)),
                 projectDir: "/tmp/none",
                 accessibilityIdentifierRoot: "preview",
-                open: { _ in },
+                open: { _, _ in },
                 expand: { folds.revealPage($0) },
                 expandThrough: { folds.reveal($0, pages: $1) }
             )
