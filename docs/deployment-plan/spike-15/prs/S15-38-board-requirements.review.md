@@ -59,6 +59,37 @@ Maintainability (opus): **Fits with changes**. Executability (sonnet): **Ready w
 ### X-7 · minor · Wording
 **Answer:** Fixed. AC-4.2 names `{citation.page|source.meta.page_range}`; seeded labels are "Line" and "Pages"; D-4 no longer answers `source.type`.
 
+## Round 2
+
+Fresh reviewers with the log. Maintainability (opus): **Fits with changes**, every round-1 answer holds (M-3 only half: see M-11). Executability (sonnet): **Not ready** on X-8 alone, Ready with changes once X-8 to X-11 are fixed; every round-1 answer verified.
+
+### M-10 · blocker · Board rules change without the draft-board parity file
+**Answer:** Fixed. Verified: `.cursor/rules/macos-client.mdc` names `draft_board_scenarios.json` as the record of the rules `MetadataDraftHost` mirrors, and `TestDraftBoardScenarios` runs on a format-less type. D-17: the file marks `document_number` needed (no existing scenario dismisses it empty), one new scenario pins the refused dismiss under a new `needed` divergence that `MetadataDraftHostParityTests.compared` skips; S15-39's map scope removes the skip. STEP-5, T-14, header and §4 updated.
+
+### M-11 · blocker · `Formats.Parse` beside `ToStored`'s own loop
+**Answer:** Fixed. Verified `ToStored`'s loop at `core/database/sourcetypes/formats.go`. D-13: `Parse` skips forms blank after `TrimSpace`; `ToStored` and `viewTx` both call it. STEP-1 files and check updated; Deletes names both loops.
+
+### M-12 · blocker · `CitationRequirementOption` copies part of `MetadataField`
+**Answer:** Fixed. D-16: `CitationRequirementOption { string level = 1; MetadataField field = 2; string builtin = 3; }` through `metadataFieldProto`.
+
+### X-8 · blocker · `ListWorkspaces`' new return breaks `TestListWorkspacesExported`
+**Answer:** Fixed. STEP-4 names the edit (`got[i].Entries`) as the one existing core test edit allowed.
+
+### X-9 · major · Draft board error codes
+**Answer:** Fixed. AC-3.3 and T-12 split `request.invalid_id` (malformed) from `sourcemetadata.invalid` (no Source, bad level).
+
+### X-10 · major · `sources` imports `citationformat` transitively
+**Answer:** Fixed. §4 Source row corrected; the stop condition is now any import cycle reported by `go build ./...`.
+
+### X-11 · major · T-8's counts undefined
+**Answer:** Fixed. T-8 states each count as a sum over types with its predicate and names the per-type table.
+
+### X-12 · major · Proto and Xcode checks need macOS tooling
+**Answer:** Fixed. §7 Toolchain line: run every Go check, report each skipped command by name; CI runs them. The Implementer block stays verbatim, as the template requires.
+
+### X-13 · minor · Shapes left open
+**Answer:** Fixed. D-2 names `builtinHeads` keyed by `Target` (page at `citation` level); D-10 names how the draft read gets type, rows and `ErrNotFound` → `ErrInvalid`; D-14 keeps the added Source owners out of extras, layout and output; D-13 says `viewTx` keeps its `Forms()` loop for `with`; T-13 names a `CreateSourceType` type for "no formats"; D-15 says a valued field answers whether or not its row loaded.
+
 ## Verdict
 
-Round 1 answered: every blocker Fixed. Round 2 pending (round 1 had blockers).
+Two rounds run, the cap. Every blocker from both rounds is Fixed; no finding is open and nothing is To user. The round-2 fixes are the writer's and were not re-reviewed (the loop stops at two rounds). **Planned.**
