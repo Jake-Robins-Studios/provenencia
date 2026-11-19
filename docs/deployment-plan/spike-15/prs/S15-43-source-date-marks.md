@@ -1,6 +1,6 @@
 # S15-43 — The Source date can be marked unknown or supplied
 
-**Status:** Planned
+**Status:** Landed in [#900](https://github.com/Jake-Robins-Studios/provenencia/pull/900) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, one migration and the wire. No view sets or shows the date's mark yet; S15-42 adds the date dialog's No date and Supplied and the header's display, gated by S15-D23)
@@ -327,3 +327,9 @@ None.
 
 **Title:** S15-43 — The Source date can be marked unknown or supplied
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-43-source-date-marks.md`.
+
+## Landed
+
+- `List` scans `HasArtifact` into a local and sets it on the returned Source: `scanSource` returns a new `Source`, so `&s.HasArtifact` as D-2 words it cannot reach the result.
+- The version bump is 0.24.1 → 0.25.0: `main` was at 0.24.1 when the PR was cut.
+- The in-app manual check (§ 10) was not run in the implementing session.
