@@ -88,9 +88,19 @@ final class NavigationHistoryStore {
     func stampListScrollAnchor(_ anchor: String?) {
         guard document.entries.indices.contains(document.index) else { return }
         guard document.entries[document.index].isListRoot else { return }
-        let normalized = anchor?.isEmpty == false ? anchor : nil
-        guard document.entries[document.index].listScrollAnchor != normalized else { return }
-        document.entries[document.index].listScrollAnchor = normalized
+        stampCurrent(\.listScrollAnchor, anchor?.isEmpty == false ? anchor : nil)
+    }
+
+    /// Write the row the current entry's page is opening another place from. No persist:
+    /// the push that follows writes the file once.
+    func stampSectionAnchor(_ anchor: ConclusionSectionAnchor?) {
+        stampCurrent(\.sectionAnchor, anchor)
+    }
+
+    private func stampCurrent<T: Equatable>(_ keyPath: WritableKeyPath<WorkspaceLocation, T?>, _ value: T?) {
+        guard document.entries.indices.contains(document.index) else { return }
+        guard document.entries[document.index][keyPath: keyPath] != value else { return }
+        document.entries[document.index][keyPath: keyPath] = value
     }
 
     /// Push a committed navigation (truncates forward). Coalesces when identical to current.
