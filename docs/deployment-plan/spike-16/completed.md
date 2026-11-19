@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-55 — Section counts read alike
+
+**Landed 2026-11-19** in [#907](https://github.com/Jake-Robins-Studios/provenencia/pull/907). Section headers that count their items pass a plural string and nothing at zero: the Source page's Notes (`notesCount`), the composer's Citation column (`citationsCount`) and, from the review, its Observations header (`observationsCount`), and the Conclusion Gallery (`ConclusionDetailGallery.countLabel`, `likenessesCount` for a Person, `picturesCount` for an Event or a Place). The composer's two counts and Evidence graphs' count live on their models (`citationsMeta`, `observationsMeta`, `SourceGraphsSection.countLabel`), so the zero case is tested. Evidence graphs never showed "0" in practice: a Source with no graph reads as loading. 0.26.0 → 0.26.1.
+
 ## S16-54 — Catalog tests write a test PNG through one helper
 
 **Landed 2026-11-19** in [#906](https://github.com/Jake-Robins-Studios/provenencia/pull/906). `dbtest.WritePNG(t, path, w, h)` writes a blank PNG of that size and fails the test on error. It replaces the two `writeTinyPNG` copies in the `sources` and `sourcecopy` tests, the six inline encoders in the `artifacts` tests, and, from the review, the FFI handler tests' `writePNG` (eleven callers), each keeping its size. The helpers that fill a color (`observationstest`, the handlers' `writeShadedPNG`) and the image packages' own helpers stay. Tests only, so no version bump.

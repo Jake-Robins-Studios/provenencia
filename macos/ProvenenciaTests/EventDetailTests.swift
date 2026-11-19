@@ -537,6 +537,7 @@ struct EventDetailTests {
         ]
         let gallery = content(source).gallery
         #expect(gallery.title == L10n.Conclusions.picturesSection)
+        #expect(gallery.countLabel == "2 pictures")
         #expect(gallery.tiles.map(\.id) == ["a", "b"])
         #expect(gallery.tiles.map(\.isLead) == [false, true])
         #expect(gallery.offersEarliest)

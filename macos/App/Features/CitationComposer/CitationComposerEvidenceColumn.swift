@@ -46,7 +46,7 @@ struct CitationComposerEvidenceColumn: View {
             VStack(alignment: .leading, spacing: 0) {
                 PVSectionHeader(
                     title: L10n.CitationComposer.citationEyebrow,
-                    meta: "\(model.listedCitations.count)"
+                    meta: model.citationsMeta
                 )
                 .padding(.horizontal, PVSpacing.space7)
                 .padding(.top, 14)

@@ -9,7 +9,7 @@ struct SourcePageGraphsView: View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             PVSectionHeader(
                 title: L10n.Sources.graphsHeading,
-                meta: rows.map { L10n.Sources.graphsCount($0.count) },
+                meta: model.graphs.countLabel,
                 actions: {
                     PVButton(L10n.Sources.addEvidenceGraph, variant: .primary, size: .sm, icon: .plus) {
                         Task { await model.graphs.openAdd() }

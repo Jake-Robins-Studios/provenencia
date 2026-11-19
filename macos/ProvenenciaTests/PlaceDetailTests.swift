@@ -137,6 +137,7 @@ struct PlaceDetailTests {
         let page = content(source)
         #expect(page.gallery.title == L10n.Conclusions.picturesSection)
         #expect(page.gallery.tiles.count == 1)
+        #expect(page.gallery.countLabel == "1 picture")
         #expect(page.gallery.tiles[0].citation.title == "Church photo")
         #expect(page.gallery.tiles[0].accessibilityLabel == "Picture from Church photo, thumbnail")
         #expect(page.gallery.choose == .placeThumbnail)
