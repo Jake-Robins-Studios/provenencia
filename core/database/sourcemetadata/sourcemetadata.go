@@ -701,12 +701,13 @@ func ListByOwnersTx(tx *sql.Tx, owners []Owner) ([]Row, error) {
 }
 
 // readByOwners is listByOwners as a read returns it: each row's mark settled
-// for its text (valuemark.Settle). The writes read listByOwners, so their
-// changes diff against the stored pair.
+// for its text (valuemark.Settle), blank text counting as none, as normalizeFor
+// counts it. The writes read listByOwners, so their changes diff against the
+// stored pair.
 func readByOwners(q database.Querier, owners []Owner) ([]Row, error) {
 	rows, err := listByOwners(q, owners)
 	for i := range rows {
-		rows[i].Mark = valuemark.Settle(rows[i].Mark, rows[i].ValueText != "")
+		rows[i].Mark = valuemark.Settle(rows[i].Mark, strings.TrimSpace(rows[i].ValueText) != "")
 	}
 	return rows, err
 }

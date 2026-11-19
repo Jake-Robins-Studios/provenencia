@@ -2650,6 +2650,7 @@ func TestDamagedMarksReadSettled(t *testing.T) {
 		{"both beside text reads supplied", Input{ValueText: "Lawrence", Mark: supplied}, "is_unknown = 1", Input{ValueText: "Lawrence", Mark: supplied}},
 		{"both without text reads unknown", Input{Mark: unknown}, "is_supplied = 1", Input{Mark: unknown}},
 		{"supplied without text reads unmarked", Input{Mark: unknown}, "is_unknown = 0, is_supplied = 1", Input{}},
+		{"supplied beside blank text reads unmarked", Input{ValueText: "Lawrence", Mark: supplied}, "value_text = '  '", Input{ValueText: "  "}},
 	}
 	for _, level := range []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph} {
 		for _, tc := range cases {
