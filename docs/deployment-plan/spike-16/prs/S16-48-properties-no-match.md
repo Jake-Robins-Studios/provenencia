@@ -108,13 +108,13 @@ When a Properties search matches nothing, the table card's body shows the kit's 
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `PropertiesModel.tableBody` *(new)*, of type `PropertiesTableBody` *(new)*, decides the body: `.rows` when `visibleProperties` is non-empty; else `.noMatch(query:)` when `TextMatch.Query(searchQuery)` is not empty, with the query trimmed of whitespace and newlines; else `.emptyType(label:)` when `selectedType` is set and `snapshot.properties` is non-empty; else `.nothing` (no Properties loaded: the first load or an empty catalog), which draws an empty body | A pure value is tested without a window (AC-1.x, AC-2.x); the view only switches on it. "Searching" uses the same key the filter uses, so `"  "` and `"-"` never show a no-match state over rows (AC-1.6). Search wins (PN-4) | Branching on `searchQuery.isEmpty` in the view — whitespace and punctuation queries would show no-match while rows show; untestable |
+| D-1 | `PropertiesModel.tableBody` *(new)*, of type `PropertiesTableBody` *(new)*, decides the body: `.rows` when `visibleProperties` is non-empty; else `.nothing` when `snapshot.properties` is empty (no Properties loaded: the first load, or an empty catalog), which draws an empty body, so a query typed during the first load shows no no-match state; else `.noMatch(query:)` when `TextMatch.Query(searchQuery)` is not empty, with the query trimmed of whitespace and newlines; else `.emptyType(label: selectedType.label)` when `selectedType` is set; else `.nothing` (unreachable with Properties loaded and no type: All properties lists them all). A `selectedTypeKey` missing from `snapshot.types` gives `selectedType == nil` and no type filter (`visibleProperties` skips it), so the body is `.rows` | A pure value is tested without a window (AC-1.x, AC-2.x); the view only switches on it. "Searching" uses the same key the filter uses, so `"  "` and `"-"` never show a no-match state over rows (AC-1.6). Search wins (PN-4) | Branching on `searchQuery.isEmpty` in the view — whitespace and punctuation queries would show no-match while rows show; untestable |
 | D-2 | `PropertiesModel.clearSearch()` *(new)* sets `searchQuery = ""` and calls `focusSearch()` | One model method, as `SourcesModel.clearFilters`; focus goes to the field because the button that had it disappears (PN-2). `focusSearch()` already drives the field's focus through the view's `onChange` | Setting `searchQuery` inline in the view — focus would be lost, and the behavior untested |
 | D-3 | No match: `PVEmptyState(icon: .searchEmpty, verbatimTitle: L10n.Properties.emptySearchTitle(query:), message: L10n.string(L10n.Properties.noMatchMessage), compact: true) { PVButton(L10n.Properties.clearSearch, variant: .secondary) { model.clearSearch() } }`. Empty type: `PVEmptyState(icon: .listTree, verbatimTitle: L10n.Properties.emptyTypeTitle(typeLabel:), message: L10n.string(L10n.Properties.emptyTypeMessage), compact: true)` | Brief inventory: existing kit init, no kit change; the title carries runtime text so it is verbatim | A type mark glyph for the empty type — needs a `glyph:verbatimTitle:` init the kit does not have, for one call site |
 | D-4 | Each state: `.padding(PVSpacing.space6)` then `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)`, inside `propertyTable` where the hand-built `VStack` was | PN-5's recommended inset; top-aligned as the Sources state. If the agreed board changes the inset, this line is updated when the plan moves to Planned | Centered in the card — not the Sources shape |
 | D-5 | Copy: keep `emptySearchTitle(query:)` and its key `properties.table.emptySearchTitleQuery`; drop its empty-query branch and the key `properties.table.emptySearchTitle` (D-1 never calls it with an empty query). Replace `emptySearch` with `noMatchMessage` *(new)*, a new key, because its meaning changes (no "create" any more). Add `clearSearch`, `emptyTypeTitle(typeLabel:)`, `emptyTypeMessage` *(new)*. Exact words in **Strings** | A changed meaning gets a new key (add-localized-string); an unchanged title keeps its key | Rewording `properties.table.emptySearch` in place — a stale comment and meaning under an old key |
 | D-6 | `openCreate(prefillLabel:)` loses its parameter: `openCreate()`, `draft.label` starts `""` | The user chose no Create button (2026-11-19), so the parameter's only intended caller will not exist; it never had one | Keeping it "for later" — dead code the next reader has to trace |
-| D-7 | Accessibility identifiers: `properties.noMatch` (the no-match state), `properties.clearSearch` (its button), `properties.emptyType` (the empty-type state) | Same scheme as `sources.filterEmpty` / `sources.clearFilters`; UI tests and the manual check can find them | — |
+| D-7 | Accessibility identifiers: `properties.noMatch` and `properties.emptyType` on each `PVEmptyState`, applied after its `.padding` and `.frame` (D-4), as `sources.filterEmpty`; `properties.clearSearch` on the `PVButton`, as `sources.clearFilters`. `.nothing` has none. No `.accessibilityElement` modifier: the kit's title, message and button stay separate elements (AC-3.1) | Same scheme as `sources.filterEmpty` / `sources.clearFilters`; UI tests and the manual check can find them | — |
 | D-8 | Tests are Swift Testing model tests in `PropertiesModelTests` (§8); no UI test | The branch logic is in the model (D-1); the layout and VoiceOver are in the manual check, as for the Sources state | An XCUITest — the repo has none for Properties, and S16-34 keeps tests windowless |
 
 **Rules this plan bends.** None.
@@ -151,7 +151,7 @@ None — the filter and the list are unchanged; `tableBody` reads `visibleProper
 
 - **Assumptions.** `tableBody` reads `visibleProperties` once per body; it assumes the filter's notion of "searching" is `TextMatch.Query.isEmpty` (T-3 holds it).
 - **Neighbors.** `zzz` → no match (T-1); `name` → rows (T-1); `"  "` and `"-"` with rows → rows (T-3); empty type + `zzz` → no match (T-4); empty type + `""` → empty type (T-4); type with rows + `""` → rows (T-4).
-- **Removed inputs.** Removing the last binding of the selected type turns `.rows` into `.emptyType` on the next snapshot (T-4 builds that snapshot directly). A snapshot with no Properties → `.nothing` (T-5).
+- **Removed inputs.** Removing the last binding of the selected type turns `.rows` into `.emptyType` on the next snapshot (T-4 builds that snapshot directly). A snapshot with no Properties → `.nothing`, whatever the query (T-5).
 - **Real data.** Only `source` has no locked binding in `core/database/subjectvocab/registry.go`; every other seeded type always shows rows with an empty search.
 - **Untrusted size.** A long query: the title is a verbatim `Text` with no line limit and wraps in the box (PN-6, manual check 4); no work grows with it beyond today's filter.
 
@@ -191,13 +191,15 @@ L10n keys, all in `L10n.Properties`:
 - `emptyTypeMessage` *(new)*: key `properties.table.emptyTypeMessage` = "Add one with the field above." Comment: "Message of the Properties empty state for a type with no Properties; the field above is the Add a property combo box".
 - Removed: `emptySearch` / `properties.table.emptySearch` ("Clear the search, or create it as a user property").
 
+Kinds: `noMatchMessage`, `clearSearch` and `emptyTypeMessage` are `static let … = LocalizedStringResource(key, defaultValue:, comment:)`, as `L10n.Sources.clearFilters`; `emptyTypeTitle(typeLabel:)` is a `static func … -> String` returning `L10n.format(LocalizedStringResource(…), typeLabel)`, as `emptySearchTitle(query:)`. Each sits beside `emptySearchTitle` in `L10n.Properties`. In `Localizable.xcstrings` each entry copies the shape of `properties.table.emptySearchTitleQuery` (`comment`, `extractionState: manual`, an `en` `stringUnit` `translated`).
+
 If the agreed board changes any of these words, this list is updated before the plan is Planned.
 
 ## 7. Steps
 
 **STEP-1 — The body decision and Clear search in the model**
 Files: `macos/App/Features/Properties/PropertiesModel.swift`, `macos/ProvenenciaTests/PropertiesModelTests.swift`. Skill: `add-swift-test`.
-Do: add `PropertiesTableBody` and `tableBody` (D-1) beside `visibleProperties`; add `clearSearch()` (D-2) beside `focusSearch()`; remove `openCreate`'s `prefillLabel` parameter (D-6). Write T-1 – T-6.
+Do: write T-1 – T-6 first (a `sourceType()` fixture beside `personType()`, same shape: `id: "type-source"`, `key: "source"`, `origin: "provenencia"`, `label: "Source"`, `description: ""`, `refPrefix: "SRN"`, `candidateRefPrefix: "CSR"`); then add `PropertiesTableBody` and `tableBody` (D-1) beside `visibleProperties` and `clearSearch()` (D-2) beside `focusSearch()`; commit. Then remove `openCreate`'s `prefillLabel` parameter (D-6) in its own commit.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PropertiesModelTests` passes.
 
 **STEP-2 — Copy**
@@ -211,7 +213,7 @@ Do: replace the `if model.visibleProperties.isEmpty { VStack … } else { PVTabl
 Check: the app builds; manual checks 1 – 6 pass.
 
 **STEP-4 — Version**
-Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`, Debug and Release).
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (every `MARKETING_VERSION` line: 4 at the planning base, the app and test targets, Debug and Release).
 Do: the next patch after `VERSION` on `main` when the branch is cut.
 Check: the three agree.
 
@@ -232,7 +234,7 @@ All in `macos/ProvenenciaTests/PropertiesModelTests.swift`, built with `makeMode
 | T-2 | Swift | `tableBodyShowsNoMatchWithATypeSelected` *(new)* | Person selected (Name bound), `"zzz"` → `.noMatch(query: "zzz")` | AC-1.2, D-1 |
 | T-3 | Swift | `tableBodyTreatsSpacesAndPunctuationAsNoSearch` *(new)* | All properties: `"   "` → `.rows`; `"-"` → `.rows` | AC-1.6, D-1 |
 | T-4 | Swift | `tableBodyShowsEmptyTypeUnlessSearching` *(new)* | Source selected with no bindings: `""` → `.emptyType(label: "Source")`; `"zzz"` → `.noMatch(query: "zzz")`; Person selected, `""` → `.rows` | AC-2.1, AC-2.2, D-1 |
-| T-5 | Swift | `tableBodyIsNothingWithNoPropertiesLoaded` *(new)* | No Properties, Source in types and selected, `""` → `.nothing`; `"zzz"` → `.noMatch(query: "zzz")` | D-1 |
+| T-5 | Swift | `tableBodyIsNothingWithNoPropertiesLoaded` *(new)* | No Properties, Source in types and selected, `""` → `.nothing`; `"zzz"` → `.nothing` | D-1 |
 | T-6 | Swift | `clearSearchEmptiesTheQueryAndFocusesTheField` *(new)* | `"zzz"`, `searchFocused == false`; `clearSearch()` → `searchQuery == ""`, `searchFocused == true`, `tableBody == .rows` | AC-1.4, D-2 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `PropertiesModelTests` (the `openCreate` signature, D-6) and `scripts/check-localizable-xcstrings.py` (removed keys).
@@ -245,7 +247,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `P
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left (properties.table.emptySearch, properties.table.emptySearchTitle gone)
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`L10n.Properties.emptySearch`, `prefillLabel`); `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`L10n.Properties.emptySearch`, `prefillLabel`; the hits in this plan and the map's S16-48 scope entry are expected); `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
 - [ ] UI matches the brief inventory; no new kit primitive
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — patch
