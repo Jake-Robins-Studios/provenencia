@@ -2236,10 +2236,7 @@ func TestDraftBoardScenarios(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
-			func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-				return sourcetypes.UpdateFormats(tx, cert.ID, sourcetypes.Formats{List: list}, nil)
-			}); err != nil {
+		if _, err := sourcetypestest.SetFormats(c, userID, cert.ID, sourcetypes.Formats{List: list}); err != nil {
 			t.Fatal(err)
 		}
 		for _, key := range file.Suggestions {
@@ -2847,10 +2844,7 @@ func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
 
 func (l ledger) setFormats(t *testing.T, c *database.Catalog, userID []byte, f sourcetypes.Formats) {
 	t.Helper()
-	if _, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
-		func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-			return sourcetypes.UpdateFormats(tx, l.typeID, f, nil)
-		}); err != nil {
+	if _, err := sourcetypestest.SetFormats(c, userID, l.typeID, f); err != nil {
 		t.Fatal(err)
 	}
 }
