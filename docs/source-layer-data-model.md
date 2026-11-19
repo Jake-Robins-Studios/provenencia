@@ -137,13 +137,20 @@ CREATE TABLE sources (
     title           TEXT NOT NULL,
     description     TEXT,
     date_value_id   BLOB REFERENCES date_values(id),   -- the Source's own date; at most one per Source
-    is_public       INTEGER NOT NULL DEFAULT 1 CHECK (is_public IN (0, 1))
+    is_public       INTEGER NOT NULL DEFAULT 1 CHECK (is_public IN (0, 1)),
+    date_unknown    INTEGER NOT NULL DEFAULT 0
+        CHECK (date_unknown IN (0, 1) AND (date_unknown = 0 OR date_value_id IS NULL)),
+    date_supplied   INTEGER NOT NULL DEFAULT 0
+        CHECK (date_supplied IN (0, 1) AND NOT (date_unknown = 1 AND date_supplied = 1)
+               AND (date_supplied = 0 OR date_value_id IS NOT NULL))
 ) STRICT;
 ```
 
 `source_type_id` provides the broad user-facing classification. `title` is the required human headline for lists and search (always non-empty after trim). More variable catalog information belongs in Source metadata. All Sources have a `ref` with prefix `SRC`; Source *type* (`birth_certificate`, `census`, …) does not change the prefix.
 
 `date_value_id` is the Source's own date: the original publication, or when the record was made. It is one optional shared DateValue ([`structured-date-model.md`](structured-date-model.md)), unique to its Source, owned as an Observation owns its value: set and edited in place by `sources.SetDate`, cleared by releasing the row, and released when the Source is deleted. It is not a `source_metadata` value, which stays text. Sources are ordered by it with `date_sort_key`, the integer `valuecompare.DateKeyOf` gives (absent when undated or when the date has no year).
+
+`date_unknown` and `date_supplied` are the date's two facts ([`core/valuemark`](../core/valuemark/valuemark.go)). **Unknown** means the record gives no date: the Source holds no `date_value_id` (the check refuses both), a citation prints "n.d.", and an unknown Source sorts with the undated ones. **Supplied** means the date is not on the record: it needs a date, and a citation prints it in square brackets. Never both. `sources.SetDate` writes the date and the pair in one statement, and a write with no mark clears the stored mark. A supplied Source whose date row is gone reads undated with no mark. Copy Source carries the mark with the Published date tick; the audit records `date_unknown` and `date_supplied` on the `source` change.
 
 `is_public` is the researcher's not-public switch (`0` = not public), shown on the Source page as a switch labeled "Private" that is off by default; it defaults to public, so every Source that existed before it is public. It is stored and read back and nothing else in the engine acts on it: no filter, hide or cascade.
 

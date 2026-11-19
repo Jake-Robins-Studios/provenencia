@@ -21,6 +21,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/google/uuid"
 )
 
@@ -46,20 +47,20 @@ const (
 		WHERE id = ?`
 	sqlSetCover = `UPDATE sources SET cover_mode = ?, primary_artifact_id = ?
 		WHERE id = ?`
-	sqlSetDateValue = `UPDATE sources SET date_value_id = ? WHERE id = ?`
-	sqlSetPublic    = `UPDATE sources SET is_public = ? WHERE id = ?`
-	sqlGet          = `SELECT id, ref, source_type_id, title, COALESCE(description, ''),
-		cover_mode, primary_artifact_id, date_value_id, is_public
-		FROM sources WHERE id = ?`
-	sqlGetByRef = `SELECT id, ref, source_type_id, title, COALESCE(description, ''),
-		cover_mode, primary_artifact_id, date_value_id, is_public
-		FROM sources WHERE ref = ?`
+	sqlSetDate = `UPDATE sources SET date_value_id = ?, date_unknown = ?, date_supplied = ?
+		WHERE id = ?`
+	sqlSetPublic = `UPDATE sources SET is_public = ? WHERE id = ?`
+	// sqlColumns is the one column list scanSource reads. It is unqualified:
+	// sqlList's outer query has one table.
+	sqlColumns = `id, ref, source_type_id, title, COALESCE(description, ''),
+		cover_mode, primary_artifact_id, date_value_id, is_public, date_unknown, date_supplied`
+	sqlGet      = `SELECT ` + sqlColumns + ` FROM sources WHERE id = ?`
+	sqlGetByRef = `SELECT ` + sqlColumns + ` FROM sources WHERE ref = ?`
 	// Newest-first by UUIDv7 id (create time). The Source's last activity is not
 	// here: List reads it from the display cache (Graph.Activity), so no list
 	// load scans the audit history.
 	// has_artifact gates the Evidence graph zone without a per-row query.
-	sqlList = `SELECT s.id, s.ref, s.source_type_id, s.title, COALESCE(s.description, ''),
-		s.cover_mode, s.primary_artifact_id, s.date_value_id, s.is_public,
+	sqlList = `SELECT ` + sqlColumns + `,
 		EXISTS (SELECT 1 FROM artifacts a WHERE a.source_id = s.id)
 		FROM sources s
 		ORDER BY s.id DESC`
@@ -79,9 +80,13 @@ type Source struct {
 	PrimaryArtifactID []byte // nil when CoverModeTypeIcon
 	// DateValueID and Date are the Source's own date (the original publication,
 	// or when the record was made); nil when undated. Date carries its ID. Every
-	// read fills them.
-	DateValueID []byte
-	Date        *datevalue.Value
+	// read fills them. DateMark is the date's unknown or supplied fact: unknown
+	// has no date, supplied has one. Readers use DateMark; writes and audits use
+	// storedDateMark, the columns as stored.
+	DateValueID    []byte
+	Date           *datevalue.Value
+	DateMark       valuemark.Mark
+	storedDateMark valuemark.Mark
 	// IsPublic is false when the researcher marked the Source not public. It is
 	// stored and read back; nothing else in the engine acts on it.
 	IsPublic bool
@@ -262,12 +267,18 @@ func SetCover(tx *database.Tx, userID, sourceID []byte, mode string, primaryArti
 }
 
 // SetDate gives the Source a date, edits the one it has in place (its id stays),
-// or clears it when date is nil, releasing the date_values row. The same date
-// returns the Source and no changes. An invalid date is datevalue.ErrInvalid
-// and nothing is written.
-func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value) (Source, []rowchange.Change, error) {
+// or clears it when date is nil, releasing the date_values row. mark is the
+// date's unknown or supplied fact: unknown goes with no date, supplied with a
+// date, and no mark is a date typed as the record gives it. A write without a
+// mark clears the stored one. The same date and mark return the Source and no
+// changes. An invalid date is datevalue.ErrInvalid and a bad mark is
+// valuemark.ErrInvalid; nothing is written.
+func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value, mark valuemark.Mark) (Source, []rowchange.Change, error) {
 	prev, err := loadForWrite(tx, userID, sourceID)
 	if err != nil {
+		return Source{}, nil, err
+	}
+	if err := valuemark.Validate(mark, date != nil); err != nil {
 		return Source{}, nil, err
 	}
 	// held is the date row the Source owns; a stored id with no row is none.
@@ -276,8 +287,8 @@ func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value) (S
 		held = prev.DateValueID
 	}
 	var changes []rowchange.Change
-	switch {
-	case date != nil:
+	var nextID []byte
+	if date != nil {
 		id, ch, err := datevalues.PutTx(tx.Tx, held, *date)
 		if err != nil {
 			return Source{}, nil, err
@@ -285,17 +296,17 @@ func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value) (S
 		if ch != nil {
 			changes = append(changes, *ch)
 		}
-		if !bytes.Equal(id, prev.DateValueID) {
-			if _, err := tx.Exec(sqlSetDateValue, id, sourceID); err != nil {
-				return Source{}, nil, mapConstraint(err)
-			}
-			changes = append(changes, dateValueChange(sourceID, prev.DateValueID, id))
-		}
-	case len(prev.DateValueID) == 16:
-		if _, err := tx.Exec(sqlSetDateValue, nil, sourceID); err != nil {
+		nextID = id
+	}
+	if !bytes.Equal(nextID, prev.DateValueID) || mark != prev.storedDateMark {
+		if _, err := tx.Exec(sqlSetDate, database.NullBlob(nextID), boolInt(mark.Unknown), boolInt(mark.Supplied), sourceID); err != nil {
 			return Source{}, nil, mapConstraint(err)
 		}
-		changes = append(changes, dateValueChange(sourceID, prev.DateValueID, nil))
+		if ch := dateChange(sourceID, prev.DateValueID, nextID, prev.storedDateMark, mark); ch != nil {
+			changes = append(changes, *ch)
+		}
+	}
+	if date == nil && len(held) == 16 {
 		ch, err := deleteimpact.ReleaseReplaced(tx, "sources.date_value_id", "date_value", held, nil,
 			datevalues.RowMapTx(tx.Tx, held))
 		if err != nil {
@@ -315,16 +326,28 @@ func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value) (S
 	return next, changes, nil
 }
 
-// dateValueChange is the source update change that points date_value_id from
-// one date row to another (nil for none).
-func dateValueChange(sourceID, from, to []byte) rowchange.Change {
-	return rowchange.Change{
+// dateChange is the source update change for the date columns: date_value_id
+// from one date row to another (nil for none), and each of date_unknown and
+// date_supplied that differs, as a bool. It is nil when nothing differs.
+func dateChange(sourceID, prevID, nextID []byte, prevMark, nextMark valuemark.Mark) *rowchange.Change {
+	fields := map[string]rowchange.FieldDiff{}
+	if !bytes.Equal(prevID, nextID) {
+		fields["date_value_id"] = rowchange.FieldDiff{Old: database.UUIDJSON(prevID), New: database.UUIDJSON(nextID)}
+	}
+	if prevMark.Unknown != nextMark.Unknown {
+		fields["date_unknown"] = rowchange.FieldDiff{Old: prevMark.Unknown, New: nextMark.Unknown}
+	}
+	if prevMark.Supplied != nextMark.Supplied {
+		fields["date_supplied"] = rowchange.FieldDiff{Old: prevMark.Supplied, New: nextMark.Supplied}
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
 		EntityType: "source",
 		EntityID:   append([]byte(nil), sourceID...),
 		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"date_value_id": {Old: database.UUIDJSON(from), New: database.UUIDJSON(to)},
-		},
+		Fields:     fields,
 	}
 }
 
@@ -465,6 +488,12 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if len(existing.DateValueID) == 16 {
 		fields["date_value_id"] = rowchange.FieldDiff{Old: database.UUIDJSON(existing.DateValueID), New: nil}
 	}
+	if existing.storedDateMark.Unknown {
+		fields["date_unknown"] = rowchange.FieldDiff{Old: true, New: nil}
+	}
+	if existing.storedDateMark.Supplied {
+		fields["date_supplied"] = rowchange.FieldDiff{Old: true, New: nil}
+	}
 	return append(released, rowchange.Change{
 		EntityType: "source",
 		EntityID:   append([]byte(nil), id...),
@@ -512,10 +541,12 @@ func List(c *database.Catalog) ([]Source, error) {
 	defer rows.Close()
 	var out []Source
 	for rows.Next() {
-		s, err := scanSourceList(rows)
+		var hasArtifact bool
+		s, err := scanSource(rows, &hasArtifact)
 		if err != nil {
 			return nil, err
 		}
+		s.HasArtifact = hasArtifact
 		out = append(out, s)
 	}
 	if err := rows.Err(); err != nil {
@@ -523,20 +554,8 @@ func List(c *database.Catalog) ([]Source, error) {
 	}
 	// The scan is finished: the catalog has one connection, so the cache's
 	// first load cannot run while rows is open.
-	var dateIDs [][]byte
-	for _, s := range out {
-		if len(s.DateValueID) == 16 {
-			dateIDs = append(dateIDs, s.DateValueID)
-		}
-	}
-	dates, err := datevalues.LookupManyTx(db, dateIDs)
-	if err != nil {
+	if err := fillDates(db, out); err != nil {
 		return nil, err
-	}
-	for i := range out {
-		if d, ok := dates[string(out[i].DateValueID)]; ok {
-			out[i].Date = &d
-		}
 	}
 	for i := range out {
 		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
@@ -577,39 +596,61 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-func scanSource(row rowScanner) (Source, error) {
+// scanSource reads the sqlColumns, then extra. Date and DateMark are left for
+// fillDates.
+func scanSource(row rowScanner, extra ...any) (Source, error) {
 	var s Source
-	var primary, dateID []byte
-	var isPublic int64
-	if err := row.Scan(&s.ID, &s.Ref, &s.SourceTypeID, &s.Title, &s.Description, &s.CoverMode, &primary, &dateID, &isPublic); err != nil {
+	var isPublic, unknown, supplied int64
+	dest := append([]any{
+		&s.ID, &s.Ref, &s.SourceTypeID, &s.Title, &s.Description, &s.CoverMode,
+		&s.PrimaryArtifactID, &s.DateValueID, &isPublic, &unknown, &supplied,
+	}, extra...)
+	if err := row.Scan(dest...); err != nil {
 		return Source{}, err
 	}
-	s.PrimaryArtifactID = primary
-	s.DateValueID = dateID
 	s.IsPublic = isPublic != 0
+	s.storedDateMark = valuemark.Mark{Unknown: unknown != 0, Supplied: supplied != 0}
 	if s.CoverMode == "" {
 		s.CoverMode = CoverModeTypeIcon
 	}
 	return s, nil
 }
 
-func scanSourceList(row rowScanner) (Source, error) {
-	var s Source
-	var primary, dateID []byte
-	var isPublic int64
-	if err := row.Scan(
-		&s.ID, &s.Ref, &s.SourceTypeID, &s.Title, &s.Description, &s.CoverMode, &primary, &dateID, &isPublic,
-		&s.HasArtifact,
-	); err != nil {
-		return Source{}, err
+// settleDate is the one place a read decides a Source's date and mark. The date
+// is the row for id in dates, nil when id is not 16 bytes or its row is gone. The
+// read mark is the stored one made valid for what the read found: a date that is
+// gone reads as undated, so it cannot be supplied (Supplied cleared); a date that
+// is there cannot be unknown (Unknown cleared).
+func settleDate(dates map[string]datevalue.Value, id []byte, stored valuemark.Mark) (*datevalue.Value, valuemark.Mark) {
+	if len(id) == 16 {
+		if d, ok := dates[string(id)]; ok {
+			stored.Unknown = false
+			return &d, stored
+		}
 	}
-	s.PrimaryArtifactID = primary
-	s.DateValueID = dateID
-	s.IsPublic = isPublic != 0
-	if s.CoverMode == "" {
-		s.CoverMode = CoverModeTypeIcon
+	stored.Supplied = false
+	return nil, stored
+}
+
+// fillDates sets Date and DateMark on each Source from one batched read of its
+// date rows.
+func fillDates(q interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+}, out []Source) error {
+	var ids [][]byte
+	for _, s := range out {
+		if len(s.DateValueID) == 16 {
+			ids = append(ids, s.DateValueID)
+		}
 	}
-	return s, nil
+	dates, err := datevalues.LookupManyTx(q, ids)
+	if err != nil {
+		return err
+	}
+	for i := range out {
+		out[i].Date, out[i].DateMark = settleDate(dates, out[i].DateValueID, out[i].storedDateMark)
+	}
+	return nil
 }
 
 // GetTx returns a Source by id on an open transaction, or ErrNotFound.
@@ -628,6 +669,7 @@ func getTx(tx *sql.Tx, id []byte) (Source, error) {
 // Source is ErrNotFound, mapped here once for every reader.
 func getOne(q interface {
 	QueryRow(query string, args ...any) *sql.Row
+	Query(query string, args ...any) (*sql.Rows, error)
 }, query string, key any) (Source, error) {
 	s, err := scanSource(q.QueryRow(query, key))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -636,18 +678,11 @@ func getOne(q interface {
 	if err != nil {
 		return Source{}, err
 	}
-	if len(s.DateValueID) == 16 {
-		d, err := datevalues.LookupTx(q, s.DateValueID)
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			// A date row that is gone reads as undated, as List does.
-		case err != nil:
-			return Source{}, err
-		default:
-			s.Date = &d
-		}
+	one := []Source{s}
+	if err := fillDates(q, one); err != nil {
+		return Source{}, err
 	}
-	return s, nil
+	return one[0], nil
 }
 
 func requireType(tx *sql.Tx, typeID []byte) error {

@@ -157,6 +157,8 @@ Timezone labels (`start_tz` / `end_tz`) are independent of the components: optio
 
 It is **not** the place for Source-layer catalog wording. Catalog dates stay on `source_metadata.value_text` with no DateValue. Observation / Claim callers that preserve “as written on this record” keep that on the referencing row and attach `date_value_id` for structure. See §4.
 
+A phrase is at most `datevalue.MaxPhraseBytes` (4096) bytes on every kind: one high cap far above any real phrase, checked by `Validate`, so a crafted catalog's huge phrase cannot be copied again by a date write.
+
 A DateValue may be phrase-forward (structure sparse or empty) when the evidence is only verbal; prefer adding whatever components can be asserted without inventing precision.
 
 ## 3.3 Calendar

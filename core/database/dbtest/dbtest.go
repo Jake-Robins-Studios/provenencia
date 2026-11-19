@@ -3,6 +3,7 @@
 package dbtest
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 )
@@ -51,4 +52,36 @@ func MustDB(t testing.TB, c interface{ DB() (*sql.DB, error) }) *sql.DB {
 		t.Fatal(err)
 	}
 	return db
+}
+
+// Damage runs one statement the schema would refuse, as a crafted or damaged
+// catalog holds it. It pins one connection, turns foreign keys off and check
+// constraints off for the statement, restores both, and closes the connection
+// before returning, because the catalog holds one connection.
+func Damage(t testing.TB, db *sql.DB, query string, args ...any) {
+	t.Helper()
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}()
+	for _, pragma := range []string{`PRAGMA foreign_keys=OFF`, `PRAGMA ignore_check_constraints=ON`} {
+		if _, err := conn.ExecContext(ctx, pragma); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, execErr := conn.ExecContext(ctx, query, args...)
+	for _, pragma := range []string{`PRAGMA ignore_check_constraints=OFF`, `PRAGMA foreign_keys=ON`} {
+		if _, err := conn.ExecContext(ctx, pragma); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if execErr != nil {
+		t.Fatal(execErr)
+	}
 }

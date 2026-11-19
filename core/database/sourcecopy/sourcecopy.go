@@ -1,6 +1,7 @@
 // Package sourcecopy copies a Source in one write: a new Source with a chosen
 // title and type, and, each only when chosen, the original's description,
-// published date (as a date row of the copy's own), metadata with its layout,
+// published date (as a date row of the copy's own, with its unknown or supplied
+// mark), metadata with its layout,
 // credibility and any subset of its Artifacts, each chosen Artifact with its
 // own metadata whatever the metadata choice says (the Artifact's metadata is
 // part of the Artifact). It composes the owner packages
@@ -22,6 +23,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -30,6 +32,7 @@ import (
 type Draft struct {
 	Source      sources.CreateInput
 	Date        *datevalue.Value // nil when the Source is undated; its ID is always nil
+	DateMark    valuemark.Mark   // the date's unknown or supplied fact; it travels with the date
 	Metadata    sourcemetadata.Draft
 	Credibility *sourcecredibility.UpsertInput // nil when the Source has none
 	Artifacts   []DraftArtifact                // the original's ref order
@@ -72,6 +75,7 @@ func ReadDraft(tx *sql.Tx, sourceID []byte) (Draft, error) {
 		date.ID = nil
 		d.Date = &date
 	}
+	d.DateMark = src.DateMark
 
 	if d.Metadata, err = sourcemetadata.ReadDraftTx(tx, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: sourceID}); err != nil {
 		return Draft{}, err
@@ -120,16 +124,13 @@ func CreateFromDraft(tx *database.Tx, userID []byte, d Draft) (sources.Source, [
 		return sources.Source{}, nil, err
 	}
 
-	if d.Date != nil {
-		var more []rowchange.Change
-		src, more, err = sources.SetDate(tx, userID, src.ID, d.Date)
-		if err != nil {
-			return sources.Source{}, nil, err
-		}
-		changes = append(changes, more...)
+	src, more, err := sources.SetDate(tx, userID, src.ID, d.Date, d.DateMark)
+	if err != nil {
+		return sources.Source{}, nil, err
 	}
+	changes = append(changes, more...)
 
-	more, err := sourcemetadata.CreateAll(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: src.ID}, d.Metadata)
+	more, err = sourcemetadata.CreateAll(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: src.ID}, d.Metadata)
 	if err != nil {
 		return sources.Source{}, nil, err
 	}
@@ -193,6 +194,7 @@ func apply(d Draft, in CopyInput) (Draft, error) {
 	}
 	if !in.Date {
 		d.Date = nil
+		d.DateMark = valuemark.Mark{}
 	}
 	if !in.Metadata {
 		d.Metadata = sourcemetadata.Draft{}

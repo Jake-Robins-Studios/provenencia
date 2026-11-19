@@ -2,7 +2,6 @@ package sourcecopy
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"image"
 	"image/png"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -206,10 +206,10 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 }
 
 // setDate dates a Source through the one owner write.
-func setDate(t *testing.T, c *database.Catalog, userID, sourceID []byte, d *datevalue.Value) sources.Source {
+func setDate(t *testing.T, c *database.Catalog, userID, sourceID []byte, d *datevalue.Value, mark valuemark.Mark) sources.Source {
 	t.Helper()
 	src, err := writeOne(c, userID, "set_source_date", func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-		return sources.SetDate(tx, userID, sourceID, d)
+		return sources.SetDate(tx, userID, sourceID, d, mark)
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -655,7 +655,7 @@ func TestCopy(t *testing.T) {
 				} {
 					t.Run(tc.name, func(t *testing.T) {
 						c, userID, orig, arts := seedObituary(t)
-						orig = setDate(t, c, userID, orig.ID, tc.date)
+						orig = setDate(t, c, userID, orig.ID, tc.date, valuemark.Mark{})
 						in := allParts(orig, arts)
 						in.Date = true
 						cp, err := runCopy(c, userID, in)
@@ -690,13 +690,74 @@ func TestCopy(t *testing.T) {
 						}
 
 						// The two rows are independent: dating the copy leaves the original.
-						setDate(t, c, userID, cp.ID, datevaluetest.YMD(1841, 0, 0))
+						setDate(t, c, userID, cp.ID, datevaluetest.YMD(1841, 0, 0), valuemark.Mark{})
 						got, err := sources.Get(c, orig.ID)
 						if err != nil {
 							t.Fatal(err)
 						}
 						if got.Date == nil || !bytes.Equal(got.DateValueID, orig.DateValueID) || !reflect.DeepEqual(*got.Date, *orig.Date) {
 							t.Fatalf("original date changed: %+v", got.Date)
+						}
+					})
+				}
+			},
+		},
+		{
+			name: "carries the date's mark with the date",
+			run: func(t *testing.T) {
+				unknown := valuemark.Mark{Unknown: true}
+				supplied := valuemark.Mark{Supplied: true}
+				for _, tc := range []struct {
+					name string
+					date *datevalue.Value
+					mark valuemark.Mark
+				}{
+					{"unknown", nil, unknown},
+					{"supplied", datevaluetest.About(1880, 0, 0), supplied},
+				} {
+					t.Run(tc.name+" with the tick on", func(t *testing.T) {
+						c, userID, orig, arts := seedObituary(t)
+						orig = setDate(t, c, userID, orig.ID, tc.date, tc.mark)
+						before := dbtest.Count(t, dbtest.MustDB(t, c), `SELECT COUNT(*) FROM date_values`)
+						in := allParts(orig, arts)
+						in.Date = true
+						cp, err := runCopy(c, userID, in)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if cp.DateMark != tc.mark {
+							t.Fatalf("copy mark %+v, want %+v", cp.DateMark, tc.mark)
+						}
+						got, err := sources.Get(c, cp.ID)
+						if err != nil || got.DateMark != tc.mark {
+							t.Fatalf("Get %+v err=%v", got, err)
+						}
+						rows := dbtest.Count(t, dbtest.MustDB(t, c), `SELECT COUNT(*) FROM date_values`)
+						if tc.date == nil {
+							if cp.Date != nil || cp.DateValueID != nil || rows != before {
+								t.Fatalf("copy %+v, date rows %d -> %d", cp.Date, before, rows)
+							}
+							return
+						}
+						if cp.Date == nil || bytes.Equal(cp.DateValueID, orig.DateValueID) || rows != before+1 {
+							t.Fatalf("copy date %+v, date rows %d -> %d", cp.Date, before, rows)
+						}
+						want, have := *orig.Date, *cp.Date
+						want.ID, have.ID = nil, nil
+						if !reflect.DeepEqual(want, have) {
+							t.Fatalf("date\nwant %+v\nhave %+v", want, have)
+						}
+					})
+					t.Run(tc.name+" with the tick off", func(t *testing.T) {
+						c, userID, orig, arts := seedObituary(t)
+						orig = setDate(t, c, userID, orig.ID, tc.date, tc.mark)
+						cp, err := runCopy(c, userID, allParts(orig, arts))
+						if err != nil {
+							t.Fatal(err)
+						}
+						got, err := sources.Get(c, cp.ID)
+						if err != nil || got.Date != nil || got.DateMark != (valuemark.Mark{}) || cp.DateMark != (valuemark.Mark{}) {
+							t.Fatalf("copy %+v err=%v", got, err)
 						}
 					})
 				}
@@ -724,28 +785,25 @@ func TestCopy(t *testing.T) {
 						}
 					}
 				})
-				t.Run("date row missing", func(t *testing.T) {
+				t.Run("a damaged unknown mark on a dated source copies supplied", func(t *testing.T) {
 					c, userID, orig, arts := seedObituary(t)
-					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0))
-					db := dbtest.MustDB(t, c)
-					ctx := context.Background()
-					conn, err := db.Conn(ctx)
+					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{Supplied: true})
+					dbtest.Damage(t, dbtest.MustDB(t, c), `UPDATE sources SET date_unknown = 1 WHERE id = ?`, orig.ID)
+					in := allParts(orig, arts)
+					in.Date = true
+					cp, err := runCopy(c, userID, in)
 					if err != nil {
 						t.Fatal(err)
 					}
-					if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=OFF`); err != nil {
-						t.Fatal(err)
+					if cp.Date == nil || *cp.Date.StartYear != 1880 || cp.DateMark != (valuemark.Mark{Supplied: true}) {
+						t.Fatalf("copy %+v mark %+v", cp.Date, cp.DateMark)
 					}
-					if _, err := conn.ExecContext(ctx, `DELETE FROM date_values WHERE id = ?`, orig.DateValueID); err != nil {
-						t.Fatal(err)
-					}
-					if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys=ON`); err != nil {
-						t.Fatal(err)
-					}
-					// Release the connection: the catalog holds one, and the copy needs it.
-					if err := conn.Close(); err != nil {
-						t.Fatal(err)
-					}
+				})
+				t.Run("date row missing", func(t *testing.T) {
+					c, userID, orig, arts := seedObituary(t)
+					orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
+					db := dbtest.MustDB(t, c)
+					dbtest.Damage(t, db, `DELETE FROM date_values WHERE id = ?`, orig.DateValueID)
 					in := allParts(orig, arts)
 					in.Date = true
 					cp, err := runCopy(c, userID, in)
@@ -765,10 +823,31 @@ func TestCopy(t *testing.T) {
 			},
 		},
 		{
+			name: "a stored phrase over the cap is refused",
+			run: func(t *testing.T) {
+				c, userID, orig, arts := seedObituary(t)
+				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
+				db := dbtest.MustDB(t, c)
+				if _, err := db.Exec(`UPDATE date_values SET phrase = ? WHERE id = ?`,
+					strings.Repeat("a", datevalue.MaxPhraseBytes+1), orig.DateValueID); err != nil {
+					t.Fatal(err)
+				}
+				before := dbtest.Count(t, db, `SELECT COUNT(*) FROM sources`)
+				in := allParts(orig, arts)
+				in.Date = true
+				if _, err := runCopy(c, userID, in); !errors.Is(err, datevalue.ErrInvalid) {
+					t.Fatalf("err %v", err)
+				}
+				if n := dbtest.Count(t, db, `SELECT COUNT(*) FROM sources`); n != before {
+					t.Fatalf("sources %d -> %d", before, n)
+				}
+			},
+		},
+		{
 			name: "date not chosen",
 			run: func(t *testing.T) {
 				c, userID, orig, arts := seedObituary(t)
-				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 7, 4))
+				orig = setDate(t, c, userID, orig.ID, datevaluetest.YMD(1880, 7, 4), valuemark.Mark{})
 				db := dbtest.MustDB(t, c)
 				before := dbtest.Count(t, db, `SELECT COUNT(*) FROM date_values`)
 				cp, err := runCopy(c, userID, allParts(orig, arts))

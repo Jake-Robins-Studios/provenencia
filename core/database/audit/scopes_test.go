@@ -32,6 +32,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
@@ -318,7 +319,7 @@ func TestSourceScopes(t *testing.T) {
 			run: func(t *testing.T, s scopeSeed) {
 				setDate := func(d *datevalue.Value) {
 					if _, _, err := writes.Run(s.c, writes.Op{Action: "set_source_date", UserID: scopeUserID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-						return sources.SetDate(tx, scopeUserID, s.a.ID, d)
+						return sources.SetDate(tx, scopeUserID, s.a.ID, d, valuemark.Mark{})
 					}); err != nil {
 						t.Fatal(err)
 					}

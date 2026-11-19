@@ -25,6 +25,7 @@ Answered 2026-10-26 (they were Spike 13 working rules until the descope; they ca
 - **Storage:** a structured date, `date_value_id` into the shared `date_values`.
 - **Backfill:** none; the field is optional and filled by hand.
 - **Sources list:** shows it and sorts by it, undated last.
+- **Unknown and supplied:** the date can be marked unknown (no date; sorts with the undated) or supplied (a date not on the record): `date_unknown` and `date_supplied` on `sources`, written with the date by `sources.SetDate` (S15-43).
 - **Where it shows:** the Source page (set, change, clear, with the app's structured date entry), the Sources list (each row, and the sort), and the Person page's Sources section (each Source group, R-35).
 
 The original questions, kept for the record:

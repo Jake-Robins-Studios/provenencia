@@ -380,11 +380,12 @@ func SetSourceDate(in []byte) ([]byte, error) {
 		return nil, err
 	}
 	date := valuecodec.OptionalDateFromProto(req.GetDate())
+	mark := parseValueMark(req.GetMark())
 	var out *engine.SetSourceDateResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "set_source_date", UserID: userID},
 			func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
-				return sources.SetDate(tx, userID, sourceID, date)
+				return sources.SetDate(tx, userID, sourceID, date, mark)
 			})
 		if err != nil {
 			return err
@@ -554,6 +555,7 @@ func sourceProto(s sources.Source) *engine.Source {
 		UpdatedRevision:   s.Updated.Revision,
 		UpdatedAt:         s.Updated.At,
 		IsPublic:          s.IsPublic,
+		DateMark:          valueMarkProto(s.DateMark),
 	}
 	if s.Date != nil {
 		out.Date = valuecodec.DateToProto(*s.Date)
