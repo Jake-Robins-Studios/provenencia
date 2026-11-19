@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table-driven tests)
 **Context:** working rule "(Batch 6) One read querier and one write querier, in a leaf package"; map scope entry [S16-49](../deployment-plan.md#s16-49--one-read-querier-and-one-write-querier-for-every-catalog-package); bar 24
 **Planned:** 2026-11-19 against `main` @ `31d9902`
-**Landed:** Differences from the plan: `sources.fillDates` also carried an inline Query-only interface that C-2 matches, so it takes `database.Querier` with the others (D-5). `main` had moved from the Planned commit without changing a Current state row. Otherwise none.
+**Landed:** Differences from the plan: `sources.fillDates` also carried an inline Query-only interface that C-2 matches, so it takes `database.Querier` with the others (D-5). `main` had moved from the Planned commit without changing a Current state row. Review round 1 added `dbsql.QueryIDs` (the one id-column reader, replacing three local copies; `database.QueryIDs` forwards it) and `core/internal/gosrc` (`Files` and `Module`, the one repo Go-source walker the guard tests share), which supersedes D-15's hand-written walk (the guard's rules stand). Otherwise none.
 **Review:** [`S16-49-one-querier.review.md`](S16-49-one-querier.review.md) — Fits with changes — Ready with changes, 2 rounds; no blocker open; To user answered (2026-11-19)
 
 ### Implementer — read this first
