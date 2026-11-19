@@ -214,6 +214,53 @@ struct PersonTimelineContentTests {
         #expect(shown.row(holdingCard: "unknown") == nil)
     }
 
+    /// T-7 (AC-2.1 – AC-2.4, D-9): an anchor resolves to the row, the card, or the Show more of the
+    /// fold that hides it.
+    @Test func anchorResolvesToTheRowCardOrFold() throws {
+        func target(
+            _ content: PersonTimelineContent, _ id: String, row: String? = nil
+        ) -> ConclusionAnchorTarget<String>? {
+            content.anchorTarget(for: ConclusionSectionAnchor(part: .timeline, id: id, row: row)!)
+        }
+        func at(_ stop: String, _ scroll: String) -> ConclusionAnchorTarget<String> { .init(stop: stop, scrollID: scroll) }
+
+        // Dated rows: the 30th shows, one past the fold stands for "more.dated".
+        let lise = content(Data.lise)
+        let shownRows = lise.items.compactMap(\.eventRow).map(\.id)
+        let allRows = content(Data.lise, of: [.dated]).items.compactMap(\.eventRow).map(\.id)
+        let hidden = try #require(allRows.first { !shownRows.contains($0) })
+        #expect(target(lise, shownRows[29]) == at(shownRows[29], shownRows[29]))
+        #expect(target(lise, hidden) == at("more.dated", "more.dated"))
+        #expect(target(lise, "no-such-" + "-" + "x", row: hidden) == at("more.dated", "more.dated"))
+        #expect(target(lise, "unknown") == nil)
+
+        // A recorded birth's row is its event id like any row.
+        let johann = content(Data.johann)
+        #expect(target(johann, "1") == at("1", "1"))
+
+        // Undated rows past 50.
+        var timeline = Data.ida
+        timeline.events = (0..<52).map { Data.event("u\($0)", type: "residence") }
+        let undated = content(timeline)
+        #expect(target(undated, "u49") == at("u49", "u49"))
+        #expect(target(undated, "u51") == at("more.undated", "more.undated"))
+
+        // Cards: 41 on one event, five shown at Regular and twelve at Wide.
+        let regular = content(Data.largeEvent)
+        let all = content(Data.largeEvent, of: [.participants(eventId: "big")])
+        let cards = try #require(all.items.compactMap(\.eventRow).first).participants.map(\.id)
+        #expect(target(regular, cards[0], row: "big") == at(cards[0], "big"))
+        #expect(target(regular, cards[6], row: "big") == at("more.big", "big"))
+        #expect(PersonTimelineContent.participantsMoreID(eventId: "big") == "more.big")
+        let wide = content(Data.largeEvent, widthClass: .wide)
+        #expect(target(wide, cards[6], row: "big") == at(cards[6], "big"))
+        #expect(target(wide, cards[12], row: "big") == at("more.big", "big"))
+        // A row that is gone has no card to name.
+        #expect(target(regular, cards[0], row: "gone") == nil)
+        // Another part is never this section's.
+        #expect(regular.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: "big")!) == nil)
+    }
+
     @Test func pointOnFoldedPageOpensThroughIt() {
         var timeline = Data.ida
         timeline.events = datedEvents(2000) + [Data.event("u1", type: "residence")]

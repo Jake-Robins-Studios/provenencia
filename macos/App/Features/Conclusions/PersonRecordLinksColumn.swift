@@ -11,6 +11,10 @@ struct PersonRecordLinksColumn: View {
     let focusedGraphID: String?
     let open: (String) -> Void
     let focus: (String) -> PVFieldFocus
+    /// The section's focus state, for Back to a node, and the id of the view to scroll to (the
+    /// diagram column, which stacks under the rows at narrow widths).
+    let anchorFocus: FocusState<PersonSourcesFocus?>.Binding
+    let anchorScrollID: String
 
     @Environment(\.pvPageViewportSize) private var viewport
     /// Zero until the first layout pass has measured the column; the diagram is not drawn before.
@@ -72,6 +76,10 @@ struct PersonRecordLinksColumn: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            .conclusionAnchorRestore([.recordLinks], isReady: true, focus: anchorFocus) { anchor in
+                content.locations[anchor.id] == nil
+                    ? nil : ConclusionAnchorTarget(stop: .node(graphID: anchor.id), scrollID: anchorScrollID)
+            }
         }
     }
 }

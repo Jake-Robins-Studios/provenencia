@@ -35,7 +35,7 @@ struct PersonFamilySection: View {
                 projectDir: session.projectKey.projectDir,
                 widthClass: widthClass,
                 accessibilityIdentifierRoot: root,
-                open: { navigation.go(to: $0) },
+                open: { navigation.go(to: $0, from: $1) },
                 expand: { self.folds.revealPage($0) }
             )
         }
@@ -50,7 +50,7 @@ struct PersonFamilyDiagram: View {
     let projectDir: String
     let widthClass: PVWidthClass
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
     var expand: (PersonFamilyContent.Fold) -> Void = { _ in }
 
     @State private var width: CGFloat = 0
@@ -71,6 +71,7 @@ struct PersonFamilyDiagram: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
+        .conclusionAnchorRestore([.family], isReady: width > 0, focus: $focused) { content.anchorTarget(for: $0) }
     }
 
     private func diagram(_ layout: PersonFamilyLayout) -> some View {
@@ -94,7 +95,10 @@ struct PersonFamilyDiagram: View {
                     ForEach(group.tiles, id: \.id) { placed in
                         if let tile = tiles[placed.id] {
                             PVPersonCard(content: tile.content, projectDir: projectDir) {
-                                if let location = tile.location { open(location) }
+                                if let location = tile.location,
+                                   let anchor = ConclusionSectionAnchor(part: .family, id: placed.id) {
+                                    open(location, anchor)
+                                }
                             }
                             .frame(width: placed.frame.width, height: placed.frame.height)
                             .focused($focused, equals: placed.id)
@@ -109,12 +113,14 @@ struct PersonFamilyDiagram: View {
                             hidden: more.count,
                             fold: PersonFamilyContent.fold,
                             focus: $focused,
+                            stop: PersonFamilyContent.moreID(more.fold),
                             revealed: revealed
                         ) {
                             expand(more.fold)
                             scrollTarget = revealed
                             scrollRequest += 1
                         }
+                            .id(PersonFamilyContent.moreID(more.fold))
                             .frame(width: more.frame.width, height: more.frame.height, alignment: .leading)
                             .offset(x: more.frame.minX, y: more.frame.minY)
                             .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")

@@ -115,7 +115,7 @@ enum PersonFamilyPreviewData {
                 projectDir: "/tmp/preview.provenencia",
                 widthClass: .regular,
                 accessibilityIdentifierRoot: "preview",
-                open: { _ in }
+                open: { _, _ in }
             )
         }
         .frame(width: width, height: 900)

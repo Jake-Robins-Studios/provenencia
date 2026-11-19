@@ -152,6 +152,8 @@ struct PersonTimelineContent: Equatable {
     /// The ids of the event rows the dated fold counts, in order: the dated rows before the
     /// death marker, a recorded birth's row among them.
     private var datedFoldIDs: [String] = []
+    /// The ids of the undated event rows the fold hides.
+    private var hiddenUndatedIDs: Set<String> = []
     let isEmpty: Bool
 
     /// The id of the first item that unfolding `fold` adds, for the focus to land
@@ -165,6 +167,27 @@ struct PersonTimelineContent: Equatable {
         datedFoldIDs.firstIndex(of: eventID).map {
             Self.eventFold.pages(toShow: $0, count: datedFoldIDs.count)
         }
+    }
+
+    /// The id of a row's participants "Show more": the stop and scroll target Back restores when
+    /// the opened card is hidden.
+    static func participantsMoreID(eventId: String) -> String { "more.\(eventId)" }
+
+    /// Where Back puts the keyboard for `anchor`: the row's title or the card it opened, else the
+    /// Show more of the fold that hides it. Nil for a row that is gone.
+    func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<String>? {
+        guard anchor.part == .timeline else { return nil }
+        let eventID = anchor.row ?? anchor.id
+        if let row = items.compactMap(\.eventRow).first(where: { $0.id == eventID }) {
+            if anchor.row == nil || row.participants.contains(where: { $0.id == anchor.id }) {
+                return ConclusionAnchorTarget(stop: anchor.id, scrollID: row.id)
+            }
+            guard row.participantsHidden > 0 else { return nil }
+            return ConclusionAnchorTarget(stop: Self.participantsMoreID(eventId: row.id), scrollID: row.id)
+        }
+        if hiddenUndatedIDs.contains(eventID) { return ConclusionAnchorTarget(stop: "more.undated", scrollID: "more.undated") }
+        if datedFoldIDs.contains(eventID) { return ConclusionAnchorTarget(stop: "more.dated", scrollID: "more.dated") }
+        return nil
     }
 
     /// Whether `id` (a row's event id or a participant card's id) is drawn.
@@ -286,6 +309,7 @@ struct PersonTimelineContent: Equatable {
             let fold = Self.eventFold.shown(undated, pages: folds.pages(.undated))
             undatedSlots += fold.shown
             if fold.hidden > 0 { undatedSlots.append(.more(.undated, count: fold.hidden)) }
+            hiddenUndatedIDs = Set(undated.dropFirst(fold.shown.count).map(\.id))
         }
 
         // Pass 3: build the rows and cards of the slots that are left.

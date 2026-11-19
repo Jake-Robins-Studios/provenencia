@@ -47,7 +47,7 @@ struct PersonSourcesSection: View {
                 content: content,
                 entityId: entityId,
                 accessibilityIdentifierRoot: root,
-                open: { navigation.go(to: $0) },
+                open: { navigation.go(to: $0, from: $1) },
                 expand: { self.folds.revealPage($0) },
                 unpromote: unpromote,
                 beginUnpromote: begin,
@@ -78,12 +78,14 @@ struct PersonSourcesSection: View {
     }
 }
 
-/// What takes keyboard focus: a record's graph link, its Unpromote button, or a node of the
-/// record links diagram.
+/// What takes keyboard focus: a Source's title, a record's graph link, its Unpromote button, a
+/// node of the record links diagram, or a "Show more" row.
 enum PersonSourcesFocus: Hashable {
+    case title(sourceID: String)
     case graph(claimID: String)
     case unpromote(claimID: String)
     case node(graphID: String)
+    case more(PersonSourcesContent.Fold)
 }
 
 /// The widths the header line and every Source row share: Citation (fills) · Type · Date ·
@@ -138,7 +140,7 @@ struct PersonSourcesList: View {
     let content: PersonSourcesContent
     let entityId: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
     let expand: (PersonSourcesContent.Fold) -> Void
     let unpromote: UnpromoteFlow
     let beginUnpromote: (PersonSourcesContent.Line) -> Void
@@ -167,15 +169,19 @@ struct PersonSourcesList: View {
         switch focus {
         case .graph(let claimID), .unpromote(let claimID): return content.claimGraphs[claimID]
         case .node(let graphID): return graphID
-        case nil: return nil
+        case .title, .more, nil: return nil
         }
     }
+
+    /// The scroll id of the diagram column, for Back to a node of the record links diagram when
+    /// the diagram stacks under the rows.
+    static let diagramScrollID = "diagram"
 
     var body: some View {
         ConclusionPinnedSideColumn(mainMin: PersonSourcesColumns.minWidth) {
             rows
         } side: {
-            diagram
+            diagram.id(Self.diagramScrollID)
         }
         .unpromoteConfirm(
             flow: unpromote,
@@ -217,10 +223,15 @@ struct PersonSourcesList: View {
                 hover: hover,
                 focusedGraphID: focused,
                 open: { id in
-                    if let location = links.locations[id] { open(location) }
+                    if let location = links.locations[id], let anchor = ConclusionSectionAnchor(part: .recordLinks, id: id) {
+                        open(location, anchor)
+                    }
                 },
-                focus: { PVFieldFocus($focus, equals: .node(graphID: $0)) }
+                focus: { PVFieldFocus($focus, equals: .node(graphID: $0)) },
+                anchorFocus: $focus,
+                anchorScrollID: Self.diagramScrollID
             )
+
         }
     }
 
@@ -243,6 +254,7 @@ struct PersonSourcesList: View {
                         beginUnpromote(line)
                     }
                 )
+                .id(row.id)
             }
             if content.hiddenRowCount > 0 {
                 PersonSourcesRowsShowMore(
@@ -253,11 +265,13 @@ struct PersonSourcesList: View {
                     hover: hover,
                     focusedGraphID: focusedGraphID
                 ) { unfold(.rows) }
+                .id(PersonSourcesContent.moreRowsID)
                 .padding(.vertical, PVSpacing.space3)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")
             }
         }
         .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
+        .conclusionAnchorRestore([.sourceTitle, .sourceLine], isReady: true, focus: $focus) { content.anchorTarget(for: $0) }
     }
 
     /// Notes where focus goes after the removed line, then writes.
@@ -331,6 +345,7 @@ private struct PersonSourcesRowsShowMore: View {
             hidden: hidden,
             fold: PersonSourcesContent.rowFold,
             focus: focus,
+            stop: .more(.rows),
             revealed: revealed,
             expand: expand
         )
@@ -343,7 +358,7 @@ private struct PersonSourcesRowsShowMore: View {
 private struct PersonSourcesRowView: View {
     let row: PersonSourcesContent.Row
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
     let expand: () -> Void
     var focused: FocusState<PersonSourcesFocus?>.Binding
     /// The graph link the next page of this Source's lines starts with; nil when it folds nothing.
@@ -390,9 +405,12 @@ private struct PersonSourcesRowView: View {
     }
 
     private var title: some View {
-        PVInkLink(ink: .primary, action: { open(row.location) }) {
+        PVInkLink(ink: .primary, action: {
+            if let anchor = ConclusionSectionAnchor(part: .sourceTitle, id: row.id) { open(row.location, anchor) }
+        }) {
             PVTitleText(row.title, style: .rowLink, lineLimit: 2)
         }
+        .focused(focused, equals: .title(sourceID: row.id))
         .accessibilityLabel(Text(verbatim: L10n.Conclusions.sourcesOpenSource(row.helpTitle)))
         .accessibilityIdentifier("\(accessibilityIdentifierRoot).title.\(row.id)")
         .help(row.helpTitle)
@@ -404,7 +422,7 @@ private struct PersonSourcesRowView: View {
         return VStack(alignment: .leading, spacing: PVSpacing.space2) {
             ForEach(row.lines) { line in
                 PersonSourcesLineView(
-                    line: line, accessibilityIdentifierRoot: accessibilityIdentifierRoot, open: open, focused: focused,
+                    line: line, sourceID: row.id, accessibilityIdentifierRoot: accessibilityIdentifierRoot, open: open, focused: focused,
                     highlighted: line.graphID == highlightedGraphID, hover: { hover.id = $0 },
                     unpromoteDisabled: unpromoteDisabled, beginUnpromote: beginUnpromote
                 )
@@ -415,9 +433,11 @@ private struct PersonSourcesRowView: View {
                     hidden: row.hiddenCount,
                     fold: PersonSourcesContent.lineFold,
                     focus: focused,
+                    stop: .more(.lines(sourceID: row.id)),
                     revealed: revealed,
                     expand: expand
                 )
+                .id(PersonSourcesContent.moreLinesID(sourceID: row.id))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .personSourcesHighlight(highlightedGraphID.map(foldedGraphIDs.contains) ?? false)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).more.\(row.id)")
@@ -441,8 +461,10 @@ private struct PersonSourcesRowView: View {
 /// Every part stays on one line; a line too narrow cuts the Subject's name first.
 private struct PersonSourcesLineView: View {
     let line: PersonSourcesContent.Line
+    /// The Source whose row holds the line, named on the anchor an open writes.
+    let sourceID: String
     let accessibilityIdentifierRoot: String
-    let open: (WorkspaceLocation) -> Void
+    let open: (WorkspaceLocation, ConclusionSectionAnchor) -> Void
     var focused: FocusState<PersonSourcesFocus?>.Binding
     /// The line's graph is the one highlighted, from a node or from the line itself.
     let highlighted: Bool
@@ -450,14 +472,18 @@ private struct PersonSourcesLineView: View {
     let unpromoteDisabled: Bool
     let beginUnpromote: (PersonSourcesContent.Line) -> Void
 
+    private func openGraph() {
+        if let anchor = ConclusionSectionAnchor(part: .sourceLine, id: line.id, row: sourceID) { open(line.location, anchor) }
+    }
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
-            PVButton(line.graphTitle, variant: .link, size: .sm) { open(line.location) }
+            PVButton(line.graphTitle, variant: .link, size: .sm) { openGraph() }
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .help(line.graphTitle)
                 .focused(focused, equals: .graph(claimID: line.id))
-                .pvActivatesOnReturn(when: focused.wrappedValue == .graph(claimID: line.id)) { open(line.location) }
+                .pvActivatesOnReturn(when: focused.wrappedValue == .graph(claimID: line.id)) { openGraph() }
                 .accessibilityLabel(line.accessibilityLabel)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).graph.\(line.id)")
             Group {
@@ -566,7 +592,7 @@ private struct PersonSourcesPreview: View {
                     ),
                     entityId: Self.entityId,
                     accessibilityIdentifierRoot: "preview",
-                    open: { _ in },
+                    open: { _, _ in },
                     expand: { folds.revealPage($0) },
                     unpromote: unpromote,
                     beginUnpromote: { _ in },
