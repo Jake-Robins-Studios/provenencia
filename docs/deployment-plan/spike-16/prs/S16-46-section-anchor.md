@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/workspace-navigation.mdc`, `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`, `.cursor/rules/design-system-layers.mdc`
 **Context:** working rules "(Batch 6) Back restores a section's scroll and focus, not its folds", "(Batch 1) One paged fold that moves focus", "(Batch 1) One open section, one list of reads", "(Batch 1) The Timeline builds what it shows"; [audit](../person-page-audit.md) P-19; dogfood bar 21; [`navigation-history.md`](../../archive/spike-3/navigation-history.md) (List scroll row); [S15-48 plan](../../spike-15/prs/S15-48-source-type-page.md) D-10 (the list anchor's one mechanism)
 **Planned:** 2026-11-19 against `main` @ `f757b45`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-46-section-anchor.review.md`](S16-46-section-anchor.review.md) — round 1 answered; round 2 pending
 
 ### Implementer — read this first
 
@@ -30,11 +30,11 @@
 
 ## 1. Objective
 
-On a Person, Event or Place page, the researcher opens a relative, an event, a Source or a related place from a row, looks at it, and presses Back. Today the page comes back at its top with nothing focused, so a researcher walking a family or a timeline loses their place on every hop (audit P-19). After this PR, Back and Forward put the page's scroll on the row that was opened and give that row the keyboard. The same holds after quitting and relaunching.
+On a Person, Event or Place page, the researcher opens a relative, an event, a Source or a related place from a row, looks at it, and presses Back. Today the page comes back at its top with nothing focused, so a researcher walking a family or a timeline loses their place on every hop (audit P-19). After this PR, Back and Forward put the page's scroll on the row that was opened and give that row the keyboard, and the same holds after quitting and relaunching.
 
 **Why now.** Batch 6 took P-19 back from the parked list (user, 2026-11-17), and the working rule fixes its shape: an anchor on the history entry, scroll and focus restored, folds not.
 
-**What stays.** Folds open closed on every visit (S13-16 UX-5): a row that a Show more had revealed is not revealed again; its fold's Show more gets the keyboard instead. A page opened any other way (a link, the omnibar, the sidebar, a section switch) opens at its top as today. The page's reads, its section switcher, the list scroll anchor of the Persons, Events and Places lists, and every view's look are unchanged.
+**What stays.** Folds open closed on every visit (S13-16 UX-5): a row that a Show more had revealed is not revealed again; its fold's Show more gets the keyboard instead. A page opened any other way (a link, the omnibar, the sidebar, a section switch) opens at its top as today. The page's reads, its section switcher, the lists' scroll anchor and every view's look are unchanged.
 
 ## 2. User stories
 
@@ -42,9 +42,9 @@ On a Person, Event or Place page, the researcher opens a relative, an event, a S
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Anna's Family shows four children; open the third child's tile (Friedrich), press Back | Anna's Family; Friedrich's tile is scrolled into view and has the focus ring |
+| AC-1.1 | Anna's Family shows four children; open the third child's tile (Friedrich), press Back | Anna's Family; Friedrich's tile is in view and has the focus ring |
 | AC-1.2 | A person with 35 children with one partner; Show more, open the 33rd child, press Back | The children fold is closed again (30 tiles); its "Show 5 more" row has the keyboard and is in view |
-| AC-1.3 | Open a child's tile; on the child's page, merge or delete that child elsewhere so the tile is gone; press Back | Anna's Family at its top; no tile is focused by the restore |
+| AC-1.3 | Open a child's tile; delete that child, press Back | Anna's Family at its top; no tile is focused by the restore |
 
 **US-2.** As a researcher on a Timeline, when I open an event or a person on an event and press Back, the Timeline shows that row in view with the keyboard on what I opened.
 
@@ -77,14 +77,14 @@ On a Person, Event or Place page, the researcher opens a relative, an event, a S
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-5.1 | On an Event page with three pictures, open the second picture (its Citation in the composer), press Back | The Event page; the second picture's tile is in view and has the keyboard |
-| AC-5.2 | On a Place page, open a row under Contains, press Back | The Place page; that row is in view and has the keyboard |
+| AC-5.2 | On a Place page, open a row under Contains, press Back | The Place page; that row is in view and has the keyboard, with a visible focus ring |
 
 **US-6.** As a researcher, the place I return to survives history moves and a relaunch, and a page I reach any other way opens at its top.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-6.1 | Do AC-1.1's open, quit the app, relaunch, press Back | As AC-1.1 |
-| AC-6.2 | A history file written before this PR (no `sectionAnchor` key) | It loads; Back to a Person page opens it at its top |
+| AC-6.2 | A history file written before this PR (no `sectionAnchor` key), or one with an anchor part this build does not know | It loads; Back to a Person page opens it at its top |
 | AC-6.3 | Do AC-1.1's open, press Back, then switch Anna's page to Timeline | The Timeline opens at its top; the new entry carries no anchor |
 | AC-6.4 | Do AC-1.1's open; then open Anna from the omnibar | Anna's page opens at its top (a new entry) |
 
@@ -92,16 +92,16 @@ On a Person, Event or Place page, the researcher opens a relative, an event, a S
 
 | In | Covered by |
 | --- | --- |
-| `WorkspaceLocation.sectionAnchor`: optional, not identity, decodes nil from older files, cleared by `withPageSection` | STEP-1, AC-6.2, AC-6.3 |
-| `WorkspaceNavigation.go(to:sectionAnchor:)` stamps the entry being left; `NavigationHistoryStore.stampSectionAnchor` | STEP-1, AC-2.5, AC-6.1 |
-| `ConclusionSectionAnchor` (the stored form and its parts), `ConclusionAnchorTarget`, the once-per-mount restore modifier | STEP-2 |
+| `ConclusionSectionAnchor` (a `Codable` part and id) and `WorkspaceLocation.sectionAnchor`: not identity, decodes nil from older files and unknown parts, cleared by `withPageSection` | STEP-1, AC-6.2, AC-6.3 |
+| `WorkspaceNavigation.go(to:from:)` stamps the entry being left; the store's one stamp helper | STEP-1, AC-2.5, AC-6.1 |
+| One restore modifier that resolves, scrolls and focuses once per mount | STEP-2 |
 | `ConclusionShowMoreRow` focused through its section's stop, so a restore can focus it | STEP-2, AC-1.2, AC-2.3, AC-2.4, AC-3.3 |
 | Family tiles record and restore | STEP-3, US-1 |
 | Timeline row titles and participant cards record and restore | STEP-4, US-2 |
 | Sources titles, record lines and diagram nodes record and restore | STEP-5, US-3 |
 | Field rows' open arrow (Person Vitals, Event and Place Details) record and restore | STEP-6, US-4 |
 | Event and Place picture tiles (no viewer) and Place relationship rows record and restore | STEP-7, US-5 |
-| `add-workspace-location`, `navigation-history.md`, `macos-client-patterns.md` say how | STEP-8 |
+| `add-workspace-location`, `navigation-history.md`, `macos-client-patterns.md` say how; the patch bump | STEP-8 |
 
 | Out | Home |
 | --- | --- |
@@ -111,7 +111,7 @@ On a Person, Event or Place page, the researcher opens a relative, an event, a S
 | The lifeline's points and caps (they scroll the list; they open nothing) | not planned |
 | Restoring the scroll offset of a page whose anchored row is gone | not planned: the rule opens it at its top |
 | Section anchors on Source pages, Evidence graphs and other non-Conclusion pages | not planned |
-| Persons, Events and Places list scroll (already `listScrollAnchor`) | — (shipped) |
+| Clearing an entry's anchor when the page is left without an open | not planned: the rule keeps the row "last opened" (D-2) |
 
 ## 4. Current state
 
@@ -119,44 +119,47 @@ Verified at `f757b45`.
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Location | `macos/App/Features/Workspace/WorkspaceLocation.swift` `WorkspaceLocation` | `listScrollAnchor` is the one non-identity scroll field: in `CodingKeys`, the memberwise `init`, `init(from:)` with `nilIfEmpty`, `withListScrollAnchor(_:)`, and left out of `==`. `withPageSection(_:)` copies every field, `listScrollAnchor` included. No section anchor |
-| Navigation | `macos/App/Features/Workspace/WorkspaceNavigation.swift` `WorkspaceNavigation` | `go(to:)` coalesces equal locations, asks `leaveGuard`, then `performGo`, which stamps `pendingListScrollAnchor` on the outgoing entry. `pendingListScrollAnchor` is set by `noteListScroll` and only for list roots. Nothing records which row a page opened |
-| History store | `macos/App/Features/Workspace/NavigationHistoryStore.swift` `stampListScrollAnchor(_:)`, `go(to:)` | `stampListScrollAnchor` writes the current entry with no persist; `go(to:)` appends and persists, so a stamp before a push is written with it |
+| Location | `macos/App/Features/Workspace/WorkspaceLocation.swift` `WorkspaceLocation` | `listScrollAnchor` is the one non-identity scroll field: in `CodingKeys`, the memberwise `init`, `init(from:)` with `nilIfEmpty`, `withListScrollAnchor(_:)`, and left out of `==`. `pageSection` is a typed `Codable` enum from `ConclusionPageSection.swift` (same folder) whose unknown raw values decode as nil. `withPageSection(_:)` copies every other field |
+| Navigation | `macos/App/Features/Workspace/WorkspaceNavigation.swift` `WorkspaceNavigation` | `go(to:)`: an equal location goes straight to `performGo` (no guard); otherwise asks `leaveGuard`, then `performGo`, which stamps `pendingListScrollAnchor` on the outgoing entry. Nothing records which row a page opened |
+| History store | `macos/App/Features/Workspace/NavigationHistoryStore.swift` `stampListScrollAnchor(_:)`, `go(to:)` | `stampListScrollAnchor` guards the index and a list root, normalizes, compares, assigns, no persist; `go(to:)` appends and persists, so a stamp before a push is written with it |
 | Destination mount | `macos/App/Features/Workspace/Session/PlaceRegistry.swift` `.personDetail`, `.eventDetail`, `.placeDetail` `viewIdentity` | Each Conclusion page is keyed by `entityId`, so Back to another person's page mounts it fresh; a section switch swaps the section view under the same page (`PersonDetailSections`) |
+| Content memo | `macos/App/Features/Workspace/Session/WorkspaceSession+Derived.swift` `conclusionContent` | One memo per section key per session, keyed on the section's `Inputs` (`extra`). Today a Back to a page it holds is a memo hit |
 | Page scroll | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` `PVPageColumns.scroll` | Owns the page's `ScrollView`; `scrollResetKey` (the open section) scrolls to the top on change. A fresh mount starts at the top |
-| Scroll helper | `macos/App/DesignSystem/Components/ScrollRowIntoView/PVScrollRowIntoView.swift` `pvScrollsRowIntoView(_:anchor:animated:...whenRequested:)` | With a request token, scrolls to the row with `.id(row)` on the next main-actor turn. Family, Timeline, Sources and the Gallery each already use it for Show more |
-| Show more | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` `ConclusionShowMoreRow` | Holds a private `@FocusState hasKeyboard`; the section cannot focus it. Callers: `PersonFamilySection.swift` (1), `PersonTimelineSection.swift` (2), `PersonSourcesSection.swift` (2), `ReconciledValueRow.swift` (1) |
-| Family | `macos/App/Features/Conclusions/PersonFamilySection.swift` `PersonFamilySection`, `PersonFamilyDiagram` | `open: (WorkspaceLocation) -> Void` → `navigation.go(to:)`. Focus `String?` = tile id; tiles carry `.id(placed.id)`; Show more rows carry no `.id`. `pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)` on the diagram. Tiles exist only once `width > 0` |
-| Family content | `macos/App/Features/Conclusions/PersonFamilyContent.swift` `PersonFamilyContent`, `tileID(column:group:personID:)`, `Fold`, `Inputs` | Tile id is `"<l|r>-<group>-<personID>"` (groups `p<k>`, `s`, `<index>`). Folds: `.parentSets`, `.siblings`, `.partners`, `.children(Int)`, limit 30. Builds tiles only for shown members; keeps no ids of hidden ones |
-| Timeline | `macos/App/Features/Conclusions/PersonTimelineSection.swift` `PersonTimelineList` | Focus `String?` = a row's event id or a card id. Items carry `.id(item.id)`; cards do not. Scrolls after placement through `pendingReveal` → `scrollTarget`/`scrollRequest` in `rebuild()` (anchor `.top`). `focusKeeper` keeps focus across width changes |
-| Timeline content | `macos/App/Features/Conclusions/PersonTimelineContent.swift` `PersonTimelineContent` | Item ids: event id, `"birth"`/`"death"`, `"undated"`, `"more.dated"`, `"more.undated"`. Card id `participantLinkID(eventId:personId:)` = `"<eventId>-<personId>"`. `datedFoldIDs` holds the dated rows the fold counts; folded rows are never built. Participant fold 5 (Regular) / 12 (Wide) |
-| Sources | `macos/App/Features/Conclusions/PersonSourcesSection.swift` `PersonSourcesList`, `PersonSourcesFocus` | Focus cases `.graph(claimID:)`, `.unpromote(claimID:)`, `.node(graphID:)`. The Source title (`PVInkLink`, a `Button`) has no focus case. Lines carry `.id(line.id)`; rows and Show more rows carry none. `pvScrollsRowIntoView` sits on `rows` only, so it cannot reach the diagram |
-| Sources content | `macos/App/Features/Conclusions/PersonSourcesContent.swift` `PersonSourcesContent`, `Fold` (`.rows`, `.lines(sourceID:)`), `Inputs` | Row id = Source id; line id = claim id. `rowFold` 50, `lineFold` 5 (fewest hidden 2) |
-| Record links | `macos/App/Features/Conclusions/PersonRecordLinksColumn.swift` `PersonRecordLinksColumn`; `PersonRecordLinksContent.locations` | A node opens `links.locations[graphID]`; drawn by the companion host, so it appears after the rows when its read is slower |
-| Field rows | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow`, `ConclusionDetailRowsSection` | The open arrow (`PVIconButton`, `model.opens`) calls `navigation.go(to: opens.location)`. Each row has a private `Stop` (`.why`, `.provenance`, `.others`); the arrow has none. `ConclusionDetailRowsSection` draws Vitals (`provenance: .sheet`) and the Event and Place Details; rows carry no `.id` |
-| Gallery | `macos/App/Features/Conclusions/ConclusionGallerySection.swift` `ConclusionGallerySection.tileView` | With no `gallery.viewer` (Event, Place) a tile opens `navigation.go(to: tile.location)` (the composer); with one (Person) it opens the viewer. Focus `TileFocus`; `FocusKeeper.hand(.image(id), …)` already hands focus back to a tile after the viewer closes |
-| Place relationships | `macos/App/Features/Conclusions/PlaceRelationshipRow.swift` `PlaceRelationshipRow`, `ConclusionDetailRelationshipSection`, `ConclusionDetailRelationship.id` | The row's `Button` navigates itself; no focus state, no `.id`. A relationship is in one section only (Part of, Contains, Succession read different rows; self-loops are refused since S16-36) |
-| Tests | `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` `leavingAListStampsTheOutgoingEntry`, `listScrollAnchorRoundTrips`, `legacyHistoryMissingListScrollAnchorDecodesAsNil`, `pageSectionPushAndRestore`; `PersonFamilyContentTests.swift`, `PersonTimelineContentTests.swift`, `PersonSourcesContentTests.swift`, `ConclusionFoldTests.swift` | The list anchor's stamp, round trip and legacy decode; the contents' folds. Nothing about a page's anchor |
+| Scroll helper | `macos/App/DesignSystem/Components/ScrollRowIntoView/PVScrollRowIntoView.swift` `pvScrollsRowIntoView(_:anchor:animated:...whenRequested:)` | With a request token, scrolls to the view with `.id(row)` on the next main-actor turn. Family, Timeline, Sources and the Gallery each use it for Show more |
+| Focus | `macos/App/Platform/FocusClaim.swift` `FocusClaim.claim`; `macos/App/Platform/FocusKeeper.swift` `FocusKeeper.hand` | The one focus writer, and the keeper's hand-back that the Gallery uses after its viewer closes |
+| Show more | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` `ConclusionShowMoreRow` | Holds a private `@FocusState hasKeyboard`; the section cannot focus it. Six callers: `PersonFamilySection.swift` (1), `PersonTimelineSection.swift` (2), `PersonSourcesSection.swift` (2), `ReconciledValueRow.swift` (1) |
+| Family | `macos/App/Features/Conclusions/PersonFamilySection.swift` `PersonFamilySection`, `PersonFamilyDiagram` | `open: (WorkspaceLocation) -> Void` → `navigation.go(to:)`. Focus `String?` = tile id; tiles carry `.id(placed.id)`; Show more rows carry no `.id`. Tiles exist only once `width > 0` |
+| Family content | `macos/App/Features/Conclusions/PersonFamilyContent.swift` `PersonFamilyContent`, `tileID(column:group:personID:)`, `Fold` | Tile id `"<l\|r>-<group>-<personID>"`: parent sets `p<k>` (k over all parent units), siblings `s`, partner and one-parent units `<index>` (over all units). Folds `.parentSets`, `.siblings`, `.partners`, `.children(Int)`, limit 30. Keeps no ids of hidden members. The focus person's tile has no location |
+| Timeline | `macos/App/Features/Conclusions/PersonTimelineSection.swift` `PersonTimelineList` | Focus `String?` = a row's event id or a card id; items carry `.id(item.id)`, cards do not. `heights` holds each measured item; `keeper` is a `FocusKeeper<String>`. `scrollTarget`/`scrollRequest` with anchor `.top` |
+| Timeline content | `macos/App/Features/Conclusions/PersonTimelineContent.swift` `PersonTimelineContent` | Item ids: event id, `"birth"`/`"death"`, `"undated"`, `"more.dated"`, `"more.undated"`. Card id `"<eventId>-<personId>"`. Keeps `datedFoldIDs`; `isShown(_:)`, `row(holdingCard:)`, `pages(toShow:)` answer from kept ids. Hidden undated ids are not kept |
+| Sources | `macos/App/Features/Conclusions/PersonSourcesSection.swift` `PersonSourcesList`, `PersonSourcesFocus`, `focusedGraphID` | `open: (WorkspaceLocation) -> Void`, called by the diagram, the title `PVInkLink` and the graph `PVButton`. Focus cases `.graph`, `.unpromote`, `.node`; `focusedGraphID` switches over them exhaustively. The title has no focus case and no Return activation. Lines carry `.id(line.id)`; rows and Show more rows carry none. `pvScrollsRowIntoView` sits on `rows` only |
+| Sources content | `macos/App/Features/Conclusions/PersonSourcesContent.swift` `PersonSourcesContent`, `Fold` | Row id = Source id; line id = claim id. Keeps `claimGraphs`, `graphLocations`, `foldedGraphs`. `rowFold` 50, `lineFold` 5 (fewest hidden 2). Hidden Source ids are not kept |
+| Record links | `macos/App/Features/Conclusions/PersonRecordLinksColumn.swift` `PersonRecordLinksColumn`; `PersonRecordLinksContent.locations` | A node opens `links.locations[graphID]`; drawn by the companion host, which can land after the rows |
+| Field rows | `macos/App/Features/Conclusions/ReconciledValueRow.swift` `ReconciledValueRow`, `ConclusionDetailRowsSection` | The open arrow (`PVIconButton`, `model.opens`) calls `navigation.go(to: opens.location)`; it has no focus binding and no Return activation. `ConclusionDetailRowsSection` is `ReconciledValueRow`'s one caller (Vitals, Event and Place Details); rows carry no `.id` |
+| Gallery | `macos/App/Features/Conclusions/ConclusionGallerySection.swift` `ConclusionGallerySection.tileView` | With no `gallery.viewer` (Event, Place) a tile opens `navigation.go(to: tile.location)`; with one (Person) the viewer. `TileFocus`, `keeper`, `map`, `scroll` exist |
+| Place relationships | `macos/App/Features/Conclusions/PlaceRelationshipRow.swift` `PlaceRelationshipRow`, `ConclusionDetailRelationshipSection`, `ConclusionDetailRelationship.id` | The row's `.plain` `Button` navigates itself; no focus state, no `.id`. A relationship is in one section only (self-loops refused since S16-36) |
+| Tests | `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` `leavingAListStampsTheOutgoingEntry`, `listScrollAnchorRoundTrips`, `legacyHistoryMissingListScrollAnchorDecodesAsNil`, `pageSectionPushAndRestore`; `PersonFamilyContentTests.swift`, `PersonTimelineContentTests.swift`, `PersonSourcesContentTests.swift` | The list anchor's stamp, round trip and legacy decode; the contents' folds |
 
-**Precedent.** The list scroll anchor (`listScrollAnchor`, S15-48 D-10 and its tests above): a non-identity field on the entry, written when leaving, `nilIfEmpty`, decodes nil from older files, stamped by the store with no persist. Copy its field, coding and tests. Do not copy `pendingListScrollAnchor`: a section's anchor is known at the open, not reported while scrolling (D-2). For the focus hand-back, copy `ConclusionGallerySection`'s `FocusKeeper.hand` after the viewer closes, and the Show more's `scrollTarget`/`scrollRequest` pair each section already has.
+**Precedent.** The list scroll anchor (`listScrollAnchor`, S15-48 D-10 and its tests): a non-identity field on the entry, `nilIfEmpty`, decodes nil from older files, stamped by the store with no persist. `pageSection`: a typed enum on the location whose unknown values decode as nil. The contents' query methods (`PersonTimelineContent.pages(toShow:)`, `isShown(_:)`, `PersonSourcesContent.foldedGraphIDs(by:)`) answer from ids the build keeps. The Gallery's `FocusKeeper.hand` after the viewer closes. Do not copy `pendingListScrollAnchor`: a section's anchor is known at the open (D-2).
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `WorkspaceLocation.sectionAnchor: String?` *(new)*. It holds `ConclusionSectionAnchor.stored`: `"<part>:<id>"`. Not in `==`; coded under the key `sectionAnchor`; `nilIfEmpty` in both inits. The part raw values are frozen, as `ConclusionPageSection`'s are: they are written to history files | One string mirrors `listScrollAnchor`, and the Workspace layer stays free of Conclusion types. The part names which part of the page owns the id, since an Event or Place page draws several parts under one location | A typed enum on `WorkspaceLocation` — the Workspace layer would import `Features/Conclusions` stop types. One anchor per section — the rule keeps one, the last opened |
-| D-2 | The anchor is written at the open: `WorkspaceNavigation.go(to:sectionAnchor:)` *(new)*, when `location != currentLocation`, calls `NavigationHistoryStore.stampSectionAnchor(_:)` *(new)* on the current entry, then `go(to:)`, whose push persists both. With no history attached it only calls `go(to:)`. The stamp comes before the leave guard; no Conclusion page installs one | The opened row is known only at the open. The stamp-then-push writes the file once | A pending value stamped on every leave, like `pendingListScrollAnchor` — Back or a sidebar click would then write an anchor for a row nobody opened |
-| D-3 | `withPageSection(_:)` sets `sectionAnchor` to nil on its copy | A section switch is a new place, opened at its top (AC-6.3) | Keeping it — the next section would try to restore the last section's id |
-| D-4 | `ConclusionSectionAnchor` *(new)* in `macos/App/Features/Conclusions/ConclusionSectionAnchor.swift` *(new)*: `enum Part: String { case family, timeline, sources, recordLinks, detailRow, picture, related }`, `let part`, `let id`, `var stored: String`, `init(part:id:)`, `init?(stored: String?)` (splits at the first `:`; nil for nil, no `:`, an empty id or an unknown part), and `static func id(_ part: Part, in location: WorkspaceLocation) -> String?`. The same file holds `struct ConclusionAnchorTarget<Stop: Hashable>: Equatable { var stop: Stop; var scrollID: String }`, the extension `WorkspaceNavigation.go(to:from:)` that takes a `ConclusionSectionAnchor`, and the restore modifier of D-5 | One home for the stored form, so a site never builds the string by hand | A string prefix per call site |
-| D-5 | Restore runs once per mount: `View.conclusionAnchorRestore(_ part:, isReady:, restore: (String) -> Void)` *(new)*, a modifier with `@State didRestore`. On `onAppear` and on `isReady` turning true, if not yet done and `isReady`: mark done, then call `restore` with the location's id for `part`, when there is one. It reads `WorkspaceNavigation` from the environment | Each Conclusion page mounts per entity, and each section per switch, so once per mount is once per arrival. A reload later never moves the keyboard | Restoring on every `currentLocation` change — a reload or a coalesced visit would steal focus |
-| D-6 | Each section's content resolves its anchor while it is built: `Inputs` gains `anchor: String?`, the content's `init` gains `anchor: String? = nil`, and the content exposes `let anchorTarget: ConclusionAnchorTarget<Stop>?`. The lookup is exact and touches one list (§ Edges) | One lookup, in the pure type the tests already reach; the hidden members are in hand only while building | Keeping hidden ids or the raw read on the content for a later lookup — more memory on every build for a once-per-mount question |
-| D-7 | `ConclusionShowMoreRow` takes `let stop: Focus` and focuses through the section's binding: `.focused(focus, equals: stop)`, `pvActivatesOnReturn(when: focus.wrappedValue == stop, press)`, and `press` reads `focus.wrappedValue == stop` before `expand()`. The private `hasKeyboard` goes. All six callers pass a stop (§ macOS) | A restore must be able to focus a Show more (the rule), and one focus path beats a second mode | An optional `stop` with the private state kept for nil — two ways to focus one control |
-| D-8 | Stops and scroll ids per part, written at the open and resolved on restore: see the table in § macOS | — | — |
+| D-1 | `ConclusionSectionAnchor` *(new)*, a `Codable, Equatable, Sendable` struct in `macos/App/Features/Workspace/ConclusionSectionAnchor.swift` *(new)* beside `ConclusionPageSection`: `part: Part`, `id: String`, `row: String?`. `enum Part: String, Codable { case family, timeline, sourceTitle, sourceLine, recordLinks, detailRow, picture, related }`; the raw values are frozen (written to history files). `row` names the row that holds `id` where the stop is inside a row: a Timeline card's event id, a Sources line's Source id; nil elsewhere. `WorkspaceLocation.sectionAnchor: ConclusionSectionAnchor?` *(new)*, not in `==`, decoded with `try? container.decodeIfPresent(...)` so an unknown part or a malformed value reads as nil; an empty `id` is normalized to a nil anchor | Typed, like `pageSection`, through the location's one `Codable` path; no hand grammar to parse | A `"<part>:<id>"` string with its own parser (M-2) — a second format beside `Codable` |
+| D-2 | The anchor is written at the open: `WorkspaceNavigation.go(to:from: ConclusionSectionAnchor)` *(new)*, when `location != currentLocation` and history is attached, calls `NavigationHistoryStore.stampSectionAnchor(_:)` *(new)* on the current entry, then `go(to:)`, whose push persists both. The stamp comes before the leave guard; no Conclusion page installs one. An entry keeps its anchor until another open from it overwrites it: leaving by Back, the sidebar or the omnibar does not clear it, so Back or Forward to it later restores the last row opened from it | The opened row is known only at the open. The rule names the row "last opened" | A pending value stamped on every leave, like `pendingListScrollAnchor` — Back or a sidebar click would write an anchor for a row nobody opened. Clearing on a leave without an open — the rule says last opened, not last action |
+| D-3 | `withPageSection(_:)` sets `sectionAnchor` to nil on its copy | A section switch is a new place, opened at its top (AC-6.3) | Keeping it — the next section would try to restore another section's row |
+| D-4 | The store's two stamps share one private helper: `private func stampCurrent<T: Equatable>(_ keyPath: WritableKeyPath<WorkspaceLocation, T?>, _ value: T?)` (index guard, compare, assign, no persist). `stampListScrollAnchor` keeps its list-root guard and normalization and calls it; `stampSectionAnchor` calls it | The index guard and the no-persist rule live once (M-5) | A second copy of the body |
+| D-5 | Each section's content answers a query, `func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<Stop>?` *(new)*, from ids its build keeps (§ Edges lists what each keeps). `Inputs` are unchanged | The session's content memo stays keyed on what the content draws, so an anchored Back is still a memo hit (M-1); it matches `pages(toShow:)` and `isShown(_:)` | Passing the anchor in `Inputs` — every anchored Back rebuilds the section (the memo is one per key per session) |
+| D-6 | `struct ConclusionAnchorTarget<Stop: Hashable>: Equatable { var stop: Stop; var scrollID: String }` *(new)* and the restore modifier live in `macos/App/Features/Conclusions/ConclusionAnchorRestore.swift` *(new)*. `View.conclusionAnchorRestore(_ parts: Set<ConclusionSectionAnchor.Part>, isReady: Bool, focus: FocusState<Stop?>.Binding, keeper: Binding<FocusKeeper<Stop>>? = nil, map: @escaping (Stop) -> Stop = { $0 }, resolve: @escaping (ConclusionSectionAnchor) -> ConclusionAnchorTarget<Stop>?, scroll: @escaping (String) -> Void)`. It holds `@State didRestore`. On `onAppear` and on `isReady` turning true, once: when the location's anchor has a part in `parts` and `resolve` returns a target, it calls `scroll(target.scrollID)`, then gives the keyboard to `target.stop`: with a keeper, `FocusKeeper.hand(stop, keeper:focus:map:scroll:{ _ in })`; without, `FocusClaim.claim(focus, stop)` | One place turns an anchor into "scroll, then focus" (M-3); each page mounts per entity and each section per switch, so once per mount is once per arrival, and a later reload never moves the keyboard | A free-form `restore` closure per site — six copies of the same three lines. Restoring on every `currentLocation` change — a reload would steal focus |
+| D-7 | `ConclusionShowMoreRow` takes `let stop: Focus` and focuses through the section's binding: `.focused(focus, equals: stop)`, `pvActivatesOnReturn(when: focus.wrappedValue == stop, press)`, and `press` reads `focus.wrappedValue == stop` before `expand()`. The private `hasKeyboard` goes. All six callers pass a stop (§ macOS) | A restore must be able to focus a Show more (the rule); one focus path | An optional `stop` with the private state kept for nil — two ways to focus one control |
+| D-8 | One open shape. A section that hands `open` down passes `(WorkspaceLocation, ConclusionSectionAnchor) -> Void`, bound to `navigation.go(to:from:)` (`PersonFamilyDiagram`, `PersonTimelineList`, `PersonSourcesList` and the views under it). A leaf that already reads `WorkspaceNavigation` from the environment calls `navigation.go(to:from:)` itself (`ReconciledValueRow`, `ConclusionGallerySection`, `PlaceRelationshipRow`). Every opener named in § macOS writes an anchor | One signature to learn (M-4, X-2) | `open` beside an `openFrom` — the old closure would have no caller |
 | D-9 | Folded: the stop is the fold's Show more. Gone: no restore; the page keeps its top. Folds are never revealed by a restore | The working rule | Revealing the fold through the anchor's page, as a lifeline click does — refused (S13-16 UX-5) |
-| D-10 | Scroll: each site sets its existing `scrollTarget` to the target's `scrollID` and bumps `scrollRequest`; the Timeline sets `pendingReveal` instead, so it scrolls once the item is placed (`rebuild()`), with its existing `.top` anchor. Focus: `FocusClaim.claim` on the section's binding; the Gallery uses `FocusKeeper.hand(.image(id), …)` as it does after the viewer | Reuses each section's one scroll path and the one focus writer | A new scroll mechanism on `PVPageColumns` |
-| D-11 | Sources: the scroll modifier moves from `rows` to the `ConclusionPinnedSideColumn` in `PersonSourcesList.body`, the diagram column carries `.id(PersonSourcesList.diagramScrollID)` *(new)*, `"diagram"`, and node anchors use the part `.recordLinks`, restored from inside the diagram host's body against `PersonRecordLinksContent.locations` | The node is drawn by the companion read, which can land after the rows; its restore waits for its own content. The proxy must reach the diagram when it stacks under the rows | Resolving a node against the claims — it would claim a node the diagram has not drawn yet |
-| D-12 | The field rows' arrow: `ReconciledValueRow.Stop` gains `.open`, the arrow gets `.focused($focusedStop, equals: .open)`, and the row takes `claimsOpenFocus: Bool` (default false), claiming `.open` with `FocusClaim` on appear and when it turns true. `ConclusionDetailRowsSection` resolves through `static func anchorTarget(rows:id:) -> String?` *(new)*: the id of a row that has `opens`, else nil | The arrow is the only place a field row opens; its focus belongs to its row | A section-wide focus binding over every row's stops — rewires all three disclosures for one stop |
-| D-13 | Coverage is § Scope's In: every row or tile on a Person, Event or Place page that opens a place directly | The map row names Person, Event and Place pages; Vitals' arrow opens a place, so the map's Vitals exception does not apply | Person sections only — Event and Place Details share `ConclusionDetailRowsSection` with Vitals, so leaving them out would need a gate |
+| D-10 | Each new focus stop also gets `pvActivatesOnReturn(when: focus == stop)` like its siblings: the Source title, the field row's open arrow and the relationship row | A restored stop answers Return as the Timeline title and the graph link do | Focus without Return — the researcher lands on a control Return does not open |
+| D-11 | Sources: the scroll modifier moves from `rows` to the `ConclusionPinnedSideColumn` in `PersonSourcesList.body`; the diagram column carries `.id(PersonSourcesList.diagramScrollID)` *(new)*, `"diagram"`. Node anchors (`.recordLinks`) restore from a second `conclusionAnchorRestore([.recordLinks], isReady: true, …)` inside the diagram host's body, resolving `links.locations[anchor.id] != nil` → `.node(graphID:)`. `focusedGraphID` returns nil for `.title` and `.more` | The node is drawn by the companion read, which can land after the rows; the proxy must reach the diagram when it stacks; a Back draws no highlight (nothing looks different) | Resolving a node against the claims — it would claim a node the diagram has not drawn |
+| D-12 | The field rows' arrow focus is held by `ConclusionDetailRowsSection`: `@FocusState private var openFocus: String?`, passed to each `ReconciledValueRow` as `openFocus: FocusState<String?>.Binding` *(new parameter)*; the arrow gets `.focused(openFocus, equals: model.id)`. The row's private `Stop` is unchanged except for the Show more's `.more` (D-7) | The arrow's stop is the section's to restore, and the section is the row's one caller | A per-row `claimsOpenFocus` flag — a second way to claim focus |
+| D-13 | Timeline restore waits for every item to be measured: `isReady` is `!content.items.isEmpty && heights.count == content.items.count`, then it scrolls through `scrollTarget`/`scrollRequest` (anchor `.top`) and hands the stop through its `keeper`. A Show more stop is not `isShown`, so on a width change the keeper does not hand it back; this matches today, where a Show more's private focus was not kept either | A partial placement would scroll to a row the final layout moves (X-9) | `pendingReveal`, which scrolls once the one target is measured |
+| D-14 | Coverage is § Scope's In: every row or tile on a Person, Event or Place page that opens a place directly | The map row names Person, Event and Place pages; Vitals' arrow opens a place, so the map's Vitals exception does not apply | Person sections only — Event and Place Details share `ConclusionDetailRowsSection` with Vitals, so leaving them out would need a gate |
 
 **Rules this plan bends.** None.
 
@@ -166,43 +169,51 @@ Verified at `f757b45`.
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `WorkspaceLocation.sectionAnchor` *(new)* | field | `WorkspaceLocation.listScrollAnchor` | Copied shape; `listScrollAnchor` is defined for list roots only (`isListRoot` guards), and a page is not one |
-| `WorkspaceNavigation.go(to:sectionAnchor:)` *(new)* | func | `WorkspaceNavigation.go(to:)`, `noteListScroll` | Extends `go(to:)` with one stamp; `noteListScroll` reports while scrolling, the wrong moment (D-2) |
-| `NavigationHistoryStore.stampSectionAnchor(_:)` *(new)* | func | `stampListScrollAnchor(_:)` | Same body without the list-root guard; the list guard is that function's point |
-| `ConclusionSectionAnchor.swift` *(new)*: `ConclusionSectionAnchor`, `ConclusionAnchorTarget`, `conclusionAnchorRestore`, `WorkspaceNavigation.go(to:from:)` | file / types | `ListScrollAnchorModifier` (`WorkspaceNavigation.swift`) | That modifier drives `scrollPosition` over a lazy list of top rows and reports scrolling; a page restores one stop once, through each section's own scroll and focus |
-| `anchorTarget` on `PersonFamilyContent`, `PersonTimelineContent`, `PersonSourcesContent` *(new)* | property | `firstRevealed(by:)` on the same types | Same idea (a stop the keyboard goes to), computed in the same pass |
-| `PersonFamilyContent.moreID(_:)` *(new)* | func | `PersonFamilyContent.tileID(column:group:personID:)` | Show more had no id; this names it beside the tile id rule |
-| `PersonTimelineContent.participantsMoreID(eventId:)` *(new)* | func | the item id `"more.dated"` in `Slot.id` | The participants' Show more is inside a row, not an item |
-| `PersonSourcesFocus.title(sourceID:)`, `.more(PersonSourcesContent.Fold)`, `init?(anchorID:)`, `anchorID` *(new)* | cases / func | `PersonSourcesFocus` | Extends the one focus type of the section |
-| `ReconciledValueRow.Stop.open`, `claimsOpenFocus` *(new)* | case / param | `ReconciledValueRow.Stop` | Extends the row's own stops |
-| `ConclusionDetailRowsSection.anchorTarget(rows:id:)` *(new)* | func | — | Pure lookup so a test reaches it |
-| `ConclusionSectionAnchorTests.swift` *(new)* | test file | `WorkspaceNavigationTests.swift` | The anchor's parse rules are Conclusions' own |
+| `ConclusionSectionAnchor` in `macos/App/Features/Workspace/ConclusionSectionAnchor.swift` *(new)* | type / file | `ConclusionPageSection` (same folder) | A section names a place; an anchor names a row inside one. It sits beside it so the location stays typed |
+| `WorkspaceLocation.sectionAnchor` *(new)* | field | `listScrollAnchor`, `pageSection` | `listScrollAnchor` is for list roots only (`isListRoot`); the coding copies `pageSection`'s lenient decode |
+| `WorkspaceNavigation.go(to:from:)` *(new)* | func | `go(to:)`, `noteListScroll` | Extends `go(to:)` with one stamp; `noteListScroll` reports while scrolling, the wrong moment (D-2) |
+| `NavigationHistoryStore.stampSectionAnchor(_:)`, `stampCurrent(_:_:)` *(new)* | func | `stampListScrollAnchor(_:)` | Shares its body through `stampCurrent` (D-4) |
+| `macos/App/Features/Conclusions/ConclusionAnchorRestore.swift` *(new)*: `ConclusionAnchorTarget`, `conclusionAnchorRestore` | file / type / modifier | `ListScrollAnchorModifier` (`WorkspaceNavigation.swift`), `FocusKeeper.hand` | That modifier drives `scrollPosition` and reports scrolling; this one restores one stop once and delegates focus to `FocusClaim` or `FocusKeeper.hand` |
+| `anchorTarget(for:)` on `PersonFamilyContent`, `PersonTimelineContent`, `PersonSourcesContent` *(new)* | func | `pages(toShow:)`, `isShown(_:)`, `foldedGraphIDs(by:)` | Same pattern: a query over kept ids |
+| `PersonFamilyContent.hiddenTiles`, `PersonTimelineContent.hiddenUndatedIDs`, `PersonSourcesContent.hiddenSourceIDs` *(new)* | stored ids | `datedFoldIDs`, `foldedGraphs` | Same shape as the kept ids beside them |
+| `PersonFamilyContent.moreID(_:)`, `PersonTimelineContent.participantsMoreID(eventId:)` *(new)* | func | `tileID(column:group:personID:)`, `Slot.id` | Show more had no id |
+| `PersonSourcesFocus.title(sourceID:)`, `.more(PersonSourcesContent.Fold)` *(new)* | cases | `PersonSourcesFocus` | Extends the section's one focus type |
+| `ReconciledValueRow.openFocus`, `Stop.more` *(new)* | param / case | `ReconciledValueRow.Stop` | See D-12 |
+| `ConclusionDetailRowsSection.anchorTarget(rows:anchor:)` *(new)* | func | — | Pure lookup so a test reaches it |
 
-Searched: `rg -n "scrollTarget|FocusClaim.claim|FocusKeeper.hand|stampListScrollAnchor|pendingListScrollAnchor" macos/App`.
+Searched: `rg -n "scrollTarget|FocusClaim.claim|FocusKeeper.hand|stampListScrollAnchor|pendingListScrollAnchor|decodeIfPresent" macos/App`.
 
-**Builds on.** The list scroll anchor's field and stamp; `FocusClaim`; `FocusKeeper.hand`; each section's `pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)`; `ConclusionFold.shown`; the section `Inputs` that `session.conclusionContent` keys on.
-**Deletes.** `ConclusionShowMoreRow.hasKeyboard` (the private `@FocusState`), replaced by the section's stop.
-**Next adds.** A Conclusion kind that adopts sections (Event, Place) gets restore by adding a part and resolving in its content. A later "open from a sheet" anchor (the Gallery viewer) would add a part and one stamp.
+**Builds on.** The list scroll anchor's field and stamp; `pageSection`'s typed decode; `FocusClaim`; `FocusKeeper.hand`; each section's `pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)`; the contents' kept-id queries.
+**Deletes.** `ConclusionShowMoreRow.hasKeyboard` (the private `@FocusState`), replaced by the section's stop. The `(WorkspaceLocation) -> Void` shape of `open` on `PersonFamilyDiagram`, `PersonTimelineList`, `PersonSourcesList`, `PersonSourcesRowView`, `PersonSourcesLineView`, replaced by D-8's. The body of `stampListScrollAnchor` that `stampCurrent` takes over.
+**Next adds.** A Conclusion kind that adopts sections (Event, Place) gets restore with a `Part` case, an `anchorTarget(for:)` and one modifier call. A later anchor from a sheet (the Gallery viewer) is one `Part` and one `go(to:from:)`.
 
 ### Reach
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
 | Back/Forward to a Conclusion page entry that carries an anchor | `PersonDetailView`, `EventDetailView`, `PlaceDetailView` and their sections | Resets: the page mounts per `entityId` (`PlaceRegistry` `viewIdentity`) and each section per switch, so `didRestore` is fresh. Missing: a gone id resolves to nil, the page stays at its top (AC-1.3). State: the page draws as today; only scroll and focus move |
-| A history file with a `sectionAnchor` read by this build after the row's entity changed | the same pages | Resolution is by id against what is drawn now, never by position |
-| A history file of this build read by an older build | `WorkspaceLocation.init(from:)` | The unknown key is ignored; the older build opens at the top |
+| A history file with an anchor read after the row's entity changed | the same pages | Resolution is by id against what is drawn now, never by position |
+| A history file of this build read by an older build, or an older build's file read by this one | `WorkspaceLocation.init(from:)` | The older build ignores the key; this build decodes a missing or unknown anchor as nil (T-2) |
 
 ### Scale
 
-At the map's Scale (200 events with 10 participants, 20 children in four parent sets, a person in 50 Evidence graphs), and at bar 2's crafted sizes (500 participants on one event, a Source with 10,000 Observations): the stamp writes one string to the entry being left and adds no persist (the push persists). Each content build adds one exact lookup for its anchor: Family compares the anchor with each hidden member's tile id (at most `MaxKinPerRole` 100 per role); the Timeline tests the anchor against each event id and against the one event whose id prefixes a card anchor, whose participants it then scans (at most 500, crafted); Sources compares against each claim id once. With no anchor (`nil`), each lookup is skipped. The restore runs once per mount. No read, cache key or list changes; the contents' memo key gains the anchor, which is constant for a mount.
+At the map's Scale (200 events with 10 participants, 20 children in four parent sets, a person in 50 Evidence graphs) and bar 2's crafted sizes (500 participants on one event, 100 relatives per role): the stamp writes one value to the entry being left with no extra persist. Each content build keeps a few more ids, one string per hidden member: Family at most `kinship.Rules.MaxKinPerRole` (100) per role; the Timeline the hidden undated event ids (at most the person's events); Sources the hidden Source ids (at most the person's Sources). No participant id is kept (§ Edges). `anchorTarget(for:)` runs once per mount and is one dictionary or set lookup, plus a scan of one shown row's cards. `Inputs` and the memo key are unchanged, so an anchored Back is a memo hit as today.
 
 ### Edges
 
-- **Assumptions.** Ids are stable across a reload for the same data: a tile id holds its column, group index and person id, so a removed parent set or partner group shifts the group index and the tile resolves as gone (AC-1.3's case, page top). Event, person and claim ids are fixed-length UUIDs, so a card id `"<eventId>-<personId>"` has one event-id prefix among the person's events; the match is still checked exactly against `participantLinkID` (T-7 "a card of a person no longer on the event is gone").
-- **Neighbors.** An anchor on the last shown tile of a fold resolves to the tile; on the first hidden one to the fold's Show more (T-6, T-7). At Regular a 6th card is behind the participants' Show more and at Wide it is shown, so the same anchor lands on the card at Wide (T-7). A recorded birth row (a marker with a row) resolves to its event id like any row (T-7). A placeholder marker, the Undated heading and lifeline points open nothing and are never anchors.
-- **Removed inputs.** A row whose entity was deleted or merged since the open: gone, no restore (T-6, T-7, T-8). A Source whose record line was unpromoted: the `"graph:<claimID>"` anchor is gone. A field row that lost its `opens` (the Event was un-promoted): `anchorTarget(rows:id:)` returns nil (T-10).
+What each content keeps and how `anchorTarget(for:)` answers (`a` is the anchor):
+
+| Content | Kept | `a.id` shown → stop · scroll id | Folded → stop · scroll id | Else |
+| --- | --- | --- | --- | --- |
+| Family (`.family`) | `hiddenTiles: [String: Fold]`: hidden parent sets (k ≥ shown): each partner's `l-p<k>-<pid>` → `.parentSets`; hidden siblings `l-s-<pid>` → `.siblings`; a shown unit i's hidden children `r-<i>-<pid>` → `.children(i)`; a hidden unit i (i ≥ shown): its partner and every child `r-<i>-<pid>` → `.partners` (a one-parent unit has no partner; its children map the same way) | a shown tile with a location → that id · that id | `moreID(fold)` · same | nil (the focus person's tile opens nothing, so it is never written) |
+| Timeline (`.timeline`) | `datedFoldIDs` (kept today) and `hiddenUndatedIDs: Set<String>` | a row: a built row's event id → that id · that id. A card (`a.row` = event id): the row is built and shows the card → the card id · the row's id; the row is built, does not show it, and `participantsHidden > 0` → `participantsMoreID(eventId:)` · the row's id | a row or a card whose row is in the hidden part of `datedFoldIDs` → `"more.dated"` · same; in `hiddenUndatedIDs` → `"more.undated"` · same | nil |
+| Sources (`.sourceTitle`, `.sourceLine`) | `hiddenSourceIDs: Set<String>` | title: a shown row's id → `.title(sourceID:)` · the Source id. Line (`a.row` = Source id): a shown line → `.graph(claimID:)` · the claim id; the row is shown, the line is not, and `hiddenCount > 0` → `.more(.lines(sourceID:))` · `"more.<sourceID>"` | the title's or the line's Source in `hiddenSourceIDs` → `.more(.rows)` · `"more.rows"` | nil |
+
+- **Assumptions.** Ids are stable across a reload for the same data. A tile id holds its group index, so a removed parent set or partner group shifts the index and the tile resolves as gone (page top, AC-1.3). A card's and a line's row is named on the anchor (`row`), never parsed out of the id.
+- **Neighbors.** The last shown tile of a fold resolves to the tile; the first hidden one to the fold's Show more (T-6, T-7). At Regular a 6th card is behind its row's participants' Show more and at Wide it is shown (T-7). A recorded birth row resolves to its event id like any row (T-7). A placeholder marker, the Undated heading and the lifeline open nothing and are never anchors.
+- **Removed inputs.** A row whose entity was deleted or merged: gone, no restore (T-6, T-7, T-8). A card or line whose row is folded, or whose row is shown with a non-empty fold, resolves to that fold's Show more even when the person left the event or the record was unpromoted: the content keeps no participant or per-Source claim ids (D-5), so the keyboard lands on the Show more where it would have been. A field row that lost its `opens`: `anchorTarget(rows:anchor:)` returns nil (T-10).
 - **Real data.** None — no table or seed drives the rule.
-- **Untrusted size.** The anchor comes from the app's own history file. `init?(stored:)` reads at most the string it is given and splits once; a stored id that matches nothing costs one failed lookup.
+- **Untrusted size.** The anchor comes from the app's own history file, decoded by `Codable`; a value that matches nothing costs one failed lookup.
 
 ### Schema
 
@@ -218,25 +229,22 @@ None — no RPC changes.
 
 ### macOS
 
-The anchor is written where the row opens and resolved where the section draws. Every write site calls `navigation.go(to: location, from: ConclusionSectionAnchor(part:id:))`.
+| Part | Written by (the open) | `ConclusionSectionAnchor` | Restore site · `isReady` · focus |
+| --- | --- | --- | --- |
+| `.family` | `PersonFamilyDiagram` tile tap | id = `placed.id` | `PersonFamilyDiagram` · `width > 0` · `focused` |
+| `.timeline` | `PersonTimelineEventRow` title button; `card(_:)` | title: id = event id. Card: id = card id, row = event id | `PersonTimelineList` · D-13 · `focused` with `keeper` |
+| `.sourceTitle` | `PersonSourcesRowView.title` | id = Source id | `PersonSourcesList` rows (parts `[.sourceTitle, .sourceLine]`) · `true` · `focus` |
+| `.sourceLine` | `PersonSourcesLineView` graph link | id = claim id, row = Source id | as above |
+| `.recordLinks` | the diagram's `open:` in `PersonSourcesList.diagram` | id = graph id | diagram host body (D-11) · `true` · `focus` |
+| `.detailRow` | `ReconciledValueRow` open arrow | id = `model.id` | `ConclusionDetailRowsSection` · `true` · `openFocus` (D-12); stop and scroll id = `model.id` (each row gets `.id(row.id)`) |
+| `.picture` | `ConclusionGallerySection.tileView` when `gallery.viewer == nil` | id = `tile.id` | `ConclusionGallerySection` · `true` · `focused` with `keeper` and `map`; stop `.image(id)`, scroll id `tile.id`, when `gallery.tiles` has it |
+| `.related` | `PlaceRelationshipRow` button (takes `anchorID: String`, the `ConclusionDetailRelationship.id`) | id = that id | `ConclusionDetailRelationshipSection` with a new `@FocusState focused: String?` · `true`; stop and scroll id = `row.id` (each row gets `.id` and `.focused`) |
 
-| Part | Written by (the open) | Anchor id | Resolves in | Stop when shown · scroll id | Stop when folded · scroll id |
-| --- | --- | --- | --- | --- | --- |
-| `.family` | `PersonFamilyDiagram` tile tap | the tile id (`placed.id`) | `PersonFamilyContent.anchorTarget` | the tile id · the tile id | `PersonFamilyContent.moreID(fold)` · same; the Show more gets `.id(moreID)` |
-| `.timeline` | `PersonTimelineEventRow` title button and `card(_:)` | the row's event id, or the card's id | `PersonTimelineContent.anchorTarget` | the id · the item id holding it (the row's event id) | `"more.dated"` / `"more.undated"` · same (an item); a card behind a shown row's participants fold: `participantsMoreID(eventId:)` (`"more.<eventId>"`) · the row's event id |
-| `.sources` | `PersonSourcesRowView.title`, `PersonSourcesLineView` graph link | `"source:<sourceID>"` / `"graph:<claimID>"` (`PersonSourcesFocus.anchorID`) | `PersonSourcesContent.anchorTarget` | `.title(sourceID:)` · the Source id (row gets `.id(row.id)`); `.graph(claimID:)` · the claim id | `.more(.rows)` · `"more.rows"`; `.more(.lines(sourceID:))` · `"more.<sourceID>"` (both Show more rows get the `.id`) |
-| `.recordLinks` | the diagram's `open:` in `PersonSourcesList.diagram` | the graph id | `links.locations[id] != nil` in the diagram host body | `.node(graphID:)` · `PersonSourcesList.diagramScrollID` | — (a graph not drawn is gone) |
-| `.detailRow` | `ReconciledValueRow` open arrow | `model.id` | `ConclusionDetailRowsSection.anchorTarget(rows:id:)` | `.open` on that row (D-12) · `model.id` (each row gets `.id(row.id)`) | — (field rows do not fold) |
-| `.picture` | `ConclusionGallerySection.tileView` when `gallery.viewer == nil` | `tile.id` | `gallery.tiles.contains` | `.image(id)` through `FocusKeeper.hand` · the tile id (existing `scroll`) | — |
-| `.related` | `PlaceRelationshipRow` button | `ConclusionDetailRelationship.id` (passed in as `anchorID`) | `ConclusionDetailRelationshipSection`: `section.relationships.contains` | a new `@FocusState focused: String?` on the section, `.focused($focused, equals: row.id)` · `row.id` (each row gets `.id`) | — (an omitted Contains row is gone) |
+Show more stops (D-7): Family `PersonFamilyContent.moreID(more.fold)` with `.id(moreID)` on the row — `.parentSets` → `"more-parentSets"`, `.siblings` → `"more-siblings"`, `.partners` → `"more-partners"`, `.children(i)` → `"more-children-<i>"` (tile ids start `l-` or `r-`, so they cannot collide); Timeline dated/undated `item.id`, participants `PersonTimelineContent.participantsMoreID(eventId: row.id)` = `"more.<eventId>"`; Sources lines `.more(.lines(sourceID: row.id))` with `.id("more.<sourceID>")`, rows `.more(.rows)` with `.id("more.rows")`; `ReconciledValueRow` `Stop.more`. Sources rows get `.id(row.id)`; the title gets `.focused(focused, equals: .title(sourceID: row.id))` and D-10's Return activation.
 
-`isReady` per site: Family `width > 0` on `PersonFamilyDiagram`; Timeline, Sources rows, field rows, Gallery and relationships `true` (their view exists only with content); the record links `true` inside the companion host's body.
+Each site sets its existing `scrollTarget` and bumps `scrollRequest` in `scroll`; `ConclusionDetailRowsSection` and `ConclusionDetailRelationshipSection` gain that pair and `pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)` on their stack. Previews pass `{ _, _ in }` for `open`.
 
-`ConclusionShowMoreRow` stops (D-7): Family `PersonFamilyContent.moreID(more.fold)`; Timeline dated/undated `item.id` (`"more.dated"`, `"more.undated"`), participants `PersonTimelineContent.participantsMoreID(eventId: row.id)`; Sources lines `.more(.lines(sourceID: row.id))`, rows `.more(.rows)`; `ReconciledValueRow` `Stop.more` *(new)*. `PersonFamilyContent.moreID`: `.parentSets` → `"more-parentSets"`, `.siblings` → `"more-siblings"`, `.partners` → `"more-partners"`, `.children(i)` → `"more-children-<i>"`; they cannot collide with tile ids, which start `l-` or `r-`.
-
-The `open` closures change shape: `PersonFamilyDiagram.open` and `PersonTimelineList.open` become `(WorkspaceLocation, String) -> Void` (the second argument the anchor id); `PersonSourcesList.open` stays `(WorkspaceLocation) -> Void` for the line and title call sites and gains `openFrom: (WorkspaceLocation, PersonSourcesFocus) -> Void`; previews pass `{ _, _ in }`.
-
-States: no loading, empty or error state changes; a section that failed or is empty never restores. Accessibility: the focus move is the announcement; no new string. Keyboard: the restored stop is the one Tab already reaches.
+States: no loading, empty or error state changes; a section that failed or is empty never restores. Accessibility: the focus move is the announcement; no new string. Keyboard: each restored stop is one Tab already reaches, and answers Return (D-10).
 
 ### Strings
 
@@ -245,42 +253,42 @@ None — no copy changes, and no action changes what it covers.
 ## 7. Steps
 
 **STEP-1 — The anchor on the entry**
-Files: `macos/App/Features/Workspace/WorkspaceLocation.swift`, `macos/App/Features/Workspace/WorkspaceNavigation.swift`, `macos/App/Features/Workspace/NavigationHistoryStore.swift`, `macos/ProvenenciaTests/WorkspaceNavigationTests.swift`. Skill: `add-workspace-location`, `add-swift-test`.
-Do: D-1, D-2, D-3. Add `sectionAnchor` beside `listScrollAnchor` in the field list, `CodingKeys`, both inits and the `==` doc comment (not in `==`). Add `stampSectionAnchor(_:)` to the store and `go(to:sectionAnchor:)` to navigation. Write T-1 – T-4.
+Files: `macos/App/Features/Workspace/ConclusionSectionAnchor.swift` *(new)*, `macos/App/Features/Workspace/WorkspaceLocation.swift`, `macos/App/Features/Workspace/WorkspaceNavigation.swift`, `macos/App/Features/Workspace/NavigationHistoryStore.swift`, `macos/ProvenenciaTests/WorkspaceNavigationTests.swift`. Skill: `add-workspace-location`, `add-swift-test`.
+Do: D-1 – D-4. Add `sectionAnchor` beside `listScrollAnchor` in the field list, `CodingKeys`, both inits and the `==` doc comment (not in `==`). Write T-1 – T-4.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/WorkspaceNavigationTests` passes.
 
-**STEP-2 — One anchor type, one restore, Show more by stop**
-Files: `macos/App/Features/Conclusions/ConclusionSectionAnchor.swift` *(new)*, `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift`, the six callers (`PersonFamilySection.swift`, `PersonTimelineSection.swift` ×2, `PersonSourcesSection.swift` ×2, `ReconciledValueRow.swift`), `macos/ProvenenciaTests/ConclusionSectionAnchorTests.swift` *(new)*. Skill: `add-ui-component`, `add-swift-test`.
-Do: D-4, D-5, D-7. Give each caller its stop (§ macOS); `PersonSourcesFocus` gains `.more(PersonSourcesContent.Fold)` here and `ReconciledValueRow.Stop` gains `.more`. Write T-5.
-Check: the app builds; T-5 passes; with the keyboard, each Show more on a Person page still reveals a page and moves focus to its first item (Family, Timeline dated and participants, Sources rows and lines, a field row with more than 21 lines).
+**STEP-2 — One restore, Show more by stop**
+Files: `macos/App/Features/Conclusions/ConclusionAnchorRestore.swift` *(new)*, `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift`, `PersonFamilyContent.swift` (`moreID`), `PersonTimelineContent.swift` (`participantsMoreID`), `PersonSourcesSection.swift` (`.more` case, `focusedGraphID` nil for it), `ReconciledValueRow.swift` (`Stop.more`), and the six callers. Skill: `add-ui-component`.
+Do: D-6, D-7. Give each caller its stop (§ macOS).
+Check: the app builds; with the keyboard, each Show more on a Person page still reveals a page and moves focus to its first item (Family, Timeline dated and participants, Sources rows and lines, a field row with more than 21 lines).
 
 **STEP-3 — Family**
 Files: `PersonFamilyContent.swift`, `PersonFamilySection.swift`, `PersonFamilyPreviewData.swift`, `macos/ProvenenciaTests/PersonFamilyContentTests.swift`.
-Do: `Inputs.anchor`, `init(…, anchor:)`, `anchorTarget`, `moreID(_:)`; while folding each list, test the anchor against the shown tiles' ids and, for the hidden members, their would-be tile ids (`tileID` with the group they would have). `PersonFamilySection` passes `ConclusionSectionAnchor.id(.family, in: navigation.currentLocation)` and writes through `go(to:from:)`. `PersonFamilyDiagram`: the Show more gets `.id(moreID)`; `.conclusionAnchorRestore(.family, isReady: width > 0)` sets `scrollTarget`, bumps `scrollRequest`, and claims `focused`. Write T-6.
-Check: T-6 passes; AC-1.1 and AC-1.2 by hand.
+Do: `hiddenTiles` and `anchorTarget(for:)` per the § Edges table; D-8's `open`; the restore per § macOS. Write T-6.
+Check: T-6 passes; AC-1.1 by hand.
 
 **STEP-4 — Timeline**
 Files: `PersonTimelineContent.swift`, `PersonTimelineSection.swift`, `macos/ProvenenciaTests/PersonTimelineContentTests.swift`.
-Do: `Inputs.anchor`, `init(…, anchor:)`, `anchorTarget`, `participantsMoreID(eventId:)`, resolved per § Edges and the table. The participants' Show more gets `.focused` through its stop (STEP-2). `PersonTimelineList.open` takes the anchor id; `.conclusionAnchorRestore(.timeline, isReady: true)` sets `pendingReveal` to `scrollID` (and calls `rebuild()` so a measured item scrolls at once) and claims `focused`. Write T-7.
-Check: T-7 passes; AC-2.1 – AC-2.5 by hand.
+Do: `hiddenUndatedIDs` and `anchorTarget(for:)` per § Edges; D-8's `open` (the card writes `row`); the restore per D-13. Write T-7.
+Check: T-7 passes; AC-2.1, AC-2.2, AC-2.5 by hand.
 
 **STEP-5 — Sources and the record links**
 Files: `PersonSourcesContent.swift`, `PersonSourcesSection.swift`, `macos/ProvenenciaTests/PersonSourcesContentTests.swift`.
-Do: `PersonSourcesFocus.title(sourceID:)`, `anchorID`, `init?(anchorID:)`; `Inputs.anchor`, `init(…, anchor:)`, `anchorTarget`. The title link gets `.focused(focused, equals: .title(sourceID: row.id))`; rows get `.id(row.id)`; Show more rows get `"more.rows"` / `"more.<sourceID>"`. D-11: move the scroll modifier, add `diagramScrollID`, restore `.recordLinks` in the diagram host body. Write T-8, T-9.
-Check: T-8 and T-9 pass; AC-3.1 – AC-3.4 by hand, AC-3.4 at a width where the diagram stacks.
+Do: `.title(sourceID:)`, `hiddenSourceIDs`, `anchorTarget(for:)` per § Edges; D-8, D-10, D-11. Write T-8.
+Check: T-8 passes; AC-3.1, AC-3.2, AC-3.4 by hand, AC-3.4 also at a width where the diagram stacks.
 
 **STEP-6 — Field rows**
-Files: `macos/App/Features/Conclusions/ReconciledValueRow.swift`, `macos/ProvenenciaTests/ConclusionSectionAnchorTests.swift` *(new)*, from STEP-2.
-Do: D-12. `ConclusionDetailRowsSection` gets `scrollTarget`/`scrollRequest`, `.id(row.id)` on each row, `pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)` on its stack, and `.conclusionAnchorRestore(.detailRow, isReady: true)`. The arrow writes `.detailRow`. Write T-10.
-Check: T-10 passes; AC-4.1, AC-4.2 by hand.
+Files: `macos/App/Features/Conclusions/ReconciledValueRow.swift`, `macos/ProvenenciaTests/ConclusionAnchorRestoreTests.swift` *(new)*.
+Do: D-12, D-10, the scroll pair, `anchorTarget(rows:anchor:)` (a row with that id and `opens` → target `model.id` · `model.id`, else nil), the restore. Write T-9, T-10.
+Check: T-9 and T-10 pass; AC-4.1, AC-4.2 by hand.
 
 **STEP-7 — Pictures and related places**
 Files: `macos/App/Features/Conclusions/ConclusionGallerySection.swift`, `macos/App/Features/Conclusions/PlaceRelationshipRow.swift`.
-Do: the Gallery's no-viewer open writes `.picture`; `.conclusionAnchorRestore(.picture, isReady: true)` hands `.image(id)` through `FocusKeeper.hand` when `gallery.tiles` has it. `PlaceRelationshipRow` takes `anchorID: String` and writes `.related`; `ConclusionDetailRelationshipSection` gets `@FocusState focused: String?`, a scroll target, `.id(row.id)` and `.focused` on each row, and `.conclusionAnchorRestore(.related, isReady: true)`.
-Check: the app builds; AC-5.1, AC-5.2 by hand; the Person Gallery still opens the viewer and Back from it is unchanged.
+Do: per § macOS; D-10 on the relationship row.
+Check: the app builds; AC-5.1, AC-5.2 by hand (the focus ring visible on the relationship row); the Person Gallery still opens the viewer and Back from it is unchanged.
 
 **STEP-8 — Docs and version**
-Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (every `MARKETING_VERSION`), `.agents/skills/add-workspace-location/SKILL.md` (When-this-applies: scroll and focus stay ephemera except a page's anchor; Step 5 gains a paragraph on `sectionAnchor`, `go(to:from:)` and `conclusionAnchorRestore`), `docs/deployment-plan/archive/spike-3/navigation-history.md` (a "Section anchor" row beside "List scroll"), `docs/macos-client-patterns.md` ("One sectioned detail page": the Show more focuses through the section's stop; Back restores the opened row), `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan (status).
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (all four `MARKETING_VERSION`), `.agents/skills/add-workspace-location/SKILL.md` (When-this-applies: scroll and focus stay ephemera except a page's anchor; Step 5 gains a paragraph on `sectionAnchor`, `go(to:from:)`, `anchorTarget(for:)` and `conclusionAnchorRestore`), `docs/deployment-plan/archive/spike-3/navigation-history.md` (a "Section anchor" row beside "List scroll"), `docs/macos-client-patterns.md` ("One sectioned detail page": the Show more focuses through the section's stop; Back restores the opened row), `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (S16-46 row: Status), this plan (status).
 Do: bump the patch (0.23.3 → 0.23.4 at `f757b45`; the next patch of whatever `VERSION` holds at the branch's base) in all three places in one commit; then the docs per the Definition of done.
 Check: `rg -n "0\.23\.4" VERSION core/version.go macos/Provenencia.xcodeproj/project.pbxproj` finds each; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-46-section-anchor.md` and `python3 scripts/check-plan-docs.py --links .agents/skills/add-workspace-location/SKILL.md docs/macos-client-patterns.md` report no errors.
 
@@ -290,18 +298,17 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` `sectionAnchorStampsTheEntryBeingLeft` *(new)* | Attached navigation; go Person p1 (Family); `go(to: p2, sectionAnchor: "family:r-0-p2")` → current p2 has nil; Back → p1 has `"family:r-0-p2"`; Forward, Back → still; a second navigation on the same file reloads it with the anchor | AC-2.5, AC-6.1, D-2 |
-| T-2 | Swift | `WorkspaceNavigationTests.swift` `sectionAnchorIsNotIdentityAndRoundTrips` *(new)* | Two Person locations that differ only in `sectionAnchor` are `==`; encode → decode keeps `"family:x"`; `{"section":"persons","entityId":"p1"}` decodes with nil | AC-6.2, D-1 |
+| T-1 | Swift | `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` `sectionAnchorStampsTheEntryBeingLeft` *(new)* | Attached navigation; go Person p1; `go(to: p2, from: .init(part: .family, id: "r-0-p2"))` → p2 has nil; Back → p1 has that anchor; Forward, Back → still; go to the Places list by the sidebar, Back → p1 keeps it; a second navigation on the same file reloads it with the anchor | AC-2.5, AC-6.1, D-2 |
+| T-2 | Swift | `WorkspaceNavigationTests.swift` `sectionAnchorIsNotIdentityAndDecodesLeniently` *(new)* | Two Person locations differing only in `sectionAnchor` are `==`; encode → decode keeps `.family`/`"x"`/nil row and `.timeline`/`"e-p"`/`"e"`; `{"section":"persons","entityId":"p1"}`, `…"sectionAnchor":{"part":"zzz","id":"x"}` and `…"sectionAnchor":"family:x"` decode with nil and the rest of the entry intact | AC-6.2, D-1 |
 | T-3 | Swift | `WorkspaceNavigationTests.swift` `withPageSectionClearsTheSectionAnchor` *(new)* | A Family location with an anchor `.withPageSection(.timeline)` → nil | AC-6.3, D-3 |
-| T-4 | Swift | `WorkspaceNavigationTests.swift` `sectionAnchorSkipsACoalescedVisit` *(new)* | On p1, `go(to: p1, sectionAnchor: "family:x")` → no push, p1's anchor stays nil | D-2 |
-| T-5 | Swift | `macos/ProvenenciaTests/ConclusionSectionAnchorTests.swift` `storedFormParses` *(new)* | `"family:r-0-p2"` → `.family`, `"r-0-p2"`; `"sources:graph:c1"` → `.sources`, `"graph:c1"`; `"zzz:x"`, `"family:"`, `"family"`, `""`, nil → nil; `stored` round-trips each part | D-4 |
-| T-6 | Swift | `macos/ProvenenciaTests/PersonFamilyContentTests.swift` `anchorResolvesToTheTileOrItsFold` *(new)* | A partner group with 35 children: anchor on child 3's tile → that tile, scroll id the same; on child 33 → `moreID(.children(0))`; 31 partner groups, anchor on group 31's partner → `moreID(.partners)`; an unknown person id → nil; nil anchor → nil | AC-1.1, AC-1.2, AC-1.3 |
-| T-7 | Swift | `macos/ProvenenciaTests/PersonTimelineContentTests.swift` `anchorResolvesToTheRowCardOrFold` *(new)* | 60 dated events: anchor on event 30 → stop and scroll the event id; on event 55 → `"more.dated"`; a card on event 12 → the card, scroll event 12; at Regular, the 7th of 8 cards → `"more.<event>"`, scroll the event; at Wide the same anchor → the card; a card on event 55 → `"more.dated"`; an undated event past 50 → `"more.undated"`; a recorded birth's row → its event id; a card of a person no longer on the event → nil | AC-2.1 – AC-2.4, D-9 |
-| T-8 | Swift | `macos/ProvenenciaTests/PersonSourcesContentTests.swift` `anchorResolvesToTheTitleLineOrFold` *(new)* | `"source:s3"` shown → `.title(sourceID: "s3")`, scroll `"s3"`; a Source past 50 → `.more(.rows)`, `"more.rows"`; `"graph:c2"` shown → `.graph(claimID: "c2")`, `"c2"`; the 7th of 8 lines → `.more(.lines(sourceID:))`, `"more.<source>"`; a line of a Source past 50 → `.more(.rows)`; an unknown claim → nil | AC-3.1 – AC-3.3 |
-| T-9 | Swift | `PersonSourcesContentTests.swift` `focusAnchorIDRoundTrips` *(new)* | `.graph(claimID: "c1")` ↔ `"graph:c1"`, `.title(sourceID: "s1")` ↔ `"source:s1"`; `.unpromote`, `.node`, `.more` have no anchor id; `"x:1"` → nil | D-8 |
-| T-10 | Swift | `macos/ProvenenciaTests/ConclusionSectionAnchorTests.swift` `detailRowAnchorNeedsAnOpensRow` *(new)* | Rows birth (opens an Event) and name (no opens): `"birth"` → `"birth"`; `"name"` → nil; `"gone"` → nil | AC-4.1, AC-4.2, D-12 |
+| T-4 | Swift | `WorkspaceNavigationTests.swift` `sectionAnchorSkipsACoalescedVisit` *(new)* | On p1, `go(to: p1, from: …)` → no push, p1's anchor stays nil | D-2 |
+| T-6 | Swift | `macos/ProvenenciaTests/PersonFamilyContentTests.swift` `anchorResolvesToTheTileOrItsFold` *(new)* | A partner group with 35 children: child 3 → that tile; child 33 → `moreID(.children(0))`; 32 units: unit 31's partner and one of its children → `moreID(.partners)`; a one-parent unit's hidden child → `moreID(.children(i))`; a hidden parent set's second partner → `moreID(.parentSets)`; a hidden sibling → `moreID(.siblings)`; an unknown person → nil | AC-1.1, AC-1.2, AC-1.3 |
+| T-7 | Swift | `macos/ProvenenciaTests/PersonTimelineContentTests.swift` `anchorResolvesToTheRowCardOrFold` *(new)* | 60 dated events: event 30 → the event id · same; event 55 → `"more.dated"`; a card on event 12 → the card · event 12; at Regular the 7th of 8 cards → `"more.<event>"` · the event; at Wide the same anchor → the card; a card on event 55 → `"more.dated"`; an undated event past 50 → `"more.undated"`; a recorded birth's row → its event id; an unknown event → nil | AC-2.1 – AC-2.4, D-9 |
+| T-8 | Swift | `macos/ProvenenciaTests/PersonSourcesContentTests.swift` `anchorResolvesToTheTitleLineOrFold` *(new)* | `.sourceTitle` s3 shown → `.title(sourceID: "s3")` · `"s3"`; a Source past 50 → `.more(.rows)` · `"more.rows"`; `.sourceLine` c2 (row s1) shown → `.graph(claimID: "c2")` · `"c2"`; the 7th of 8 lines → `.more(.lines(sourceID: "s1"))` · `"more.s1"`; a line whose Source is past 50 → `.more(.rows)`; an unknown Source → nil | AC-3.1 – AC-3.3 |
+| T-9 | Swift | `macos/ProvenenciaTests/ConclusionAnchorRestoreTests.swift` `anchorPartsAreFrozen` *(new)* | `ConclusionSectionAnchor.Part.allCases.map(\.rawValue)` equals the eight names in D-1, in order | D-1 |
+| T-10 | Swift | `ConclusionAnchorRestoreTests.swift` `detailRowAnchorNeedsAnOpensRow` *(new)* | Rows birth (opens an Event) and name (no opens): `.detailRow` birth → `"birth"`; name → nil; an unknown id → nil; a `.family` anchor → nil | AC-4.1, AC-4.2, D-12 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `WorkspaceNavigationTests`, `PersonFamilyContentTests`, `PersonTimelineContentTests`, `PersonSourcesContentTests` (the content inits gain a defaulted parameter), and the Show more's keyboard paths (STEP-2's manual check).
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `WorkspaceNavigationTests` and the three content suites, and the Show more's keyboard paths (STEP-2's manual check). The fold-sized ACs (AC-1.2, AC-2.3, AC-2.4, AC-3.3) are proven by T-6 – T-8; the app shows the focus and scroll that the tests cannot.
 
 ## 9. Definition of done
 
@@ -326,33 +333,34 @@ The sweep's old name is `hasKeyboard` in `ConclusionShowMoreRow`. There is no br
 
 ## 10. Manual check
 
-Use a project with a person who has four children with one partner and a Timeline of at least 30 events (the dogfood project's Johann Weber family, or any family built to that shape), at Regular and at Wide.
+On a Mac, in a project with a person who has children and a Timeline with participants (any family the reviewer has; the fold cases are covered by T-6 – T-8), at Regular and at Wide.
 
-1. Person → Family → open the third child's tile. Back: that tile is in view and has the focus ring (AC-1.1). Press Tab: focus moves on from that tile.
-2. On a person with more than 30 children, Show more, open a child past 30, Back: the fold is closed and its Show more has the keyboard (AC-1.2).
-3. Timeline → scroll to the 30th row → open its title → Back (AC-2.1); Forward, Back (AC-2.5); open a participant card → Back (AC-2.2). At Regular, a row with more than 5 people: Show more, open the 7th, Back (AC-2.3).
-4. Sources → open a Source title → Back (AC-3.1); a graph line → Back (AC-3.2); a diagram node → Back, at Wide and at a width where the diagram stacks (AC-3.4).
-5. Vitals → Birth's open arrow → Back (AC-4.1). An Event page → Place arrow → Back (AC-4.2); a picture → Back (AC-5.1). A Place page → a Contains row → Back (AC-5.2).
-6. Repeat step 1, quit (⌘Q), relaunch, Back (AC-6.1). Switch Anna to Timeline: it opens at its top (AC-6.3). Open Anna from the omnibar: her page opens at its top (AC-6.4).
-7. On the child's page from step 1, delete or merge the child, then Back: Anna's Family at its top (AC-1.3).
+1. Person → Family → open a child's tile. Back: that tile is in view with the focus ring (AC-1.1). Tab moves on from it; Return opens it again.
+2. Timeline → scroll to a row far down → open its title → Back (AC-2.1); Forward, Back (AC-2.5); open a participant card → Back (AC-2.2).
+3. Sources → open a Source title → Back (AC-3.1); a graph line → Back (AC-3.2); a diagram node → Back, at Wide and at a width where the diagram stacks (AC-3.4).
+4. Vitals → Birth's open arrow → Back (AC-4.1). An Event page → Place arrow → Back (AC-4.2); a picture → Back (AC-5.1). A Place page → a Contains row → Back; the ring is visible (AC-5.2).
+5. Repeat step 1, quit (⌘Q), relaunch, Back (AC-6.1). Switch to Timeline: it opens at its top (AC-6.3). Open the person from the omnibar: the page opens at its top (AC-6.4).
+6. Open a child's tile, delete the child from the child's page, Back: the Family at its top (AC-1.3).
+7. Where the project has a fold (more than 30 tiles, 50 events, 5 or 12 people on an event, 5 record lines), open a row past it and Back: the fold's Show more has the keyboard (AC-1.2, AC-2.3, AC-2.4, AC-3.3).
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| A restore claims focus before the stop's view exists (Family before its width, Timeline before placement, the diagram after the rows) | `isReady` per site; the Timeline scrolls through `pendingReveal`; `FocusClaim` writes twice over two turns; the diagram restores from its own host body |
-| The page's top reset (`scrollResetKey`) runs after the restore's scroll on a section switch Back | The restore scrolls through a request token, one main-actor turn later than the reset's `onChange` |
+| A restore claims focus before the stop's view exists (Family before its width, Timeline before placement, the diagram after the rows) | `isReady` per site (D-13 for the Timeline); `FocusClaim` writes twice over two turns; the Timeline and Gallery hand through their keeper; the diagram restores from its own host body |
+| The page's top reset (`scrollResetKey`) runs after the restore's scroll on a section switch Back | The restore scrolls through a request token, one main-actor turn after the reset's `onChange` |
 | Moving focus to the Show more through the section's binding changes the keyboard path the fold had | STEP-2's manual check before any section work |
-| `FocusKeeper` in the Timeline treats `"more.<id>"` as not shown and pulls focus elsewhere | `lost` only falls back for a stop with a fallback; `row(holdingCard:)` returns nil for a Show more id |
+| The `.plain` relationship row draws no focus ring | STEP-7's check looks for it; a Stop condition below |
 
 **Stop and report if:**
 
-- `PlaceRegistry`'s `viewIdentity` for `.personDetail`, `.eventDetail` or `.placeDetail` is no longer `entityId`, so a page does not remount per entity (D-5 then restores once per page, not per arrival).
+- `PlaceRegistry`'s `viewIdentity` for `.personDetail`, `.eventDetail` or `.placeDetail` is no longer `entityId` (D-6 would then restore once per page, not per arrival).
 - A Conclusion page installs a `workspaceLeaveGuard` (D-2 stamps before the guard).
-- A focus claim on a restored stop does not land after both `FocusClaim` turns on a mounted section (measured: the stop's view exists and focus is still nil); D-10 then needs another writer.
-- The diagram's companion read draws a node whose `links.locations` lacks it, or the reverse.
+- A focus claim on a restored stop does not land after both `FocusClaim` turns on a mounted section (the stop's view exists and focus is still nil).
+- The relationship row shows no focus ring when it has the keyboard (AC-5.2 needs a style change, which is chrome).
+- The diagram draws a node whose `links.locations` lacks it, or the reverse.
 - A section needs a fold revealed to scroll or focus its anchor (D-9 refuses it).
-- `ConclusionShowMoreRow` has a seventh caller at the base.
+- `ConclusionShowMoreRow` or `ReconciledValueRow` has another caller at the base.
 
 ## 12. Open questions
 
