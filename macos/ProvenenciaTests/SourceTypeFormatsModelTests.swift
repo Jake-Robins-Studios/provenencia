@@ -145,7 +145,7 @@ struct SourceTypeFormatsModelTests {
 
     // MARK: Warnings and count (T-8)
 
-    @Test func aWarningShowsOnlyWhileTheDraftIsTheTextItWasFoundIn() async {
+    @Test func aWarningStaysStaleAfterAnEditUntilTheNextReplyReplacesIt() async {
         let unclosed = CatalogCitationDiagnostic(form: .short, code: "unclosed_group", utf8Start: 0, utf8End: 1)
         let (model, store, _) = await makeModel(
             formats: CatalogCitationFormats(typeID: "t1", full: "", short: "[x", list: ""),
@@ -153,10 +153,19 @@ struct SourceTypeFormatsModelTests {
         )
         store.previewReplies[.short] = CatalogCitationPreview(diagnostics: [unclosed])
         model.rerenderAll()
-        #expect(await waitFor { model.render(.short) != nil && !model.isRendering })
-        #expect(model.shownDiagnostics(.short).count == 1)
+        #expect(await waitFor { !model.isRendering })
+        #expect(model.shownDiagnostics(.short) == [unclosed])
+        #expect(!model.areDiagnosticsStale(.short))
+
+        // The reply for the next draft has no warning: until it lands the last one stays, stale.
+        store.previewReplies[.short] = CatalogCitationPreview(diagnostics: [])
         model.edit(.short, text: "[xy")
+        #expect(model.shownDiagnostics(.short) == [unclosed])
+        #expect(model.areDiagnosticsStale(.short))
+
+        #expect(await waitFor { !model.isRendering })
         #expect(model.shownDiagnostics(.short).isEmpty)
+        #expect(!model.areDiagnosticsStale(.short))
     }
 
     @Test func aSpanIsUTF8BytesAndRefusesOneOffACharacterBoundary() {

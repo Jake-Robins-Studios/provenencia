@@ -137,6 +137,7 @@ private struct SourceTypeFormatEditor: View {
     var body: some View {
         let editable = formats.isEditable
         let shown = formats.shownDiagnostics(form)
+        let stale = formats.areDiagnosticsStale(form)
         PVSubsectionHeader(
             title: L10n.CitationFormats.formTitle(form),
             meta: editable ? countText : nil,
@@ -155,7 +156,8 @@ private struct SourceTypeFormatEditor: View {
                     textArea(isInvalid: !shown.isEmpty)
                     ForEach(Array(shown.enumerated()), id: \.offset) { index, diagnostic in
                         SourceTypeFormatWarning(
-                            form: form, index: index, diagnostic: diagnostic, model: model, cursor: cursor
+                            form: form, index: index, diagnostic: diagnostic, model: model, cursor: cursor,
+                            isStale: stale
                         )
                     }
                 } else {
@@ -300,9 +302,16 @@ private struct SourceTypeFormatWarning: View {
     let diagnostic: CatalogCitationDiagnostic
     let model: SourceTypePageModel
     let cursor: PVTextAreaCursor
+    /// The warning was found in text the draft has moved off: it shows dimmed and does nothing, since
+    /// its span means nothing in the new text, until the next reply replaces it.
+    let isStale: Bool
+
+    /// The dimming of a stale warning, as the combo box dims a disabled row.
+    private static let staleOpacity = 0.42
 
     private var formats: SourceTypeFormatsModel { model.formats }
-    private var text: String { formats.draft(form) }
+    /// The text the warning was found in: its span is bytes of this, not of a newer draft.
+    private var text: String { formats.diagnosedText(form) }
     private var range: Range<String.Index>? { diagnostic.range(in: text) }
 
     private var quote: String {
@@ -313,7 +322,7 @@ private struct SourceTypeFormatWarning: View {
 
     private var message: String {
         let code = CitationDiagnosticCode(rawValue: diagnostic.code)
-        return L10n.CitationFormats.diagnostic(code, key: quote, characters: formats.count(form))
+        return L10n.CitationFormats.diagnostic(code, key: quote, characters: text.unicodeScalars.count)
     }
 
     private var line: String {
@@ -322,7 +331,7 @@ private struct SourceTypeFormatWarning: View {
 
     /// Selects the text the warning is about, in the format.
     private func selectQuote() {
-        if let range { cursor.select(NSRange(range, in: text)) }
+        if !isStale, let range { cursor.select(NSRange(range, in: text)) }
     }
 
     var body: some View {
@@ -347,6 +356,8 @@ private struct SourceTypeFormatWarning: View {
                 sharedKeySelect(key: quote)
             }
         }
+        .opacity(isStale ? Self.staleOpacity : 1)
+        .disabled(isStale)
     }
 
     /// The fields that hold the key, as the engine listed them for this form.

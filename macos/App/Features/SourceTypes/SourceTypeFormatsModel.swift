@@ -100,7 +100,7 @@ final class SourceTypeFormatsModel {
     private(set) var fieldChoices: [String: String] = [:]
     private var placeholdersByForm: [CitationForm: [CatalogCitationPlaceholder]] = [:]
 
-    /// A form's warnings, with the text they were found in: they show only while the draft is that text.
+    /// A form's warnings, with the text they were found in: they are stale once the draft moves off that text.
     private struct Diagnosed: Equatable {
         var text: String
         var diagnostics: [CatalogCitationDiagnostic]
@@ -229,10 +229,21 @@ final class SourceTypeFormatsModel {
 
     // MARK: Warnings and count
 
-    /// The form's warnings while the draft is the text they were found in; none for a locked type.
+    /// The form's last warnings, until the reply for its next draft replaces them; none for a locked type.
     func shownDiagnostics(_ form: CitationForm) -> [CatalogCitationDiagnostic] {
-        guard isEditable, let found = diagnosed[form], found.text == draft(form) else { return [] }
+        guard isEditable, let found = diagnosed[form] else { return [] }
         return found.diagnostics
+    }
+
+    /// The text the form's shown warnings were found in (their spans are bytes of it): the draft
+    /// itself unless the draft has moved on.
+    func diagnosedText(_ form: CitationForm) -> String { diagnosed[form]?.text ?? draft(form) }
+
+    /// True while the shown warnings were found in text the draft has moved off: they are kept for
+    /// the eye, and nothing acts on their spans.
+    func areDiagnosticsStale(_ form: CitationForm) -> Bool {
+        guard let found = diagnosed[form] else { return false }
+        return found.text != draft(form)
     }
 
     /// The draft's length in Unicode scalars, which is how the engine counts.
