@@ -53,3 +53,11 @@ None.
 
 ### M-5 · nit · Test helpers that return the changes as their value
 **Answer:** Logged — legitimate uses of `Run`'s value; not this PR.
+
+## Round 2
+
+### X-8 · minor · STEP-7 leaves `add-seeded-vocabulary` line 95 naming `writes.Call`
+**Answer:** Fixed — STEP-7 names lines 89 and 95; its check adds `rg -n "writes\.Call" .agents .cursor` (no hit).
+
+### X-9 · nit · D-5 typo
+**Answer:** Fixed.
