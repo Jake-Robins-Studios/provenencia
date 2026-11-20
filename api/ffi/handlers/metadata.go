@@ -339,11 +339,16 @@ func requirementProto(a sourcemetadata.Annotation) *engine.CitationRequirement {
 	}
 	out := &engine.CitationRequirement{Need: need, MetElsewhere: a.MetElsewhere}
 	for _, alt := range a.Alternatives {
-		opt := &engine.CitationRequirementOption{Level: string(alt.Level), Builtin: alt.Builtin}
-		if alt.Field != nil {
-			opt.Field = metadataFieldProto(*alt.Field)
-		}
-		out.Alternatives = append(out.Alternatives, opt)
+		out.Alternatives = append(out.Alternatives, citationOptionProto(alt))
 	}
 	return out
+}
+
+// citationOptionProto is one option of a chain on the wire.
+func citationOptionProto(alt sourcemetadata.Alternative) *engine.CitationRequirementOption {
+	opt := &engine.CitationRequirementOption{Level: string(alt.Level), Builtin: alt.Builtin}
+	if alt.Field != nil {
+		opt.Field = metadataFieldProto(*alt.Field)
+	}
+	return opt
 }

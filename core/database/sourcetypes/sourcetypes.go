@@ -13,6 +13,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/slug"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/google/uuid"
@@ -34,23 +35,44 @@ var ErrInUse = apperr.New(apperr.CodeSourceTypesInUse, apperr.KindConflict)
 // ErrOriginLocked is returned by Delete when the type is plugin-origin.
 var ErrOriginLocked = apperr.New(apperr.CodeSourceTypesOriginLocked, apperr.KindConflict)
 
+// The type reads build their column list once, columns, and scan it once,
+// scanType.
+var (
+	sqlList = `SELECT ` + columns("t") + `,
+			(` + sqlSuggestedFields + `t.id)
+		FROM source_types t ORDER BY t.label COLLATE NOCASE, t.origin, t.key`
+	sqlLookup  = `SELECT ` + columns("") + ` FROM source_types WHERE key = ? AND origin = ?`
+	sqlGetByID = `SELECT ` + columns("") + ` FROM source_types WHERE id = ?`
+	// Binds: ids, in sqlbatch batches.
+	sqlGetIn = `SELECT ` + columns("") + ` FROM source_types WHERE id IN (`
+)
+
+// columns is the six source_types columns scanType reads, each prefixed with
+// alias and a dot when alias is not empty.
+func columns(alias string) string {
+	return database.Columns(alias, "id", "key", "origin", "label", "description|COALESCE(%s, '')", "icon_key")
+}
+
+// scanType scans the columns list, then extra destinations.
+func scanType(row database.Scanner, extra ...any) (Type, error) {
+	var t Type
+	dest := append([]any{&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey}, extra...)
+	if err := row.Scan(dest...); err != nil {
+		return Type{}, err
+	}
+	return t, nil
+}
+
 const (
 	// sqlInsert is the one insert of a new type with its citation formats.
 	sqlInsert = `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	sqlLookup = `SELECT id, key, origin, label, COALESCE(description, ''), icon_key
-		FROM source_types WHERE key = ? AND origin = ?`
-	sqlGetByID = `SELECT id, key, origin, label, COALESCE(description, ''), icon_key
-		FROM source_types WHERE id = ?`
 	// sqlSuggestedFields counts the fields a type suggests at all three
 	// levels (a field at two levels counts twice); the type id follows it. It
 	// is the one place the rule for which suggestions count lives.
 	sqlSuggestedFields = `SELECT COUNT(*) FROM source_type_metadata_fields j WHERE j.source_type_id = `
-	sqlList            = `SELECT t.id, t.key, t.origin, t.label, COALESCE(t.description, ''), t.icon_key,
-			(` + sqlSuggestedFields + `t.id)
-		FROM source_types t ORDER BY t.label COLLATE NOCASE, t.origin, t.key`
-	sqlUpdate = `UPDATE source_types SET label = ?, description = ?, icon_key = ? WHERE id = ?`
-	sqlDelete = `DELETE FROM source_types WHERE id = ?`
+	sqlUpdate          = `UPDATE source_types SET label = ?, description = ?, icon_key = ? WHERE id = ?`
+	sqlDelete          = `DELETE FROM source_types WHERE id = ?`
 )
 
 // Type is one source_types row.
@@ -199,14 +221,7 @@ func Lookup(c *database.Catalog, key, origin string) (Type, error) {
 	if key == "" || origin == "" {
 		return Type{}, ErrInvalid
 	}
-	var t Type
-	err = db.QueryRow(sqlLookup, key, origin).Scan(
-		&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey,
-	)
-	if err != nil {
-		return Type{}, err
-	}
-	return t, nil
+	return scanType(db.QueryRow(sqlLookup, key, origin))
 }
 
 // List returns all source_types rows, each with its UsedBy total, read in one
@@ -227,14 +242,13 @@ func List(c *database.Catalog) ([]Type, error) {
 	}
 	var out []Type
 	for rows.Next() {
-		var t Type
-		if err := rows.Scan(
-			&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey,
-			&t.SuggestedFields,
-		); err != nil {
+		var suggested int
+		t, err := scanType(rows, &suggested)
+		if err != nil {
 			rows.Close()
 			return nil, err
 		}
+		t.SuggestedFields = suggested
 		out = append(out, t)
 	}
 	if err := rows.Close(); err != nil {
@@ -361,14 +375,7 @@ func GetByID(c *database.Catalog, id []byte) (Type, error) {
 	if len(id) != 16 {
 		return Type{}, ErrInvalid
 	}
-	var t Type
-	err = db.QueryRow(sqlGetByID, id).Scan(
-		&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey,
-	)
-	if err != nil {
-		return Type{}, err
-	}
-	return t, nil
+	return scanType(db.QueryRow(sqlGetByID, id))
 }
 
 // SuggestedFields reports how many fields the type suggests at all three
@@ -459,17 +466,32 @@ func GetByIDTx(tx *sql.Tx, id []byte) (Type, error) {
 }
 
 func getByIDTx(tx *sql.Tx, id []byte) (Type, error) {
-	var t Type
-	err := tx.QueryRow(sqlGetByID, id).Scan(
-		&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey,
-	)
-	return t, err
+	return scanType(tx.QueryRow(sqlGetByID, id))
+}
+
+// GetManyTx returns the types with the given ids, keyed by string(id). A
+// repeated id counts once and an id with no type is absent; no ids returns an
+// empty map and runs no query. UsedBy and SuggestedFields are left 0.
+func GetManyTx(tx *sql.Tx, ids [][]byte) (map[string]Type, error) {
+	ids = database.UniqueBlobIDs(ids)
+	out := make(map[string]Type, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	err := sqlbatch.Query(tx, sqlGetIn, ")", nil, ids, func(rows *sql.Rows) error {
+		t, err := scanType(rows)
+		if err != nil {
+			return err
+		}
+		out[string(t.ID)] = t
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func lookupTx(tx *sql.Tx, key, origin string) (Type, error) {
-	var t Type
-	err := tx.QueryRow(sqlLookup, key, origin).Scan(
-		&t.ID, &t.Key, &t.Origin, &t.Label, &t.Description, &t.IconKey,
-	)
-	return t, err
+	return scanType(tx.QueryRow(sqlLookup, key, origin))
 }

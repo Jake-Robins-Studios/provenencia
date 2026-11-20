@@ -84,3 +84,23 @@ func TestForms(t *testing.T) {
 		}
 	}
 }
+
+func TestBuiltinTargets(t *testing.T) {
+	targets := []citationformat.Target{
+		citationformat.SourceTitle, citationformat.SourceType, citationformat.SourceDate,
+		citationformat.ArtifactLabel, citationformat.GraphName,
+		citationformat.CitationPage, citationformat.CitationImage, citationformat.CitationLabel,
+	}
+	seen := map[citationformat.Target]bool{}
+	for _, tg := range targets {
+		if _, ok := citationformat.LookupBuiltin(tg.Level, tg.Builtin); !ok {
+			t.Errorf("%v is not in Builtins()", tg)
+		}
+		seen[tg] = true
+	}
+	for _, b := range citationformat.Builtins() {
+		if !seen[citationformat.Target{Level: b.Level, Builtin: b.Name}] {
+			t.Errorf("%s.%s has no exported target", b.Level, b.Name)
+		}
+	}
+}

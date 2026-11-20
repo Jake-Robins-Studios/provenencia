@@ -1,6 +1,6 @@
 # S15-16 — Citations render through their type's formats
 
-**Status:** Planned
+**Status:** Landed in [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire and three Swift parity enums; no view draws a rendered citation until S15-17, S15-21, S15-22 and S15-23)
@@ -439,3 +439,20 @@ None.
 
 **Title:** S15-16 — Citations render through their type's formats
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-16-citations-render.md`.
+
+## Landed
+
+Where the code differs from the plan:
+
+- **T-9's chain** is `{graph.meta.piece|source.meta.volume}`, not `{graph.meta.item|source.meta.item}`: the test world's graph holds `item` (AC-1.1), so the chain is empty on both levels only with fields the world leaves unset.
+- **D-3's `sourcetypes.List`** scans into a local `suggested` and assigns `t.SuggestedFields` after `scanType`, because `scanType` takes the extra destination as a trailing column.
+- **Unplanned helper `labelTypes`** (`citationrender/load.go`) sets each subject's type label from one `sourcetypes.GetManyTx` read, shared by the batch and preview loads.
+- **Unplanned test `TestRenderCensus`** (`citationrender/render_test.go`) renders AC-1.1's census Source and Citation and checks the runs.
+- **§10 manual check:** none; the two commands there are tests.
+- **`database.Columns`** (fix round 1) is the one alias-aware column list helper. `citations.columns`, `sourcetypes.columns` and `metadatafields.Columns` are each one call on it, which supersedes D-3's "shaped like `metadatafields.Columns`" per-package copies.
+- **`sourcemetadata.OwnerRows`** (`GroupByOwner`, `Of`) groups stored rows by owner for both the boards and `fillValues`; `fillValues` no longer has its own `ownerKey` grouping.
+- **Built-in targets** are exported from `citationformat` (`SourceTitle`, `SourceType`, `SourceDate`, `ArtifactLabel`, `GraphName`, `CitationPage`, `CitationImage`, `CitationLabel`), held to `Builtins()` by `TestBuiltinTargets`; `dateHead`, `pageHead` and `builtin()` are gone.
+- **`citationformat.Options()`** lists the options beside `Forms()`; the Swift parity row for citation options reads it.
+- **`fieldIDsByKey`** (`api/ffi/handlers/harness_test.go`) is the one field key-to-id test helper; `newRenderWorld` looks the ids up once.
+- **D-9 superseded (user, 2026-11-19):** a preview of a Citation that is not in the catalog returns `citations.not_found` (new `citations.ErrNotFound`, `KindNotFound`, mapped to "This citation no longer exists."), not `citations.ErrInvalid`, matching a missing Source's `sources.not_found`. This changes AC-2.6's Citation outcome and § FFI's error line; other `citations` paths keep `ErrInvalid`.
+- **Two format limits (user, 2026-11-19):** `citationformat.MaxFormatChars = 4000` is the limit the researcher sees, counted in Unicode code points; `ToStored` refuses a form typed over it with `too_long` over the whole text. `MaxFormatBytes` is now `8 << 10`, the parse limit on any text (it was 4,096): the margin over 4,000 characters covers the growth when keys become `#<uuid>` (44 placeholders × 36 bytes, from the seeds), and `ToStored` also refuses a form whose stored text passes it, `too_long` over the typed text. Swift mirrors the first as `CitationFormatLimit.maxCharacters` (parity row in `TestSwiftVocabularyMatchesGo`). This replaces the format engine's single 4,096-byte limit.

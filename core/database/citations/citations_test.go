@@ -3,6 +3,7 @@ package citations
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -841,5 +842,102 @@ func TestCitations(t *testing.T) {
 func createCitation(c *database.Catalog, userID []byte, in CreateInput, obs []observations.Input) (CreateResult, error) {
 	return writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (CreateResult, []rowchange.Change, error) {
 		return CreateWithObservations(tx, userID, in, obs)
+	})
+}
+
+func TestListCitedTx(t *testing.T) {
+	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	ur, err := ref.Mint(ref.PrefixUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := users.Upsert(c, userID, "Tester", ur); err != nil {
+		t.Fatal(err)
+	}
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
+		return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: "Family Bible"})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	art, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Scan"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	graph := evidencegraphstest.SoleGraph(t, c, src.ID)
+	locatorJSON := `{"version":1,"selectors":[{"type":"page","page_label":"10"}]}`
+	var cits []Citation
+	for _, label := range []string{"first", "second"} {
+		res, err := createCitation(c, userID, CreateInput{GraphID: graph.ID, ArtifactID: art.ID, LocatorJSON: locatorJSON, Label: label}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cits = append(cits, res.Citation)
+	}
+	db := dbtest.MustDB(t, c)
+	listCited := func(ids [][]byte) (map[string]Cited, error) {
+		tx, err := db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		return ListCitedTx(tx, ids)
+	}
+
+	t.Run("each Citation with its Artifact, graph and Source", func(t *testing.T) {
+		got, err := listCited([][]byte{cits[0].ID, cits[1].ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 2 {
+			t.Fatalf("got %d, want 2: %+v", len(got), got)
+		}
+		for _, want := range cits {
+			g := got[string(want.ID)]
+			if !reflect.DeepEqual(g.Citation, want) || g.ArtifactLabel != "Scan" || g.GraphName != graph.Name || !bytes.Equal(g.SourceID, src.ID) {
+				t.Errorf("%s = %+v, want %+v with Artifact Scan, graph %q, Source %x", want.Ref, g, want, graph.Name, src.ID)
+			}
+		}
+	})
+	t.Run("a repeated id once and a missing id absent", func(t *testing.T) {
+		got, err := listCited([][]byte{cits[0].ID, cits[0].ID, make([]byte, 16)})
+		if err != nil || len(got) != 1 {
+			t.Fatalf("got %+v, %v; want one entry", got, err)
+		}
+	})
+	t.Run("no ids", func(t *testing.T) {
+		got, err := listCited(nil)
+		if err != nil || got == nil || len(got) != 0 {
+			t.Fatalf("got %+v, %v; want an empty map", got, err)
+		}
+	})
+	t.Run("a Citation whose Artifact row is gone reads an empty label", func(t *testing.T) {
+		// The catalog holds one connection, so the pragma is set outside any
+		// transaction.
+		if _, err := db.Exec(`PRAGMA foreign_keys=OFF`); err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _, _ = db.Exec(`PRAGMA foreign_keys=ON`) }()
+		gone := bytes.Repeat([]byte{9}, 16)
+		if _, err := db.Exec(`UPDATE citations SET artifact_id = ? WHERE id = ?`, gone, cits[1].ID); err != nil {
+			t.Fatal(err)
+		}
+		got, err := listCited([][]byte{cits[1].ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, ok := got[string(cits[1].ID)]
+		if !ok || g.ArtifactLabel != "" || g.GraphName != graph.Name || !bytes.Equal(g.ArtifactID, gone) {
+			t.Fatalf("got %+v, want the Citation with no Artifact label", g)
+		}
 	})
 }

@@ -65,7 +65,7 @@ func TestNeedsAt(t *testing.T) {
 				t.Errorf("order = %v, want %v", ln.order, tt.order)
 			}
 			var page citationformat.Need
-			for _, ch := range ln.builtinHeads[pageHead] {
+			for _, ch := range ln.builtinHeads[citationformat.CitationPage] {
 				page = page.Max(ch.Need)
 			}
 			if page != tt.page {
@@ -93,48 +93,59 @@ func TestAnnotate(t *testing.T) {
 	}
 	y := 1890
 	dated := datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y}
+	// values builds the resolver of a graph board: the graph's own rows, the
+	// Source's rows and the Source's date.
+	values := func(own, source map[string]Row, date *citationformat.Value) CitationValues {
+		v := CitationValues{
+			Rows:   map[vocabkey.Level]map[string]Row{vocabkey.LevelGraph: own, vocabkey.LevelSource: source},
+			Fields: fields,
+		}
+		if date != nil {
+			v.Builtins = map[citationformat.Target]citationformat.Value{citationformat.SourceDate: *date}
+		}
+		return v
+	}
 
 	tests := []struct {
 		name   string
 		chains []citationformat.Requirement
 		head   citationformat.Target
-		values ownerValues
+		values CitationValues
 		want   Annotation
 	}{
 		{name: "the Source answers", chains: graphChain, head: head,
-			values: ownerValues{level: vocabkey.LevelGraph, source: row("14", valuemark.Mark{})},
+			values: values(nil, row("14", valuemark.Mark{}), nil),
 			want: Annotation{Need: citationformat.NeedNeeded, MetElsewhere: true,
 				Alternatives: []Alternative{{Level: vocabkey.LevelSource, Field: &field}}}},
 		{name: "the Source value is unknown", chains: graphChain, head: head,
-			values: ownerValues{level: vocabkey.LevelGraph, source: row("", valuemark.Mark{Unknown: true})},
+			values: values(nil, row("", valuemark.Mark{Unknown: true}), nil),
 			want: Annotation{Need: citationformat.NeedNeeded, MetElsewhere: true,
 				Alternatives: []Alternative{{Level: vocabkey.LevelSource, Field: &field}}}},
 		{name: "nothing answers", chains: graphChain, head: head,
-			values: ownerValues{level: vocabkey.LevelGraph},
+			values: values(nil, nil, nil),
 			want: Annotation{Need: citationformat.NeedNeeded,
 				Alternatives: []Alternative{{Level: vocabkey.LevelSource, Field: &field}}}},
 		{name: "the head's own value does not answer for it", chains: graphChain, head: head,
-			values: ownerValues{level: vocabkey.LevelGraph, own: row("9", valuemark.Mark{})},
+			values: values(row("9", valuemark.Mark{}), nil, nil),
 			want: Annotation{Need: citationformat.NeedNeeded,
 				Alternatives: []Alternative{{Level: vocabkey.LevelSource, Field: &field}}}},
 		{name: "a built-in answers", chains: chainsOf(t, "{graph.meta."+tok+"|source.date}."), head: head,
-			values: ownerValues{level: vocabkey.LevelGraph, date: citationformat.Value{Date: &dated}},
+			values: values(nil, nil, &citationformat.Value{Date: &dated}),
 			want: Annotation{Need: citationformat.NeedNeeded, MetElsewhere: true,
 				Alternatives: []Alternative{{Level: vocabkey.LevelSource, Builtin: "date"}}}},
 		{name: "a one-option chain is not met", chains: chainsOf(t, "{graph.meta."+tok+"}."), head: head,
-			values: ownerValues{level: vocabkey.LevelGraph, own: row("9", valuemark.Mark{})},
+			values: values(row("9", valuemark.Mark{}), nil, nil),
 			want:   Annotation{Need: citationformat.NeedNeeded}},
 		{name: "a used head carries no answer", chains: chainsOf(t, "[{graph.meta."+tok+"|source.meta."+tok+"}]"), head: head,
-			values: ownerValues{level: vocabkey.LevelGraph},
+			values: values(nil, nil, nil),
 			want:   Annotation{Need: citationformat.NeedUsed}},
-		{name: "a head no format reads is none", chains: nil, head: head, values: ownerValues{level: vocabkey.LevelGraph}},
+		{name: "a head no format reads is none", chains: nil, head: head, values: values(nil, nil, nil)},
 		{name: "a later option with no row is left out", chains: chainsOf(t, "{graph.meta."+tok+"|source.meta.#"+uuid.NewString()+"}."), head: head,
-			values: ownerValues{level: vocabkey.LevelGraph},
+			values: values(nil, nil, nil),
 			want:   Annotation{Need: citationformat.NeedNeeded}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.values.fields = fields
 			ln := needsAt(tt.chains, tt.head.Level)
 			if got := annotate(ln, tt.head, tt.values, fields); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("annotation\n got %+v\nwant %+v", got, tt.want)
@@ -145,7 +156,7 @@ func TestAnnotate(t *testing.T) {
 	t.Run("the Source date head", func(t *testing.T) {
 		chains := chainsOf(t, "{source.date:year}.")
 		ln := needsAt(chains, vocabkey.LevelSource)
-		got := annotate(ln, dateHead, ownerValues{level: vocabkey.LevelSource}, fields)
+		got := annotate(ln, citationformat.SourceDate, CitationValues{Rows: map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: nil}, Fields: fields}, fields)
 		if got.Need != citationformat.NeedNeeded || got.MetElsewhere {
 			t.Errorf("undated = %+v", got)
 		}
@@ -167,5 +178,84 @@ func TestCitationValues(t *testing.T) {
 	}
 	if got := sources.CitationDate(sources.Source{DateMark: valuemark.Mark{Unknown: true}}); got.Date != nil || !got.Mark.Unknown {
 		t.Errorf("CitationDate of an unknown date = %+v", got)
+	}
+}
+
+func TestCitationValuesResolve(t *testing.T) {
+	a := uuid.New()
+	loaded := metadatafields.Field{ID: a[:], Key: "line_number", UnknownText: "n.l."}
+	b := uuid.New()
+	y := 1890
+	dated := citationformat.Value{Date: &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y}}
+	rows := func(text string) map[string]Row {
+		return map[string]Row{string(a[:]): {FieldID: a[:], ValueText: text, Mark: valuemark.Mark{Supplied: true}}}
+	}
+	values := CitationValues{
+		Rows: map[vocabkey.Level]map[string]Row{
+			vocabkey.LevelGraph:  rows("9"),
+			vocabkey.LevelSource: {string(b[:]): {FieldID: b[:], ValueText: "x"}},
+		},
+		Fields:   map[string]metadatafields.Field{string(a[:]): loaded},
+		Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: dated},
+	}
+	tests := []struct {
+		name   string
+		target citationformat.Target
+		want   citationformat.Value
+	}{
+		{"a field at a level with a row", fieldTarget(vocabkey.LevelGraph, a),
+			citationformat.Value{Text: "9", Mark: valuemark.Mark{Supplied: true}, UnknownText: "n.l."}},
+		{"a field with no row at that level", fieldTarget(vocabkey.LevelArtifact, a), citationformat.Value{}},
+		{"a field whose row did not load answers with no unknown text", fieldTarget(vocabkey.LevelSource, b),
+			citationformat.Value{Text: "x"}},
+		{"a field named by key", citationformat.Target{Level: vocabkey.LevelGraph, Field: citationformat.FieldRef{Key: "line_number"}}, citationformat.Value{}},
+		{"a built-in that is set", citationformat.SourceDate, dated},
+		{"a built-in that is not", citationformat.CitationPage, citationformat.Value{}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := values.Resolve(tt.target); got != tt.want {
+				t.Errorf("Resolve = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+
+	t.Run("a Source-level owner answers source fields", func(t *testing.T) {
+		v := CitationValues{
+			Rows:   map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rows("7")},
+			Fields: map[string]metadatafields.Field{string(a[:]): loaded},
+		}
+		if got := v.Resolve(fieldTarget(vocabkey.LevelSource, a)); got.Text != "7" {
+			t.Errorf("Resolve = %+v", got)
+		}
+	})
+}
+
+func TestAppendOptions(t *testing.T) {
+	a, b := uuid.New(), uuid.New()
+	field := metadatafields.Field{ID: a[:], Key: "line_number"}
+	fields := map[string]metadatafields.Field{string(a[:]): field}
+	date := citationformat.Target{Level: vocabkey.LevelSource, Builtin: "date"}
+	targets := []citationformat.Target{
+		date,
+		fieldTarget(vocabkey.LevelGraph, a),
+		fieldTarget(vocabkey.LevelSource, b),
+		{Level: vocabkey.LevelGraph, Field: citationformat.FieldRef{Key: "line_number"}},
+		citationformat.CitationPage,
+	}
+	seen := map[citationformat.Target]bool{citationformat.CitationPage: true}
+	got := AppendOptions(nil, seen, targets, fields)
+	want := []Alternative{
+		{Level: vocabkey.LevelSource, Builtin: "date"},
+		{Level: vocabkey.LevelGraph, Field: &field},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("AppendOptions\n got %+v\nwant %+v", got, want)
+	}
+	if !seen[date] || !seen[fieldTarget(vocabkey.LevelGraph, a)] {
+		t.Errorf("seen = %v, want every target marked", seen)
+	}
+	if again := AppendOptions(nil, seen, targets, fields); len(again) != 0 {
+		t.Errorf("second call = %+v, want none: every target was seen", again)
 	}
 }

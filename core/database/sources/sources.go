@@ -19,6 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/filederivatives"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuecompare"
@@ -55,7 +56,9 @@ const (
 	// sqlList's outer query has one table.
 	sqlColumns = `id, ref, source_type_id, title, COALESCE(description, ''),
 		cover_mode, primary_artifact_id, date_value_id, is_public, date_unknown, date_supplied`
-	sqlGet      = `SELECT ` + sqlColumns + ` FROM sources WHERE id = ?`
+	sqlGet = `SELECT ` + sqlColumns + ` FROM sources WHERE id = ?`
+	// Binds: ids, in sqlbatch batches.
+	sqlGetIn    = `SELECT ` + sqlColumns + ` FROM sources WHERE id IN (`
 	sqlGetByRef = `SELECT ` + sqlColumns + ` FROM sources WHERE ref = ?`
 	// Newest-first by UUIDv7 id (create time). The Source's last activity is not
 	// here: List reads it from the display cache (Graph.Activity), so no list
@@ -663,6 +666,36 @@ func GetTx(tx *sql.Tx, id []byte) (Source, error) {
 
 func getTx(tx *sql.Tx, id []byte) (Source, error) {
 	return getOne(tx, sqlGet, id)
+}
+
+// GetManyTx returns the Sources with the given ids with their settled dates,
+// keyed by string(id). A repeated id counts once and an id with no Source is
+// absent; no ids returns an empty map and runs no query.
+func GetManyTx(tx *sql.Tx, ids [][]byte) (map[string]Source, error) {
+	ids = database.UniqueBlobIDs(ids)
+	out := make(map[string]Source, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	var found []Source
+	err := sqlbatch.Query(tx, sqlGetIn, ")", nil, ids, func(rows *sql.Rows) error {
+		s, err := scanSource(rows)
+		if err != nil {
+			return err
+		}
+		found = append(found, s)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := fillDates(tx, found); err != nil {
+		return nil, err
+	}
+	for _, s := range found {
+		out[string(s.ID)] = s
+	}
+	return out, nil
 }
 
 // getOne reads one Source by the query's key and fills its date. A missing

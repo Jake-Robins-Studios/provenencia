@@ -22,6 +22,19 @@ type Builtin struct {
 	UnknownText string
 }
 
+// The target of each built-in, for code that sets or reads one's value. The
+// table below is the one declaration; a test holds these to it.
+var (
+	SourceTitle   = Target{Level: vocabkey.LevelSource, Builtin: "title"}
+	SourceType    = Target{Level: vocabkey.LevelSource, Builtin: "type"}
+	SourceDate    = Target{Level: vocabkey.LevelSource, Builtin: "date"}
+	ArtifactLabel = Target{Level: vocabkey.LevelArtifact, Builtin: "label"}
+	GraphName     = Target{Level: vocabkey.LevelGraph, Builtin: "name"}
+	CitationPage  = Target{Level: vocabkey.LevelCitation, Builtin: "page"}
+	CitationImage = Target{Level: vocabkey.LevelCitation, Builtin: "image"}
+	CitationLabel = Target{Level: vocabkey.LevelCitation, Builtin: "label"}
+)
+
 var builtins = []Builtin{
 	{Level: vocabkey.LevelSource, Name: "title", AlwaysSet: true},
 	{Level: vocabkey.LevelSource, Name: "type", AlwaysSet: true},

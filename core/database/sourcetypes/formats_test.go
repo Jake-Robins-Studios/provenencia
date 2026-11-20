@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
@@ -340,6 +341,91 @@ func TestUpdateFormats(t *testing.T) {
 		if want := "{source.meta." + idToken(f.pubProduct) + "}"; got.Full != want {
 			t.Fatalf("stored %q, want %q", got.Full, want)
 		}
+	})
+}
+
+// TestToStoredLimits: the researcher's limit counts characters of the typed
+// text (4,000); the stored text, once keys are swapped for ids, is held to the
+// parse limit in bytes (8,192).
+func TestToStoredLimits(t *testing.T) {
+	tooLong := func(t *testing.T, got Formats, diags []citationformat.FormDiagnostic, err error, n int) {
+		t.Helper()
+		want := []citationformat.FormDiagnostic{diag(citationformat.FormFull, citationformat.CodeTooLong, 0, n)}
+		if err != nil || !reflect.DeepEqual(diags, want) || got != (Formats{}) {
+			t.Fatalf("stored %+v, diagnostics %+v, err %v; want too_long over 0..%d only", got, diags, err, n)
+		}
+	}
+	toStored := func(t *testing.T, f *formatFixture, text string) (Formats, []citationformat.FormDiagnostic, error) {
+		t.Helper()
+		db, err := f.c.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		return ToStored(tx, Formats{Full: text}, nil, "")
+	}
+	field := func(t *testing.T, f *formatFixture, key string) {
+		t.Helper()
+		if _, err := metadatafieldstest.Upsert(f.c, metadatafields.Field{
+			Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: metadatafields.DataTypeText}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("short keys under 4,000 characters store past 4,096 bytes", func(t *testing.T) {
+		f := newFormatFixture(t)
+		field(t, f, "a")
+		typed := strings.Repeat("{source.meta.a}", 100) // 1,500 characters
+		got, diags, err := toStored(t, f, typed)
+		if err != nil || len(diags) != 0 {
+			t.Fatalf("err %v, diagnostics %+v", err, diags)
+		}
+		if len(got.Full) <= 4096 || len(got.Full) > 8192 {
+			t.Fatalf("stored %d bytes, want 4,097 to 8,192", len(got.Full))
+		}
+	})
+	t.Run("4,001 characters is too long, 4,000 is not", func(t *testing.T) {
+		f := newFormatFixture(t)
+		text := strings.Repeat("a", 4001)
+		got, diags, err := toStored(t, f, text)
+		tooLong(t, got, diags, err, 4001)
+		if _, diags, err := toStored(t, f, strings.Repeat("a", 4000)); err != nil || len(diags) != 0 {
+			t.Fatalf("4,000 characters: err %v, diagnostics %+v", err, diags)
+		}
+	})
+	t.Run("the characters limit counts code points, not bytes", func(t *testing.T) {
+		f := newFormatFixture(t)
+		got, diags, err := toStored(t, f, strings.Repeat("é", 4000)) // 8,000 bytes
+		if err != nil || len(diags) != 0 || got.Full != strings.Repeat("é", 4000) {
+			t.Fatalf("stored %d bytes, diagnostics %+v, err %v", len(got.Full), diags, err)
+		}
+	})
+	t.Run("the characters limit comes before any other mistake", func(t *testing.T) {
+		f := newFormatFixture(t)
+		text := "{nope}" + strings.Repeat("a", 4000)
+		got, diags, err := toStored(t, f, text)
+		tooLong(t, got, diags, err, len(text))
+	})
+	t.Run("stored text over 8,192 bytes is refused over the typed text", func(t *testing.T) {
+		f := newFormatFixture(t)
+		field(t, f, "a")
+		typed := strings.Repeat("{source.meta.a}", 200) // 3,000 characters, 10,200 stored
+		got, diags, err := toStored(t, f, typed)
+		tooLong(t, got, diags, err, len(typed))
+	})
+	t.Run("a multi-byte format over 8,192 bytes is refused over the typed text", func(t *testing.T) {
+		f := newFormatFixture(t)
+		typed := strings.Repeat("é", 3900) + "{source.title}" // 3,914 characters, 7,814 bytes: stores
+		if _, diags, err := toStored(t, f, typed); err != nil || len(diags) != 0 {
+			t.Fatalf("err %v, diagnostics %+v", err, diags)
+		}
+		typed = strings.Repeat("€", 3000) // 9,000 bytes, 3,000 characters
+		got, diags, err := toStored(t, f, typed)
+		tooLong(t, got, diags, err, len(typed))
 	})
 }
 

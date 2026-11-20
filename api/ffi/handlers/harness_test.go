@@ -447,3 +447,15 @@ func assertLatestAuditAction(t *testing.T, projectDir, wantAction string) {
 		t.Fatal(err)
 	}
 }
+
+// fieldIDsByKey maps each metadata field key to its id.
+func fieldIDsByKey(t *testing.T, dir string) map[string]string {
+	t.Helper()
+	var fields engine.ListMetadataFieldsResponse
+	mustRPC(t, ListMetadataFields, &engine.ListMetadataFieldsRequest{ProjectDir: dir}, &fields)
+	out := map[string]string{}
+	for _, f := range fields.GetFields() {
+		out[f.GetKey()] = f.GetId()
+	}
+	return out
+}

@@ -134,6 +134,9 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
   case updateCitationFormats // = 121
   case copySourceType // = 122
   case getDraftMetadataBoard // = 123
+  case renderCitations // = 124
+  case renderCitationPreview // = 125
+  case listCitationBuiltins // = 126
   case UNRECOGNIZED(Int)
 
   public init() {
@@ -247,6 +250,9 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     case 121: self = .updateCitationFormats
     case 122: self = .copySourceType
     case 123: self = .getDraftMetadataBoard
+    case 124: self = .renderCitations
+    case 125: self = .renderCitationPreview
+    case 126: self = .listCitationBuiltins
     default: self = .UNRECOGNIZED(rawValue)
     }
   }
@@ -358,6 +364,9 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     case .updateCitationFormats: return 121
     case .copySourceType: return 122
     case .getDraftMetadataBoard: return 123
+    case .renderCitations: return 124
+    case .renderCitationPreview: return 125
+    case .listCitationBuiltins: return 126
     case .UNRECOGNIZED(let i): return i
     }
   }
@@ -469,6 +478,9 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     .updateCitationFormats,
     .copySourceType,
     .getDraftMetadataBoard,
+    .renderCitations,
+    .renderCitationPreview,
+    .listCitationBuiltins,
   ]
 
 }
@@ -9085,6 +9097,258 @@ public nonisolated struct Provenencia_Engine_V1_DeleteImpactListed: Sendable {
   fileprivate var _location: Provenencia_Engine_V1_WorkspaceLocation? = nil
 }
 
+/// One stretch of a rendered citation in one style.
+public nonisolated struct Provenencia_Engine_V1_CitationRun: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var text: String = String()
+
+  public var italic: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// A format filled in: its runs (adjacent runs differ in style, none empty) and
+/// their text. Empty when there is no format.
+public nonisolated struct Provenencia_Engine_V1_CitationRender: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var runs: [Provenencia_Engine_V1_CitationRun] = []
+
+  public var plain: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// Renders each Citation's full and short note. Ids not in the catalog are left
+/// out; a repeated id comes back once, in first place. At most 2,000 ids.
+public nonisolated struct Provenencia_Engine_V1_RenderCitationsRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var projectDir: String = String()
+
+  public var citationIds: [String] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_RenderedCitation: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var citationID: String = String()
+
+  /// empty: the type has no full format; show today's line
+  public var full: Provenencia_Engine_V1_CitationRender {
+    get {_full ?? Provenencia_Engine_V1_CitationRender()}
+    set {_full = newValue}
+  }
+  /// Returns true if `full` has been explicitly set.
+  public var hasFull: Bool {self._full != nil}
+  /// Clears the value of `full`. Subsequent reads from it will return its default value.
+  public mutating func clearFull() {self._full = nil}
+
+  public var short: Provenencia_Engine_V1_CitationRender {
+    get {_short ?? Provenencia_Engine_V1_CitationRender()}
+    set {_short = newValue}
+  }
+  /// Returns true if `short` has been explicitly set.
+  public var hasShort: Bool {self._short != nil}
+  /// Clears the value of `short`. Subsequent reads from it will return its default value.
+  public mutating func clearShort() {self._short = nil}
+
+  /// Equal keys are one citation: same rendered full note. Opaque.
+  public var groupKey: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _full: Provenencia_Engine_V1_CitationRender? = nil
+  fileprivate var _short: Provenencia_Engine_V1_CitationRender? = nil
+}
+
+public nonisolated struct Provenencia_Engine_V1_RenderCitationsResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var citations: [Provenencia_Engine_V1_RenderedCitation] = []
+
+  /// the Evidence graphs and Sources the render read
+  public var inputs: Provenencia_Engine_V1_PageInputs {
+    get {_inputs ?? Provenencia_Engine_V1_PageInputs()}
+    set {_inputs = newValue}
+  }
+  /// Returns true if `inputs` has been explicitly set.
+  public var hasInputs: Bool {self._inputs != nil}
+  /// Clears the value of `inputs`. Subsequent reads from it will return its default value.
+  public mutating func clearInputs() {self._inputs = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _inputs: Provenencia_Engine_V1_PageInputs? = nil
+}
+
+/// Renders one form against one target. A Source target takes the list form
+/// only. format, when present, is unsaved text with fields by key.
+public nonisolated struct Provenencia_Engine_V1_RenderCitationPreviewRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var projectDir: String = String()
+
+  /// "full", "short" or "list"
+  public var form: String = String()
+
+  public var format: String {
+    get {_format ?? String()}
+    set {_format = newValue}
+  }
+  /// Returns true if `format` has been explicitly set.
+  public var hasFormat: Bool {self._format != nil}
+  /// Clears the value of `format`. Subsequent reads from it will return its default value.
+  public mutating func clearFormat() {self._format = nil}
+
+  public var fieldChoices: [Provenencia_Engine_V1_CitationFieldChoice] = []
+
+  public var target: Provenencia_Engine_V1_RenderCitationPreviewRequest.OneOf_Target? = nil
+
+  public var citationID: String {
+    get {
+      if case .citationID(let v)? = target {return v}
+      return String()
+    }
+    set {target = .citationID(newValue)}
+  }
+
+  public var sourceID: String {
+    get {
+      if case .sourceID(let v)? = target {return v}
+      return String()
+    }
+    set {target = .sourceID(newValue)}
+  }
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public nonisolated enum OneOf_Target: Equatable, Sendable {
+    case citationID(String)
+    case sourceID(String)
+
+  }
+
+  public init() {}
+
+  fileprivate var _format: String? = nil
+}
+
+/// A needed chain no option answers: its options in chain order.
+public nonisolated struct Provenencia_Engine_V1_CitationMissing: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var options: [Provenencia_Engine_V1_CitationRequirementOption] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_RenderCitationPreviewResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var render: Provenencia_Engine_V1_CitationRender {
+    get {_render ?? Provenencia_Engine_V1_CitationRender()}
+    set {_render = newValue}
+  }
+  /// Returns true if `render` has been explicitly set.
+  public var hasRender: Bool {self._render != nil}
+  /// Clears the value of `render`. Subsequent reads from it will return its default value.
+  public mutating func clearRender() {self._render = nil}
+
+  public var missing: [Provenencia_Engine_V1_CitationMissing] = []
+
+  /// Only for an unsaved format; with any, render and missing are empty.
+  public var diagnostics: [Provenencia_Engine_V1_CitationFormatDiagnostic] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _render: Provenencia_Engine_V1_CitationRender? = nil
+}
+
+public nonisolated struct Provenencia_Engine_V1_ListCitationBuiltinsRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+/// One built-in placeholder, from citationformat's table.
+public nonisolated struct Provenencia_Engine_V1_CitationBuiltin: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var level: String = String()
+
+  /// bare: "date"
+  public var name: String = String()
+
+  /// a DateValue, written in citation terms
+  public var date: Bool = false
+
+  /// "year", "full"
+  public var options: [String] = []
+
+  public var alwaysSet: Bool = false
+
+  public var inListForm: Bool = false
+
+  /// what it prints when marked unknown; "" for none
+  public var unknownText: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_ListCitationBuiltinsResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var builtins: [Provenencia_Engine_V1_CitationBuiltin] = []
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
 public nonisolated struct Provenencia_Engine_V1_GetNameFormatRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -9150,7 +9414,7 @@ public nonisolated struct Provenencia_Engine_V1_Error: Sendable {
 fileprivate nonisolated let _protobuf_package = "provenencia.engine.v1"
 
 nonisolated extension Provenencia_Engine_V1_Method: SwiftProtobuf._ProtoNameProviding {
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0METHOD_UNSPECIFIED\0\u{1}METHOD_PING\0\u{1}METHOD_GET_VERSION\0\u{1}METHOD_GET_INSTALL_IDENTITY\0\u{1}METHOD_COMPLETE_ONBOARDING\0\u{2}\u{2}METHOD_GET_ACTIVE_PROJECT\0\u{1}METHOD_OPEN_PROJECT\0\u{1}METHOD_REMOVE_ACTIVE_PROJECT\0\u{1}METHOD_LIST_PROJECT_USERS\0\u{1}METHOD_SIGN_OUT\0\u{1}METHOD_GET_PROJECT_INFO\0\u{1}METHOD_LIST_SOURCES\0\u{1}METHOD_GET_SOURCE_WORKSPACE\0\u{1}METHOD_CREATE_SOURCE\0\u{1}METHOD_UPDATE_SOURCE\0\u{1}METHOD_ADD_SOURCE_NOTE\0\u{1}METHOD_UPDATE_SOURCE_NOTE\0\u{1}METHOD_DELETE_SOURCE_NOTE\0\u{1}METHOD_SET_METADATA\0\u{1}METHOD_CLEAR_METADATA\0\u{1}METHOD_CREATE_ARTIFACT\0\u{1}METHOD_INGEST_ARTIFACT_FILE\0\u{1}METHOD_LIST_SOURCE_TYPES\0\u{1}METHOD_CREATE_SOURCE_TYPE\0\u{1}METHOD_LIST_METADATA_FIELDS\0\u{1}METHOD_CREATE_METADATA_FIELD\0\u{2}\u{2}METHOD_UPDATE_METADATA_FIELD\0\u{1}METHOD_DELETE_SOURCE_TYPE\0\u{1}METHOD_DELETE_METADATA_FIELD\0\u{1}METHOD_UPDATE_SOURCE_TYPE\0\u{1}METHOD_LIST_TYPE_SUGGESTIONS\0\u{1}METHOD_ASSIGN_TYPE_FIELD\0\u{1}METHOD_REMOVE_TYPE_FIELD\0\u{1}METHOD_GET_WORKSPACE_NAV_COUNTS\0\u{1}METHOD_UPDATE_ARTIFACT\0\u{1}METHOD_LIST_SOURCE_CREDIBILITY_GRADES\0\u{1}METHOD_UPSERT_SOURCE_CREDIBILITY_ASSESSMENT\0\u{1}METHOD_DISMISS_METADATA_SUGGESTION\0\u{1}METHOD_REORDER_METADATA\0\u{2}\u{2}METHOD_CLOSE_CATALOG_SESSION\0\u{1}METHOD_SET_SOURCE_COVER\0\u{1}METHOD_SEARCH_CATALOG\0\u{2}\u{2}METHOD_CREATE_SUBJECT\0\u{1}METHOD_UPDATE_SUBJECT\0\u{1}METHOD_DELETE_SUBJECT\0\u{1}METHOD_LIST_SUBJECTS\0\u{1}METHOD_SET_SUBJECT_POSITION\0\u{2}\u{2}METHOD_LIST_SUBJECT_POSITIONS\0\u{2}\u{2}METHOD_CREATE_PROPERTY\0\u{1}METHOD_UPDATE_PROPERTY\0\u{1}METHOD_DELETE_PROPERTY\0\u{2}\u{2}METHOD_ASSIGN_SUBJECT_TYPE_PROPERTY\0\u{1}METHOD_REMOVE_SUBJECT_TYPE_PROPERTY\0\u{2}\u{3}METHOD_LIST_CONNECT_RULES\0\u{1}METHOD_LIST_PROPERTY_TERMS\0\u{1}METHOD_CREATE_PROPERTY_TERM\0\u{1}METHOD_UPDATE_PROPERTY_TERM\0\u{1}METHOD_DELETE_PROPERTY_TERM\0\u{1}METHOD_CREATE_CITATION_WITH_OBSERVATIONS\0\u{1}METHOD_ADD_OBSERVATIONS_TO_CITATION\0\u{1}METHOD_LIST_OBSERVATIONS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_GET_CITATION\0\u{2}\u{2}METHOD_CREATE_CITED_BRIDGE\0\u{1}METHOD_CITATION_COUNTS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_LIST_CITATIONS_BY_ARTIFACT\0\u{1}METHOD_UPDATE_CITATION\0\u{1}METHOD_UPDATE_OBSERVATION\0\u{1}METHOD_DELETE_OBSERVATION\0\u{1}METHOD_GET_PROPERTIES_WORKSPACE\0\u{1}METHOD_LIST_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_DELETE_IMPACT\0\u{1}METHOD_DELETE_SOURCE\0\u{1}METHOD_DELETE_ARTIFACT\0\u{1}METHOD_DELETE_CITATION\0\u{2}\u{2}METHOD_LIST_SUBJECT_MEMBERSHIPS\0\u{1}METHOD_LIST_PERSON_SUMMARIES\0\u{2}\u{3}METHOD_GET_CONCLUSION_DETAIL\0\u{1}METHOD_LIST_EVENT_SUMMARIES\0\u{2}\u{2}METHOD_LIST_PLACE_SUMMARIES\0\u{2}\u{3}METHOD_LIST_EVIDENCE_GRAPH_EVENT_TITLES\0\u{1}METHOD_PROPOSE_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_APPLY_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_GET_NAME_FORMAT\0\u{1}METHOD_UNPROMOTE_SUBJECT\0\u{1}METHOD_SET_PREFERRED_LIKENESS\0\u{1}METHOD_COPY_SOURCE\0\u{1}METHOD_LIST_EVIDENCE_GRAPHS\0\u{1}METHOD_CREATE_EVIDENCE_GRAPH\0\u{1}METHOD_UPDATE_EVIDENCE_GRAPH\0\u{1}METHOD_DELETE_EVIDENCE_GRAPH\0\u{2}\u{3}METHOD_GET_EVIDENCE_GRAPH_UNLINK_IMPACT\0\u{2}\u{2}METHOD_REORDER_SUBJECT_TYPE_PROPERTIES\0\u{1}METHOD_LIST_PERSON_CLAIMS\0\u{1}METHOD_GET_PERSON_FAMILY\0\u{1}METHOD_LIST_PERSON_EVENTS\0\u{1}METHOD_GET_UNPROMOTE_IMPACT\0\u{1}METHOD_GET_PERSON_RECORD_LINKS\0\u{1}METHOD_SET_SOURCE_DATE\0\u{1}METHOD_SET_SOURCE_PUBLIC\0\u{1}METHOD_GET_METADATA_BOARD\0\u{1}METHOD_GET_CITATION_FORMATS\0\u{1}METHOD_UPDATE_CITATION_FORMATS\0\u{1}METHOD_COPY_SOURCE_TYPE\0\u{1}METHOD_GET_DRAFT_METADATA_BOARD\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0METHOD_UNSPECIFIED\0\u{1}METHOD_PING\0\u{1}METHOD_GET_VERSION\0\u{1}METHOD_GET_INSTALL_IDENTITY\0\u{1}METHOD_COMPLETE_ONBOARDING\0\u{2}\u{2}METHOD_GET_ACTIVE_PROJECT\0\u{1}METHOD_OPEN_PROJECT\0\u{1}METHOD_REMOVE_ACTIVE_PROJECT\0\u{1}METHOD_LIST_PROJECT_USERS\0\u{1}METHOD_SIGN_OUT\0\u{1}METHOD_GET_PROJECT_INFO\0\u{1}METHOD_LIST_SOURCES\0\u{1}METHOD_GET_SOURCE_WORKSPACE\0\u{1}METHOD_CREATE_SOURCE\0\u{1}METHOD_UPDATE_SOURCE\0\u{1}METHOD_ADD_SOURCE_NOTE\0\u{1}METHOD_UPDATE_SOURCE_NOTE\0\u{1}METHOD_DELETE_SOURCE_NOTE\0\u{1}METHOD_SET_METADATA\0\u{1}METHOD_CLEAR_METADATA\0\u{1}METHOD_CREATE_ARTIFACT\0\u{1}METHOD_INGEST_ARTIFACT_FILE\0\u{1}METHOD_LIST_SOURCE_TYPES\0\u{1}METHOD_CREATE_SOURCE_TYPE\0\u{1}METHOD_LIST_METADATA_FIELDS\0\u{1}METHOD_CREATE_METADATA_FIELD\0\u{2}\u{2}METHOD_UPDATE_METADATA_FIELD\0\u{1}METHOD_DELETE_SOURCE_TYPE\0\u{1}METHOD_DELETE_METADATA_FIELD\0\u{1}METHOD_UPDATE_SOURCE_TYPE\0\u{1}METHOD_LIST_TYPE_SUGGESTIONS\0\u{1}METHOD_ASSIGN_TYPE_FIELD\0\u{1}METHOD_REMOVE_TYPE_FIELD\0\u{1}METHOD_GET_WORKSPACE_NAV_COUNTS\0\u{1}METHOD_UPDATE_ARTIFACT\0\u{1}METHOD_LIST_SOURCE_CREDIBILITY_GRADES\0\u{1}METHOD_UPSERT_SOURCE_CREDIBILITY_ASSESSMENT\0\u{1}METHOD_DISMISS_METADATA_SUGGESTION\0\u{1}METHOD_REORDER_METADATA\0\u{2}\u{2}METHOD_CLOSE_CATALOG_SESSION\0\u{1}METHOD_SET_SOURCE_COVER\0\u{1}METHOD_SEARCH_CATALOG\0\u{2}\u{2}METHOD_CREATE_SUBJECT\0\u{1}METHOD_UPDATE_SUBJECT\0\u{1}METHOD_DELETE_SUBJECT\0\u{1}METHOD_LIST_SUBJECTS\0\u{1}METHOD_SET_SUBJECT_POSITION\0\u{2}\u{2}METHOD_LIST_SUBJECT_POSITIONS\0\u{2}\u{2}METHOD_CREATE_PROPERTY\0\u{1}METHOD_UPDATE_PROPERTY\0\u{1}METHOD_DELETE_PROPERTY\0\u{2}\u{2}METHOD_ASSIGN_SUBJECT_TYPE_PROPERTY\0\u{1}METHOD_REMOVE_SUBJECT_TYPE_PROPERTY\0\u{2}\u{3}METHOD_LIST_CONNECT_RULES\0\u{1}METHOD_LIST_PROPERTY_TERMS\0\u{1}METHOD_CREATE_PROPERTY_TERM\0\u{1}METHOD_UPDATE_PROPERTY_TERM\0\u{1}METHOD_DELETE_PROPERTY_TERM\0\u{1}METHOD_CREATE_CITATION_WITH_OBSERVATIONS\0\u{1}METHOD_ADD_OBSERVATIONS_TO_CITATION\0\u{1}METHOD_LIST_OBSERVATIONS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_GET_CITATION\0\u{2}\u{2}METHOD_CREATE_CITED_BRIDGE\0\u{1}METHOD_CITATION_COUNTS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_LIST_CITATIONS_BY_ARTIFACT\0\u{1}METHOD_UPDATE_CITATION\0\u{1}METHOD_UPDATE_OBSERVATION\0\u{1}METHOD_DELETE_OBSERVATION\0\u{1}METHOD_GET_PROPERTIES_WORKSPACE\0\u{1}METHOD_LIST_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_DELETE_IMPACT\0\u{1}METHOD_DELETE_SOURCE\0\u{1}METHOD_DELETE_ARTIFACT\0\u{1}METHOD_DELETE_CITATION\0\u{2}\u{2}METHOD_LIST_SUBJECT_MEMBERSHIPS\0\u{1}METHOD_LIST_PERSON_SUMMARIES\0\u{2}\u{3}METHOD_GET_CONCLUSION_DETAIL\0\u{1}METHOD_LIST_EVENT_SUMMARIES\0\u{2}\u{2}METHOD_LIST_PLACE_SUMMARIES\0\u{2}\u{3}METHOD_LIST_EVIDENCE_GRAPH_EVENT_TITLES\0\u{1}METHOD_PROPOSE_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_APPLY_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_GET_NAME_FORMAT\0\u{1}METHOD_UNPROMOTE_SUBJECT\0\u{1}METHOD_SET_PREFERRED_LIKENESS\0\u{1}METHOD_COPY_SOURCE\0\u{1}METHOD_LIST_EVIDENCE_GRAPHS\0\u{1}METHOD_CREATE_EVIDENCE_GRAPH\0\u{1}METHOD_UPDATE_EVIDENCE_GRAPH\0\u{1}METHOD_DELETE_EVIDENCE_GRAPH\0\u{2}\u{3}METHOD_GET_EVIDENCE_GRAPH_UNLINK_IMPACT\0\u{2}\u{2}METHOD_REORDER_SUBJECT_TYPE_PROPERTIES\0\u{1}METHOD_LIST_PERSON_CLAIMS\0\u{1}METHOD_GET_PERSON_FAMILY\0\u{1}METHOD_LIST_PERSON_EVENTS\0\u{1}METHOD_GET_UNPROMOTE_IMPACT\0\u{1}METHOD_GET_PERSON_RECORD_LINKS\0\u{1}METHOD_SET_SOURCE_DATE\0\u{1}METHOD_SET_SOURCE_PUBLIC\0\u{1}METHOD_GET_METADATA_BOARD\0\u{1}METHOD_GET_CITATION_FORMATS\0\u{1}METHOD_UPDATE_CITATION_FORMATS\0\u{1}METHOD_COPY_SOURCE_TYPE\0\u{1}METHOD_GET_DRAFT_METADATA_BOARD\0\u{1}METHOD_RENDER_CITATIONS\0\u{1}METHOD_RENDER_CITATION_PREVIEW\0\u{1}METHOD_LIST_CITATION_BUILTINS\0")
 }
 
 nonisolated extension Provenencia_Engine_V1_CitationNeed: SwiftProtobuf._ProtoNameProviding {
@@ -24605,6 +24869,459 @@ nonisolated extension Provenencia_Engine_V1_DeleteImpactListed: SwiftProtobuf.Me
     if lhs.ref != rhs.ref {return false}
     if lhs.title != rhs.title {return false}
     if lhs._location != rhs._location {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_CitationRun: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".CitationRun"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}text\0\u{1}italic\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.text) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.italic) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.text.isEmpty {
+      try visitor.visitSingularStringField(value: self.text, fieldNumber: 1)
+    }
+    if self.italic != false {
+      try visitor.visitSingularBoolField(value: self.italic, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_CitationRun, rhs: Provenencia_Engine_V1_CitationRun) -> Bool {
+    if lhs.text != rhs.text {return false}
+    if lhs.italic != rhs.italic {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_CitationRender: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".CitationRender"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}runs\0\u{1}plain\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.runs) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.plain) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.runs.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.runs, fieldNumber: 1)
+    }
+    if !self.plain.isEmpty {
+      try visitor.visitSingularStringField(value: self.plain, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_CitationRender, rhs: Provenencia_Engine_V1_CitationRender) -> Bool {
+    if lhs.runs != rhs.runs {return false}
+    if lhs.plain != rhs.plain {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_RenderCitationsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RenderCitationsRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}citation_ids\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.citationIds) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.projectDir.isEmpty {
+      try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
+    }
+    if !self.citationIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.citationIds, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_RenderCitationsRequest, rhs: Provenencia_Engine_V1_RenderCitationsRequest) -> Bool {
+    if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.citationIds != rhs.citationIds {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_RenderedCitation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RenderedCitation"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}citation_id\0\u{1}full\0\u{1}short\0\u{3}group_key\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.citationID) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._full) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._short) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.groupKey) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.citationID.isEmpty {
+      try visitor.visitSingularStringField(value: self.citationID, fieldNumber: 1)
+    }
+    try { if let v = self._full {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._short {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if !self.groupKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.groupKey, fieldNumber: 4)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_RenderedCitation, rhs: Provenencia_Engine_V1_RenderedCitation) -> Bool {
+    if lhs.citationID != rhs.citationID {return false}
+    if lhs._full != rhs._full {return false}
+    if lhs._short != rhs._short {return false}
+    if lhs.groupKey != rhs.groupKey {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_RenderCitationsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RenderCitationsResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citations\0\u{1}inputs\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.citations) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._inputs) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.citations.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.citations, fieldNumber: 1)
+    }
+    try { if let v = self._inputs {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_RenderCitationsResponse, rhs: Provenencia_Engine_V1_RenderCitationsResponse) -> Bool {
+    if lhs.citations != rhs.citations {return false}
+    if lhs._inputs != rhs._inputs {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_RenderCitationPreviewRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RenderCitationPreviewRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{1}form\0\u{1}format\0\u{3}field_choices\0\u{3}citation_id\0\u{3}source_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.form) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self._format) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.fieldChoices) }()
+      case 5: try {
+        var v: String?
+        try decoder.decodeSingularStringField(value: &v)
+        if let v = v {
+          if self.target != nil {try decoder.handleConflictingOneOf()}
+          self.target = .citationID(v)
+        }
+      }()
+      case 6: try {
+        var v: String?
+        try decoder.decodeSingularStringField(value: &v)
+        if let v = v {
+          if self.target != nil {try decoder.handleConflictingOneOf()}
+          self.target = .sourceID(v)
+        }
+      }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.projectDir.isEmpty {
+      try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
+    }
+    if !self.form.isEmpty {
+      try visitor.visitSingularStringField(value: self.form, fieldNumber: 2)
+    }
+    try { if let v = self._format {
+      try visitor.visitSingularStringField(value: v, fieldNumber: 3)
+    } }()
+    if !self.fieldChoices.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.fieldChoices, fieldNumber: 4)
+    }
+    switch self.target {
+    case .citationID?: try {
+      guard case .citationID(let v)? = self.target else { preconditionFailure() }
+      try visitor.visitSingularStringField(value: v, fieldNumber: 5)
+    }()
+    case .sourceID?: try {
+      guard case .sourceID(let v)? = self.target else { preconditionFailure() }
+      try visitor.visitSingularStringField(value: v, fieldNumber: 6)
+    }()
+    case nil: break
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_RenderCitationPreviewRequest, rhs: Provenencia_Engine_V1_RenderCitationPreviewRequest) -> Bool {
+    if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.form != rhs.form {return false}
+    if lhs._format != rhs._format {return false}
+    if lhs.fieldChoices != rhs.fieldChoices {return false}
+    if lhs.target != rhs.target {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_CitationMissing: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".CitationMissing"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}options\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.options) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.options.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.options, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_CitationMissing, rhs: Provenencia_Engine_V1_CitationMissing) -> Bool {
+    if lhs.options != rhs.options {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_RenderCitationPreviewResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".RenderCitationPreviewResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}render\0\u{1}missing\0\u{1}diagnostics\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularMessageField(value: &self._render) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.missing) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.diagnostics) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._render {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 1)
+    } }()
+    if !self.missing.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.missing, fieldNumber: 2)
+    }
+    if !self.diagnostics.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.diagnostics, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_RenderCitationPreviewResponse, rhs: Provenencia_Engine_V1_RenderCitationPreviewResponse) -> Bool {
+    if lhs._render != rhs._render {return false}
+    if lhs.missing != rhs.missing {return false}
+    if lhs.diagnostics != rhs.diagnostics {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_ListCitationBuiltinsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ListCitationBuiltinsRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap()
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    // Load everything into unknown fields
+    while try decoder.nextFieldNumber() != nil {}
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_ListCitationBuiltinsRequest, rhs: Provenencia_Engine_V1_ListCitationBuiltinsRequest) -> Bool {
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_CitationBuiltin: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".CitationBuiltin"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}level\0\u{1}name\0\u{1}date\0\u{1}options\0\u{3}always_set\0\u{3}in_list_form\0\u{3}unknown_text\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.level) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.name) }()
+      case 3: try { try decoder.decodeSingularBoolField(value: &self.date) }()
+      case 4: try { try decoder.decodeRepeatedStringField(value: &self.options) }()
+      case 5: try { try decoder.decodeSingularBoolField(value: &self.alwaysSet) }()
+      case 6: try { try decoder.decodeSingularBoolField(value: &self.inListForm) }()
+      case 7: try { try decoder.decodeSingularStringField(value: &self.unknownText) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.level.isEmpty {
+      try visitor.visitSingularStringField(value: self.level, fieldNumber: 1)
+    }
+    if !self.name.isEmpty {
+      try visitor.visitSingularStringField(value: self.name, fieldNumber: 2)
+    }
+    if self.date != false {
+      try visitor.visitSingularBoolField(value: self.date, fieldNumber: 3)
+    }
+    if !self.options.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.options, fieldNumber: 4)
+    }
+    if self.alwaysSet != false {
+      try visitor.visitSingularBoolField(value: self.alwaysSet, fieldNumber: 5)
+    }
+    if self.inListForm != false {
+      try visitor.visitSingularBoolField(value: self.inListForm, fieldNumber: 6)
+    }
+    if !self.unknownText.isEmpty {
+      try visitor.visitSingularStringField(value: self.unknownText, fieldNumber: 7)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_CitationBuiltin, rhs: Provenencia_Engine_V1_CitationBuiltin) -> Bool {
+    if lhs.level != rhs.level {return false}
+    if lhs.name != rhs.name {return false}
+    if lhs.date != rhs.date {return false}
+    if lhs.options != rhs.options {return false}
+    if lhs.alwaysSet != rhs.alwaysSet {return false}
+    if lhs.inListForm != rhs.inListForm {return false}
+    if lhs.unknownText != rhs.unknownText {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_ListCitationBuiltinsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".ListCitationBuiltinsResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}builtins\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedMessageField(value: &self.builtins) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.builtins.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.builtins, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_ListCitationBuiltinsResponse, rhs: Provenencia_Engine_V1_ListCitationBuiltinsResponse) -> Bool {
+    if lhs.builtins != rhs.builtins {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

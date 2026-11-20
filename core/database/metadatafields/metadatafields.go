@@ -293,6 +293,20 @@ func ListByIDsTx(tx *sql.Tx, ids [][]byte) ([]Field, error) {
 	return out, nil
 }
 
+// MapByIDsTx is ListByIDsTx keyed by string(id); an id with no field is absent
+// and no ids returns an empty map.
+func MapByIDsTx(tx *sql.Tx, ids [][]byte) (map[string]Field, error) {
+	found, err := ListByIDsTx(tx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]Field, len(found))
+	for _, f := range found {
+		out[string(f.ID)] = f
+	}
+	return out, nil
+}
+
 // KeyResolution is what ResolveKeysTx found: the id of each key one field
 // answers for, and the keys no field or more than one field holds (sorted).
 type KeyResolution struct {
@@ -464,11 +478,8 @@ func lookupTx(tx *sql.Tx, key, origin string) (Field, error) {
 // Columns is the SELECT list ScanField reads, each column prefixed "alias." when
 // alias is not empty.
 func Columns(alias string) string {
-	p := ""
-	if alias != "" {
-		p = alias + "."
-	}
-	return p + "id, " + p + "key, " + p + "origin, " + p + "label, " + p + "data_type, COALESCE(" + p + "description, ''), COALESCE(" + p + "unknown_text, '')"
+	return database.Columns(alias, "id", "key", "origin", "label", "data_type",
+		"description|COALESCE(%s, '')", "unknown_text|COALESCE(%s, '')")
 }
 
 // ScanField scans a row of Columns, in that order, then any trailing columns

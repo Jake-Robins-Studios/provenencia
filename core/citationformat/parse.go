@@ -14,8 +14,16 @@ import (
 // Limits on a format. The text comes from the catalog, which a crafted project
 // can fill, so work is bounded before it is done.
 const (
-	// MaxFormatBytes is the longest format Parse reads.
-	MaxFormatBytes = 4096
+	// MaxFormatChars is the longest format a researcher can write, counted in
+	// Unicode code points (utf8.RuneCountInString): the limit the editor shows.
+	MaxFormatChars = 4000
+	// MaxFormatBytes is the longest text Parse reads, typed or stored. Saving a
+	// format swaps each field key for "#" and a 36-character id, so a stored
+	// text is longer than the typed one; this is MaxFormatChars (at up to about
+	// 1.6 bytes a character in the seeds) plus a margin for that growth. The
+	// 72 seeded formats hold at most 22 placeholders; at twice that, 44, and
+	// 36 bytes of growth each (a one-character key), the margin is 1,584 bytes.
+	MaxFormatBytes = 8 << 10
 	// MaxRenderedBytes is the most text Render produces, and the longest value
 	// it copies. It is far above the longest seeded format filled with real
 	// values; a crafted format repeating a placeholder reaches it, and Render

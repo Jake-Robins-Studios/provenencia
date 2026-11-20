@@ -29,7 +29,9 @@ var parseCases = []struct {
 	{"group without placeholder", "[, ]{source.title}", "full", []diag{{"group_without_placeholder", 0, 4}}},
 	{"three in order", "{source.foo} and {citation.meta.x} and {parish.title}", "full", []diag{
 		{"unknown_builtin", 1, 11}, {"meta_not_at_level", 18, 33}, {"unknown_level", 40, 52}}},
-	{"too long", strings.Repeat("a", 4097), "full", []diag{{"too_long", 0, 4097}}},
+	{"too long", strings.Repeat("a", 8193), "full", []diag{{"too_long", 0, 8193}}},
+	{"the parse limit is bytes", strings.Repeat("a", 8192), "full", nil},
+	{"past the old limit", strings.Repeat("a", 4097), "full", nil},
 	{"unknown form", "x", "nope", []diag{{"unknown_form", 0, 0}}},
 	{"unclosed placeholder", "[{a", "full", []diag{{"unclosed_placeholder", 1, 2}}},
 	{"stray close brace", "a}b", "full", []diag{{"stray_close_brace", 1, 2}}},

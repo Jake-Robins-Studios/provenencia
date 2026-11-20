@@ -449,13 +449,7 @@ func TestMetadataBoardRequirements(t *testing.T) {
 // the Source.
 func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string) {
 	t.Helper()
-	var fields engine.ListMetadataFieldsResponse
-	mustRPC(t, ListMetadataFields, &engine.ListMetadataFieldsRequest{ProjectDir: dir}, &fields)
-	for _, f := range fields.GetFields() {
-		if f.GetKey() == "line_number" {
-			lineID = f.GetId()
-		}
-	}
+	lineID = fieldIDsByKey(t, dir)["line_number"]
 	var ty engine.CreateSourceTypeResponse
 	mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: dir, UserId: userID, Label: "Line ledger"}, &ty)
 	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{

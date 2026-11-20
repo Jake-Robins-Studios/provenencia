@@ -3,6 +3,7 @@ package database
 import (
 	"bytes"
 	"slices"
+	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbsql"
 )
@@ -23,6 +24,25 @@ func UniqueBlobIDs(ids [][]byte) [][]byte {
 		out = append(out, append([]byte(nil), id...))
 	}
 	return out
+}
+
+// Columns is a SELECT list over cols, each column prefixed "alias." when alias
+// is not empty. A col is a bare column name, or "name|expr" where expr holds %s
+// where the prefixed name goes: "description|COALESCE(%s, ”)".
+func Columns(alias string, cols ...string) string {
+	p := ""
+	if alias != "" {
+		p = alias + "."
+	}
+	out := make([]string, len(cols))
+	for i, c := range cols {
+		if name, expr, ok := strings.Cut(c, "|"); ok {
+			out[i] = strings.Replace(expr, "%s", p+name, 1)
+		} else {
+			out[i] = p + c
+		}
+	}
+	return strings.Join(out, ", ")
 }
 
 // SQLInPlaceholders is n SQLite bind markers joined by commas.

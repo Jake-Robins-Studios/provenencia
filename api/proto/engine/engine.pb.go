@@ -131,6 +131,9 @@ const (
 	Method_METHOD_UPDATE_CITATION_FORMATS              Method = 121
 	Method_METHOD_COPY_SOURCE_TYPE                     Method = 122
 	Method_METHOD_GET_DRAFT_METADATA_BOARD             Method = 123
+	Method_METHOD_RENDER_CITATIONS                     Method = 124
+	Method_METHOD_RENDER_CITATION_PREVIEW              Method = 125
+	Method_METHOD_LIST_CITATION_BUILTINS               Method = 126
 )
 
 // Enum value maps for Method.
@@ -241,6 +244,9 @@ var (
 		121: "METHOD_UPDATE_CITATION_FORMATS",
 		122: "METHOD_COPY_SOURCE_TYPE",
 		123: "METHOD_GET_DRAFT_METADATA_BOARD",
+		124: "METHOD_RENDER_CITATIONS",
+		125: "METHOD_RENDER_CITATION_PREVIEW",
+		126: "METHOD_LIST_CITATION_BUILTINS",
 	}
 	Method_value = map[string]int32{
 		"METHOD_UNSPECIFIED":                          0,
@@ -348,6 +354,9 @@ var (
 		"METHOD_UPDATE_CITATION_FORMATS":              121,
 		"METHOD_COPY_SOURCE_TYPE":                     122,
 		"METHOD_GET_DRAFT_METADATA_BOARD":             123,
+		"METHOD_RENDER_CITATIONS":                     124,
+		"METHOD_RENDER_CITATION_PREVIEW":              125,
+		"METHOD_LIST_CITATION_BUILTINS":               126,
 	}
 )
 
@@ -21684,6 +21693,683 @@ func (x *DeleteImpactListed) GetLocation() *WorkspaceLocation {
 	return nil
 }
 
+// One stretch of a rendered citation in one style.
+type CitationRun struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Italic        bool                   `protobuf:"varint,2,opt,name=italic,proto3" json:"italic,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CitationRun) Reset() {
+	*x = CitationRun{}
+	mi := &file_engine_proto_msgTypes[308]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CitationRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CitationRun) ProtoMessage() {}
+
+func (x *CitationRun) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[308]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CitationRun.ProtoReflect.Descriptor instead.
+func (*CitationRun) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{308}
+}
+
+func (x *CitationRun) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *CitationRun) GetItalic() bool {
+	if x != nil {
+		return x.Italic
+	}
+	return false
+}
+
+// A format filled in: its runs (adjacent runs differ in style, none empty) and
+// their text. Empty when there is no format.
+type CitationRender struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runs          []*CitationRun         `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	Plain         string                 `protobuf:"bytes,2,opt,name=plain,proto3" json:"plain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CitationRender) Reset() {
+	*x = CitationRender{}
+	mi := &file_engine_proto_msgTypes[309]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CitationRender) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CitationRender) ProtoMessage() {}
+
+func (x *CitationRender) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[309]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CitationRender.ProtoReflect.Descriptor instead.
+func (*CitationRender) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{309}
+}
+
+func (x *CitationRender) GetRuns() []*CitationRun {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
+func (x *CitationRender) GetPlain() string {
+	if x != nil {
+		return x.Plain
+	}
+	return ""
+}
+
+// Renders each Citation's full and short note. Ids not in the catalog are left
+// out; a repeated id comes back once, in first place. At most 2,000 ids.
+type RenderCitationsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProjectDir    string                 `protobuf:"bytes,1,opt,name=project_dir,json=projectDir,proto3" json:"project_dir,omitempty"`
+	CitationIds   []string               `protobuf:"bytes,2,rep,name=citation_ids,json=citationIds,proto3" json:"citation_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderCitationsRequest) Reset() {
+	*x = RenderCitationsRequest{}
+	mi := &file_engine_proto_msgTypes[310]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderCitationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderCitationsRequest) ProtoMessage() {}
+
+func (x *RenderCitationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[310]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderCitationsRequest.ProtoReflect.Descriptor instead.
+func (*RenderCitationsRequest) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{310}
+}
+
+func (x *RenderCitationsRequest) GetProjectDir() string {
+	if x != nil {
+		return x.ProjectDir
+	}
+	return ""
+}
+
+func (x *RenderCitationsRequest) GetCitationIds() []string {
+	if x != nil {
+		return x.CitationIds
+	}
+	return nil
+}
+
+type RenderedCitation struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	CitationId string                 `protobuf:"bytes,1,opt,name=citation_id,json=citationId,proto3" json:"citation_id,omitempty"`
+	Full       *CitationRender        `protobuf:"bytes,2,opt,name=full,proto3" json:"full,omitempty"` // empty: the type has no full format; show today's line
+	Short      *CitationRender        `protobuf:"bytes,3,opt,name=short,proto3" json:"short,omitempty"`
+	// Equal keys are one citation: same rendered full note. Opaque.
+	GroupKey      string `protobuf:"bytes,4,opt,name=group_key,json=groupKey,proto3" json:"group_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderedCitation) Reset() {
+	*x = RenderedCitation{}
+	mi := &file_engine_proto_msgTypes[311]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderedCitation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderedCitation) ProtoMessage() {}
+
+func (x *RenderedCitation) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[311]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderedCitation.ProtoReflect.Descriptor instead.
+func (*RenderedCitation) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{311}
+}
+
+func (x *RenderedCitation) GetCitationId() string {
+	if x != nil {
+		return x.CitationId
+	}
+	return ""
+}
+
+func (x *RenderedCitation) GetFull() *CitationRender {
+	if x != nil {
+		return x.Full
+	}
+	return nil
+}
+
+func (x *RenderedCitation) GetShort() *CitationRender {
+	if x != nil {
+		return x.Short
+	}
+	return nil
+}
+
+func (x *RenderedCitation) GetGroupKey() string {
+	if x != nil {
+		return x.GroupKey
+	}
+	return ""
+}
+
+type RenderCitationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Citations     []*RenderedCitation    `protobuf:"bytes,1,rep,name=citations,proto3" json:"citations,omitempty"`
+	Inputs        *PageInputs            `protobuf:"bytes,2,opt,name=inputs,proto3" json:"inputs,omitempty"` // the Evidence graphs and Sources the render read
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderCitationsResponse) Reset() {
+	*x = RenderCitationsResponse{}
+	mi := &file_engine_proto_msgTypes[312]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderCitationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderCitationsResponse) ProtoMessage() {}
+
+func (x *RenderCitationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[312]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderCitationsResponse.ProtoReflect.Descriptor instead.
+func (*RenderCitationsResponse) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{312}
+}
+
+func (x *RenderCitationsResponse) GetCitations() []*RenderedCitation {
+	if x != nil {
+		return x.Citations
+	}
+	return nil
+}
+
+func (x *RenderCitationsResponse) GetInputs() *PageInputs {
+	if x != nil {
+		return x.Inputs
+	}
+	return nil
+}
+
+// Renders one form against one target. A Source target takes the list form
+// only. format, when present, is unsaved text with fields by key.
+type RenderCitationPreviewRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ProjectDir   string                 `protobuf:"bytes,1,opt,name=project_dir,json=projectDir,proto3" json:"project_dir,omitempty"`
+	Form         string                 `protobuf:"bytes,2,opt,name=form,proto3" json:"form,omitempty"` // "full", "short" or "list"
+	Format       *string                `protobuf:"bytes,3,opt,name=format,proto3,oneof" json:"format,omitempty"`
+	FieldChoices []*CitationFieldChoice `protobuf:"bytes,4,rep,name=field_choices,json=fieldChoices,proto3" json:"field_choices,omitempty"`
+	// Types that are valid to be assigned to Target:
+	//
+	//	*RenderCitationPreviewRequest_CitationId
+	//	*RenderCitationPreviewRequest_SourceId
+	Target        isRenderCitationPreviewRequest_Target `protobuf_oneof:"target"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderCitationPreviewRequest) Reset() {
+	*x = RenderCitationPreviewRequest{}
+	mi := &file_engine_proto_msgTypes[313]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderCitationPreviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderCitationPreviewRequest) ProtoMessage() {}
+
+func (x *RenderCitationPreviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[313]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderCitationPreviewRequest.ProtoReflect.Descriptor instead.
+func (*RenderCitationPreviewRequest) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{313}
+}
+
+func (x *RenderCitationPreviewRequest) GetProjectDir() string {
+	if x != nil {
+		return x.ProjectDir
+	}
+	return ""
+}
+
+func (x *RenderCitationPreviewRequest) GetForm() string {
+	if x != nil {
+		return x.Form
+	}
+	return ""
+}
+
+func (x *RenderCitationPreviewRequest) GetFormat() string {
+	if x != nil && x.Format != nil {
+		return *x.Format
+	}
+	return ""
+}
+
+func (x *RenderCitationPreviewRequest) GetFieldChoices() []*CitationFieldChoice {
+	if x != nil {
+		return x.FieldChoices
+	}
+	return nil
+}
+
+func (x *RenderCitationPreviewRequest) GetTarget() isRenderCitationPreviewRequest_Target {
+	if x != nil {
+		return x.Target
+	}
+	return nil
+}
+
+func (x *RenderCitationPreviewRequest) GetCitationId() string {
+	if x != nil {
+		if x, ok := x.Target.(*RenderCitationPreviewRequest_CitationId); ok {
+			return x.CitationId
+		}
+	}
+	return ""
+}
+
+func (x *RenderCitationPreviewRequest) GetSourceId() string {
+	if x != nil {
+		if x, ok := x.Target.(*RenderCitationPreviewRequest_SourceId); ok {
+			return x.SourceId
+		}
+	}
+	return ""
+}
+
+type isRenderCitationPreviewRequest_Target interface {
+	isRenderCitationPreviewRequest_Target()
+}
+
+type RenderCitationPreviewRequest_CitationId struct {
+	CitationId string `protobuf:"bytes,5,opt,name=citation_id,json=citationId,proto3,oneof"`
+}
+
+type RenderCitationPreviewRequest_SourceId struct {
+	SourceId string `protobuf:"bytes,6,opt,name=source_id,json=sourceId,proto3,oneof"`
+}
+
+func (*RenderCitationPreviewRequest_CitationId) isRenderCitationPreviewRequest_Target() {}
+
+func (*RenderCitationPreviewRequest_SourceId) isRenderCitationPreviewRequest_Target() {}
+
+// A needed chain no option answers: its options in chain order.
+type CitationMissing struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Options       []*CitationRequirementOption `protobuf:"bytes,1,rep,name=options,proto3" json:"options,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CitationMissing) Reset() {
+	*x = CitationMissing{}
+	mi := &file_engine_proto_msgTypes[314]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CitationMissing) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CitationMissing) ProtoMessage() {}
+
+func (x *CitationMissing) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[314]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CitationMissing.ProtoReflect.Descriptor instead.
+func (*CitationMissing) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{314}
+}
+
+func (x *CitationMissing) GetOptions() []*CitationRequirementOption {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type RenderCitationPreviewResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Render  *CitationRender        `protobuf:"bytes,1,opt,name=render,proto3" json:"render,omitempty"`
+	Missing []*CitationMissing     `protobuf:"bytes,2,rep,name=missing,proto3" json:"missing,omitempty"`
+	// Only for an unsaved format; with any, render and missing are empty.
+	Diagnostics   []*CitationFormatDiagnostic `protobuf:"bytes,3,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenderCitationPreviewResponse) Reset() {
+	*x = RenderCitationPreviewResponse{}
+	mi := &file_engine_proto_msgTypes[315]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenderCitationPreviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenderCitationPreviewResponse) ProtoMessage() {}
+
+func (x *RenderCitationPreviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[315]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenderCitationPreviewResponse.ProtoReflect.Descriptor instead.
+func (*RenderCitationPreviewResponse) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{315}
+}
+
+func (x *RenderCitationPreviewResponse) GetRender() *CitationRender {
+	if x != nil {
+		return x.Render
+	}
+	return nil
+}
+
+func (x *RenderCitationPreviewResponse) GetMissing() []*CitationMissing {
+	if x != nil {
+		return x.Missing
+	}
+	return nil
+}
+
+func (x *RenderCitationPreviewResponse) GetDiagnostics() []*CitationFormatDiagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type ListCitationBuiltinsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCitationBuiltinsRequest) Reset() {
+	*x = ListCitationBuiltinsRequest{}
+	mi := &file_engine_proto_msgTypes[316]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCitationBuiltinsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCitationBuiltinsRequest) ProtoMessage() {}
+
+func (x *ListCitationBuiltinsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[316]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCitationBuiltinsRequest.ProtoReflect.Descriptor instead.
+func (*ListCitationBuiltinsRequest) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{316}
+}
+
+// One built-in placeholder, from citationformat's table.
+type CitationBuiltin struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Level         string                 `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`       // bare: "date"
+	Date          bool                   `protobuf:"varint,3,opt,name=date,proto3" json:"date,omitempty"`      // a DateValue, written in citation terms
+	Options       []string               `protobuf:"bytes,4,rep,name=options,proto3" json:"options,omitempty"` // "year", "full"
+	AlwaysSet     bool                   `protobuf:"varint,5,opt,name=always_set,json=alwaysSet,proto3" json:"always_set,omitempty"`
+	InListForm    bool                   `protobuf:"varint,6,opt,name=in_list_form,json=inListForm,proto3" json:"in_list_form,omitempty"`
+	UnknownText   string                 `protobuf:"bytes,7,opt,name=unknown_text,json=unknownText,proto3" json:"unknown_text,omitempty"` // what it prints when marked unknown; "" for none
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CitationBuiltin) Reset() {
+	*x = CitationBuiltin{}
+	mi := &file_engine_proto_msgTypes[317]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CitationBuiltin) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CitationBuiltin) ProtoMessage() {}
+
+func (x *CitationBuiltin) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[317]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CitationBuiltin.ProtoReflect.Descriptor instead.
+func (*CitationBuiltin) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{317}
+}
+
+func (x *CitationBuiltin) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *CitationBuiltin) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CitationBuiltin) GetDate() bool {
+	if x != nil {
+		return x.Date
+	}
+	return false
+}
+
+func (x *CitationBuiltin) GetOptions() []string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *CitationBuiltin) GetAlwaysSet() bool {
+	if x != nil {
+		return x.AlwaysSet
+	}
+	return false
+}
+
+func (x *CitationBuiltin) GetInListForm() bool {
+	if x != nil {
+		return x.InListForm
+	}
+	return false
+}
+
+func (x *CitationBuiltin) GetUnknownText() string {
+	if x != nil {
+		return x.UnknownText
+	}
+	return ""
+}
+
+type ListCitationBuiltinsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Builtins      []*CitationBuiltin     `protobuf:"bytes,1,rep,name=builtins,proto3" json:"builtins,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCitationBuiltinsResponse) Reset() {
+	*x = ListCitationBuiltinsResponse{}
+	mi := &file_engine_proto_msgTypes[318]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCitationBuiltinsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCitationBuiltinsResponse) ProtoMessage() {}
+
+func (x *ListCitationBuiltinsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_engine_proto_msgTypes[318]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCitationBuiltinsResponse.ProtoReflect.Descriptor instead.
+func (*ListCitationBuiltinsResponse) Descriptor() ([]byte, []int) {
+	return file_engine_proto_rawDescGZIP(), []int{318}
+}
+
+func (x *ListCitationBuiltinsResponse) GetBuiltins() []*CitationBuiltin {
+	if x != nil {
+		return x.Builtins
+	}
+	return nil
+}
+
 type GetNameFormatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectDir    string                 `protobuf:"bytes,1,opt,name=project_dir,json=projectDir,proto3" json:"project_dir,omitempty"`
@@ -21693,7 +22379,7 @@ type GetNameFormatRequest struct {
 
 func (x *GetNameFormatRequest) Reset() {
 	*x = GetNameFormatRequest{}
-	mi := &file_engine_proto_msgTypes[308]
+	mi := &file_engine_proto_msgTypes[319]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21705,7 +22391,7 @@ func (x *GetNameFormatRequest) String() string {
 func (*GetNameFormatRequest) ProtoMessage() {}
 
 func (x *GetNameFormatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_proto_msgTypes[308]
+	mi := &file_engine_proto_msgTypes[319]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21718,7 +22404,7 @@ func (x *GetNameFormatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNameFormatRequest.ProtoReflect.Descriptor instead.
 func (*GetNameFormatRequest) Descriptor() ([]byte, []int) {
-	return file_engine_proto_rawDescGZIP(), []int{308}
+	return file_engine_proto_rawDescGZIP(), []int{319}
 }
 
 func (x *GetNameFormatRequest) GetProjectDir() string {
@@ -21738,7 +22424,7 @@ type NameFormatPart struct {
 
 func (x *NameFormatPart) Reset() {
 	*x = NameFormatPart{}
-	mi := &file_engine_proto_msgTypes[309]
+	mi := &file_engine_proto_msgTypes[320]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21750,7 +22436,7 @@ func (x *NameFormatPart) String() string {
 func (*NameFormatPart) ProtoMessage() {}
 
 func (x *NameFormatPart) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_proto_msgTypes[309]
+	mi := &file_engine_proto_msgTypes[320]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21763,7 +22449,7 @@ func (x *NameFormatPart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NameFormatPart.ProtoReflect.Descriptor instead.
 func (*NameFormatPart) Descriptor() ([]byte, []int) {
-	return file_engine_proto_rawDescGZIP(), []int{309}
+	return file_engine_proto_rawDescGZIP(), []int{320}
 }
 
 func (x *NameFormatPart) GetPartType() string {
@@ -21790,7 +22476,7 @@ type GetNameFormatResponse struct {
 
 func (x *GetNameFormatResponse) Reset() {
 	*x = GetNameFormatResponse{}
-	mi := &file_engine_proto_msgTypes[310]
+	mi := &file_engine_proto_msgTypes[321]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21802,7 +22488,7 @@ func (x *GetNameFormatResponse) String() string {
 func (*GetNameFormatResponse) ProtoMessage() {}
 
 func (x *GetNameFormatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_proto_msgTypes[310]
+	mi := &file_engine_proto_msgTypes[321]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21815,7 +22501,7 @@ func (x *GetNameFormatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNameFormatResponse.ProtoReflect.Descriptor instead.
 func (*GetNameFormatResponse) Descriptor() ([]byte, []int) {
-	return file_engine_proto_rawDescGZIP(), []int{310}
+	return file_engine_proto_rawDescGZIP(), []int{321}
 }
 
 func (x *GetNameFormatResponse) GetNatural() []*NameFormatPart {
@@ -21845,7 +22531,7 @@ type Error struct {
 
 func (x *Error) Reset() {
 	*x = Error{}
-	mi := &file_engine_proto_msgTypes[311]
+	mi := &file_engine_proto_msgTypes[322]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21857,7 +22543,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_engine_proto_msgTypes[311]
+	mi := &file_engine_proto_msgTypes[322]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21870,7 +22556,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_engine_proto_rawDescGZIP(), []int{311}
+	return file_engine_proto_rawDescGZIP(), []int{322}
 }
 
 func (x *Error) GetCode() string {
@@ -23635,7 +24321,56 @@ const file_engine_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12D\n" +
-	"\blocation\x18\x04 \x01(\v2(.provenencia.engine.v1.WorkspaceLocationR\blocation\"7\n" +
+	"\blocation\x18\x04 \x01(\v2(.provenencia.engine.v1.WorkspaceLocationR\blocation\"9\n" +
+	"\vCitationRun\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\x12\x16\n" +
+	"\x06italic\x18\x02 \x01(\bR\x06italic\"^\n" +
+	"\x0eCitationRender\x126\n" +
+	"\x04runs\x18\x01 \x03(\v2\".provenencia.engine.v1.CitationRunR\x04runs\x12\x14\n" +
+	"\x05plain\x18\x02 \x01(\tR\x05plain\"\\\n" +
+	"\x16RenderCitationsRequest\x12\x1f\n" +
+	"\vproject_dir\x18\x01 \x01(\tR\n" +
+	"projectDir\x12!\n" +
+	"\fcitation_ids\x18\x02 \x03(\tR\vcitationIds\"\xc8\x01\n" +
+	"\x10RenderedCitation\x12\x1f\n" +
+	"\vcitation_id\x18\x01 \x01(\tR\n" +
+	"citationId\x129\n" +
+	"\x04full\x18\x02 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x04full\x12;\n" +
+	"\x05short\x18\x03 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x05short\x12\x1b\n" +
+	"\tgroup_key\x18\x04 \x01(\tR\bgroupKey\"\x9b\x01\n" +
+	"\x17RenderCitationsResponse\x12E\n" +
+	"\tcitations\x18\x01 \x03(\v2'.provenencia.engine.v1.RenderedCitationR\tcitations\x129\n" +
+	"\x06inputs\x18\x02 \x01(\v2!.provenencia.engine.v1.PageInputsR\x06inputs\"\x98\x02\n" +
+	"\x1cRenderCitationPreviewRequest\x12\x1f\n" +
+	"\vproject_dir\x18\x01 \x01(\tR\n" +
+	"projectDir\x12\x12\n" +
+	"\x04form\x18\x02 \x01(\tR\x04form\x12\x1b\n" +
+	"\x06format\x18\x03 \x01(\tH\x01R\x06format\x88\x01\x01\x12O\n" +
+	"\rfield_choices\x18\x04 \x03(\v2*.provenencia.engine.v1.CitationFieldChoiceR\ffieldChoices\x12!\n" +
+	"\vcitation_id\x18\x05 \x01(\tH\x00R\n" +
+	"citationId\x12\x1d\n" +
+	"\tsource_id\x18\x06 \x01(\tH\x00R\bsourceIdB\b\n" +
+	"\x06targetB\t\n" +
+	"\a_format\"]\n" +
+	"\x0fCitationMissing\x12J\n" +
+	"\aoptions\x18\x01 \x03(\v20.provenencia.engine.v1.CitationRequirementOptionR\aoptions\"\xf3\x01\n" +
+	"\x1dRenderCitationPreviewResponse\x12=\n" +
+	"\x06render\x18\x01 \x01(\v2%.provenencia.engine.v1.CitationRenderR\x06render\x12@\n" +
+	"\amissing\x18\x02 \x03(\v2&.provenencia.engine.v1.CitationMissingR\amissing\x12Q\n" +
+	"\vdiagnostics\x18\x03 \x03(\v2/.provenencia.engine.v1.CitationFormatDiagnosticR\vdiagnostics\"\x1d\n" +
+	"\x1bListCitationBuiltinsRequest\"\xcd\x01\n" +
+	"\x0fCitationBuiltin\x12\x14\n" +
+	"\x05level\x18\x01 \x01(\tR\x05level\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
+	"\x04date\x18\x03 \x01(\bR\x04date\x12\x18\n" +
+	"\aoptions\x18\x04 \x03(\tR\aoptions\x12\x1d\n" +
+	"\n" +
+	"always_set\x18\x05 \x01(\bR\talwaysSet\x12 \n" +
+	"\fin_list_form\x18\x06 \x01(\bR\n" +
+	"inListForm\x12!\n" +
+	"\funknown_text\x18\a \x01(\tR\vunknownText\"b\n" +
+	"\x1cListCitationBuiltinsResponse\x12B\n" +
+	"\bbuiltins\x18\x01 \x03(\v2&.provenencia.engine.v1.CitationBuiltinR\bbuiltins\"7\n" +
 	"\x14GetNameFormatRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
 	"projectDir\"\\\n" +
@@ -23648,7 +24383,7 @@ const file_engine_proto_rawDesc = "" +
 	"\x05Error\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x124\n" +
 	"\x04kind\x18\x02 \x01(\x0e2 .provenencia.engine.v1.ErrorKindR\x04kind\x12\x16\n" +
-	"\x06params\x18\x03 \x03(\tR\x06params*\xaa \n" +
+	"\x06params\x18\x03 \x03(\tR\x06params*\x8e!\n" +
 	"\x06Method\x12\x16\n" +
 	"\x12METHOD_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vMETHOD_PING\x10\x01\x12\x16\n" +
@@ -23755,7 +24490,10 @@ const file_engine_proto_rawDesc = "" +
 	"\x1bMETHOD_GET_CITATION_FORMATS\x10x\x12\"\n" +
 	"\x1eMETHOD_UPDATE_CITATION_FORMATS\x10y\x12\x1b\n" +
 	"\x17METHOD_COPY_SOURCE_TYPE\x10z\x12#\n" +
-	"\x1fMETHOD_GET_DRAFT_METADATA_BOARD\x10{\"\x04\b\x1b\x10\x1b\"\x04\bG\x10G\"\x04\bX\x10X\"\x04\b\\\x10\\\"\x04\b^\x10^\"\x04\b_\x10_\"\x04\bk\x10k\"\x04\bl\x10l\"\x04\bY\x10Y\"\x04\bn\x10n\"\x04\bU\x10U\"\x04\b\x05\x10\x05\"\x04\b)\x10)\"\x04\b-\x10-\"\x04\b3\x103\"\x04\b5\x105\"\x04\b9\x109\"\x04\b<\x10<\"\x04\b=\x10=*\x12METHOD_COUNT_FILES*(METHOD_UPDATE_CITATION_WITH_OBSERVATIONS*&METHOD_LIST_PROMOTE_TARGET_SUGGESTIONS*\x17METHOD_GET_EVENT_HEADER*\x17METHOD_GET_PLACE_HEADER*\x18METHOD_GET_PERSON_HEADER*#METHOD_LINK_EVIDENCE_GRAPH_ARTIFACT*%METHOD_UNLINK_EVIDENCE_GRAPH_ARTIFACT*#METHOD_LIST_CLAIM_CONFIDENCE_GRADES*!METHOD_GET_PROMOTE_CLAIM_EVIDENCE*\x16METHOD_PROMOTE_SUBJECT*\x1eMETHOD_REMOVE_INSTALL_IDENTITY*\x1cMETHOD_ENSURE_FILE_THUMBNAIL*\x19METHOD_LIST_SUBJECT_TYPES*\x1dMETHOD_CLEAR_SUBJECT_POSITION*\x16METHOD_LIST_PROPERTIES*#METHOD_LIST_SUBJECT_TYPE_PROPERTIES*#METHOD_LIST_PLACEABLE_SUBJECT_TYPES*$METHOD_GET_SUBJECT_TYPE_PRESENTATION*_\n" +
+	"\x1fMETHOD_GET_DRAFT_METADATA_BOARD\x10{\x12\x1b\n" +
+	"\x17METHOD_RENDER_CITATIONS\x10|\x12\"\n" +
+	"\x1eMETHOD_RENDER_CITATION_PREVIEW\x10}\x12!\n" +
+	"\x1dMETHOD_LIST_CITATION_BUILTINS\x10~\"\x04\b\x1b\x10\x1b\"\x04\bG\x10G\"\x04\bX\x10X\"\x04\b\\\x10\\\"\x04\b^\x10^\"\x04\b_\x10_\"\x04\bk\x10k\"\x04\bl\x10l\"\x04\bY\x10Y\"\x04\bn\x10n\"\x04\bU\x10U\"\x04\b\x05\x10\x05\"\x04\b)\x10)\"\x04\b-\x10-\"\x04\b3\x103\"\x04\b5\x105\"\x04\b9\x109\"\x04\b<\x10<\"\x04\b=\x10=*\x12METHOD_COUNT_FILES*(METHOD_UPDATE_CITATION_WITH_OBSERVATIONS*&METHOD_LIST_PROMOTE_TARGET_SUGGESTIONS*\x17METHOD_GET_EVENT_HEADER*\x17METHOD_GET_PLACE_HEADER*\x18METHOD_GET_PERSON_HEADER*#METHOD_LINK_EVIDENCE_GRAPH_ARTIFACT*%METHOD_UNLINK_EVIDENCE_GRAPH_ARTIFACT*#METHOD_LIST_CLAIM_CONFIDENCE_GRADES*!METHOD_GET_PROMOTE_CLAIM_EVIDENCE*\x16METHOD_PROMOTE_SUBJECT*\x1eMETHOD_REMOVE_INSTALL_IDENTITY*\x1cMETHOD_ENSURE_FILE_THUMBNAIL*\x19METHOD_LIST_SUBJECT_TYPES*\x1dMETHOD_CLEAR_SUBJECT_POSITION*\x16METHOD_LIST_PROPERTIES*#METHOD_LIST_SUBJECT_TYPE_PROPERTIES*#METHOD_LIST_PLACEABLE_SUBJECT_TYPES*$METHOD_GET_SUBJECT_TYPE_PRESENTATION*_\n" +
 	"\fCitationNeed\x12\x1d\n" +
 	"\x19CITATION_NEED_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14CITATION_NEED_NEEDED\x10\x01\x12\x16\n" +
@@ -23832,7 +24570,7 @@ func file_engine_proto_rawDescGZIP() []byte {
 }
 
 var file_engine_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
-var file_engine_proto_msgTypes = make([]protoimpl.MessageInfo, 312)
+var file_engine_proto_msgTypes = make([]protoimpl.MessageInfo, 323)
 var file_engine_proto_goTypes = []any{
 	(Method)(0),                                       // 0: provenencia.engine.v1.Method
 	(CitationNeed)(0),                                 // 1: provenencia.engine.v1.CitationNeed
@@ -24153,10 +24891,21 @@ var file_engine_proto_goTypes = []any{
 	(*GetDeleteImpactResponse)(nil),                   // 316: provenencia.engine.v1.GetDeleteImpactResponse
 	(*DeleteImpactGroup)(nil),                         // 317: provenencia.engine.v1.DeleteImpactGroup
 	(*DeleteImpactListed)(nil),                        // 318: provenencia.engine.v1.DeleteImpactListed
-	(*GetNameFormatRequest)(nil),                      // 319: provenencia.engine.v1.GetNameFormatRequest
-	(*NameFormatPart)(nil),                            // 320: provenencia.engine.v1.NameFormatPart
-	(*GetNameFormatResponse)(nil),                     // 321: provenencia.engine.v1.GetNameFormatResponse
-	(*Error)(nil),                                     // 322: provenencia.engine.v1.Error
+	(*CitationRun)(nil),                               // 319: provenencia.engine.v1.CitationRun
+	(*CitationRender)(nil),                            // 320: provenencia.engine.v1.CitationRender
+	(*RenderCitationsRequest)(nil),                    // 321: provenencia.engine.v1.RenderCitationsRequest
+	(*RenderedCitation)(nil),                          // 322: provenencia.engine.v1.RenderedCitation
+	(*RenderCitationsResponse)(nil),                   // 323: provenencia.engine.v1.RenderCitationsResponse
+	(*RenderCitationPreviewRequest)(nil),              // 324: provenencia.engine.v1.RenderCitationPreviewRequest
+	(*CitationMissing)(nil),                           // 325: provenencia.engine.v1.CitationMissing
+	(*RenderCitationPreviewResponse)(nil),             // 326: provenencia.engine.v1.RenderCitationPreviewResponse
+	(*ListCitationBuiltinsRequest)(nil),               // 327: provenencia.engine.v1.ListCitationBuiltinsRequest
+	(*CitationBuiltin)(nil),                           // 328: provenencia.engine.v1.CitationBuiltin
+	(*ListCitationBuiltinsResponse)(nil),              // 329: provenencia.engine.v1.ListCitationBuiltinsResponse
+	(*GetNameFormatRequest)(nil),                      // 330: provenencia.engine.v1.GetNameFormatRequest
+	(*NameFormatPart)(nil),                            // 331: provenencia.engine.v1.NameFormatPart
+	(*GetNameFormatResponse)(nil),                     // 332: provenencia.engine.v1.GetNameFormatResponse
+	(*Error)(nil),                                     // 333: provenencia.engine.v1.Error
 }
 var file_engine_proto_depIdxs = []int32{
 	31,  // 0: provenencia.engine.v1.CompleteOnboardingResponse.project:type_name -> provenencia.engine.v1.ProjectInfo
@@ -24470,14 +25219,25 @@ var file_engine_proto_depIdxs = []int32{
 	317, // 308: provenencia.engine.v1.GetDeleteImpactResponse.cascades:type_name -> provenencia.engine.v1.DeleteImpactGroup
 	318, // 309: provenencia.engine.v1.DeleteImpactGroup.listed:type_name -> provenencia.engine.v1.DeleteImpactListed
 	155, // 310: provenencia.engine.v1.DeleteImpactListed.location:type_name -> provenencia.engine.v1.WorkspaceLocation
-	320, // 311: provenencia.engine.v1.GetNameFormatResponse.natural:type_name -> provenencia.engine.v1.NameFormatPart
-	320, // 312: provenencia.engine.v1.GetNameFormatResponse.sorted:type_name -> provenencia.engine.v1.NameFormatPart
-	10,  // 313: provenencia.engine.v1.Error.kind:type_name -> provenencia.engine.v1.ErrorKind
-	314, // [314:314] is the sub-list for method output_type
-	314, // [314:314] is the sub-list for method input_type
-	314, // [314:314] is the sub-list for extension type_name
-	314, // [314:314] is the sub-list for extension extendee
-	0,   // [0:314] is the sub-list for field type_name
+	319, // 311: provenencia.engine.v1.CitationRender.runs:type_name -> provenencia.engine.v1.CitationRun
+	320, // 312: provenencia.engine.v1.RenderedCitation.full:type_name -> provenencia.engine.v1.CitationRender
+	320, // 313: provenencia.engine.v1.RenderedCitation.short:type_name -> provenencia.engine.v1.CitationRender
+	322, // 314: provenencia.engine.v1.RenderCitationsResponse.citations:type_name -> provenencia.engine.v1.RenderedCitation
+	111, // 315: provenencia.engine.v1.RenderCitationsResponse.inputs:type_name -> provenencia.engine.v1.PageInputs
+	135, // 316: provenencia.engine.v1.RenderCitationPreviewRequest.field_choices:type_name -> provenencia.engine.v1.CitationFieldChoice
+	44,  // 317: provenencia.engine.v1.CitationMissing.options:type_name -> provenencia.engine.v1.CitationRequirementOption
+	320, // 318: provenencia.engine.v1.RenderCitationPreviewResponse.render:type_name -> provenencia.engine.v1.CitationRender
+	325, // 319: provenencia.engine.v1.RenderCitationPreviewResponse.missing:type_name -> provenencia.engine.v1.CitationMissing
+	136, // 320: provenencia.engine.v1.RenderCitationPreviewResponse.diagnostics:type_name -> provenencia.engine.v1.CitationFormatDiagnostic
+	328, // 321: provenencia.engine.v1.ListCitationBuiltinsResponse.builtins:type_name -> provenencia.engine.v1.CitationBuiltin
+	331, // 322: provenencia.engine.v1.GetNameFormatResponse.natural:type_name -> provenencia.engine.v1.NameFormatPart
+	331, // 323: provenencia.engine.v1.GetNameFormatResponse.sorted:type_name -> provenencia.engine.v1.NameFormatPart
+	10,  // 324: provenencia.engine.v1.Error.kind:type_name -> provenencia.engine.v1.ErrorKind
+	325, // [325:325] is the sub-list for method output_type
+	325, // [325:325] is the sub-list for method input_type
+	325, // [325:325] is the sub-list for extension type_name
+	325, // [325:325] is the sub-list for extension extendee
+	0,   // [0:325] is the sub-list for field type_name
 }
 
 func init() { file_engine_proto_init() }
@@ -24508,13 +25268,17 @@ func file_engine_proto_init() {
 	}
 	file_engine_proto_msgTypes[271].OneofWrappers = []any{}
 	file_engine_proto_msgTypes[272].OneofWrappers = []any{}
+	file_engine_proto_msgTypes[313].OneofWrappers = []any{
+		(*RenderCitationPreviewRequest_CitationId)(nil),
+		(*RenderCitationPreviewRequest_SourceId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_engine_proto_rawDesc), len(file_engine_proto_rawDesc)),
 			NumEnums:      11,
-			NumMessages:   312,
+			NumMessages:   323,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

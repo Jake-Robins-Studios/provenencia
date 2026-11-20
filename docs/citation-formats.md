@@ -25,7 +25,7 @@ The list form describes the Source as a whole, so it reads Source values only: a
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
 
-Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,096 bytes and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
+Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
 
 ## Built-in placeholders
 
@@ -66,6 +66,20 @@ The read shows every by-id field by its key, except an id with no field and an i
 
 Deleting a field is refused while any format names its id; the delete notice lists the types.
 
+## Rendering
+
+`RenderCitations`, `RenderCitationPreview` and `ListCitationBuiltins` (package `core/database/citationrender`) turn the formats into text. Nothing they produce is cached: a screen asks when it shows its citations, so a format or field edit needs no refresh signal.
+
+**What each built-in reads.** `source.title` is the Source's title; `source.type` the type's label; `source.date` the Source's date with its mark; `artifact.label` the Citation's Artifact label; `graph.name` its graph's name; `citation.page` the printed page label with its mark (`locator.Page`); `citation.image` the file page when the locator holds one (a Citation with none leaves it unset); `citation.label` the Citation's label. A metadata field named by id reads the stored value at its level, with its mark and the field's unknown text; a field named by key answers nothing. The boards and the render answer through one resolver (`sourcemetadata.CitationValues`), so they cannot disagree about what has a value.
+
+**The Citation's Source is its graph's.** A Citation never leaves its graph, so its Source is the Source of that graph; its Artifact's own values are still read at the Artifact level.
+
+**The batch.** `RenderCitations` takes at most 2,000 Citation ids and returns, for each Citation found, the full and the short citation as styled runs and plain text, and a group key. The order is the input order, a repeated id once; an id with no Citation is left out without an error. A Citation whose type has no full (short) format, or whose format does not parse, or whose graph, Source or type row is missing, comes back with an empty full (short); the app shows its own line. A call renders at most 8 MiB of text in all; more is `citations.invalid`. The reply also names the Evidence graphs and Sources the read used (`inputs`), so a screen can refresh when they change. A call reads a fixed number of queries per 500 ids.
+
+**The group key.** Citations whose full citations render the same, run for run (italics count), share a key; one that differs in a field the format reads does not, and one that differs only in a field it does not read does. A Citation with no full citation gets a key of its own, so none groups with another. The key is opaque.
+
+**The preview.** `RenderCitationPreview` renders one form against one target: a Citation (any form; the list form reads only its Source) or a Source (the list form only). With no `format` it renders the target's type's stored format. With one, the text is unsaved and written with field keys, checked the way a save checks it (`field_choices` say which field a shared key means): any diagnostic comes back alone, with nothing rendered. A blank format renders nothing. A Citation or Source that is not in the catalog is `citations.not_found` or `sources.not_found`. The reply lists what a needed chain lacks, as the options of that chain that can be shown, in chain order.
+
 ## Diagnostics
 
 `Parse` returns every diagnostic with its byte span, sorted by position, and no template. After `unknown_form`, `too_long` and `too_deep` scanning stops and nothing after is reported. After `unclosed_placeholder` scanning stops when no `{` or `}` follows; before a later `{` it resumes there.
@@ -73,7 +87,7 @@ Deleting a field is refused while any format names its id; the delete notice lis
 | Code | When | Span |
 | --- | --- | --- |
 | `unknown_form` | The form is not one of the three | Zero width at 0 |
-| `too_long` | More than 4,096 bytes | The whole text |
+| `too_long` | More than 4,000 characters, or more than 8,192 bytes once its fields are stored by id | The whole text |
 | `too_deep` | More than 8 open groups and italic spans | The opening `[` or `*` |
 | `unclosed_placeholder` | A `{` with no `}` before the next `{` or the end | That `{` |
 | `stray_close_brace` | A `}` outside a placeholder | That `}` |
