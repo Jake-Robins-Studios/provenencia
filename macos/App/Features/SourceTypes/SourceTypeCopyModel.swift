@@ -60,7 +60,7 @@ final class SourceTypeCopyModel {
         do {
             formats = try await store.citationFormats(
                 projectDir: session.projectKey.projectDir, typeID: original.id
-            )
+            ).formats
             formatsState = .ready
         } catch {
             formatsState = .failed(L10n.Errors.message(for: error))

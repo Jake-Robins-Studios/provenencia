@@ -695,7 +695,7 @@ struct GoStore: GenealogyStore {
         return (Self.mapSourceType(resp.type), Self.mapWriteEffects(resp.effects))
     }
 
-    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormats {
+    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormatsReply {
         var req = Provenencia_Engine_V1_GetCitationFormatsRequest()
         req.projectDir = projectDir
         req.typeID = typeID
@@ -703,11 +703,9 @@ struct GoStore: GenealogyStore {
             method: CoreMethod.getCitationFormats,
             request: req
         )
-        return CatalogCitationFormats(
-            typeID: resp.formats.typeID,
-            full: resp.formats.full,
-            short: resp.formats.short,
-            list: resp.formats.list
+        return CatalogCitationFormatsReply(
+            formats: Self.mapCitationFormats(resp.formats),
+            diagnostics: Self.mapCitationDiagnostics(resp.diagnostics)
         )
     }
 
@@ -717,8 +715,9 @@ struct GoStore: GenealogyStore {
         typeID: String,
         label: String,
         description: String,
-        iconKey: String
-    ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
+        iconKey: String,
+        formats: CatalogCitationFormats?
+    ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_UpdateSourceTypeRequest()
         req.projectDir = projectDir
         req.userID = userID
@@ -726,11 +725,88 @@ struct GoStore: GenealogyStore {
         req.label = label
         req.description_p = description
         req.iconKey = iconKey
+        if let formats {
+            var wire = Provenencia_Engine_V1_CitationFormats()
+            wire.typeID = typeID
+            wire.full = formats.full
+            wire.short = formats.short
+            wire.list = formats.list
+            wire.fieldChoices = Self.citationFieldChoices(formats.fieldChoices)
+            req.formats = wire
+        }
         let resp: Provenencia_Engine_V1_UpdateSourceTypeResponse = try await provenenciaCall(
             method: CoreMethod.updateSourceType,
             request: req
         )
-        return (Self.mapSourceType(resp.type), Self.mapWriteEffects(resp.effects))
+        let reply = resp.hasFormats
+            ? CatalogCitationFormatsReply(
+                formats: Self.mapCitationFormats(resp.formats),
+                diagnostics: Self.mapCitationDiagnostics(resp.diagnostics)
+            )
+            : nil
+        return (Self.mapSourceType(resp.type), reply, Self.mapWriteEffects(resp.effects))
+    }
+
+    func renderCitationPreview(
+        projectDir: String,
+        form: CitationForm,
+        format: String?,
+        fieldChoices: [String: String],
+        sourceID: String?
+    ) async throws -> CatalogCitationPreview {
+        var req = Provenencia_Engine_V1_RenderCitationPreviewRequest()
+        req.projectDir = projectDir
+        req.form = form.rawValue
+        if let format { req.format = format }
+        req.fieldChoices = Self.citationFieldChoices(fieldChoices)
+        if let sourceID { req.target = .sourceID(sourceID) }
+        let resp: Provenencia_Engine_V1_RenderCitationPreviewResponse = try await provenenciaCall(
+            method: CoreMethod.renderCitationPreview,
+            request: req
+        )
+        return CatalogCitationPreview(
+            render: Self.mapCitationRender(resp.render),
+            missing: resp.missing.map { chain in
+                chain.options.compactMap { opt -> CatalogCitationOption? in
+                    guard let level = Level(rawValue: opt.level) else { return nil }
+                    return CatalogCitationOption(
+                        level: level,
+                        field: opt.hasField ? Self.mapMetadataField(opt.field) : nil,
+                        builtin: CitationBuiltin(rawValue: "\(opt.level).\(opt.builtin)")
+                    )
+                }
+            },
+            diagnostics: Self.mapCitationDiagnostics(resp.diagnostics)
+        )
+    }
+
+    func citationPlaceholders(projectDir: String, form: CitationForm) async throws -> [CatalogCitationPlaceholder] {
+        var req = Provenencia_Engine_V1_ListCitationPlaceholdersRequest()
+        req.projectDir = projectDir
+        req.form = form.rawValue
+        let resp: Provenencia_Engine_V1_ListCitationPlaceholdersResponse = try await provenenciaCall(
+            method: CoreMethod.listCitationPlaceholders,
+            request: req
+        )
+        return resp.placeholders.compactMap { p -> CatalogCitationPlaceholder? in
+            guard let level = Level(rawValue: p.level) else { return nil }
+            if p.hasField {
+                return CatalogCitationPlaceholder(
+                    id: "\(p.level)#\(p.field.id)", level: level, builtin: nil, option: nil,
+                    field: Self.mapMetadataField(p.field), text: p.text, ref: p.ref
+                )
+            }
+            guard let builtin = CitationBuiltin(rawValue: "\(p.level).\(p.builtin)") else { return nil }
+            var option: CitationOption?
+            if !p.option.isEmpty {
+                guard let known = CitationOption(rawValue: p.option) else { return nil }
+                option = known
+            }
+            return CatalogCitationPlaceholder(
+                id: "\(builtin.rawValue)" + (option.map { ":\($0.rawValue)" } ?? ""),
+                level: level, builtin: builtin, option: option, field: nil, text: p.text, ref: p.ref
+            )
+        }
     }
 
     func deleteSourceType(
@@ -2382,6 +2458,39 @@ struct GoStore: GenealogyStore {
             gradeLabel: a.gradeLabel,
             argument: a.argument
         )
+    }
+
+    private static func citationFieldChoices(_ choices: [String: String]) -> [Provenencia_Engine_V1_CitationFieldChoice] {
+        choices.sorted { $0.key < $1.key }.map { key, id in
+            var choice = Provenencia_Engine_V1_CitationFieldChoice()
+            choice.key = key
+            choice.fieldID = id
+            return choice
+        }
+    }
+
+    private static func mapCitationFormats(_ f: Provenencia_Engine_V1_CitationFormats) -> CatalogCitationFormats {
+        CatalogCitationFormats(
+            typeID: f.typeID,
+            full: f.full,
+            short: f.short,
+            list: f.list,
+            fieldChoices: Dictionary(f.fieldChoices.map { ($0.key, $0.fieldID) }, uniquingKeysWith: { $1 })
+        )
+    }
+
+    /// A diagnostic for a form Swift does not know is dropped; an unknown code is kept.
+    private static func mapCitationDiagnostics(
+        _ ds: [Provenencia_Engine_V1_CitationFormatDiagnostic]
+    ) -> [CatalogCitationDiagnostic] {
+        ds.compactMap { d in
+            guard let form = CitationForm(rawValue: d.form) else { return nil }
+            return CatalogCitationDiagnostic(form: form, code: d.code, utf8Start: Int(d.start), utf8End: Int(d.end))
+        }
+    }
+
+    private static func mapCitationRender(_ r: Provenencia_Engine_V1_CitationRender) -> CatalogCitationRender {
+        CatalogCitationRender(runs: r.runs.map { CatalogCitationRun(text: $0.text, italic: $0.italic) }, plain: r.plain)
     }
 
     private static func mapSourceType(_ t: Provenencia_Engine_V1_SourceType) -> CatalogSourceType {

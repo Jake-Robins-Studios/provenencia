@@ -531,7 +531,7 @@ private struct ThrowingStore: GenealogyStore {
         copyFormats _: Bool,
         levels _: [Level]
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) { throw StoreBoom.boom }
-    func citationFormats(projectDir _: String, typeID _: String) async throws -> CatalogCitationFormats {
+    func citationFormats(projectDir _: String, typeID _: String) async throws -> CatalogCitationFormatsReply {
         throw StoreBoom.boom
     }
     func updateSourceType(
@@ -540,8 +540,18 @@ private struct ThrowingStore: GenealogyStore {
         typeID _: String,
         label _: String,
         description _: String,
-        iconKey _: String
-    ) async throws -> (CatalogSourceType, CatalogWriteEffects) { throw StoreBoom.boom }
+        iconKey _: String,
+        formats _: CatalogCitationFormats?
+    ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects) { throw StoreBoom.boom }
+    func renderCitationPreview(
+        projectDir _: String,
+        form _: CitationForm,
+        format _: String?,
+        fieldChoices _: [String: String],
+        sourceID _: String?
+    ) async throws -> CatalogCitationPreview { throw StoreBoom.boom }
+    func citationPlaceholders(projectDir _: String, form _: CitationForm) async throws
+        -> [CatalogCitationPlaceholder] { throw StoreBoom.boom }
     func deleteSourceType(
         projectDir _: String,
         userID _: String,

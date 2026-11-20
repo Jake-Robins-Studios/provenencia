@@ -189,9 +189,10 @@ final class SourceTypePageModel {
         saveError = nil
         defer { isSaving = false }
         do {
-            let (updated, effects) = try await store.updateSourceType(
+            let (updated, _, effects) = try await store.updateSourceType(
                 projectDir: session.projectKey.projectDir, userID: userID, typeID: type.id,
-                label: draft.trimmedLabel, description: draft.description, iconKey: draft.iconKey
+                label: draft.trimmedLabel, description: draft.description, iconKey: draft.iconKey,
+                formats: nil
             )
             session.apply(effects, .updatedSourceType(updated))
             self.draft = Self.draft(of: updated)

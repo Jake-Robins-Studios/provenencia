@@ -1280,6 +1280,9 @@ struct CatalogCitationFormats: Sendable, Equatable {
     var full: String
     var short: String
     var list: String
+    /// For each key more than one field holds, the field it means (key to field
+    /// id): what the engine read back, and what a save sends.
+    var fieldChoices: [String: String] = [:]
 
     func text(_ form: CitationForm) -> String {
         switch form {
@@ -1288,6 +1291,77 @@ struct CatalogCitationFormats: Sendable, Equatable {
         case .list: list
         }
     }
+}
+
+/// One mistake in a citation format: a code and the UTF-8 byte span of the form's
+/// text it is about.
+struct CatalogCitationDiagnostic: Sendable, Equatable {
+    var form: CitationForm
+    /// A `CitationDiagnosticCode` raw value, or a code Swift does not know.
+    var code: String
+    var utf8Start: Int
+    var utf8End: Int
+
+    /// The span in `text`, which must be the text the engine checked: nil when
+    /// it runs out of range or does not start and end on a character boundary.
+    func range(in text: String) -> Range<String.Index>? {
+        guard utf8Start >= 0, utf8End >= utf8Start,
+              let start = text.utf8.index(text.utf8.startIndex, offsetBy: utf8Start, limitedBy: text.utf8.endIndex),
+              let end = text.utf8.index(text.utf8.startIndex, offsetBy: utf8End, limitedBy: text.utf8.endIndex),
+              start.samePosition(in: text) != nil, end.samePosition(in: text) != nil
+        else { return nil }
+        return start ..< end
+    }
+}
+
+/// A type's formats with the mistakes in them: what `citationFormats` reads and
+/// what `updateSourceType` answers when it was sent formats.
+struct CatalogCitationFormatsReply: Sendable, Equatable {
+    var formats: CatalogCitationFormats
+    var diagnostics: [CatalogCitationDiagnostic] = []
+}
+
+/// One run of a rendered citation: its text and whether it is italic.
+struct CatalogCitationRun: Sendable, Equatable {
+    var text: String
+    var italic: Bool
+}
+
+/// A rendered format: its runs, and the same text plain.
+struct CatalogCitationRender: Sendable, Equatable {
+    var runs: [CatalogCitationRun] = []
+    var plain: String = ""
+}
+
+/// One way to answer a needed placeholder: a metadata field or a built-in, at a level.
+struct CatalogCitationOption: Sendable, Equatable {
+    var level: Level
+    var field: CatalogMetadataField?
+    var builtin: CitationBuiltin?
+}
+
+/// One form rendered for one Source, with what it lacks (one chain per needed
+/// placeholder no option answers) and what is wrong with unsaved text.
+struct CatalogCitationPreview: Sendable, Equatable {
+    var render: CatalogCitationRender = .init()
+    var missing: [[CatalogCitationOption]] = []
+    var diagnostics: [CatalogCitationDiagnostic] = []
+}
+
+/// One placeholder a form can hold, as completion lists it.
+struct CatalogCitationPlaceholder: Sendable, Equatable, Identifiable {
+    /// What the row is, never its text: `"<level>.<builtin>[:<option>]"` for a
+    /// built-in and `"<level>#<field id>"` for a field, so two fields with one
+    /// key are two rows.
+    var id: String
+    var level: Level
+    var builtin: CitationBuiltin?
+    var option: CitationOption?
+    var field: CatalogMetadataField?
+    /// The whole placeholder: `{graph.meta.line_number}`.
+    var text: String
+    /// What sits inside the braces: `graph.meta.line_number`.
+    var ref: String
 }
 
 extension [CatalogSourceType] {
@@ -1693,18 +1767,33 @@ protocol GenealogyStore: Sendable {
     ) async throws -> (CatalogSourceType, CatalogWriteEffects)
     /// A type's three citation formats. A stored text that does not parse comes
     /// back as stored.
-    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormats
+    func citationFormats(projectDir: String, typeID: String) async throws -> CatalogCitationFormatsReply
     /// Patches label, description, and icon for a `user` or `provenencia` type.
     /// The key never changes here, so a rename keeps existing sources
-    /// attached. Fails for `plugin:…` rows.
+    /// attached. Fails for `plugin:…` rows. `formats`, when not nil, is saved in
+    /// the same write and the reply carries what is stored and any mistakes; with
+    /// a mistake nothing is saved. The reply is nil when no formats were sent.
     func updateSourceType(
         projectDir: String,
         userID: String,
         typeID: String,
         label: String,
         description: String,
-        iconKey: String
-    ) async throws -> (CatalogSourceType, CatalogWriteEffects)
+        iconKey: String,
+        formats: CatalogCitationFormats?
+    ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects)
+    /// One form rendered for one Source of a type (nil for none), against
+    /// `format` (unsaved text with fields by key; nil renders the stored form).
+    /// With no Source and a format, only its diagnostics come back.
+    func renderCitationPreview(
+        projectDir: String,
+        form: CitationForm,
+        format: String?,
+        fieldChoices: [String: String],
+        sourceID: String?
+    ) async throws -> CatalogCitationPreview
+    /// The placeholders a form can hold, in the order completion shows them.
+    func citationPlaceholders(projectDir: String, form: CitationForm) async throws -> [CatalogCitationPlaceholder]
     /// Deletes a type no source refers to. Suggestion joins cascade; the
     /// fields they named stay in the vocabulary.
     func deleteSourceType(
