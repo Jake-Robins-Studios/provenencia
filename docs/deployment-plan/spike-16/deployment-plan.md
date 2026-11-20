@@ -79,7 +79,8 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 30. **A failed sidebar recount says so.** When the recount after a write fails (adding a Source with the catalog session refusing), the "Couldn't refresh catalog counts" toast shows, as it does when the first count at launch fails, and the badges keep their last values.
 31. **A combo box never submits a pick it no longer shows.** On a Source type page, pick Folio in a suggestion picker, clear the field or type "zzz", and press Return: nothing is added and the field keeps the text. Click away and it shows Folio again. With the field showing Folio, Return adds it, as today. The metadata board's inline Add field row behaves the same.
 32. **Toasts stack instead of replacing each other.** Choose two portraits in a row: both toasts show, stacked, newest on top, and each leaves five seconds after it appeared. Dismissing the lower one leaves the upper one's timer untouched. A workspace notice and a page's toast never overlap. The same failure twice shows one card whose timer restarts.
-33. **Every seed writes through one transaction.** `rg -n "searchindex.Reproject" core/database --glob '!*_test.go' --glob '!searchindex/**'` finds no seed `Upsert` reprojecting by hand: the subject vocabulary, Properties and credibility grades install through `writes.Run`. Nothing in the app changes.
+33. **Every seed writes through one transaction.** `rg -n "func (Upsert|EnsureBinding|Install)\(c \*database\.Catalog" core/database/properties core/database/propertyterms core/database/subjecttypes core/database/sourcecredibilitygrades core/database/subjectvocab --glob '!*_test.go' --glob '!*test/**'` finds nothing: the subject vocabulary, Properties, terms and credibility grades install through `writes.Run`, and a failed install leaves none of its rows. Nothing in the app changes.
+36. **One change builder and one change-only write call.** `rg -n "return struct\{\}\{\}, changes, err" core api` finds nothing, and no catalog package builds its own create, update or delete change around its column list. Nothing in the app changes.
 35. **A large delete still answers.** Deleting a bridge file whose Subjects are all claimed by one handle works however many Subjects it holds; the delete's Impact is the same as it would be for a few. Nothing else in the app changes.
 
 **Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
@@ -151,7 +152,8 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One catalog querier" and "Trimmed empty-string binder" (2026-11-17) | S16-49 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One tiny-PNG test writer" (2026-11-17) | S16-54 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "A failed sidebar recount is silent" (2026-11-17) | S16-56 |
-| S15-19 planning (2026-11-17): the other seeds' `Upsert`s reproject search by hand off `writes.Run`, as the Source seed did before S15-52 | S16-62 |
+| S15-19 planning (2026-11-17): the other seeds' `Upsert`s write off `writes.Run`, as the Source seed did before S15-52 | S16-62 |
+| S16-62 plan review (2026-11-19): ten packages each build their own change records, and 127 adaptors wrap `writes.Call` | S16-64 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Source page section counts differ" (S12-11 M-8, dogfood 2026-10-25), with the composer's and the Gallery's bare counts (2026-11-17) | S16-55 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
@@ -325,7 +327,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-54 | Catalog tests write a test PNG through one helper | 6c | Go, tests only: `dbtest.WritePNG(t, path, w, h)`; the two `writeTinyPNG` copies and `artifacts_test.go`'s six inline encoders use it | — | — | quick-pr | Landed #906 |
 | S16-55 | Section counts read alike | 6c | Swift: the bare numbers on Source page Notes, the composer's Citation column and the Gallery become plural strings; Evidence graphs hides its count at zero | — | — | quick-pr | Landed #907 |
 | S16-56 | A failed sidebar recount says so | 6c | Swift: `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the launch's counts toast for every failure; `clearRefreshError` is used or goes | — | — | quick-pr | Landed #909 |
-| S16-62 | The subject and grade seeds write through `writes.Run` | 6c | Preparatory, Go: the Property, subject-type, grade and binding `Upsert`s / `EnsureBinding` that only `Install` calls return row changes, and `subjectvocab.Install` and `sourcecredibilitygrades.Install` each run in one `writes.Run`; the hand reprojection goes. Follows S15-52's shape for the Source seed | — | S15-52 | — | Scoped |
+| S16-62 | The subject and grade seeds write through `writes.Run` | 6c | Preparatory, Go: the Property, term, subject-type, grade and binding `Upsert`s / `EnsureBinding` that only `Install` calls become `…Tx` functions returning row changes, and `subjectvocab.Install` and `sourcecredibilitygrades.Install` each compose on one `writes.Call` in `createCatalog`, so the seed is atomic and the subject vocabulary audited. Follows S15-52's shape for the Source seed | — | S15-52 | [plan](prs/S16-62-subject-and-grade-seeds-through-writes-run.md) | Planned |
+| S16-64 | One change builder and one change-only write call | 6c | Preparatory, Go: `rowchange` builds a create, update and delete change from an entity, an id and a column list, so each catalog package keeps only its `rowFields`; `writes.Apply` runs a closure that returns only changes, replacing the `return struct{}{}, changes, err` adaptors (S16-62 review M-3, M-5) | — | S16-62 | — | Scoped |
 | S16-63 | A delete that leaves a handle with many Subjects still works | 6c | Go: `deleteimpact.handleGoesWithout` stops binding every leaving Subject in one `NOT IN` list (unbounded; SQLite binds at most 32,766), so a bridge-file delete reaching a handle with any number of Subjects answers as today | — | — | — | Scoped |
 | S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once; the Citation composer's toast moves from the foot of its observations column into the stack | S16-D10 | S16-56, S16-D10 | — | Scoped |
 | S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to the window list instead of setting a `toast` binding; the forwarding goes; no visible change | — | S16-58 | — | Scoped |
@@ -453,7 +456,8 @@ SLICE 6c — Shared list helpers                       (any time)
   S16-56  A failed sidebar recount says so                    (quick-pr)
   S16-62  The subject and grade seeds write through writes.Run   (after S15-52)
   S16-63  A delete that leaves a handle with many Subjects still works
-  Check: bar 23, 24, 28 to 30, 33, 35. The seven PRs share no file and run in parallel; S16-62 waits for S15-52.
+  S16-64  One change builder and one change-only write call   (after S16-62)
+  Check: bar 23, 24, 28 to 30, 33, 35, 36. S16-62 waits for S15-52 and S16-64 for S16-62; the rest share no file and run in parallel.
 
 SLICE 6d — Popups                                    (any time; a chain)
   S16-50  One kit popup presenter, and the kit menus use it
@@ -533,7 +537,7 @@ S16-49: none
 S16-54: none
 S16-55: none
 S16-56: none
-S15-52 ──▶ S16-62
+S15-52 ──▶ S16-62 ──▶ S16-64
 S16-63: none
 S16-50 ──▶ S16-51 ──▶ S16-52
 S16-57 ──▶ S16-51
@@ -924,11 +928,18 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 
 #### S16-62 — The subject and grade seeds write through `writes.Run`
 
-**Ships.** Preparatory, Go (S15-19 planning, user 2026-11-17). The seed-only writes `core/writes/README.md` lists as un-audited and hand-reprojecting (Property, subject-type and grade `Upsert`, `subjectvocab.EnsureBinding`) take a `*database.Tx` and return row changes; `subjectvocab.Install` and `sourcecredibilitygrades.Install` each run in one `writes.Run`, so the effects registry does what the hand reprojection did. Copies S15-52's shape for the Source seed. `writes/README.md` drops the paragraph's last hand-reprojecting seed paths.
-**Not this PR.** `nameformats` and `namealiases` Install (no search documents); any seed content.
-**Check.** Bar 33; `Install` twice records one revision per domain; `TestInstallMatchesRegistry` stays green.
+**Ships.** Preparatory, Go (S15-19 planning, user 2026-11-17). The seed-only writes `core/writes/README.md` lists as off `Run` (Property, term, subject-type and grade `Upsert`, `subjectvocab.EnsureBinding`) take a `*database.Tx` and return row changes; `subjectvocab.Install` and `sourcecredibilitygrades.Install` each compose on one `writes.Call` that `createCatalog` opens. They never reprojected search (none of these tables has a search document, corrected in planning 2026-11-19); what they gain is a transaction, the audit and the effects registry's list and cache updates. The grades table stays `None`, so its install is atomic and records no revision. Copies S15-52's shape for the Source seed. `writes/README.md` drops the paragraph's last seed paths off `Run`.
+**Not this PR.** `nameformats` and `namealiases` Install (every table they write is `None`); the shared change builders and `writes.Apply` (S16-64); any seed content.
+**Check.** Bar 33; a second subject-vocabulary `Install` records no revision; a grades `Install` records none; `TestInstallMatchesRegistry` stays green.
 **Context.** `core/writes/README.md`; S15-52's plan (Spike 15); skills `add-seeded-vocabulary`, `add-audit-scope`.
 
+
+#### S16-64 — One change builder and one change-only write call
+
+**Ships.** Preparatory, Go (S16-62 plan review M-3, M-5; user 2026-11-19). `core/database/rowchange` gains a create, an update and a delete builder that take the entity type, the id and the column map (`FullRow`, `UpdatedRow` and `DeletedRow` inside, nil update when nothing differs), and the per-package `createChange` / `updateChange` / `CreateChange` / `UpdateChange` copies move onto them: `sourcetypes`, `metadatafields`, `properties`, `propertyterms`, `subjecttypes`, `sourcecredibilitygrades`, `datevalues`, `namevalues`, `depictionvalues`. `core/writes` gains `Apply(c, op, fn func(*database.Tx) ([]rowchange.Change, error)) error`, and every `return struct{}{}, changes, err` adaptor around `writes.Call` (127 at S16-62's planning) moves onto it, `onboarding.installSeed` and the seed test helpers included. Audit JSON is unchanged key for key. The plan fixes the names.
+**Not this PR.** Any change to what a write records or resolves.
+**Check.** Bar 36; the whole Go suite passes with no audit-key change.
+**Context.** S16-62's plan and review log; `core/database/rowchange/change.go`; `core/writes/run.go`; [`add-catalog-query`](../../../.agents/skills/add-catalog-query/SKILL.md).
 
 #### S16-63 — A delete that leaves a handle with many Subjects still works
 
