@@ -203,10 +203,10 @@ const pageLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}
 func run(t *testing.T, c *database.Catalog, fn func(tx *database.Tx) ([]rowchange.Change, error)) ([]rowchange.Change, error) {
 	t.Helper()
 	var out []rowchange.Change
-	_, err := writes.Call(c, writes.Op{Action: "test_write", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "test_write", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		ch, err := fn(tx)
 		out = ch
-		return struct{}{}, ch, err
+		return ch, err
 	})
 	return out, err
 }
@@ -585,9 +585,8 @@ func TestLinkWritesMoveNoCitationReads(t *testing.T) {
 		}},
 	} {
 		name, fn := step.name, step.fn
-		_, res, err := writes.Run(f.c, writes.Op{Action: name + "_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := fn(tx)
-			return struct{}{}, changes, err
+		res, err := writes.RunChanges(f.c, writes.Op{Action: name + "_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return fn(tx)
 		})
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -728,12 +727,12 @@ func TestUnlinkImpact(t *testing.T) {
 		}
 		for i, pair := range pairs {
 			errRollback := errors.New("roll back")
-			_, err := writes.Call(f.c, writes.Op{Action: "test_write", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			_, err := writes.RunChanges(f.c, writes.Op{Action: "test_write", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := evidencegraphs.Unlink(tx, userID, pair.GraphID, pair.ArtifactID)
 				if err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
-				return struct{}{}, ch, errRollback
+				return ch, errRollback
 			})
 			var block *evidencegraphs.UnlinkBlock
 			for j := range blocks {
@@ -1397,9 +1396,8 @@ func TestDelete(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := writes.Run(f.c, writes.Op{Action: "reorder_metadata", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := sourcemetadata.Reorder(tx, userID, owner, [][]byte{line.ID})
-			return struct{}{}, ch, err
+		if _, err := writes.RunChanges(f.c, writes.Op{Action: "reorder_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sourcemetadata.Reorder(tx, userID, owner, [][]byte{line.ID})
 		}); err != nil {
 			t.Fatal(err)
 		}

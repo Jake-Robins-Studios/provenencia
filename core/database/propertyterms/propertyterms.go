@@ -104,33 +104,6 @@ func rowFields(t Term) map[string]any {
 	return fields
 }
 
-// createChange is the create change of a new term row: every column that holds
-// a value.
-func createChange(t Term) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "property_term",
-		EntityID:   append([]byte(nil), t.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(rowFields(t)),
-	}
-}
-
-// updateChange is the update change from prev to next, naming only the columns
-// that differ (a missing key reads nil); nil when nothing differs. id,
-// property_id, key and origin are never compared.
-func updateChange(prev, next Term) *rowchange.Change {
-	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "property_id", "key", "origin")
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "property_term",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
-}
-
 // UpsertTx inserts or updates by (property_id, key, origin) on tx and returns
 // the id and the row changes. Missing: a new term, one create change. Present:
 // label, description, directed, inverse_key and neutral are written and one
@@ -159,7 +132,7 @@ func UpsertTx(tx *database.Tx, t Term) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, t.ID, t.PropertyID, t.Key, t.Origin, t.Label, database.NullString(t.Description), directedBit(t.Directed), database.NullString(t.InverseKey), directedBit(t.Neutral)); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t)}, nil
+		return append([]byte(nil), t.ID...), []rowchange.Change{rowchange.Created("property_term", t.ID, rowFields(t))}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -167,7 +140,7 @@ func UpsertTx(tx *database.Tx, t Term) ([]byte, []rowchange.Change, error) {
 	next := existing
 	next.Label, next.Description = t.Label, t.Description
 	next.Directed, next.InverseKey, next.Neutral = t.Directed, t.InverseKey, t.Neutral
-	change := updateChange(existing, next)
+	change := rowchange.Updated("property_term", existing.ID, rowFields(existing), rowFields(next), "id", "property_id", "key", "origin")
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
@@ -219,7 +192,7 @@ func Create(tx *database.Tx, userID, propertyID []byte, label, description strin
 	if err != nil {
 		return Term{}, nil, err
 	}
-	return term, []rowchange.Change{createChange(term)}, nil
+	return term, []rowchange.Change{rowchange.Created("property_term", term.ID, rowFields(term))}, nil
 }
 
 // Update patches label and description for a user-origin term.
@@ -255,7 +228,7 @@ func Update(tx *database.Tx, userID, id []byte, label, description string) (Term
 
 	next := existing
 	next.Label, next.Description = label, description
-	change := updateChange(existing, next)
+	change := rowchange.Updated("property_term", existing.ID, rowFields(existing), rowFields(next), "id", "property_id", "key", "origin")
 	if change == nil {
 		return existing, nil, nil
 	}
@@ -330,12 +303,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "property_term",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(rowFields(existing)),
-	}}, nil
+	return []rowchange.Change{rowchange.Deleted("property_term", id, rowFields(existing))}, nil
 }
 
 // Lookup returns the term for (propertyID, key, origin).

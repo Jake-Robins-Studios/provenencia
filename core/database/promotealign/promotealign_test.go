@@ -1310,7 +1310,7 @@ func (f *fixture) done(graphID []byte, rev int64, onto map[*subjects.Subject][]b
 	for s, h := range onto {
 		rows = append(rows, promote.BatchRow{SubjectID: s.ID, Target: promote.TargetHandle, EntityID: h})
 	}
-	_, err := writes.Call(f.c, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(f.c, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		return promote.SaveBatch(tx, userID, promote.Batch{GraphID: graphID, SeenRevision: rev, Rows: rows})
 	})
 	must(f.t, err)

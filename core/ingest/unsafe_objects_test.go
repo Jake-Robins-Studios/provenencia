@@ -54,10 +54,10 @@ func TestStagedInsertTxRefusesSymlinkedObjects(t *testing.T) {
 	}
 	defer s.Discard()
 	symlinkObjects(t, c)
-	_, _, err = writes.Run(c, writes.Op{Action: "create_file", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(c, writes.Op{Action: "create_file", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			_, ch, err := s.InsertTx(tx.Tx)
-			return struct{}{}, ch, err
+			return ch, err
 		})
 	wantUnsafeObjects(t, err)
 }
@@ -79,10 +79,10 @@ func TestStagedInsertTxRefusesReplacedObjects(t *testing.T) {
 	if err := os.Mkdir(objects, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = writes.Run(c, writes.Op{Action: "create_file", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(c, writes.Op{Action: "create_file", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			_, ch, err := s.InsertTx(tx.Tx)
-			return struct{}{}, ch, err
+			return ch, err
 		})
 	wantUnsafeObjects(t, err)
 }

@@ -261,22 +261,17 @@ func InsertWithObservationsTx(
 		return CreateResult{}, nil, mapConstraint(err)
 	}
 
-	changes := []rowchange.Change{{
-		EntityType: "citation",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":                      id.String(),
-			"ref":                     citRef,
-			"artifact_id":             database.UUIDJSON(in.ArtifactID),
-			"graph_id":                database.UUIDJSON(in.GraphID),
-			"locator_json":            in.LocatorJSON,
-			"transcription":           database.NullString(in.Transcription),
-			"label":                   database.NullString(in.Label),
-			"transcription_uncertain": in.TranscriptionUncertain,
-			"transcription_note":      database.NullString(in.TranscriptionNote),
-		}),
-	}}
+	changes := []rowchange.Change{rowchange.Created("citation", idBytes, map[string]any{
+		"id":                      id.String(),
+		"ref":                     citRef,
+		"artifact_id":             database.UUIDJSON(in.ArtifactID),
+		"graph_id":                database.UUIDJSON(in.GraphID),
+		"locator_json":            in.LocatorJSON,
+		"transcription":           database.NullString(in.Transcription),
+		"label":                   database.NullString(in.Label),
+		"transcription_uncertain": in.TranscriptionUncertain,
+		"transcription_note":      database.NullString(in.TranscriptionNote),
+	})}
 
 	for _, body := range in.Notes {
 		body = strings.TrimSpace(body)
@@ -290,16 +285,11 @@ func InsertWithObservationsTx(
 		if _, err := tx.Exec(sqlInsertNote, noteID[:], idBytes, body); err != nil {
 			return CreateResult{}, nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "citation_note",
-			EntityID:   noteID[:],
-			Action:     rowchange.ActionCreate,
-			Fields: rowchange.FullRow(map[string]any{
-				"id":          noteID.String(),
-				"citation_id": id.String(),
-				"body":        body,
-			}),
-		})
+		changes = append(changes, rowchange.Created("citation_note", noteID[:], map[string]any{
+			"id":          noteID.String(),
+			"citation_id": id.String(),
+			"body":        body,
+		}))
 	}
 
 	var obsOut []observations.Observation
@@ -365,29 +355,22 @@ func Update(tx *database.Tx, userID, citationID []byte, in CitationFieldsInput) 
 		return Citation{}, nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if prev.LocatorJSON != in.LocatorJSON {
-		fields["locator_json"] = rowchange.FieldDiff{Old: prev.LocatorJSON, New: in.LocatorJSON}
-	}
-	if prev.Transcription != in.Transcription {
-		fields["transcription"] = rowchange.FieldDiff{Old: database.NullString(prev.Transcription), New: database.NullString(in.Transcription)}
-	}
-	if prev.Label != in.Label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(prev.Label), New: database.NullString(in.Label)}
-	}
-	if prev.TranscriptionUncertain != in.TranscriptionUncertain {
-		fields["transcription_uncertain"] = rowchange.FieldDiff{
-			Old: prev.TranscriptionUncertain,
-			New: in.TranscriptionUncertain,
-		}
-	}
-	if prev.TranscriptionNote != in.TranscriptionNote {
-		fields["transcription_note"] = rowchange.FieldDiff{
-			Old: database.NullString(prev.TranscriptionNote),
-			New: database.NullString(in.TranscriptionNote),
-		}
-	}
-	if len(fields) == 0 {
+	change := rowchange.Updated("citation", citationID,
+		map[string]any{
+			"locator_json":            prev.LocatorJSON,
+			"transcription":           database.NullString(prev.Transcription),
+			"label":                   database.NullString(prev.Label),
+			"transcription_uncertain": prev.TranscriptionUncertain,
+			"transcription_note":      database.NullString(prev.TranscriptionNote),
+		},
+		map[string]any{
+			"locator_json":            in.LocatorJSON,
+			"transcription":           database.NullString(in.Transcription),
+			"label":                   database.NullString(in.Label),
+			"transcription_uncertain": in.TranscriptionUncertain,
+			"transcription_note":      database.NullString(in.TranscriptionNote),
+		})
+	if change == nil {
 		return prev, nil, nil
 	}
 
@@ -408,21 +391,16 @@ func Update(tx *database.Tx, userID, citationID []byte, in CitationFieldsInput) 
 		return Citation{}, nil, err
 	}
 	return Citation{
-			ID:                     append([]byte(nil), citationID...),
-			Ref:                    prev.Ref,
-			ArtifactID:             append([]byte(nil), prev.ArtifactID...),
-			GraphID:                append([]byte(nil), prev.GraphID...),
-			LocatorJSON:            in.LocatorJSON,
-			Transcription:          in.Transcription,
-			Label:                  in.Label,
-			TranscriptionUncertain: in.TranscriptionUncertain,
-			TranscriptionNote:      in.TranscriptionNote,
-		}, []rowchange.Change{{
-			EntityType: "citation",
-			EntityID:   append([]byte(nil), citationID...),
-			Action:     rowchange.ActionUpdate,
-			Fields:     fields,
-		}}, nil
+		ID:                     append([]byte(nil), citationID...),
+		Ref:                    prev.Ref,
+		ArtifactID:             append([]byte(nil), prev.ArtifactID...),
+		GraphID:                append([]byte(nil), prev.GraphID...),
+		LocatorJSON:            in.LocatorJSON,
+		Transcription:          in.Transcription,
+		Label:                  in.Label,
+		TranscriptionUncertain: in.TranscriptionUncertain,
+		TranscriptionNote:      in.TranscriptionNote,
+	}, []rowchange.Change{*change}, nil
 }
 
 // Delete erases a Citation when no Observation remains. Its notes are

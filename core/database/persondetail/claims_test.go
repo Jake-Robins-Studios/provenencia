@@ -120,9 +120,8 @@ func (f *fixture) burialsAndBaptisms() shape {
 	f.T.Helper()
 	src := f.source("Parish register")
 	burials := evidencegraphstest.SoleGraph(f.T, f.C, src.ID)
-	_, _, err := writes.Run(f.C, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := evidencegraphs.Update(tx, userID, burials.ID, evidencegraphs.UpdateInput{Name: "Burials"})
-		return struct{}{}, ch, err
+	_, err := writes.RunChanges(f.C, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Update(tx, userID, burials.ID, evidencegraphs.UpdateInput{Name: "Burials"})
 	})
 	must(f.T, err)
 	burials.Name = "Burials"

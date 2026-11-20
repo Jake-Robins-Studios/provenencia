@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/depictionvalue"
 	"github.com/google/uuid"
 )
@@ -48,16 +47,6 @@ func RowMap(id []byte, v depictionvalue.Value) map[string]any {
 		"id":            database.UUIDJSON(id),
 		"region_json":   v.RegionJSON,
 		"image_file_id": database.UUIDJSON(v.ImageFileID),
-	}
-}
-
-// CreateChange is the audit change of a new depiction_values row.
-func CreateChange(id []byte, v depictionvalue.Value) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "depiction_value",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(RowMap(id, v)),
 	}
 }
 

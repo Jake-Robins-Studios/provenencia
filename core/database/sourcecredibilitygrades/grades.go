@@ -50,31 +50,6 @@ func rowFields(g Grade) map[string]any {
 	}
 }
 
-// createChange is the create change of a new grade row: every column.
-func createChange(g Grade) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "source_credibility_grade",
-		EntityID:   append([]byte(nil), g.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(rowFields(g)),
-	}
-}
-
-// updateChange is the update change from prev to next, naming only the columns
-// that differ; nil when nothing differs. id, key and origin are never compared.
-func updateChange(prev, next Grade) *rowchange.Change {
-	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "key", "origin")
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "source_credibility_grade",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
-}
-
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and the
 // row changes. Missing: a new grade, one create change. Present: label and
 // sort_order are written and one update change names what differs; nothing
@@ -100,14 +75,14 @@ func UpsertTx(tx *database.Tx, g Grade) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, g.ID, g.Key, g.Origin, g.Label, g.SortOrder); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), g.ID...), []rowchange.Change{createChange(g)}, nil
+		return append([]byte(nil), g.ID...), []rowchange.Change{rowchange.Created("source_credibility_grade", g.ID, rowFields(g))}, nil
 	}
 	if err != nil {
 		return nil, nil, err
 	}
 	next := existing
 	next.Label, next.SortOrder = g.Label, g.SortOrder
-	change := updateChange(existing, next)
+	change := rowchange.Updated("source_credibility_grade", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}

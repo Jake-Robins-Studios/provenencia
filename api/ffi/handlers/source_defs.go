@@ -476,10 +476,9 @@ func DeleteSourceType(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteSourceTypeResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_source_type", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sourcetypes.Delete(tx, userID, typeID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_source_type", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sourcetypes.Delete(tx, userID, typeID)
 			})
 		if err != nil {
 			return err
@@ -508,10 +507,9 @@ func DeleteMetadataField(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteMetadataFieldResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := metadatafields.Delete(tx, userID, fieldID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return metadatafields.Delete(tx, userID, fieldID)
 			})
 		if err != nil {
 			return err

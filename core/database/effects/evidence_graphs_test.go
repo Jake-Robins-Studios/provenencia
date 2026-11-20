@@ -218,11 +218,7 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	sameIDs("citation create reads", citSet.IDsOf(effects.ReadCitations), jones.ID)
 	sameIDs("citation create graphs", citSet.EvidenceGraphs, jones.ID)
 	sameIDs("subject create progress", resolve("subject", subjChange).IDsOf(effects.ReadEvidenceGraphProgress), jones.ID)
-	claim := rowchange.Change{
-		EntityType: "identity_claim", EntityID: []byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9},
-		Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"subject_id": subjectID}),
-	}
+	claim := rowchange.Created("identity_claim", []byte{9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9}, map[string]any{"subject_id": subjectID})
 	sameIDs("claim create progress", resolve("claim", []rowchange.Change{claim}).IDsOf(effects.ReadEvidenceGraphProgress), jones.ID)
 
 	// A Source title edit names no graph (the Source records hold its words),

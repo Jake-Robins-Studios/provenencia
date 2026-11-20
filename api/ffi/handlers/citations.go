@@ -230,10 +230,9 @@ func DeleteCitation(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteCitationResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_citation", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := citations.Delete(tx, userID, citationID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return citations.Delete(tx, userID, citationID)
 			})
 		if err != nil {
 			return err

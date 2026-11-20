@@ -389,9 +389,8 @@ func TestReconciledValues(t *testing.T) {
 			t.Fatalf("after add %+v", age)
 		}
 		{
-			_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := observations.Delete(tx, userID, obs[0].ID)
-				return struct{}{}, changes, err
+			_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, obs[0].ID)
 			})
 			must(t, err)
 		}
@@ -431,16 +430,14 @@ func TestReconciledValues(t *testing.T) {
 			t.Fatal("promoted name not cached")
 		}
 		{
-			_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := observations.Delete(tx, userID, obs[0].ID)
-				return struct{}{}, changes, err
+			_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, obs[0].ID)
 			})
 			must(t, err)
 		}
 		{
-			_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjects.Delete(tx, userID, lone.ID)
-				return struct{}{}, changes, err
+			_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjects.Delete(tx, userID, lone.ID)
 			})
 			must(t, err)
 		}
@@ -1265,9 +1262,8 @@ func TestRebuildEqualsUpkeep_Scenarios(t *testing.T) {
 			must(f.T, err)
 			f.assertUpkeepEqualsRebuild("after update")
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, obs[0].ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, obs[0].ID)
 				})
 				must(f.T, err)
 			}
@@ -1343,9 +1339,8 @@ func TestRebuildEqualsUpkeep_Scenarios(t *testing.T) {
 			f.join(b, h)
 			f.assertUpkeepEqualsRebuild("after join")
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, obs[1].ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, obs[1].ID)
 				})
 				must(f.T, err)
 			}
@@ -1383,9 +1378,8 @@ func TestRebuildEqualsUpkeep_Scenarios(t *testing.T) {
 			denial := f.cite(negative(textIn(b, f.props["toponym"], "York")))
 			f.assertUpkeepEqualsRebuild("denied")
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, denial[0].ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, denial[0].ID)
 				})
 				must(f.T, err)
 			}
@@ -1423,9 +1417,8 @@ func TestRebuildEqualsUpkeep_Scenarios(t *testing.T) {
 				f.T.Fatalf("person edge %+v", rows)
 			}
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := subjects.Delete(tx, userID, bridge.ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return subjects.Delete(tx, userID, bridge.ID)
 				})
 				must(f.T, err)
 			}
@@ -1435,16 +1428,14 @@ func TestRebuildEqualsUpkeep_Scenarios(t *testing.T) {
 			obs := f.cite(dateIn(p, f.props["date"], 1985, ip(5), nil))
 			f.promote(p)
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, obs[0].ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, obs[0].ID)
 				})
 				must(f.T, err)
 			}
 			{
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := subjects.Delete(tx, userID, p.ID)
-					return struct{}{}, changes, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return subjects.Delete(tx, userID, p.ID)
 				})
 				must(f.T, err)
 			}
@@ -1640,9 +1631,8 @@ func TestRebuildEqualsUpkeep_SeededSequences(t *testing.T) {
 					tolerate(err)
 				case op < 9 && len(obs) > 0:
 					i := rng.Intn(len(obs))
-					_, err := writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := observations.Delete(tx, userID, obs[i].ID)
-						return struct{}{}, changes, err
+					_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return observations.Delete(tx, userID, obs[i].ID)
 					})
 					tolerate(err)
 					if err == nil {
@@ -1672,9 +1662,8 @@ func TestRebuildEqualsUpkeep_SeededSequences(t *testing.T) {
 					obs = append(obs, f.cite(negative(value(s)))...)
 				default:
 					i := rng.Intn(len(subs))
-					_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := subjects.Delete(tx, userID, subs[i].ID)
-						return struct{}{}, changes, err
+					_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Delete(tx, userID, subs[i].ID)
 					})
 					tolerate(err)
 					if err == nil {
@@ -2019,9 +2008,8 @@ func TestReconciledBoolean(t *testing.T) {
 	loadedTrue(h)
 	must(t, f.C.Graph().Verify())
 
-	_, err = writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := observations.Delete(tx, userID, second[0].ID)
-		return struct{}{}, changes, err
+	_, err = writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return observations.Delete(tx, userID, second[0].ID)
 	})
 	must(t, err)
 	if n, support, value := cached(); n != 1 || support != 1 || value != 1 {
@@ -2178,9 +2166,8 @@ func TestRebuildEqualsUpkeep_SeededLinks(t *testing.T) {
 				case 4, 5:
 					k := []string{"person", "event", "place"}[rng.Intn(3)]
 					s := pick(k)
-					_, err := writes.Call(f.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						ch, err := promote.Unpromote(tx, userID, s.ID)
-						return struct{}{}, ch, err
+					_, err := writes.RunChanges(f.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return promote.Unpromote(tx, userID, s.ID)
 					})
 					tolerate(err)
 					label = "unpromote " + k
@@ -2193,9 +2180,8 @@ func TestRebuildEqualsUpkeep_SeededLinks(t *testing.T) {
 					}
 					i := rng.Intn(len(bridges))
 					b := bridges[i]
-					_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						ch, err := subjects.Delete(tx, userID, b.ID)
-						return struct{}{}, ch, err
+					_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Delete(tx, userID, b.ID)
 					})
 					tolerate(err)
 					if err == nil {

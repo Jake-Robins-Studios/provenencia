@@ -76,9 +76,8 @@ func TestProperties(t *testing.T) {
 				if updated.Label != "Custom Fact 2" || updated.Cardinality != propertymeta.CardinalitySingle {
 					t.Fatalf("label %q", updated.Label)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := properties.Delete(tx, userID, got.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return properties.Delete(tx, userID, got.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -461,10 +460,10 @@ func TestCreateUpdateDeleteChanges(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writes.Call(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	if _, err := writes.RunChanges(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		cs, err := properties.Delete(tx, userID, p.ID)
 		deleted = cs
-		return struct{}{}, cs, err
+		return cs, err
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -36,10 +36,9 @@ func runUpdate(c *database.Catalog, userID, id []byte, label, description string
 }
 
 func runDelete(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_property_term", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, id)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_property_term", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return Delete(tx, userID, id)
 		})
 	return err
 }
@@ -401,10 +400,10 @@ func TestChangeKeys(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writes.Call(c, writes.Op{Action: "delete_property_term", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	if _, err := writes.RunChanges(c, writes.Op{Action: "delete_property_term", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		cs, err := Delete(tx, userID, term.ID)
 		deleted = cs
-		return struct{}{}, cs, err
+		return cs, err
 	}); err != nil {
 		t.Fatal(err)
 	}

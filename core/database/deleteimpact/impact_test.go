@@ -287,10 +287,9 @@ func TestImpactCitationAndSubject(t *testing.T) {
 		}}...); err != nil {
 			t.Fatal(err)
 		}
-		_, _, err = writes.Run(c, writes.Op{Action: "delete_property_term", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := propertyterms.Delete(tx, userID, term.ID)
-				return struct{}{}, changes, err
+		_, err = writes.RunChanges(c, writes.Op{Action: "delete_property_term", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return propertyterms.Delete(tx, userID, term.ID)
 			})
 		if !errors.Is(err, propertyterms.ErrInUse) {
 			t.Fatalf("delete %v", err)
@@ -463,9 +462,8 @@ func TestImpactCitationAndSubject(t *testing.T) {
 			if len(edgeID) == 0 {
 				t.Fatal("no edge observation")
 			}
-			if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := observations.Delete(tx, userID, edgeID)
-				return struct{}{}, changes, err
+			if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, edgeID)
 			}); !errors.Is(err, observations.ErrEdgeLocked) {
 				t.Fatalf("delete edge %v", err)
 			}
@@ -505,9 +503,8 @@ func TestImpactCitationAndSubject(t *testing.T) {
 		if !found {
 			t.Fatalf("missing subject_id group %+v", got.Groups)
 		}
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, alice.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, alice.ID)
 		}); !errors.Is(err, subjects.ErrInUse) {
 			t.Fatalf("delete %v", err)
 		}
@@ -549,9 +546,8 @@ func TestImpactCitationAndSubject(t *testing.T) {
 		if !found {
 			t.Fatalf("missing subject_id group %+v", got.Groups)
 		}
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, bob.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, bob.ID)
 		}); !errors.Is(err, subjects.ErrInUse) {
 			t.Fatalf("delete %v", err)
 		}
@@ -1105,9 +1101,8 @@ func TestLocationsNameTheirGraph(t *testing.T) {
 	}
 	// The page is linked to Default too, which sorts before Jones: a Citation
 	// with no Observation still names the graph it was made in.
-	if _, _, err := writes.Run(c, writes.Op{Action: "link_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := evidencegraphs.Link(tx, userID, def.ID, page.ID)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "link_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Link(tx, userID, def.ID, page.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1455,9 +1450,8 @@ func TestImpactEvidenceGraphLeavesNoGraph(t *testing.T) {
 			jones := evidencegraphstest.Create(t, c, userID, src.ID, "Jones", jonesAllIDs...)
 
 			if tt.deleteX {
-				if _, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := artifacts.Delete(tx, userID, xArt.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return artifacts.Delete(tx, userID, xArt.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}

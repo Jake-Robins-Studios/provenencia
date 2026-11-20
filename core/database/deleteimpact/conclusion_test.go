@@ -131,9 +131,8 @@ func TestImpactConclusion(t *testing.T) {
 	})
 
 	t.Run("observation delete audits only the observation", func(t *testing.T) {
-		if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := observations.Delete(tx, userID, obsID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return observations.Delete(tx, userID, obsID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -149,9 +148,8 @@ func TestImpactConclusion(t *testing.T) {
 	})
 
 	t.Run("subject delete removes its claim and deletes the sole-member handle", func(t *testing.T) {
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, york.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, york.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}

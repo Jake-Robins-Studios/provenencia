@@ -29,30 +29,12 @@ func TestResolveLists(t *testing.T) {
 	defer func() { _ = tx.Rollback() }()
 
 	id := func(b byte) []byte { return []byte{b, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15} }
-	sourceType := rowchange.Change{
-		EntityType: "source_type", EntityID: id(1), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"label": "Book"}),
-	}
-	metadataField := rowchange.Change{
-		EntityType: "metadata_field", EntityID: id(9), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"label": "Volume"}),
-	}
-	property := rowchange.Change{
-		EntityType: "property", EntityID: id(10), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"label": "Trade"}),
-	}
-	propertyTerm := rowchange.Change{
-		EntityType: "property_term", EntityID: id(11), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"label": "Cooper", "property_id": id(10)}),
-	}
-	binding := rowchange.Change{
-		EntityType: "subject_type_property", EntityID: id(12), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"property_id": id(10)}),
-	}
-	graph := rowchange.Change{
-		EntityType: "evidence_graph", EntityID: id(2), Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"source_id": id(3)}),
-	}
+	sourceType := rowchange.Created("source_type", id(1), map[string]any{"label": "Book"})
+	metadataField := rowchange.Created("metadata_field", id(9), map[string]any{"label": "Volume"})
+	property := rowchange.Created("property", id(10), map[string]any{"label": "Trade"})
+	propertyTerm := rowchange.Created("property_term", id(11), map[string]any{"label": "Cooper", "property_id": id(10)})
+	binding := rowchange.Created("subject_type_property", id(12), map[string]any{"property_id": id(10)})
+	graph := rowchange.Created("evidence_graph", id(2), map[string]any{"source_id": id(3)})
 	obs := func(action string, fields map[string]rowchange.FieldDiff) rowchange.Change {
 		return rowchange.Change{EntityType: "observation", EntityID: id(4), Action: action, Fields: fields}
 	}
@@ -72,7 +54,6 @@ func TestResolveLists(t *testing.T) {
 	held := func(entityType string, b byte, action string, fields map[string]rowchange.FieldDiff) rowchange.Change {
 		return rowchange.Change{EntityType: entityType, EntityID: id(b), Action: action, Fields: fields}
 	}
-	full := rowchange.FullRow(map[string]any{"value": "a"})
 
 	tests := []struct {
 		name    string
@@ -98,27 +79,27 @@ func TestResolveLists(t *testing.T) {
 			[]effects.List{effects.ListPropertyUsage}},
 		{"observation delete", []rowchange.Change{obs(rowchange.ActionDelete, text)},
 			[]effects.List{effects.ListPropertyUsage}},
-		{"artifact metadata create", []rowchange.Change{held("artifact_metadata", 20, rowchange.ActionCreate, full)},
+		{"artifact metadata create", []rowchange.Change{rowchange.Created("artifact_metadata", id(20), map[string]any{"value": "a"})},
 			[]effects.List{effects.ListMetadataFieldUsage}},
-		{"graph metadata delete", []rowchange.Change{held("evidence_graph_metadata", 21, rowchange.ActionDelete, full)},
+		{"graph metadata delete", []rowchange.Change{rowchange.Deleted("evidence_graph_metadata", id(21), map[string]any{"value": "a"})},
 			[]effects.List{effects.ListMetadataFieldUsage}},
-		{"source metadata create", []rowchange.Change{held("source_metadata", 22, rowchange.ActionCreate, full)},
+		{"source metadata create", []rowchange.Change{rowchange.Created("source_metadata", id(22), map[string]any{"value": "a"})},
 			[]effects.List{effects.ListMetadataFieldUsage}},
 		{"artifact metadata value edit", []rowchange.Change{held("artifact_metadata", 20, rowchange.ActionUpdate, value)}, nil},
 		{"graph metadata value edit", []rowchange.Change{held("evidence_graph_metadata", 21, rowchange.ActionUpdate, value)}, nil},
 		{"source metadata value edit", []rowchange.Change{held("source_metadata", 22, rowchange.ActionUpdate, value)}, nil},
-		{"source create", []rowchange.Change{source(rowchange.ActionCreate, rowchange.FullRow(map[string]any{"title": "a"}))},
+		{"source create", []rowchange.Change{rowchange.Created("source", id(7), map[string]any{"title": "a"})},
 			[]effects.List{effects.ListCounts}},
 		{"source title edit", []rowchange.Change{source(rowchange.ActionUpdate, title)}, nil},
-		{"source delete", []rowchange.Change{source(rowchange.ActionDelete, rowchange.FullRow(map[string]any{"title": "a"}))},
+		{"source delete", []rowchange.Change{rowchange.Deleted("source", id(7), map[string]any{"title": "a"})},
 			[]effects.List{effects.ListCounts}},
-		{"handle create", []rowchange.Change{entity(rowchange.ActionCreate, rowchange.FullRow(map[string]any{"ref": "PER-1"}))},
+		{"handle create", []rowchange.Change{rowchange.Created("canonical_entity", id(8), map[string]any{"ref": "PER-1"})},
 			[]effects.List{effects.ListCounts}},
 		{"handle preferred picture edit", []rowchange.Change{entity(rowchange.ActionUpdate, preferred)}, nil},
 		{"handle merge", []rowchange.Change{entity(rowchange.ActionUpdate, merged)},
 			[]effects.List{effects.ListCounts}},
 		{"source type then source keeps list order",
-			[]rowchange.Change{source(rowchange.ActionCreate, rowchange.FullRow(map[string]any{"title": "a"})), sourceType},
+			[]rowchange.Change{rowchange.Created("source", id(7), map[string]any{"title": "a"}), sourceType},
 			[]effects.List{effects.ListSourceVocabulary, effects.ListCounts}},
 	}
 	for _, tt := range tests {

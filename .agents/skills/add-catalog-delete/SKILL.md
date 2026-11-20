@@ -55,7 +55,7 @@ Every `BucketOptional` `SET NULL` FK whose parent is deletable needs exactly one
 - [ ] Bridge `subjects.Delete` releases connection facets (loop `connectrules.All()` endpoints + `Disambiguation` matching property origin; do not hard-code `role` / `relationship_type`) before the parent; other `observations.Delete` stays `edge_locked`
 - [ ] FFI: GetDeleteImpact returns the report; Delete* refuse is a generic in_use / extra-gate code (no report on Error, no apperr ref params)
 - [ ] Audit + searchindex stay in the domain package
-- [ ] Delete changes carry the parent FK in `DeletedRow`; any new entity type has a non-`None` effect ([`add-audit-scope`](../add-audit-scope/SKILL.md))
+- [ ] Delete changes carry the parent FK in `rowchange.Deleted`; any new entity type has a non-`None` effect ([`add-audit-scope`](../add-audit-scope/SKILL.md))
 - [ ] FFI: GetDeleteImpact works for this kind (UI or not)
 - [ ] Swift (when the screen ships): `DeleteImpactFlow` + recipe; confirm uses `target.id`;
         `*.in_use` refetch; subject erase applies its effects

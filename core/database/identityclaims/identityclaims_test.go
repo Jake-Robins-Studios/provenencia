@@ -195,9 +195,8 @@ func TestIdentityClaims(t *testing.T) {
 			run: func(t *testing.T, f fixture) {
 				cl := mustClaim(t, f, f.james, f.per1, identityclaims.StatusAccepted)
 				mustClaim(t, f, f.jim, f.per1, identityclaims.StatusAccepted)
-				if _, err := writes.Call(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := subjects.Delete(tx, userID, f.james.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return subjects.Delete(tx, userID, f.james.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -213,9 +212,8 @@ func TestIdentityClaims(t *testing.T) {
 			name: "subject delete deletes the sole-member handle",
 			run: func(t *testing.T, f fixture) {
 				cl := mustClaim(t, f, f.james, f.per1, identityclaims.StatusAccepted)
-				if _, err := writes.Call(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := subjects.Delete(tx, userID, f.james.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return subjects.Delete(tx, userID, f.james.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}

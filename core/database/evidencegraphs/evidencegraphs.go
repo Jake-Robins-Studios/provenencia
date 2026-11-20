@@ -272,23 +272,13 @@ func Update(tx *database.Tx, userID, graphID []byte, in UpdateInput) ([]rowchang
 	}
 
 	var changes []rowchange.Change
-	fields := map[string]rowchange.FieldDiff{}
-	if g.Name != in.Name {
-		fields["name"] = rowchange.FieldDiff{Old: g.Name, New: in.Name}
-	}
-	if g.Description != in.Description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(g.Description), New: database.NullString(in.Description)}
-	}
-	if len(fields) > 0 {
+	if change := rowchange.Updated("evidence_graph", graphID,
+		map[string]any{"name": g.Name, "description": database.NullString(g.Description)},
+		map[string]any{"name": in.Name, "description": database.NullString(in.Description)}); change != nil {
 		if _, err := tx.Exec(sqlUpdate, in.Name, database.NullString(in.Description), graphID); err != nil {
 			return nil, mapConstraint(err)
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "evidence_graph",
-			EntityID:   append([]byte(nil), graphID...),
-			Action:     rowchange.ActionUpdate,
-			Fields:     fields,
-		})
+		changes = append(changes, *change)
 	}
 
 	if len(in.ArtifactIDs) == 0 {
@@ -419,12 +409,7 @@ func insert(tx *sql.Tx, sourceID []byte, name, description string) (Graph, rowch
 		Name:        name,
 		Description: description,
 	}
-	change := rowchange.Change{
-		EntityType: "evidence_graph",
-		EntityID:   append([]byte(nil), idBytes...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(graphFields(g)),
-	}
+	change := rowchange.Created("evidence_graph", idBytes, graphFields(g))
 	return g, change, nil
 }
 
@@ -622,12 +607,7 @@ func Link(tx *database.Tx, userID, graphID, artifactID []byte) ([]rowchange.Chan
 	if _, err := tx.Exec(sqlLinkInsert, graphID, artifactID); err != nil {
 		return nil, mapConstraint(err)
 	}
-	return []rowchange.Change{{
-		EntityType: "evidence_graph_artifact",
-		EntityID:   append([]byte(nil), graphID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(linkFields(graphID, artifactID)),
-	}}, nil
+	return []rowchange.Change{rowchange.Created("evidence_graph_artifact", graphID, linkFields(graphID, artifactID))}, nil
 }
 
 // Unlink removes an Artifact from a graph. A link that is not there returns no
@@ -654,12 +634,7 @@ func Unlink(tx *database.Tx, userID, graphID, artifactID []byte) ([]rowchange.Ch
 	if _, err := tx.Exec(sqlLinkDelete, graphID, artifactID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "evidence_graph_artifact",
-		EntityID:   append([]byte(nil), graphID...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(linkFields(graphID, artifactID)),
-	}}, nil
+	return []rowchange.Change{rowchange.Deleted("evidence_graph_artifact", graphID, linkFields(graphID, artifactID))}, nil
 }
 
 // LinkArtifact links a new Artifact to the graphs of its Source that links

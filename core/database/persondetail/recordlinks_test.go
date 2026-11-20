@@ -204,9 +204,8 @@ func TestRecordLinksGraphOrder(t *testing.T) {
 		src := f.source(title)
 		g := evidencegraphstest.SoleGraph(t, f.C, src.ID)
 		if title == "Baptisms" {
-			_, _, err := writes.Run(f.C, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				ch, err := evidencegraphs.Update(tx, userID, g.ID, evidencegraphs.UpdateInput{Name: "Register"})
-				return struct{}{}, ch, err
+			_, err := writes.RunChanges(f.C, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return evidencegraphs.Update(tx, userID, g.ID, evidencegraphs.UpdateInput{Name: "Register"})
 			})
 			must(t, err)
 			index := evidencegraphstest.Create(t, f.C, userID, src.ID, "Index", f.arts[string(src.ID)].ID)

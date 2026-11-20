@@ -839,9 +839,8 @@ func TestFoldedSpellingsFindEveryKind(t *testing.T) {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, src.ID)
-	if _, _, err := writes.Run(c, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := evidencegraphs.Update(tx, userID, graph.ID, evidencegraphs.UpdateInput{Name: "Ærø household"})
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "update_evidence_graph", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Update(tx, userID, graph.ID, evidencegraphs.UpdateInput{Name: "Ærø household"})
 	}); err != nil {
 		t.Fatal(err)
 	}

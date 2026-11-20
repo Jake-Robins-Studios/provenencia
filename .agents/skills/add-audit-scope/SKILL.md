@@ -58,7 +58,7 @@ Source scopes come from the effect's `SourceScope` path, not a hand resolver. Th
 - **Create / update** changes may carry only the changed fields. The path falls back to the
   live row by `entity_id`.
 - **Delete** changes must carry the parent FK (`source_id`, `artifact_id`, `citation_id`,
-  `observation_id`, …) in `rowchange.DeletedRow(...)`. The row is gone by `Record` time, so the
+  `observation_id`, …) in `rowchange.Deleted(...)`. The row is gone by `Record` time, so the
   fields are the only link. Children released in the same revision (notes before their
   citation; an Artifact's or graph's metadata before the Artifact or graph) reach a deleted
   parent through that parent's delete change (the ghost map). Every hop of a path reads it: the

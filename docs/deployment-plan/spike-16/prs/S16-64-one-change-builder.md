@@ -1,6 +1,6 @@
 # S16-64 — One change builder and one change-only write call
 
-**Status:** Planned
+**Status:** Landed in [#920](https://github.com/Jake-Robins-Studios/provenencia/pull/920) (2026-11-20)
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of how writes build and record their row changes; no view draws anything different)
@@ -315,3 +315,15 @@ None.
 
 **Title:** S16-64 — One change builder and one change-only write call
 **Body:** objective in one sentence; what shipped against US-1 and US-2; the three `rg` outputs of the manual check; deviations from the plan; `Plan: docs/deployment-plan/spike-16/prs/S16-64-one-change-builder.md`.
+
+---
+
+## Landed
+
+- `main` had moved from the Planned commit to `34c2b6155`; no **Current state** row changed, and the 210 and 43 line counts held.
+- `core/database/sourcecopy/sourcecopy_test.go` `writeOne` stayed generic over the closure's value (five of its six callers return one); its one `struct{}` caller calls `writes.RunChanges` directly. D-8's other helpers moved as planned.
+- `TestBuilders` also decodes each built change's fields through JSON and checks a null column stays null (the check `audit_test.go` held for the two moved cases).
+- The STEP-7 `rg` for `UpdatedRow` also matches the unrelated name `CatalogLastUpdatedRow` in `.agents/skills/add-workspace-place/SKILL.md`; left as is.
+- A comment in `core/database/deleteimpact/facets.go` that named `DeletedRow` now names `rowchange.Deleted`.
+- Review round 1 superseded §3 Out line 1 for the update literals that were a column-by-column `!=` diff: `subjects.Update`, `artifacts.Update`, `evidencegraphs`, `citations.Update`, `sources.Update`, `sources.SetPublic`, `sources.dateChange`, `sources.UpdateNote`, `sourcemetadata.updateValueTx`, `canonicalentities` preferred likeness and `ingest.SetFilename` now build their change through `rowchange.Updated`, and audit JSON is key for key the same. The update literals that remain: `sources.SetCover` (records `cover_mode` whether or not it changed), `ingest.recordReuse` (records `ingested_as` unconditionally), `namevalues.UpdateChange` (D-10), `observations.observationUpdateChange`, `subjectpositions`, `subjectvocab.bindingOrderChange`, `sourcemetadata.layoutChange`, `sourcecredibility/assessments.go` and the `deleteimpact/facets.go` re-point.
+- The `RunChanges` doc comment, the `Result` doc and `core/writes/README.md` name `RunChanges` for the reentry check, listener logging and session lock.

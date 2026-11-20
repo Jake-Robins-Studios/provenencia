@@ -113,19 +113,14 @@ func InsertTx(tx *sql.Tx, in CreateInput) (Entity, rowchange.Change, error) {
 		return Entity{}, rowchange.Change{}, mapConstraint(err)
 	}
 
-	change := rowchange.Change{
-		EntityType: "canonical_entity",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":              id.String(),
-			"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
-			"ref":             entityRef,
-			"argument":        database.NullString(in.Argument),
-			"label":           database.NullString(in.Label),
-			"merged_into_id":  nil,
-		}),
-	}
+	change := rowchange.Created("canonical_entity", idBytes, map[string]any{
+		"id":              id.String(),
+		"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
+		"ref":             entityRef,
+		"argument":        database.NullString(in.Argument),
+		"label":           database.NullString(in.Label),
+		"merged_into_id":  nil,
+	})
 	return Entity{
 		ID:            append([]byte(nil), idBytes...),
 		SubjectTypeID: append([]byte(nil), in.SubjectTypeID...),
@@ -294,14 +289,10 @@ func SetPreferredLikeness(tx *database.Tx, userID, entityID, observationID []byt
 	if _, err := tx.Exec(sqlSetPreferred, database.NullBlob(observationID), entityID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "canonical_entity",
-		EntityID:   append([]byte(nil), entityID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"preferred_likeness_observation_id": {Old: database.UUIDJSON(prev), New: database.UUIDJSON(observationID)},
-		},
-	}}, nil
+	change := rowchange.Updated("canonical_entity", entityID,
+		map[string]any{"preferred_likeness_observation_id": database.UUIDJSON(prev)},
+		map[string]any{"preferred_likeness_observation_id": database.UUIDJSON(observationID)})
+	return []rowchange.Change{*change}, nil
 }
 
 func mapConstraint(err error) error {

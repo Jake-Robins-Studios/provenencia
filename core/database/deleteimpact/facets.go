@@ -318,18 +318,13 @@ func releaseClaimRow(tx *sql.Tx, claimID []byte) (subjectID, entityID []byte, st
 	if _, err := tx.Exec(`DELETE FROM identity_claims WHERE id = ?`, id); err != nil {
 		return nil, nil, "", released{}, err
 	}
-	out.Changes = append(out.Changes, rowchange.Change{
-		EntityType: "identity_claim",
-		EntityID:   id,
-		Action:     rowchange.ActionDelete,
-		Fields: rowchange.DeletedRow(map[string]any{
-			"id":              database.UUIDJSON(id),
-			"subject_id":      database.UUIDJSON(subjectID),
-			"entity_id":       database.UUIDJSON(entityID),
-			"subject_type_id": database.UUIDJSON(typeID),
-			"status":          status,
-		}),
-	})
+	out.Changes = append(out.Changes, rowchange.Deleted("identity_claim", id, map[string]any{
+		"id":              database.UUIDJSON(id),
+		"subject_id":      database.UUIDJSON(subjectID),
+		"entity_id":       database.UUIDJSON(entityID),
+		"subject_type_id": database.UUIDJSON(typeID),
+		"status":          status,
+	}))
 	return subjectID, entityID, status, out, nil
 }
 
@@ -414,12 +409,7 @@ func releaseRow(tx *sql.Tx, kind catalogmodel.Kind, table, entityType string, id
 	for i, c := range cols {
 		fields[c.name] = colJSON(c.kind, vals[i])
 	}
-	out.Changes = append(out.Changes, rowchange.Change{
-		EntityType: entityType,
-		EntityID:   id,
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(fields),
-	})
+	out.Changes = append(out.Changes, rowchange.Deleted(entityType, id, fields))
 	return out, nil
 }
 
@@ -468,12 +458,7 @@ func eraseObservation(tx *sql.Tx, id []byte) (released, error) {
 		return released{}, err
 	}
 	out.Objects = append(out.Objects, objects...)
-	out.Changes = append(out.Changes, rowchange.Change{
-		EntityType: "observation",
-		EntityID:   row.ID,
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(row.AuditFields()),
-	})
+	out.Changes = append(out.Changes, rowchange.Deleted("observation", row.ID, row.AuditFields()))
 	return out, nil
 }
 
@@ -501,7 +486,7 @@ type col struct {
 	kind colKind
 }
 
-// rowFacet is a facet table whose rows are audited whole as DeletedRow, keyed
+// rowFacet is a facet table whose rows are audited whole as rowchange.Deleted, keyed
 // by entityIDCol. Rows are removed in rowid order.
 func rowFacet(parent catalogmodel.Kind, table, fkCol, entityType, entityIDCol string, cols ...col) facetRelease {
 	names := ""
@@ -562,12 +547,7 @@ func rowFacet(parent catalogmodel.Kind, table, fkCol, entityType, entityIDCol st
 				if _, err := tx.Exec(deleteSQL, r.rowid); err != nil {
 					return released{}, err
 				}
-				out.Changes = append(out.Changes, rowchange.Change{
-					EntityType: entityType,
-					EntityID:   r.entityID,
-					Action:     rowchange.ActionDelete,
-					Fields:     rowchange.DeletedRow(r.fields),
-				})
+				out.Changes = append(out.Changes, rowchange.Deleted(entityType, r.entityID, r.fields))
 			}
 			return out, nil
 		},

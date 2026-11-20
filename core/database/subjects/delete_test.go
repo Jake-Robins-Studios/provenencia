@@ -141,9 +141,8 @@ func TestSubjectDelete(t *testing.T) {
 	t.Run("G2 endpoint refuses", func(t *testing.T) {
 		c, src, art, alice, wedding := setup(t)
 		mustBridge(t, c, src, art, alice, wedding)
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, alice.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, alice.ID)
 		}); !errors.Is(err, subjects.ErrInUse) {
 			t.Fatalf("delete %v", err)
 		}
@@ -155,9 +154,8 @@ func TestSubjectDelete(t *testing.T) {
 	t.Run("G6 facets-only bridge erases", func(t *testing.T) {
 		c, src, art, alice, wedding := setup(t)
 		bridge := mustBridge(t, c, src, art, alice, wedding)
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, bridge.Subject.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, bridge.Subject.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -210,9 +208,8 @@ func TestSubjectDelete(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, bridge.Subject.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, bridge.Subject.ID)
 		}); !errors.Is(err, subjects.ErrInUse) {
 			t.Fatalf("delete %v", err)
 		}
@@ -226,9 +223,8 @@ func TestSubjectDelete(t *testing.T) {
 		bridge := mustBridge(t, c, src, art, alice, wedding)
 		var edgeID []byte
 		for _, o := range bridge.Observations {
-			if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := observations.Delete(tx, userID, o.ID)
-				return struct{}{}, changes, err
+			if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, o.ID)
 			}); errors.Is(err, observations.ErrEdgeLocked) {
 				edgeID = o.ID
 				break
@@ -254,9 +250,8 @@ func TestSubjectDelete(t *testing.T) {
 		c, _, _, _, _ := setup(t)
 		missing := make([]byte, 16)
 		missing[15] = 9
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, missing)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, missing)
 		}); !errors.Is(err, subjects.ErrInvalid) {
 			t.Fatalf("got %v", err)
 		}
@@ -308,9 +303,8 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 			t.Fatal(err)
 		}
 		promoted := promotetest.Save(t, c, userID, promote.Input{SubjectID: alice.ID})
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, alice.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, alice.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -370,9 +364,8 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 		}
 		entity := promotetest.Save(t, c, userID, promote.Input{SubjectID: alice.ID}).Entity
 		promotetest.Save(t, c, userID, promote.Input{SubjectID: bob.ID, EntityID: entity.ID})
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, alice.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, alice.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -472,9 +465,8 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 			t.Fatal(err)
 		}
 		relHandle := claim.EntityID
-		if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjects.Delete(tx, userID, rel.Subject.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjects.Delete(tx, userID, rel.Subject.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}

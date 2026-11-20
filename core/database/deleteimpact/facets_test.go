@@ -95,9 +95,8 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sources.Delete(tx, userID, src.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sources.Delete(tx, userID, src.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -130,9 +129,8 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sources.Delete(tx, userID, src.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sources.Delete(tx, userID, src.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -166,9 +164,8 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 	}
 	deleteSource := func(t *testing.T, id []byte) []string {
 		t.Helper()
-		if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sources.Delete(tx, userID, id)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sources.Delete(tx, userID, id)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -209,9 +206,8 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 		if bytes.Compare(g1.ID, g2.ID) > 0 {
 			first, second = g2, g1
 		}
-		if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sources.Delete(tx, userID, src.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sources.Delete(tx, userID, src.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -276,9 +272,8 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := writes.Call(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := citations.Delete(tx, userID, res.Citation.ID)
-			return struct{}{}, changes, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return citations.Delete(tx, userID, res.Citation.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -333,19 +328,17 @@ func runMetadataSet(c *database.Catalog, userID, sourceID []byte, in sourcemetad
 }
 
 func runDismissMetadata(c *database.Catalog, userID, sourceID, fieldID []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sourcemetadata.DismissSuggestion(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: sourceID}, fieldID)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sourcemetadata.DismissSuggestion(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: sourceID}, fieldID)
 		})
 	return err
 }
 
 func runFieldDelete(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := metadatafields.Delete(tx, userID, id)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return metadatafields.Delete(tx, userID, id)
 		})
 	return err
 }
@@ -456,10 +449,9 @@ func runOwnerSet(t *testing.T, c *database.Catalog, userID []byte, o sourcemetad
 
 func runOwnerDismiss(t *testing.T, c *database.Catalog, userID []byte, o sourcemetadata.Owner, fieldID []byte) {
 	t.Helper()
-	if _, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sourcemetadata.DismissSuggestion(tx, userID, o, fieldID)
-			return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sourcemetadata.DismissSuggestion(tx, userID, o, fieldID)
 		}); err != nil {
 		t.Fatal(err)
 	}
@@ -564,18 +556,16 @@ func TestMetadataValueAuditParity(t *testing.T) {
 			// Release the second owner's values with it: the Artifact alone, or
 			// the Source (its Artifact first, which a Source cannot be deleted with).
 			deleteArt := func() {
-				if _, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := artifacts.Delete(tx, userID, a2.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return artifacts.Delete(tx, userID, a2.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
 			}
 			deleteArt()
 			if level != vocabkey.LevelArtifact {
-				if _, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := sources.Delete(tx, userID, src2.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return sources.Delete(tx, userID, src2.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}

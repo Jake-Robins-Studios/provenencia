@@ -126,10 +126,9 @@ func TestVocabularyDropsOnBindingReorder(t *testing.T) {
 	for i, b := range bs {
 		ids[len(bs)-1-i] = b.Property.ID
 	}
-	if _, err := writes.Call(c, writes.Op{Action: subjectvocab.ActionReorder, UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := subjectvocab.ReorderBindings(tx, userID, person.ID, ids)
-			return struct{}{}, ch, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionReorder, UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjectvocab.ReorderBindings(tx, userID, person.ID, ids)
 		}); err != nil {
 		t.Fatal(err)
 	}

@@ -161,9 +161,8 @@ func TestUnpromoteImpactListsUnpromotedBridges(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := writes.Call(w.C, writes.Op{Action: "release_claim", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := deleteimpact.ReleaseClaim(tx, claim.ID)
-			return struct{}{}, ch, err
+		if _, err := writes.RunChanges(w.C, writes.Op{Action: "release_claim", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return deleteimpact.ReleaseClaim(tx, claim.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -193,9 +192,8 @@ func TestUnpromoteImpactListsSharedBridgeHandle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, res, err := writes.Run(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, userID, james.ID)
-		return struct{}{}, ch, err
+	res, err := writes.RunChanges(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, userID, james.ID)
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -181,3 +181,7 @@ One short paragraph per landed PR, newest first. Written by the PR that lands it
 ## S16-63 — A delete that leaves a handle with many Subjects still works
 
 **Landed 2026-11-20** in [#915](https://github.com/Jake-Robins-Studios/provenencia/pull/915). `deleteimpact.handleGoesWithout` no longer binds every leaving Subject in one `NOT IN` list, which failed past SQLite's 32,766 binds. A Subject holds at most one accepted claim, so it counts the handle's accepted claims, reads which leaving Subjects hold one through `sqlbatch.Query`, and the handle goes only when the two match. An Unpromote that takes any number of filed bridges off one handle gets the same answer as for a few. Version 0.28.1.
+
+## S16-64 — One change builder and one change-only write call
+
+**Landed 2026-11-20** in [#920](https://github.com/Jake-Robins-Studios/provenencia/pull/920). `rowchange.Created`, `Updated` and `Deleted` build a row's audit change from its entity type, its id and its column map, and replace the per-package `createChange` / `updateChange` pairs and the hand-written full-row literals; `FullRow`, `UpdatedRow` and `DeletedRow` are private. `writes.RunChanges` runs a closure that returns only its changes and returns the `Result`; `Run` wraps it for a closure that also returns a value, and no `struct{}` adaptor is left. Every write records the same audit JSON as before. The update changes that were a column-by-column diff (subjects, artifacts, evidence graphs, citations, sources, notes, metadata values, canonical entities, filenames) go through `rowchange.Updated` too.

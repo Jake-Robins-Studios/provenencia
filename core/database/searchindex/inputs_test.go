@@ -195,9 +195,8 @@ func TestReprojectWritesInputs(t *testing.T) {
 	}
 
 	// A handle whose document is dropped keeps no rows as a dependent.
-	if _, err := writes.Call(r.C, writes.Op{Action: "unpromote_subject", UserID: user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, user, birth.ID)
-		return struct{}{}, ch, err
+	if _, err := writes.RunChanges(r.C, writes.Op{Action: "unpromote_subject", UserID: user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, user, birth.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -280,9 +279,8 @@ func hasKey(keys []graphcache.InputKey, id []byte, bridge, endpoint string) bool
 func TestUnpromoteReportsTheDeletedLinksEnds(t *testing.T) {
 	w := newFiledWorld(t)
 	user := evidencelayertest.UserID
-	_, res, err := writes.Run(w.r.C, writes.Op{Action: "unpromote_subject", UserID: user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, user, w.james.ID)
-		return struct{}{}, ch, err
+	res, err := writes.RunChanges(w.r.C, writes.Op{Action: "unpromote_subject", UserID: user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, user, w.james.ID)
 	})
 	if err != nil {
 		t.Fatal(err)

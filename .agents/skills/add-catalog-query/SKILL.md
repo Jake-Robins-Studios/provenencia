@@ -43,7 +43,7 @@ Official **resource / vocab `Delete`**: follow `.agents/skills/add-catalog-delet
 - Bind an optional value with `database.NullBlob`, `NullString`, `NullInt`, `NullInt64` or `NullBool`; `NullTrimmed` when the text is trimmed first.
 - `database` must **not** import table packages (import cycle). Use-cases (`onboarding`, later FFI) import both.
 - `Delete` for a resource or vocab row calls `deleteimpact.Impact` in the same tx, then deletes the parent, then owned-outbound release. Facet/field deletes (notes, metadata clear) stay ordinary writes.
-- Research writes call `audit.Record` in the same tx. A new audited `EntityType` needs a non-`None` effect, and delete changes carry the parent FK — follow `.agents/skills/add-audit-scope/SKILL.md`. "Last activity" reads (`Updated`) come from the display cache, `Graph.Activity`, which loads `audit_transaction_scopes` once and follows commits.
+- A research write builds each change with `rowchange.Created`, `Updated` or `Deleted` over the package's column map and returns it; `writes.Run` (a write with a value) or `writes.RunChanges` (a write with none) records it in the same transaction. A new audited `EntityType` needs a non-`None` effect, and delete changes carry the parent FK — follow `.agents/skills/add-audit-scope/SKILL.md`. "Last activity" reads (`Updated`) come from the display cache, `Graph.Activity`, which loads `audit_transaction_scopes` once and follows commits.
 
 ## Reads inside a write
 

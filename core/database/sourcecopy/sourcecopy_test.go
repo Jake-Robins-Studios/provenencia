@@ -134,9 +134,8 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 		},
 	}
 	for _, step := range steps {
-		if _, _, err := writes.Run(c, writes.Op{Action: "seed", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := step(tx)
-			return struct{}{}, ch, err
+		if _, err := writes.RunChanges(c, writes.Op{Action: "seed", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return step(tx)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -173,9 +172,9 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := writes.Run(c, writes.Op{Action: "set_source_cover", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	if _, err := writes.RunChanges(c, writes.Op{Action: "set_source_cover", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		_, ch, err := sources.SetCover(tx, userID, orig.ID, mode, artID)
-		return struct{}{}, ch, err
+		return ch, err
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -976,13 +975,13 @@ func copyArtifactMetadata(t *testing.T, metadataTick bool) {
 		t.Fatal(err)
 	}
 	a1 := sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: arts[0].ID}
-	if _, err := writeOne(c, userID, "update_metadata", func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		_, ch, err := sourcemetadata.Set(tx, userID, a1, sourcemetadata.Input{FieldID: provider, ValueText: "FamilySearch"})
 		if err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		more, err := sourcemetadata.DismissSuggestion(tx, userID, a1, film)
-		return struct{}{}, append(ch, more...), err
+		return append(ch, more...), err
 	}); err != nil {
 		t.Fatal(err)
 	}

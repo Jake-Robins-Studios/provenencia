@@ -133,12 +133,8 @@ func ReleaseReplaced(tx *database.Tx, column, entity string, prevID, newID []byt
 	if rowMap == nil {
 		return nil, nil
 	}
-	return &rowchange.Change{
-		EntityType: entity,
-		EntityID:   append([]byte(nil), prevID...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(row),
-	}, nil
+	ch := rowchange.Deleted(entity, prevID, row)
+	return &ch, nil
 }
 
 func releaseReplaced(tx *sql.Tx, p *ownedPlan, column string, oldID []byte) ([]files.Object, error) {

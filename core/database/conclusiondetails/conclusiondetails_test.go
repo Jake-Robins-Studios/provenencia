@@ -358,9 +358,8 @@ func TestForEntityPictures(t *testing.T) {
 	if !d.Pictures[0].Leads || d.Pictures[1].Leads {
 		t.Fatalf("leads before a choice: %+v", d.Pictures)
 	}
-	_, err := writes.Call(f.C, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := canonicalentities.SetPreferredLikeness(tx, userID, h, ob.ID)
-		return struct{}{}, ch, err
+	_, err := writes.RunChanges(f.C, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return canonicalentities.SetPreferredLikeness(tx, userID, h, ob.ID)
 	})
 	must(t, err)
 	d = f.detail(h)

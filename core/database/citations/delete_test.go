@@ -109,9 +109,8 @@ func TestCitationDeleteConnectionOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writes.Call(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := citations.Delete(tx, userID, bridge.Citation.ID)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return citations.Delete(tx, userID, bridge.Citation.ID)
 	}); !errors.Is(err, citations.ErrInUse) {
 		t.Fatalf("got %v want ErrInUse", err)
 	}

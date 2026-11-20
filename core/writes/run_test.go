@@ -32,12 +32,12 @@ func TestRunRollsBack(t *testing.T) {
 	id := mustID(t)
 	userRef := mustRef(t)
 	ran := false
-	_, _, err := writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		tx.AfterCommit(func() { ran = true })
 		if _, err := tx.Exec(`INSERT INTO users (id, display_name, ref) VALUES (?, ?, ?)`, id, "Ada", userRef); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
-		return struct{}{}, nil, errors.New("fail")
+		return nil, errors.New("fail")
 	})
 	if err == nil || err.Error() != "fail" {
 		t.Fatalf("err %v", err)
@@ -50,6 +50,54 @@ func TestRunRollsBack(t *testing.T) {
 	}
 	if n := dbtest.Revisions(t, dbtest.MustDB(t, c)); n != 0 {
 		t.Fatalf("audit rows %d", n)
+	}
+}
+
+func TestRunChanges(t *testing.T) {
+	tests := []struct {
+		name     string
+		fn       func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error)
+		wantErr  string
+		wantRev  bool
+		wantRows int
+		notices  int
+	}{
+		{"one audited change", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return oneChange(t), nil }
+		}, "", true, 1, 1},
+		{"closure error", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return oneChange(t), errors.New("fail") }
+		}, "fail", false, 0, 0},
+		{"no change", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return nil, nil }
+		}, "", false, 0, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newCatalog(t)
+			l := &recListener{}
+			c.Listen(l)
+			res, err := writes.RunChanges(c, writes.Op{Action: "test"}, tt.fn(t))
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("err %v, want %q", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if (res.Revision != 0) != tt.wantRev {
+				t.Fatalf("revision %d, want recorded %v", res.Revision, tt.wantRev)
+			}
+			if !tt.wantRev && (res.At != "" || res.Effects.SummaryDeps != nil) {
+				t.Fatalf("result %+v, want zero", res)
+			}
+			if n := dbtest.Revisions(t, dbtest.MustDB(t, c)); n != tt.wantRows {
+				t.Fatalf("audit rows %d, want %d", n, tt.wantRows)
+			}
+			if l.notices != tt.notices {
+				t.Fatalf("notices %d, want %d", l.notices, tt.notices)
+			}
+		})
 	}
 }
 
@@ -77,26 +125,26 @@ func TestRunNoneOnlyCommits(t *testing.T) {
 	derivedID := mustID(t)
 	linkID := mustID(t)
 	ran := false
-	_, res, err := writes.Run(c, writes.Op{}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	res, err := writes.RunChanges(c, writes.Op{}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		tx.AfterCommit(func() { ran = true })
 		if _, err := tx.Exec(
 			`INSERT INTO files (id, checksum_sha256, media_type, byte_size) VALUES (?, ?, 'image/png', 1), (?, ?, 'image/jpeg', 2)`,
 			sourceID, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			derivedID, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 		); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		if _, err := tx.Exec(
 			`INSERT INTO file_derivatives (id, source_file_id, derived_file_id, derivative_type) VALUES (?, ?, ?, 'thumbnail')`,
 			linkID, sourceID, derivedID,
 		); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		uid, err := uuid.FromBytes(linkID)
 		if err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
-		return struct{}{}, []rowchange.Change{{
+		return []rowchange.Change{{
 			EntityType: "file_derivative",
 			EntityID:   linkID,
 			Action:     rowchange.ActionCreate,
@@ -214,11 +262,11 @@ func TestRunAfterCommitAndReentry(t *testing.T) {
 func TestRunRefusesReentry(t *testing.T) {
 	c := newCatalog(t)
 	var inner error
-	_, _, err := writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		_, _, inner = writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			return struct{}{}, nil, nil
+	_, err := writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, inner = writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return nil, nil
 		})
-		return struct{}{}, nil, nil
+		return nil, nil
 	})
 	if err != nil {
 		t.Fatal(err)

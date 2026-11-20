@@ -54,10 +54,7 @@ func createCatalog(parent, folder string) (*database.Catalog, error) {
 // installSeed runs one domain's create-time Install in one write with no user,
 // so the seed is one revision and a failed install leaves none of its rows.
 func installSeed(c *database.Catalog, action string, install func(*database.Tx) ([]rowchange.Change, error)) error {
-	_, err := writes.Call(c, writes.Op{Action: action}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := install(tx)
-		return struct{}{}, changes, err
-	})
+	_, err := writes.RunChanges(c, writes.Op{Action: action}, install)
 	return err
 }
 

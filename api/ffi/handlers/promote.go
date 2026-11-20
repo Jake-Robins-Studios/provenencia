@@ -54,10 +54,9 @@ func UnpromoteSubject(in []byte) ([]byte, error) {
 	}
 	var out *engine.UnpromoteSubjectResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "unpromote_subject", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := promote.Unpromote(tx, userID, subjectID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "unpromote_subject", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return promote.Unpromote(tx, userID, subjectID)
 			})
 		if err != nil {
 			return err

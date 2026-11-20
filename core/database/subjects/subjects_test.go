@@ -127,10 +127,10 @@ func TestSubjects(t *testing.T) {
 					t.Fatalf("create change graph_id: %+v", created)
 				}
 				var deleted []rowchange.Change
-				if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 					changes, err := Delete(tx, userID, s.ID)
 					deleted = changes
-					return struct{}{}, changes, err
+					return changes, err
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -310,9 +310,8 @@ func TestSubjects(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "update_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Update(tx, userID, s.ID, "Alicia", "")
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "update_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Update(tx, userID, s.ID, "Alicia", "")
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -326,9 +325,8 @@ func TestSubjects(t *testing.T) {
 				if got.Label != "Alicia" || string(got.SubjectTypeID) != string(person.ID) {
 					t.Fatalf("%+v", got)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "update_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Update(tx, userID, s.ID, "Alicia", "")
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "update_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Update(tx, userID, s.ID, "Alicia", "")
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -360,9 +358,8 @@ func TestSubjects(t *testing.T) {
 				); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Delete(tx, userID, s.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Delete(tx, userID, s.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}

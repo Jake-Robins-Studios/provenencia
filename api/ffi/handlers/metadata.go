@@ -132,10 +132,9 @@ func ClearMetadata(in []byte) ([]byte, error) {
 	}
 	var out *engine.ClearMetadataResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sourcemetadata.Clear(tx, userID, owner, fieldID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sourcemetadata.Clear(tx, userID, owner, fieldID)
 			})
 		if err != nil {
 			return err
@@ -172,10 +171,9 @@ func DismissMetadataSuggestion(in []byte) ([]byte, error) {
 	}
 	var out *engine.DismissMetadataSuggestionResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sourcemetadata.DismissSuggestion(tx, userID, owner, fieldID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sourcemetadata.DismissSuggestion(tx, userID, owner, fieldID)
 			})
 		if err != nil {
 			return err
@@ -212,10 +210,9 @@ func ReorderMetadata(in []byte) ([]byte, error) {
 	}
 	var out *engine.ReorderMetadataResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "reorder_metadata", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sourcemetadata.Reorder(tx, userID, owner, fieldIDs)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "reorder_metadata", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sourcemetadata.Reorder(tx, userID, owner, fieldIDs)
 			})
 		if err != nil {
 			return err

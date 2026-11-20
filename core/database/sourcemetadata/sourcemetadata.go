@@ -169,11 +169,7 @@ func putValueTx(tx *sql.Tx, st *store, owner Owner, prev *Row, fieldID []byte, n
 	if prev.ValueText == normalized && prev.Mark == mark {
 		return *prev, nil, nil
 	}
-	row, change, err := updateValueTx(tx, st, *prev, normalized, mark)
-	if err != nil {
-		return Row{}, nil, err
-	}
-	return row, &change, nil
+	return updateValueTx(tx, st, *prev, normalized, mark)
 }
 
 // auditFields is a value row as change columns: every column, so a create, a
@@ -208,19 +204,14 @@ func insertValueTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte, normalize
 		ValueText: normalized,
 		Mark:      mark,
 	}
-	return row, rowchange.Change{
-		EntityType: st.values,
-		EntityID:   row.ID,
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(auditFields(st, row)),
-	}, nil
+	return row, rowchange.Created(st.values, row.ID, auditFields(st, row)), nil
 }
 
 // updateValueTx writes the new, already normalized text and mark over prev's
 // row. Its change carries only the columns that differ.
-func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string, mark valuemark.Mark) (Row, rowchange.Change, error) {
+func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string, mark valuemark.Mark) (Row, *rowchange.Change, error) {
 	if _, err := tx.Exec(st.update, database.NullString(normalized), boolInt(mark.Unknown), boolInt(mark.Supplied), prev.ID); err != nil {
-		return Row{}, rowchange.Change{}, mapConstraint(err)
+		return Row{}, nil, mapConstraint(err)
 	}
 	row := Row{
 		ID:        append([]byte(nil), prev.ID...),
@@ -229,22 +220,7 @@ func updateValueTx(tx *sql.Tx, st *store, prev Row, normalized string, mark valu
 		ValueText: normalized,
 		Mark:      mark,
 	}
-	diffs := map[string]rowchange.FieldDiff{}
-	if prev.ValueText != normalized {
-		diffs["value_text"] = rowchange.FieldDiff{Old: database.NullString(prev.ValueText), New: database.NullString(normalized)}
-	}
-	if prev.Mark.Unknown != mark.Unknown {
-		diffs["is_unknown"] = rowchange.FieldDiff{Old: prev.Mark.Unknown, New: mark.Unknown}
-	}
-	if prev.Mark.Supplied != mark.Supplied {
-		diffs["is_supplied"] = rowchange.FieldDiff{Old: prev.Mark.Supplied, New: mark.Supplied}
-	}
-	return row, rowchange.Change{
-		EntityType: st.values,
-		EntityID:   row.ID,
-		Action:     rowchange.ActionUpdate,
-		Fields:     diffs,
-	}, nil
+	return row, rowchange.Updated(st.values, row.ID, auditFields(st, prev), auditFields(st, row)), nil
 }
 
 // deleteValueTx deletes prev's row and returns its delete change.
@@ -252,12 +228,7 @@ func deleteValueTx(tx *sql.Tx, st *store, prev Row) (rowchange.Change, error) {
 	if _, err := tx.Exec(st.delete, prev.Owner.ID, prev.FieldID); err != nil {
 		return rowchange.Change{}, err
 	}
-	return rowchange.Change{
-		EntityType: st.values,
-		EntityID:   prev.ID,
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(auditFields(st, prev)),
-	}, nil
+	return rowchange.Deleted(st.values, prev.ID, auditFields(st, prev)), nil
 }
 
 // layoutChange builds every layout row change: the owner column and field_id

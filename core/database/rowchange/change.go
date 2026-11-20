@@ -23,9 +23,9 @@ type Change struct {
 	Fields     map[string]FieldDiff
 }
 
-// FullRow is a create change: every key is present with old = nil and new = value.
+// fullRow is a create change: every key is present with old = nil and new = value.
 // Unset columns should be passed as nil so JSON encodes them as null.
-func FullRow(fields map[string]any) map[string]FieldDiff {
+func fullRow(fields map[string]any) map[string]FieldDiff {
 	out := make(map[string]FieldDiff, len(fields))
 	for k, v := range fields {
 		out[k] = FieldDiff{Old: nil, New: v}
@@ -33,9 +33,9 @@ func FullRow(fields map[string]any) map[string]FieldDiff {
 	return out
 }
 
-// DeletedRow is a delete change: every key is present with old = value and new = nil.
+// deletedRow is a delete change: every key is present with old = value and new = nil.
 // Unset columns should be passed as nil so JSON encodes them as null.
-func DeletedRow(fields map[string]any) map[string]FieldDiff {
+func deletedRow(fields map[string]any) map[string]FieldDiff {
 	out := make(map[string]FieldDiff, len(fields))
 	for k, v := range fields {
 		out[k] = FieldDiff{Old: v, New: nil}
@@ -43,10 +43,10 @@ func DeletedRow(fields map[string]any) map[string]FieldDiff {
 	return out
 }
 
-// UpdatedRow is an update change: a key is present only when its value differs
+// updatedRow is an update change: a key is present only when its value differs
 // between old and now (a key missing from one side reads nil), and the keys
 // named in fixed are never compared. It is empty when nothing differs.
-func UpdatedRow(old, now map[string]any, fixed ...string) map[string]FieldDiff {
+func updatedRow(old, now map[string]any, fixed ...string) map[string]FieldDiff {
 	skip := make(map[string]bool, len(fixed))
 	for _, k := range fixed {
 		skip[k] = true
@@ -60,4 +60,25 @@ func UpdatedRow(old, now map[string]any, fixed ...string) map[string]FieldDiff {
 		}
 	}
 	return out
+}
+
+// Created is the create change of one row: every column, old nil, new the value.
+func Created(entity string, id []byte, fields map[string]any) Change {
+	return Change{EntityType: entity, EntityID: append([]byte(nil), id...), Action: ActionCreate, Fields: fullRow(fields)}
+}
+
+// Updated is the update change from old to now, naming only the columns that
+// differ (a key missing from one side reads nil) and never the fixed ones;
+// nil when none does.
+func Updated(entity string, id []byte, old, now map[string]any, fixed ...string) *Change {
+	fields := updatedRow(old, now, fixed...)
+	if len(fields) == 0 {
+		return nil
+	}
+	return &Change{EntityType: entity, EntityID: append([]byte(nil), id...), Action: ActionUpdate, Fields: fields}
+}
+
+// Deleted is the delete change of one row: every column, old the value, new nil.
+func Deleted(entity string, id []byte, fields map[string]any) Change {
+	return Change{EntityType: entity, EntityID: append([]byte(nil), id...), Action: ActionDelete, Fields: deletedRow(fields)}
 }

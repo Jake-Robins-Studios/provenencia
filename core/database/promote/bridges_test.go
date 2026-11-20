@@ -446,9 +446,8 @@ func TestBridgeSubjectDeleteKeepsTheEndClaims(t *testing.T) {
 	w.promote(james)
 	w.promote(birth)
 
-	if _, err := writes.Call(w.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := subjects.Delete(tx, userID, bridge.Subject.ID)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(w.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return subjects.Delete(tx, userID, bridge.Subject.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -131,18 +131,18 @@ func UpdateEvidenceGraph(in []byte) ([]byte, error) {
 	}
 	var out *engine.UpdateEvidenceGraphResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_evidence_graph", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_evidence_graph", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
 				changes, err := evidencegraphs.Update(tx, userID, graphID, evidencegraphs.UpdateInput{
 					Name:        req.GetName(),
 					Description: req.GetDescription(),
 					ArtifactIDs: artifactIDs,
 				})
 				if err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
 				more, err := applyDraft(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: graphID}, draft)
-				return struct{}{}, append(changes, more...), err
+				return append(changes, more...), err
 			})
 		if err != nil {
 			return err
@@ -175,10 +175,9 @@ func DeleteEvidenceGraph(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteEvidenceGraphResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_evidence_graph", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := evidencegraphs.Delete(tx, userID, graphID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_evidence_graph", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return evidencegraphs.Delete(tx, userID, graphID)
 			})
 		if err != nil {
 			return err

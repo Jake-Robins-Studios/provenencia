@@ -73,11 +73,11 @@ func TestHandleLabelDoesNotDropTheSource(t *testing.T) {
 	if _, err := g.Node(res.Entity.ID); err != nil {
 		t.Fatal(err)
 	}
-	_, err := writes.Call(f.c, writes.Op{Action: "update_canonical_entity", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(f.c, writes.Op{Action: "update_canonical_entity", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		if _, err := tx.Exec(`UPDATE canonical_entities SET label = ? WHERE id = ?`, "Renamed", res.Entity.ID); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
-		return struct{}{}, []rowchange.Change{{
+		return []rowchange.Change{{
 			EntityType: "canonical_entity",
 			EntityID:   res.Entity.ID,
 			Action:     rowchange.ActionUpdate,

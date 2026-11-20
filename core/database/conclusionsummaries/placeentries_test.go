@@ -156,9 +156,8 @@ func TestPlaceEntries(t *testing.T) {
 		{"remove link", func(t *testing.T, f *fixture, w *chainWorld) {
 			g := f.C.Graph()
 			must(t, conclusionsummaries.FillPlacePagesForTest(g, w.city))
-			_, err := writes.Call(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				ch, err := subjects.Delete(tx, userID, w.townRel.ID)
-				return struct{}{}, ch, err
+			_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjects.Delete(tx, userID, w.townRel.ID)
 			})
 			must(t, err)
 			for name, want := range map[string]bool{"town": false, "city": true, "region": true} {

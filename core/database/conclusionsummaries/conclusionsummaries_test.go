@@ -464,9 +464,8 @@ func TestSummaryLeadsWithChosenPicture(t *testing.T) {
 			imageOf := func(o observations.Observation) []byte { return observationstest.ImageOf(t, f.C, o.ID) }
 			choose := func(obs []byte) {
 				t.Helper()
-				_, err := writes.Call(f.C, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := canonicalentities.SetPreferredLikeness(tx, userID, h, obs)
-					return struct{}{}, ch, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return canonicalentities.SetPreferredLikeness(tx, userID, h, obs)
 				})
 				must(t, err)
 			}
@@ -1900,9 +1899,8 @@ func TestEventDatingInSummaries(t *testing.T) {
 	}
 
 	gone := res.Observations[1].ID // the 2015 as-of
-	_, err = writes.Call(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := observations.Delete(tx, userID, gone)
-		return struct{}{}, ch, err
+	_, err = writes.RunChanges(f.C, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return observations.Delete(tx, userID, gone)
 	})
 	must(t, err)
 	for _, h := range f.events() {

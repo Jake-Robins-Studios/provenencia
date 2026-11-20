@@ -141,25 +141,20 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Source, []rowchange
 		return Source{}, nil, mapConstraint(err)
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":             {Old: nil, New: id.String()},
-		"ref":            {Old: nil, New: sourceRef},
-		"source_type_id": {Old: nil, New: database.UUIDString(in.SourceTypeID)},
-		"title":          {Old: nil, New: in.Title},
+	fields := map[string]any{
+		"id":             id.String(),
+		"ref":            sourceRef,
+		"source_type_id": database.UUIDString(in.SourceTypeID),
+		"title":          in.Title,
 	}
 	if in.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: in.Description}
+		fields["description"] = in.Description
 	}
 	_, graphChanges, err := evidencegraphs.CreateDefault(tx, idBytes)
 	if err != nil {
 		return Source{}, nil, err
 	}
-	changes := append([]rowchange.Change{{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), idBytes...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, graphChanges...)
+	changes := append([]rowchange.Change{rowchange.Created("source", idBytes, fields)}, graphChanges...)
 	return Source{
 		ID:           append([]byte(nil), idBytes...),
 		Ref:          sourceRef,
@@ -334,25 +329,9 @@ func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value, ma
 // from one date row to another (nil for none), and each of date_unknown and
 // date_supplied that differs, as a bool. It is nil when nothing differs.
 func dateChange(sourceID, prevID, nextID []byte, prevMark, nextMark valuemark.Mark) *rowchange.Change {
-	fields := map[string]rowchange.FieldDiff{}
-	if !bytes.Equal(prevID, nextID) {
-		fields["date_value_id"] = rowchange.FieldDiff{Old: database.UUIDJSON(prevID), New: database.UUIDJSON(nextID)}
-	}
-	if prevMark.Unknown != nextMark.Unknown {
-		fields["date_unknown"] = rowchange.FieldDiff{Old: prevMark.Unknown, New: nextMark.Unknown}
-	}
-	if prevMark.Supplied != nextMark.Supplied {
-		fields["date_supplied"] = rowchange.FieldDiff{Old: prevMark.Supplied, New: nextMark.Supplied}
-	}
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), sourceID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
+	return rowchange.Updated("source", sourceID,
+		map[string]any{"date_value_id": database.UUIDJSON(prevID), "date_unknown": prevMark.Unknown, "date_supplied": prevMark.Supplied},
+		map[string]any{"date_value_id": database.UUIDJSON(nextID), "date_unknown": nextMark.Unknown, "date_supplied": nextMark.Supplied})
 }
 
 // SetPublic marks the Source public or not public. An unchanged flag returns
@@ -369,14 +348,8 @@ func SetPublic(tx *database.Tx, userID, sourceID []byte, isPublic bool) (Source,
 		return Source{}, nil, mapConstraint(err)
 	}
 	prev.IsPublic = isPublic
-	return prev, []rowchange.Change{{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), sourceID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"is_public": {Old: boolInt(!isPublic), New: boolInt(isPublic)},
-		},
-	}}, nil
+	change := rowchange.Updated("source", sourceID, map[string]any{"is_public": boolInt(!isPublic)}, map[string]any{"is_public": boolInt(isPublic)})
+	return prev, []rowchange.Change{*change}, nil
 }
 
 func boolInt(b bool) int {
@@ -419,31 +392,16 @@ func Update(tx *database.Tx, userID []byte, s Source) ([]rowchange.Change, error
 		return nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if !bytes.Equal(prev.SourceTypeID, s.SourceTypeID) {
-		fields["source_type_id"] = rowchange.FieldDiff{
-			Old: database.UUIDString(prev.SourceTypeID),
-			New: database.UUIDString(s.SourceTypeID),
-		}
-	}
-	if prev.Title != s.Title {
-		fields["title"] = rowchange.FieldDiff{Old: prev.Title, New: s.Title}
-	}
-	if prev.Description != s.Description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(prev.Description), New: database.NullString(s.Description)}
-	}
-	if len(fields) == 0 {
+	change := rowchange.Updated("source", s.ID,
+		map[string]any{"source_type_id": database.UUIDString(prev.SourceTypeID), "title": prev.Title, "description": database.NullString(prev.Description)},
+		map[string]any{"source_type_id": database.UUIDString(s.SourceTypeID), "title": s.Title, "description": database.NullString(s.Description)})
+	if change == nil {
 		return nil, nil
 	}
 	if _, err := tx.Exec(sqlUpdate, s.SourceTypeID, s.Title, database.NullString(s.Description), s.ID); err != nil {
 		return nil, mapConstraint(err)
 	}
-	return []rowchange.Change{{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), s.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return []rowchange.Change{*change}, nil
 }
 
 // Delete erases a Source when inbound resources are empty. Notes, metadata,
@@ -479,31 +437,26 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 		return nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":             {Old: database.UUIDString(id), New: nil},
-		"ref":            {Old: existing.Ref, New: nil},
-		"source_type_id": {Old: database.UUIDString(existing.SourceTypeID), New: nil},
-		"title":          {Old: existing.Title, New: nil},
-		"is_public":      {Old: boolInt(existing.IsPublic), New: nil},
+	fields := map[string]any{
+		"id":             database.UUIDString(id),
+		"ref":            existing.Ref,
+		"source_type_id": database.UUIDString(existing.SourceTypeID),
+		"title":          existing.Title,
+		"is_public":      boolInt(existing.IsPublic),
 	}
 	if existing.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: existing.Description, New: nil}
+		fields["description"] = existing.Description
 	}
 	if len(existing.DateValueID) == 16 {
-		fields["date_value_id"] = rowchange.FieldDiff{Old: database.UUIDJSON(existing.DateValueID), New: nil}
+		fields["date_value_id"] = database.UUIDJSON(existing.DateValueID)
 	}
 	if existing.storedDateMark.Unknown {
-		fields["date_unknown"] = rowchange.FieldDiff{Old: true, New: nil}
+		fields["date_unknown"] = true
 	}
 	if existing.storedDateMark.Supplied {
-		fields["date_supplied"] = rowchange.FieldDiff{Old: true, New: nil}
+		fields["date_supplied"] = true
 	}
-	return append(released, rowchange.Change{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}), nil
+	return append(released, rowchange.Deleted("source", id, fields)), nil
 }
 
 // Get returns a Source by id, or ErrNotFound.

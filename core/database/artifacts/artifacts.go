@@ -114,28 +114,23 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Artifact, []rowchan
 		return Artifact{}, nil, mapConstraint(err)
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":        {Old: nil, New: id.String()},
-		"ref":       {Old: nil, New: artRef},
-		"source_id": {Old: nil, New: database.UUIDString(in.SourceID)},
-		"label":     {Old: nil, New: in.Label},
+	fields := map[string]any{
+		"id":        id.String(),
+		"ref":       artRef,
+		"source_id": database.UUIDString(in.SourceID),
+		"label":     in.Label,
 	}
 	if len(in.FileID) == 16 {
-		fields["file_id"] = rowchange.FieldDiff{Old: nil, New: database.UUIDString(in.FileID)}
+		fields["file_id"] = database.UUIDString(in.FileID)
 	}
 	if in.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: in.Description}
+		fields["description"] = in.Description
 	}
 	linked, err := evidencegraphs.LinkArtifact(tx, userID, in.SourceID, idBytes, in.Graphs)
 	if err != nil {
 		return Artifact{}, nil, err
 	}
-	changes := append([]rowchange.Change{{
-		EntityType: "artifact",
-		EntityID:   append([]byte(nil), idBytes...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, linked...)
+	changes := append([]rowchange.Change{rowchange.Created("artifact", idBytes, fields)}, linked...)
 	return Artifact{
 		ID:          append([]byte(nil), idBytes...),
 		Ref:         artRef,
@@ -187,30 +182,15 @@ func Update(tx *database.Tx, userID []byte, a Artifact, graphs evidencegraphs.Gr
 		}
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if !bytes.Equal(prev.FileID, a.FileID) {
-		fields["file_id"] = rowchange.FieldDiff{
-			Old: database.UUIDJSON(prev.FileID),
-			New: database.UUIDJSON(a.FileID),
-		}
-	}
-	if prev.Label != a.Label {
-		fields["label"] = rowchange.FieldDiff{Old: prev.Label, New: a.Label}
-	}
-	if prev.Description != a.Description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(prev.Description), New: database.NullString(a.Description)}
-	}
 	var changes []rowchange.Change
-	if len(fields) > 0 {
+	change := rowchange.Updated("artifact", a.ID,
+		map[string]any{"file_id": database.UUIDJSON(prev.FileID), "label": prev.Label, "description": database.NullString(prev.Description)},
+		map[string]any{"file_id": database.UUIDJSON(a.FileID), "label": a.Label, "description": database.NullString(a.Description)})
+	if change != nil {
 		if _, err := tx.Exec(sqlUpdate, database.NullBlob(a.FileID), a.Label, database.NullString(a.Description), a.ID); err != nil {
 			return nil, mapConstraint(err)
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "artifact",
-			EntityID:   append([]byte(nil), a.ID...),
-			Action:     rowchange.ActionUpdate,
-			Fields:     fields,
-		})
+		changes = append(changes, *change)
 	}
 	if graphs.Given {
 		linked, err := evidencegraphs.SetArtifactGraphs(tx, userID, a.ID, graphs.IDs)
@@ -268,24 +248,19 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 		return nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":        {Old: database.UUIDString(id), New: nil},
-		"ref":       {Old: existing.Ref, New: nil},
-		"source_id": {Old: database.UUIDString(existing.SourceID), New: nil},
-		"label":     {Old: existing.Label, New: nil},
+	fields := map[string]any{
+		"id":        database.UUIDString(id),
+		"ref":       existing.Ref,
+		"source_id": database.UUIDString(existing.SourceID),
+		"label":     existing.Label,
 	}
 	if len(existing.FileID) == 16 {
-		fields["file_id"] = rowchange.FieldDiff{Old: database.UUIDString(existing.FileID), New: nil}
+		fields["file_id"] = database.UUIDString(existing.FileID)
 	}
 	if existing.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: existing.Description, New: nil}
+		fields["description"] = existing.Description
 	}
-	return append(released, rowchange.Change{
-		EntityType: "artifact",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}), nil
+	return append(released, rowchange.Deleted("artifact", id, fields)), nil
 }
 
 // Get returns an Artifact by id, or sql.ErrNoRows.

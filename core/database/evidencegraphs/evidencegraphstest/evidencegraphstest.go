@@ -100,9 +100,8 @@ func Split(t testing.TB, c *database.Catalog, userID, sourceID []byte, name stri
 // Unlink unlinks one Artifact from a graph inside one write; the test fails on error.
 func Unlink(t testing.TB, c *database.Catalog, userID, graphID, artifactID []byte) {
 	t.Helper()
-	if _, _, err := writes.Run(c, writes.Op{Action: "unlink_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := evidencegraphs.Unlink(tx, userID, graphID, artifactID)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "unlink_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Unlink(tx, userID, graphID, artifactID)
 	}); err != nil {
 		t.Fatal(err)
 	}

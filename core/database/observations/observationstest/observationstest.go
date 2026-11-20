@@ -106,10 +106,10 @@ func UpdateObservation(c *database.Catalog, userID []byte, in observations.Input
 	}
 	defer stages.Settle(c)
 	var changes []rowchange.Change
-	_, _, err = writes.Run(c, writes.Op{Action: "update_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(c, writes.Op{Action: "update_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		_, ch, err := observations.Update(tx, userID, in)
 		changes = ch
-		return struct{}{}, ch, err
+		return ch, err
 	})
 	return changes, err
 }

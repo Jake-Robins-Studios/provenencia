@@ -25,9 +25,8 @@ import (
 
 // install runs Install the way createCatalog does: one writes.Call, no user.
 func install(c *database.Catalog) error {
-	_, err := writes.Call(c, writes.Op{Action: ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := Install(tx)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: ActionInstall}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return Install(tx)
 	})
 	return err
 }
@@ -664,8 +663,8 @@ func TestAppendSuggestion(t *testing.T) {
 					if err := AppendSuggestion(c, typeID, f.ID, l); !errors.Is(err, ErrInvalid) {
 						t.Fatalf("AppendSuggestion(%q) = %v", l, err)
 					}
-					_, err := writes.Call(c, writes.Op{Action: "ensure_suggestion"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						return struct{}{}, nil, ensureSuggestionTx(tx, typeID, f.ID, l, 0)
+					_, err := writes.RunChanges(c, writes.Op{Action: "ensure_suggestion"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return nil, ensureSuggestionTx(tx, typeID, f.ID, l, 0)
 					})
 					if !errors.Is(err, ErrInvalid) {
 						t.Fatalf("ensureSuggestionTx(%q) = %v", l, err)
@@ -698,10 +697,9 @@ func TestAppendSuggestion(t *testing.T) {
 }
 
 func runSourceTypeDelete(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_source_type", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := sourcetypes.Delete(tx, userID, id)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_source_type", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return sourcetypes.Delete(tx, userID, id)
 		})
 	return err
 }

@@ -10,9 +10,8 @@ import (
 
 // Install writes the Source seed in one audited write, as catalog creation does.
 func Install(c *database.Catalog) error {
-	_, err := writes.Call(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := sourcevocab.Install(tx)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return sourcevocab.Install(tx)
 	})
 	return err
 }

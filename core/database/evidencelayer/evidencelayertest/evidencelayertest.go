@@ -63,14 +63,13 @@ func run[T any](r *Records, action string, fn func(tx *database.Tx) (T, []rowcha
 	return v
 }
 
-// Run makes one write of the action through writes.Run, as the app does, and
+// Run makes one write of the action through writes.RunChanges, as the app does, and
 // returns the handles it reported as moved (Result.Effects.SummaryDeps).
 func (r *Records) Run(action string, fn func(tx *database.Tx) ([]rowchange.Change, error)) [][]byte {
 	r.T.Helper()
-	run(r, action, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := fn(tx)
-		return struct{}{}, ch, err
-	})
+	res, err := writes.RunChanges(r.C, writes.Op{Action: action, UserID: UserID}, fn)
+	Must(r.T, err)
+	r.Reported = res.Effects.SummaryDeps
 	return r.Reported
 }
 

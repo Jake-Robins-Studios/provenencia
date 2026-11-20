@@ -127,23 +127,18 @@ func insertFile(tx *sql.Tx, row files.File) (rowchange.Change, error) {
 	if err != nil {
 		return rowchange.Change{}, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":              {Old: nil, New: uid.String()},
-		"checksum_sha256": {Old: nil, New: row.ChecksumSHA256},
-		"byte_size":       {Old: nil, New: row.ByteSize},
+	fields := map[string]any{
+		"id":              uid.String(),
+		"checksum_sha256": row.ChecksumSHA256,
+		"byte_size":       row.ByteSize,
 	}
 	if row.OriginalFilename != "" {
-		fields["original_filename"] = rowchange.FieldDiff{Old: nil, New: row.OriginalFilename}
+		fields["original_filename"] = row.OriginalFilename
 	}
 	if row.MediaType != "" {
-		fields["media_type"] = rowchange.FieldDiff{Old: nil, New: row.MediaType}
+		fields["media_type"] = row.MediaType
 	}
-	return rowchange.Change{
-		EntityType: "file",
-		EntityID:   row.ID,
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}, nil
+	return rowchange.Created("file", row.ID, fields), nil
 }
 
 // File reads absPath into the catalog object store: StageFile, then CommitFile.
@@ -249,20 +244,16 @@ func SetFilename(tx *database.Tx, fileID []byte, name string, userID []byte) ([]
 		}
 		return nil, err
 	}
-	if existing.OriginalFilename == name {
+	change := rowchange.Updated("file", fileID,
+		map[string]any{"original_filename": existing.OriginalFilename},
+		map[string]any{"original_filename": name})
+	if change == nil {
 		return nil, nil
 	}
 	if err := files.UpdateOriginalFilename(tx.Tx, fileID, name); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "file",
-		EntityID:   append([]byte(nil), fileID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"original_filename": {Old: existing.OriginalFilename, New: name},
-		},
-	}}, nil
+	return []rowchange.Change{*change}, nil
 }
 
 func lookupFile(tx *database.Tx, id []byte) (files.File, error) {

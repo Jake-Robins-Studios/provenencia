@@ -425,9 +425,8 @@ func TestLargeSourceBudgets(t *testing.T) {
 			loc := locations[i]
 			i++
 			return databasetest.Since(func() {
-				_, err := writes.Call(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := subjects.Delete(tx, userID, loc.ID)
-					return struct{}{}, ch, err
+				_, err := writes.RunChanges(f.c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return subjects.Delete(tx, userID, loc.ID)
 				})
 				must(t, err)
 			})
@@ -465,9 +464,8 @@ func TestLargeSourceBudgets(t *testing.T) {
 	t.Run("clear the portrait at the city", func(t *testing.T) {
 		d := databasetest.Fastest(3, func() time.Duration {
 			return databasetest.Since(func() {
-				_, err := writes.Call(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := canonicalentities.SetPreferredLikeness(tx, userID, lf.city, nil)
-					return struct{}{}, ch, err
+				_, err := writes.RunChanges(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return canonicalentities.SetPreferredLikeness(tx, userID, lf.city, nil)
 				})
 				must(t, err)
 			})

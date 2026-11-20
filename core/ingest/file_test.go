@@ -448,10 +448,9 @@ func TestSanitizeFilename(t *testing.T) {
 }
 
 func runSetFilename(c *database.Catalog, fileID []byte, name string, userID []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_file", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := SetFilename(tx, fileID, name, userID)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_file", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return SetFilename(tx, fileID, name, userID)
 		})
 	return err
 }

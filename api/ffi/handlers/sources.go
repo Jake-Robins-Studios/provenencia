@@ -246,10 +246,9 @@ func UpdateSource(in []byte) ([]byte, error) {
 			Title:        req.GetTitle(),
 			Description:  req.GetDescription(),
 		}
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_source", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sources.Update(tx, userID, s)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_source", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sources.Update(tx, userID, s)
 			})
 		if err != nil {
 			return err
@@ -286,10 +285,9 @@ func DeleteSource(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteSourceResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sources.Delete(tx, userID, sourceID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sources.Delete(tx, userID, sourceID)
 			})
 		if err != nil {
 			return err
@@ -493,10 +491,9 @@ func UpdateSourceNote(in []byte) ([]byte, error) {
 	}
 	var out *engine.UpdateSourceNoteResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_source_note", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sources.UpdateNote(tx, userID, noteID, req.GetBody())
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_source_note", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sources.UpdateNote(tx, userID, noteID, req.GetBody())
 			})
 		if err != nil {
 			return err
@@ -529,10 +526,9 @@ func DeleteSourceNote(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteSourceNoteResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_source_note", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := sources.DeleteNote(tx, userID, noteID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_source_note", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return sources.DeleteNote(tx, userID, noteID)
 			})
 		if err != nil {
 			return err

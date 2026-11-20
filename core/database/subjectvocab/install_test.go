@@ -8,9 +8,8 @@ import (
 
 // install is subjectvocabtest.Install, which this package's tests cannot import.
 func install(c *database.Catalog) error {
-	_, err := writes.Call(c, writes.Op{Action: ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := Install(tx)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: ActionInstall}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return Install(tx)
 	})
 	return err
 }

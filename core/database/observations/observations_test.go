@@ -482,9 +482,8 @@ func TestObservations(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, res.Observations[0].ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, res.Observations[0].ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -523,15 +522,13 @@ func TestObservations(t *testing.T) {
 				if len(dateID) != 16 || len(nameID) != 16 {
 					t.Fatalf("owned ids date=%x name=%x", dateID, nameID)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, res.Observations[0].ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, res.Observations[0].ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, res.Observations[1].ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, res.Observations[1].ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -601,9 +598,8 @@ func TestObservations(t *testing.T) {
 				if err := os.WriteFile(sentinel, []byte("keep"), 0o644); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, res.Observations[0].ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, res.Observations[0].ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -659,9 +655,8 @@ func TestObservations(t *testing.T) {
 				if len(edge.ID) != 16 || len(role.ID) != 16 {
 					t.Fatalf("missing rows edge=%x role=%x", edge.ID, role.ID)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, edge.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, edge.ID)
 				}); !errors.Is(err, observations.ErrEdgeLocked) {
 					t.Fatalf("delete edge %v", err)
 				}
@@ -689,9 +684,8 @@ func TestObservations(t *testing.T) {
 				}); err != nil {
 					t.Fatalf("role update %v", err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := observations.Delete(tx, userID, role.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return observations.Delete(tx, userID, role.ID)
 				}); err != nil {
 					t.Fatalf("role delete %v", err)
 				}
@@ -1101,9 +1095,8 @@ func TestObservations(t *testing.T) {
 				if objectCount(t, c) != objectsBefore {
 					t.Fatal("image object left behind")
 				}
-				if _, _, err := writes.Run(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := citations.Delete(tx, userID, res.Citation.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return citations.Delete(tx, userID, res.Citation.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -1148,9 +1141,8 @@ func TestObservations(t *testing.T) {
 					t.Fatal(err)
 				}
 				deleteSubject := func() error {
-					_, _, err := writes.Run(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := subjects.Delete(tx, userID, s.person.ID)
-						return struct{}{}, changes, err
+					_, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Delete(tx, userID, s.person.ID)
 					})
 					return err
 				}
@@ -1203,9 +1195,8 @@ func objectCount(t *testing.T, c *database.Catalog) int {
 }
 
 func deleteObservation(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := observations.Delete(tx, userID, id)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return observations.Delete(tx, userID, id)
 	})
 	return err
 }
