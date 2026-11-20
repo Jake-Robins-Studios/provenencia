@@ -30,20 +30,8 @@ type renderWorld struct {
 	citation    string
 }
 
-func fieldIDs(t *testing.T, dir string) map[string]string {
+func setValues(t *testing.T, dir, userID string, ids map[string]string, level, id string, values map[string]string) {
 	t.Helper()
-	var fields engine.ListMetadataFieldsResponse
-	mustRPC(t, ListMetadataFields, &engine.ListMetadataFieldsRequest{ProjectDir: dir}, &fields)
-	out := map[string]string{}
-	for _, f := range fields.GetFields() {
-		out[f.GetKey()] = f.GetId()
-	}
-	return out
-}
-
-func setValues(t *testing.T, dir, userID, level, id string, values map[string]string) {
-	t.Helper()
-	ids := fieldIDs(t, dir)
 	for key, text := range values {
 		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
 			ProjectDir: dir, UserId: userID, Owner: &engine.MetadataOwner{Level: level, Id: id},
@@ -72,19 +60,20 @@ func newCitation(t *testing.T, dir, userID, artifactID, graphID, locatorJSON str
 func newRenderWorld(t *testing.T) renderWorld {
 	t.Helper()
 	dir, userID, _ := sourceFixture(t)
+	ids := fieldIDsByKey(t, dir)
 	w := renderWorld{dir: dir, userID: userID, source: seededSourceOfType(t, dir, userID, "census")}
 	mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
 		ProjectDir: dir, UserId: userID, SourceId: w.source, Date: pointDate(1880, 0, 0),
 	}, &engine.SetSourceDateResponse{})
-	setValues(t, dir, userID, "source", w.source, map[string]string{
+	setValues(t, dir, userID, ids, "source", w.source, map[string]string{
 		"creator": "Westmark", "jurisdiction": "Calder County, Westmark", "schedule": "population schedule",
 		"enumeration_district": "236", "piece": "1047", "folio": "22",
 	})
 	w.artifact, w.graph = newArtifact(t, dir, userID, w.source, "County film")
-	setValues(t, dir, userID, "graph", w.graph, map[string]string{
+	setValues(t, dir, userID, ids, "graph", w.graph, map[string]string{
 		"schedule_number": "9", "dwelling_number": "112", "family_number": "118", "line_number": "14", "item": "Ada Robins",
 	})
-	setValues(t, dir, userID, "artifact", w.artifact, map[string]string{
+	setValues(t, dir, userID, ids, "artifact", w.artifact, map[string]string{
 		"format": "digital image", "provider": "Westmark Heritage", "url": "https://example.org/calder/1880",
 		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
 	})
@@ -163,7 +152,7 @@ func TestRenderCitations(t *testing.T) {
 		if len(formats.GetDiagnostics()) != 0 {
 			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
 		}
-		publisher := fieldIDs(t, w.dir)["publisher"]
+		publisher := fieldIDsByKey(t, w.dir)["publisher"]
 		made := func(title string, publisherText string, publisherMark *engine.ValueMark, date *engine.DateValueInput, dateMark *engine.ValueMark, locatorJSON string) string {
 			var src engine.CreateSourceResponse
 			mustRPC(t, CreateSource, &engine.CreateSourceRequest{
