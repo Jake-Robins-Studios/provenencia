@@ -1,10 +1,10 @@
 # Review — S15-17 The format editor
 
-**Verdict:** round 1 Fits with changes — Ready with changes; round 2 in progress
+**Verdict:** Fits with changes — Ready with changes (round 2: every new blocker Fixed in the plan text; no blocker open; the round-2 fixes are unreviewed by a third round, per the two-round cap)
 **Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
-- None open. Both blockers were fixed in ways that keep the user's 2026-11-20 answers (one Save; preview against a Source only; warnings listed under the field). They widen the PR: `UpdateSourceType` carries formats and `UpdateCitationFormats` retires (M-1); `ListCitationBuiltins` becomes `ListCitationPlaceholders` (M-2); `LatestCall` replaces two hand-written counters (M-6). Reported to the user with the plan.
+- None open. The round-1 blockers were fixed in ways that keep the user's 2026-11-20 answers (one Save; preview against a Source only; warnings listed under the field). They widen the PR: `UpdateSourceType` carries formats and `UpdateCitationFormats` retires (M-1); `ListCitationBuiltins` becomes `ListCitationPlaceholders` (M-2); `LatestCall` replaces two hand-written counters (M-6). Reported to the user with the plan.
 
 ## Writer's own calls
 - D-2: "first Citation" is the smallest id (the oldest, UUIDv7); a Source with none previews from the Source alone.
@@ -92,3 +92,44 @@
 
 ### X-12 · nit · Docs, sweep, protoc
 **Answer:** Fixed — DoD sweep excludes landed plans and review logs; § 6 FFI names the protoc prerequisite.
+
+## Round 2
+
+### M-14 · blocker · `LatestCall` cannot carry its awaited callers, and misses two copies
+**Plan:** D-10 (round 1): a fire-and-forget `run`; two callers. **Codebase:** `CatalogCounts.refreshAll() async` awaited by `CatalogCountsTests`; `CatalogSearchModel.settle()` / `waitForSearch`; `UnpromoteFlow.open` (`generation`, `mine`); `CitationComposerModel.startIdentitySwitch` (`switchGeneration`, `identityTask`, `awaitIdentitySwitch()`).
+**Answer:** Fixed — D-10: `run(…) async` returns once applied or superseded, `start(…)`, `settle()`, `cancel()`; all four copies move, tests unchanged; STEP-5 files and check, Deletes, Stop condition updated.
+
+### M-15 · blocker · An Insert row's id is its text, so AC-2.4's rows collide
+**Answer:** Fixed — D-6: id is `<level>.<builtin>[:<option>]` or `<level>#<field id>`.
+
+### M-16 · blocker · `LevelCopy.name` sits where `.citation` traps
+**Codebase:** `L10n.SourceTypes.level(_:)` `case .citation: preconditionFailure`.
+**Answer:** Fixed — D-16: `L10n.CitationFormats.levelName(_:)` over four levels; `LevelCopy` unchanged. (Round-1 M-13's answer reversed: the second switch is a different concept.)
+
+### M-17 · blocker · `UpdateWithFormats` is a second columns-plus-formats write beside `UpsertTx`
+**Codebase:** `sourcetypes.UpsertTx` update branch (`writeStoredTx`, `rowDiff`, `updateChange(existing, next, diffs)`).
+**Answer:** Fixed — D-4: `applyTx` lifted from `UpsertTx`'s branch, `nextOf` from `Update`; `Update`, `UpsertTx` and `UpdateWithFormats` all call `applyTx`; `updateColumnsTx` gone. The two extra `UpdateFormats` callers were added in round 2's X-1 answer.
+
+### M-18 · blocker · Swift drops stale choices to avoid an engine refusal
+**Answer:** Fixed — D-14: `checkChoices` ignores a well-formed choice for a missing field; Swift sends every recorded choice; T-7, T-11 updated; the `field_choices` proto comment rewritten.
+
+### M-19 · blocker · `Placeholders` re-sorts fields
+**Codebase:** `metadatafields.List` (`label COLLATE NOCASE, origin, key`).
+**Answer:** Fixed — D-5 and AC-7.10: `List` order, no second sort.
+
+### Seen, not raised
+- Placeholder shapes repeat `Alternative` / `CitationRequirementOption` plus option and text — Logged: a row with `text` and `option` is a different message; embedding is a later tidy if S15-39 needs it.
+- `CatalogSource.updatedOrder` beside `titleOrder` / `dateOrder` — Fixed: `SourcesModel.updatedOrder` (D-15).
+
+### X-1 · blocker · `UpdateFormats` has more callers than the plan named
+**Codebase:** `sourcetypestest.SetFormats` (and its three test users), `citationrender/render_test.go:101`, `effects/source_type_search_test.go:75`, `formats_test.go:187` (`TestUpdateFormats`).
+**Answer:** Fixed — D-4 names each caller's move; STEP-2 files; Current state row.
+
+### X-2 · major · `updateColumnsTx` had no signature
+**Answer:** Fixed — superseded by M-17's `applyTx` / `nextOf` with signatures and order.
+
+### X-3 · minor · Missing-type error mapping
+**Answer:** Fixed — D-4: `UpdateWithFormats` keeps `sql.ErrNoRows`, as `Update` (the handler's behaviour today).
+
+### X-4 · minor · `Placeholders` field source
+**Answer:** Fixed — D-5: `metadatafields.List(c)`, unfiltered; `Field` is `metadatafields.Field`.
