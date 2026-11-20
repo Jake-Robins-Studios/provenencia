@@ -59,7 +59,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 - [`kit-layering.md`](kit-layering.md) — the kit's delete impact taking a Features type, hand-built hover focus rings, page-column metrics and diagram options with one caller
 - [`value-formatting.md`](value-formatting.md) — two date formatters, editor flags in the date draft, integer text, event formatting in Features
-- [`catalog-query-layer.md`](catalog-query-layer.md) — two ways to learn a Source delete; splitting `CatalogLastUpdated.swift`
+- [`catalog-query-layer.md`](catalog-query-layer.md) — two ways to learn a Source delete; splitting `CatalogLastUpdated.swift`; a commit's repeated effects lookups
 - [`graph-cache-followups.md`](graph-cache-followups.md) — kinship pivots on `deps`, value columns repeated across readers, two toponym readers, filed-link reads
 - [`search-index-followups.md`](search-index-followups.md) — search kinds owning their columns; a term rename leaving handle documents stale
 - [`swift-test-fixtures.md`](swift-test-fixtures.md) — Artifact file fixtures, per-key registry tests and fake reads, the fake's saved observations

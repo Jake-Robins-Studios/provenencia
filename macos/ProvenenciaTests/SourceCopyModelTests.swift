@@ -237,7 +237,7 @@ struct SourceCopyModelTests {
         let (model, _) = await loaded(makeStore(original: dated), original: dated)
 
         #expect(model.dateAvailable)
-        #expect(model.dateLine == SourcesRowDate.line(fourthOfJuly1881))
+        #expect(model.dateLine == SourceDateText.line(fourthOfJuly1881))
         #expect(model.choices.includeDate)
         let copy = await model.copy()
         #expect(copy?.date == fourthOfJuly1881)

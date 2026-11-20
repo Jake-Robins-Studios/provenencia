@@ -11,6 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/persondetail"
 	"github.com/Jake-Robins-Studios/provenencia/core/kinship"
 	"github.com/Jake-Robins-Studios/provenencia/core/recordlinks"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuecodec"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -61,6 +62,9 @@ func ListPersonClaims(in []byte) ([]byte, error) {
 				SourceRef:    g.Source.Ref,
 				SourceTitle:  g.Source.Title,
 				SourceTypeId: database.UUIDString(g.Source.SourceTypeID),
+			}
+			if g.Source.Date != nil {
+				group.SourceDate = valuecodec.DateToProto(*g.Source.Date)
 			}
 			for _, cl := range g.Claims {
 				n := counts[0]

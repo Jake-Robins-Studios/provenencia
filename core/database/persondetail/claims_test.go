@@ -27,8 +27,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
@@ -196,6 +199,40 @@ func TestClaimsAfterSourceEdit(t *testing.T) {
 	if _, ok := graphfill.Graphs.Peek(f.C.Graph(), s.burials.ID); !ok {
 		t.Fatal("a Source edit dropped a loaded Evidence graph")
 	}
+}
+
+// TestClaimsSourceDate: the claims group carries the Source's date, an edit
+// reaches it, and a loaded graph of the Source stays loaded.
+func TestClaimsSourceDate(t *testing.T) {
+	f := newFixture(t)
+	s := f.burialsAndBaptisms()
+	setDate := func(date *datevalue.Value) {
+		f.Run("set_source_date", func(tx *database.Tx) ([]rowchange.Change, error) {
+			_, ch, err := sources.SetDate(tx, userID, s.src.ID, date, valuemark.Mark{})
+			return ch, err
+		})
+	}
+	wantYear := func(label string, want int) {
+		t.Helper()
+		d := f.claims(s.person.ID)[0].Source.Date
+		switch {
+		case want == 0 && d != nil:
+			t.Fatalf("%s: date %+v, want nil", label, d)
+		case want != 0 && (d == nil || d.StartYear == nil || *d.StartYear != want):
+			t.Fatalf("%s: date %+v, want %d", label, d, want)
+		}
+	}
+	wantYear("before", 0)
+	f.recordLinks(s.person.ID) // loads the Source's Evidence graph
+	setDate(datevaluetest.YMD(1867, 0, 0))
+	wantYear("set", 1867)
+	setDate(datevaluetest.YMD(1868, 0, 0))
+	wantYear("edit", 1868)
+	if _, ok := graphfill.Graphs.Peek(f.C.Graph(), s.burials.ID); !ok {
+		t.Fatal("a Source date edit dropped a loaded Evidence graph")
+	}
+	setDate(nil)
+	wantYear("clear", 0)
 }
 
 func TestClaimsOrderSources(t *testing.T) {

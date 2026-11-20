@@ -26,6 +26,7 @@ enum PersonSourcesPreviewData {
     static let regular = [
         CatalogPersonClaimGroup(
             sourceID: "src-1", sourceRef: "SRC-9TQ2M", title: "Hamburg census 1867", sourceTypeID: "type-census",
+            sourceDate: CatalogDateValueInput(kind: "point", startYear: 1867),
             claims: [
                 claim("c1", graph: "g-214", ref: "EVG-1", name: "Household 214", subject: johann),
                 claim("c2", graph: "g-388", ref: "EVG-5MD8R", name: "Household 388", subject: johann),
@@ -67,6 +68,7 @@ enum PersonSourcesPreviewData {
     static let johannClaims = [
         CatalogPersonClaimGroup(
             sourceID: "src-census", sourceRef: "SRC-9TQ2M", title: "Hamburg census 1867", sourceTypeID: "type-census",
+            sourceDate: CatalogDateValueInput(kind: "point", startYear: 1867),
             claims: [
                 record("c-214", "g-214", "EVG-2K7PQ", "Household 214", "Johann Weber", "CPR-7Q2KD"),
                 record("c-388", "g-388", "EVG-5MD8R", "Household 388", "J. Weber", "CPR-2M8XF"),
@@ -74,6 +76,7 @@ enum PersonSourcesPreviewData {
         ),
         CatalogPersonClaimGroup(
             sourceID: "src-adress", sourceRef: "SRC-3HW6B", title: "Hamburger Adressbuch 1861", sourceTypeID: "type-census",
+            sourceDate: CatalogDateValueInput(kind: "point", qualifier: "ABT", startYear: 1861),
             claims: [record("c-vol3", "g-vol3", "EVG-8TZ4N", "Volume 3", "Weber, Joh., Tischler", "CPR-9PA4D")]
         ),
         CatalogPersonClaimGroup(
@@ -82,6 +85,7 @@ enum PersonSourcesPreviewData {
         ),
         CatalogPersonClaimGroup(
             sourceID: "src-konf", sourceRef: "SRC-2DN5X", title: "Konfirmandenbuch St. Ansgarii 1831", sourceTypeID: "type-census",
+            sourceDate: CatalogDateValueInput(kind: "point", phrase: "in the reign of Wilhelm I"),
             claims: [
                 record("c-reg2", "g-reg2", "EVG-6WB3M", "Register 2", "Johann Weber", "CPR-6HQ3R"),
                 record("c-reg3", "g-reg3", "EVG-4PL7T", "Register 3", "Joh. Weber", "CPR-1XG8K"),

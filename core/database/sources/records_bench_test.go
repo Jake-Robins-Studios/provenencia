@@ -7,17 +7,20 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // BenchmarkSourceRecords: Build of the records at 3,000 Sources of 10
-// Artifacts (every tenth assessed), and Apply of one commit that names an
-// ordinary Source and one that names a Source of 10,000 Artifacts.
+// Artifacts (every tenth assessed, every Source dated), and Apply of one
+// commit that names an ordinary Source and one that names a Source of 10,000
+// Artifacts.
 func BenchmarkSourceRecords(b *testing.B) {
 	const sourcesN, perSource, crafted = 3000, 10, 10000
 	c, err := database.Create(b.TempDir(), "t.provenencia")
@@ -47,7 +50,12 @@ func BenchmarkSourceRecords(b *testing.B) {
 	n := 0
 	seed := func(src, artifacts int) {
 		sid := databasetest.BenchID(1, src)
-		if _, err := tx.Exec(`INSERT INTO sources (id, ref, source_type_id, title) VALUES (?, ?, ?, ?)`, sid, "SRC-B"+string(rune('A'+src%26))+strconv.Itoa(src), typeID, "Source "+strconv.Itoa(src)); err != nil {
+		year := 1800 + src%200
+		dateID, err := datevalues.InsertTx(tx, datevalue.Value{Kind: datevalue.KindPoint, StartYear: &year})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if _, err := tx.Exec(`INSERT INTO sources (id, ref, source_type_id, title, date_value_id) VALUES (?, ?, ?, ?, ?)`, sid, "SRC-B"+string(rune('A'+src%26))+strconv.Itoa(src), typeID, "Source "+strconv.Itoa(src), dateID); err != nil {
 			b.Fatal(err)
 		}
 		if src%10 == 0 {

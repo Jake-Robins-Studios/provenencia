@@ -77,7 +77,7 @@ final class SourceCopyModel {
     var loadState: PVFormLoadState { workspaceHandle.read.formLoadState }
 
     /// The original's date as a row says it; nil when undated.
-    var dateLine: String? { SourcesRowDate.line(workspace?.source.date) }
+    var dateLine: String? { SourceDateText.line(workspace?.source.date) }
 
     var dateAvailable: Bool { dateLine != nil }
 
