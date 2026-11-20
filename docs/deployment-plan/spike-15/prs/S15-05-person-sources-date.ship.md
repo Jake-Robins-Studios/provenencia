@@ -15,7 +15,7 @@ Reviewers: CON, MNT, UX, SEC+PRF. Skipped: none (diff touches `macos/App/**`, `L
 | MNT-1 | MNT | minor | New Go tests hand-build dates that `datevaluetest.YMD` builds | Fix now → F-2 | verified: `records_test.go:135` `pointYear`, `:153` literal; `claims_test.go:208-231`. Tests this PR adds |
 | PRF-2 | PRF | minor | `PVPublishedDate` formats each dated row twice per body | Fix now → F-3 | verified: `PVPublishedDate.swift:37,41` call `SourceDateText.help(date)`, which calls `line` again; file this PR adds |
 | CON-1 / MNT-2 / MNT outside-lens | CON | minor (re-rated from nit: DoD box) | Plan has no Landed note though DoD asks for one | Fix now → F-4 | verified: plan line 322 DoD; only Status changed |
-| SEC-1 | SEC | minor | Date reads never `datevalue.Validate` a stored row; crafted rows reach `Record.Date` as stored | Follow-up | gap covers every date read (Sources list, Observation dates), predates this PR; no crash path found, impact is wrong text bounded by a one-line cell. A read-side check changes what researchers see for rows that failed later-tightened rules, so it needs its own call |
+| SEC-1 | SEC | minor | Date reads never `datevalue.Validate` a stored row; crafted rows reach `Record.Date` as stored | Rejected (user, 2026-11-20) | no read-side accommodation for dates crafted outside the app while they cannot crash or harm; reviewer found no crash path (`DateRowDisplay.civil` range-checks, phrase is `Text(verbatim:)`). Was: gap covers every date read (Sources list, Observation dates), predates this PR; no crash path found, impact is wrong text bounded by a one-line cell. A read-side check changes what researchers see for rows that failed later-tightened rules, so it needs its own call |
 | PRF-1 | PRF | minor | Each date edit runs the `sources.date_value_id` inbound lookup twice (scope + record) | Follow-up | indexed single-row lookup per changed date, grows with commit size not catalog; fix is a memo in `effects.walk`, a design change outside this PR |
 
 Nits (logged): `UX-2 · macos/App/DesignSystem/README.md:210 · name both "Undated" (.bare) and "No published date" (.labeled)` (rides in F-1) · `MNT-3 · PVPublishedDate.swift:56 · L10n.Dates.rowUndated now has one reader` · `MNT-4 · records_bench_test.go:23 · rewrap doc comment` (rides in F-2) · `CON-2 · records_test.go:392 · "unknown" case starts undated; dated→unknown covered only by TestRecordsApply "date unknown"`
@@ -52,4 +52,4 @@ Head `c66c8878b`. Gate PASS (orchestrator run). F-1 to F-4 done; orchestrator re
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI green · open: none · follow-ups: SEC-1, PRF-1 · to user: —
+Gate PASS · CI green · open: none · follow-ups: PRF-1 · rejected by user: SEC-1 · to user: —
