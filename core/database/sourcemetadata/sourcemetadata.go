@@ -1018,15 +1018,20 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	for _, v := range valueRows {
 		valuesOf[v.Owner.key()] = append(valuesOf[v.Owner.key()], v)
 	}
-	dateOf := make(map[string]citationformat.Value)
+	var sourceIDs [][]byte
+	for _, o := range uniq {
+		sourceIDs = append(sourceIDs, sourceOf[o.key()])
+	}
+	srcs, err := sources.GetManyTx(tx, sourceIDs)
+	if err != nil {
+		return nil, err
+	}
+	dateOf := make(map[string]citationformat.Value, len(srcs))
 	for _, o := range uniq {
 		id := sourceOf[o.key()]
-		if _, ok := dateOf[string(id)]; ok {
-			continue
-		}
-		src, err := sources.GetTx(tx, id)
-		if err != nil {
-			return nil, err
+		src, ok := srcs[string(id)]
+		if !ok {
+			return nil, sources.ErrNotFound
 		}
 		dateOf[string(id)] = sources.CitationDate(src)
 	}
