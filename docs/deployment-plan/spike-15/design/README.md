@@ -16,7 +16,6 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D11 | Event page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
 | S15-D12 | Place page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
 | S15-D15 | Person page Sources section: Citations grouped under one citation | — | S15-22 |
-| [S15-D16](S15-D16-source-type-citation-formats.md) | Source type page: the three formats under Details, Insert field, the live preview against a Source, warnings under each format; one Save for Details and formats | [agreed 2026-11-20](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): frames "S15-D16 · D16-1a – D16-15"; each preview above its format, one Preview with picker; completion at the caret; its suggested-first ranking not taken (typed query only) | S15-17 |
 | S15-D17 | Provenance sheet: the record table's fold | — | S15-27 |
 | S15-D18 | Provenance sheet: records loading on open, and their failure | — | S15-29 |
 | S15-D19 | Source page: Copy source-list entry | — | S15-23 |
@@ -31,6 +30,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S15-D16](archive/S15-D16-source-type-citation-formats.md) | Source type page: the three formats under Details, Insert field, the live preview against a Source, warnings under each format; one Save for Details and formats | [agreed 2026-11-20](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): frames "S15-D16 · D16-1a – D16-15"; each preview above its format, one Preview with picker; completion at the caret; its suggested-first ranking not taken (typed query only) | S15-17 (#924) |
 | [S15-D3](archive/S15-D3-person-sources-date.md) | Person page Sources section: each Source's published date in the Date column, now captioned Published | [agreed 2026-11-20](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ): page *Sources*, turn 19; undated reads italic secondary in the section and the Sources list | S15-05 (#919) |
 | [S15-D13](archive/S15-D13-copy-source-dialog.md) | Copy Source dialog: a Published date tick | [agreed 2026-11-10](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK#artboard-32c863db011e) | S15-32 (#778) |
 | [S15-D2](archive/S15-D2-sources-list.md) | Sources list: the date on rows and as a sort | [agreed 2026-11-10](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm) | S15-04 (#774) |

@@ -145,12 +145,18 @@ private struct SourceTypePageContent: View {
     // MARK: Details
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space6) {
-            PVSectionHeader(title: L10n.SourceTypes.detailsSectionLabel)
-            if model.isLocked {
-                lockedNote
-            } else {
-                form
+        VStack(alignment: .leading, spacing: PVSpacing.space9) {
+            VStack(alignment: .leading, spacing: PVSpacing.space6) {
+                PVSectionHeader(title: L10n.SourceTypes.detailsSectionLabel)
+                if model.isLocked {
+                    lockedNote
+                } else {
+                    form
+                }
+            }
+            SourceTypeFormatsSection(model: model)
+            if !model.isLocked {
+                formActions
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -203,25 +209,34 @@ private struct SourceTypePageContent: View {
                     )
                     .accessibilityIdentifier("sourceTypes.form.description")
                 }
-                if let saveError = model.saveError {
-                    PVCallout(tone: .danger, message: saveError, announces: true)
-                        .accessibilityIdentifier("sourceTypes.form.saveError")
-                }
-                VocabularyFormActions(
-                    primaryLabel: model.isSaving ? L10n.SourceTypes.saveSaving : L10n.SourceTypes.saveChanges,
-                    secondaryLabel: L10n.SourceTypes.revert,
-                    isSaving: model.isSaving,
-                    canSubmit: model.canSubmit,
-                    isSecondaryDisabled: model.isSaving || !model.isDirty,
-                    identifierPrefix: "sourceTypes",
-                    onPrimary: {
-                        Task { await model.submit() }
-                    },
-                    onSecondary: { model.revertEdit() }
-                )
             }
             .disabled(model.isSaving)
         }
+    }
+
+    /// Save changes and Revert, once, at the foot of the column under the formats: they save the
+    /// Details and the formats together. A refused save says why beside them.
+    private var formActions: some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space7) {
+            PVDivider()
+            if let saveError = model.saveError {
+                PVCallout(tone: .danger, message: saveError, announces: true)
+                    .accessibilityIdentifier("sourceTypes.form.saveError")
+            }
+            VocabularyFormActions(
+                primaryLabel: model.isSaving ? L10n.SourceTypes.saveSaving : L10n.SourceTypes.saveChanges,
+                secondaryLabel: L10n.SourceTypes.revert,
+                isSaving: model.isSaving,
+                canSubmit: model.canSubmit,
+                isSecondaryDisabled: model.isSaving || !model.isDirty,
+                identifierPrefix: "sourceTypes",
+                onPrimary: {
+                    Task { await model.submit() }
+                },
+                onSecondary: { model.revertEdit() }
+            )
+        }
+        .disabled(model.isSaving)
     }
 
     /// The draft's mark, its name over its mono key, and the button that opens the icon sheet.
@@ -288,6 +303,33 @@ private struct SourceTypePageContent: View {
         CatalogTypeSuggestion(field: graphFields[1], sortOrder: 1),
     ]]
     store.suggestedFieldCounts["t1"] = 7
+    store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(formats: CatalogCitationFormats(
+        typeID: "t1",
+        full: "{source.meta.author}, *{source.title}* ({source.date:year})[, p. {citation.page}].",
+        short: "{source.meta.author}, *{source.title}*.",
+        list: "{source.meta.author}. *{source.title}*. {source.date:year}."
+    ))
+    let line = fields[0]
+    store.placeholdersByForm = [
+        .full: [
+            CatalogCitationPlaceholder(
+                id: "source.title", level: .source, builtin: .sourceTitle, option: nil, field: nil,
+                text: "{source.title}", ref: "source.title"),
+            CatalogCitationPlaceholder(
+                id: "source#f1", level: .source, builtin: nil, option: nil, field: line,
+                text: "{source.meta.author}", ref: "source.meta.author"),
+        ],
+        .short: [], .list: [],
+    ]
+    store.sourcesByProject[projectDir] = [
+        CatalogSource(id: "s1", ref: "SRC-ABCDE", sourceTypeID: "t1", title: "1880 census, Calder County", description: ""),
+        CatalogSource(id: "s2", ref: "SRC-FGHJK", sourceTypeID: "t1", title: "1870 census, Calder County", description: ""),
+    ]
+    store.previewReplies = [
+        .full: CatalogCitationPreview(render: CatalogCitationRender(
+            runs: [CatalogCitationRun(text: "Author, ", italic: false), CatalogCitationRun(text: "1880 census", italic: true)],
+            plain: "Author, 1880 census")),
+    ]
     let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     return SourceTypePageView(
         typeID: "t1",

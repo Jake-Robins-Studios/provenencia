@@ -106,6 +106,10 @@ struct PVTextArea: View {
     private let focus: PVFieldFocus?
     /// Spoken name when the area has no enclosing ``PVField`` (or to override it).
     private let accessibilityLabel: LocalizedStringResource?
+    /// Lets the caller select text and replace a range (a warning that selects what it is about).
+    private let cursor: PVTextAreaCursor?
+    /// A list of rows that opens at the caret as the researcher types and puts one in.
+    private let completion: PVTextAreaCompletion?
 
     init(
         text: Binding<String>,
@@ -116,7 +120,9 @@ struct PVTextArea: View {
         activateOnAppear: Bool = false,
         fillsHeight: Bool = false,
         focus: PVFieldFocus? = nil,
-        accessibilityLabel: LocalizedStringResource? = nil
+        accessibilityLabel: LocalizedStringResource? = nil,
+        cursor: PVTextAreaCursor? = nil,
+        completion: PVTextAreaCompletion? = nil
     ) {
         self._text = text
         self.lineLimit = lineLimit
@@ -127,9 +133,12 @@ struct PVTextArea: View {
         self.fillsHeight = fillsHeight
         self.focus = focus
         self.accessibilityLabel = accessibilityLabel
+        self.cursor = cursor
+        self.completion = completion
     }
 
     @FocusState private var isFocused: Bool
+    @State private var completionSession = PVTextAreaCompletionSession()
     @State private var lineHeight: CGFloat = 0
     @State private var contentHeight: CGFloat = 0
 
@@ -165,8 +174,12 @@ struct PVTextArea: View {
                         .accessibilityHidden(true)
                 }
                 PVTextAreaMeasure(text: text, font: typography.font)
-                PVTextEditorInsetClearer(onTab: focus?.next, onBacktab: focus?.previous)
+                PVTextEditorInsetClearer(
+                    onTab: focus?.next, onBacktab: focus?.previous,
+                    cursor: cursor, completion: completion, session: completionSession
+                )
             }
+            .background(completionPopup)
             .modifier(
                 PVTextAreaChrome(
                     typography: typography,
@@ -184,6 +197,25 @@ struct PVTextArea: View {
             }
         }
         .pvFieldNamed(own: accessibilityLabel)
+    }
+}
+
+extension PVTextArea {
+    /// The completion list, drawn in its own window at the caret while open.
+    @ViewBuilder
+    fileprivate var completionPopup: some View {
+        if let completion {
+            PVPopupList(
+                isPresented: completionSession.isOpen,
+                maxHeight: PVTextAreaCompletionList.maxHeight,
+                contentHeight: PVTextAreaCompletionList.height(rows: completionSession.options.count),
+                optionCount: completionSession.options.count,
+                width: PVTextAreaCompletionList.width,
+                anchorRect: { [session = completionSession] in session.caretRect() },
+                onDismiss: { [session = completionSession] in session.close() },
+                content: PVTextAreaCompletionRows(session: completionSession, completion: completion)
+            )
+        }
     }
 }
 
@@ -249,6 +281,10 @@ private struct PVTextAreaContentHeightKey: PreferenceKey {
 private struct PVTextEditorInsetClearer: NSViewRepresentable {
     var onTab: (@MainActor () -> Void)?
     var onBacktab: (@MainActor () -> Void)?
+    var cursor: PVTextAreaCursor?
+    var completion: PVTextAreaCompletion?
+    var session: PVTextAreaCompletionSession
+
 
     func makeNSView(context: Context) -> PVTextEditorInsetView {
         PVTextEditorInsetView()
@@ -256,6 +292,7 @@ private struct PVTextEditorInsetClearer: NSViewRepresentable {
 
     func updateNSView(_ nsView: PVTextEditorInsetView, context: Context) {
         nsView.setTabCallbacks(onTab: onTab, onBacktab: onBacktab)
+        nsView.setCompletion(session: completion == nil ? nil : session, completion: completion, cursor: cursor)
         nsView.clearInsets()
     }
 }
@@ -278,8 +315,18 @@ private final class PVTextEditorInsetView: NSView {
         tabRouter.onBacktab = onBacktab
     }
 
+    private weak var cursor: PVTextAreaCursor?
+
+    func setCompletion(session: PVTextAreaCompletionSession?, completion: PVTextAreaCompletion?, cursor: PVTextAreaCursor?) {
+        self.cursor = cursor
+        session?.completion = completion
+        tabRouter.completionSession = session
+    }
+
     func clearInsets() {
         guard let textView = nearestTextView() else { return }
+        cursor?.textView = textView
+        tabRouter.completionSession?.textView = textView
         textView.textContainerInset = .zero
         textView.textContainer?.lineFragmentPadding = 0
         textView.drawsBackground = false
@@ -343,6 +390,9 @@ final class PVTextAreaTabRouter: NSObject, NSTextViewDelegate {
     var onTab: (@MainActor () -> Void)?
     /// Where Shift-Tab goes instead of the key loop.
     var onBacktab: (@MainActor () -> Void)?
+    /// The completion list the area opens at the caret; it takes its keys first
+    /// while open and hears every edit.
+    var completionSession: PVTextAreaCompletionSession?
 
     @MainActor
     func attach(to textView: NSTextView) {
@@ -354,11 +404,36 @@ final class PVTextAreaTabRouter: NSObject, NSTextViewDelegate {
         textView.delegate = self
     }
 
+    func textDidChange(_ notification: Notification) {
+        wrapped?.textDidChange?(notification)
+        if let textView = notification.object as? NSTextView {
+            MainActor.assumeIsolated { completionSession?.textDidChange(textView) }
+        }
+    }
+
+    func textDidEndEditing(_ notification: Notification) {
+        wrapped?.textDidEndEditing?(notification)
+        MainActor.assumeIsolated { completionSession?.close() }
+    }
+
+    func textViewDidChangeSelection(_ notification: Notification) {
+        wrapped?.textViewDidChangeSelection?(notification)
+        if let textView = notification.object as? NSTextView {
+            MainActor.assumeIsolated { completionSession?.selectionDidChange(textView) }
+        }
+    }
+
     func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if let session = completionSession,
+           MainActor.assumeIsolated({ session.handle(commandSelector) }) {
+            return true
+        }
         guard PVTextAreaTabRouting.movesFocus(commandSelector) else {
             return wrapped?.textView?(textView, doCommandBy: commandSelector) ?? false
         }
         let backtab = commandSelector == #selector(NSResponder.insertBacktab(_:))
+        // Focus leaves the area, so an open list does not outlive it.
+        MainActor.assumeIsolated { completionSession?.close() }
         if let claim = backtab ? onBacktab : onTab {
             MainActor.assumeIsolated { claim() }
         } else if backtab {
@@ -394,6 +469,273 @@ extension NSView {
             if let found = subview.descendantTextView(containing: point) { return found }
         }
         return nil
+    }
+}
+
+// MARK: - Cursor and completion
+
+/// A handle on the text view under a `PVTextArea`, for a caller that moves the
+/// selection or edits a range from outside (a warning that selects the text it
+/// is about; a completion that puts a placeholder in). The area fills
+/// `textView`; until it has, both calls do nothing. Ranges are UTF-16, as
+/// `NSTextView` counts.
+@MainActor
+final class PVTextAreaCursor {
+    weak var textView: NSTextView?
+
+    init() {}
+
+    /// Takes focus and selects `range`, scrolled into view.
+    func select(_ range: NSRange) {
+        guard let textView else { return }
+        textView.window?.makeFirstResponder(textView)
+        textView.setSelectedRange(range)
+        textView.scrollRangeToVisible(range)
+    }
+
+    /// Replaces `range` with `text` as an edit, so the area's binding and undo
+    /// follow, then puts the caret at `caretAfter` (an offset in the new text).
+    func replace(_ range: NSRange, with text: String, caretAfter: Int) {
+        guard let textView else { return }
+        textView.insertText(text, replacementRange: range)
+        textView.setSelectedRange(NSRange(location: caretAfter, length: 0))
+    }
+}
+
+/// What a `PVTextArea` needs to offer rows at the caret: where the thing being
+/// typed starts, which rows it matches, how a row looks and what taking one
+/// writes. The caller holds one for the area's life.
+@MainActor
+final class PVTextAreaCompletion {
+    /// The range being typed (UTF-16 in the text) and what has been typed of it.
+    struct Context: Equatable {
+        var range: NSRange
+        var query: String
+    }
+
+    /// What the list tells VoiceOver.
+    enum Announcement {
+        case opened(count: Int, first: PVComboBoxOption?)
+        case highlighted(PVComboBoxOption)
+        case inserted(PVComboBoxOption)
+    }
+
+    /// The text and the caret (a UTF-16 offset) to the context being typed there, or nil
+    /// when nothing completable sits at the caret.
+    let context: (String, Int) -> Context?
+    /// The rows for a query, in the order shown.
+    let options: (String) -> [PVComboBoxOption]
+    /// A row's content, given the query.
+    let row: (PVComboBoxOption, String) -> AnyView
+    /// What taking a row writes over the context's range, and where the caret
+    /// goes (an offset in the new text); nil takes nothing.
+    let accept: (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?
+    /// Runs after a row's text is in, with that row.
+    let didAccept: (PVComboBoxOption) -> Void
+    /// The line shown when no row matches the query.
+    let emptyLabel: (String) -> String
+    /// The text VoiceOver is told, or nil for nothing.
+    let announce: (Announcement) -> String?
+
+    init(
+        context: @escaping (String, Int) -> Context?,
+        options: @escaping (String) -> [PVComboBoxOption],
+        row: @escaping (PVComboBoxOption, String) -> AnyView,
+        accept: @escaping (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?,
+        didAccept: @escaping (PVComboBoxOption) -> Void = { _ in },
+        emptyLabel: @escaping (String) -> String,
+        announce: @escaping (Announcement) -> String? = { _ in nil }
+    ) {
+        self.context = context
+        self.options = options
+        self.row = row
+        self.accept = accept
+        self.didAccept = didAccept
+        self.emptyLabel = emptyLabel
+        self.announce = announce
+    }
+}
+
+/// The open list of one `PVTextArea`: when it opens, what it holds, which row
+/// is highlighted, and which keys it takes. It opens when an edit leaves a
+/// context at the caret, follows each edit, and closes when the context goes,
+/// on Escape (until the next typed character) and on focus loss.
+@MainActor
+@Observable
+final class PVTextAreaCompletionSession {
+    private(set) var isOpen = false
+    private(set) var options: [PVComboBoxOption] = []
+    /// The highlighted row; -1 when there is none.
+    private(set) var activeIndex = -1
+    private(set) var context: PVTextAreaCompletion.Context?
+
+    @ObservationIgnored var completion: PVTextAreaCompletion?
+    @ObservationIgnored weak var textView: NSTextView? {
+        didSet { cursor.textView = textView }
+    }
+    @ObservationIgnored private let cursor = PVTextAreaCursor()
+    @ObservationIgnored private var escaped = false
+    @ObservationIgnored private var accepting = false
+
+    /// An edit: the researcher typed. Opens the list when a context sits at the caret.
+    func textDidChange(_ textView: NSTextView) {
+        escaped = false
+        evaluate(textView, mayOpen: true)
+    }
+
+    /// A caret move: keeps an open list in step, or closes it; never opens one.
+    func selectionDidChange(_ textView: NSTextView) {
+        guard isOpen else { return }
+        evaluate(textView, mayOpen: false)
+    }
+
+    private func evaluate(_ textView: NSTextView, mayOpen: Bool) {
+        guard let completion, !accepting else { return }
+        let selection = textView.selectedRange()
+        guard selection.length == 0, let found = completion.context(textView.string, selection.location) else {
+            close()
+            return
+        }
+        guard isOpen || (mayOpen && !escaped) else { return }
+        let rows = completion.options(found.query)
+        let wasOpen = isOpen
+        let hadRows = !options.isEmpty
+        context = found
+        options = rows
+        activeIndex = PVComboBoxMatch.firstEnabledIndex(in: rows)
+        isOpen = true
+        if !wasOpen {
+            speak(.opened(count: rows.count, first: rows.first))
+        } else if rows.indices.contains(activeIndex) {
+            speak(.highlighted(rows[activeIndex]))
+        } else if hadRows {
+            // The open list narrowed to nothing: say so once, not on every further key.
+            speak(.opened(count: 0, first: nil))
+        }
+    }
+
+    func close() {
+        guard isOpen else { return }
+        isOpen = false
+        options = []
+        activeIndex = -1
+        context = nil
+    }
+
+    /// A key command while the text view has focus. True when the list took it.
+    func handle(_ command: Selector) -> Bool {
+        guard isOpen else { return false }
+        switch command {
+        case #selector(NSResponder.moveUp(_:)):
+            move(-1)
+        case #selector(NSResponder.moveDown(_:)):
+            move(1)
+        case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
+            // An empty list takes neither: Return types a line and Tab leaves the field.
+            guard options.indices.contains(activeIndex) else { return false }
+            accept(at: activeIndex)
+        case #selector(NSResponder.cancelOperation(_:)):
+            escaped = true
+            close()
+        default:
+            return false
+        }
+        return true
+    }
+
+    /// The pointer moved onto row `index`: it becomes the highlighted row, as an arrow key would.
+    func highlight(at index: Int) {
+        guard options.indices.contains(index), index != activeIndex else { return }
+        activeIndex = index
+    }
+
+    private func move(_ delta: Int) {
+        let next = PVComboBoxMatch.move(from: activeIndex, delta: delta, in: options)
+        guard next != activeIndex, options.indices.contains(next) else { return }
+        activeIndex = next
+        speak(.highlighted(options[next]))
+    }
+
+    /// Puts row `index` in at the context and closes the list.
+    func accept(at index: Int) {
+        guard options.indices.contains(index), let context, let completion,
+              let write = completion.accept(options[index], context)
+        else { return }
+        let row = options[index]
+        accepting = true
+        cursor.replace(context.range, with: write.text, caretAfter: write.caretAfter)
+        accepting = false
+        completion.didAccept(row)
+        close()
+        speak(.inserted(row))
+    }
+
+    /// The caret's line in AppKit screen coordinates, where the list anchors.
+    func caretRect() -> CGRect? {
+        guard let textView else { return nil }
+        let caret = NSRange(location: textView.selectedRange().location, length: 0)
+        let rect = textView.firstRect(forCharacterRange: caret, actualRange: nil)
+        return rect == .zero ? nil : rect
+    }
+
+    private func speak(_ event: PVTextAreaCompletion.Announcement) {
+        guard let text = completion?.announce(event) else { return }
+        AccessibilityAnnouncement.post(text)
+    }
+}
+
+/// The completion list's size: a fixed row height, so the window is sized before it shows.
+enum PVTextAreaCompletionList {
+    static let width: CGFloat = 360
+    static let rowHeight: CGFloat = 40
+    static let maxRows = 8
+    fileprivate static let verticalPadding = PVSpacing.space2
+
+    static var maxHeight: CGFloat { height(rows: maxRows) }
+
+    /// What a list of `rows` rows wants: one line even when empty.
+    static func height(rows: Int) -> CGFloat {
+        rowHeight * CGFloat(max(1, min(rows, maxRows))) + verticalPadding * 2
+    }
+}
+
+/// The completion list in the popup window: the kit's popup list card, with the caller's
+/// row view in each row's shell.
+private struct PVTextAreaCompletionRows: View {
+    let session: PVTextAreaCompletionSession
+    let completion: PVTextAreaCompletion
+
+    var body: some View {
+        let options = session.options
+        let query = session.context?.query ?? ""
+        PVPopupListCard(
+            rowIDs: options.map(\.id),
+            activeID: options.indices.contains(session.activeIndex) ? options[session.activeIndex].id : nil,
+            verticalPadding: PVTextAreaCompletionList.verticalPadding
+        ) {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
+                    PVPopupListRow(
+                        isActive: index == session.activeIndex,
+                        isSelected: index == session.activeIndex,
+                        onHighlight: { session.highlight(at: index) },
+                        onCommit: { session.accept(at: index) }
+                    ) {
+                        completion.row(option, query)
+                            .padding(.horizontal, PVSpacing.space5)
+                            .frame(maxWidth: .infinity, minHeight: PVTextAreaCompletionList.rowHeight, maxHeight: PVTextAreaCompletionList.rowHeight, alignment: .leading)
+                    }
+                    .id(option.id)
+                }
+                if options.isEmpty {
+                    PVPopupListLine(minHeight: PVTextAreaCompletionList.rowHeight) {
+                        Text(verbatim: completion.emptyLabel(query))
+                            .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
+                }
+            }
+        }
     }
 }
 

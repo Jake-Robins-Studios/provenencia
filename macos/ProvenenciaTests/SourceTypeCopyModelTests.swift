@@ -40,7 +40,7 @@ struct SourceTypeCopyModelTests {
             .artifact: [type.id: suggestions(artifact)],
             .graph: [type.id: suggestions(graph)],
         ]
-        store.citationFormatsByType[type.id] = formats ?? allForms
+        store.citationFormatsByType[type.id] = CatalogCitationFormatsReply(formats: formats ?? allForms)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let handle: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         await waitForQuery(handle)

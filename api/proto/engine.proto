@@ -132,12 +132,13 @@ enum Method {
   METHOD_SET_SOURCE_PUBLIC = 118;
   METHOD_GET_METADATA_BOARD = 119;
   METHOD_GET_CITATION_FORMATS = 120;
-  METHOD_UPDATE_CITATION_FORMATS = 121;
+  reserved 121;
+  reserved "METHOD_UPDATE_CITATION_FORMATS";
   METHOD_COPY_SOURCE_TYPE = 122;
   METHOD_GET_DRAFT_METADATA_BOARD = 123;
   METHOD_RENDER_CITATIONS = 124;
   METHOD_RENDER_CITATION_PREVIEW = 125;
-  METHOD_LIST_CITATION_BUILTINS = 126;
+  METHOD_LIST_CITATION_PLACEHOLDERS = 126;
 }
 
 message PingRequest {
@@ -1083,11 +1084,19 @@ message UpdateSourceTypeRequest {
   string label = 4;
   string description = 5;
   string icon_key = 6;
+  // Unsaved citation formats saved in the same write as the details; type_id
+  // inside is ignored. Absent saves the details alone.
+  optional CitationFormats formats = 7;
 }
 
 message UpdateSourceTypeResponse {
   SourceType type = 1;
   WriteEffects effects = 2;
+  // Set only when the request carried formats: the formats as stored after the
+  // call, and any mistakes in them. With any diagnostic nothing is saved and
+  // effects is empty.
+  CitationFormats formats = 3;
+  repeated CitationFormatDiagnostic diagnostics = 4;
 }
 
 // A Source type's citation formats as the editor shows them: fields by key.
@@ -1097,8 +1106,8 @@ message CitationFormats {
   string full = 2;
   string short = 3;
   string list = 4;
-  // For each shown key that more than one field holds, the field the stored
-  // format uses. Send them back on update so the save does not ask again.
+  // The field each shown key means, for keys more than one field holds; a
+  // write may send more, and a choice whose field is gone is ignored.
   repeated CitationFieldChoice field_choices = 5;
 }
 
@@ -1123,23 +1132,6 @@ message GetCitationFormatsRequest {
 message GetCitationFormatsResponse {
   CitationFormats formats = 1;
   repeated CitationFormatDiagnostic diagnostics = 2;
-}
-
-// Replaces all three forms. With any diagnostic nothing is saved and effects is empty.
-message UpdateCitationFormatsRequest {
-  string project_dir = 1;
-  string user_id = 2;
-  string type_id = 3;
-  string full = 4;
-  string short = 5;
-  string list = 6;
-  repeated CitationFieldChoice field_choices = 7;
-}
-
-message UpdateCitationFormatsResponse {
-  CitationFormats formats = 1;
-  repeated CitationFormatDiagnostic diagnostics = 2;
-  WriteEffects effects = 3;
 }
 
 // ListTypeSuggestions lists a type's suggested fields at one level, in order.
@@ -2873,8 +2865,11 @@ message RenderCitationsResponse {
   PageInputs inputs = 2; // the Evidence graphs and Sources the render read
 }
 
-// Renders one form against one target. A Source target takes the list form
-// only. format, when present, is unsaved text with fields by key.
+// Renders one form against one target, or checks an unsaved format with none.
+// A Source target takes every form: the full and short read its first
+// Citation, or the Source alone when it has none. With no target, format is
+// required and only its diagnostics come back. format, when present, is unsaved
+// text with fields by key.
 message RenderCitationPreviewRequest {
   string project_dir = 1;
   string form = 2; // "full", "short" or "list"
@@ -2898,21 +2893,24 @@ message RenderCitationPreviewResponse {
   repeated CitationFormatDiagnostic diagnostics = 3;
 }
 
-message ListCitationBuiltinsRequest {}
-
-// One built-in placeholder, from citationformat's table.
-message CitationBuiltin {
-  string level = 1;
-  string name = 2;               // bare: "date"
-  bool date = 3;                 // a DateValue, written in citation terms
-  repeated string options = 4;   // "year", "full"
-  bool always_set = 5;
-  bool in_list_form = 6;
-  string unknown_text = 7;       // what it prints when marked unknown; "" for none
+message ListCitationPlaceholdersRequest {
+  string project_dir = 1;
+  string form = 2; // "full", "short" or "list"
 }
 
-message ListCitationBuiltinsResponse {
-  repeated CitationBuiltin builtins = 1;
+// One placeholder a format can hold at a level: a built-in, a built-in with an
+// option, or a metadata field. Rows come in the order completion shows them.
+message CitationPlaceholder {
+  string level = 1;
+  string builtin = 2;         // the built-in's name; "" for a field
+  string option = 3;          // "year" for {source.date:year}; "" for none
+  MetadataField field = 4;    // set for a field row
+  string text = 5;            // the whole placeholder: {graph.meta.line_number}
+  string ref = 6;             // what sits inside the braces: graph.meta.line_number
+}
+
+message ListCitationPlaceholdersResponse {
+  repeated CitationPlaceholder placeholders = 1;
 }
 
 message GetNameFormatRequest {

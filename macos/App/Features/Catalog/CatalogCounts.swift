@@ -20,8 +20,8 @@ final class CatalogCounts {
 
     private let projectDir: String
     private let store: any GenealogyStore
-    /// Bumped by each `refreshAll`; a recount assigns only while it is the newest.
-    private var refreshGeneration = 0
+    /// A recount assigns only while it is the newest.
+    private let latest = LatestCall()
 
     init(projectDir: String, store: any GenealogyStore) {
         self.projectDir = projectDir
@@ -52,19 +52,23 @@ final class CatalogCounts {
     /// call order, so the call started last read the newest catalog, and a
     /// slower earlier call that finishes after it assigns nothing.
     func refreshAll() async {
-        refreshGeneration += 1
-        let generation = refreshGeneration
-        do {
-            let nav = try await store.workspaceNavCounts(projectDir: projectDir)
-            guard generation == refreshGeneration else { return }
-            sources = nav.sources
-            persons = nav.persons
-            events = nav.events
-            places = nav.places
-            lastRefreshError = nil
-        } catch {
-            guard generation == refreshGeneration else { return }
-            lastRefreshError = L10n.Errors.message(for: error)
-        }
+        let store = store
+        let projectDir = projectDir
+        await latest.run(
+            { try await store.workspaceNavCounts(projectDir: projectDir) },
+            apply: { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let nav):
+                    sources = nav.sources
+                    persons = nav.persons
+                    events = nav.events
+                    places = nav.places
+                    lastRefreshError = nil
+                case .failure(let error):
+                    lastRefreshError = L10n.Errors.message(for: error)
+                }
+            }
+        )
     }
 }

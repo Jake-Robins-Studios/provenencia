@@ -780,4 +780,88 @@ struct SourceTypePageModelTests {
         #expect(!model.isSaving)
         #expect(!model.shouldHoldNavigation(.back))
     }
+
+    // MARK: One Save, Details and formats (T-10)
+
+    private func makeFormatsPage(store: FakeStore = FakeStore()) async -> (SourceTypePageModel, WorkspaceSession) {
+        store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(
+            formats: CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: "{source.title}", list: "")
+        )
+        store.sourcesByProject[projectDir] = [CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: "")]
+        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
+        await model.formats.load()
+        return (model, session)
+    }
+
+    @Test func aFormatEditAloneSavesFormatsWithTheSavedDetailsAndMarksSourcePagesStale() async {
+        let store = FakeStore()
+        let (model, session) = await makeFormatsPage(store: store)
+        let workspace: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: session.projectKey, sourceId: "s1"))
+        await waitForQuery(workspace)
+        #expect(!model.isDirty && !model.canSubmit)
+        model.formats.edit(.full, text: "{source.title} Test.")
+        #expect(model.isDirty && model.canSubmit)
+
+        await model.submit()
+        #expect(store.updateSourceTypeCalls.count == 1)
+        let call = store.updateSourceTypeCalls[0]
+        #expect(call.label == "Book" && call.formats?.full == "{source.title} Test." && call.formats?.short == "{source.title}")
+        #expect(model.toast?.body == L10n.SourceTypes.Formats.toastSavedBody(label: "Book"))
+        #expect(workspace.isStale)
+        #expect(!model.isDirty)
+    }
+
+    @Test func detailsAndFormatsTogetherAreOneCallWithTheBothToast() async {
+        let store = FakeStore()
+        let (model, _) = await makeFormatsPage(store: store)
+        model.editLabel("Book (US)")
+        model.formats.edit(.short, text: "{source.title}.")
+        await model.submit()
+        #expect(store.updateSourceTypeCalls.count == 1)
+        #expect(store.updateSourceTypeCalls[0].label == "Book (US)" && store.updateSourceTypeCalls[0].formats != nil)
+        #expect(model.toast?.body == L10n.SourceTypes.Formats.toastBothBody(label: "Book (US)"))
+    }
+
+    @Test func detailsAloneSendNoFormatsAndApplyNoFormatsSignal() async {
+        let store = FakeStore()
+        let (model, session) = await makeFormatsPage(store: store)
+        let workspace: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: session.projectKey, sourceId: "s1"))
+        await waitForQuery(workspace)
+        model.editLabel("Book (US)")
+        await model.submit()
+        #expect(store.updateSourceTypeCalls[0].formats == nil)
+        #expect(model.toast?.body == L10n.SourceTypes.toastUpdatedBody(label: "Book (US)", key: "book"))
+        #expect(!workspace.isStale)
+    }
+
+    @Test func aRefusedFormatSavesNothingAndKeepsEveryEdit() async {
+        let store = FakeStore()
+        let (model, session) = await makeFormatsPage(store: store)
+        let workspace: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: session.projectKey, sourceId: "s1"))
+        await waitForQuery(workspace)
+        store.updateSourceTypeFormatsReply = CatalogCitationFormatsReply(
+            formats: CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: "[x", list: ""),
+            diagnostics: [CatalogCitationDiagnostic(form: .short, code: "unclosed_group", utf8Start: 0, utf8End: 1)]
+        )
+        model.editLabel("Renamed")
+        model.formats.edit(.short, text: "[x")
+        await model.submit()
+        #expect(model.saveError == L10n.string(L10n.SourceTypes.Formats.saveRefused))
+        #expect(model.toast == nil)
+        #expect(model.draft?.label == "Renamed" && model.formats.draft(.short) == "[x")
+        #expect(model.formats.shownDiagnostics(.short).count == 1)
+        #expect(model.type?.label == "Book")
+        #expect(model.isDirty)
+        // Nothing changed, so no page that reads the formats is marked stale.
+        #expect(!workspace.isStale)
+        #expect(store.updateSourceTypeCalls.count == 1)
+    }
+
+    @Test func aFormatEditAloneHoldsNavigationAndRevertRestoresIt() async {
+        let (model, _) = await makeFormatsPage()
+        model.formats.edit(.list, text: "{source.title}")
+        #expect(model.isDirty)
+        model.revertEdit()
+        #expect(!model.isDirty && model.formats.draft(.list).isEmpty)
+    }
 }

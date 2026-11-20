@@ -62,19 +62,44 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 // record types add the copy fields their Artifacts do not have yet.
 func derivedSuggestions(t *testing.T, st seedType) map[vocabkey.Level][]string {
 	t.Helper()
-	tpl := mustParseForm(t, st.Key, st.Formats.Full, citationformat.FormFull)
 	var order []string
 	read := map[string][]vocabkey.Level{}
-	for _, req := range citationformat.Requirements(tpl) {
-		for _, target := range req.Targets {
-			key := target.Field.Key
-			if key == "" {
+	// The full format's fields, then the ones the list and the short format
+	// need outside any group that the full format does not use.
+	full := true
+	var fullKeys map[string]bool
+	for _, form := range []citationformat.Form{citationformat.FormFull, citationformat.FormList, citationformat.FormShort} {
+		tpl := mustParseForm(t, st.Key, st.Formats.Text(form), form)
+		for _, req := range citationformat.Requirements(tpl) {
+			if !full && req.Need != citationformat.NeedNeeded {
 				continue
 			}
-			if _, ok := read[key]; !ok {
-				order = append(order, key)
+			// A chain is met when one option is suggested, so a later form's
+			// chain adds nothing when the full format already uses an option.
+			met := false
+			for _, target := range req.Targets {
+				met = met || (!full && fullKeys[target.Field.Key])
 			}
-			read[key] = append(read[key], target.Level)
+			if met {
+				continue
+			}
+			for _, target := range req.Targets {
+				key := target.Field.Key
+				if key == "" {
+					continue
+				}
+				if _, ok := read[key]; !ok {
+					order = append(order, key)
+				}
+				read[key] = append(read[key], target.Level)
+			}
+		}
+		if full {
+			full = false
+			fullKeys = map[string]bool{}
+			for key := range read {
+				fullKeys[key] = true
+			}
 		}
 	}
 	out := map[vocabkey.Level][]string{}
@@ -132,7 +157,7 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 		want := derivedSuggestions(t, st)
 		for _, level := range vocabkey.MetadataLevels() {
 			if !slices.Equal(got[st.Key][level], want[level]) {
-				t.Errorf("%s %s suggests %v, its full format gives %v", st.Key, level, got[st.Key][level], want[level])
+				t.Errorf("%s %s suggests %v, its formats give %v", st.Key, level, got[st.Key][level], want[level])
 			}
 		}
 	}
@@ -215,6 +240,44 @@ func TestSeedTypes(t *testing.T) {
 						t.Errorf("type %s list format reads the %s level", st.Key, target.Level)
 					}
 				}
+			}
+		}
+	}
+}
+
+// TestSeededFormatsNeedOnlySuggestedFields: a field a type's formats read
+// outside any group is one a Source of that type must have, so the type page
+// has to offer it: at least one option of each such requirement is suggested
+// at its level.
+func TestSeededFormatsNeedOnlySuggestedFields(t *testing.T) {
+	suggested := map[string]bool{}
+	for _, s := range seedSuggestions {
+		for _, key := range s.FieldKeys {
+			suggested[s.TypeKey+"/"+string(s.Level)+"/"+key] = true
+		}
+	}
+	for _, st := range seedTypes {
+		var tpls []*citationformat.Template
+		for _, form := range citationformat.Forms() {
+			tpls = append(tpls, mustParseForm(t, st.Key, st.Formats.Text(form), form))
+		}
+		for _, req := range citationformat.Requirements(tpls...) {
+			if req.Need != citationformat.NeedNeeded {
+				continue
+			}
+			var options []string
+			met, hasField := false, false
+			for _, target := range req.Targets {
+				if target.Field.Key == "" {
+					continue
+				}
+				hasField = true
+				id := st.Key + "/" + string(target.Level) + "/" + target.Field.Key
+				options = append(options, id)
+				met = met || suggested[id]
+			}
+			if hasField && !met {
+				t.Errorf("%s: a format needs one of %v, none suggested", st.Key, options)
 			}
 		}
 	}

@@ -20,8 +20,7 @@ final class CatalogSearchModel {
     var searchError: String?
     var selectedIndex = 0
 
-    private var searchGeneration = 0
-    private var debounceTask: Task<Void, Never>?
+    private let latest = LatestCall()
 
     init(kinds: [String] = []) {
         self.kinds = kinds
@@ -55,9 +54,7 @@ final class CatalogSearchModel {
 
     /// Stops any pending or in-flight search; keeps the query and the hits on screen.
     func cancel() {
-        debounceTask?.cancel()
-        debounceTask = nil
-        searchGeneration += 1
+        latest.cancel()
         isLoading = false
     }
 
@@ -74,7 +71,6 @@ final class CatalogSearchModel {
         location: WorkspaceLocation?,
         store: any GenealogyStore
     ) {
-        debounceTask?.cancel()
         let q = trimmedQuery
         guard !isBelowMinimumQuery else {
             dismiss()
@@ -83,29 +79,34 @@ final class CatalogSearchModel {
 
         searchError = nil
         isLoading = true
-        let generation = searchGeneration + 1
-        searchGeneration = generation
-        debounceTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: Self.debounceNanoseconds)
-            guard !Task.isCancelled else { return }
-            await self?.runSearch(
-                generation: generation,
-                projectDir: projectDir,
-                query: q,
-                location: location,
-                store: store
-            )
-        }
+        let kinds = kinds
+        latest.start(
+            after: .nanoseconds(Self.debounceNanoseconds),
+            {
+                try await store.searchCatalog(projectDir: projectDir, query: q, location: location, kinds: kinds)
+            },
+            apply: { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let results):
+                    hits = results
+                    searchError = nil
+                case .failure(let error):
+                    hits = []
+                    searchError = L10n.Errors.message(for: error)
+                }
+                hasSearched = true
+                isLoading = false
+                selectedIndex = 0
+            }
+        )
     }
 
     /// Returns once the latest scheduled search has finished or been cancelled,
     /// following any search scheduled while it waited. Tests await this instead
     /// of polling against a deadline, which a busy main actor can outlast.
     func settle() async {
-        while let task = debounceTask {
-            await task.value
-            if debounceTask == task { return }
-        }
+        await latest.settle()
     }
 
     func moveSelection(delta: Int) {
@@ -117,35 +118,5 @@ final class CatalogSearchModel {
     func selectedHit() -> CatalogSearchHit? {
         guard hits.indices.contains(selectedIndex) else { return nil }
         return hits[selectedIndex]
-    }
-
-    private func runSearch(
-        generation: Int,
-        projectDir: String,
-        query: String,
-        location: WorkspaceLocation?,
-        store: any GenealogyStore
-    ) async {
-        do {
-            let results = try await store.searchCatalog(
-                projectDir: projectDir,
-                query: query,
-                location: location,
-                kinds: kinds
-            )
-            guard generation == searchGeneration else { return }
-            hits = results
-            hasSearched = true
-            searchError = nil
-            isLoading = false
-            selectedIndex = 0
-        } catch {
-            guard generation == searchGeneration else { return }
-            hits = []
-            hasSearched = true
-            searchError = L10n.Errors.message(for: error)
-            isLoading = false
-            selectedIndex = 0
-        }
     }
 }

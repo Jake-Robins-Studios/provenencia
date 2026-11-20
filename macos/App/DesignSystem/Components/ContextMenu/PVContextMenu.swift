@@ -486,7 +486,7 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
 
 // MARK: - Floating NSPanel host
 
-/// Child-window popup at `.popUpMenu` level. Mirrors `PVComboBoxPopupWindow`:
+/// Child-window popup at `.popUpMenu` level. Mirrors `PVPopupList`:
 /// SwiftUI stacking cannot bury a separate AppKit window under later siblings.
 private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
     var isPresented: Bool

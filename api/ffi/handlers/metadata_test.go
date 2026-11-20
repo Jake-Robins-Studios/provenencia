@@ -455,10 +455,9 @@ func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string
 	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
 		ProjectDir: dir, TypeId: ty.GetType().GetId(), FieldId: lineID, Level: "graph",
 	}, &engine.AssignTypeFieldResponse{})
-	var formats engine.UpdateCitationFormatsResponse
-	mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
-		ProjectDir: dir, UserId: userID, TypeId: ty.GetType().GetId(), Full: "{graph.meta.line_number|source.meta.line_number}.",
-	}, &formats)
+	formats := setFormats(t, dir, userID, ty.GetType().GetId(), &engine.CitationFormats{
+		Full: "{graph.meta.line_number|source.meta.line_number}.",
+	})
 	if len(formats.GetDiagnostics()) != 0 {
 		t.Fatalf("diagnostics %+v", formats.GetDiagnostics())
 	}

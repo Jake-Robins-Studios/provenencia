@@ -142,11 +142,9 @@ func TestRenderCitations(t *testing.T) {
 	t.Run("AC-1.6 unknown and supplied values", func(t *testing.T) {
 		var ty engine.CreateSourceTypeResponse
 		mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: w.dir, UserId: w.userID, Label: "Pamphlet"}, &ty)
-		var formats engine.UpdateCitationFormatsResponse
-		mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
-			ProjectDir: w.dir, UserId: w.userID, TypeId: ty.GetType().GetId(),
+		formats := setFormats(t, w.dir, w.userID, ty.GetType().GetId(), &engine.CitationFormats{
 			Full: "{source.meta.publisher}; {source.date}; p. {citation.page}.",
-		}, &formats)
+		})
 		if len(formats.GetDiagnostics()) != 0 {
 			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
 		}
@@ -254,16 +252,26 @@ func TestRenderCitationPreview(t *testing.T) {
 			t.Fatalf("stored = %v, %v", stored, err)
 		}
 	})
+	t.Run("AC-7.1 a Source target with the full form reads its Citation", func(t *testing.T) {
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source}})
+		if err != nil || out.GetRender().GetPlain() != renderCensusFull {
+			t.Fatalf("got %v, %v", out, err)
+		}
+	})
+	t.Run("AC-7.3 no target and a format that does not parse", func(t *testing.T) {
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Format: strp(`[`)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := &engine.CitationFormatDiagnostic{Form: "full", Code: string(citationformat.CodeUnclosedGroup), Start: 0, End: 1}
+		if len(out.GetDiagnostics()) != 1 || out.GetDiagnostics()[0].String() != want.String() || out.GetRender().GetPlain() != "" {
+			t.Errorf("got %v", out)
+		}
+	})
 	runRPC(t, RenderCitationPreview, []rpcTest{
 		{
-			name: "AC-2.5 no target set",
+			name: "AC-2.5 no target and no format",
 			req:  &engine.RenderCitationPreviewRequest{ProjectDir: w.dir, Form: "list"}, wantErr: true, wantErrIs: citations.ErrInvalid,
-		},
-		{
-			name: "AC-2.5 a Source target with the full form",
-			req: &engine.RenderCitationPreviewRequest{
-				ProjectDir: w.dir, Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
-			}, wantErr: true, wantErrIs: citations.ErrInvalid,
 		},
 		{
 			name: "AC-2.6 a Citation that is not there",
@@ -281,34 +289,55 @@ func TestRenderCitationPreview(t *testing.T) {
 	})
 }
 
-func TestListCitationBuiltins(t *testing.T) {
-	var out engine.ListCitationBuiltinsResponse
-	mustRPC(t, ListCitationBuiltins, &engine.ListCitationBuiltinsRequest{}, &out)
-	want := citationformat.Builtins()
-	if len(out.GetBuiltins()) != len(want) || len(want) != 8 {
-		t.Fatalf("got %d built-ins, want %d", len(out.GetBuiltins()), len(want))
+func TestListCitationPlaceholders(t *testing.T) {
+	dir, _, _ := sourceFixture(t)
+	list := func(form string) *engine.ListCitationPlaceholdersResponse {
+		t.Helper()
+		var out engine.ListCitationPlaceholdersResponse
+		mustRPC(t, ListCitationPlaceholders, &engine.ListCitationPlaceholdersRequest{ProjectDir: dir, Form: form}, &out)
+		return &out
 	}
-	for i, b := range want {
-		got := out.GetBuiltins()[i]
-		var opts []string
-		for _, o := range b.Options {
-			opts = append(opts, string(o))
+
+	t.Run("the list form reads the Source only", func(t *testing.T) {
+		out := list("list")
+		if len(out.GetPlaceholders()) < 4 {
+			t.Fatalf("got %d rows", len(out.GetPlaceholders()))
 		}
-		if got.GetLevel() != string(b.Level) || got.GetName() != b.Name || got.GetDate() != b.Date || !slices.Equal(got.GetOptions(), opts) ||
-			got.GetAlwaysSet() != b.AlwaysSet || got.GetInListForm() != b.InListForm() || got.GetUnknownText() != b.UnknownText {
-			t.Errorf("built-in %d = %v, want %+v", i, got, b)
+		var texts []string
+		for _, p := range out.GetPlaceholders()[:4] {
+			texts = append(texts, p.GetText())
 		}
-	}
-	date := out.GetBuiltins()[2]
-	if date.GetName() != "date" || !date.GetDate() || !slices.Equal(date.GetOptions(), []string{"year", "full"}) || date.GetUnknownText() != "n.d." {
-		t.Errorf("source.date = %v", date)
-	}
-	if page := out.GetBuiltins()[5]; page.GetName() != "page" || page.GetUnknownText() != "unpaginated" {
-		t.Errorf("citation.page = %v", page)
-	}
-	for _, b := range out.GetBuiltins() {
-		if b.GetInListForm() != (b.GetLevel() == "source") {
-			t.Errorf("%s.%s in_list_form = %v", b.GetLevel(), b.GetName(), b.GetInListForm())
+		if want := []string{"{source.title}", "{source.type}", "{source.date}", "{source.date:year}"}; !slices.Equal(texts, want) {
+			t.Errorf("built-ins = %v, want %v", texts, want)
 		}
-	}
+		for _, p := range out.GetPlaceholders() {
+			if p.GetLevel() != "source" {
+				t.Errorf("%s at level %s", p.GetText(), p.GetLevel())
+			}
+		}
+	})
+
+	t.Run("the full form lists the four levels with their fields", func(t *testing.T) {
+		var line *engine.CitationPlaceholder
+		var levels []string
+		for _, p := range list("full").GetPlaceholders() {
+			if len(levels) == 0 || levels[len(levels)-1] != p.GetLevel() {
+				levels = append(levels, p.GetLevel())
+			}
+			if p.GetText() == "{graph.meta.line_number}" {
+				line = p
+			}
+		}
+		if !slices.Equal(levels, []string{"source", "artifact", "graph", "citation"}) {
+			t.Errorf("levels = %v", levels)
+		}
+		if line == nil || line.GetRef() != "graph.meta.line_number" || line.GetField().GetKey() != "line_number" || line.GetBuiltin() != "" {
+			t.Errorf("line = %v", line)
+		}
+	})
+
+	runRPC(t, ListCitationPlaceholders, []rpcTest{{
+		name: "an unknown form",
+		req:  &engine.ListCitationPlaceholdersRequest{ProjectDir: dir, Form: "fourth"}, wantErr: true, wantErrIs: citations.ErrInvalid,
+	}})
 }

@@ -51,6 +51,9 @@ final class SourceTypePageModel {
     @ObservationIgnored
     weak var navigation: WorkspaceNavigation?
 
+    /// The citation formats' editor; a Save carries its drafts in the same write as the Details.
+    let formats: SourceTypeFormatsModel
+
     private let userID: String
     private let store: any GenealogyStore
     private let session: WorkspaceSession
@@ -65,6 +68,7 @@ final class SourceTypePageModel {
         self.session = session
         self.userID = userID
         self.store = store
+        self.formats = SourceTypeFormatsModel(typeID: typeID, session: session, store: store)
     }
 
     // MARK: Session handles
@@ -158,7 +162,9 @@ final class SourceTypePageModel {
     }
 
     var isDirty: Bool {
-        guard !isLocked, let type, let draft else { return false }
+        guard !isLocked else { return false }
+        if formats.isDirty { return true }
+        guard let type, let draft else { return false }
         return draft.label != type.label
             || draft.description != type.description
             || draft.iconKey != type.iconKey
@@ -180,28 +186,62 @@ final class SourceTypePageModel {
         draft = Self.draft(of: type)
         labelCheck.clear()
         saveError = nil
+        formats.revert()
     }
 
     func submit() async {
         guard let draft, let type, !isLocked else { return }
         guard labelCheck.validate(draft) else { return }
+        let detailsChanged = Self.draft(of: type) != draft
+        let sendsFormats = formats.isDirty
         isSaving = true
         saveError = nil
         defer { isSaving = false }
         do {
-            let (updated, effects) = try await store.updateSourceType(
+            let (updated, reply, effects) = try await store.updateSourceType(
                 projectDir: session.projectKey.projectDir, userID: userID, typeID: type.id,
-                label: draft.trimmedLabel, description: draft.description, iconKey: draft.iconKey
+                label: draft.trimmedLabel, description: draft.description, iconKey: draft.iconKey,
+                formats: sendsFormats ? formats.draftForSave() : nil
             )
+            if let reply, !reply.diagnostics.isEmpty {
+                // Nothing saved, the Details included: the warnings show at the forms and every edit stays.
+                formats.refused(reply)
+                saveError = L10n.string(L10n.SourceTypes.Formats.saveRefused)
+                return
+            }
             session.apply(effects, .updatedSourceType(updated))
             self.draft = Self.draft(of: updated)
-            toast = VocabularyToast(
+            if let reply {
+                session.apply(.changedCitationFormats(typeId: type.id))
+                formats.saved(reply)
+            }
+            toast = savedToast(updated, detailsChanged: detailsChanged, formatsSaved: sendsFormats)
+        } catch {
+            saveError = L10n.Errors.message(for: error)
+        }
+    }
+
+    /// The toast naming what saved: the Details, the formats, or both.
+    private func savedToast(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool) -> VocabularyToast {
+        switch (detailsChanged, formatsSaved) {
+        case (_, false):
+            return VocabularyToast(
                 title: L10n.string(L10n.SourceTypes.toastUpdatedTitle),
                 body: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key),
                 tone: .success
             )
-        } catch {
-            saveError = L10n.Errors.message(for: error)
+        case (false, true):
+            return VocabularyToast(
+                title: L10n.string(L10n.SourceTypes.Formats.toastSavedTitle),
+                body: L10n.SourceTypes.Formats.toastSavedBody(label: updated.label),
+                tone: .success
+            )
+        case (true, true):
+            return VocabularyToast(
+                title: L10n.string(L10n.SourceTypes.toastUpdatedTitle),
+                body: L10n.SourceTypes.Formats.toastBothBody(label: updated.label),
+                tone: .success
+            )
         }
     }
 

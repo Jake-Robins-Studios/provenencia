@@ -200,13 +200,15 @@ extension CatalogQueryKey.Kind {
             // the engine derives per source (suggestions ∪ values, each row
             // embedding its field), so a field relabel or delete, which a list
             // cannot tell from a field create, marks every visited page stale
-            // through `.updatedMetadataField` / `.deletedMetadataField`.
+            // through `.updatedMetadataField` / `.deletedMetadataField`. A format
+            // save (`.changedCitationFormats`) changes which fields a page needs, so
+            // it marks every visited page stale the same way.
             return .make(
                 kind: self,
                 invalidateOn: [
                     .mutatedSourceWorkspace, .changedSourceType,
                     .updatedMetadataField, .deletedMetadataField,
-                    .wroteTypeSuggestions,
+                    .wroteTypeSuggestions, .changedCitationFormats,
                     .deletedSource,
                 ],
                 whenHidden: .markStale,

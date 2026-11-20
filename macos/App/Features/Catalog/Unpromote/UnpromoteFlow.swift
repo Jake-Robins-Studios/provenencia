@@ -89,8 +89,7 @@ final class UnpromoteFlow {
     private(set) var isRunning = false
     /// Opens in progress. A count, so a dropped stale open cannot clear another's busy state.
     private var opening = 0
-    @ObservationIgnored
-    private var generation = 0
+    private let latestOpen = LatestCall()
 
     /// An open is in progress or the write runs.
     var isBusy: Bool { opening > 0 || isRunning }
@@ -106,10 +105,28 @@ final class UnpromoteFlow {
         graphID: String,
         session: WorkspaceSession
     ) async {
-        generation += 1
-        let mine = generation
         opening += 1
         defer { opening -= 1 }
+        await latestOpen.run(
+            {
+                await Self.preflight(
+                    subjectID: subjectID, name: name, kind: kind, handleID: handleID, graphID: graphID, session: session
+                )
+            },
+            apply: { [weak self] result in
+                if case .success(let item) = result { self?.pending = item }
+            }
+        )
+    }
+
+    private static func preflight(
+        subjectID: String,
+        name: String,
+        kind: EvidencePrimaryKind,
+        handleID: String?,
+        graphID: String,
+        session: WorkspaceSession
+    ) async -> UnpromoteConfirmItem {
         var deletedHandles: CatalogDeleteImpactGroup?
         var impactCheckFailed = false
         var preflightError: String?
@@ -139,7 +156,6 @@ final class UnpromoteFlow {
                 }
             }
         }
-        guard generation == mine else { return }
         var item = UnpromoteConfirmItem(
             id: subjectID, name: name, kind: kind, handleID: handleID,
             connections: impactCheckFailed || (!bridgeIDs.isEmpty && sentences.isEmpty) ? .unlisted : .listed(sentences)
@@ -147,7 +163,7 @@ final class UnpromoteFlow {
         item.deletedHandles = deletedHandles
         item.impactCheckFailed = impactCheckFailed
         item.error = preflightError
-        pending = item
+        return item
     }
 
     /// Writes the Unpromote for a page that shows no handle of its own (the Evidence graph) and

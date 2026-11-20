@@ -299,12 +299,7 @@ final class SourcesModel {
             // UUIDv7 string form preserves create-time byte order (newest first).
             rows = rows.sorted { $0.id > $1.id }
         case .updated:
-            rows = rows.sorted {
-                if $0.updated.revision != $1.updated.revision {
-                    return $0.updated.revision > $1.updated.revision
-                }
-                return $0.id > $1.id
-            }
+            rows = rows.sorted(by: Self.updatedOrder)
         case .az:
             rows = rows.sorted { Self.titleOrder($0, $1) }
         case .za:
@@ -315,6 +310,15 @@ final class SourcesModel {
             rows = rows.sorted { Self.dateOrder($0, $1, newestFirst: true) }
         }
         return rows
+    }
+
+    /// The "Updated" order, the one meaning of "most recently changed": revision,
+    /// then id, both newest first.
+    static func updatedOrder(_ a: CatalogSource, _ b: CatalogSource) -> Bool {
+        if a.updated.revision != b.updated.revision {
+            return a.updated.revision > b.updated.revision
+        }
+        return a.id > b.id
     }
 
     /// The date sorts: rows with a place in date order first, by that key; equal

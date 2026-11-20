@@ -129,7 +129,6 @@ final class CitationComposerModel {
     /// the Citation. Cleared by the next load that succeeds and by a new Citation.
     private(set) var citationLoadError: String?
     private var didApplyEntry = false
-    private var switchGeneration = 0
     var isSwitchingCitation = false
     let transcriptions: CitationTranscriptionModel
     var vocabulary: CitationComposerVocabulary { context.vocabulary }
@@ -236,7 +235,7 @@ final class CitationComposerModel {
         }
         navigation.replaceCurrent(with: location)
     }
-    private var identityTask: Task<Void, Never>?
+    private let identitySwitch = LatestCall()
 
     let artifactViewer = ArtifactViewerModel()
     var armedRegionTool: ArtifactRegionTool?
@@ -641,7 +640,7 @@ final class CitationComposerModel {
     }
 
     func awaitIdentitySwitch() async {
-        await identityTask?.value
+        await identitySwitch.settle()
     }
 
     func beginAddObservation() {
@@ -1007,16 +1006,8 @@ final class CitationComposerModel {
 
     private func startIdentitySwitch(_ work: @escaping @MainActor () async -> Void) {
         citationLoadError = nil
-        switchGeneration += 1
-        let generation = switchGeneration
         isSwitchingCitation = true
-        identityTask?.cancel()
-        identityTask = Task { @MainActor in
-            await work()
-            if generation == self.switchGeneration {
-                self.isSwitchingCitation = false
-            }
-        }
+        identitySwitch.start({ await work() }, apply: { [weak self] _ in self?.isSwitchingCitation = false })
     }
 
     private func selectArtifactAndLoad(_ id: String) async {

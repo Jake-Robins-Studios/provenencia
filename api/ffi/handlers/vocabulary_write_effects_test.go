@@ -30,10 +30,7 @@ func TestVocabularyWritesReturnEffects(t *testing.T) {
 		var updated engine.UpdateSourceTypeResponse
 		mustRPC(t, UpdateSourceType, &engine.UpdateSourceTypeRequest{ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "Journal"}, &updated)
 		want(t, updated.GetEffects(), source)
-		var formatted engine.UpdateCitationFormatsResponse
-		mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
-			ProjectDir: dir, UserId: userID, TypeId: typeID, Full: "{source.title}",
-		}, &formatted)
+		formatted := setFormats(t, dir, userID, typeID, &engine.CitationFormats{Full: "{source.title}"})
 		want(t, formatted.GetEffects(), source)
 		var deleted engine.DeleteSourceTypeResponse
 		mustRPC(t, DeleteSourceType, &engine.DeleteSourceTypeRequest{ProjectDir: dir, UserId: userID, TypeId: typeID}, &deleted)

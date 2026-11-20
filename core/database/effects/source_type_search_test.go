@@ -72,7 +72,7 @@ func TestSourceTypeSearchGates(t *testing.T) {
 		return set
 	}
 
-	_, changes, err := sourcetypes.UpdateFormats(tx, typeID, sourcetypes.Formats{Full: "{source.title}"}, nil)
+	_, changes, err := sourcetypestest.SetFormatsTx(tx, typeID, sourcetypes.Formats{Full: "{source.title}"})
 	if err != nil {
 		t.Fatal(err)
 	}

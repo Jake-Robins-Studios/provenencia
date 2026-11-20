@@ -5137,6 +5137,16 @@ enum L10n {
                 comment: "Accessibility label and tooltip for the pill marking a plugin-owned row in a vocabulary list; argument is the plugin id"
             ), pluginID)
         }
+
+        /// The one mapping from an origin to its words, wherever a line names where a row comes from:
+        /// the pill's words for a seeded or plugin row, "you" for the researcher's own. A short form
+        /// (`Properties.originUserShort`) is a deliberate exception.
+        static func words(for origin: String) -> String {
+            if origin == CatalogOrigin.provenencia { return string(seededPill) }
+            if origin == CatalogOrigin.user { return string(user) }
+            if CatalogOrigin.isPlugin(origin) { return pluginPill(pluginID: CatalogOrigin.pluginID(from: origin)) }
+            return origin
+        }
     }
 
     /// Opening a stored file in its own app, shared by every surface that offers
@@ -7767,11 +7777,6 @@ enum L10n {
             "properties.inspector.originUser",
             defaultValue: "User — you created this",
             comment: "Inspector origin line for researcher-created properties"
-        )
-        static let inspectorOriginSeeded = LocalizedStringResource(
-            "properties.inspector.originSeeded",
-            defaultValue: "Seeded by Provenencia",
-            comment: "Inspector origin line for product-seeded properties"
         )
         static let inspectorUsedOn = LocalizedStringResource(
             "properties.inspector.usedOn",
@@ -12164,5 +12169,674 @@ enum L10n {
         /// `ref.invalid` / `ref.invalid_prefix` / `ref.reserved_prefix` are
         /// minting / reserved-prefix failures and intentionally fall through to
         /// `unknown` unless a future client surfaces them as distinct copy.
+    }
+}
+
+// MARK: - Citation formats
+
+extension L10n.SourceTypes {
+    /// The citation format editor on a Source type's page.
+    enum Formats {
+        static let sectionTitle = LocalizedStringResource(
+            "sourceTypes.formats.sectionTitle",
+            defaultValue: "Citation formats",
+            comment: "Title of the citation formats section on a Source type page"
+        )
+
+        static let sectionHint = LocalizedStringResource(
+            "sourceTypes.formats.sectionHint",
+            defaultValue: "How citations of this type are written. Fields in braces fill from the Source, its Artifact, its Evidence graph and the citation; text in square brackets drops out when a field in it is empty.",
+            comment: "Hint under the citation formats section title on an editable type"
+        )
+
+        static let sectionHintLocked = LocalizedStringResource(
+            "sourceTypes.formats.sectionHintLocked",
+            defaultValue: "How citations of this type are written. A plugin supplies these formats; they cannot be changed here.",
+            comment: "Hint under the citation formats section title on a plugin type"
+        )
+
+        static let syntaxField = LocalizedStringResource(
+            "sourceTypes.formats.syntax.field",
+            defaultValue: "a field",
+            comment: "Syntax strip meaning of { }, the braces around a field"
+        )
+
+        static let syntaxOr = LocalizedStringResource(
+            "sourceTypes.formats.syntax.or",
+            defaultValue: "or, if empty, the next",
+            comment: "Syntax strip meaning of |, which takes the first field that has a value"
+        )
+
+        static let syntaxGroup = LocalizedStringResource(
+            "sourceTypes.formats.syntax.group",
+            defaultValue: "drops out when empty",
+            comment: "Syntax strip meaning of [ ], an optional group"
+        )
+
+        static let syntaxItalic = LocalizedStringResource(
+            "sourceTypes.formats.syntax.italic",
+            defaultValue: "italic",
+            comment: "Syntax strip meaning of * *, italic text"
+        )
+
+        static let syntaxEscape = LocalizedStringResource(
+            "sourceTypes.formats.syntax.escape",
+            defaultValue: "a literal { [ * or \\",
+            comment: "Syntax strip meaning of a backslash, which makes the next character literal"
+        )
+
+        static let notShown = LocalizedStringResource(
+            "sourceTypes.formats.notShown",
+            defaultValue: "Not shown while the format has a warning",
+            comment: "Preview line shown for a form whose format has a warning"
+        )
+
+        static let placeholderFull = LocalizedStringResource(
+            "sourceTypes.formats.placeholder.full",
+            defaultValue: "No full note: citations of this type show their plain citation line. Type { to add a field.",
+            comment: "Placeholder of an empty full note format"
+        )
+
+        static let placeholderShort = LocalizedStringResource(
+            "sourceTypes.formats.placeholder.short",
+            defaultValue: "No short note. Type { to add a field.",
+            comment: "Placeholder of an empty short note format"
+        )
+
+        static let placeholderList = LocalizedStringResource(
+            "sourceTypes.formats.placeholder.list",
+            defaultValue: "No source list entry. Type { to add a field.",
+            comment: "Placeholder of an empty source list format"
+        )
+
+        static func completionEmpty(query: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.completion.empty",
+            defaultValue: "No field matches “%@”",
+            comment: "Line in the completion list when nothing matches; the argument is what was typed"
+        ), query)
+        }
+
+        static func completionOpened(count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.completion.opened",
+            defaultValue: "Field suggestions, %lld. Up and down to choose, Return to insert.",
+            comment: "Spoken when the completion list opens; the argument is the number of rows"
+        ), count)
+        }
+
+        static let completionOpenedEmpty = LocalizedStringResource(
+            "sourceTypes.formats.completion.openedEmpty",
+            defaultValue: "No field suggestions match.",
+            comment: "Spoken when the completion list opens with no rows"
+        )
+
+        static func completionHighlighted(name: String, level: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.completion.highlighted",
+            defaultValue: "%1$@, %2$@",
+            comment: "Spoken for the highlighted completion row; arguments are the placeholder name then its level"
+        ), name, level)
+        }
+
+        static func completionInserted(name: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.completion.inserted",
+            defaultValue: "%@ inserted",
+            comment: "Spoken after a completion row is put in the format; the argument is its name"
+        ), name)
+        }
+
+        static func countLine(used: String, limit: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.count",
+            defaultValue: "%1$@ / %2$@",
+            comment: "Character count of a format against its limit; arguments are the count then the limit, formatted for the locale"
+        ), used, limit)
+        }
+
+        static func countSpoken(used: String, limit: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.countSpoken",
+            defaultValue: "%1$@ of %2$@ characters",
+            comment: "Spoken character count of a format; arguments are the count then the limit"
+        ), used, limit)
+        }
+
+        static func warningAt(message: String, quote: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.warning.at",
+            defaultValue: "%1$@ at “%2$@”",
+            comment: "Warning line; arguments are the message then the quoted text it is about"
+        ), message, quote)
+        }
+
+        static let warningHint = LocalizedStringResource(
+            "sourceTypes.formats.warning.hint",
+            defaultValue: "Selects it in the format",
+            comment: "VoiceOver hint of a warning line, which selects the text it is about"
+        )
+
+        static func sharedKeyLabel(key: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.sharedKey.label",
+            defaultValue: "Which %@ field?",
+            comment: "Label of the select on a warning about a key two fields share; the argument is the key"
+        ), key)
+        }
+
+        static func sharedKeyOption(label: String, origin: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.sharedKey.option",
+            defaultValue: "%1$@ · %2$@",
+            comment: "Option of that select; arguments are the field label then where it comes from"
+        ), label, origin)
+        }
+
+        static let previewTitle = LocalizedStringResource(
+            "sourceTypes.formats.preview.title",
+            defaultValue: "Preview",
+            comment: "Micro-caps tag over a format's rendered preview"
+        )
+
+        static let previewWith = LocalizedStringResource(
+            "sourceTypes.formats.preview.with",
+            defaultValue: "Preview with",
+            comment: "Label of the Source picker above the previews"
+        )
+
+        static func previewPlaceholder(type: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.preview.placeholder",
+            defaultValue: "Choose a %@ Source",
+            comment: "Placeholder of the preview Source picker; the argument is the type's label"
+        ), type)
+        }
+
+        static let previewHint = LocalizedStringResource(
+            "sourceTypes.formats.preview.hint",
+            defaultValue: "Full and short notes use the Source's first citation.",
+            comment: "Hint under the preview Source picker"
+        )
+
+        static let noFormat = LocalizedStringResource(
+            "sourceTypes.formats.preview.noFormat",
+            defaultValue: "No format",
+            comment: "Shown for a form with no format"
+        )
+
+        static func noSources(type: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.preview.noSources",
+            defaultValue: "No %@ Source yet. Add one to preview these formats; warnings still show.",
+            comment: "Note where the preview picker would be when the type has no Sources; the argument is the type's label"
+        ), type)
+        }
+
+        static let previewFailedTitle = LocalizedStringResource(
+            "sourceTypes.formats.preview.failedTitle",
+            defaultValue: "The preview could not be shown",
+            comment: "Title of the retry callout when the preview call fails"
+        )
+
+        static func previewSpoken(form: String, text: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.preview.spoken",
+            defaultValue: "%1$@: %2$@",
+            comment: "VoiceOver text of one preview; arguments are the form title then the rendered text"
+        ), form, text)
+        }
+
+        static let saveRefused = LocalizedStringResource(
+            "sourceTypes.formats.saveRefused",
+            defaultValue: "Fix the marked formats, then save.",
+            comment: "Danger callout beside Save when a format has a warning and nothing was saved"
+        )
+
+        static let toastSavedTitle = LocalizedStringResource(
+            "sourceTypes.formats.toast.savedTitle",
+            defaultValue: "Citation formats saved",
+            comment: "Toast title after saving only citation formats"
+        )
+
+        static func toastSavedBody(label: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.toast.savedBody",
+            defaultValue: "%@’s citations now use these formats.",
+            comment: "Toast body after saving only citation formats; the argument is the type's label"
+        ), label)
+        }
+
+        static func toastBothBody(label: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.toast.bothBody",
+            defaultValue: "%@ and its citation formats are saved.",
+            comment: "Toast body after saving the details and the citation formats together; the argument is the type's label"
+        ), label)
+        }
+
+        static let loading = LocalizedStringResource(
+            "sourceTypes.formats.loading",
+            defaultValue: "Reading the citation formats",
+            comment: "Caption while a Source type's citation formats are read"
+        )
+
+        static let loadErrorTitle = LocalizedStringResource(
+            "sourceTypes.formats.loadErrorTitle",
+            defaultValue: "The citation formats could not be read",
+            comment: "Title of the notice when a Source type's citation formats could not be read"
+        )
+
+        static let previewNoMatch = LocalizedStringResource(
+            "sourceTypes.formats.preview.noMatch",
+            defaultValue: "No Source matches",
+            comment: "Line in the preview Source picker when nothing matches what was typed"
+        )
+
+        static func readerLabel(form: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "sourceTypes.formats.readerLabel",
+            defaultValue: "%@, read only",
+            comment: "VoiceOver label of a read-only format; the argument is the form title"
+        ), form)
+        }
+    }
+}
+
+extension L10n {
+    /// Domain copy for citation formats: the names of the built-in placeholders and of the levels,
+    /// each form's title and meaning, the missing line, and one message per diagnostic code.
+    enum CitationFormats {
+        static let nameSourceTitle = LocalizedStringResource(
+            "citationFormats.builtin.sourceTitle",
+            defaultValue: "Title",
+            comment: "Name of the built-in placeholder sourceTitle"
+        )
+
+        static let nameSourceType = LocalizedStringResource(
+            "citationFormats.builtin.sourceType",
+            defaultValue: "Type",
+            comment: "Name of the built-in placeholder sourceType"
+        )
+
+        static let nameSourceDate = LocalizedStringResource(
+            "citationFormats.builtin.sourceDate",
+            defaultValue: "Date",
+            comment: "Name of the built-in placeholder sourceDate"
+        )
+
+        static let nameArtifactLabel = LocalizedStringResource(
+            "citationFormats.builtin.artifactLabel",
+            defaultValue: "Label",
+            comment: "Name of the built-in placeholder artifactLabel"
+        )
+
+        static let nameGraphName = LocalizedStringResource(
+            "citationFormats.builtin.graphName",
+            defaultValue: "Name",
+            comment: "Name of the built-in placeholder graphName"
+        )
+
+        static let nameCitationPage = LocalizedStringResource(
+            "citationFormats.builtin.citationPage",
+            defaultValue: "Page",
+            comment: "Name of the built-in placeholder citationPage"
+        )
+
+        static let nameCitationImage = LocalizedStringResource(
+            "citationFormats.builtin.citationImage",
+            defaultValue: "Image",
+            comment: "Name of the built-in placeholder citationImage"
+        )
+
+        static let nameCitationLabel = LocalizedStringResource(
+            "citationFormats.builtin.citationLabel",
+            defaultValue: "Label",
+            comment: "Name of the built-in placeholder citationLabel"
+        )
+
+        static let nameDateYear = LocalizedStringResource(
+            "citationFormats.builtin.sourceDate.year",
+            defaultValue: "Date, year only",
+            comment: "Name of the Source date placeholder that prints only the year"
+        )
+
+        static let levelSource = LocalizedStringResource(
+            "citationFormats.level.source",
+            defaultValue: "Source",
+            comment: "Plain name of the source level of a citation"
+        )
+
+        static let levelArtifact = LocalizedStringResource(
+            "citationFormats.level.artifact",
+            defaultValue: "Artifact",
+            comment: "Plain name of the artifact level of a citation"
+        )
+
+        static let levelGraph = LocalizedStringResource(
+            "citationFormats.level.graph",
+            defaultValue: "Evidence graph",
+            comment: "Plain name of the graph level of a citation"
+        )
+
+        static let levelCitation = LocalizedStringResource(
+            "citationFormats.level.citation",
+            defaultValue: "Citation",
+            comment: "Plain name of the citation level of a citation"
+        )
+
+        static let titleFull = LocalizedStringResource(
+            "citationFormats.form.full.title",
+            defaultValue: "Full note",
+            comment: "Title of the full citation form"
+        )
+
+        static let meaningFull = LocalizedStringResource(
+            "citationFormats.form.full.meaning",
+            defaultValue: "The first time a source is cited",
+            comment: "Meaning line of the full citation form"
+        )
+
+        static let titleShort = LocalizedStringResource(
+            "citationFormats.form.short.title",
+            defaultValue: "Short note",
+            comment: "Title of the short citation form"
+        )
+
+        static let meaningShort = LocalizedStringResource(
+            "citationFormats.form.short.meaning",
+            defaultValue: "Each later citation",
+            comment: "Meaning line of the short citation form"
+        )
+
+        static let titleList = LocalizedStringResource(
+            "citationFormats.form.list.title",
+            defaultValue: "Source list",
+            comment: "Title of the list citation form"
+        )
+
+        static let meaningList = LocalizedStringResource(
+            "citationFormats.form.list.meaning",
+            defaultValue: "The entry in a list of sources",
+            comment: "Meaning line of the list citation form"
+        )
+
+        static func missingLine(options: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.missing",
+            defaultValue: "Missing: %@",
+            comment: "Line under a preview naming what a needed placeholder lacks; the argument is the options"
+        ), options)
+        }
+
+        static func missingOption(name: String, level: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.missing.option",
+            defaultValue: "%1$@ on the %2$@",
+            comment: "One option of a missing line; arguments are the name then the level name"
+        ), name, level)
+        }
+
+        static func missingOptionSameName(level: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.missing.optionSameName",
+            defaultValue: "on the %@",
+            comment: "A later option of a missing line with the first one's name; the argument is the level name"
+        ), level)
+        }
+
+        static let missingJoin = LocalizedStringResource(
+            "citationFormats.missing.join",
+            defaultValue: ", or ",
+            comment: "Joins the options of a missing line"
+        )
+
+        static let diagGeneric = LocalizedStringResource(
+            "citationFormats.diagnostic.generic",
+            defaultValue: "This part of the format cannot be read",
+            comment: "Warning message for the generic mistake in a citation format"
+        )
+
+        static func diagTooLong(characters: String, over: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.diagnostic.too_long",
+            defaultValue: "Too long: %1$@ characters, %2$@ over",
+            comment: "Warning message for the too_long mistake in a citation format"
+        ), characters, over)
+        }
+
+        static let diagTooLongStored = LocalizedStringResource(
+            "citationFormats.diagnostic.too_long_stored",
+            defaultValue: "Too many fields for one format",
+            comment: "Warning message for the too_long mistake when the format is within the character limit but too large once stored"
+        )
+
+        static let diagTooDeep = LocalizedStringResource(
+            "citationFormats.diagnostic.too_deep",
+            defaultValue: "Too many groups and italics inside each other",
+            comment: "Warning message for the too_deep mistake in a citation format"
+        )
+
+        static let diagUnclosedPlaceholder = LocalizedStringResource(
+            "citationFormats.diagnostic.unclosed_placeholder",
+            defaultValue: "Unclosed field",
+            comment: "Warning message for the unclosed_placeholder mistake in a citation format"
+        )
+
+        static let diagStrayCloseBrace = LocalizedStringResource(
+            "citationFormats.diagnostic.stray_close_brace",
+            defaultValue: "This brace closes nothing",
+            comment: "Warning message for the stray_close_brace mistake in a citation format"
+        )
+
+        static let diagUnclosedGroup = LocalizedStringResource(
+            "citationFormats.diagnostic.unclosed_group",
+            defaultValue: "Unclosed group",
+            comment: "Warning message for the unclosed_group mistake in a citation format"
+        )
+
+        static let diagStrayCloseBracket = LocalizedStringResource(
+            "citationFormats.diagnostic.stray_close_bracket",
+            defaultValue: "This bracket closes no group",
+            comment: "Warning message for the stray_close_bracket mistake in a citation format"
+        )
+
+        static let diagUnclosedItalic = LocalizedStringResource(
+            "citationFormats.diagnostic.unclosed_italic",
+            defaultValue: "Unclosed italic",
+            comment: "Warning message for the unclosed_italic mistake in a citation format"
+        )
+
+        static let diagBadEscape = LocalizedStringResource(
+            "citationFormats.diagnostic.bad_escape",
+            defaultValue: "A backslash can only come before { } [ ] * or \\",
+            comment: "Warning message for the bad_escape mistake in a citation format"
+        )
+
+        static let diagGroupWithoutPlaceholder = LocalizedStringResource(
+            "citationFormats.diagnostic.group_without_placeholder",
+            defaultValue: "A group needs a field in it",
+            comment: "Warning message for the group_without_placeholder mistake in a citation format"
+        )
+
+        static let diagEmptyOption = LocalizedStringResource(
+            "citationFormats.diagnostic.empty_option",
+            defaultValue: "Empty field",
+            comment: "Warning message for the empty_option mistake in a citation format"
+        )
+
+        static let diagBadCharacter = LocalizedStringResource(
+            "citationFormats.diagnostic.bad_character",
+            defaultValue: "A field name cannot hold this character",
+            comment: "Warning message for the bad_character mistake in a citation format"
+        )
+
+        static let diagUnprefixedMeta = LocalizedStringResource(
+            "citationFormats.diagnostic.unprefixed_meta",
+            defaultValue: "Name a level before meta: source, artifact or graph",
+            comment: "Warning message for the unprefixed_meta mistake in a citation format"
+        )
+
+        static let diagUnknownLevel = LocalizedStringResource(
+            "citationFormats.diagnostic.unknown_level",
+            defaultValue: "Not a level: use source, artifact, graph or citation",
+            comment: "Warning message for the unknown_level mistake in a citation format"
+        )
+
+        static let diagMetaNotAtLevel = LocalizedStringResource(
+            "citationFormats.diagnostic.meta_not_at_level",
+            defaultValue: "A citation has no metadata fields",
+            comment: "Warning message for the meta_not_at_level mistake in a citation format"
+        )
+
+        static let diagBadField = LocalizedStringResource(
+            "citationFormats.diagnostic.bad_field",
+            defaultValue: "Not a field key",
+            comment: "Warning message for the bad_field mistake in a citation format"
+        )
+
+        static let diagUnknownBuiltin = LocalizedStringResource(
+            "citationFormats.diagnostic.unknown_builtin",
+            defaultValue: "Not a built-in field at this level",
+            comment: "Warning message for the unknown_builtin mistake in a citation format"
+        )
+
+        static let diagUnknownOption = LocalizedStringResource(
+            "citationFormats.diagnostic.unknown_option",
+            defaultValue: "This option does not apply here",
+            comment: "Warning message for the unknown_option mistake in a citation format"
+        )
+
+        static let diagNotInListForm = LocalizedStringResource(
+            "citationFormats.diagnostic.not_in_list_form",
+            defaultValue: "The source list reads the Source only",
+            comment: "Warning message for the not_in_list_form mistake in a citation format"
+        )
+
+        static func diagUnknownField(key: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.diagnostic.unknown_field",
+            defaultValue: "No field has the key %@",
+            comment: "Warning message for the unknown_field mistake in a citation format"
+        ), key)
+        }
+
+        static func diagAmbiguousField(key: String) -> String {
+            return L10n.format(LocalizedStringResource(
+            "citationFormats.diagnostic.ambiguous_field",
+            defaultValue: "Two fields have the key %@: choose one",
+            comment: "Warning message for the ambiguous_field mistake in a citation format"
+        ), key)
+        }
+    }
+}
+
+extension L10n.CitationFormats {
+    /// The form's title as a resource, for a spoken label.
+    static func formTitleResource(_ form: CitationForm) -> LocalizedStringResource {
+        switch form {
+        case .full: titleFull
+        case .short: titleShort
+        case .list: titleList
+        }
+    }
+
+    /// A built-in placeholder's name; `.sourceDate` with `.year` is "Date, year only".
+    static func builtinName(_ builtin: CitationBuiltin, option: CitationOption? = nil) -> String {
+        switch builtin {
+        case .sourceTitle: L10n.string(nameSourceTitle)
+        case .sourceType: L10n.string(nameSourceType)
+        case .sourceDate: L10n.string(option == .year ? nameDateYear : nameSourceDate)
+        case .artifactLabel: L10n.string(nameArtifactLabel)
+        case .graphName: L10n.string(nameGraphName)
+        case .citationPage: L10n.string(nameCitationPage)
+        case .citationImage: L10n.string(nameCitationImage)
+        case .citationLabel: L10n.string(nameCitationLabel)
+        }
+    }
+
+    /// The plain name of a level: "Source", "Artifact", "Evidence graph", "Citation".
+    static func levelName(_ level: Level) -> String {
+        switch level {
+        case .source: L10n.string(levelSource)
+        case .artifact: L10n.string(levelArtifact)
+        case .graph: L10n.string(levelGraph)
+        case .citation: L10n.string(levelCitation)
+        }
+    }
+
+    static func formTitle(_ form: CitationForm) -> String {
+        switch form {
+        case .full: L10n.string(titleFull)
+        case .short: L10n.string(titleShort)
+        case .list: L10n.string(titleList)
+        }
+    }
+
+    static func formMeaning(_ form: CitationForm) -> String {
+        switch form {
+        case .full: L10n.string(meaningFull)
+        case .short: L10n.string(meaningShort)
+        case .list: L10n.string(meaningList)
+        }
+    }
+
+    /// The message of one mistake. `key` is the text the warning is about (what `unknown_field` and
+    /// `ambiguous_field` name); `characters` is how long a too-long format is. A code Swift does not
+    /// know, or none, reads as the generic message.
+    static func diagnostic(_ code: CitationDiagnosticCode?, key: String, characters: Int = 0) -> String {
+        guard let code else { return L10n.string(diagGeneric) }
+        switch code {
+        case .unknownForm: return L10n.string(diagGeneric)
+        case .tooLong:
+            // Within the character limit, it is the stored form (fields written as ids) that is too large.
+            guard characters > CitationFormatLimit.maxCharacters else { return L10n.string(diagTooLongStored) }
+            let over = characters - CitationFormatLimit.maxCharacters
+            return diagTooLong(characters: grouped(characters), over: grouped(over))
+        case .tooDeep: return L10n.string(diagTooDeep)
+        case .unclosedPlaceholder: return L10n.string(diagUnclosedPlaceholder)
+        case .strayCloseBrace: return L10n.string(diagStrayCloseBrace)
+        case .unclosedGroup: return L10n.string(diagUnclosedGroup)
+        case .strayCloseBracket: return L10n.string(diagStrayCloseBracket)
+        case .unclosedItalic: return L10n.string(diagUnclosedItalic)
+        case .badEscape: return L10n.string(diagBadEscape)
+        case .groupWithoutPlaceholder: return L10n.string(diagGroupWithoutPlaceholder)
+        case .emptyOption: return L10n.string(diagEmptyOption)
+        case .badCharacter: return L10n.string(diagBadCharacter)
+        case .unprefixedMeta: return L10n.string(diagUnprefixedMeta)
+        case .unknownLevel: return L10n.string(diagUnknownLevel)
+        case .metaNotAtLevel: return L10n.string(diagMetaNotAtLevel)
+        case .badField: return L10n.string(diagBadField)
+        case .unknownBuiltin: return L10n.string(diagUnknownBuiltin)
+        case .unknownOption: return L10n.string(diagUnknownOption)
+        case .notInListForm: return L10n.string(diagNotInListForm)
+        case .unknownField: return diagUnknownField(key: key)
+        case .ambiguousField: return diagAmbiguousField(key: key)
+        }
+    }
+
+    /// A count grouped by the locale: "4,012".
+    static func grouped(_ number: Int) -> String {
+        number.formatted(.number.locale(L10n.formattingLocale))
+    }
+
+    /// The missing line for one needed chain: "Missing: Line on the Evidence graph, or on the Source". An
+    /// option with the first one's name reads "on the <level>" alone.
+    static func missing(_ chain: [CatalogCitationOption]) -> String {
+        func name(_ option: CatalogCitationOption) -> String {
+            if let field = option.field { return field.label }
+            return option.builtin.map { builtinName($0) } ?? ""
+        }
+        guard let first = chain.first else { return "" }
+        let firstName = name(first)
+        var parts = [missingOption(name: firstName, level: levelName(first.level))]
+        for option in chain.dropFirst() {
+            parts.append(
+                name(option) == firstName
+                    ? missingOptionSameName(level: levelName(option.level))
+                    : missingOption(name: name(option), level: levelName(option.level))
+            )
+        }
+        return missingLine(options: parts.joined(separator: L10n.string(missingJoin)))
     }
 }

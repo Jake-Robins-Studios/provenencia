@@ -2873,12 +2873,12 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		}
 	})
 
-	t.Run("birth certificate shows an unsuggested head after the suggestions", func(t *testing.T) {
-		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Alice")
+	t.Run("photograph shows an unsuggested head after the suggestions", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "photograph").ID, "Portrait of Alice")
 		entries := boardOf(t, c, sourceOwner(src.ID)).Entries
 		last := entries[len(entries)-1]
-		if last.Field.Key != "jurisdiction" || last.Suggested || last.Value != nil || last.Annotation.Need != needed {
-			t.Fatalf("last entry = %+v, want the empty unsuggested needed jurisdiction", last)
+		if last.Field.Key != "short_title" || last.Suggested || last.Value != nil || last.Annotation.Need != citationformat.NeedUsed {
+			t.Fatalf("last entry = %+v, want the empty unsuggested used short title", last)
 		}
 		for _, e := range entries[:len(entries)-1] {
 			if !e.Suggested {
@@ -3126,7 +3126,7 @@ type seedExpect struct {
 }
 
 var seedExpectations = map[string]seedExpect{
-	"birth_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"birth_certificate":    {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
 	"book":                 {needed: []string{"author", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
 	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
 	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"short_title:used", "collection:used"}, omitted: []string{"item"}},
@@ -3135,7 +3135,7 @@ var seedExpectations = map[string]seedExpect{
 	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"entry_number", "folio", "item"}, page: "used"},
 	"correspondence":       {needed: []string{"creator", "recipient"}, unsug: []string{"coverage:used"}, date: "needed"},
 	"court_report":         {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "used", page: "needed"},
-	"death_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"death_certificate":    {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
 	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
 	"family_bible":         {unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
 	"gedcom_file":          {unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
@@ -3143,7 +3143,7 @@ var seedExpectations = map[string]seedExpect{
 	"interview":            {needed: []string{"interviewee", "interviewer"}, omitted: []string{"item"}, date: "needed"},
 	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
 	"manuscript":           {needed: []string{"repository"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
-	"marriage_certificate": {needed: []string{"jurisdiction"}, unsug: []string{"jurisdiction:needed"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
+	"marriage_certificate": {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
 	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, omitted: []string{"column"}, date: "needed", page: "used"},
 	"oral_testimony":       {needed: []string{"interviewee"}, omitted: []string{"item"}, date: "needed"},
 	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}, omitted: []string{"item", "line_number"}, page: "used"},
@@ -3229,8 +3229,8 @@ func TestSeedAnnotations(t *testing.T) {
 			}
 		})
 	}
-	if neededAtSource != 30 || neededBelow != 0 || unsuggested != 32 || dates != 5 || pages != 1 || omittedPairs != 31 {
-		t.Errorf("needed %d (want 30), needed below %d (0), unsuggested heads %d (32), needed dates %d (5), needed pages %d (1), omitted %d (31)",
+	if neededAtSource != 30 || neededBelow != 0 || unsuggested != 29 || dates != 5 || pages != 1 || omittedPairs != 31 {
+		t.Errorf("needed %d (want 30), needed below %d (0), unsuggested heads %d (29), needed dates %d (5), needed pages %d (1), omitted %d (31)",
 			neededAtSource, neededBelow, unsuggested, dates, pages, omittedPairs)
 	}
 }

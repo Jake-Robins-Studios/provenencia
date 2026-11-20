@@ -87,6 +87,24 @@ struct CopySourceTypeCall: Equatable, Sendable {
     var levels: [Level]
 }
 
+/// One `FakeStore.updateSourceType` call's arguments, for tests to assert on.
+struct UpdateSourceTypeCall: Equatable, Sendable {
+    var typeID: String
+    var label: String
+    var description: String
+    var iconKey: String
+    /// What was sent as `formats`; nil when the call carried none.
+    var formats: CatalogCitationFormats?
+}
+
+/// One `FakeStore.renderCitationPreview` call's arguments, for tests to assert on.
+struct RenderCitationPreviewCall: Equatable, Sendable {
+    var form: CitationForm
+    var format: String?
+    var fieldChoices: [String: String]
+    var sourceID: String?
+}
+
 /// In-memory `GenealogyStore` for SwiftUI previews and tests. Not used in the shipped app.
 /// Store methods run on the cooperative pool, so callers like the citation
 /// composer can have several in flight at once. Every method body that touches
@@ -353,9 +371,25 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The arguments of every `copySourceType` call, in order.
     private(set) var copySourceTypeCalls: [CopySourceTypeCall] = []
     /// What `citationFormats` answers, by type id; a type with no entry reads as no formats.
-    var citationFormatsByType: [String: CatalogCitationFormats] = [:]
+    var citationFormatsByType: [String: CatalogCitationFormatsReply] = [:]
     /// When set, `citationFormats` throws.
     var citationFormatsError: Error?
+    /// The arguments of every `updateSourceType` call, in order.
+    private(set) var updateSourceTypeCalls: [UpdateSourceTypeCall] = []
+    /// When set, an `updateSourceType` that carries formats answers this reply and
+    /// saves nothing (a refused write); otherwise it stores them in `citationFormatsByType`.
+    var updateSourceTypeFormatsReply: CatalogCitationFormatsReply?
+    /// What `renderCitationPreview` answers, by form; a form with no entry renders nothing.
+    var previewReplies: [CitationForm: CatalogCitationPreview] = [:]
+    /// The arguments of every `renderCitationPreview` call, in order.
+    private(set) var previewCalls: [RenderCitationPreviewCall] = []
+    /// When set, `renderCitationPreview` throws.
+    var previewError: Error?
+
+    /// Forgets the calls so far, so a test counts what its next step asks for.
+    func resetPreviewCalls() { withState { previewCalls = [] } }
+    /// What `citationPlaceholders` answers, by form.
+    var placeholdersByForm: [CitationForm: [CatalogCitationPlaceholder]] = [:]
     var lastResult = OnboardingResult(
         projectDir: "/tmp/robins-family.provenencia",
         userID: "00000000-0000-7000-8000-000000000001",
@@ -1265,12 +1299,32 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func citationFormats(projectDir _: String, typeID: String) async throws -> CatalogCitationFormats {
+    func citationFormats(projectDir _: String, typeID: String) async throws -> CatalogCitationFormatsReply {
         return try withState {
             if let citationFormatsError { throw citationFormatsError }
             return citationFormatsByType[typeID]
-                ?? CatalogCitationFormats(typeID: typeID, full: "", short: "", list: "")
+                ?? CatalogCitationFormatsReply(
+                    formats: CatalogCitationFormats(typeID: typeID, full: "", short: "", list: ""))
         }
+    }
+
+    func renderCitationPreview(
+        projectDir _: String,
+        form: CitationForm,
+        format: String?,
+        fieldChoices: [String: String],
+        sourceID: String?
+    ) async throws -> CatalogCitationPreview {
+        return try withState {
+            previewCalls.append(RenderCitationPreviewCall(
+                form: form, format: format, fieldChoices: fieldChoices, sourceID: sourceID))
+            if let previewError { throw previewError }
+            return previewReplies[form] ?? CatalogCitationPreview()
+        }
+    }
+
+    func citationPlaceholders(projectDir _: String, form: CitationForm) async throws -> [CatalogCitationPlaceholder] {
+        return withState { placeholdersByForm[form] ?? [] }
     }
 
     func updateSourceType(
@@ -1279,10 +1333,13 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         typeID: String,
         label: String,
         description: String,
-        iconKey: String
-    ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
+        iconKey: String,
+        formats: CatalogCitationFormats?
+    ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects) {
         await updateSourceTypeHold.wait()
         return try withState {
+            updateSourceTypeCalls.append(UpdateSourceTypeCall(
+                typeID: typeID, label: label, description: description, iconKey: iconKey, formats: formats))
             var list = sourceTypesByProject[projectDir] ?? []
             guard let idx = list.firstIndex(where: { $0.id == typeID }) else {
                 throw StoreBoom.boom
@@ -1290,12 +1347,21 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             guard list[idx].origin == CatalogOrigin.user || list[idx].origin == CatalogOrigin.provenencia else {
                 throw StoreBoom.boom
             }
+            if formats != nil, let refused = updateSourceTypeFormatsReply {
+                // A refused write saves nothing, the details included.
+                return (withSuggestedFieldCount(list[idx]), refused, .empty)
+            }
             list[idx].label = label
             list[idx].description = description
             let trimmed = iconKey.trimmingCharacters(in: .whitespacesAndNewlines)
             list[idx].iconKey = trimmed.isEmpty ? PVMarkKey.defaultTypeMark.rawValue : trimmed
             sourceTypesByProject[projectDir] = list
-            return (withSuggestedFieldCount(list[idx]), nextWriteEffects)
+            var reply: CatalogCitationFormatsReply?
+            if let formats {
+                reply = CatalogCitationFormatsReply(formats: formats)
+                citationFormatsByType[typeID] = reply
+            }
+            return (withSuggestedFieldCount(list[idx]), reply, nextWriteEffects)
         }
     }
 

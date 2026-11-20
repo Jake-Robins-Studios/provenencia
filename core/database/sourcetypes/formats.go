@@ -2,7 +2,6 @@ package sourcetypes
 
 import (
 	"database/sql"
-	"errors"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -270,8 +269,8 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 
 // ToStored turns formats written with keys into formats written with ids, the
 // one storage step for the editor's write and for seeding. Every choice is
-// checked first (an empty key, an id that is not a field with exactly that
-// key, or two choices for one key is ErrInvalid). A blank form becomes "". Every
+// checked first (an empty key, a field of another key, or two choices for one
+// key is ErrInvalid; a choice whose field is gone is ignored). A blank form becomes "". Every
 // other form is parsed; on the forms that parsed, each key resolves through a
 // choice, else through metadatafields.ResolveKeysTx with preferOrigin, and
 // each typed #id must name a field. With any diagnostic the returned Formats is
@@ -397,7 +396,9 @@ func sortByForm(diags []citationformat.FormDiagnostic) {
 	slices.SortStableFunc(diags, func(a, b citationformat.FormDiagnostic) int { return rank(a.Form) - rank(b.Form) })
 }
 
-// checkChoices returns the chosen field id of each key, or ErrInvalid.
+// checkChoices returns the chosen field id of each key. A choice with an empty
+// key, an id that is not 16 bytes, a key twice, or a field of another key is
+// ErrInvalid; a well-formed choice whose field no longer exists is dropped.
 func checkChoices(tx *sql.Tx, choices []FieldChoice) (map[string][]byte, error) {
 	chosen := map[string][]byte{}
 	var ids [][]byte
@@ -420,62 +421,62 @@ func checkChoices(tx *sql.Tx, choices []FieldChoice) (map[string][]byte, error) 
 		keyOf[string(f.ID)] = f.Key
 	}
 	for key, id := range chosen {
-		if got, ok := keyOf[string(id)]; !ok || got != key {
+		got, ok := keyOf[string(id)]
+		if !ok {
+			// A field deleted since the client read its list: the key resolves
+			// as with no choice.
+			delete(chosen, key)
+		} else if got != key {
 			return nil, ErrInvalid
 		}
 	}
 	return chosen, nil
 }
 
-// UpdateFormats replaces all three of a type's formats with in, whose fields
-// are named by key (or by typed #id), and returns the formats as read after the
-// call. With any diagnostic nothing is saved, the changes are nil and the view
+// UpdateWithFormats is Update with the three formats saved in the same write:
+// the type's label, description and icon as nextOf reads them, and formats,
+// whose fields are named by key (or by typed #id), as ToStored stores them. It
+// returns the type and the formats as read after the call. With any diagnostic
+// nothing is saved, the type is unchanged, the changes are nil and the view
 // holds what the type stores plus only this write's diagnostics. A write that
-// changes nothing returns nil changes. A missing type is ErrInvalid and a
-// plugin type ErrLocked. The caller records the returned changes.
-func UpdateFormats(tx *database.Tx, typeID []byte, in Formats, choices []FieldChoice) (FormatsView, []rowchange.Change, error) {
-	if tx == nil || len(typeID) != 16 {
-		return FormatsView{}, nil, ErrInvalid
+// changes nothing returns nil changes. A missing type is sql.ErrNoRows and a
+// plugin type ErrLocked. The one change names every column that differs. The
+// caller records the returned changes.
+func UpdateWithFormats(tx *database.Tx, id []byte, label, description, iconKey string, formats Formats, choices []FieldChoice) (Type, FormatsView, []rowchange.Change, error) {
+	if tx == nil {
+		return Type{}, FormatsView{}, nil, ErrInvalid
 	}
-	// Update reports a missing type as sql.ErrNoRows; a formats write names the
-	// type by id alone, so a missing one is a bad argument (D-13).
-	existing, err := editableTx(tx.Tx, typeID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return FormatsView{}, nil, ErrInvalid
-	} else if err != nil {
-		return FormatsView{}, nil, err
-	}
-	next, diags, err := ToStored(tx.Tx, in, choices, "")
+	existing, err := editableTx(tx.Tx, id)
 	if err != nil {
-		return FormatsView{}, nil, err
+		return Type{}, FormatsView{}, nil, err
+	}
+	stored, diags, err := ToStored(tx.Tx, formats, choices, "")
+	if err != nil {
+		return Type{}, FormatsView{}, nil, err
 	}
 	if len(diags) > 0 {
-		view, err := viewTx(tx.Tx, typeID)
+		view, err := viewTx(tx.Tx, id)
 		if err != nil {
-			return FormatsView{}, nil, err
+			return Type{}, FormatsView{}, nil, err
 		}
 		view.Diagnostics = diags
-		return view, nil, nil
+		return existing, view, nil, nil
 	}
-	fields, err := writeStoredTx(tx, typeID, next)
+	got, changes, err := updateTx(tx, existing, label, description, iconKey, &stored)
 	if err != nil {
-		return FormatsView{}, nil, err
+		return Type{}, FormatsView{}, nil, err
 	}
-	view, err := viewTx(tx.Tx, typeID)
+	view, err := viewTx(tx.Tx, id)
 	if err != nil {
-		return FormatsView{}, nil, err
+		return Type{}, FormatsView{}, nil, err
 	}
-	change := updateChange(existing, existing, fields)
-	if change == nil {
-		return view, nil, nil
-	}
-	return view, []rowchange.Change{*change}, nil
+	return got, view, changes, nil
 }
 
 // writeStoredTx stores next (fields by id) as a type's three formats and
 // returns the diff of each format column that changed; nothing differing
 // writes nothing. It is the one write and audit of the format columns, shared
-// by UpdateFormats and UpsertTx.
+// by applyTx.
 func writeStoredTx(tx *database.Tx, typeID []byte, next Formats) (map[string]rowchange.FieldDiff, error) {
 	stored, err := StoredFormatsTx(tx.Tx, [][]byte{typeID})
 	if err != nil {

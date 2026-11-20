@@ -4,23 +4,23 @@ census	full	list	Calder County, Westmark. 1880 Westmark census, population sched
 census	bare	full	1880 census, .
 census	bare	short	1880 census, .
 census	bare	list	. 1880 census.
-birth_certificate	full	full	Calder County Clerk, birth certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
-birth_certificate	full	short	Calder County Clerk, birth certificate no. 1880-0412, Ada Robins.
+birth_certificate	full	full	Calder County, Westmark, Calder County Clerk, birth certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+birth_certificate	full	short	Calder County, Westmark, Calder County Clerk, birth certificate no. 1880-0412, Ada Robins.
 birth_certificate	full	list	Calder County, Westmark. Calder County Clerk. Birth certificates. Calder County Archives, Port Ellis.
-birth_certificate	bare	full	birth certificate (14 June 1880).
-birth_certificate	bare	short	birth certificate.
+birth_certificate	bare	full	, birth certificate (14 June 1880).
+birth_certificate	bare	short	, birth certificate.
 birth_certificate	bare	list	. Birth certificates.
-marriage_certificate	full	full	Calder County Clerk, marriage certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
-marriage_certificate	full	short	Calder County Clerk, marriage certificate no. 1880-0412, Ada Robins.
+marriage_certificate	full	full	Calder County, Westmark, Calder County Clerk, marriage certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+marriage_certificate	full	short	Calder County, Westmark, Calder County Clerk, marriage certificate no. 1880-0412, Ada Robins.
 marriage_certificate	full	list	Calder County, Westmark. Calder County Clerk. Marriage certificates. Calder County Archives, Port Ellis.
-marriage_certificate	bare	full	marriage certificate (14 June 1880).
-marriage_certificate	bare	short	marriage certificate.
+marriage_certificate	bare	full	, marriage certificate (14 June 1880).
+marriage_certificate	bare	short	, marriage certificate.
 marriage_certificate	bare	list	. Marriage certificates.
-death_certificate	full	full	Calder County Clerk, death certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
-death_certificate	full	short	Calder County Clerk, death certificate no. 1880-0412, Ada Robins.
+death_certificate	full	full	Calder County, Westmark, Calder County Clerk, death certificate no. 1880-0412 (14 June 1880), Ada Robins, vol. 3, p. 14, entry 57; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); Calder County Archives, Port Ellis.
+death_certificate	full	short	Calder County, Westmark, Calder County Clerk, death certificate no. 1880-0412, Ada Robins.
 death_certificate	full	list	Calder County, Westmark. Calder County Clerk. Death certificates. Calder County Archives, Port Ellis.
-death_certificate	bare	full	death certificate (14 June 1880).
-death_certificate	bare	short	death certificate.
+death_certificate	bare	full	, death certificate (14 June 1880).
+death_certificate	bare	short	, death certificate.
 death_certificate	bare	list	. Death certificates.
 church_register	full	full	St. Brendan's Church, Port Ellis (Calder County, Westmark), *Baptisms and burials, 1850–1899*, vol. 3, p. 14, fol. 22, no. 57, Ada Robins; digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025); film 1022345, item 3; Calder County Archives, Port Ellis.
 church_register	full	short	St. Brendan's Church, Port Ellis, *Calder Register*, vol. 3, p. 14, no. 57.

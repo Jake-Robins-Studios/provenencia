@@ -924,7 +924,7 @@ Not seeded, from the horizon list: the date keys (`publication_date`, `issue_dat
 
 #### Suggestions
 
-One rule, so the suggestions and the formats cannot drift: **each type suggests every metadata field its full format uses, at the field's usual level, in the order the format uses them.** Two exceptions:
+One rule, so the suggestions and the formats cannot drift: **each type suggests every metadata field its full format uses, at the field's usual level, in the order the format uses them, then every field its list format, then its short format, needs outside any group that the full format does not use** (user, 2026-11-20, S15-17; a chain whose option the full format already suggests adds nothing; no seeded type needs the appended case today: the certificates' notes lead with `jurisdiction`, user, 2026-11-20, S15-17). Two exceptions:
 
 - `website` suggests `url` and `accessed_date` on the Source, since the website is the Source.
 - Record types (census, certificates, church register, record book, passenger list, case file, manuscript, government file) suggest the copy fields on the Artifact even where the format reads only some of them.
@@ -952,10 +952,10 @@ list:  {source.meta.jurisdiction}. {source.date:year} [{source.meta.creator} ]ce
 **Birth, marriage and death certificates** (each with its own word)
 
 ```text
-full:  [{source.meta.creator}, ]birth certificate[ no. {source.meta.document_number}][ ({source.date:full})][, {graph.meta.item|source.meta.item}]
+full:  {source.meta.jurisdiction}, [{source.meta.creator}, ]birth certificate[ no. {source.meta.document_number}][ ({source.date:full})][, {graph.meta.item|source.meta.item}]
        [, vol. {source.meta.volume}][, p. {citation.page}][, entry {graph.meta.entry_number|source.meta.entry_number}][; {artifact.meta.format}, *{artifact.meta.provider}*]
        [ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])][; {source.meta.repository}].
-short: [{source.meta.creator}, ]birth certificate[ no. {source.meta.document_number}][, {graph.meta.item|source.meta.item}].
+short: {source.meta.jurisdiction}, [{source.meta.creator}, ]birth certificate[ no. {source.meta.document_number}][, {graph.meta.item|source.meta.item}].
 list:  {source.meta.jurisdiction}.[ {source.meta.creator}.] Birth certificates.[ {source.meta.repository}.]
 ```
 

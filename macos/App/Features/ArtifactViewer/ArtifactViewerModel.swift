@@ -116,20 +116,13 @@ final class ArtifactViewerModel {
         Self.lineCount(in: userSelectionText)
     }
 
-    private var loadGeneration = 0
+    /// The newest load; a newer one, or `unload()`, drops an older one's result.
+    @ObservationIgnored private let loadCall = LatestCall()
 
     func unload() {
-        loadGeneration += 1
-        kind = .unsupported
-        content = nil
-        source = nil
-        emptyReason = .idle
+        loadCall.cancel()
+        clearLoaded()
         isLoading = false
-        page = 1
-        pageCount = 1
-        zoom = 1
-        resetFindSession()
-        clearUserSelection()
     }
 
     /// Test hook: install an in-memory image without going through ``load``. The
@@ -157,9 +150,8 @@ final class ArtifactViewerModel {
 
     /// Sole entry point for hosts (composer, future Source sheet, …).
     func load(_ source: ArtifactViewerSource) async {
-        loadGeneration += 1
-        let generation = loadGeneration
-        unloadPreservingGeneration()
+        loadCall.cancel()
+        clearLoaded()
         isLoading = true
 
         let kind = ArtifactViewerKind.classify(mediaType: source.mediaType)
@@ -183,26 +175,30 @@ final class ArtifactViewerModel {
         }
         self.source = source
 
-        let loaded: Result<ArtifactViewerContent, Error> = await Task.detached(priority: .userInitiated) {
-            switch kind {
-            case .image:
-                switch BoundedImageDecode.decode(url: url, limits: ImageDecodeLimits(typeIdentifiers: source.typeIdentifiers)) {
-                case .success(let decoded): return .success(.image(decoded))
-                case .failure(.tooLarge): return .failure(ArtifactViewerLoadError.tooLarge)
-                case .failure(.unreadable): return .failure(ArtifactViewerLoadError.decodeFailed)
-                }
-            case .pdf:
-                guard let document = PDFDocument(url: url) else {
+        await loadCall.run({
+            try await Task.detached(priority: .userInitiated) { () -> Result<ArtifactViewerContent, Error> in
+                switch kind {
+                case .image:
+                    switch BoundedImageDecode.decode(url: url, limits: ImageDecodeLimits(typeIdentifiers: source.typeIdentifiers)) {
+                    case .success(let decoded): return .success(.image(decoded))
+                    case .failure(.tooLarge): return .failure(ArtifactViewerLoadError.tooLarge)
+                    case .failure(.unreadable): return .failure(ArtifactViewerLoadError.decodeFailed)
+                    }
+                case .pdf:
+                    guard let document = PDFDocument(url: url) else {
+                        return .failure(ArtifactViewerLoadError.decodeFailed)
+                    }
+                    return .success(.pdf(document))
+                case .audio, .video, .unsupported:
                     return .failure(ArtifactViewerLoadError.decodeFailed)
                 }
-                return .success(.pdf(document))
-            case .audio, .video, .unsupported:
-                return .failure(ArtifactViewerLoadError.decodeFailed)
-            }
-        }.value
+            }.value.get()
+        }, apply: { [weak self] loaded in
+            self?.applyLoaded(loaded)
+        })
+    }
 
-        guard generation == loadGeneration else { return }
-
+    private func applyLoaded(_ loaded: Result<ArtifactViewerContent, Error>) {
         switch loaded {
         case .success(let content):
             self.content = content
@@ -318,7 +314,7 @@ final class ArtifactViewerModel {
         return false
     }
 
-    private func unloadPreservingGeneration() {
+    private func clearLoaded() {
         kind = .unsupported
         content = nil
         source = nil

@@ -24,6 +24,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab/sourcevocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
@@ -96,10 +97,7 @@ func (w *world) newType(label string, f sourcetypes.Formats) sourcetypes.Type {
 	if err != nil {
 		w.t.Fatal(err)
 	}
-	view, _, err := writes.Run(w.c, writes.Op{Action: "update_citation_formats", UserID: w.userID},
-		func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-			return sourcetypes.UpdateFormats(tx, typ.ID, f, nil)
-		})
+	view, err := sourcetypestest.SetFormats(w.c, w.userID, typ.ID, f)
 	if err != nil {
 		w.t.Fatal(err)
 	}

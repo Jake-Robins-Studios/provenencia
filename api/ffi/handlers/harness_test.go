@@ -308,6 +308,28 @@ func sourceFixture(t *testing.T) (projectDir, userID, typeID string) {
 	return res.ProjectDir, res.Identity.UserID.String(), seededTypeID(t, res.ProjectDir, "birth_certificate")
 }
 
+// setFormats saves a type's three citation formats through UpdateSourceType,
+// with the type's own label, description and icon, and returns the reply: the
+// one write path of a type's formats.
+func setFormats(t *testing.T, dir, userID, typeID string, formats *engine.CitationFormats) *engine.UpdateSourceTypeResponse {
+	t.Helper()
+	var types engine.ListSourceTypesResponse
+	mustRPC(t, ListSourceTypes, &engine.ListSourceTypesRequest{ProjectDir: dir}, &types)
+	for _, ty := range types.GetTypes() {
+		if ty.GetId() != typeID {
+			continue
+		}
+		var out engine.UpdateSourceTypeResponse
+		mustRPC(t, UpdateSourceType, &engine.UpdateSourceTypeRequest{
+			ProjectDir: dir, UserId: userID, TypeId: typeID,
+			Label: ty.GetLabel(), Description: ty.GetDescription(), IconKey: ty.GetIconKey(), Formats: formats,
+		}, &out)
+		return &out
+	}
+	t.Fatalf("no source type %q", typeID)
+	return nil
+}
+
 // seededTypeID is the id of the product-seeded Source type with the key.
 func seededTypeID(t *testing.T, projectDir, key string) string {
 	t.Helper()
@@ -446,6 +468,23 @@ func assertLatestAuditAction(t *testing.T, projectDir, wantAction string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// latestRevision is the catalog's newest revision.
+func latestRevision(t *testing.T, projectDir string) int64 {
+	t.Helper()
+	var rev int64
+	err := catalogsession.Do(projectDir, func(c *database.Catalog) error {
+		db, err := c.DB()
+		if err != nil {
+			return err
+		}
+		return db.QueryRow(`SELECT COALESCE(MAX(revision), 0) FROM audit_transactions`).Scan(&rev)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rev
 }
 
 // fieldIDsByKey maps each metadata field key to its id.

@@ -283,8 +283,9 @@ func TestLargeSourceBudgets(t *testing.T) {
 		warm := lf.warmProposal()
 		after := lf.proposalAfterCommit(&n)
 		databasetest.WithinBudget(t, "proposal after a handle commit", after, budgetAfterCommit)
-		// decided: bar 10 (deployment-plan.md), moved to S16-32 by the user on 2026-11-13
-		databasetest.WithinBudget(t, "proposal after a handle commit, against 1.5 times a warm one", after, warm*3/2)
+		// decided: bar 10 (deployment-plan.md), moved to S16-32 by the user on 2026-11-13;
+		// 1.5 → 1.75 for the Blacksmith CI runners (user, 2026-11-20)
+		databasetest.WithinBudget(t, "proposal after a handle commit, against 1.75 times a warm one", after, warm*7/4)
 	})
 
 	t.Run("at 16,000 persons", func(t *testing.T) {
@@ -296,7 +297,7 @@ func TestLargeSourceBudgets(t *testing.T) {
 		t.Logf("warm proposal at 16,000 persons %v (4,000: %v), after a handle commit %v", warm, warm4, after)
 		databasetest.WithinBudget(t, "warm proposal at 16,000 persons", warm, budgetWarm)
 		databasetest.WithinBudget(t, "warm proposal at 16,000 persons, against twice the one at 4,000", warm, 2*warm4)
-		databasetest.WithinBudget(t, "proposal after a handle commit at 16,000 persons, against 1.5 times a warm one", after, warm*3/2)
+		databasetest.WithinBudget(t, "proposal after a handle commit at 16,000 persons, against 1.75 times a warm one", after, warm*7/4)
 	})
 
 	t.Run("warm queries", func(t *testing.T) {

@@ -1,9 +1,9 @@
 # S15-17 — The format editor
 
-**Status:** Planned
+**Status:** Landed in [#924](https://github.com/Jake-Robins-Studios/provenencia/pull/924) (2026-11-20)
 **Spike / slice:** Spike 15 · Slice 5 — Person page date and the format editor
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D16](../design/S15-D16-source-type-citation-formats.md), board agreed 2026-11-20
+**Brief:** [S15-D16](../design/archive/S15-D16-source-type-citation-formats.md), board agreed 2026-11-20
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG), artboard *S15-D27 · S15-D6 · S15-D7 · S15-D16 · Source type page board*, the frames named "S15-D16" in its menu (D16-1a, D16-1b, D16-2, D16-2b, D16-2c, D16-3 – D16-7, D16-7b, D16-8, D16-9, D16-10, D16-10b, D16-11 – D16-13, D16-14a, D16-14b, D16-15) and its decision notes (CF-3, CF-4, CF-7 · CF-9, Copy added, CF-11, Handoff), drawn by *Source type page · component* (`Source-Type-Page.dc.html`); the implementer opens the link. The board's "small stand-in for the engine" is drawing only: the PR uses Go's parser, messages and render. **Not binding from the board:** its CF-3 note's ranking ("the type's own suggested fields rank first"; after `|`, "the same field at the other levels first") and the row order frames D16-2 and D16-2b show; rows follow D-21 (the typed query only; user, 2026-11-20)
 **Depends on:** S15-12 (landed [#856](https://github.com/Jake-Robins-Studios/provenencia/pull/856)), S15-15 (landed [#871](https://github.com/Jake-Robins-Studios/provenencia/pull/871)), S15-16 (landed [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914)), S15-18 (landed [#877](https://github.com/Jake-Robins-Studios/provenencia/pull/877)), S15-48 (landed [#848](https://github.com/Jake-Robins-Studios/provenencia/pull/848)), S15-D16
 **Blocks:** —
@@ -46,7 +46,7 @@ A researcher edits a Source type's three citation formats (full note, short note
 | AC-1.2 | Append ` Test.` to the full note | Save changes and Revert enable; Revert puts the stored text back and disables them |
 | AC-1.3 | Append ` Test.` to the full note, Save | One `UpdateSourceType` carrying the three forms; toast "Citation formats saved"; reopening the page shows the new text |
 | AC-1.4 | Change Label to "Census (US)" and the short note, Save | One `UpdateSourceType` carrying both; one revision; toast "Source type updated" / "Census (US) and its citation formats are saved." |
-| AC-1.5 | Delete the `]` of `[, p. {citation.page}]` in the short note and change Label, Save | Nothing saves (no revision; Label is not saved either); the short note shows "Unclosed group at “[, p. {citation.page}”"; the Callout "Fix the marked formats, then save." shows beside Save; every edit stays |
+| AC-1.5 | Delete the `]` of `[, p. {citation.page}]` in the short note and change Label, Save | Nothing saves (no revision; Label is not saved either); the short note shows "Unclosed group at “[”"; the Callout "Fix the marked formats, then save." shows beside Save; every edit stays |
 | AC-1.6 | Change only Label, Save | `UpdateSourceType` without formats; today's toast; the formats are untouched |
 | AC-1.7 | Unsaved full note, then Back | Today's discard confirm; Discard leaves and drops it; Keep editing stays |
 | AC-1.8 | A full note of 4,012 characters (`unicodeScalars.count`) | Its count reads "4,012 / 4,000" in the danger tone; the warning reads "Too long: 4,012 characters, 12 over" |
@@ -336,7 +336,7 @@ Do: D-16 and § 6 Strings.
 Check: T-14 passes; `rg -n 'Text\("' macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` finds nothing.
 
 **STEP-10 — Gate and docs**
-Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`); `docs/citation-formats.md` (§ Storage: formats save with `UpdateSourceType`, one write with the details; § Rendering "The preview": D-2, D-3; `ListCitationPlaceholders` in place of `ListCitationBuiltins`); `../deployment-plan.md` (map row status); `../completed.md`; `../design/S15-D16-source-type-citation-formats.md` → `../design/archive/`, `../design/README.md`; this plan.
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj` (`MARKETING_VERSION`); `docs/citation-formats.md` (§ Storage: formats save with `UpdateSourceType`, one write with the details; § Rendering "The preview": D-2, D-3; `ListCitationPlaceholders` in place of `ListCitationBuiltins`); `../deployment-plan.md` (map row status); `../completed.md`; `../design/archive/S15-D16-source-type-citation-formats.md` → `../design/archive/`, `../design/README.md`; this plan.
 Do: `scripts/check-pr.sh`; then the Definition of done.
 Check: `check-pr: PASS`; links resolve.
 
@@ -426,3 +426,21 @@ None. (The board was agreed 2026-11-20; § 6 macOS and Strings carry its decisio
 
 **Title:** S15-17 — The format editor
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-17-format-editor.md`.
+
+## Landed
+
+Where the code differs from the plan:
+
+- **The board was not opened.** The implementer had no access to the Claude Design artifact, so the copy is the brief's § 2.1 and this plan's Strings, and the layout follows the plan's macOS table; the board is to be checked against the built page by hand (§ 10).
+- **`PVPopupList`** is the combo box's popup window moved out of `PVComboBox.swift` with two added fields: `width` (nil keeps the anchor's width) and `anchorRect` (a screen rect read each time the popup is framed; nil keeps the anchor view's frame). `PVComboBox` passes neither. The list inside the window is one kit view both callers draw (`PVPopupListCard` scroller and card, `PVPopupListRow` shell with the pointer highlight, `PVPopupListLine` empty or searching line); the combo box stacks its rows in a `VStack` (measured before it shows), the completion in a `LazyVStack` of fixed 40pt rows, 360pt wide, at most 8 rows, whose sizes are `PVTextAreaCompletionList`'s constants.
+- **`PVTextAreaCompletion.emptyLabel`** is a closure over the typed query (its line names the query), `didAccept` runs after a row's text is in (the model records the field choice then), and `announce` takes a `PVTextAreaCompletion.Announcement` (opened, highlighted, inserted) and returns the text to speak. The area's open state lives in `PVTextAreaCompletionSession`, which the tab router feeds with edits, selection changes and key commands.
+- **The completion row's level** is a `PVBadge`, not a `PVChip` (the kit's chip is a toggle). A warning line's message and quote are one string (`warningAt`), so the quote is not set in mono.
+- **`SourceTypeFormatsModel`** also has `isRendering(_ form:)` (a spinner per form) and `placeholder(_:id:)` (the row behind a completion option); `choose(fieldID:forKey:in:)` takes the form to render. The model loads from the section's own `.task`, and the section re-renders when the type becomes known.
+- **`FakeStore`** gains `resetPreviewCalls()`, so a test counts only the calls it makes.
+- **Copy** beyond the plan's list: `sourceTypes.formats.loading`, `.loadErrorTitle`, `.preview.noMatch`, `.sectionHintLocked`, `.completion.openedEmpty` and `.readerLabel`; the model's `L10n.CitationFormats.diagnostic(_:key:characters:)` takes the format's length for `too_long`, and `citationFormats.diagnostic.too_long_stored` ("Too many fields for one format") reads a `too_long` within the character limit. The shared-key Select's origin words are `L10n.Origin.words(for:)`, which the origin pill and the property inspector also call.
+- **`Update`** now checks the type before the label: an empty label on a plugin or missing type is `ErrLocked` or `sql.ErrNoRows` before `ErrInvalid` (D-4's order, `editableTx` then `nextOf`).
+- **Tests** are named in the PR; `TestPlaceholders` checks the seeded project's own fields, not a project with exactly 3.
+- **User decisions after review round 1 (2026-11-20).** `PVSubsectionHeader` has no trailing `accessory` slot (nothing used it; this supersedes that part of D-20), and gained `metaLabel` and `metaIdentifier` for how its count is spoken and found. D-11 is amended: while the draft differs from the text a form's warnings were found in, the last warnings stay on screen dimmed and inert (their spans are never selected) until the next reply replaces them (`areDiagnosticsStale`); the text area's danger border is not dimmed with them. AC-1.5's example reads `Unclosed group at “[”`, the engine's span for that code; a `too_long` warning quotes nothing. D-7 stands.
+- **User addition (2026-11-20):** the certificate types suggest Jurisdiction. Their list format reads `{source.meta.jurisdiction}` outside any group, but the seed did not suggest it (a gap from S15-19). This amends S15-19 D-4 and map § 6.8 "Suggestions": a type also suggests what its list, then short, format needs outside any group that the full format does not use, appended. `TestSeedSuggestionsFollowFormats` derives that rule (exact equality); `TestSeededFormatsNeedOnlySuggestedFields` checks every seeded type. Only the three certificate types changed.
+- **User addition 2 (2026-11-20):** the certificate notes lead with Jurisdiction. `certificateFormats` (shared by the birth, marriage and death certificates) now opens its full and short formats with `{source.meta.jurisdiction}, ` ahead of the optional Creator; the list format is unchanged. Jurisdiction is a needed field, so the three types' Source suggestions are `jurisdiction`, `creator`, `document_number`, `volume`, `repository` (the full-format order; no appended field remains), and a certificate Source without it renders `, birth certificate`. `metadataSuggestionFixture` now dismisses the `creator` suggestion (the first suggestion is a needed field and cannot be dismissed).
+- **§ 10 manual check:** not run.
