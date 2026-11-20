@@ -52,4 +52,4 @@ Head `c66c8878b`. Gate PASS (orchestrator run). F-1 to F-4 done; orchestrator re
 Not run: round 1 had no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: SEC-1, PRF-1 · to user: —
+Gate PASS · CI green · open: none · follow-ups: SEC-1, PRF-1 · to user: —
