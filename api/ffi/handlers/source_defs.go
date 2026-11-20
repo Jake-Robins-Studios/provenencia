@@ -192,13 +192,9 @@ func UpdateCitationFormats(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	choices := make([]sourcetypes.FieldChoice, 0, len(req.GetFieldChoices()))
-	for _, ch := range req.GetFieldChoices() {
-		fieldID, err := parseID(ch.GetFieldId())
-		if err != nil {
-			return nil, sourcetypes.ErrInvalid
-		}
-		choices = append(choices, sourcetypes.FieldChoice{Key: ch.GetKey(), FieldID: fieldID})
+	choices, err := fieldChoicesFromProto(req.GetFieldChoices())
+	if err != nil {
+		return nil, err
 	}
 	formats := sourcetypes.Formats{Full: req.GetFull(), Short: req.GetShort(), List: req.GetList()}
 	var out *engine.UpdateCitationFormatsResponse
@@ -221,6 +217,20 @@ func UpdateCitationFormats(in []byte) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(out)
+}
+
+// fieldChoicesFromProto reads the field each shared key means; an id that is
+// not a UUIDv7 is sourcetypes.ErrInvalid.
+func fieldChoicesFromProto(in []*engine.CitationFieldChoice) ([]sourcetypes.FieldChoice, error) {
+	choices := make([]sourcetypes.FieldChoice, 0, len(in))
+	for _, ch := range in {
+		fieldID, err := parseID(ch.GetFieldId())
+		if err != nil {
+			return nil, sourcetypes.ErrInvalid
+		}
+		choices = append(choices, sourcetypes.FieldChoice{Key: ch.GetKey(), FieldID: fieldID})
+	}
+	return choices, nil
 }
 
 // citationFormatsProto is a type's formats view on the wire: the three texts

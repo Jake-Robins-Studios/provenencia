@@ -135,6 +135,9 @@ enum Method {
   METHOD_UPDATE_CITATION_FORMATS = 121;
   METHOD_COPY_SOURCE_TYPE = 122;
   METHOD_GET_DRAFT_METADATA_BOARD = 123;
+  METHOD_RENDER_CITATIONS = 124;
+  METHOD_RENDER_CITATION_PREVIEW = 125;
+  METHOD_LIST_CITATION_BUILTINS = 126;
 }
 
 message PingRequest {
@@ -2832,6 +2835,81 @@ message DeleteImpactListed {
   string ref = 2;
   string title = 3;
   WorkspaceLocation location = 4;
+}
+
+// One stretch of a rendered citation in one style.
+message CitationRun {
+  string text = 1;
+  bool italic = 2;
+}
+
+// A format filled in: its runs (adjacent runs differ in style, none empty) and
+// their text. Empty when there is no format.
+message CitationRender {
+  repeated CitationRun runs = 1;
+  string plain = 2;
+}
+
+// Renders each Citation's full and short note. Ids not in the catalog are left
+// out; a repeated id comes back once, in first place. At most 2,000 ids.
+message RenderCitationsRequest {
+  string project_dir = 1;
+  repeated string citation_ids = 2;
+}
+
+message RenderedCitation {
+  string citation_id = 1;
+  CitationRender full = 2;  // empty: the type has no full format; show today's line
+  CitationRender short = 3;
+  // Equal keys are one citation: same rendered full note. Opaque.
+  string group_key = 4;
+}
+
+message RenderCitationsResponse {
+  repeated RenderedCitation citations = 1;
+  PageInputs inputs = 2; // the Evidence graphs and Sources the render read
+}
+
+// Renders one form against one target. A Source target takes the list form
+// only. format, when present, is unsaved text with fields by key.
+message RenderCitationPreviewRequest {
+  string project_dir = 1;
+  string form = 2; // "full", "short" or "list"
+  optional string format = 3;
+  repeated CitationFieldChoice field_choices = 4;
+  oneof target {
+    string citation_id = 5;
+    string source_id = 6;
+  }
+}
+
+// A needed chain no option answers: its options in chain order.
+message CitationMissing {
+  repeated CitationRequirementOption options = 1;
+}
+
+message RenderCitationPreviewResponse {
+  CitationRender render = 1;
+  repeated CitationMissing missing = 2;
+  // Only for an unsaved format; with any, render and missing are empty.
+  repeated CitationFormatDiagnostic diagnostics = 3;
+}
+
+message ListCitationBuiltinsRequest {}
+
+// One built-in placeholder, from citationformat's table.
+message CitationBuiltin {
+  string level = 1;
+  string name = 2;               // bare: "date"
+  bool date = 3;                 // a DateValue, written in citation terms
+  repeated string options = 4;   // "year", "full"
+  bool always_set = 5;
+  bool in_list_form = 6;
+  string unknown_text = 7;       // what it prints when marked unknown; "" for none
+}
+
+message ListCitationBuiltinsResponse {
+  repeated CitationBuiltin builtins = 1;
 }
 
 message GetNameFormatRequest {
