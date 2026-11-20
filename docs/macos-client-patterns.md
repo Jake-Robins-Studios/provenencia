@@ -157,6 +157,7 @@ SwiftUI `View`s are **structs** (copied values), not long-lived class components
 - Put logic in a **model** (`struct` or `@Observable` class), not in `body`.
 - `body` should be a pure description of UI from current state, like a React function component without side effects.
 - Side effects (create project, I/O) belong in actions the model calls, or in `.task` / button handlers that call the store — not in `body` itself.
+- A call whose newer run supersedes an older one (a search, a count, a preview, a load) holds a `LatestCall` (`Platform/LatestCall.swift`); no hand-rolled generation counters.
 
 That is the same split as “don’t put fetch and SQL in the JSX.”
 
