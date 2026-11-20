@@ -123,17 +123,17 @@ func Lookup(c *database.Catalog, key, origin string) (Grade, error) {
 	if err != nil {
 		return Grade{}, err
 	}
-	key = strings.TrimSpace(key)
-	origin = strings.TrimSpace(origin)
-	if key == "" || origin == "" {
-		return Grade{}, ErrInvalid
-	}
 	return lookupTx(db, key, origin)
 }
 
 // lookupTx is Lookup on any reader: the one scan of a (key, origin) grade.
 func lookupTx(q database.Querier, key, origin string) (Grade, error) {
-	return scanGrade(q.QueryRow(sqlLookup, strings.TrimSpace(key), strings.TrimSpace(origin)))
+	key = strings.TrimSpace(key)
+	origin = strings.TrimSpace(origin)
+	if key == "" || origin == "" {
+		return Grade{}, ErrInvalid
+	}
+	return scanGrade(q.QueryRow(sqlLookup, key, origin))
 }
 
 // GetByID returns a grade by id, or sql.ErrNoRows.

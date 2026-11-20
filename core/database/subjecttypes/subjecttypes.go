@@ -182,22 +182,17 @@ func Lookup(c *database.Catalog, key, origin string) (Type, error) {
 	if err != nil {
 		return Type{}, err
 	}
-	key = strings.TrimSpace(key)
-	origin = strings.TrimSpace(origin)
-	if key == "" || origin == "" {
-		return Type{}, ErrInvalid
-	}
-	return scanType(db.QueryRow(sqlLookup, key, origin))
+	return LookupTx(db, key, origin)
 }
 
 // LookupTx returns the type for (key, origin) on an open transaction.
-func LookupTx(tx *sql.Tx, key, origin string) (Type, error) {
+func LookupTx(q database.Querier, key, origin string) (Type, error) {
 	key = strings.TrimSpace(key)
 	origin = strings.TrimSpace(origin)
 	if key == "" || origin == "" {
 		return Type{}, ErrInvalid
 	}
-	return scanType(tx.QueryRow(sqlLookup, key, origin))
+	return scanType(q.QueryRow(sqlLookup, key, origin))
 }
 
 // GetByID returns a type by id, or sql.ErrNoRows.

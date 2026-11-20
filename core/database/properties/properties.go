@@ -300,22 +300,17 @@ func Lookup(c *database.Catalog, key, origin string) (Property, error) {
 	if err != nil {
 		return Property{}, err
 	}
-	key = strings.TrimSpace(key)
-	origin = strings.TrimSpace(origin)
-	if key == "" || origin == "" {
-		return Property{}, ErrInvalid
-	}
-	return scanProperty(db.QueryRow(sqlLookup, key, origin))
+	return LookupTx(db, key, origin)
 }
 
 // LookupTx returns the Property for (key, origin) on an open transaction.
-func LookupTx(tx *sql.Tx, key, origin string) (Property, error) {
+func LookupTx(q database.Querier, key, origin string) (Property, error) {
 	key = strings.TrimSpace(key)
 	origin = strings.TrimSpace(origin)
 	if key == "" || origin == "" {
 		return Property{}, ErrInvalid
 	}
-	return scanProperty(tx.QueryRow(sqlLookup, key, origin))
+	return scanProperty(q.QueryRow(sqlLookup, key, origin))
 }
 
 // List returns all properties rows, each with its UsedBy total, read in one
