@@ -57,3 +57,11 @@ enum CitationBuiltin: String, CaseIterable, Sendable {
     case citationImage = "citation.image"
     case citationLabel = "citation.label"
 }
+
+/// How long a format the editor accepts, as the researcher counts it: Unicode
+/// scalars, which `String.unicodeScalars.count` gives and Go counts as code
+/// points. Mirrors `citationformat.MaxFormatChars`; `TestSwiftVocabularyMatchesGo`
+/// fails if the two drift.
+enum CitationFormatLimit {
+    static let maxCharacters = 4000
+}

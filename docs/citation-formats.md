@@ -25,7 +25,7 @@ The list form describes the Source as a whole, so it reads Source values only: a
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
 
-Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,096 bytes and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
+Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
 
 ## Built-in placeholders
 
@@ -87,7 +87,7 @@ Deleting a field is refused while any format names its id; the delete notice lis
 | Code | When | Span |
 | --- | --- | --- |
 | `unknown_form` | The form is not one of the three | Zero width at 0 |
-| `too_long` | More than 4,096 bytes | The whole text |
+| `too_long` | More than 4,000 characters, or more than 8,192 bytes once its fields are stored by id | The whole text |
 | `too_deep` | More than 8 open groups and italic spans | The opening `[` or `*` |
 | `unclosed_placeholder` | A `{` with no `}` before the next `{` or the end | That `{` |
 | `stray_close_brace` | A `}` outside a placeholder | That `}` |

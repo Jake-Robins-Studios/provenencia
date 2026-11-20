@@ -568,6 +568,11 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 			want: sorted(strs(citationformat.DiagnosticCodes())...),
 		},
 		{
+			name: "citation format character limit", path: swiftCitationVocabulary, enum: "CitationFormatLimit",
+			re:   regexp.MustCompile(`static let maxCharacters = (\d+)`),
+			want: []string{strconv.Itoa(citationformat.MaxFormatChars)},
+		},
+		{
 			name: "citation built-ins", path: swiftCitationVocabulary, enum: "CitationBuiltin", re: listCase,
 			want: citationBuiltinNames(),
 		},

@@ -2,6 +2,7 @@ package citationrender
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
@@ -131,6 +132,19 @@ func TestRenderPreview(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("an unsaved format under 4,000 characters previews though its stored text passes 4,096 bytes", func(t *testing.T) {
+		w.userField("a")
+		w.set(vocabkey.LevelSource, w.src.ID, "a", "x", valuemark.Mark{})
+		format := strings.Repeat("{source.meta.a}", 100) // 1,500 characters, 5,100 bytes stored
+		got, err := RenderPreview(w.c, PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation}, Format: &format})
+		if err != nil || len(got.Diagnostics) != 0 {
+			t.Fatalf("got %+v, %v", got, err)
+		}
+		if want := strings.Repeat("x", 100); got.Rendered.Plain() != want {
+			t.Fatalf("render = %q, want %q", got.Rendered.Plain(), want)
+		}
+	})
 
 	t.Run("a missing option's field carries its label", func(t *testing.T) {
 		got, err := RenderPreview(w.c, PreviewInput{Form: citationformat.FormList, Target: Target{SourceID: bare.ID}})

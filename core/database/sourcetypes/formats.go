@@ -5,6 +5,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -275,8 +276,20 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 // choice, else through metadatafields.ResolveKeysTx with preferOrigin, and
 // each typed #id must name a field. With any diagnostic the returned Formats is
 // empty and the diagnostics come in form order, each form's sorted by position;
-// only forms that parsed get resolution diagnostics.
+// only forms that parsed get resolution diagnostics. A form typed with more
+// than citationformat.MaxFormatChars characters is too_long over its whole
+// text, and so is one whose stored text passes citationformat.MaxFormatBytes
+// (ids are longer than keys); the first is checked before anything else.
 func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string) (Formats, []citationformat.FormDiagnostic, error) {
+	var long []citationformat.FormDiagnostic
+	for _, form := range citationformat.Forms() {
+		if text := in.Text(form); utf8.RuneCountInString(text) > citationformat.MaxFormatChars {
+			long = append(long, tooLong(form, text))
+		}
+	}
+	if len(long) > 0 {
+		return Formats{}, long, nil
+	}
 	chosen, err := checkChoices(tx, choices)
 	if err != nil {
 		return Formats{}, nil, err
@@ -361,9 +374,21 @@ func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string
 		if err != nil {
 			return Formats{}, nil, err
 		}
+		if len(text) > citationformat.MaxFormatBytes {
+			diags = append(diags, tooLong(form, in.Text(form)))
+		}
 		out = out.With(form, text)
 	}
+	if len(diags) > 0 {
+		return Formats{}, diags, nil
+	}
 	return out, nil, nil
+}
+
+// tooLong is the too_long diagnostic over a form's whole typed text.
+func tooLong(form citationformat.Form, typed string) citationformat.FormDiagnostic {
+	return citationformat.FormDiagnostic{Form: form,
+		Diagnostic: citationformat.Diagnostic{Code: citationformat.CodeTooLong, Span: citationformat.Span{Start: 0, End: len(typed)}}}
 }
 
 // sortByForm orders diagnostics full, short, list, keeping each form's order.

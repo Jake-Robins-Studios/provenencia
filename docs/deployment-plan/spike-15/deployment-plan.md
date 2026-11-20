@@ -604,7 +604,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-17 — The format editor
 
-**Ships.** The Source type page edits its three formats with Insert field (the built-ins table and the fields, grouped by level, inserting the prefixed form), a live preview against a Source of that type the researcher picks, and the engine's diagnostics shown at their position. Swift does not parse formats.
+**Ships.** The Source type page edits its three formats with Insert field (the built-ins table and the fields, grouped by level, inserting the prefixed form), a live preview against a Source of that type the researcher picks, and the engine's diagnostics shown at their position. It shows how many of the 4,000 characters a format may hold are used, counting Unicode scalars (`unicodeScalars.count`, matching Go's code points) against `CitationFormatLimit.maxCharacters`. Swift does not parse formats.
 **Not this PR.** Copy (S15-18).
 **Check.** Bar 5: editing the census full format updates the preview.
 **Cache signal.** The Swift store method for `UpdateCitationFormats` and `CatalogMutation.changedCitationFormats(typeId)`, applied after a format save, with its `.sourceWorkspace` invalidation and its `docs/catalog-caches.md` row (moved from S15-38, 2026-11-19) (rule "Requirements need a refresh signal"; moved from S15-15, user 2026-11-17). The store method for `GetCitationFormats` (`citationFormats(projectDir:typeID:)`) is S15-18's, whose Copy sheet reads it once; S15-17 reuses it and decides whether the page caches it.
