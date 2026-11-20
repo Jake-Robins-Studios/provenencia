@@ -668,8 +668,6 @@ func getTx(tx *sql.Tx, id []byte) (Source, error) {
 	return getOne(tx, sqlGet, id)
 }
 
-// getOne reads one Source by the query's key and fills its date. A missing
-// Source is ErrNotFound, mapped here once for every reader.
 // GetManyTx returns the Sources with the given ids with their settled dates,
 // keyed by string(id). A repeated id counts once and an id with no Source is
 // absent; no ids returns an empty map and runs no query.
@@ -700,6 +698,8 @@ func GetManyTx(tx *sql.Tx, ids [][]byte) (map[string]Source, error) {
 	return out, nil
 }
 
+// getOne reads one Source by the query's key and fills its date. A missing
+// Source is ErrNotFound, mapped here once for every reader.
 func getOne(q database.Querier, query string, key any) (Source, error) {
 	s, err := scanSource(q.QueryRow(query, key))
 	if errors.Is(err, sql.ErrNoRows) {
