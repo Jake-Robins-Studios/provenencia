@@ -1,6 +1,6 @@
 # S16-62 — The subject and grade seeds write through `writes.Run`
 
-**Status:** Planned
+**Status:** Landed in [#912](https://github.com/Jake-Robins-Studios/provenencia/pull/912) (2026-11-19)
 **Spike / slice:** Spike 16 · Slice 6c — Shared list helpers
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of the create-time seed's write path; no view draws anything different)
@@ -319,3 +319,11 @@ None.
 
 **Title:** S16-62 — The subject and grade seeds write through `writes.Run`
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-62-subject-and-grade-seeds-through-writes-run.md`.
+
+---
+
+## Landed
+
+- `main` had moved from the Planned commit to `ef66e2168`; no **Current state** row changed.
+- T-5 and T-6 are separate test functions, `TestEnsureBindingTx` and `TestInstallRecordsOneRevision`, with `TestInstallFailureLeavesNothing` for the AC-2.4 half of T-6, rather than a case in `TestBindingChanges`. T-7 is `TestCreateUpdateDeleteChanges` in `properties` and `TestChangeKeys` in `propertyterms`, new functions rather than extensions of the existing cases.
+- No revision-counting test needed the D-11 delta: every existing count passed unchanged.
