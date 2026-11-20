@@ -561,7 +561,7 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 		},
 		{
 			name: "citation options", path: swiftCitationVocabulary, enum: "CitationOption", re: rawCase,
-			want: sorted(string(citationformat.OptionYear), string(citationformat.OptionFull)),
+			want: sorted(strs(citationformat.Options())...),
 		},
 		{
 			name: "citation diagnostic codes", path: swiftCitationVocabulary, enum: "CitationDiagnosticCode", re: listCase,

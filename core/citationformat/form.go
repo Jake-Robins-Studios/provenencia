@@ -41,3 +41,6 @@ const (
 	OptionYear Option = "year"
 	OptionFull Option = "full"
 )
+
+// Options returns every option, a new slice in order on each call.
+func Options() []Option { return []Option{OptionYear, OptionFull} }
