@@ -151,3 +151,12 @@ Nits (logged): `UX-15 · PVSubsectionHeader.swift:50 · empty accessibilityIdent
 
 ## Result
 Gate PASS (`01829cd31`, `origin/main` unchanged at `24bd80e70`) · CI green · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
+
+## User addition — seed (2026-11-20)
+The user asked, after the report, for the seed fix on this PR: the three certificate types' source-list format needs `{source.meta.jurisdiction}` (outside any group, `certificateFormats` in `core/database/sourcevocab/registry.go:41`), but their Source suggestions (`registry_suggestions.go:13,16,19`) do not list `jurisdiction`, so the type page never offers it and a Source without it renders `. Birth certificates.`. Gap from S15-19, on `main`. The user updates their dogfood project by hand (no migration).
+
+**F-16 — Every field a seeded format needs is suggested at its level**
+Files: `core/database/sourcevocab/registry_suggestions.go`, `core/database/sourcevocab/registry_test.go`. Skill: `add-seeded-vocabulary`.
+Failing test first: `TestSeededFormatsNeedOnlySuggestedFields` (table over every seeded type) — parse the type's three formats, take `citationformat.Requirements` (needed only, not used), and for each needed meta-field requirement expect at least one of its options (`level`, `key`) to be in that type's suggestions at that level. Fails today on `birth_certificate`, `marriage_certificate`, `death_certificate` (Source · `jurisdiction`).
+Do: add `"jurisdiction"` to the three certificate types' `LevelSource` suggestions (after `creator`, as `church_register` orders it). If the test finds other seeded types with the same gap, add the field the format reads to that type's suggestions at that level, the same way, and list each in the report. Built-ins (`source.title`, `source.date`, `citation.page`, …) are not suggestions; skip them. Do not change any format text. Update any golden or test that counts suggestions.
+Check: the test passes; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes; scripts/check-pr.sh PASS. Add a line to the plan's Landed note ("user addition: the certificate types suggest Jurisdiction").
