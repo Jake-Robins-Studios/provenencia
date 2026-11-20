@@ -439,3 +439,18 @@ None.
 
 **Title:** S15-16 — Citations render through their type's formats
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-16-citations-render.md`.
+
+## Landed
+
+Where the code differs from the plan:
+
+- **T-9's chain** is `{graph.meta.piece|source.meta.volume}`, not `{graph.meta.item|source.meta.item}`: the test world's graph holds `item` (AC-1.1), so the chain is empty on both levels only with fields the world leaves unset.
+- **D-3's `sourcetypes.List`** scans into a local `suggested` and assigns `t.SuggestedFields` after `scanType`, because `scanType` takes the extra destination as a trailing column.
+- **Unplanned helper `labelTypes`** (`citationrender/load.go`) sets each subject's type label from one `sourcetypes.GetManyTx` read, shared by the batch and preview loads.
+- **Unplanned test `TestRenderCensus`** (`citationrender/render_test.go`) renders AC-1.1's census Source and Citation and checks the runs.
+- **§10 manual check:** none; the two commands there are tests.
+- **`database.Columns`** (fix round 1) is the one alias-aware column list helper. `citations.columns`, `sourcetypes.columns` and `metadatafields.Columns` are each one call on it, which supersedes D-3's "shaped like `metadatafields.Columns`" per-package copies.
+- **`sourcemetadata.OwnerRows`** (`GroupByOwner`, `Of`) groups stored rows by owner for both the boards and `fillValues`; `fillValues` no longer has its own `ownerKey` grouping.
+- **Built-in targets** are exported from `citationformat` (`SourceTitle`, `SourceType`, `SourceDate`, `ArtifactLabel`, `GraphName`, `CitationPage`, `CitationImage`, `CitationLabel`), held to `Builtins()` by `TestBuiltinTargets`; `dateHead`, `pageHead` and `builtin()` are gone.
+- **`citationformat.Options()`** lists the options beside `Forms()`; the Swift parity row for citation options reads it.
+- **`fieldIDsByKey`** (`api/ffi/handlers/harness_test.go`) is the one field key-to-id test helper; `newRenderWorld` looks the ids up once.
