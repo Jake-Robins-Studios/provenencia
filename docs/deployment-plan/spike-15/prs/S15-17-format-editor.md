@@ -441,4 +441,3 @@ Where the code differs from the plan:
 - **`Update`** now checks the type before the label: an empty label on a plugin or missing type is `ErrLocked` or `sql.ErrNoRows` before `ErrInvalid` (D-4's order, `editableTx` then `nextOf`).
 - **Tests** are named in the PR; `TestPlaceholders` checks the seeded project's own fields, not a project with exactly 3.
 - **§ 10 manual check:** not run.
-
