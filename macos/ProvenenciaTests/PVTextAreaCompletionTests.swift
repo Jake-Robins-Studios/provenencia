@@ -62,6 +62,38 @@ struct PVTextAreaCompletionTests {
         #expect(textView.selectedRange() == NSRange(location: 3, length: 0))
     }
 
+    /// The binding of a `PVTextArea` in a window follows an edit the cursor makes from outside; the
+    /// citation format editor's draft relies on it (S15-17 Stop condition).
+    @Test(.hostedWindows) func aHostedAreasBindingFollowsACursorReplace() async throws {
+        let stored = Box("abc")
+        let cursor = PVTextAreaCursor()
+        let (_, host) = hostInBorderlessWindow(
+            PVTextArea(
+                text: Binding(get: { stored.value }, set: { stored.value = $0 }),
+                cursor: cursor
+            ),
+            windowSize: CGSize(width: 320, height: 160)
+        )
+        host.layoutSubtreeIfNeeded()
+
+        var waited = 0
+        while cursor.textView == nil, waited < 300 {
+            try await Task.sleep(for: .milliseconds(10))
+            waited += 1
+        }
+        let textView = try #require(cursor.textView)
+        #expect(textView.string == "abc")
+
+        cursor.replace(NSRange(location: 1, length: 1), with: "XY", caretAfter: 3)
+        waited = 0
+        while stored.value != "aXYc", waited < 300 {
+            try await Task.sleep(for: .milliseconds(10))
+            waited += 1
+        }
+        #expect(textView.string == "aXYc")
+        #expect(stored.value == "aXYc")
+    }
+
     @Test func cursorSelectSelectsTheRange() {
         let (textView, _, _, cursor, _) = attached("hello world")
         cursor.select(NSRange(location: 6, length: 5))
