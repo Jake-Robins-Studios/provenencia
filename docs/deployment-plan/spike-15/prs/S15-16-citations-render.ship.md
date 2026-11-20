@@ -101,4 +101,4 @@ No new blockers. Nits (logged): `MNT-11 · core/database/sqlin.go:31 · gofmt tu
 `origin/main` unchanged since the branch was cut (`1f927d4b5`); gate PASS on `eb291e062` stands.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: ToStored rewrite can exceed `MaxFormatBytes` (home pending the user) · to user: UX-1 (answered 2026-11-19: add `citations.not_found`)
+Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: ToStored rewrite can exceed `MaxFormatBytes` (home pending the user) · to user: UX-1 (answered 2026-11-19: add `citations.not_found`)
