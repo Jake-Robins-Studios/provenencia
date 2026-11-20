@@ -78,11 +78,28 @@ func UpdateSourceType(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	var (
+		formats *engine.CitationFormats
+		choices []sourcetypes.FieldChoice
+	)
+	if req.Formats != nil {
+		formats = req.GetFormats()
+		if choices, err = fieldChoicesFromProto(formats.GetFieldChoices()); err != nil {
+			return nil, err
+		}
+	}
 	var out *engine.UpdateSourceTypeResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		var view *sourcetypes.FormatsView
 		got, wrote, err := writes.Run(c, writes.Op{Action: "update_source_type"},
 			func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
-				return sourcetypes.Update(tx, typeID, req.GetLabel(), req.GetDescription(), req.GetIconKey())
+				if formats == nil {
+					return sourcetypes.Update(tx, typeID, req.GetLabel(), req.GetDescription(), req.GetIconKey())
+				}
+				in := sourcetypes.Formats{Full: formats.GetFull(), Short: formats.GetShort(), List: formats.GetList()}
+				t, v, changes, err := sourcetypes.UpdateWithFormats(tx, typeID, req.GetLabel(), req.GetDescription(), req.GetIconKey(), in, choices)
+				view = &v
+				return t, changes, err
 			})
 		if err != nil {
 			return err
@@ -94,6 +111,10 @@ func UpdateSourceType(in []byte) ([]byte, error) {
 			return err
 		}
 		out = &engine.UpdateSourceTypeResponse{Type: sourceTypeProto(got), Effects: writeEffectsProto(wrote)}
+		if view != nil {
+			out.Formats = citationFormatsProto(typeID, *view)
+			out.Diagnostics = citationFormatDiagnosticsProto(view.Diagnostics)
+		}
 		return nil
 	})
 	if err != nil {
@@ -169,47 +190,6 @@ func GetCitationFormats(in []byte) ([]byte, error) {
 		out = &engine.GetCitationFormatsResponse{
 			Formats:     citationFormatsProto(typeID, view),
 			Diagnostics: citationFormatDiagnosticsProto(view.Diagnostics),
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return proto.Marshal(out)
-}
-
-// UpdateCitationFormats replaces a type's three citation formats. A format the
-// engine cannot store comes back as diagnostics with nothing saved.
-func UpdateCitationFormats(in []byte) ([]byte, error) {
-	var req engine.UpdateCitationFormatsRequest
-	if err := proto.Unmarshal(in, &req); err != nil {
-		return nil, unmarshalErr("update_citation_formats", err)
-	}
-	if _, err := parseUserID(req.GetUserId()); err != nil {
-		return nil, err
-	}
-	typeID, err := parseID(req.GetTypeId())
-	if err != nil {
-		return nil, err
-	}
-	choices, err := fieldChoicesFromProto(req.GetFieldChoices())
-	if err != nil {
-		return nil, err
-	}
-	formats := sourcetypes.Formats{Full: req.GetFull(), Short: req.GetShort(), List: req.GetList()}
-	var out *engine.UpdateCitationFormatsResponse
-	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		view, wrote, err := writes.Run(c, writes.Op{Action: "update_citation_formats"},
-			func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-				return sourcetypes.UpdateFormats(tx, typeID, formats, choices)
-			})
-		if err != nil {
-			return err
-		}
-		out = &engine.UpdateCitationFormatsResponse{
-			Formats:     citationFormatsProto(typeID, view),
-			Diagnostics: citationFormatDiagnosticsProto(view.Diagnostics),
-			Effects:     writeEffectsProto(wrote),
 		}
 		return nil
 	})

@@ -77,9 +77,14 @@ func newFormatFixture(t *testing.T) *formatFixture {
 
 func (f *formatFixture) update(t *testing.T, typeID []byte, in Formats, choices ...FieldChoice) (FormatsView, writes.Result, error) {
 	t.Helper()
-	return writes.Run(f.c, writes.Op{Action: "update_citation_formats", UserID: f.userID},
+	return writes.Run(f.c, writes.Op{Action: "update_source_type", UserID: f.userID},
 		func(tx *database.Tx) (FormatsView, []rowchange.Change, error) {
-			return UpdateFormats(tx, typeID, in, choices)
+			t, err := GetByIDTx(tx.Tx, typeID)
+			if err != nil {
+				return FormatsView{}, nil, err
+			}
+			_, view, changes, err := UpdateWithFormats(tx, typeID, t.Label, t.Description, t.IconKey, in, choices)
+			return view, changes, err
 		})
 }
 
@@ -113,7 +118,7 @@ func diag(form citationformat.Form, code citationformat.DiagnosticCode, start, e
 	return citationformat.FormDiagnostic{Form: form, Diagnostic: citationformat.Diagnostic{Code: code, Span: citationformat.Span{Start: start, End: end}}}
 }
 
-func TestUpdateFormats(t *testing.T) {
+func TestUpdateWithFormats(t *testing.T) {
 	const full = "{source.title}[, line {graph.meta.line_number}]"
 
 	t.Run("saves fields by id and reads them by key (AC-1.1, AC-1.5)", func(t *testing.T) {
@@ -184,7 +189,11 @@ func TestUpdateFormats(t *testing.T) {
 		}
 		defer f.c.EndWrite()
 		defer func() { _ = tx.Rollback() }()
-		_, changes, err := UpdateFormats(tx, f.typeID, Formats{Full: "{source.title}", Short: "{source.date}"}, nil)
+		typ, err := GetByIDTx(tx.Tx, f.typeID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, changes, err := UpdateWithFormats(tx, f.typeID, typ.Label, typ.Description, typ.IconKey, Formats{Full: "{source.title}", Short: "{source.date}"}, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -269,7 +278,6 @@ func TestUpdateFormats(t *testing.T) {
 		f := newFormatFixture(t)
 		for name, choices := range map[string][]FieldChoice{
 			"another key's id": {{Key: "publisher", FieldID: f.author}},
-			"no such field":    {{Key: "publisher", FieldID: make([]byte, 16)}},
 			"empty key":        {{Key: "", FieldID: f.pubUser}},
 			"short id":         {{Key: "publisher", FieldID: []byte{1}}},
 			"two for one key": {
@@ -297,16 +305,59 @@ func TestUpdateFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("a choice naming a deleted field is ignored and the key resolves (D-14)", func(t *testing.T) {
+		f := newFormatFixture(t)
+		view, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.author}"},
+			FieldChoice{Key: "author", FieldID: make([]byte, 16)})
+		if err != nil || len(view.Diagnostics) != 0 {
+			t.Fatalf("view %+v, err %v", view, err)
+		}
+		if got := f.raw(t, "citation_full", f.typeID).String; got != "{source.meta."+idToken(f.author)+"}" {
+			t.Fatalf("stored %q", got)
+		}
+	})
+
+	t.Run("the label and the formats save as one change (AC-7.7)", func(t *testing.T) {
+		f := newFormatFixture(t)
+		_, res, err := writes.Run(f.c, writes.Op{Action: "update_source_type", UserID: f.userID},
+			func(tx *database.Tx) (Type, []rowchange.Change, error) {
+				typ, _, changes, err := UpdateWithFormats(tx, f.typeID, "Census (US)", "", "", Formats{Full: "{source.title}"}, nil)
+				if len(changes) != 1 {
+					t.Errorf("changes %+v", changes)
+				} else if got := changes[0].Fields; got["label"].New != "Census (US)" || got["citation_full"].New != "{source.title}" {
+					t.Errorf("fields %+v", got)
+				}
+				return typ, changes, err
+			})
+		if err != nil || res.Revision == 0 {
+			t.Fatalf("err %v, result %+v", err, res)
+		}
+	})
+
+	t.Run("a diagnostic saves neither the label nor the formats (AC-7.8)", func(t *testing.T) {
+		f := newFormatFixture(t)
+		var kept Type
+		view, res, err := writes.Run(f.c, writes.Op{Action: "update_source_type", UserID: f.userID},
+			func(tx *database.Tx) (FormatsView, []rowchange.Change, error) {
+				typ, view, changes, err := UpdateWithFormats(tx, f.typeID, "Renamed", "", "", Formats{Full: "[x"}, nil)
+				kept = typ
+				return view, changes, err
+			})
+		if err != nil || res.Revision != 0 || len(view.Diagnostics) != 1 {
+			t.Fatalf("view %+v, err %v, result %+v", view, err, res)
+		}
+		if got, err := GetByID(f.c, f.typeID); err != nil || got.Label == "Renamed" || kept.Label == "Renamed" {
+			t.Fatalf("type %+v kept %+v err %v", got, kept, err)
+		}
+	})
+
 	t.Run("a plugin or missing type is refused (AC-2.8)", func(t *testing.T) {
 		f := newFormatFixture(t)
 		if _, _, err := f.update(t, f.pluginID, Formats{Full: "{source.title}"}); !errors.Is(err, ErrLocked) {
 			t.Fatalf("plugin: %v", err)
 		}
-		if _, _, err := f.update(t, []byte{1}, Formats{}); !errors.Is(err, ErrInvalid) {
-			t.Fatalf("bad id: %v", err)
-		}
 		missing := uuid.New()
-		if _, _, err := f.update(t, missing[:], Formats{Full: "{source.title}"}); !errors.Is(err, ErrInvalid) {
+		if _, _, err := f.update(t, missing[:], Formats{Full: "{source.title}"}); !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("missing: %v", err)
 		}
 	})

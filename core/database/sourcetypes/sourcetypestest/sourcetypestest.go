@@ -17,11 +17,17 @@ func Upsert(c *database.Catalog, t sourcetypes.Type) ([]byte, error) {
 }
 
 // SetFormats writes a type's citation formats through the write pipeline as
-// the user and returns the view, with the write's diagnostics.
+// the user, with the type's own label, description and icon, and returns the
+// view, with the write's diagnostics.
 func SetFormats(c *database.Catalog, userID, typeID []byte, in sourcetypes.Formats, choices ...sourcetypes.FieldChoice) (sourcetypes.FormatsView, error) {
-	view, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
+	view, _, err := writes.Run(c, writes.Op{Action: "update_source_type", UserID: userID},
 		func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-			return sourcetypes.UpdateFormats(tx, typeID, in, choices)
+			t, err := sourcetypes.GetByIDTx(tx.Tx, typeID)
+			if err != nil {
+				return sourcetypes.FormatsView{}, nil, err
+			}
+			_, view, changes, err := sourcetypes.UpdateWithFormats(tx, typeID, t.Label, t.Description, t.IconKey, in, choices)
+			return view, changes, err
 		})
 	return view, err
 }

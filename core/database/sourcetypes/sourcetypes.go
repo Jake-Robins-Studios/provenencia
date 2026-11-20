@@ -177,23 +177,39 @@ func UpsertTx(tx *database.Tx, t Type, formats *Formats) ([]byte, []rowchange.Ch
 	}
 	next := existing
 	next.Label, next.Description, next.IconKey = t.Label, t.Description, t.IconKey
+	change, err := applyTx(tx, existing, next, formats)
+	if err != nil {
+		return nil, nil, err
+	}
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
+}
+
+// applyTx is the one write of an existing type's row: next's label,
+// description and icon, and, when stored is not nil, the three formats
+// (fields by id) through the one format write. It returns the one update change
+// naming what differs, nil when nothing does (and then nothing is written).
+func applyTx(tx *database.Tx, existing, next Type, stored *Formats) (*rowchange.Change, error) {
 	var diffs map[string]rowchange.FieldDiff
-	if formats != nil {
-		if diffs, err = writeStoredTx(tx, existing.ID, *formats); err != nil {
-			return nil, nil, err
+	if stored != nil {
+		var err error
+		if diffs, err = writeStoredTx(tx, existing.ID, *stored); err != nil {
+			return nil, err
 		}
 	}
 	rowDiff := updateChange(existing, next, nil)
 	change := updateChange(existing, next, diffs)
 	if change == nil {
-		return append([]byte(nil), existing.ID...), nil, nil
+		return nil, nil
 	}
 	if rowDiff != nil {
 		if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.IconKey, existing.ID); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
+	return change, nil
 }
 
 // Lookup returns the type for (key, origin), or sql.ErrNoRows.
@@ -260,7 +276,7 @@ type CreateInput struct {
 	// Formats are stored (fields by id, as StoredFormatsTx returns them); the
 	// zero value is no formats. The text is stored as is, without citationformat
 	// parsing: callers pass text already in stored form (StoredFormatsTx output),
-	// and fresh researcher text goes through UpdateFormats.
+	// and fresh researcher text goes through UpdateWithFormats.
 	Formats Formats
 }
 
@@ -318,38 +334,49 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	if tx == nil {
 		return Type{}, nil, ErrInvalid
 	}
-	label = strings.TrimSpace(label)
-	description = strings.TrimSpace(description)
-	if label == "" {
-		return Type{}, nil, ErrInvalid
-	}
 	existing, err := editableTx(tx.Tx, id)
 	if err != nil {
 		return Type{}, nil, err
 	}
-	normalizedIcon := existing.IconKey
-	if strings.TrimSpace(iconKey) != "" {
-		normalizedIcon, err = NormalizeIconKey(iconKey)
-		if err != nil {
-			return Type{}, nil, err
-		}
-	} else if normalizedIcon == "" {
-		normalizedIcon = DefaultIconKey
+	next, err := nextOf(existing, label, description, iconKey)
+	if err != nil {
+		return Type{}, nil, err
 	}
-	next := existing
-	next.Label, next.Description, next.IconKey = label, description, normalizedIcon
-	change := updateChange(existing, next, nil)
+	change, err := applyTx(tx, existing, next, nil)
+	if err != nil {
+		return Type{}, nil, err
+	}
 	if change == nil {
 		return existing, nil, nil
-	}
-	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), normalizedIcon, id); err != nil {
-		return Type{}, nil, err
 	}
 	got, err := getByIDTx(tx.Tx, id)
 	if err != nil {
 		return Type{}, nil, err
 	}
 	return got, []rowchange.Change{*change}, nil
+}
+
+// nextOf is existing with a new label, description and icon: the label and
+// description trimmed, an empty label ErrInvalid, an empty icon the row's
+// current one (the default mark when it has none), any other icon normalised.
+func nextOf(existing Type, label, description, iconKey string) (Type, error) {
+	label = strings.TrimSpace(label)
+	description = strings.TrimSpace(description)
+	if label == "" {
+		return Type{}, ErrInvalid
+	}
+	icon := existing.IconKey
+	if strings.TrimSpace(iconKey) != "" {
+		var err error
+		if icon, err = NormalizeIconKey(iconKey); err != nil {
+			return Type{}, err
+		}
+	} else if icon == "" {
+		icon = DefaultIconKey
+	}
+	next := existing
+	next.Label, next.Description, next.IconKey = label, description, icon
+	return next, nil
 }
 
 // GetByID returns the type with the given id, or sql.ErrNoRows.

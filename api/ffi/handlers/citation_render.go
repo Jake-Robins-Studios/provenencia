@@ -5,6 +5,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citationrender"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -91,27 +92,42 @@ func RenderCitationPreview(in []byte) ([]byte, error) {
 	return proto.Marshal(out)
 }
 
-// ListCitationBuiltins lists the built-in placeholders from the engine's one
-// table. It reads no catalog.
-func ListCitationBuiltins(in []byte) ([]byte, error) {
-	var req engine.ListCitationBuiltinsRequest
+// ListCitationPlaceholders lists the placeholders a form can hold, level by
+// level: the built-ins from the engine's one table, then the project's metadata
+// fields at each level that holds metadata.
+func ListCitationPlaceholders(in []byte) ([]byte, error) {
+	var req engine.ListCitationPlaceholdersRequest
 	if err := proto.Unmarshal(in, &req); err != nil {
-		return nil, unmarshalErr("list_citation_builtins", err)
+		return nil, unmarshalErr("list_citation_placeholders", err)
 	}
-	out := &engine.ListCitationBuiltinsResponse{}
-	for _, b := range citationformat.Builtins() {
-		pb := &engine.CitationBuiltin{
-			Level:       string(b.Level),
-			Name:        b.Name,
-			Date:        b.Date,
-			AlwaysSet:   b.AlwaysSet,
-			InListForm:  b.InListForm(),
-			UnknownText: b.UnknownText,
+	form := citationformat.Form(req.GetForm())
+	if !form.Valid() {
+		return nil, citations.ErrInvalid
+	}
+	var out *engine.ListCitationPlaceholdersResponse
+	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		rows, err := citationrender.Placeholders(c, form)
+		if err != nil {
+			return err
 		}
-		for _, o := range b.Options {
-			pb.Options = append(pb.Options, string(o))
+		out = &engine.ListCitationPlaceholdersResponse{}
+		for _, r := range rows {
+			pb := &engine.CitationPlaceholder{
+				Level:   string(r.Level),
+				Builtin: r.Builtin,
+				Option:  string(r.Option),
+				Text:    r.Text,
+				Ref:     r.Ref,
+			}
+			if r.Field != nil {
+				pb.Field = metadataFieldProto(*r.Field)
+			}
+			out.Placeholders = append(out.Placeholders, pb)
 		}
-		out.Builtins = append(out.Builtins, pb)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return proto.Marshal(out)
 }

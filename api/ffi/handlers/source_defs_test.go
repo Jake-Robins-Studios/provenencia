@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -922,10 +923,9 @@ func TestCopySourceType(t *testing.T) {
 			ProjectDir: dir, TypeId: typeID, FieldId: line.GetField().GetId(), Level: level,
 		}, &engine.AssignTypeFieldResponse{})
 	}
-	mustRPC(t, UpdateCitationFormats, &engine.UpdateCitationFormatsRequest{
-		ProjectDir: dir, UserId: userID, TypeId: typeID,
+	setFormats(t, dir, userID, typeID, &engine.CitationFormats{
 		Full: "{source.title}[, line {graph.meta.line-number}]", List: "{source.title}",
-	}, &engine.UpdateCitationFormatsResponse{})
+	})
 	copyReq := func(mutate func(*engine.CopySourceTypeRequest)) *engine.CopySourceTypeRequest {
 		req := &engine.CopySourceTypeRequest{
 			ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "State census",
@@ -984,18 +984,18 @@ func TestCitationFormats(t *testing.T) {
 		ProjectDir: dir, UserId: userID, Label: "Line number", DataType: "text",
 	}, &field)
 	const full = "{source.title}[, line {graph.meta.line-number}]"
-	update := func(req *engine.UpdateCitationFormatsRequest) (*engine.UpdateCitationFormatsResponse, error) {
-		req.ProjectDir, req.UserId = dir, userID
-		if req.TypeId == "" {
-			req.TypeId = typeID
-		}
-		var resp engine.UpdateCitationFormatsResponse
-		err := rpc(t, UpdateCitationFormats, req, &resp)
+	// update saves formats through UpdateSourceType with the seeded type's own
+	// label; a nil formats saves the details alone.
+	update := func(typeID string, formats *engine.CitationFormats) (*engine.UpdateSourceTypeResponse, error) {
+		var resp engine.UpdateSourceTypeResponse
+		err := rpc(t, UpdateSourceType, &engine.UpdateSourceTypeRequest{
+			ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "Birth certificate", Formats: formats,
+		}, &resp)
 		return &resp, err
 	}
 
 	t.Run("update then get round trip", func(t *testing.T) {
-		resp, err := update(&engine.UpdateCitationFormatsRequest{Full: full})
+		resp, err := update(typeID, &engine.CitationFormats{Full: full})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1011,7 +1011,7 @@ func TestCitationFormats(t *testing.T) {
 	})
 
 	t.Run("a refused format comes back as diagnostics and saves nothing", func(t *testing.T) {
-		resp, err := update(&engine.UpdateCitationFormatsRequest{Full: full, Short: "{source.title"})
+		resp, err := update(typeID, &engine.CitationFormats{Full: full, Short: "{source.title"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1024,24 +1024,69 @@ func TestCitationFormats(t *testing.T) {
 		}
 	})
 
+	t.Run("AC-7.7 a label and formats are one write", func(t *testing.T) {
+		before := latestRevision(t, dir)
+		var resp engine.UpdateSourceTypeResponse
+		mustRPC(t, UpdateSourceType, &engine.UpdateSourceTypeRequest{
+			ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "Birth record",
+			Formats: &engine.CitationFormats{Full: full + " Test."},
+		}, &resp)
+		if resp.GetType().GetLabel() != "Birth record" || resp.GetFormats().GetFull() != full+" Test." ||
+			resp.GetEffects().GetRevision() != before+1 {
+			t.Fatalf("reply %v, revision before %d", &resp, before)
+		}
+		assertLatestAuditAction(t, dir, "update_source_type")
+	})
+
+	t.Run("AC-7.8 a refused format leaves the label alone too", func(t *testing.T) {
+		before := latestRevision(t, dir)
+		var resp engine.UpdateSourceTypeResponse
+		mustRPC(t, UpdateSourceType, &engine.UpdateSourceTypeRequest{
+			ProjectDir: dir, UserId: userID, TypeId: typeID, Label: "Never saved",
+			Formats: &engine.CitationFormats{Full: "["},
+		}, &resp)
+		if len(resp.GetDiagnostics()) != 1 || resp.GetEffects().GetRevision() != 0 || resp.GetType().GetLabel() == "Never saved" ||
+			latestRevision(t, dir) != before {
+			t.Fatalf("reply %v", &resp)
+		}
+	})
+
+	t.Run("without formats the reply carries none", func(t *testing.T) {
+		resp, err := update(typeID, nil)
+		if err != nil || resp.Formats != nil || len(resp.GetDiagnostics()) != 0 {
+			t.Fatalf("reply %v, %v", resp, err)
+		}
+	})
+
+	t.Run("a choice naming a deleted field is ignored", func(t *testing.T) {
+		resp, err := update(typeID, &engine.CitationFormats{
+			Full:         full,
+			FieldChoices: []*engine.CitationFieldChoice{{Key: "line-number", FieldId: "0192f3a4-0000-7000-8000-000000000002"}},
+		})
+		if err != nil || len(resp.GetDiagnostics()) != 0 {
+			t.Fatalf("reply %v, %v", resp, err)
+		}
+	})
+
 	t.Run("errors", func(t *testing.T) {
 		missing := "0192f3a4-0000-7000-8000-000000000001"
 		for name, tc := range map[string]struct {
-			req  *engine.UpdateCitationFormatsRequest
-			want error
+			typeID  string
+			formats *engine.CitationFormats
+			want    error
 		}{
-			"malformed type id": {&engine.UpdateCitationFormatsRequest{TypeId: "nope"}, errInvalidID},
-			"unknown type id":   {&engine.UpdateCitationFormatsRequest{TypeId: missing}, sourcetypes.ErrInvalid},
-			"malformed choice id": {&engine.UpdateCitationFormatsRequest{
+			"malformed type id": {"nope", nil, errInvalidID},
+			"unknown type id":   {missing, &engine.CitationFormats{}, sql.ErrNoRows},
+			"malformed choice id": {typeID, &engine.CitationFormats{
 				Full: "{source.title}", FieldChoices: []*engine.CitationFieldChoice{{Key: "a", FieldId: "nope"}}}, sourcetypes.ErrInvalid},
 		} {
-			if _, err := update(tc.req); !errors.Is(err, tc.want) {
+			if _, err := update(tc.typeID, tc.formats); !errors.Is(err, tc.want) {
 				t.Fatalf("%s: got %v, want %v", name, err, tc.want)
 			}
 		}
-		var resp engine.UpdateCitationFormatsResponse
-		req := &engine.UpdateCitationFormatsRequest{ProjectDir: dir, TypeId: typeID}
-		if err := rpc(t, UpdateCitationFormats, req, &resp); err == nil {
+		var resp engine.UpdateSourceTypeResponse
+		req := &engine.UpdateSourceTypeRequest{ProjectDir: dir, TypeId: typeID, Label: "X", Formats: &engine.CitationFormats{}}
+		if err := rpc(t, UpdateSourceType, req, &resp); err == nil {
 			t.Fatal("a missing user_id must fail")
 		}
 		var got engine.GetCitationFormatsResponse
