@@ -588,9 +588,9 @@ func TestUpdateSourceType(t *testing.T) {
 						source = n
 					}
 				}
-				// The seeded birth certificate suggests 4 Source, 10 Artifact
+				// The seeded birth certificate suggests 5 Source, 10 Artifact
 				// and 2 graph fields; the case adds one.
-				if source == 0 || total != 4+10+2+1 || int(resp.Type.GetSuggestedFieldCount()) != total {
+				if source == 0 || total != 5+10+2+1 || int(resp.Type.GetSuggestedFieldCount()) != total {
 					t.Fatalf("suggested_field_count %d, lists total %d (source %d)", resp.Type.GetSuggestedFieldCount(), total, source)
 				}
 			},

@@ -924,7 +924,7 @@ Not seeded, from the horizon list: the date keys (`publication_date`, `issue_dat
 
 #### Suggestions
 
-One rule, so the suggestions and the formats cannot drift: **each type suggests every metadata field its full format uses, at the field's usual level, in the order the format uses them.** Two exceptions:
+One rule, so the suggestions and the formats cannot drift: **each type suggests every metadata field its full format uses, at the field's usual level, in the order the format uses them, then every field its list format, then its short format, needs outside any group that the full format does not use** (user, 2026-11-20, S15-17; a chain whose option the full format already suggests adds nothing; the certificates' `jurisdiction` is the case). Two exceptions:
 
 - `website` suggests `url` and `accessed_date` on the Source, since the website is the Source.
 - Record types (census, certificates, church register, record book, passenger list, case file, manuscript, government file) suggest the copy fields on the Artifact even where the format reads only some of them.
