@@ -1,7 +1,7 @@
 # Review — S16-64 One change builder and one change-only write call
 
-**Verdict:** round 1 Fits with changes — Not ready; round 2 pending
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 2); every blocker Fixed
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -61,3 +61,15 @@ None.
 
 ### X-9 · nit · D-5 typo
 **Answer:** Fixed.
+
+### M-6 · blocker · `subjectpositions` builds a full-row create spelled `{New: v}`, outside D-11 and AC-1.8's regex
+**Answer:** Fixed — D-11 adds the create branch of `core/database/subjectpositions/subjectpositions.go` (an early `rowchange.Created` return; the update literal stays). AC-1.8's regex is `\{(Old: nil, )?New:|New: nil\}`; AC-1.7 and STEP-3's check add `subjectpositions`.
+
+### M-7 · blocker · Test fixtures that pass a bare field map have no rule once the helpers are private
+**Answer:** Fixed — D-12 *(new)*: create and delete fixture rows in `effects/lists_test.go` call `Created` / `Deleted` directly (wants unchanged), `path_test.go`'s `del` becomes `Deleted`, and `audit_test.go`'s two null-key cases move into T-1.
+
+### Below blocker · the `sourcetypes` delete merges format diffs
+**Answer:** Fixed — §6 gives its two lines.
+
+### Below blocker · T-2 repeats the converted `run_test.go` cases
+**Answer:** Declined — T-2 states `RunChanges`' contract (AC-2.1 – AC-2.3) in one table; the converted tests keep testing their own cases. Cost is one short table.
