@@ -216,24 +216,34 @@ func TestUpsertTx(t *testing.T) {
 		t.Fatalf("label: %v %+v", err, changes)
 	}
 
-	for name, other := range map[string]Type{
-		"ref prefix taken":       {Key: "a", Origin: vocabkey.OriginProvenencia, Label: "A", RefPrefix: "PER", CandidateRefPrefix: "AAC"},
-		"candidate prefix taken": {Key: "b", Origin: vocabkey.OriginProvenencia, Label: "B", RefPrefix: "BBB", CandidateRefPrefix: "PEC"},
-		"equal prefixes":         {Key: "c", Origin: vocabkey.OriginProvenencia, Label: "C", RefPrefix: "CCC", CandidateRefPrefix: "ccc"},
+	for _, tt := range []struct {
+		name  string
+		other Type
+	}{
+		{"ref prefix taken", Type{Key: "a", Origin: vocabkey.OriginProvenencia, Label: "A", RefPrefix: "PER", CandidateRefPrefix: "AAC"}},
+		{"candidate prefix taken", Type{Key: "b", Origin: vocabkey.OriginProvenencia, Label: "B", RefPrefix: "BBB", CandidateRefPrefix: "PEC"}},
+		{"equal prefixes", Type{Key: "c", Origin: vocabkey.OriginProvenencia, Label: "C", RefPrefix: "CCC", CandidateRefPrefix: "ccc"}},
 	} {
-		if _, err := run(other); !errors.Is(err, ErrDuplicatePrefix) {
-			t.Fatalf("%s: got %v", name, err)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := run(tt.other); !errors.Is(err, ErrDuplicatePrefix) {
+				t.Fatalf("got %v", err)
+			}
+		})
 	}
-	for name, bad := range map[string]Type{
-		"bad prefix":   {Key: "d", Origin: vocabkey.OriginProvenencia, Label: "D", RefPrefix: "SRC", CandidateRefPrefix: "DDD"},
-		"blank key":    {Origin: vocabkey.OriginProvenencia, Label: "E", RefPrefix: "EEE", CandidateRefPrefix: "EEC"},
-		"bogus origin": {Key: "f", Origin: "bogus", Label: "F", RefPrefix: "FFF", CandidateRefPrefix: "FFC"},
-		"non-empty ID": {ID: make([]byte, 16), Key: "g", Origin: vocabkey.OriginProvenencia, Label: "G", RefPrefix: "GGG", CandidateRefPrefix: "GGC"},
+	for _, tt := range []struct {
+		name string
+		bad  Type
+	}{
+		{"bad prefix", Type{Key: "d", Origin: vocabkey.OriginProvenencia, Label: "D", RefPrefix: "SRC", CandidateRefPrefix: "DDD"}},
+		{"blank key", Type{Origin: vocabkey.OriginProvenencia, Label: "E", RefPrefix: "EEE", CandidateRefPrefix: "EEC"}},
+		{"bogus origin", Type{Key: "f", Origin: "bogus", Label: "F", RefPrefix: "FFF", CandidateRefPrefix: "FFC"}},
+		{"non-empty ID", Type{ID: make([]byte, 16), Key: "g", Origin: vocabkey.OriginProvenencia, Label: "G", RefPrefix: "GGG", CandidateRefPrefix: "GGC"}},
 	} {
-		if _, err := run(bad); err == nil {
-			t.Fatalf("%s: want an error", name)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := run(tt.bad); err == nil {
+				t.Fatal("want an error")
+			}
+		})
 	}
 	if list, err := List(c); err != nil || len(list) != 1 {
 		t.Fatalf("only person is stored: %v %+v", err, list)

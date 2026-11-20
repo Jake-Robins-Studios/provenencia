@@ -404,16 +404,21 @@ func TestUpsertTx(t *testing.T) {
 	if _, _, err := upsertTx(c, properties.Property{Key: "acme_fact", Origin: "plugin:acme", Label: "Fact", ValueType: propertymeta.ValueTypeText}); err != nil {
 		t.Fatalf("plugin origin: %v", err)
 	}
-	for name, p := range map[string]properties.Property{
-		"blank key":      {Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText},
-		"blank label":    {Key: "x", Origin: vocabkey.OriginProvenencia, ValueType: propertymeta.ValueTypeText},
-		"bogus origin":   {Key: "x", Origin: "bogus", Label: "X", ValueType: propertymeta.ValueTypeText},
-		"bad value type": {Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: "real"},
-		"non-empty ID":   {ID: make([]byte, 16), Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText},
+	for _, tt := range []struct {
+		name string
+		p    properties.Property
+	}{
+		{"blank key", properties.Property{Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText}},
+		{"blank label", properties.Property{Key: "x", Origin: vocabkey.OriginProvenencia, ValueType: propertymeta.ValueTypeText}},
+		{"bogus origin", properties.Property{Key: "x", Origin: "bogus", Label: "X", ValueType: propertymeta.ValueTypeText}},
+		{"bad value type", properties.Property{Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: "real"}},
+		{"non-empty ID", properties.Property{ID: make([]byte, 16), Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText}},
 	} {
-		if _, _, err := upsertTx(c, p); !errors.Is(err, properties.ErrInvalid) {
-			t.Fatalf("%s: got %v", name, err)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			if _, _, err := upsertTx(c, tt.p); !errors.Is(err, properties.ErrInvalid) {
+				t.Fatalf("got %v", err)
+			}
+		})
 	}
 }
 
@@ -466,14 +471,41 @@ func TestCreateUpdateDeleteChanges(t *testing.T) {
 	if len(created) != 1 || !reflect.DeepEqual(keys(created[0]), []string{"cardinality", "description", "id", "key", "label", "origin", "value_type"}) {
 		t.Fatalf("create keys %+v", created)
 	}
+	wantCreate := map[string]rowchange.FieldDiff{
+		"id":          {Old: nil, New: database.UUIDString(p.ID)},
+		"key":         {Old: nil, New: p.Key},
+		"origin":      {Old: nil, New: "user"},
+		"label":       {Old: nil, New: "Custom Fact"},
+		"value_type":  {Old: nil, New: propertymeta.ValueTypeText},
+		"cardinality": {Old: nil, New: p.Cardinality},
+		"description": {Old: nil, New: "note"},
+	}
+	if !reflect.DeepEqual(created[0].Fields, wantCreate) {
+		t.Fatalf("create fields %+v, want %+v", created[0].Fields, wantCreate)
+	}
 	if len(updated) != 1 || !reflect.DeepEqual(keys(updated[0]), []string{"description", "label"}) {
 		t.Fatalf("update keys %+v", updated)
 	}
-	if d := updated[0].Fields["description"]; d.Old != "note" || d.New != nil {
-		t.Fatalf("clearing a description: %+v", d)
+	wantUpdate := map[string]rowchange.FieldDiff{
+		"label":       {Old: "Custom Fact", New: "Custom Fact 2"},
+		"description": {Old: "note", New: nil},
+	}
+	if !reflect.DeepEqual(updated[0].Fields, wantUpdate) {
+		t.Fatalf("update fields %+v, want %+v", updated[0].Fields, wantUpdate)
 	}
 	last := deleted[len(deleted)-1]
 	if !reflect.DeepEqual(keys(last), []string{"cardinality", "id", "key", "label", "origin", "value_type"}) {
 		t.Fatalf("delete keys %v", keys(last))
+	}
+	wantDelete := map[string]rowchange.FieldDiff{
+		"id":          {Old: database.UUIDString(p.ID), New: nil},
+		"key":         {Old: p.Key, New: nil},
+		"origin":      {Old: "user", New: nil},
+		"label":       {Old: "Custom Fact 2", New: nil},
+		"value_type":  {Old: propertymeta.ValueTypeText, New: nil},
+		"cardinality": {Old: p.Cardinality, New: nil},
+	}
+	if !reflect.DeepEqual(last.Fields, wantDelete) {
+		t.Fatalf("delete fields %+v, want %+v", last.Fields, wantDelete)
 	}
 }

@@ -346,22 +346,23 @@ func TestUpsertTx(t *testing.T) {
 	}
 
 	base := Term{PropertyID: propID, Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X"}
-	bad := map[string]Term{}
-	for name, mutate := range map[string]func(*Term){
-		"blank key":         func(t *Term) { t.Key = "" },
-		"blank label":       func(t *Term) { t.Label = "" },
-		"bogus origin":      func(t *Term) { t.Origin = "bogus" },
-		"short property id": func(t *Term) { t.PropertyID = propID[:8] },
-		"non-empty ID":      func(t *Term) { t.ID = make([]byte, 16) },
+	for _, tt := range []struct {
+		name   string
+		mutate func(*Term)
+	}{
+		{"blank key", func(t *Term) { t.Key = "" }},
+		{"blank label", func(t *Term) { t.Label = "" }},
+		{"bogus origin", func(t *Term) { t.Origin = "bogus" }},
+		{"short property id", func(t *Term) { t.PropertyID = propID[:8] }},
+		{"non-empty ID", func(t *Term) { t.ID = make([]byte, 16) }},
 	} {
-		term := base
-		mutate(&term)
-		bad[name] = term
-	}
-	for name, term := range bad {
-		if _, _, err := upsertChanges(c, term); !errors.Is(err, ErrInvalid) {
-			t.Fatalf("%s: got %v", name, err)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			term := base
+			tt.mutate(&term)
+			if _, _, err := upsertChanges(c, term); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("got %v", err)
+			}
+		})
 	}
 }
 
@@ -410,10 +411,38 @@ func TestChangeKeys(t *testing.T) {
 	if len(created) != 1 || !reflect.DeepEqual(fieldKeys(created[0]), []string{"description", "id", "key", "label", "origin", "property_id"}) {
 		t.Fatalf("create keys %+v", created)
 	}
+	wantCreate := map[string]rowchange.FieldDiff{
+		"id":          {Old: nil, New: database.UUIDString(term.ID)},
+		"property_id": {Old: nil, New: database.UUIDString(propID)},
+		"key":         {Old: nil, New: term.Key},
+		"origin":      {Old: nil, New: "user"},
+		"label":       {Old: nil, New: "Godfather"},
+		"description": {Old: nil, New: "note"},
+	}
+	if !reflect.DeepEqual(created[0].Fields, wantCreate) {
+		t.Fatalf("create fields %+v, want %+v", created[0].Fields, wantCreate)
+	}
 	if len(updated) != 1 || !reflect.DeepEqual(fieldKeys(updated[0]), []string{"description", "label"}) {
 		t.Fatalf("update keys %+v", updated)
 	}
+	wantUpdate := map[string]rowchange.FieldDiff{
+		"label":       {Old: "Godfather", New: "Godfather 2"},
+		"description": {Old: "note", New: nil},
+	}
+	if !reflect.DeepEqual(updated[0].Fields, wantUpdate) {
+		t.Fatalf("update fields %+v, want %+v", updated[0].Fields, wantUpdate)
+	}
 	if len(deleted) != 1 || !reflect.DeepEqual(fieldKeys(deleted[0]), []string{"id", "key", "label", "origin", "property_id"}) {
 		t.Fatalf("delete keys %+v", deleted)
+	}
+	wantDelete := map[string]rowchange.FieldDiff{
+		"id":          {Old: database.UUIDString(term.ID), New: nil},
+		"property_id": {Old: database.UUIDString(propID), New: nil},
+		"key":         {Old: term.Key, New: nil},
+		"origin":      {Old: "user", New: nil},
+		"label":       {Old: "Godfather 2", New: nil},
+	}
+	if !reflect.DeepEqual(deleted[0].Fields, wantDelete) {
+		t.Fatalf("delete fields %+v, want %+v", deleted[0].Fields, wantDelete)
 	}
 }
