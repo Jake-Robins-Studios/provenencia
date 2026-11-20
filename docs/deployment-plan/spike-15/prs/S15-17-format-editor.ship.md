@@ -150,4 +150,4 @@ No new findings above nit. Minors fixed in round 1 (CON-4 – CON-7, UX-5 – UX
 Nits (logged): `UX-15 · PVSubsectionHeader.swift:50 · empty accessibilityIdentifier set on callers that pass none` · `UX-16 · L10n.swift:5121 · origin.badge.user comment still says "Origin badge"` · `MNT-16 · SourceTypeFormatsSection.swift:311 · third literal 0.42 disabled opacity; no kit token` · `MNT-17 · PVTextArea.swift PVTextAreaCompletionRows · same check passed to isActive and isSelected`
 
 ## Result
-Gate PASS (`01829cd31`, `origin/main` unchanged at `24bd80e70`) · CI <pending> · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
+Gate PASS (`01829cd31`, `origin/main` unchanged at `24bd80e70`) · CI green · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
