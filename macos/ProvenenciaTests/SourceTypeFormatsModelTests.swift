@@ -273,6 +273,31 @@ struct SourceTypeFormatsModelTests {
         #expect(!model.isPreviewFailed)
     }
 
+    @Test func anEditDuringASaveSurvivesItsReply() async {
+        let (model, _, _) = await makeModel()
+        model.edit(.full, text: "{source.title}, sent")
+        let sent = model.draftForSave()
+        // Typed while the Save was in flight.
+        model.edit(.full, text: "{source.title}, sent and more")
+        model.saved(CatalogCitationFormatsReply(formats: sent, diagnostics: []))
+        #expect(model.draft(.full) == "{source.title}, sent and more")
+        #expect(model.isDirty)
+        // The saved text is the baseline: reverting returns to it, not to what was there before.
+        model.revert()
+        #expect(model.draft(.full) == "{source.title}, sent")
+        #expect(!model.isDirty)
+    }
+
+    @Test func aSaveWithNoEditsInFlightAdoptsWhatTheEngineStored() async {
+        let (model, _, _) = await makeModel()
+        model.edit(.full, text: "  {source.title}  ")
+        let sent = model.draftForSave()
+        let stored = CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: sent.short, list: sent.list)
+        model.saved(CatalogCitationFormatsReply(formats: stored, diagnostics: []))
+        #expect(model.draft(.full) == "{source.title}")
+        #expect(!model.isDirty)
+    }
+
     // MARK: Draft, revert
 
     @Test func revertPutsTheSavedTextAndChoicesBack() async {

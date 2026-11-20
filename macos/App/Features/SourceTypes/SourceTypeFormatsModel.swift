@@ -166,12 +166,14 @@ final class SourceTypeFormatsModel {
         rerenderAll()
     }
 
-    /// Sets saved and draft texts from what the engine stores.
-    private func adopt(_ reply: CatalogCitationFormatsReply) {
+    /// Sets saved and draft texts from what the engine stores. With `keeping`, a form's draft that is
+    /// no longer the text that was sent for it (an edit typed while the Save was in flight) stays.
+    private func adopt(_ reply: CatalogCitationFormatsReply, keeping sent: [CitationForm: String]? = nil) {
         for form in CitationForm.allCases {
             let text = reply.formats.text(form)
             saved[form] = text
-            drafts[form] = text
+            let edited = sent.map { drafts[form] != $0[form] } ?? false
+            if !edited { drafts[form] = text }
             diagnosed[form] = Diagnosed(text: text, diagnostics: reply.diagnostics.filter { $0.form == form })
         }
         savedChoices = reply.formats.fieldChoices
@@ -220,10 +222,10 @@ final class SourceTypeFormatsModel {
         }
     }
 
-    /// A Save that stored the formats: what the engine stored becomes the saved and draft text, and the
-    /// previews render again.
+    /// A Save that stored the formats: what the engine stored becomes the saved text, and the draft of
+    /// each form not edited since the Save went out; the previews render again.
     func saved(_ reply: CatalogCitationFormatsReply) {
-        adopt(reply)
+        adopt(reply, keeping: lastSent)
         rerenderAll()
     }
 
