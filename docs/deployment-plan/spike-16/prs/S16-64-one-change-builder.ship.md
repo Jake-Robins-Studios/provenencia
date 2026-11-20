@@ -44,4 +44,4 @@ Verdict: Clean. MNT-1 **Resolved** (`bffa287b` moves eleven update diffs onto `r
 Nits (logged): `MNT-5 · core/database/sources/sources.go:351 · SetPublic dereferences *change relying on the earlier equality check; gate on change == nil instead` · `MNT-6 · core/database/canonicalentities/canonicalentities.go:286-295 · same for SetPreferredLikeness`
 
 ## Result
-Gate PASS on `076b3a8c` (`origin/main` unchanged at `34c2b615`, no merge needed) · CI see PR #920 · open: none · follow-ups: none · to user: —
+Gate PASS on `076b3a8c` (`origin/main` unchanged at `34c2b615`, no merge needed) · CI green (test ×2, localizable) · open: none · follow-ups: none · to user: —
