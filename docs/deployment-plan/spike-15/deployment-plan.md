@@ -706,7 +706,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 #### S15-42 — The Source date can be unknown, supplied or flagged
 
 **Ships.** The date dialog offers **No date** and **Supplied** (S15-41's control) beside the shared date form; the header shows them, and flags an empty date when the type needs `{source.date}`.
-**Also (structural debt, 2026-11-17).** The shared date form's strings move from `L10n.Sources` (`date*`, the `sources.page.date…` keys) to `L10n.Dates`, with no copy change; the Source date dialog's own `sourceDate*` copy stays. (`SourcesRowDate`'s rename is done by S15-05, which makes it the recipe `PVPublishedDate`.)
+**Also (structural debt, 2026-11-17).** The shared date form's strings move from `L10n.Sources` (`date*`, the `sources.page.date…` keys) to `L10n.Dates`, with no copy change; the Source date dialog's own `sourceDate*` copy stays. (`SourcesRowDate`'s rename is done by S15-05: `SourceDateText` in `Platform/`, drawn by the recipe `PVPublishedDate`.)
 **Not this PR.** The shared date form itself, unchanged.
 **Check.** Bar 11's date half: an undated letter dated from its postmark, marked supplied, cites "[12 March 1880]"; one marked no date cites "n.d." and is not flagged.
 **Context.** S15-D23; rule "A value can be marked unknown or supplied"; S15-43, S15-38, S15-41; `add-date-value`.

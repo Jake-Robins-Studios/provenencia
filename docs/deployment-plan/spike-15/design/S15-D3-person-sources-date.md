@@ -142,12 +142,12 @@ The Date cell is a placeholder: every row shows a muted dash "—", and VoiceOve
 
 ## 5. Suggested frames
 
-Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440). Data: the Person page of an invented person, Johann Weber, citing six Sources of types Census, Parish register, Letter, Newspaper and Photograph, each with one to three record lines. Dated: "Hamburg census 1867" (`1867`), "St Brigid parish baptisms" (`bet 1834 and 1840`), "Altona Nachrichten, 3 May issue" (`3 May 1871`), "Notes on the Weber farm" (phrase "in the reign of Wilhelm I"); undated: "Letter from Anna to Johann", "Weber family portrait" (its date marked unknown). Invent every person and record.
+Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440). Data: the Person page of Johann Weber (invented), citing five Sources, each with one to three record lines, in title order: "Hamburg census 1867" (Census, `1867`), "Hamburger Adressbuch 1861" (`abt 1861`), "Hamburger Nachrichten, obituary 1880" (undated), "Konfirmandenbuch St. Ansgarii 1831" (phrase "in the reign of Wilhelm I"), and "Verzeichniß der Mitglieder des Vereins für Hamburgische Geschichte, nebst einem Anhang über die Statuten" (its date marked unknown). These are the app's own preview Sources for this section. Invent every person and record.
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
 | 1a / 1b | PS-1, PS-2, PS-3, PS-W1 | The Sources section of Johann's page, the diagram beside the rows: the caption line with PUBLISHED, dated and undated rows mixed in title order |
-| 2 | PS-4 | Regular, the row "Notes on the Weber farm": the phrase truncated in its cell, the hover text "Published in the reign of Wilhelm I" shown |
+| 2 | PS-4 | Regular, the row "Konfirmandenbuch St. Ansgarii 1831": the phrase truncated in its cell, the hover text "Published in the reign of Wilhelm I" shown |
 | 3 | PS-5 | Regular, a VoiceOver caption under frame 1a giving the spoken label of one dated and one undated row |
 
 ---
@@ -157,7 +157,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Sources section rows | Snowflake | Extend | `macos/App/Features/Conclusions/PersonSourcesSection.swift` `PersonSourcesList`, `PersonSourcesRowView` | The Date cell draws the published date; the caption reads Published |
-| Published date | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/PublishedDate/` *(new)*, from the Sources list's private `SourcesPublishedDate` | The Sources list's published date, its `.bare` style here: the date alone in secondary ink, or a faint "Undated"; "Published {date}" as hover. Second call site: the Sources list (`SourcesListRow.swift`), which draws it today; this section is the other, so it moves from the list's file to a recipe. Not a Chip, Badge or List detail cell (icon + muted text is the last update's look) |
+| Published date | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/PublishedDate/` *(new)*, from the Sources list's private `SourcesPublishedDate` | The Sources list's published date, composing the Platform formatter `SourceDateText` (`macos/App/Platform/SourceDateText.swift` *(new)*), its `.bare` style here: the date alone in secondary ink, or a faint "Undated"; "Published {date}" as hover. Second call site: the Sources list (`SourcesListRow.swift`), which draws it today; this section is the other, so it moves from the list's file to a recipe. Not a Chip, Badge or List detail cell (icon + muted text is the last update's look) |
 | Caption line | Snowflake | Extend | `PersonSourcesList` `header` | One caption's copy |
 | Columns | Snowflake | Ship | `PersonSourcesColumns` | Widths unchanged |
 | Type pill | Recipe | Ship | `CatalogSourceTypePill` | Unchanged |
