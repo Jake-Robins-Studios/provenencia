@@ -486,7 +486,7 @@ type col struct {
 	kind colKind
 }
 
-// rowFacet is a facet table whose rows are audited whole as DeletedRow, keyed
+// rowFacet is a facet table whose rows are audited whole as rowchange.Deleted, keyed
 // by entityIDCol. Rows are removed in rowid order.
 func rowFacet(parent catalogmodel.Kind, table, fkCol, entityType, entityIDCol string, cols ...col) facetRelease {
 	names := ""

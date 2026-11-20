@@ -86,13 +86,13 @@ Uniqueness is **`UNIQUE (key, origin)`**. Lookup is always `(key, origin)`, neve
 
 - Each domain’s `Install` upserts its registry into a new catalog (the Source, grade and Subject ones on the caller's transaction, as below).
 - Call **only** from `onboarding.createCatalog` (after `database.Create`). Today that is:
-  `sourcevocab.Install` → `sourcecredibilitygrades.Install` → `subjectvocab.Install` (each through `installSeed`, one `writes.Call`) → `nameformats.Install` → `namealiases.Install`
+  `sourcevocab.Install` → `sourcecredibilitygrades.Install` → `subjectvocab.Install` (each through `installSeed`, one `writes.RunChanges`) → `nameformats.Install` → `namealiases.Install`
   (then `catalogsession.ReconcileOnOpen`).
 - **Do not** call `Install` from `OpenCatalog`, `catalogsession.Do`, or on every open.
 - **Do not** heal deleted `provenencia` rows or restored suggestion joins on open.
 - `sourcevocab.Install(tx)`, `sourcecredibilitygrades.Install(tx)` and
   `subjectvocab.Install(tx)` compose on the caller's transaction and never call
-  `writes.Run`; `createCatalog` runs each in one `writes.Call` through
+  `writes.Run`; `createCatalog` runs each in one `writes.RunChanges` through
   `installSeed` (actions `install_source_vocabulary`, `install_source_credibility_grades`,
   `install_subject_vocabulary`; no user), so each is atomic: a failed install
   leaves nothing. The grades' table is `None` in the effects registry, so its
