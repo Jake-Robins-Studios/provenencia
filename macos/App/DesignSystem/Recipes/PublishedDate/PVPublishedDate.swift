@@ -34,11 +34,11 @@ struct PVPublishedDate: View {
                 value(line)
             }
             .font(PVFont.body(size: PVTypeScale.caption))
-            .help(SourceDateText.help(date) ?? "")
+            .help(L10n.PublishedDate.help(date: line))
         case .bare:
             value(line)
                 .font(PVFont.body(size: PVTypeScale.caption))
-                .help(SourceDateText.help(date) ?? "")
+                .help(L10n.PublishedDate.help(date: line))
         }
     }
 
