@@ -1,7 +1,7 @@
 # Ship log — S15-17 The format editor
 
 **Plan:** [`S15-17-format-editor.md`](S15-17-format-editor.md) · **Branch:** `s15-17-format-editor` · **PR:** #924
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `7efe84770`. Gate PASS (orchestrator run, against `24bd80e70`). Report deviations: the Claude Design board could not be opened (copy from brief § 2.1 and the plan's Strings; layout from the plan's macOS table); the completion popup, warning-click selection, page layout and manual check § 10 were never run by hand; `PVPopupList` moved out of `PVComboBox` with `width` and `anchorRect`; completion row level is a `PVBadge` (`PVChip` is a toggle); a warning's quote is not mono; extra helpers `SourceTypeFormatsModel.isRendering(_:)`, `placeholder(_:id:)`, `FakeStore.resetPreviewCalls()`, extra copy keys (loading, load error, preview no-match, locked hint, origin words, `readerLabel`), `L10n.CitationFormats.diagnostic(_:key:characters:)`; `sourcetypes.Update` checks the type before the label (D-4).
@@ -126,3 +126,28 @@ Check: tests pass; scripts/check-pr.sh PASS.
 Files: `core/database/sourcetypes/sourcetypestest/sourcetypestest.go`, `core/database/effects/source_type_search_test.go`, `core/database/sourcetypes/formats_test.go`, `core/database/sourcetypes/sourcetypes.go`, `formats.go`, `core/citationformat/placeholder.go`, `core/database/citationrender/placeholders.go`.
 Do: `sourcetypestest.SetFormatsTx(tx, typeID, in, choices…)` used by `SetFormats` and the effects test; `formats_test.go` keeps one local helper used at both sites. `citationformat` exports one constructor for a field placeholder row (`Level`, `Text`, `Ref` built from `metaRef` once), and `citationrender.Placeholders` uses it. One unexported `updateTx(tx, id, label, description, iconKey, stored *Formats)` that `Update` and `UpdateWithFormats` both call.
 Check: `rg -n "UpdateWithFormats\(tx, .*t\.Label" core` prints only the helpers; `rg -n 'text\[1:len\(text\)-1\]' core/database/citationrender` prints nothing; go tests pass; scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `01829cd31`. Gate PASS (orchestrator run). F-1 – F-13, F-15 done; F-14 done for PRF-1, PRF-2, UX-7; UX-14 **not reproduced** (`aMissingFirstSourceShowsTheErrorInsteadOfAStalePreview` green before any change: the other two forms' `sources.not_found` reach `previewErrors`, and F-1 hides the previews) → UX-14 Rejected. F-4's hosted-binding test was green first run: the plan's binding Stop condition does not fire.
+Deviations accepted: F-13 asserts `sourcetypes.ErrLocked` (code `source_types.invalid`), which `editableTx` returned before this PR ("as today", plan § 6); the plan's word `origin_locked` named Delete's error. F-3 adds `PVTextAreaCompletion.didAccept`, run after the replace. F-2: `PVPopupListCard` takes the caller's stack (the combo box measures unequal rows); completion rows gain hover highlight. F-6 adds `PVSubsectionHeader` `metaLabel` / `metaIdentifier`. F-7: `OriginBadge` keeps its short badge words; the Properties inspector's plugin row now reads the plugin words. F-10: only the warning rows dim; the border keeps its danger tone. F-15: `updateTx` takes the read `existing` row.
+PRF-1, PRF-2 (minor, no round 2 for SEC+PRF): read in `d8cd8e5a5` and `2729f59f4` — `schedule` waits for `.ready` with `openingThePageSendsExactlyOneRoundOfPreviews`; completion uses `LazyVStack`; `placeholder(_:id:)` is a dictionary lookup → **Resolved**.
+
+## Round 2 — review
+Reviewers: CON, MNT, UX (each had a Fix-now blocker or major). Not sent: SEC+PRF (minors only, resolved above). Scope `7efe84770...01829cd31`.
+
+| ID | Lens | Round-1 finding | Result |
+| --- | --- | --- | --- |
+| CON-1, UX-4 | CON, UX | blocker · failed preview | Resolved (both reviewers) |
+| MNT-1 | MNT | blocker · second popup list | Resolved |
+| CON-2, MNT-3 | CON, MNT | major · accept untested | Resolved |
+| CON-3 | CON | major · binding / § 10 | Resolved for code (`aHostedAreasBindingFollowsACursorReplace`); § 10 and the board check are the user's |
+| UX-1, UX-2, UX-3 | UX | major · keyboard and VoiceOver | Resolved |
+| MNT-2, UX-8 | MNT, UX | major · origin words | Resolved |
+| MNT-4, MNT-5 | MNT | major · header slot, `LatestCall` | Resolved |
+
+No new findings above nit. Minors fixed in round 1 (CON-4 – CON-7, UX-5 – UX-7, UX-9 – UX-11, MNT-6 – MNT-8, PRF-1, PRF-2): read in the fix commits and in the round-2 sweeps (F-10, F-12, F-11, F-13 called out by CON and UX) → Resolved.
+
+Nits (logged): `UX-15 · PVSubsectionHeader.swift:50 · empty accessibilityIdentifier set on callers that pass none` · `UX-16 · L10n.swift:5121 · origin.badge.user comment still says "Origin badge"` · `MNT-16 · SourceTypeFormatsSection.swift:311 · third literal 0.42 disabled opacity; no kit token` · `MNT-17 · PVTextArea.swift PVTextAreaCompletionRows · same check passed to isActive and isSelected`
+
+## Result
+Gate PASS (`01829cd31`, `origin/main` unchanged at `24bd80e70`) · CI <pending> · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
