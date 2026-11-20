@@ -24,6 +24,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
@@ -44,7 +45,7 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcecredibilitygrades.Install(c); err != nil {
+	if err := sourcecredibilitygradestest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	grade, err := sourcecredibilitygrades.Lookup(c, "standard", vocabkey.OriginProvenencia)

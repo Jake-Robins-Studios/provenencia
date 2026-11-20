@@ -24,19 +24,15 @@ func createCatalog(parent, folder string) (*database.Catalog, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = writes.Call(c, writes.Op{Action: sourcevocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := sourcevocab.Install(tx)
-		return struct{}{}, changes, err
-	})
-	if err != nil {
+	if err := installSeed(c, sourcevocab.ActionInstall, sourcevocab.Install); err != nil {
 		_ = c.Close()
 		return nil, err
 	}
-	if err := sourcecredibilitygrades.Install(c); err != nil {
+	if err := installSeed(c, sourcecredibilitygrades.ActionInstall, sourcecredibilitygrades.Install); err != nil {
 		_ = c.Close()
 		return nil, err
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := installSeed(c, subjectvocab.ActionInstall, subjectvocab.Install); err != nil {
 		_ = c.Close()
 		return nil, err
 	}
@@ -53,6 +49,16 @@ func createCatalog(parent, folder string) (*database.Catalog, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+// installSeed runs one domain's create-time Install in one write with no user,
+// so the seed is one revision and a failed install leaves none of its rows.
+func installSeed(c *database.Catalog, action string, install func(*database.Tx) ([]rowchange.Change, error)) error {
+	_, err := writes.Call(c, writes.Op{Action: action}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := install(tx)
+		return struct{}{}, changes, err
+	})
+	return err
 }
 
 // OpenCatalog opens a project once (migrate + the open-time repairs of catalogsession.ReconcileOnOpen).

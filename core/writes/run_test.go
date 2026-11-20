@@ -19,7 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -130,7 +130,7 @@ func TestRunMixedOmitsNone(t *testing.T) {
 	if err := users.Upsert(c, userID, "Ada", mustRef(t)); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -282,7 +282,7 @@ func TestPropertyTermRun(t *testing.T) {
 	if err := users.Upsert(c, userID, "Tester", mustRef(t)); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	prop, err := properties.Lookup(c, "event_type", vocabkey.OriginProvenencia)

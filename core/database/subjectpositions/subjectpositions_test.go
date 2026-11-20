@@ -16,7 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -56,7 +56,7 @@ func TestSubjectPositions(t *testing.T) {
 	}
 	mustPerson := func(t *testing.T, c *database.Catalog, sourceID []byte, label string) []byte {
 		t.Helper()
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		graph := evidencegraphstest.SoleGraph(t, c, sourceID).ID

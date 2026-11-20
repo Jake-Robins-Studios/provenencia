@@ -16,7 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
@@ -730,7 +730,7 @@ func TestSourceDelete(t *testing.T) {
 		t.Fatalf("artifact inbound %v", err)
 	}
 
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	personType, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)

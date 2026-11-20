@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/google/uuid"
 )
@@ -15,11 +16,10 @@ import (
 var ErrInvalid = apperr.New(apperr.CodeSourceCredibilityInvalid, apperr.KindUser)
 
 const (
-	sqlUpsert = `INSERT INTO source_credibility_grades (id, key, origin, label, sort_order)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(key, origin) DO UPDATE SET
-			label = excluded.label,
-			sort_order = excluded.sort_order`
+	// sqlInsert is the one insert of a new grade.
+	sqlInsert = `INSERT INTO source_credibility_grades (id, key, origin, label, sort_order)
+		VALUES (?, ?, ?, ?, ?)`
+	sqlUpdate = `UPDATE source_credibility_grades SET label = ?, sort_order = ? WHERE id = ?`
 	sqlLookup = `SELECT id, key, origin, label, sort_order
 		FROM source_credibility_grades WHERE key = ? AND origin = ?`
 	sqlGetByID = `SELECT id, key, origin, label, sort_order
@@ -38,39 +38,83 @@ type Grade struct {
 	SortOrder int
 }
 
-// Upsert inserts or updates by (key, origin). Mints a UUIDv7 id when ID is empty on insert.
-func Upsert(c *database.Catalog, g Grade) ([]byte, error) {
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
+// rowFields is the audit view of a grade: the one column list that create and
+// update changes are built from.
+func rowFields(g Grade) map[string]any {
+	return map[string]any{
+		"id":         database.UUIDString(g.ID),
+		"key":        g.Key,
+		"origin":     g.Origin,
+		"label":      g.Label,
+		"sort_order": g.SortOrder,
+	}
+}
+
+// createChange is the create change of a new grade row: every column.
+func createChange(g Grade) rowchange.Change {
+	return rowchange.Change{
+		EntityType: "source_credibility_grade",
+		EntityID:   append([]byte(nil), g.ID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(rowFields(g)),
+	}
+}
+
+// updateChange is the update change from prev to next, naming only the columns
+// that differ; nil when nothing differs. id, key and origin are never compared.
+func updateChange(prev, next Grade) *rowchange.Change {
+	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "key", "origin")
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
+		EntityType: "source_credibility_grade",
+		EntityID:   append([]byte(nil), prev.ID...),
+		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// UpsertTx inserts or updates by (key, origin) on tx and returns the id and the
+// row changes. Missing: a new grade, one create change. Present: label and
+// sort_order are written and one update change names what differs; nothing
+// differing writes nothing and returns no change. A non-empty g.ID is
+// ErrInvalid. The caller records the changes.
+func UpsertTx(tx *database.Tx, g Grade) ([]byte, []rowchange.Change, error) {
+	if tx == nil || len(g.ID) != 0 {
+		return nil, nil, ErrInvalid
 	}
 	g.Key = strings.TrimSpace(g.Key)
 	g.Origin = strings.TrimSpace(g.Origin)
 	g.Label = strings.TrimSpace(g.Label)
 	if g.Key == "" || g.Label == "" || !vocabkey.ValidOrigin(g.Origin) {
-		return nil, ErrInvalid
+		return nil, nil, ErrInvalid
 	}
-	id := g.ID
-	if len(id) == 0 {
-		existing, err := Lookup(c, g.Key, g.Origin)
-		if err == nil {
-			id = existing.ID
-		} else if errors.Is(err, sql.ErrNoRows) {
-			uid, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
-			id = uid[:]
-		} else {
-			return nil, err
+	existing, err := lookupTx(tx, g.Key, g.Origin)
+	if errors.Is(err, sql.ErrNoRows) {
+		uid, err := uuid.NewV7()
+		if err != nil {
+			return nil, nil, err
 		}
-	} else if len(id) != 16 {
-		return nil, ErrInvalid
+		g.ID = uid[:]
+		if _, err := tx.Exec(sqlInsert, g.ID, g.Key, g.Origin, g.Label, g.SortOrder); err != nil {
+			return nil, nil, err
+		}
+		return append([]byte(nil), g.ID...), []rowchange.Change{createChange(g)}, nil
 	}
-	if _, err := db.Exec(sqlUpsert, id, g.Key, g.Origin, g.Label, g.SortOrder); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, nil, err
 	}
-	return append([]byte(nil), id...), nil
+	next := existing
+	next.Label, next.SortOrder = g.Label, g.SortOrder
+	change := updateChange(existing, next)
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
+	}
+	if _, err := tx.Exec(sqlUpdate, next.Label, next.SortOrder, existing.ID); err != nil {
+		return nil, nil, err
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
 
 // Lookup returns the grade for (key, origin), or sql.ErrNoRows.
@@ -84,7 +128,12 @@ func Lookup(c *database.Catalog, key, origin string) (Grade, error) {
 	if key == "" || origin == "" {
 		return Grade{}, ErrInvalid
 	}
-	return scanGrade(db.QueryRow(sqlLookup, key, origin))
+	return lookupTx(db, key, origin)
+}
+
+// lookupTx is Lookup on any reader: the one scan of a (key, origin) grade.
+func lookupTx(q database.Querier, key, origin string) (Grade, error) {
+	return scanGrade(q.QueryRow(sqlLookup, strings.TrimSpace(key), strings.TrimSpace(origin)))
 }
 
 // GetByID returns a grade by id, or sql.ErrNoRows.

@@ -20,6 +20,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations/observationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
@@ -28,7 +29,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
@@ -75,7 +76,7 @@ func TestObservations(t *testing.T) {
 		if err := users.Upsert(c, userID, "Tester", ur); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -1261,7 +1262,7 @@ func TestObservationsStayInOneGraph(t *testing.T) {
 	if err := users.Upsert(c, userID, "Tester", ur); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
@@ -1444,7 +1445,7 @@ func newBooleanFixture(t *testing.T) booleanFixture {
 	if err := users.Upsert(c, f.userID, "Tester", ur); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
@@ -1467,7 +1468,7 @@ func newBooleanFixture(t *testing.T) booleanFixture {
 	}
 	f.graph = evidencegraphstest.SoleGraph(t, c, src.ID).ID
 	f.person = subjectstest.At(t, c, f.userID, f.graph, personType.ID, "Bob", subjects.Placement{})
-	id, err := properties.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+	id, err := propertiestest.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 	if err != nil {
 		t.Fatal(err)
 	}

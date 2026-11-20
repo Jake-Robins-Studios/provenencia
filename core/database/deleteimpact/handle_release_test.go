@@ -19,7 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
@@ -122,7 +122,7 @@ func TestReleaseClaimDeletesEmptiedHandle(t *testing.T) {
 func personFixture(t *testing.T) (*database.Catalog, []byte, []byte, []byte, subjects.Subject, subjects.Subject) {
 	t.Helper()
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	personType, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)

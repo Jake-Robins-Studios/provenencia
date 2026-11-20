@@ -14,7 +14,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/hops"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -181,7 +181,7 @@ func TestForEntityDropsSubjectValuedFields(t *testing.T) {
 		return properties.Create(tx, userID, "Godparent", propertymeta.ValueTypeSubject, "", propertymeta.CardinalitySingle)
 	})
 	must(t, err)
-	must(t, subjectvocab.EnsureBinding(f.C, f.person.ID, godparent.ID, 9))
+	must(t, subjectvocabtest.EnsureBinding(f.C, f.person.ID, godparent.ID, 9))
 	f.C.Graph().Drop()
 	f.cite(ann, observations.Input{SubjectID: ann.ID, PropertyID: godparent.ID, ValueSubjectID: bob.ID})
 	h := f.promote(ann, nil)

@@ -11,7 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
@@ -201,7 +201,7 @@ func testCatalog(t *testing.T) *database.Catalog {
 	if err := users.Upsert(c, userID, "Tester", r); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	return c

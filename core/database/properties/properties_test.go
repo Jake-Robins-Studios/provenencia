@@ -3,10 +3,13 @@ package properties_test
 import (
 	"database/sql"
 	"errors"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -23,7 +26,7 @@ func TestProperties(t *testing.T) {
 		{
 			name: "upsert lookup list",
 			run: func(t *testing.T, c *database.Catalog, _ []byte) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "occupation", Origin: vocabkey.OriginProvenencia, Label: "Occupation", ValueType: propertymeta.ValueTypeText,
 				})
 				if err != nil {
@@ -45,7 +48,7 @@ func TestProperties(t *testing.T) {
 		{
 			name: "rejects bad value type",
 			run: func(t *testing.T, c *database.Catalog, _ []byte) {
-				if _, err := properties.Upsert(c, properties.Property{
+				if _, err := propertiestest.Upsert(c, properties.Property{
 					Key: "x", Origin: vocabkey.OriginUser, Label: "X", ValueType: "real",
 				}); !errors.Is(err, properties.ErrInvalid) {
 					t.Fatalf("got %v", err)
@@ -136,7 +139,7 @@ func TestProperties(t *testing.T) {
 		{
 			name: "upsert accepts depiction",
 			run: func(t *testing.T, c *database.Catalog, _ []byte) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "snapshot", Origin: vocabkey.OriginProvenencia, Label: "Snapshot", ValueType: propertymeta.ValueTypeDepiction,
 				})
 				if err != nil {
@@ -151,7 +154,7 @@ func TestProperties(t *testing.T) {
 		{
 			name: "upsert allows proveniencia term",
 			run: func(t *testing.T, c *database.Catalog, _ []byte) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "event_type", Origin: vocabkey.OriginProvenencia, Label: "Event type", ValueType: propertymeta.ValueTypeTerm,
 				})
 				if err != nil {
@@ -241,7 +244,7 @@ func TestValueTypeRules(t *testing.T) {
 		{
 			name: "upsert boolean empty cardinality is single",
 			run: func(c *database.Catalog, _ []byte) error {
-				_, err := properties.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+				_, err := propertiestest.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 				return err
 			},
 			key: "literate", storedType: propertymeta.ValueTypeBoolean, storedCard: propertymeta.CardinalitySingle,
@@ -249,7 +252,7 @@ func TestValueTypeRules(t *testing.T) {
 		{
 			name: "upsert boolean multiple is refused",
 			run: func(c *database.Catalog, _ []byte) error {
-				_, err := properties.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean, Cardinality: propertymeta.CardinalityMultiple})
+				_, err := propertiestest.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean, Cardinality: propertymeta.CardinalityMultiple})
 				return err
 			},
 			want: properties.ErrInvalid,
@@ -313,7 +316,7 @@ func TestValueTypeRules(t *testing.T) {
 
 func TestBooleanCardinalityStaysSingle(t *testing.T) {
 	c, userID := newPropertiesCatalog(t)
-	id, err := properties.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+	id, err := propertiestest.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,5 +338,142 @@ func TestBooleanCardinalityStaysSingle(t *testing.T) {
 	}
 	if _, err := db.Exec(`UPDATE properties SET cardinality = 'multiple' WHERE id = ?`, id); err == nil {
 		t.Fatal("the table accepted a multiple-valued boolean Property")
+	}
+}
+
+// upsertTx runs UpsertTx inside writes.Call and returns the changes.
+func upsertTx(c *database.Catalog, p properties.Property) ([]byte, []rowchange.Change, error) {
+	var changes []rowchange.Change
+	id, err := writes.Call(c, writes.Op{Action: "upsert_property"}, func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+		id, cs, err := properties.UpsertTx(tx, p)
+		changes = cs
+		return id, cs, err
+	})
+	return id, changes, err
+}
+
+func TestUpsertTx(t *testing.T) {
+	occupation := properties.Property{Key: "occupation", Origin: vocabkey.OriginProvenencia, Label: "Occupation", ValueType: propertymeta.ValueTypeText}
+	diffKeys := func(ch rowchange.Change) []string {
+		var keys []string
+		for k := range ch.Fields {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		return keys
+	}
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+
+	id, changes, err := upsertTx(c, occupation)
+	if err != nil || len(changes) != 1 {
+		t.Fatalf("create: %v %+v", err, changes)
+	}
+	if ch := changes[0]; ch.EntityType != "property" || ch.Action != rowchange.ActionCreate ||
+		!reflect.DeepEqual(diffKeys(ch), []string{"cardinality", "id", "key", "label", "origin", "value_type"}) ||
+		ch.Fields["cardinality"].New != propertymeta.CardinalitySingle {
+		t.Fatalf("create change %+v", ch)
+	}
+
+	again, changes, err := upsertTx(c, occupation)
+	if err != nil || len(changes) != 0 || string(again) != string(id) {
+		t.Fatalf("same: %v %+v", err, changes)
+	}
+
+	edited := occupation
+	edited.Label, edited.Cardinality = "Occupations", propertymeta.CardinalityMultiple
+	_, changes, err = upsertTx(c, edited)
+	if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate ||
+		!reflect.DeepEqual(diffKeys(changes[0]), []string{"cardinality", "label"}) {
+		t.Fatalf("update: %v %+v", err, changes)
+	}
+
+	retyped := edited
+	retyped.ValueType = propertymeta.ValueTypeInteger
+	if _, changes, err = upsertTx(c, retyped); !errors.Is(err, properties.ErrInvalid) || len(changes) != 0 {
+		t.Fatalf("value type change: %v %+v", err, changes)
+	}
+	got, err := properties.Lookup(c, "occupation", vocabkey.OriginProvenencia)
+	if err != nil || got.ValueType != propertymeta.ValueTypeText || got.Label != "Occupations" {
+		t.Fatalf("row after refused retype: %v %+v", err, got)
+	}
+
+	if _, _, err := upsertTx(c, properties.Property{Key: "acme_fact", Origin: "plugin:acme", Label: "Fact", ValueType: propertymeta.ValueTypeText}); err != nil {
+		t.Fatalf("plugin origin: %v", err)
+	}
+	for name, p := range map[string]properties.Property{
+		"blank key":      {Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText},
+		"blank label":    {Key: "x", Origin: vocabkey.OriginProvenencia, ValueType: propertymeta.ValueTypeText},
+		"bogus origin":   {Key: "x", Origin: "bogus", Label: "X", ValueType: propertymeta.ValueTypeText},
+		"bad value type": {Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: "real"},
+		"non-empty ID":   {ID: make([]byte, 16), Key: "x", Origin: vocabkey.OriginProvenencia, Label: "X", ValueType: propertymeta.ValueTypeText},
+	} {
+		if _, _, err := upsertTx(c, p); !errors.Is(err, properties.ErrInvalid) {
+			t.Fatalf("%s: got %v", name, err)
+		}
+	}
+}
+
+// TestCreateUpdateDeleteChanges pins the audit keys of a researcher's Property.
+func TestCreateUpdateDeleteChanges(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	userID := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	r, err := ref.Mint(ref.PrefixUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := users.Upsert(c, userID, "Tester", r); err != nil {
+		t.Fatal(err)
+	}
+	keys := func(ch rowchange.Change) []string {
+		var out []string
+		for k := range ch.Fields {
+			out = append(out, k)
+		}
+		sort.Strings(out)
+		return out
+	}
+	var created, updated, deleted []rowchange.Change
+	p, err := writes.Call(c, writes.Op{Action: "create_property", UserID: userID}, func(tx *database.Tx) (properties.Property, []rowchange.Change, error) {
+		got, cs, err := properties.Create(tx, userID, "Custom Fact", propertymeta.ValueTypeText, "note", "")
+		created = cs
+		return got, cs, err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writes.Call(c, writes.Op{Action: "update_property", UserID: userID}, func(tx *database.Tx) (properties.Property, []rowchange.Change, error) {
+		got, cs, err := properties.Update(tx, userID, p.ID, "Custom Fact 2", propertymeta.ValueTypeText, "", "")
+		updated = cs
+		return got, cs, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writes.Call(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		cs, err := properties.Delete(tx, userID, p.ID)
+		deleted = cs
+		return struct{}{}, cs, err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(created) != 1 || !reflect.DeepEqual(keys(created[0]), []string{"cardinality", "description", "id", "key", "label", "origin", "value_type"}) {
+		t.Fatalf("create keys %+v", created)
+	}
+	if len(updated) != 1 || !reflect.DeepEqual(keys(updated[0]), []string{"description", "label"}) {
+		t.Fatalf("update keys %+v", updated)
+	}
+	if d := updated[0].Fields["description"]; d.Old != "note" || d.New != nil {
+		t.Fatalf("clearing a description: %+v", d)
+	}
+	last := deleted[len(deleted)-1]
+	if !reflect.DeepEqual(keys(last), []string{"cardinality", "id", "key", "label", "origin", "value_type"}) {
+		t.Fatalf("delete keys %v", keys(last))
 	}
 }

@@ -19,13 +19,14 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
@@ -89,7 +90,7 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 			t.Fatal(err)
 		}
 	}
-	if err := sourcecredibilitygrades.Install(c); err != nil {
+	if err := sourcecredibilitygradestest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	grades, err := sourcecredibilitygrades.List(c)
@@ -179,7 +180,7 @@ func seedObituary(t *testing.T) (c *database.Catalog, userID []byte, orig source
 		t.Fatal(err)
 	}
 
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	graph := evidencegraphstest.SoleGraph(t, c, orig.ID).ID

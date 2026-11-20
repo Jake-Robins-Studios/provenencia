@@ -16,6 +16,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
@@ -23,7 +24,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes/subjecttypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -75,7 +76,7 @@ func TestDelete(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				typeID, err := subjecttypes.Upsert(c, subjecttypes.Type{
+				typeID, err := subjecttypestest.Upsert(c, subjecttypes.Type{
 					Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 					RefPrefix: "PER", CandidateRefPrefix: "CPR",
 				})
@@ -118,7 +119,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "bound user property releases its binding before the delete",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := subjectvocab.Install(c); err != nil {
+				if err := subjectvocabtest.Install(c); err != nil {
 					t.Fatal(err)
 				}
 				got, err := writes.Call(c, writes.Op{Action: "create_property", UserID: userID}, func(tx *database.Tx) (properties.Property, []rowchange.Change, error) {
@@ -151,7 +152,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "observation inbound is in use",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := subjectvocab.Install(c); err != nil {
+				if err := subjectvocabtest.Install(c); err != nil {
 					t.Fatal(err)
 				}
 				prop, err := writes.Call(c, writes.Op{Action: "create_property", UserID: userID}, func(tx *database.Tx) (properties.Property, []rowchange.Change, error) {
@@ -189,7 +190,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "unused terms are in use",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "residence_status", Origin: vocabkey.OriginUser,
 					Label: "Residence status", ValueType: propertymeta.ValueTypeTerm,
 				})
@@ -218,7 +219,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "seeded is origin locked",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "occupation", Origin: vocabkey.OriginProvenencia,
 					Label: "Occupation", ValueType: propertymeta.ValueTypeText,
 				})
@@ -241,7 +242,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "unused plugin is origin locked",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := properties.Upsert(c, properties.Property{
+				id, err := propertiestest.Upsert(c, properties.Property{
 					Key: "plugin_fact", Origin: "plugin:acme",
 					Label: "Plugin fact", ValueType: propertymeta.ValueTypeText,
 				})
@@ -395,7 +396,7 @@ func TestUsedByCountsObservationsNotBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	typeID, err := subjecttypes.Upsert(c, subjecttypes.Type{
+	typeID, err := subjecttypestest.Upsert(c, subjecttypes.Type{
 		Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 		RefPrefix: "PER", CandidateRefPrefix: "CPR",
 	})
@@ -416,7 +417,7 @@ func TestUsedByCountsObservationsNotBindings(t *testing.T) {
 	if err != nil || n != 0 {
 		t.Fatalf("binding must not count: %d %v", n, err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	insertObservationOn(t, c, userID, prop.ID)
@@ -456,10 +457,10 @@ func TestUsedByCountsObservationsAndTerms(t *testing.T) {
 	if err := users.Upsert(c, userID, "Tester", r); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	propID, err := properties.Upsert(c, properties.Property{
+	propID, err := propertiestest.Upsert(c, properties.Property{
 		Key: "residence_status", Origin: vocabkey.OriginUser, Label: "Residence status", ValueType: propertymeta.ValueTypeTerm,
 	})
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -51,7 +52,7 @@ func TestAssessments(t *testing.T) {
 	}
 	mustGrades := func(t *testing.T, c *database.Catalog) []sourcecredibilitygrades.Grade {
 		t.Helper()
-		if err := sourcecredibilitygrades.Install(c); err != nil {
+		if err := sourcecredibilitygradestest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		list, err := sourcecredibilitygrades.List(c)

@@ -8,6 +8,8 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations/observationstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 
@@ -35,7 +37,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -48,10 +49,10 @@ const testLocator = `{"version":1,"selectors":[{"type":"page","artifact_page":1}
 
 func TestImpactGates(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcecredibilitygrades.Install(c); err != nil {
+	if err := sourcecredibilitygradestest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 
@@ -159,7 +160,7 @@ func TestImpactGates(t *testing.T) {
 	})
 
 	t.Run("property with term row inbound", func(t *testing.T) {
-		propID, err := properties.Upsert(c, properties.Property{
+		propID, err := propertiestest.Upsert(c, properties.Property{
 			Key: "custom_event", Origin: vocabkey.OriginUser,
 			Label: "Custom Event", ValueType: propertymeta.ValueTypeTerm,
 		})
@@ -203,7 +204,7 @@ func TestImpactGates(t *testing.T) {
 
 func TestImpactCitationAndSubject(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -668,7 +669,7 @@ func TestSnapshotOwnedThenRelease(t *testing.T) {
 
 func TestImpactSourceAndArtifact(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -773,7 +774,7 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 
 func TestImpactEvidenceGraph(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -1074,7 +1075,7 @@ func TestListedGroup(t *testing.T) {
 // in the location the delete report links to.
 func TestLocationsNameTheirGraph(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -1175,7 +1176,7 @@ func TestLocationsNameTheirGraph(t *testing.T) {
 
 func TestSubjectCascadesSplitHandles(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	personType, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)
@@ -1273,7 +1274,7 @@ func TestInboundTotal(t *testing.T) {
 // held by Observations and terms, an unheld id, and more ids than one batch.
 func TestInboundTotals(t *testing.T) {
 	c, userID := testCatalog(t)
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	field := func(key string) []byte {
@@ -1305,7 +1306,7 @@ func TestInboundTotals(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	termed, err := properties.Upsert(c, properties.Property{
+	termed, err := propertiestest.Upsert(c, properties.Property{
 		Key: "termed", Origin: vocabkey.OriginUser, Label: "Termed", ValueType: propertymeta.ValueTypeTerm,
 	})
 	if err != nil {
@@ -1313,7 +1314,7 @@ func TestInboundTotals(t *testing.T) {
 	}
 	createTerm(t, c, userID, termed, "One")
 	createTerm(t, c, userID, termed, "Two")
-	untouched, err := properties.Upsert(c, properties.Property{
+	untouched, err := propertiestest.Upsert(c, properties.Property{
 		Key: "untouched", Origin: vocabkey.OriginUser, Label: "Untouched", ValueType: propertymeta.ValueTypeTerm,
 	})
 	if err != nil {
@@ -1406,7 +1407,7 @@ func TestImpactEvidenceGraphLeavesNoGraph(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c, userID := testCatalog(t)
-			if err := subjectvocab.Install(c); err != nil {
+			if err := subjectvocabtest.Install(c); err != nil {
 				t.Fatal(err)
 			}
 			src := mustSource(t, c, userID)

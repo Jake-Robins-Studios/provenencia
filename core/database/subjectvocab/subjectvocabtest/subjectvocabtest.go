@@ -1,4 +1,7 @@
-// Package subjectvocabtest holds test helpers for binding writes.
+// Package subjectvocabtest holds test helpers for the Subject vocabulary: the
+// seed and binding writes. The error-returning helpers keep the signatures of
+// the product functions they replaced, beside Assign, which fails the test
+// itself.
 package subjectvocabtest
 
 import (
@@ -21,4 +24,24 @@ func Assign(t testing.TB, c *database.Catalog, userID, typeID, propertyID []byte
 		}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// Install writes the Subject vocabulary seed in one audited write, as catalog
+// creation does.
+func Install(c *database.Catalog) error {
+	_, err := writes.Call(c, writes.Op{Action: subjectvocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := subjectvocab.Install(tx)
+		return struct{}{}, changes, err
+	})
+	return err
+}
+
+// EnsureBinding sets a binding's sort_order through the write pipeline: it
+// inserts the pair or moves it to sortOrder.
+func EnsureBinding(c *database.Catalog, typeID, propertyID []byte, sortOrder int) error {
+	_, err := writes.Call(c, writes.Op{Action: "ensure_subject_type_property"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		changes, err := subjectvocab.EnsureBindingTx(tx, typeID, propertyID, sortOrder)
+		return struct{}{}, changes, err
+	})
+	return err
 }

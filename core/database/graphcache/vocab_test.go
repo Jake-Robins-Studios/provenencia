@@ -11,7 +11,9 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes/subjecttypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
@@ -39,7 +41,7 @@ func TestVocabularyBindings(t *testing.T) {
 // that key's binding order.
 func TestVocabularyBindingsPluginTypeSeededKey(t *testing.T) {
 	c := graphcachetest.OpenCatalog(t)
-	typeID, err := subjecttypes.Upsert(c, subjecttypes.Type{
+	typeID, err := subjecttypestest.Upsert(c, subjecttypes.Type{
 		Key: "person", Origin: "plugin:x", Label: "Person (plugin)",
 		RefPrefix: "XPR", CandidateRefPrefix: "XPC",
 	})
@@ -50,7 +52,7 @@ func TestVocabularyBindingsPluginTypeSeededKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.EnsureBinding(c, typeID, prop.ID, 0); err != nil {
+	if err := subjectvocabtest.EnsureBinding(c, typeID, prop.ID, 0); err != nil {
 		t.Fatal(err)
 	}
 	v, err := c.Graph().Vocabulary()
@@ -71,7 +73,7 @@ func TestVocabularyBindingsPluginTypeSeededKey(t *testing.T) {
 // another origin, even one sharing a seeded key.
 func TestTypeKeysByID(t *testing.T) {
 	c := graphcachetest.OpenCatalog(t)
-	pluginID, err := subjecttypes.Upsert(c, subjecttypes.Type{
+	pluginID, err := subjecttypestest.Upsert(c, subjecttypes.Type{
 		Key: "person", Origin: "plugin:x", Label: "Person (plugin)",
 		RefPrefix: "XPR", CandidateRefPrefix: "XPC",
 	})

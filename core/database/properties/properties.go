@@ -36,13 +36,9 @@ var ErrInUse = apperr.New(apperr.CodePropertiesInUse, apperr.KindConflict)
 var ErrOriginLocked = apperr.New(apperr.CodePropertiesOriginLocked, apperr.KindConflict)
 
 const (
-	sqlUpsert = `INSERT INTO properties (id, key, origin, label, description, value_type, cardinality)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(key, origin) DO UPDATE SET
-			label = excluded.label,
-			description = excluded.description,
-			value_type = excluded.value_type,
-			cardinality = excluded.cardinality`
+	// sqlInsert is the one insert of a new Property.
+	sqlInsert = `INSERT INTO properties (id, key, origin, label, description, value_type, cardinality)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`
 	sqlLookup = `SELECT id, key, origin, label, COALESCE(description, ''), value_type, cardinality
 		FROM properties WHERE key = ? AND origin = ?`
 	sqlGetByID = `SELECT id, key, origin, label, COALESCE(description, ''), value_type, cardinality
@@ -69,12 +65,60 @@ type Property struct {
 	UsedBy int
 }
 
-// Upsert inserts or updates by (key, origin). Mints a UUIDv7 id when ID is empty on insert.
-// Used by create-time seed; does not write audit.
-func Upsert(c *database.Catalog, p Property) ([]byte, error) {
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
+// rowFields is the audit view of a Property: the one column list that create,
+// update and delete changes are built from. Description is present only when
+// not empty.
+func rowFields(p Property) map[string]any {
+	fields := map[string]any{
+		"id":          database.UUIDString(p.ID),
+		"key":         p.Key,
+		"origin":      p.Origin,
+		"label":       p.Label,
+		"value_type":  p.ValueType,
+		"cardinality": p.Cardinality,
+	}
+	if p.Description != "" {
+		fields["description"] = p.Description
+	}
+	return fields
+}
+
+// createChange is the create change of a new Property row: every column.
+func createChange(p Property) rowchange.Change {
+	return rowchange.Change{
+		EntityType: "property",
+		EntityID:   append([]byte(nil), p.ID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(rowFields(p)),
+	}
+}
+
+// updateChange is the update change from prev to next, naming only the columns
+// that differ (a missing key reads nil); nil when nothing differs. id, key and
+// origin are never compared.
+func updateChange(prev, next Property) *rowchange.Change {
+	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "key", "origin")
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
+		EntityType: "property",
+		EntityID:   append([]byte(nil), prev.ID...),
+		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// UpsertTx inserts or updates by (key, origin) on tx and returns the id and the
+// row changes. Missing: a new Property, one create change. Present: label,
+// description and cardinality are written and one update change names what
+// differs; nothing differing writes nothing and returns no change. A stored
+// value type that differs from the input's is ErrInvalid (an Observation
+// stores its value by type). An empty cardinality is single. A non-empty p.ID
+// is ErrInvalid. The caller records the changes.
+func UpsertTx(tx *database.Tx, p Property) ([]byte, []rowchange.Change, error) {
+	if tx == nil || len(p.ID) != 0 {
+		return nil, nil, ErrInvalid
 	}
 	p.Key = strings.TrimSpace(p.Key)
 	p.Origin = strings.TrimSpace(p.Origin)
@@ -86,29 +130,36 @@ func Upsert(c *database.Catalog, p Property) ([]byte, error) {
 		p.Cardinality = propertymeta.CardinalitySingle
 	}
 	if p.Key == "" || p.Label == "" || !vocabkey.ValidOrigin(p.Origin) || !valueTypeOK(p.ValueType) || !cardinalityAllowed(p.ValueType, p.Cardinality) {
-		return nil, ErrInvalid
+		return nil, nil, ErrInvalid
 	}
-	id := p.ID
-	if len(id) == 0 {
-		existing, err := Lookup(c, p.Key, p.Origin)
-		if err == nil {
-			id = existing.ID
-		} else if errors.Is(err, sql.ErrNoRows) {
-			uid, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
-			id = uid[:]
-		} else {
-			return nil, err
+	existing, err := LookupTx(tx.Tx, p.Key, p.Origin)
+	if errors.Is(err, sql.ErrNoRows) {
+		uid, err := uuid.NewV7()
+		if err != nil {
+			return nil, nil, err
 		}
-	} else if len(id) != 16 {
-		return nil, ErrInvalid
+		p.ID = uid[:]
+		if _, err := tx.Exec(sqlInsert, p.ID, p.Key, p.Origin, p.Label, database.NullString(p.Description), p.ValueType, p.Cardinality); err != nil {
+			return nil, nil, err
+		}
+		return append([]byte(nil), p.ID...), []rowchange.Change{createChange(p)}, nil
 	}
-	if _, err := db.Exec(sqlUpsert, id, p.Key, p.Origin, p.Label, database.NullString(p.Description), p.ValueType, p.Cardinality); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, nil, err
 	}
-	return append([]byte(nil), id...), nil
+	if existing.ValueType != p.ValueType {
+		return nil, nil, ErrInvalid
+	}
+	next := existing
+	next.Label, next.Description, next.Cardinality = p.Label, p.Description, p.Cardinality
+	change := updateChange(existing, next)
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
+	}
+	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), next.Cardinality, existing.ID); err != nil {
+		return nil, nil, err
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
 
 // Create mints a kebab-case key from label and inserts a user-origin Property.
@@ -151,34 +202,19 @@ func Create(tx *database.Tx, userID []byte, label, valueType, description, cardi
 	if label == "" || !cardinalityAllowed(valueType, cardinality) {
 		return Property{}, nil, ErrInvalid
 	}
-	if _, err := tx.Exec(sqlUpsert, id, key, vocabkey.OriginUser, label, database.NullString(description), valueType, cardinality); err != nil {
+	if _, err := tx.Exec(sqlInsert, id, key, vocabkey.OriginUser, label, database.NullString(description), valueType, cardinality); err != nil {
 		return Property{}, nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":          {Old: nil, New: uid.String()},
-		"key":         {Old: nil, New: key},
-		"origin":      {Old: nil, New: vocabkey.OriginUser},
-		"label":       {Old: nil, New: label},
-		"value_type":  {Old: nil, New: valueType},
-		"cardinality": {Old: nil, New: cardinality},
+	created := Property{
+		ID:          append([]byte(nil), id...),
+		Key:         key,
+		Origin:      vocabkey.OriginUser,
+		Label:       label,
+		Description: description,
+		ValueType:   valueType,
+		Cardinality: cardinality,
 	}
-	if description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: description}
-	}
-	return Property{
-			ID:          append([]byte(nil), id...),
-			Key:         key,
-			Origin:      vocabkey.OriginUser,
-			Label:       label,
-			Description: description,
-			ValueType:   valueType,
-			Cardinality: cardinality,
-		}, []rowchange.Change{{
-			EntityType: "property",
-			EntityID:   append([]byte(nil), id...),
-			Action:     rowchange.ActionCreate,
-			Fields:     fields,
-		}}, nil
+	return created, []rowchange.Change{createChange(created)}, nil
 }
 
 // Update patches label, description, and cardinality for a project Property
@@ -221,36 +257,21 @@ func Update(tx *database.Tx, userID, id []byte, label, valueType, description, c
 		return Property{}, nil, ErrLocked
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if existing.Label != label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(existing.Label), New: database.NullString(label)}
-	}
-	if existing.Description != description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(existing.Description), New: database.NullString(description)}
-	}
-	if cardinalityChanged {
-		fields["cardinality"] = rowchange.FieldDiff{Old: database.NullString(existing.Cardinality), New: database.NullString(cardinality)}
-	}
-	existing.Label = label
-	existing.Description = description
-	existing.Cardinality = cardinality
+	next := existing
+	next.Label, next.Description, next.Cardinality = label, description, cardinality
+	change := updateChange(existing, next)
 	used, err := deleteimpact.InboundTotal(tx.Tx, catalogmodel.KindProperty, id)
 	if err != nil {
 		return Property{}, nil, err
 	}
-	existing.UsedBy = used
-	if len(fields) == 0 {
-		return existing, nil, nil
+	next.UsedBy = used
+	if change == nil {
+		return next, nil, nil
 	}
 	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), cardinality, id); err != nil {
 		return Property{}, nil, err
 	}
-	return existing, []rowchange.Change{{
-		EntityType: "property",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return next, []rowchange.Change{*change}, nil
 }
 
 // GetByID returns the Property with the given id, or sql.ErrNoRows.
@@ -374,21 +395,11 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":         {Old: database.UUIDString(id), New: nil},
-		"key":        {Old: prev.Key, New: nil},
-		"origin":     {Old: prev.Origin, New: nil},
-		"label":      {Old: prev.Label, New: nil},
-		"value_type": {Old: prev.ValueType, New: nil},
-	}
-	if prev.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: prev.Description, New: nil}
-	}
 	return append(released, rowchange.Change{
 		EntityType: "property",
 		EntityID:   append([]byte(nil), id...),
 		Action:     rowchange.ActionDelete,
-		Fields:     fields,
+		Fields:     rowchange.DeletedRow(rowFields(prev)),
 	}), nil
 }
 

@@ -23,7 +23,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -60,7 +60,7 @@ func TestGraphProgress(t *testing.T) {
 		if err := users.Upsert(c, userID, "Tester", ur); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -306,7 +306,7 @@ func TestFiledCounts(t *testing.T) {
 	if err := users.Upsert(c, userID, "Tester", ur); err != nil {
 		t.Fatal(err)
 	}
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	db, err := c.DB()
