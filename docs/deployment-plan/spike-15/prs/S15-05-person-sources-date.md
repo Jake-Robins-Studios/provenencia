@@ -1,6 +1,7 @@
 # S15-05 — The Person page's Sources section shows each Source's date
 
 **Status:** Landed in [#919](https://github.com/Jake-Robins-Studios/provenencia/pull/919) (2026-11-20)
+**Landed:** the code differs from the plan in five ways. `fillRecordDates` is a named helper (D-2 had `loadRecords` call `lookupDates` directly; `lookupDates` and `settleDate` stay one each). The version goes 0.28.1 → 0.29.0 because `main` had moved to 0.28.1. STEP-4 and STEP-5 are one commit, since both edit `L10n.swift` and `Localizable.xcstrings`. Build at 3,000 dated Sources is 32 ms / 6.6 MB (budget 50 ms / 8 MB). `PVPublishedDate` builds its hover help from the line it already formatted, so a dated row formats once per body.
 **Spike / slice:** Spike 15 · Slice 5 — Rendering
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D3](../design/archive/S15-D3-person-sources-date.md), board agreed 2026-11-20
@@ -319,7 +320,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — or none
-- [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
+- [x] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated)
 - [ ] Domain doc updated if a rule in docs/*.md changed: docs/catalog-caches.md `sources.records` row (three queries, measured size)
