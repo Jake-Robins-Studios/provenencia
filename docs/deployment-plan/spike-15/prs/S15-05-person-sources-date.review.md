@@ -1,7 +1,7 @@
 # Review — S15-05 The Person page's Sources section shows each Source's date
 
-**Verdict:** Fits with changes — Ready with changes (round 1)
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes (round 2: no blocker)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 - None. (The one product call, whether the section draws the date's unknown or supplied mark, was answered before review: no, same as the Sources list; user, 2026-11-20.)
@@ -63,3 +63,16 @@ No PR moves the `sources.list.*` published-date keys (S16-25 converts query keys
 
 ### X-7 · nit · Temptations
 **Answer:** Fixed — two Out lines (the list's other spoken-label code; earlier plans' prose); the DoD sweep names the old names and leaves landed plans' prose.
+
+## Round 2
+
+Both reviewers checked every round-1 answer against the code at `41f1f3e` and found that they hold. Neither raised a new blocker.
+
+### M2-1 · minor · Scope In row still named `CatalogPersonClaimGroup.date`
+**Answer:** Fixed — §3 reads `sourceDate`.
+
+### M2-2 · minor (note) · `SourceDateText.spokenRow` puts a row join in a type named for the date
+**Answer:** Declined — the join's only varying part is the date's spoken text, and its two callers are a Sources-feature row and a Conclusions row; a recipe home (as `PVLastUpdated.label`) would make `PersonSourcesContent`, a pure content type, call a view recipe for a string, which M-1 removed. One function, one place, as M-2 asked.
+
+### X2-1 – X2-6 · nit
+**Answer:** Fixed — STEP-3 names `macos/App/Platform/Generated/engine.pb.swift`; STEP-4 places `L10n.PublishedDate` before `LastUpdated`, says the Sources list's look is checked by hand (§10 step 6), and T-8 renames `publishedDateTextAndSpokenBase` → `publishedDateTextAndSpokenRow`; T-1 spells out `1 Jun 1880`; D-2 says how the id slice is built.
