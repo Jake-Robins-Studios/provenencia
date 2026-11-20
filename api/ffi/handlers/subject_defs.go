@@ -83,9 +83,8 @@ func DeleteProperty(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeletePropertyResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := properties.Delete(tx, userID, propertyID)
-			return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_property", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return properties.Delete(tx, userID, propertyID)
 		})
 		if err != nil {
 			return err
@@ -126,10 +125,9 @@ func ReorderSubjectTypeProperties(in []byte) ([]byte, error) {
 	}
 	var out *engine.ReorderSubjectTypePropertiesResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: subjectvocab.ActionReorder, UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjectvocab.ReorderBindings(tx, userID, typeID, propertyIDs)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionReorder, UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjectvocab.ReorderBindings(tx, userID, typeID, propertyIDs)
 			})
 		if err != nil {
 			return err
@@ -169,10 +167,9 @@ func AssignSubjectTypeProperty(in []byte) ([]byte, error) {
 	}
 	var out *engine.AssignSubjectTypePropertyResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: subjectvocab.ActionAssign, UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjectvocab.AppendBinding(tx, userID, typeID, propertyID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionAssign, UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjectvocab.AppendBinding(tx, userID, typeID, propertyID)
 			})
 		if err != nil {
 			return err
@@ -205,10 +202,9 @@ func RemoveSubjectTypeProperty(in []byte) ([]byte, error) {
 	}
 	var out *engine.RemoveSubjectTypePropertyResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: subjectvocab.ActionRemove, UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjectvocab.DeleteBinding(tx, userID, typeID, propertyID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionRemove, UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjectvocab.DeleteBinding(tx, userID, typeID, propertyID)
 			})
 		if err != nil {
 			return err

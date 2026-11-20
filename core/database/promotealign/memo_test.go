@@ -451,9 +451,8 @@ func TestMatchIndexHoldsEveryHandle(t *testing.T) {
 // unpromote deletes the handle of a promoted Subject.
 func (f *fixture) unpromote(t *testing.T, s subjects.Subject) {
 	t.Helper()
-	_, err := writes.Call(f.c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, userID, s.ID)
-		return struct{}{}, ch, err
+	_, err := writes.RunChanges(f.c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, userID, s.ID)
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -72,10 +72,9 @@ func UpdateSubject(in []byte) ([]byte, error) {
 	}
 	var out *engine.UpdateSubjectResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_subject", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjects.Update(tx, userID, subjectID, req.GetLabel(), req.GetDescription())
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_subject", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjects.Update(tx, userID, subjectID, req.GetLabel(), req.GetDescription())
 			})
 		if err != nil {
 			return err
@@ -108,10 +107,9 @@ func DeleteSubject(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteSubjectResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_subject", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := subjects.Delete(tx, userID, subjectID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return subjects.Delete(tx, userID, subjectID)
 			})
 		if err != nil {
 			return err

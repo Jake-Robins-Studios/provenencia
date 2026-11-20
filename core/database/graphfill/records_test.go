@@ -183,9 +183,8 @@ func TestGraphRecordsFollowCommits(t *testing.T) {
 		if _, err := graphfill.RecordsOf(g, [][]byte{empty.ID}, g.NoPageInputs()); err != nil {
 			t.Fatal(err)
 		}
-		if _, _, err := writes.Run(f.r.C, writes.Op{Action: "delete_evidence_graph", UserID: evidencelayertest.UserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := evidencegraphs.Delete(tx, evidencelayertest.UserID, empty.ID)
-			return struct{}{}, ch, err
+		if _, err := writes.RunChanges(f.r.C, writes.Op{Action: "delete_evidence_graph", UserID: evidencelayertest.UserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return evidencegraphs.Delete(tx, evidencelayertest.UserID, empty.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}

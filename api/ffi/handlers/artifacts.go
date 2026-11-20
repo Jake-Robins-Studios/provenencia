@@ -119,14 +119,14 @@ func UpdateArtifact(in []byte) ([]byte, error) {
 			Label:       req.GetLabel(),
 			Description: req.GetDescription(),
 		}
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_artifact", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_artifact", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
 				changes, err := artifacts.Update(tx, userID, updated, graphs)
 				if err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
 				more, err := applyDraft(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: prev.ID}, draft)
-				return struct{}{}, append(changes, more...), err
+				return append(changes, more...), err
 			})
 		if err != nil {
 			return err
@@ -170,10 +170,9 @@ func DeleteArtifact(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteArtifactResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := artifacts.Delete(tx, userID, artifactID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return artifacts.Delete(tx, userID, artifactID)
 			})
 		if err != nil {
 			return err
@@ -230,10 +229,9 @@ func IngestArtifactFile(in []byte) ([]byte, error) {
 			Label:       prev.Label,
 			Description: prev.Description,
 		}
-		_, wrote, err := writes.Run(c, writes.Op{Action: "update_artifact", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := artifacts.Update(tx, userID, updated, evidencegraphs.GraphLinks{})
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "update_artifact", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return artifacts.Update(tx, userID, updated, evidencegraphs.GraphLinks{})
 			})
 		if err != nil {
 			return err

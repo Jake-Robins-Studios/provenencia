@@ -48,8 +48,8 @@ func TestReleaseReplacedAudits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = writes.Call(c, writes.Op{Action: "t", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(c, writes.Op{Action: "t", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			rowMap := func() (map[string]any, error) {
 				v, err := datevalues.LookupTx(tx.Tx, dateID)
 				return datevalues.RowMap(dateID, v), err
@@ -83,7 +83,7 @@ func TestReleaseReplacedAudits(t *testing.T) {
 				ch.Fields["start_year"].Old != 1880 || ch.Fields["kind"].Old != datevalue.KindPoint || ch.Fields["kind"].New != nil {
 				t.Fatalf("delete change %+v", ch)
 			}
-			return struct{}{}, []rowchange.Change{*ch}, nil
+			return []rowchange.Change{*ch}, nil
 		})
 	if err != nil {
 		t.Fatal(err)

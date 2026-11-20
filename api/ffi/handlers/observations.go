@@ -99,10 +99,9 @@ func DeleteObservation(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeleteObservationResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_observation", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := observations.Delete(tx, userID, id)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, id)
 			})
 		if err != nil {
 			return err

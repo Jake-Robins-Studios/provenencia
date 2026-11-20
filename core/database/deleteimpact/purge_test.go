@@ -132,13 +132,13 @@ func TestReleaseSchedulesPurge(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			_, err = writes.Call(c, writes.Op{Action: "t", UserID: userID},
-				func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			_, err = writes.RunChanges(c, writes.Op{Action: "t", UserID: userID},
+				func(tx *database.Tx) ([]rowchange.Change, error) {
 					tt.release(t, tx, art.ID, fileID)
 					if tt.fail {
-						return struct{}{}, nil, boom
+						return nil, boom
 					}
-					return struct{}{}, commitChange, nil
+					return commitChange, nil
 				})
 			if tt.fail != errors.Is(err, boom) || (!tt.fail && err != nil) {
 				t.Fatalf("write err = %v", err)

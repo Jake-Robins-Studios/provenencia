@@ -19,9 +19,8 @@ import (
 
 func (w *bridgeWorld) unpromote(s subjects.Subject) error {
 	w.T.Helper()
-	_, err := writes.Call(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, userID, s.ID)
-		return struct{}{}, ch, err
+	_, err := writes.RunChanges(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, userID, s.ID)
 	})
 	return err
 }
@@ -204,9 +203,8 @@ func TestUnpromote(t *testing.T) {
 		if err := w.unpromote(bad); !errors.Is(err, promote.ErrInvalid) {
 			t.Fatalf("unknown: %v", err)
 		}
-		_, err := writes.Call(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := promote.Unpromote(tx, nil, bad.ID)
-			return struct{}{}, ch, err
+		_, err := writes.RunChanges(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return promote.Unpromote(tx, nil, bad.ID)
 		})
 		if !errors.Is(err, promote.ErrInvalid) {
 			t.Fatalf("nil user: %v", err)
@@ -217,9 +215,8 @@ func TestUnpromote(t *testing.T) {
 func TestUnpromoteReportsDeletedHandles(t *testing.T) {
 	unpromote := func(w *bridgeWorld, s subjects.Subject) [][]byte {
 		t.Helper()
-		_, res, err := writes.Run(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := promote.Unpromote(tx, userID, s.ID)
-			return struct{}{}, ch, err
+		res, err := writes.RunChanges(w.C, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return promote.Unpromote(tx, userID, s.ID)
 		})
 		if err != nil {
 			t.Fatal(err)

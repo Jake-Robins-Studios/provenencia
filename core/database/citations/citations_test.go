@@ -772,9 +772,8 @@ func TestCitations(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Delete(tx, userID, cit.Citation.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Delete(tx, userID, cit.Citation.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -805,9 +804,8 @@ func TestCitations(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := writes.Call(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Delete(tx, userID, cit.Citation.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Delete(tx, userID, cit.Citation.ID)
 				}); !errors.Is(err, ErrInUse) {
 					t.Fatalf("got %v want ErrInUse", err)
 				}
@@ -822,9 +820,8 @@ func TestCitations(t *testing.T) {
 				c, _ := mustSeed(t)
 				missing := make([]byte, 16)
 				missing[15] = 9
-				if _, err := writes.Call(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := Delete(tx, userID, missing)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Delete(tx, userID, missing)
 				}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("got %v want ErrInvalid", err)
 				}

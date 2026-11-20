@@ -638,10 +638,9 @@ func runUpdate(c *database.Catalog, id []byte, label, description, iconKey strin
 }
 
 func runDelete(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_source_type", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Delete(tx, userID, id)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_source_type", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return Delete(tx, userID, id)
 		})
 	return err
 }

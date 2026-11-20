@@ -110,9 +110,9 @@ func TestPurgeUnreferenced(t *testing.T) {
 		c := newCatalog(t)
 		path := writeObject(t, c, sumGone)
 		boom := errors.New("boom")
-		_, err := writes.Call(c, writes.Op{Action: "t"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err := writes.RunChanges(c, writes.Op{Action: "t"}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			files.PurgeAfterCommit(tx, []files.Object{obj(sumGone)})
-			return struct{}{}, nil, boom
+			return nil, boom
 		})
 		if !errors.Is(err, boom) {
 			t.Fatalf("err %v", err)
@@ -120,10 +120,10 @@ func TestPurgeUnreferenced(t *testing.T) {
 		if !exists(path) {
 			t.Fatal("rolled-back write removed the object")
 		}
-		if _, err := writes.Call(c, writes.Op{Action: "t"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		if _, err := writes.RunChanges(c, writes.Op{Action: "t"}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			files.PurgeAfterCommit(tx, []files.Object{obj(sumGone)})
 			// An empty change list rolls back; a change to a table with no audit scope commits with no revision.
-			return struct{}{}, []rowchange.Change{{
+			return []rowchange.Change{{
 				EntityType: "subject_position",
 				EntityID:   make([]byte, 16),
 				Action:     rowchange.ActionCreate,

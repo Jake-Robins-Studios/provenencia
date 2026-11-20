@@ -226,9 +226,8 @@ func (s scopeSeed) updateObservation(t *testing.T, in observations.Input) {
 
 func (s scopeSeed) deleteObservation(t *testing.T, id []byte) {
 	t.Helper()
-	if _, err := writes.Call(s.c, writes.Op{Action: "delete_observation", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := observations.Delete(tx, scopeUserID, id)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_observation", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return observations.Delete(tx, scopeUserID, id)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -297,17 +296,15 @@ func TestSourceScopes(t *testing.T) {
 					note = n
 				})
 				s.bumpsA(t, func() {
-					if _, _, err := writes.Run(s.c, writes.Op{Action: "update_source_note", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := sources.UpdateNote(tx, scopeUserID, note.ID, "second")
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "update_source_note", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return sources.UpdateNote(tx, scopeUserID, note.ID, "second")
 					}); err != nil {
 						t.Fatal(err)
 					}
 				})
 				s.bumpsA(t, func() {
-					if _, _, err := writes.Run(s.c, writes.Op{Action: "delete_source_note", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := sources.DeleteNote(tx, scopeUserID, note.ID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_source_note", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return sources.DeleteNote(tx, scopeUserID, note.ID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -365,9 +362,8 @@ func TestSourceScopes(t *testing.T) {
 				linkWrite := func(action string, fn func(tx *database.Tx, graphID []byte) ([]rowchange.Change, error)) {
 					t.Helper()
 					graphID := evidencegraphstest.SoleGraph(t, s.c, s.a.ID).ID
-					if _, err := writes.Call(s.c, writes.Op{Action: action, UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := fn(tx, graphID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: action, UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return fn(tx, graphID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -400,17 +396,15 @@ func TestSourceScopes(t *testing.T) {
 					jones = got
 				})
 				s.bumpsA(t, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "update_evidence_graph", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := evidencegraphs.Update(tx, scopeUserID, jones.ID, evidencegraphs.UpdateInput{Name: "Jones household"})
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "update_evidence_graph", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return evidencegraphs.Update(tx, scopeUserID, jones.ID, evidencegraphs.UpdateInput{Name: "Jones household"})
 					}); err != nil {
 						t.Fatal(err)
 					}
 				})
 				s.bumpsA(t, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "delete_evidence_graph", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := evidencegraphs.Delete(tx, scopeUserID, jones.ID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_evidence_graph", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return evidencegraphs.Delete(tx, scopeUserID, jones.ID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -447,17 +441,15 @@ func TestSourceScopes(t *testing.T) {
 					subj = got
 				})
 				s.bumpsA(t, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "update_subject", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := subjects.Update(tx, scopeUserID, subj.ID, "Cyril", "")
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "update_subject", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Update(tx, scopeUserID, subj.ID, "Cyril", "")
 					}); err != nil {
 						t.Fatal(err)
 					}
 				})
 				s.bumpsA(t, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "delete_subject", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := subjects.Delete(tx, scopeUserID, subj.ID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_subject", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Delete(tx, scopeUserID, subj.ID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -508,9 +500,8 @@ func TestSourceScopes(t *testing.T) {
 					s.deleteObservation(t, added[0].ID)
 				})
 				s.bumpsA(t, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "delete_citation", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := citations.Delete(tx, scopeUserID, res.Citation.ID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_citation", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return citations.Delete(tx, scopeUserID, res.Citation.ID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -648,9 +639,8 @@ func TestHandleScopes(t *testing.T) {
 				}
 				promotetest.Save(t, s.c, scopeUserID, promote.Input{SubjectID: other.ID, EntityID: h})
 				a0, b0 := s.sourceRevisions(t)
-				if _, err := writes.Call(s.c, writes.Op{Action: "unpromote_subject", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					changes, err := promote.Unpromote(tx, scopeUserID, s.person.ID)
-					return struct{}{}, changes, err
+				if _, err := writes.RunChanges(s.c, writes.Op{Action: "unpromote_subject", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return promote.Unpromote(tx, scopeUserID, s.person.ID)
 				}); err != nil {
 					t.Fatal(err)
 				}
@@ -719,9 +709,8 @@ func TestHandleScopes(t *testing.T) {
 			run: func(t *testing.T, s scopeSeed) {
 				h := s.promote(t, s.person)
 				s.movesBoth(t, h, func() {
-					if _, err := writes.Call(s.c, writes.Op{Action: "delete_subject", UserID: scopeUserID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := subjects.Delete(tx, scopeUserID, s.person.ID)
-						return struct{}{}, changes, err
+					if _, err := writes.RunChanges(s.c, writes.Op{Action: "delete_subject", UserID: scopeUserID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+						return subjects.Delete(tx, scopeUserID, s.person.ID)
 					}); err != nil {
 						t.Fatal(err)
 					}
@@ -744,19 +733,17 @@ func writeFile(t *testing.T, path, body string) {
 }
 
 func runArtifactUpdate(c *database.Catalog, userID []byte, a artifacts.Artifact) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_artifact", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := artifacts.Update(tx, userID, a, evidencegraphs.GraphLinks{})
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_artifact", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return artifacts.Update(tx, userID, a, evidencegraphs.GraphLinks{})
 		})
 	return err
 }
 
 func runSetFilename(c *database.Catalog, fileID []byte, name string, userID []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_file", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := ingest.SetFilename(tx, fileID, name, userID)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_file", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return ingest.SetFilename(tx, fileID, name, userID)
 		})
 	return err
 }

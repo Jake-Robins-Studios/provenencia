@@ -71,10 +71,9 @@ func SetPreferredLikeness(in []byte) ([]byte, error) {
 	}
 	var out *engine.SetPreferredLikenessResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "set_preferred_likeness", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := canonicalentities.SetPreferredLikeness(tx, userID, entityID, observationID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "set_preferred_likeness", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return canonicalentities.SetPreferredLikeness(tx, userID, entityID, observationID)
 			})
 		if err != nil {
 			return err

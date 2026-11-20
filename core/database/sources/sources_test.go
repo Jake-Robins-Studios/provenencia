@@ -37,10 +37,9 @@ func runCreate(c *database.Catalog, userID []byte, in CreateInput) (Source, erro
 }
 
 func runUpdate(c *database.Catalog, userID []byte, s Source) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_source", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Update(tx, userID, s)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_source", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return Update(tx, userID, s)
 		})
 	return err
 }
@@ -53,11 +52,11 @@ func runDelete(c *database.Catalog, userID, id []byte) error {
 // runDeleteChanges is runDelete that also returns the changes Delete made.
 func runDeleteChanges(c *database.Catalog, userID, id []byte) ([]rowchange.Change, error) {
 	var changes []rowchange.Change
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_source", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_source", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			ch, err := Delete(tx, userID, id)
 			changes = ch
-			return struct{}{}, ch, err
+			return ch, err
 		})
 	return changes, err
 }
@@ -98,19 +97,17 @@ func runAddNote(c *database.Catalog, userID, sourceID []byte, body string) (Note
 }
 
 func runUpdateNote(c *database.Catalog, userID, noteID []byte, body string) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_source_note", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := UpdateNote(tx, userID, noteID, body)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_source_note", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return UpdateNote(tx, userID, noteID, body)
 		})
 	return err
 }
 
 func runDeleteNote(c *database.Catalog, userID, noteID []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_source_note", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := DeleteNote(tx, userID, noteID)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_source_note", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return DeleteNote(tx, userID, noteID)
 		})
 	return err
 }
@@ -274,10 +271,9 @@ func TestSources(t *testing.T) {
 				if _, err := List(c); err != nil {
 					t.Fatal(err)
 				}
-				_, res, err := writes.Run(c, writes.Op{Action: "update_source", UserID: userID},
-					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						changes, err := Update(tx, userID, Source{ID: src.ID, Ref: src.Ref, SourceTypeID: typeID, Title: "Edited"})
-						return struct{}{}, changes, err
+				res, err := writes.RunChanges(c, writes.Op{Action: "update_source", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, error) {
+						return Update(tx, userID, Source{ID: src.ID, Ref: src.Ref, SourceTypeID: typeID, Title: "Edited"})
 					})
 				if err != nil || res.Revision == 0 || res.At == "" {
 					t.Fatalf("write %+v %v", res, err)

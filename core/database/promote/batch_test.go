@@ -47,7 +47,7 @@ func (f *batchFixture) revision() int64 {
 
 func (f *batchFixture) save(in promote.Batch) {
 	f.T.Helper()
-	_, err := writes.Call(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		return promote.SaveBatch(tx, userID, in)
 	})
 	if err != nil {
@@ -165,7 +165,7 @@ func TestSaveBatchStaleWritesNothing(t *testing.T) {
 	person := f.Bare(f.Source, "person")
 	seen := f.revision()
 	_ = f.Bare(f.Source, "place") // a later write advances the revision
-	_, err := writes.Call(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		return promote.SaveBatch(tx, userID, promote.Batch{
 			GraphID: f.graph, SeenRevision: seen,
 			Rows: []promote.BatchRow{{SubjectID: person.ID, Target: promote.TargetNew}},
@@ -246,7 +246,7 @@ func TestSaveBatchAnchorsARowOnItsOwnHandle(t *testing.T) {
 
 	try := func(row promote.BatchRow) error {
 		seen := f.revision()
-		_, err := writes.Call(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err := writes.RunChanges(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			return promote.SaveBatch(tx, userID, promote.Batch{GraphID: f.graph, SeenRevision: seen, Rows: []promote.BatchRow{row}})
 		})
 		return err
@@ -297,7 +297,7 @@ func TestSaveBatchFilesOnlyItsGraph(t *testing.T) {
 	refused := func(t *testing.T, f *batchFixture, in promote.Batch) {
 		t.Helper()
 		before := f.revision()
-		_, err := writes.Call(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err := writes.RunChanges(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			return promote.SaveBatch(tx, userID, in)
 		})
 		if !errors.Is(err, promote.ErrInvalid) {
@@ -342,7 +342,7 @@ func TestSaveBatchRefusesAnAssociationRowAlreadyFiled(t *testing.T) {
 		t.Fatal(err)
 	}
 	seen := f.revision()
-	_, err = writes.Call(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(f.C, writes.Op{Action: "promote_batch", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		return promote.SaveBatch(tx, userID, promote.Batch{
 			GraphID: f.graph, SeenRevision: seen,
 			Rows: []promote.BatchRow{{SubjectID: bridge.ID, Target: promote.TargetHandle, EntityID: entity.EntityID}},

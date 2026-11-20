@@ -263,9 +263,8 @@ func (f *fixture) twoLikenesses() (h []byte, a, b observations.Observation, subj
 
 func (f *fixture) setPreferred(h, observationID []byte) {
 	f.t.Helper()
-	_, err := writes.Call(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := canonicalentities.SetPreferredLikeness(tx, userID, h, observationID)
-		return struct{}{}, ch, err
+	_, err := writes.RunChanges(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return canonicalentities.SetPreferredLikeness(tx, userID, h, observationID)
 	})
 	must(f.t, err)
 }
@@ -341,9 +340,8 @@ func TestOfPreferred(t *testing.T) {
 		f := newFixture(t)
 		h, a, b, sb := f.twoLikenesses()
 		f.setPreferred(h, b.ID)
-		_, err := writes.Call(f.c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := promote.Unpromote(tx, userID, sb.ID)
-			return struct{}{}, ch, err
+		_, err := writes.RunChanges(f.c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return promote.Unpromote(tx, userID, sb.ID)
 		})
 		must(t, err)
 		g := f.gallery(h)
@@ -404,9 +402,8 @@ func TestOfPreferred(t *testing.T) {
 			f := newFixture(t)
 			h, a, b, _ := f.twoLikenesses()
 			f.setPreferred(h, b.ID)
-			_, err := writes.Call(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				ch, err := observations.Delete(tx, userID, b.ID)
-				return struct{}{}, ch, err
+			_, err := writes.RunChanges(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+				return observations.Delete(tx, userID, b.ID)
 			})
 			must(t, err)
 			if p := f.pointer(h); p != nil {
@@ -430,21 +427,21 @@ func TestOfPreferred(t *testing.T) {
 			ob2 := observationstest.SaveLikeness(f.t, f.c, userID, diary.ID, sd.ID, 150)
 			f.setPreferred(h2, ob2.ID)
 			var wantFields map[string]rowchange.FieldDiff
-			_, err := writes.Call(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			_, err := writes.RunChanges(f.c, writes.Op{Action: "set_preferred_likeness", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := canonicalentities.SetPreferredLikeness(tx, userID, h2, nil)
 				if len(ch) == 1 {
 					wantFields = ch[0].Fields
 				}
-				return struct{}{}, ch, err
+				return ch, err
 			})
 			must(t, err)
 			f.setPreferred(h2, ob2.ID)
 			f.setPreferred(h, b.ID)
 			var got []rowchange.Change
-			_, err = writes.Call(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			_, err = writes.RunChanges(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := observations.Delete(tx, userID, b.ID)
 				got = ch
-				return struct{}{}, ch, err
+				return ch, err
 			})
 			must(t, err)
 			dbtest.RequireUpdateBeforeDelete(t, got, "observation", "canonical_entity", h, wantFields)
@@ -453,10 +450,10 @@ func TestOfPreferred(t *testing.T) {
 			f := newFixture(t)
 			_, _, b, _ := f.twoLikenesses()
 			var got []rowchange.Change
-			_, err := writes.Call(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			_, err := writes.RunChanges(f.c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := observations.Delete(tx, userID, b.ID)
 				got = ch
-				return struct{}{}, ch, err
+				return ch, err
 			})
 			must(t, err)
 			for _, ch := range got {

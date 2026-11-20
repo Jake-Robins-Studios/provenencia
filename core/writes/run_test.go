@@ -32,12 +32,12 @@ func TestRunRollsBack(t *testing.T) {
 	id := mustID(t)
 	userRef := mustRef(t)
 	ran := false
-	_, _, err := writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		tx.AfterCommit(func() { ran = true })
 		if _, err := tx.Exec(`INSERT INTO users (id, display_name, ref) VALUES (?, ?, ?)`, id, "Ada", userRef); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
-		return struct{}{}, nil, errors.New("fail")
+		return nil, errors.New("fail")
 	})
 	if err == nil || err.Error() != "fail" {
 		t.Fatalf("err %v", err)
@@ -125,26 +125,26 @@ func TestRunNoneOnlyCommits(t *testing.T) {
 	derivedID := mustID(t)
 	linkID := mustID(t)
 	ran := false
-	_, res, err := writes.Run(c, writes.Op{}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	res, err := writes.RunChanges(c, writes.Op{}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		tx.AfterCommit(func() { ran = true })
 		if _, err := tx.Exec(
 			`INSERT INTO files (id, checksum_sha256, media_type, byte_size) VALUES (?, ?, 'image/png', 1), (?, ?, 'image/jpeg', 2)`,
 			sourceID, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			derivedID, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 		); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		if _, err := tx.Exec(
 			`INSERT INTO file_derivatives (id, source_file_id, derived_file_id, derivative_type) VALUES (?, ?, ?, 'thumbnail')`,
 			linkID, sourceID, derivedID,
 		); err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		uid, err := uuid.FromBytes(linkID)
 		if err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
-		return struct{}{}, []rowchange.Change{{
+		return []rowchange.Change{{
 			EntityType: "file_derivative",
 			EntityID:   linkID,
 			Action:     rowchange.ActionCreate,
@@ -262,11 +262,11 @@ func TestRunAfterCommitAndReentry(t *testing.T) {
 func TestRunRefusesReentry(t *testing.T) {
 	c := newCatalog(t)
 	var inner error
-	_, _, err := writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		_, _, inner = writes.Run(c, writes.Op{Action: "test"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			return struct{}{}, nil, nil
+	_, err := writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, inner = writes.RunChanges(c, writes.Op{Action: "test"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return nil, nil
 		})
-		return struct{}{}, nil, nil
+		return nil, nil
 	})
 	if err != nil {
 		t.Fatal(err)

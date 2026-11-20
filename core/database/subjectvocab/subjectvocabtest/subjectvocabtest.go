@@ -17,10 +17,9 @@ import (
 // the assign RPC does, and fails the test on error.
 func Assign(t testing.TB, c *database.Catalog, userID, typeID, propertyID []byte) {
 	t.Helper()
-	if _, err := writes.Call(c, writes.Op{Action: subjectvocab.ActionAssign, UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := subjectvocab.AppendBinding(tx, userID, typeID, propertyID)
-			return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionAssign, UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return subjectvocab.AppendBinding(tx, userID, typeID, propertyID)
 		}); err != nil {
 		t.Fatal(err)
 	}
@@ -29,9 +28,8 @@ func Assign(t testing.TB, c *database.Catalog, userID, typeID, propertyID []byte
 // Install writes the Subject vocabulary seed in one audited write, as catalog
 // creation does.
 func Install(c *database.Catalog) error {
-	_, err := writes.Call(c, writes.Op{Action: subjectvocab.ActionInstall}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := subjectvocab.Install(tx)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: subjectvocab.ActionInstall}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return subjectvocab.Install(tx)
 	})
 	return err
 }
@@ -39,9 +37,8 @@ func Install(c *database.Catalog) error {
 // EnsureBinding sets a binding's sort_order through the write pipeline: it
 // inserts the pair or moves it to sortOrder.
 func EnsureBinding(c *database.Catalog, typeID, propertyID []byte, sortOrder int) error {
-	_, err := writes.Call(c, writes.Op{Action: "ensure_subject_type_property"}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := subjectvocab.EnsureBindingTx(tx, typeID, propertyID, sortOrder)
-		return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "ensure_subject_type_property"}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return subjectvocab.EnsureBindingTx(tx, typeID, propertyID, sortOrder)
 	})
 	return err
 }

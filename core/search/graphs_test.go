@@ -150,9 +150,8 @@ func TestEvidenceGraphSearch(t *testing.T) {
 func TestEvidenceGraphSearchFollowsWrites(t *testing.T) {
 	update := func(f *graphSearchFixture, g evidencegraphs.Graph, name, description string) {
 		f.T.Helper()
-		_, err := writes.Call(f.C, writes.Op{Action: "update_evidence_graph", UserID: f.user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			ch, err := evidencegraphs.Update(tx, f.user, g.ID, evidencegraphs.UpdateInput{Name: name, Description: description})
-			return struct{}{}, ch, err
+		_, err := writes.RunChanges(f.C, writes.Op{Action: "update_evidence_graph", UserID: f.user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			return evidencegraphs.Update(tx, f.user, g.ID, evidencegraphs.UpdateInput{Name: name, Description: description})
 		})
 		if err != nil {
 			f.T.Fatal(err)
@@ -199,9 +198,8 @@ func TestEvidenceGraphSearchFollowsWrites(t *testing.T) {
 					f.T.Fatal(err)
 				}
 				s.Title = "Register (Toronto)"
-				_, err = writes.Call(f.C, writes.Op{Action: "update_source", UserID: f.user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := sources.Update(tx, f.user, s)
-					return struct{}{}, ch, err
+				_, err = writes.RunChanges(f.C, writes.Op{Action: "update_source", UserID: f.user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return sources.Update(tx, f.user, s)
 				})
 				if err != nil {
 					f.T.Fatal(err)
@@ -217,9 +215,8 @@ func TestEvidenceGraphSearchFollowsWrites(t *testing.T) {
 		{
 			name: "delete a graph",
 			write: func(f *graphSearchFixture) {
-				_, err := writes.Call(f.C, writes.Op{Action: "delete_evidence_graph", UserID: f.user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := evidencegraphs.Delete(tx, f.user, f.smith.ID)
-					return struct{}{}, ch, err
+				_, err := writes.RunChanges(f.C, writes.Op{Action: "delete_evidence_graph", UserID: f.user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return evidencegraphs.Delete(tx, f.user, f.smith.ID)
 				})
 				if err != nil {
 					f.T.Fatal(err)
@@ -249,9 +246,8 @@ func TestEvidenceGraphSearchFollowsWrites(t *testing.T) {
 				if h := f.graphHits(g.Ref); len(h) != 1 {
 					f.T.Fatalf("before delete: %+v", h)
 				}
-				if _, err := writes.Call(f.C, writes.Op{Action: "delete_source", UserID: f.user}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := sources.Delete(tx, f.user, empty.ID)
-					return struct{}{}, ch, err
+				if _, err := writes.RunChanges(f.C, writes.Op{Action: "delete_source", UserID: f.user}, func(tx *database.Tx) ([]rowchange.Change, error) {
+					return sources.Delete(tx, f.user, empty.ID)
 				}); err != nil {
 					f.T.Fatal(err)
 				}

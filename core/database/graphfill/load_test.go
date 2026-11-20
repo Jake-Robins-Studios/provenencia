@@ -324,9 +324,8 @@ func TestDeletedGraphIsNotFound(t *testing.T) {
 	if !loaded(g, empty.ID) {
 		t.Fatal("graph not loaded")
 	}
-	if _, _, err := writes.Run(f.c, writes.Op{Action: "delete_evidence_graph", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := evidencegraphs.Delete(tx, userID, empty.ID)
-		return struct{}{}, ch, err
+	if _, err := writes.RunChanges(f.c, writes.Op{Action: "delete_evidence_graph", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Delete(tx, userID, empty.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}

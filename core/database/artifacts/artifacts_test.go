@@ -588,13 +588,13 @@ func TestArtifactDelete(t *testing.T) {
 			t.Fatal(err)
 		}
 		owner := sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: art.ID}
-		if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			_, ch, err := sourcemetadata.Set(tx, userID, owner, sourcemetadata.Input{FieldID: provider.ID, ValueText: "FamilySearch"})
 			if err != nil {
-				return struct{}{}, nil, err
+				return nil, err
 			}
 			more, err := sourcemetadata.DismissSuggestion(tx, userID, owner, dismissed.ID)
-			return struct{}{}, append(ch, more...), err
+			return append(ch, more...), err
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -716,12 +716,12 @@ func TestArtifactDelete(t *testing.T) {
 			coverArt2 := coverFor(src2.ID)
 			setCover(src2.ID, coverArt2.ID)
 			var wantFields map[string]rowchange.FieldDiff
-			if _, err := writes.Call(c, writes.Op{Action: "set_source_cover", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			if _, err := writes.RunChanges(c, writes.Op{Action: "set_source_cover", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				_, ch, err := sources.SetCover(tx, userID, src2.ID, sources.CoverModeTypeIcon, nil)
 				if len(ch) == 1 {
 					wantFields = ch[0].Fields
 				}
-				return struct{}{}, ch, err
+				return ch, err
 			}); err != nil {
 				t.Fatal(err)
 			}
@@ -729,10 +729,10 @@ func TestArtifactDelete(t *testing.T) {
 			coverArt := coverFor(src.ID)
 			setCover(src.ID, coverArt.ID)
 			var got []rowchange.Change
-			if _, err := writes.Call(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			if _, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := artifacts.Delete(tx, userID, coverArt.ID)
 				got = ch
-				return struct{}{}, ch, err
+				return ch, err
 			}); err != nil {
 				t.Fatal(err)
 			}
@@ -744,10 +744,10 @@ func TestArtifactDelete(t *testing.T) {
 				t.Fatal(err)
 			}
 			var got []rowchange.Change
-			if _, err := writes.Call(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+			if _, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 				ch, err := artifacts.Delete(tx, userID, plain.ID)
 				got = ch
-				return struct{}{}, ch, err
+				return ch, err
 			}); err != nil {
 				t.Fatal(err)
 			}
@@ -772,10 +772,10 @@ func TestArtifactDelete(t *testing.T) {
 			t.Fatal("create did not link")
 		}
 		var got []rowchange.Change
-		if _, err := writes.Call(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			changes, err := artifacts.Delete(tx, userID, linked.ID)
 			got = changes
-			return struct{}{}, changes, err
+			return changes, err
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -1148,10 +1148,10 @@ func TestArtifactUpdateGraphs(t *testing.T) {
 	update := func(a artifacts.Artifact, links evidencegraphs.GraphLinks) ([]string, int, error) {
 		before := revisions()
 		var kinds []string
-		_, _, err := writes.Run(c, writes.Op{Action: "update_artifact", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err := writes.RunChanges(c, writes.Op{Action: "update_artifact", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 			changes, err := artifacts.Update(tx, userID, a, links)
 			kinds = changeKinds(changes)
-			return struct{}{}, changes, err
+			return changes, err
 		})
 		return kinds, revisions() - before, err
 	}
@@ -1244,19 +1244,17 @@ func runCreate(c *database.Catalog, userID []byte, in artifacts.CreateInput) (ar
 }
 
 func runUpdate(c *database.Catalog, userID []byte, a artifacts.Artifact) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "update_artifact", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := artifacts.Update(tx, userID, a, evidencegraphs.GraphLinks{})
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_artifact", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return artifacts.Update(tx, userID, a, evidencegraphs.GraphLinks{})
 		})
 	return err
 }
 
 func runDelete(c *database.Catalog, userID, id []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "delete_artifact", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := artifacts.Delete(tx, userID, id)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "delete_artifact", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return artifacts.Delete(tx, userID, id)
 		})
 	return err
 }

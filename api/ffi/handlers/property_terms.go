@@ -113,10 +113,9 @@ func DeletePropertyTerm(in []byte) ([]byte, error) {
 	}
 	var out *engine.DeletePropertyTermResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		_, wrote, err := writes.Run(c, writes.Op{Action: "delete_property_term", UserID: userID},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-				changes, err := propertyterms.Delete(tx, userID, termID)
-				return struct{}{}, changes, err
+		wrote, err := writes.RunChanges(c, writes.Op{Action: "delete_property_term", UserID: userID},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
+				return propertyterms.Delete(tx, userID, termID)
 			})
 		if err != nil {
 			return err

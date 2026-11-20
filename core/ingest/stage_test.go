@@ -371,12 +371,12 @@ func TestStagedSettle(t *testing.T) {
 
 	failingInsert := func(t *testing.T, c *database.Catalog, s *Staged) {
 		t.Helper()
-		_, _, err := writes.Run(c, writes.Op{Action: "create_file", UserID: stageUser(t, c)},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err := writes.RunChanges(c, writes.Op{Action: "create_file", UserID: stageUser(t, c)},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
 				if _, _, err := s.InsertTx(tx.Tx); err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
-				return struct{}{}, nil, errBoom
+				return nil, errBoom
 			})
 		if !errors.Is(err, errBoom) {
 			t.Fatalf("err = %v", err)
@@ -509,12 +509,12 @@ func TestStagedPurgeAndDiscard(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, _, err = writes.Run(c, writes.Op{Action: "create_file", UserID: stageUser(t, c)},
-			func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+		_, err = writes.RunChanges(c, writes.Op{Action: "create_file", UserID: stageUser(t, c)},
+			func(tx *database.Tx) ([]rowchange.Change, error) {
 				if _, _, err := s.InsertTx(tx.Tx); err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
-				return struct{}{}, nil, errBoom
+				return nil, errBoom
 			})
 		if !errors.Is(err, errBoom) {
 			t.Fatalf("err = %v", err)

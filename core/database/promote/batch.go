@@ -40,44 +40,44 @@ type Batch struct {
 // ends are both handles. The caller records the returned changes as
 // promote_batch. A catalog write since SeenRevision is ErrStale and writes
 // nothing.
-func SaveBatch(tx *database.Tx, userID []byte, in Batch) (struct{}, []rowchange.Change, error) {
+func SaveBatch(tx *database.Tx, userID []byte, in Batch) ([]rowchange.Change, error) {
 	if tx == nil {
-		return struct{}{}, nil, ErrInvalid
+		return nil, ErrInvalid
 	}
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
-		return struct{}{}, nil, err
+		return nil, err
 	}
 
 	q := tx.Tx
 	if _, err := evidencegraphs.SourceOf(q, in.GraphID); err != nil {
 		if errors.Is(err, evidencegraphs.ErrInvalid) {
-			return struct{}{}, nil, ErrInvalid
+			return nil, ErrInvalid
 		}
-		return struct{}{}, nil, err
+		return nil, err
 	}
 	rev, err := latestRevision(q)
 	if err != nil {
-		return struct{}{}, nil, err
+		return nil, err
 	}
 	if rev != in.SeenRevision {
-		return struct{}{}, nil, ErrStale
+		return nil, ErrStale
 	}
 
 	var changes []rowchange.Change
 	for _, row := range in.Rows {
 		rowChanges, err := applyRow(q, in.GraphID, row)
 		if err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		changes = append(changes, rowChanges...)
 	}
 
 	_, filed, err := identityclaims.FileEvidenceGraphBridgesTx(q, in.GraphID)
 	if err != nil {
-		return struct{}{}, nil, err
+		return nil, err
 	}
 	changes = append(changes, filed...)
-	return struct{}{}, changes, nil
+	return changes, nil
 }
 
 func latestRevision(tx *sql.Tx) (int64, error) {

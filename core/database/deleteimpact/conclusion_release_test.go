@@ -116,9 +116,8 @@ func TestMemberDeleteEndToEnd(t *testing.T) {
 	if !report.Allowed || len(report.Cascades) != 0 {
 		t.Fatalf("%+v", report)
 	}
-	if _, err := writes.Call(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := observations.Delete(tx, userID, obsB)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "delete_observation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return observations.Delete(tx, userID, obsB)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -129,9 +128,8 @@ func TestMemberDeleteEndToEnd(t *testing.T) {
 		t.Fatalf("%+v", report)
 	}
 	assertLeaves(t, report, f.entityRef)
-	if _, err := writes.Call(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		changes, err := subjects.Delete(tx, userID, b.ID)
-		return struct{}{}, changes, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "delete_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return subjects.Delete(tx, userID, b.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -183,9 +181,8 @@ func TestLastMemberDeleteEndToEnd(t *testing.T) {
 		t.Fatalf("%+v", persons)
 	}
 
-	if _, err := writes.Call(c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := promote.Unpromote(tx, userID, james.ID)
-		return struct{}{}, ch, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "unpromote_subject", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return promote.Unpromote(tx, userID, james.ID)
 	}); err != nil {
 		t.Fatal(err)
 	}

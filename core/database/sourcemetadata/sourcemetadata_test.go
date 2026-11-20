@@ -722,29 +722,27 @@ func runSetOwner(c *database.Catalog, userID []byte, owner Owner, in Input) (Row
 // runClearOwner runs Clear on any owner in its own transaction.
 func runClearOwner(c *database.Catalog, userID []byte, owner Owner, fieldID []byte) ([]rowchange.Change, error) {
 	var changes []rowchange.Change
-	_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			var err error
 			changes, err = Clear(tx, userID, owner, fieldID)
-			return struct{}{}, changes, err
+			return changes, err
 		})
 	return changes, err
 }
 
 func runDismissSuggestion(c *database.Catalog, userID, sourceID, fieldID []byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := DismissSuggestion(tx, userID, sourceOwner(sourceID), fieldID)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return DismissSuggestion(tx, userID, sourceOwner(sourceID), fieldID)
 		})
 	return err
 }
 
 func runReorder(c *database.Catalog, userID, sourceID []byte, fieldIDs [][]byte) error {
-	_, _, err := writes.Run(c, writes.Op{Action: "reorder_metadata", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-			changes, err := Reorder(tx, userID, sourceOwner(sourceID), fieldIDs)
-			return struct{}{}, changes, err
+	_, err := writes.RunChanges(c, writes.Op{Action: "reorder_metadata", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return Reorder(tx, userID, sourceOwner(sourceID), fieldIDs)
 		})
 	return err
 }
@@ -759,11 +757,11 @@ func runFieldCreate(c *database.Catalog, label, dataType, description string) (m
 
 func runCreateAll(c *database.Catalog, userID, sourceID []byte, d Draft) ([]rowchange.Change, error) {
 	var changes []rowchange.Change
-	_, _, err := writes.Run(c, writes.Op{Action: "copy_source", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "copy_source", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			var err error
 			changes, err = CreateAll(tx, userID, sourceOwner(sourceID), d)
-			return struct{}{}, changes, err
+			return changes, err
 		})
 	return changes, err
 }
@@ -1119,10 +1117,9 @@ func TestOwnerLevels(t *testing.T) {
 	}
 	write := func(f func(tx *database.Tx, o Owner) ([]rowchange.Change, error)) func(Owner) error {
 		return func(o Owner) error {
-			_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-				func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-					ch, err := f(tx, o)
-					return struct{}{}, ch, err
+			_, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+				func(tx *database.Tx) ([]rowchange.Change, error) {
+					return f(tx, o)
 				})
 			return err
 		}
@@ -1293,11 +1290,11 @@ func applyWorld(t *testing.T) (c *database.Catalog, userID []byte, src sources.S
 
 func runApply(c *database.Catalog, userID, sourceID []byte, d Draft) ([]rowchange.Change, error) {
 	var changes []rowchange.Change
-	_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-		func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
 			var err error
 			changes, err = Apply(tx, userID, sourceOwner(sourceID), d)
-			return struct{}{}, changes, err
+			return changes, err
 		})
 	return changes, err
 }
@@ -1531,11 +1528,11 @@ func TestApply(t *testing.T) {
 			run: func(t *testing.T) {
 				c, userID, src, _, _, f1, _ := applyWorld(t)
 				var changes []rowchange.Change
-				_, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+				_, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, error) {
 						var err error
 						changes, err = DismissSuggestion(tx, userID, sourceOwner(src.ID), f1.ID)
-						return struct{}{}, changes, err
+						return changes, err
 					})
 				if err != nil {
 					t.Fatal(err)
@@ -1648,11 +1645,11 @@ func TestApply(t *testing.T) {
 				o := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
 				apply := func(d Draft) ([]rowchange.Change, error) {
 					var changes []rowchange.Change
-					_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-						func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+					_, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+						func(tx *database.Tx) ([]rowchange.Change, error) {
 							var err error
 							changes, err = Apply(tx, userID, o, d)
-							return struct{}{}, changes, err
+							return changes, err
 						})
 					return changes, err
 				}
@@ -1802,25 +1799,25 @@ func listByOwnersBatches(t *testing.T) {
 	}
 	n := sqlbatch.Size*2 + 201
 	owners := make([]Owner, 0, n)
-	_, _, err = writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	_, err = writes.RunChanges(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		var changes []rowchange.Change
 		for i := 0; i < n; i++ {
 			src, ch, err := sources.Create(tx, userID, sources.CreateInput{SourceTypeID: cert.ID, Title: "S"})
 			if err != nil {
-				return struct{}{}, nil, err
+				return nil, err
 			}
 			changes = append(changes, ch...)
 			o := sourceOwner(src.ID)
 			for _, f := range []metadatafields.Field{f2, f1} {
 				_, ch, err := Set(tx, userID, o, Input{FieldID: f.ID, ValueText: "v"})
 				if err != nil {
-					return struct{}{}, nil, err
+					return nil, err
 				}
 				changes = append(changes, ch...)
 			}
 			owners = append(owners, o)
 		}
-		return struct{}{}, changes, nil
+		return changes, nil
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1942,11 +1939,11 @@ func TestOwnerTables(t *testing.T) {
 			run := func(f func(tx *database.Tx) ([]rowchange.Change, error)) []rowchange.Change {
 				t.Helper()
 				var changes []rowchange.Change
-				_, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
-					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+				_, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, error) {
 						var err error
 						changes, err = f(tx)
-						return struct{}{}, changes, err
+						return changes, err
 					})
 				if err != nil {
 					t.Fatal(err)
@@ -2097,13 +2094,13 @@ func TestReadDraftsTx(t *testing.T) {
 	c, userID, src, doc, _, f1, _ := applyWorld(t)
 	a1 := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
 	g1 := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
-	if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+	if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
 		_, ch, err := Set(tx, userID, a1, Input{FieldID: doc.ID, ValueText: "No. 7", Mark: valuemark.Mark{Supplied: true}})
 		if err != nil {
-			return struct{}{}, nil, err
+			return nil, err
 		}
 		_, more, err := Set(tx, userID, g1, Input{FieldID: f1.ID, Mark: valuemark.Mark{Unknown: true}})
-		return struct{}{}, append(ch, more...), err
+		return append(ch, more...), err
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -2452,23 +2449,22 @@ func TestValueMarks(t *testing.T) {
 				}
 			})
 			t.Run("dismissing a field that holds an unknown value is a no-op", func(t *testing.T) {
-				_, _, err := writes.Run(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
-					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
+				_, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, error) {
 						ch, err := DismissSuggestion(tx, userID, owner, f1.ID)
 						if len(ch) != 0 {
 							t.Errorf("dismiss changes %+v", ch)
 						}
-						return struct{}{}, ch, err
+						return ch, err
 					})
 				if err != nil {
 					t.Fatal(err)
 				}
 			})
 			t.Run("the field is in use while an unknown value holds it", func(t *testing.T) {
-				_, _, err := writes.Run(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
-					func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-						ch, err := metadatafields.Delete(tx, userID, f1.ID)
-						return struct{}{}, ch, err
+				_, err := writes.RunChanges(c, writes.Op{Action: "delete_metadata_field", UserID: userID},
+					func(tx *database.Tx) ([]rowchange.Change, error) {
+						return metadatafields.Delete(tx, userID, f1.ID)
 					})
 				if !errors.Is(err, metadatafields.ErrInUse) {
 					t.Fatalf("delete field = %v, want ErrInUse", err)
@@ -3032,9 +3028,8 @@ func TestAnnotationsFollowFormats(t *testing.T) {
 	c, userID := seededWorld(t)
 	l := newLedger(t, c, userID)
 	line := func() (WorkspaceEntry, bool) { return entryOf(boardOf(t, c, l.graph).Entries, "line_number") }
-	if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) (struct{}, []rowchange.Change, error) {
-		ch, err := Apply(tx, userID, l.graph, Draft{Layout: []LayoutRow{{FieldID: l.line.ID, SortOrder: 0, Dismissed: true}}})
-		return struct{}{}, ch, err
+	if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return Apply(tx, userID, l.graph, Draft{Layout: []LayoutRow{{FieldID: l.line.ID, SortOrder: 0, Dismissed: true}}})
 	}); err != nil {
 		t.Fatal(err)
 	}
