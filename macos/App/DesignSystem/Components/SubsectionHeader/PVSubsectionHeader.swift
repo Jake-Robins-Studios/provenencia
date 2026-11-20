@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// A micro-caps title row with an optional mono meta string trailing (`metaLabel` is how it is spoken) (and an optional accessory
-/// after it), and a content slot below it. Use it to head a group inside a section: a stepper's
+/// A micro-caps title row with an optional mono meta string trailing (`metaLabel` is how it is spoken),
+/// and a content slot below it. Use it to head a group inside a section: a stepper's
 /// picker, or a list's meaning line. Call sites own `.accessibilityIdentifier` and the
 /// accessibility label of the group.
-struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
+struct PVSubsectionHeader<Title: PVCopy, Content: View>: View {
     /// How the meta string reads: muted by default; `danger` for a count over its limit.
     enum MetaTone {
         case muted
@@ -16,7 +16,6 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
     private let metaTone: MetaTone
     private let metaLabel: String?
     private let metaIdentifier: String?
-    private let accessory: Accessory
     private let content: Content
 
     init(
@@ -25,7 +24,6 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
         metaTone: MetaTone = .muted,
         metaLabel: String? = nil,
         metaIdentifier: String? = nil,
-        @ViewBuilder accessory: () -> Accessory,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
@@ -33,7 +31,6 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
         self.metaTone = metaTone
         self.metaLabel = metaLabel
         self.metaIdentifier = metaIdentifier
-        self.accessory = accessory()
         self.content = content()
     }
 
@@ -52,27 +49,10 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
                         .accessibilityLabel(metaLabel ?? meta)
                         .accessibilityIdentifier(metaIdentifier ?? "")
                 }
-                accessory
             }
             .frame(height: 20)
             content
         }
-    }
-}
-
-extension PVSubsectionHeader where Accessory == EmptyView {
-    init(
-        title: Title,
-        meta: String? = nil,
-        metaTone: MetaTone = .muted,
-        metaLabel: String? = nil,
-        metaIdentifier: String? = nil,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.init(
-            title: title, meta: meta, metaTone: metaTone, metaLabel: metaLabel, metaIdentifier: metaIdentifier,
-            accessory: { EmptyView() }, content: content
-        )
     }
 }
 
@@ -86,10 +66,8 @@ extension PVSubsectionHeader where Accessory == EmptyView {
     .background(PVColor.surfacePage)
 }
 
-#Preview("Meta over its limit, with an accessory") {
-    PVSubsectionHeader(title: "Full note" as String, meta: "4,012 / 4,000", metaTone: .danger, accessory: {
-        PVIcon(.warning, size: 13).foregroundStyle(PVColor.danger)
-    }) {
+#Preview("Meta over its limit") {
+    PVSubsectionHeader(title: "Full note" as String, meta: "4,012 / 4,000", metaTone: .danger) {
         PVDivider()
     }
     .padding(PVSpacing.space9)
