@@ -77,6 +77,24 @@ enum PVComboBoxMatch {
         isRemote && old != new
     }
 
+    /// What Return does in the field.
+    enum ReturnAction: Equatable {
+        /// Commit the highlighted row at this index.
+        case commit(Int)
+        /// Let the key reach the enclosing form's `.onSubmit` or a sheet's
+        /// default button.
+        case submit
+        /// Take the key and do nothing.
+        case swallow
+    }
+
+    /// Return passes on only when the field shows its pick, so a form never
+    /// acts on a pick the field no longer shows.
+    static func returnAction(activeIndex: Int, optionCount: Int, query: String, committedLabel: String) -> ReturnAction {
+        if (0..<optionCount).contains(activeIndex) { return .commit(activeIndex) }
+        return query == committedLabel ? .submit : .swallow
+    }
+
     /// Index of the first row that can be committed, or -1 when every row is
     /// disabled. This is the Spotlight rule's landing spot.
     static func firstEnabledIndex(in options: [PVComboBoxOption]) -> Int {
@@ -212,7 +230,8 @@ enum PVComboCommitVia: Equatable {
 ///   already chosen.
 /// - Spotlight rule: while there is a query the top hit is pre-highlighted so
 ///   Return takes it. With no query nothing is highlighted — it is a browse
-///   list, and Return does nothing.
+///   list. Return with no highlighted row reaches the form only when the
+///   field shows its pick (`PVComboBoxMatch.returnAction`).
 /// - Arrow keys **clamp** at the ends rather than cycling, matching `NSMenu`.
 ///   ⌘↑/⌘↓ and Home/End jump to the ends; Page Up/Down move by 8.
 /// - Escape is two-stage: close the list, then abandon the typed text.
@@ -631,9 +650,18 @@ struct PVComboBox<Row: View, Empty: View>: View {
             moveActive(delta: press.key == .pageDown ? 8 : -8, to: nil)
             return .handled
         case .return:
-            guard visibleOptions.indices.contains(activeIndex) else { return .ignored }
-            _ = commit(visibleOptions[activeIndex], via: .return)
-            return .handled
+            let options = visibleOptions
+            switch PVComboBoxMatch.returnAction(
+                activeIndex: activeIndex, optionCount: options.count, query: query, committedLabel: selectedLabel
+            ) {
+            case .commit(let index):
+                _ = commit(options[index], via: .return)
+                return .handled
+            case .submit:
+                return .ignored
+            case .swallow:
+                return .handled
+            }
         case .escape:
             // Two-stage: close the list first, then abandon the typed text.
             // With neither left to undo, let Escape through — an enclosing
