@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests), `.cursor/rules/catalog-audit.mdc`
 **Context:** map scope entry S16-64 ([`../deployment-plan.md`](../deployment-plan.md#s16-64--one-change-builder-and-one-change-only-write-call)); bar 36 (Batch 6); the S16-62 plan [`S16-62-subject-and-grade-seeds-through-writes-run.md`](S16-62-subject-and-grade-seeds-through-writes-run.md) §6 *Next adds* and its review log [`S16-62-subject-and-grade-seeds-through-writes-run.review.md`](S16-62-subject-and-grade-seeds-through-writes-run.review.md) (M-3, M-5); [`core/writes/README.md`](../../../../core/writes/README.md); [`core/database/rowchange/README.md`](../../../../core/database/rowchange/README.md)
 **Planned:** 2026-11-20 against `main` @ `ff82a70` (compare with `origin/main` after `git fetch origin main`)
-**Review:** — (not reviewed yet)
+**Review:** [`S16-64-one-change-builder.review.md`](S16-64-one-change-builder.review.md) — Fits with changes / Not ready, round 1; round 2 pending
 
 ### Implementer — read this first
 
@@ -30,7 +30,7 @@
 
 ## 1. Objective
 
-Every catalog write builds its audit changes and runs its transaction the same way. Today nine packages carry their own `createChange` / `updateChange` (or exported `CreateChange` / `UpdateChange`) that wrap `rowchange.FullRow` / `UpdatedRow` in a `rowchange.Change` literal, and about twenty more sites build the same literal by hand. And 210 closures handed to `writes.Run` or `writes.Call` return a meaningless `struct{}{}` beside their changes. This PR adds three builders to `core/database/rowchange` (`Created`, `Updated`, `Deleted`) that take the entity type, the id and the column map, moves every builder and literal around `FullRow` / `UpdatedRow` / `DeletedRow` onto them, and adds `writes.Apply`, a `Run` for a closure that returns only changes, which every `struct{}` closure moves onto.
+Every catalog write builds its audit changes and runs its transaction the same way. Today nine packages carry their own `createChange` / `updateChange` (or exported `CreateChange` / `UpdateChange`) that wrap `rowchange.FullRow` / `UpdatedRow` in a `rowchange.Change` literal, and about twenty more sites build the same literal by hand. And 210 closures handed to `writes.Run` or `writes.Call` return a meaningless `struct{}{}` beside their changes. This PR adds three builders to `core/database/rowchange` (`Created`, `Updated`, `Deleted`) that take the entity type, the id and the column map, moves every builder and literal around `FullRow` / `UpdatedRow` / `DeletedRow` onto them, and adds `writes.RunChanges`, a `Run` for a closure that returns only changes, which every `struct{}` closure moves onto.
 
 **Why now.** Bar 36 (Batch 6). S16-62's plan review (M-3, M-5) found it was adding the seventh to tenth copy of the builder pair and more adaptors; the user put the extraction in its own PR (2026-11-19).
 
@@ -48,15 +48,16 @@ Every catalog write builds its audit changes and runs its transaction the same w
 | AC-1.4 | `rowchange.Deleted("observation_note", id, {"id": "n", "body": "x"})` | `Change{…, Action: "delete", Fields: {"id": {"n", nil}, "body": {"x", nil}}}` |
 | AC-1.5 | The id slice passed in is changed after the call | The returned `EntityID` is unchanged (the builder copies it) |
 | AC-1.6 | The STEP-3 check command after the PR | No hit: the three helpers are unexported (`fullRow`, `updatedRow`, `deletedRow`) and only `rowchange` calls them |
-| AC-1.7 | Every catalog test that asserts an audit change's entity, action or fields (`properties`, `propertyterms`, `subjecttypes`, `sourcecredibilitygrades`, `metadatafields`, `sourcetypes`, `datevalues`, `namevalues`, `citations`, `observations`, `subjects`, `canonicalentities`, `evidencegraphs`, `sourcemetadata`, `subjectvocab`, `deleteimpact`, `audit`, `effects`) | Passes with no change to its expected values |
+| AC-1.8 | `rg -n "\{Old: nil, New:|New: nil\}" core --glob '!*_test.go'` after the PR | Lists only `core/database/rowchange/change.go`, `core/database/sourcemetadata/sourcemetadata.go`, `core/database/sourcecredibility/assessments.go` and `core/database/deleteimpact/facets.go` (D-11) |
+| AC-1.7 | Every catalog test that asserts an audit change's entity, action or fields (`properties`, `propertyterms`, `subjecttypes`, `sourcecredibilitygrades`, `metadatafields`, `sourcetypes`, `datevalues`, `namevalues`, `citations`, `observations`, `subjects`, `canonicalentities`, `evidencegraphs`, `sourcemetadata`, `subjectvocab`, `deleteimpact`, `audit`, `effects`, `sources`, `artifacts`, `core/ingest`, `core/derivatives`) | Passes with no change to its expected values |
 
-**US-2.** As a contributor, when a write returns only its changes, I hand the closure straight to `writes.Apply`, so that no `struct{}{}` adaptor wraps it.
+**US-2.** As a contributor, when a write returns only its changes, I hand the closure straight to `writes.RunChanges`, so that no `struct{}{}` adaptor wraps it.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | `writes.Apply(c, op, fn)` where `fn` returns one audited change | Same as `writes.Run` with a `struct{}` closure: one revision, the `Result` it returns names the revision and effects, listeners notified |
-| AC-2.2 | `fn` returns an error | `Apply` returns `(Result{}, err)`; nothing is written |
-| AC-2.3 | `fn` returns no change | `Apply` returns `(Result{}, nil)`; rolled back, no revision |
+| AC-2.1 | `writes.RunChanges(c, op, fn)` where `fn` returns one audited change | Same as `writes.Run` with a `struct{}` closure: one revision, the `Result` it returns names the revision and effects, listeners notified |
+| AC-2.2 | `fn` returns an error | `RunChanges` returns `(Result{}, err)`; nothing is written |
+| AC-2.3 | `fn` returns no change | `RunChanges` returns `(Result{}, nil)`; rolled back, no revision |
 | AC-2.4 | The two STEP-6 `rg` commands after the PR (including `core/writes`) | No hit |
 | AC-2.5 | The whole Go suite | Passes |
 
@@ -67,16 +68,17 @@ Every catalog write builds its audit changes and runs its transaction the same w
 | `rowchange.Created`, `Updated`, `Deleted` *(new)*; `FullRow`, `UpdatedRow`, `DeletedRow` unexported | STEP-1, AC-1.1 – AC-1.6 |
 | The nine packages' builders move onto them and are deleted: `properties`, `propertyterms`, `subjecttypes`, `sourcecredibilitygrades`, `metadatafields` (`createChange`, `updateChange`); `datevalues` (`CreateChange`, `UpdateChange`); `namevalues` (`CreateChange`; `UpdateChange` stays, D-10); `depictionvalues` (`CreateChange`); `sourcetypes` keeps its two wrappers over the new builders (D-4) | STEP-2, AC-1.7 |
 | Every other non-test `rowchange.Change{…, Fields: rowchange.FullRow/UpdatedRow/DeletedRow(…)}` literal moves onto the builders: `citations`, `observations` (`observations.go`, `write.go`), `canonicalentities`, `identityclaims`, `evidencegraphs`, `subjectvocab` (`bindingCreateChange` and its delete), `sourcemetadata`, `subjects`, `deleteimpact` (`facets.go`, `handle_gone.go`, `release.go`) | STEP-3, AC-1.6, AC-1.7 |
+| Hand-written full-row create and delete literals move onto the builders (D-11) | STEP-3, AC-1.8 |
 | Test files that call `FullRow` / `UpdatedRow` / `DeletedRow` move onto the builders: `core/database/effects/{deleted_handles,evidence_graphs,lists,path}_test.go`, `core/database/audit/audit_test.go` | STEP-3, AC-1.6 |
-| `writes.Apply` *(new)* | STEP-4, AC-2.1 – AC-2.3 |
-| Every `struct{}` closure handed to `writes.Run` / `writes.Call` (210 at the planning base, in 73 files: 26 in `api/ffi/handlers`, `onboarding.installSeed`, the rest in tests and test helpers) moves onto `Apply`; `promote.SaveBatch` returns `([]rowchange.Change, error)`; test helpers that take a `struct{}` closure take a change-only closure | STEP-5, STEP-6, AC-2.4, AC-2.5 |
-| Guidance names the new builders and `Apply` | STEP-7 |
+| `writes.RunChanges` *(new)* | STEP-4, AC-2.1 – AC-2.3 |
+| Every `struct{}` closure handed to `writes.Run` / `writes.Call` (210 at the planning base, in 73 files: 26 in `api/ffi/handlers`, `onboarding.installSeed`, the rest in tests and test helpers) moves onto `RunChanges`; `promote.SaveBatch` returns `([]rowchange.Change, error)`; test helpers that take a `struct{}` closure take a change-only closure | STEP-5, STEP-6, AC-2.4, AC-2.5 |
+| Guidance names the new builders and `RunChanges` | STEP-7 |
 
 | Out | Home |
 | --- | --- |
-| Change literals whose fields are hand-built `FieldDiff`s, not a column map: `namevalues.UpdateChange` (D-10), `sources.dateChange`, `observations.observationUpdateChange`, `subjectvocab.bindingOrderChange`, `sourcemetadata.layoutChange`, `derivatives.fileDerivativeChange` and the other ~120 `rowchange.Change{` literals | not planned — they diff chosen fields, which a column-map builder does not express; a later PR that touches one may move it if its fields become a map |
+| Change literals whose fields are hand-built `FieldDiff`s, not a column map: `namevalues.UpdateChange` (D-10), `sources.dateChange`, `observations.observationUpdateChange`, `subjectvocab.bindingOrderChange`, `sourcemetadata.layoutChange`, `sourcecredibility` assessments, the `core/database/deleteimpact/facets.go` re-point and the other `rowchange.Change{` literals that diff chosen fields | not planned — they diff chosen fields, which a column-map builder does not express; a later PR that touches one may move it if its fields become a map |
 | Any change to what a write records, resolves or returns | not planned (map: "Not this PR") |
-| A `writes.Call`-style variant of `Apply` that drops the `Result` | not planned (D-5) |
+| A `writes.Call`-style variant of `RunChanges` that drops the `Result` | not planned (D-5) |
 | Package constants naming each entity type | not planned (D-3) |
 
 ## 4. Current state
@@ -112,10 +114,11 @@ Every catalog write builds its audit changes and runs its transaction the same w
 | D-2 | `FullRow`, `UpdatedRow`, `DeletedRow` become unexported (`fullRow`, `updatedRow`, `deletedRow`) once their last outside caller moves (STEP-3). `TestUpdatedRow` becomes `TestBuilders` *(new name)*, a table over the three builders that keeps all five of today's `UpdatedRow` cases through `Updated`. | Bar 36 says no package builds its own change around its column list; unexporting makes the compiler hold that, and AC-1.6's `rg` checks it | Keeping them exported — because the next package would wrap them in a literal again |
 | D-3 | The entity type stays a string literal at each call site, as the code writes it today. No package gains an entity constant; `subjectvocab` keeps `bindingEntity`. Fixed keys are passed literally at each `Updated` call, copied from the deleted function: `"id", "key", "origin"` in `properties`, `subjecttypes`, `sourcecredibilitygrades` and `metadatafields`; `"id", "property_id", "key", "origin"` in `propertyterms`; `"id"` in `datevalues`. | The literals already exist one per builder; a constant per package is new boilerplate the map's "keeps only its rowFields" excludes. At most two `Updated` calls per package repeat the fixed keys | A package `const entityType` — because it re-creates the per-package scaffolding this PR removes |
 | D-4 | `sourcetypes` keeps `createChange` and `updateChange` as private wrappers over `Created` / `Updated`, because the format columns are extra fields. `createChange` builds `rowchange.Created("source_type", t.ID, rowFields(t))` and then adds `formatFieldDiffs(Formats{}, formats)` into its `Fields`. `updateChange` copies `rowFields(prev)` and `rowFields(next)` into `old` / `now`, sets `old[col], now[col] = d.Old, d.New` for each passed format diff, and returns `rowchange.Updated("source_type", prev.ID, old, now, "id", "key", "origin")`. | A format diff exists only when the texts differ, and `database.NullString` maps them to distinct values, so `updatedRow` reproduces each diff exactly and the nil-when-empty rule still holds. Six call sites keep one wrapper each instead of repeating the merge | Inlining the merge at six call sites — because it repeats four lines six times. Adding a "plus extra diffs" parameter to `Updated` — because only this package needs it |
-| D-5 | `core/writes` gains `func Apply(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error)`, It holds today's body of `Run` (begin, the closure, `AllNone`, `Resolve`, `audit.Record`, recompute, reproject, commit, `AfterCommit`, `Notify`) unchanged, and `Run[T]` becomes a wrapper that calls `Apply` with a closure capturing the closure's value (`v, ch, err := fn(tx); value = v; return ch, err`) and returns `(value, res, nil)`, or `(zero, Result{}, err)` on error. `Call` is unchanged. It returns `Result`, not only `error`. | Every handler closure but `installSeed`'s read the `Result` (`writeEffectsProto(wrote)`), so an `error`-only `Apply` would leave them on `Run` with the adaptor. Sites that drop it write `_, err :=` as they drop `Call`'s value today. This differs from the map's sketch (`… error`); STEP-8 updates the scope entry | An `Apply` returning `error` plus an `ApplyRun` returning `Result` — because one function covers both, and a second name is a second thing to choose between |
+| D-5 | `core/writes` gains `func RunChanges(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error)`, It holds today's body of `Run` (begin, the closure, `AllNone`, `Resolve`, `audit.Record`, recompute, reproject, commit, `AfterCommit`, `Notify`) unchanged, and `Run[T]` becomes a wrapper that calls `RunChanges` with a closure capturing the closure's value (`v, ch, err := fn(tx); value = v; return ch, err`) and returns `(value, res, nil)`, or `(zero, Result{}, err)` on error. `Call` is unchanged. It returns `Result`, not only `error`. | Every handler closure but `installSeed`'s read the `Result` (`writeEffectsProto(wrote)`), so an `error`-only `RunChanges` would leave them on `Run` with the adaptor. Sites that drop it write `_, err :=` as they drop `Call`'s value today. This differs from the map's sketch (`… error`); STEP-8 updates the scope entry | A `RunChanges` returning `error` plus a second name returning `Result` — because one function covers both, and a second name is a second thing to choose between |
 | D-6 | Every closure of type `func(*database.Tx) (struct{}, []rowchange.Change, error)` moves, not only the 131 that end `return struct{}{}, changes, err`. A closure body that only forwards (`changes, err := pkg.Fn(tx, …); return struct{}{}, changes, err`) becomes `return pkg.Fn(tx, …)`. Multi-statement bodies keep their statements and return `(changes, err)` / `(nil, err)`. | The other 79 (variable names `ch`, `nil` early returns, `append(...)`) are the same adaptor; leaving them would keep the pattern bar 36 removes | Moving only the exact text — because the next reader copies the survivors |
-| D-7 | `promote.SaveBatch` returns `([]rowchange.Change, error)`, and `promote_batch.go` passes it to `Apply` through a closure that binds its arguments. | It is a `Run` closure in disguise; the `struct{}` in a package API is the same adaptor | Leaving its signature — because `rg` AC-2.4 would still hit it |
-| D-8 | Test helpers that take a `struct{}` closure take `func(*database.Tx) ([]rowchange.Change, error)` and call `writes.Apply`. Their names and other parameters do not change. `evidencelayertest`'s `Records.Run`, which already takes a change-only closure and wraps it for the generic `run`, calls `writes.Apply` itself (`res, err := writes.Apply(r.C, writes.Op{Action: action, UserID: UserID}, fn)`, `Must(r.T, err)`, `r.Reported = res.Effects.SummaryDeps`); `run` stays for the value-returning helpers. | Same adaptor, one level down | Leaving test helpers generic over `T` — because no caller passes a value |
+| D-7 | `promote.SaveBatch` returns `([]rowchange.Change, error)`, and `promote_batch.go` passes it to `RunChanges` through a closure that binds its arguments. | It is a `Run` closure in disguise; the `struct{}` in a package API is the same adaptor | Leaving its signature — because `rg` AC-2.4 would still hit it |
+| D-8 | Test helpers that take a `struct{}` closure take `func(*database.Tx) ([]rowchange.Change, error)` and call `writes.RunChanges`. Their names and other parameters do not change. `evidencelayertest`'s `Records.Run`, which already takes a change-only closure and wraps it for the generic `run`, calls `writes.RunChanges` itself (`res, err := writes.RunChanges(r.C, writes.Op{Action: action, UserID: UserID}, fn)`, `Must(r.T, err)`, `r.Reported = res.Effects.SummaryDeps`); `run` stays for the value-returning helpers. | Same adaptor, one level down | Leaving test helpers generic over `T` — because no caller passes a value |
+| D-11 | A hand-written create or delete literal whose every field is `{Old: nil, New: v}` (create) or `{Old: v, New: nil}` (delete) moves onto `Created` / `Deleted`: its `map[string]rowchange.FieldDiff` becomes a `map[string]any` with the same keys, the same values and the same conditions. The sites at the planning base: `core/database/sources/sources.go` (`Create`, lines 145–161; the delete, 483–505), `core/database/sources/notes.go` (create near 104, delete near 166), `core/database/artifacts/artifacts.go` (create 118–137, delete 272–287), `core/database/subjects/subjects.go` (delete 238–254), `core/ingest/file.go` (file create near 145), `core/derivatives/ensure.go` `fileDerivativeChange` (326). Mixed literals stay: `core/database/sourcemetadata/sourcemetadata.go` `layoutChange` and its layout fields, `core/database/sourcecredibility/assessments.go` (one map for a create or an update), `core/database/deleteimpact/facets.go` line 648 (a re-point that clears one FK). | Bar 36: no package builds its own create or delete around its column list; these are the same full-row changes the builders make, so the audit JSON is byte-identical (maintainability review M-1) | Leaving them — because `sources.Create`, the write most copied, would keep teaching the literal |
 | D-10 | `namevalues.UpdateChange` stays as it is, a hand-built diff. Only `namevalues.CreateChange` moves (onto `Created`). | Its `parts` column is a slice; `updatedRow` compares with `!=` and would panic on it. Teaching `Updated` deep equality for one package's column is a second comparison rule in `rowchange` | `reflect.DeepEqual` in `updatedRow` — because it changes how every other map compares for one caller |
 | D-9 | Test files and assertions change only where they build a closure or call a removed helper. No expected value in any test changes. | AC-1.7 is the proof that the audit JSON is unchanged | — |
 
@@ -130,13 +133,13 @@ Every catalog write builds its audit changes and runs its transaction the same w
 | `rowchange.Created` *(new)* | func | `rowchange.FullRow` + nine `createChange` / `CreateChange` | It is the extension: `FullRow` becomes its private body |
 | `rowchange.Updated` *(new)* | func | `rowchange.UpdatedRow` + eight `updateChange` / `UpdateChange` | Same: `UpdatedRow` becomes its private body |
 | `rowchange.Deleted` *(new)* | func | `rowchange.DeletedRow` + ~12 literals | Same |
-| `writes.Apply` *(new)* | func | `writes.Run`, `writes.Call` | It takes `Run`'s body; `Run` becomes the wrapper that carries a value, so no `struct{}` adaptor is left anywhere, `core/writes` included |
+| `writes.RunChanges` *(new)* | func | `writes.Run`, `writes.Call` | It takes `Run`'s body; `Run` becomes the wrapper that carries a value, so no `struct{}` adaptor is left anywhere, `core/writes` included |
 | `TestBuilders` *(renamed from `TestUpdatedRow`)* | test | `core/database/rowchange/change_test.go` `TestUpdatedRow` | Extended in place |
-| `TestApply` *(new)* | test | `core/writes/run_test.go` | Added beside the `Run` tests, reusing their fixture |
+| `TestRunChanges` *(new)* | test | `core/writes/run_test.go` | Added beside the `Run` tests, reusing their fixture |
 
 **Builds on.** `9341656`'s `UpdatedRow`; `writes.Run`; the column maps each package already has (`rowFields`, `RowMap`, `AuditFields`, `graphFields`, `linkFields`, `bindingFields`, `auditFields`).
 **Deletes.** `createChange` and `updateChange` in `properties`, `propertyterms`, `subjecttypes`, `sourcecredibilitygrades`, `metadatafields`; `CreateChange` and `UpdateChange` in `datevalues`; `namevalues.CreateChange`; `depictionvalues.CreateChange`; `subjectvocab.bindingCreateChange` (its two callers, `subjectvocab.go` lines 132 and 208, call `rowchange.Created(bindingEntity, propertyID, bindingFields(typeID, propertyID, order))`); the exported `FullRow`, `UpdatedRow`, `DeletedRow`; 210 `struct{}` adaptors. Every doc comment on a deleted function goes with it.
-**Next adds.** A new audited catalog package writes a column map and calls `rowchange.Created` / `Updated` / `Deleted`; a new FFI write handler calls `writes.Apply`. `add-catalog-query` and `add-audit-scope` name both (STEP-7).
+**Next adds.** A new audited catalog package writes a column map and calls `rowchange.Created` / `Updated` / `Deleted`; a new FFI write handler calls `writes.RunChanges`. `add-catalog-query` and `add-audit-scope` name both (STEP-7).
 
 ### Reach
 
@@ -169,9 +172,9 @@ None — no catalog change.
 | `core/database/namevalues` | `CreateChange` deleted; `PutTx` calls `rowchange.Created("name_value", id, RowMap(id, v))`; `UpdateChange` unchanged (D-10) |
 | `core/database/depictionvalues` | `CreateChange` deleted; `core/database/observations/depiction.go` calls `rowchange.Created("depiction_value", id, depictionvalues.RowMap(id, v))` |
 | Literal sites (§4 "Literals") | Each `rowchange.Change{EntityType: e, EntityID: id, Action: create/delete, Fields: rowchange.FullRow/DeletedRow(m)}` → `rowchange.Created/Deleted(e, id, m)`; a site that returns `*rowchange.Change` (`core/database/deleteimpact/release.go`) writes `ch := rowchange.Deleted(entity, prevID, row); return &ch, nil` |
-| `core/writes` | `Apply` *(new)* per D-5 takes `Run`'s body and doc comment (its first sentence names `Apply`; the rest is unchanged); `Run`'s doc comment becomes "Run is Apply for a closure that also returns a value: the created or updated row." |
+| `core/writes` | `RunChanges` *(new)* per D-5 takes `Run`'s body and doc comment (its first sentence names `RunChanges`; the rest is unchanged); `Run`'s doc comment becomes "Run is RunChanges for a closure that also returns a value: the created or updated row." |
 | `core/database/promote` | `SaveBatch(tx, userID, in) ([]rowchange.Change, error)` (D-7) |
-| `core/onboarding/ready.go` | `installSeed` calls `writes.Apply(c, writes.Op{Action: action}, install)` and returns its error |
+| `core/onboarding/ready.go` | `installSeed` calls `writes.RunChanges(c, writes.Op{Action: action}, install)` and returns its error |
 
 ```go
 // Created is the create change of one row: every column, old nil, new the value.
@@ -185,9 +188,9 @@ func Updated(entity string, id []byte, old, now map[string]any, fixed ...string)
 // Deleted is the delete change of one row: every column, old the value, new nil.
 func Deleted(entity string, id []byte, fields map[string]any) Change
 
-// Apply begins a transaction, runs fn, and on a non-empty change list records
+// RunChanges begins a transaction, runs fn, and on a non-empty change list records
 // audit (the rest of today's Run comment, unchanged).
-func Apply(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error)
+func RunChanges(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error)
 ```
 
 Errors: none new.
@@ -218,43 +221,43 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/properties/ ./core/data
 
 **STEP-3 — Every other helper literal, then unexport**
 Files: §4 "Literals" and "Literals in tests"; `core/database/rowchange/change.go`, `README.md`.
-Do: move each literal onto `Created` / `Deleted` (and `Updated` if any); then rename `FullRow` → `fullRow`, `UpdatedRow` → `updatedRow`, `DeletedRow` → `deletedRow` (D-2), and reword the README paragraph starting "`FullRow` is a create" to name `Created`, `Updated`, `Deleted`.
-Check: `rg -n "rowchange\.(FullRow|UpdatedRow|DeletedRow)\b" core api` finds nothing; `CGO_ENABLED=1 go build -tags fts5 ./api/... ./core/...` and `CGO_ENABLED=1 go test -tags fts5 ./core/database/...` pass.
+Do: move each literal onto `Created` / `Deleted` (and `Updated` if any), and the D-11 literals; then rename `FullRow` → `fullRow`, `UpdatedRow` → `updatedRow`, `DeletedRow` → `deletedRow` (D-2), and reword the README paragraph starting "`FullRow` is a create" to name `Created`, `Updated`, `Deleted`.
+Check: `rg -n "rowchange\.(FullRow|UpdatedRow|DeletedRow)\b" core api` finds nothing; AC-1.8's `rg` lists only its four files; `CGO_ENABLED=1 go test -tags fts5 ./core/ingest/ ./core/derivatives/` passes; `CGO_ENABLED=1 go build -tags fts5 ./api/... ./core/...` and `CGO_ENABLED=1 go test -tags fts5 ./core/database/...` pass.
 
-**STEP-4 — `writes.Apply`**
+**STEP-4 — `writes.RunChanges`**
 Files: `core/writes/run.go`, `run_test.go`, `README.md`.
-Do: move `Run`'s body into `Apply` and make `Run` its wrapper (D-5); add `TestApply` (T-2). Reword the paragraphs starting "`Run` begins one transaction" and "`Run` is generic" to say `Apply` begins the transaction, that its closure returns the changes, and that `Run` is `Apply` for a closure that also returns the created or updated row; `Call` is `Run` with the revision discarded.
+Do: move `Run`'s body into `RunChanges` and make `Run` its wrapper (D-5); add `TestRunChanges` (T-2). Reword the paragraphs starting "`Run` begins one transaction" and "`Run` is generic" (dropping "(or nothing, for a delete)") to say `RunChanges` begins the transaction, that its closure returns the changes, and that `Run` is `RunChanges` for a closure that also returns the created or updated row; `Call` is `Run` with the revision discarded.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/writes/` passes, the existing `Run` tests unchanged.
 
 **STEP-5 — Non-test adaptors**
 Files: `api/ffi/handlers/*.go` (the 26 closures in §4), `core/onboarding/ready.go`, `core/database/promote/batch.go`, `api/ffi/handlers/promote_batch.go`.
-Do: each `_, wrote, err := writes.Run(…, struct{} closure)` → `wrote, err := writes.Apply(…, change-only closure)`; `_, err := writes.Call(…)` → `_, err := writes.Apply(…)`; closure bodies per D-6. `SaveBatch` per D-7, its error returns becoming `return nil, err`.
+Do: each `_, wrote, err := writes.Run(…, struct{} closure)` → `wrote, err := writes.RunChanges(…, change-only closure)`; `_, err := writes.Call(…)` → `_, err := writes.RunChanges(…)`; closure bodies per D-6. `SaveBatch` per D-7, its error returns becoming `return nil, err`.
 Check: `rg -n "\(struct\{\}, \[\]rowchange\.Change, error\)" api core --glob '!*_test.go' --glob '!*test/**'` finds nothing; `CGO_ENABLED=1 go test -tags fts5 ./api/... ./core/onboarding/ ./core/database/promote/` passes.
 
 **STEP-6 — Test adaptors and helpers**
 Files: every file `rg -n "\(struct\{\}, \[\]rowchange\.Change, error\)" core api` still lists (the test helpers named in §4 first, then their callers).
-Do: per D-6, D-8, D-9, one package at a time; after each package run `CGO_ENABLED=1 go test -tags fts5 ./<that package>/...`. Other test helpers keep their return types; only their closure parameter and the `writes` call inside change. A `_, _, err := writes.Run(…)` becomes `_, err := writes.Apply(…)`; a `_, res, err := writes.Run(…)` becomes `res, err := writes.Apply(…)`.
+Do: per D-6, D-8, D-9, one package at a time; after each package run `CGO_ENABLED=1 go test -tags fts5 ./<that package>/...`. Other test helpers keep their return types; only their closure parameter and the `writes` call inside change. A `_, _, err := writes.Run(…)` becomes `_, err := writes.RunChanges(…)`; a `_, res, err := writes.Run(…)` becomes `res, err := writes.RunChanges(…)`.
 Check: `rg -n "return struct\{\}\{\}, " core api` and `rg -n "\(struct\{\}, \[\]rowchange\.Change, error\)" core api` find nothing; `CGO_ENABLED=1 go vet -tags fts5 ./api/... ./core/...` and `CGO_ENABLED=1 go test -tags fts5 ./api/... ./core/...` pass.
 
 **STEP-7 — Guidance**
-Files: `.agents/skills/add-audit-scope/SKILL.md`, `.agents/skills/add-catalog-delete/SKILL.md`, `.cursor/rules/catalog-audit.mdc` (`DeletedRow` → `rowchange.Deleted`); `.agents/skills/add-date-value/SKILL.md` (`RowMap` builds the audit row; `rowchange.Created` / `Updated` make the change); `.agents/skills/add-name-value/SKILL.md`, `.cursor/rules/name-values.mdc` (`RowMap` builds the audit row; `rowchange.Created` makes the create change and `UpdateChange` the update, which diffs `form` and `parts` itself); `.agents/skills/add-depiction-value/SKILL.md` (`rowchange.Created` over `depictionvalues.RowMap`); `.agents/skills/add-seeded-vocabulary/SKILL.md` (`installSeed`, one `writes.Apply`); `.agents/skills/add-catalog-query/SKILL.md` (one sentence where it describes a write's changes: "Build a create, update or delete change with `rowchange.Created`, `Updated` or `Deleted` over the package's column map; a write that returns no value runs through `writes.Apply`.").
+Files: `.agents/skills/add-audit-scope/SKILL.md`, `.agents/skills/add-catalog-delete/SKILL.md`, `.cursor/rules/catalog-audit.mdc` (`DeletedRow` → `rowchange.Deleted`); `.agents/skills/add-date-value/SKILL.md` (`RowMap` builds the audit row; `rowchange.Created` / `Updated` make the change); `.agents/skills/add-name-value/SKILL.md`, `.cursor/rules/name-values.mdc` (`RowMap` builds the audit row; `rowchange.Created` makes the create change and `UpdateChange` the update, which diffs `form` and `parts` itself); `.agents/skills/add-depiction-value/SKILL.md` (`rowchange.Created` over `depictionvalues.RowMap`); `.agents/skills/add-seeded-vocabulary/SKILL.md` (`installSeed`, one `writes.RunChanges`); `.agents/skills/add-catalog-query/SKILL.md` line 46: replace its first sentence ("Research writes call `audit.Record` in the same tx.") with "A research write builds each change with `rowchange.Created`, `Updated` or `Deleted` over the package's column map and returns it; `writes.Run` (a write with a value) or `writes.RunChanges` (a write with none) records it in the same transaction."; `core/writes/README.md` last paragraph: "The FFI handlers call `Run`" becomes "The FFI handlers call `Run` or `RunChanges`".
 Do: replace each old name with the new one, keeping the surrounding sentence.
-Check: `rg -n "FullRow|UpdatedRow|DeletedRow|CreateChange|bindingCreateChange" .agents .cursor docs/*.md core --glob '*.md' --glob '*.mdc'` finds nothing, and `rg -n "UpdateChange" .agents .cursor docs/*.md core --glob '*.md' --glob '*.mdc'` finds only the two `namevalues` lines; `python3 scripts/check-guidance-names.py` passes.
+Check: `rg -n "FullRow|UpdatedRow|DeletedRow|CreateChange|bindingCreateChange" .agents .cursor docs/*.md core --glob '*.md' --glob '*.mdc'` finds nothing, and `rg -n "UpdateChange" .agents .cursor docs/*.md core --glob '*.md' --glob '*.mdc'` finds only the two `namevalues` lines; `rg -n "call .audit\.Record. in the same tx|or nothing, for a delete" .agents core --glob '*.md'` finds nothing; `python3 scripts/check-guidance-names.py` passes.
 
 **STEP-8 — Docs**
 Files: `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row status), this plan (status, Landed note).
 Do: per the Definition of done.
 Check: links resolve; `scripts/check-pr.sh` prints `check-pr: PASS`.
 
-Commits: one per behavior. The subject is one full imperative sentence ending in a period, like the rest of `git log` ("Build every create, update and delete audit change through one rowchange builder.", "Run change-only writes through writes.Apply."). No WIP commits.
+Commits: one per behavior. The subject is one full imperative sentence ending in a period, like the rest of `git log` ("Build every create, update and delete audit change through one rowchange builder.", "Run change-only writes through writes.RunChanges."). No WIP commits.
 
 ## 8. Tests
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `core/database/rowchange/change_test.go` `TestBuilders` *(renamed from `TestUpdatedRow`)* | Table: the five `UpdatedRow` cases through `Updated` (equal → nil; changed → one diff; only in now; only in old; fixed skipped → nil); `Created` of a two-key map → create change, entity and id set, every old nil; `Deleted` → every new nil; id mutated after the call → `EntityID` unchanged | AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, D-1 |
-| T-2 | Go | `core/writes/run_test.go` `TestApply` *(new)* | Table on the `Run` tests' fixture (copy its catalog setup and `recListener` from `run_test.go`): one audited change → non-zero `Result.Activity.Revision` and `recListener.OnCommit` called once; closure error → `Result{}` and the error, and `SELECT COUNT(*) FROM audit_transactions` unchanged; no change → `Result{}`, nil, and the same count unchanged | AC-2.1, AC-2.2, AC-2.3, D-5 |
-| T-3 | Go | Every existing package test named in AC-1.7, unchanged | Same expected entity, action and fields as at `ff82a70` | AC-1.7, D-9 |
+| T-2 | Go | `core/writes/run_test.go` `TestRunChanges` *(new)* | Table on the `Run` tests' fixture (copy its catalog setup and `recListener` from `run_test.go`): one audited change → non-zero `Result.Activity.Revision` and `recListener.OnCommit` called once; closure error → `Result{}` and the error, and `SELECT COUNT(*) FROM audit_transactions` unchanged; no change → `Result{}`, nil, and the same count unchanged | AC-2.1, AC-2.2, AC-2.3, D-5 |
+| T-3 | Go | Every existing package test named in AC-1.7, unchanged | Same expected entity, action and fields as at `ff82a70` | AC-1.7, AC-1.8, D-9, D-11 |
 | T-4 | Go | `core/database/sourcetypes/sourcetypes_test.go` (existing, unchanged) | Format-only update → change naming only the format column; create with formats → create fields plus the non-empty format columns | D-4 |
 | T-5 | Go | `api/ffi/handlers` suite (existing, unchanged) | Every write handler returns the same effects | AC-2.5, D-5 |
 
