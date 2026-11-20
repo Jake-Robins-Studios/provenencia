@@ -57,6 +57,8 @@ struct SourceTypeFormatsModelTests {
         if let handle: QueryHandle<[CatalogSource]> = session.queryHandle(SourcesModel.sourcesListKey(for: session)) {
             await waitForQuery(handle)
         }
+        // The previews `load()` asked for have landed, so a test counts only its own calls.
+        _ = await waitFor { !model.isRendering }
         return (model, store, session)
     }
 
