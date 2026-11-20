@@ -97,8 +97,8 @@ final class SourceTypeFormatsModel {
     private var renders: [CitationForm: CatalogCitationRender] = [:]
     private var missingByForm: [CitationForm: [[CatalogCitationOption]]] = [:]
     private var renderingForms: Set<CitationForm> = []
-    /// A failed preview call, shown under "Preview with"; cleared by the next success.
-    private(set) var previewError: String?
+    /// Each form's failed preview call; a form's own next success clears only its entry.
+    private var previewErrors: [CitationForm: String] = [:]
 
     private let session: WorkspaceSession
     private let store: any GenealogyStore
@@ -295,6 +295,12 @@ final class SourceTypeFormatsModel {
 
     var isRendering: Bool { !renderingForms.isEmpty }
 
+    /// The failed preview's text, shown under "Preview with": the first failed form's, in form order.
+    var previewError: String? { CitationForm.allCases.lazy.compactMap { self.previewErrors[$0] }.first }
+
+    /// Whether any form's preview failed: the section draws no preview while one has.
+    var isPreviewFailed: Bool { !previewErrors.isEmpty }
+
     func isRendering(_ form: CitationForm) -> Bool { renderingForms.contains(form) }
 
     /// Renders all three forms now, for the effective pick.
@@ -345,7 +351,7 @@ final class SourceTypeFormatsModel {
         renderingForms.remove(form)
         switch result {
         case .success(let preview):
-            previewError = nil
+            previewErrors[form] = nil
             renders[form] = preview.render
             missingByForm[form] = preview.missing
             if let sent {
@@ -356,7 +362,7 @@ final class SourceTypeFormatsModel {
                 pickedSourceID = nil
                 return
             }
-            previewError = L10n.Errors.message(for: error)
+            previewErrors[form] = L10n.Errors.message(for: error)
         }
     }
 }

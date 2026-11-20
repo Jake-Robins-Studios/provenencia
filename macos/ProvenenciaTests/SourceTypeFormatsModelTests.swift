@@ -211,14 +211,23 @@ struct SourceTypeFormatsModelTests {
         #expect(model.shownDiagnostics(.full).isEmpty)
     }
 
-    @Test func aFailedPreviewIsKeptUntilTheNextSuccess() async {
+    @Test func aFailedPreviewIsKeptUntilItsOwnFormRendersAgain() async {
         let (model, store, _) = await makeModel(sources: [source("s1", revision: 1)])
         store.previewError = CoreInvokeError.failed(status: 3)
         model.rerenderAll()
-        #expect(await waitFor { model.previewError != nil })
+        #expect(await waitFor { model.previewError != nil && !model.isRendering })
+        #expect(model.isPreviewFailed)
+        // Another form's success does not clear a failure it did not cause.
         store.previewError = nil
+        store.resetPreviewCalls()
+        model.edit(.short, text: "{source.title}!")
+        #expect(await waitFor { !store.previewCalls.isEmpty && !model.isRendering })
+        #expect(model.previewError != nil && model.isPreviewFailed)
+        // A retry keeps the failure until each reply lands, then every form has cleared its own.
         model.rerenderAll()
+        #expect(model.previewError != nil)
         #expect(await waitFor { model.previewError == nil })
+        #expect(!model.isPreviewFailed)
     }
 
     // MARK: Draft, revert

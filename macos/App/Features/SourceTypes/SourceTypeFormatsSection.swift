@@ -146,7 +146,9 @@ private struct SourceTypeFormatEditor: View {
                 Text(verbatim: L10n.CitationFormats.formMeaning(form))
                     .font(PVFont.body(size: PVTypeScale.micro, italic: true))
                     .foregroundStyle(PVColor.textMuted)
-                SourceTypeFormatPreview(form: form, model: model, hasWarning: !shown.isEmpty)
+                if !formats.isPreviewFailed {
+                    SourceTypeFormatPreview(form: form, model: model, hasWarning: !shown.isEmpty)
+                }
                 if editable {
                     textArea(isInvalid: !shown.isEmpty)
                     ForEach(Array(shown.enumerated()), id: \.offset) { index, diagnostic in
