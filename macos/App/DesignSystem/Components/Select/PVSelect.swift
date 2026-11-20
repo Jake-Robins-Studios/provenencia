@@ -322,7 +322,7 @@ struct PVSelect<Row: View>: View {
         default:
             guard press.characters.count == 1,
                   let character = press.characters.first,
-                  character.isLetter || character.isNumber
+                  PVTypeSelectMatcher.isTypeSelectCharacter(character)
             else { return .ignored }
             key = .character(character)
         }

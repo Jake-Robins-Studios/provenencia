@@ -33,6 +33,18 @@ struct PVListTests {
         #expect(action(.space, at: 0) == .activate(0))
     }
 
+    @Test func homeAndEndSkipDisabledRows() {
+        #expect(PVListKeyboard.action(
+            for: .home, option: false, index: 2, count: 4, isDisabled: { $0 == 0 }
+        ) == .move(to: 1))
+        #expect(PVListKeyboard.action(
+            for: .end, option: false, index: 0, count: 4, isDisabled: { $0 == 3 }
+        ) == .move(to: 2))
+        #expect(PVListKeyboard.action(
+            for: .downArrow, option: false, index: 0, count: 4, isDisabled: { $0 == 1 }
+        ) == .move(to: 2))
+    }
+
     @Test func otherKeysAndEmptyListsAreIgnored() {
         #expect(action(KeyEquivalent("a"), at: 2) == .ignore)
         #expect(action(.downArrow, at: 0, of: 0) == .ignore)

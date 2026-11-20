@@ -113,20 +113,22 @@ struct PVSelectSession: Equatable {
 
     mutating func moveCommitted(delta: Int) {
         guard canOpen else { return }
-        var next = PVFloatingMenuSelection.moveIndex(
-            from: selectedIndex, delta: delta, count: options.count
+        let next = PVFloatingMenuSelection.moveIndex(
+            from: selectedIndex, delta: delta, count: options.count,
+            isDisabled: { options[$0].isMenuOnly }
         )
-        let step = delta < 0 ? -1 : 1
-        while options.indices.contains(next), options[next].isMenuOnly {
-            next += step
-        }
+        guard next >= 0, next != selectedIndex else { return }
         commit(index: next, close: false)
     }
 
     mutating func jumpCommitted(toFirst: Bool) {
         guard canOpen else { return }
-        let steppable = options.indices.filter { !options[$0].isMenuOnly }
-        guard let target = toFirst ? steppable.first : steppable.last else { return }
+        let target = PVFloatingMenuSelection.moveIndex(
+            from: selectedIndex, delta: toFirst ? 1 : -1, count: options.count,
+            edge: toFirst ? .first : .last,
+            isDisabled: { options[$0].isMenuOnly }
+        )
+        guard target >= 0, target != selectedIndex else { return }
         commit(index: target, close: false)
     }
 
@@ -200,12 +202,12 @@ struct PVSelectSession: Equatable {
     @discardableResult
     mutating func applyTypeSelect(_ character: Character, now: Date = Date(), commit: Bool) -> Bool {
         guard canOpen else { return false }
-        let buffer = typeSelect.append(character, now: now)
         let current = isOpen ? highlightIndex : selectedIndex
-        let from = buffer.count == 1 ? current + 1 : max(0, current)
         // Closed type-select commits, so it never lands on a menu-only option.
-        let titles = commit ? options.map { $0.isMenuOnly ? "" : $0.label } : optionTitles
-        let hit = PVTypeSelectMatcher.index(in: titles, prefix: buffer, fromIndex: from)
+        let hit = typeSelect.advance(
+            character, from: current, in: optionTitles,
+            isDisabled: { commit && options[$0].isMenuOnly }, now: now
+        )
         guard hit >= 0 else { return false }
         if commit {
             selection = options[hit].id
