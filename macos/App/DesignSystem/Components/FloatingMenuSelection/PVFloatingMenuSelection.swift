@@ -93,6 +93,15 @@ struct PVTypeSelectMatcher: Equatable {
         character.isLetter || character.isNumber
     }
 
+    /// The character a key press type-selects: one letter or digit with neither
+    /// ⌘ nor ⌃ held. Nil for anything else.
+    static func typeSelectCharacter(_ characters: String?, command: Bool, control: Bool) -> Character? {
+        guard let characters, characters.count == 1, let character = characters.first,
+              isTypeSelectCharacter(character), !command, !control
+        else { return nil }
+        return character
+    }
+
     /// First index whose value starts with `prefix`, searching forward from
     /// `fromIndex` and wrapping, so repeated single keystrokes cycle matches.
     /// Case, accents and punctuation do not count (`TextMatch`).

@@ -426,12 +426,11 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             matcher.reset()
             return .handled
         default:
-            guard press.characters.count == 1,
-                  let character = press.characters.first,
-                  PVTypeSelectMatcher.isTypeSelectCharacter(character),
-                  !press.modifiers.contains(.command),
-                  !press.modifiers.contains(.control)
-            else { return .ignored }
+            guard let character = PVTypeSelectMatcher.typeSelectCharacter(
+                press.characters,
+                command: press.modifiers.contains(.command),
+                control: press.modifiers.contains(.control)
+            ) else { return .ignored }
 
             let hit = matcher.advance(character, from: index, in: rows.map(primaryText))
             if hit >= 0 { select(at: hit) }

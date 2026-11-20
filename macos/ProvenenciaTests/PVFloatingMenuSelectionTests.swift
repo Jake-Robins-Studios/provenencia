@@ -107,4 +107,14 @@ struct PVFloatingMenuSelectionTests {
         #expect(!PVTypeSelectMatcher.isTypeSelectCharacter("-"))
         #expect(!PVTypeSelectMatcher.isTypeSelectCharacter(" "))
     }
+
+    @Test func typeSelectCharacterFromAKeyPress() {
+        #expect(PVTypeSelectMatcher.typeSelectCharacter("a", command: false, control: false) == "a")
+        #expect(PVTypeSelectMatcher.typeSelectCharacter("a", command: true, control: false) == nil)
+        #expect(PVTypeSelectMatcher.typeSelectCharacter("a", command: false, control: true) == nil)
+        #expect(PVTypeSelectMatcher.typeSelectCharacter("ab", command: false, control: false) == nil)
+        #expect(PVTypeSelectMatcher.typeSelectCharacter("", command: false, control: false) == nil)
+        #expect(PVTypeSelectMatcher.typeSelectCharacter(nil, command: false, control: false) == nil)
+        #expect(PVTypeSelectMatcher.typeSelectCharacter(" ", command: false, control: false) == nil)
+    }
 }

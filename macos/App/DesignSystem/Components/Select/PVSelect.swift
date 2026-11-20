@@ -318,10 +318,11 @@ struct PVSelect<Row: View>: View {
         case .space: key = .space
         case .return: key = .return
         default:
-            guard press.characters.count == 1,
-                  let character = press.characters.first,
-                  PVTypeSelectMatcher.isTypeSelectCharacter(character)
-            else { return .ignored }
+            guard let character = PVTypeSelectMatcher.typeSelectCharacter(
+                press.characters,
+                command: press.modifiers.contains(.command),
+                control: press.modifiers.contains(.control)
+            ) else { return .ignored }
             key = .character(character)
         }
         guard let key else { return .ignored }
