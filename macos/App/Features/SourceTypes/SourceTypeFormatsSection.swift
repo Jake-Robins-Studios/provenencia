@@ -140,7 +140,9 @@ private struct SourceTypeFormatEditor: View {
         PVSubsectionHeader(
             title: L10n.CitationFormats.formTitle(form),
             meta: editable ? countText : nil,
-            metaTone: formats.isOverLimit(form) ? .danger : .muted
+            metaTone: formats.isOverLimit(form) ? .danger : .muted,
+            metaLabel: countSpoken,
+            metaIdentifier: "sourceTypes.formats.\(form.rawValue).count"
         ) {
             VStack(alignment: .leading, spacing: PVSpacing.space4) {
                 Text(verbatim: L10n.CitationFormats.formMeaning(form))
@@ -171,6 +173,13 @@ private struct SourceTypeFormatEditor: View {
         )
     }
 
+    private var countSpoken: String {
+        L10n.SourceTypes.Formats.countSpoken(
+            used: L10n.CitationFormats.grouped(formats.count(form)),
+            limit: L10n.CitationFormats.grouped(CitationFormatLimit.maxCharacters)
+        )
+    }
+
     private func textArea(isInvalid: Bool) -> some View {
         PVTextArea(
             text: Binding(get: { formats.draft(form) }, set: { formats.edit(form, text: $0) }),
@@ -182,12 +191,7 @@ private struct SourceTypeFormatEditor: View {
             cursor: cursor,
             completion: completion
         )
-        .accessibilityValue(
-            L10n.SourceTypes.Formats.countSpoken(
-                used: L10n.CitationFormats.grouped(formats.count(form)),
-                limit: L10n.CitationFormats.grouped(CitationFormatLimit.maxCharacters)
-            )
-        )
+        .accessibilityHint(countSpoken)
         .accessibilityIdentifier("sourceTypes.formats.\(form.rawValue).text")
     }
 
@@ -210,6 +214,7 @@ private struct SourceTypeFormatEditor: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(L10n.SourceTypes.Formats.readerLabel(form: L10n.CitationFormats.formTitle(form)))
+        .accessibilityValue(text.isEmpty ? L10n.string(L10n.SourceTypes.Formats.noFormat) : text)
         .accessibilityIdentifier("sourceTypes.formats.\(form.rawValue).readOnly")
     }
 
@@ -315,11 +320,14 @@ private struct SourceTypeFormatWarning: View {
         quote.isEmpty ? message : L10n.SourceTypes.Formats.warningAt(message: message, quote: quote)
     }
 
+    /// Selects the text the warning is about, in the format.
+    private func selectQuote() {
+        if let range { cursor.select(NSRange(range, in: text)) }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space3) {
-            Button {
-                if let range { cursor.select(NSRange(range, in: text)) }
-            } label: {
+            Button(action: selectQuote) {
                 HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space3) {
                     PVIcon(.warning, size: 13)
                         .foregroundStyle(PVColor.danger)
@@ -331,6 +339,7 @@ private struct SourceTypeFormatWarning: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(PVFocusRingButtonStyle())
+            .pvActivatesOnReturn(selectQuote)
             .accessibilityLabel(line)
             .accessibilityHint(L10n.string(L10n.SourceTypes.Formats.warningHint))
             .accessibilityIdentifier("sourceTypes.formats.\(form.rawValue).warning.\(index)")
@@ -399,6 +408,9 @@ private struct SourceTypeFormatPreview: View {
                 note(L10n.SourceTypes.Formats.noFormat)
             } else if let render, !render.runs.isEmpty {
                 CitationRunsText(render: render)
+                    .accessibilityLabel(
+                        L10n.SourceTypes.Formats.previewSpoken(form: L10n.CitationFormats.formTitle(form), text: render.plain)
+                    )
                     .font(PVFont.body(size: PVTypeScale.bodySmall))
                     .foregroundStyle(PVColor.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)

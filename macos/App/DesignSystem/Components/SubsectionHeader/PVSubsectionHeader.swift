@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A micro-caps title row with an optional mono meta string trailing (and an optional accessory
+/// A micro-caps title row with an optional mono meta string trailing (`metaLabel` is how it is spoken) (and an optional accessory
 /// after it), and a content slot below it. Use it to head a group inside a section: a stepper's
 /// picker, or a list's meaning line. Call sites own `.accessibilityIdentifier` and the
 /// accessibility label of the group.
@@ -14,6 +14,8 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
     private let title: Title
     private let meta: String?
     private let metaTone: MetaTone
+    private let metaLabel: String?
+    private let metaIdentifier: String?
     private let accessory: Accessory
     private let content: Content
 
@@ -21,12 +23,16 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
         title: Title,
         meta: String? = nil,
         metaTone: MetaTone = .muted,
+        metaLabel: String? = nil,
+        metaIdentifier: String? = nil,
         @ViewBuilder accessory: () -> Accessory,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.meta = meta
         self.metaTone = metaTone
+        self.metaLabel = metaLabel
+        self.metaIdentifier = metaIdentifier
         self.accessory = accessory()
         self.content = content()
     }
@@ -43,6 +49,8 @@ struct PVSubsectionHeader<Title: PVCopy, Accessory: View, Content: View>: View {
                     Text(verbatim: meta)
                         .font(PVFont.mono(size: 11))
                         .foregroundStyle(metaTone == .danger ? PVColor.danger : PVColor.textMuted)
+                        .accessibilityLabel(metaLabel ?? meta)
+                        .accessibilityIdentifier(metaIdentifier ?? "")
                 }
                 accessory
             }
@@ -57,9 +65,14 @@ extension PVSubsectionHeader where Accessory == EmptyView {
         title: Title,
         meta: String? = nil,
         metaTone: MetaTone = .muted,
+        metaLabel: String? = nil,
+        metaIdentifier: String? = nil,
         @ViewBuilder content: () -> Content
     ) {
-        self.init(title: title, meta: meta, metaTone: metaTone, accessory: { EmptyView() }, content: content)
+        self.init(
+            title: title, meta: meta, metaTone: metaTone, metaLabel: metaLabel, metaIdentifier: metaIdentifier,
+            accessory: { EmptyView() }, content: content
+        )
     }
 }
 
