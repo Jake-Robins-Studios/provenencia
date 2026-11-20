@@ -1,7 +1,7 @@
 # Ship log — S15-16 Citations render through their type's formats
 
 **Plan:** [`S15-16-citations-render.md`](S15-16-citations-render.md) · **Branch:** `s15-16-citations-render` · **PR:** #914
-**State:** fixing (user request)
+**State:** ready
 
 ## Round 0 — implement
 Head `07676275d`. Gate PASS (orchestrator run, against `1f927d4b5`). Report: no deviations from Decisions, Scope or Out; test worlds built in `render_test.go` through the plan's writes, two crafted cases use `PRAGMA foreign_keys=OFF`.
@@ -101,7 +101,7 @@ No new blockers. Nits (logged): `MNT-11 · core/database/sqlin.go:31 · gofmt tu
 `origin/main` unchanged since the branch was cut (`1f927d4b5`); gate PASS on `eb291e062` stands.
 
 ## Result
-Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: ToStored rewrite can exceed `MaxFormatBytes` (home pending the user) · to user: UX-1 (answered 2026-11-19: add `citations.not_found`)
+Gate PASS (`3f46756f4`) · CI pending · open: none · follow-ups: none (the ToStored overflow was fixed on this PR as F-10, user request) · to user: UX-1 (answered 2026-11-19: add `citations.not_found`)
 
 ## User request after round 2 — two format limits (2026-11-19)
 The follow-up (a format under the limit as typed can exceed it once `ToStored` swaps keys for `#<uuid>`) moved onto this PR at the user's request. User decisions: two limits; the one the researcher sees counts **characters**, not bytes; the parse limit is that plus margin sized from the seeds.
@@ -123,3 +123,6 @@ Do:
 - S15-17's map scope entry (no plan yet): add that the editor shows how many of the 4,000 characters are used, counting Unicode scalars (`unicodeScalars.count`, matching Go's code points), from `CitationFormatLimit.maxCharacters`.
 - The plan's Landed note: the two limits, by user decision 2026-11-19.
 Check: the four tests pass; `TestSwiftVocabularyMatchesGo` green; existing parse, fuzz, seed-install and delete-impact tests green; `scripts/check-pr.sh` PASS.
+
+### F-10 — fix
+Head `3f46756f4`. Gate PASS (orchestrator run). Red first: the short-key preview rendered empty; 5 of 6 `TestToStoredLimits` cases and two `TestParse` cases failed on the old code. `MaxFormatChars = 4000` (code points), `MaxFormatBytes = 8 << 10`; `ToStored` refuses over 4,000 characters first and a stored text over 8,192 bytes after the rewrite, both `too_long` over the typed text. Swift `CitationFormatLimit.maxCharacters` with a parity row; docs, S15-17 map entry, Landed note and `completed.md` updated. `deleteimpact/formatrefs.go` unchanged (its comment still holds). Not reviewed by a lens: a user-requested change after round 2 (cap); the orchestrator read the `ToStored` diff.
