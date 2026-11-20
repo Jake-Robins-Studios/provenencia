@@ -14,7 +14,7 @@ enum PVOutsideClick {
     ) -> Bool {
         if modalWindow is NSSavePanel { return true }
         guard let eventWindow else { return false }
-        if eventWindow.level.rawValue >= NSWindow.Level.popUpMenu.rawValue { return true }
+        if PVPopupInput.isPopupWindow(level: eventWindow.level) { return true }
         var current: NSWindow? = eventWindow
         while let window = current {
             if window === sheet || window is NSSavePanel { return true }

@@ -313,21 +313,32 @@ enum PVListKeyAction: Equatable {
 enum PVListKeyboard {
     static let pageStep = 10
 
-    static func action(for key: KeyEquivalent, option: Bool, index: Int, count: Int) -> PVListKeyAction {
+    static func action(
+        for key: KeyEquivalent,
+        option: Bool,
+        index: Int,
+        count: Int,
+        isDisabled: (Int) -> Bool = { _ in false }
+    ) -> PVListKeyAction {
         guard count > 0 else { return .ignore }
+        func move(_ delta: Int, edge: PVFloatingMenuSelection.Edge? = nil) -> PVListKeyAction {
+            .move(to: PVFloatingMenuSelection.moveIndex(
+                from: index, delta: delta, count: count, edge: edge, isDisabled: isDisabled
+            ))
+        }
         switch key {
         case .downArrow:
-            return .move(to: option ? count - 1 : PVFloatingMenuSelection.moveIndex(from: index, delta: 1, count: count))
+            return option ? move(-1, edge: .last) : move(1)
         case .upArrow:
-            return .move(to: option ? 0 : PVFloatingMenuSelection.moveIndex(from: index, delta: -1, count: count))
+            return option ? move(1, edge: .first) : move(-1)
         case .home:
-            return .move(to: 0)
+            return move(1, edge: .first)
         case .end:
-            return .move(to: count - 1)
+            return move(-1, edge: .last)
         case .pageDown:
-            return .move(to: PVFloatingMenuSelection.moveIndex(from: index, delta: pageStep, count: count))
+            return move(pageStep)
         case .pageUp:
-            return .move(to: PVFloatingMenuSelection.moveIndex(from: index, delta: -pageStep, count: count))
+            return move(-pageStep)
         case .return, .space:
             return .activate(min(max(index, 0), count - 1))
         default:

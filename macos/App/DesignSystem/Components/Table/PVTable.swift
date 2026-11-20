@@ -426,18 +426,13 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             matcher.reset()
             return .handled
         default:
-            guard press.characters.count == 1,
-                  let character = press.characters.first,
-                  character.isLetter || character.isNumber,
-                  !press.modifiers.contains(.command),
-                  !press.modifiers.contains(.control)
-            else { return .ignored }
+            guard let character = PVTypeSelectMatcher.typeSelectCharacter(
+                press.characters,
+                command: press.modifiers.contains(.command),
+                control: press.modifiers.contains(.control)
+            ) else { return .ignored }
 
-            let buffer = matcher.append(character)
-            // A single keystroke advances past the current row, so pressing
-            // the same letter repeatedly cycles through its matches.
-            let from = buffer.count == 1 ? index + 1 : max(0, index)
-            let hit = PVTableTypeSelectMatcher.index(in: rows.map(primaryText), prefix: buffer, fromIndex: from)
+            let hit = matcher.advance(character, from: index, in: rows.map(primaryText))
             if hit >= 0 { select(at: hit) }
             return .handled
         }

@@ -4,7 +4,6 @@ import SwiftUI
 struct CitationComposerViewerPane: View {
     @Bindable var model: CitationComposerModel
     @State private var clearMenu = PVContextMenuState()
-    @State private var clearKeyboard = PVContextMenuKeyboard.inactive
     @FocusState private var findFieldFocused: Bool
     /// Set when the drawing band appears so Cancel holds keyboard focus.
     @FocusState private var drawingCancelFocused: Bool
@@ -221,18 +220,11 @@ struct CitationComposerViewerPane: View {
         }
         .disabled(model.isLocatorArtifactOnly || model.isDrawingRegion)
         .accessibilityIdentifier("citationComposer.clearMenu")
-        .pvContextMenu(
+        .pvActionMenu(
             $clearMenu,
-            keyboard: $clearKeyboard,
-            keyboardTitles: PVActionMenuItem.keyboardTitles(clearMenuItems),
-            dismissOnClickAway: true
-        ) {
-            PVContextMenuPanel(
-                accessibilityIdentifier: "citationComposer.clearMenu.menu"
-            ) {
-                PVActionMenuRows(items: clearMenuItems)
-            }
-        }
+            accessibilityIdentifier: "citationComposer.clearMenu.menu",
+            items: clearMenuItems
+        )
     }
 
     private var clearMenuItems: [PVActionMenuItem] {

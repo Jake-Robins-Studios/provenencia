@@ -1,14 +1,19 @@
 import SwiftUI
 
-// Action menus, in two layers over `PVContextMenu`.
+// Action menus, in three layers over `PVContextMenu`.
 //
 // Items: `PVActionMenuItem` lists are written once. `PVActionMenuRows` draws
-// them as menu rows (indexes follow position), and `PVActionMenuItem.keyboardTitles`
-// gives the keyboard titles for a menu opened from a button (`.pvContextMenu`).
+// them as menu rows (indexes follow position), and `PVActionMenuItem.keyboard`
+// gives the menu keyboard its titles and which rows are disabled.
+//
+// Menu: `.pvActionMenu` is the one recipe for an action menu on any view: its
+// keyboard state, its seed on open, its panel and rows. The keys skip disabled
+// rows, and it closes through `.pvPopup`. A menu opened from a button is one
+// `.pvActionMenu` on that button.
 //
 // Right-click: `.pvRightClickMenu` adds the menu's state, the right-click
-// trigger and one VoiceOver action per enabled item on top of the items.
-// `PVSelect` keeps using `.pvContextMenu` directly: it seeds its own highlight.
+// trigger and one VoiceOver action per enabled item on top of `.pvActionMenu`.
+// `PVSelect` uses `.pvContextMenu` directly: its keys stay in its field.
 
 /// One row of an action menu.
 struct PVActionMenuItem {
@@ -17,12 +22,15 @@ struct PVActionMenuItem {
     var accessibilityIdentifier: String? = nil
     var action: () -> Void = {}
 
-    /// Keyboard titles for `PVContextMenuKeyboard.opened(titles:)`: every
-    /// item's title in order (disabled rows keep their slot so indexes match
-    /// positions), or nil when no item is enabled.
-    static func keyboardTitles(_ items: [PVActionMenuItem]) -> [String]? {
+    /// The keyboard of an action menu that just opened: every title in order
+    /// (disabled rows keep their slot so indexes match positions) and which
+    /// rows are disabled, or nil when no item is enabled.
+    static func keyboard(_ items: [PVActionMenuItem]) -> PVContextMenuKeyboard? {
         guard items.contains(where: \.isEnabled) else { return nil }
-        return items.map { L10n.string($0.title) }
+        return .opened(
+            titles: items.map { L10n.string($0.title) },
+            disabledRows: IndexSet(items.indices.filter { !items[$0].isEnabled })
+        )
     }
 }
 
@@ -79,10 +87,8 @@ private struct PVRightClickMenuModifier: ViewModifier {
     let items: [PVActionMenuItem]
 
     @State private var menu = PVContextMenuState()
-    @State private var keyboard = PVContextMenuKeyboard.inactive
 
     func body(content: Content) -> some View {
-        let titles = PVActionMenuItem.keyboardTitles(items)
         content
             .accessibilityActions {
                 ForEach(Array(items.enumerated()).filter { $0.element.isEnabled }, id: \.offset) { _, item in
@@ -90,14 +96,48 @@ private struct PVRightClickMenuModifier: ViewModifier {
                 }
             }
             .pvContextMenuTrigger($menu)
-            .pvContextMenu(
-                $menu,
-                keyboard: titles == nil ? nil : $keyboard,
-                keyboardTitles: titles
-            ) {
+            .pvActionMenu(
+                $menu, heading: heading, accessibilityIdentifier: accessibilityIdentifier, items: items
+            )
+    }
+}
+
+/// Holds an action menu's keyboard and seeds it each time the menu opens.
+private struct PVActionMenuModifier: ViewModifier {
+    @Binding var state: PVContextMenuState
+    let heading: Text?
+    let accessibilityIdentifier: String?
+    let items: [PVActionMenuItem]
+
+    @State private var keyboard = PVContextMenuKeyboard.inactive
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: state.isPresented) { _, open in
+                if open { keyboard = PVActionMenuItem.keyboard(items) ?? .inactive }
+            }
+            // A menu with no enabled item gets no keyboard: only Escape is taken.
+            .pvContextMenu($state, keyboard: items.contains(where: \.isEnabled) ? $keyboard : nil) {
                 PVContextMenuPanel(heading: heading, accessibilityIdentifier: accessibilityIdentifier) {
                     PVActionMenuRows(items: items)
                 }
             }
+    }
+}
+
+extension View {
+    /// The one action-menu recipe: `state`'s menu on this view, listing `items`,
+    /// with ↑/↓, Home/End, type-select and Return that skip disabled rows.
+    /// The menu opens at `state.origin`, in this view's coordinates; the trigger
+    /// (a button, or `.pvContextMenuTrigger`) sets it.
+    func pvActionMenu(
+        _ state: Binding<PVContextMenuState>,
+        heading: Text? = nil,
+        accessibilityIdentifier: String?,
+        items: [PVActionMenuItem]
+    ) -> some View {
+        modifier(PVActionMenuModifier(
+            state: state, heading: heading, accessibilityIdentifier: accessibilityIdentifier, items: items
+        ))
     }
 }

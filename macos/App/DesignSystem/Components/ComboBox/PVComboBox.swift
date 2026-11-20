@@ -96,25 +96,16 @@ enum PVComboBoxMatch {
         in options: [PVComboBoxOption],
         to edge: Edge? = nil
     ) -> Int {
-        let last = options.count - 1
-        guard last >= 0 else { return -1 }
-        var i: Int
-        switch edge {
-        case .first: i = 0
-        case .last: i = last
-        case nil: i = index < 0 ? (delta > 0 ? 0 : last) : index + delta
-        }
-        i = min(max(0, i), last)
-        let step = (edge == .last || delta < 0) ? -1 : 1
-        while options[i].isDisabled, i + step >= 0, i + step <= last {
-            i += step
-        }
-        return options[i].isDisabled ? index : i
+        PVFloatingMenuSelection.moveIndex(
+            from: index,
+            delta: delta,
+            count: options.count,
+            edge: edge,
+            isDisabled: { options[$0].isDisabled }
+        )
     }
 
-    enum Edge {
-        case first, last
-    }
+    typealias Edge = PVFloatingMenuSelection.Edge
 }
 
 /// Where the popup window sits relative to the field.
