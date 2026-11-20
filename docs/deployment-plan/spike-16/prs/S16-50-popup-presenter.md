@@ -1,6 +1,6 @@
 # S16-50 — One kit popup presenter, and the kit menus use it
 
-**Status:** Planned
+**Status:** Landed in [#923](https://github.com/Jake-Robins-Studios/provenencia/pull/923) (2026-11-20)
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every menu draws as today; only its keys and its closing rules change)
@@ -391,3 +391,9 @@ None.
 
 **Title:** S16-50 — One kit popup presenter, and the kit menus use it
 **Body:** objective in one sentence; what shipped against US-1 and US-2; AC evidence; deviations from the plan; manual check, with §10 step 1's observation; the STEP-3 `rg` hits; `Plan: docs/deployment-plan/spike-16/prs/S16-50-popup-presenter.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `7b0bcd2a6`; no **Current state** row changed under `macos/`.
+- `PVFloatingMenuSelection.moveIndex(from:delta:count:edge:isDisabled:)` gives `edge` a default of nil, so `PVSelectSession.moveCommitted` calls it without one (D-17).
+- The manual check (§10), including step 1's "today" observation, was not run by the implementer; it is owed before merge.
