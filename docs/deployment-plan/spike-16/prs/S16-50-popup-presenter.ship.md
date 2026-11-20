@@ -60,3 +60,10 @@ Check: `rg -n "isTypeSelectCharacter\(" macos/App` prints only the definition, t
 Riding along (nits, optional in this round): MNT-4 (`items.contains(where: \.isEnabled)`), MNT-6/CON-3 (blank line), CON-4 (Landed note line). Add F-1's D-5 amendment and F-4's ⌘/⌃ change to the plan's Landed note.
 
 **§10 additions for the user (CON-1, UX-2):** steps 2 and 5 also with trackpad tap-to-click and a fast click.
+
+## Round 1 — fix
+Head `812b27584`. Gate PASS (orchestrator run). F-1 to F-4 done; nits MNT-4, MNT-5, MNT-6/CON-3, CON-4 done. Failing tests failed first as compile errors (new types). F-4's `characters.count == 1` grep prints one line, inside the new helper — expected.
+Orchestrator read of the minor fixes (`a467adee6..812b27584`): CON-2/MNT-1 **Resolved** (`SKILL.md:94`); MNT-2 **Resolved** (`PVContextMenu.swift:466`); MNT-3 **Resolved** (`PVTable`, `PVSelect`, `PVPopupInput` each call `PVTypeSelectMatcher.typeSelectCharacter`).
+
+## Round 2 — review
+Scope `239caa600...812b27584`. Reviewers: UX (had the blocker UX-1). Not sent: CON (its major CON-1 is To user, no fix), MNT (minors only, resolved above), SEC+PRF (no findings).
