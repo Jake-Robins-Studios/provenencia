@@ -26,48 +26,47 @@ type Op struct {
 // changed nothing.
 type Result = effects.Commit
 
-// Run begins a transaction, runs fn, and on a non-empty change list records
-// audit, recomputes handles, reprojects search documents, commits, runs
+// RunChanges begins a transaction, runs fn, and on a non-empty change list
+// records audit, recomputes handles, reprojects search documents, commits, runs
 // AfterCommit, then notifies listeners. A closure error or an empty change
 // list rolls back and does not notify. A change list whose every row names a
 // None table commits with no revision and no notice, then runs AfterCommit.
 // A second Run on the same catalog, including from AfterCommit or a listener,
 // returns database.ErrWriteReentry. Run does not take the catalog session lock.
-func Run[T any](c *database.Catalog, op Op, fn func(tx *database.Tx) (T, []rowchange.Change, error)) (T, Result, error) {
-	var zero T
+func RunChanges(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error) {
 	tx, err := c.BeginWrite()
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	defer c.EndWrite()
 	defer func() { _ = tx.Rollback() }()
 
-	value, changes, err := fn(tx)
+	changes, err := fn(tx)
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	if len(changes) == 0 {
-		return value, Result{}, nil
+		return Result{}, nil
 	}
 	noneOnly, err := effects.AllNone(changes)
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	if noneOnly {
 		if err := tx.Commit(); err != nil {
-			return zero, Result{}, err
+			return Result{}, err
 		}
 		tx.RunAfterCommit()
-		return value, Result{}, nil
+		return Result{}, nil
 	}
 	changes, err = effects.WithoutNone(changes)
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 
 	set, err := effects.Resolve(tx.Tx, changes)
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	at := project.NowUTC()
 	rev, err := audit.Record(tx.Tx, audit.Revision{
@@ -78,22 +77,22 @@ func Run[T any](c *database.Catalog, op Op, fn func(tx *database.Tx) (T, []rowch
 		Changes:     changes,
 	}, set)
 	if err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	if len(set.Handles) > 0 {
 		deps, err := autoreconciler.RecomputeReported(tx.Tx, set.Handles)
 		if err != nil {
-			return zero, Result{}, err
+			return Result{}, err
 		}
 		set.SummaryDeps = deps
 	}
 	if len(set.Search) > 0 {
 		if err := searchindex.Reproject(tx.Tx, set.Search); err != nil {
-			return zero, Result{}, err
+			return Result{}, err
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return zero, Result{}, err
+		return Result{}, err
 	}
 	tx.RunAfterCommit()
 	commit := Result{Activity: effects.Activity{Revision: rev, At: at}, Effects: set}
@@ -101,9 +100,25 @@ func Run[T any](c *database.Catalog, op Op, fn func(tx *database.Tx) (T, []rowch
 		// The commit has landed and Notify has already dropped every listener.
 		// Returning the error made the client retry a write that saved.
 		log.Printf("provenencia: listener after commit rev %d: %v", rev, err)
-		return value, commit, nil
+		return commit, nil
 	}
-	return value, commit, nil
+	return commit, nil
+}
+
+// Run is RunChanges for a closure that also returns a value: the created or
+// updated row.
+func Run[T any](c *database.Catalog, op Op, fn func(tx *database.Tx) (T, []rowchange.Change, error)) (T, Result, error) {
+	var value T
+	res, err := RunChanges(c, op, func(tx *database.Tx) ([]rowchange.Change, error) {
+		v, changes, err := fn(tx)
+		value = v
+		return changes, err
+	})
+	if err != nil {
+		var zero T
+		return zero, Result{}, err
+	}
+	return value, res, nil
 }
 
 // Call is Run for a caller that does not need the revision. Tests use it.

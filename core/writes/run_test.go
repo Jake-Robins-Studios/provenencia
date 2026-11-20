@@ -53,6 +53,54 @@ func TestRunRollsBack(t *testing.T) {
 	}
 }
 
+func TestRunChanges(t *testing.T) {
+	tests := []struct {
+		name     string
+		fn       func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error)
+		wantErr  string
+		wantRev  bool
+		wantRows int
+		notices  int
+	}{
+		{"one audited change", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return oneChange(t), nil }
+		}, "", true, 1, 1},
+		{"closure error", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return oneChange(t), errors.New("fail") }
+		}, "fail", false, 0, 0},
+		{"no change", func(t *testing.T) func(tx *database.Tx) ([]rowchange.Change, error) {
+			return func(tx *database.Tx) ([]rowchange.Change, error) { return nil, nil }
+		}, "", false, 0, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newCatalog(t)
+			l := &recListener{}
+			c.Listen(l)
+			res, err := writes.RunChanges(c, writes.Op{Action: "test"}, tt.fn(t))
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("err %v, want %q", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if (res.Revision != 0) != tt.wantRev {
+				t.Fatalf("revision %d, want recorded %v", res.Revision, tt.wantRev)
+			}
+			if !tt.wantRev && (res.At != "" || res.Effects.SummaryDeps != nil) {
+				t.Fatalf("result %+v, want zero", res)
+			}
+			if n := dbtest.Revisions(t, dbtest.MustDB(t, c)); n != tt.wantRows {
+				t.Fatalf("audit rows %d, want %d", n, tt.wantRows)
+			}
+			if l.notices != tt.notices {
+				t.Fatalf("notices %d, want %d", l.notices, tt.notices)
+			}
+		})
+	}
+}
+
 func TestRunSkipsEmptyChanges(t *testing.T) {
 	c := newCatalog(t)
 	ran := false
