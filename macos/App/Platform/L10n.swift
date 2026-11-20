@@ -5137,6 +5137,16 @@ enum L10n {
                 comment: "Accessibility label and tooltip for the pill marking a plugin-owned row in a vocabulary list; argument is the plugin id"
             ), pluginID)
         }
+
+        /// The one mapping from an origin to its words, wherever a line names where a row comes from:
+        /// the pill's words for a seeded or plugin row, "you" for the researcher's own. A short form
+        /// (`Properties.originUserShort`) is a deliberate exception.
+        static func words(for origin: String) -> String {
+            if origin == CatalogOrigin.provenencia { return string(seededPill) }
+            if origin == CatalogOrigin.user { return string(user) }
+            if CatalogOrigin.isPlugin(origin) { return pluginPill(pluginID: CatalogOrigin.pluginID(from: origin)) }
+            return origin
+        }
     }
 
     /// Opening a stored file in its own app, shared by every surface that offers
@@ -7767,11 +7777,6 @@ enum L10n {
             "properties.inspector.originUser",
             defaultValue: "User — you created this",
             comment: "Inspector origin line for researcher-created properties"
-        )
-        static let inspectorOriginSeeded = LocalizedStringResource(
-            "properties.inspector.originSeeded",
-            defaultValue: "Seeded by Provenencia",
-            comment: "Inspector origin line for product-seeded properties"
         )
         static let inspectorUsedOn = LocalizedStringResource(
             "properties.inspector.usedOn",
@@ -12326,26 +12331,6 @@ extension L10n.SourceTypes {
             defaultValue: "%1$@ · %2$@",
             comment: "Option of that select; arguments are the field label then where it comes from"
         ), label, origin)
-        }
-
-        static let originProvenencia = LocalizedStringResource(
-            "sourceTypes.formats.origin.provenencia",
-            defaultValue: "Provenencia",
-            comment: "Where a seeded field comes from, in a select option"
-        )
-
-        static let originUser = LocalizedStringResource(
-            "sourceTypes.formats.origin.user",
-            defaultValue: "yours",
-            comment: "Where a researcher-made field comes from, in a select option"
-        )
-
-        static func originPlugin(plugin: String) -> String {
-            return L10n.format(LocalizedStringResource(
-            "sourceTypes.formats.origin.plugin",
-            defaultValue: "%@ plugin",
-            comment: "Where a plugin field comes from, in a select option; the argument is the plugin id"
-        ), plugin)
         }
 
         static let previewTitle = LocalizedStringResource(

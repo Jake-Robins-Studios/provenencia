@@ -102,7 +102,7 @@ struct PropertiesOriginCell: View {
             return L10n.string(L10n.Properties.originSeededShort)
         }
         if CatalogOrigin.isPlugin(origin) {
-            return OriginPill.pluginLabel(for: origin)
+            return L10n.Origin.words(for: origin)
         }
         return origin
     }

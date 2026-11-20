@@ -10916,18 +10916,6 @@
         }
       }
     },
-    "properties.inspector.originSeeded": {
-      "comment": "Inspector origin line for product-seeded properties",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seeded by Provenencia"
-          }
-        }
-      }
-    },
     "properties.inspector.originUser": {
       "comment": "Inspector origin line for researcher-created properties",
       "extractionState": "manual",
@@ -24637,42 +24625,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "sourceTypes.formats.origin.provenencia": {
-      "comment": "Where a seeded field comes from, in a select option",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Provenencia"
-          }
-        }
-      }
-    },
-    "sourceTypes.formats.origin.user": {
-      "comment": "Where a researcher-made field comes from, in a select option",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "yours"
-          }
-        }
-      }
-    },
-    "sourceTypes.formats.origin.plugin": {
-      "comment": "Where a plugin field comes from, in a select option; the argument is the plugin id",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ plugin"
           }
         }
       }

@@ -363,7 +363,7 @@ private struct SourceTypeFormatWarning: View {
             options: fields.map {
                 PVSelectOption(
                     value: $0.id,
-                    label: L10n.SourceTypes.Formats.sharedKeyOption(label: $0.label, origin: Self.originName($0.origin))
+                    label: L10n.SourceTypes.Formats.sharedKeyOption(label: $0.label, origin: L10n.Origin.words(for: $0.origin))
                 )
             },
             placeholder: L10n.SourceTypes.Formats.sharedKeyLabel(key: key),
@@ -372,12 +372,6 @@ private struct SourceTypeFormatWarning: View {
             accessibilityIdentifier: "sourceTypes.formats.\(form.rawValue).warning.\(index).choose"
         )
         .padding(.leading, 13 + PVSpacing.space3)
-    }
-
-    private static func originName(_ origin: String) -> String {
-        if origin == CatalogOrigin.provenencia { return L10n.string(L10n.SourceTypes.Formats.originProvenencia) }
-        if origin == CatalogOrigin.user { return L10n.string(L10n.SourceTypes.Formats.originUser) }
-        return L10n.SourceTypes.Formats.originPlugin(plugin: CatalogOrigin.pluginID(from: origin))
     }
 }
 

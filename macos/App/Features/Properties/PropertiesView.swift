@@ -465,16 +465,10 @@ private struct PropertiesContent: View {
                 }
                 holdsRow(property)
                 inspectorMetaRow(label: L10n.Properties.inspectorOrigin) {
-                    Group {
-                        switch property.origin {
-                        case CatalogOrigin.user:
-                            Text(L10n.Properties.inspectorOriginUser)
-                        case CatalogOrigin.provenencia:
-                            Text(L10n.Properties.inspectorOriginSeeded)
-                        default:
-                            Text(verbatim: property.origin)
-                        }
-                    }
+                    // The user's own row reads as a sentence here; the other origins wear the shared words.
+                    Text(verbatim: property.origin == CatalogOrigin.user
+                        ? L10n.string(L10n.Properties.inspectorOriginUser)
+                        : L10n.Origin.words(for: property.origin))
                     .font(PVFont.body(size: PVTypeScale.bodySmall))
                     .foregroundStyle(PVColor.textPrimary)
                 }
