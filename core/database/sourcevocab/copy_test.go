@@ -83,12 +83,9 @@ func newCopyFixture(t *testing.T) *copyFixture {
 			}
 		}
 	}
-	_, _, err = writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: f.userID},
-		func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-			return sourcetypes.UpdateFormats(tx, f.census, sourcetypes.Formats{
-				Full: "{source.title} {source.meta.line}", Short: "{source.title}", List: "{source.meta.parish}",
-			}, nil)
-		})
+	_, err = sourcetypestest.SetFormats(c, f.userID, f.census, sourcetypes.Formats{
+		Full: "{source.title} {source.meta.line}", Short: "{source.title}", List: "{source.meta.parish}",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

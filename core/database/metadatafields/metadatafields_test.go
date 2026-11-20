@@ -229,10 +229,7 @@ func TestDelete(t *testing.T) {
 				census, bible := mustType("Census"), mustType("Bible")
 				setFormats := func(typeID []byte, in sourcetypes.Formats) {
 					t.Helper()
-					view, _, err := writes.Run(c, writes.Op{Action: "update_citation_formats", UserID: userID},
-						func(tx *database.Tx) (sourcetypes.FormatsView, []rowchange.Change, error) {
-							return sourcetypes.UpdateFormats(tx, typeID, in, nil)
-						})
+					view, err := sourcetypestest.SetFormats(c, userID, typeID, in)
 					if err != nil || len(view.Diagnostics) != 0 {
 						t.Fatalf("set formats: %v %+v", err, view.Diagnostics)
 					}

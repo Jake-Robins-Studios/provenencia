@@ -11,6 +11,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
@@ -642,6 +643,14 @@ func fillDates(q database.Querier, out []Source) error {
 		out[i].Date, out[i].DateMark = settleDate(dates, out[i].DateValueID, out[i].storedDateMark)
 	}
 	return nil
+}
+
+// CitationDate is what the Source's date gives a citation: its date and its
+// unknown or supplied mark, as the built-in {source.date} reads them. Every
+// resolver of a citation's values (the boards' and the renderer's) builds the
+// Source date from this one function.
+func CitationDate(s Source) citationformat.Value {
+	return citationformat.Value{Date: s.Date, Mark: s.DateMark}
 }
 
 // GetTx returns a Source by id on an open transaction, or ErrNotFound.

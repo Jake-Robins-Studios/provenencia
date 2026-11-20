@@ -305,21 +305,32 @@ func sourceFixture(t *testing.T) (projectDir, userID, typeID string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	listOut, err := ListSourceTypes(marshalProto(t, &engine.ListSourceTypesRequest{ProjectDir: res.ProjectDir}))
-	if err != nil {
-		t.Fatal(err)
-	}
+	return res.ProjectDir, res.Identity.UserID.String(), seededTypeID(t, res.ProjectDir, "birth_certificate")
+}
+
+// seededTypeID is the id of the product-seeded Source type with the key.
+func seededTypeID(t *testing.T, projectDir, key string) string {
+	t.Helper()
 	var types engine.ListSourceTypesResponse
-	if err := proto.Unmarshal(listOut, &types); err != nil {
-		t.Fatal(err)
-	}
-	for _, ty := range types.Types {
-		if ty.Key == "birth_certificate" && ty.Origin == vocabkey.OriginProvenencia {
-			return res.ProjectDir, res.Identity.UserID.String(), ty.Id
+	mustRPC(t, ListSourceTypes, &engine.ListSourceTypesRequest{ProjectDir: projectDir}, &types)
+	for _, ty := range types.GetTypes() {
+		if ty.GetKey() == key && ty.GetOrigin() == vocabkey.OriginProvenencia {
+			return ty.GetId()
 		}
 	}
-	t.Fatal("expected the seeded birth certificate type")
-	return "", "", ""
+	t.Fatalf("no seeded source type %q", key)
+	return ""
+}
+
+// seededSourceOfType creates a Source of the product-seeded type with the key
+// and returns its id.
+func seededSourceOfType(t *testing.T, projectDir, userID, key string) string {
+	t.Helper()
+	var created engine.CreateSourceResponse
+	mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+		ProjectDir: projectDir, UserId: userID, SourceTypeId: seededTypeID(t, projectDir, key), Title: key,
+	}, &created)
+	return created.GetSource().GetId()
 }
 
 func assertIdentityNotFound(t *testing.T, out []byte, _ proto.Message) {

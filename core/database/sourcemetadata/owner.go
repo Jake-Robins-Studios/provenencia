@@ -31,7 +31,7 @@ type store struct {
 	layout      string
 
 	// typeIn and typeSuffix bracket the IN list of sqlbatch.Query. They read
-	// the owners' ids and their Source type ids.
+	// the owners' ids, their Source type ids and their Source ids.
 	typeIn     string
 	typeSuffix string
 
@@ -108,11 +108,11 @@ func newStore(level vocabkey.Level, ownerTable, ownerColumn, values, layout, typ
 // is ErrInvalid everywhere.
 var stores = map[vocabkey.Level]*store{
 	vocabkey.LevelSource: newStore(vocabkey.LevelSource, "sources", "source_id", "source_metadata", "source_metadata_layout",
-		"SELECT id, source_type_id FROM sources WHERE id IN ("),
+		"SELECT id, source_type_id, id FROM sources WHERE id IN ("),
 	vocabkey.LevelArtifact: newStore(vocabkey.LevelArtifact, "artifacts", "artifact_id", "artifact_metadata", "artifact_metadata_layout",
-		"SELECT a.id, s.source_type_id FROM artifacts a JOIN sources s ON s.id = a.source_id WHERE a.id IN ("),
+		"SELECT a.id, s.source_type_id, a.source_id FROM artifacts a JOIN sources s ON s.id = a.source_id WHERE a.id IN ("),
 	vocabkey.LevelGraph: newStore(vocabkey.LevelGraph, "evidence_graphs", "graph_id", "evidence_graph_metadata", "evidence_graph_metadata_layout",
-		"SELECT g.id, s.source_type_id FROM evidence_graphs g JOIN sources s ON s.id = g.source_id WHERE g.id IN ("),
+		"SELECT g.id, s.source_type_id, g.source_id FROM evidence_graphs g JOIN sources s ON s.id = g.source_id WHERE g.id IN ("),
 }
 
 // storeFor is the first check of every exported function: the owner's level

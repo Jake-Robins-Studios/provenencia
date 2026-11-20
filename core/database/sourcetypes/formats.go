@@ -112,6 +112,49 @@ func StoredFormatsTx(tx *sql.Tx, typeIDs [][]byte) (map[string]Formats, error) {
 	return out, nil
 }
 
+// Parse parses every form that is not blank (strings.TrimSpace), in
+// citationformat.Forms order. It returns the templates that parsed and every
+// form's diagnostics in form order, each form's sorted by position. A form that
+// does not parse has no template. It is the one parse of a type's three
+// formats, shared by the editor's read and write and by RequirementsTx.
+func (f Formats) Parse() (map[citationformat.Form]*citationformat.Template, []citationformat.FormDiagnostic) {
+	templates := map[citationformat.Form]*citationformat.Template{}
+	var diags []citationformat.FormDiagnostic
+	for _, form := range citationformat.Forms() {
+		text := f.Text(form)
+		if strings.TrimSpace(text) == "" {
+			continue
+		}
+		tpl, ds := citationformat.Parse(text, form)
+		for _, d := range ds {
+			diags = append(diags, citationformat.FormDiagnostic{Form: form, Diagnostic: d})
+		}
+		if tpl != nil {
+			templates[form] = tpl
+		}
+	}
+	return templates, diags
+}
+
+// RequirementsTx reads what the stored formats of the given types ask of a
+// Source, keyed by string(type id): the requirements of the full, short and
+// list forms together (citationformat.Requirements). A form that does not
+// parse adds nothing, and a type with no row is absent. It reads the columns
+// once for every type (StoredFormatsTx).
+func RequirementsTx(tx *sql.Tx, typeIDs [][]byte) (map[string][]citationformat.Requirement, error) {
+	stored, err := StoredFormatsTx(tx, typeIDs)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]citationformat.Requirement, len(stored))
+	for id, f := range stored {
+		templates, _ := f.Parse()
+		out[id] = citationformat.Requirements(
+			templates[citationformat.FormFull], templates[citationformat.FormShort], templates[citationformat.FormList])
+	}
+	return out, nil
+}
+
 // GetFormats returns a type's formats as the editor shows them. A stored text
 // that does not parse comes back as stored, with its diagnostics. A type that
 // does not exist is ErrInvalid.
@@ -146,23 +189,14 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 	}
 
 	view := FormatsView{}
-	templates := map[citationformat.Form]*citationformat.Template{}
+	for _, form := range citationformat.Forms() {
+		view.Formats = view.Formats.with(form, in.Text(form))
+	}
+	templates, diags := in.Parse()
+	view.Diagnostics = diags
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.Text(form)
-		view.Formats = view.Formats.with(form, text)
-		if text == "" {
-			continue
-		}
-		tpl, diags := citationformat.Parse(text, form)
-		for _, d := range diags {
-			view.Diagnostics = append(view.Diagnostics, citationformat.FormDiagnostic{Form: form, Diagnostic: d})
-		}
-		if tpl == nil {
-			continue
-		}
-		templates[form] = tpl
-		for _, f := range tpl.Fields() {
+		for _, f := range templates[form].Fields() {
 			if f.ByID() {
 				ids = append(ids, f.ID[:])
 			}
@@ -247,25 +281,12 @@ func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string
 	if err != nil {
 		return Formats{}, nil, err
 	}
-	var diags []citationformat.FormDiagnostic
-	parsed := map[citationformat.Form]*citationformat.Template{}
+	parsed, diags := in.Parse()
 	var out Formats
 	var keys []string
 	var ids [][]byte
 	for _, form := range citationformat.Forms() {
-		text := in.Text(form)
-		if strings.TrimSpace(text) == "" {
-			continue
-		}
-		tpl, ds := citationformat.Parse(text, form)
-		for _, d := range ds {
-			diags = append(diags, citationformat.FormDiagnostic{Form: form, Diagnostic: d})
-		}
-		if tpl == nil {
-			continue
-		}
-		parsed[form] = tpl
-		for _, f := range tpl.Fields() {
+		for _, f := range parsed[form].Fields() {
 			if f.ByID() {
 				ids = append(ids, f.ID[:])
 			} else if _, ok := chosen[f.Key]; !ok {

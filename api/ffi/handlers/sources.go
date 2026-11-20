@@ -91,10 +91,11 @@ func GetSourceWorkspace(in []byte) ([]byte, error) {
 		for _, g := range graphs {
 			owners = append(owners, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: g.ID})
 		}
-		boards, err := ownerBoardsProto(c, owners)
+		read, err := sourcemetadata.ListWorkspaces(c, owners)
 		if err != nil {
 			return err
 		}
+		boards := boardsProto(owners, read)
 
 		sp, err := enrichSourceProto(c, s)
 		if err != nil {
@@ -109,6 +110,8 @@ func GetSourceWorkspace(in []byte) ([]byte, error) {
 		out.ArtifactMetadata = boards[1 : 1+len(artIDs)]
 		out.GraphMetadata = boards[1+len(artIDs):]
 		out.Credibility = cred
+		out.DateRequirement = requirementProto(read[0].Date)
+		out.PageRequirement = requirementProto(read[0].Page)
 		return nil
 	})
 	if err == nil {

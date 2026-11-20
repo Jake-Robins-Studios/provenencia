@@ -1,9 +1,12 @@
 {
-  "_note": "Shared by Go (TestDraftBoardScenarios) and Swift (MetadataDraftHostParityTests). Go runs each scenario's actions through the live writes and applies each expected draft with Apply; Swift runs them through MetadataBoardModel over MetadataDraftHost. Both must produce 'board' (the saved rows in row order, then the empty suggestions in order, as the board draws them) and, in Swift, 'draft' (null when nothing changed). Fields are named by key: the type's three suggestions, and 'film' and 'roll' as extras. Actions: set, clear, dismiss, and move (a saved row lands before another saved row, or last when 'before' is null). Known divergences, which the engine and the draft host disagree on and a scenario names in 'known_divergence' so the side that differs does not compare it: 'suggested' (a field the stored layout had dismissed comes back as an extra in the draft host, the same drift as dismissing a suggestion, re-adding it and clearing it in one draft, which no scenario covers), and 'order' (the engine places a newly valued row last by the time it was filled; the draft host leaves it where it sits).",
+  "_note": "Shared by Go (TestDraftBoardScenarios) and Swift (MetadataDraftHostParityTests). Go runs each scenario's actions through the live writes and applies each expected draft with Apply; Swift runs them through MetadataBoardModel over MetadataDraftHost. Both must produce 'board' (the saved rows in row order, then the empty suggestions in order, as the board draws them) and, in Swift, 'draft' (null when nothing changed). Fields are named by key: the type's three suggestions (the first, 'document_number', is also read by the type's list format, so it is needed: the engine always shows it and refuses to dismiss it), and 'film' and 'roll' as extras. Actions: set, clear, dismiss (with \"refused\": true when the engine refuses it), and move (a saved row lands before another saved row, or last when 'before' is null). Known divergences, which the engine and the draft host disagree on and a scenario names in 'known_divergence' so the side that differs does not compare it: 'suggested' (a field the stored layout had dismissed comes back as an extra in the draft host, the same drift as dismissing a suggestion, re-adding it and clearing it in one draft, which no scenario covers), 'needed' (a needed field cannot be dismissed, and the draft host, which has no formats, lets a researcher dismiss it; S15-39 removes this divergence), and 'order' (the engine places a newly valued row last by the time it was filled; the draft host leaves it where it sits).",
   "suggestions": [
     "document_number",
     "record_date",
     "issue_date"
+  ],
+  "needed": [
+    "document_number"
   ],
   "extras": [
     "film",
@@ -779,6 +782,35 @@
           }
         ]
       }
+    },
+    {
+      "name": "dismissing an empty needed suggestion is refused",
+      "known_divergence": "needed",
+      "seed": [],
+      "start": {
+        "saved": [],
+        "empty": [
+          "document_number",
+          "record_date",
+          "issue_date"
+        ]
+      },
+      "actions": [
+        {
+          "op": "dismiss",
+          "field": "document_number",
+          "refused": true
+        }
+      ],
+      "board": {
+        "saved": [],
+        "empty": [
+          "document_number",
+          "record_date",
+          "issue_date"
+        ]
+      },
+      "draft": null
     }
   ]
 }

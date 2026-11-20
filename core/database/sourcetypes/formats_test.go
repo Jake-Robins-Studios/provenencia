@@ -475,3 +475,55 @@ func TestGetFormats(t *testing.T) {
 		}
 	})
 }
+
+func TestRequirementsTx(t *testing.T) {
+	f := newFormatFixture(t)
+	if _, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.line_number}.", List: "[{source.meta.author}]"}); err != nil {
+		t.Fatal(err)
+	}
+	read := func(t *testing.T, ids ...[]byte) map[string][]citationformat.Requirement {
+		t.Helper()
+		db, err := f.c.DB()
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback()
+		got, err := RequirementsTx(tx, ids)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	target := func(id []byte) citationformat.Target {
+		return citationformat.Target{Level: vocabkey.LevelSource, Field: citationformat.FieldRef{ID: uuid.UUID(id)}}
+	}
+
+	t.Run("two types in one call", func(t *testing.T) {
+		got := read(t, f.typeID, f.typeIDOther)
+		want := []citationformat.Requirement{
+			{Targets: []citationformat.Target{target(f.line)}, Need: citationformat.NeedNeeded},
+			{Targets: []citationformat.Target{target(f.author)}, Need: citationformat.NeedUsed},
+		}
+		if !reflect.DeepEqual(got[string(f.typeID)], want) {
+			t.Errorf("census chains = %+v, want %+v", got[string(f.typeID)], want)
+		}
+		if len(got[string(f.typeIDOther)]) != 0 {
+			t.Errorf("a type with no formats read %+v", got[string(f.typeIDOther)])
+		}
+		if _, ok := got[string([]byte{9, 9, 9})]; ok {
+			t.Error("an unknown type is present")
+		}
+	})
+
+	t.Run("a form that does not parse adds nothing", func(t *testing.T) {
+		f.setRaw(t, "citation_short", "{source.meta.", f.typeID)
+		got := read(t, f.typeID)
+		if len(got[string(f.typeID)]) != 2 {
+			t.Errorf("chains = %+v, want the two the other forms read", got[string(f.typeID)])
+		}
+	})
+}
