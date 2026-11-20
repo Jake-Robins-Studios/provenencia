@@ -168,6 +168,16 @@ struct SourceTypeFormatsModelTests {
         #expect(!model.areDiagnosticsStale(.short))
     }
 
+    @Test func aTooLongWarningQuotesNothingAndOtherWarningsQuoteTheirText() {
+        let whole = String(repeating: "a", count: 4012)
+        let tooLong = CatalogCitationDiagnostic(form: .full, code: "too_long", utf8Start: 0, utf8End: 4012)
+        #expect(SourceTypeFormatsModel.quote(of: tooLong, in: whole) == "")
+        let brace = CatalogCitationDiagnostic(form: .full, code: "unclosed_group", utf8Start: 0, utf8End: 1)
+        #expect(SourceTypeFormatsModel.quote(of: brace, in: "[x") == "[")
+        let long = CatalogCitationDiagnostic(form: .full, code: "unclosed_placeholder", utf8Start: 0, utf8End: 50)
+        #expect(SourceTypeFormatsModel.quote(of: long, in: String(repeating: "b", count: 50)) == String(repeating: "b", count: 40) + "…")
+    }
+
     @Test func aSpanIsUTF8BytesAndRefusesOneOffACharacterBoundary() {
         let text = "é{"
         let brace = CatalogCitationDiagnostic(form: .full, code: "stray_close_brace", utf8Start: 2, utf8End: 3)

@@ -314,11 +314,7 @@ private struct SourceTypeFormatWarning: View {
     private var text: String { formats.diagnosedText(form) }
     private var range: Range<String.Index>? { diagnostic.range(in: text) }
 
-    private var quote: String {
-        guard let range else { return "" }
-        let raw = String(text[range])
-        return raw.count > 40 ? String(raw.prefix(40)) + "…" : raw
-    }
+    private var quote: String { SourceTypeFormatsModel.quote(of: diagnostic, in: text) }
 
     private var message: String {
         let code = CitationDiagnosticCode(rawValue: diagnostic.code)

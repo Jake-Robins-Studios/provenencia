@@ -25085,6 +25085,18 @@
         }
       }
     },
+    "citationFormats.diagnostic.too_long_stored": {
+      "comment": "Warning message for the too_long mistake when the format is within the character limit but too large once stored",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many fields for one format"
+          }
+        }
+      }
+    },
     "citationFormats.diagnostic.too_deep": {
       "comment": "Warning message for the too_deep mistake in a citation format",
       "extractionState": "manual",

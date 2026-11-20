@@ -20,6 +20,11 @@ struct CitationFormatsCopyTests {
         #expect(L10n.CitationFormats.diagnostic(.tooLong, key: "", characters: 4012) == "Too long: 4,012 characters, 12 over")
     }
 
+    @Test func tooLongWithinTheLimitIsTheStoredSizeNotACharacterCount() {
+        #expect(L10n.CitationFormats.diagnostic(.tooLong, key: "", characters: 4000) == "Too many fields for one format")
+        #expect(L10n.CitationFormats.diagnostic(.tooLong, key: "", characters: 560) == "Too many fields for one format")
+    }
+
     @Test func keyedMessagesNameTheKey() {
         #expect(L10n.CitationFormats.diagnostic(.unknownField, key: "jurisdicton") == "No field has the key jurisdicton")
         #expect(L10n.CitationFormats.diagnostic(.ambiguousField, key: "page") == "Two fields have the key page: choose one")

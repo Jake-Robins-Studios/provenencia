@@ -46,7 +46,7 @@ A researcher edits a Source type's three citation formats (full note, short note
 | AC-1.2 | Append ` Test.` to the full note | Save changes and Revert enable; Revert puts the stored text back and disables them |
 | AC-1.3 | Append ` Test.` to the full note, Save | One `UpdateSourceType` carrying the three forms; toast "Citation formats saved"; reopening the page shows the new text |
 | AC-1.4 | Change Label to "Census (US)" and the short note, Save | One `UpdateSourceType` carrying both; one revision; toast "Source type updated" / "Census (US) and its citation formats are saved." |
-| AC-1.5 | Delete the `]` of `[, p. {citation.page}]` in the short note and change Label, Save | Nothing saves (no revision; Label is not saved either); the short note shows "Unclosed group at “[, p. {citation.page}”"; the Callout "Fix the marked formats, then save." shows beside Save; every edit stays |
+| AC-1.5 | Delete the `]` of `[, p. {citation.page}]` in the short note and change Label, Save | Nothing saves (no revision; Label is not saved either); the short note shows "Unclosed group at “[”"; the Callout "Fix the marked formats, then save." shows beside Save; every edit stays |
 | AC-1.6 | Change only Label, Save | `UpdateSourceType` without formats; today's toast; the formats are untouched |
 | AC-1.7 | Unsaved full note, then Back | Today's discard confirm; Discard leaves and drops it; Keep editing stays |
 | AC-1.8 | A full note of 4,012 characters (`unicodeScalars.count`) | Its count reads "4,012 / 4,000" in the danger tone; the warning reads "Too long: 4,012 characters, 12 over" |

@@ -12605,6 +12605,12 @@ extension L10n {
         ), characters, over)
         }
 
+        static let diagTooLongStored = LocalizedStringResource(
+            "citationFormats.diagnostic.too_long_stored",
+            defaultValue: "Too many fields for one format",
+            comment: "Warning message for the too_long mistake when the format is within the character limit but too large once stored"
+        )
+
         static let diagTooDeep = LocalizedStringResource(
             "citationFormats.diagnostic.too_deep",
             defaultValue: "Too many groups and italics inside each other",
@@ -12783,7 +12789,9 @@ extension L10n.CitationFormats {
         switch code {
         case .unknownForm: return L10n.string(diagGeneric)
         case .tooLong:
-            let over = max(0, characters - CitationFormatLimit.maxCharacters)
+            // Within the character limit, it is the stored form (fields written as ids) that is too large.
+            guard characters > CitationFormatLimit.maxCharacters else { return L10n.string(diagTooLongStored) }
+            let over = characters - CitationFormatLimit.maxCharacters
             return diagTooLong(characters: grouped(characters), over: grouped(over))
         case .tooDeep: return L10n.string(diagTooDeep)
         case .unclosedPlaceholder: return L10n.string(diagUnclosedPlaceholder)

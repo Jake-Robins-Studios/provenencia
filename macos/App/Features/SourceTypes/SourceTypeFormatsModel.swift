@@ -246,6 +246,14 @@ final class SourceTypeFormatsModel {
         return found.text != draft(form)
     }
 
+    /// The text a warning is about, shortened for a line, or "" when it names no text of its own: a
+    /// `too_long` span is the whole format.
+    static func quote(of diagnostic: CatalogCitationDiagnostic, in text: String) -> String {
+        guard diagnostic.code != CitationDiagnosticCode.tooLong.rawValue, let range = diagnostic.range(in: text) else { return "" }
+        let raw = String(text[range])
+        return raw.count > 40 ? String(raw.prefix(40)) + "…" : raw
+    }
+
     /// The draft's length in Unicode scalars, which is how the engine counts.
     func count(_ form: CitationForm) -> Int { draft(form).unicodeScalars.count }
 
