@@ -116,6 +116,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | Where | Text |
 | --- | --- |
 | Section title | "Citation formats" |
+| Syntax strip (editable type) | One line under the section hint, each piece in mono with its meaning: `{ }` a field · `[ ]` drops out when empty · `|` the first that has a value · `* *` italic · `\` a literal character |
 | Section hint (editable type) | "How citations of this type are written. Fields in braces fill from the Source, its Artifact, its Evidence graph and the citation; text in square brackets drops out when a field in it is empty." |
 | Form titles / meanings | "Full note" / "The first time a source is cited"; "Short note" / "Each later citation"; "Source list" / "The entry in a list of sources" |
 | Character count | "560 / 4,000"; over the limit it reads in the danger tone |
@@ -142,6 +143,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 - Needed and used marks on metadata boards (S15-39).
 - Choosing which citation of the Source the preview uses (the first one, always; user, 2026-11-20).
 - Syntax colouring or underlining inside the text area: warnings are lines under the format.
+- A fuller syntax guide (a detachable popover, a docked panel or a window): not planned for now; the strip, completion and warnings teach the syntax (user, 2026-11-20).
 - Copy from another type (Copy in the header, S15-18, unchanged).
 - A fourth form, per-Source formats (refused this spike).
 
@@ -159,7 +161,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 
 | ID | Requirement |
 | --- | --- |
-| CF-1 | **The section.** Under Details in the main column: the section title and hint, then the three forms stacked in the order Full note, Short note, Source list. Each form has a micro-caps title with its character count trailing (the inventory's subsection header, as the suggestion lists' headers), its meaning in italic under it, then its text area. |
+| CF-1 | **The section.** Under Details in the main column: the section title and hint, the syntax strip (editable type; § 2.1: five pieces of syntax, each its mono token and a few words; it wraps to two lines at Regular and is never folded away), then the three forms stacked in the order Full note, Short note, Source list. Each form has a micro-caps title with its character count trailing (the inventory's subsection header, as the suggestion lists' headers), its meaning in italic under it, then its text area. |
 | CF-2 | **The text area.** Mono, wrapping, 3 lines tall when empty and growing to 10 before it scrolls inside itself. An empty form shows its placeholder (§ 2.1). Typing never reformats the text. |
 | CF-3 | **Fields complete at the cursor** (user, 2026-11-20). In an editable format, typing `{` (not after a `\`) opens a completion list anchored just below the cursor, over the page; typing `|` inside an open placeholder opens it for the chain's next option. The list holds every placeholder that form can hold, as the engine lists them (level order Source, Artifact, Evidence graph, Citation; built-ins first, then the fields; the source list form holds the Source level only). What the researcher types after the `{` or `|` narrows it, matching the label, the key, the level name and the placeholder text ("li", "line", "graph li", "graph.meta.li"); the first match is highlighted. Up and Down move the highlight; Return, Tab or a click puts the highlighted placeholder in place of what was typed since the `{` or `|`, and adds the closing `}` unless one or a `|` already follows; the cursor lands after it. Escape closes the list and keeps the typed text. The list also closes when the cursor leaves the placeholder, on `}`, on a space, or when the area loses focus. No match: one muted line, the list stays open. The list is at most 8 rows tall and scrolls; it never covers the line being typed (it opens above the line when there is no room below). Choosing one of two fields that share a key records which (no warning follows). |
 | CF-4 | **Warnings.** Under a form, one line per mistake, in text order: a warning icon, the message, "at" and the quoted text it points at (cut to about 40 characters with an ellipsis). The form's text area border turns danger. Clicking a line selects that stretch in the text area. Warnings update as the researcher types (a moment after typing stops), and come back with a refused Save. A form with no mistakes shows no line. |
@@ -197,7 +199,7 @@ Type **Letter** (yours, 0 Sources, no formats). Type **Grave memorial** (plugin 
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | CF-1, CF-2, CF-7, CF-9, CF-W1 | Census's page scrolled to the section: Details, the three forms with counts, the preview of the 1880 Source, Save and Revert at the foot, disabled. In 1b the cursor sits in the full note, to show it survives the resize |
+| 1a / 1b | CF-1, CF-2, CF-7, CF-9, CF-W1 | Census's page scrolled to the section: Details, the hint and the syntax strip, the three forms with counts, the preview of the 1880 Source, Save and Revert at the foot, disabled. In 1b the cursor sits in the full note, to show it survives the resize |
 | 2 | CF-3 | The full note with `{line` just typed before the closing period: the completion list under the cursor, Line at the Evidence graph highlighted, then Line at the Source and the Artifact, each with its Chip and placeholder |
 | 2b | CF-3 | A chain in progress: `{graph.meta.line_number|` typed, the list open again for the next option with Line at the Source first |
 | 2c | CF-3 | `{jurisdicton` typed: the list's one muted no-match line |
@@ -224,6 +226,7 @@ Type **Letter** (yours, 0 Sources, no formats). Type **Grave memorial** (plugin 
 | Page and its columns | Component | Ship | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` with `PVColumnSplit.sourceTypePage` (`macos/App/Features/SourceTypes/SourceTypePageView.swift`) | Unchanged widths; the main column grows |
 | Citation formats section | Snowflake | New | `macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` *(new)* | The section, three forms, the preview. One form view drawn three times, not three copies. No second call site: a snowflake |
 | Section title | Component | Ship | `PVSectionHeader` | "Citation formats", as "Details" |
+| Syntax strip | Snowflake | New | in `SourceTypeFormatsSection.swift` | Mono tokens and micro text in a wrapping row (`PVFlowLayout`); not a Callout, not a table. No second call site: a snowflake |
 | A form's title and count | Component | Extend | `macos/App/DesignSystem/Components/SubsectionHeader/PVSubsectionHeader.swift` `PVSubsectionHeader(title:meta:)` | Title in micro caps, the count as its mono meta, the meaning under it: the suggestion lists' header. Gains a meta tone (muted, danger) for the count over the limit, and a trailing accessory for the preview's spinner |
 | Format text | Component | Extend | `macos/App/DesignSystem/Components/TextArea/PVTextArea.swift` `PVTextArea` (typography `.mono`) | Gains a cursor handle so a warning selects its stretch; not a new text control |
 | Completion list | Component | Extend | `PVTextArea` (a completion source it asks at the cursor) over the popup list `PVComboBox` draws (`macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift`), moved out of the ComboBox so both use it | The ComboBox's list look: rows, highlight, max height, scroll. A row: label, origin pill (`OriginPill`, `macos/App/Features/Catalog/OriginMarkers.swift`) for a field, the level as a Chip, the placeholder in mono. Not a native completion menu (plain strings, no level), not a second list design |
