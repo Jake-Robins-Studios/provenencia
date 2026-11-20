@@ -43,9 +43,9 @@ func RenderCitations(in []byte) ([]byte, error) {
 	return proto.Marshal(out)
 }
 
-// RenderCitationPreview renders one form against one Citation, or the list form
-// against one Source, with what it lacks and what is wrong with an unsaved
-// format.
+// RenderCitationPreview renders one form against one Citation or one Source,
+// with what it lacks and what is wrong with an unsaved format; with no target it
+// checks an unsaved format alone.
 func RenderCitationPreview(in []byte) ([]byte, error) {
 	var req engine.RenderCitationPreviewRequest
 	if err := proto.Unmarshal(in, &req); err != nil {

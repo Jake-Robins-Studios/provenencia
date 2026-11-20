@@ -92,6 +92,10 @@ var (
 		FROM citations c WHERE c.artifact_id = ? AND c.graph_id = ?
 		ORDER BY c.ref COLLATE NOCASE`
 
+	// A Source's oldest Citation. Binds: source.
+	sqlFirstOfSource = `SELECT c.id FROM citations c JOIN evidence_graphs g ON g.id = c.graph_id
+		WHERE g.source_id = ? ORDER BY c.id LIMIT 1`
+
 	// Binds: ids, in sqlbatch batches.
 	sqlListCitedIn = `SELECT ` + columns("c") + `,
 		COALESCE(a.label, ''), COALESCE(g.name, ''), g.source_id
@@ -501,6 +505,25 @@ func ListCitedTx(tx *sql.Tx, ids [][]byte) (map[string]Cited, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// FirstOfSourceTx returns the id of the oldest Citation made in any of a
+// Source's Evidence graphs: ids are UUIDv7, so the smallest is the oldest and
+// stays so as Citations are added. It returns nil and no error when the Source
+// has none (or is not there), and ErrInvalid for an id that is not 16 bytes.
+func FirstOfSourceTx(tx *sql.Tx, sourceID []byte) ([]byte, error) {
+	if len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	var id []byte
+	err := tx.QueryRow(sqlFirstOfSource, sourceID).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return id, nil
 }
 
 // ListByArtifact returns an Artifact's Citations made in one Evidence graph,

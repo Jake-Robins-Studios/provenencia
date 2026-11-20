@@ -38,6 +38,9 @@ func TestRenderPreview(t *testing.T) {
 	// bare is a dated census Source with no values and no Citations.
 	bare := w.source(w.typ.ID, "Bare census")
 	w.setDate(bare.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{})
+	// A newer Citation on the census Source: the older one is still the one
+	// a Source target reads.
+	w.cite(w.art.ID, w.graph.ID, "", pageLocator("15"))
 	absentSource, absentCitation := databasetest.BenchID(1, 777), databasetest.BenchID(4, 777)
 
 	tests := []struct {
@@ -75,8 +78,24 @@ func TestRenderPreview(t *testing.T) {
 				Format: strp(`{graph.meta.piece|source.meta.volume}.`)},
 			wantPlain:   ".",
 			wantMissing: [][]string{{"graph.piece", "source.volume"}}},
-		{name: "AC-2.5 a Source target with the full form",
-			in: PreviewInput{Form: citationformat.FormFull, Target: Target{SourceID: w.src.ID}}, wantErr: citations.ErrInvalid},
+		{name: "AC-7.1 a Source target with the full form reads its oldest Citation",
+			in:        PreviewInput{Form: citationformat.FormFull, Target: Target{SourceID: w.src.ID}},
+			wantPlain: censusFull},
+		{name: "AC-7.2 a Source target with no Citation renders from the Source alone",
+			in:        PreviewInput{Form: citationformat.FormShort, Target: Target{SourceID: bare.ID}, Format: strp(`{source.title}[, p. {citation.page}].`)},
+			wantPlain: "Bare census."},
+		{name: "AC-7.3 no target and a format that does not parse",
+			in:           PreviewInput{Form: citationformat.FormFull, Format: strp(`[, p.`)},
+			wantDiagCode: citationformat.CodeUnclosedGroup, wantDiagAt: citationformat.Span{Start: 0, End: 1}},
+		{name: "AC-7.4 no target and a format that parses",
+			in: PreviewInput{Form: citationformat.FormFull, Format: strp(`{source.title}.`)}},
+		{name: "AC-7.5 no target and no format", in: PreviewInput{Form: citationformat.FormFull}, wantErr: citations.ErrInvalid},
+		{name: "AC-7.6 a Citation that is not there with a format that does not parse",
+			in:           PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: absentCitation}, Format: strp(`[`)},
+			wantDiagCode: citationformat.CodeUnclosedGroup, wantDiagAt: citationformat.Span{Start: 0, End: 1}},
+		{name: "AC-7.6 a Citation that is not there with a format that parses",
+			in:      PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: absentCitation}, Format: strp(`{source.title}`)},
+			wantErr: citations.ErrNotFound},
 		{name: "both targets",
 			in:      PreviewInput{Form: citationformat.FormList, Target: Target{SourceID: w.src.ID, CitationID: w.citation}},
 			wantErr: citations.ErrInvalid},

@@ -938,3 +938,80 @@ func TestListCitedTx(t *testing.T) {
 		}
 	})
 }
+
+func TestFirstOfSource(t *testing.T) {
+	userID := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	ur, err := ref.Mint(ref.PrefixUser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := users.Upsert(c, userID, "Tester", ur); err != nil {
+		t.Fatal(err)
+	}
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	newSource := func(title string) sources.Source {
+		src, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
+			return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: title})
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return src
+	}
+	src, bare := newSource("Family Bible"), newSource("Bare")
+	art, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Scan"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defGraph := evidencegraphstest.SoleGraph(t, c, src.ID)
+	second := evidencegraphstest.Create(t, c, userID, src.ID, "Second graph", art.ID)
+	locatorJSON := `{"version":1,"selectors":[{"type":"page","page_label":"10"}]}`
+	var ids [][]byte
+	for _, graphID := range [][]byte{second.ID, defGraph.ID, second.ID} {
+		res, err := createCitation(c, userID, CreateInput{GraphID: graphID, ArtifactID: art.ID, LocatorJSON: locatorJSON}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, res.Citation.ID)
+	}
+	db := dbtest.MustDB(t, c)
+	first := func(id []byte) ([]byte, error) {
+		tx, err := db.Begin()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		return FirstOfSourceTx(tx, id)
+	}
+
+	tests := []struct {
+		name    string
+		id      []byte
+		want    []byte
+		wantErr error
+	}{
+		{name: "the smallest id across the graphs", id: src.ID, want: ids[0]},
+		{name: "a Source whose graphs hold no Citation", id: bare.ID},
+		{name: "an unknown Source", id: make([]byte, 16)},
+		{name: "an id of 15 bytes", id: make([]byte, 15), wantErr: ErrInvalid},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := first(tt.id)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if !bytes.Equal(got, tt.want) {
+				t.Errorf("got %x, want %x", got, tt.want)
+			}
+		})
+	}
+}

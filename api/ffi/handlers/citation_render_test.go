@@ -254,16 +254,26 @@ func TestRenderCitationPreview(t *testing.T) {
 			t.Fatalf("stored = %v, %v", stored, err)
 		}
 	})
+	t.Run("AC-7.1 a Source target with the full form reads its Citation", func(t *testing.T) {
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source}})
+		if err != nil || out.GetRender().GetPlain() != renderCensusFull {
+			t.Fatalf("got %v, %v", out, err)
+		}
+	})
+	t.Run("AC-7.3 no target and a format that does not parse", func(t *testing.T) {
+		out, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Format: strp(`[`)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := &engine.CitationFormatDiagnostic{Form: "full", Code: string(citationformat.CodeUnclosedGroup), Start: 0, End: 1}
+		if len(out.GetDiagnostics()) != 1 || out.GetDiagnostics()[0].String() != want.String() || out.GetRender().GetPlain() != "" {
+			t.Errorf("got %v", out)
+		}
+	})
 	runRPC(t, RenderCitationPreview, []rpcTest{
 		{
-			name: "AC-2.5 no target set",
+			name: "AC-2.5 no target and no format",
 			req:  &engine.RenderCitationPreviewRequest{ProjectDir: w.dir, Form: "list"}, wantErr: true, wantErrIs: citations.ErrInvalid,
-		},
-		{
-			name: "AC-2.5 a Source target with the full form",
-			req: &engine.RenderCitationPreviewRequest{
-				ProjectDir: w.dir, Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
-			}, wantErr: true, wantErrIs: citations.ErrInvalid,
 		},
 		{
 			name: "AC-2.6 a Citation that is not there",
