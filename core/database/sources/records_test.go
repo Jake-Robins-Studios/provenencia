@@ -19,6 +19,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 
@@ -119,6 +121,62 @@ func TestRecordsBuild(t *testing.T) {
 	}
 	if _, ok := idx.Source(make([]byte, 16)); ok {
 		t.Fatal("an unknown Source resolved")
+	}
+}
+
+// setSourceDate writes the Source's date through sources.SetDate.
+func setSourceDate(r *evidencelayertest.Records, src sources.Source, date *datevalue.Value, mark valuemark.Mark) {
+	r.Run("set_source_date", func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, ch, err := sources.SetDate(tx, evidencelayertest.UserID, src.ID, date, mark)
+		return ch, err
+	})
+}
+
+func pointYear(y int) *datevalue.Value {
+	return &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y}
+}
+
+// TestRecordsDate: a record's Date is the Source's own date through settleDate,
+// nil when undated or marked unknown.
+func TestRecordsDate(t *testing.T) {
+	y1880, m6, d1 := 1880, 6, 1
+	cases := []struct {
+		name     string
+		date     *datevalue.Value
+		mark     valuemark.Mark
+		set      bool
+		wantYear int
+		wantNil  bool
+	}{
+		{name: "undated", wantNil: true},
+		{name: "year", set: true, date: pointYear(1867), wantYear: 1867},
+		{name: "supplied day", set: true, date: &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y1880, StartMonth: &m6, StartDay: &d1}, mark: valuemark.Mark{Supplied: true}, wantYear: 1880},
+		{name: "unknown", set: true, mark: valuemark.Mark{Unknown: true}, wantNil: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := recordsFixture(t)
+			if tc.set {
+				setSourceDate(r, r.Source, tc.date, tc.mark)
+			}
+			r.C.Graph().Drop()
+			rec, ok := records(t, r).Source(r.Source.ID)
+			if !ok {
+				t.Fatal("no record")
+			}
+			if tc.wantNil {
+				if rec.Date != nil {
+					t.Fatalf("Date %+v, want nil", rec.Date)
+				}
+				return
+			}
+			if rec.Date == nil || rec.Date.StartYear == nil || *rec.Date.StartYear != tc.wantYear {
+				t.Fatalf("Date %+v, want year %d", rec.Date, tc.wantYear)
+			}
+			if tc.date.StartMonth != nil && (rec.Date.StartMonth == nil || *rec.Date.StartMonth != *tc.date.StartMonth || rec.Date.StartDay == nil || *rec.Date.StartDay != *tc.date.StartDay) {
+				t.Fatalf("Date %+v lost its month or day", rec.Date)
+			}
+		})
 	}
 }
 
@@ -225,6 +283,45 @@ func TestRecordsApply(t *testing.T) {
 	})
 	t.Run("observation edit", func(t *testing.T) {
 		check(t, false, func() { r.Person(src, r.Artifact, "Ada") })
+	})
+	yearOf := func(t *testing.T) int {
+		t.Helper()
+		d := current(t).Date
+		if d == nil || d.StartYear == nil {
+			return 0
+		}
+		return *d.StartYear
+	}
+	t.Run("date set", func(t *testing.T) {
+		check(t, true, func() { setSourceDate(r, src, pointYear(1867), valuemark.Mark{}) })
+		if yearOf(t) != 1867 {
+			t.Fatalf("date year %d", yearOf(t))
+		}
+	})
+	t.Run("date edit", func(t *testing.T) {
+		check(t, true, func() { setSourceDate(r, src, pointYear(1868), valuemark.Mark{}) })
+		if yearOf(t) != 1868 {
+			t.Fatalf("date year %d", yearOf(t))
+		}
+	})
+	t.Run("date unknown", func(t *testing.T) {
+		check(t, true, func() { setSourceDate(r, src, nil, valuemark.Mark{Unknown: true}) })
+		if current(t).Date != nil {
+			t.Fatal("an unknown date left a Date")
+		}
+	})
+	t.Run("date clear", func(t *testing.T) {
+		check(t, true, func() { setSourceDate(r, src, pointYear(1870), valuemark.Mark{}) })
+		if yearOf(t) != 1870 {
+			t.Fatalf("date year %d", yearOf(t))
+		}
+		check(t, true, func() { setSourceDate(r, src, nil, valuemark.Mark{}) })
+		if current(t).Date != nil {
+			t.Fatal("a cleared date left a Date")
+		}
+	})
+	t.Run("observation date edit", func(t *testing.T) {
+		check(t, false, func() { r.DatedBirth(src, r.Artifact, 1880) })
 	})
 	t.Run("artifact delete", func(t *testing.T) {
 		check(t, true, func() {

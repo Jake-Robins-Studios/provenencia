@@ -629,16 +629,26 @@ func settleDate(dates map[string]datevalue.Value, id []byte, stored valuemark.Ma
 	return nil, valuemark.Settle(stored, false)
 }
 
+// lookupDates reads the date rows of the 16-byte ids among ids in one batched
+// query (none for an empty set), keyed by id.
+func lookupDates(q database.Querier, ids [][]byte) (map[string]datevalue.Value, error) {
+	var held [][]byte
+	for _, id := range ids {
+		if len(id) == 16 {
+			held = append(held, id)
+		}
+	}
+	return datevalues.LookupManyTx(q, held)
+}
+
 // fillDates sets Date and DateMark on each Source from one batched read of its
 // date rows.
 func fillDates(q database.Querier, out []Source) error {
-	var ids [][]byte
+	ids := make([][]byte, 0, len(out))
 	for _, s := range out {
-		if len(s.DateValueID) == 16 {
-			ids = append(ids, s.DateValueID)
-		}
+		ids = append(ids, s.DateValueID)
 	}
-	dates, err := datevalues.LookupManyTx(q, ids)
+	dates, err := lookupDates(q, ids)
 	if err != nil {
 		return err
 	}

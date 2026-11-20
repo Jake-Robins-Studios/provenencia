@@ -10,10 +10,12 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphcache"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 )
 
-// Record is a Source's words, held once: every answer that names a Source
-// composes them from here.
+// Record is a Source's words and its date, held once: every answer that names
+// a Source composes them from here.
 type Record struct {
 	ID           []byte
 	Ref          string
@@ -26,6 +28,9 @@ type Record struct {
 	// ArtifactLabels maps each Artifact id to its label as stored. Never nil.
 	// The held RecordIndex owns the map; readers treat it as read-only.
 	ArtifactLabels map[string]string
+	// Date is the Source's own date, nil when undated, when its row is gone or
+	// when it is marked unknown (settleDate). Read-only, like ArtifactLabels.
+	Date *datevalue.Value
 }
 
 // RecordIndex holds every Source's Record and finds the Source of an Artifact.
@@ -54,7 +59,7 @@ func (x *RecordIndex) Artifact(id []byte) (Record, string, bool) {
 	return r, r.ArtifactLabels[string(id)], true
 }
 
-var sqlRecordSources = `SELECT s.id, s.ref, s.title, s.source_type_id, COALESCE(sg.key, ''), ` +
+var sqlRecordSources = `SELECT s.id, s.ref, s.title, s.source_type_id, s.date_value_id, COALESCE(sg.key, ''), ` +
 	sourcecredibilitygrades.RelativeOrderColumn + `
 		FROM sources s
 		` + sourcecredibilitygrades.RelativeOrderJoins("s.id")
@@ -146,13 +151,16 @@ func newRecordIndex(recs map[string]Record) *RecordIndex {
 // Source when ids is nil. A Source with no row is absent from the result.
 func loadRecords(q database.Querier, ids [][]byte) (map[string]Record, error) {
 	out := map[string]Record{}
+	dateIDs := map[string][]byte{}
 	scanSource := func(rows *sql.Rows) error {
 		var r Record
-		if err := rows.Scan(&r.ID, &r.Ref, &r.Title, &r.SourceTypeID, &r.CredibilityKey, &r.Credibility); err != nil {
+		var dateID []byte
+		if err := rows.Scan(&r.ID, &r.Ref, &r.Title, &r.SourceTypeID, &dateID, &r.CredibilityKey, &r.Credibility); err != nil {
 			return err
 		}
 		r.ArtifactLabels = map[string]string{}
 		out[string(r.ID)] = r
+		dateIDs[string(r.ID)] = dateID
 		return nil
 	}
 	scanArtifact := func(rows *sql.Rows) error {
@@ -173,7 +181,7 @@ func loadRecords(q database.Querier, ids [][]byte) (map[string]Record, error) {
 		if err := sqlbatch.Scan(q, sqlRecordArtifacts, nil, scanArtifact); err != nil {
 			return nil, err
 		}
-		return out, nil
+		return out, fillRecordDates(q, out, dateIDs)
 	}
 	if err := sqlbatch.Query(q, sqlRecordSources+` WHERE s.id IN (`, `)`, nil, ids, scanSource); err != nil {
 		return nil, err
@@ -181,5 +189,23 @@ func loadRecords(q database.Querier, ids [][]byte) (map[string]Record, error) {
 	if err := sqlbatch.Query(q, sqlRecordArtifacts+` WHERE source_id IN (`, `)`, nil, ids, scanArtifact); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return out, fillRecordDates(q, out, dateIDs)
+}
+
+// fillRecordDates sets Date on each record from one batched read of the date
+// rows its Source holds, through settleDate; the mark is not kept.
+func fillRecordDates(q database.Querier, out map[string]Record, dateIDs map[string][]byte) error {
+	ids := make([][]byte, 0, len(dateIDs))
+	for _, id := range dateIDs {
+		ids = append(ids, id)
+	}
+	dates, err := lookupDates(q, ids)
+	if err != nil {
+		return err
+	}
+	for sid, r := range out {
+		r.Date, _ = settleDate(dates, dateIDs[sid], valuemark.Mark{})
+		out[sid] = r
+	}
+	return nil
 }
