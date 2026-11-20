@@ -227,20 +227,12 @@ private struct SourceTypeFormatEditor: View {
             },
             accept: { option, context in
                 guard let row = formats.placeholder(form, id: option.value) else { return nil }
+                return CitationCompletionContext.accept(ref: row.ref, in: formats.draft(form), context: context)
+            },
+            didAccept: { option in
+                // After the text is replaced, so the render this asks for sees the new draft.
+                guard let row = formats.placeholder(form, id: option.value) else { return }
                 formats.didComplete(row, into: form)
-                let text = formats.draft(form) as NSString
-                let nextIndex = context.range.location + context.range.length
-                let next: unichar? = nextIndex < text.length ? text.character(at: nextIndex) : nil
-                let ref = row.ref
-                let length = (ref as NSString).length
-                switch next {
-                case 0x7D: // `}` already follows: keep it and step past it.
-                    return (ref, context.range.location + length + 1)
-                case 0x7C: // `|` follows: another option comes next.
-                    return (ref, context.range.location + length)
-                default:
-                    return (ref + "}", context.range.location + length + 1)
-                }
             },
             emptyLabel: { L10n.SourceTypes.Formats.completionEmpty(query: $0) },
             announce: { event in

@@ -43,6 +43,24 @@ enum CitationCompletionContext {
         return PVTextAreaCompletion.Context(range: NSRange(location: start, length: end - start), query: query)
     }
 
+    /// What taking the row `ref` writes over `context`'s range in `text`, and where the caret goes (a
+    /// UTF-16 offset in the new text). A `}` already after the range is kept and the caret steps past
+    /// it; a `|` after it means another option comes, so nothing is added; otherwise a `}` closes the
+    /// placeholder.
+    static func accept(
+        ref: String, in text: String, context: PVTextAreaCompletion.Context
+    ) -> (text: String, caretAfter: Int) {
+        let units = Array(text.utf16)
+        let after = context.range.location + context.range.length
+        let next: UInt16? = after < units.count ? units[after] : nil
+        let end = context.range.location + ref.utf16.count
+        switch next {
+        case closeBrace: return (ref, end + 1)
+        case pipe: return (ref, end)
+        default: return (ref + String(UnicodeScalar(closeBrace)!), end + 1)
+        }
+    }
+
     /// True when an even number of backslashes (none included) sit before `index`.
     private static func isUnescaped(_ units: [UInt16], at index: Int) -> Bool {
         var slashes = 0

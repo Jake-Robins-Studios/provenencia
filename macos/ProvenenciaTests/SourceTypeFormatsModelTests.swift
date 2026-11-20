@@ -86,6 +86,30 @@ struct SourceTypeFormatsModelTests {
         #expect(context?.range == NSRange(location: 1, length: 6))
     }
 
+    @Test func acceptAddsAClosingBraceOnlyWhenNoneOrPipeFollows() throws {
+        func accept(_ text: String, caret: Int, ref: String) throws -> (text: String, caretAfter: Int) {
+            let context = try #require(CitationCompletionContext.at(text, caret: caret))
+            return CitationCompletionContext.accept(ref: ref, in: text, context: context)
+        }
+        let open = try accept("{li", caret: 3, ref: "graph.meta.line_number")
+        #expect(open.text == "graph.meta.line_number}")
+        #expect(open.caretAfter == 1 + open.text.utf16.count)
+
+        // A `}` already follows: kept, and the caret steps past it.
+        let closed = try accept("{li}", caret: 3, ref: "graph.meta.line_number")
+        #expect(closed.text == "graph.meta.line_number")
+        #expect(closed.caretAfter == 1 + closed.text.utf16.count + 1)
+
+        // A `|` follows: another option comes next, so no `}` and the caret stays before the pipe.
+        let piped = try accept("{li|x}", caret: 3, ref: "graph.meta.line_number")
+        #expect(piped.text == "graph.meta.line_number")
+        #expect(piped.caretAfter == 1 + piped.text.utf16.count)
+
+        let chained = try accept("{graph.meta.line_number|so", caret: 26, ref: "source.meta.line_number")
+        #expect(chained.text == "source.meta.line_number}")
+        #expect(chained.caretAfter == 24 + chained.text.utf16.count)
+    }
+
     // MARK: Completion rows (T-6b)
 
     @Test func completionRowsComeFromTheFormsPlaceholdersRankedByTheTypedQueryAlone() async {

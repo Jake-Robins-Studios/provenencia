@@ -523,6 +523,8 @@ final class PVTextAreaCompletion {
     /// What taking a row writes over the context's range, and where the caret
     /// goes (an offset in the new text); nil takes nothing.
     let accept: (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?
+    /// Runs after a row's text is in, with that row.
+    let didAccept: (PVComboBoxOption) -> Void
     /// The line shown when no row matches the query.
     let emptyLabel: (String) -> String
     /// The text VoiceOver is told, or nil for nothing.
@@ -533,6 +535,7 @@ final class PVTextAreaCompletion {
         options: @escaping (String) -> [PVComboBoxOption],
         row: @escaping (PVComboBoxOption, String) -> AnyView,
         accept: @escaping (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?,
+        didAccept: @escaping (PVComboBoxOption) -> Void = { _ in },
         emptyLabel: @escaping (String) -> String,
         announce: @escaping (Announcement) -> String? = { _ in nil }
     ) {
@@ -540,6 +543,7 @@ final class PVTextAreaCompletion {
         self.options = options
         self.row = row
         self.accept = accept
+        self.didAccept = didAccept
         self.emptyLabel = emptyLabel
         self.announce = announce
     }
@@ -650,6 +654,7 @@ final class PVTextAreaCompletionSession {
         accepting = true
         cursor.replace(context.range, with: write.text, caretAfter: write.caretAfter)
         accepting = false
+        completion.didAccept(row)
         close()
         speak(.inserted(row))
     }
