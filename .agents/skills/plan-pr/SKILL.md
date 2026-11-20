@@ -54,7 +54,8 @@ Template: [`template.md`](template.md). Copy it; keep every heading.
 - [ ] 7. Self-review gate (below) passes, including the cold read and check-plan-docs.py
 - [ ] 8. Review: review-plan loop; review log linked; no open blocker
 - [ ] 9. Wire: map row Plan link + status; scope entry matches; design/README if a brief
-- [ ] 10. Report to the user: status, verdict, decisions you made, To user items, map changes
+- [ ] 10. Open the PR: commit the plan, review log, map and brief; push; open a docs PR
+- [ ] 11. Report to the user: PR link, status, verdict, decisions you made, To user items, map changes
 ```
 
 ## 1. Locate
@@ -288,9 +289,27 @@ plan; it may change the map.
 - A brief written here goes in `design/README.md` **Scheduled**, per `add-design-brief`.
 - A spike-wide product answer goes in the map's **Working rules**.
 
-## 10. Report
+## 10. Open the PR
 
-Tell the user, briefly: the plan path and status, the review verdict and the
+The plan is not done until its documents are in a PR. Planning is the last
+task; do not stop at local files.
+
+- Branch from `main` (or use the session's assigned branch) unless the plan
+  already rides an open docs branch the user named.
+- Commit everything planning wrote: the plan, its review log, the map row and
+  scope entry, the brief and `design/README.md` if step 3 wrote one, and any
+  Working rules line. One commit is fine; the subject is one full imperative
+  sentence ending in a period, like "Plan S#-NN <title>."
+- Run `scripts/check-plan-docs.py` once more on the final files.
+- Push (`git push -u origin <branch>`) and open the PR against `main`
+  (`gh pr create --base main`, or the GitHub tools where `gh` is not available).
+  Title: `Plan S#-NN: <title>`. Body: the objective in one line, the plan path,
+  the review verdict, the Decisions you made on your own, and any To user items
+  or map changes. Docs-only: no `VERSION` bump.
+
+## 11. Report
+
+Tell the user, briefly: the PR link, the plan path and status, the review verdict and the
 To user items, the Decisions you made on your own (so they can veto them
 before an agent builds on them), any map change, and what blocks it if it is
 blocked.
