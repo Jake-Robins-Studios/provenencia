@@ -121,14 +121,14 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | Character count | "560 / 4,000"; over the limit it reads in the danger tone |
 | Empty format placeholder | Full: "No full note: citations of this type show their plain citation line"; Short: "No short note"; Source list: "No source list entry" |
 | Insert field picker | Placeholder "Insert field"; spoken label "Insert a field into the full note"; no-match "No field matches" |
-| Insert field row | The label ("Line"), the level as a Chip ("Evidence graph"), the inserted text in mono under the label (`{graph.meta.line_number}`); the year-only date reads "Date, year only" |
+| Insert field row | The label ("Line"), the field's origin pill when it is a field (so two fields with one key read apart), the level as a Chip ("Evidence graph"), the inserted text in mono under the label (`{graph.meta.line_number}`); the year-only date reads "Date, year only" |
 | Warning line | The message, then "at" and the quoted text: "Unclosed group at “[, p. {citation.page}”". One message per kind; for example "Unclosed group", "This bracket closes no group", "No field has the key nope", "Two fields have the key page: choose one", "The source list reads the Source only", "Name a level before meta: source, artifact or graph" |
 | Shared key Select | Label "Which page field?"; each option the field's label and its origin ("Page · Provenencia", "Page · yours") |
 | Preview title | "Preview" |
 | Preview picker | Label "Preview with"; placeholder "Choose a Census Source"; hint "Full and short notes use the Source's first citation." |
 | Preview row labels | "Full note", "Short note", "Source list" |
 | No format to preview | "No format" (muted) |
-| Missing line | "Missing on this Source: Jurisdiction" ; a chain: "Missing: Line on the Evidence graph, or on the Source" |
+| Missing line | One line per missing chain: "Missing: Jurisdiction on the Source"; a chain: "Missing: Line on the Evidence graph, or on the Source" |
 | No Sources of the type | "No Census Source yet. Add one to preview these formats; warnings still show." |
 | Preview failed | Callout: "The preview could not be shown", the error, "Try again" |
 | Save and Revert | "Save changes", "Revert" *(today, moved)* |
@@ -161,7 +161,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | --- | --- |
 | CF-1 | **The section.** Under Details in the main column: the section title and hint, then the three forms stacked in the order Full note, Short note, Source list. Each form has a micro-caps title with its character count trailing (the inventory's subsection header, as the suggestion lists' headers), its meaning in italic under it, then its text area. |
 | CF-2 | **The text area.** Mono, wrapping, 3 lines tall when empty and growing to 10 before it scrolls inside itself. An empty form shows its placeholder (§ 2.1). Typing never reformats the text. |
-| CF-3 | **Insert field.** Each form has its own searchable picker (ComboBox) beside or under its text area; the board places it. Its list holds every placeholder that form can hold, in level order Source, Artifact, Evidence graph, Citation; within a level, the built-ins first, then the project's fields by label. The source list form's picker holds the Source level only. Each row reads label, level Chip, and the inserted text in mono. Searching matches the label, the key and the level. Choosing a row inserts its text at the form's last cursor position (or replaces its selection), the picker clears, and focus returns to the text area with the cursor after the insert. |
+| CF-3 | **Insert field.** Each form has its own searchable picker (ComboBox) beside or under its text area; the board places it. Its list holds every placeholder that form can hold, as the engine lists them: level order Source, Artifact, Evidence graph, Citation; within a level, the built-ins first, then the project's fields by label. The source list form's picker holds the Source level only (the engine's rule). Each row reads label, level Chip, and the inserted text in mono. Searching matches the label, the key and the level. Choosing a row inserts its text at the form's last cursor position (or replaces its selection), the picker clears, and focus returns to the text area with the cursor after the insert. |
 | CF-4 | **Warnings.** Under a form, one line per mistake, in text order: a warning icon, the message, "at" and the quoted text it points at (cut to about 40 characters with an ellipsis). The form's text area border turns danger. Clicking a line selects that stretch in the text area. Warnings update as the researcher types (a moment after typing stops), and come back with a refused Save. A form with no mistakes shows no line. |
 | CF-5 | **A key two fields share.** When a placeholder names a key that two fields hold, its warning line carries a Select of those fields (label and origin). Choosing one clears that warning; the choice is part of the unsaved formats and saves with them. A format read back with a stored choice shows no warning. |
 | CF-6 | **Character count.** Each form's header shows "used / 4,000". Over 4,000 it reads in the danger tone and the engine's "Too long" warning shows. |
@@ -205,7 +205,7 @@ Type **Letter** (yours, 0 Sources, no formats). Type **Grave memorial** (plugin 
 | 6 | CF-5 | The full note naming `{citation.page}` changed to `{source.meta.page}`: its warning "Two fields have the key page: choose one" with the Select open on the two Page fields |
 | 7 | CF-4 | The source list holding `{citation.page}`: "The source list reads the Source only at “{citation.page}”"; the Insert field picker of that form offering only Source rows |
 | 8 | CF-6 | A full note at 4,012 characters: the count in danger, the "Too long" warning |
-| 9 | CF-7 | The preview with the missing line under the full note ("Missing on this Source: Jurisdiction") for a Source with no jurisdiction |
+| 9 | CF-7 | The preview with the missing line under the full note ("Missing: Jurisdiction on the Source") for a Source with no jurisdiction |
 | 10 | CF-8 | Letter: three empty forms with their placeholders, no Sources so the preview note shows; and, separately, Census's preview failed with its retry Callout |
 | 11 | CF-9 | Save refused: the warnings at the short note and the Callout beside Save, every edit kept |
 | 12 | CF-9 | After a save of the formats only: the toast |
@@ -220,18 +220,19 @@ Type **Letter** (yours, 0 Sources, no formats). Type **Grave memorial** (plugin 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Page and its columns | Component | Ship | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` with `PVColumnSplit.sourceTypePage` (`macos/App/Features/SourceTypes/SourceTypePageView.swift`) | Unchanged widths; the main column grows |
-| Citation formats section | Snowflake | New | `macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` *(new)* | The section, three forms, the preview. One form view drawn three times, not three copies |
+| Citation formats section | Snowflake | New | `macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` *(new)* | The section, three forms, the preview. One form view drawn three times, not three copies. No second call site: a snowflake |
 | Section title | Component | Ship | `PVSectionHeader` | "Citation formats", as "Details" |
-| A form's title and count | Component | Ship | `macos/App/DesignSystem/Components/SubsectionHeader/PVSubsectionHeader.swift` `PVSubsectionHeader(title:meta:)` | Title in micro caps, the count as its mono meta, the meaning under it: the suggestion lists' header |
+| A form's title and count | Component | Extend | `macos/App/DesignSystem/Components/SubsectionHeader/PVSubsectionHeader.swift` `PVSubsectionHeader(title:meta:)` | Title in micro caps, the count as its mono meta, the meaning under it: the suggestion lists' header. Gains a meta tone (muted, danger) for the count over the limit, and a trailing accessory for the preview's spinner |
 | Format text | Component | Extend | `macos/App/DesignSystem/Components/TextArea/PVTextArea.swift` `PVTextArea` (typography `.mono`) | Gains a cursor handle so Insert field inserts at the cursor and a warning selects its stretch; not a new text control |
-| Insert field | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` `PVComboBox` with a caller row | A row of label, level Chip and mono text; not a menu, not a popover of our own |
+| Insert field | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` `PVComboBox` with a caller row | A row of label, origin pill (`OriginPill`, `macos/App/Features/Catalog/OriginMarkers.swift`) for a field, level Chip and mono text; not a menu, not a popover of our own |
 | Level mark in a row | Component | Ship | `PVChip` | The level's name |
-| Warning line | Snowflake | New | in `SourceTypeFormatsSection.swift` | An icon, the message and the quoted text, as a plain button; not a Callout per warning (a format with five mistakes would stack five boxes) |
+| Warning line | Snowflake | New | in `SourceTypeFormatsSection.swift`, composed of `PVFocusRingButtonStyle`, `PVIcon` warning and `PVErrorText`'s type | A button with the kit focus ring and Return; not a Callout per warning (a format with five mistakes would stack five boxes). No second call site: a snowflake |
 | Shared key choice | Component | Ship | `PVSelect` | On the warning line |
 | Read-only format | Component | Ship | `PVCard` tone sunken | Mono text, locked type only |
-| Preview subsection title | Component | Ship | `PVSubsectionHeader` | "Preview", the spinner beside it while rendering |
+| Preview subsection title | Component | Extend | `PVSubsectionHeader` | "Preview", the spinner as its trailing accessory while rendering |
+| The formats' read | Component | Ship | `macos/App/DesignSystem/Components/FormLoadArea/PVFormLoadArea.swift` `PVFormLoadArea` | Loading and a failed read of the formats, with its retry |
 | Preview Source picker | Component | Ship | `PVComboBox` (plain rows: title, ref) | Searchable; the type's Sources only |
-| A rendered citation | Snowflake | New | in `SourceTypeFormatsSection.swift` | `Text` built from the engine's runs, italics kept; S15-21 may reuse it, then it moves |
+| A rendered citation | Snowflake | New | in `SourceTypeFormatsSection.swift` | `Text` built from the engine's runs, italics kept. Second call site: S15-21, which moves it to `Platform/` |
 | Missing line | Component | Ship | `PVCallout` tone neutral, compact | One per form with missing fields |
 | Preview failure | Component | Ship | `PVRetryCallout` | In place of the three rows |
 | No Sources note | Component | Ship | `PVCallout` tone neutral, compact | Not EmptyState: the page is not empty |
@@ -240,7 +241,7 @@ Type **Letter** (yours, 0 Sources, no formats). Type **Grave memorial** (plugin 
 | Leave confirm | Component | Ship | `pvConfirm(item:copy:)` with `PVConfirmCopy.discardChanges` | Today's, now also for formats |
 | Toast | Snowflake | Ship | `VocabularyToast` / `vocabularyToastOverlay` | Copy per § 2.1 |
 
-**Non-goals.** No new kit primitive (`PVTextArea` gains a handle; the rest is composed). No syntax colouring, inline underline or code editor. No form switcher, tab or segmented control over the three forms (all three show). No popover or menu of our own for Insert field. No choice of citation in the preview. No change to Details' fields, the side column, the header or the dialogs.
+**Non-goals.** No new kit primitive (`PVTextArea` gains a handle and `PVSubsectionHeader` a meta tone and an accessory; the rest is composed). No syntax colouring, inline underline or code editor. No form switcher, tab or segmented control over the three forms (all three show). No popover or menu of our own for Insert field. No choice of citation in the preview. No change to Details' fields, the side column, the header or the dialogs.
 
 ---
 
