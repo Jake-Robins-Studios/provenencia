@@ -1,7 +1,7 @@
 # Ship log — S15-05 The Person page's Sources section shows each Source's date
 
 **Plan:** [`S15-05-person-sources-date.md`](S15-05-person-sources-date.md) · **Branch:** `s15-05-person-sources-date` · **PR:** #919
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `c3c0de193`. Head `db83945ca`. Gate PASS (orchestrator run). Report deviations: version bump is 0.28.1 → 0.29.0 because `main` had moved to 0.28.1; STEP-4 and STEP-5 in one commit (both edit `L10n.swift` and `Localizable.xcstrings`); STEP-1's test commit holds the Apply date rows, which fail at that commit and pass from STEP-2. Manual check (§10) not run.
@@ -44,3 +44,12 @@ Check: `rg -n "SourceDateText.help" macos/App/DesignSystem` prints nothing; scri
 Files: `docs/deployment-plan/spike-15/prs/S15-05-person-sources-date.md`.
 Do: under the Status line add a **Landed** note listing every difference from the plan: `fillRecordDates` is a named helper (D-2 had `loadRecords` call `lookupDates` directly; `lookupDates` and `settleDate` stay one each); version 0.28.1 → 0.29.0 because `main` had moved to 0.28.1; STEP-4 and STEP-5 in one commit; Build at 3,000 dated Sources is 32 ms / 6.6 MB (budget 50 ms / 8 MB); F-3's help built from the line already formatted. Tick the DoD box.
 Check: `python3 scripts/check-plan-docs.py` OK; scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `c66c8878b`. Gate PASS (orchestrator run). F-1 to F-4 done; orchestrator read the fix commits: UX-1, UX-2, MNT-1, MNT-4, PRF-2, CON-1 **Resolved**. Implementer also corrected the `L10n.PublishedDate` enum doc comment (same stale screen list). `check-plan-docs` 9 warnings are in other plans (S15-10, S15-18, S15-34, S15-35), not this PR.
+
+## Round 2 — review
+Not run: round 1 had no Fix-now blocker or major.
+
+## Result
+Gate PASS · CI pending · open: none · follow-ups: SEC-1, PRF-1 · to user: —
