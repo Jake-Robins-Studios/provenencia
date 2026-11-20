@@ -780,6 +780,8 @@ struct CatalogPersonClaimGroup: Sendable, Equatable {
     var sourceRef: String
     var title: String
     var sourceTypeID: String
+    /// The Source's own date; nil when undated or marked unknown.
+    var sourceDate: CatalogDateValueInput?
     var claims: [CatalogPersonClaim]
 }
 

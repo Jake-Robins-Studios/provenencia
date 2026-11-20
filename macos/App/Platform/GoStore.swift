@@ -1376,6 +1376,7 @@ struct GoStore: GenealogyStore {
                 sourceRef: group.sourceRef,
                 title: group.sourceTitle,
                 sourceTypeID: group.sourceTypeID,
+                sourceDate: group.hasSourceDate ? Self.mapDateValue(group.sourceDate) : nil,
                 claims: group.claims.map { claim in
                     CatalogPersonClaim(
                         claimID: claim.claimID,

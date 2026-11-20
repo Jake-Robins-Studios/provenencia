@@ -107,6 +107,9 @@ func TestListPersonClaims(t *testing.T) {
 	if g.GetSourceId() != sourceID || g.GetSourceRef() == "" || g.GetSourceTitle() == "" || g.GetSourceTypeId() == "" {
 		t.Fatalf("group %+v", g)
 	}
+	if g.GetSourceDate() != nil {
+		t.Fatalf("an undated Source sent a date: %+v", g.GetSourceDate())
+	}
 	if len(g.Claims) != 2 {
 		t.Fatalf("%d claims, want 2", len(g.Claims))
 	}
@@ -168,6 +171,15 @@ func TestListPersonClaims(t *testing.T) {
 	}
 	if !proto.Equal(&got, &again) {
 		t.Fatalf("second read differs:\n%+v\n%+v", &got, &again)
+	}
+
+	mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
+		ProjectDir: dir, UserId: userID, SourceId: sourceID, Date: pointDate(1880, 0, 0),
+	}, &engine.SetSourceDateResponse{})
+	var dated engine.ListPersonClaimsResponse
+	mustRPC(t, ListPersonClaims, req, &dated)
+	if y := dated.Groups[0].GetSourceDate().GetStartYear(); y != 1880 {
+		t.Fatalf("source_date year %d after SetSourceDate, want 1880", y)
 	}
 
 	for _, id := range []string{"not-an-id", "00000000-0000-7000-8000-000000000000"} {

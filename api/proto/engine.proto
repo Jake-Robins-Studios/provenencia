@@ -1868,6 +1868,9 @@ message PersonClaimGroup {
   string source_title = 3;
   string source_type_id = 4;
   repeated PersonClaim claims = 5;  // by Evidence graph name, then ref
+  // The Source's own date (original publication, or when the record was
+  // made); absent when undated or marked unknown.
+  DateValueInput source_date = 6;
 }
 
 // PersonClaim is one accepted claim: the claimed Subject and its Observations

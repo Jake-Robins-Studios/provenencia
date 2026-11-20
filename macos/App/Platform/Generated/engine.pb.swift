@@ -6397,9 +6397,22 @@ public nonisolated struct Provenencia_Engine_V1_PersonClaimGroup: Sendable {
   /// by Evidence graph name, then ref
   public var claims: [Provenencia_Engine_V1_PersonClaim] = []
 
+  /// The Source's own date (original publication, or when the record was
+  /// made); absent when undated or marked unknown.
+  public var sourceDate: Provenencia_Engine_V1_DateValueInput {
+    get {_sourceDate ?? Provenencia_Engine_V1_DateValueInput()}
+    set {_sourceDate = newValue}
+  }
+  /// Returns true if `sourceDate` has been explicitly set.
+  public var hasSourceDate: Bool {self._sourceDate != nil}
+  /// Clears the value of `sourceDate`. Subsequent reads from it will return its default value.
+  public mutating func clearSourceDate() {self._sourceDate = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _sourceDate: Provenencia_Engine_V1_DateValueInput? = nil
 }
 
 /// PersonClaim is one accepted claim: the claimed Subject and its Observations
@@ -19547,7 +19560,7 @@ nonisolated extension Provenencia_Engine_V1_ListPersonClaimsResponse: SwiftProto
 
 nonisolated extension Provenencia_Engine_V1_PersonClaimGroup: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".PersonClaimGroup"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}source_id\0\u{3}source_ref\0\u{3}source_title\0\u{3}source_type_id\0\u{1}claims\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}source_id\0\u{3}source_ref\0\u{3}source_title\0\u{3}source_type_id\0\u{1}claims\0\u{3}source_date\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -19560,12 +19573,17 @@ nonisolated extension Provenencia_Engine_V1_PersonClaimGroup: SwiftProtobuf.Mess
       case 3: try { try decoder.decodeSingularStringField(value: &self.sourceTitle) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.sourceTypeID) }()
       case 5: try { try decoder.decodeRepeatedMessageField(value: &self.claims) }()
+      case 6: try { try decoder.decodeSingularMessageField(value: &self._sourceDate) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.sourceID.isEmpty {
       try visitor.visitSingularStringField(value: self.sourceID, fieldNumber: 1)
     }
@@ -19581,6 +19599,9 @@ nonisolated extension Provenencia_Engine_V1_PersonClaimGroup: SwiftProtobuf.Mess
     if !self.claims.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.claims, fieldNumber: 5)
     }
+    try { if let v = self._sourceDate {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -19590,6 +19611,7 @@ nonisolated extension Provenencia_Engine_V1_PersonClaimGroup: SwiftProtobuf.Mess
     if lhs.sourceTitle != rhs.sourceTitle {return false}
     if lhs.sourceTypeID != rhs.sourceTypeID {return false}
     if lhs.claims != rhs.claims {return false}
+    if lhs._sourceDate != rhs._sourceDate {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
