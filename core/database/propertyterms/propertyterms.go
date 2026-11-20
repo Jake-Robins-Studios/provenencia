@@ -131,14 +131,6 @@ func updateChange(prev, next Term) *rowchange.Change {
 	}
 }
 
-// inverseArg is the inverse_key column value: NULL when empty.
-func inverseArg(key string) any {
-	if key == "" {
-		return nil
-	}
-	return key
-}
-
 // UpsertTx inserts or updates by (property_id, key, origin) on tx and returns
 // the id and the row changes. Missing: a new term, one create change. Present:
 // label, description, directed, inverse_key and neutral are written and one
@@ -164,7 +156,7 @@ func UpsertTx(tx *database.Tx, t Term) ([]byte, []rowchange.Change, error) {
 			return nil, nil, err
 		}
 		t.ID = uid[:]
-		if _, err := tx.Exec(sqlInsert, t.ID, t.PropertyID, t.Key, t.Origin, t.Label, database.NullString(t.Description), directedBit(t.Directed), inverseArg(t.InverseKey), directedBit(t.Neutral)); err != nil {
+		if _, err := tx.Exec(sqlInsert, t.ID, t.PropertyID, t.Key, t.Origin, t.Label, database.NullString(t.Description), directedBit(t.Directed), database.NullString(t.InverseKey), directedBit(t.Neutral)); err != nil {
 			return nil, nil, err
 		}
 		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t)}, nil
@@ -179,7 +171,7 @@ func UpsertTx(tx *database.Tx, t Term) ([]byte, []rowchange.Change, error) {
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), directedBit(next.Directed), inverseArg(next.InverseKey), directedBit(next.Neutral), existing.ID); err != nil {
+	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), directedBit(next.Directed), database.NullString(next.InverseKey), directedBit(next.Neutral), existing.ID); err != nil {
 		return nil, nil, err
 	}
 	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
@@ -267,7 +259,7 @@ func Update(tx *database.Tx, userID, id []byte, label, description string) (Term
 	if change == nil {
 		return existing, nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), directedBit(existing.Directed), inverseArg(existing.InverseKey), directedBit(existing.Neutral), id); err != nil {
+	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), directedBit(existing.Directed), database.NullString(existing.InverseKey), directedBit(existing.Neutral), id); err != nil {
 		return Term{}, nil, err
 	}
 	term, err := scanTerm(tx.QueryRow(sqlGetByID, id))
