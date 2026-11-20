@@ -6,6 +6,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 )
 
 const claimStatusAccepted = "accepted"
@@ -102,14 +103,29 @@ func handleGoesWithout(tx *sql.Tx, entityID []byte, leaving [][]byte) (bool, err
 	if err != nil {
 		return false, err
 	}
-	args := append([]any{entityID, claimStatusAccepted}, database.BlobArgs(leaving)...)
-	var n int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM identity_claims
-		WHERE entity_id = ? AND status = ? AND subject_id NOT IN (`+database.SQLInPlaceholders(len(leaving))+`)`,
-		args...).Scan(&n); err != nil {
+	// A Subject holds at most one accepted claim, so the handle keeps a member
+	// unless every accepted claim on it belongs to a leaving Subject. leaving
+	// has no bound, so it is read in batches and counted as a set.
+	var accepted int
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM identity_claims WHERE entity_id = ? AND status = ?`,
+		entityID, claimStatusAccepted).Scan(&accepted); err != nil {
 		return false, err
 	}
-	if n > 0 {
+	left := map[string]struct{}{}
+	err = sqlbatch.Query(tx, `SELECT subject_id FROM identity_claims
+		WHERE entity_id = ? AND status = ? AND subject_id IN (`, `)`,
+		[]any{entityID, claimStatusAccepted}, leaving, func(rows *sql.Rows) error {
+			var id []byte
+			if err := rows.Scan(&id); err != nil {
+				return err
+			}
+			left[string(id)] = struct{}{}
+			return nil
+		})
+	if err != nil {
+		return false, err
+	}
+	if len(left) < accepted {
 		return false, nil
 	}
 	report, err := Impact(tx, catalogmodel.KindCanonicalEntity, entityID)
