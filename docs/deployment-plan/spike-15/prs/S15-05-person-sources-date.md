@@ -1,9 +1,9 @@
 # S15-05 — The Person page's Sources section shows each Source's date
 
-**Status:** Planned
+**Status:** Landed in [#919](https://github.com/Jake-Robins-Studios/provenencia/pull/919) (2026-11-20)
 **Spike / slice:** Spike 15 · Slice 5 — Rendering
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D3](../design/S15-D3-person-sources-date.md), board agreed 2026-11-20
+**Brief:** [S15-D3](../design/archive/S15-D3-person-sources-date.md), board agreed 2026-11-20
 **Board:** [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Sources*, turn 19 "S15-D3 · Published date": frames F1a (Regular), F1b (Wide), F2 (the phrase truncated with its hover). Read it with the Artifact tool's `read` on that link, `path` "project/Person Detail - Sources.dc.html" (turn 19 and the row template's Date cell). Board decision (user, 2026-11-20), which replaces the brief's PS-3: "Undated" is italic, secondary ink, caption size (6.9:1 on the page in light, 10.8:1 in dark; faint ink is 2.6:1), and because the published date is one shared view the Sources list's undated text ("Undated", "No published date") takes the same look. The date is the body face, not mono. Frame 3 (the spoken labels) was not drawn; PS-5 stands as written
 **Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)), S15-04 (landed [#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774)), S15-43 (landed [#900](https://github.com/Jake-Robins-Studios/provenencia/pull/900)), S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769)), S16-06 (landed [#785](https://github.com/Jake-Robins-Studios/provenencia/pull/785)), S16-07 (landed [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761)), S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800)), S16-13 (landed [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809)), S15-D3
 **Blocks:** S15-22
