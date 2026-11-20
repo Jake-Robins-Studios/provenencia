@@ -4,10 +4,13 @@ import Testing
 
 @testable import Provenencia
 
+@Suite(.hostedWindows)
 @MainActor
 struct PVTextAreaCompletionTests {
     /// A completion that opens on a `{` and takes the word after it, offering three rows.
-    private func completion(accepted: Box<[String]> = Box([])) -> PVTextAreaCompletion {
+    private func completion(
+        accepted: Box<[String]> = Box([]), announced: Box<[String]> = Box([])
+    ) -> PVTextAreaCompletion {
         let rows = [
             PVComboBoxOption(value: "a", label: "Alpha", subtext: "a"),
             PVComboBoxOption(value: "b", label: "Beta", subtext: "b"),
@@ -30,7 +33,15 @@ struct PVTextAreaCompletionTests {
                 accepted.value.append(option.value)
                 return (text: option.value + "}", caretAfter: context.range.location + option.value.count + 1)
             },
-            emptyLabel: { _ in "No match" }
+            emptyLabel: { _ in "No match" },
+            announce: { event in
+                switch event {
+                case .opened(let count, _): announced.value.append("opened \(count)")
+                case .highlighted(let option): announced.value.append("highlighted \(option.value)")
+                case .inserted(let option): announced.value.append("inserted \(option.value)")
+                }
+                return nil
+            }
         )
     }
 
@@ -39,13 +50,18 @@ struct PVTextAreaCompletionTests {
         init(_ value: T) { self.value = value }
     }
 
-    private func attached(_ text: String = "") -> (NSTextView, PVTextAreaCompletionSession, PVTextAreaTabRouter, PVTextAreaCursor, Box<[String]>) {
+    private func attached(
+        _ text: String = "", announced: Box<[String]> = Box([])
+    ) -> (NSTextView, PVTextAreaCompletionSession, PVTextAreaTabRouter, PVTextAreaCursor, Box<[String]>) {
         let textView = NSTextView(frame: NSRect(x: 0, y: 0, width: 300, height: 100))
         textView.isEditable = true
         textView.string = text
+        // In a window and first responder, as in the app: an area that is not editing reports that
+        // editing ended, which closes the list.
+        hostInBorderlessWindow(nsView: textView, size: CGSize(width: 300, height: 100)).makeFirstResponder(textView)
         let accepted = Box<[String]>([])
         let session = PVTextAreaCompletionSession()
-        session.completion = completion(accepted: accepted)
+        session.completion = completion(accepted: accepted, announced: announced)
         session.textView = textView
         let router = PVTextAreaTabRouter()
         router.completionSession = session
@@ -133,6 +149,42 @@ struct PVTextAreaCompletionTests {
         textView.setSelectedRange(NSRange(location: 2, length: 0))
         session.selectionDidChange(textView)
         #expect(!session.isOpen)
+    }
+
+    @Test func shiftTabClosesTheListBeforeFocusMoves() {
+        let (textView, session, router, _, _) = attached()
+        textView.insertText("{a", replacementRange: textView.selectedRange())
+        #expect(session.isOpen)
+        #expect(router.textView(textView, doCommandBy: #selector(NSResponder.insertBacktab(_:))))
+        #expect(!session.isOpen)
+    }
+
+    @Test func tabWithNoRowsClosesTheListAndLeavesTheField() {
+        let (textView, session, router, _, _) = attached()
+        textView.insertText("{zz", replacementRange: textView.selectedRange())
+        #expect(session.isOpen && session.options.isEmpty)
+        #expect(router.textView(textView, doCommandBy: #selector(NSResponder.insertTab(_:))))
+        #expect(!session.isOpen)
+    }
+
+    @Test func endingEditingClosesTheList() {
+        let (textView, session, router, _, _) = attached()
+        textView.insertText("{a", replacementRange: textView.selectedRange())
+        #expect(session.isOpen)
+        router.textDidEndEditing(Notification(name: NSText.didEndEditingNotification, object: textView))
+        #expect(!session.isOpen)
+    }
+
+    @Test func narrowingAnOpenListToNoRowsAnnouncesTheEmptyListOnce() {
+        let announced = Box<[String]>([])
+        let (textView, session, _, _, _) = attached(announced: announced)
+        textView.insertText("{a", replacementRange: textView.selectedRange())
+        #expect(announced.value == ["opened 1"])
+        textView.insertText("z", replacementRange: textView.selectedRange())
+        #expect(session.isOpen && session.options.isEmpty)
+        #expect(announced.value == ["opened 1", "opened 0"])
+        textView.insertText("z", replacementRange: textView.selectedRange())
+        #expect(announced.value == ["opened 1", "opened 0"])
     }
 
     @Test func aSpaceClosesTheList() {

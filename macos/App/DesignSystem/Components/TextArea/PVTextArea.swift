@@ -411,6 +411,11 @@ final class PVTextAreaTabRouter: NSObject, NSTextViewDelegate {
         }
     }
 
+    func textDidEndEditing(_ notification: Notification) {
+        wrapped?.textDidEndEditing?(notification)
+        MainActor.assumeIsolated { completionSession?.close() }
+    }
+
     func textViewDidChangeSelection(_ notification: Notification) {
         wrapped?.textViewDidChangeSelection?(notification)
         if let textView = notification.object as? NSTextView {
@@ -427,6 +432,8 @@ final class PVTextAreaTabRouter: NSObject, NSTextViewDelegate {
             return wrapped?.textView?(textView, doCommandBy: commandSelector) ?? false
         }
         let backtab = commandSelector == #selector(NSResponder.insertBacktab(_:))
+        // Focus leaves the area, so an open list does not outlive it.
+        MainActor.assumeIsolated { completionSession?.close() }
         if let claim = backtab ? onBacktab : onTab {
             MainActor.assumeIsolated { claim() }
         } else if backtab {
@@ -592,6 +599,7 @@ final class PVTextAreaCompletionSession {
         guard isOpen || (mayOpen && !escaped) else { return }
         let rows = completion.options(found.query)
         let wasOpen = isOpen
+        let hadRows = !options.isEmpty
         context = found
         options = rows
         activeIndex = PVComboBoxMatch.firstEnabledIndex(in: rows)
@@ -600,6 +608,9 @@ final class PVTextAreaCompletionSession {
             speak(.opened(count: rows.count, first: rows.first))
         } else if rows.indices.contains(activeIndex) {
             speak(.highlighted(rows[activeIndex]))
+        } else if hadRows {
+            // The open list narrowed to nothing: say so once, not on every further key.
+            speak(.opened(count: 0, first: nil))
         }
     }
 
