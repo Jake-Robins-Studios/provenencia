@@ -297,48 +297,67 @@ func TestRender(t *testing.T) {
 		return w, typ, src, w.artifact(src.ID, "Scan"), w.graph(src.ID)
 	}
 
-	t.Run("each built-in", func(t *testing.T) {
-		w, _, _, art, graph := base(t, `{source.title}/{source.type}/{artifact.label}/{graph.name}/{citation.label}`, "")
-		r := one(t, w, w.cite(art.ID, graph.ID, "entry", pageLocator("1")))
-		want := "Family Bible/Book of hours/Scan/" + graph.Name + "/entry"
-		if r.Full.Plain() != want {
-			t.Errorf("full = %q, want %q", r.Full.Plain(), want)
-		}
-	})
-	t.Run("the image is the file page", func(t *testing.T) {
-		w, _, _, art, graph := base(t, `image {citation.image}`, "")
-		r := one(t, w, w.cite(art.ID, graph.ID, "", `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":"23"}]}`))
-		if r.Full.Plain() != "image 37" {
-			t.Errorf("full = %q", r.Full.Plain())
-		}
-	})
-	t.Run("no file page drops the image group", func(t *testing.T) {
-		w, _, _, art, graph := base(t, `[image {citation.image}]`, "")
-		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("23")))
-		if len(r.Full.Runs) != 0 || r.GroupKey != "citation:"+database.UUIDString(r.CitationID) {
-			t.Errorf("got %+v", r)
-		}
-	})
-	t.Run("an unknown value with no unknown text drops its group", func(t *testing.T) {
-		w, _, src, art, graph := base(t, `Bible[ x {source.meta.k}]`, "", "k")
-		w.setField(vocabkey.LevelSource, src.ID, w.userField("k"), "", valuemark.Mark{Unknown: true})
-		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
-		if r.Full.Plain() != "Bible" {
-			t.Errorf("full = %q", r.Full.Plain())
-		}
-	})
-	t.Run("a blank value with a stored supplied mark prints nothing", func(t *testing.T) {
-		w, _, src, art, graph := base(t, `Bible[ x {source.meta.k}]`, "", "k")
-		k := w.userField("k")
-		w.setField(vocabkey.LevelSource, src.ID, k, "v", valuemark.Mark{})
-		if _, err := w.db.Exec(`UPDATE source_metadata SET value_text = '', is_supplied = 1 WHERE source_id = ? AND field_id = ?`, src.ID, k); err != nil {
-			t.Fatal(err)
-		}
-		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
-		if r.Full.Plain() != "Bible" {
-			t.Errorf("full = %q", r.Full.Plain())
-		}
-	})
+	imageLocator := `{"version":1,"selectors":[{"type":"artifact"},{"type":"page","artifact_page":37,"page_label":"23"}]}`
+	for _, tc := range []struct {
+		name         string
+		full         string
+		fields       []string
+		label        string
+		locator      string
+		setup        func(w *world, src sources.Source)
+		want         string // the full text, unless dropsGroup
+		dropsGroup   bool   // no runs, and the group key is the Citation's own
+		wantTypeName bool
+	}{
+		{name: "each built-in", full: `{source.title}/{source.type}/{artifact.label}/{graph.name}/{citation.label}`, label: "entry", locator: pageLocator("1"), wantTypeName: true},
+		{name: "no short format leaves the short empty", full: `{source.title}`, locator: pageLocator("1"), want: "Family Bible"},
+		{name: "the image is the file page", full: `image {citation.image}`, locator: imageLocator, want: "image 37"},
+		{name: "no file page drops the image group", full: `[image {citation.image}]`, locator: pageLocator("23"), dropsGroup: true},
+		{
+			name: "an unknown value with no unknown text drops its group", full: `Bible[ x {source.meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
+			setup: func(w *world, src sources.Source) {
+				w.setField(vocabkey.LevelSource, src.ID, w.userField("k"), "", valuemark.Mark{Unknown: true})
+			},
+			want: "Bible",
+		},
+		{
+			name: "a blank value with a stored supplied mark prints nothing", full: `Bible[ x {source.meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
+			setup: func(w *world, src sources.Source) {
+				k := w.userField("k")
+				w.setField(vocabkey.LevelSource, src.ID, k, "v", valuemark.Mark{})
+				if _, err := w.db.Exec(`UPDATE source_metadata SET value_text = '', is_supplied = 1 WHERE source_id = ? AND field_id = ?`, src.ID, k); err != nil {
+					w.t.Fatal(err)
+				}
+			},
+			want: "Bible",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w, typ, src, art, graph := base(t, tc.full, "", tc.fields...)
+			if tc.setup != nil {
+				tc.setup(w, src)
+			}
+			r := one(t, w, w.cite(art.ID, graph.ID, tc.label, tc.locator))
+			switch {
+			case tc.dropsGroup:
+				if len(r.Full.Runs) != 0 || r.GroupKey != "citation:"+database.UUIDString(r.CitationID) {
+					t.Errorf("got %+v", r)
+				}
+			case tc.wantTypeName:
+				want := "Family Bible/" + typ.Label + "/Scan/" + graph.Name + "/entry"
+				if r.Full.Plain() != want {
+					t.Errorf("full = %q, want %q", r.Full.Plain(), want)
+				}
+			default:
+				if r.Full.Plain() != tc.want {
+					t.Errorf("full = %q, want %q", r.Full.Plain(), tc.want)
+				}
+			}
+			if len(r.Short.Runs) != 0 { // every case here has no short format
+				t.Errorf("short = %+v", r.Short)
+			}
+		})
+	}
 	t.Run("a stored full text that does not parse leaves the fallback", func(t *testing.T) {
 		w, typ, _, art, graph := base(t, `{source.title}`, "")
 		if _, err := w.db.Exec(`UPDATE source_types SET citation_full = '{source.title' WHERE id = ?`, typ.ID); err != nil {
@@ -358,13 +377,6 @@ func TestRender(t *testing.T) {
 		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
 		if r.Full.Plain() != "" {
 			t.Errorf("full = %q", r.Full.Plain())
-		}
-	})
-	t.Run("no short format leaves the short empty", func(t *testing.T) {
-		w, _, _, art, graph := base(t, `{source.title}`, "")
-		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
-		if r.Full.Plain() != "Family Bible" || len(r.Short.Runs) != 0 {
-			t.Errorf("got full %q short %+v", r.Full.Plain(), r.Short)
 		}
 	})
 	t.Run("a Citation's Source is its graph's", func(t *testing.T) {

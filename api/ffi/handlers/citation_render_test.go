@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"slices"
 	"testing"
 
@@ -135,11 +134,10 @@ func TestRenderCitations(t *testing.T) {
 		}
 	})
 
-	t.Run("a malformed id", func(t *testing.T) {
-		if _, err := renderCitations(t, w.dir, "nope"); !errors.Is(err, errInvalidID) {
-			t.Fatalf("got %v, want errInvalidID", err)
-		}
-	})
+	runRPC(t, RenderCitations, []rpcTest{{
+		name: "a malformed id",
+		req:  &engine.RenderCitationsRequest{ProjectDir: w.dir, CitationIds: []string{"nope"}}, wantErr: true, wantErrIs: errInvalidID,
+	}})
 
 	t.Run("AC-1.6 unknown and supplied values", func(t *testing.T) {
 		var ty engine.CreateSourceTypeResponse
@@ -242,18 +240,6 @@ func TestRenderCitationPreview(t *testing.T) {
 			t.Errorf("option = %v", o)
 		}
 	})
-	t.Run("AC-2.5 no target set", func(t *testing.T) {
-		_, err := preview(&engine.RenderCitationPreviewRequest{Form: "list"})
-		if !errors.Is(err, citations.ErrInvalid) {
-			t.Fatalf("got %v, want citations.invalid", err)
-		}
-	})
-	t.Run("AC-2.5 a Source target with the full form", func(t *testing.T) {
-		_, err := preview(&engine.RenderCitationPreviewRequest{Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source}})
-		if !errors.Is(err, citations.ErrInvalid) {
-			t.Fatalf("got %v, want citations.invalid", err)
-		}
-	})
 	t.Run("AC-2.7 a blank format renders nothing, an absent one the stored form", func(t *testing.T) {
 		blank, err := preview(&engine.RenderCitationPreviewRequest{
 			Form: "list", Format: strp("   "), Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
@@ -268,11 +254,23 @@ func TestRenderCitationPreview(t *testing.T) {
 			t.Fatalf("stored = %v, %v", stored, err)
 		}
 	})
-	t.Run("a target id that is not a UUID", func(t *testing.T) {
-		_, err := preview(&engine.RenderCitationPreviewRequest{Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: "nope"}})
-		if !errors.Is(err, errInvalidID) {
-			t.Fatalf("got %v, want errInvalidID", err)
-		}
+	runRPC(t, RenderCitationPreview, []rpcTest{
+		{
+			name: "AC-2.5 no target set",
+			req:  &engine.RenderCitationPreviewRequest{ProjectDir: w.dir, Form: "list"}, wantErr: true, wantErrIs: citations.ErrInvalid,
+		},
+		{
+			name: "AC-2.5 a Source target with the full form",
+			req: &engine.RenderCitationPreviewRequest{
+				ProjectDir: w.dir, Form: "full", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: w.source},
+			}, wantErr: true, wantErrIs: citations.ErrInvalid,
+		},
+		{
+			name: "a target id that is not a UUID",
+			req: &engine.RenderCitationPreviewRequest{
+				ProjectDir: w.dir, Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: "nope"},
+			}, wantErr: true, wantErrIs: errInvalidID,
+		},
 	})
 }
 
