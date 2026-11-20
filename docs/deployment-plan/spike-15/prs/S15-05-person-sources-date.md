@@ -1,10 +1,10 @@
 # S15-05 — The Person page's Sources section shows each Source's date
 
-**Status:** Blocked — on board S15-D3
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 5 — Rendering
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D3](../design/S15-D3-person-sources-date.md), board not yet agreed
-**Board:** not yet drawn; to be a new turn "S15-D3 · Published date" on the Person page board ([S16-D2 · Folds](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ)). The implementer reads it with the Artifact tool's `read` on that link. Until the board is agreed, §6 macOS describes each frame in words from the brief
+**Brief:** [S15-D3](../design/S15-D3-person-sources-date.md), board agreed 2026-11-20
+**Board:** [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Sources*, turn 19 "S15-D3 · Published date": frames F1a (Regular), F1b (Wide), F2 (the phrase truncated with its hover). Read it with the Artifact tool's `read` on that link, `path` "project/Person Detail - Sources.dc.html" (turn 19 and the row template's Date cell). Board decision (user, 2026-11-20), which replaces the brief's PS-3: "Undated" is italic, secondary ink, caption size (6.9:1 on the page in light, 10.8:1 in dark; faint ink is 2.6:1), and because the published date is one shared view the Sources list's undated text ("Undated", "No published date") takes the same look. The date is the body face, not mono. Frame 3 (the spoken labels) was not drawn; PS-5 stands as written
 **Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)), S15-04 (landed [#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774)), S15-43 (landed [#900](https://github.com/Jake-Robins-Studios/provenencia/pull/900)), S16-03 (landed [#769](https://github.com/Jake-Robins-Studios/provenencia/pull/769)), S16-06 (landed [#785](https://github.com/Jake-Robins-Studios/provenencia/pull/785)), S16-07 (landed [#761](https://github.com/Jake-Robins-Studios/provenencia/pull/761)), S16-12 (landed [#800](https://github.com/Jake-Robins-Studios/provenencia/pull/800)), S16-13 (landed [#809](https://github.com/Jake-Robins-Studios/provenencia/pull/809)), S15-D3
 **Blocks:** S15-22
 **Branch:** `s15-05-person-sources-date`
@@ -34,7 +34,7 @@ The Person page's Sources section has had a Date column since S13-16, and every 
 
 **Why now.** The Source date's last reader before rendering. S15-22 regroups the same section by citation and builds on the rows this PR finishes.
 
-**What stays.** The section's row order (by title), its other columns and widths, the record lines, the folds, the record links diagram, and the Sources list's look (its published date is moved into a recipe, not redrawn). A date's unknown or supplied mark is not drawn (user, 2026-11-20).
+**What stays.** The section's row order (by title), its other columns and widths, the record lines, the folds, the record links diagram, and the Sources list's dates (its published date is moved into a recipe; only its undated text changes, to the board's italic secondary look, user 2026-11-20). A date's unknown or supplied mark is not drawn (user, 2026-11-20).
 
 ## 2. User stories
 
@@ -43,7 +43,7 @@ The Person page's Sources section has had a Date column since S13-16, and every 
 | AC | Given / when | Then |
 | --- | --- | --- |
 | AC-1.1 | A Person cites "Hamburg census 1867" dated `1867` (point, year only) | The row's Published cell reads "1867" in secondary ink; hover reads "Published 1867" |
-| AC-1.2 | A Person cites "Letter", undated | The cell reads "Undated" in faint ink, with no hover text |
+| AC-1.2 | A Person cites "Letter", undated | The cell reads "Undated" in italic secondary ink, caption size, with no hover text |
 | AC-1.3 | The Source's date is marked unknown (no date row) | The cell reads "Undated" |
 | AC-1.4 | The Source's date is `1 Jun 1880`, marked supplied | The cell reads "1 Jun 1880", with no bracket or mark |
 | AC-1.5 | The caption line | Reads SOURCE · TYPE · PUBLISHED · REF |
@@ -129,6 +129,7 @@ The Person page's Sources section has had a Date column since S13-16, and every 
 | D-7 | Copy. The five published-date strings move to the recipe's own namespace `L10n.PublishedDate` *(new)*, values unchanged: `sources.list.publishedLabel` → `publishedDate.label` ("Published"), `sources.list.noPublishedDate` → `publishedDate.none` ("No published date"), `sources.list.publishedHelp` → `publishedDate.help` ("Published %@"), `sources.list.publishedSpoken` → `publishedDate.spoken` ("published %@"), `sources.list.noPublishedDateSpoken` → `publishedDate.noneSpoken` ("no published date"); each comment names "a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)". Both `L10n.swift` and `Localizable.xcstrings` change; the old keys go. `conclusions.sources.columnDate`: value "Date" → "Published", comment "Column heading over the published date of each Source on a Person's Sources section". Removed: `conclusions.sources.dateNone`, `conclusions.sources.dateNotRecorded`. `sources.list.columnPublished` (the list's own caption) stays | Recipes own their copy (`L10n.LastUpdated`, `L10n.Unpromote`); no PR in either map moves these keys (S15-42 moves only `sources.page.date…`) (review M-3). "Published" is the date's one name (S15-04 D-14, user 2026-11-10) | Keeping the `sources.list.*` keys with widened comments — a Conclusions section and a Platform type reading a list's keys; reusing `sources.list.columnPublished` for the caption — the section's other captions are `conclusions.sources.*` |
 | D-8 | `BenchmarkSourceRecords` seeds a date on every Source (worst case: 3,000 date rows). In `seed`, before the `sources` INSERT, call `datevalues.InsertTx(tx, datevalue.Value{Kind: datevalue.KindPoint, StartYear: &year})` with `year := 1800 + src%200` and add `date_value_id` to the `sources` INSERT with the returned id. The budget stays S16-12's: Build at most 50 ms and 8 MB at 3,000 Sources × 10 Artifacts. The benchmark reports and does not assert; the implementer reads the figures and stops over budget. Baseline before this PR: 25 ms and 5.7 MB (S16-12 ship log) | Rule "measure at Scale"; every Source dated is the most this read can cost; `InsertTx` keeps the seed in step with the table (review M-5) | Seeding a fraction dated — understates the worst case; raw `INSERT INTO date_values` — copies the package's columns |
 | D-9 | `S15-42`'s scope line in the map no longer asks for `SourcesRowDate`'s rename: D-5 does it (`SourceDateText`, with the recipe `PVPublishedDate`). The map was changed with this plan | The rename is forced here by layering; the map must not ask for it twice | Leaving the line — S15-42's planner would look for a type that is gone |
+| D-10 | The recipe's undated text ("Undated" in `.bare`, "No published date" in `.labeled`) is drawn in `PVColor.textSecondary` with `.italic()`, caption size, one line, in place of `PVColor.textFaint`. This is the only change to the moved body; the Sources list takes it too (user, 2026-11-20) | Board decision on PS-3: faint ink is 2.6:1 in light, below 4.5:1; italic sets undated apart from a date, as the Person header's "date unknown" does | Faint in the section only — two looks for one state; a muted tone — 4.4:1, still below 4.5:1 |
 
 **Rules this plan bends.** None.
 
@@ -231,9 +232,9 @@ From the brief's inventory (S15-D3 § 6):
 | Caption line | snowflake | `PersonSourcesList.header` | `L10n.Conclusions.sourcesColumnDate` now reads "Published" (D-7) |
 | Columns | snowflake | `PersonSourcesColumns` | Unchanged (120pt) |
 | Type pill | recipe | `CatalogSourceTypePill` | Unchanged |
-| Sources list | snowflake | `macos/App/Features/Sources/SourcesListRow.swift` | Calls `PVPublishedDate` in its three places; looks the same |
+| Sources list | snowflake | `macos/App/Features/Sources/SourcesListRow.swift` | Calls `PVPublishedDate` in its three places; dated values look the same, undated text ("Undated", "No published date") becomes italic secondary (D-10) |
 
-Frames in words (until the board is agreed), over `PersonSourcesPreviewData.johannClaims`: **1a/1b** Johann Weber's Sources section at Regular (1102) and Wide (2296), the diagram beside the rows; caption SOURCE · TYPE · PUBLISHED · REF; in title order "Hamburg census 1867" reads "1867", "Hamburger Adressbuch 1861" "abt 1861", "Hamburger Nachrichten, obituary 1880" a faint "Undated", "Konfirmandenbuch St. Ansgarii 1831" the phrase "in the reign of Wilhelm I" (truncated), the `src-verein` Source (the long "Verzeichniß der Mitglieder" title) a faint "Undated" (its date marked unknown); the columns as today at both widths. **2** the phrase truncated in 120pt with its hover "Published in the reign of Wilhelm I". **3** the spoken label of a dated and an undated row (AC-2.1, AC-2.2).
+Frames in words (as agreed on the board, turn 19), over `PersonSourcesPreviewData.johannClaims`: **1a/1b** Johann Weber's Sources section at Regular (1102) and Wide (2296), the diagram beside the rows; caption SOURCE · TYPE · PUBLISHED · REF; in title order "Hamburg census 1867" reads "1867", "Hamburger Adressbuch 1861" "abt 1861", "Hamburger Nachrichten, obituary 1880" an italic "Undated", "Konfirmandenbuch St. Ansgarii 1831" the phrase "in the reign of Wilhelm I" (truncated), the `src-verein` Source (the long "Verzeichniß der Mitglieder" title) an italic "Undated" (its date marked unknown); the columns as today at both widths. **2** the phrase truncated in 120pt with its hover "Published in the reign of Wilhelm I". **3** the spoken label of a dated and an undated row (AC-2.1, AC-2.2).
 
 Preview data (STEP-5), each `sourceDate` a `CatalogDateValueInput`:
 
@@ -249,7 +250,7 @@ Preview data (STEP-5), each `sourceDate` a `CatalogDateValueInput`:
 
 No Source is added or renamed. Use the `CatalogDateValueInput` initializer labels as declared in `macos/App/Platform/GenealogyStore.swift`; the qualifier string is `datevalue.QualifierABT` ("ABT"), which `DateRowDisplay` writes as "abt".
 
-States: undated and unknown read "Undated" (faint); loading, empty and error are the section's, unchanged. Accessibility: the cell stays hidden; the row's one spoken element carries the date (D-6). Wide: unchanged arrangement (PS-W1).
+States: undated and unknown read "Undated" (italic, secondary ink, D-10); loading, empty and error are the section's, unchanged. Accessibility: the cell stays hidden; the row's one spoken element carries the date (D-6). Wide: unchanged arrangement (PS-W1).
 
 ### Strings
 
@@ -276,8 +277,8 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/handlers/ -run TestListPerson
 
 **STEP-4 — The date's text and look move to their layers**
 Files: `macos/App/Platform/SourceDateText.swift` *(new)*, `macos/App/DesignSystem/Recipes/PublishedDate/PVPublishedDate.swift` *(new)*, `macos/App/Features/Sources/SourcesRowDate.swift` (deleted), `macos/App/Features/Sources/SourcesListRow.swift`, `macos/App/Features/Sources/SourcePageIdentityHeader.swift`, `macos/App/Features/Sources/SourceCopyModel.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/App/DesignSystem/README.md`, `macos/ProvenenciaTests/SourcesModelTests.swift`, `macos/ProvenenciaTests/SourceCopyModelTests.swift`. Skills: `add-ui-component`, `add-localized-string`.
-Do: D-5, and D-7's five moved strings. Put `enum PublishedDate` in `L10n.swift` directly before `enum LastUpdated`; its xcstrings entries take the shape of the `lastUpdated.*` entries. Move, do not change: the view's body and the four functions keep their code, reading `L10n.PublishedDate`. `PVPublishedDate` gets a `#Preview` with `CatalogDateValueInput(kind: "point", startYear: 1880, startMonth: 6, startDay: 1)`, `CatalogDateValueInput(kind: "point", phrase: "in the reign of Victoria")` and nil, each in both styles. Add the README built-table row `PublishedDate`. Rename the callers and the tests' calls (`SourcesListRow.spokenBase(…)` → `SourceDateText.spokenRow(…)`, same labels).
-Check: `rg -n 'SourcesRowDate|SourcesPublishedDate|spokenBase|sources\.list\.(publishedLabel|noPublishedDate|publishedHelp|publishedSpoken)' macos/` has no hit; `python3 scripts/check-localizable-xcstrings.py` passes; Xcode tests pass; the Sources list looks the same at Regular, Wide and 860pt (manual: §10 step 6; no automated check covers the look).
+Do: D-5, and D-7's five moved strings. Put `enum PublishedDate` in `L10n.swift` directly before `enum LastUpdated`; its xcstrings entries take the shape of the `lastUpdated.*` entries. Move, do not change, except D-10: the view's body and the four functions keep their code, reading `L10n.PublishedDate`. `PVPublishedDate` gets a `#Preview` with `CatalogDateValueInput(kind: "point", startYear: 1880, startMonth: 6, startDay: 1)`, `CatalogDateValueInput(kind: "point", phrase: "in the reign of Victoria")` and nil, each in both styles. Add the README built-table row `PublishedDate`. Rename the callers and the tests' calls (`SourcesListRow.spokenBase(…)` → `SourceDateText.spokenRow(…)`, same labels).
+Check: `rg -n 'SourcesRowDate|SourcesPublishedDate|spokenBase|sources\.list\.(publishedLabel|noPublishedDate|publishedHelp|publishedSpoken)' macos/` has no hit; `python3 scripts/check-localizable-xcstrings.py` passes; Xcode tests pass; the Sources list's dates look the same at Regular, Wide and 860pt and its undated text is italic secondary (manual: §10 step 6; no automated check covers the look).
 
 **STEP-5 — The section draws the date**
 Files: `macos/App/Features/Conclusions/PersonSourcesContent.swift`, `macos/App/Features/Conclusions/PersonSourcesSection.swift`, `macos/App/Features/Conclusions/PersonSourcesPreviewData.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`, `macos/ProvenenciaTests/PersonSourcesContentTests.swift`. Skills: `add-localized-string`, `add-swift-test`.
@@ -328,19 +329,19 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 ## 10. Manual check
 
-1. (AC-1.1, AC-1.2, AC-1.5, AC-1.6) Open a project with a Person who cites at least three Sources. On the Source page, give one Source the date `1867`, another the phrase "in the reign of Wilhelm I", and leave a third undated. Open the Person page, Sources section. See the caption PUBLISHED, "1867", the phrase truncated with its hover "Published in the reign of …", and a faint "Undated".
+1. (AC-1.1, AC-1.2, AC-1.5, AC-1.6) Open a project with a Person who cites at least three Sources. On the Source page, give one Source the date `1867`, another the phrase "in the reign of Wilhelm I", and leave a third undated. Open the Person page, Sources section. See the caption PUBLISHED, "1867", the phrase truncated with its hover "Published in the reign of …", and an italic "Undated".
 2. (AC-3.4) Open the first Source, change its date to `1868`, go Back. The row reads "1868"; the section's unfolded pages and the diagram are as they were.
 3. (AC-1.3) On that Source, choose No date… (marked unknown) if S15-42 has landed, otherwise clear the date. The row reads "Undated".
 4. Stretch the window past 1600pt of pane: the columns keep their widths; the title and the diagram take the room.
 5. (AC-2.1) With VoiceOver, move to a dated row: it reads "…, Census, published 1868, SRC-…".
-6. Open the Sources list at Regular, Wide and 860pt: the published date looks as before.
+6. (D-10) Open the Sources list at Regular, Wide and 860pt: a dated Source's published date looks as before; an undated one reads "No published date" (Regular, narrow) or "Undated" (Wide column) in italic secondary ink.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
 | The new `ReadSourceRecords` path on `date_values` makes every Observation date write reload a Source record | `inbound("sources", "date_value_id")` finds only a Source's own date row; T-1's "observation date edit" row pins moves false |
-| The recipe move changes the Sources list's look | STEP-4 moves code unchanged; the list's existing tests and the manual check 6 |
+| The recipe move changes more of the Sources list's look than D-10's undated text | STEP-4 moves code unchanged except D-10; the list's existing tests and the manual check 6 |
 | `ownedValue`'s new owner read reaches an entry that should not move the records | Only `date_values` passes a Source owner today; the parameter is named `sourceOwners`; `TestReadsDeclare` pins the tables |
 
 **Stop and report if:**

@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 15, slice 5
 **View:** the Person page's Sources section (the rows and their caption line; the record links diagram beside them is unchanged)
 **Implements later as:** PR **S15-05** (PS-1 – PS-6, PS-W1)
-**Board:** not yet drawn. Extend the Person page board [S16-D2 · Folds](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ) with a new turn "S15-D3 · Published date"
+**Board:** agreed 2026-11-20 — [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Sources*, turn 19 "S15-D3 · Published date": frames F1a (Regular), F1b (Wide), F2 (the phrase truncated with its hover). Read it with the Artifact tool's `read` on that link, `path` "project/Person Detail - Sources.dc.html" (turn 19 and the row template's Date cell). Board decision (user, 2026-11-20), which replaces the brief's PS-3: "Undated" is italic, secondary ink, caption size (6.9:1 on the page in light, 10.8:1 in dark; faint ink is 2.6:1), and because the published date is one shared view the Sources list's undated text ("Undated", "No published date") takes the same look. The date is the body face, not mono. Frame 3 (the spoken labels) was not drawn; PS-5 stands as written. § 4 PS-3 below is the requirement as drawn
 **Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)): every Source carries an optional date; S15-04 (landed [#774](https://github.com/Jake-Robins-Studios/provenencia/pull/774)): the Sources list shows that date as the **published** date; S15-43 (landed [#900](https://github.com/Jake-Robins-Studios/provenencia/pull/900)): a date can be marked unknown or supplied
 **Related:** [`../source-provenance-date.md`](../source-provenance-date.md); the Sources list brief [S15-D2](archive/S15-D2-sources-list.md) SL-1 – SL-3 (how the list draws the date); working rules in [`../deployment-plan.md`](../deployment-plan.md#working-rules); plan [`../prs/S15-05-person-sources-date.md`](../prs/S15-05-person-sources-date.md)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -84,7 +84,7 @@ The Date cell is a placeholder: every row shows a muted dash "—", and VoiceOve
 
 **What changes.**
 - **The caption reads PUBLISHED.** "Published" is the date's one name in the app (user, 2026-11-10): the Sources list, its sorts and the Source page header all use it.
-- **The cell shows the published date** as the Sources list's Published column draws it at Wide: the date alone, caption size, secondary ink, no label and no icon; "Undated" in faint ink when there is none.
+- **The cell shows the published date** as the Sources list's Published column draws it at Wide: the date alone, caption size, secondary ink, no label and no icon; "Undated" in italic secondary ink when there is none (as drawn; the Sources list's undated text takes the same look).
 
 **What stays.** Everything else in the section and on the page: the other three columns and their widths, the record lines, the folds, the diagram, the empty, loading and error states.
 
@@ -96,7 +96,7 @@ The Date cell is a placeholder: every row shows a muted dash "—", and VoiceOve
 | --- | --- |
 | The Source date | One optional structured date per Source: the original publication, or when the record was made. Set on the Source page only; the Person page never edits it. |
 | How a date reads | As the Sources list and the Source page header write it: "1880", "12 Mar 1880", "abt 1880", "bef 3 Mar 1830", "bet 1834 and 1840", or the phrase as the researcher typed it ("in the reign of Victoria"). |
-| Undated | Most Sources start undated; there is no backfill. A person citing 30 Sources may have 25 undated rows. Each reads "Undated", faint. |
+| Undated | Most Sources start undated; there is no backfill. A person citing 30 Sources may have 25 undated rows. Each reads "Undated", italic. |
 | Unknown and supplied | A date marked **unknown** has no date: the row reads "Undated". A date marked **supplied** (not on the record) reads as the plain date, as the Sources list reads it (user, 2026-11-20). Neither mark is drawn on this section. |
 | The row order | Sources stay in title order. The date does not sort the section. |
 | A date set elsewhere | Setting, changing or clearing a date on the Source page updates the row's date the next time the Person page reads its Sources, with no reload of the page. |
@@ -126,7 +126,7 @@ The Date cell is a placeholder: every row shows a muted dash "—", and VoiceOve
 | --- | --- |
 | PS-1 | **The caption.** The caption line reads SOURCE · TYPE · PUBLISHED · REF, the same micro caps and muted ink. The Date column keeps its 120pt; "PUBLISHED" fits it. |
 | PS-2 | **A dated Source.** The cell shows the date alone, as the Sources list's Published column does at Wide: caption size, secondary ink (like the ref), first-baseline aligned with the title, no "Published" label in the cell (the caption names it), no icon. Hover shows "Published {date}". Not a Chip, Badge or pill. |
-| PS-3 | **An undated Source.** "Undated" in faint ink, the same size. Also for a date marked unknown. No hover text. |
+| PS-3 | **An undated Source.** "Undated" in italic, secondary ink, caption size (as drawn, user 2026-11-20: faint ink is 2.6:1 in light, below 4.5:1). Also for a date marked unknown. No hover text. The published date is one shared view, so the Sources list's "Undated" and "No published date" take the same look. |
 | PS-4 | **A long date.** One line; the date truncates with an ellipsis inside its 120pt; the hover text shows it whole. A phrase date ("in the reign of Victoria") is the usual long case. |
 | PS-5 | **VoiceOver.** The row's one spoken element reads record facts in the row's order, the date in third place: "Hamburg census 1867, Census, published 1867, SRC-9TQ2M"; an undated Source says "no published date" in the date's place: "Letter, no published date, SRC-4KQ7M". The same words the Sources list speaks. |
 | PS-6 | **A date set elsewhere.** After the date is set, changed or cleared on the Source page, the row shows the new date when the Person page is shown again, with its folds, scroll position and the diagram as they were. |
@@ -157,7 +157,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Sources section rows | Snowflake | Extend | `macos/App/Features/Conclusions/PersonSourcesSection.swift` `PersonSourcesList`, `PersonSourcesRowView` | The Date cell draws the published date; the caption reads Published |
-| Published date | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/PublishedDate/` *(new)*, from the Sources list's private `SourcesPublishedDate` | The Sources list's published date, composing the Platform formatter `SourceDateText` (`macos/App/Platform/SourceDateText.swift` *(new)*), its `.bare` style here: the date alone in secondary ink, or a faint "Undated"; "Published {date}" as hover. Second call site: the Sources list (`SourcesListRow.swift`), which draws it today; this section is the other, so it moves from the list's file to a recipe. Not a Chip, Badge or List detail cell (icon + muted text is the last update's look) |
+| Published date | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/PublishedDate/` *(new)*, from the Sources list's private `SourcesPublishedDate` | The Sources list's published date, composing the Platform formatter `SourceDateText` (`macos/App/Platform/SourceDateText.swift` *(new)*), its `.bare` style here: the date alone in secondary ink, or "Undated" in italic secondary ink (the list's undated text takes the same look); "Published {date}" as hover. Second call site: the Sources list (`SourcesListRow.swift`), which draws it today; this section is the other, so it moves from the list's file to a recipe. Not a Chip, Badge or List detail cell (icon + muted text is the last update's look) |
 | Caption line | Snowflake | Extend | `PersonSourcesList` `header` | One caption's copy |
 | Columns | Snowflake | Ship | `PersonSourcesColumns` | Widths unchanged |
 | Type pill | Recipe | Ship | `CatalogSourceTypePill` | Unchanged |
