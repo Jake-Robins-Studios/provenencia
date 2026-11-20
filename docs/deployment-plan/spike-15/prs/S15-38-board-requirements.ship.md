@@ -1,7 +1,7 @@
 # Ship log — S15-38 Boards carry their citation's requirements
 
 **Plan:** [`S15-38-board-requirements.md`](S15-38-board-requirements.md) · **Branch:** `s15-38-board-requirements` · **PR:** #910
-**State:** fixing 1
+**State:** ready
 
 Base: `main` @ `ca6790b83` (plan planned against `5bf7cbd`). `VERSION` on `main` is 0.26.2, so the bump is 0.27.0 as planned.
 
@@ -66,3 +66,20 @@ Check: `go test -run=^$ -fuzz=FuzzAnnotate -fuzztime=30s ./core/database/sourcem
 Files: `docs/source-layer-data-model.md`.
 Do: Order bullet: "suggestion, head, then extra" where it says suggestion-then-extra (both places). Lead sentence: name `ListDraftWorkspace` as the second reader of the merge — the draft board of a new Artifact or graph, built against its Source.
 Check: scripts/check-pr.sh PASS.
+
+## Round 1 — fix
+Head `7e5ba8b78`. Gate PASS (orchestrator run). F-1 to F-7 done. Deviations: F-3 keeps `fieldsByID` outside `readTypeBoards` (`listWorkspaces` reads fields once across owners, after extras are known); F-5 keeps `sourcetypes/formats_test.go` inline (internal test package, importing `sourcetypestest` would cycle), and `evidence_graphs_test.go:40` was not a key-and-origin scan (takes `types.Types[0]`); F-6 wrote its own seeds (no shared seed list; `parseCases` is in an external test package). `FuzzAnnotate` ran 30 s clean.
+
+Read by the orchestrator (no re-review):
+- CON-1 / F-1: **Resolved.** § 6 Reach row, § 11 Risks row, § 10 step 2 and the Landed note record the gap; no Decision or Out row edited.
+- SEC-1 / F-6: **Resolved.** `FuzzAnnotate` parses three forms, runs `Requirements`, `needsAt` at three levels, `annotate` on every head plus the date and page heads, with a byte-driven resolver and half the fields missing.
+
+## Round 2 — review
+Reviewers: MNT (MNT-1, a Fix-now major). Not sent: CON (CON-1 went to the user; its fix is plan text, read above), SEC+PRF (minor only).
+
+**MNT-1: Resolved** (round-2 reviewer: `ListByIDsTx` has one call, in `fieldsByID`; `loadFields` = `fieldsByID` + `requireFields`; `listWorkspaces` uses `requireFields`). No new blockers. Verdict: Clean.
+
+Minors read by the orchestrator: MNT-3 / F-3 **Resolved** (`readTypeBoards` is the only `RequirementsTx` and `ListSuggestionsTx` call; `newOwnerValues` the only literal; `fieldsByID` stays in each caller, harmless). MNT-2 / F-4 **Resolved** (`Need.Max`, `TestNeedMax`). MNT-5 / F-5 **Resolved**, except the inline write in `core/database/sourcetypes/formats_test.go:79`, kept because importing `sourcetypestest` from the internal test package would cycle. MNT-4 / F-7 **Resolved**. CON-2: PR body now says the manual check is pending for the user.
+
+## Result
+Gate PASS (`7e5ba8b78`, `origin/main` unmoved at `ca6790b83`) · CI pending · open: none · follow-ups: — · to user: CON-1 (answered: accept the gap until S15-39)
