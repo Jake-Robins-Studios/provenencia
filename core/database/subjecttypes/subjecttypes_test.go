@@ -3,12 +3,16 @@ package subjecttypes
 import (
 	"database/sql"
 	"errors"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
+	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 )
 
 func TestSubjectTypes(t *testing.T) {
@@ -19,7 +23,7 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "upsert list lookup",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{
+				id, err := upsert(c, Type{
 					Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 					RefPrefix: "PER", CandidateRefPrefix: "CPR",
 				})
@@ -42,14 +46,14 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "upsert twice keeps same id",
 			run: func(t *testing.T, c *database.Catalog) {
-				first, err := Upsert(c, Type{
+				first, err := upsert(c, Type{
 					Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 					RefPrefix: "PER", CandidateRefPrefix: "CPR",
 				})
 				if err != nil {
 					t.Fatal(err)
 				}
-				second, err := Upsert(c, Type{
+				second, err := upsert(c, Type{
 					Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 					RefPrefix: "PER", CandidateRefPrefix: "CPR",
 				})
@@ -64,10 +68,10 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "reject empty key label",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Type{Key: "", Origin: vocabkey.OriginProvenencia, Label: "X", RefPrefix: "AAA", CandidateRefPrefix: "BBB"}); !errors.Is(err, ErrInvalid) {
+				if _, err := upsert(c, Type{Key: "", Origin: vocabkey.OriginProvenencia, Label: "X", RefPrefix: "AAA", CandidateRefPrefix: "BBB"}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("empty key %v", err)
 				}
-				if _, err := Upsert(c, Type{Key: "x", Origin: vocabkey.OriginProvenencia, Label: "", RefPrefix: "AAA", CandidateRefPrefix: "BBB"}); !errors.Is(err, ErrInvalid) {
+				if _, err := upsert(c, Type{Key: "x", Origin: vocabkey.OriginProvenencia, Label: "", RefPrefix: "AAA", CandidateRefPrefix: "BBB"}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("empty label %v", err)
 				}
 			},
@@ -75,7 +79,7 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "reject user origin",
 			run: func(t *testing.T, c *database.Catalog) {
-				_, err := Upsert(c, Type{
+				_, err := upsert(c, Type{
 					Key: "custom", Origin: "user", Label: "Custom",
 					RefPrefix: "AAA", CandidateRefPrefix: "BBB",
 				})
@@ -87,7 +91,7 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "accept plugin origin",
 			run: func(t *testing.T, c *database.Catalog) {
-				id, err := Upsert(c, Type{
+				id, err := upsert(c, Type{
 					Key: "dna_match", Origin: "plugin:example", Label: "DNA match",
 					RefPrefix: "DNA", CandidateRefPrefix: "CDM",
 				})
@@ -103,7 +107,7 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "reject reserved prefix",
 			run: func(t *testing.T, c *database.Catalog) {
-				_, err := Upsert(c, Type{
+				_, err := upsert(c, Type{
 					Key: "bad", Origin: vocabkey.OriginProvenencia, Label: "Bad",
 					RefPrefix: "SRC", CandidateRefPrefix: "BBB",
 				})
@@ -118,7 +122,7 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "reject same prefix on both columns",
 			run: func(t *testing.T, c *database.Catalog) {
-				_, err := Upsert(c, Type{
+				_, err := upsert(c, Type{
 					Key: "dup", Origin: vocabkey.OriginProvenencia, Label: "Dup",
 					RefPrefix: "ZZZ", CandidateRefPrefix: "zzz",
 				})
@@ -130,13 +134,13 @@ func TestSubjectTypes(t *testing.T) {
 		{
 			name: "reject cross-column collision with existing candidate",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := Upsert(c, Type{
+				if _, err := upsert(c, Type{
 					Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person",
 					RefPrefix: "PER", CandidateRefPrefix: "CPR",
 				}); err != nil {
 					t.Fatal(err)
 				}
-				_, err := Upsert(c, Type{
+				_, err := upsert(c, Type{
 					Key: "collide", Origin: vocabkey.OriginProvenencia, Label: "Collide",
 					RefPrefix: "CPR", CandidateRefPrefix: "QQQ",
 				})
@@ -165,5 +169,83 @@ func TestSubjectTypes(t *testing.T) {
 			defer c.Close()
 			tt.run(t, c)
 		})
+	}
+}
+
+func TestUpsertTx(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	run := func(typ Type) ([]rowchange.Change, error) {
+		var changes []rowchange.Change
+		_, err := writes.Call(c, writes.Op{Action: "upsert_subject_type"}, func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+			id, cs, err := UpsertTx(tx, typ)
+			changes = cs
+			return id, cs, err
+		})
+		return changes, err
+	}
+	keys := func(ch rowchange.Change) []string {
+		var out []string
+		for k := range ch.Fields {
+			out = append(out, k)
+		}
+		sort.Strings(out)
+		return out
+	}
+	person := Type{Key: "person", Origin: vocabkey.OriginProvenencia, Label: "Person", RefPrefix: "PER", CandidateRefPrefix: "PEC"}
+
+	changes, err := run(person)
+	if err != nil || len(changes) != 1 {
+		t.Fatalf("create: %v %+v", err, changes)
+	}
+	if ch := changes[0]; ch.EntityType != "subject_type" || ch.Action != rowchange.ActionCreate ||
+		!reflect.DeepEqual(keys(ch), []string{"candidate_ref_prefix", "id", "key", "label", "origin", "ref_prefix"}) ||
+		ch.Fields["ref_prefix"].New != "PER" || ch.Fields["candidate_ref_prefix"].New != "PEC" {
+		t.Fatalf("create change %+v", ch)
+	}
+	if changes, err = run(person); err != nil || len(changes) != 0 {
+		t.Fatalf("same: %v %+v", err, changes)
+	}
+	renamed := person
+	renamed.Label = "Individual"
+	changes, err = run(renamed)
+	if err != nil || len(changes) != 1 || changes[0].Action != rowchange.ActionUpdate || !reflect.DeepEqual(keys(changes[0]), []string{"label"}) {
+		t.Fatalf("label: %v %+v", err, changes)
+	}
+
+	for _, tt := range []struct {
+		name  string
+		other Type
+	}{
+		{"ref prefix taken", Type{Key: "a", Origin: vocabkey.OriginProvenencia, Label: "A", RefPrefix: "PER", CandidateRefPrefix: "AAC"}},
+		{"candidate prefix taken", Type{Key: "b", Origin: vocabkey.OriginProvenencia, Label: "B", RefPrefix: "BBB", CandidateRefPrefix: "PEC"}},
+		{"equal prefixes", Type{Key: "c", Origin: vocabkey.OriginProvenencia, Label: "C", RefPrefix: "CCC", CandidateRefPrefix: "ccc"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := run(tt.other); !errors.Is(err, ErrDuplicatePrefix) {
+				t.Fatalf("got %v", err)
+			}
+		})
+	}
+	for _, tt := range []struct {
+		name string
+		bad  Type
+	}{
+		{"bad prefix", Type{Key: "d", Origin: vocabkey.OriginProvenencia, Label: "D", RefPrefix: "SRC", CandidateRefPrefix: "DDD"}},
+		{"blank key", Type{Origin: vocabkey.OriginProvenencia, Label: "E", RefPrefix: "EEE", CandidateRefPrefix: "EEC"}},
+		{"bogus origin", Type{Key: "f", Origin: "bogus", Label: "F", RefPrefix: "FFF", CandidateRefPrefix: "FFC"}},
+		{"non-empty ID", Type{ID: make([]byte, 16), Key: "g", Origin: vocabkey.OriginProvenencia, Label: "G", RefPrefix: "GGG", CandidateRefPrefix: "GGC"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := run(tt.bad); err == nil {
+				t.Fatal("want an error")
+			}
+		})
+	}
+	if list, err := List(c); err != nil || len(list) != 1 {
+		t.Fatalf("only person is stored: %v %+v", err, list)
 	}
 }

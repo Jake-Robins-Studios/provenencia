@@ -2,6 +2,7 @@ package sourcecredibilitygrades
 
 import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -42,21 +43,31 @@ var seedGrades = []seedGrade{
 	{Key: "high_trust", Label: "High trust", SortOrder: 3},
 }
 
-// Install writes the provenencia credibility grade registry into a new catalog.
-// Call only at create time (onboarding.createCatalog).
-func Install(c *database.Catalog) error {
-	if _, err := c.DB(); err != nil {
-		return err
+// ActionInstall is the audit action of the create-time grade seed. No revision
+// carries it while source_credibility_grades is None in the effects registry:
+// writes.Run commits a None-only change list without a revision.
+const ActionInstall = "install_source_credibility_grades"
+
+// Install writes the provenencia credibility grade registry into a new catalog
+// on tx and returns the grade changes. It composes on the caller's transaction
+// and never calls writes.Run (core/writes imports this package):
+// onboarding.createCatalog runs it in one writes.Call. Call only at create time.
+func Install(tx *database.Tx) ([]rowchange.Change, error) {
+	if tx == nil {
+		return nil, ErrInvalid
 	}
+	var changes []rowchange.Change
 	for _, g := range seedGrades {
-		if _, err := Upsert(c, Grade{
+		_, cs, err := UpsertTx(tx, Grade{
 			Key:       g.Key,
 			Origin:    vocabkey.OriginProvenencia,
 			Label:     g.Label,
 			SortOrder: g.SortOrder,
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		changes = append(changes, cs...)
 	}
-	return nil
+	return changes, nil
 }

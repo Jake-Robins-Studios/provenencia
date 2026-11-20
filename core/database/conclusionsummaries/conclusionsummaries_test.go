@@ -34,11 +34,12 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
@@ -743,7 +744,7 @@ func (f *fixture) places() []conclusionsummaries.PlaceSummary {
 
 func TestPlaceKeepsEveryDistinctToponym(t *testing.T) {
 	f := newFixture(t)
-	must(t, sourcecredibilitygrades.Install(f.C))
+	must(t, sourcecredibilitygradestest.Install(f.C))
 	census, censusArt := f.NewSource("Census")
 	gazette, gazetteArt := f.NewSource("Gazette")
 	f.lowTrust(gazette)
@@ -1237,7 +1238,7 @@ func TestPersonSummaryTerms(t *testing.T) {
 				})
 				must(f.T, err)
 				personType := f.typeID("person")
-				must(f.T, subjectvocab.EnsureBinding(f.C, personType, prop.ID, 99))
+				must(f.T, subjectvocabtest.EnsureBinding(f.C, personType, prop.ID, 99))
 				f.Cite(f.Artifact, s, observations.Input{PropertyID: prop.ID, Scalar: propertymeta.TextScalar("Woman")})
 				return id
 			},

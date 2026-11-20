@@ -468,7 +468,7 @@ var registry = map[string]Effect{
 		Lists:  []List{ListSourceVocabulary},
 		Search: []SearchDoc{{Kind: DocMetadataField, Path: self()}},
 	},
-	"subject_types": {Lists: []List{ListPropertyVocabulary}},
+	"subject_types": {Entity: "subject_type", Lists: []List{ListPropertyVocabulary}},
 	"properties": {
 		Entity:  "property",
 		Lists:   []List{ListPropertyVocabulary},
@@ -505,7 +505,7 @@ var registry = map[string]Effect{
 		HandleScope: field("entity_id"),
 	},
 
-	"source_credibility_grades":   {None: true},
+	"source_credibility_grades":   {Entity: "source_credibility_grade", None: true},
 	"users":                       {None: true},
 	"subject_positions":           {Entity: "subject_position", None: true},
 	"subject_type_properties":     {Entity: "subject_type_property", Lists: []List{ListPropertyVocabulary}},

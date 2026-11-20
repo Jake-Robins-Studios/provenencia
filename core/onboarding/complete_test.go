@@ -8,8 +8,11 @@ import (
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/project"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/identity"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -116,6 +119,19 @@ func TestComplete(t *testing.T) {
 				}
 				if _, err := sourcetypes.Lookup(p, "birth_certificate", vocabkey.OriginProvenencia); err != nil {
 					t.Fatal(err)
+				}
+				db, err := p.DB()
+				if err != nil {
+					t.Fatal(err)
+				}
+				for action, want := range map[string]int{subjectvocab.ActionInstall: 1, sourcecredibilitygrades.ActionInstall: 0} {
+					if n := dbtest.Count(t, db, "SELECT COUNT(*) FROM audit_transactions WHERE action_type = ?", action); n != want {
+						t.Fatalf("%s revisions=%d, want %d", action, n, want)
+					}
+				}
+				grades, err := sourcecredibilitygrades.List(p)
+				if err != nil || len(grades) != 3 || grades[0].Key != "low_trust" || grades[1].Key != "standard" || grades[2].Key != "high_trust" {
+					t.Fatalf("grades %v %+v", err, grades)
 				}
 				if filepath.Base(res.ProjectDir) != "robins-family"+database.Suffix {
 					t.Fatalf("dir %s", res.ProjectDir)

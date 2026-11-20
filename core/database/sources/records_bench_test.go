@@ -8,7 +8,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -25,7 +25,7 @@ func BenchmarkSourceRecords(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.Cleanup(func() { _ = c.Close() })
-	if err := sourcecredibilitygrades.Install(c); err != nil {
+	if err := sourcecredibilitygradestest.Install(c); err != nil {
 		b.Fatal(err)
 	}
 	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})

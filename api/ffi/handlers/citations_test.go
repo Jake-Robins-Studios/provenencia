@@ -19,6 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -1388,7 +1389,7 @@ func TestCreateCitationBooleanObservation(t *testing.T) {
 	dir, userID, _, artifactID, placeID, _ := citationFixture(t)
 	var propID string
 	if err := withProjectCatalog(dir, func(c *database.Catalog) error {
-		id, err := properties.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+		id, err := propertiestest.Upsert(c, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 		if err != nil {
 			return err
 		}

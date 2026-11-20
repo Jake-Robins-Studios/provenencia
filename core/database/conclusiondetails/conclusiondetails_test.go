@@ -27,9 +27,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote/promotetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
@@ -67,7 +69,7 @@ func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	r := evidencelayertest.New(t)
 	c := r.C
-	must(t, sourcecredibilitygrades.Install(c))
+	must(t, sourcecredibilitygradestest.Install(c))
 	f := &fixture{Records: r, arts: map[string]artifacts.Artifact{}}
 	var err error
 	f.person, err = subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)
@@ -867,7 +869,7 @@ func TestFieldsOf(t *testing.T) {
 func TestFieldsOfOnly(t *testing.T) {
 	t.Run("one of three Properties", func(t *testing.T) {
 		f := newFixture(t)
-		literate, err := properties.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+		literate, err := propertiestest.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 		must(t, err)
 		db, err := f.C.DB()
 		must(t, err)
@@ -923,7 +925,7 @@ func TestForEntityBoolean(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := newFixture(t)
-			id, err := properties.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+			id, err := propertiestest.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 			must(t, err)
 			db, err := f.C.DB()
 			must(t, err)

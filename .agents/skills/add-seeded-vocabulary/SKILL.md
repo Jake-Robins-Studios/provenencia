@@ -18,7 +18,7 @@ Source schema: [`docs/source-layer-data-model.md`](../../../docs/source-layer-da
 
 ## Create-time seed domains (today)
 
-Each domain owns a declarative `registry.go` + `Install(c) error`. Wire every
+Each domain owns a declarative `registry.go` + an `Install`: `Install(tx) ([]rowchange.Change, error)` with an `ActionInstall`, run through `installSeed` in `createCatalog` (atomic; audited unless every table is `None`, as the grades are). `nameformats` and `namealiases` still use `Install(c) error` only because S16-62's Out line left them; new domains do not follow them. Wire every
 new Install into **`onboarding.createCatalog` only**.
 
 | Package | Registry | What it seeds |
@@ -84,18 +84,24 @@ Uniqueness is **`UNIQUE (key, origin)`**. Lookup is always `(key, origin)`, neve
 
 ### Install semantics (pinned)
 
-- Each domain’s `Install` upserts its registry into a new catalog (the Source one on the caller's transaction, as below).
+- Each domain’s `Install` upserts its registry into a new catalog (the Source, grade and Subject ones on the caller's transaction, as below).
 - Call **only** from `onboarding.createCatalog` (after `database.Create`). Today that is:
-  `sourcevocab.Install` (in a `writes.Call`) → `sourcecredibilitygrades.Install` → `subjectvocab.Install` → `nameformats.Install` → `namealiases.Install`
+  `sourcevocab.Install` → `sourcecredibilitygrades.Install` → `subjectvocab.Install` (each through `installSeed`, one `writes.Call`) → `nameformats.Install` → `namealiases.Install`
   (then `catalogsession.ReconcileOnOpen`).
 - **Do not** call `Install` from `OpenCatalog`, `catalogsession.Do`, or on every open.
 - **Do not** heal deleted `provenencia` rows or restored suggestion joins on open.
-- `sourcevocab.Install(tx)` composes on the caller's transaction and never calls
-  `writes.Run`; `createCatalog` runs it in one `writes.Call` (action
-  `install_source_vocabulary`, no user), so it is atomic: a failed install leaves
-  nothing. A second run over unchanged rows records nothing (no revision), and
+- `sourcevocab.Install(tx)`, `sourcecredibilitygrades.Install(tx)` and
+  `subjectvocab.Install(tx)` compose on the caller's transaction and never call
+  `writes.Run`; `createCatalog` runs each in one `writes.Call` through
+  `installSeed` (actions `install_source_vocabulary`, `install_source_credibility_grades`,
+  `install_subject_vocabulary`; no user), so each is atomic: a failed install
+  leaves nothing. The grades' table is `None` in the effects registry, so its
+  install commits with no revision. A second run over unchanged rows records nothing (no revision), and
   one over a renamed product row, or changed formats or unknown text, records an update. Tests make types and fields
-  through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`.
+  through `sourcetypestest.Upsert` / `metadatafieldstest.Upsert`; they install
+  through `sourcevocabtest.Install`, `sourcecredibilitygradestest.Install` and
+  `subjectvocabtest.Install`, and make rows through `propertiestest.Upsert`,
+  `subjecttypestest.Upsert` and `subjectvocabtest.EnsureBinding`.
 - Unused-vocab delete goes through `deleteimpact` after that page’s PR (**S8-15** types, **S8-16** fields, **S8-17** properties) — not a private `sqlInUse`. **Origin:** plugin never; seeded types/fields may erase when unused; seeded properties/terms stay locked. See [`add-catalog-delete`](../add-catalog-delete/SKILL.md).
 
 ## Where create vs open run
@@ -137,8 +143,8 @@ Mirror Source / Subject types — do **not** build a generic multi-domain seed f
 
 1. Migration for definition tables (`origin`, `UNIQUE (key, origin)`). Follow `.agents/skills/add-catalog-migration/SKILL.md`.
 2. Nested query package(s) under `core/database/<domain>/`. Follow `.agents/skills/add-catalog-query/SKILL.md`.
-3. Package owning the seed: `registry` lists + `Install(c) error` (or domain-specific name).
-4. Wire install into `createCatalog` in `ready.go` when create-time-only is correct for that domain.
+3. Package owning the seed: `registry` lists + `Install(tx) ([]rowchange.Change, error)` and `ActionInstall`, run through `installSeed` in `createCatalog` (atomic; audited unless every table is `None`). Do not copy `nameformats` / `namealiases`, which keep `Install(c) error` only because S16-62's Out line left them.
+4. Wire install into `createCatalog` in `ready.go` (through `installSeed` for a tx Install) when create-time-only is correct for that domain.
 5. Document intended keys in `docs/seeded-vocabulary.md`; implement only the dogfood slice needed now.
    Prefer mirroring `subjectvocab` (or `sourcevocab`) rather than inventing a generic multi-domain framework.
 

@@ -1,8 +1,9 @@
 // Package subjectvocab owns Subject-type↔Property bindings and the provenencia
 // Interpretation subject registry (create-time Install).
 //
-// Install upserts shipped Subject types, Properties, and bindings once at
-// catalog create. Call it only from onboarding.createCatalog — not on open.
+// Install writes the shipped Subject types, Properties, terms and bindings once
+// at catalog create, on the caller's transaction, which onboarding.createCatalog
+// opens with writes.Call. Call it only from there — not on open.
 // Capabilities (type-level), presentation tokens, and non-bridge locked bindings
 // live in this compiled registry. The connect matrix lives in core/connectrules;
 // Connect / ListConnectRules / EdgeEndpoint / Install bridge bindings loop All()
@@ -33,6 +34,8 @@ const (
 	ActionAssign  = "assign_subject_type_property"
 	ActionRemove  = "remove_subject_type_property"
 	ActionReorder = "reorder_subject_type_properties"
+	// ActionInstall is the audit action of the create-time seed revision.
+	ActionInstall = "install_subject_vocabulary"
 )
 
 // ErrLocked is returned when removing or assigning against a registry-locked binding.
@@ -44,8 +47,7 @@ const bindingEntity = "subject_type_property"
 
 const (
 	sqlEnsureBinding = `INSERT INTO subject_type_properties (subject_type_id, property_id, sort_order)
-		VALUES (?, ?, ?)
-		ON CONFLICT(subject_type_id, property_id) DO UPDATE SET sort_order = excluded.sort_order`
+		VALUES (?, ?, ?)`
 	sqlListBindings = `SELECT p.id, p.key, p.origin, p.label, COALESCE(p.description, ''), p.value_type, j.sort_order
 		FROM subject_type_properties j
 		JOIN properties p ON p.id = j.property_id
@@ -113,17 +115,57 @@ type ConnectRule struct {
 	Refuse           bool
 }
 
-// EnsureBinding inserts or updates the join row's sort_order.
-func EnsureBinding(c *database.Catalog, typeID, propertyID []byte, sortOrder int) error {
-	db, err := c.DB()
+// EnsureBindingTx sets a binding's sort_order on tx and returns the row
+// changes: a pair not bound is inserted (one create change), the same order
+// writes nothing and returns no change, another order is updated (one update
+// change). The caller records the changes (writes.Run).
+func EnsureBindingTx(tx *database.Tx, typeID, propertyID []byte, sortOrder int) ([]rowchange.Change, error) {
+	if tx == nil || len(typeID) != 16 || len(propertyID) != 16 {
+		return nil, ErrInvalid
+	}
+	var old int
+	err := tx.QueryRow(sqlBindingOrder, typeID, propertyID).Scan(&old)
+	if errors.Is(err, sql.ErrNoRows) {
+		if _, err := tx.Exec(sqlEnsureBinding, typeID, propertyID, sortOrder); err != nil {
+			return nil, err
+		}
+		return []rowchange.Change{bindingCreateChange(typeID, propertyID, sortOrder)}, nil
+	}
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if len(typeID) != 16 || len(propertyID) != 16 {
-		return ErrInvalid
+	if old == sortOrder {
+		return nil, nil
 	}
-	_, err = db.Exec(sqlEnsureBinding, typeID, propertyID, sortOrder)
-	return err
+	if _, err := tx.Exec(sqlSetBindingOrder, sortOrder, typeID, propertyID); err != nil {
+		return nil, err
+	}
+	return []rowchange.Change{bindingOrderChange(typeID, propertyID, old, sortOrder)}, nil
+}
+
+// bindingCreateChange is the create change of one binding row.
+func bindingCreateChange(typeID, propertyID []byte, order int) rowchange.Change {
+	return rowchange.Change{
+		EntityType: bindingEntity,
+		EntityID:   append([]byte(nil), propertyID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(bindingFields(typeID, propertyID, order)),
+	}
+}
+
+// bindingOrderChange is the update change of one binding's sort_order: the type
+// and Property ids as {x → x} beside the order {old → new}.
+func bindingOrderChange(typeID, propertyID []byte, oldOrder, newOrder int) rowchange.Change {
+	return rowchange.Change{
+		EntityType: bindingEntity,
+		EntityID:   append([]byte(nil), propertyID...),
+		Action:     rowchange.ActionUpdate,
+		Fields: map[string]rowchange.FieldDiff{
+			"subject_type_id": {Old: database.UUIDJSON(typeID), New: database.UUIDJSON(typeID)},
+			"property_id":     {Old: database.UUIDJSON(propertyID), New: database.UUIDJSON(propertyID)},
+			"sort_order":      {Old: oldOrder, New: newOrder},
+		},
+	}
 }
 
 // AppendBinding attaches a Property to a type at the end of its order and
@@ -163,12 +205,7 @@ func AppendBinding(tx *database.Tx, userID, typeID, propertyID []byte) ([]rowcha
 	if err := tx.QueryRow(sqlBindingOrder, typeID, propertyID).Scan(&order); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: bindingEntity,
-		EntityID:   append([]byte(nil), propertyID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(bindingFields(typeID, propertyID, order)),
-	}}, nil
+	return []rowchange.Change{bindingCreateChange(typeID, propertyID, order)}, nil
 }
 
 // bindingFields is a binding row's audited columns.
@@ -235,16 +272,7 @@ func ReorderBindings(tx *database.Tx, userID, typeID []byte, propertyIDs [][]byt
 		if _, err := tx.Exec(sqlSetBindingOrder, i, typeID, id); err != nil {
 			return nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: bindingEntity,
-			EntityID:   append([]byte(nil), id...),
-			Action:     rowchange.ActionUpdate,
-			Fields: map[string]rowchange.FieldDiff{
-				"subject_type_id": {Old: database.UUIDJSON(typeID), New: database.UUIDJSON(typeID)},
-				"property_id":     {Old: database.UUIDJSON(id), New: database.UUIDJSON(id)},
-				"sort_order":      {Old: bound[string(id)], New: i},
-			},
-		})
+		changes = append(changes, bindingOrderChange(typeID, id, bound[string(id)], i))
 	}
 	return changes, nil
 }
@@ -347,15 +375,19 @@ func DeleteBinding(tx *database.Tx, userID, typeID, propertyID []byte) ([]rowcha
 	}}, nil
 }
 
-// Install writes the proveniencia Subject type + Property + binding registry.
-// Call only at create time (onboarding.createCatalog).
-func Install(c *database.Catalog) error {
-	if _, err := c.DB(); err != nil {
-		return err
+// Install writes the proveniencia Subject type + Property + term + binding
+// registry into a new catalog on tx and returns every row change. It composes
+// on the caller's transaction and never calls writes.Run: onboarding.createCatalog
+// runs it in one writes.Call. Call only at create time. A binding that names a
+// key the seed does not have is ErrInvalid.
+func Install(tx *database.Tx) ([]rowchange.Change, error) {
+	if tx == nil {
+		return nil, ErrInvalid
 	}
+	var changes []rowchange.Change
 	typeIDs := make(map[string][]byte, len(seedTypes))
 	for _, t := range seedTypes {
-		id, err := subjecttypes.Upsert(c, subjecttypes.Type{
+		id, cs, err := subjecttypes.UpsertTx(tx, subjecttypes.Type{
 			Key:                t.Key,
 			Origin:             vocabkey.OriginProvenencia,
 			Label:              t.Label,
@@ -364,13 +396,14 @@ func Install(c *database.Catalog) error {
 			CandidateRefPrefix: t.CandidateRefPrefix,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
+		changes = append(changes, cs...)
 		typeIDs[t.Key] = id
 	}
 	propIDs := make(map[string][]byte, len(seedProperties))
 	for _, p := range seedProperties {
-		id, err := properties.Upsert(c, properties.Property{
+		id, cs, err := properties.UpsertTx(tx, properties.Property{
 			Key:         p.Key,
 			Origin:      vocabkey.OriginProvenencia,
 			Label:       p.Label,
@@ -379,16 +412,17 @@ func Install(c *database.Catalog) error {
 			Cardinality: p.Cardinality,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
+		changes = append(changes, cs...)
 		propIDs[p.Key] = id
 	}
 	for _, term := range seedTerms {
 		propID := propIDs[term.PropertyKey]
 		if len(propID) == 0 {
-			return ErrInvalid
+			return nil, ErrInvalid
 		}
-		if _, err := propertyterms.Upsert(c, propertyterms.Term{
+		_, cs, err := propertyterms.UpsertTx(tx, propertyterms.Term{
 			PropertyID:  propID,
 			Key:         term.Key,
 			Origin:      vocabkey.OriginProvenencia,
@@ -397,21 +431,25 @@ func Install(c *database.Catalog) error {
 			Directed:    term.Directed,
 			InverseKey:  term.Inverse,
 			Neutral:     term.Neutral,
-		}); err != nil {
-			return err
+		})
+		if err != nil {
+			return nil, err
 		}
+		changes = append(changes, cs...)
 	}
 	for _, b := range allBindings() {
 		typeID := typeIDs[b.TypeKey]
 		propID := propIDs[b.PropertyKey]
 		if len(typeID) == 0 || len(propID) == 0 {
-			return ErrInvalid
+			return nil, ErrInvalid
 		}
-		if err := EnsureBinding(c, typeID, propID, b.SortOrder); err != nil {
-			return err
+		cs, err := EnsureBindingTx(tx, typeID, propID, b.SortOrder)
+		if err != nil {
+			return nil, err
 		}
+		changes = append(changes, cs...)
 	}
-	return nil
+	return changes, nil
 }
 
 // TypeByKey returns registry TypeInfo for a proveniencia type key, or false.

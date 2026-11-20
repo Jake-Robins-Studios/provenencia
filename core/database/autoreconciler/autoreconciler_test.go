@@ -32,11 +32,13 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/promote/promotetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/searchindex"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
@@ -70,7 +72,7 @@ type fixture struct {
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	r := evidencelayertest.New(t)
-	must(t, sourcecredibilitygrades.Install(r.C))
+	must(t, sourcecredibilitygradestest.Install(r.C))
 	c := r.C
 	f := &fixture{Records: r, arts: map[string]artifacts.Artifact{string(r.Source.ID): r.Artifact},
 		types: map[string]subjecttypes.Type{}, props: map[string]properties.Property{}, terms: map[string]propertyterms.Term{}}
@@ -85,7 +87,7 @@ func newFixture(t *testing.T) *fixture {
 		must(t, err)
 		f.props[k] = p
 	}
-	ageID, err := properties.Upsert(c, properties.Property{Key: "age", Origin: vocabkey.OriginUser, Label: "Age", ValueType: propertymeta.ValueTypeInteger})
+	ageID, err := propertiestest.Upsert(c, properties.Property{Key: "age", Origin: vocabkey.OriginUser, Label: "Age", ValueType: propertymeta.ValueTypeInteger})
 	must(t, err)
 	f.props["age"] = properties.Property{ID: ageID, Key: "age", ValueType: propertymeta.ValueTypeInteger}
 	db, err := c.DB()
@@ -456,7 +458,7 @@ func TestReconciledValues(t *testing.T) {
 // Property, a majority still outvotes a distinct spelling.
 func TestReconciledValuesKeepEveryValue(t *testing.T) {
 	f := newFixture(t)
-	aliasID, err := properties.Upsert(f.C, properties.Property{
+	aliasID, err := propertiestest.Upsert(f.C, properties.Property{
 		Key: "alias", Origin: vocabkey.OriginUser, Label: "Alias", ValueType: propertymeta.ValueTypeText,
 	})
 	must(t, err)
@@ -509,7 +511,7 @@ func TestMultipleCardinalityKeepsDistinctValues(t *testing.T) {
 // A seeded Property's cardinality stays fixed.
 func TestCardinalityChangeRecomputes(t *testing.T) {
 	f := newFixture(t)
-	aliasID, err := properties.Upsert(f.C, properties.Property{
+	aliasID, err := propertiestest.Upsert(f.C, properties.Property{
 		Key: "alias", Origin: vocabkey.OriginUser, Label: "Alias", ValueType: propertymeta.ValueTypeText,
 	})
 	must(t, err)
@@ -1980,7 +1982,7 @@ func boolIn(s subjects.Subject, p properties.Property, v bool) observations.Inpu
 // leaves support 1, and the cache still equals a rebuild.
 func TestReconciledBoolean(t *testing.T) {
 	f := newFixture(t)
-	id, err := properties.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+	id, err := propertiestest.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 	must(t, err)
 	literate := properties.Property{ID: id, Key: "literate", ValueType: propertymeta.ValueTypeBoolean}
 	f.bind("person", id)
@@ -2034,7 +2036,7 @@ func TestReconciledBoolean(t *testing.T) {
 // failing the read, so a damaged row never blocks the repair that rewrites it.
 func TestOutOfDomainBooleanReadsAbsent(t *testing.T) {
 	f := newFixture(t)
-	id, err := properties.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
+	id, err := propertiestest.Upsert(f.C, properties.Property{Key: "literate", Origin: vocabkey.OriginUser, Label: "Literate", ValueType: propertymeta.ValueTypeBoolean})
 	must(t, err)
 	literate := properties.Property{ID: id, Key: "literate", ValueType: propertymeta.ValueTypeBoolean}
 	f.bind("person", id)

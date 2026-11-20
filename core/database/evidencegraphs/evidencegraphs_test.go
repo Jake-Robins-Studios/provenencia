@@ -31,7 +31,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
@@ -257,7 +257,7 @@ func linkedArtifacts(t *testing.T, c *database.Catalog, graphID []byte) int {
 // Citation on the Artifact with an Observation of that Subject.
 func (f fixture) subjectAndCitation(t *testing.T, src sources.Source, artifactID []byte) (subjects.Subject, citations.Citation) {
 	t.Helper()
-	if err := subjectvocab.Install(f.c); err != nil {
+	if err := subjectvocabtest.Install(f.c); err != nil {
 		t.Fatal(err)
 	}
 	person, err := subjecttypes.Lookup(f.c, "person", vocabkey.OriginProvenencia)

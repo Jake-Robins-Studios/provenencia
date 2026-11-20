@@ -24,7 +24,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -52,7 +51,7 @@ func TestSubjectDelete(t *testing.T) {
 		if err := users.Upsert(c, userID, "Jake", r); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -280,7 +279,7 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 		if err := users.Upsert(c, userID, "Jake", r); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -333,7 +332,7 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 		if err := users.Upsert(c, userID, "Jake", r); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
@@ -395,7 +394,7 @@ func TestDeleteDeletesEmptiedHandles(t *testing.T) {
 		if err := users.Upsert(c, userID, "Jake", r); err != nil {
 			t.Fatal(err)
 		}
-		if err := subjectvocab.Install(c); err != nil {
+		if err := subjectvocabtest.Install(c); err != nil {
 			t.Fatal(err)
 		}
 		typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{

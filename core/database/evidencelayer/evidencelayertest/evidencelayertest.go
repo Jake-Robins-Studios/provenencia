@@ -24,7 +24,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/users"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
@@ -89,7 +89,7 @@ func New(t testing.TB) *Records {
 	c, err := database.Create(t.TempDir(), "t.provenencia")
 	Must(t, err)
 	t.Cleanup(func() { _ = c.Close() })
-	Must(t, subjectvocab.Install(c))
+	Must(t, subjectvocabtest.Install(c))
 	return Open(t, c)
 }
 

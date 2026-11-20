@@ -22,6 +22,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectpositions"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/subjectvocab/subjectvocabtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/graphalign"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest/mediatypes"
@@ -392,7 +393,7 @@ func installedCatalog(t *testing.T) *database.Catalog {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = c.Close() })
-	if err := subjectvocab.Install(c); err != nil {
+	if err := subjectvocabtest.Install(c); err != nil {
 		t.Fatal(err)
 	}
 	return c

@@ -1,6 +1,6 @@
 // Package propertyterms accesses the property_terms vocabulary table.
-// Create, Update, and Delete run inside writes.Run and return the row changes
-// that Run records. Upsert is the un-audited seed path.
+// Create, Update, Delete, and UpsertTx run inside writes.Run and return the row
+// changes that Run records. UpsertTx is the seed's write, run inside writes.Run.
 package propertyterms
 
 import (
@@ -43,14 +43,9 @@ const (
 	KeyPartOf      = string(vocabkey.TermPartOf)
 	KeySucceededBy = string(vocabkey.TermSucceededBy)
 
-	sqlUpsert = `INSERT INTO property_terms (id, property_id, key, origin, label, description, directed, inverse_key, neutral)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(property_id, key, origin) DO UPDATE SET
-			label = excluded.label,
-			description = excluded.description,
-			directed = excluded.directed,
-			inverse_key = excluded.inverse_key,
-			neutral = excluded.neutral`
+	// sqlInsert is the one insert of a new term.
+	sqlInsert = `INSERT INTO property_terms (id, property_id, key, origin, label, description, directed, inverse_key, neutral)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	sqlTermCols = `id, property_id, key, origin, label, COALESCE(description, ''), directed, COALESCE(inverse_key, ''), neutral`
 	sqlLookup   = `SELECT ` + sqlTermCols + `
 		FROM property_terms WHERE property_id = ? AND key = ? AND origin = ?`
@@ -59,7 +54,7 @@ const (
 	sqlListByProperty = `SELECT ` + sqlTermCols + `
 		FROM property_terms WHERE property_id = ?
 		ORDER BY label COLLATE NOCASE, origin, key`
-	sqlUpdate      = `UPDATE property_terms SET label = ?, description = ? WHERE id = ?`
+	sqlUpdate      = `UPDATE property_terms SET label = ?, description = ?, directed = ?, inverse_key = ?, neutral = ? WHERE id = ?`
 	sqlDelete      = `DELETE FROM property_terms WHERE id = ?`
 	sqlPropertyKey = `SELECT key FROM properties WHERE id = ? AND origin = ?`
 )
@@ -81,45 +76,105 @@ type Term struct {
 	Neutral bool
 }
 
-// Upsert inserts or updates by (property_id, key, origin). Mints a UUIDv7 id when ID is empty on insert.
-// Used by create-time seed; does not write audit.
-func Upsert(c *database.Catalog, t Term) ([]byte, error) {
-	db, err := c.DB()
-	if err != nil {
-		return nil, err
+// rowFields is the audit view of a term: the one column list that create,
+// update and delete changes are built from. description and inverse_key are
+// present only when not empty, directed and neutral only when set, so a
+// researcher's term (never directed, neutral or inverted) records the same keys
+// as before the seed shared this list.
+func rowFields(t Term) map[string]any {
+	fields := map[string]any{
+		"id":          database.UUIDString(t.ID),
+		"property_id": database.UUIDString(t.PropertyID),
+		"key":         t.Key,
+		"origin":      t.Origin,
+		"label":       t.Label,
+	}
+	if t.Description != "" {
+		fields["description"] = t.Description
+	}
+	if t.Directed {
+		fields["directed"] = true
+	}
+	if t.InverseKey != "" {
+		fields["inverse_key"] = t.InverseKey
+	}
+	if t.Neutral {
+		fields["neutral"] = true
+	}
+	return fields
+}
+
+// createChange is the create change of a new term row: every column that holds
+// a value.
+func createChange(t Term) rowchange.Change {
+	return rowchange.Change{
+		EntityType: "property_term",
+		EntityID:   append([]byte(nil), t.ID...),
+		Action:     rowchange.ActionCreate,
+		Fields:     rowchange.FullRow(rowFields(t)),
+	}
+}
+
+// updateChange is the update change from prev to next, naming only the columns
+// that differ (a missing key reads nil); nil when nothing differs. id,
+// property_id, key and origin are never compared.
+func updateChange(prev, next Term) *rowchange.Change {
+	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "property_id", "key", "origin")
+	if len(fields) == 0 {
+		return nil
+	}
+	return &rowchange.Change{
+		EntityType: "property_term",
+		EntityID:   append([]byte(nil), prev.ID...),
+		Action:     rowchange.ActionUpdate,
+		Fields:     fields,
+	}
+}
+
+// UpsertTx inserts or updates by (property_id, key, origin) on tx and returns
+// the id and the row changes. Missing: a new term, one create change. Present:
+// label, description, directed, inverse_key and neutral are written and one
+// update change names what differs; nothing differing writes nothing and
+// returns no change. A non-empty t.ID is ErrInvalid. The caller records the
+// changes.
+func UpsertTx(tx *database.Tx, t Term) ([]byte, []rowchange.Change, error) {
+	if tx == nil || len(t.ID) != 0 {
+		return nil, nil, ErrInvalid
 	}
 	t.Key = strings.TrimSpace(t.Key)
 	t.Origin = strings.TrimSpace(t.Origin)
 	t.Label = strings.TrimSpace(t.Label)
 	t.Description = strings.TrimSpace(t.Description)
+	t.InverseKey = strings.TrimSpace(t.InverseKey)
 	if len(t.PropertyID) != 16 || t.Key == "" || t.Label == "" || !vocabkey.ValidOrigin(t.Origin) {
-		return nil, ErrInvalid
+		return nil, nil, ErrInvalid
 	}
-	id := t.ID
-	if len(id) == 0 {
-		existing, err := Lookup(c, t.PropertyID, t.Key, t.Origin)
-		if err == nil {
-			id = existing.ID
-		} else if errors.Is(err, sql.ErrNoRows) {
-			uid, err := uuid.NewV7()
-			if err != nil {
-				return nil, err
-			}
-			id = uid[:]
-		} else {
-			return nil, err
+	existing, err := lookupTx(tx, t.PropertyID, t.Key, t.Origin)
+	if errors.Is(err, sql.ErrNoRows) {
+		uid, err := uuid.NewV7()
+		if err != nil {
+			return nil, nil, err
 		}
-	} else if len(id) != 16 {
-		return nil, ErrInvalid
+		t.ID = uid[:]
+		if _, err := tx.Exec(sqlInsert, t.ID, t.PropertyID, t.Key, t.Origin, t.Label, database.NullString(t.Description), directedBit(t.Directed), database.NullString(t.InverseKey), directedBit(t.Neutral)); err != nil {
+			return nil, nil, err
+		}
+		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t)}, nil
 	}
-	var inverse any
-	if k := strings.TrimSpace(t.InverseKey); k != "" {
-		inverse = k
+	if err != nil {
+		return nil, nil, err
 	}
-	if _, err := db.Exec(sqlUpsert, id, t.PropertyID, t.Key, t.Origin, t.Label, database.NullString(t.Description), directedBit(t.Directed), inverse, directedBit(t.Neutral)); err != nil {
-		return nil, err
+	next := existing
+	next.Label, next.Description = t.Label, t.Description
+	next.Directed, next.InverseKey, next.Neutral = t.Directed, t.InverseKey, t.Neutral
+	change := updateChange(existing, next)
+	if change == nil {
+		return append([]byte(nil), existing.ID...), nil, nil
 	}
-	return append([]byte(nil), id...), nil
+	if _, err := tx.Exec(sqlUpdate, next.Label, database.NullString(next.Description), directedBit(next.Directed), database.NullString(next.InverseKey), directedBit(next.Neutral), existing.ID); err != nil {
+		return nil, nil, err
+	}
+	return append([]byte(nil), existing.ID...), []rowchange.Change{*change}, nil
 }
 
 // Create mints a kebab-case key from label and inserts a user-origin term.
@@ -157,29 +212,14 @@ func Create(tx *database.Tx, userID, propertyID []byte, label, description strin
 	if label == "" {
 		return Term{}, nil, ErrInvalid
 	}
-	if _, err := tx.Exec(sqlUpsert, id, propertyID, key, vocabkey.OriginUser, label, database.NullString(description), 0, nil, 0); err != nil {
+	if _, err := tx.Exec(sqlInsert, id, propertyID, key, vocabkey.OriginUser, label, database.NullString(description), 0, nil, 0); err != nil {
 		return Term{}, nil, err
-	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":          {Old: nil, New: uid.String()},
-		"property_id": {Old: nil, New: database.UUIDString(propertyID)},
-		"key":         {Old: nil, New: key},
-		"origin":      {Old: nil, New: vocabkey.OriginUser},
-		"label":       {Old: nil, New: label},
-	}
-	if description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: description}
 	}
 	term, err := scanTerm(tx.QueryRow(sqlGetByID, id))
 	if err != nil {
 		return Term{}, nil, err
 	}
-	return term, []rowchange.Change{{
-		EntityType: "property_term",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, nil
+	return term, []rowchange.Change{createChange(term)}, nil
 }
 
 // Update patches label and description for a user-origin term.
@@ -213,29 +253,20 @@ func Update(tx *database.Tx, userID, id []byte, label, description string) (Term
 		}
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if existing.Label != label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(existing.Label), New: database.NullString(label)}
-	}
-	if existing.Description != description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(existing.Description), New: database.NullString(description)}
-	}
-	if len(fields) == 0 {
+	next := existing
+	next.Label, next.Description = label, description
+	change := updateChange(existing, next)
+	if change == nil {
 		return existing, nil, nil
 	}
-	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), id); err != nil {
+	if _, err := tx.Exec(sqlUpdate, label, database.NullString(description), directedBit(existing.Directed), database.NullString(existing.InverseKey), directedBit(existing.Neutral), id); err != nil {
 		return Term{}, nil, err
 	}
 	term, err := scanTerm(tx.QueryRow(sqlGetByID, id))
 	if err != nil {
 		return Term{}, nil, err
 	}
-	return term, []rowchange.Change{{
-		EntityType: "property_term",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return term, []rowchange.Change{*change}, nil
 }
 
 // valueWords are the shipped registry's word rules, never catalog data: a text
@@ -299,21 +330,11 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":          {Old: database.UUIDString(id), New: nil},
-		"property_id": {Old: database.UUIDString(existing.PropertyID), New: nil},
-		"key":         {Old: existing.Key, New: nil},
-		"origin":      {Old: existing.Origin, New: nil},
-		"label":       {Old: existing.Label, New: nil},
-	}
-	if existing.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: existing.Description, New: nil}
-	}
 	return []rowchange.Change{{
 		EntityType: "property_term",
 		EntityID:   append([]byte(nil), id...),
 		Action:     rowchange.ActionDelete,
-		Fields:     fields,
+		Fields:     rowchange.DeletedRow(rowFields(existing)),
 	}}, nil
 }
 
@@ -323,7 +344,13 @@ func Lookup(c *database.Catalog, propertyID []byte, key, origin string) (Term, e
 	if err != nil {
 		return Term{}, err
 	}
-	return scanTerm(db.QueryRow(sqlLookup, propertyID, strings.TrimSpace(key), strings.TrimSpace(origin)))
+	return lookupTx(db, propertyID, key, origin)
+}
+
+// lookupTx is Lookup on any reader: the one scan of a (property, key, origin)
+// term.
+func lookupTx(q database.Querier, propertyID []byte, key, origin string) (Term, error) {
+	return scanTerm(q.QueryRow(sqlLookup, propertyID, strings.TrimSpace(key), strings.TrimSpace(origin)))
 }
 
 // GetByID returns the term by primary key.

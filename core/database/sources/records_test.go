@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -35,7 +36,7 @@ var derivedFromRecords = graphcache.RegisterWhole(graphcache.WholeEntry[string]{
 func recordsFixture(t *testing.T) *evidencelayertest.Records {
 	t.Helper()
 	r := evidencelayertest.New(t)
-	evidencelayertest.Must(t, sourcecredibilitygrades.Install(r.C))
+	evidencelayertest.Must(t, sourcecredibilitygradestest.Install(r.C))
 	return r
 }
 
@@ -129,7 +130,10 @@ func TestRecordsBuildOutOfRangeGrade(t *testing.T) {
 	evidencelayertest.Must(t, err)
 	_, err = db.Exec(`UPDATE source_credibility_grades SET sort_order = -9223372036854775807 WHERE key = ?`, sourcecredibilitygrades.DefaultKey)
 	evidencelayertest.Must(t, err)
-	_, err = sourcecredibilitygrades.Upsert(r.C, sourcecredibilitygrades.Grade{Key: "crafted", Origin: vocabkey.OriginProvenencia, Label: "Crafted", SortOrder: 9223372036854775807})
+	_, err = writes.Call(r.C, writes.Op{Action: "upsert_source_credibility_grade"},
+		func(tx *database.Tx) ([]byte, []rowchange.Change, error) {
+			return sourcecredibilitygrades.UpsertTx(tx, sourcecredibilitygrades.Grade{Key: "crafted", Origin: vocabkey.OriginProvenencia, Label: "Crafted", SortOrder: 9223372036854775807})
+		})
 	evidencelayertest.Must(t, err)
 	setGrade(t, r, r.Source, "crafted")
 	rec, ok := records(t, r).Source(r.Source.ID)

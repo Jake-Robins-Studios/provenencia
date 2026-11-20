@@ -2,12 +2,15 @@ package subjectvocab
 
 import (
 	"errors"
+	"reflect"
 	"slices"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/connectrules"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/propertyterms"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjecttypes"
@@ -26,7 +29,7 @@ func TestSubjectVocab(t *testing.T) {
 		{
 			name: "install seeds types properties bindings",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				types, err := subjecttypes.List(c)
@@ -146,7 +149,7 @@ func TestSubjectVocab(t *testing.T) {
 		{
 			name: "open does not heal deleted property",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				prop, err := properties.Lookup(c, "remark", vocabkey.OriginProvenencia)
@@ -184,7 +187,7 @@ func TestSubjectVocab(t *testing.T) {
 		{
 			name: "refuse remove locked binding",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := Install(c); err != nil {
+				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
 				ptn, err := subjecttypes.Lookup(c, "participation", vocabkey.OriginProvenencia)
@@ -330,7 +333,7 @@ func TestInstallStoresInverses(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = c.Close() })
-	if err := Install(c); err != nil {
+	if err := install(c); err != nil {
 		t.Fatal(err)
 	}
 	rt, err := properties.Lookup(c, "relationship_type", vocabkey.OriginProvenencia)
@@ -351,7 +354,7 @@ func TestInstallFlagsNeutralTerms(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = c.Close() })
-	if err := Install(c); err != nil {
+	if err := install(c); err != nil {
 		t.Fatal(err)
 	}
 	sex, err := properties.Lookup(c, "sex_at_birth", vocabkey.OriginProvenencia)
@@ -372,7 +375,7 @@ func TestInstallLetsAUserTermJoinASeededProperty(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = c.Close() })
-	if err := Install(c); err != nil {
+	if err := install(c); err != nil {
 		t.Fatal(err)
 	}
 
@@ -404,7 +407,7 @@ func TestInstallMatchesRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = c.Close() })
-	if err := Install(c); err != nil {
+	if err := install(c); err != nil {
 		t.Fatal(err)
 	}
 
@@ -627,7 +630,7 @@ func installedPerson(t *testing.T) (*database.Catalog, []byte, []byte) {
 	}
 	t.Cleanup(func() { _ = c.Close() })
 	userID := testUser(t, c)
-	if err := Install(c); err != nil {
+	if err := install(c); err != nil {
 		t.Fatal(err)
 	}
 	person, err := subjecttypes.Lookup(c, "person", vocabkey.OriginProvenencia)
@@ -762,6 +765,102 @@ func TestBindingChanges(t *testing.T) {
 	}
 	if _, err := deleteBinding(t, c, userID, personID, name.ID); !errors.Is(err, ErrLocked) {
 		t.Fatalf("locked delete: %v", err)
+	}
+}
+
+func TestEnsureBindingTx(t *testing.T) {
+	c, _, personID := installedPerson(t)
+	prop, err := propertiestest.Upsert(c, properties.Property{Key: "burial_ground", Origin: vocabkey.OriginProvenencia, Label: "Burial ground", ValueType: propertymeta.ValueTypeText})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ensure := func(typeID, propertyID []byte, order int) ([]rowchange.Change, error) {
+		return writes.Call(c, writes.Op{Action: "ensure_subject_type_property"},
+			func(tx *database.Tx) ([]rowchange.Change, []rowchange.Change, error) {
+				ch, err := EnsureBindingTx(tx, typeID, propertyID, order)
+				return ch, ch, err
+			})
+	}
+	ch, err := ensure(personID, prop, 3)
+	if err != nil || len(ch) != 1 || ch[0].Action != rowchange.ActionCreate || ch[0].EntityType != "subject_type_property" ||
+		ch[0].Fields["sort_order"].New != 3 || string(ch[0].EntityID) != string(prop) {
+		t.Fatalf("create %+v %v", ch, err)
+	}
+	if ch, err = ensure(personID, prop, 3); err != nil || len(ch) != 0 {
+		t.Fatalf("same %+v %v", ch, err)
+	}
+	ch, err = ensure(personID, prop, 5)
+	if err != nil || len(ch) != 1 || ch[0].Action != rowchange.ActionUpdate {
+		t.Fatalf("reorder %+v %v", ch, err)
+	}
+	f := ch[0].Fields
+	if f["sort_order"].Old != 3 || f["sort_order"].New != 5 ||
+		f["subject_type_id"].Old != database.UUIDJSON(personID) || f["subject_type_id"].New != database.UUIDJSON(personID) ||
+		f["property_id"].Old != database.UUIDJSON(prop) || f["property_id"].New != database.UUIDJSON(prop) {
+		t.Fatalf("reorder fields %+v", f)
+	}
+	if !reflect.DeepEqual(ch[0], bindingOrderChange(personID, prop, 3, 5)) {
+		t.Fatalf("not the ReorderBindings shape: %+v", ch[0])
+	}
+	if _, err := ensure(personID[:4], prop, 1); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("short id: %v", err)
+	}
+}
+
+func TestInstallRecordsOneRevision(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := install(c); err != nil {
+		t.Fatal(err)
+	}
+	if n := dbtest.Revisions(t, db); n != 1 {
+		t.Fatalf("revisions=%d", n)
+	}
+	action, changes := dbtest.LatestRevision(t, db)
+	want := len(seedTypes) + len(seedProperties) + len(seedTerms) + len(allBindings())
+	if action != ActionInstall || len(changes) != want {
+		t.Fatalf("action %q changes %d, want %d", action, len(changes), want)
+	}
+	for _, ch := range changes {
+		if ch.Action != rowchange.ActionCreate {
+			t.Fatalf("change %+v", ch)
+		}
+	}
+	if n := dbtest.Count(t, db, "SELECT COUNT(*) FROM audit_transactions WHERE user_id IS NULL"); n != 1 {
+		t.Fatalf("null-user revisions=%d", n)
+	}
+	if err := install(c); err != nil {
+		t.Fatal(err)
+	}
+	if n := dbtest.Revisions(t, db); n != 1 {
+		t.Fatalf("second install revisions=%d", n)
+	}
+}
+
+func TestInstallFailureLeavesNothing(t *testing.T) {
+	saved := seedBindings
+	t.Cleanup(func() { seedBindings = saved })
+	seedBindings = append(slices.Clone(saved), seedBinding{TypeKey: "nope", PropertyKey: "name"})
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if err := install(c); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("got %v", err)
+	}
+	if types, err := subjecttypes.List(c); err != nil || len(types) != 0 {
+		t.Fatalf("types %v %v", err, types)
+	}
+	if props, err := properties.List(c); err != nil || len(props) != 0 {
+		t.Fatalf("properties %v %v", err, props)
 	}
 }
 
