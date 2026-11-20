@@ -99,6 +99,8 @@ final class SourceTypeFormatsModel {
     /// Which field each shared key means (key to field id): what was read back, plus every pick.
     private(set) var fieldChoices: [String: String] = [:]
     private var placeholdersByForm: [CitationForm: [CatalogCitationPlaceholder]] = [:]
+    /// Each form's rows by id, built when they are read, for a completion option's lookup.
+    private var placeholderRows: [CitationForm: [String: CatalogCitationPlaceholder]] = [:]
 
     /// A form's warnings, with the text they were found in: they are stale once the draft moves off that text.
     private struct Diagnosed: Equatable {
@@ -157,6 +159,9 @@ final class SourceTypeFormatsModel {
             async let list = store.citationPlaceholders(projectDir: projectDir, form: .list)
             let (read, fullRows, shortRows, listRows) = try await (reply, full, short, list)
             placeholdersByForm = [.full: fullRows, .short: shortRows, .list: listRows]
+            placeholderRows = placeholdersByForm.mapValues { rows in
+                Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            }
             adopt(read)
             loadState = .ready
         } catch {
@@ -288,7 +293,7 @@ final class SourceTypeFormatsModel {
 
     /// The placeholder row behind a completion option.
     func placeholder(_ form: CitationForm, id: String) -> CatalogCitationPlaceholder? {
-        placeholders(form).first { $0.id == id }
+        placeholderRows[form]?[id]
     }
 
     /// Records the field a completed field row means, so the save does not ask which one.
@@ -316,6 +321,15 @@ final class SourceTypeFormatsModel {
             return rows.filter { $0.sourceTypeID == typeID }.sorted(by: SourcesModel.updatedOrder)
         }
     }
+
+    /// Whether the Sources list has been read, so an empty `previewSources` means none, not "not yet".
+    var sourcesAreRead: Bool {
+        let handle: QueryHandle<[CatalogSource]>? = session.queryHandle(SourcesModel.sourcesListKey(for: session))
+        return handle?.value != nil
+    }
+
+    /// Whether the picker says the type has no Source: read, and empty.
+    var showsNoSourceCallout: Bool { sourcesAreRead && previewSources.isEmpty }
 
     /// The Source the previews use: the pick while it is in the list, else the list's first.
     var effectivePickID: String? {
@@ -357,6 +371,8 @@ final class SourceTypeFormatsModel {
     /// One form's preview: the draft (the stored format for a locked type), the recorded choices and the
     /// effective pick, after `delay`. A call with neither a Source nor a format has nothing to ask.
     private func schedule(_ form: CitationForm, after delay: Duration) {
+        // Before the formats are read there is nothing to render; `load()` renders each form once it has.
+        guard loadState == .ready else { return }
         let editable = isEditable
         let format: String? = editable ? draft(form) : nil
         let choices = editable ? fieldChoices : [:]

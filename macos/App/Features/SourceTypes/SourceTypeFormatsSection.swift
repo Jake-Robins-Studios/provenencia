@@ -81,14 +81,15 @@ private struct SourceTypeFormatsPreviewPicker: View {
         VStack(alignment: .leading, spacing: PVSpacing.space4) {
             let sources = formats.previewSources
             let typeLabel = model.type?.label ?? ""
-            if sources.isEmpty {
+            // While the Sources list is unread there is neither the note nor the picker.
+            if formats.showsNoSourceCallout {
                 PVCallout(
                     tone: .neutral,
                     message: L10n.SourceTypes.Formats.noSources(type: typeLabel),
                     compact: true
                 )
                 .accessibilityIdentifier("sourceTypes.formats.preview.noSources")
-            } else {
+            } else if !sources.isEmpty {
                 PVField(label: L10n.SourceTypes.Formats.previewWith, hint: L10n.SourceTypes.Formats.previewHint) {
                     PVComboBox(
                         selection: Binding(

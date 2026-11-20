@@ -234,6 +234,48 @@ struct SourceTypeFormatsModelTests {
         #expect(store.previewCalls.allSatisfy { $0.sourceID == "s1" })
     }
 
+    @Test func openingThePageSendsExactlyOneRoundOfPreviews() async {
+        let store = FakeStore()
+        store.sourceTypesByProject[projectDir] = [seededSourceType()]
+        store.sourcesByProject[projectDir] = [source("s1", revision: 1)]
+        store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(
+            formats: CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: "", list: ""), diagnostics: []
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let typesHandle: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
+        await waitForQuery(typesHandle)
+        let model = SourceTypeFormatsModel(typeID: "t1", session: session, store: store, debounce: .zero)
+        // What the section does as it appears, before the formats are read.
+        model.rerenderAll()
+        model.rerenderAll()
+        await model.load()
+        let handle: QueryHandle<[CatalogSource]>? = session.queryHandle(SourcesModel.sourcesListKey(for: session))
+        if let handle { await waitForQuery(handle) }
+        _ = await waitFor { !model.isRendering }
+        #expect(store.previewCalls.count == 3)
+    }
+
+    @Test func theNoSourceNoteWaitsForTheSourcesList() async {
+        let store = FakeStore()
+        store.sourceTypesByProject[projectDir] = [seededSourceType()]
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = SourceTypeFormatsModel(typeID: "t1", session: session, store: store, debounce: .zero)
+        let handle: QueryHandle<[CatalogSource]> = session.query(SourcesModel.sourcesListKey(for: session))
+        #expect(!model.showsNoSourceCallout)
+        await waitForQuery(handle)
+        #expect(model.showsNoSourceCallout)
+    }
+
+    @Test func aMissingFirstSourceShowsTheErrorInsteadOfAStalePreview() async {
+        let (model, store, _) = await makeModel(sources: [source("s1", revision: 3)])
+        model.pick(sourceID: "s1")
+        store.previewError = CoreInvokeError.coded(status: 1, code: "sources.not_found", kind: .user, params: [])
+        model.rerenderAll()
+        // The pick went, but the effective Source is the same one: there is nothing new to render.
+        #expect(await waitFor { model.previewError != nil })
+        #expect(model.pickedSourceID == nil && model.effectivePickID == "s1")
+    }
+
     @Test func aMissingSourceClearsThePick() async {
         let (model, store, _) = await makeModel(sources: [source("s1", revision: 3), source("s2", revision: 9)])
         model.pick(sourceID: "s1")
