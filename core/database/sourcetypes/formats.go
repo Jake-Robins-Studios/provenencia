@@ -47,8 +47,8 @@ func (f Formats) Text(form citationformat.Form) string {
 	panic("sourcetypes: unknown citation form " + string(form))
 }
 
-// with returns f with one form's text replaced.
-func (f Formats) with(form citationformat.Form, text string) Formats {
+// With returns f with one form's text replaced.
+func (f Formats) With(form citationformat.Form, text string) Formats {
 	switch form {
 	case citationformat.FormFull:
 		f.Full = text
@@ -190,7 +190,7 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 
 	view := FormatsView{}
 	for _, form := range citationformat.Forms() {
-		view.Formats = view.Formats.with(form, in.Text(form))
+		view.Formats = view.Formats.With(form, in.Text(form))
 	}
 	templates, diags := in.Parse()
 	view.Diagnostics = diags
@@ -248,7 +248,7 @@ func viewTx(tx *sql.Tx, typeID []byte) (FormatsView, error) {
 		if err != nil {
 			return FormatsView{}, err
 		}
-		view.Formats = view.Formats.with(form, text)
+		view.Formats = view.Formats.With(form, text)
 	}
 
 	// A shown key more than one field holds is a choice the editor sends back.
@@ -361,7 +361,7 @@ func ToStored(tx *sql.Tx, in Formats, choices []FieldChoice, preferOrigin string
 		if err != nil {
 			return Formats{}, nil, err
 		}
-		out = out.with(form, text)
+		out = out.With(form, text)
 	}
 	return out, nil, nil
 }
