@@ -19,6 +19,21 @@ type Owner struct {
 // so two owners never share a key.
 func (o Owner) key() string { return string(o.Level) + string(o.ID) }
 
+// OwnerRows is stored rows grouped by their owner.
+type OwnerRows map[string][]Row
+
+// GroupByOwner groups rows by owner, in the order given.
+func GroupByOwner(rows []Row) OwnerRows {
+	g := make(OwnerRows)
+	for _, r := range rows {
+		g[r.Owner.key()] = append(g[r.Owner.key()], r)
+	}
+	return g
+}
+
+// Of keys one owner's rows by field id; an owner with no rows gives an empty map.
+func (g OwnerRows) Of(o Owner) map[string]Row { return rowsByField(g[o.key()]) }
+
 // store is one level's tables and the SQL over them, built once by newStore
 // from constant names. Every function that reads or writes metadata starts at
 // storeFor, so a level with no entry is refused before any query.

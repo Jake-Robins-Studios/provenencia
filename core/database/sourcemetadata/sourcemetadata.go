@@ -1014,10 +1014,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	if err != nil {
 		return nil, err
 	}
-	valuesOf := make(map[string][]Row, len(all))
-	for _, v := range valueRows {
-		valuesOf[v.Owner.key()] = append(valuesOf[v.Owner.key()], v)
-	}
+	valuesOf := GroupByOwner(valueRows)
 	var sourceIDs [][]byte
 	for _, o := range uniq {
 		sourceIDs = append(sourceIDs, sourceOf[o.key()])
@@ -1070,8 +1067,8 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		ln := boards[k].needs
 		r := CitationValues{
 			Rows: map[vocabkey.Level]map[string]Row{
-				o.Level:              rowsByField(valuesOf[o.key()]),
-				vocabkey.LevelSource: rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
+				o.Level:              valuesOf.Of(o),
+				vocabkey.LevelSource: valuesOf.Of(Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}),
 			},
 			Fields:   fields,
 			Builtins: map[citationformat.Target]citationformat.Value{dateHead: dateOf[string(sourceOf[o.key()])]},

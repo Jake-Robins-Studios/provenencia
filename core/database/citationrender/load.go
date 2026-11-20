@@ -106,12 +106,6 @@ func labelTypes(tx *sql.Tx, subs []*subject) error {
 	return nil
 }
 
-// ownerKey names one owner of stored values.
-type ownerKey struct {
-	level vocabkey.Level
-	id    string
-}
-
 // fillValues sets each subject's values: the stored values of its Source and,
 // for a Citation, of its Artifact and graph, the field rows the templates name,
 // and the built-ins (D-2). Only the fields the templates name by id are read.
@@ -130,13 +124,10 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 	}
 
 	var owners []sourcemetadata.Owner
-	seen := map[ownerKey]bool{}
 	add := func(level vocabkey.Level, id []byte) {
-		k := ownerKey{level, string(id)}
-		if id == nil || seen[k] {
+		if id == nil {
 			return
 		}
-		seen[k] = true
 		owners = append(owners, sourcemetadata.Owner{Level: level, ID: id})
 	}
 	for _, s := range subs {
@@ -152,14 +143,7 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 	if err != nil {
 		return err
 	}
-	byOwner := map[ownerKey]map[string]sourcemetadata.Row{}
-	for _, r := range rows {
-		k := ownerKey{r.Owner.Level, string(r.Owner.ID)}
-		if byOwner[k] == nil {
-			byOwner[k] = map[string]sourcemetadata.Row{}
-		}
-		byOwner[k][string(r.FieldID)] = r
-	}
+	byOwner := sourcemetadata.GroupByOwner(rows)
 
 	for _, s := range subs {
 		v := sourcemetadata.CitationValues{
@@ -168,14 +152,14 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 			Builtins: map[citationformat.Target]citationformat.Value{},
 		}
 		if s.source != nil {
-			v.Rows[vocabkey.LevelSource] = byOwner[ownerKey{vocabkey.LevelSource, string(s.source.ID)}]
+			v.Rows[vocabkey.LevelSource] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: s.source.ID})
 			v.Builtins[builtin(vocabkey.LevelSource, "title")] = citationformat.Value{Text: s.source.Title}
 			v.Builtins[builtin(vocabkey.LevelSource, "type")] = citationformat.Value{Text: s.typeLabel}
 			v.Builtins[builtin(vocabkey.LevelSource, "date")] = sources.CitationDate(*s.source)
 		}
 		if c := s.cited; c != nil {
-			v.Rows[vocabkey.LevelArtifact] = byOwner[ownerKey{vocabkey.LevelArtifact, string(c.ArtifactID)}]
-			v.Rows[vocabkey.LevelGraph] = byOwner[ownerKey{vocabkey.LevelGraph, string(c.GraphID)}]
+			v.Rows[vocabkey.LevelArtifact] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: c.ArtifactID})
+			v.Rows[vocabkey.LevelGraph] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: c.GraphID})
 			v.Builtins[builtin(vocabkey.LevelArtifact, "label")] = citationformat.Value{Text: c.ArtifactLabel}
 			v.Builtins[builtin(vocabkey.LevelGraph, "name")] = citationformat.Value{Text: c.GraphName}
 			v.Builtins[builtin(vocabkey.LevelCitation, "page")] = citationformat.Value{Text: s.page.Label, Mark: s.page.Mark}
