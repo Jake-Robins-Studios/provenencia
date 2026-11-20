@@ -21,9 +21,9 @@ type Op struct {
 	UserID      []byte
 }
 
-// Result is the commit Run recorded: its revision, when it was recorded, and
-// what the effects registry resolved. Revision is zero when the closure
-// changed nothing.
+// Result is the commit RunChanges recorded: its revision, when it was
+// recorded, and what the effects registry resolved. Revision is zero when the
+// closure changed nothing.
 type Result = effects.Commit
 
 // RunChanges begins a transaction, runs fn, and on a non-empty change list
@@ -31,8 +31,9 @@ type Result = effects.Commit
 // AfterCommit, then notifies listeners. A closure error or an empty change
 // list rolls back and does not notify. A change list whose every row names a
 // None table commits with no revision and no notice, then runs AfterCommit.
-// A second Run on the same catalog, including from AfterCommit or a listener,
-// returns database.ErrWriteReentry. Run does not take the catalog session lock.
+// A second write (Run or RunChanges) on the same catalog, including from
+// AfterCommit or a listener, returns database.ErrWriteReentry. RunChanges does
+// not take the catalog session lock.
 func RunChanges(c *database.Catalog, op Op, fn func(tx *database.Tx) ([]rowchange.Change, error)) (Result, error) {
 	tx, err := c.BeginWrite()
 	if err != nil {
