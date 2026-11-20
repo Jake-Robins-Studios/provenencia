@@ -170,3 +170,11 @@ Check: the test passes; `CGO_ENABLED=1 go test -tags fts5 ./core/database/source
 
 ## User addition — fix
 Head `de6f42186`. Gate PASS (orchestrator run). F-16 done: `derivedSuggestions` derives the widened rule and `TestSeedSuggestionsFollowFormats` checks exact equality (exemption removed); `TestSeededFormatsNeedOnlySuggestedFields` kept as a guard. Only `birth_certificate`, `marriage_certificate` and `death_certificate` changed (Source · `jurisdiction`, appended); `statute` unchanged (a chain whose option the full format uses adds nothing). Counts: handler 4 → 5, unsuggested heads 32 → 29. Map § 6.8, `docs/seeded-vocabulary.md` § 2.3 and the Landed note record the amendment of S15-19 D-4. Read by the orchestrator (seed data and its test); no review round, by the two-round cap and the size of the change.
+
+## User addition 2 — certificate notes (2026-11-20)
+The user asked for Jurisdiction ahead of Creator in the certificates' full and short notes, for all three certificate types (one shared `certificateFormats`), as a **needed** field (as the list format already reads it).
+
+**F-17 — The certificate notes lead with Jurisdiction**
+Files: `core/database/sourcevocab/registry.go` (`certificateFormats`), `core/database/sourcevocab/registry_suggestions.go`, `core/database/sourcevocab/testdata/seed-citations.txt`, any test that counts or orders certificate suggestions or unsuggested heads, map § 6.8 "Formats" (certificate rows), the S15-17 Landed note.
+Do: Full becomes `{source.meta.jurisdiction}, [{source.meta.creator}, ]` + word + (the rest unchanged); Short becomes `{source.meta.jurisdiction}, [{source.meta.creator}, ]` + word + (the rest unchanged); List unchanged. Re-derive the three certificates' Source suggestions by the rule (`TestSeedSuggestionsFollowFormats`): `jurisdiction` now leads (`jurisdiction`, `creator`, `document_number`, `volume`, `repository`). Regenerate the render goldens by the repo's own update path (no hand edits), and check the full-data rows read "Calder County, Westmark, Calder County Clerk, birth certificate no. …" and the bare rows now miss Jurisdiction in all three forms.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/sourcemetadata/... ./api/ffi/handlers/...` passes; scripts/check-pr.sh PASS.
