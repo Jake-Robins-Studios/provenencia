@@ -59,8 +59,8 @@ func FuzzAnnotate(f *testing.F) {
 			for _, id := range ln.order {
 				annotate(ln, fieldTarget(level, id), r, fields)
 			}
-			annotate(ln, dateHead, r, fields)
-			annotate(ln, pageHead, r, fields)
+			annotate(ln, citationformat.SourceDate, r, fields)
+			annotate(ln, citationformat.CitationPage, r, fields)
 		}
 	})
 }

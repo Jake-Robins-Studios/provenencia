@@ -908,7 +908,7 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 		resolver: CitationValues{
 			Rows:     map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rowsByField(rows)},
 			Fields:   fields,
-			Builtins: map[citationformat.Target]citationformat.Value{dateHead: sources.CitationDate(src)},
+			Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: sources.CitationDate(src)},
 		},
 	}), nil
 }
@@ -1071,7 +1071,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 				vocabkey.LevelSource: valuesOf.Of(Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}),
 			},
 			Fields:   fields,
-			Builtins: map[citationformat.Target]citationformat.Value{dateHead: dateOf[string(sourceOf[o.key()])]},
+			Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: dateOf[string(sourceOf[o.key()])]},
 		}
 		board := Board{Entries: buildEntries(o.Level, boardInput{
 			suggestions: boards[k].suggestions,
@@ -1082,8 +1082,8 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 			resolver:    r,
 		})}
 		if o.Level == vocabkey.LevelSource {
-			board.Date = annotate(ln, dateHead, r, fields)
-			board.Page = annotate(ln, pageHead, r, fields)
+			board.Date = annotate(ln, citationformat.SourceDate, r, fields)
+			board.Page = annotate(ln, citationformat.CitationPage, r, fields)
 		}
 		out[o.key()] = board
 	}

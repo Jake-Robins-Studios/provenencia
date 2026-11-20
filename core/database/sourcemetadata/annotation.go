@@ -42,13 +42,6 @@ type Board struct {
 	Date, Page Annotation
 }
 
-// boardBuiltins are the built-in heads a Source board annotates besides its
-// fields: the Source date and the printed page.
-var (
-	dateHead = citationformat.Target{Level: vocabkey.LevelSource, Builtin: "date"}
-	pageHead = citationformat.Target{Level: vocabkey.LevelCitation, Builtin: "page"}
-)
-
 // CitationValue is what a stored metadata value gives a citation: its text and
 // settled mark, and the unknown text its field prints. The boards' resolver and
 // the renderer's both build a field's value from it.
@@ -165,7 +158,7 @@ func needsAt(chains []citationformat.Requirement, level vocabkey.Level) levelNee
 				}
 				ln.heads[id] = append(ln.heads[id], ch)
 				ln.need[id] = ln.need[id].Max(ch.Need)
-			case ln.builtinHeads != nil && (t == dateHead || t == pageHead):
+			case ln.builtinHeads != nil && (t == citationformat.SourceDate || t == citationformat.CitationPage):
 				ln.builtinHeads[t] = append(ln.builtinHeads[t], ch)
 			}
 		}

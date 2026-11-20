@@ -33,11 +33,6 @@ func (s *subject) typeID() []byte {
 	return s.source.SourceTypeID
 }
 
-// builtin is the target of the built-in called name at level.
-func builtin(level vocabkey.Level, name string) citationformat.Target {
-	return citationformat.Target{Level: level, Builtin: name}
-}
-
 // loadCitations reads the Citations with the given ids, then their Sources and
 // the Sources' types, in a fixed number of queries per 500 ids. It returns one
 // subject per Citation found, in input order, a repeated id once. The
@@ -153,20 +148,20 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 		}
 		if s.source != nil {
 			v.Rows[vocabkey.LevelSource] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: s.source.ID})
-			v.Builtins[builtin(vocabkey.LevelSource, "title")] = citationformat.Value{Text: s.source.Title}
-			v.Builtins[builtin(vocabkey.LevelSource, "type")] = citationformat.Value{Text: s.typeLabel}
-			v.Builtins[builtin(vocabkey.LevelSource, "date")] = sources.CitationDate(*s.source)
+			v.Builtins[citationformat.SourceTitle] = citationformat.Value{Text: s.source.Title}
+			v.Builtins[citationformat.SourceType] = citationformat.Value{Text: s.typeLabel}
+			v.Builtins[citationformat.SourceDate] = sources.CitationDate(*s.source)
 		}
 		if c := s.cited; c != nil {
 			v.Rows[vocabkey.LevelArtifact] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: c.ArtifactID})
 			v.Rows[vocabkey.LevelGraph] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: c.GraphID})
-			v.Builtins[builtin(vocabkey.LevelArtifact, "label")] = citationformat.Value{Text: c.ArtifactLabel}
-			v.Builtins[builtin(vocabkey.LevelGraph, "name")] = citationformat.Value{Text: c.GraphName}
-			v.Builtins[builtin(vocabkey.LevelCitation, "page")] = citationformat.Value{Text: s.page.Label, Mark: s.page.Mark}
+			v.Builtins[citationformat.ArtifactLabel] = citationformat.Value{Text: c.ArtifactLabel}
+			v.Builtins[citationformat.GraphName] = citationformat.Value{Text: c.GraphName}
+			v.Builtins[citationformat.CitationPage] = citationformat.Value{Text: s.page.Label, Mark: s.page.Mark}
 			if s.page.ArtifactPage > 0 {
-				v.Builtins[builtin(vocabkey.LevelCitation, "image")] = citationformat.Value{Text: strconv.Itoa(s.page.ArtifactPage)}
+				v.Builtins[citationformat.CitationImage] = citationformat.Value{Text: strconv.Itoa(s.page.ArtifactPage)}
 			}
-			v.Builtins[builtin(vocabkey.LevelCitation, "label")] = citationformat.Value{Text: c.Label}
+			v.Builtins[citationformat.CitationLabel] = citationformat.Value{Text: c.Label}
 		}
 		s.values = v
 	}

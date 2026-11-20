@@ -65,7 +65,7 @@ func TestNeedsAt(t *testing.T) {
 				t.Errorf("order = %v, want %v", ln.order, tt.order)
 			}
 			var page citationformat.Need
-			for _, ch := range ln.builtinHeads[pageHead] {
+			for _, ch := range ln.builtinHeads[citationformat.CitationPage] {
 				page = page.Max(ch.Need)
 			}
 			if page != tt.page {
@@ -101,7 +101,7 @@ func TestAnnotate(t *testing.T) {
 			Fields: fields,
 		}
 		if date != nil {
-			v.Builtins = map[citationformat.Target]citationformat.Value{dateHead: *date}
+			v.Builtins = map[citationformat.Target]citationformat.Value{citationformat.SourceDate: *date}
 		}
 		return v
 	}
@@ -156,7 +156,7 @@ func TestAnnotate(t *testing.T) {
 	t.Run("the Source date head", func(t *testing.T) {
 		chains := chainsOf(t, "{source.date:year}.")
 		ln := needsAt(chains, vocabkey.LevelSource)
-		got := annotate(ln, dateHead, CitationValues{Rows: map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: nil}, Fields: fields}, fields)
+		got := annotate(ln, citationformat.SourceDate, CitationValues{Rows: map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: nil}, Fields: fields}, fields)
 		if got.Need != citationformat.NeedNeeded || got.MetElsewhere {
 			t.Errorf("undated = %+v", got)
 		}
@@ -196,7 +196,7 @@ func TestCitationValuesResolve(t *testing.T) {
 			vocabkey.LevelSource: {string(b[:]): {FieldID: b[:], ValueText: "x"}},
 		},
 		Fields:   map[string]metadatafields.Field{string(a[:]): loaded},
-		Builtins: map[citationformat.Target]citationformat.Value{dateHead: dated},
+		Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: dated},
 	}
 	tests := []struct {
 		name   string
@@ -209,8 +209,8 @@ func TestCitationValuesResolve(t *testing.T) {
 		{"a field whose row did not load answers with no unknown text", fieldTarget(vocabkey.LevelSource, b),
 			citationformat.Value{Text: "x"}},
 		{"a field named by key", citationformat.Target{Level: vocabkey.LevelGraph, Field: citationformat.FieldRef{Key: "line_number"}}, citationformat.Value{}},
-		{"a built-in that is set", dateHead, dated},
-		{"a built-in that is not", pageHead, citationformat.Value{}},
+		{"a built-in that is set", citationformat.SourceDate, dated},
+		{"a built-in that is not", citationformat.CitationPage, citationformat.Value{}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -241,9 +241,9 @@ func TestAppendOptions(t *testing.T) {
 		fieldTarget(vocabkey.LevelGraph, a),
 		fieldTarget(vocabkey.LevelSource, b),
 		{Level: vocabkey.LevelGraph, Field: citationformat.FieldRef{Key: "line_number"}},
-		pageHead,
+		citationformat.CitationPage,
 	}
-	seen := map[citationformat.Target]bool{pageHead: true}
+	seen := map[citationformat.Target]bool{citationformat.CitationPage: true}
 	got := AppendOptions(nil, seen, targets, fields)
 	want := []Alternative{
 		{Level: vocabkey.LevelSource, Builtin: "date"},
