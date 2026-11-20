@@ -1,7 +1,7 @@
 # Ship log — S16-50 One kit popup presenter, and the kit menus use it
 
 **Plan:** [`S16-50-popup-presenter.md`](S16-50-popup-presenter.md) · **Branch:** `s16-50-popup-presenter` · **PR:** #923
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `239caa600`. Gate PASS (orchestrator run). Report: STEP-3 and STEP-4 in one commit (removing `keyboardTitles` broke callers until STEP-4); `moveIndex` gives `edge` a default of nil for D-17's call. Owed: §10 manual check (live watcher, opening press, Clear arm timing, app-switch close) — not unit-testable per D-21.
@@ -67,3 +67,13 @@ Orchestrator read of the minor fixes (`a467adee6..812b27584`): CON-2/MNT-1 **Res
 
 ## Round 2 — review
 Scope `239caa600...812b27584`. Reviewers: UX (had the blocker UX-1). Not sent: CON (its major CON-1 is To user, no fix), MNT (minors only, resolved above), SEC+PRF (no findings).
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| UX-1 | UX | blocker | (round 1) opening release closes a `PVSelect` | Resolved | `PVPopup.swift:122-138`, `:204`, `:217-219`, `:248-255`; matching by `eventNumber` per `CGEventTypes.h` `kCGMouseEventNumber`. Open assumption (`NSApp.currentEvent` is still the mouse-down when `isPresented` arrives) goes to §10 steps 2 and 5 |
+| UX-r2-1 | UX (outside lens → CON) | minor | Landed note claims F-4 changed `PVSelect`'s ⌘/⌃ behavior | Fix now (orchestrator, docs) | `PVSelect.swift:302-304` already returned `.ignored` for ⌘/⌃; Landed note corrected |
+
+No new blockers. Verdict: Clean.
+
+## Result
+Gate PASS · CI pending · open: none in code · to user: CON-1/UX-2 §10 manual check (with tap-to-click and fast-click on steps 2 and 5) · follow-ups: none

@@ -398,5 +398,5 @@ None.
 - `PVFloatingMenuSelection.moveIndex(from:delta:count:edge:isDisabled:)` gives `edge` a default of nil, so `PVSelectSession.moveCommitted` calls it without one (D-17).
 - The manual check (§10), including step 1's "today" observation, was not run by the implementer; it is owed before merge.
 - D-5 as amended 2026-11-20: the watcher records `NSApp.currentEvent` when the popup turns presented, and `PVPopupOpeningPress` ends the opening press on the mouse-up with that mouse-down's `eventNumber` (fallback: buttons held at arm time). `decide` and T-1 are unchanged; the new tests are `PVPopupOpeningPressTests`.
-- `PVTypeSelectMatcher.typeSelectCharacter(_:command:control:)` is the one type-select keystroke test, used by `PVPopupInput`, `PVTable` and `PVSelect`. `PVSelect` thereby no longer type-selects on a ⌘- or ⌃-letter (it did before; the others did not).
+- `PVTypeSelectMatcher.typeSelectCharacter(_:command:control:)` is the one type-select keystroke test, used by `PVPopupInput`, `PVTable` and `PVSelect`. No behavior changes: `PVSelect.handleTriggerKey` already ignored ⌘ and ⌃ before its type-select guard, so the helper's modifier check is redundant there (the F-4 commit subject overstates it).
 - T-4 is split: the character test is `typeSelectCharacters` in `PVFloatingMenuSelectionTests`, the key mapping is `PVPopupInputTests.mapsKeys`.
