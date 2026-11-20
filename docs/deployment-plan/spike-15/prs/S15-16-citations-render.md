@@ -454,3 +454,4 @@ Where the code differs from the plan:
 - **Built-in targets** are exported from `citationformat` (`SourceTitle`, `SourceType`, `SourceDate`, `ArtifactLabel`, `GraphName`, `CitationPage`, `CitationImage`, `CitationLabel`), held to `Builtins()` by `TestBuiltinTargets`; `dateHead`, `pageHead` and `builtin()` are gone.
 - **`citationformat.Options()`** lists the options beside `Forms()`; the Swift parity row for citation options reads it.
 - **`fieldIDsByKey`** (`api/ffi/handlers/harness_test.go`) is the one field key-to-id test helper; `newRenderWorld` looks the ids up once.
+- **D-9 superseded (user, 2026-11-19):** a preview of a Citation that is not in the catalog returns `citations.not_found` (new `citations.ErrNotFound`, `KindNotFound`, mapped to "This citation no longer exists."), not `citations.ErrInvalid`, matching a missing Source's `sources.not_found`. This changes AC-2.6's Citation outcome and § FFI's error line; other `citations` paths keep `ErrInvalid`.

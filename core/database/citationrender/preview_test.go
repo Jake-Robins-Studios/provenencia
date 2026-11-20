@@ -92,7 +92,7 @@ func TestRenderPreview(t *testing.T) {
 			wantErr: sources.ErrNotFound},
 		{name: "AC-2.6 a Citation that is not there",
 			in:      PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: absentCitation}},
-			wantErr: citations.ErrInvalid},
+			wantErr: citations.ErrNotFound},
 		{name: "AC-2.7 a blank unsaved format",
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation}, Format: strp("   ")}},
 		{name: "a choice naming a field of another key",

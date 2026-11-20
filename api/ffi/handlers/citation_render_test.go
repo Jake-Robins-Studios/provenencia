@@ -266,6 +266,13 @@ func TestRenderCitationPreview(t *testing.T) {
 			}, wantErr: true, wantErrIs: citations.ErrInvalid,
 		},
 		{
+			name: "AC-2.6 a Citation that is not there",
+			req: &engine.RenderCitationPreviewRequest{
+				ProjectDir: w.dir, Form: "full",
+				Target: &engine.RenderCitationPreviewRequest_CitationId{CitationId: uuid.Must(uuid.NewV7()).String()},
+			}, wantErr: true, wantErrIs: citations.ErrNotFound,
+		},
+		{
 			name: "a target id that is not a UUID",
 			req: &engine.RenderCitationPreviewRequest{
 				ProjectDir: w.dir, Form: "list", Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: "nope"},

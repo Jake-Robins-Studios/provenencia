@@ -38,6 +38,7 @@ const (
 	CodeValueMarkInvalid              = "valuemark.invalid"
 	CodeCitationsInvalid              = "citations.invalid"
 	CodeCitationsInUse                = "citations.in_use"
+	CodeCitationsNotFound             = "citations.not_found"
 	CodeObservationsInvalid           = "observations.invalid"
 	CodeObservationsEdgeLocked        = "observations.edge_locked"
 	CodeObservationsInUse             = "observations.in_use"

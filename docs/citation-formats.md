@@ -78,7 +78,7 @@ Deleting a field is refused while any format names its id; the delete notice lis
 
 **The group key.** Citations whose full citations render the same, run for run (italics count), share a key; one that differs in a field the format reads does not, and one that differs only in a field it does not read does. A Citation with no full citation gets a key of its own, so none groups with another. The key is opaque.
 
-**The preview.** `RenderCitationPreview` renders one form against one target: a Citation (any form; the list form reads only its Source) or a Source (the list form only). With no `format` it renders the target's type's stored format. With one, the text is unsaved and written with field keys, checked the way a save checks it (`field_choices` say which field a shared key means): any diagnostic comes back alone, with nothing rendered. A blank format renders nothing. The reply lists what a needed chain lacks, as the options of that chain that can be shown, in chain order.
+**The preview.** `RenderCitationPreview` renders one form against one target: a Citation (any form; the list form reads only its Source) or a Source (the list form only). With no `format` it renders the target's type's stored format. With one, the text is unsaved and written with field keys, checked the way a save checks it (`field_choices` say which field a shared key means): any diagnostic comes back alone, with nothing rendered. A blank format renders nothing. A Citation or Source that is not in the catalog is `citations.not_found` or `sources.not_found`. The reply lists what a needed chain lacks, as the options of that chain that can be shown, in chain order.
 
 ## Diagnostics
 

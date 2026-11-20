@@ -3288,6 +3288,18 @@
         }
       }
     },
+    "error.citations.not_found": {
+      "comment": "FFI error citations.not_found: the Citation was deleted",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This citation no longer exists."
+          }
+        }
+      }
+    },
     "error.citations.in_use": {
       "comment": "FFI error citations.in_use",
       "extractionState": "manual",

@@ -39,9 +39,9 @@ type Preview struct {
 
 // RenderPreview renders in.Form against in.Target in one read transaction.
 // citations.ErrInvalid refuses an unknown form, neither or both targets, an id
-// that is not 16 bytes, a Source target with a form other than list, and a
-// Citation that is not in the catalog; sources.ErrNotFound a Source that is
-// not; sourcetypes.ErrInvalid a field choice that names no field of its key.
+// that is not 16 bytes, and a Source target with a form other than list;
+// citations.ErrNotFound a Citation that is not in the catalog and
+// sources.ErrNotFound a Source that is not; sourcetypes.ErrInvalid a field choice that names no field of its key.
 // A blank format, or a stored one that does not parse, renders nothing.
 func RenderPreview(c *database.Catalog, in PreviewInput) (Preview, error) {
 	t := in.Target
@@ -71,7 +71,7 @@ func RenderPreview(c *database.Catalog, in PreviewInput) (Preview, error) {
 			return Preview{}, err
 		}
 		if len(subs) == 0 {
-			return Preview{}, citations.ErrInvalid
+			return Preview{}, citations.ErrNotFound
 		}
 		sub = subs[0]
 	} else if sub, err = loadSource(tx, t.SourceID); err != nil {

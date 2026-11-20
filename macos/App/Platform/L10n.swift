@@ -11835,6 +11835,11 @@ enum L10n {
             defaultValue: "That citation isn’t valid.",
             comment: "FFI error citations.invalid"
         )
+        static let citationsNotFound = LocalizedStringResource(
+            "error.citations.not_found",
+            defaultValue: "This citation no longer exists.",
+            comment: "FFI error citations.not_found: the Citation was deleted"
+        )
         static let citationsInUse = LocalizedStringResource(
             "error.citations.in_use",
             defaultValue: "This citation still has observations.",
@@ -12104,6 +12109,8 @@ enum L10n {
                 return L10n.string(locatorInvalid)
             case "citations.invalid":
                 return L10n.string(citationsInvalid)
+            case "citations.not_found":
+                return L10n.string(citationsNotFound)
             case "citations.in_use":
                 return L10n.string(citationsInUse)
             case "evidencegraphs.invalid":

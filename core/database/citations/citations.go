@@ -23,7 +23,10 @@ import (
 
 var (
 	ErrInvalid = apperr.New(apperr.CodeCitationsInvalid, apperr.KindUser)
-	ErrInUse   = apperr.New(apperr.CodeCitationsInUse, apperr.KindConflict)
+	// ErrNotFound is a Citation that is not in the catalog, where the caller
+	// named it by id and ErrInvalid would say the id itself is wrong.
+	ErrNotFound = apperr.New(apperr.CodeCitationsNotFound, apperr.KindNotFound)
+	ErrInUse    = apperr.New(apperr.CodeCitationsInUse, apperr.KindConflict)
 )
 
 const (
