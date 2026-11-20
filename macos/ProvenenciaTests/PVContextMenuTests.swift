@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -26,12 +27,6 @@ struct PVContextMenuStateTests {
         state.dismiss()
         #expect(!state.isPresented)
         #expect(state.origin == CGPoint(x: 4, y: 5))
-    }
-
-    @Test func actionMenusKeepClickToOpenDefaults() {
-        #expect(PVContextMenuInteraction.defaultStealKeys)
-        #expect(PVContextMenuInteraction.defaultDismissOnMouseUp)
-        #expect(!PVContextMenuInteraction.defaultDismissOnClickAway)
     }
 }
 
@@ -108,7 +103,81 @@ struct PVContextMenuKeyboardTests {
         #expect(!moved)
         #expect(nav.activeIndex == 0)
     }
+
+    // MARK: Keys with a disabled row (the composer's Clear menu)
+
+    private static func clearMenu() -> PVContextMenuKeyboard {
+        .opened(titles: ["Clear region", "Reset to entire artifact"], disabledRows: [0])
+    }
+
+    @Test func downSkipsADisabledFirstRow() {
+        var nav = Self.clearMenu()
+        #expect(nav.handle(.downArrow) == .move(to: 1))
+        #expect(nav.activeIndex == 1)
+    }
+
+    @Test func homeEndAndUpLandOnTheOnlyEnabledRow() {
+        for key in [KeyEquivalent.home, .end, .upArrow] {
+            var nav = Self.clearMenu()
+            #expect(nav.handle(key) == .move(to: 1))
+            #expect(nav.activeIndex == 1)
+        }
+    }
+
+    @Test func typeSelectNeverLandsOnADisabledRow() {
+        var nav = Self.clearMenu()
+        #expect(nav.handle(KeyEquivalent("c")) == .move(to: -1))
+        #expect(nav.activeIndex == -1)
+    }
+
+    @Test func typeSelectReachesAnEnabledRow() {
+        var nav = Self.clearMenu()
+        #expect(nav.handle(KeyEquivalent("r")) == .move(to: 1))
+        #expect(nav.activeIndex == 1)
+    }
+
+    @Test func returnOnNothingKeepsTheMenuOpen() {
+        var nav = Self.clearMenu()
+        #expect(nav.handle(.return) == .move(to: -1))
+    }
+
+    @Test func returnActivatesAnEnabledRow() {
+        var nav = Self.clearMenu()
+        nav.activeIndex = 1
+        #expect(nav.handle(.return) == .activate(1))
+    }
+
+    @Test func returnOnADisabledRowKeepsTheMenuOpen() {
+        var nav = Self.clearMenu()
+        nav.activeIndex = 0
+        #expect(nav.handle(.return) == .move(to: 0))
+    }
+
+    @Test func noRowsIgnoresEveryKey() {
+        var nav = PVContextMenuKeyboard.inactive
+        for key in [KeyEquivalent.downArrow, .upArrow, .home, .end, .return, KeyEquivalent("c")] {
+            #expect(nav.handle(key) == .ignore)
+        }
+    }
+
+    @Test func lettersWithoutTitlesAreIgnored() {
+        var nav = PVContextMenuKeyboard(itemCount: 2, activeIndex: -1)
+        #expect(nav.handle(KeyEquivalent("c")) == .ignore)
+    }
+
+    @Test func allEnabledMenuMovesAsBefore() {
+        var nav = PVContextMenuKeyboard.opened(titles: ["A", "B", "C", "D"])
+        _ = nav.handle(.downArrow)
+        #expect(nav.activeIndex == 0)
+        _ = nav.handle(.downArrow)
+        #expect(nav.activeIndex == 1)
+        _ = nav.handle(.end)
+        #expect(nav.activeIndex == 3)
+        _ = nav.handle(.home)
+        #expect(nav.activeIndex == 0)
+    }
 }
+
 
 @Suite
 struct PVContextMenuActionRegistryTests {
@@ -217,17 +286,20 @@ struct PVContextMenuPlacementTests {
 
 @Suite
 struct PVActionMenuItemTests {
-    @Test func keyboardTitlesKeepEverySlot() {
+    @Test func keyboardMarksDisabledRows() {
         let items = [
             PVActionMenuItem(title: "Clear region", isEnabled: false),
             PVActionMenuItem(title: "Reset"),
         ]
-        #expect(PVActionMenuItem.keyboardTitles(items) == ["Clear region", "Reset"])
+        let keyboard = PVActionMenuItem.keyboard(items)
+        #expect(keyboard?.itemTitles == ["Clear region", "Reset"])
+        #expect(keyboard?.disabledRows == [0])
+        #expect(keyboard?.activeIndex == -1)
     }
 
-    @Test func keyboardTitlesNilWhenNothingIsEnabled() {
+    @Test func keyboardIsNilWhenNothingIsEnabled() {
         let items = [PVActionMenuItem(title: "Default icon is in use", isEnabled: false)]
-        #expect(PVActionMenuItem.keyboardTitles(items) == nil)
-        #expect(PVActionMenuItem.keyboardTitles([]) == nil)
+        #expect(PVActionMenuItem.keyboard(items) == nil)
+        #expect(PVActionMenuItem.keyboard([]) == nil)
     }
 }

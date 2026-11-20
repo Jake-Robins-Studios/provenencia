@@ -18,41 +18,66 @@ struct PVContextMenuState: Equatable {
     }
 }
 
-/// Action-menu defaults. `PVSelect` opts out of key-stealing and mouse-up
-/// dismiss so the field keeps closed-field keys and the opening click does
-/// not immediately close the menu.
-enum PVContextMenuInteraction {
-    static let defaultStealKeys = true
-    static let defaultDismissOnMouseUp = true
-    /// Select opts in so click-away can see the real panel window (ComboBox).
-    static let defaultDismissOnClickAway = false
-}
-
 /// Optional ↑/↓/⏎ navigation (and type-to-select) for an open overlay menu.
 struct PVContextMenuKeyboard: Equatable {
     var itemCount: Int
     var activeIndex: Int
     /// Row titles for type-to-select. Empty disables letter jumping.
     var itemTitles: [String] = []
+    /// Rows that cannot run. The highlight never lands on one. Empty means
+    /// every row is enabled.
+    var disabledRows: IndexSet = []
     var typeSelect = PVTypeSelectMatcher()
 
     static let inactive = PVContextMenuKeyboard(itemCount: 0, activeIndex: -1)
 
     /// The state of a menu that just opened: nothing highlighted, type-to-select over `titles`.
-    static func opened(titles: [String]) -> PVContextMenuKeyboard {
-        PVContextMenuKeyboard(itemCount: titles.count, activeIndex: -1, itemTitles: titles)
+    static func opened(titles: [String], disabledRows: IndexSet = []) -> PVContextMenuKeyboard {
+        PVContextMenuKeyboard(
+            itemCount: titles.count, activeIndex: -1, itemTitles: titles, disabledRows: disabledRows
+        )
     }
 
-    /// Advances the highlight to the next title matching the type-select buffer.
+    /// Advances the highlight to the next enabled title matching the type-select buffer.
     /// Returns `true` when the highlight moved.
     mutating func applyTypeSelect(_ character: Character, now: Date = Date()) -> Bool {
         guard !itemTitles.isEmpty else { return false }
-        let buffer = typeSelect.append(character, now: now)
-        let from = buffer.count == 1 ? activeIndex + 1 : max(0, activeIndex)
-        let hit = PVTypeSelectMatcher.index(in: itemTitles, prefix: buffer, fromIndex: from)
+        let hit = typeSelect.advance(
+            character, from: activeIndex, in: itemTitles,
+            isDisabled: { disabledRows.contains($0) }, now: now
+        )
         guard hit >= 0 else { return false }
         activeIndex = hit
         return true
+    }
+
+    /// What one key does to the open menu. `.move(to: activeIndex)` means the
+    /// key is consumed and nothing changed (the menu stays open); `.activate`
+    /// runs the highlighted row; `.ignore` is not taken.
+    mutating func handle(_ key: KeyEquivalent, now: Date = Date()) -> PVListKeyAction {
+        guard itemCount > 0 else { return .ignore }
+        switch key {
+        case .upArrow, .downArrow, .home, .end:
+            let action = PVListKeyboard.action(
+                for: key, option: false, index: activeIndex, count: itemCount,
+                isDisabled: { disabledRows.contains($0) }
+            )
+            if case .move(let index) = action { activeIndex = index }
+            return action
+        case .return:
+            // Return on nothing, or on a disabled row, keeps the menu open and
+            // lets no key through to a default button behind it.
+            guard (0..<itemCount).contains(activeIndex), !disabledRows.contains(activeIndex) else {
+                return .move(to: activeIndex)
+            }
+            return .activate(activeIndex)
+        default:
+            guard !itemTitles.isEmpty, PVTypeSelectMatcher.isTypeSelectCharacter(key.character) else {
+                return .ignore
+            }
+            _ = applyTypeSelect(key.character, now: now)
+            return .move(to: activeIndex)
+        }
     }
 }
 
@@ -309,33 +334,28 @@ extension View {
         }
     }
 
-    /// Positions and dismisses a custom menu in a child `NSPanel` at
-    /// `.popUpMenu` level (same approach as `PVComboBox`), so the panel floats
-    /// above every SwiftUI sibling — forms, meta cards, scroll content — without
-    /// per-call-site `zIndex` workarounds.
+    /// Positions a custom menu in a child `NSPanel` at `.popUpMenu` level (same
+    /// approach as `PVComboBox`), so the panel floats above every SwiftUI
+    /// sibling — forms, meta cards, scroll content — without per-call-site
+    /// `zIndex` workarounds. It closes through `.pvPopup`, like every kit popup.
     ///
     /// Attach this to the view whose local coordinates match `state.origin`: the
-    /// trigger view. Right-click menus use `.pvRightClickMenu`, which does this.
+    /// trigger view. Action menus use `.pvActionMenu` (`.pvRightClickMenu` for a
+    /// right-click), which does this.
     ///
-    /// `keyboardTitles` are the row titles of an action menu; when set
-    /// (with `keyboard`), the keyboard is reset on each open. Leave nil when the
-    /// caller seeds its own highlight (`PVSelect`).
+    /// `keyboard` feeds the rows' highlight and, unless `keysStayInField`, the
+    /// menu's keys (↑/↓, Home/End, type-select, Return). A `PVSelect` keeps its
+    /// keys in its focused field, so it passes `keysStayInField`.
     func pvContextMenu<Content: View>(
         _ state: Binding<PVContextMenuState>,
         keyboard: Binding<PVContextMenuKeyboard>? = nil,
-        keyboardTitles: [String]? = nil,
-        stealKeys: Bool = PVContextMenuInteraction.defaultStealKeys,
-        dismissOnMouseUp: Bool = PVContextMenuInteraction.defaultDismissOnMouseUp,
-        dismissOnClickAway: Bool = PVContextMenuInteraction.defaultDismissOnClickAway,
+        keysStayInField: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         modifier(PVContextMenuPresenter(
             state: state,
             keyboard: keyboard,
-            keyboardTitles: keyboardTitles,
-            stealKeys: stealKeys,
-            dismissOnMouseUp: dismissOnMouseUp,
-            dismissOnClickAway: dismissOnClickAway,
+            keysStayInField: keysStayInField,
             content: content
         ))
     }
@@ -392,12 +412,8 @@ extension EnvironmentValues {
 private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
     @Binding var state: PVContextMenuState
     var keyboard: Binding<PVContextMenuKeyboard>?
-    var keyboardTitles: [String]?
-    var stealKeys: Bool = true
-    var dismissOnMouseUp: Bool = true
-    var dismissOnClickAway: Bool = false
+    var keysStayInField = false
     @ViewBuilder var content: () -> MenuContent
-    @State private var dismissMonitor: Any?
     @State private var actionRegistry = PVContextMenuActionRegistry()
 
     func body(content host: Content) -> some View {
@@ -406,29 +422,22 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
                 PVContextMenuPopupWindow(
                     isPresented: state.isPresented,
                     origin: state.origin,
-                    dismissOnClickAway: dismissOnClickAway,
-                    onDismiss: { state.dismiss() },
                     content: menuRoot
                 )
             )
+            .pvPopup(
+                isPresented: $state.isPresented,
+                options: PVPopupOptions(keysStayInField: keysStayInField),
+                onKey: handleKey
+            )
             .onChange(of: state.isPresented) { _, open in
-                if open {
-                    if let keyboard, let keyboardTitles {
-                        keyboard.wrappedValue = .opened(titles: keyboardTitles)
-                    }
-                    // Defer so the opening click does not immediately dismiss.
-                    // Do not replace/clear the registry here — items register
-                    // during body evaluation; clearing after first paint left
-                    // Enter calling an empty map.
-                    DispatchQueue.main.async { installDismissMonitor() }
-                } else {
-                    removeDismissMonitor()
-                    actionRegistry.clear()
-                }
+                // Do not replace/clear the registry on open — items register
+                // during body evaluation; clearing after first paint left
+                // Enter calling an empty map.
+                if !open { actionRegistry.clear() }
             }
             .onDisappear {
                 state.dismiss()
-                removeDismissMonitor()
             }
     }
 
@@ -449,97 +458,27 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
         )
     }
 
-    private func installDismissMonitor() {
-        removeDismissMonitor()
-        // Dismiss on mouse*Up* (not Down): Button actions fire on mouseUp, and
-        // tearing the panel down on mouseDown prevents the item from running.
-        // Select sets `dismissOnMouseUp` false so the opening click's mouse-up
-        // does not close the menu, and `stealKeys` false so closed-field keys
-        // stay on the trigger.
-        var matching: NSEvent.EventTypeMask = [.rightMouseDown, .otherMouseDown]
-        if dismissOnMouseUp {
-            matching.insert(.leftMouseUp)
-        }
-        if stealKeys {
-            matching.insert(.keyDown)
-        }
-        dismissMonitor = NSEvent.addLocalMonitorForEvents(matching: matching) { event in
-            if event.type == .keyDown {
-                return handleKeyDown(event)
-            }
-            DispatchQueue.main.async { state.dismiss() }
-            return event
-        }
-    }
-
-    private func handleKeyDown(_ event: NSEvent) -> NSEvent? {
-        if event.keyCode == 53 { // Escape
-            DispatchQueue.main.async { state.dismiss() }
-            return nil
-        }
-        guard var nav = keyboard?.wrappedValue, nav.itemCount > 0 else {
-            return event
-        }
-        switch event.keyCode {
-        case 125: // Down
+    /// Applies `PVContextMenuKeyboard.handle`. The highlight is written back,
+    /// and a Return runs its row, on the next main-queue turn, after the event
+    /// is delivered.
+    private func handleKey(_ key: KeyEquivalent) -> KeyPress.Result {
+        guard let keyboard, !keysStayInField else { return .ignored }
+        var next = keyboard.wrappedValue
+        let action = next.handle(key)
+        let registry = actionRegistry
+        switch action {
+        case .ignore:
+            return .ignored
+        case .move:
+            DispatchQueue.main.async { keyboard.wrappedValue = next }
+            return .handled
+        case .activate(let index):
             DispatchQueue.main.async {
-                nav.activeIndex = PVFloatingMenuSelection.moveIndex(
-                    from: nav.activeIndex, delta: 1, count: nav.itemCount
-                )
-                keyboard?.wrappedValue = nav
-            }
-            return nil
-        case 126: // Up
-            DispatchQueue.main.async {
-                nav.activeIndex = PVFloatingMenuSelection.moveIndex(
-                    from: nav.activeIndex, delta: -1, count: nav.itemCount
-                )
-                keyboard?.wrappedValue = nav
-            }
-            return nil
-        case 115: // Home
-            DispatchQueue.main.async {
-                nav.activeIndex = nav.itemCount > 0 ? 0 : -1
-                keyboard?.wrappedValue = nav
-            }
-            return nil
-        case 119: // End
-            DispatchQueue.main.async {
-                nav.activeIndex = nav.itemCount > 0 ? nav.itemCount - 1 : -1
-                keyboard?.wrappedValue = nav
-            }
-            return nil
-        case 36, 76: // Return / keypad Enter
-            let index = nav.activeIndex
-            let registry = actionRegistry
-            DispatchQueue.main.async {
-                guard index >= 0 else { return }
+                keyboard.wrappedValue = next
                 state.dismiss()
                 registry.activate(index)
             }
-            return nil
-        default:
-            guard let characters = event.charactersIgnoringModifiers,
-                  characters.count == 1,
-                  let character = characters.first,
-                  character.isLetter || character.isNumber,
-                  !event.modifierFlags.contains(.command),
-                  !event.modifierFlags.contains(.control),
-                  !nav.itemTitles.isEmpty
-            else { return event }
-            DispatchQueue.main.async {
-                guard var next = keyboard?.wrappedValue else { return }
-                _ = next.applyTypeSelect(character)
-                keyboard?.wrappedValue = next
-            }
-            return nil
-        }
-    }
-
-    private func removeDismissMonitor() {
-        if let dismissMonitor {
-            NSEvent.removeMonitor(dismissMonitor)
-            self.dismissMonitor = nil
+            return .handled
         }
     }
 }
@@ -551,8 +490,6 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
 private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
     var isPresented: Bool
     var origin: CGPoint
-    var dismissOnClickAway: Bool = false
-    var onDismiss: () -> Void
     var content: Content
 
     func makeNSView(context: Context) -> NSView {
@@ -563,9 +500,7 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
 
     func updateNSView(_: NSView, context: Context) {
         let coordinator = context.coordinator
-        coordinator.onDismiss = onDismiss
         coordinator.origin = origin
-        coordinator.dismissOnClickAway = dismissOnClickAway
         coordinator.wantsPresented = isPresented
         coordinator.setContent(content)
         DispatchQueue.main.async {
@@ -584,16 +519,13 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
     @MainActor
     final class Coordinator {
         weak var anchor: NSView?
-        var onDismiss: () -> Void = {}
         var origin: CGPoint = .zero
-        var dismissOnClickAway = false
         var wantsPresented = false
 
         private var panel: PVContextMenuNSPanel?
         private var hosting: PVContextMenuHostingView?
         private var content: AnyView = AnyView(EmptyView())
         private var observers: [NSObjectProtocol] = []
-        nonisolated(unsafe) private var clickAwayMonitor: Any?
         private var shownSize: CGSize?
 
         func setContent(_ content: some View) {
@@ -684,25 +616,12 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
 
         private func startWatching(parent: NSWindow) {
             stopWatching()
-            if dismissOnClickAway {
-                clickAwayMonitor = NSEvent.addLocalMonitorForEvents(
-                    matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-                ) { [weak self] event in
-                    self?.handleClickAway(event)
-                    return event
-                }
-            }
             let center = NotificationCenter.default
             for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
                 observers.append(center.addObserver(forName: name, object: parent, queue: .main) { [weak self] _ in
                     MainActor.assumeIsolated { self?.position(reframeIfSizeChanged: false) }
                 })
             }
-            observers.append(
-                center.addObserver(forName: NSWindow.didResignKeyNotification, object: parent, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.dismissFromAppKit() }
-                }
-            )
             if let clip = anchor?.enclosingScrollView?.contentView {
                 clip.postsBoundsChangedNotifications = true
                 observers.append(
@@ -713,31 +632,9 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
             }
         }
 
-        /// Same rule as `PVComboBox`: a down in the panel or on the trigger
-        /// is not "away." Everything else dismisses, using the real windows
-        /// instead of a guessed screen rect.
-        private func handleClickAway(_ event: NSEvent) {
-            if let panel, event.window === panel { return }
-            if let anchor, event.window === anchor.window {
-                let point = anchor.convert(event.locationInWindow, from: nil)
-                if anchor.bounds.contains(point) { return }
-            }
-            dismissFromAppKit()
-        }
-
         private func stopWatching() {
-            if let clickAwayMonitor {
-                NSEvent.removeMonitor(clickAwayMonitor)
-                self.clickAwayMonitor = nil
-            }
             observers.forEach(NotificationCenter.default.removeObserver)
             observers.removeAll()
-        }
-
-        private func dismissFromAppKit() {
-            wantsPresented = false
-            hide()
-            onDismiss()
         }
     }
 }

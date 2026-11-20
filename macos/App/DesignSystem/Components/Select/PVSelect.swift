@@ -183,9 +183,7 @@ struct PVSelect<Row: View>: View {
             .pvContextMenu(
                 $menuState,
                 keyboard: options.isEmpty ? nil : $keyboard,
-                stealKeys: false,
-                dismissOnMouseUp: false,
-                dismissOnClickAway: true
+                keysStayInField: true
             ) {
                 menu
             }
