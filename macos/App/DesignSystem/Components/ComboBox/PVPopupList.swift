@@ -295,3 +295,86 @@ private final class PVPopupHostingView: NSHostingView<AnyView> {
         super.init(rootView: rootView)
     }
 }
+
+// MARK: - The list inside the window
+
+/// The list both callers of `PVPopupList` draw in the window: the card (fill,
+/// stroke, radius), the scroller that keeps the highlighted row in view, and the
+/// caller's row stack. The caller builds the stack from `PVPopupListRow` and
+/// `PVPopupListLine`, and picks `VStack` (rows of unequal height, measured before
+/// the window shows: `PVComboBox`) or `LazyVStack` (a fixed row height sizes the
+/// window: `PVTextArea`'s completion list).
+struct PVPopupListCard<Stack: View>: View {
+    /// The `id` of each row, in order; a new list goes back to its first row.
+    let rowIDs: [String]
+    /// The highlighted row's id, or nil.
+    let activeID: String?
+    var verticalPadding: CGFloat = PVSpacing.space2
+    @ViewBuilder let stack: Stack
+
+    var body: some View {
+        ScrollView {
+            stack
+        }
+        .pvScrollsRowIntoView(activeID, startsAtTopWhenRowsChange: rowIDs)
+        .padding(.vertical, verticalPadding)
+        .background(
+            RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
+                .fill(PVColor.surfaceCard)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
+                .strokeBorder(PVColor.borderDefault, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
+        // No `.pvShadow`: the popup is its own window, so AppKit casts the
+        // shadow from the window's alpha (README "Platform deviations").
+    }
+}
+
+/// One row's shell: the highlight fill, the hit area, and the pointer and
+/// keyboard sharing one highlight (hovering a row makes it the active one). The
+/// caller draws the row inside it, padding and all.
+struct PVPopupListRow<Content: View>: View {
+    let isActive: Bool
+    /// The committed or selected row, for VoiceOver.
+    var isSelected = false
+    var isDisabled = false
+    /// The pointer moved onto this row.
+    let onHighlight: () -> Void
+    /// A click, or VoiceOver's default action.
+    let onCommit: () -> Void
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isActive ? PVColor.surfaceSelected : .clear)
+            .opacity(isDisabled ? 0.42 : 1)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                if inside, !isDisabled { onHighlight() }
+            }
+            // The sole commit path for a click. The popup window never becomes
+            // key, but mouse events still reach the window under the pointer.
+            .onTapGesture(perform: onCommit)
+            .accessibilityAction(.default, onCommit)
+            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+/// The line a list shows in place of rows: the empty line, or the searching
+/// line. Its text starts at the column `gutter` points in, where a row's label does.
+struct PVPopupListLine<Content: View>: View {
+    var gutter: CGFloat = 0
+    var minHeight: CGFloat?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
+            .padding(.leading, gutter + PVSpacing.space5)
+            .padding(.trailing, PVSpacing.space5)
+            .padding(.vertical, minHeight == nil ? PVSpacing.space4 : 0)
+    }
+}

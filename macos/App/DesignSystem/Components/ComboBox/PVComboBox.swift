@@ -458,23 +458,21 @@ struct PVComboBox<Row: View, Empty: View>: View {
         }
     }
 
+    /// The scroller simply **fills** the popup window (inside `PVPopupListCard`):
+    /// the window is the only thing that clamps its height. It deliberately does
+    /// not also report an ideal height, since asking one view to both size the
+    /// window and lay out inside it clips a row when the two disagree.
     private var list: some View {
-        scroller
-            .padding(.vertical, Self.listVerticalPadding)
-            .background(
-                RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
-                    .fill(PVColor.surfaceCard)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
-                    .strokeBorder(PVColor.borderDefault, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
-            // No `.pvShadow` here: the popup is its own window, so AppKit
-            // casts the shadow from the window's alpha — see
-            // `DesignSystem/README.md` § "Platform deviations".
-            .accessibilityLabel(label.pvText)
-            .accessibilityIdentifier(identifier("list") ?? "")
+        let options = visibleOptions
+        return PVPopupListCard(
+            rowIDs: options.map(\.id),
+            activeID: options.indices.contains(activeIndex) ? options[activeIndex].id : nil,
+            verticalPadding: Self.listVerticalPadding
+        ) {
+            rowsStack
+        }
+        .accessibilityLabel(label.pvText)
+        .accessibilityIdentifier(identifier("list") ?? "")
     }
 
     /// The rows at their natural height. Shared by the scroller and by the
@@ -488,56 +486,27 @@ struct PVComboBox<Row: View, Empty: View>: View {
             case .rows:
                 EmptyView()
             case .loading:
-                HStack(spacing: PVSpacing.space3) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text(L10n.DesignSystem.comboBoxSearching)
-                        .font(PVFont.body(size: PVTypeScale.bodySmall))
-                        .foregroundStyle(PVColor.textMuted)
+                PVPopupListLine(gutter: Self.checkGutter) {
+                    HStack(spacing: PVSpacing.space3) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(L10n.DesignSystem.comboBoxSearching)
+                            .font(PVFont.body(size: PVTypeScale.bodySmall))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
                 }
-                .modifier(ListLineFrame(gutter: Self.checkGutter))
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier(identifier("loading") ?? "")
             case .empty:
-                empty(highlightQuery)
-                    .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .modifier(ListLineFrame(gutter: Self.checkGutter))
-                    .accessibilityIdentifier(identifier("empty") ?? "")
+                PVPopupListLine(gutter: Self.checkGutter) {
+                    empty(highlightQuery)
+                        .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
+                        .foregroundStyle(PVColor.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityIdentifier(identifier("empty") ?? "")
             }
         }
-    }
-
-    /// The frame the searching and empty lines share: text starts on the
-    /// option labels' column.
-    private struct ListLineFrame: ViewModifier {
-        let gutter: CGFloat
-
-        func body(content: Content) -> some View {
-            content
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, gutter + PVSpacing.space5)
-                .padding(.trailing, PVSpacing.space5)
-                .padding(.vertical, PVSpacing.space4)
-        }
-    }
-
-    /// The scroller simply **fills** the popup window — the window is the
-    /// only thing that clamps its height. It deliberately does not also try
-    /// to report an ideal height (an earlier version used
-    /// `.frame(maxHeight:)` + `.fixedSize`): asking one view to both size the
-    /// window and lay out inside it means any disagreement between the two
-    /// clips a row, which is exactly what happened.
-    private var scroller: some View {
-        let options = visibleOptions
-        return ScrollView {
-            rowsStack
-        }
-        .pvScrollsRowIntoView(
-            options.indices.contains(activeIndex) ? options[activeIndex].id : nil,
-            startsAtTopWhenRowsChange: options.map(\.id)
-        )
     }
 
     /// A hidden, non-interactive copy of the rows, laid out behind the field
@@ -568,37 +537,27 @@ struct PVComboBox<Row: View, Empty: View>: View {
             )
     }
 
-    /// The row shell — highlight fill, check gutter, hit area — is owned here
-    /// so every row stays aligned whatever the caller draws inside it.
+    /// The row — check gutter and padding — is owned here so every row stays
+    /// aligned whatever the caller draws inside it; the shell is `PVPopupListRow`.
     private func rowView(_ option: PVComboBoxOption, index: Int) -> some View {
-        HStack(spacing: PVSpacing.space5) {
-            PVIcon(.check, size: 13)
-                .foregroundStyle(PVColor.accent)
-                .opacity(option.value == selection ? 1 : 0)
-                .frame(width: Self.checkGutter)
-                .accessibilityHidden(true)
-            row(option, highlightQuery)
-        }
-        .padding(.trailing, PVSpacing.space5)
-        .padding(.vertical, PVSpacing.space3)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(index == activeIndex ? PVColor.surfaceSelected : .clear)
-        .opacity(option.isDisabled ? 0.42 : 1)
-        .contentShape(Rectangle())
-        // Pointer and keyboard share one highlight, so moving the mouse makes
-        // a row active rather than painting a second, competing hover state.
-        .onHover { inside in
-            if inside, !option.isDisabled {
-                activeIndex = index
+        PVPopupListRow(
+            isActive: index == activeIndex,
+            isSelected: option.value == selection,
+            isDisabled: option.isDisabled,
+            onHighlight: { activeIndex = index },
+            onCommit: { _ = commit(option, via: .click) }
+        ) {
+            HStack(spacing: PVSpacing.space5) {
+                PVIcon(.check, size: 13)
+                    .foregroundStyle(PVColor.accent)
+                    .opacity(option.value == selection ? 1 : 0)
+                    .frame(width: Self.checkGutter)
+                    .accessibilityHidden(true)
+                row(option, highlightQuery)
             }
+            .padding(.trailing, PVSpacing.space5)
+            .padding(.vertical, PVSpacing.space3)
         }
-        // The sole commit path for a click. The popup window never becomes
-        // key, but mouse events are still delivered to the window under the
-        // pointer, so the gesture fires; the mouse monitor passes panel
-        // clicks through untouched.
-        .onTapGesture { _ = commit(option, via: .click) }
-        .accessibilityAction(.default) { _ = commit(option, via: .click) }
-        .accessibilityAddTraits(option.value == selection ? [.isSelected] : [])
         .accessibilityIdentifier(identifier("option.\(option.value)") ?? "")
     }
 

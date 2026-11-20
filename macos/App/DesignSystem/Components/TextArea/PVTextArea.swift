@@ -213,13 +213,7 @@ extension PVTextArea {
                 width: PVTextAreaCompletionList.width,
                 anchorRect: { [session = completionSession] in session.caretRect() },
                 onDismiss: { [session = completionSession] in session.close() },
-                content: PVTextAreaCompletionList(
-                    options: completionSession.options,
-                    activeIndex: completionSession.activeIndex,
-                    query: completionSession.context?.query ?? "",
-                    completion: completion,
-                    onChoose: { [session = completionSession] in session.accept(at: $0) }
-                )
+                content: PVTextAreaCompletionRows(session: completionSession, completion: completion)
             )
         }
     }
@@ -634,6 +628,12 @@ final class PVTextAreaCompletionSession {
         return true
     }
 
+    /// The pointer moved onto row `index`: it becomes the highlighted row, as an arrow key would.
+    func highlight(at index: Int) {
+        guard options.indices.contains(index), index != activeIndex else { return }
+        activeIndex = index
+    }
+
     private func move(_ delta: Int) {
         let next = PVComboBoxMatch.move(from: activeIndex, delta: delta, in: options)
         guard next != activeIndex, options.indices.contains(next) else { return }
@@ -668,13 +668,12 @@ final class PVTextAreaCompletionSession {
     }
 }
 
-/// The completion list's rows in the popup window: the kit list chrome, a fixed
-/// row height so the window is sized before it shows, and the caller's row view.
-struct PVTextAreaCompletionList: View {
+/// The completion list's size: a fixed row height, so the window is sized before it shows.
+enum PVTextAreaCompletionList {
     static let width: CGFloat = 360
     static let rowHeight: CGFloat = 40
     static let maxRows = 8
-    private static let verticalPadding = PVSpacing.space2
+    fileprivate static let verticalPadding = PVSpacing.space2
 
     static var maxHeight: CGFloat { height(rows: maxRows) }
 
@@ -682,43 +681,45 @@ struct PVTextAreaCompletionList: View {
     static func height(rows: Int) -> CGFloat {
         rowHeight * CGFloat(max(1, min(rows, maxRows))) + verticalPadding * 2
     }
+}
 
-    let options: [PVComboBoxOption]
-    let activeIndex: Int
-    let query: String
+/// The completion list in the popup window: the kit's popup list card, with the caller's
+/// row view in each row's shell.
+private struct PVTextAreaCompletionRows: View {
+    let session: PVTextAreaCompletionSession
     let completion: PVTextAreaCompletion
-    let onChoose: (Int) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
+        let options = session.options
+        let query = session.context?.query ?? ""
+        PVPopupListCard(
+            rowIDs: options.map(\.id),
+            activeID: options.indices.contains(session.activeIndex) ? options[session.activeIndex].id : nil,
+            verticalPadding: PVTextAreaCompletionList.verticalPadding
+        ) {
+            LazyVStack(spacing: 0) {
                 ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
-                    completion.row(option, query)
-                        .padding(.horizontal, PVSpacing.space5)
-                        .frame(maxWidth: .infinity, minHeight: Self.rowHeight, maxHeight: Self.rowHeight, alignment: .leading)
-                        .background(index == activeIndex ? PVColor.surfaceSelected : .clear)
-                        .contentShape(Rectangle())
-                        .onTapGesture { onChoose(index) }
-                        .accessibilityAddTraits(index == activeIndex ? [.isSelected] : [])
-                        .id(option.id)
+                    PVPopupListRow(
+                        isActive: index == session.activeIndex,
+                        isSelected: index == session.activeIndex,
+                        onHighlight: { session.highlight(at: index) },
+                        onCommit: { session.accept(at: index) }
+                    ) {
+                        completion.row(option, query)
+                            .padding(.horizontal, PVSpacing.space5)
+                            .frame(maxWidth: .infinity, minHeight: PVTextAreaCompletionList.rowHeight, maxHeight: PVTextAreaCompletionList.rowHeight, alignment: .leading)
+                    }
+                    .id(option.id)
                 }
                 if options.isEmpty {
-                    Text(verbatim: completion.emptyLabel(query))
-                        .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                        .foregroundStyle(PVColor.textMuted)
-                        .padding(.horizontal, PVSpacing.space5)
-                        .frame(maxWidth: .infinity, minHeight: Self.rowHeight, alignment: .leading)
+                    PVPopupListLine(minHeight: PVTextAreaCompletionList.rowHeight) {
+                        Text(verbatim: completion.emptyLabel(query))
+                            .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
                 }
             }
         }
-        .pvScrollsRowIntoView(
-            options.indices.contains(activeIndex) ? options[activeIndex].id : nil,
-            startsAtTopWhenRowsChange: options.map(\.id)
-        )
-        .padding(.vertical, Self.verticalPadding)
-        .background(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous).fill(PVColor.surfaceCard))
-        .overlay(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous).strokeBorder(PVColor.borderDefault, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
     }
 }
 
