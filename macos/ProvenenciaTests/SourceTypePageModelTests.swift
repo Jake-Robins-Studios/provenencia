@@ -836,7 +836,9 @@ struct SourceTypePageModelTests {
 
     @Test func aRefusedFormatSavesNothingAndKeepsEveryEdit() async {
         let store = FakeStore()
-        let (model, _) = await makeFormatsPage(store: store)
+        let (model, session) = await makeFormatsPage(store: store)
+        let workspace: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: session.projectKey, sourceId: "s1"))
+        await waitForQuery(workspace)
         store.updateSourceTypeFormatsReply = CatalogCitationFormatsReply(
             formats: CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: "[x", list: ""),
             diagnostics: [CatalogCitationDiagnostic(form: .short, code: "unclosed_group", utf8Start: 0, utf8End: 1)]
@@ -850,6 +852,9 @@ struct SourceTypePageModelTests {
         #expect(model.formats.shownDiagnostics(.short).count == 1)
         #expect(model.type?.label == "Book")
         #expect(model.isDirty)
+        // Nothing changed, so no page that reads the formats is marked stale.
+        #expect(!workspace.isStale)
+        #expect(store.updateSourceTypeCalls.count == 1)
     }
 
     @Test func aFormatEditAloneHoldsNavigationAndRevertRestoresIt() async {

@@ -1070,6 +1070,16 @@ func TestCitationFormats(t *testing.T) {
 
 	t.Run("errors", func(t *testing.T) {
 		missing := "0192f3a4-0000-7000-8000-000000000001"
+		var pluginType []byte
+		if err := catalogsession.Do(dir, func(c *database.Catalog) error {
+			var err error
+			pluginType, err = sourcetypestest.Upsert(c, sourcetypes.Type{
+				Key: "grave_memorial", Origin: "plugin:findagrave", Label: "Grave memorial",
+			})
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
 		for name, tc := range map[string]struct {
 			typeID  string
 			formats *engine.CitationFormats
@@ -1077,6 +1087,8 @@ func TestCitationFormats(t *testing.T) {
 		}{
 			"malformed type id": {"nope", nil, errInvalidID},
 			"unknown type id":   {missing, &engine.CitationFormats{}, sql.ErrNoRows},
+			// A plugin's formats are its own: sent with Formats, the type is refused as locked.
+			"plugin type with formats": {database.UUIDString(pluginType), &engine.CitationFormats{Full: "{source.title}"}, sourcetypes.ErrLocked},
 			"malformed choice id": {typeID, &engine.CitationFormats{
 				Full: "{source.title}", FieldChoices: []*engine.CitationFieldChoice{{Key: "a", FieldId: "nope"}}}, sourcetypes.ErrInvalid},
 		} {
