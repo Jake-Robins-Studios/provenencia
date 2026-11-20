@@ -178,7 +178,6 @@ struct PVContextMenuKeyboardTests {
     }
 }
 
-
 @Suite
 struct PVContextMenuActionRegistryTests {
     @Test func activateRunsTheRegisteredAction() {

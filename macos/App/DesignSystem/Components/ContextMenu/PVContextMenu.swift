@@ -40,6 +40,7 @@ struct PVContextMenuKeyboard: Equatable {
 
     /// Advances the highlight to the next enabled title matching the type-select buffer.
     /// Returns `true` when the highlight moved.
+    @discardableResult
     mutating func applyTypeSelect(_ character: Character, now: Date = Date()) -> Bool {
         guard !itemTitles.isEmpty else { return false }
         let hit = typeSelect.advance(
@@ -75,7 +76,7 @@ struct PVContextMenuKeyboard: Equatable {
             guard !itemTitles.isEmpty, PVTypeSelectMatcher.isTypeSelectCharacter(key.character) else {
                 return .ignore
             }
-            _ = applyTypeSelect(key.character, now: now)
+            applyTypeSelect(key.character, now: now)
             return .move(to: activeIndex)
         }
     }
@@ -462,7 +463,7 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
     /// and a Return runs its row, on the next main-queue turn, after the event
     /// is delivered.
     private func handleKey(_ key: KeyEquivalent) -> KeyPress.Result {
-        guard let keyboard, !keysStayInField else { return .ignored }
+        guard let keyboard else { return .ignored }
         var next = keyboard.wrappedValue
         let action = next.handle(key)
         let registry = actionRegistry

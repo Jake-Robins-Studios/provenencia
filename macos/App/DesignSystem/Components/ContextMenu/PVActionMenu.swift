@@ -112,13 +112,12 @@ private struct PVActionMenuModifier: ViewModifier {
     @State private var keyboard = PVContextMenuKeyboard.inactive
 
     func body(content: Content) -> some View {
-        let seed = PVActionMenuItem.keyboard(items)
         content
             .onChange(of: state.isPresented) { _, open in
                 if open { keyboard = PVActionMenuItem.keyboard(items) ?? .inactive }
             }
             // A menu with no enabled item gets no keyboard: only Escape is taken.
-            .pvContextMenu($state, keyboard: seed == nil ? nil : $keyboard) {
+            .pvContextMenu($state, keyboard: items.contains(where: \.isEnabled) ? $keyboard : nil) {
                 PVContextMenuPanel(heading: heading, accessibilityIdentifier: accessibilityIdentifier) {
                     PVActionMenuRows(items: items)
                 }
