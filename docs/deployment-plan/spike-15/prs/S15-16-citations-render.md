@@ -1,6 +1,6 @@
 # S15-16 — Citations render through their type's formats
 
-**Status:** Planned
+**Status:** Landed in [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914) (2026-11-19)
 **Spike / slice:** Spike 15 · Slice 4 — Formats as data
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire and three Swift parity enums; no view draws a rendered citation until S15-17, S15-21, S15-22 and S15-23)
