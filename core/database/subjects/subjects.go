@@ -131,20 +131,15 @@ func InsertTx(tx *sql.Tx, in CreateInput) (Subject, rowchange.Change, error) {
 		return Subject{}, rowchange.Change{}, mapConstraint(err)
 	}
 
-	change := rowchange.Change{
-		EntityType: "subject",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":              id.String(),
-			"ref":             subjectRef,
-			"source_id":       database.UUIDJSON(sourceID),
-			"graph_id":        database.UUIDJSON(in.GraphID),
-			"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
-			"label":           database.NullString(in.Label),
-			"description":     database.NullString(in.Description),
-		}),
-	}
+	change := rowchange.Created("subject", idBytes, map[string]any{
+		"id":              id.String(),
+		"ref":             subjectRef,
+		"source_id":       database.UUIDJSON(sourceID),
+		"graph_id":        database.UUIDJSON(in.GraphID),
+		"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
+		"label":           database.NullString(in.Label),
+		"description":     database.NullString(in.Description),
+	})
 	return Subject{
 		ID:            append([]byte(nil), idBytes...),
 		Ref:           subjectRef,
@@ -234,25 +229,20 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":              {Old: database.UUIDString(id), New: nil},
-		"ref":             {Old: prev.Ref, New: nil},
-		"source_id":       {Old: database.UUIDString(prev.SourceID), New: nil},
-		"graph_id":        {Old: database.UUIDString(prev.GraphID), New: nil},
-		"subject_type_id": {Old: database.UUIDString(prev.SubjectTypeID), New: nil},
+	fields := map[string]any{
+		"id":              database.UUIDString(id),
+		"ref":             prev.Ref,
+		"source_id":       database.UUIDString(prev.SourceID),
+		"graph_id":        database.UUIDString(prev.GraphID),
+		"subject_type_id": database.UUIDString(prev.SubjectTypeID),
 	}
 	if prev.Label != "" {
-		fields["label"] = rowchange.FieldDiff{Old: prev.Label, New: nil}
+		fields["label"] = prev.Label
 	}
 	if prev.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: prev.Description, New: nil}
+		fields["description"] = prev.Description
 	}
-	return append(released, rowchange.Change{
-		EntityType: "subject",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}), nil
+	return append(released, rowchange.Deleted("subject", id, fields)), nil
 }
 
 // Get returns a Subject by id, or sql.ErrNoRows.

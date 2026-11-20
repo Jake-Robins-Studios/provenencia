@@ -157,20 +157,15 @@ func releaseHandleIfGone(tx *sql.Tx, entityID, subjectID []byte) (released, erro
 	if _, err := tx.Exec(`DELETE FROM canonical_entities WHERE id = ?`, entityID); err != nil {
 		return released{}, err
 	}
-	out.Changes = append(out.Changes, rowchange.Change{
-		EntityType: "canonical_entity",
-		EntityID:   append([]byte(nil), entityID...),
-		Action:     rowchange.ActionDelete,
-		Fields: rowchange.DeletedRow(map[string]any{
-			"id":                                database.UUIDJSON(entityID),
-			"subject_type_id":                   database.UUIDJSON(typeID),
-			"ref":                               ref,
-			"argument":                          nullStringJSON(argument),
-			"label":                             nullStringJSON(label),
-			"merged_into_id":                    database.UUIDJSON(mergedID),
-			"preferred_likeness_observation_id": database.UUIDJSON(likenessID),
-		}),
-	})
+	out.Changes = append(out.Changes, rowchange.Deleted("canonical_entity", entityID, map[string]any{
+		"id":                                database.UUIDJSON(entityID),
+		"subject_type_id":                   database.UUIDJSON(typeID),
+		"ref":                               ref,
+		"argument":                          nullStringJSON(argument),
+		"label":                             nullStringJSON(label),
+		"merged_into_id":                    database.UUIDJSON(mergedID),
+		"preferred_likeness_observation_id": database.UUIDJSON(likenessID),
+	}))
 	return out, nil
 }
 

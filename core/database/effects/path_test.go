@@ -80,7 +80,7 @@ func TestScopeThroughDeletedParent(t *testing.T) {
 		t.Fatal(err)
 	}
 	del := func(entity string, entityID []byte, old map[string]any) rowchange.Change {
-		return rowchange.Change{EntityType: entity, EntityID: entityID, Action: rowchange.ActionDelete, Fields: rowchange.DeletedRow(old)}
+		return rowchange.Deleted(entity, entityID, old)
 	}
 	uid := func(b []byte) string { return uuid.UUID(b).String() }
 	tests := []struct {

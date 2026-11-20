@@ -13,26 +13,17 @@ import (
 func id16(b byte) []byte { return bytes.Repeat([]byte{b}, 16) }
 
 func handleDelete(id []byte) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "canonical_entity", EntityID: id, Action: rowchange.ActionDelete,
-		Fields: rowchange.DeletedRow(map[string]any{"ref": "PER-X", "merged_into_id": nil}),
-	}
+	return rowchange.Deleted("canonical_entity", id, map[string]any{"ref": "PER-X", "merged_into_id": nil})
 }
 
 func TestResolveReportsDeleted(t *testing.T) {
 	h1, h2, h3 := id16(1), id16(2), id16(3)
-	claimDelete := rowchange.Change{
-		EntityType: "identity_claim", EntityID: id16(9), Action: rowchange.ActionDelete,
-		Fields: rowchange.DeletedRow(map[string]any{"subject_id": id16(8), "entity_id": h1, "status": "accepted"}),
-	}
+	claimDelete := rowchange.Deleted("identity_claim", id16(9), map[string]any{"subject_id": id16(8), "entity_id": h1, "status": "accepted"})
 	merge := rowchange.Change{
 		EntityType: "canonical_entity", EntityID: h2, Action: rowchange.ActionUpdate,
 		Fields: map[string]rowchange.FieldDiff{"merged_into_id": {Old: nil, New: h1}},
 	}
-	create := rowchange.Change{
-		EntityType: "canonical_entity", EntityID: h3, Action: rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{"ref": "PER-Y"}),
-	}
+	create := rowchange.Created("canonical_entity", h3, map[string]any{"ref": "PER-Y"})
 	tests := []struct {
 		name    string
 		changes []rowchange.Change

@@ -75,32 +75,6 @@ func rowFields(t Type) map[string]any {
 	return fields
 }
 
-// createChange is the create change of a new type row: every column.
-func createChange(t Type) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "subject_type",
-		EntityID:   append([]byte(nil), t.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(rowFields(t)),
-	}
-}
-
-// updateChange is the update change from prev to next, naming only the columns
-// that differ (a missing key reads nil); nil when nothing differs. id, key and
-// origin are never compared.
-func updateChange(prev, next Type) *rowchange.Change {
-	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "key", "origin")
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "subject_type",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
-}
-
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and the
 // row changes. Origin must be provenencia or plugin:<id>. Validates both
 // prefixes via ref.ValidatePrefix and enforces cross-column uniqueness.
@@ -161,12 +135,12 @@ func UpsertTx(tx *database.Tx, t Type) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, t.ID, t.Key, t.Origin, t.Label, database.NullString(t.Description), t.RefPrefix, t.CandidateRefPrefix); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), t.ID...), []rowchange.Change{createChange(t)}, nil
+		return append([]byte(nil), t.ID...), []rowchange.Change{rowchange.Created("subject_type", t.ID, rowFields(t))}, nil
 	}
 	next := existing
 	next.Label, next.Description = t.Label, t.Description
 	next.RefPrefix, next.CandidateRefPrefix = t.RefPrefix, t.CandidateRefPrefix
-	change := updateChange(existing, next)
+	change := rowchange.Updated("subject_type", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}

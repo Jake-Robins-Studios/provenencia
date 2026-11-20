@@ -185,7 +185,7 @@ func PutTx(tx *sql.Tx, prevID []byte, v namevalue.Value) (id []byte, ch *rowchan
 		if err != nil {
 			return nil, nil, err
 		}
-		c := CreateChange(id, v)
+		c := rowchange.Created("name_value", id, RowMap(id, v))
 		return id, &c, nil
 	}
 	prev, err := LookupTx(tx, prevID)
@@ -210,16 +210,6 @@ func RowMap(id []byte, v namevalue.Value) map[string]any {
 		"id":    database.UUIDJSON(id),
 		"form":  v.Form,
 		"parts": partsJSON(v.Parts),
-	}
-}
-
-// CreateChange is the audit change of a new name_values row.
-func CreateChange(id []byte, v namevalue.Value) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "name_value",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(RowMap(id, v)),
 	}
 }
 

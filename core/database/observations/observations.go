@@ -375,12 +375,7 @@ func insertOne(tx *sql.Tx, citationID []byte, in Input, opts InsertOptions) (Obs
 	}
 	applyResolved(&obs, resolved)
 
-	changes := []rowchange.Change{{
-		EntityType: "observation",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(obs.AuditFields()),
-	}}
+	changes := []rowchange.Change{rowchange.Created("observation", idBytes, obs.AuditFields())}
 	changes = append(changes, resolved.ValueChanges...)
 
 	for _, body := range in.Notes {
@@ -395,16 +390,11 @@ func insertOne(tx *sql.Tx, citationID []byte, in Input, opts InsertOptions) (Obs
 		if _, err := tx.Exec(sqlInsertNote, noteID[:], idBytes, body); err != nil {
 			return Observation{}, nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "observation_note",
-			EntityID:   noteID[:],
-			Action:     rowchange.ActionCreate,
-			Fields: rowchange.FullRow(map[string]any{
-				"id":             noteID.String(),
-				"observation_id": id.String(),
-				"body":           body,
-			}),
-		})
+		changes = append(changes, rowchange.Created("observation_note", noteID[:], map[string]any{
+			"id":             noteID.String(),
+			"observation_id": id.String(),
+			"body":           body,
+		}))
 	}
 
 	return obs, changes, nil

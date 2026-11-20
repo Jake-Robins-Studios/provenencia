@@ -98,33 +98,6 @@ func rowFields(f Field) map[string]any {
 	return fields
 }
 
-// updateChange is the update change from prev to next, naming only the columns
-// that differ (a missing key reads nil); nil when none does. id, key and
-// origin are never compared.
-func updateChange(prev, next Field) *rowchange.Change {
-	old, now := rowFields(prev), rowFields(next)
-	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
-}
-
-// createChange is the create change of a new field row: every column.
-func createChange(f Field) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), f.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(rowFields(f)),
-	}
-}
-
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and
 // the row changes. It writes every column the input carries: label, data type,
 // description and unknown text ("" is NULL). Missing: one create change.
@@ -154,14 +127,14 @@ func UpsertTx(tx *database.Tx, f Field) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, f.ID, f.Key, f.Origin, f.Label, f.DataType, database.NullString(f.Description), database.NullString(f.UnknownText)); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), f.ID...), []rowchange.Change{createChange(f)}, nil
+		return append([]byte(nil), f.ID...), []rowchange.Change{rowchange.Created("metadata_field", f.ID, rowFields(f))}, nil
 	}
 	if err != nil {
 		return nil, nil, err
 	}
 	next := existing
 	next.Label, next.DataType, next.Description, next.UnknownText = f.Label, f.DataType, f.Description, f.UnknownText
-	change := updateChange(existing, next)
+	change := rowchange.Updated("metadata_field", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
@@ -208,7 +181,7 @@ func Create(tx *database.Tx, label, dataType, description string) (Field, []rowc
 	if err != nil {
 		return Field{}, nil, err
 	}
-	return got, []rowchange.Change{createChange(created)}, nil
+	return got, []rowchange.Change{rowchange.Created("metadata_field", created.ID, rowFields(created))}, nil
 }
 
 // Update patches label, description and unknown text for a project field (user
@@ -244,7 +217,7 @@ func Update(tx *database.Tx, id []byte, label, dataType, description string, unk
 	}
 	next := existing
 	next.Label, next.Description, next.UnknownText = label, description, unknown
-	change := updateChange(existing, next)
+	change := rowchange.Updated("metadata_field", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	if change == nil {
 		return existing, nil, nil
 	}
@@ -454,13 +427,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := rowchange.DeletedRow(rowFields(prev))
-	return append(released, rowchange.Change{
-		EntityType: "metadata_field",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}), nil
+	return append(released, rowchange.Deleted("metadata_field", id, rowFields(prev))), nil
 }
 
 func dataTypeOK(dt string) bool {

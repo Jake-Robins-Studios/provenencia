@@ -83,32 +83,6 @@ func rowFields(p Property) map[string]any {
 	return fields
 }
 
-// createChange is the create change of a new Property row: every column.
-func createChange(p Property) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "property",
-		EntityID:   append([]byte(nil), p.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(rowFields(p)),
-	}
-}
-
-// updateChange is the update change from prev to next, naming only the columns
-// that differ (a missing key reads nil); nil when nothing differs. id, key and
-// origin are never compared.
-func updateChange(prev, next Property) *rowchange.Change {
-	fields := rowchange.UpdatedRow(rowFields(prev), rowFields(next), "id", "key", "origin")
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "property",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
-}
-
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and the
 // row changes. Missing: a new Property, one create change. Present: label,
 // description and cardinality are written and one update change names what
@@ -142,7 +116,7 @@ func UpsertTx(tx *database.Tx, p Property) ([]byte, []rowchange.Change, error) {
 		if _, err := tx.Exec(sqlInsert, p.ID, p.Key, p.Origin, p.Label, database.NullString(p.Description), p.ValueType, p.Cardinality); err != nil {
 			return nil, nil, err
 		}
-		return append([]byte(nil), p.ID...), []rowchange.Change{createChange(p)}, nil
+		return append([]byte(nil), p.ID...), []rowchange.Change{rowchange.Created("property", p.ID, rowFields(p))}, nil
 	}
 	if err != nil {
 		return nil, nil, err
@@ -152,7 +126,7 @@ func UpsertTx(tx *database.Tx, p Property) ([]byte, []rowchange.Change, error) {
 	}
 	next := existing
 	next.Label, next.Description, next.Cardinality = p.Label, p.Description, p.Cardinality
-	change := updateChange(existing, next)
+	change := rowchange.Updated("property", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	if change == nil {
 		return append([]byte(nil), existing.ID...), nil, nil
 	}
@@ -214,7 +188,7 @@ func Create(tx *database.Tx, userID []byte, label, valueType, description, cardi
 		ValueType:   valueType,
 		Cardinality: cardinality,
 	}
-	return created, []rowchange.Change{createChange(created)}, nil
+	return created, []rowchange.Change{rowchange.Created("property", created.ID, rowFields(created))}, nil
 }
 
 // Update patches label, description, and cardinality for a project Property
@@ -259,7 +233,7 @@ func Update(tx *database.Tx, userID, id []byte, label, valueType, description, c
 
 	next := existing
 	next.Label, next.Description, next.Cardinality = label, description, cardinality
-	change := updateChange(existing, next)
+	change := rowchange.Updated("property", existing.ID, rowFields(existing), rowFields(next), "id", "key", "origin")
 	used, err := deleteimpact.InboundTotal(tx.Tx, catalogmodel.KindProperty, id)
 	if err != nil {
 		return Property{}, nil, err
@@ -390,12 +364,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	return append(released, rowchange.Change{
-		EntityType: "property",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(rowFields(prev)),
-	}), nil
+	return append(released, rowchange.Deleted("property", id, rowFields(prev))), nil
 }
 
 func valueTypeOK(vt string) bool {

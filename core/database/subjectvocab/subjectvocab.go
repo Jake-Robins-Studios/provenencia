@@ -129,7 +129,7 @@ func EnsureBindingTx(tx *database.Tx, typeID, propertyID []byte, sortOrder int) 
 		if _, err := tx.Exec(sqlEnsureBinding, typeID, propertyID, sortOrder); err != nil {
 			return nil, err
 		}
-		return []rowchange.Change{bindingCreateChange(typeID, propertyID, sortOrder)}, nil
+		return []rowchange.Change{rowchange.Created(bindingEntity, propertyID, bindingFields(typeID, propertyID, sortOrder))}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -141,16 +141,6 @@ func EnsureBindingTx(tx *database.Tx, typeID, propertyID []byte, sortOrder int) 
 		return nil, err
 	}
 	return []rowchange.Change{bindingOrderChange(typeID, propertyID, old, sortOrder)}, nil
-}
-
-// bindingCreateChange is the create change of one binding row.
-func bindingCreateChange(typeID, propertyID []byte, order int) rowchange.Change {
-	return rowchange.Change{
-		EntityType: bindingEntity,
-		EntityID:   append([]byte(nil), propertyID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(bindingFields(typeID, propertyID, order)),
-	}
 }
 
 // bindingOrderChange is the update change of one binding's sort_order: the type
@@ -205,7 +195,7 @@ func AppendBinding(tx *database.Tx, userID, typeID, propertyID []byte) ([]rowcha
 	if err := tx.QueryRow(sqlBindingOrder, typeID, propertyID).Scan(&order); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{bindingCreateChange(typeID, propertyID, order)}, nil
+	return []rowchange.Change{rowchange.Created(bindingEntity, propertyID, bindingFields(typeID, propertyID, order))}, nil
 }
 
 // bindingFields is a binding row's audited columns.
@@ -367,12 +357,7 @@ func DeleteBinding(tx *database.Tx, userID, typeID, propertyID []byte) ([]rowcha
 	if _, err := tx.Exec(sqlDeleteBinding, typeID, propertyID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: bindingEntity,
-		EntityID:   append([]byte(nil), propertyID...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(bindingFields(typeID, propertyID, order)),
-	}}, nil
+	return []rowchange.Change{rowchange.Deleted(bindingEntity, propertyID, bindingFields(typeID, propertyID, order))}, nil
 }
 
 // Install writes the proveniencia Subject type + Property + term + binding

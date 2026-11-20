@@ -65,6 +65,6 @@ func resolveDepiction(tx *sql.Tx, citationID []byte, d *DepictionInput) (resolve
 	if err != nil {
 		return resolvedValue{}, err
 	}
-	changes := append(fileChanges, depictionvalues.CreateChange(id, v))
+	changes := append(fileChanges, rowchange.Created("depiction_value", id, depictionvalues.RowMap(id, v)))
 	return resolvedValue{DepictionID: id, ValueChanges: changes}, nil
 }

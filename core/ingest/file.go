@@ -127,23 +127,18 @@ func insertFile(tx *sql.Tx, row files.File) (rowchange.Change, error) {
 	if err != nil {
 		return rowchange.Change{}, err
 	}
-	fields := map[string]rowchange.FieldDiff{
-		"id":              {Old: nil, New: uid.String()},
-		"checksum_sha256": {Old: nil, New: row.ChecksumSHA256},
-		"byte_size":       {Old: nil, New: row.ByteSize},
+	fields := map[string]any{
+		"id":              uid.String(),
+		"checksum_sha256": row.ChecksumSHA256,
+		"byte_size":       row.ByteSize,
 	}
 	if row.OriginalFilename != "" {
-		fields["original_filename"] = rowchange.FieldDiff{Old: nil, New: row.OriginalFilename}
+		fields["original_filename"] = row.OriginalFilename
 	}
 	if row.MediaType != "" {
-		fields["media_type"] = rowchange.FieldDiff{Old: nil, New: row.MediaType}
+		fields["media_type"] = row.MediaType
 	}
-	return rowchange.Change{
-		EntityType: "file",
-		EntityID:   row.ID,
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}, nil
+	return rowchange.Created("file", row.ID, fields), nil
 }
 
 // File reads absPath into the catalog object store: StageFile, then CommitFile.

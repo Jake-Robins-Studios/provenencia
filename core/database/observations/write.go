@@ -109,12 +109,7 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if err != nil {
 		return nil, err
 	}
-	return append(released, rowchange.Change{
-		EntityType: "observation",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(prev.AuditFields()),
-	}), nil
+	return append(released, rowchange.Deleted("observation", id, prev.AuditFields())), nil
 }
 
 func isEdgeTx(tx *sql.Tx, subjectID, propertyID []byte) (bool, error) {
@@ -176,16 +171,11 @@ func replaceNotes(tx *sql.Tx, observationID []byte, notes []string) ([]rowchange
 		if _, err := tx.Exec(sqlDeleteNote, note.id); err != nil {
 			return nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "observation_note",
-			EntityID:   note.id,
-			Action:     rowchange.ActionDelete,
-			Fields: rowchange.DeletedRow(map[string]any{
-				"id":             database.UUIDJSON(note.id),
-				"observation_id": database.UUIDJSON(observationID),
-				"body":           note.body,
-			}),
-		})
+		changes = append(changes, rowchange.Deleted("observation_note", note.id, map[string]any{
+			"id":             database.UUIDJSON(note.id),
+			"observation_id": database.UUIDJSON(observationID),
+			"body":           note.body,
+		}))
 	}
 	for _, body := range notes {
 		body = strings.TrimSpace(body)
@@ -199,16 +189,11 @@ func replaceNotes(tx *sql.Tx, observationID []byte, notes []string) ([]rowchange
 		if _, err := tx.Exec(sqlInsertNote, noteID[:], observationID, body); err != nil {
 			return nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "observation_note",
-			EntityID:   noteID[:],
-			Action:     rowchange.ActionCreate,
-			Fields: rowchange.FullRow(map[string]any{
-				"id":             noteID.String(),
-				"observation_id": database.UUIDJSON(observationID),
-				"body":           body,
-			}),
-		})
+		changes = append(changes, rowchange.Created("observation_note", noteID[:], map[string]any{
+			"id":             noteID.String(),
+			"observation_id": database.UUIDJSON(observationID),
+			"body":           body,
+		}))
 	}
 	return changes, nil
 }

@@ -319,17 +319,12 @@ func fileDerivativeChange(link filederivatives.Link) (rowchange.Change, error) {
 	if err != nil {
 		return rowchange.Change{}, err
 	}
-	return rowchange.Change{
-		EntityType: "file_derivative",
-		EntityID:   append([]byte(nil), link.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields: map[string]rowchange.FieldDiff{
-			"id":              {Old: nil, New: id.String()},
-			"source_file_id":  {Old: nil, New: sourceID.String()},
-			"derived_file_id": {Old: nil, New: derivedID.String()},
-			"derivative_type": {Old: nil, New: link.DerivativeType},
-		},
-	}, nil
+	return rowchange.Created("file_derivative", link.ID, map[string]any{
+		"id":              id.String(),
+		"source_file_id":  sourceID.String(),
+		"derived_file_id": derivedID.String(),
+		"derivative_type": link.DerivativeType,
+	}), nil
 }
 
 // reprojectSourcesForNewThumbnail refreshes Source search docs after a new

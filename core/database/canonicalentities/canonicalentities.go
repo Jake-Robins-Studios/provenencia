@@ -113,19 +113,14 @@ func InsertTx(tx *sql.Tx, in CreateInput) (Entity, rowchange.Change, error) {
 		return Entity{}, rowchange.Change{}, mapConstraint(err)
 	}
 
-	change := rowchange.Change{
-		EntityType: "canonical_entity",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":              id.String(),
-			"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
-			"ref":             entityRef,
-			"argument":        database.NullString(in.Argument),
-			"label":           database.NullString(in.Label),
-			"merged_into_id":  nil,
-		}),
-	}
+	change := rowchange.Created("canonical_entity", idBytes, map[string]any{
+		"id":              id.String(),
+		"subject_type_id": database.UUIDJSON(in.SubjectTypeID),
+		"ref":             entityRef,
+		"argument":        database.NullString(in.Argument),
+		"label":           database.NullString(in.Label),
+		"merged_into_id":  nil,
+	})
 	return Entity{
 		ID:            append([]byte(nil), idBytes...),
 		SubjectTypeID: append([]byte(nil), in.SubjectTypeID...),

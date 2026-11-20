@@ -129,18 +129,13 @@ func InsertTx(tx *sql.Tx, in CreateInput) (Claim, rowchange.Change, error) {
 		return Claim{}, rowchange.Change{}, mapInsert(tx, err, in.EntityID, subjectTypeID)
 	}
 
-	change := rowchange.Change{
-		EntityType: "identity_claim",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":              id.String(),
-			"subject_id":      database.UUIDJSON(in.SubjectID),
-			"entity_id":       database.UUIDJSON(in.EntityID),
-			"subject_type_id": database.UUIDJSON(subjectTypeID),
-			"status":          in.Status,
-		}),
-	}
+	change := rowchange.Created("identity_claim", idBytes, map[string]any{
+		"id":              id.String(),
+		"subject_id":      database.UUIDJSON(in.SubjectID),
+		"entity_id":       database.UUIDJSON(in.EntityID),
+		"subject_type_id": database.UUIDJSON(subjectTypeID),
+		"status":          in.Status,
+	})
 	return Claim{
 		ID:            append([]byte(nil), idBytes...),
 		SubjectID:     append([]byte(nil), in.SubjectID...),

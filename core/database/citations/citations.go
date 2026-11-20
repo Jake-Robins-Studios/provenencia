@@ -261,22 +261,17 @@ func InsertWithObservationsTx(
 		return CreateResult{}, nil, mapConstraint(err)
 	}
 
-	changes := []rowchange.Change{{
-		EntityType: "citation",
-		EntityID:   idBytes,
-		Action:     rowchange.ActionCreate,
-		Fields: rowchange.FullRow(map[string]any{
-			"id":                      id.String(),
-			"ref":                     citRef,
-			"artifact_id":             database.UUIDJSON(in.ArtifactID),
-			"graph_id":                database.UUIDJSON(in.GraphID),
-			"locator_json":            in.LocatorJSON,
-			"transcription":           database.NullString(in.Transcription),
-			"label":                   database.NullString(in.Label),
-			"transcription_uncertain": in.TranscriptionUncertain,
-			"transcription_note":      database.NullString(in.TranscriptionNote),
-		}),
-	}}
+	changes := []rowchange.Change{rowchange.Created("citation", idBytes, map[string]any{
+		"id":                      id.String(),
+		"ref":                     citRef,
+		"artifact_id":             database.UUIDJSON(in.ArtifactID),
+		"graph_id":                database.UUIDJSON(in.GraphID),
+		"locator_json":            in.LocatorJSON,
+		"transcription":           database.NullString(in.Transcription),
+		"label":                   database.NullString(in.Label),
+		"transcription_uncertain": in.TranscriptionUncertain,
+		"transcription_note":      database.NullString(in.TranscriptionNote),
+	})}
 
 	for _, body := range in.Notes {
 		body = strings.TrimSpace(body)
@@ -290,16 +285,11 @@ func InsertWithObservationsTx(
 		if _, err := tx.Exec(sqlInsertNote, noteID[:], idBytes, body); err != nil {
 			return CreateResult{}, nil, err
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "citation_note",
-			EntityID:   noteID[:],
-			Action:     rowchange.ActionCreate,
-			Fields: rowchange.FullRow(map[string]any{
-				"id":          noteID.String(),
-				"citation_id": id.String(),
-				"body":        body,
-			}),
-		})
+		changes = append(changes, rowchange.Created("citation_note", noteID[:], map[string]any{
+			"id":          noteID.String(),
+			"citation_id": id.String(),
+			"body":        body,
+		}))
 	}
 
 	var obsOut []observations.Observation

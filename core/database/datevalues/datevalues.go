@@ -186,7 +186,7 @@ func PutTx(tx *sql.Tx, prevID []byte, v datevalue.Value) (id []byte, ch *rowchan
 		if err != nil {
 			return nil, nil, err
 		}
-		c := CreateChange(id, v)
+		c := rowchange.Created("date_value", id, RowMap(id, v))
 		return id, &c, nil
 	}
 	prev, err := LookupTx(tx, prevID)
@@ -195,7 +195,7 @@ func PutTx(tx *sql.Tx, prevID []byte, v datevalue.Value) (id []byte, ch *rowchan
 	}
 	next := v
 	next.ID = append([]byte(nil), prevID...)
-	ch = UpdateChange(prev, next)
+	ch = rowchange.Updated("date_value", prevID, RowMap(prev.ID, prev), RowMap(next.ID, next), "id")
 	if ch == nil {
 		return append([]byte(nil), prevID...), nil, nil
 	}
@@ -229,36 +229,6 @@ func RowMap(id []byte, v datevalue.Value) map[string]any {
 		"end_millisecond":   database.NullInt(v.EndMillisecond),
 		"end_tz":            database.NullString(v.EndTZ),
 		"phrase":            database.NullString(v.Phrase),
-	}
-}
-
-// CreateChange is the audit change of a new date_values row.
-func CreateChange(id []byte, v datevalue.Value) rowchange.Change {
-	return rowchange.Change{
-		EntityType: "date_value",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(RowMap(id, v)),
-	}
-}
-
-// UpdateChange is the audit change from prev to next, naming only the fields
-// that differ; nil when none does.
-func UpdateChange(prev, next datevalue.Value) *rowchange.Change {
-	old, now := RowMap(prev.ID, prev), RowMap(next.ID, next)
-	fields := rowchange.UpdatedRow(old, now, "id")
-	if len(fields) == 0 {
-		return nil
-	}
-	id := prev.ID
-	if len(id) != 16 {
-		id = next.ID
-	}
-	return &rowchange.Change{
-		EntityType: "date_value",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
 	}
 }
 

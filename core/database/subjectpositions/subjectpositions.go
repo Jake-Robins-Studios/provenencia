@@ -58,24 +58,21 @@ func Set(tx *database.Tx, subjectID []byte, gridX, gridY int64) (Position, []row
 	if prevErr == nil && prev.GridX == gridX && prev.GridY == gridY {
 		return pos, nil, nil
 	}
-	action := rowchange.ActionCreate
-	fields := map[string]rowchange.FieldDiff{
-		"subject_id": {New: database.UUIDString(subjectID)},
-		"grid_x":     {New: gridX},
-		"grid_y":     {New: gridY},
-	}
-	if prevErr == nil {
-		action = rowchange.ActionUpdate
-		fields = map[string]rowchange.FieldDiff{
-			"grid_x": {Old: prev.GridX, New: gridX},
-			"grid_y": {Old: prev.GridY, New: gridY},
-		}
+	if prevErr != nil {
+		return pos, []rowchange.Change{rowchange.Created("subject_position", subjectID, map[string]any{
+			"subject_id": database.UUIDString(subjectID),
+			"grid_x":     gridX,
+			"grid_y":     gridY,
+		})}, nil
 	}
 	return pos, []rowchange.Change{{
 		EntityType: "subject_position",
 		EntityID:   append([]byte(nil), subjectID...),
-		Action:     action,
-		Fields:     fields,
+		Action:     rowchange.ActionUpdate,
+		Fields: map[string]rowchange.FieldDiff{
+			"grid_x": {Old: prev.GridX, New: gridX},
+			"grid_y": {Old: prev.GridY, New: gridY},
+		},
 	}}, nil
 }
 

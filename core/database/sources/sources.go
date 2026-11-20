@@ -141,25 +141,20 @@ func Create(tx *database.Tx, userID []byte, in CreateInput) (Source, []rowchange
 		return Source{}, nil, mapConstraint(err)
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":             {Old: nil, New: id.String()},
-		"ref":            {Old: nil, New: sourceRef},
-		"source_type_id": {Old: nil, New: database.UUIDString(in.SourceTypeID)},
-		"title":          {Old: nil, New: in.Title},
+	fields := map[string]any{
+		"id":             id.String(),
+		"ref":            sourceRef,
+		"source_type_id": database.UUIDString(in.SourceTypeID),
+		"title":          in.Title,
 	}
 	if in.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: nil, New: in.Description}
+		fields["description"] = in.Description
 	}
 	_, graphChanges, err := evidencegraphs.CreateDefault(tx, idBytes)
 	if err != nil {
 		return Source{}, nil, err
 	}
-	changes := append([]rowchange.Change{{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), idBytes...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}}, graphChanges...)
+	changes := append([]rowchange.Change{rowchange.Created("source", idBytes, fields)}, graphChanges...)
 	return Source{
 		ID:           append([]byte(nil), idBytes...),
 		Ref:          sourceRef,
@@ -479,31 +474,26 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 		return nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{
-		"id":             {Old: database.UUIDString(id), New: nil},
-		"ref":            {Old: existing.Ref, New: nil},
-		"source_type_id": {Old: database.UUIDString(existing.SourceTypeID), New: nil},
-		"title":          {Old: existing.Title, New: nil},
-		"is_public":      {Old: boolInt(existing.IsPublic), New: nil},
+	fields := map[string]any{
+		"id":             database.UUIDString(id),
+		"ref":            existing.Ref,
+		"source_type_id": database.UUIDString(existing.SourceTypeID),
+		"title":          existing.Title,
+		"is_public":      boolInt(existing.IsPublic),
 	}
 	if existing.Description != "" {
-		fields["description"] = rowchange.FieldDiff{Old: existing.Description, New: nil}
+		fields["description"] = existing.Description
 	}
 	if len(existing.DateValueID) == 16 {
-		fields["date_value_id"] = rowchange.FieldDiff{Old: database.UUIDJSON(existing.DateValueID), New: nil}
+		fields["date_value_id"] = database.UUIDJSON(existing.DateValueID)
 	}
 	if existing.storedDateMark.Unknown {
-		fields["date_unknown"] = rowchange.FieldDiff{Old: true, New: nil}
+		fields["date_unknown"] = true
 	}
 	if existing.storedDateMark.Supplied {
-		fields["date_supplied"] = rowchange.FieldDiff{Old: true, New: nil}
+		fields["date_supplied"] = true
 	}
-	return append(released, rowchange.Change{
-		EntityType: "source",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}), nil
+	return append(released, rowchange.Deleted("source", id, fields)), nil
 }
 
 // Get returns a Source by id, or ErrNotFound.

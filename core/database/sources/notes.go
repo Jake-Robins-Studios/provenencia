@@ -97,16 +97,11 @@ func AddNote(tx *database.Tx, userID, sourceID []byte, body string) (Note, []row
 			SourceID:  append([]byte(nil), sourceID...),
 			Body:      body,
 			CreatedAt: project.NowUTC(),
-		}, []rowchange.Change{{
-			EntityType: "source_note",
-			EntityID:   append([]byte(nil), idBytes...),
-			Action:     rowchange.ActionCreate,
-			Fields: map[string]rowchange.FieldDiff{
-				"id":        {Old: nil, New: id.String()},
-				"source_id": {Old: nil, New: database.UUIDString(sourceID)},
-				"body":      {Old: nil, New: body},
-			},
-		}}, nil
+		}, []rowchange.Change{rowchange.Created("source_note", idBytes, map[string]any{
+			"id":        id.String(),
+			"source_id": database.UUIDString(sourceID),
+			"body":      body,
+		})}, nil
 }
 
 // UpdateNote changes body. An unchanged body returns no changes.
@@ -159,16 +154,11 @@ func DeleteNote(tx *database.Tx, userID, noteID []byte) ([]rowchange.Change, err
 	if _, err := tx.Exec(sqlDeleteNote, noteID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "source_note",
-		EntityID:   append([]byte(nil), noteID...),
-		Action:     rowchange.ActionDelete,
-		Fields: map[string]rowchange.FieldDiff{
-			"id":        {Old: database.UUIDString(noteID), New: nil},
-			"source_id": {Old: database.UUIDString(prev.SourceID), New: nil},
-			"body":      {Old: prev.Body, New: nil},
-		},
-	}}, nil
+	return []rowchange.Change{rowchange.Deleted("source_note", noteID, map[string]any{
+		"id":        database.UUIDString(noteID),
+		"source_id": database.UUIDString(prev.SourceID),
+		"body":      prev.Body,
+	})}, nil
 }
 
 // ListNotes returns notes for a Source with create attribution, ordered by id.

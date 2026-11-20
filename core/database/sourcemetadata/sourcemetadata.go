@@ -208,12 +208,7 @@ func insertValueTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte, normalize
 		ValueText: normalized,
 		Mark:      mark,
 	}
-	return row, rowchange.Change{
-		EntityType: st.values,
-		EntityID:   row.ID,
-		Action:     rowchange.ActionCreate,
-		Fields:     rowchange.FullRow(auditFields(st, row)),
-	}, nil
+	return row, rowchange.Created(st.values, row.ID, auditFields(st, row)), nil
 }
 
 // updateValueTx writes the new, already normalized text and mark over prev's
@@ -252,12 +247,7 @@ func deleteValueTx(tx *sql.Tx, st *store, prev Row) (rowchange.Change, error) {
 	if _, err := tx.Exec(st.delete, prev.Owner.ID, prev.FieldID); err != nil {
 		return rowchange.Change{}, err
 	}
-	return rowchange.Change{
-		EntityType: st.values,
-		EntityID:   prev.ID,
-		Action:     rowchange.ActionDelete,
-		Fields:     rowchange.DeletedRow(auditFields(st, prev)),
-	}, nil
+	return rowchange.Deleted(st.values, prev.ID, auditFields(st, prev)), nil
 }
 
 // layoutChange builds every layout row change: the owner column and field_id

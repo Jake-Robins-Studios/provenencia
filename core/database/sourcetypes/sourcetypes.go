@@ -115,34 +115,20 @@ func rowFields(t Type) map[string]any {
 // origin are never compared.
 func updateChange(prev, next Type, formats map[string]rowchange.FieldDiff) *rowchange.Change {
 	old, now := rowFields(prev), rowFields(next)
-	fields := rowchange.UpdatedRow(old, now, "id", "key", "origin")
 	for column, diff := range formats {
-		fields[column] = diff
+		old[column], now[column] = diff.Old, diff.New
 	}
-	if len(fields) == 0 {
-		return nil
-	}
-	return &rowchange.Change{
-		EntityType: "source_type",
-		EntityID:   append([]byte(nil), prev.ID...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}
+	return rowchange.Updated("source_type", prev.ID, old, now, "id", "key", "origin")
 }
 
 // createChange is the create change of a new type row: every column, plus the
 // format columns that carry text.
 func createChange(t Type, formats Formats) rowchange.Change {
-	fields := rowchange.FullRow(rowFields(t))
+	ch := rowchange.Created("source_type", t.ID, rowFields(t))
 	for column, diff := range formatFieldDiffs(Formats{}, formats) {
-		fields[column] = diff
+		ch.Fields[column] = diff
 	}
-	return rowchange.Change{
-		EntityType: "source_type",
-		EntityID:   append([]byte(nil), t.ID...),
-		Action:     rowchange.ActionCreate,
-		Fields:     fields,
-	}
+	return ch
 }
 
 // UpsertTx inserts or updates by (key, origin) on tx and returns the id and
@@ -426,17 +412,12 @@ func Delete(tx *database.Tx, userID, id []byte) ([]rowchange.Change, error) {
 	if _, err := tx.Exec(sqlDelete, id); err != nil {
 		return nil, err
 	}
-	fields := rowchange.DeletedRow(rowFields(prev))
+	ch := rowchange.Deleted("source_type", id, rowFields(prev))
 	// A deleted type's formats stay in the revision.
 	for column, diff := range formatFieldDiffs(formats[string(id)], Formats{}) {
-		fields[column] = diff
+		ch.Fields[column] = diff
 	}
-	return []rowchange.Change{{
-		EntityType: "source_type",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionDelete,
-		Fields:     fields,
-	}}, nil
+	return []rowchange.Change{ch}, nil
 }
 
 // editableTx returns the type with the given id once its origin allows a
