@@ -82,4 +82,4 @@ Reviewers: MNT (MNT-1, a Fix-now major). Not sent: CON (CON-1 went to the user; 
 Minors read by the orchestrator: MNT-3 / F-3 **Resolved** (`readTypeBoards` is the only `RequirementsTx` and `ListSuggestionsTx` call; `newOwnerValues` the only literal; `fieldsByID` stays in each caller, harmless). MNT-2 / F-4 **Resolved** (`Need.Max`, `TestNeedMax`). MNT-5 / F-5 **Resolved**, except the inline write in `core/database/sourcetypes/formats_test.go:79`, kept because importing `sourcetypestest` from the internal test package would cycle. MNT-4 / F-7 **Resolved**. CON-2: PR body now says the manual check is pending for the user.
 
 ## Result
-Gate PASS (`7e5ba8b78`, `origin/main` unmoved at `ca6790b83`) · CI pending · open: none · follow-ups: — · to user: CON-1 (answered: accept the gap until S15-39)
+Gate PASS (`7e5ba8b78`, `origin/main` unmoved at `ca6790b83`) · CI green · open: none · follow-ups: — · to user: CON-1 (answered: accept the gap until S15-39)
