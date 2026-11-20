@@ -951,6 +951,43 @@ func insertGraph(t *testing.T, c *database.Catalog, sourceID []byte, name string
 	return id[:]
 }
 
+func TestMapByIDsTx(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	a, err := runCreate(c, "Author", metadatafields.DataTypeText, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := runCreate(c, "Link", metadatafields.DataTypeURL, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	got, err := metadatafields.MapByIDsTx(tx, [][]byte{a.ID, b.ID, make([]byte, 16)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[string(a.ID)].Key != "author" || got[string(b.ID)].DataType != metadatafields.DataTypeURL {
+		t.Fatalf("got %+v", got)
+	}
+	none, err := metadatafields.MapByIDsTx(tx, nil)
+	if err != nil || none == nil || len(none) != 0 {
+		t.Fatalf("nil ids = %+v, %v", none, err)
+	}
+}
+
 func TestResolveKeysTx(t *testing.T) {
 	c, err := database.Create(t.TempDir(), "t.provenencia")
 	if err != nil {

@@ -293,6 +293,20 @@ func ListByIDsTx(tx *sql.Tx, ids [][]byte) ([]Field, error) {
 	return out, nil
 }
 
+// MapByIDsTx is ListByIDsTx keyed by string(id); an id with no field is absent
+// and no ids returns an empty map.
+func MapByIDsTx(tx *sql.Tx, ids [][]byte) (map[string]Field, error) {
+	found, err := ListByIDsTx(tx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]Field, len(found))
+	for _, f := range found {
+		out[string(f.ID)] = f
+	}
+	return out, nil
+}
+
 // KeyResolution is what ResolveKeysTx found: the id of each key one field
 // answers for, and the keys no field or more than one field holds (sorted).
 type KeyResolution struct {

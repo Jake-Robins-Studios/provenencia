@@ -26,7 +26,7 @@ type Annotation struct {
 	Alternatives []Alternative
 }
 
-// Alternative is one later option of a chain: exactly one of Field (a metadata
+// Alternative is one option of a chain: exactly one of Field (a metadata
 // field, whose row loaded) and Builtin (the bare name, "date") is set, at Level.
 type Alternative struct {
 	Level   vocabkey.Level
@@ -56,48 +56,58 @@ func CitationValue(r Row, f metadatafields.Field) citationformat.Value {
 	return citationformat.Value{Text: r.ValueText, Mark: r.Mark, UnknownText: f.UnknownText}
 }
 
-// ownerValues answers a format's targets for one board: a field at the owner's
-// level from the owner's rows, a field at the Source level from the Source's
-// rows, and the Source date from the Source. Any other target answers the zero
-// Value: another Artifact or graph, a Citation's own built-ins, the always-set
-// built-ins (a chain that holds one is never needed, so Missing never asks), and
-// a field named by key (stored formats name fields by id).
-type ownerValues struct {
-	level  vocabkey.Level
-	own    map[string]Row
-	source map[string]Row
-	// fields holds the field rows that loaded; a value whose field row did not
+// CitationValues answers a format's targets from what one render or board
+// loaded: a field named by id at a level from that level's rows, and a
+// built-in from Builtins. Any other target answers the zero Value: a field
+// named by key (stored formats name fields by id), a built-in nothing set, a
+// level with no rows. A board and a render both build it, so they cannot
+// disagree about what answers.
+type CitationValues struct {
+	// Rows holds the stored values per level, keyed by field id.
+	Rows map[vocabkey.Level]map[string]Row
+	// Fields holds the field rows that loaded; a value whose field row did not
 	// load still answers, with no unknown text.
-	fields map[string]metadatafields.Field
-	date   citationformat.Value
+	Fields map[string]metadatafields.Field
+	// Builtins holds the value of each built-in the caller can answer.
+	Builtins map[citationformat.Target]citationformat.Value
 }
 
 // Resolve implements citationformat.Resolver.
-func (v ownerValues) Resolve(t citationformat.Target) citationformat.Value {
+func (v CitationValues) Resolve(t citationformat.Target) citationformat.Value {
 	if t.Builtin != "" {
-		if t == dateHead {
-			return v.date
-		}
-		return citationformat.Value{}
+		return v.Builtins[t]
 	}
 	if !t.Field.ByID() {
 		return citationformat.Value{}
 	}
-	var rows map[string]Row
-	switch t.Level {
-	case v.level:
-		rows = v.own
-	case vocabkey.LevelSource:
-		rows = v.source
-	default:
-		return citationformat.Value{}
-	}
 	id := string(t.Field.ID[:])
-	row, ok := rows[id]
+	row, ok := v.Rows[t.Level][id]
 	if !ok {
 		return citationformat.Value{}
 	}
-	return CitationValue(row, v.fields[id])
+	return CitationValue(row, v.Fields[id])
+}
+
+// AppendOptions appends to dst the options of a chain's targets that can be
+// shown, in order, each target once across calls sharing seen: a built-in, and
+// a field named by id whose row is in fields. A field named by key, and one
+// whose row did not load, is skipped.
+func AppendOptions(dst []Alternative, seen map[citationformat.Target]bool, targets []citationformat.Target, fields map[string]metadatafields.Field) []Alternative {
+	for _, t := range targets {
+		if seen[t] {
+			continue
+		}
+		seen[t] = true
+		switch {
+		case t.Builtin != "":
+			dst = append(dst, Alternative{Level: t.Level, Builtin: t.Builtin})
+		case t.Field.ByID():
+			if f, ok := fields[string(t.Field.ID[:])]; ok {
+				dst = append(dst, Alternative{Level: t.Level, Field: &f})
+			}
+		}
+	}
+	return dst
 }
 
 // rowsByField keys rows by field id.
@@ -222,20 +232,7 @@ func annotate(ln levelNeeds, head citationformat.Target, r citationformat.Resolv
 		if len(tail) == 0 || len(unmet) > 0 {
 			a.MetElsewhere = false
 		}
-		for _, t := range tail {
-			if seen[t] {
-				continue
-			}
-			seen[t] = true
-			switch {
-			case t.Builtin != "":
-				a.Alternatives = append(a.Alternatives, Alternative{Level: t.Level, Builtin: t.Builtin})
-			case t.Field.ByID():
-				if f, ok := fields[string(t.Field.ID[:])]; ok {
-					a.Alternatives = append(a.Alternatives, Alternative{Level: t.Level, Field: &f})
-				}
-			}
-		}
+		a.Alternatives = AppendOptions(a.Alternatives, seen, tail, fields)
 	}
 	return a
 }

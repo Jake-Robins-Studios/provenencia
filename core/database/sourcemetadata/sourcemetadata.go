@@ -897,7 +897,7 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 		return nil, err
 	}
 	tb := tbs[k]
-	fields, err := fieldsByID(tx, tb.needs.fieldIDs())
+	fields, err := metadatafields.MapByIDsTx(tx, tb.needs.fieldIDs())
 	if err != nil {
 		return nil, err
 	}
@@ -905,7 +905,11 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 		suggestions: tb.suggestions,
 		needs:       tb.needs,
 		fields:      fields,
-		resolver:    newOwnerValues(level, nil, rowsByField(rows), fields, sources.CitationDate(src)),
+		resolver: CitationValues{
+			Rows:     map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rowsByField(rows)},
+			Fields:   fields,
+			Builtins: map[citationformat.Target]citationformat.Value{dateHead: sources.CitationDate(src)},
+		},
 	}), nil
 }
 
@@ -949,12 +953,6 @@ func readTypeBoards(tx *sql.Tx, keys []typeLevel) (map[typeLevel]typeBoard, erro
 		out[k] = typeBoard{suggestions: list, needs: needsAt(reqs[k.typeID], k.level)}
 	}
 	return out, nil
-}
-
-// newOwnerValues is the resolver of one owner's board: its own rows, its
-// Source's rows and the Source's citation date.
-func newOwnerValues(level vocabkey.Level, own, source map[string]Row, fields map[string]metadatafields.Field, date citationformat.Value) ownerValues {
-	return ownerValues{level: level, own: own, source: source, fields: fields, date: date}
 }
 
 // listWorkspaces is ListWorkspace over many owners, keyed by Owner.key: each
@@ -1053,7 +1051,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	for _, tb := range boards {
 		wanted = append(wanted, tb.needs.fieldIDs()...)
 	}
-	fields, err := fieldsByID(tx, wanted)
+	fields, err := metadatafields.MapByIDsTx(tx, wanted)
 	if err != nil {
 		return nil, err
 	}
@@ -1065,10 +1063,14 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	for _, o := range uniq {
 		k := typeLevel{string(typeOf[o.key()]), o.Level}
 		ln := boards[k].needs
-		r := newOwnerValues(o.Level,
-			rowsByField(valuesOf[o.key()]),
-			rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
-			fields, dateOf[string(sourceOf[o.key()])])
+		r := CitationValues{
+			Rows: map[vocabkey.Level]map[string]Row{
+				o.Level:              rowsByField(valuesOf[o.key()]),
+				vocabkey.LevelSource: rowsByField(valuesOf[Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}.key()]),
+			},
+			Fields:   fields,
+			Builtins: map[citationformat.Target]citationformat.Value{dateHead: dateOf[string(sourceOf[o.key()])]},
+		}
 		board := Board{Entries: buildEntries(o.Level, boardInput{
 			suggestions: boards[k].suggestions,
 			values:      valuesOf[o.key()],
@@ -1082,20 +1084,6 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 			board.Page = annotate(ln, pageHead, r, fields)
 		}
 		out[o.key()] = board
-	}
-	return out, nil
-}
-
-// fieldsByID reads the fields with the given ids in one query, keyed by id; an
-// id with no field is absent.
-func fieldsByID(tx *sql.Tx, ids [][]byte) (map[string]metadatafields.Field, error) {
-	found, err := metadatafields.ListByIDsTx(tx, ids)
-	if err != nil {
-		return nil, err
-	}
-	out := make(map[string]metadatafields.Field, len(found))
-	for _, f := range found {
-		out[string(f.ID)] = f
 	}
 	return out, nil
 }
@@ -1266,7 +1254,7 @@ func getLayoutTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (LayoutRow,
 // loadFields reads the fields with the given ids in one query, keyed by id; an
 // id with no field is ErrInvalid.
 func loadFields(tx *sql.Tx, ids [][]byte) (map[string]metadatafields.Field, error) {
-	out, err := fieldsByID(tx, ids)
+	out, err := metadatafields.MapByIDsTx(tx, ids)
 	if err != nil {
 		return nil, err
 	}
