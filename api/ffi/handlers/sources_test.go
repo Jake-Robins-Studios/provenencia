@@ -993,7 +993,16 @@ func metadataSuggestionFixture(t *testing.T) (dir, userID, typeID, sourceID, fie
 	if len(suggestions.Suggestions) == 0 {
 		t.Fatal("expected type suggestions")
 	}
-	fieldID = suggestions.Suggestions[0].Field.Id
+	// creator sits in an optional group of the formats, so it can be dismissed;
+	// the type's needed fields (jurisdiction first) cannot.
+	for _, sg := range suggestions.Suggestions {
+		if sg.Field.Key == "creator" {
+			fieldID = sg.Field.Id
+		}
+	}
+	if fieldID == "" {
+		t.Fatal("expected a creator suggestion")
+	}
 	return dir, userID, typeID, sourceID, fieldID
 }
 

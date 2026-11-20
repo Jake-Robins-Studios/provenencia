@@ -36,8 +36,8 @@ type seedSuggestion struct {
 // entry ("Birth certificates").
 func certificateFormats(word, plural string) sourcetypes.Formats {
 	return sourcetypes.Formats{
-		Full:  `[{source.meta.creator}, ]` + word + `[ no. {source.meta.document_number}][ ({source.date:full})][, {graph.meta.item|source.meta.item}][, vol. {source.meta.volume}][, p. {citation.page}][, entry {graph.meta.entry_number|source.meta.entry_number}][; {artifact.meta.format}, *{artifact.meta.provider}*][ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])][; {source.meta.repository}].`,
-		Short: `[{source.meta.creator}, ]` + word + `[ no. {source.meta.document_number}][, {graph.meta.item|source.meta.item}].`,
+		Full:  `{source.meta.jurisdiction}, [{source.meta.creator}, ]` + word + `[ no. {source.meta.document_number}][ ({source.date:full})][, {graph.meta.item|source.meta.item}][, vol. {source.meta.volume}][, p. {citation.page}][, entry {graph.meta.entry_number|source.meta.entry_number}][; {artifact.meta.format}, *{artifact.meta.provider}*][ ({artifact.meta.url}[ : accessed {artifact.meta.accessed_date}])][; {source.meta.repository}].`,
+		Short: `{source.meta.jurisdiction}, [{source.meta.creator}, ]` + word + `[ no. {source.meta.document_number}][, {graph.meta.item|source.meta.item}].`,
 		List:  `{source.meta.jurisdiction}.[ {source.meta.creator}.] ` + plural + `.[ {source.meta.repository}.]`,
 	}
 }
