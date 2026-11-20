@@ -150,7 +150,7 @@ No new findings above nit. Minors fixed in round 1 (CON-4 – CON-7, UX-5 – UX
 Nits (logged): `UX-15 · PVSubsectionHeader.swift:50 · empty accessibilityIdentifier set on callers that pass none` · `UX-16 · L10n.swift:5121 · origin.badge.user comment still says "Origin badge"` · `MNT-16 · SourceTypeFormatsSection.swift:311 · third literal 0.42 disabled opacity; no kit token` · `MNT-17 · PVTextArea.swift PVTextAreaCompletionRows · same check passed to isActive and isSelected`
 
 ## Result
-Gate PASS (`01829cd31`, `origin/main` unchanged at `24bd80e70`) · CI green · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
+Gate PASS (`de6f42186`, `origin/main` unchanged at `24bd80e70`) · CI green · open: none · follow-ups: none · to user: MNT-4 (dropped slot), MNT-9 (kept D-7), UX-6 (dimmed warnings), CON-4 (AC-1.5 text) — all answered 2026-11-20 · manual check § 10 and board comparison: the user's
 
 ## User addition — seed (2026-11-20)
 The user asked, after the report, for the seed fix on this PR: the three certificate types' source-list format needs `{source.meta.jurisdiction}` (outside any group, `certificateFormats` in `core/database/sourcevocab/registry.go:41`), but their Source suggestions (`registry_suggestions.go:13,16,19`) do not list `jurisdiction`, so the type page never offers it and a Source without it renders `. Birth certificates.`. Gap from S15-19, on `main`. The user updates their dogfood project by hand (no migration).
@@ -167,3 +167,6 @@ Check: the test passes; `CGO_ENABLED=1 go test -tags fts5 ./core/database/source
 - The certificates' Source suggestions are therefore `creator`, `document_number`, `volume`, `repository`, `jurisdiction` (appended, not after `creator`). Any other type the derivation changes (expected: none; S15-19 flagged `statute`'s list format too) is listed in the report.
 - Docs: map § 6.8 "Suggestions" states the widened rule with "(user, 2026-11-20, S15-17)"; `docs/seeded-vocabulary.md` § 2.3 says the same in place of the "wherever the type lists it" wording; the S15-17 Landed note names the amendment of S15-19 D-4.
 - Apply `stash@{0}` (count updates) and adjust any order the append changes.
+
+## User addition — fix
+Head `de6f42186`. Gate PASS (orchestrator run). F-16 done: `derivedSuggestions` derives the widened rule and `TestSeedSuggestionsFollowFormats` checks exact equality (exemption removed); `TestSeededFormatsNeedOnlySuggestedFields` kept as a guard. Only `birth_certificate`, `marriage_certificate` and `death_certificate` changed (Source · `jurisdiction`, appended); `statute` unchanged (a chain whose option the full format uses adds nothing). Counts: handler 4 → 5, unsuggested heads 32 → 29. Map § 6.8, `docs/seeded-vocabulary.md` § 2.3 and the Landed note record the amendment of S15-19 D-4. Read by the orchestrator (seed data and its test); no review round, by the two-round cap and the size of the change.
