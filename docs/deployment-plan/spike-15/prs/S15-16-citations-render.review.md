@@ -1,7 +1,7 @@
 # Review — S15-16 Citations render through their type's formats
 
-**Verdict:** round 1: Fits with changes — Ready with changes; round 2 pending
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes (both rounds); every finding Fixed or Logged, nothing open
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - None.
@@ -64,3 +64,43 @@
 
 ### X-7 · minor · Fixture details left open
 **Answer:** Fixed — STEP-3 names the helpers' packages; D-13 and STEP-5 name the seeded census type and AC-1.1's values at every level; T-8 expects AC-1.1's full line for every Citation.
+
+## Round 2
+
+All round-1 answers were verified against the code by both reviewers, except M-1 (incomplete, M-11) and M-5 (half fixed, M-10).
+
+### M-10 · blocker · Three citation column lists and two type lists remain, though `metadatafields.Columns(alias)` exists
+**Answer:** Fixed — D-3: `citations.columns(alias)` used by `sqlGet`, `sqlListByArtifact` and `ListCitedTx`; `sourcetypes.columns(alias)` used by `sqlLookup`, `sqlGetByID`, `sqlList` and `GetManyTx`, shaped like `metadatafields.Columns`. Precedent, Codebase fit and Deletes updated. No subquery added, so D-13's counts hold.
+
+### M-11 · blocker · `ListDraftWorkspace` and `TestAnnotate` still use `ownerValues`
+**Answer:** Fixed — D-11 names `ListDraftWorkspace` (`Rows: {source: rows}`, no own entry) and the `TestAnnotate` conversion mapping; Reach gains the draft-board row; T-12 names `TestGetDraftMetadataBoard` and `TestDraftBoardScenarios`; the stop condition reads "a converted case needs a different expected output".
+
+### Round 2 · major · `FieldsByIDTx` exported from the wrong package
+**Answer:** Fixed — D-11: `metadatafields.MapByIDsTx` beside `ListByIDsTx`; `sourcemetadata.fieldsByID` deleted. The three maps in `sourcetypes/formats.go` key by `uuid.UUID` or another value, so they stay (Out, logged).
+
+### Round 2 · minor · D-4 reads `source_types` twice
+**Answer:** Logged — one extra SELECT per call; Out row.
+
+### E-1 · blocker · `TestAnnotate` cannot pass unchanged
+**Answer:** Fixed — same as M-11.
+
+### E-2 · major · The preview cannot use D-4 as written
+**Answer:** Fixed — D-4 splits into `loadCitations`, `loadSource` and `fillValues(tx, subjects, templates)`; the batch and the preview each name their sequence; the field read takes the given templates' fields.
+
+### E-3 · major · AC-2.4 leaves a second missing entry (the undated Source's date)
+**Answer:** Fixed — AC-2.4 and T-9: the Source is dated 1880.
+
+### E-4 · minor · nil `*PageInputs`
+**Answer:** Fixed — D-6: `in` must not be nil; `NoPageInputs()` for callers that record nothing; STEP-3 tests use `c.Graph().PageInputs()`.
+
+### E-5 · minor · `scanListedRow` into `scanRow`
+**Answer:** Fixed — D-3 names the local `n int32` and the `ListedCitation` build.
+
+### E-6 · minor · How to turn foreign keys off
+**Answer:** Fixed — STEP-3: `PRAGMA foreign_keys=OFF` on the catalog's `*sql.DB` outside a transaction, then back on.
+
+### E-7 · minor · Scale fixture choices
+**Answer:** Fixed — STEP-5 names the `BenchID` kinds, ref patterns, the type and field lookups, the links and the Citation spread.
+
+### E-8 · nit · A Citation target with form `list`
+**Answer:** Fixed — D-9: allowed; renders its Source's list entry; T-9 row.
