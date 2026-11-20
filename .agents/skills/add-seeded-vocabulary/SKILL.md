@@ -18,7 +18,7 @@ Source schema: [`docs/source-layer-data-model.md`](../../../docs/source-layer-da
 
 ## Create-time seed domains (today)
 
-Each domain owns a declarative `registry.go` + an `Install`: `Install(tx) ([]rowchange.Change, error)` with an `ActionInstall` for a domain whose tables have effects (run through `installSeed`), or `Install(c) error` for a domain whose tables are all `None` (`nameformats`, `namealiases`). Wire every
+Each domain owns a declarative `registry.go` + an `Install`: `Install(tx) ([]rowchange.Change, error)` with an `ActionInstall`, run through `installSeed` in `createCatalog` (atomic; audited unless every table is `None`, as the grades are). `nameformats` and `namealiases` still use `Install(c) error` only because S16-62's Out line left them; new domains do not follow them. Wire every
 new Install into **`onboarding.createCatalog` only**.
 
 | Package | Registry | What it seeds |
@@ -143,7 +143,7 @@ Mirror Source / Subject types — do **not** build a generic multi-domain seed f
 
 1. Migration for definition tables (`origin`, `UNIQUE (key, origin)`). Follow `.agents/skills/add-catalog-migration/SKILL.md`.
 2. Nested query package(s) under `core/database/<domain>/`. Follow `.agents/skills/add-catalog-query/SKILL.md`.
-3. Package owning the seed: `registry` lists + `Install(tx) ([]rowchange.Change, error)` and `ActionInstall` when its tables have effects; `Install(c) error` only for a domain whose tables are all `None`.
+3. Package owning the seed: `registry` lists + `Install(tx) ([]rowchange.Change, error)` and `ActionInstall`, run through `installSeed` in `createCatalog` (atomic; audited unless every table is `None`). Do not copy `nameformats` / `namealiases`, which keep `Install(c) error` only because S16-62's Out line left them.
 4. Wire install into `createCatalog` in `ready.go` (through `installSeed` for a tx Install) when create-time-only is correct for that domain.
 5. Document intended keys in `docs/seeded-vocabulary.md`; implement only the dogfood slice needed now.
    Prefer mirroring `subjectvocab` (or `sourcevocab`) rather than inventing a generic multi-domain framework.
