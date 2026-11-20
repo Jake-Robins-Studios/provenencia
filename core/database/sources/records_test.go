@@ -20,6 +20,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -132,14 +133,9 @@ func setSourceDate(r *evidencelayertest.Records, src sources.Source, date *datev
 	})
 }
 
-func pointYear(y int) *datevalue.Value {
-	return &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y}
-}
-
 // TestRecordsDate: a record's Date is the Source's own date through settleDate,
 // nil when undated or marked unknown.
 func TestRecordsDate(t *testing.T) {
-	y1880, m6, d1 := 1880, 6, 1
 	cases := []struct {
 		name     string
 		date     *datevalue.Value
@@ -149,8 +145,8 @@ func TestRecordsDate(t *testing.T) {
 		wantNil  bool
 	}{
 		{name: "undated", wantNil: true},
-		{name: "year", set: true, date: pointYear(1867), wantYear: 1867},
-		{name: "supplied day", set: true, date: &datevalue.Value{Kind: datevalue.KindPoint, StartYear: &y1880, StartMonth: &m6, StartDay: &d1}, mark: valuemark.Mark{Supplied: true}, wantYear: 1880},
+		{name: "year", set: true, date: datevaluetest.YMD(1867, 0, 0), wantYear: 1867},
+		{name: "supplied day", set: true, date: datevaluetest.YMD(1880, 6, 1), mark: valuemark.Mark{Supplied: true}, wantYear: 1880},
 		{name: "unknown", set: true, mark: valuemark.Mark{Unknown: true}, wantNil: true},
 	}
 	for _, tc := range cases {
@@ -293,13 +289,13 @@ func TestRecordsApply(t *testing.T) {
 		return *d.StartYear
 	}
 	t.Run("date set", func(t *testing.T) {
-		check(t, true, func() { setSourceDate(r, src, pointYear(1867), valuemark.Mark{}) })
+		check(t, true, func() { setSourceDate(r, src, datevaluetest.YMD(1867, 0, 0), valuemark.Mark{}) })
 		if yearOf(t) != 1867 {
 			t.Fatalf("date year %d", yearOf(t))
 		}
 	})
 	t.Run("date edit", func(t *testing.T) {
-		check(t, true, func() { setSourceDate(r, src, pointYear(1868), valuemark.Mark{}) })
+		check(t, true, func() { setSourceDate(r, src, datevaluetest.YMD(1868, 0, 0), valuemark.Mark{}) })
 		if yearOf(t) != 1868 {
 			t.Fatalf("date year %d", yearOf(t))
 		}
@@ -311,7 +307,7 @@ func TestRecordsApply(t *testing.T) {
 		}
 	})
 	t.Run("date clear", func(t *testing.T) {
-		check(t, true, func() { setSourceDate(r, src, pointYear(1870), valuemark.Mark{}) })
+		check(t, true, func() { setSourceDate(r, src, datevaluetest.YMD(1870, 0, 0), valuemark.Mark{}) })
 		if yearOf(t) != 1870 {
 			t.Fatalf("date year %d", yearOf(t))
 		}

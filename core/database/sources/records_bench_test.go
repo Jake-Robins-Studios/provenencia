@@ -18,8 +18,9 @@ import (
 )
 
 // BenchmarkSourceRecords: Build of the records at 3,000 Sources of 10
-// Artifacts (every tenth assessed, every Source dated), and Apply of one commit that names an
-// ordinary Source and one that names a Source of 10,000 Artifacts.
+// Artifacts (every tenth assessed, every Source dated), and Apply of one
+// commit that names an ordinary Source and one that names a Source of 10,000
+// Artifacts.
 func BenchmarkSourceRecords(b *testing.B) {
 	const sourcesN, perSource, crafted = 3000, 10, 10000
 	c, err := database.Create(b.TempDir(), "t.provenencia")

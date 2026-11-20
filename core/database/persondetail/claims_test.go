@@ -28,6 +28,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/datevalue"
+	"github.com/Jake-Robins-Studios/provenencia/core/datevalue/datevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/matchregistry"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue"
 	"github.com/Jake-Robins-Studios/provenencia/core/valuemark"
@@ -205,11 +206,7 @@ func TestClaimsAfterSourceEdit(t *testing.T) {
 func TestClaimsSourceDate(t *testing.T) {
 	f := newFixture(t)
 	s := f.burialsAndBaptisms()
-	setDate := func(year *int) {
-		var date *datevalue.Value
-		if year != nil {
-			date = &datevalue.Value{Kind: datevalue.KindPoint, StartYear: year}
-		}
+	setDate := func(date *datevalue.Value) {
 		f.Run("set_source_date", func(tx *database.Tx) ([]rowchange.Change, error) {
 			_, ch, err := sources.SetDate(tx, userID, s.src.ID, date, valuemark.Mark{})
 			return ch, err
@@ -227,10 +224,9 @@ func TestClaimsSourceDate(t *testing.T) {
 	}
 	wantYear("before", 0)
 	f.recordLinks(s.person.ID) // loads the Source's Evidence graph
-	y1867, y1868 := 1867, 1868
-	setDate(&y1867)
+	setDate(datevaluetest.YMD(1867, 0, 0))
 	wantYear("set", 1867)
-	setDate(&y1868)
+	setDate(datevaluetest.YMD(1868, 0, 0))
 	wantYear("edit", 1868)
 	if _, ok := graphfill.Graphs.Peek(f.C.Graph(), s.burials.ID); !ok {
 		t.Fatal("a Source date edit dropped a loaded Evidence graph")
