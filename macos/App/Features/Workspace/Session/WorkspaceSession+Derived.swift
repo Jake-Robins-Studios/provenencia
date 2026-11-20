@@ -8,6 +8,8 @@ enum DerivedValueID: Hashable {
     case evidenceGraphText(graphID: String)
     case citationComposerVocabulary(graphID: String)
     case visibleSources
+    /// One Source type's Sources, most recently changed first (`SourcesModel.updatedOrder`).
+    case sourcesOfType(typeID: String)
     /// One page or section's content: the key it reads and the content's type,
     /// so one key opened as two page kinds holds two values.
     case conclusionContent(CatalogQueryKey, ObjectIdentifier)

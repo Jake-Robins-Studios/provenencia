@@ -39,6 +39,10 @@ enum CatalogMutation: Sendable, Equatable {
     /// page derives its suggested rows from the type, so each is marked stale.
     case wroteTypeSuggestions(typeId: String, level: Level, edit: CatalogTypeSuggestionEdit)
 
+    /// Bust-only: a Save carried citation formats. Every Source page derives which
+    /// fields its type's formats need from them, so each cached page is marked stale.
+    case changedCitationFormats(typeId: String)
+
     /// Bust-only: non-identity source page edits (notes, artifacts, credibility).
     case mutatedSourceWorkspace(sourceId: String)
 
@@ -163,6 +167,7 @@ enum CatalogMutationKind: Hashable, Sendable {
     case updatedMetadataField
     case deletedMetadataField
     case wroteTypeSuggestions
+    case changedCitationFormats
     case mutatedSourceWorkspace
 }
 
@@ -184,6 +189,8 @@ extension CatalogMutation {
             return .deletedMetadataField
         case .wroteTypeSuggestions:
             return .wroteTypeSuggestions
+        case .changedCitationFormats:
+            return .changedCitationFormats
         case .mutatedSourceWorkspace:
             return .mutatedSourceWorkspace
         }

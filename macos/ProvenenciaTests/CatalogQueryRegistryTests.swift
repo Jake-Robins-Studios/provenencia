@@ -949,6 +949,33 @@ struct CatalogQueryRegistryTests {
         #expect(!suggestionsHandle.isStale && !otherHandle.isStale && !typesHandle.isStale)
     }
 
+    /// STEP-5 (D-19): a Save that carried citation formats marks every cached Source page stale
+    /// and leaves the types list alone; a Details-only Save applies no such mutation.
+    @Test func changedCitationFormatsInvalidatesSourcePages() async {
+        let store = FakeStore()
+        seedStore(store)
+        store.sourcesByProject[projectDir]?.append(
+            CatalogSource(id: "s2", ref: "SRC-2", sourceTypeID: "t1", title: "Beta", description: "")
+        )
+        let session = makeSession(store: store)
+        let project = session.projectKey
+        let first: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s1"))
+        let second: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: project, sourceId: "s2"))
+        let types: QueryHandle<[CatalogSourceType]> = session.query(.sourceTypesList(project: project))
+        await waitForQuery(first)
+        await waitForQuery(second)
+        await waitForQuery(types)
+
+        #expect(session.registry.invalidations(by: .changedCitationFormats(typeId: "t1"), project: project) == [
+            .allCached(.sourceWorkspace),
+        ])
+        session.apply(.changedCitationFormats(typeId: "t1"))
+        await session.settleWrites()
+
+        #expect(first.isStale && second.isStale)
+        #expect(!types.isStale)
+    }
+
     @Test func sessionUsesStandardRegistryByDefault() {
         let session = makeSession()
         let key = CatalogQueryKey.sourcesList(project: session.projectKey)
