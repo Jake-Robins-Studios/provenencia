@@ -34,9 +34,8 @@ func Placeholders(c *database.Catalog, f citationformat.Form) ([]Placeholder, er
 			continue
 		}
 		for _, field := range fields {
-			text := citationformat.MetaPlaceholder(level, field.Key)
 			out = append(out, Placeholder{
-				Placeholder: citationformat.Placeholder{Level: level, Text: text, Ref: text[1 : len(text)-1]},
+				Placeholder: citationformat.MetaFieldPlaceholder(level, field.Key),
 				Field:       &field,
 			})
 		}

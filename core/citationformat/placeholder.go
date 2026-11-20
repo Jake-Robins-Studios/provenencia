@@ -20,7 +20,14 @@ type Placeholder struct {
 // MetaPlaceholder is the whole placeholder of metadata field key at level l,
 // written by key: {graph.meta.line_number}.
 func MetaPlaceholder(l vocabkey.Level, key string) string {
-	return "{" + metaRef(l, key) + "}"
+	return MetaFieldPlaceholder(l, key).Text
+}
+
+// MetaFieldPlaceholder is the placeholder row of metadata field key at level l:
+// no built-in, its Text and Ref (written by key) built from one ref.
+func MetaFieldPlaceholder(l vocabkey.Level, key string) Placeholder {
+	ref := metaRef(l, key)
+	return Placeholder{Level: l, Text: "{" + ref + "}", Ref: ref}
 }
 
 func metaRef(l vocabkey.Level, key string) string { return string(l) + ".meta." + key }

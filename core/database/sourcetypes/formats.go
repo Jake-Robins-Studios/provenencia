@@ -462,11 +462,7 @@ func UpdateWithFormats(tx *database.Tx, id []byte, label, description, iconKey s
 		view.Diagnostics = diags
 		return existing, view, nil, nil
 	}
-	next, err := nextOf(existing, label, description, iconKey)
-	if err != nil {
-		return Type{}, FormatsView{}, nil, err
-	}
-	change, err := applyTx(tx, existing, next, &stored)
+	got, changes, err := updateTx(tx, existing, label, description, iconKey, &stored)
 	if err != nil {
 		return Type{}, FormatsView{}, nil, err
 	}
@@ -474,14 +470,7 @@ func UpdateWithFormats(tx *database.Tx, id []byte, label, description, iconKey s
 	if err != nil {
 		return Type{}, FormatsView{}, nil, err
 	}
-	if change == nil {
-		return existing, view, nil, nil
-	}
-	got, err := getByIDTx(tx.Tx, id)
-	if err != nil {
-		return Type{}, FormatsView{}, nil, err
-	}
-	return got, view, []rowchange.Change{*change}, nil
+	return got, view, changes, nil
 }
 
 // writeStoredTx stores next (fields by id) as a type's three formats and

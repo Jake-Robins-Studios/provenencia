@@ -338,18 +338,26 @@ func Update(tx *database.Tx, id []byte, label, description, iconKey string) (Typ
 	if err != nil {
 		return Type{}, nil, err
 	}
+	return updateTx(tx, existing, label, description, iconKey, nil)
+}
+
+// updateTx applies a new label, description and icon (as nextOf reads them),
+// and stored formats when non-nil, to the editable type existing. It returns
+// the type as read after the write and its one change, or existing and no
+// change when nothing differs. It is the tail Update and UpdateWithFormats share.
+func updateTx(tx *database.Tx, existing Type, label, description, iconKey string, stored *Formats) (Type, []rowchange.Change, error) {
 	next, err := nextOf(existing, label, description, iconKey)
 	if err != nil {
 		return Type{}, nil, err
 	}
-	change, err := applyTx(tx, existing, next, nil)
+	change, err := applyTx(tx, existing, next, stored)
 	if err != nil {
 		return Type{}, nil, err
 	}
 	if change == nil {
 		return existing, nil, nil
 	}
-	got, err := getByIDTx(tx.Tx, id)
+	got, err := getByIDTx(tx.Tx, existing.ID)
 	if err != nil {
 		return Type{}, nil, err
 	}

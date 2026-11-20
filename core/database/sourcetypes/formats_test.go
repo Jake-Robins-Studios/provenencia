@@ -75,16 +75,22 @@ func newFormatFixture(t *testing.T) *formatFixture {
 	return f
 }
 
+// setFormatsTx saves a type's formats in tx with its own label, description and icon. It is
+// sourcetypestest.SetFormatsTx, which this package's own tests cannot import.
+func setFormatsTx(tx *database.Tx, typeID []byte, in Formats, choices ...FieldChoice) (FormatsView, []rowchange.Change, error) {
+	t, err := GetByIDTx(tx.Tx, typeID)
+	if err != nil {
+		return FormatsView{}, nil, err
+	}
+	_, view, changes, err := UpdateWithFormats(tx, typeID, t.Label, t.Description, t.IconKey, in, choices)
+	return view, changes, err
+}
+
 func (f *formatFixture) update(t *testing.T, typeID []byte, in Formats, choices ...FieldChoice) (FormatsView, writes.Result, error) {
 	t.Helper()
 	return writes.Run(f.c, writes.Op{Action: "update_source_type", UserID: f.userID},
 		func(tx *database.Tx) (FormatsView, []rowchange.Change, error) {
-			t, err := GetByIDTx(tx.Tx, typeID)
-			if err != nil {
-				return FormatsView{}, nil, err
-			}
-			_, view, changes, err := UpdateWithFormats(tx, typeID, t.Label, t.Description, t.IconKey, in, choices)
-			return view, changes, err
+			return setFormatsTx(tx, typeID, in, choices...)
 		})
 }
 
@@ -189,11 +195,7 @@ func TestUpdateWithFormats(t *testing.T) {
 		}
 		defer f.c.EndWrite()
 		defer func() { _ = tx.Rollback() }()
-		typ, err := GetByIDTx(tx.Tx, f.typeID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, _, changes, err := UpdateWithFormats(tx, f.typeID, typ.Label, typ.Description, typ.IconKey, Formats{Full: "{source.title}", Short: "{source.date}"}, nil)
+		_, changes, err := setFormatsTx(tx, f.typeID, Formats{Full: "{source.title}", Short: "{source.date}"})
 		if err != nil {
 			t.Fatal(err)
 		}
