@@ -50,10 +50,7 @@ var (
 // columns is the six source_types columns scanType reads, each prefixed with
 // alias and a dot when alias is not empty.
 func columns(alias string) string {
-	if alias != "" {
-		alias += "."
-	}
-	return alias + "id, " + alias + "key, " + alias + "origin, " + alias + "label, COALESCE(" + alias + "description, ''), " + alias + "icon_key"
+	return database.Columns(alias, "id", "key", "origin", "label", "description|COALESCE(%s, '')", "icon_key")
 }
 
 // scanType scans the columns list, then extra destinations.

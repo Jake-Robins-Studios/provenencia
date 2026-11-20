@@ -478,11 +478,8 @@ func lookupTx(tx *sql.Tx, key, origin string) (Field, error) {
 // Columns is the SELECT list ScanField reads, each column prefixed "alias." when
 // alias is not empty.
 func Columns(alias string) string {
-	p := ""
-	if alias != "" {
-		p = alias + "."
-	}
-	return p + "id, " + p + "key, " + p + "origin, " + p + "label, " + p + "data_type, COALESCE(" + p + "description, ''), COALESCE(" + p + "unknown_text, '')"
+	return database.Columns(alias, "id", "key", "origin", "label", "data_type",
+		"description|COALESCE(%s, '')", "unknown_text|COALESCE(%s, '')")
 }
 
 // ScanField scans a row of Columns, in that order, then any trailing columns

@@ -101,12 +101,9 @@ var (
 // columns is the nine citations columns scanRow reads, each prefixed with
 // alias and a dot when alias is not empty.
 func columns(alias string) string {
-	if alias != "" {
-		alias += "."
-	}
-	return alias + "id, " + alias + "ref, " + alias + "artifact_id, " + alias + "graph_id, " + alias + "locator_json, " +
-		"COALESCE(" + alias + "transcription, ''), COALESCE(" + alias + "label, ''), " +
-		alias + "transcription_uncertain, COALESCE(" + alias + "transcription_note, '')"
+	return database.Columns(alias, "id", "ref", "artifact_id", "graph_id", "locator_json",
+		"transcription|COALESCE(%s, '')", "label|COALESCE(%s, '')",
+		"transcription_uncertain", "transcription_note|COALESCE(%s, '')")
 }
 
 // Citation is one citations row.
