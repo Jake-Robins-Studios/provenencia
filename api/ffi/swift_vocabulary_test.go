@@ -57,7 +57,7 @@ const (
 	swiftNamePartType               = "../../macos/App/Platform/NamePartType.swift"
 	swiftWorkspaceLocation          = "../../macos/App/Features/Workspace/WorkspaceLocation.swift"
 	swiftLevel                      = "../../macos/App/Platform/Level.swift"
-	swiftCitationForm               = "../../macos/App/Platform/CitationForm.swift"
+	swiftCitationVocabulary         = "../../macos/App/Platform/CitationFormatVocabulary.swift"
 
 	swiftRegionGeometry     = "../../macos/App/Features/ArtifactViewer/ArtifactRegionGeometry.swift"
 	swiftProjectFiles       = "../../macos/App/Platform/ProjectFiles.swift"
@@ -429,9 +429,19 @@ var (
 	// levelListEntry reads one `.source,` entry per line of Level.metadataLevels.
 	levelListEntry = regexp.MustCompile(`(?m)^\s+\.(\w+),\s*$`)
 	unrecogniz     = regexp.MustCompile(`case unrecognized\(String\)`)
-	listCase       = regexp.MustCompile(`case \w+ = "([a-z_]+)"`)
+	listCase       = regexp.MustCompile(`case \w+ = "([a-z_.]+)"`)
 	subjectMark    = regexp.MustCompile(`case \w+ = "(subject_[a-z_]+)"`)
 )
+
+// citationBuiltinNames is level.name of every built-in placeholder, sorted.
+func citationBuiltinNames() []string {
+	var out []string
+	for _, b := range citationformat.Builtins() {
+		out = append(out, string(b.Level)+"."+b.Name)
+	}
+	sort.Strings(out)
+	return out
+}
 
 // subjectMarkSymbols is the sorted IconSymbol of every registry subject type;
 // Swift's PVMarkKey(subjectTypeKey:) builds "subject_<key>" and needs a case
@@ -546,8 +556,20 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 			want: sorted(strs(vocabkey.Levels())...),
 		},
 		{
-			name: "citation forms", path: swiftCitationForm, enum: "CitationForm", re: rawCase,
+			name: "citation forms", path: swiftCitationVocabulary, enum: "CitationForm", re: rawCase,
 			want: sorted(strs(citationformat.Forms())...),
+		},
+		{
+			name: "citation options", path: swiftCitationVocabulary, enum: "CitationOption", re: rawCase,
+			want: sorted(string(citationformat.OptionYear), string(citationformat.OptionFull)),
+		},
+		{
+			name: "citation diagnostic codes", path: swiftCitationVocabulary, enum: "CitationDiagnosticCode", re: listCase,
+			want: sorted(strs(citationformat.DiagnosticCodes())...),
+		},
+		{
+			name: "citation built-ins", path: swiftCitationVocabulary, enum: "CitationBuiltin", re: listCase,
+			want: citationBuiltinNames(),
 		},
 		{
 			name: "metadata levels", path: swiftLevel, enum: "Level", re: levelListEntry,
