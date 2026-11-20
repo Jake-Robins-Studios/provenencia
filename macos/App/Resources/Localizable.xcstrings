@@ -24364,6 +24364,1038 @@
           }
         }
       }
+    },
+    "sourceTypes.formats.sectionTitle": {
+      "comment": "Title of the citation formats section on a Source type page",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citation formats"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.sectionHint": {
+      "comment": "Hint under the citation formats section title on an editable type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How citations of this type are written. Fields in braces fill from the Source, its Artifact, its Evidence graph and the citation; text in square brackets drops out when a field in it is empty."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.sectionHintLocked": {
+      "comment": "Hint under the citation formats section title on a plugin type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How citations of this type are written. A plugin supplies these formats; they cannot be changed here."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.syntax.field": {
+      "comment": "Syntax strip meaning of { }, the braces around a field",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a field"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.syntax.or": {
+      "comment": "Syntax strip meaning of |, which takes the first field that has a value",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "or, if empty, the next"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.syntax.group": {
+      "comment": "Syntax strip meaning of [ ], an optional group",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "drops out when empty"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.syntax.italic": {
+      "comment": "Syntax strip meaning of * *, italic text",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "italic"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.syntax.escape": {
+      "comment": "Syntax strip meaning of a backslash, which makes the next character literal",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a literal { [ * or \\"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.notShown": {
+      "comment": "Preview line shown for a form whose format has a warning",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not shown while the format has a warning"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.placeholder.full": {
+      "comment": "Placeholder of an empty full note format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No full note: citations of this type show their plain citation line. Type { to add a field."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.placeholder.short": {
+      "comment": "Placeholder of an empty short note format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No short note. Type { to add a field."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.placeholder.list": {
+      "comment": "Placeholder of an empty source list format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No source list entry. Type { to add a field."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.completion.empty": {
+      "comment": "Line in the completion list when nothing matches; the argument is what was typed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No field matches “%@”"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.completion.opened": {
+      "comment": "Spoken when the completion list opens; the argument is the number of rows",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Field suggestions, %lld. Up and down to choose, Return to insert."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.completion.openedEmpty": {
+      "comment": "Spoken when the completion list opens with no rows",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No field suggestions match."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.completion.highlighted": {
+      "comment": "Spoken for the highlighted completion row; arguments are the placeholder name then its level",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.completion.inserted": {
+      "comment": "Spoken after a completion row is put in the format; the argument is its name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ inserted"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.count": {
+      "comment": "Character count of a format against its limit; arguments are the count then the limit, formatted for the locale",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.countSpoken": {
+      "comment": "Spoken character count of a format; arguments are the count then the limit",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ of %2$@ characters"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.warning.at": {
+      "comment": "Warning line; arguments are the message then the quoted text it is about",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ at “%2$@”"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.warning.hint": {
+      "comment": "VoiceOver hint of a warning line, which selects the text it is about",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selects it in the format"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.sharedKey.label": {
+      "comment": "Label of the select on a warning about a key two fields share; the argument is the key",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which %@ field?"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.sharedKey.option": {
+      "comment": "Option of that select; arguments are the field label then where it comes from",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.origin.provenencia": {
+      "comment": "Where a seeded field comes from, in a select option",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provenencia"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.origin.user": {
+      "comment": "Where a researcher-made field comes from, in a select option",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yours"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.origin.plugin": {
+      "comment": "Where a plugin field comes from, in a select option; the argument is the plugin id",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ plugin"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.title": {
+      "comment": "Micro-caps tag over a format's rendered preview",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.with": {
+      "comment": "Label of the Source picker above the previews",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview with"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.placeholder": {
+      "comment": "Placeholder of the preview Source picker; the argument is the type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a %@ Source"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.hint": {
+      "comment": "Hint under the preview Source picker",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full and short notes use the Source's first citation."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.noFormat": {
+      "comment": "Shown for a form with no format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No format"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.noSources": {
+      "comment": "Note where the preview picker would be when the type has no Sources; the argument is the type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No %@ Source yet. Add one to preview these formats; warnings still show."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.failedTitle": {
+      "comment": "Title of the retry callout when the preview call fails",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The preview could not be shown"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.spoken": {
+      "comment": "VoiceOver text of one preview; arguments are the form title then the rendered text",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.saveRefused": {
+      "comment": "Danger callout beside Save when a format has a warning and nothing was saved",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fix the marked formats, then save."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.toast.savedTitle": {
+      "comment": "Toast title after saving only citation formats",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citation formats saved"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.toast.savedBody": {
+      "comment": "Toast body after saving only citation formats; the argument is the type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@’s citations now use these formats."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.toast.bothBody": {
+      "comment": "Toast body after saving the details and the citation formats together; the argument is the type's label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ and its citation formats are saved."
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.readerLabel": {
+      "comment": "VoiceOver label of a read-only format; the argument is the form title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, read only"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.sourceTitle": {
+      "comment": "Name of the built-in placeholder sourceTitle",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.sourceType": {
+      "comment": "Name of the built-in placeholder sourceType",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.sourceDate": {
+      "comment": "Name of the built-in placeholder sourceDate",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.artifactLabel": {
+      "comment": "Name of the built-in placeholder artifactLabel",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Label"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.graphName": {
+      "comment": "Name of the built-in placeholder graphName",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.citationPage": {
+      "comment": "Name of the built-in placeholder citationPage",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.citationImage": {
+      "comment": "Name of the built-in placeholder citationImage",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.citationLabel": {
+      "comment": "Name of the built-in placeholder citationLabel",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Label"
+          }
+        }
+      }
+    },
+    "citationFormats.builtin.sourceDate.year": {
+      "comment": "Name of the Source date placeholder that prints only the year",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date, year only"
+          }
+        }
+      }
+    },
+    "citationFormats.level.source": {
+      "comment": "Plain name of the source level of a citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source"
+          }
+        }
+      }
+    },
+    "citationFormats.level.artifact": {
+      "comment": "Plain name of the artifact level of a citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Artifact"
+          }
+        }
+      }
+    },
+    "citationFormats.level.graph": {
+      "comment": "Plain name of the graph level of a citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evidence graph"
+          }
+        }
+      }
+    },
+    "citationFormats.level.citation": {
+      "comment": "Plain name of the citation level of a citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citation"
+          }
+        }
+      }
+    },
+    "citationFormats.form.full.title": {
+      "comment": "Title of the full citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full note"
+          }
+        }
+      }
+    },
+    "citationFormats.form.full.meaning": {
+      "comment": "Meaning line of the full citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first time a source is cited"
+          }
+        }
+      }
+    },
+    "citationFormats.form.short.title": {
+      "comment": "Title of the short citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short note"
+          }
+        }
+      }
+    },
+    "citationFormats.form.short.meaning": {
+      "comment": "Meaning line of the short citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each later citation"
+          }
+        }
+      }
+    },
+    "citationFormats.form.list.title": {
+      "comment": "Title of the list citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source list"
+          }
+        }
+      }
+    },
+    "citationFormats.form.list.meaning": {
+      "comment": "Meaning line of the list citation form",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The entry in a list of sources"
+          }
+        }
+      }
+    },
+    "citationFormats.missing": {
+      "comment": "Line under a preview naming what a needed placeholder lacks; the argument is the options",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing: %@"
+          }
+        }
+      }
+    },
+    "citationFormats.missing.option": {
+      "comment": "One option of a missing line; arguments are the name then the level name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ on the %2$@"
+          }
+        }
+      }
+    },
+    "citationFormats.missing.optionSameName": {
+      "comment": "A later option of a missing line with the first one's name; the argument is the level name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "on the %@"
+          }
+        }
+      }
+    },
+    "citationFormats.missing.join": {
+      "comment": "Joins the options of a missing line",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", or "
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.generic": {
+      "comment": "Warning message for the generic mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This part of the format cannot be read"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.too_long": {
+      "comment": "Warning message for the too_long mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too long: %1$@ characters, %2$@ over"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.too_deep": {
+      "comment": "Warning message for the too_deep mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many groups and italics inside each other"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unclosed_placeholder": {
+      "comment": "Warning message for the unclosed_placeholder mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unclosed field"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.stray_close_brace": {
+      "comment": "Warning message for the stray_close_brace mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This brace closes nothing"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unclosed_group": {
+      "comment": "Warning message for the unclosed_group mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unclosed group"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.stray_close_bracket": {
+      "comment": "Warning message for the stray_close_bracket mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This bracket closes no group"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unclosed_italic": {
+      "comment": "Warning message for the unclosed_italic mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unclosed italic"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.bad_escape": {
+      "comment": "Warning message for the bad_escape mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A backslash can only come before { } [ ] * or \\"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.group_without_placeholder": {
+      "comment": "Warning message for the group_without_placeholder mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A group needs a field in it"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.empty_option": {
+      "comment": "Warning message for the empty_option mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty field"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.bad_character": {
+      "comment": "Warning message for the bad_character mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A field name cannot hold this character"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unprefixed_meta": {
+      "comment": "Warning message for the unprefixed_meta mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name a level before meta: source, artifact or graph"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unknown_level": {
+      "comment": "Warning message for the unknown_level mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not a level: use source, artifact, graph or citation"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.meta_not_at_level": {
+      "comment": "Warning message for the meta_not_at_level mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A citation has no metadata fields"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.bad_field": {
+      "comment": "Warning message for the bad_field mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not a field key"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unknown_builtin": {
+      "comment": "Warning message for the unknown_builtin mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not a built-in field at this level"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unknown_option": {
+      "comment": "Warning message for the unknown_option mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This option does not apply here"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.not_in_list_form": {
+      "comment": "Warning message for the not_in_list_form mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source list reads the Source only"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.unknown_field": {
+      "comment": "Warning message for the unknown_field mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No field has the key %@"
+          }
+        }
+      }
+    },
+    "citationFormats.diagnostic.ambiguous_field": {
+      "comment": "Warning message for the ambiguous_field mistake in a citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two fields have the key %@: choose one"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.loading": {
+      "comment": "Caption while a Source type's citation formats are read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the citation formats"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.loadErrorTitle": {
+      "comment": "Title of the notice when a Source type's citation formats could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The citation formats could not be read"
+          }
+        }
+      }
+    },
+    "sourceTypes.formats.preview.noMatch": {
+      "comment": "Line in the preview Source picker when nothing matches what was typed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Source matches"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

@@ -30,7 +30,7 @@ struct PVTextAreaCompletionTests {
                 accepted.value.append(option.value)
                 return (text: option.value + "}", caretAfter: context.range.location + option.value.count + 1)
             },
-            emptyLabel: "No match"
+            emptyLabel: { _ in "No match" }
         )
     }
 

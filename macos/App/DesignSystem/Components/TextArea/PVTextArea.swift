@@ -529,8 +529,8 @@ final class PVTextAreaCompletion {
     /// What taking a row writes over the context's range, and where the caret
     /// goes (an offset in the new text); nil takes nothing.
     let accept: (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?
-    /// The line shown when no row matches.
-    let emptyLabel: String
+    /// The line shown when no row matches the query.
+    let emptyLabel: (String) -> String
     /// The text VoiceOver is told, or nil for nothing.
     let announce: (Announcement) -> String?
 
@@ -539,7 +539,7 @@ final class PVTextAreaCompletion {
         options: @escaping (String) -> [PVComboBoxOption],
         row: @escaping (PVComboBoxOption, String) -> AnyView,
         accept: @escaping (PVComboBoxOption, Context) -> (text: String, caretAfter: Int)?,
-        emptyLabel: String,
+        emptyLabel: @escaping (String) -> String,
         announce: @escaping (Announcement) -> String? = { _ in nil }
     ) {
         self.context = context
@@ -672,7 +672,7 @@ final class PVTextAreaCompletionSession {
 /// row height so the window is sized before it shows, and the caller's row view.
 struct PVTextAreaCompletionList: View {
     static let width: CGFloat = 360
-    static let rowHeight: CGFloat = 30
+    static let rowHeight: CGFloat = 40
     static let maxRows = 8
     private static let verticalPadding = PVSpacing.space2
 
@@ -703,7 +703,7 @@ struct PVTextAreaCompletionList: View {
                         .id(option.id)
                 }
                 if options.isEmpty {
-                    Text(verbatim: completion.emptyLabel)
+                    Text(verbatim: completion.emptyLabel(query))
                         .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
                         .foregroundStyle(PVColor.textMuted)
                         .padding(.horizontal, PVSpacing.space5)

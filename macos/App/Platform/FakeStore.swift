@@ -385,6 +385,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     private(set) var previewCalls: [RenderCitationPreviewCall] = []
     /// When set, `renderCitationPreview` throws.
     var previewError: Error?
+
+    /// Forgets the calls so far, so a test counts what its next step asks for.
+    func resetPreviewCalls() { withState { previewCalls = [] } }
     /// What `citationPlaceholders` answers, by form.
     var placeholdersByForm: [CitationForm: [CatalogCitationPlaceholder]] = [:]
     var lastResult = OnboardingResult(
