@@ -19667,7 +19667,7 @@
       }
     },
     "publishedDate.label": {
-      "comment": "Label before a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)",
+      "comment": "Label before a Source's published date on a Sources list row",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -19679,7 +19679,7 @@
       }
     },
     "publishedDate.none": {
-      "comment": "A row's text when the Source has no date, with the label: a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)",
+      "comment": "A row's text when the Source has no date, with the label: a Source's published date on a Sources list row",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -19691,7 +19691,7 @@
       }
     },
     "publishedDate.help": {
-      "comment": "Hover text on a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date",
+      "comment": "Hover text on a Source's published date in the Sources list and the Person page's Sources section; argument is the date",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -19703,7 +19703,7 @@
       }
     },
     "publishedDate.spoken": {
-      "comment": "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date",
+      "comment": "VoiceOver part of a Source's row in the Sources list and the Person page's Sources section; argument is the date",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -19715,7 +19715,7 @@
       }
     },
     "publishedDate.noneSpoken": {
-      "comment": "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form) with no date",
+      "comment": "VoiceOver part of a Source's row in the Sources list and the Person page's Sources section with no date",
       "extractionState": "manual",
       "localizations": {
         "en": {

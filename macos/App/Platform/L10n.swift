@@ -11086,27 +11086,27 @@ enum L10n {
         }
     }
 
-    /// A Source's published date on a row (the Sources list, the Person page's
-    /// Sources section, the Source page header, the Copy Source form): the label,
-    /// the text for no date, the hover help and the spoken parts.
+    /// A Source's published date on a Sources list row and in the Person page's
+    /// Sources section: the label, the text for no date, the hover help and the
+    /// spoken parts.
     enum PublishedDate {
         static let label = LocalizedStringResource(
             "publishedDate.label",
             defaultValue: "Published",
-            comment: "Label before a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)"
+            comment: "Label before a Source's published date on a Sources list row"
         )
 
         static let none = LocalizedStringResource(
             "publishedDate.none",
             defaultValue: "No published date",
-            comment: "A row's text when the Source has no date, with the label: a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)"
+            comment: "A row's text when the Source has no date, with the label: a Source's published date on a Sources list row"
         )
 
         static func help(date: String) -> String {
             return L10n.format(LocalizedStringResource(
                 "publishedDate.help",
                 defaultValue: "Published %@",
-                comment: "Hover text on a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date"
+                comment: "Hover text on a Source's published date in the Sources list and the Person page's Sources section; argument is the date"
             ), date)
         }
 
@@ -11114,14 +11114,14 @@ enum L10n {
             return L10n.format(LocalizedStringResource(
                 "publishedDate.spoken",
                 defaultValue: "published %@",
-                comment: "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date"
+                comment: "VoiceOver part of a Source's row in the Sources list and the Person page's Sources section; argument is the date"
             ), date)
         }
 
         static let noneSpoken = LocalizedStringResource(
             "publishedDate.noneSpoken",
             defaultValue: "no published date",
-            comment: "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form) with no date"
+            comment: "VoiceOver part of a Source's row in the Sources list and the Person page's Sources section with no date"
         )
     }
 
