@@ -45,7 +45,7 @@ const (
 	ReadEvidenceGraphs Read = "evidence_graphs"
 	// ReadPropertyTerms: the terms of a Property (the term list).
 	ReadPropertyTerms Read = "property_terms"
-	// ReadSourceRecords: the words of a Source: its row, its Artifacts'
+	// ReadSourceRecords: the words of a Source: its row, its date, its Artifacts'
 	// labels, its credibility (the Source records entry and the app's page
 	// inputs). A table the record gains adds its path here.
 	ReadSourceRecords Read = "source_records"
@@ -287,17 +287,23 @@ func valueSource(col string) Path {
 
 // ownedValue is the effect of a value row an Observation owns in col: the
 // change carries the Evidence graphs, the Source and the handles of the
-// Observations that hold it. Each owners path adds a further owner of the row
-// (a Source that holds it in its own column) to the Sources the change reaches.
-func ownedValue(entity, col string, owners ...Path) Effect {
+// Observations that hold it. Each sourceOwners path adds a further owner of the
+// row, a Source that holds it in its own column, and so ends at sources: it
+// joins the Sources the change reaches (SourceScope) and moves that Source's
+// record (ReadSourceRecords).
+func ownedValue(entity, col string, sourceOwners ...Path) Effect {
 	source := valueSource(col)
-	if len(owners) > 0 {
-		source = union(append([]Path{source}, owners...)...)
+	reads := []ReadPath{{ReadCitations, valueGraph(col)}}
+	if len(sourceOwners) > 0 {
+		source = union(append([]Path{source}, sourceOwners...)...)
+		for _, owner := range sourceOwners {
+			reads = append(reads, ReadPath{ReadSourceRecords, owner})
+		}
 	}
 	return Effect{
 		Entity:        entity,
 		EvidenceGraph: valueGraph(col),
-		Reads:         []ReadPath{{ReadCitations, valueGraph(col)}},
+		Reads:         reads,
 		SourceScope:   source,
 		Handles:       valueMembers(col),
 		HandleScope:   valueMembers(col),

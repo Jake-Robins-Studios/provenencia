@@ -21,7 +21,7 @@ func TestReadsDeclare(t *testing.T) {
 			"evidence_graph_artifacts", "evidence_graphs",
 		},
 		// The tables sources.loadRecords reads.
-		ReadSourceRecords: {"artifacts", "source_credibility_assessments", "sources"},
+		ReadSourceRecords: {"artifacts", "date_values", "source_credibility_assessments", "sources"},
 	}
 	got := map[Read][]string{}
 	for table, eff := range registry {
