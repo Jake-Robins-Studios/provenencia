@@ -58,13 +58,9 @@ enum PVPopupInput: Equatable {
         case 119: return .end
         case 36, 76: return .return
         default:
-            guard let characters, characters.count == 1,
-                  let character = characters.first,
-                  PVTypeSelectMatcher.isTypeSelectCharacter(character),
-                  !modifiers.contains(.command),
-                  !modifiers.contains(.control)
-            else { return nil }
-            return KeyEquivalent(character)
+            return PVTypeSelectMatcher.typeSelectCharacter(
+                characters, command: modifiers.contains(.command), control: modifiers.contains(.control)
+            ).map { KeyEquivalent($0) }
         }
     }
 
@@ -84,7 +80,7 @@ enum PVPopupDecision: Equatable {
     case pass
     /// Close the popup; `consumesEvent` also swallows the event.
     case close(consumesEvent: Bool)
-    /// The press that opened the popup is being released: the flag clears and
+    /// The press that opened the popup is being released (`PVPopupOpeningPress`);
     /// the event goes on.
     case endOpeningPress
     /// Hand the key to the popup; it is swallowed when the popup handles it.
@@ -110,6 +106,40 @@ enum PVPopupDecision: Equatable {
             return .close(consumesEvent: false)
         }
     }
+}
+
+/// The press that opened a popup, and whether its release is still to come
+/// (D-5). A release only ends it, and passes through, never closes the popup.
+/// When the popup opened on a mouse-down, that press's `eventNumber` names the
+/// release (a mouse-up carries its mouse-down's number), so a tap-to-click or
+/// fast click whose release is still queued when the watcher arms is still
+/// recognised. Otherwise the buttons held at arm time say it: the next
+/// mouse-up of any button.
+struct PVPopupOpeningPress {
+    private var openingNumber: Int?
+    private var isPending: Bool
+
+    init(openingEvent: NSEvent?, pressedMouseButtons: Int) {
+        switch openingEvent?.type {
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+            openingNumber = openingEvent?.eventNumber
+            isPending = true
+        default:
+            openingNumber = nil
+            isPending = pressedMouseButtons != 0
+        }
+    }
+
+    /// True once, for the mouse-up that releases the opening press.
+    mutating func endsOpeningPress(_ event: NSEvent) -> Bool {
+        guard isPending else { return false }
+        if let openingNumber, event.eventNumber != openingNumber { return false }
+        isPending = false
+        return true
+    }
+
+    /// For the decision table: nothing pending.
+    static let none = PVPopupOpeningPress(openingEvent: nil, pressedMouseButtons: 0)
 }
 
 private struct PVPopupRepresentable: NSViewRepresentable {
@@ -151,8 +181,9 @@ private final class PVPopupWatcherView: NSView {
     nonisolated(unsafe) private var monitor: Any?
     nonisolated(unsafe) private var resignObserver: Any?
     private var isArming = false
-    /// True while the press that opened the popup has not been released.
-    private var openingPressPending = false
+    /// The event current when the popup turned presented (D-5).
+    private var openingEvent: NSEvent?
+    private var openingPress = PVPopupOpeningPress.none
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -170,6 +201,7 @@ private final class PVPopupWatcherView: NSView {
             // One main-queue turn after it opens, so the event that opened it
             // is already delivered.
             isArming = true
+            openingEvent = NSApp.currentEvent
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 isArming = false
@@ -182,7 +214,9 @@ private final class PVPopupWatcherView: NSView {
 
     private func arm() {
         guard monitor == nil, let window else { return }
-        openingPressPending = NSEvent.pressedMouseButtons != 0
+        openingPress = PVPopupOpeningPress(
+            openingEvent: openingEvent, pressedMouseButtons: NSEvent.pressedMouseButtons
+        )
         var mask: NSEvent.EventTypeMask = [
             .leftMouseUp, .rightMouseUp, .otherMouseUp, .rightMouseDown, .otherMouseDown,
         ]
@@ -205,22 +239,26 @@ private final class PVPopupWatcherView: NSView {
         if let resignObserver { NotificationCenter.default.removeObserver(resignObserver) }
         monitor = nil
         resignObserver = nil
-        openingPressPending = false
+        openingEvent = nil
+        openingPress = .none
     }
 
     /// True when the event is swallowed.
     private func handle(_ event: NSEvent) -> Bool {
         guard let input = PVPopupInput(event) else { return false }
-        return apply(input)
+        let releasesOpeningPress: Bool
+        if case .mouseUp = input {
+            releasesOpeningPress = openingPress.endsOpeningPress(event)
+        } else {
+            releasesOpeningPress = false
+        }
+        return apply(input, openingPressPending: releasesOpeningPress)
     }
 
     /// Applies the decision. True when the event is swallowed.
-    private func apply(_ input: PVPopupInput) -> Bool {
+    private func apply(_ input: PVPopupInput, openingPressPending: Bool = false) -> Bool {
         switch PVPopupDecision.decide(input, openingPressPending: openingPressPending, options: options) {
-        case .pass:
-            return false
-        case .endOpeningPress:
-            openingPressPending = false
+        case .pass, .endOpeningPress:
             return false
         case .close(let consumesEvent):
             // After the event is delivered: a button that opened the popup

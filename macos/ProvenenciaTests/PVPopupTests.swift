@@ -112,3 +112,61 @@ struct PVPopupInputTests {
         #expect(PVPopupInput.isPopupWindow(level: .screenSaver))
     }
 }
+
+@Suite
+struct PVPopupOpeningPressTests {
+    private func mouse(_ type: NSEvent.EventType, number: Int) -> NSEvent {
+        NSEvent.mouseEvent(
+            with: type, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0,
+            context: nil, eventNumber: number, clickCount: 1, pressure: 1
+        )!
+    }
+
+    @Test func queuedReleaseOfTheOpeningPressEndsIt() {
+        var press = PVPopupOpeningPress(
+            openingEvent: mouse(.leftMouseDown, number: 7), pressedMouseButtons: 0
+        )
+        let r1 = press.endsOpeningPress(mouse(.leftMouseUp, number: 7))
+        #expect(r1)
+        let r2 = press.endsOpeningPress(mouse(.leftMouseUp, number: 7))
+        #expect(!r2)
+    }
+
+    @Test func anotherReleaseIsNotTheOpeningRelease() {
+        var press = PVPopupOpeningPress(
+            openingEvent: mouse(.leftMouseDown, number: 7), pressedMouseButtons: 1
+        )
+        let r3 = press.endsOpeningPress(mouse(.leftMouseUp, number: 8))
+        #expect(!r3)
+        let r4 = press.endsOpeningPress(mouse(.leftMouseUp, number: 7))
+        #expect(r4)
+        let r5 = press.endsOpeningPress(mouse(.leftMouseUp, number: 7))
+        #expect(!r5)
+    }
+
+    @Test func noRecordedPressFallsBackToHeldButtons() {
+        var held = PVPopupOpeningPress(openingEvent: nil, pressedMouseButtons: 1)
+        let r6 = held.endsOpeningPress(mouse(.rightMouseUp, number: 3))
+        #expect(r6)
+        let r7 = held.endsOpeningPress(mouse(.leftMouseUp, number: 4))
+        #expect(!r7)
+
+        var none = PVPopupOpeningPress(openingEvent: nil, pressedMouseButtons: 0)
+        let r8 = none.endsOpeningPress(mouse(.leftMouseUp, number: 4))
+        #expect(!r8)
+    }
+
+    @Test func aMouseUpOpeningIsNotRecorded() {
+        var held = PVPopupOpeningPress(
+            openingEvent: mouse(.leftMouseUp, number: 7), pressedMouseButtons: 1
+        )
+        let r9 = held.endsOpeningPress(mouse(.leftMouseUp, number: 9))
+        #expect(r9)
+
+        var none = PVPopupOpeningPress(
+            openingEvent: mouse(.leftMouseUp, number: 7), pressedMouseButtons: 0
+        )
+        let r10 = none.endsOpeningPress(mouse(.leftMouseUp, number: 7))
+        #expect(!r10)
+    }
+}
