@@ -1,7 +1,7 @@
 # Ship log — S15-16 Citations render through their type's formats
 
 **Plan:** [`S15-16-citations-render.md`](S15-16-citations-render.md) · **Branch:** `s15-16-citations-render` · **PR:** #914
-**State:** ready
+**State:** fixing (user request)
 
 ## Round 0 — implement
 Head `07676275d`. Gate PASS (orchestrator run, against `1f927d4b5`). Report: no deviations from Decisions, Scope or Out; test worlds built in `render_test.go` through the plan's writes, two crafted cases use `PRAGMA foreign_keys=OFF`.
@@ -102,3 +102,24 @@ No new blockers. Nits (logged): `MNT-11 · core/database/sqlin.go:31 · gofmt tu
 
 ## Result
 Gate PASS · CI green (test ×2, localizable) · open: none · follow-ups: ToStored rewrite can exceed `MaxFormatBytes` (home pending the user) · to user: UX-1 (answered 2026-11-19: add `citations.not_found`)
+
+## User request after round 2 — two format limits (2026-11-19)
+The follow-up (a format under the limit as typed can exceed it once `ToStored` swaps keys for `#<uuid>`) moved onto this PR at the user's request. User decisions: two limits; the one the researcher sees counts **characters**, not bytes; the parse limit is that plus margin sized from the seeds.
+Sizing: the 72 seeded format strings hold at most 22 field placeholders (doubled: 44). Each placeholder grows by 37 − key length on save (seed keys 3–20, mean 8.4; worst 1-char key: +36). 44 × 36 = 1,584 bytes. A full 4,000-character format at up to ~1.6 bytes per character plus 1,584 fits in 8,192 bytes. Largest seeded stored format: 1,291 bytes; largest stored/typed ratio 2.2×.
+
+**F-10 — Two format limits: characters typed, bytes parsed** (user request)
+Files: `core/citationformat/parse.go`, `core/database/sourcetypes/formats.go`, `core/database/deleteimpact/formatrefs.go`, `macos/App/Platform/CitationFormatVocabulary.swift`, `api/ffi/swift_vocabulary_test.go`, `docs/citation-formats.md`, the plan's Landed note, `docs/deployment-plan/spike-15/deployment-plan.md` (S15-17 scope entry).
+Failing tests first (`sourcetypes`, `citationrender`, `citationformat`):
+- a format of many short-key placeholders under 4,000 characters typed but over 4,096 bytes once stored saves through `ToStored` and previews (renders, no diagnostic) — fails today with an empty preview;
+- a format of 4,001 characters (ASCII) is refused by `ToStored` with `too_long` over the whole typed text; 4,000 characters of multi-byte text (e.g. `é`) is not refused for length;
+- a typed format under 4,000 characters whose stored text exceeds 8,192 bytes (crafted: many one-character keys, or multi-byte literal text) is refused by `ToStored` with `too_long` over the whole typed text, never stored;
+- `Parse` refuses text over 8,192 bytes with `too_long`.
+Do:
+- In `citationformat`: `MaxFormatChars = 4000` (the limit the researcher sees, counted in Unicode code points, `utf8.RuneCountInString`) and `MaxFormatBytes = 8 << 10` (the parse limit on any text, typed or stored). Doc comments say which is which and where the margin comes from (44 placeholders × 36 bytes, from the seeds). `Parse` keeps checking bytes, against the new value.
+- In `sourcetypes.ToStored`: before anything else, each form whose typed text has more than `MaxFormatChars` characters gets `too_long` (span: the whole text) and the call returns diagnostics only, the same shape as today's. After the key→id rewrite, any form whose stored text is over `MaxFormatBytes` gets `too_long` over the whole typed text. Both go through the existing `sortByForm` diagnostic return.
+- `deleteimpact/formatrefs.go` keeps using `citationformat.MaxFormatBytes` (now the stored limit); check its comment still reads true.
+- Swift: add the limit the editor shows, `CitationFormatLimit.maxCharacters = 4000`, in `CitationFormatVocabulary.swift`, and a parity row in `TestSwiftVocabularyMatchesGo` reading `citationformat.MaxFormatChars`, so a change in Go fails a test, not a screen.
+- `docs/citation-formats.md`: "A format holds at most 4,000 characters (stored, at most 8,192 bytes)…" and the `too_long` row: "More than 4,000 characters, or more than 8,192 bytes once its fields are stored by id".
+- S15-17's map scope entry (no plan yet): add that the editor shows how many of the 4,000 characters are used, counting Unicode scalars (`unicodeScalars.count`, matching Go's code points), from `CitationFormatLimit.maxCharacters`.
+- The plan's Landed note: the two limits, by user decision 2026-11-19.
+Check: the four tests pass; `TestSwiftVocabularyMatchesGo` green; existing parse, fuzz, seed-install and delete-impact tests green; `scripts/check-pr.sh` PASS.
