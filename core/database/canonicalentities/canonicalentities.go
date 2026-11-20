@@ -289,14 +289,10 @@ func SetPreferredLikeness(tx *database.Tx, userID, entityID, observationID []byt
 	if _, err := tx.Exec(sqlSetPreferred, database.NullBlob(observationID), entityID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "canonical_entity",
-		EntityID:   append([]byte(nil), entityID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"preferred_likeness_observation_id": {Old: database.UUIDJSON(prev), New: database.UUIDJSON(observationID)},
-		},
-	}}, nil
+	change := rowchange.Updated("canonical_entity", entityID,
+		map[string]any{"preferred_likeness_observation_id": database.UUIDJSON(prev)},
+		map[string]any{"preferred_likeness_observation_id": database.UUIDJSON(observationID)})
+	return []rowchange.Change{*change}, nil
 }
 
 func mapConstraint(err error) error {

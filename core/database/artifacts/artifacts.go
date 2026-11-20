@@ -182,30 +182,15 @@ func Update(tx *database.Tx, userID []byte, a Artifact, graphs evidencegraphs.Gr
 		}
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if !bytes.Equal(prev.FileID, a.FileID) {
-		fields["file_id"] = rowchange.FieldDiff{
-			Old: database.UUIDJSON(prev.FileID),
-			New: database.UUIDJSON(a.FileID),
-		}
-	}
-	if prev.Label != a.Label {
-		fields["label"] = rowchange.FieldDiff{Old: prev.Label, New: a.Label}
-	}
-	if prev.Description != a.Description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(prev.Description), New: database.NullString(a.Description)}
-	}
 	var changes []rowchange.Change
-	if len(fields) > 0 {
+	change := rowchange.Updated("artifact", a.ID,
+		map[string]any{"file_id": database.UUIDJSON(prev.FileID), "label": prev.Label, "description": database.NullString(prev.Description)},
+		map[string]any{"file_id": database.UUIDJSON(a.FileID), "label": a.Label, "description": database.NullString(a.Description)})
+	if change != nil {
 		if _, err := tx.Exec(sqlUpdate, database.NullBlob(a.FileID), a.Label, database.NullString(a.Description), a.ID); err != nil {
 			return nil, mapConstraint(err)
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "artifact",
-			EntityID:   append([]byte(nil), a.ID...),
-			Action:     rowchange.ActionUpdate,
-			Fields:     fields,
-		})
+		changes = append(changes, *change)
 	}
 	if graphs.Given {
 		linked, err := evidencegraphs.SetArtifactGraphs(tx, userID, a.ID, graphs.IDs)

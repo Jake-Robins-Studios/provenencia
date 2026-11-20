@@ -171,26 +171,17 @@ func Update(tx *database.Tx, userID, id []byte, label, description string) ([]ro
 		return nil, err
 	}
 
-	fields := map[string]rowchange.FieldDiff{}
-	if prev.Label != label {
-		fields["label"] = rowchange.FieldDiff{Old: database.NullString(prev.Label), New: database.NullString(label)}
-	}
-	if prev.Description != description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(prev.Description), New: database.NullString(description)}
-	}
-	if len(fields) == 0 {
+	change := rowchange.Updated("subject", id,
+		map[string]any{"label": database.NullString(prev.Label), "description": database.NullString(prev.Description)},
+		map[string]any{"label": database.NullString(label), "description": database.NullString(description)})
+	if change == nil {
 		return nil, nil
 	}
 
 	if _, err := tx.Exec(sqlUpdate, database.NullString(label), database.NullString(description), id); err != nil {
 		return nil, mapConstraint(err)
 	}
-	return []rowchange.Change{{
-		EntityType: "subject",
-		EntityID:   append([]byte(nil), id...),
-		Action:     rowchange.ActionUpdate,
-		Fields:     fields,
-	}}, nil
+	return []rowchange.Change{*change}, nil
 }
 
 // Delete erases a Subject when Impact allows it. Connection facets (edge +

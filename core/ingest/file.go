@@ -244,20 +244,16 @@ func SetFilename(tx *database.Tx, fileID []byte, name string, userID []byte) ([]
 		}
 		return nil, err
 	}
-	if existing.OriginalFilename == name {
+	change := rowchange.Updated("file", fileID,
+		map[string]any{"original_filename": existing.OriginalFilename},
+		map[string]any{"original_filename": name})
+	if change == nil {
 		return nil, nil
 	}
 	if err := files.UpdateOriginalFilename(tx.Tx, fileID, name); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "file",
-		EntityID:   append([]byte(nil), fileID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"original_filename": {Old: existing.OriginalFilename, New: name},
-		},
-	}}, nil
+	return []rowchange.Change{*change}, nil
 }
 
 func lookupFile(tx *database.Tx, id []byte) (files.File, error) {

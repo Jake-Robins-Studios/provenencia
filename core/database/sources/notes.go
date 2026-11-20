@@ -120,20 +120,14 @@ func UpdateNote(tx *database.Tx, userID, noteID []byte, body string) ([]rowchang
 	if err != nil {
 		return nil, err
 	}
-	if prev.Body == body {
+	change := rowchange.Updated("source_note", noteID, map[string]any{"body": prev.Body}, map[string]any{"body": body})
+	if change == nil {
 		return nil, nil
 	}
 	if _, err := tx.Exec(sqlUpdateNote, body, noteID); err != nil {
 		return nil, err
 	}
-	return []rowchange.Change{{
-		EntityType: "source_note",
-		EntityID:   append([]byte(nil), noteID...),
-		Action:     rowchange.ActionUpdate,
-		Fields: map[string]rowchange.FieldDiff{
-			"body": {Old: prev.Body, New: body},
-		},
-	}}, nil
+	return []rowchange.Change{*change}, nil
 }
 
 // DeleteNote removes a note. The caller records the returned changes.

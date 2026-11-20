@@ -272,23 +272,13 @@ func Update(tx *database.Tx, userID, graphID []byte, in UpdateInput) ([]rowchang
 	}
 
 	var changes []rowchange.Change
-	fields := map[string]rowchange.FieldDiff{}
-	if g.Name != in.Name {
-		fields["name"] = rowchange.FieldDiff{Old: g.Name, New: in.Name}
-	}
-	if g.Description != in.Description {
-		fields["description"] = rowchange.FieldDiff{Old: database.NullString(g.Description), New: database.NullString(in.Description)}
-	}
-	if len(fields) > 0 {
+	if change := rowchange.Updated("evidence_graph", graphID,
+		map[string]any{"name": g.Name, "description": database.NullString(g.Description)},
+		map[string]any{"name": in.Name, "description": database.NullString(in.Description)}); change != nil {
 		if _, err := tx.Exec(sqlUpdate, in.Name, database.NullString(in.Description), graphID); err != nil {
 			return nil, mapConstraint(err)
 		}
-		changes = append(changes, rowchange.Change{
-			EntityType: "evidence_graph",
-			EntityID:   append([]byte(nil), graphID...),
-			Action:     rowchange.ActionUpdate,
-			Fields:     fields,
-		})
+		changes = append(changes, *change)
 	}
 
 	if len(in.ArtifactIDs) == 0 {
