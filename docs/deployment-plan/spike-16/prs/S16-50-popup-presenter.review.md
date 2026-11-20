@@ -1,7 +1,7 @@
 # Review — S16-50 One kit popup presenter, and the kit menus use it
 
 **Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - None.
@@ -64,3 +64,32 @@ D-13 said Home/End go "through the shared mover" without the `delta` that `PVCom
 
 ### M-7 · minor · After D-9 the two popup window hosts are near-copies
 **Answer:** Logged — an Out row sends one child-panel host for the context menu and the combo box to S16-51, which moves the combo box's window.
+
+## Round 2
+
+Both reviewers checked every round-1 answer against the code; all hold except M-4's first wording, which X-9 and M-8 caught.
+
+### X-9 / M-8 · blocker · `.pvActionMenu`'s `onKey` cannot reach the action registry
+The registry is private to `PVContextMenuPresenter` (`PVContextMenu.swift`), and S16-53 would have had to copy the key application.
+**Answer:** Fixed — D-11 and D-19: the presenter, which holds the registry, applies `handle`'s result whenever it has a `keyboard` binding and `keysStayInField` is false; `pvContextMenu` has no `onKey:` parameter; D-18's `.pvActionMenu` only holds and seeds the keyboard, passing nil when no item is enabled (as today).
+
+### X-10 · major · STEP-4's `rg` check fails on text STEP-5 changes
+**Answer:** Fixed — STEP-4's `rg` skips the README, and the `PVActionMenu.swift` header rewrite moved into STEP-4; STEP-5 checks `keyboardTitles` is gone from the README and skills.
+
+### X-11 · minor · ⌥↑/⌥↓ are not passed on today
+**Answer:** Fixed — the Out row says menus move ⌥↑/⌥↓ one row, as today.
+
+### X-12 · minor · `jumpCommitted` re-committing the same index
+**Answer:** Fixed — D-17: it commits only when the result differs.
+
+### X-13 · minor · Smaller choices
+**Answer:** Fixed — D-15 writes `PVComboBoxMatch.move`'s call; D-18 passes no keyboard when no item is enabled, as today. The seed-before-key order needs no rule (the reviewer confirmed it holds).
+
+### M-9 · blocker · The type-select cycle is written three times
+`PVContextMenuKeyboard.applyTypeSelect`, `PVSelectSession.applyTypeSelect` and `PVTable`'s key handler each repeat the append-and-cycle step; three places repeat the letter test.
+**Answer:** Fixed — D-16: `PVTypeSelectMatcher.advance` and `isTypeSelectCharacter`; the three callers and `PVSelect.handleTriggerKey` call them; STEP-1 lists `PVTable.swift` and `PVSelect.swift` and runs `PVTableTests` unchanged; T-4 covers `advance`.
+
+### Noted (not raised) · `PVSelectSession.jumpHighlight` hand-rolls Home/End
+**Answer:** Logged — an open `PVSelect` has no disabled rows, so it cannot go wrong; it stays under the Out row "`PVSelectSession`'s key handling". A later PR that gives `PVSelect` disabled rows moves it onto `PVListKeyboard.action`.
+
+**Stop.** Two rounds done; no blocker open; nothing To user.
