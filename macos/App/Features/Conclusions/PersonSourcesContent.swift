@@ -29,7 +29,9 @@ struct PersonSourcesContent: Equatable {
         /// Nil when the type id is not in the types list.
         var typeLabel: String?
         var ref: String
-        /// The row as one VoiceOver element: "Hamburg census 1867, Census, date not recorded, SRC-9TQ2M".
+        /// The Source's own date; nil when undated or marked unknown.
+        var date: CatalogDateValueInput?
+        /// The row as one VoiceOver element: "Hamburg census 1867, Census, published 1867, SRC-9TQ2M".
         var accessibilityLabel: String
         var location: WorkspaceLocation
         /// The lines shown, in the read's order.
@@ -173,16 +175,16 @@ struct PersonSourcesContent: Equatable {
             }
             let title = PVTitleSource.name(group.title)
             let typeLabel = sourceTypes.label(forTypeID: group.sourceTypeID)
-            let date = L10n.string(L10n.Conclusions.sourcesDateNotRecorded)
             return Row(
                 id: group.sourceID,
                 title: title,
                 helpTitle: title.text,
                 typeLabel: typeLabel,
                 ref: group.sourceRef,
-                accessibilityLabel: L10n.DesignSystem.spokenJoin([
-                    title.text, typeLabel ?? "", date, group.sourceRef,
-                ]) ?? "",
+                date: group.sourceDate,
+                accessibilityLabel: SourceDateText.spokenRow(
+                    title: title.text, type: typeLabel ?? "", ref: group.sourceRef, date: group.sourceDate
+                ),
                 location: SourcesListNavigation.pageLocation(
                     sourceId: group.sourceID, ref: group.sourceRef, title: group.title
                 ),

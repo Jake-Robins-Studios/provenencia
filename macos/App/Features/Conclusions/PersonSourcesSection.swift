@@ -388,9 +388,7 @@ private struct PersonSourcesRowView: View {
         HStack(alignment: .firstTextBaseline, spacing: PersonSourcesColumns.spacing) {
             title.personSourcesCitationCell()
             typeCell.personSourcesTypeCell().accessibilityHidden(true)
-            Text(L10n.Conclusions.sourcesDateNone)
-                .font(PVFont.body(size: PVTypeScale.caption))
-                .foregroundStyle(PVColor.textMuted)
+            PVPublishedDate(date: row.date, style: .bare)
                 .personSourcesDateCell()
                 .accessibilityHidden(true)
             Text(verbatim: row.ref)

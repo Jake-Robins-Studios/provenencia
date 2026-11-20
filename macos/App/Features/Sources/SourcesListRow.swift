@@ -74,7 +74,7 @@ struct SourcesListRow: View {
         .buttonStyle(PVListRowStyle(focused: nil))
         .accessibilityLabel(Text(L10n.Sources.openSourcePage))
         .accessibilityValue(Text(verbatim: PVLastUpdated.label(
-            Self.spokenBase(
+            SourceDateText.spokenRow(
                 title: source.title, type: model.typeLabel(for: source), ref: source.ref, date: source.date
             ),
             updatedAt: source.updated.at,
@@ -95,14 +95,6 @@ struct SourcesListRow: View {
 
     private var showsRecordLine: Bool { columns.datePlacement == .recordLine }
 
-    /// What VoiceOver reads before the last update: the record's facts, then its ref.
-    static func spokenBase(
-        title: String, type: String, ref: String, date: CatalogDateValueInput?,
-        locale: Locale = .autoupdatingCurrent
-    ) -> String {
-        L10n.DesignSystem.spokenJoin([title, type, SourcesRowDate.spoken(date, locale: locale), ref]) ?? title
-    }
-
     private var typeText: some View {
         Text(verbatim: model.typeLabel(for: source))
             .font(PVFont.body(size: PVTypeScale.caption))
@@ -119,7 +111,7 @@ struct SourcesListRow: View {
         case .underType:
             VStack(alignment: .leading, spacing: PVSpacing.space1) {
                 typeText
-                SourcesPublishedDate(date: source.date, style: .labeled)
+                PVPublishedDate(date: source.date, style: .labeled)
             }
             .sourcesTypeCell(columns)
             .frame(minHeight: Self.firstSlot)
@@ -127,7 +119,7 @@ struct SourcesListRow: View {
             typeText
                 .sourcesTypeCell(columns)
                 .frame(minHeight: Self.firstSlot)
-            SourcesPublishedDate(date: source.date, style: .bare)
+            PVPublishedDate(date: source.date, style: .bare)
                 .sourcesPublishedCell(columns)
                 .frame(minHeight: Self.firstSlot)
         case .recordLine:
@@ -235,7 +227,7 @@ private struct SourcesLinkLabel: View {
                     .layoutPriority(0)
                 separator
             }
-            SourcesPublishedDate(date: date, style: .labeled)
+            PVPublishedDate(date: date, style: .labeled)
                 .layoutPriority(1)
         }
         .lineLimit(1)
@@ -264,64 +256,6 @@ private struct SourcesLinkLabel: View {
             .font(PVFont.body(size: PVTypeScale.caption))
             .foregroundStyle(PVColor.textFaint)
             .accessibilityHidden(true)
-    }
-}
-
-// MARK: Published date
-
-/// A Source's published date on a list row: `.labeled` ("Published" then the date,
-/// or "No published date") under the type or on the record line; `.bare` (the date
-/// alone, or "Undated") in the Published column.
-private struct SourcesPublishedDate: View {
-    enum Style { case labeled, bare }
-
-    let date: CatalogDateValueInput?
-    let style: Style
-
-    var body: some View {
-        if let line = SourcesRowDate.line(date) {
-            dated(line)
-        } else {
-            undated
-        }
-    }
-
-    @ViewBuilder
-    private func dated(_ line: String) -> some View {
-        switch style {
-        case .labeled:
-            HStack(spacing: PVSpacing.space2) {
-                Text(L10n.Sources.publishedLabel)
-                    .foregroundStyle(PVColor.textMuted)
-                    .fixedSize()
-                value(line)
-            }
-            .font(PVFont.body(size: PVTypeScale.caption))
-            .help(SourcesRowDate.help(date) ?? "")
-        case .bare:
-            value(line)
-                .font(PVFont.body(size: PVTypeScale.caption))
-                .help(SourcesRowDate.help(date) ?? "")
-        }
-    }
-
-    private func value(_ line: String) -> some View {
-        Text(verbatim: line)
-            .foregroundStyle(PVColor.textSecondary)
-            .lineLimit(1)
-            .truncationMode(.tail)
-    }
-
-    private var undated: some View {
-        Group {
-            switch style {
-            case .labeled: Text(L10n.Sources.noPublishedDate)
-            case .bare: Text(L10n.Dates.rowUndated)
-            }
-        }
-        .font(PVFont.body(size: PVTypeScale.caption))
-        .foregroundStyle(PVColor.textFaint)
-        .lineLimit(1)
     }
 }
 

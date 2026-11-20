@@ -68,13 +68,33 @@ struct PersonSourcesContentTests {
         #expect(content([]).isEmpty)
     }
 
+    @Test func publishedDateCell() {
+        let en = Locale(identifier: "en_US")
+        let year = CatalogDateValueInput(kind: "point", startYear: 1867)
+        let dated = CatalogPersonClaimGroup(
+            sourceID: "src-1", sourceRef: "SRC-9TQ2M", title: "Hamburg census 1867", sourceTypeID: "type-census",
+            sourceDate: year,
+            claims: [claim("c1", graph: "g-214", subject: subject("s1", ref: "CPR-7Q2KD"))]
+        )
+        let row = content([dated]).rows[0]
+        #expect(row.date == year)
+        #expect(row.accessibilityLabel == "Hamburg census 1867, Census, published 1867, SRC-9TQ2M")
+        let phrase = CatalogDateValueInput(kind: "point", phrase: "in the reign of Wilhelm I")
+        #expect(SourceDateText.line(phrase, locale: en) == "in the reign of Wilhelm I")
+        #expect(SourceDateText.help(phrase, locale: en) == "Published in the reign of Wilhelm I")
+        #expect(SourceDateText.help(year, locale: en) == "Published 1867")
+        #expect(SourceDateText.line(nil, locale: en) == nil)
+        #expect(SourceDateText.help(nil, locale: en) == nil)
+        #expect(content(groups).rows[0].date == nil)
+    }
+
     @Test func cellsAndFallbacks() {
         let rows = content(groups).rows
         let first = rows[0]
         #expect(first.typeLabel == "Census")
         #expect(first.title == .name("Hamburg census 1867"))
         #expect(first.location == SourcesListNavigation.pageLocation(sourceId: "src-1", ref: "SRC-9TQ2M", title: "Hamburg census 1867"))
-        #expect(first.accessibilityLabel == "Hamburg census 1867, Census, date not recorded, SRC-9TQ2M")
+        #expect(first.accessibilityLabel == "Hamburg census 1867, Census, no published date, SRC-9TQ2M")
         #expect(
             first.lines[0].unpromoteAccessibilityLabel
                 == "Unpromote Household 214, record jw, CPR-7Q2KD"
@@ -88,7 +108,7 @@ struct PersonSourcesContentTests {
         // An unknown type id: no type cell, and the untyped spoken label.
         let letter = rows[2]
         #expect(letter.typeLabel == nil)
-        #expect(letter.accessibilityLabel == "Letter, date not recorded, SRC-4KQ7M")
+        #expect(letter.accessibilityLabel == "Letter, no published date, SRC-4KQ7M")
 
         // A graph with no ref, and one with a ref.
         let noRef = content([CatalogPersonClaimGroup(

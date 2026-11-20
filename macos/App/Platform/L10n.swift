@@ -5352,44 +5352,10 @@ enum L10n {
             comment: "Sources list column caption"
         )
 
-        static let publishedLabel = LocalizedStringResource(
-            "sources.list.publishedLabel",
-            defaultValue: "Published",
-            comment: "Label before a Source's date on a Sources list row"
-        )
-
         static let columnPublished = LocalizedStringResource(
             "sources.list.columnPublished",
             defaultValue: "Published",
             comment: "Sources list column caption: the Source's published date (Wide)"
-        )
-
-        static let noPublishedDate = LocalizedStringResource(
-            "sources.list.noPublishedDate",
-            defaultValue: "No published date",
-            comment: "Sources list row: the Source has no date"
-        )
-
-        static func publishedHelp(date: String) -> String {
-            return L10n.format(LocalizedStringResource(
-                "sources.list.publishedHelp",
-                defaultValue: "Published %@",
-                comment: "Hover text on a Sources list row's date; argument is the date"
-            ), date)
-        }
-
-        static func publishedSpoken(date: String) -> String {
-            return L10n.format(LocalizedStringResource(
-                "sources.list.publishedSpoken",
-                defaultValue: "published %@",
-                comment: "VoiceOver part of a Sources list row; argument is the date"
-            ), date)
-        }
-
-        static let noPublishedDateSpoken = LocalizedStringResource(
-            "sources.list.noPublishedDateSpoken",
-            defaultValue: "no published date",
-            comment: "VoiceOver part of a Sources list row with no date"
         )
 
         static let graphNotStarted = LocalizedStringResource(
@@ -10296,26 +10262,14 @@ enum L10n {
 
         static let sourcesColumnDate = LocalizedStringResource(
             "conclusions.sources.columnDate",
-            defaultValue: "Date",
-            comment: "Column heading over the publication date of each Source on a Person's Sources section"
+            defaultValue: "Published",
+            comment: "Column heading over the published date of each Source on a Person's Sources section"
         )
 
         static let sourcesColumnRef = LocalizedStringResource(
             "conclusions.sources.columnRef",
             defaultValue: "Ref",
             comment: "Column heading over the ref of each Source on a Person's Sources section"
-        )
-
-        static let sourcesDateNone = LocalizedStringResource(
-            "conclusions.sources.dateNone",
-            defaultValue: "—",
-            comment: "Date cell of a Source row on a Person's Sources section while Sources have no publication date"
-        )
-
-        static let sourcesDateNotRecorded = LocalizedStringResource(
-            "conclusions.sources.dateNotRecorded",
-            defaultValue: "date not recorded",
-            comment: "Spoken in place of the date of a Source row on a Person's Sources section"
         )
 
         static let sourcesEmptyMessage = LocalizedStringResource(
@@ -11130,6 +11084,45 @@ enum L10n {
                 comment: "Artifact checklist count; arguments are the checked count and the total"
             ), selected, total)
         }
+    }
+
+    /// A Source's published date on a row (the Sources list, the Person page's
+    /// Sources section, the Source page header, the Copy Source form): the label,
+    /// the text for no date, the hover help and the spoken parts.
+    enum PublishedDate {
+        static let label = LocalizedStringResource(
+            "publishedDate.label",
+            defaultValue: "Published",
+            comment: "Label before a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)"
+        )
+
+        static let none = LocalizedStringResource(
+            "publishedDate.none",
+            defaultValue: "No published date",
+            comment: "A row's text when the Source has no date, with the label: a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)"
+        )
+
+        static func help(date: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "publishedDate.help",
+                defaultValue: "Published %@",
+                comment: "Hover text on a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date"
+            ), date)
+        }
+
+        static func spoken(date: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "publishedDate.spoken",
+                defaultValue: "published %@",
+                comment: "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date"
+            ), date)
+        }
+
+        static let noneSpoken = LocalizedStringResource(
+            "publishedDate.noneSpoken",
+            defaultValue: "no published date",
+            comment: "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form) with no date"
+        )
     }
 
     /// Last-updated cell on a list row: the hover help and the spoken suffix.

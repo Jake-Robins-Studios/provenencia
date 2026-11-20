@@ -142,13 +142,13 @@
       }
     },
     "conclusions.sources.columnDate": {
-      "comment": "Column heading over the publication date of each Source on a Person's Sources section",
+      "comment": "Column heading over the published date of each Source on a Person's Sources section",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Date"
+            "value": "Published"
           }
         }
       }
@@ -185,30 +185,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Type"
-          }
-        }
-      }
-    },
-    "conclusions.sources.dateNone": {
-      "comment": "Date cell of a Source row on a Person's Sources section while Sources have no publication date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "—"
-          }
-        }
-      }
-    },
-    "conclusions.sources.dateNotRecorded": {
-      "comment": "Spoken in place of the date of a Source row on a Person's Sources section",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "date not recorded"
           }
         }
       }
@@ -8374,18 +8350,6 @@
         }
       }
     },
-    "sources.list.publishedLabel": {
-      "comment": "Label before a Source's date on a Sources list row",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published"
-          }
-        }
-      }
-    },
     "sources.list.columnPublished": {
       "comment": "Sources list column caption: the Source's published date (Wide)",
       "extractionState": "manual",
@@ -8394,54 +8358,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Published"
-          }
-        }
-      }
-    },
-    "sources.list.noPublishedDate": {
-      "comment": "Sources list row: the Source has no date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No published date"
-          }
-        }
-      }
-    },
-    "sources.list.publishedHelp": {
-      "comment": "Hover text on a Sources list row's date; argument is the date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published %@"
-          }
-        }
-      }
-    },
-    "sources.list.publishedSpoken": {
-      "comment": "VoiceOver part of a Sources list row; argument is the date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "published %@"
-          }
-        }
-      }
-    },
-    "sources.list.noPublishedDateSpoken": {
-      "comment": "VoiceOver part of a Sources list row with no date",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "no published date"
           }
         }
       }
@@ -19746,6 +19662,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@, empty"
+          }
+        }
+      }
+    },
+    "publishedDate.label": {
+      "comment": "Label before a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published"
+          }
+        }
+      }
+    },
+    "publishedDate.none": {
+      "comment": "A row's text when the Source has no date, with the label: a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No published date"
+          }
+        }
+      }
+    },
+    "publishedDate.help": {
+      "comment": "Hover text on a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published %@"
+          }
+        }
+      }
+    },
+    "publishedDate.spoken": {
+      "comment": "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form); argument is the date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "published %@"
+          }
+        }
+      }
+    },
+    "publishedDate.noneSpoken": {
+      "comment": "VoiceOver part of a Source's published date on a row (the Sources list, the Person page's Sources section, the Source page header, the Copy Source form) with no date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no published date"
           }
         }
       }
