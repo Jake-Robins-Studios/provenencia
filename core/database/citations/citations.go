@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -33,11 +34,6 @@ const (
 
 	sqlInsertNote = `INSERT INTO citation_notes (id, citation_id, body) VALUES (?, ?, ?)`
 
-	sqlGet = `SELECT id, ref, artifact_id, graph_id, locator_json,
-		COALESCE(transcription, ''), COALESCE(label, ''),
-		transcription_uncertain, COALESCE(transcription_note, '')
-		FROM citations WHERE id = ?`
-
 	sqlUpdate = `UPDATE citations SET
 		artifact_id = ?, locator_json = ?, transcription = ?, label = ?,
 		transcription_uncertain = ?, transcription_note = ?
@@ -47,13 +43,6 @@ const (
 
 	// A graph's Citations on an Artifact, each with its Observation count.
 	// Binds: artifact, graph.
-	sqlListByArtifact = `SELECT c.id, c.ref, c.artifact_id, c.graph_id, c.locator_json,
-		COALESCE(c.transcription, ''), COALESCE(c.label, ''),
-		c.transcription_uncertain, COALESCE(c.transcription_note, ''),
-		(SELECT COUNT(*) FROM observations o WHERE o.citation_id = c.id)
-		FROM citations c WHERE c.artifact_id = ? AND c.graph_id = ?
-		ORDER BY c.ref COLLATE NOCASE`
-
 	// People a Citation names within one graph: the Observation's subject, or
 	// the subject an edge points at. Earliest Observation id wins. The caller
 	// caps the list. The graph filters the Subjects the Observations name, so it
@@ -88,6 +77,38 @@ ORDER BY cid, MIN(oid)`
 	sqlArtifactExists = `SELECT 1 FROM artifacts WHERE id = ?`
 )
 
+// The by-id reads below build their column list once, columns, and scan it
+// once, scanRow.
+var (
+	sqlGet = `SELECT ` + columns("") + ` FROM citations WHERE id = ?`
+
+	// A graph's Citations on an Artifact, each with its Observation count.
+	// Binds: artifact, graph.
+	sqlListByArtifact = `SELECT ` + columns("c") + `,
+		(SELECT COUNT(*) FROM observations o WHERE o.citation_id = c.id)
+		FROM citations c WHERE c.artifact_id = ? AND c.graph_id = ?
+		ORDER BY c.ref COLLATE NOCASE`
+
+	// Binds: ids, in sqlbatch batches.
+	sqlListCitedIn = `SELECT ` + columns("c") + `,
+		COALESCE(a.label, ''), COALESCE(g.name, ''), g.source_id
+		FROM citations c
+		LEFT JOIN artifacts a ON a.id = c.artifact_id
+		LEFT JOIN evidence_graphs g ON g.id = c.graph_id
+		WHERE c.id IN (`
+)
+
+// columns is the nine citations columns scanRow reads, each prefixed with
+// alias and a dot when alias is not empty.
+func columns(alias string) string {
+	if alias != "" {
+		alias += "."
+	}
+	return alias + "id, " + alias + "ref, " + alias + "artifact_id, " + alias + "graph_id, " + alias + "locator_json, " +
+		"COALESCE(" + alias + "transcription, ''), COALESCE(" + alias + "label, ''), " +
+		alias + "transcription_uncertain, COALESCE(" + alias + "transcription_note, '')"
+}
+
 // Citation is one citations row.
 type Citation struct {
 	ID                     []byte
@@ -99,6 +120,17 @@ type Citation struct {
 	Label                  string
 	TranscriptionUncertain bool
 	TranscriptionNote      string
+}
+
+// Cited is a Citation with what a citation renders from beside it: its
+// Artifact's label, its Evidence graph's name and that graph's Source, which is
+// the Citation's Source (a Citation never leaves its graph). A missing row
+// reads as empty.
+type Cited struct {
+	Citation
+	ArtifactLabel string
+	GraphName     string
+	SourceID      []byte
 }
 
 // ListedCitation is a Citation plus its Observation count and the people it names.
@@ -467,6 +499,32 @@ func GetTx(tx *sql.Tx, id []byte) (Citation, error) {
 	return scanOne(tx.QueryRow(sqlGet, id))
 }
 
+// ListCitedTx returns the Citations with the given ids, each with its
+// Artifact's label, its graph's name and the graph's Source id, keyed by
+// string(id). A repeated id counts once and an id with no Citation is absent;
+// no ids returns an empty map and runs no query.
+func ListCitedTx(tx *sql.Tx, ids [][]byte) (map[string]Cited, error) {
+	ids = database.UniqueBlobIDs(ids)
+	out := make(map[string]Cited, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	err := sqlbatch.Query(tx, sqlListCitedIn, ")", nil, ids, func(rows *sql.Rows) error {
+		var cited Cited
+		c, err := scanRow(rows, &cited.ArtifactLabel, &cited.GraphName, &cited.SourceID)
+		if err != nil {
+			return err
+		}
+		cited.Citation = c
+		out[string(c.ID)] = cited
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ListByArtifact returns an Artifact's Citations made in one Evidence graph,
 // each with the count of its Observations.
 func ListByArtifact(c *database.Catalog, graphID, artifactID []byte) ([]ListedCitation, error) {
@@ -484,11 +542,12 @@ func ListByArtifact(c *database.Catalog, graphID, artifactID []byte) ([]ListedCi
 	defer rows.Close()
 	var out []ListedCitation
 	for rows.Next() {
-		listed, err := scanListedRow(rows)
+		var n int32
+		c, err := scanRow(rows, &n)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, listed)
+		out = append(out, ListedCitation{Citation: c, ObservationCount: n})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -567,37 +626,21 @@ func scanOne(row database.Scanner) (Citation, error) {
 	return cit, err
 }
 
-func scanRow(row database.Scanner) (Citation, error) {
+// scanRow scans the columns list, then extra destinations.
+func scanRow(row database.Scanner, extra ...any) (Citation, error) {
 	var (
 		c         Citation
 		uncertain int
 	)
-	err := row.Scan(
+	dest := append([]any{
 		&c.ID, &c.Ref, &c.ArtifactID, &c.GraphID, &c.LocatorJSON,
 		&c.Transcription, &c.Label, &uncertain, &c.TranscriptionNote,
-	)
-	if err != nil {
+	}, extra...)
+	if err := row.Scan(dest...); err != nil {
 		return Citation{}, err
 	}
 	c.TranscriptionUncertain = uncertain != 0
 	return c, nil
-}
-
-func scanListedRow(row database.Scanner) (ListedCitation, error) {
-	var (
-		listed    ListedCitation
-		uncertain int
-	)
-	err := row.Scan(
-		&listed.ID, &listed.Ref, &listed.ArtifactID, &listed.GraphID, &listed.LocatorJSON,
-		&listed.Transcription, &listed.Label, &uncertain, &listed.TranscriptionNote,
-		&listed.ObservationCount,
-	)
-	if err != nil {
-		return ListedCitation{}, err
-	}
-	listed.TranscriptionUncertain = uncertain != 0
-	return listed, nil
 }
 
 func mapConstraint(err error) error {

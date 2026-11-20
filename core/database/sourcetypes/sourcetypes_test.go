@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -863,4 +864,50 @@ func mustBegin(t *testing.T, c *database.Catalog) *database.Tx {
 	t.Cleanup(c.EndWrite)
 	t.Cleanup(func() { _ = tx.Rollback() })
 	return tx
+}
+
+func TestGetManyTx(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	a, err := runCreate(c, "Parish register", "Baptisms", "type_scroll")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := runCreate(c, "Deed", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	got, err := GetManyTx(tx, [][]byte{a.ID, b.ID, a.ID, make([]byte, 16)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d types, want the 2 that exist: %+v", len(got), got)
+	}
+	for _, want := range []Type{a, b} {
+		one, err := GetByIDTx(tx, want.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if g := got[string(want.ID)]; !reflect.DeepEqual(g, one) {
+			t.Errorf("GetManyTx %q = %+v, want what GetByIDTx returns: %+v", want.Label, g, one)
+		}
+	}
+	none, err := GetManyTx(tx, nil)
+	if err != nil || none == nil || len(none) != 0 {
+		t.Fatalf("nil ids = %+v, %v", none, err)
+	}
 }

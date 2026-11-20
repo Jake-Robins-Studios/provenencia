@@ -1558,3 +1558,52 @@ func TestSourceDateMarks(t *testing.T) {
 		}
 	})
 }
+
+func TestGetManyTx(t *testing.T) {
+	c, userID, typeID := sourceFixture(t)
+	dated, err := runCreate(c, userID, CreateInput{SourceTypeID: typeID, Title: "Census"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	undated, err := runCreate(c, userID, CreateInput{SourceTypeID: typeID, Title: "Parish register"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := runSetDateChanges(c, userID, dated.ID, datevaluetest.YMD(1880, 0, 0), valuemark.Mark{Supplied: true}); err != nil {
+		t.Fatal(err)
+	}
+	db := dbtest.MustDB(t, c)
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	got, err := GetManyTx(tx, [][]byte{dated.ID, undated.ID, dated.ID, make([]byte, 16)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d Sources, want the 2 that exist: %+v", len(got), got)
+	}
+	for _, id := range [][]byte{dated.ID, undated.ID} {
+		want, err := GetTx(tx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g := got[string(id)]
+		if g.Title != want.Title || g.DateMark != want.DateMark || (g.Date == nil) != (want.Date == nil) {
+			t.Errorf("GetManyTx %q = %+v, want what GetTx returns: %+v", want.Title, g, want)
+		}
+	}
+	if d := got[string(dated.ID)]; d.Date == nil || d.Date.StartYear == nil || *d.Date.StartYear != 1880 || !d.DateMark.Supplied {
+		t.Errorf("dated Source = %+v, want 1880 supplied", d)
+	}
+	if u := got[string(undated.ID)]; u.Date != nil {
+		t.Errorf("undated Source has a date: %+v", u)
+	}
+	none, err := GetManyTx(tx, nil)
+	if err != nil || none == nil || len(none) != 0 {
+		t.Fatalf("nil ids = %+v, %v", none, err)
+	}
+}
