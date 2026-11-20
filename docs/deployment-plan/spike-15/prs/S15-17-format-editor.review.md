@@ -6,6 +6,11 @@
 ## To user
 - None open. The round-1 blockers were fixed in ways that keep the user's 2026-11-20 answers (one Save; preview against a Source only; warnings listed under the field). They widen the PR: `UpdateSourceType` carries formats and `UpdateCitationFormats` retires (M-1); `ListCitationBuiltins` becomes `ListCitationPlaceholders` (M-2); `LatestCall` replaces two hand-written counters (M-6). Reported to the user with the plan.
 
+## User answers after review (2026-11-20)
+- Completion replaces the Insert field picker; the syntax strip replaces a syntax guide (popover descoped).
+- Swift may read the format around the caret for completion (D-21): approved, recorded in **Rules this plan bends** and the map rules.
+- Completion order: the typed query is the only ranking input; no suggested fields first.
+
 ## Writer's own calls
 - D-2: "first Citation" is the smallest id (the oldest, UUIDv7); a Source with none previews from the Source alone.
 - D-3: a format with no target returns its diagnostics only, so warnings show on a type with no Sources; the format is checked before the target on every call.
