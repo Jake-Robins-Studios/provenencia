@@ -75,4 +75,4 @@ Reviewers: MNT (had Fix-now majors MNT-1, MNT-2). Not sent: CON (minors only, re
 No new findings. No Fix plan 2.
 
 ## Result
-Gate PASS on `9f81ef79` · `origin/main` unchanged since branch cut (`ef66e216`) · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS on `9f81ef79` · `origin/main` unchanged since branch cut (`ef66e216`) · CI green · open: none · follow-ups: none · to user: —
