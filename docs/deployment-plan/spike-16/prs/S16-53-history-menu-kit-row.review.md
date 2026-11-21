@@ -58,3 +58,23 @@
 Logged. The map's Depends on now lists S16-50, S16-51, S16-52.
 
 Round 2 follows: round 1 had a blocker.
+
+## Round 2
+
+### X-7 · blocker · D-11 deletes an overload `PVSelectSession` still calls
+**Answer:** Fixed — confirmed at `PVSelectSession.swift` `moveHighlight(delta:)`. D-11 keeps the overload and only rewords its doc comment; §4's Mover row names both callers; T-4 and the STEP-4 deletion go.
+
+### X-8 · major · D-2 reads `anchor.height` on an optional
+**Answer:** Fixed — D-2 uses `(anchor?.height ?? 0)`.
+
+### X-9 · minor · `historyButton` needs an explicit `return` after the `let`
+**Answer:** Fixed — D-2 says so.
+
+### X-10 · minor · Rows are built on every render, not only while open
+**Answer:** Fixed — D-6 draws `EmptyView()` while the side is closed, so §6 Scale holds.
+
+### X-11 · minor · T-3's parameter shape
+**Answer:** Fixed — D-8 names the argument tuple's types and the seven cases' `minimum: 0`.
+
+### X-12 · nit · Doc comment wording
+Logged; D-11 gives the new wording.
