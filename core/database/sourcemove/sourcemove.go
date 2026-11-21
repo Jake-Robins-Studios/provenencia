@@ -177,7 +177,7 @@ func Move(tx *database.Tx, userID []byte, seed evidencegraphs.Seed, targetID []b
 	if err != nil {
 		return Result{}, nil, err
 	}
-	old, err := sources.GetTx(tx.Tx, bundle.SourceID)
+	old, err := sources.Lookup(tx.Tx, bundle.SourceID)
 	if err != nil {
 		return Result{}, nil, err
 	}

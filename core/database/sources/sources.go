@@ -213,7 +213,7 @@ func loadForWrite(tx *database.Tx, userID, id []byte) (Source, error) {
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return Source{}, err
 	}
-	return getTx(tx.Tx, id)
+	return Lookup(tx.Tx, id)
 }
 
 // SetCover pins an Artifact as cover or reverts to the Source type icon.
@@ -318,7 +318,7 @@ func SetDate(tx *database.Tx, userID, sourceID []byte, date *datevalue.Value, ma
 	if len(changes) == 0 {
 		return prev, nil, nil
 	}
-	next, err := getTx(tx.Tx, sourceID)
+	next, err := Lookup(tx.Tx, sourceID)
 	if err != nil {
 		return Source{}, nil, err
 	}
@@ -623,15 +623,6 @@ func fillDates(q database.Querier, out []Source) error {
 // Source date from this one function.
 func CitationDate(s Source) citationformat.Value {
 	return citationformat.Value{Date: s.Date, Mark: s.DateMark}
-}
-
-// GetTx returns a Source by id on an open transaction, or ErrNotFound.
-func GetTx(tx *sql.Tx, id []byte) (Source, error) {
-	return Lookup(tx, id)
-}
-
-func getTx(tx *sql.Tx, id []byte) (Source, error) {
-	return getOne(tx, sqlGet, id)
 }
 
 // GetManyTx returns the Sources with the given ids with their settled dates,
