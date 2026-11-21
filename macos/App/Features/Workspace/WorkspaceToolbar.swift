@@ -286,7 +286,7 @@ private struct HistoryJumpMenuHost: ViewModifier {
             .pvContextMenu(
                 state,
                 keyboard: $keyboard,
-                options: PVPopupOptions(ignoresRightClicks: true)
+                options: PVPopupOptions(rightClickOnAnchorPasses: true)
             ) {
                 menu
             }

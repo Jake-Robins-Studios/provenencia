@@ -10,9 +10,10 @@ struct PVPopupOptions: Equatable {
     /// A mouse event on the popup's anchor (its field) passes: the popup stays
     /// open on a click in its own field (a combo box's list).
     var staysOpenOnFieldClick = false
-    /// Right-clicks pass, inside or outside (the history menu: they switch
-    /// between Back and Forward).
-    var ignoresRightClicks = false
+    /// A right-click on the anchor passes (the history menu: a right-click on
+    /// its button switches between Back and Forward). Elsewhere a right-click
+    /// closes, as any click outside does.
+    var rightClickOnAnchorPasses = false
 }
 
 enum PVPopupMouseButton: Equatable {
@@ -117,7 +118,7 @@ enum PVPopupDecision: Equatable {
             guard button == .left, !inside, !anchorKeepsOpen, !pressBeganInside else { return .pass }
             return .close(consumesEvent: false)
         case .mouseDown(let button, let inside):
-            if options.ignoresRightClicks, button == .right { return .pass }
+            if options.rightClickOnAnchorPasses, button == .right, onAnchor { return .pass }
             guard button != .left, !inside, !anchorKeepsOpen else { return .pass }
             return .close(consumesEvent: false)
         case .windowResignedKey:
@@ -345,8 +346,8 @@ private final class PVPopupWatcherView: NSView {
 
 extension View {
     /// The one presenter of a floating popup. Attach it to the popup's anchor.
-    /// Escape, a left click outside (on release), a right-click outside (unless
-    /// `options.ignoresRightClicks`) and an app switch close it; the press that
+    /// Escape, a left click outside (on release), a right-click outside (except on
+    /// the anchor with `options.rightClickOnAnchorPasses`) and an app switch close it; the press that
     /// opened it never does; a click inside never does; a click is outside only
     /// when its press began outside.
     /// Keys other than Escape go to `onKey`. See `PVPopupDecision.decide`.

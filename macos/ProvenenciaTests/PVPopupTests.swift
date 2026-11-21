@@ -113,19 +113,42 @@ struct PVPopupDecisionTests {
         #expect(decision == row.decision)
     }
 
-    @Test func rightClicksPassWhenIgnored() {
-        let options = PVPopupOptions(ignoresRightClicks: true)
-        let close = PVPopupDecision.close(consumesEvent: false)
-        func decide(_ input: PVPopupInput, pending: Bool = false) -> PVPopupDecision {
-            PVPopupDecision.decide(input, openingPressPending: pending, options: options)
+    fileprivate struct AnchorRightClickRow: CustomTestStringConvertible, Sendable {
+        let input: PVPopupInput
+        let pending: Bool
+        let onAnchor: Bool
+        let decision: PVPopupDecision
+        var testDescription: String { "\(input) pending=\(pending) onAnchor=\(onAnchor)" }
+    }
+
+    fileprivate static let anchorRightClickRows: [AnchorRightClickRow] = {
+        func row(
+            _ input: PVPopupInput, pending: Bool = false, onAnchor: Bool = false, _ decision: PVPopupDecision
+        ) -> AnchorRightClickRow {
+            AnchorRightClickRow(input: input, pending: pending, onAnchor: onAnchor, decision: decision)
         }
-        #expect(decide(.mouseDown(.right, inside: false)) == .pass)
-        #expect(decide(.mouseDown(.right, inside: true)) == .pass)
-        #expect(decide(.mouseUp(.right, inside: false)) == .pass)
-        #expect(decide(.mouseUp(.right, inside: false), pending: true) == .endOpeningPress)
-        #expect(decide(.mouseDown(.other, inside: false)) == close)
-        #expect(decide(.mouseUp(.left, inside: false)) == close)
-        #expect(decide(.key(.escape)) == .close(consumesEvent: true))
+        let close = PVPopupDecision.close(consumesEvent: false)
+        return [
+            row(.mouseDown(.right, inside: false), onAnchor: true, .pass),
+            row(.mouseDown(.right, inside: false), onAnchor: false, close),
+            row(.mouseDown(.right, inside: true), .pass),
+            row(.mouseUp(.right, inside: false), .pass),
+            row(.mouseUp(.right, inside: false), pending: true, .endOpeningPress),
+            row(.mouseDown(.other, inside: false), close),
+            row(.mouseUp(.left, inside: false), onAnchor: true, close),
+            row(.key(.escape), .close(consumesEvent: true)),
+        ]
+    }()
+
+    @Test(arguments: anchorRightClickRows)
+    fileprivate func rightClickOnAnchorPasses(_ row: AnchorRightClickRow) {
+        let decision = PVPopupDecision.decide(
+            row.input,
+            openingPressPending: row.pending,
+            onAnchor: row.onAnchor,
+            options: PVPopupOptions(rightClickOnAnchorPasses: true)
+        )
+        #expect(decision == row.decision)
     }
 
     @Test func aClickIsWhereItsPressBegan() {
