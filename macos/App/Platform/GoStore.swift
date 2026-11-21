@@ -747,6 +747,28 @@ struct GoStore: GenealogyStore {
         return (Self.mapSourceType(resp.type), reply, Self.mapWriteEffects(resp.effects))
     }
 
+    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations {
+        if citationIDs.isEmpty { return CatalogRenderedCitations() }
+        var req = Provenencia_Engine_V1_RenderCitationsRequest()
+        req.projectDir = projectDir
+        req.citationIds = citationIDs
+        let resp: Provenencia_Engine_V1_RenderCitationsResponse = try await provenenciaCall(
+            method: CoreMethod.renderCitations,
+            request: req
+        )
+        return CatalogRenderedCitations(
+            citations: resp.citations.map {
+                CatalogRenderedCitation(
+                    citationID: $0.citationID,
+                    full: Self.mapCitationRender($0.full),
+                    short: Self.mapCitationRender($0.short),
+                    groupKey: $0.groupKey
+                )
+            },
+            inputs: Self.mapPageInputs(resp.inputs)
+        )
+    }
+
     func renderCitationPreview(
         projectDir: String,
         form: CitationForm,
