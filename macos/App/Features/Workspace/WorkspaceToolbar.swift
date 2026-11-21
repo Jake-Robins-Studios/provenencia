@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 enum HistoryJumpMenuSide: Hashable {
@@ -14,7 +13,7 @@ struct WorkspaceToolbar: View {
     @Bindable var omnibarResults: OmnibarResultsModel
     let projectDir: String
     let store: any GenealogyStore
-    /// The content column's width, for the omnibar list's width rule.
+    /// The content column's width, for the omnibar list's and the history menu's width rules.
     let contentWidth: CGFloat
     @FocusState private var omnibarFocused: Bool
     /// Which side's history menu is open, if either.

@@ -13,7 +13,7 @@ struct WorkspaceContent: View {
     let store: any GenealogyStore
 
     @State private var omnibarResults = OmnibarResultsModel()
-    /// The content column's width, for placing overlays only. Pages read \.pvWidthClass.
+    /// The content column's width, for the toolbar popups' width rules. Pages read \.pvWidthClass.
     @State private var contentWidth: CGFloat = 0
 
     var body: some View {
