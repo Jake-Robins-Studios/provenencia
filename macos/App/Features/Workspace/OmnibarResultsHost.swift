@@ -90,6 +90,7 @@ struct OmnibarResultsHost: ViewModifier {
                     ) {
                         CatalogSearchHitRow(hit: hit, projectDir: projectDir)
                     }
+                    .accessibilityAddTraits(.isButton)
                     .id(hit.id)
                     .accessibilityIdentifier("workspace.toolbar.omnibar.hit.\(hit.id)")
                 }
