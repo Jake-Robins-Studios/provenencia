@@ -1,7 +1,7 @@
 # Review — S15-24 Move a bundle to another Source in the engine
 
-**Verdict:** round 1: Fits with changes — Ready with changes
-**Rounds:** 1 (round 2 pending). **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
@@ -88,3 +88,21 @@ Maintainability: every round-1 answer checked against the code and holds; one ne
 **Answer:** Fixed — D-16's evidence corrected (`searchindex/handles.go` only reads); `searchindex.writeInputs` and `autoreconciler.recomputeBatch`'s two deletes move onto `sqlbatch.Exec` in STEP-2 (§ 6 Go core, Codebase fit, STEP-2 files and check).
 
 Non-blocking notes, also Fixed: D-17 `sources.Get` calls `Lookup` too; D-6 names where `Move` refuses an empty target; D-10's prose says each query adds its own `WHERE`; T-3 gains Artifact create and delete rows (the new `Handles` path returns nothing for them).
+
+Executability: every round-1 answer and Current state row holds at `496ffa9`; one new blocker.
+
+### X-12 · blocker · A loaded handle member keeps a moved Subject's old `source_id`
+**Answer:** Fixed — checked: `graphcache/load.go` `loadMembers` selects `s.source_id`, and `verify.go` `sameMembers` compares it. D-10: the `subjects` entry gains `Handles: onField("source_id", membersOf)`; AC-2.12 (a promoted Subject with no Observation, node loaded, moved, `Verify` nil); T-3 and T-5 rows.
+
+### X-13 · minor · D-10 text and its code block disagree on the head
+**Answer:** Fixed in the M-10 pass — the prose says each query adds its own `WHERE`.
+
+### X-14 · minor · The preflight does not run the thumbnail pass
+**Answer:** Fixed — § 6 FFI: `pass.run(req.GetProjectDir(), nil)` after the session, as `CreateArtifact`.
+
+### X-15 · minor · AC-2.10's seeds, T-2's counter, STEP-9's position
+**Answer:** Fixed — AC-2.10 seeds each Artifact of S1 and leaves the fresh Default graph; T-2 names a test-only `countingExecer`; STEP-9 places the § 7 and § 7.1 paragraphs.
+
+## Verdict
+
+Fits with changes — Ready with changes, after 2 rounds. Every finding is Fixed or Declined with evidence; no blocker is open; nothing goes To user. Plan status: Planned.
