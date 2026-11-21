@@ -126,6 +126,16 @@ struct PVPopupDecisionTests {
             PVPopupDecision.decide(.mouseDown(.left, inside: false), openingPressPending: false, options: options) == .pass
         )
     }
+
+    @Test func aPressWithNoReleaseClosesLikeARelease() {
+        let options = PVPopupOptions()
+        let ended = PVPopupInput.pressEndedUnseen
+        #expect(
+            PVPopupDecision.decide(ended, openingPressPending: false, pressBeganInside: false, options: options)
+                == .close(consumesEvent: false)
+        )
+        #expect(PVPopupDecision.decide(ended, openingPressPending: false, pressBeganInside: true, options: options) == .pass)
+    }
 }
 
 @Suite
