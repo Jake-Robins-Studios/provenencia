@@ -26,7 +26,7 @@ struct CatalogSearchModelTests {
             entity: CatalogCanonicalEntity(id: "e1", ref: "PER-1", subjectTypeID: "t", label: ""),
             name: name, nameValueCount: 1
         )
-        let hit = CatalogSearchHit(
+        let hit = CatalogSearchHit.fixture(
             kind: "person", id: "e1", ref: "PER-1", title: "John Henry Smith", subtitle: "", matchReason: "title",
             location: WorkspaceLocation(section: .persons, entityId: "e1", ref: "PER-1", title: "John Henry Smith"),
             summary: .person(summary)
@@ -44,11 +44,11 @@ struct CatalogSearchModelTests {
     @Test func modelKeepsEngineOrder() async {
         let store = FakeStore()
         store.seededSearchHits = [
-            CatalogSearchHit(
+            CatalogSearchHit.fixture(
                 kind: "source", id: "s1", ref: "SRC-ZZ9K2", title: "Quiet", subtitle: "", matchReason: "ref",
                 location: WorkspaceLocation(section: .sources, sourceId: "s1", ref: "SRC-ZZ9K2", title: "Quiet")
             ),
-            CatalogSearchHit(
+            CatalogSearchHit.fixture(
                 kind: "source", id: "s2", ref: "SRC-OTHER", title: "SRC-ZZ9K2 in title", subtitle: "",
                 matchReason: "title",
                 location: WorkspaceLocation(section: .sources, sourceId: "s2", ref: "SRC-OTHER", title: "SRC-ZZ9K2 in title")
@@ -70,7 +70,7 @@ struct CatalogSearchModelTests {
     }
 
     @Test func lineFollowsTheSearch() {
-        let hit = CatalogSearchHit(
+        let hit = CatalogSearchHit.fixture(
             kind: "source", id: "a", ref: "", title: "A", subtitle: "",
             matchReason: "title", location: .sectionRoot(.sources)
         )
@@ -103,11 +103,11 @@ struct CatalogSearchModelTests {
     @Test func kindsRestrictHits() async throws {
         let store = FakeStore()
         store.seededSearchHits = [
-            CatalogSearchHit(
+            CatalogSearchHit.fixture(
                 kind: "person", id: "e-1", ref: "PER-1", title: "James Robins", subtitle: "", matchReason: "title",
                 location: WorkspaceLocation(section: .persons, entityId: "e-1")
             ),
-            CatalogSearchHit(
+            CatalogSearchHit.fixture(
                 kind: "source", id: "src-1", ref: "SRC-1", title: "Robins register", subtitle: "",
                 matchReason: "title", location: WorkspaceLocation(section: .sources, sourceId: "src-1")
             ),
@@ -127,7 +127,7 @@ struct CatalogSearchModelTests {
         model.query = "Ilminster"
         model.hasSearched = true
         model.hits = [
-            CatalogSearchHit(
+            CatalogSearchHit.fixture(
                 kind: "source", id: "s1", ref: "SRC-AAAAA", title: "A", subtitle: "",
                 matchReason: "title", location: .sectionRoot(.sources)
             ),
@@ -206,7 +206,7 @@ struct CatalogSearchHitPresentationTests {
     }
 
     @Test func accessibilityLabelComposesVisibleRowMetadata() {
-        let hit = CatalogSearchHit(
+        let hit = CatalogSearchHit.fixture(
             kind: "source",
             id: "s1",
             ref: "SRC-3K9M2",
@@ -225,7 +225,7 @@ struct CatalogSearchHitPresentationTests {
     }
 
     @Test func accessibilityLabelOmitsEmptyOptionalParts() {
-        let hit = CatalogSearchHit(
+        let hit = CatalogSearchHit.fixture(
             kind: "metadata_field",
             id: "f1",
             ref: "",
@@ -270,22 +270,22 @@ struct CatalogSearchHitPresentationTests {
                 == L10n.Workspace.omnibarMatchPlace(snippet: "Montreal")
         )
         #expect(L10n.string(CatalogSearchHitPresentation.kindLabel(for: .person)) == L10n.string(L10n.Workspace.omnibarKindPerson))
-        #expect(CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "event"))?.glyph == .mark(.subjectEvent))
-        #expect(CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "event"))?.label == nil)
-        let typeLead = CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "source_type", iconKey: "type_book"))
+        #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "event", location: .sectionRoot(.persons)))?.glyph == .mark(.subjectEvent))
+        #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "event", location: .sectionRoot(.persons)))?.label == nil)
+        let typeLead = CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source_type", iconKey: "type_book", location: .sectionRoot(.persons)))
         #expect(typeLead?.glyph == .mark(.typeBook))
         #expect(typeLead?.label != nil)
-        #expect(CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "source_type"))?.glyph == .symbol(.tag))
-        #expect(CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "metadata_field"))?.glyph == .symbol(.list))
-        #expect(CatalogSearchHitPresentation.leadThumbnail(for: leadHit(kind: "source")) == nil)
-        #expect(CatalogSearchHitPresentation.refAccent(for: CatalogSearchHit(
+        #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source_type", location: .sectionRoot(.persons)))?.glyph == .symbol(.tag))
+        #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "metadata_field", location: .sectionRoot(.persons)))?.glyph == .symbol(.list))
+        #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source", location: .sectionRoot(.persons))) == nil)
+        #expect(CatalogSearchHitPresentation.refAccent(for: CatalogSearchHit.fixture(
             kind: "person", id: "p", ref: "PER-7KD45", title: "James Robins", subtitle: "",
             matchReason: "ref", location: .sectionRoot(.persons)
         )))
     }
 
     @Test func evidenceGraphHitPresentation() {
-        let hit = CatalogSearchHit(
+        let hit = CatalogSearchHit.fixture(
             kind: "evidence_graph", id: "g", ref: "GPH-J0NES", title: "Jones household",
             subtitle: "1881 Census, Ward 3", matchReason: "description", location: .sectionRoot(.sources)
         )
@@ -303,18 +303,18 @@ struct CatalogSearchHitPresentationTests {
     }
 
     @Test func unknownKindKeepsTheFallbacks() {
-        let hit = leadHit(kind: "widget")
+        let hit = CatalogSearchHit.fixture(kind: "widget", location: .sectionRoot(.persons))
         #expect(hit.searchKind == nil)
         #expect(L10n.string(CatalogSearchHitPresentation.kindLabel(for: hit.searchKind)) == L10n.string(L10n.Workspace.omnibarKindSource))
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: hit)?.glyph == .symbol(.search))
-        #expect(leadHit(kind: "source_type").searchKind == .sourceType)
+        #expect(CatalogSearchHit.fixture(kind: "source_type", location: .sectionRoot(.persons)).searchKind == .sourceType)
     }
 
     @Test func aConclusionHitWithAPictureLeadsWithIt() {
         let entity = CatalogCanonicalEntity(id: "p", ref: "PER-1", subjectTypeID: "t", label: "")
         var person = CatalogPersonSummary(entity: entity, name: nil, nameValueCount: 0)
         person.pictureImageRelPath = "objects/ab/cdef.png"
-        var hit = leadHit(kind: "person")
+        var hit = CatalogSearchHit.fixture(kind: "person", location: .sectionRoot(.persons))
         hit.summary = .person(person)
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: hit) == nil)
         #expect(CatalogSearchHitPresentation.leadRelPath(for: hit) == "objects/ab/cdef.png")
@@ -324,12 +324,5 @@ struct CatalogSearchHitPresentationTests {
         person.pictureImageRelPath = ""
         hit.summary = .person(person)
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: hit)?.glyph == .mark(EvidencePrimaryKind.person.markKey))
-    }
-
-    private func leadHit(kind: String, iconKey: String = "") -> CatalogSearchHit {
-        CatalogSearchHit(
-            kind: kind, id: "h", ref: "REF-AAAAA", title: "Title", subtitle: "",
-            matchReason: "title", location: .sectionRoot(.persons), iconKey: iconKey
-        )
     }
 }
