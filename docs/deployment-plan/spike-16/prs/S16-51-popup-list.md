@@ -1,6 +1,6 @@
 # S16-51 — The combo box's list becomes a kit popup list
 
-**Status:** Planned
+**Status:** Landed #928
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every combo box list and the format editor's completion draw as today; only the code that holds them and the moment a click away closes them change)
@@ -417,3 +417,9 @@ None.
 
 **Title:** S16-51 — The combo box's list becomes a kit popup list
 **Body:** objective in one sentence; what shipped against US-1, US-2 and US-3; AC evidence; deviations from the plan; manual check; the AC-3.1 – AC-3.3 `rg` output; `Plan: docs/deployment-plan/spike-16/prs/S16-51-popup-list.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `7898cee50`; no **Current state** row changed under `macos/`.
+- `PVPopupListWindow.Coordinator` keeps the width it last framed at (`shownWidth`) to widen new content, because `PVPopupWindowHost` has no frame accessor (D-14, D-15).
+- The manual check (§10), including the STEP-3 and STEP-4 in-app passes, was not run by the implementer; it is owed before merge.
