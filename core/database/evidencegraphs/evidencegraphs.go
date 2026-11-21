@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
-	"slices"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
@@ -13,7 +12,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/ref"
 	"github.com/google/uuid"
 )
@@ -770,34 +768,6 @@ func SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte) ([]rowchange.Change,
 	if tx == nil || len(sourceID) != 16 {
 		return nil, ErrInvalid
 	}
-	ids = database.UniqueBlobIDs(ids)
-	var changes []rowchange.Change
-	err := sqlbatch.Query(tx, sqlSourceRows, `)`, nil, ids, func(rows *sql.Rows) error {
-		var id, old []byte
-		if err := rows.Scan(&id, &old); err != nil {
-			return err
-		}
-		if bytes.Equal(old, sourceID) {
-			return nil
-		}
-		changes = append(changes, *rowchange.Updated("evidence_graph", id,
-			map[string]any{"source_id": database.UUIDJSON(old)},
-			map[string]any{"source_id": database.UUIDJSON(sourceID)}))
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(changes) == 0 {
-		return nil, nil
-	}
-	slices.SortFunc(changes, func(a, b rowchange.Change) int { return bytes.Compare(a.EntityID, b.EntityID) })
-	moved := make([][]byte, len(changes))
-	for i, c := range changes {
-		moved[i] = c.EntityID
-	}
-	if err := sqlbatch.Exec(tx, sqlSetSource, `)`, []any{sourceID, sourceID}, moved); err != nil {
-		return nil, mapConstraint(err)
-	}
-	return changes, nil
+	changes, err := database.SetSource(tx, "evidence_graph", sqlSourceRows, sqlSetSource, ids, sourceID)
+	return changes, mapConstraint(err)
 }

@@ -3,15 +3,12 @@
 package subjects
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
-	"slices"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
-	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -319,30 +316,6 @@ func SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte) ([]rowchange.Ch
 	if tx == nil || len(sourceID) != 16 {
 		return nil, ErrInvalid
 	}
-	graphIDs = database.UniqueBlobIDs(graphIDs)
-	var changes []rowchange.Change
-	err := sqlbatch.Query(tx, sqlSourceRows, `)`, nil, graphIDs, func(rows *sql.Rows) error {
-		var id, old []byte
-		if err := rows.Scan(&id, &old); err != nil {
-			return err
-		}
-		if bytes.Equal(old, sourceID) {
-			return nil
-		}
-		changes = append(changes, *rowchange.Updated("subject", id,
-			map[string]any{"source_id": database.UUIDJSON(old)},
-			map[string]any{"source_id": database.UUIDJSON(sourceID)}))
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(changes) == 0 {
-		return nil, nil
-	}
-	slices.SortFunc(changes, func(a, b rowchange.Change) int { return bytes.Compare(a.EntityID, b.EntityID) })
-	if err := sqlbatch.Exec(tx, sqlSetSource, `)`, []any{sourceID, sourceID}, graphIDs); err != nil {
-		return nil, mapConstraint(err)
-	}
-	return changes, nil
+	changes, err := database.SetSource(tx, "subject", sqlSourceRows, sqlSetSource, graphIDs, sourceID)
+	return changes, mapConstraint(err)
 }
