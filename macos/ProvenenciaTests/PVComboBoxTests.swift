@@ -135,6 +135,28 @@ struct PVComboBoxTests {
         #expect(PVComboBoxMatch.reportsRestore(isRemote: false, old: "Pol", new: "") == false)
     }
 
+    // MARK: Return
+
+    /// Return commits a highlighted row, reaches the form only when the field
+    /// shows its pick, and otherwise does nothing.
+    @Test(arguments: [
+        ("highlighted row", 1, "pub", "Author", PVComboBoxMatch.ReturnAction.commit(1)),
+        ("untouched, or typed back to the label", -1, "Author", "Author", .submit),
+        ("cleared with a pick", -1, "", "Author", .swallow),
+        ("cleared with no pick", -1, "", "", .submit),
+        ("text matching nothing", -1, "zzz", "Author", .swallow),
+        ("text matching nothing, no pick", -1, "zzz", "", .swallow),
+    ])
+    func returnPassesOnOnlyWhenTheFieldShowsItsPick(
+        _ name: String, _ activeIndex: Int, _ query: String, _ committedLabel: String,
+        _ expected: PVComboBoxMatch.ReturnAction
+    ) {
+        let action = PVComboBoxMatch.returnAction(
+            activeIndex: activeIndex, optionCount: 3, query: query, committedLabel: committedLabel
+        )
+        #expect(action == expected, "\(name)")
+    }
+
     // MARK: Placement
 
     /// A roomy 1440x900 display with the menu bar taken off the top, in

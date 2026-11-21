@@ -198,8 +198,9 @@ struct SourceTypeSuggestionList: View {
         let pool = model.assignPool(at: level)
         let dataTypes = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, $0.dataType) })
         return VStack(alignment: .leading, spacing: PVSpacing.space4) {
-            // A small form: Return in the picker with no row highlighted reaches this submit, which
-            // adds the picked field as the plus does. The combo box itself takes no key handling.
+            // A small form: Return in the picker with no row highlighted reaches this submit only
+            // when the field shows its pick (`PVComboBoxMatch.returnAction`), and adds the picked
+            // field as the plus does. The combo box itself takes no key handling.
             HStack(spacing: PVSpacing.space5) {
                 PVComboBox(
                     selection: Binding(
