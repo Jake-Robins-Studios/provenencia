@@ -1,0 +1,42 @@
+# Review — S15-25 Move from an Artifact or a graph
+
+**Plan:** [`S15-25-move-from-artifact-or-graph.md`](S15-25-move-from-artifact-or-graph.md) · **Brief:** [S15-D10](../design/S15-D10-move-confirm.md)
+**Rounds:** 1 of 2 so far. **Reviewers:** maintainability (Opus), executability (Sonnet), fresh context, read-only.
+**Verdict, round 1:** maintainability **Reshape**; executability **Not ready**. Every finding answered below. Three went to the user, who answered them on 2026-11-21.
+**Round 2:** runs once the S15-D10 board is agreed and its frames are copied into the plan. The plan stays `Blocked — on board S15-D10` until then.
+
+## Round 1 — executability
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| X-1 | blocker | STEP-9 archives S15-D1 and S15-D14 without handling the ~18 links into them, the D14 review log, or the README cells | **Fixed** — STEP-11 (was STEP-9): `git mv` of the three briefs and S15-D14's review log; rewrite every inbound link (`rg` command given); `check-plan-docs.py`'s `multi_pr_ok` matches by file name, so it needs no change; README Archived cells say what goes in each; the check now lints every plan and brief in the spike |
+| X-2 | blocker | Plan (reply order) and brief MV-5 (seed first) disagree on bundle row order; `progress` indexed by position | **Fixed** — D-13: `bundleArtifacts` / `bundleGraphs` put the seed first, then the reply's order; progress matched by `graphId`. AC-2.1b, T-5 |
+| X-3 | blocker | D-6 leaves a failed pick read, Read again's target, a cleared pick, a pick before the first reply, and a repeated pick open | **Fixed** — D-6 states each case; AC-3.5; T-10 extended |
+| X-4 | major | `FakeStore.moveToSource` does not say how the fake's rows move; missing impact key behaviour | **Fixed** — D-4: re-buckets `artifactsBySource`, sets graphs' `sourceID`, `preconditionFailure` on a missing script, defaults for an absent target |
+| X-5 | major | STEP-1 and STEP-2 disagree on who creates the test file; GoStore mapping untested | **Fixed** — the store step creates the file; GoStore gets no Swift test, as its precedent `getEvidenceGraphUnlinkImpact`; the manual check runs it |
+| X-6 | major | ACs without a test (graph seed, card `isEnabled`, navigation, unread list, short `progress`) | **Fixed** — T-14 (graph seed), T-3 (`isEnabled`), T-5 (short progress), T-7 (unread list), T-11/T-13 (`leave` called or not) |
+| X-7 | major | Dialog details left open (spacing, ComboBox parameters, Callout ids, plural layout, unused keys) | **Fixed** — D-14 and D-13 name every call, parameter and identifier; D-12 names the plural layout precedent |
+| X-8 | major | "Open" vs "Open evidence graph"; brief frame 1 contradicts itself; frame 6 data; no Wide menu frames | **Fixed** — "Open" in both (the card button's own key); frames 1a/1b and 2a/2b; frame 6 has its own Source |
+| X-9 | major | Target not in the list at move time; apply order; `openMove` with no Source; history check | **Fixed** — `target` kept at the pick (D-6, D-8); `apply(_:leavingPage:)` (D-8); `openMove` guards `source` (D-5); history fixed by D-17 |
+| X-10 | minor | `isEnabled` helper unnamed; stale doc comment; `(0,0)`; "never by `== 1`" wording; STEP-5 check; commit subjects | **Fixed** — `GraphCardAction.isEnabled(canOpen:hasSource:)`; doc comment in Deletes; `(0,0)` stated; wording; manual check; one subject per step |
+
+## Round 1 — maintainability
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M-1 | blocker | D-6 hand-rolls a reply sequence number beside `LatestCall`, against `docs/macos-client-patterns.md` | **Fixed** — D-6 reads through `LatestCall`; `settleReads()` for tests; FakeHold's oldest-first release is enough because `LatestCall` drops a superseded reply whenever it lands |
+| M-2 | blocker | D-8 names both Sources' cache updates by hand, against the working rule "A move is the whole bundle" | **To user → answered (2026-11-21).** The writer offered: name both by hand (a rule bend), or have the page follow `source_records` (a reload after every Source edit). The user asked for a correct design that keeps patch-first performance. Writer's proposal, accepted and folded into S15-25: a narrow engine read `source_artifacts`, reported only when an Artifact joins or leaves a Source, which `.sourceWorkspace` follows; Artifact create and delete lose their hand-written reloads. D-15, D-16, D-8, US-5, T-0, T-15. **Rules this plan bends:** none |
+| M-3 | blocker | D-11 copies the engine's "not assessed weighs as Standard" rule into Swift | **To user → answered (2026-11-21): the engine sends it.** D-11: three label fields on the preflight reply (`source_credibility_label`, `target_credibility_label`, `weighed_as_label`); Swift drops the grades lookup. T-0b, T-9 |
+| M-4 | major | D-8 relies on update order to leave the page; `apply(_:_:leavingPage:)` exists | **Fixed** — D-8 `move(leavingPage:)` |
+| M-5 | major | D-10's `targets` re-sorts 3,000 Sources outside the derived cache | **Fixed** — `DerivedValueID.sourcesByUpdated`; `.sourcesOfType` filters from it |
+| M-6 | major | A canvas history entry keeps the old `sourceId` after a move | **To user → answered (2026-11-21): fix in this PR.** D-17: `WorkspaceLocation.correctingGraphSource(_:)` and `replaceCurrent(with:)` from the destination host for the canvas, composer and Promote. US-6, T-16 |
+| M-7 | minor | Brief MV-5 hedges the caption style | **Fixed** — the brief names the kit SubsectionHeader only |
+| M-8 | minor | Booleans and optionals in the model instead of a phase enum | **Declined** — with `LatestCall` the model holds `readState` (the kit's `PVFormLoadState`, what the load area draws), `impact`, `impactTarget` and two flags. `canMove` combines facts the view reads separately, and no state the plan names is impossible: `.ready` with `impact == nil` cannot arise because only a reply sets `.ready` |
+| M-9 | nit | Brief § 1 says "between Edit… and Delete…" | **Fixed** — "just before Delete…" |
+| M-10 | nit | 560 vs Copy Source's 520 | **Fixed** — 520, as Copy Source |
+
+## To user (all answered)
+
+- M-2: the cache design above (2026-11-21: fold the `source_artifacts` read into S15-25).
+- M-3: the engine sends the grade labels (2026-11-21).
+- M-6: fix the history entry in this PR (2026-11-21).
