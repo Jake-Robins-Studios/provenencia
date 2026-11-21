@@ -5,7 +5,7 @@
 **View:** the provenance sheet (a sheet over the Person page; the same sheet opens from Event and Place rows after S15-31)
 **Implements later as:** PR **S15-21** (PC-1 – PC-9, PC-W1)
 **Board:** — (not drawn yet)
-**Depends on:** S15-16 (landed [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914)): the engine renders each Citation's full and short citation, as styled runs, with a group key; S16-04 (landed [#776](https://github.com/Jake-Robins-Studios/provenencia/pull/776)): the app's failed-read notice with Try again; S16-30 (landed [#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812)): the sheet's records
+**Depends on:** S15-16 (landed [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914)): the engine renders each Citation's full and short citation, as styled runs, with a group key; S16-30 (landed [#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812)): the sheet's records
 **Related:** [`../provenance-loading.md`](../provenance-loading.md); working rules "Grouping is by the rendered full citation, computed when read", "Citations render on demand, from SQL", "Today's line stays the fallback, in Swift", "Follow the *Evidence Explained* style; never copy the book" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); plan [`../prs/S15-21-provenance-sheet-citations.md`](../prs/S15-21-provenance-sheet-citations.md). Later briefs on this sheet: S15-D17 (the fold), S15-D18 (records loading on open)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
 **Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
@@ -76,7 +76,7 @@ Keep the sheet as shipped: its title, the value header (the shown value, its sta
 
 ## 1. Objective
 
-A record's citation on the provenance sheet reads like a citation. Where a Source's type has a full citation format, the Citation cell shows the citation the engine renders from the Source, its Artifact and the Evidence graph, with its italics ("1880 U.S. census, Ottawa County, Kansas, population schedule, ED 236, p. 14, dwelling 112, family 118, Ada Robins; digital image, *Ancestry* (… : accessed 12 March 2025)"). Two copy buttons copy the full and the short form, as rich text (italics kept) and plain text. Records whose full citations read the same (the pieces of one household row) sit together, with no rule between them, so the eye reads them as one citation. The citations are fetched when the sheet opens: until they arrive the record area shows a loading indicator, and if they cannot be read it shows a notice with Try again.
+A record's citation on the provenance sheet reads like a citation. Where a Source's type has a full citation format, the Citation cell shows the citation the engine renders from the Source, its Artifact and the Evidence graph, with its italics ("1880 U.S. census, Ottawa County, Kansas, population schedule, ED 236, p. 14, dwelling 112, family 118, Ada Robins; digital image, *Ancestry* (… : accessed 12 March 2025)"). Two copy buttons copy the full and the short form, as rich text (italics kept) and plain text. Records whose full citations read the same (the pieces of one household row) sit together, with no rule between them, so the eye reads them as one citation. The citations are fetched when the sheet opens: until they arrive the record area shows the kit's load area, and if they cannot be read it shows that area's notice with Read again.
 
 **What stays.** Where a Source's type has no full format, the cell shows today's line ("Census of Canada West, 1851, Vol. 3, p. 23") with one copy button, as today. The header, the links, the Outcome and Record cells, and the sheet's widths do not change.
 
@@ -88,7 +88,7 @@ A record's citation on the provenance sheet reads like a citation. Where a Sourc
 | **A record row** | Read as (140pt; 220pt at Wide) · Citation (takes the rest) · Outcome (190pt; 280pt at Wide: a mark and a phrase, "Kept", "Outvoted by 2 Sources") · Record (112pt: the Observation ref over the Subject ref, mono) · a reserved 88pt column. The Citation cell: the citation line as an ink link (opens the Citation), a copy icon button level with its first line, and under it the links **Source** and **Observation OBS-…**. A record that went into the shown value is primary ink; the rest secondary. |
 | **Groups in the table** | Owner lines (a derived row's Event or Place) and value headings (a run of records under one displayed value) already split the table; a rule separates rows. |
 | **Full and short citation** | Each Citation has a full citation (the first footnote) and a short one (later notes), each rendered by the engine as runs of plain and italic text. A type may have a full format and no short one. |
-| **Same citation** | Records whose full citations render the same (Citations drawn on one household row of a census page) belong together: the engine gives them the same group key. Records with no full citation never group. |
+| **Same citation** | Records whose full citations render the same (Citations drawn on one household row of a census page) belong together: the engine gives them the same group key. Records of different Citations with no full citation never group; two records of one such Citation do. |
 | **Today's line** | "Source title, Artifact label, Citation label, p. 23" (else "image 37"): the app's own line, used where the type has no full format. |
 | **On-open read** | The citations come from one call the sheet makes when it opens; the records themselves are already on the page. At Scale a sheet shows up to 300 citations; the call is fast but not instant. |
 | **Copy** | Rich text keeps the italics when pasted into a word processor; plain text is written alongside for plain fields. |
@@ -108,7 +108,7 @@ A record's citation on the provenance sheet reads like a citation. Where a Sourc
 
 | PR | Ships | Not in this PR |
 | --- | --- | --- |
-| **S15-21** | PC-1 – PC-9, PC-W1: the formatted citation in the Citation cell with its italics, today's line as the fallback, Copy full and Copy short (rich and plain), the same-citation run with no rule inside it, the loading indicator and the failed notice with Try again | The fold, records on open, every other view |
+| **S15-21** | PC-1 – PC-9, PC-W1: the formatted citation in the Citation cell with its italics, today's line as the fallback, Copy full and Copy short (rich and plain), the same-citation run with no rule inside it, the load area while loading and its failed notice with Read again | The fold, records on open, every other view |
 
 ## 4. Requirements
 
@@ -119,8 +119,8 @@ A record's citation on the provenance sheet reads like a citation. Where a Sourc
 | PC-3 | **Two copy buttons.** Beside the first line of a formatted citation sit two icon buttons: **Copy full citation** and **Copy short citation**, in that order, each with its tooltip and spoken label. Each turns to a check for 1.6 seconds after a click (the kit's ClipboardButton). When the type has no short format, only Copy full citation shows, in the first slot. A fallback row shows one button, **Copy citation**, in the first slot. The copy track keeps the width of two buttons on every row, so the Citation column's text edge lines up down the table. |
 | PC-4 | **Rich and plain.** A copy writes the citation as rich text with its italics and as plain text. The board notes it; there is nothing to draw. |
 | PC-5 | **Same citation, no rule.** Within a value run (and within an owner group), records with the same full citation sit next to each other, in the order the first of them appeared, and no rule is drawn between them. Each row still shows its own full citation, copy buttons and links. A run of one is an ordinary row. Draw the rule a normal row boundary keeps against the hairline a same-citation pair drops, so the difference is visible at 100%. No background, heading or count marks a run. |
-| PC-6 | **Loading.** When the sheet opens and the citations are not yet read, the header and column headings draw at once; the record area under the headings shows the kit's small progress indicator, centred, in an area of 120pt minimum height, spoken "Loading citations". No record row draws until the citations arrive; then the table draws once. |
-| PC-7 | **Failed.** If the citations cannot be read, the record area shows only a Callout with Try again (the kit's retry notice, danger tone): title "Citations could not be read", the error's message, and **Try again**, which shows its in-progress state while the read runs again. No record row draws. The notice is announced. |
+| PC-6 | **Loading.** When the sheet opens and the citations are not yet read, the header and column headings draw at once; the record area under the headings shows the kit's FormLoadArea in its loading state (three skeleton bars and the caption "Loading citations", spoken the same). No record row draws until the citations arrive; then the table draws once. |
+| PC-7 | **Failed.** If the citations cannot be read, the record area shows only the FormLoadArea's failed state (its compact danger Callout): title "Citations could not be read", the error's message, and **Read again**; while the read runs again the area shows its loading state. No record row draws. The notice is announced. |
 | PC-8 | **Spoken.** A row's spoken line reads the plain text of its full citation (else today's line) where it reads the citation line today. The two copy buttons speak "Copy full citation" and "Copy short citation"; after a copy VoiceOver says "Full citation copied" or "Short citation copied". |
 | PC-9 | **Long citation.** A formatted citation of five lines at Regular stays aligned: the copy buttons sit level with its first line, the Source and Observation links follow its last line. |
 | PC-W1 | **Wide.** At Wide the sheet is 1280pt as today; the Citation column takes the extra width, so a long citation wraps to fewer lines. The copy track, links, loading area and notice are the same as Regular. |
@@ -141,8 +141,8 @@ Each frame is the 1102 × 900 pane (Regular) or the 2296 × 1440 pane (Wide) dim
 | 1b — Wide | Frame 1a at 1280pt |
 | 2 — Copied | Frame 1a with Copy short citation in its check state |
 | 3 — Owner groups | A derived Birth date row with two owner lines; a same-citation pair inside the first group and a value heading in the second |
-| 4 — Loading | The header and column headings, the progress indicator in the record area |
-| 5 — Failed | The header and column headings, the retry notice in the record area; and the same notice with Try again in progress |
+| 4 — Loading | The header and column headings, the FormLoadArea's loading state in the record area |
+| 5 — Failed | The header and column headings, the FormLoadArea's failed callout with Read again in the record area |
 | 6 — Long citation | A five-line citation at Regular: buttons level with its first line, links under its last |
 | 7 — No short format | A formatted row whose type has no short format: one button in the first slot |
 | 8 — Spoken | Annotations: a row's spoken line, the two buttons' labels and their copied announcements, the loading label |
@@ -154,12 +154,11 @@ Each frame is the 1102 × 900 pane (Regular) or the 2296 × 1440 pane (Wide) dim
 | Provenance sheet | Recipe | Extend | `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift` | Gains the record area's three states (loading, failed, ready). No new panel |
 | Record table | Recipe | Extend | `…/ProvenanceSheet/PVProvenanceRecordTable.swift` | Drops the rule inside a same-citation run (PC-5); same Divider elsewhere |
 | Record row, Citation cell | Recipe | Extend | `…/ProvenanceSheet/PVProvenanceRecordRow.swift` | The link label is the formatted citation (PC-1); the copy track holds two buttons |
-| Formatted citation text | Snowflake | Extend (moves) | `macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` `CitationRunsText` → `macos/App/Platform/` | The engine's runs as text, italic runs in italic. Its second caller is this sheet; the format editor's preview is the first. Not a new kit component |
+| Formatted citation text | Platform formatter + component | Ship | `CatalogCitationRender.styled` (Platform) drawn through `PVTitleText.italicizingEmphasis` (`…/Components/TitleText/`) | The engine's runs as text, italic runs in italic, the way a name's emphasis is drawn. The format editor's preview draws the same. Not a new kit component |
 | Copy full / Copy short / Copy citation | Component | Extend | `macos/App/DesignSystem/Components/ClipboardButton/PVClipboardButton.swift` | One kit button per copy, each the existing ClipboardButton; it gains a rich-text payload. Not a new split or menu control |
 | Citation link | Component | Ship | `…/Components/InkLink/` `PVInkLink` | As today |
 | Source, Observation links | Component | Ship | `PVButton` `.link` | As today |
-| Loading indicator | Platform | Ship | `ProgressView` `.controlSize(.small)` | As the Conclusion sections' loading |
-| Failed notice | Component | Ship | `…/Components/Callout/` `PVRetryCallout` | The Conclusions pages' retry notice (S16-04); Try again reads the citations again |
+| Record area load state | Component | Ship | `…/Components/FormLoadArea/` `PVFormLoadArea` | Loading and failed in one kit body, as the Copy forms and the Artifact sheet use it; Read again reads the citations again. Not a spinner or a second notice (user, 2026-11-21) |
 | Rule between rows | Component | Ship | `PVDivider` | Omitted inside a same-citation run |
 
 **Non-goals.** No new kit primitive: no split button, copy menu, group header, group card or citation chip. No new column. The Wide sheet stays 1280pt.
