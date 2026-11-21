@@ -202,20 +202,31 @@ struct PVTextArea: View {
 
 extension PVTextArea {
     /// The completion list, drawn in its own window at the caret while open.
+    /// The clear background has the area's frame, so the area is the anchor for
+    /// "a click on the field".
     @ViewBuilder
     fileprivate var completionPopup: some View {
         if let completion {
-            PVPopupList(
-                isPresented: completionSession.isOpen,
+            Color.clear.pvPopupList(
+                isPresented: completionPresented,
                 maxHeight: PVTextAreaCompletionList.maxHeight,
                 contentHeight: PVTextAreaCompletionList.height(rows: completionSession.options.count),
                 optionCount: completionSession.options.count,
                 width: PVTextAreaCompletionList.width,
-                anchorRect: { [session = completionSession] in session.caretRect() },
-                onDismiss: { [session = completionSession] in session.close() },
-                content: PVTextAreaCompletionRows(session: completionSession, completion: completion)
-            )
+                anchorRect: { [session = completionSession] in session.caretRect() }
+            ) {
+                PVTextAreaCompletionRows(session: completionSession, completion: completion)
+            }
         }
+    }
+
+    fileprivate var completionPresented: Binding<Bool> {
+        Binding(
+            get: { completionSession.isOpen },
+            set: { open in
+                if !open { completionSession.close() }
+            }
+        )
     }
 }
 

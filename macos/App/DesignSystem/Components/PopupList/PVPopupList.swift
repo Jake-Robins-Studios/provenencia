@@ -1,12 +1,47 @@
 import AppKit
 import SwiftUI
 
+extension View {
+    /// The kit popup list: `content` in its own borderless window under this
+    /// view (or, with `anchorRect`, at a rect on screen: a text caret), placed
+    /// by `PVPopupListPlacement` and closed through `.pvPopup`. `isMeasured`
+    /// holds the window down until the caller has measured its rows. The field
+    /// keeps focus and its keys (`keysStayInField`) and stays open on a click in
+    /// its own area (`staysOpenOnFieldClick`); it holds one `PVPopupListHighlight`.
+    /// `PVComboBox` and `PVTextArea`'s completion list both present through it.
+    func pvPopupList<Content: View>(
+        isPresented: Binding<Bool>,
+        isMeasured: Bool = true,
+        maxHeight: CGFloat,
+        contentHeight: CGFloat,
+        optionCount: Int,
+        width: CGFloat? = nil,
+        anchorRect: (() -> CGRect?)? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        background(
+            PVPopupListWindow(
+                isPresented: isPresented.wrappedValue && isMeasured,
+                maxHeight: maxHeight,
+                contentHeight: contentHeight,
+                optionCount: optionCount,
+                width: width,
+                anchorRect: anchorRect,
+                content: content()
+            )
+        )
+        .pvPopup(
+            isPresented: isPresented,
+            options: PVPopupOptions(keysStayInField: true, staysOpenOnFieldClick: true)
+        )
+    }
+}
+
 /// Hosts `content` in a borderless child window anchored to the view this is
 /// a background of (or, with `anchorRect`, to a rect on screen: a text caret).
 /// It sits in the view tree only to get hold of an `NSView` to measure
-/// against — it draws nothing itself. `PVComboBox` and `PVTextArea`'s
-/// completion list both present through it.
-struct PVPopupList<Content: View>: NSViewRepresentable {
+/// against — it draws nothing itself, and it never closes: `.pvPopup` does.
+private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
     let isPresented: Bool
     let maxHeight: CGFloat
     /// The height the content wants, measured by the caller (see
@@ -21,7 +56,6 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
     /// The anchor in AppKit screen coordinates, read each time the popup is
     /// framed; nil is the frame of the view this is a background of.
     var anchorRect: (() -> CGRect?)?
-    let onDismiss: () -> Void
     let content: Content
 
     func makeNSView(context: Context) -> NSView {
@@ -32,7 +66,6 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
 
     func updateNSView(_: NSView, context: Context) {
         let coordinator = context.coordinator
-        coordinator.onDismiss = onDismiss
         coordinator.maxHeight = maxHeight
         coordinator.contentHeight = contentHeight
         coordinator.optionCount = optionCount
@@ -63,22 +96,20 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
     @MainActor
     final class Coordinator {
         weak var anchor: NSView?
-        var onDismiss: () -> Void = {}
         var maxHeight: CGFloat = 288
         var contentHeight: CGFloat = 0
         var optionCount = 0
         var width: CGFloat?
         var anchorRect: (() -> CGRect?)?
         /// The single source of truth for whether the panel should be up,
-        /// written synchronously by every `updateNSView` and by `dismiss()`.
-        /// `applyPresentation` mirrors it into AppKit.
+        /// written synchronously by every `updateNSView`. `applyPresentation`
+        /// mirrors it into AppKit.
         var wantsPresented = false
 
         private var panel: PVPopupPanel?
         private var hosting: PVPopupHostingView?
         /// Kept unwidened so `position` can re-wrap it at the field's width.
         private var content: AnyView = AnyView(EmptyView())
-        private var clickMonitor: Any?
         private var observers: [NSObjectProtocol] = []
         /// The content metrics the panel was last framed for; `nil` while it
         /// is down. Comparing against these is what keeps re-framing (which
@@ -185,7 +216,7 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
 
             let visible = (window.screen ?? NSScreen.main)?.visibleFrame ?? anchorOnScreen
             panel.setFrame(
-                PVComboBoxPlacement.popupFrame(
+                PVPopupListPlacement.popupFrame(
                     anchor: anchorOnScreen,
                     contentHeight: wanted,
                     visibleFrame: visible
@@ -195,22 +226,9 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
             panel.invalidateShadow()
         }
 
-        // MARK: Dismissal
+        // MARK: Following
 
-        /// SwiftUI does not resign a `TextField`'s focus when you click inert
-        /// content, so "clicked away" has to be observed at the event level —
-        /// the same job the web component's `mousedown` listener does.
         private func startWatching(parent: NSWindow) {
-            clickMonitor = NSEvent.addLocalMonitorForEvents(
-                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-            ) { [weak self] event in
-                self?.handleMouseDown(event)
-                return event
-            }
-            // No global monitor: a click in another app deactivates this one,
-            // and the `didResignKeyNotification` observer below already
-            // dismisses on that.
-
             let center = NotificationCenter.default
             // Follow the field when the window moves or resizes, and when the
             // pane it lives in scrolls — a detached popup is worse than none.
@@ -219,11 +237,6 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
                     MainActor.assumeIsolated { self?.position() }
                 })
             }
-            observers.append(
-                center.addObserver(forName: NSWindow.didResignKeyNotification, object: parent, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.dismiss() }
-                }
-            )
             if let clip = anchor?.enclosingScrollView?.contentView {
                 clip.postsBoundsChangedNotifications = true
                 observers.append(
@@ -235,39 +248,8 @@ struct PVPopupList<Content: View>: NSViewRepresentable {
         }
 
         private func stopWatching() {
-            if let clickMonitor {
-                NSEvent.removeMonitor(clickMonitor)
-            }
-            clickMonitor = nil
             observers.forEach(NotificationCenter.default.removeObserver)
             observers.removeAll()
-        }
-
-        /// Every mouse-down in the app while the popup is open lands here.
-        /// There are exactly two things it can be: a click on a row — which
-        /// the monitor passes through untouched, the row's own tap gesture
-        /// commits it — or a click away. Anything that is not in the popup
-        /// and not on the field itself dismisses — no exceptions, whether or
-        /// not the thing clicked takes focus.
-        private func handleMouseDown(_ event: NSEvent) {
-            if let panel, event.window === panel { return }
-            if let anchor, event.window === anchor.window {
-                let point = anchor.convert(event.locationInWindow, from: nil)
-                // Clicking the field it belongs to leaves the list up — the
-                // caret moves, the list stays.
-                if anchor.bounds.contains(point) { return }
-            }
-            dismiss()
-        }
-
-        /// A dismissal decided on the AppKit side (click away, window resigns
-        /// key). Writing `wantsPresented` first means any queued
-        /// `applyPresentation` agrees with the hide instead of undoing it;
-        /// `onDismiss` then brings the SwiftUI state along.
-        private func dismiss() {
-            wantsPresented = false
-            hide()
-            onDismiss()
         }
     }
 }
@@ -298,7 +280,7 @@ private final class PVPopupHostingView: NSHostingView<AnyView> {
 
 // MARK: - The list inside the window
 
-/// The list both callers of `PVPopupList` draw in the window: the card (fill,
+/// The list both callers of `.pvPopupList` draw in the window: the card (fill,
 /// stroke, radius), the scroller that keeps the highlighted row in view, and the
 /// caller's row stack. The caller builds the stack from `PVPopupListRow` and
 /// `PVPopupListLine`, and picks `VStack` (rows of unequal height, measured before
@@ -428,5 +410,37 @@ struct PVPopupListHighlight: Equatable {
     /// The active row when it is one of `count` rows.
     func current(count: Int) -> Int? {
         (0..<count).contains(index) ? index : nil
+    }
+}
+
+/// Where a popup list's window sits relative to its anchor.
+enum PVPopupListPlacement {
+    /// Air between the field and its list.
+    static let gap: CGFloat = 4
+
+    /// Screen frame for the popup window. All rects are AppKit **screen**
+    /// coordinates, so y grows upward and "below the field" means a smaller
+    /// y than the field's `minY`.
+    ///
+    /// The popup is placed strictly outside the anchor — it can never cover
+    /// the text you are typing into — and always inside `visibleFrame`, so it
+    /// cannot run off the display. It prefers to open downward and flips
+    /// above the field only when it does not fit below *and* there is more
+    /// room up there; whichever side it lands on, the height is trimmed to
+    /// the space actually available, leaving the list to scroll inside it.
+    static func popupFrame(
+        anchor: CGRect,
+        contentHeight: CGFloat,
+        visibleFrame: CGRect,
+        gap: CGFloat = gap
+    ) -> CGRect {
+        let spaceBelow = max(0, anchor.minY - visibleFrame.minY - gap)
+        let spaceAbove = max(0, visibleFrame.maxY - anchor.maxY - gap)
+        let opensUp = contentHeight > spaceBelow && spaceAbove > spaceBelow
+        let height = min(contentHeight, opensUp ? spaceAbove : spaceBelow)
+        let y = opensUp ? anchor.maxY + gap : anchor.minY - gap - height
+        let width = min(anchor.width, visibleFrame.width)
+        let x = min(max(anchor.minX, visibleFrame.minX), visibleFrame.maxX - width)
+        return CGRect(x: x, y: y, width: width, height: height)
     }
 }

@@ -96,38 +96,6 @@ enum PVComboBoxMatch {
     }
 }
 
-/// Where the popup window sits relative to the field.
-enum PVComboBoxPlacement {
-    /// Air between the field and its list.
-    static let gap: CGFloat = 4
-
-    /// Screen frame for the popup window. All rects are AppKit **screen**
-    /// coordinates, so y grows upward and "below the field" means a smaller
-    /// y than the field's `minY`.
-    ///
-    /// The popup is placed strictly outside the anchor — it can never cover
-    /// the text you are typing into — and always inside `visibleFrame`, so it
-    /// cannot run off the display. It prefers to open downward and flips
-    /// above the field only when it does not fit below *and* there is more
-    /// room up there; whichever side it lands on, the height is trimmed to
-    /// the space actually available, leaving the list to scroll inside it.
-    static func popupFrame(
-        anchor: CGRect,
-        contentHeight: CGFloat,
-        visibleFrame: CGRect,
-        gap: CGFloat = gap
-    ) -> CGRect {
-        let spaceBelow = max(0, anchor.minY - visibleFrame.minY - gap)
-        let spaceAbove = max(0, visibleFrame.maxY - anchor.maxY - gap)
-        let opensUp = contentHeight > spaceBelow && spaceAbove > spaceBelow
-        let height = min(contentHeight, opensUp ? spaceAbove : spaceBelow)
-        let y = opensUp ? anchor.maxY + gap : anchor.minY - gap - height
-        let width = min(anchor.width, visibleFrame.width)
-        let x = min(max(anchor.minX, visibleFrame.minX), visibleFrame.maxX - width)
-        return CGRect(x: x, y: y, width: width, height: height)
-    }
-}
-
 /// Renders `text` with the matched span wearing the highlighter mark.
 enum PVComboBoxHighlight {
     static func attributed(_ text: String, query: String) -> AttributedString {
@@ -216,7 +184,8 @@ enum PVComboCommitVia: Equatable {
 /// clipped by any enclosing `ScrollView` and by the app window, which makes it
 /// useless for a field near the bottom of a scrolling inspector. `NSMenu`,
 /// `NSComboBox` and Spotlight all draw into their own borderless window for
-/// exactly that reason, and so does this: `PVComboBoxPlacement` positions it
+/// exactly that reason, and so does this: the kit's `.pvPopupList` shows it,
+/// closed through `.pvPopup`, and `PVPopupListPlacement` positions it
 /// in screen coordinates against the field, so it clips to the *display*
 /// rather than to any view, may extend past the app window's edge, and is
 /// placed strictly outside the field so it can never cover what you type. The
@@ -334,20 +303,19 @@ struct PVComboBox<Row: View, Empty: View>: View {
                     measuringRows
                 }
             }
-            .background(
-                PVPopupList(
-                    isPresented: isOpen && rowsMeasured,
-                    maxHeight: maxListHeight,
-                    // Only things that change the window's *size* are passed
-                    // as metrics. `activeIndex` changes on every mouse move,
-                    // and re-framing the window that often tore down click
-                    // handling inside it.
-                    contentHeight: desiredPopupHeight,
-                    optionCount: visibleOptions.count,
-                    onDismiss: dismissAndBlur,
-                    content: openList
-                )
-            )
+            .pvPopupList(
+                isPresented: popupPresented,
+                isMeasured: rowsMeasured,
+                maxHeight: maxListHeight,
+                // Only things that change the window's *size* are passed
+                // as metrics. The highlight changes on every mouse move,
+                // and re-framing the window that often tore down click
+                // handling inside it.
+                contentHeight: desiredPopupHeight,
+                optionCount: visibleOptions.count
+            ) {
+                openList
+            }
             .onChange(of: selectedLabel, initial: true) { _, newValue in
                 // Mirror an externally-set value into the field, but not over
                 // the top of someone mid-edit. The exception is the selection
@@ -364,10 +332,10 @@ struct PVComboBox<Row: View, Empty: View>: View {
                 // focus alone does **not** open — a sheet that lands first
                 // responder on this field (Add Source) would otherwise pop the
                 // list immediately. Open comes from a click, a keystroke, or
-                // an arrow / Home / End / Page key. The popup's mouse monitor
-                // still catches clicks on things that take no focus (a button,
-                // a label, empty chrome) and resolves them via `dismissAndBlur`,
-                // which resigns focus and lands back here.
+                // an arrow / Home / End / Page key. A click away on something
+                // that takes no focus (a button, a label, empty chrome) closes
+                // through the presenter, which calls `dismissAndBlur`, which
+                // resigns focus and lands back here.
                 if !focused { closeAndRestore() }
             }
             .onChange(of: isOpen) { _, open in
@@ -376,6 +344,20 @@ struct PVComboBox<Row: View, Empty: View>: View {
                 measuredRowsHeight = 0
                 rowsMeasured = false
             }
+    }
+
+    /// The list's presentation. The presenter (`.pvPopup`, through
+    /// `.pvPopupList`) closes it on a click away or an app switch, which is
+    /// `dismissAndBlur`; the box's own closes (a commit, Escape, Tab, focus
+    /// loss) set `isOpen` directly and do not blur. The guard keeps a close
+    /// queued behind another close from blurring a field that already closed.
+    private var popupPresented: Binding<Bool> {
+        Binding(
+            get: { isOpen },
+            set: { open in
+                if !open, isOpen { dismissAndBlur() }
+            }
+        )
     }
 
     /// Host focus when the form bound one; otherwise the field's own.

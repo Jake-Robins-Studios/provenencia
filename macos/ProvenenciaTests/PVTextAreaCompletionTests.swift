@@ -202,7 +202,7 @@ struct PVTextAreaCompletionTests {
     @Test func theListFlipsAboveTheCaretWhenTheScreenHasNoRoomBelow() {
         let visible = CGRect(x: 0, y: 0, width: 1000, height: 800)
         let caretNearBottom = CGRect(x: 100, y: 40, width: 360, height: 16)
-        let frame = PVComboBoxPlacement.popupFrame(
+        let frame = PVPopupListPlacement.popupFrame(
             anchor: caretNearBottom,
             contentHeight: PVTextAreaCompletionList.height(rows: 8),
             visibleFrame: visible
