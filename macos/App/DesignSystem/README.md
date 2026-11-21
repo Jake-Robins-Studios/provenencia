@@ -345,7 +345,7 @@ Two things the window costs us, both deliberate:
   it is shown, and neither a `ScrollView` inside it nor
   `NSHostingView.fittingSize` can be trusted to say. While the menu is open,
   the caller lays a hidden copy of the rows out behind the field purely to
-  measure them (`PVPopupListMeasure`; `PVComboBox` and the omnibar both do), waits for that height, then hands it to the window. A closed
+  measure them (`PVPopupListMeasure`; `PVComboBox` and the omnibar both do), holds the height it reports in one `PVPopupListMeasurement`, waits for it, then hands the window `PVPopupListCard.height(rows:)` (the rows plus the card's padding twice). A closed
   field does not build the list. The scroller simply fills whatever height it
   gets. The caller holds the height. An earlier version made one view both report an ideal height *and*
   lay out inside the resulting window; any disagreement between the two clips

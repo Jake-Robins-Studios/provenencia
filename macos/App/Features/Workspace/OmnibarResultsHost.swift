@@ -13,8 +13,7 @@ struct OmnibarResultsHost: ViewModifier {
     let contentWidth: CGFloat
     let onActivate: (CatalogSearchHit) -> Void
 
-    @State private var measuredHeight: CGFloat = 0
-    @State private var rowsMeasured = false
+    @State private var measurement = PVPopupListMeasurement()
 
     /// The list's width: preferred, narrowed to stay inside the content column,
     /// never narrower than the field.
@@ -37,10 +36,7 @@ struct OmnibarResultsHost: ViewModifier {
             }
             .background {
                 if results.isPresented {
-                    PVPopupListMeasure(isActive: results.isPresented, width: listWidth, onHeight: {
-                        measuredHeight = $0
-                        rowsMeasured = true
-                    }) {
+                    PVPopupListMeasure(isActive: results.isPresented, width: listWidth, onHeight: { measurement.record($0) }) {
                         rowsStack
                     }
                 }
@@ -50,9 +46,9 @@ struct OmnibarResultsHost: ViewModifier {
                     get: { results.isPresented },
                     set: { if !$0 { results.closePanel() } }
                 ),
-                isMeasured: rowsMeasured,
+                isMeasured: measurement.isMeasured,
                 maxHeight: OmnibarResultsModel.maxListHeight,
-                contentHeight: measuredHeight + PVSpacing.space2 * 2,
+                contentHeight: PVPopupListCard<EmptyView>.height(rows: measurement.height),
                 optionCount: results.search.hits.count,
                 width: listWidth,
                 alignment: .trailing
@@ -63,10 +59,7 @@ struct OmnibarResultsHost: ViewModifier {
                 results.handleKey(press.key, command: press.modifiers.contains(.command), activate: onActivate)
             }
             .onChange(of: results.isPresented) { _, presented in
-                if !presented {
-                    measuredHeight = 0
-                    rowsMeasured = false
-                }
+                if !presented { measurement.reset() }
             }
             .onDisappear { results.dismiss() }
     }
@@ -74,8 +67,7 @@ struct OmnibarResultsHost: ViewModifier {
     private var card: some View {
         PVPopupListCard(
             rowIDs: results.search.hits.map(\.id),
-            activeID: results.highlightedHit?.id,
-            verticalPadding: PVSpacing.space2
+            activeID: results.highlightedHit?.id
         ) {
             rowsStack
         }

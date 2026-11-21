@@ -237,3 +237,33 @@ struct PVPopupListPlacementTests {
                 preferred: 600, hangsFrom: 60, alignment: .leading, columnWidth: 436) == 360)
     }
 }
+
+@Suite
+struct PVPopupListCardTests {
+    @Test func cardHeightAddsThePaddingTwice() {
+        #expect(PVPopupListCard<EmptyView>.height(rows: 100, verticalPadding: 8) == 116)
+        #expect(
+            PVPopupListCard<EmptyView>.height(rows: 100)
+                == 100 + PVPopupListCard<EmptyView>.defaultVerticalPadding * 2
+        )
+    }
+
+    @Test func aMeasurementIsUnmeasuredUntilRecordedAndResets() {
+        var measurement = PVPopupListMeasurement()
+        #expect(!measurement.isMeasured)
+        measurement.record(40)
+        #expect(measurement.isMeasured && measurement.height == 40)
+        measurement.reset()
+        #expect(measurement == PVPopupListMeasurement())
+    }
+}
+
+@Suite
+struct PVPopupListCommitKeyTests {
+    @Test func returnAndKeypadEnterCommit() {
+        #expect(PVPopupListHighlight.isCommitKey(.return))
+        #expect(PVPopupListHighlight.isCommitKey(KeyEquivalent("\u{3}")))
+        #expect(!PVPopupListHighlight.isCommitKey(.escape))
+        #expect(!PVPopupListHighlight.isCommitKey(.downArrow))
+    }
+}

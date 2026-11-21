@@ -70,7 +70,7 @@ final class OmnibarResultsModel {
             return .handled
         }
         switch key {
-        case .return, KeyEquivalent("\u{3}"):
+        case _ where PVPopupListHighlight.isCommitKey(key):
             if let hit = highlightedHit { activate(hit) }
             return .handled
         case .escape:

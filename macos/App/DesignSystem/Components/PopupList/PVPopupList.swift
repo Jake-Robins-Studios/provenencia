@@ -229,8 +229,17 @@ struct PVPopupListCard<Stack: View>: View {
     let rowIDs: [String]
     /// The highlighted row's id, or nil.
     let activeID: String?
-    var verticalPadding: CGFloat = PVSpacing.space2
+    var verticalPadding: CGFloat = defaultVerticalPadding
     @ViewBuilder let stack: Stack
+
+    /// Air above and below the rows, inside the card's border.
+    static var defaultVerticalPadding: CGFloat { PVSpacing.space2 }
+
+    /// How tall a card wants to be around `rows` points of rows: the rows plus
+    /// the padding above and below.
+    static func height(rows: CGFloat, verticalPadding: CGFloat = defaultVerticalPadding) -> CGFloat {
+        rows + verticalPadding * 2
+    }
 
     var body: some View {
         ScrollView {
@@ -334,6 +343,22 @@ struct PVPopupListMeasure<Rows: View>: View {
     }
 }
 
+/// The rows' height a caller measured through `PVPopupListMeasure`, and
+/// whether one has come in yet. The window stays down until it has.
+struct PVPopupListMeasurement: Equatable {
+    var height: CGFloat = 0
+    var isMeasured = false
+
+    mutating func record(_ height: CGFloat) {
+        self.height = height
+        isMeasured = true
+    }
+
+    mutating func reset() {
+        self = PVPopupListMeasurement()
+    }
+}
+
 /// What a list draws: its rows, the searching line, or the caller's empty
 /// line. Rows already in stay on screen while a new search runs; the searching
 /// line shows only when there is nothing else to show. A failed search is the
@@ -385,6 +410,11 @@ struct PVPopupListHighlight: Equatable {
 
     init(index: Int = -1) {
         self.index = index
+    }
+
+    /// Return and keypad Enter: the keys that commit the active row.
+    static func isCommitKey(_ key: KeyEquivalent) -> Bool {
+        key == .return || key == KeyEquivalent("\u{3}")
     }
 
     /// The keys `move` takes: ↑, ↓, Home, End, Page Up and Page Down.

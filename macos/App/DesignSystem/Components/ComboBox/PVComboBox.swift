@@ -235,24 +235,19 @@ struct PVComboBox<Row: View, Empty: View>: View {
     /// there is no separate hover state.
     @State private var highlight = PVPopupListHighlight()
     /// Natural height of `rowsStack`, reported by `measuringRows`. The popup
-    /// window is sized from this rather than from anything inside it.
-    @State private var measuredRowsHeight: CGFloat = 0
-    /// True once the open menu's rows have reported a height. The window
-    /// stays down until then, so it does not appear at zero and resize.
-    @State private var rowsMeasured = false
+    /// window is sized from this rather than from anything inside it, and
+    /// stays down until the open menu's rows have reported one.
+    @State private var measurement = PVPopupListMeasurement()
     @FocusState private var isFocused: Bool
 
     /// Gutter that holds the committed row's checkmark. Every row reserves it
     /// so labels stay aligned whether or not one is checked.
     private static var checkGutter: CGFloat { 22 }
-    /// Air above and below the rows, inside the list's border.
-    private static var listVerticalPadding: CGFloat { PVSpacing.space2 }
-
     /// How tall the popup wants to be: the rows plus the list's own padding.
     /// The coordinator clamps this to `maxListHeight` and to the room on
     /// screen, and the scroller takes up whatever it lands on.
     private var desiredPopupHeight: CGFloat {
-        measuredRowsHeight + Self.listVerticalPadding * 2
+        PVPopupListCard<EmptyView>.height(rows: measurement.height)
     }
 
     private var selectedOption: PVComboBoxOption? {
@@ -287,7 +282,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
             }
             .pvPopupList(
                 isPresented: popupPresented,
-                isMeasured: rowsMeasured,
+                isMeasured: measurement.isMeasured,
                 maxHeight: maxListHeight,
                 // Only things that change the window's *size* are passed
                 // as metrics. The highlight changes on every mouse move,
@@ -323,8 +318,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
             .onChange(of: isOpen) { _, open in
                 if open { return }
                 highlight.clear()
-                measuredRowsHeight = 0
-                rowsMeasured = false
+                measurement.reset()
             }
     }
 
@@ -420,8 +414,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
         let options = visibleOptions
         return PVPopupListCard(
             rowIDs: options.map(\.id),
-            activeID: highlight.current(count: options.count).map { options[$0].id },
-            verticalPadding: Self.listVerticalPadding
+            activeID: highlight.current(count: options.count).map { options[$0].id }
         ) {
             rowsStack
         }
@@ -457,10 +450,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
     /// The hidden copy of the rows that sizes the popup window: mounted only
     /// while the menu is open (`PVPopupListMeasure`).
     private var measuringRows: some View {
-        PVPopupListMeasure(isActive: isOpen, onHeight: { height in
-            measuredRowsHeight = height
-            rowsMeasured = true
-        }) {
+        PVPopupListMeasure(isActive: isOpen, onHeight: { measurement.record($0) }) {
             rowsStack
         }
     }
@@ -561,7 +551,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
             return .handled
         }
         switch press.key {
-        case .return:
+        case _ where PVPopupListHighlight.isCommitKey(press.key):
             let options = visibleOptions
             switch PVComboBoxMatch.returnAction(
                 activeIndex: highlight.index, optionCount: options.count, query: query, committedLabel: selectedLabel
