@@ -28,8 +28,9 @@ final class HistoryJumpMenuModel {
     /// stays `PVSpacing.space6` inside the content column. An unmeasured column
     /// (width 0) keeps the preferred width.
     static func fittedPanelWidth(contentWidth: CGFloat, anchorMinX: CGFloat) -> CGFloat {
-        guard contentWidth > 0 else { return Self.panelWidth }
-        return min(Self.panelWidth, contentWidth - anchorMinX - PVSpacing.space6)
+        PVPopupListPlacement.fittedWidth(
+            preferred: panelWidth, hangsFrom: anchorMinX, alignment: .leading, columnWidth: contentWidth
+        )
     }
 }
 

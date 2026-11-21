@@ -454,32 +454,15 @@ struct PVComboBox<Row: View, Empty: View>: View {
         }
     }
 
-    /// A hidden, non-interactive copy of the rows, laid out behind the field
-    /// at the field's width purely to measure them. Mounted only while the
-    /// menu is open.
-    ///
-    /// The popup window has to know how tall to be *before* it is shown, and
-    /// a `ScrollView` inside that window cannot tell it — nor can
-    /// `NSHostingView.fittingSize`, reliably. Laying the rows out once more
-    /// here is the honest way to get the number: a background never
-    /// influences its parent's size, so this costs a layout pass and nothing
-    /// else. The window waits for that height, then opens at it.
+    /// The hidden copy of the rows that sizes the popup window: mounted only
+    /// while the menu is open (`PVPopupListMeasure`).
     private var measuringRows: some View {
-        rowsStack
-            .fixedSize(horizontal: false, vertical: true)
-            .hidden()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .onChange(of: proxy.size.height, initial: true) { _, height in
-                            guard isOpen, height > 0 else { return }
-                            measuredRowsHeight = height
-                            rowsMeasured = true
-                        }
-                }
-            )
+        PVPopupListMeasure(isActive: isOpen, onHeight: { height in
+            measuredRowsHeight = height
+            rowsMeasured = true
+        }) {
+            rowsStack
+        }
     }
 
     /// The row — check gutter and padding — is owned here so every row stays
