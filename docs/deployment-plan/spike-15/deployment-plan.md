@@ -632,7 +632,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-25 — Move from an Artifact or a graph
 
-**Ships.** **Move to another Source…** on Artifact rows and graphs on the Source page opens the confirm S15-D10 draws: the target picker, the bundle, and the credibility note when the two Sources' grades differ. After the move, the app lands on the moved Artifact under its new Source.
+**Ships.** **Move to another Source…** on Artifact rows and graphs on the Source page opens the confirm S15-D10 draws: the target picker, the bundle, and the credibility note when the two Sources' grades differ. After the move, the app lands on the moved Artifact under its new Source. `MoveToSource` and `GetSourceMoveImpact` can return `sources.not_found` for the **target** Source when it is deleted after the confirm opened; the generic "This Source no longer exists." reads as the Source being moved from, so the confirm shows that error beside the target picker or names the picked target (S15-24 ship log UX-1).
 **Not this PR.** Undo.
 **Check.** Bar 8.
 **Context.** S15-D10, S15-D1 (graphs), S15-D14 (where Move sits on the Artifact list); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md).
