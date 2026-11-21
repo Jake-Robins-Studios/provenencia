@@ -2515,6 +2515,104 @@ struct WorkspaceSessionTests {
     }
 }
 
+
+private struct RenderBoom: LocalizedError {
+    var errorDescription: String? { "render boom" }
+}
+
+@Suite(.serialized)
+@MainActor
+struct ProvenanceSheetSessionTests {
+    private let projectKey = ProjectKey(projectDir: "/tmp/provenance-sheet-session.provenencia")
+
+    private func makeKey() -> CatalogQueryKey { .provenanceSheet(project: projectKey, citationIds: ["a"]) }
+
+    private func makeStore() -> FakeStore {
+        let store = FakeStore()
+        store.renderCitationsReplies = ["a": renderedCitation("a")]
+        return store
+    }
+
+    /// T-3 (D-3, AC-1.3).
+    @Test func releaseDropsTheKey() async {
+        let store = makeStore()
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let key = makeKey()
+        let first: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await waitForQuery(first)
+        session.release(key)
+        #expect((session.queryHandle(key) as QueryHandle<CatalogProvenanceSheetRead>?) == nil)
+        let second: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await waitForQuery(second)
+        #expect(store.renderCitationsCalls.count == 2)
+        #expect(second !== first)
+    }
+
+    @Test func releaseDuringALoadNeverLandsOnTheNewHandle() async {
+        let store = makeStore()
+        store.renderCitationsHold.isOn = true
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let key = makeKey()
+        let first: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await store.renderCitationsHold.untilSuspended(1)
+        session.release(key)
+        let second: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        store.renderCitationsHold.isOn = false
+        store.renderCitationsHold.release()
+        await waitForQuery(second)
+        #expect(second.value?.citations["a"] != nil)
+        #expect(first.value == nil)
+    }
+
+    @Test func releaseLeavesAKeyAPlaceShows() {
+        let session = WorkspaceSession(projectKey: projectKey, store: makeStore())
+        session.apply(location: .sectionRoot(.sources))
+        let key = CatalogQueryKey.sourcesList(project: projectKey)
+        #expect(session.visibleKeys.contains(key))
+        let before: QueryHandle<[CatalogSource]>? = session.queryHandle(key)
+        session.release(key)
+        let after: QueryHandle<[CatalogSource]>? = session.queryHandle(key)
+        #expect(before != nil && after === before)
+    }
+
+    /// T-9 (D-4, D-6, AC-4.1, AC-4.2).
+    @Test func provenanceSheetLoadStates() async {
+        let store = makeStore()
+        store.renderCitationsHold.isOn = true
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let key = makeKey()
+        let handle: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        #expect(handle.read.formLoadState == .loading)
+        await store.renderCitationsHold.untilSuspended(1)
+        store.renderCitationsHold.isOn = false
+        store.renderCitationsHold.release()
+        await waitForQuery(handle)
+        #expect(handle.read.formLoadState == .ready)
+
+        let failing = makeStore()
+        failing.renderCitationsError = RenderBoom()
+        let other = WorkspaceSession(projectKey: projectKey, store: failing)
+        let failed: QueryHandle<CatalogProvenanceSheetRead> = other.query(key)
+        await waitForQuery(failed)
+        #expect(failed.read.formLoadState == .failed(L10n.Errors.message(for: RenderBoom())))
+    }
+
+    /// T-10 (AC-4.3).
+    @Test func provenanceSheetReadAgainAfterFailure() async {
+        let store = makeStore()
+        store.renderCitationsError = RenderBoom()
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let key = makeKey()
+        let failed: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await waitForQuery(failed)
+        #expect(failed.read.isFailed)
+        store.renderCitationsError = nil
+        let again: QueryHandle<CatalogProvenanceSheetRead> = session.reread(key)
+        await waitForQuery(again)
+        #expect(again.value?.citations["a"] != nil)
+    }
+}
+
 /// A flag a test task sets once it returns.
 @MainActor
 private final class Flag {

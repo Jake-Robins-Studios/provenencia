@@ -1881,6 +1881,43 @@ struct CatalogQueryRegistryTests {
     }
 }
 
+
+func renderedCitation(_ id: String, key: String? = nil) -> CatalogRenderedCitation {
+    CatalogRenderedCitation(
+        citationID: id, full: .init(runs: [CatalogCitationRun(text: id, italic: false)], plain: id), short: .init(),
+        groupKey: key ?? "full:\(id)")
+}
+
+@Suite(.serialized)
+@MainActor
+struct ProvenanceSheetKeyTests {
+    private let projectKey = ProjectKey(projectDir: "/tmp/provenance-sheet-key.provenencia")
+
+    /// T-2 (D-2): the key's ids are sorted and distinct; a reply with an id twice builds one entry; a write
+    /// reaching the value's Sources reloads it.
+    @Test func provenanceSheetKeySortsAndFollowsInputs() async {
+        let key = CatalogQueryKey.provenanceSheet(project: projectKey, citationIds: ["b", "a", "a", ""])
+        #expect(key.ids == ["a", "b"])
+
+        let reply = CatalogRenderedCitations(
+            citations: [renderedCitation("a"), renderedCitation("a", key: "other")], inputs: .init())
+        #expect(CatalogProvenanceSheetRead(reply).citations.count == 1)
+        #expect(CatalogProvenanceSheetRead(reply).citations["a"]?.groupKey == "full:a")
+
+        let store = FakeStore()
+        store.renderCitationsReplies = ["a": renderedCitation("a"), "b": renderedCitation("b")]
+        store.renderCitationsInputs = CatalogPageInputs(sources: ["s1"])
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let handle: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await waitForQuery(handle)
+        #expect(store.renderCitationsCalls == [["a", "b"]])
+
+        session.apply(CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["s1"])]))
+        await session.settleWrites()
+        #expect(store.renderCitationsCalls.count == 2)
+    }
+}
+
 @Suite
 struct CatalogWriteEffectsDeletedTests {
     @Test func deletedHandlesReadsTheHandleEntry() {
