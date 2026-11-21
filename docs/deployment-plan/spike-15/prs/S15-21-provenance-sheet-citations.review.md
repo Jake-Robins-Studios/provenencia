@@ -1,7 +1,7 @@
 # Review — S15-21 The provenance sheet shows formatted citations
 
-**Verdict:** round 1: Fits with changes — Not ready (X-1: the board is not agreed; X-2, X-3: tests not writable as specified). Round 2: pending
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet). Reviewed with the brief [S15-D9](../design/S15-D9-provenance-sheet-citations.md)
+**Verdict:** Fits with changes — Ready with changes (round 2 findings fixed; no blocker open). The plan stays Blocked on board S15-D9
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet). Reviewed with the brief [S15-D9](../design/S15-D9-provenance-sheet-citations.md)
 
 ## To user
 
@@ -80,3 +80,41 @@
 
 ### X-13 · minor · The Review link is dead
 **Answer:** Fixed — this log.
+
+## Round 2
+
+Round-1 answers checked against the code: M-1, M-3 – M-7 hold; M-2's answer holds, its new D-4 text raised M-8; X-2, X-3, X-10, X-12 and the rule rewording hold.
+
+### M-8 · blocker · D-4 groups with a view-local memo and a revision token
+`@State grouped` set from `onChange(of: GroupInput(revision:…))` and a `@State` handle, beside `WorkspaceSession.derived` / `conclusionContent`; `docs/macos-client-patterns.md` cache contract item 5 says a view writes no revision token. The `@State` handle also showed a stale frame on a re-key.
+**Answer:** Fixed — D-4 reads `session.queryHandle(key)` in `body`, warms in `.task(id:)`, and builds the grouped content with `session.conclusionContent(key, inputs: [key], extra: content, …)`; `release` drops it through `dropDerived`. No `@State`, no `GroupInput`. Codebase fit and Reach updated. Also fixed: the S15-21 scope entry in `deployment-plan.md` no longer says "loading indicator … Try again".
+
+### X-14 · blocker · `CoreMethod.renderCitations` does not exist
+**Answer:** Fixed — § 4 Wire row corrected; STEP-1 adds the wrapper in `CoreInvoke.swift`.
+
+### X-15 · blocker · `OnboardingModelTests`' `ThrowingStore` conforms to `GenealogyStore`
+**Answer:** Fixed — STEP-1 adds `renderCitations` to it.
+
+### X-16 · major · The clipboard tests' helper
+**Answer:** Fixed — STEP-4: `written: [PVClipboardPayload]`, existing expectations read `.plain`; `PVClipboardPayload: Equatable`.
+
+### X-17 · major · The re-key gap in the host
+**Answer:** Fixed by M-8 — the handle is read from the session in `body`, so a new key reads nil at once.
+
+### X-18 · major · `PVProvenanceSheet`'s new parameters
+**Answer:** Fixed — D-6 defaults `load: .ready`, `onReadAgain: {}`.
+
+### X-19 · major · The likeness viewer's row
+**Answer:** Fixed — D-9: `PVProvenanceColumns.copySlots` (default 2); the viewer passes 1 and is unchanged; Reach row and manual check step 6.
+
+### X-20 · minor · Nothing in `PVProvenanceColumnsTests` to update
+**Answer:** Fixed — STEP-6 names the two expectations to add.
+
+### X-21 · minor · "Formatted" tested two ways
+**Answer:** Fixed — D-8 `Record.isFormatted` (runs non-empty) is the one test; D-9 uses it.
+
+### X-22 · minor · "Ready at once" with no ids
+**Answer:** Fixed — the States line says the empty key loads with no store call.
+
+### X-23 · minor · `rtfData` under-specified
+**Answer:** Fixed — D-11 names the base string, the base font and `NSRange(run.range, in:)`.
