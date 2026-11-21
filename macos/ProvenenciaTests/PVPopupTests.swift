@@ -64,6 +64,78 @@ struct PVPopupDecisionTests {
         )
         #expect(decision == row.decision)
     }
+
+    fileprivate struct FieldRow: CustomTestStringConvertible, Sendable {
+        let input: PVPopupInput
+        let pending: Bool
+        let onAnchor: Bool
+        let staysOpen: Bool
+        let keysStayInField: Bool
+        let decision: PVPopupDecision
+        var testDescription: String {
+            "\(input) pending=\(pending) onAnchor=\(onAnchor) staysOpen=\(staysOpen)"
+        }
+    }
+
+    fileprivate static let fieldRows: [FieldRow] = {
+        func row(
+            _ input: PVPopupInput, pending: Bool = false, onAnchor: Bool, staysOpen: Bool,
+            keysStayInField: Bool = false, _ decision: PVPopupDecision
+        ) -> FieldRow {
+            FieldRow(
+                input: input, pending: pending, onAnchor: onAnchor, staysOpen: staysOpen,
+                keysStayInField: keysStayInField, decision: decision
+            )
+        }
+        let close = PVPopupDecision.close(consumesEvent: false)
+        return [
+            row(.mouseUp(.left, inside: false), onAnchor: true, staysOpen: true, .pass),
+            row(.mouseUp(.left, inside: false), onAnchor: true, staysOpen: false, close),
+            row(.mouseUp(.left, inside: false), onAnchor: false, staysOpen: true, close),
+            row(.mouseUp(.left, inside: false), pending: true, onAnchor: true, staysOpen: true, .endOpeningPress),
+            row(.mouseDown(.right, inside: false), onAnchor: true, staysOpen: true, .pass),
+            row(.mouseDown(.other, inside: false), onAnchor: true, staysOpen: true, .pass),
+            row(.mouseDown(.right, inside: false), onAnchor: true, staysOpen: false, close),
+            row(.mouseDown(.other, inside: false), onAnchor: true, staysOpen: false, close),
+            row(.key(.escape), onAnchor: true, staysOpen: true, .close(consumesEvent: true)),
+            row(.windowResignedKey, onAnchor: true, staysOpen: true, close),
+        ]
+    }()
+
+    @Test(arguments: fieldRows)
+    fileprivate func staysOpenOnFieldClickRows(_ row: FieldRow) {
+        let decision = PVPopupDecision.decide(
+            row.input,
+            openingPressPending: row.pending,
+            onAnchor: row.onAnchor,
+            options: PVPopupOptions(keysStayInField: row.keysStayInField, staysOpenOnFieldClick: row.staysOpen)
+        )
+        #expect(decision == row.decision)
+    }
+
+    @Test func aClickIsWhereItsPressBegan() {
+        let options = PVPopupOptions()
+        let release = PVPopupInput.mouseUp(.left, inside: false)
+        #expect(PVPopupDecision.decide(release, openingPressPending: false, pressBeganInside: true, options: options) == .pass)
+        #expect(
+            PVPopupDecision.decide(release, openingPressPending: false, pressBeganInside: false, options: options)
+                == .close(consumesEvent: false)
+        )
+        #expect(PVPopupDecision.decide(release, openingPressPending: true, pressBeganInside: true, options: options) == .endOpeningPress)
+        #expect(
+            PVPopupDecision.decide(.mouseDown(.left, inside: false), openingPressPending: false, options: options) == .pass
+        )
+    }
+
+    @Test func aPressWithNoReleaseClosesLikeARelease() {
+        let options = PVPopupOptions()
+        let ended = PVPopupInput.pressEndedUnseen
+        #expect(
+            PVPopupDecision.decide(ended, openingPressPending: false, pressBeganInside: false, options: options)
+                == .close(consumesEvent: false)
+        )
+        #expect(PVPopupDecision.decide(ended, openingPressPending: false, pressBeganInside: true, options: options) == .pass)
+    }
 }
 
 @Suite
