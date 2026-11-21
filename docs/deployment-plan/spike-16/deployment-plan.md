@@ -17,10 +17,10 @@ Spike 16 is an odds-and-ends spike ([odd and even spikes](../README.md#odd-and-e
 | Spike 16 | Spike 15 PRs after it | Shared code |
 | --- | --- | --- |
 | S16-12 | S15-05, S15-24 | The Source record: S15-05 adds the Source date to it; the move changes a graph's and an Artifact's Source |
-| S16-13 | S15-05, S15-22, S15-24 | The per-graph records and the Sources section; S15-22 groups citations there, rendered on demand from SQL rather than from the caches |
+| S16-13 | S15-05, S15-24 | The per-graph records and the Sources section (S15-22, which would have grouped citations there, is descoped) |
 | S16-15 | S15-24 | The graph catalog, which a move re-lists for both Sources |
 | S16-30 | S15-21, S15-28 | The provenance sheet, which then shows citations rendered on demand from SQL; S15-28 moves its records to an on-open read |
-| S16-03, S16-06, S16-07 | S15-05, S15-22 | `PersonSourcesSection.swift`, `PersonSourcesContent.swift` |
+| S16-03, S16-06, S16-07 | S15-05 | `PersonSourcesSection.swift`, `PersonSourcesContent.swift` |
 | S16-04 | S15-21 | The provenance sheet's on-open key uses the `QueryHandle` failure reading and `PVRetryCallout` |
 | S16-07 | S15-30, S15-27 | S15-30 moves the paged fold to `Platform/` and its Show more row into the kit (`PVShowMoreRow`), so the provenance table (a recipe) can fold |
 | S16-11, S16-19, S16-24 | S15-28 | Outcome rows on the node and settled life-row owners, which the records read and `FieldRecordCounts` compose from; S15-28 also changes `conclusiondetails/conclusiondetails.go` and reports its inputs as S16-24's reads do |
