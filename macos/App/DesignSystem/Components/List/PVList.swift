@@ -313,18 +313,21 @@ enum PVListKeyAction: Equatable {
 enum PVListKeyboard {
     static let pageStep = 10
 
-    static func action(
+    /// The one list of movement keys: ↑/↓ (⌥ to an end), Home, End, Page Up and
+    /// Page Down. Nil for any other key; otherwise the shared mover's index
+    /// (-1 when `count` is 0).
+    static func moveIndex(
         for key: KeyEquivalent,
         option: Bool,
         index: Int,
         count: Int,
-        isDisabled: (Int) -> Bool = { _ in false }
-    ) -> PVListKeyAction {
-        guard count > 0 else { return .ignore }
-        func move(_ delta: Int, edge: PVFloatingMenuSelection.Edge? = nil) -> PVListKeyAction {
-            .move(to: PVFloatingMenuSelection.moveIndex(
+        isDisabled: (Int) -> Bool = { _ in false },
+        pageStep: Int = PVListKeyboard.pageStep
+    ) -> Int? {
+        func move(_ delta: Int, edge: PVFloatingMenuSelection.Edge? = nil) -> Int {
+            PVFloatingMenuSelection.moveIndex(
                 from: index, delta: delta, count: count, edge: edge, isDisabled: isDisabled
-            ))
+            )
         }
         switch key {
         case .downArrow:
@@ -339,6 +342,23 @@ enum PVListKeyboard {
             return move(pageStep)
         case .pageUp:
             return move(-pageStep)
+        default:
+            return nil
+        }
+    }
+
+    static func action(
+        for key: KeyEquivalent,
+        option: Bool,
+        index: Int,
+        count: Int,
+        isDisabled: (Int) -> Bool = { _ in false }
+    ) -> PVListKeyAction {
+        guard count > 0 else { return .ignore }
+        if let next = moveIndex(for: key, option: option, index: index, count: count, isDisabled: isDisabled) {
+            return .move(to: next)
+        }
+        switch key {
         case .return, .space:
             return .activate(min(max(index, 0), count - 1))
         default:

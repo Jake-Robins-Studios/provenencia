@@ -156,14 +156,15 @@ red `Text`), plus `Badge`/`EmptyState`/`Callout` (added for the S2-02
 | Field | `Components/Field/PVField.swift` (`marker: .required / .optional` marks the label; gives its label to the `PVInput`, `PVTextArea` or `PVSelect` inside it through `pvFieldLabel`; a `PVTextArea` or `PVSelect` given its own `accessibilityLabel` keeps it (`PVFieldLabel.resolve`); a read-only input speaks the field name, then its value) |
 | Input | `Components/Input/PVInput.swift` (when Tab must move from a field that claims Tab (`PVInput`, `PVComboBox`, `PVSelect`) to a `PVTextArea`, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`) |
 | Field focus | `Components/Input/PVFieldFocus.swift` (the one focus handle `PVInput`, `PVTextArea`, `PVComboBox`, `PVSelect` and `PVSegmentedControl` take; its Tab neighbours come only from a form's order, `init(_:equals:in:)`) |
-| TextArea | `Components/TextArea/PVTextArea.swift` (multiline field with `PVInput`'s chrome; grows with its text between `lineLimit`'s bounds, or with `fillsHeight` takes the height its container offers, never less than the lower bound, and scrolls inside it; takes a `PVFieldFocus`, and when Tab must move to it from a field that claims Tab, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`; added for inline edit, and for the Promote sheet's argument box beside a column of fields; `cursor:` (`PVTextAreaCursor`) lets a caller select text and replace a range from outside, and `completion:` (`PVTextAreaCompletion`) opens a list of rows at the caret as the researcher types a placeholder, taken with Return, Tab or a click, drawn through `PVPopupList` and the same list view the combo box draws (`PVPopupListCard`, `PVPopupListRow`, `PVPopupListLine`) — added for the citation format editor) |
+| TextArea | `Components/TextArea/PVTextArea.swift` (multiline field with `PVInput`'s chrome; grows with its text between `lineLimit`'s bounds, or with `fillsHeight` takes the height its container offers, never less than the lower bound, and scrolls inside it; takes a `PVFieldFocus`, and when Tab must move to it from a field that claims Tab, the form holds its `@FocusState` and lists the fields in order: `PVFieldFocus($focus, equals: field, in: order)`; added for inline edit, and for the Promote sheet's argument box beside a column of fields; `cursor:` (`PVTextAreaCursor`) lets a caller select text and replace a range from outside, and `completion:` (`PVTextAreaCompletion`) opens a list of rows at the caret as the researcher types a placeholder, taken with Return, Tab or a click, drawn through `.pvPopupList` and the same list view the combo box draws (`PVPopupListCard`, `PVPopupListRow`, `PVPopupListLine`) — added for the citation format editor) |
 | InlineEdit | `Components/InlineEdit/PVInlineEdit.swift` (display and pencil → editor and Save / Cancel; `PVInlineEditActions` is the Save / Cancel row for always-editable surfaces; accessibility ids stay at the call site unless `accessibilityIdentifierPrefix` is set; an open edit raises `pvSheetInnerEdit(true)` so the enclosing sheet leaves it Escape) |
 | SectionHeader | `Components/SectionHeader/PVSectionHeader.swift` (detail-page section chrome: display title, mono meta, aside, trailing actions and a bottom rule; the title is a VoiceOver heading; a `String` or localized title is semibold; an `AttributedString` title draws regular and its strongly emphasized runs carry the weight) |
 | SubsectionHeader | `Components/SubsectionHeader/PVSubsectionHeader.swift` (a micro-caps title row with an optional trailing mono meta string, the title a VoiceOver heading, and a content slot below; heads a group inside a section; `metaTone: .danger` for a count over its limit, and `metaLabel` / `metaIdentifier` for how the meta is spoken and found) |
 | Select | `Components/Select/PVSelect.swift` (native popup contract on `PVContextMenu`; closes through `.pvPopup` with `keysStayInField`, so its keys stay with its field; see "The Select contract" below) |
 | ContextMenu | `Components/ContextMenu/PVContextMenu.swift`, `PVActionMenu.swift` (action menus are `PVActionMenuItem` lists (a title is a localized `title:` or data, a ref, as `verbatimTitle:`, never both: `PVContextMenuPanel` and `pvRightClickMenu` have one form of each): a right-click menu that opens at the pointer is one `.pvRightClickMenu`, which adds the state, the trigger and one VoiceOver action per enabled item (the toolbar's Back/Forward history menu anchors to its button and keeps its own presenter); a button-opened menu is one `.pvActionMenu` on its button, whose keys skip disabled rows; both close through `.pvPopup`; `PVSelect` uses `.pvContextMenu` directly) |
-| Popup | `Components/Popup/PVPopup.swift` (`.pvPopup`: the one event watcher of every floating popup, attached to its anchor; Escape, a left click outside on release, a right-click outside and an app switch close it, the press that opened it never does, a click inside never does; `PVPopupDecision.decide` is the rule; a difference is a `PVPopupOptions` field, never a second watcher; the popup keeps its own window) |
-| FloatingMenuSelection | `Components/FloatingMenuSelection/PVFloatingMenuSelection.swift` (clamped ↑/↓ highlight movement with no wrap for lists and floating menus; `PVTypeSelectMatcher` is the type-to-select buffer; `moveIndex(…edge:isDisabled:)` and `PVTypeSelectMatcher.index(…isDisabled:)` skip disabled rows; `PVComboBoxMatch.move`, `PVListKeyboard` and `PVSelectSession` call them; do not write another highlight mover) |
+| Popup | `Components/Popup/PVPopup.swift` (`.pvPopup`: the one event watcher of every floating popup, attached to its anchor; Escape, a left click outside on release, a right-click outside and an app switch close it, the press that opened it never does, a click inside never does; a click is outside only when its press began outside; `PVPopupDecision.decide` is the rule; a difference is a `PVPopupOptions` field, never a second watcher; the popup keeps its own window; the kit popup list, `.pvPopupList` (`Components/PopupList/PVPopupList.swift`), is: its window under the anchor (or at `anchorRect`), placed by `PVPopupListPlacement`, closed through `.pvPopup` with `keysStayInField` and `staysOpenOnFieldClick`; its field keeps its keys and its own Return and holds one `PVPopupListHighlight` (movement, landing, hover); `PVPopupWindowHost.swift` is the one child-panel host the list and the context menu show their windows through) |
+| PopupList | `Components/PopupList/PVPopupList.swift` (`.pvPopupList`, the kit popup list; see the Popup row) |
+| FloatingMenuSelection | `Components/FloatingMenuSelection/PVFloatingMenuSelection.swift` (clamped ↑/↓ highlight movement with no wrap for lists and floating menus; `PVTypeSelectMatcher` is the type-to-select buffer; `moveIndex(…edge:isDisabled:)` and `PVTypeSelectMatcher.index(…isDisabled:)` skip disabled rows; `PVListKeyboard`, `PVPopupListHighlight` and `PVSelectSession` call them; do not write another highlight mover) |
 | Toast | `Components/Toast/PVToast.swift` (announces its title and message to VoiceOver when it appears) |
 | LogoMark | `Components/LogoMark/PVLogoMark.swift` |
 | SidebarNav | `Components/SidebarNav/PVSidebarNav.swift` (added for the S2-01 workspace chrome; ports that board's revised `collapsed`-capable `SidebarNav.jsx`); an item's icon is a `PVGlyph`, a symbol or a mark (S10-19) |
@@ -184,11 +185,11 @@ red `Text`), plus `Badge`/`EmptyState`/`Callout` (added for the S2-02
 | Confirm | `Components/Confirm/PVConfirm.swift` (added for S2-22's delete confirmation; the macOS answer to `ConfirmDialog.jsx`, which the web spec says not to port — see "Confirmations are system chrome" below) |
 | Panel | `Components/Panel/PVPanel.swift` (sheet content shell: title / subtitle / body / optional footer; optional title accessory, drawn after the title, filling the row; put a Spacer in it to push a control right; no window chrome); `Components/Panel/PVSheet.swift` (`.pvSheet`, the one sheet presenter: Escape, outside click and the discard question; `pvSheetInnerEdit(_:)` marks an open inner edit, which stands Escape, the outside click and the form's Return down so the edit takes them: `PVSheetDismiss.action(…innerEditOpen:)`) |
 | FormDialog | `Components/FormDialog/PVFormDialog.swift` (short create/edit form sheet on `PVPanel`; optional `width`, default 480; `pvFormDialog(item:)` for model-backed forms — see note below; opt-in `scrollsBody` scrolls the body between the fixed title and footer up to 560pt, opening at `scrollTarget`'s `.id`; `PVFormDialogCopy(verbatimTitle:…)` for a title with a ref; `Components/FormDialog/PVFormColumns.swift`: `PVFormColumns`, the two-column body with the save-error callout across the top, equal columns or a fixed `rightWidth` with a full-height rule) |
-| ComboBox | `Components/ComboBox/PVComboBox.swift` (added for S2-16's assign-field control, where the pool is the whole Metadata vocabulary; single-select subset only — see "The combo box subset" below). The box is content-agnostic: rows (`row`) and the empty line (`empty`, given the typed query) are caller-built views; the kit ships only the generic `PVComboBoxPlainRow` (label + subtext) and a plain-text empty line, and never grows domain row kinds (the web kit's `person` row lives in features as their own `row`). The popup window is `PVPopupList` (`ComboBox/PVPopupList.swift`), and the list in it is the one kit view `PVComboBox` and `PVTextArea`'s completion both draw (`PVPopupListCard` scroller and card, `PVPopupListRow` shell, `PVPopupListLine` empty or searching line): anchored to a field's frame, or to a screen rect (`anchorRect`) and width of its own, which is how `PVTextArea`'s completion list is drawn. S9-11 added **remote results**: `onQueryChange` hands each typed query to the caller, which passes back the search results as `options`, keeping the committed option among them, and `isLoading` shows the searching line while that search runs. Return with no highlighted row reaches the form only when the field shows its pick (`PVComboBoxMatch.returnAction`; "The combo box subset") |
+| ComboBox | `Components/ComboBox/PVComboBox.swift` (added for S2-16's assign-field control, where the pool is the whole Metadata vocabulary; single-select subset only — see "The combo box subset" below). The box is content-agnostic: rows (`row`) and the empty line (`empty`, given the typed query) are caller-built views; the kit ships only the generic `PVComboBoxPlainRow` (label + subtext) and a plain-text empty line, and never grows domain row kinds (the web kit's `person` row lives in features as their own `row`). The list is the kit popup list, `.pvPopupList` (README Popup row), and the list view in it is the one kit view `PVComboBox` and `PVTextArea`'s completion both draw (`PVPopupListCard` scroller and card, `PVPopupListRow` shell, `PVPopupListLine` empty or searching line): anchored to a field's frame, or to a screen rect (`anchorRect`) and width of its own, which is how `PVTextArea`'s completion list is drawn. S9-11 added **remote results**: `onQueryChange` hands each typed query to the caller, which passes back the search results as `options`, keeping the committed option among them, and `isLoading` shows the searching line while that search runs. Return with no highlighted row reaches the form only when the field shows its pick (`PVComboBoxMatch.returnAction`; "The combo box subset") |
 | Radio | `Components/Radio/PVRadio.swift` (`PVRadio` label + description, and the bare `PVRadioMark` for rows that are themselves the control; added for S9-11's Promote target choice) |
 | Checkbox | `Components/Checkbox/PVCheckbox.swift` (`PVCheckbox` label + description, and the bare `PVCheckboxMark`; `isLocked` is the lock mark in that same box for a link or binding the researcher cannot clear, spoken "Locked"; `isIndeterminate` is spoken "partly checked") |
 | Switch | `Components/Switch/PVSwitch.swift` (32×18 track; immediate on/off — a saved form still uses Checkbox) |
-| List | `Components/List/PVList.swift` (added for S9-09, ported from the kit's `PVList`; its internal `PVListRowStyle(focused: nil)` is the row chrome the Sources list's Source and Type button also wears: navigation rows — thumbnail slot (a view; S10-35), title, secondary line, optional fixed-width detail column (icon and one line of text, with help) before the trailing mono ref, chevron — as buttons, not selection; one focus stop with ↑/↓ · Home/End · Page Up/Down · Return/Space (`PVListKeyboard.action` takes `isDisabled`; action menus use it too); `PVListSkeleton` for first load. The counterpart to Table) |
+| List | `Components/List/PVList.swift` (added for S9-09, ported from the kit's `PVList`; its internal `PVListRowStyle(focused: nil)` is the row chrome the Sources list's Source and Type button also wears: navigation rows — thumbnail slot (a view; S10-35), title, secondary line, optional fixed-width detail column (icon and one line of text, with help) before the trailing mono ref, chevron — as buttons, not selection; one focus stop with ↑/↓ · Home/End · Page Up/Down · Return/Space (`PVListKeyboard.action` takes `isDisabled`; `PVListKeyboard.moveIndex` is the one list of movement keys, with the caller's `pageStep`, which `action`, action menus and the popup list call; action menus use `action` too); `PVListSkeleton` for first load. The counterpart to Table) |
 | ScrollRowIntoView | `Components/ScrollRowIntoView/PVScrollRowIntoView.swift` (`.pvScrollsRowIntoView`: keeps the highlighted or selected row in view as the keyboard moves it, can send a new list back to its first row, and restarts a page at its top when a key changes (`restartsAt:whenChanged:`), and scrolls to the row when a token changes (`whenRequested:`, for a click, including a second one on the same point; a caller that passes a token does not also scroll when `row` changes); `PVTable`, `PVList`, `PVSelect`, `PVComboBox` and the omnibar results scroll through it — do not add another `ScrollViewReader` for this) |
 | FittedScroll | `Components/FittedScroll/PVFittedScroll.swift` (`PVFittedScrollView(maxHeight:onContentHeight:)`: a vertical scroll view as tall as its content up to a cap, bounce only when it overflows; `PVFormDialog`'s body and `PVChecklistFrame` use it — do not cap a `ScrollView` with `frame(maxHeight:)`, which takes all the offered height) |
 | SkeletonBar | `Components/SkeletonBar/PVSkeletonBar.swift` (added for S12-02: a rounded `borderSubtle` placeholder bar, fixed or fill width; used by `PVListSkeleton` and the Copy Source loading body) |
@@ -314,9 +315,10 @@ every clause of it is a decision rather than an accident:
 - **Escape is two-stage** — close the list, then abandon the typed text — and
   once there is nothing left to undo it stops consuming the key, so an
   enclosing sheet can still be dismissed from inside the field.
-- **Clicking away blurs.** A click outside the field and its list doesn't
-  just close the list, it resigns the field's focus — outside means done.
-  Clicking the field itself opens (or reopens) the list; focus alone does
+- **Clicking away blurs.** A click outside the field and its list closes on the
+  release, as every kit popup does, and doesn't just close the list, it resigns
+  the field's focus — outside means done. A click on the field keeps the list
+  open, and clicking the field itself opens (or reopens) a closed list; focus alone does
   not, so a sheet that auto-focuses the field on present won't pop the
   menu. Typing or pressing an arrow / Home / End / Page key also opens it.
 
@@ -328,7 +330,7 @@ list was cut off at the window edge and had nowhere legal to go. Flipping it
 upward only moves the problem.
 
 `NSMenu`, `NSComboBox` and Spotlight all draw into their own borderless window
-for this reason, and so does this. `PVComboBoxPlacement.popupFrame` positions
+for this reason, and so does this. `PVPopupListPlacement.popupFrame` positions
 a non-activating `NSPanel` in **screen** coordinates against the field, which
 buys three things at once: it clips to the display rather than to any view, it
 may extend past the app window's edge, and it is placed strictly *outside* the
@@ -349,22 +351,18 @@ Two things the window costs us, both deliberate:
   lay out inside the resulting window; any disagreement between the two clips
   a row, and it did.
 - **Dismissal converges on focus.** SwiftUI does not resign a `TextField`'s
-  focus when you click inert content, so "clicked away" is observed at the
-  event level: a local mouse-down monitor treats anything that is neither in
-  the popup nor on the field as a click away, and — rather than merely hiding
-  the list — resigns the field's focus. Losing focus is the one close path
-  everything funnels into, whether the click moved first responder by itself
-  or the monitor had to do it. The panel itself never decides to be visible:
-  the coordinator mirrors a `wantsPresented` flag that SwiftUI state (and the
-  monitor's dismissal) writes synchronously, so a deferred show can never
-  race a dismissal and re-open the list. The coordinator also follows the
-  field on window move/resize and on scroll, and dismisses when the parent
-  window resigns key — which is also what covers a click in another app, so
-  there is no global event monitor.
+  focus when you click inert content, so "clicked away" is decided by the
+  presenter `.pvPopup`: a click away or an app switch writes the list closed,
+  and the combo box then restores the label and resigns the field's focus
+  (`dismissAndBlur`), the one close path a click away funnels into. The panel
+  itself never decides to be visible: the window mirrors a `wantsPresented`
+  flag that SwiftUI state writes synchronously on each update, so a deferred
+  show can never race a dismissal and re-open the list. The window host also
+  follows the field on window move/resize and on scroll.
 - **Clicks on rows are ordinary tap gestures.** The popup never becomes key,
   but mouse events are still delivered to the window under the pointer, so
-  the row's `.onTapGesture` is the one commit path; the mouse monitor passes
-  panel clicks through untouched. What *had* made gestures inside the popup
+  the row's `.onTapGesture` is the one commit path; the presenter passes
+  clicks in the panel. What *had* made gestures inside the popup
   undependable was re-framing: an early version had the active-row index in
   the token that triggers re-measurement, so every mouse move resized the
   window and reassigned the hosting view's root, which tore down click
@@ -378,8 +376,8 @@ Two things the window costs us, both deliberate:
   would mean padding the window out to make room for it; the native shadow is
   the more Mac-like answer anyway.
 
-The pure parts — filtering, movement, placement, match highlighting — live in
-`PVComboBoxMatch` / `PVComboBoxPlacement` / `PVComboBoxHighlight` so they can
+The pure parts — filtering, movement (`PVPopupListHighlight`), placement, match
+highlighting — live in `PVComboBoxMatch` / `PVPopupListPlacement` / `PVComboBoxHighlight` so they can
 be unit-tested without a view, the same split `PVTable` uses for its
 type-select matcher. `popupFrame` in particular is worth the test: the
 "never overlaps the field" and "never escapes the screen" properties are

@@ -59,12 +59,12 @@ struct PVContextMenuKeyboard: Equatable {
         guard itemCount > 0 else { return .ignore }
         switch key {
         case .upArrow, .downArrow, .home, .end:
-            let action = PVListKeyboard.action(
+            guard let next = PVListKeyboard.moveIndex(
                 for: key, option: false, index: activeIndex, count: itemCount,
                 isDisabled: { disabledRows.contains($0) }
-            )
-            if case .move(let index) = action { activeIndex = index }
-            return action
+            ) else { return .ignore }
+            activeIndex = next
+            return .move(to: next)
         case .return:
             // Return on nothing, or on a disabled row, keeps the menu open and
             // lets no key through to a default button behind it.
@@ -486,7 +486,7 @@ private struct PVContextMenuPresenter<MenuContent: View>: ViewModifier {
 
 // MARK: - Floating NSPanel host
 
-/// Child-window popup at `.popUpMenu` level. Mirrors `PVPopupList`:
+/// Child-window popup at `.popUpMenu` level, shown through `PVPopupWindowHost`:
 /// SwiftUI stacking cannot bury a separate AppKit window under later siblings.
 private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
     var isPresented: Bool
@@ -519,20 +519,25 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        weak var anchor: NSView?
+        weak var anchor: NSView? {
+            didSet { host.anchor = anchor }
+        }
         var origin: CGPoint = .zero
         var wantsPresented = false
 
-        private var panel: PVContextMenuNSPanel?
-        private var hosting: PVContextMenuHostingView?
+        // Menu chrome already draws `pvShadow`; avoid a second AppKit shadow.
+        private let host = PVPopupWindowHost(hasShadow: false)
         private var content: AnyView = AnyView(EmptyView())
-        private var observers: [NSObjectProtocol] = []
         private var shownSize: CGSize?
+
+        init() {
+            host.onFollow = { [weak self] in self?.position(reframeIfSizeChanged: false) }
+        }
 
         func setContent(_ content: some View) {
             self.content = AnyView(content)
-            if let hosting, let panel, panel.parent != nil {
-                hosting.rootView = self.content
+            if host.isShown {
+                host.rootView = self.content
             }
         }
 
@@ -541,7 +546,7 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
                 hide()
                 return
             }
-            if panel?.parent == nil {
+            if !host.isShown {
                 show()
             } else {
                 position(reframeIfSizeChanged: true)
@@ -549,55 +554,24 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
         }
 
         private func show() {
-            guard let anchor, let parent = anchor.window else { return }
-            if hosting == nil {
-                hosting = PVContextMenuHostingView(rootView: content)
-            }
-            guard let hosting else { return }
-            if panel == nil {
-                let created = PVContextMenuNSPanel(
-                    contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
-                    styleMask: [.borderless, .nonactivatingPanel],
-                    backing: .buffered,
-                    defer: false
-                )
-                created.isOpaque = false
-                created.backgroundColor = .clear
-                // Menu chrome already draws `pvShadow`; avoid a second AppKit shadow.
-                created.hasShadow = false
-                created.level = .popUpMenu
-                created.animationBehavior = .none
-                created.contentView = hosting
-                panel = created
-            }
-            guard let panel, panel.parent == nil else { return }
-            position(reframeIfSizeChanged: true)
-            parent.addChildWindow(panel, ordered: .above)
-            startWatching(parent: parent)
+            guard let frame = frame(reframeIfSizeChanged: true) else { return }
+            host.show(at: frame)
         }
 
         private func hide() {
             shownSize = nil
-            guard let panel, panel.parent != nil else { return }
-            stopWatching()
-            panel.parent?.removeChildWindow(panel)
-            panel.orderOut(nil)
+            host.hide()
         }
 
         func tearDown() {
-            stopWatching()
-            if let panel {
-                panel.parent?.removeChildWindow(panel)
-                panel.orderOut(nil)
-            }
-            panel = nil
-            hosting = nil
+            host.tearDown()
         }
 
-        private func position(reframeIfSizeChanged: Bool) {
-            guard let panel, let anchor, let window = anchor.window, let hosting else { return }
-            hosting.rootView = content
-            let fitted = hosting.fittingSize
+        /// The panel's screen frame from the content's fitted size. Nil without an anchor window.
+        private func frame(reframeIfSizeChanged: Bool) -> CGRect? {
+            guard let anchor, let window = anchor.window else { return nil }
+            host.rootView = content
+            let fitted = host.fittingSize
             let measured = CGSize(width: max(fitted.width, 1), height: max(fitted.height, 1))
             if shownSize == nil || (reframeIfSizeChanged && shownSize != measured) {
                 shownSize = measured
@@ -605,57 +579,17 @@ private struct PVContextMenuPopupWindow<Content: View>: NSViewRepresentable {
             let frameSize = shownSize ?? measured
 
             let anchorOnScreen = window.convertToScreen(anchor.convert(anchor.bounds, to: nil))
-            let next = PVContextMenuPlacement.panelFrame(
+            return PVContextMenuPlacement.panelFrame(
                 anchorOnScreen: anchorOnScreen,
                 origin: origin,
                 size: frameSize
             )
-            if panel.frame != next {
-                panel.setFrame(next, display: true)
-            }
         }
 
-        private func startWatching(parent: NSWindow) {
-            stopWatching()
-            let center = NotificationCenter.default
-            for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
-                observers.append(center.addObserver(forName: name, object: parent, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.position(reframeIfSizeChanged: false) }
-                })
-            }
-            if let clip = anchor?.enclosingScrollView?.contentView {
-                clip.postsBoundsChangedNotifications = true
-                observers.append(
-                    center.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: .main) { [weak self] _ in
-                        MainActor.assumeIsolated { self?.position(reframeIfSizeChanged: false) }
-                    }
-                )
-            }
+        private func position(reframeIfSizeChanged: Bool) {
+            guard host.isShown, let frame = frame(reframeIfSizeChanged: reframeIfSizeChanged) else { return }
+            host.setFrame(frame)
         }
-
-        private func stopWatching() {
-            observers.forEach(NotificationCenter.default.removeObserver)
-            observers.removeAll()
-        }
-    }
-}
-
-private final class PVContextMenuNSPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-}
-
-private final class PVContextMenuHostingView: NSHostingView<AnyView> {
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) is not used — the popup is built in code")
-    }
-
-    @MainActor
-    required init(rootView: AnyView) {
-        super.init(rootView: rootView)
     }
 }
 

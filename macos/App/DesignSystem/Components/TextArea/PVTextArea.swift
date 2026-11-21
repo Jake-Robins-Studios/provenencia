@@ -202,20 +202,31 @@ struct PVTextArea: View {
 
 extension PVTextArea {
     /// The completion list, drawn in its own window at the caret while open.
+    /// The clear background has the area's frame, so the area is the anchor for
+    /// "a click on the field".
     @ViewBuilder
     fileprivate var completionPopup: some View {
         if let completion {
-            PVPopupList(
-                isPresented: completionSession.isOpen,
+            Color.clear.pvPopupList(
+                isPresented: completionPresented,
                 maxHeight: PVTextAreaCompletionList.maxHeight,
                 contentHeight: PVTextAreaCompletionList.height(rows: completionSession.options.count),
                 optionCount: completionSession.options.count,
                 width: PVTextAreaCompletionList.width,
-                anchorRect: { [session = completionSession] in session.caretRect() },
-                onDismiss: { [session = completionSession] in session.close() },
-                content: PVTextAreaCompletionRows(session: completionSession, completion: completion)
-            )
+                anchorRect: { [session = completionSession] in session.caretRect() }
+            ) {
+                PVTextAreaCompletionRows(session: completionSession, completion: completion)
+            }
         }
+    }
+
+    fileprivate var completionPresented: Binding<Bool> {
+        Binding(
+            get: { completionSession.isOpen },
+            set: { open in
+                if !open { completionSession.close() }
+            }
+        )
     }
 }
 
@@ -566,7 +577,10 @@ final class PVTextAreaCompletionSession {
     private(set) var isOpen = false
     private(set) var options: [PVComboBoxOption] = []
     /// The highlighted row; -1 when there is none.
-    private(set) var activeIndex = -1
+    private var highlight = PVPopupListHighlight()
+    var activeIndex: Int { highlight.index }
+    /// The highlighted row's index when it is one of the open rows.
+    var currentIndex: Int? { highlight.current(count: options.count) }
     private(set) var context: PVTextAreaCompletion.Context?
 
     @ObservationIgnored var completion: PVTextAreaCompletion?
@@ -602,12 +616,12 @@ final class PVTextAreaCompletionSession {
         let hadRows = !options.isEmpty
         context = found
         options = rows
-        activeIndex = PVComboBoxMatch.firstEnabledIndex(in: rows)
+        highlight.land(count: rows.count, isDisabled: { rows[$0].isDisabled })
         isOpen = true
         if !wasOpen {
             speak(.opened(count: rows.count, first: rows.first))
-        } else if rows.indices.contains(activeIndex) {
-            speak(.highlighted(rows[activeIndex]))
+        } else if let current = currentIndex {
+            speak(.highlighted(rows[current]))
         } else if hadRows {
             // The open list narrowed to nothing: say so once, not on every further key.
             speak(.opened(count: 0, first: nil))
@@ -618,7 +632,7 @@ final class PVTextAreaCompletionSession {
         guard isOpen else { return }
         isOpen = false
         options = []
-        activeIndex = -1
+        highlight.clear()
         context = nil
     }
 
@@ -632,8 +646,8 @@ final class PVTextAreaCompletionSession {
             move(1)
         case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
             // An empty list takes neither: Return types a line and Tab leaves the field.
-            guard options.indices.contains(activeIndex) else { return false }
-            accept(at: activeIndex)
+            guard let current = currentIndex else { return false }
+            accept(at: current)
         case #selector(NSResponder.cancelOperation(_:)):
             escaped = true
             close()
@@ -645,15 +659,17 @@ final class PVTextAreaCompletionSession {
 
     /// The pointer moved onto row `index`: it becomes the highlighted row, as an arrow key would.
     func highlight(at index: Int) {
-        guard options.indices.contains(index), index != activeIndex else { return }
-        activeIndex = index
+        highlight.hover(at: index, count: options.count, isDisabled: { options[$0].isDisabled })
     }
 
     private func move(_ delta: Int) {
-        let next = PVComboBoxMatch.move(from: activeIndex, delta: delta, in: options)
-        guard next != activeIndex, options.indices.contains(next) else { return }
-        activeIndex = next
-        speak(.highlighted(options[next]))
+        let before = highlight.index
+        highlight.move(
+            delta > 0 ? .downArrow : .upArrow, command: false,
+            count: options.count, isDisabled: { options[$0].isDisabled }
+        )
+        guard highlight.index != before, let current = currentIndex else { return }
+        speak(.highlighted(options[current]))
     }
 
     /// Puts row `index` in at the context and closes the list.
@@ -710,7 +726,7 @@ private struct PVTextAreaCompletionRows: View {
         let query = session.context?.query ?? ""
         PVPopupListCard(
             rowIDs: options.map(\.id),
-            activeID: options.indices.contains(session.activeIndex) ? options[session.activeIndex].id : nil,
+            activeID: session.currentIndex.map { options[$0].id },
             verticalPadding: PVTextAreaCompletionList.verticalPadding
         ) {
             LazyVStack(spacing: 0) {

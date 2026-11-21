@@ -1,6 +1,6 @@
 # S16-51 — The combo box's list becomes a kit popup list
 
-**Status:** Planned
+**Status:** Landed in [#928](https://github.com/Jake-Robins-Studios/provenencia/pull/928) (2026-11-21)
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every combo box list and the format editor's completion draw as today; only the code that holds them and the moment a click away closes them change)
@@ -417,3 +417,11 @@ None.
 
 **Title:** S16-51 — The combo box's list becomes a kit popup list
 **Body:** objective in one sentence; what shipped against US-1, US-2 and US-3; AC evidence; deviations from the plan; manual check; the AC-3.1 – AC-3.3 `rg` output; `Plan: docs/deployment-plan/spike-16/prs/S16-51-popup-list.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `7898cee50`; no **Current state** row changed under `macos/`.
+- D-14 amended (review round 1): `PVPopupWindowHost` builds its hosting view on first use and releases it on `tearDown()`, not in `init`.
+- D-15 amended (review round 1): `PVPopupWindowHost` exposes `frame` (the panel's frame while shown, nil otherwise); `PVPopupListWindow.Coordinator` widens new content to `host.frame?.width`, so `shownWidth` is gone.
+- `.pvPopup` also closes on a left press outside whose release a nested tracking loop (scroller or title-bar drag, native control) swallowed: `PVPopupInput.pressEndedUnseen`, queued in the default run-loop mode (review round 1, CON-1).
+- The manual check (§10), including the STEP-3 and STEP-4 in-app passes, was not run by the implementer; it is owed before merge.
