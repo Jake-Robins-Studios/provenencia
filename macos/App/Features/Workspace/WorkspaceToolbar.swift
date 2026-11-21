@@ -82,6 +82,12 @@ struct WorkspaceToolbar: View {
         .onChange(of: navigation.currentLocation) { _, _ in
             jumpMenu.dismiss()
         }
+        // Losing focus (Tab, a click that takes focus) closes the results and
+        // keeps the query, as `PVComboBox` does; a click on a hit row does not
+        // move focus, the popup being a window that never becomes key.
+        .onChange(of: omnibarFocused) { _, focused in
+            if !focused { omnibarResults.closePanel() }
+        }
         .onChange(of: omnibarResults.search.query) { _, _ in
             omnibarResults.scheduleSearch(
                 projectDir: projectDir,
