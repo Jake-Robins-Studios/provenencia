@@ -64,7 +64,7 @@ final class PVClipboardCopyState {
         let base = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         let out = NSMutableAttributedString(string: String(rich.characters), attributes: [.font: base])
         let italic = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
-        for run in rich.runs where run[AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self]?.contains(.emphasized) == true {
+        for run in rich.runs where PVTitleText.isEmphasized(run) {
             out.addAttribute(.font, value: italic, range: NSRange(run.range, in: rich))
         }
         return try? out.data(
