@@ -1,6 +1,6 @@
 # S16-52 — The omnibar's results use the kit popup list
 
-**Status:** Landed #932
+**Status:** Landed in [#932](https://github.com/Jake-Robins-Studios/provenencia/pull/932) (2026-11-21)
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D9](../design/archive/S16-D9-omnibar-results.md), board agreed 2026-11-21; kit pieces from [S16-D11](../design/S16-D11-web-kit-popup-list.md), agreed 2026-11-21
