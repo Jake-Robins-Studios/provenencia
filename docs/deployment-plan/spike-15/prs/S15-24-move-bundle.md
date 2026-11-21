@@ -1,6 +1,6 @@
 # S15-24 — Move a bundle to another Source in the engine
 
-**Status:** Planned
+**Status:** Landed in [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935) (2026-11-21)
 **Spike / slice:** Spike 15 · Slice 7 — Move
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: Go, the wire, and two error strings; no view offers the move until S15-25)
@@ -14,6 +14,12 @@
 **Context:** working rules "A move is the whole bundle", "Build on Spike 16's caches", "Refused in this spike" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../move-artifact-between-sources.md`](../move-artifact-between-sources.md) (the feature, "Which graphs move", "Engine notes"); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 7, § 7.1; [`docs/interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 4.2; [`core/database/effects/README.md`](../../../../core/database/effects/README.md); the landed plans [`S16-12-source-records.md`](../../spike-16/prs/S16-12-source-records.md) (Apply keeps an Artifact moved between two named Sources), [`S16-15-graph-catalog.md`](../../spike-16/prs/S16-15-graph-catalog.md) (D-5, D-7, AC-2.2: a graph that changes Source)
 **Planned:** 2026-11-21 against `main` @ `496ffa9` (compare with `origin/main` after `git fetch origin main`; a local `main` may be stale)
 **Review:** [`S15-24-move-bundle.review.md`](S15-24-move-bundle.review.md) — Fits with changes / Ready with changes, 2 rounds; every finding Fixed or Declined; nothing open
+
+## Landed
+
+- `VERSION` was 0.31.1 on `main`, so the bump is 0.31.1 → 0.32.0 (the header's "next minor after it").
+- The `SetSourceTx` tests (T-2) are in new files `core/database/{evidencegraphs,artifacts,subjects}/setsource_test.go`, and `TestLookup` is in `core/database/sources/lookup_test.go`, not in the existing test files: `subjects_test.go` and `sources_test.go` are internal test packages and cannot import `evidencelayertest` (an import cycle). `TestExec` is in `sqlbatch_test.go` as planned.
+- Not run: the manual check's step 2 (a scratch test against a dogfood copy); step 1 (`TestMove/scale`) passes.
 
 ### Implementer — read this first
 
