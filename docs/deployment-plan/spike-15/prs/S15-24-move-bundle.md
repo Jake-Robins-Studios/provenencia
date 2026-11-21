@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/catalog-queries.mdc` (each table's SQL stays in its package), `.cursor/rules/catalog-audit.mdc`, `.cursor/rules/catalog-session.mdc`, `.cursor/rules/ffi-handlers.mdc`, `.cursor/rules/go-tests.mdc` (table tests), `.cursor/rules/macos-l10n.mdc`, `.cursor/rules/versioning.mdc`
 **Context:** working rules "A move is the whole bundle", "Build on Spike 16's caches", "Refused in this spike" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../move-artifact-between-sources.md`](../move-artifact-between-sources.md) (the feature, "Which graphs move", "Engine notes"); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 7, § 7.1; [`docs/interpretation-layer-data-model.md`](../../../interpretation-layer-data-model.md) § 4.2; [`core/database/effects/README.md`](../../../../core/database/effects/README.md); the landed plans [`S16-12-source-records.md`](../../spike-16/prs/S16-12-source-records.md) (Apply keeps an Artifact moved between two named Sources), [`S16-15-graph-catalog.md`](../../spike-16/prs/S16-15-graph-catalog.md) (D-5, D-7, AC-2.2: a graph that changes Source)
 **Planned:** 2026-11-21 against `main` @ `496ffa9` (compare with `origin/main` after `git fetch origin main`; a local `main` may be stale)
-**Review:** — (not reviewed yet)
+**Review:** [`S15-24-move-bundle.review.md`](S15-24-move-bundle.review.md) — Fits with changes / Ready with changes, 1 round; every finding Fixed or Declined; nothing open
 
 ### Implementer — read this first
 
@@ -42,14 +42,14 @@ The engine can move an Artifact or an Evidence graph to another Source, with eve
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Source S1 holds Artifacts A1 (linked only to graph G1) and A2 (linked only to graph G2); G1 holds 3 person Subjects. `GetSourceMoveImpact` with `artifact_id` A1, no target | `source_id` S1; `artifacts` [A1]; `graphs` [G1 with `subject_count` 3]; `leaves_source_empty` false; `leaves_no_graph` false; both credibility keys empty, `credibility_differs` false |
+| AC-1.1 | Source S1 holds Artifacts A1 (linked only to graph G1) and A2 (linked only to graph G2); G1 holds 3 person Subjects. `GetSourceMoveImpact` with `artifact_id` A1, no target | `source_id` S1; `artifacts` [A1]; `graphs` [G1] and `progress` [G1's row with `subject_count` 3]; `leaves_source_empty` false; `leaves_no_graph` false; both credibility keys empty, `credibility_differs` false |
 | AC-1.2 | S1: G1 links A1 and A2; G2 links A2 and A3; G3 links A4. Seed A1 | `artifacts` A1, A2, A3 (by ref); `graphs` G1, G2 (list order); A4 and G3 are not in it. Seed G2 gives the same bundle |
 | AC-1.3 | An Artifact A5 in no graph. Seed A5 | `artifacts` [A5]; `graphs` empty |
-| AC-1.4 | A graph G4 with no Artifacts (a Source's Default graph before any Artifact) and 1 Subject. Seed G4 | `artifacts` empty; `graphs` [G4, `subject_count` 1] |
+| AC-1.4 | A graph G4 with no Artifacts (a Source's Default graph before any Artifact) and 1 Subject. Seed G4 | `artifacts` empty; `graphs` [G4]; its `progress` row has `subject_count` 1 |
 | AC-1.5 | AC-1.1's seed with target S2. S1 assessed `low_trust`, S2 not assessed | `source_credibility_key` "low_trust"; `target_credibility_key` ""; `credibility_differs` true |
 | AC-1.6 | S1 not assessed, S2 assessed `standard` | Both keys as stored ("" and "standard"); `credibility_differs` false (both read as the default grade, as the reconciler scores them) |
 | AC-1.7 | S1 holds only A1 and G1. Seed A1 | `leaves_source_empty` true; `leaves_no_graph` true |
-| AC-1.8 | Neither `artifact_id` nor `graph_id`; both set; target equal to the bundle's Source | `sourcemove.invalid` each |
+| AC-1.8 | Neither `artifact_id` nor `graph_id`; both set; target equal to the bundle's Source | `sourcemove.invalid` each. A malformed id on the wire is `request.invalid_id` (the handler's `optionalID`), before the engine |
 | AC-1.9 | A well-formed `artifact_id` with no row; a well-formed `target_source_id` with no row | `sourcemove.not_found`; `sources.not_found` |
 
 **US-2.** As S15-25, I send the same seed and a target and the bundle moves in one write; the reply names what moved and the write's effects, so the app refreshes both Sources and lands on the moved Artifact under its new Source.
@@ -58,22 +58,22 @@ The engine can move an Artifact or an Evidence graph to another Source, with eve
 | --- | --- | --- |
 | AC-2.1 | AC-1.1's catalog; A1 has a Citation C1 in G1 with one Observation on Subject P1; A1 holds `artifact_metadata` "citing" = "film 7"; G1 holds `evidence_graph_metadata` "item" = "Ada Robins". `MoveToSource` seed A1, target S2 | `artifacts.source_id` of A1, `evidence_graphs.source_id` of G1 and `subjects.source_id` of G1's 3 Subjects are S2; every id and ref is unchanged; C1's `artifact_id` and `graph_id`, the Observation, the link (G1, A1) and both metadata rows are unchanged, and the metadata boards of A1 and G1 read the same values. Reply: `artifact_ids` [A1], `graph_ids` [G1], `default_graph_id` empty |
 | AC-2.2 | AC-1.2's catalog. Seed G2, target S2 | A1, A2, A3, G1, G2 and their Subjects are on S2; A4 and G3 stay on S1 |
-| AC-2.3 | Scale: a bundle of 5 Artifacts and 5 graphs (G1 links A1–A5; G2–G5 each link one of A2–A5) holding 100 Subjects in all | One write, one audit revision; every row is on S2; `c.Graph().Verify()` returns nil after the write |
+| AC-2.3 | Scale: a bundle of 5 Artifacts and 5 graphs (G1 links A1–A5; G2–G5 each link one of A2–A5) holding 100 Subjects, 20 per graph, made with `subjectstest.On` | One write, one audit revision; every row is on S2; `c.Graph().Verify()` returns nil after the write |
 | AC-2.4 | AC-1.7's catalog (the bundle holds every graph of S1). Seed A1, target S2 | S1 gains one new graph named "Default" with no Artifacts and a fresh `GPH-` ref; its id is `default_graph_id`; S1 stays, with no Artifacts |
 | AC-2.5 | S1's cover is `artifact` with `primary_artifact_id` A1. Seed A1, target S2 | S1's `cover_mode` is `type_icon` and `primary_artifact_id` NULL; S2's cover is unchanged. When the cover is A2 (not moved), it stays |
 | AC-2.6 | AC-2.1's move | One `audit_transactions` row; `audit_transaction_scopes` has `source` rows for S1 and S2; `WriteEffects.source_scopes` holds S1 and S2; `reads` holds `evidence_graphs` [S1, S2 in either order] and `source_records` [S1, S2] |
 | AC-2.7 | AC-2.1's move, with the graph index, the Source records and G1's search document built before it | `evidencegraphs.IndexOf(g).Graph(G1).SourceID` = S2 and `OfSource(S1)` lacks G1; `sources.RecordsOf(g).Artifact(A1)` returns S2's record; G1's `catalog_search_docs` row has `display_subtitle` = S2's title and `display_parent_id` = S2 |
-| AC-2.8 | P1 is an accepted member of handle H; S1 is `low_trust`, S2 `high_trust`. AC-2.1's move | `WriteEffects.handles` holds H; `c.Graph().Verify()` returns nil (H's reconciled values were recomputed with S2's grade) |
+| AC-2.8 | Handle H (made by `promotetest.Save` on P1, then an accepted claim of P2 to H) has two members: P1 in G1 on S1 with birth year 1840, and P2 on Source S3 with 1841; S1 is `low_trust`, S3 and S2 `standard`. H's node is loaded (`c.Graph()` read of H) before the move. AC-2.1's move | Before: 1840's `auto_reconciler_values` row has `reason` 'weak' (a low-trust value drops one to one, `core/autoreconcile/pipeline.go` step 5). After: `writes.Result.Effects.Handles` holds H; 1840's row has `reason` 'kept'; `c.Graph().Verify()` returns nil |
 | AC-2.9 | G1 also holds a Subject R of type `source` (a reification of S1). AC-2.1's move | R's `source_id` is S2, as every Subject of G1 (user, 2026-11-21: it moves and reifies the target from then on; no warning) |
-| AC-2.10 | Every bundle of S1 is moved to S2 one by one (merge by moving), then `sources.Delete(S1)` | Each move succeeds; the last leaves S1 a fresh Default graph; the delete succeeds |
-| AC-2.11 | Any refusal of AC-1.8 or AC-1.9, or no `user_id` | Same code as the preflight (`users.invalid` with no user); no audit revision is written; nothing moved |
+| AC-2.10 | Every bundle of S1 is moved to S2 one by one (merge by moving), then `sources.Delete(tx, userID, S1)` under `r.Run` | Each move succeeds; the last leaves S1 a fresh Default graph; the delete succeeds |
+| AC-2.11 | Any refusal of AC-1.8 or AC-1.9; a nil user | The same code as the preflight for AC-1.8 and AC-1.9 (both call `resolve`, D-6); a nil user given to `sourcemove.Move` is `sourcemove.invalid`, and over the wire an empty `user_id` is `users.invalid` (the handler's `parseUserID`); no audit revision is written; nothing moved |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
 | The bundle closure, one function for the preflight and the write (`evidencegraphs.BundleOf`) | STEP-1, AC-1.1 – AC-1.4 |
-| Per-table `source_id` updates that return one change per row (`artifacts.SetSourceTx`, `evidencegraphs.SetSourceTx`, `subjects.SetSourceTx`) | STEP-2, AC-2.1 |
+| Per-table `source_id` updates that return one change per row (`artifacts.SetSourceTx`, `evidencegraphs.SetSourceTx`, `subjects.SetSourceTx`), over `sqlbatch.Exec`; `database.Tx.DeferForeignKeys`; `sources.Lookup` | STEP-2, AC-2.1 |
 | An Artifact that changes Source names its Citations' handles for recompute (effects registry) | STEP-3, AC-2.8 |
 | `core/database/sourcemove`: `Impact` (preflight) and `Move` (write) with deferred foreign keys, the old Source's cover cleared, `CreateDefault` on the last graph | STEP-4, AC-1.5 – AC-1.9, AC-2.1 – AC-2.5, AC-2.9 – AC-2.11 |
 | Audit: both Sources scoped (from the registry, no hand-written scope) | STEP-5, AC-2.6 |
@@ -112,6 +112,7 @@ The engine can move an Artifact or an Evidence graph to another Source, with eve
 | Search | `core/database/searchindex/searchindex.go` `Reproject`, `ReprojectEvidenceGraph`, `ReprojectSource` | A graph document carries its Source's title and id in its display columns; a Source document rolls up its Artifacts. Both reproject from `Effect.Search` |
 | Writes | `core/writes/run.go` `RunChanges`, `Run` | One transaction: changes → `effects.Resolve` → `audit.Record` → handles recompute → search reproject → commit → listeners |
 | FFI precedent | `api/ffi/handlers/evidence_graphs.go` `GetEvidenceGraphUnlinkImpact`, `DeleteEvidenceGraph`; `api/ffi/handlers/artifacts.go` `artifactProto`, `thumbnailPass`; `evidenceGraphProto`; `catalog.go` `parseUserID`, `parseID`, `optionalID` | A read named `Get…Impact` and a write that returns `WriteEffects` |
+| Helpers this plan extends | `evidencegraphs.SourceOf(q, graphID)` (`sqlGraphSource`; missing → `ErrInvalid`); `core/database/sqlbatch/sqlbatch.go` `Query`, `Each`, `Size = 500` (no write twin); `core/database/tx.go` `Tx` (no pragma method; no domain package issues a PRAGMA); `sources.GetTx(tx, id)` → private `getOne(q database.Querier, …)`; `catalogmodel.FKs` (seven FKs to `sources`); `api/ffi/handlers/evidence_graph_progress.go` `protoProgress`, proto `EvidenceGraphProgress` | What D-1, D-2, D-5, D-11, D-16 – D-18 build on |
 | Method numbers | `api/proto/engine.proto` `Method` | Last is `METHOD_LIST_CITATION_PLACEHOLDERS = 126` |
 | Error copy | `core/apperr/apperr.go` codes; `macos/App/Platform/L10n.swift` `L10n.Errors`, `message(code:params:)` | No `sourcemove.*` code |
 | Tests | `core/database/effects/handle_paths_test.go` `TestHandlePaths`; `core/database/audit/scopes_test.go` `TestSourceScopes`, `scopeSeed.sourceRevisions`; `api/ffi/handlers/evidence_graphs_test.go` `newGraphFixture`, `graphFixture.createArtifact`, `createGraph`, `otherSource`; `api/ffi/handlers/write_effects_test.go` `TestEveryAuditedWriteReturnsEffects`; `core/database/evidencelayer/evidencelayertest` `New`, `NewSource`, `Person`, `Cite`, `Graph`, `Run` | Fixtures to reuse |
@@ -122,21 +123,24 @@ The engine can move an Artifact or an Evidence graph to another Source, with eve
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | A seed is exactly one of an Artifact id or a graph id: `evidencegraphs.Seed{ArtifactID, GraphID []byte}` *(new)*. Neither or both, or a malformed id, is `sourcemove.ErrInvalid` | The feature has two entry points and one flow; a list of seeds has no caller | Repeated seeds — no caller; `oneof` in proto — the repo's requests use plain optional ids (`GetSourceWorkspace`, `ListEvidenceGraphs`) |
-| D-2 | The closure lives in `evidencegraphs` as `BundleOf(q database.Querier, seed Seed) (Bundle, error)` *(new)*: read the seed's Source (`artifacts.source_id` or `evidence_graphs.source_id`, one query), load that Source with the existing `list(q, sourceID)`, then walk links in memory until nothing joins. `Bundle{SourceID []byte; ArtifactIDs, GraphIDs [][]byte}`, each list in ascending id bytes. A seed with no row returns `sql.ErrNoRows` | `evidencegraphs` owns the links; `checkLink` keeps a bundle inside one Source, so one Source's links are the whole input; `list` is the one graph loader (S16-15 D-5). Fixed query count (three) whatever the bundle | A recursive CTE — a second reading of the link table; the graph index — the write runs in a transaction and must read the same rows as the preflight (rule "one function computes the bundle"); a loop of per-id queries |
-| D-3 | Each table's `source_id` update lives in its package and returns one `rowchange.Updated` per row, `{"source_id": old}` → `{"source_id": new}` as `database.UUIDJSON`: `artifacts.SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte)`, `evidencegraphs.SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte)`, `subjects.SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte)` (every Subject of those graphs) *(new)*. Each reads its rows' old `source_id`, then runs one `UPDATE … WHERE id IN (…)` (`graph_id IN` for Subjects) per `sqlbatch.Each` batch. Changes are in ascending id order. A row already on `sourceID` yields no change | `.cursor/rules/catalog-queries.mdc`: a table's SQL stays in its package. Per-row changes are what the effects registry resolves (rule "A move is the whole bundle") | One UPDATE per row — up to 110 statements; SQL for all three tables in `sourcemove` — breaks the query rule |
+| D-1 | A seed is exactly one of an Artifact id or a graph id: `evidencegraphs.Seed{ArtifactID, GraphID []byte}` *(new)* with `func (s Seed) Valid() bool` *(new)*: true when exactly one is set and it is 16 bytes. The type and its rule live together; `BundleOf` returns `evidencegraphs.ErrInvalid` for an invalid seed, and `sourcemove`'s `resolve` (D-6) checks `Valid()` first and returns `sourcemove.ErrInvalid`, so a caller of `sourcemove` never sees `evidencegraphs.invalid`. A malformed id over the wire never reaches either: the handler's `optionalID` returns `request.invalid_id` | The feature has two entry points and one flow; a list of seeds has no caller | Repeated seeds — no caller; `oneof` in proto — the repo's requests use plain optional ids (`GetSourceWorkspace`, `ListEvidenceGraphs`) |
+| D-2 | The closure lives in `evidencegraphs` as `BundleOf(q database.Querier, seed Seed) (Bundle, error)` *(new)*. It reads the seed's Source through a private `sourceOf(q, graphID)` split out of `SourceOf` (which keeps its `ErrInvalid` mapping; `sourceOf` returns `sql.ErrNoRows`) or, for an Artifact seed, `sqlArtifactSource` *(new)* = `SELECT source_id FROM artifacts WHERE id = ?` beside `sqlLinkSources`; then loads that Source with the existing `list(q, sourceID)` and walks links in memory, marking visited ids, until nothing joins. `Bundle{SourceID []byte; ArtifactIDs, GraphIDs [][]byte; TakesEveryGraph bool}`: id lists in ascending id bytes; `TakesEveryGraph` is true when every graph `list` returned is in the bundle. A seed with no row returns `sql.ErrNoRows` | `evidencegraphs` owns the links; `checkLink` keeps a bundle inside one Source, so one Source's links are the whole input; `list` is the one graph loader (S16-15 D-5). Three queries whatever the bundle. `TakesEveryGraph` comes from the same rows, so the preflight's "leaves no graph" and the write's `CreateDefault` cannot disagree (review M-1) | A recursive CTE — a second reading of the link table; the graph index — the write runs in a transaction and must read the same rows as the preflight; counting graphs after the update — a second derivation of the rule (M-1) |
+| D-3 | Each table's `source_id` update lives in its package: `artifacts.SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte)`, `evidencegraphs.SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte)`, `subjects.SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte)` (every Subject of those graphs) *(new)*, each returning `([]rowchange.Change, error)`. Each: refuses a nil tx or a `sourceID` not 16 bytes with its package's `ErrInvalid`; does not check the target exists (the caller did, D-6; the foreign key is the backstop at commit); dedupes ids with `database.UniqueBlobIDs`; returns nil and runs no query for no ids; reads `id, source_id` of its rows with `sqlbatch.Query`; skips an id with no row and a row already on `sourceID`; updates the rest with `sqlbatch.Exec` (D-16), one statement per 500-id batch; returns one `*rowchange.Updated(entity, id, {"source_id": UUIDJSON(old)}, {"source_id": UUIDJSON(new)})` per updated row (no `fixed` fields), in ascending id order. Entities: `"artifact"`, `"evidence_graph"`, `"subject"` | `.cursor/rules/catalog-queries.mdc`: a table's SQL stays in its package. Per-row changes are what the effects registry resolves (rule "A move is the whole bundle") | One UPDATE per row — up to 110 statements; SQL for all three tables in `sourcemove` — breaks the query rule; a shared change-building helper — one map literal each (review M-3, declined in part) |
 | D-4 | `core/database/sourcemove` *(new)* composes the move inside the caller's `writes.Run`, like `sourcecopy`; it never calls `writes.Run`. `Move(tx *database.Tx, userID []byte, seed evidencegraphs.Seed, targetID []byte) (Result, []rowchange.Change, error)` and `Impact(c *database.Catalog, seed evidencegraphs.Seed, targetID []byte) (Report, error)` | One owner for the flow; `evidencegraphs`, `artifacts`, `subjects` and `sources` stay unaware of each other's moves | Putting it in `evidencegraphs` — `sources` imports `evidencegraphs` (`CreateDefault`), so `evidencegraphs` cannot call `sources.SetCover` |
-| D-5 | `Move` runs `PRAGMA defer_foreign_keys = ON` on the transaction before its first update. SQLite clears it at commit or rollback | The user preferred deferred keys unless planning found a reason not to (`move-artifact-between-sources.md`); none found: no trigger on the three tables, and the check still runs at commit | A migration adding `ON UPDATE CASCADE` — a table rebuild of `subjects` for one write path |
-| D-6 | `Move` order: validate the user (`database.RequireUserID(userID, ErrInvalid)`), the target (`sources.GetTx`, whose `sources.ErrNotFound` passes through), the bundle (`BundleOf` on `tx.Tx`; `sql.ErrNoRows` → `ErrNotFound`), the target differs from `Bundle.SourceID` (else `ErrInvalid`); the pragma; `evidencegraphs.SetSourceTx`; `subjects.SetSourceTx`; `artifacts.SetSourceTx`; then D-7 and D-8. Changes are returned in that order | Refusals before any write; the old Source is known only after the closure | — |
-| D-7 | When the old Source's `PrimaryArtifactID` is in the bundle, `Move` calls `sources.SetCover(tx, userID, oldSourceID, sources.CoverModeTypeIcon, nil)` and appends its change | A cover must be one of the Source's own Artifacts; this is what deleting the cover Artifact already does (`ON DELETE SET NULL` and the trigger) | Leaving the pin — the old Source would show another Source's scan; moving the cover setting to the target — the target has its own cover |
-| D-8 | After the updates, `Move` counts the old Source's graphs; when none is left it calls `evidencegraphs.CreateDefault(tx, oldSourceID)` and returns the new graph's id in `Result.DefaultGraphID`. The emptied Source is never deleted | Rule "A move is the whole bundle"; `ErrLastGraph` invariant | Refusing the move — the user ruled the whole bundle always moves |
+| D-5 | `database.Tx` gains `func (t *Tx) DeferForeignKeys() error` *(new)* in `core/database/tx.go`: it runs `PRAGMA defer_foreign_keys = ON`; its comment says the check then runs at commit and SQLite clears the setting at commit or rollback. `Move` calls it before its first update | The user preferred deferred keys unless planning found a reason not to (`move-artifact-between-sources.md`); none found: no trigger on the three tables, and the check still runs at commit. Connection pragmas live in `core/database` (`catalog.go`, `migrate.go`), not in a domain package (review M-7) | A migration adding `ON UPDATE CASCADE` — a table rebuild of `subjects` for one write path; a raw PRAGMA in `sourcemove` |
+| D-6 | One private `resolve(q database.Querier, seed evidencegraphs.Seed, targetID []byte) (evidencegraphs.Bundle, error)` in `sourcemove` holds every refusal: `seed.Valid()` else `ErrInvalid`; `BundleOf` (`sql.ErrNoRows` → `ErrNotFound`); when `targetID` is given: 16 bytes else `ErrInvalid`, `sources.Lookup(q, targetID)` *(new, D-17)* whose `sources.ErrNotFound` passes through, and the target differs from `Bundle.SourceID` else `ErrInvalid`. `Impact` calls it on the catalog's `*sql.DB` (`db, err := c.DB()`); `Move` calls it on `tx.Tx` with a required target (an empty target is `ErrInvalid` in `Move`). `Move`'s order: `database.RequireUserID(userID, ErrInvalid)`; `resolve`; `sources.GetTx(tx.Tx, bundle.SourceID)` for the old Source's cover; `tx.DeferForeignKeys()`; `evidencegraphs.SetSourceTx`; `subjects.SetSourceTx`; `artifacts.SetSourceTx`; then D-7 and D-8. Changes are returned in that order | One derivation of each refusal for the preflight and the write (review M-1; rule "one function computes the bundle"); refusals before any write | Repeating the checks in `Impact` and `Move` |
+| D-7 | When the old Source's `PrimaryArtifactID` is in `Bundle.ArtifactIDs`, `Move` calls `sources.SetCover(tx, userID, oldSourceID, sources.CoverModeTypeIcon, nil)` and appends its change | A cover must be one of the Source's own Artifacts; this is what deleting the cover Artifact already does (`ON DELETE SET NULL` and the trigger) | Leaving the pin — the old Source would show another Source's scan; moving the cover setting to the target — the target has its own cover |
+| D-8 | When `Bundle.TakesEveryGraph`, `Move` calls `evidencegraphs.CreateDefault(tx, oldSourceID)` after the updates and returns the new graph's id in `Result.DefaultGraphID`. The emptied Source is never deleted. `CreateDefault`'s comment names both callers: `sources.Create` and `sourcemove.Move`, each of which has checked the user and the Source (review M-8) | Rule "A move is the whole bundle"; `ErrLastGraph` invariant; the flag comes from `BundleOf`'s own rows (D-2) | Refusing the move — the user ruled the whole bundle always moves; counting graphs after the update (review X-1, M-1) |
 | D-9 | A Subject of type `source` (a reification) moves with its graph like every Subject; nothing warns (user, 2026-11-21) | Matches "Source-level values are not looked at" and keeps a merge by moving finishable | Refusing such a bundle; reporting it in the preflight |
-| D-10 | The effects registry's `artifacts` entry gains `Handles: onField("source_id", sqlPath(sqlHandlesForArtifact))` with `sqlHandlesForArtifact` *(new)* = the accepted and provisional handles of Subjects whose Observations cite a Citation on this Artifact. No `HandleScope` | The reconciler scores an Observation with `artifacts.source_id`'s grade, so the Artifact row's change is the one that moves scores; the same shape as `source_credibility_assessments`, which also sets no `HandleScope` | `Handles` on `subjects` — a Subject's own `source_id` is not what the reconciler reads; a hand-written recompute in `sourcemove` — the rule forbids hand-written cache updates |
-| D-11 | `Impact` reads the bundle with `BundleOf` on `c.DB()`, the Artifacts with `artifacts.GetMany` sorted by `Ref` case-insensitively (as `ListBySource`), the graphs from `evidencegraphs.IndexOf(c.Graph())`: `OfSource(bundle.SourceID)` filtered to the bundle (list order), each with `Progress(id).SubjectCount`; `LeavesNoGraph` = every graph of the Source is in the bundle; from `sources.RecordsOf(c.Graph())`: `LeavesSourceEmpty` = `len(Record.ArtifactLabels) == len(bundle.ArtifactIDs)`, both `CredibilityKey`s, and `CredibilityDiffers` = the two `Credibility` values differ | No new SQL for what the caches already hold; `Credibility` is the order the reconciler scores with, so "differs" means "Conclusions can re-rank"; `SubjectCount` is the count the Source page shows | Comparing grade keys — "" and "standard" score alike; a SQL count of Subjects — a second count beside the index |
-| D-12 | `Impact`'s target is optional. Empty: no credibility fields and no same-Source check. Given: a target with no record is `sources.ErrNotFound`; equal to the bundle's Source is `ErrInvalid` | The confirm can show the bundle before a target is picked, then ask again with it, through one RPC | A second RPC for the credibility note |
-| D-13 | Errors in `sourcemove`: `ErrInvalid = apperr.New(apperr.CodeSourceMoveInvalid, apperr.KindUser)` with `CodeSourceMoveInvalid = "sourcemove.invalid"` (no seed, two seeds, same Source); `ErrNotFound = apperr.New(apperr.CodeSourceMoveNotFound, apperr.KindNotFound)` with `CodeSourceMoveNotFound = "sourcemove.not_found"` (the seed is gone) *(new)*. A missing target is the existing `sources.not_found`. A missing user is `users.invalid` (what `database.RequireUserID` returns through the handler's `parseUserID`) | Package-prefixed codes, as every package; the same-Source case is a client bug (S15-25's picker leaves out the current Source), so it needs no code of its own | `sourcemove.same_source` — no screen would show it |
+| D-10 | The effects registry's `artifacts` entry gains `Handles: onField("source_id", sqlPath(sqlHandlesForArtifact))`. `sqlHandlesForSource` and `sqlHandlesForArtifact` *(new)* are built from one shared head `sqlHandlesCitingHead` *(new)* (the `identity_claims` → `observations` → `citations` join with the status filter), so the join exists once: `sqlHandlesForArtifact = sqlHandlesCitingHead + " AND c.artifact_id = ?"`, `sqlHandlesForSource` = the head joined to `artifacts a` + `" AND a.source_id = ?"`. The comment "Handle queries mirror autoreconciler" says that `sqlHandlesForArtifact` has no autoreconciler twin (review M-8). No `HandleScope` | The reconciler scores an Observation with `artifacts.source_id`'s grade, so the Artifact row's change is the one that moves scores; the same shape as `source_credibility_assessments`, which also sets no `HandleScope` | `Handles` on `subjects` — a Subject's own `source_id` is not what the reconciler reads; a hand-written recompute in `sourcemove` — the rule forbids hand-written cache updates |
+| D-11 | `Impact`: after `resolve`, Artifacts from `artifacts.ListBySource(c, bundle.SourceID)` kept when in the bundle (the list's own order, `ref COLLATE NOCASE`; review M-5), and `LeavesSourceEmpty` = that list's length equals the bundle's; `LeavesNoGraph` = `bundle.TakesEveryGraph`; graphs and counts from `evidencegraphs.IndexOf(c.Graph())`: `OfSource(bundle.SourceID)` kept when in the bundle (list order), and `Progress(id)` per kept graph (review M-2); when a target is given, from `sources.RecordsOf(c.Graph())`: both `CredibilityKey`s and `CredibilityDiffers` = the two `Credibility` values differ. A bundle graph missing from the index, or a Source missing from the records, is an internal error (`fmt.Errorf`): the index and records are kept current under the catalog session `Impact` runs in (`withProjectCatalog`) | No new SQL for what the caches hold; `Credibility` is the order the reconciler scores with, so "differs" means "Conclusions can re-rank"; `Progress.SubjectCount` is the count the Source page shows | Comparing grade keys — "" and "standard" score alike; a new `SubjectCount` field beside `Progress` (M-2); sorting `GetMany`'s map in Go (M-5) |
+| D-12 | `Impact`'s target is optional. Empty: no credibility fields and no same-Source check | The confirm can show the bundle before a target is picked, then ask again with it, through one RPC | A second RPC for the credibility note |
+| D-13 | Errors in `sourcemove`: `ErrInvalid = apperr.New(apperr.CodeSourceMoveInvalid, apperr.KindUser)` with `CodeSourceMoveInvalid = "sourcemove.invalid"` (invalid seed, empty target in `Move`, same Source, nil user); `ErrNotFound = apperr.New(apperr.CodeSourceMoveNotFound, apperr.KindNotFound)` with `CodeSourceMoveNotFound = "sourcemove.not_found"` (the seed is gone) *(new)*. A missing target is the existing `sources.not_found`. Over the wire, an empty or malformed `user_id` is `users.invalid` and a malformed id `request.invalid_id`, both from the handler's parsers before the engine | Package-prefixed codes, as every package; the same-Source case is a client bug (S15-25's picker leaves out the current Source), so it needs no code of its own | `sourcemove.same_source` — no screen would show it |
 | D-14 | Wire: `METHOD_GET_SOURCE_MOVE_IMPACT = 127`, `METHOD_MOVE_TO_SOURCE = 128` (§ 6 FFI). The handlers live in `api/ffi/handlers/source_move.go` *(new)*. The audit action is `move_to_source` | `Get…Impact` is the repo's preflight name (`GetDeleteImpact`, `GetEvidenceGraphUnlinkImpact`, `GetUnpromoteImpact`) | `MoveArtifactsToSource` (the feature doc's working name) — a graph is a seed too |
 | D-15 | Copy for the two codes rides in this PR: `L10n.Errors.sourceMoveInvalid`, `L10n.Errors.sourceMoveNotFound` and their `message(code:params:)` cases | `add-ffi-handler`: "Add a matching `L10n.Errors` / String Catalog entry for any new code" | Leaving them to S15-25 — the skill puts them with the code |
+| D-16 | `sqlbatch.Exec[T any](q dbsql.Execer, head, tail string, args []any, ids []T) error` *(new)*, the write twin of `sqlbatch.Query`: head + placeholders + tail once per batch of ids, args bound first | The three `SetSourceTx` are the third hand-rolled batched IN write (`searchindex/inputs.go`, `searchindex/handles.go`); one bound for all (review M-3) | A loop per package |
+| D-17 | `sources.Lookup(q database.Querier, id []byte) (Source, error)` *(new)*: `ErrInvalid` for a malformed id, else `getOne(q, sqlGet, id)` (`ErrNotFound` when missing). `GetTx` calls it | `resolve` runs on a `*sql.DB` for the preflight and a `*sql.Tx` for the write; `getOne` already takes a `Querier` | Two target checks, one per caller (M-1) |
+| D-18 | A test in `sourcemove` walks `catalogmodel.FKs` whose `To` is `"sources"` and requires each `(From, Column)` to be in one of two lists: moves with the bundle (`artifacts.source_id`, `evidence_graphs.source_id`, `subjects.source_id`) or stays with the Source (`source_notes`, `source_metadata`, `source_credibility_assessments`, `source_metadata_layout`). Today there are exactly these seven. An FK in neither list fails | A table added later with a Source key (`source-structure-later.md` names `parent_source_id`, `source_derivations`) must decide whether it moves (review M-6) | A Stop condition only, which binds this PR's implementer alone |
 
 **Rules this plan bends.** None.
 
@@ -146,18 +150,21 @@ The engine can move an Artifact or an Evidence graph to another Source, with eve
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `evidencegraphs.Seed`, `evidencegraphs.Bundle`, `evidencegraphs.BundleOf` *(new)* | type / func | `evidencegraphs.list`, `UnlinkImpact`, `Pair` | Extends `list`: the closure is a walk over its output. No existing walk over links (searched `rg "closure|evidence_graph_artifacts" core/database`) |
+| `evidencegraphs.Seed`, `Seed.Valid`, `evidencegraphs.Bundle`, `evidencegraphs.BundleOf`, private `sourceOf`, `sqlArtifactSource` *(new)* | type / func | `evidencegraphs.list`, `SourceOf`, `sqlLinkSources`, `Pair` + `requireDistinctPairs` | Extends `list` and splits `SourceOf`; no existing walk over links (searched `rg "closure\|evidence_graph_artifacts" core/database`). `artifacts` cannot be imported (it imports `evidencegraphs`), so the Artifact's Source is read beside `sqlLinkSources` |
 | `evidencegraphs.SetSourceTx` *(new)* | func | `evidencegraphs.Update` (`sqlUpdate`) | `Update` writes name and description of one graph and refuses an empty name; a Source change is a different column over a set |
 | `artifacts.SetSourceTx` *(new)* | func | `artifacts.Update` | `Update` writes label, description and links of one Artifact; `source_id` is fixed there |
 | `subjects.SetSourceTx` *(new)* | func | `subjects.Update` | `Update` writes label and description of one Subject |
-| `core/database/sourcemove` *(new)*: `Report`, `ReportGraph`, `Impact`, `Result`, `Move`, `ErrInvalid`, `ErrNotFound` | package | `core/database/sourcecopy` | Same shape (a composer inside `writes.Run`); a different operation |
-| `effects` `sqlHandlesForArtifact` *(new)* | const | `effects` `sqlHandlesForCitation`, `sqlHandlesForSource` | Their join keyed by Artifact instead of Citation or Source; the registry has no Artifact-keyed handle path |
+| `sqlbatch.Exec` *(new)* | func | `sqlbatch.Query` | Its write twin; three callers in this PR |
+| `database.Tx.DeferForeignKeys` *(new)* | func | `catalog.go` `locking_mode`, `migrate.go` `foreign_keys` | Pragmas stay in `core/database` |
+| `sources.Lookup` *(new)* | func | `sources.GetTx`, private `getOne` | Exposes `getOne` over a `Querier`; `GetTx` becomes its caller |
+| `core/database/sourcemove` *(new)*: `Report`, `Impact`, `Result`, `Move`, private `resolve`, `ErrInvalid`, `ErrNotFound` | package | `core/database/sourcecopy` | Same shape (a composer inside `writes.Run`); a different operation |
+| `effects` `sqlHandlesCitingHead`, `sqlHandlesForArtifact` *(new)* | const | `effects` `sqlHandlesForSource`, `sqlHandlesForCitation` | `sqlHandlesForSource` is rebuilt on the shared head; the registry has no Artifact-keyed handle path |
 | `apperr.CodeSourceMoveInvalid`, `CodeSourceMoveNotFound` *(new)* | const | `CodeSourcesNotFound` | A new package's codes |
-| `GetSourceMoveImpact`, `MoveToSource` RPCs and their messages, `SourceMoveGraph` *(new)* | FFI | `GetEvidenceGraphUnlinkImpact`, `CopySource` | New operation. Reuses `Artifact`, `EvidenceGraph`, `WriteEffects` messages and `artifactProto`, `evidenceGraphProto`, `writeEffectsProto` |
+| `GetSourceMoveImpact`, `MoveToSource` RPCs and their four messages *(new)* | FFI | `GetEvidenceGraphUnlinkImpact`, `CopySource` | New operation. Reuses `Artifact`, `EvidenceGraph`, `EvidenceGraphProgress`, `WriteEffects` and `artifactProto`, `evidenceGraphProto`, `protoProgress`, `writeEffectsProto` |
 | `L10n.Errors.sourceMoveInvalid`, `sourceMoveNotFound` *(new)* | key | `L10n.Errors.sourcesNotFound` | New codes |
 
 **Builds on.** The effects registry (both Sources follow from `field("source_id")`; one new `Handles` path), `writes.Run`, Spike 16's Applys (`sources.Records`, `evidencegraphs.Index`, `graphfill` entries dropped by `EvidenceGraph` paths), `evidencegraphs.list`, `evidencegraphs.CreateDefault`, `sources.SetCover`, `artifacts.GetMany`, the `sourcecopy` composer shape, the `Get…Impact` preflight shape.
-**Deletes.** None — nothing becomes dead: no existing path moved rows between Sources.
+**Deletes.** None — nothing becomes dead: no existing path moved rows between Sources. Comments this PR makes false are rewritten: `CreateDefault`'s "Its only caller is sources.Create" (D-8) and the registry's "Handle queries mirror autoreconciler" (D-10).
 **Next adds.** S15-25 calls `GetSourceMoveImpact` when the confirm opens and again when a target is picked, then `MoveToSource`, and maps `sourcemove.*` into `EngineErrorCode`. Undo (refused this spike) would be `MoveToSource` back.
 
 ### Reach
@@ -190,50 +197,60 @@ None — no catalog change. The move relies on the existing composite key, check
 
 | Package | Change |
 | --- | --- |
-| `core/database/evidencegraphs` | `type Seed struct{ ArtifactID, GraphID []byte }`, `type Bundle struct{ SourceID []byte; ArtifactIDs, GraphIDs [][]byte }`, `func BundleOf(q database.Querier, seed Seed) (Bundle, error)` *(new)* — new file `bundle.go`. Returns `ErrInvalid` for a nil querier or a malformed id, and does not judge "exactly one" (the caller's rule, D-1); `sql.ErrNoRows` for a missing seed. `func SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte) ([]rowchange.Change, error)` *(new)* in `evidencegraphs.go` |
-| `core/database/artifacts` | `func SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte) ([]rowchange.Change, error)` *(new)*; entity `"artifact"` |
-| `core/database/subjects` | `func SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte) ([]rowchange.Change, error)` *(new)*; entity `"subject"` |
-| `core/database/effects` | `registry.go`: `sqlHandlesForArtifact` *(new)*; `artifacts` entry gains `Handles: onField("source_id", sqlPath(sqlHandlesForArtifact))` |
-| `core/apperr` | `CodeSourceMoveInvalid = "sourcemove.invalid"`, `CodeSourceMoveNotFound = "sourcemove.not_found"` *(new)* |
-| `core/database/sourcemove` *(new)* | `sourcemove.go`: package comment (what moves, what does not, D-5, D-9); `ErrInvalid`, `ErrNotFound`; `Report`, `ReportGraph`, `Impact`; `Result`, `Move` |
+| `core/database` | `tx.go`: `func (t *Tx) DeferForeignKeys() error` *(new)* (D-5) |
+| `core/database/sqlbatch` | `func Exec[T any](q dbsql.Execer, head, tail string, args []any, ids []T) error` *(new)* (D-16) |
+| `core/database/evidencegraphs` | New file `bundle.go`: `Seed`, `Seed.Valid`, `Bundle`, `BundleOf`, `sqlArtifactSource` (D-1, D-2). `evidencegraphs.go`: private `sourceOf` split out of `SourceOf`; `SetSourceTx` *(new)* (D-3); `CreateDefault` comment (D-8) |
+| `core/database/artifacts` | `SetSourceTx` *(new)*; entity `"artifact"` (D-3) |
+| `core/database/subjects` | `SetSourceTx` *(new)*; entity `"subject"` (D-3) |
+| `core/database/sources` | `Lookup` *(new)*; `GetTx` calls it (D-17) |
+| `core/database/effects` | `registry.go`: `sqlHandlesCitingHead`, `sqlHandlesForArtifact` *(new)*, `sqlHandlesForSource` rebuilt on the head; `artifacts` entry gains `Handles` (D-10) |
+| `core/apperr` | `CodeSourceMoveInvalid`, `CodeSourceMoveNotFound` *(new)* (D-13) |
+| `core/database/sourcemove` *(new)* | `sourcemove.go`: package comment (what moves, what does not, D-5, D-9); `ErrInvalid`, `ErrNotFound`; `resolve`; `Report`, `Impact`; `Result`, `Move` |
 
 ```go
-// sqlHandlesForArtifact: handles with an accepted or provisional member that
-// has an Observation citing a Citation on the Artifact.
-sqlHandlesForArtifact = `SELECT DISTINCT ic.entity_id FROM identity_claims ic
+// effects/registry.go
+sqlHandlesCitingHead = `SELECT DISTINCT ic.entity_id FROM identity_claims ic
 	JOIN observations o ON o.subject_id = ic.subject_id
-	JOIN citations c ON c.id = o.citation_id
+	JOIN citations c ON c.id = o.citation_id`
+sqlHandlesForArtifact = sqlHandlesCitingHead + `
 	WHERE ic.status IN ('accepted', 'provisional') AND c.artifact_id = ?`
+sqlHandlesForSource = sqlHandlesCitingHead + `
+	JOIN artifacts a ON a.id = c.artifact_id
+	WHERE ic.status IN ('accepted', 'provisional') AND a.source_id = ?`
 
-package sourcemove
-
-type ReportGraph struct {
-	Graph        evidencegraphs.Graph // from the graph index; ArtifactIDs read-only
-	SubjectCount int32
+// evidencegraphs/bundle.go
+type Seed struct{ ArtifactID, GraphID []byte }
+func (s Seed) Valid() bool
+type Bundle struct {
+	SourceID                []byte
+	ArtifactIDs, GraphIDs   [][]byte // ascending id bytes
+	TakesEveryGraph         bool     // every graph of SourceID is in GraphIDs
 }
+func BundleOf(q database.Querier, seed Seed) (Bundle, error)
 
+// sourcemove
 type Report struct {
 	Bundle               evidencegraphs.Bundle
-	Artifacts            []artifacts.Artifact // by Ref, case-insensitive
-	Graphs               []ReportGraph        // the Source's list order
-	SourceCredibilityKey string               // "" when not assessed
-	TargetCredibilityKey string               // "" when not assessed or no target
+	Artifacts            []artifacts.Artifact      // ListBySource order
+	Graphs               []evidencegraphs.Graph    // the index's list order; ArtifactIDs read-only
+	Progress             []evidencegraphs.Progress // one per graph, same order
+	SourceCredibilityKey string                    // "" when not assessed
+	TargetCredibilityKey string                    // "" when not assessed or no target
 	CredibilityDiffers   bool
 	LeavesSourceEmpty    bool
 	LeavesNoGraph        bool
 }
-
 func Impact(c *database.Catalog, seed evidencegraphs.Seed, targetID []byte) (Report, error)
 
 type Result struct {
 	Bundle         evidencegraphs.Bundle
 	DefaultGraphID []byte // nil unless D-8 created one
 }
-
 func Move(tx *database.Tx, userID []byte, seed evidencegraphs.Seed, targetID []byte) (Result, []rowchange.Change, error)
+func resolve(q database.Querier, seed evidencegraphs.Seed, targetID []byte) (evidencegraphs.Bundle, error)
 ```
 
-Errors: `sourcemove.invalid` → no seed, two seeds, a malformed id, the target is the bundle's Source; `sourcemove.not_found` → the seed's row is gone; `sources.not_found` → the target is gone; `users.invalid` → no user (write only).
+Errors: `sourcemove.invalid` → an invalid seed, an empty target in `Move`, the target is the bundle's Source, a nil user; `sourcemove.not_found` → the seed's row is gone; `sources.not_found` → the target is gone.
 
 ### FFI
 
@@ -251,15 +268,11 @@ message GetSourceMoveImpactRequest {
   string target_source_id = 4; // optional; empty leaves the credibility fields empty
 }
 
-message SourceMoveGraph {
-  EvidenceGraph graph = 1;
-  int32 subject_count = 2; // as the Source page counts them: source Subjects left out
-}
-
 message GetSourceMoveImpactResponse {
   string source_id = 1;                 // the bundle's Source today
   repeated Artifact artifacts = 2;      // by ref
-  repeated SourceMoveGraph graphs = 3;  // the Source's graph order
+  repeated EvidenceGraph graphs = 3;    // the Source's graph order
+  repeated EvidenceGraphProgress progress = 9; // one per graph, same order
   string source_credibility_key = 4;    // "" when not assessed
   string target_credibility_key = 5;
   bool credibility_differs = 6;         // the two grades score differently
@@ -283,7 +296,7 @@ message MoveToSourceResponse {
 }
 ```
 
-Handlers in `api/ffi/handlers/source_move.go` *(new)*: `GetSourceMoveImpact` parses ids with `optionalID`, builds the seed, runs `sourcemove.Impact` in `withProjectCatalog`, and maps Artifacts with `artifactProto(c, a, pass)` (one `thumbnailPass{}` per call) and graphs with `evidenceGraphProto`. `MoveToSource` parses `user_id` with `parseUserID`, runs `writes.Run(c, writes.Op{Action: "move_to_source", UserID: userID}, …sourcemove.Move…)` and returns `Effects: writeEffectsProto(wrote)`. `dispatch.go`: `MethodGetSourceMoveImpact`, `MethodMoveToSource` and two `route` cases. Regenerate with `./scripts/generate-proto.sh` (commits Go and Swift generated files).
+Handlers in `api/ffi/handlers/source_move.go` *(new)*: `GetSourceMoveImpact` parses ids with `optionalID`, builds the seed, runs `sourcemove.Impact` in `withProjectCatalog`, and maps Artifacts with `artifactProto(c, a, pass)` (one `thumbnailPass{}` per call) graphs with `evidenceGraphProto`, and counts with `protoProgress`. `MoveToSource` parses `user_id` with `parseUserID`, runs `writes.Run(c, writes.Op{Action: "move_to_source", UserID: userID}, …sourcemove.Move…)` and returns `Effects: writeEffectsProto(wrote)`. `dispatch.go`: `MethodGetSourceMoveImpact`, `MethodMoveToSource` and two `route` cases. Regenerate with `./scripts/generate-proto.sh` (commits Go and Swift generated files).
 
 ### macOS
 
@@ -300,15 +313,28 @@ L10n keys *(new)*, under `L10n.Errors`:
 
 ## 7. Steps
 
-**STEP-1 — The bundle closure**
-Files: `core/database/evidencegraphs/bundle.go` *(new)*, `core/database/evidencegraphs/bundle_test.go` *(new)*. Skill: `add-catalog-query`.
-Do: D-1, D-2. `BundleOf` reads the seed's Source with one query on `artifacts` or `evidence_graphs`, calls `list(q, sourceID)`, walks graph → Artifacts and Artifact → graphs from the seed until no id joins, and returns both id lists sorted with `bytes.Compare`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/evidencegraphs/ -run TestBundleOf` passes (T-1).
+**Fixtures.** Every Go test in `core/database` starts from `r := evidencelayertest.New(t)`; `r.NewSource(title)` returns a Source with its Default graph and one Artifact "Scan" linked to it (the create default links every graph). Build each AC's shape with these writes, all under `r.Run` or `writes.Call` with `evidencelayertest.UserID`:
 
-**STEP-2 — Per-table `source_id` updates**
-Files: `core/database/evidencegraphs/evidencegraphs.go`, `core/database/artifacts/artifacts.go`, `core/database/subjects/subjects.go`, and a table test in each package's existing `_test.go`. Skill: `add-catalog-query`, `add-audit-scope`.
-Do: D-3. Each function refuses a nil tx or a malformed `sourceID` with its package's `ErrInvalid`, reads `id, source_id` for its rows, runs the UPDATE in `sqlbatch.Each` batches, and returns the changes. The three tests run the functions inside one write with `PRAGMA defer_foreign_keys = ON` (graphs, then Subjects, then Artifacts) and assert rows and changes.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/evidencegraphs/ ./core/database/artifacts/ ./core/database/subjects/` passes (T-2).
+| Shape | Writes |
+| --- | --- |
+| An Artifact linked only to a named graph | `artifactstest.Create` with `Graphs: evidencegraphs.GraphLinks{Given: true}` (none), then `evidencegraphs.Create` with `ArtifactIDs: [it]` |
+| An Artifact in no graph (AC-1.3) | `artifactstest.Create` with `Graphs: evidencegraphs.GraphLinks{Given: true}` |
+| A graph with no Artifacts (AC-1.4) | The Default graph of `r.NewSource` after `evidencegraphs.SetArtifactGraphs(tx, uid, scan.ID, [][]byte{otherGraph})` moves "Scan" to a second graph |
+| A Source holding only A1 and G1 (AC-1.7) | `r.NewSource`: "Scan" is A1, Default is G1 |
+| Subjects in a graph | `subjectstest.On(t, r.C, uid, graphID, kind, label)` (`r.Bare` and `r.Labelled` call it on a Source's sole graph through `r.Graph`) |
+| Credibility | `sourcecredibilitygradestest.Install(r.C)`; `sourcecredibilitygrades.Lookup(r.C, key, vocabkey.OriginProvenencia)`; `sourcecredibility.Upsert(tx, uid, sourcecredibility.UpsertInput{SourceID, CredibilityGradeID})` |
+| A handle with two members (AC-2.8) | `promotetest.Save(t, r.C, uid, promote.Input{SubjectID: P1})`, then `identityclaims.Create` with `Status: identityclaims.StatusAccepted` for P2 (as `core/database/effects/handle_paths_test.go` does) |
+| Cover (AC-2.5) | `sources.SetCover(tx, uid, S1, sources.CoverModeArtifact, A1)` |
+
+**STEP-1 — The bundle closure**
+Files: `core/database/evidencegraphs/bundle.go` *(new)*, `core/database/evidencegraphs/bundle_test.go` *(new)*, `core/database/evidencegraphs/evidencegraphs.go` (`sourceOf` split from `SourceOf`). Skill: `add-catalog-query`.
+Do: D-1, D-2.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/evidencegraphs/ -run 'TestBundleOf|TestSourceOf'` passes (T-1).
+
+**STEP-2 — The write helpers and per-table `source_id` updates**
+Files: `core/database/sqlbatch/sqlbatch.go` and its test, `core/database/tx.go`, `core/database/sources/sources.go`, `core/database/evidencegraphs/evidencegraphs.go`, `core/database/artifacts/artifacts.go`, `core/database/subjects/subjects.go`, and a table test in each package's existing `_test.go`. Skill: `add-catalog-query`, `add-audit-scope`.
+Do: D-3, D-5, D-8's comment, D-16, D-17. The three `SetSourceTx` tests run inside one write that calls `tx.DeferForeignKeys()` first, then graphs, Subjects, Artifacts, and assert rows and changes.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/ ./core/database/sqlbatch/ ./core/database/sources/ ./core/database/evidencegraphs/ ./core/database/artifacts/ ./core/database/subjects/` passes (T-2).
 
 **STEP-3 — An Artifact's Source change recomputes its handles**
 Files: `core/database/effects/registry.go`, `core/database/effects/handle_paths_test.go`, `core/database/effects/README.md`. Skill: `add-audit-scope`.
@@ -317,32 +343,32 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/effects/` passes (T-3),
 
 **STEP-4 — `sourcemove`: preflight and move**
 Files: `core/apperr/apperr.go`, `core/database/sourcemove/sourcemove.go` *(new)*, `core/database/sourcemove/sourcemove_test.go` *(new)*. Skill: `use-catalog-session`, `add-audit-scope`.
-Do: D-4 – D-9, D-11 – D-13. Fixture: `evidencelayertest.New(t)` plus `NewSource`, graphs made with `evidencegraphs.Create` in `r.Run`, Subjects with `r.Person`/`r.Labelled`, credibility with `sourcecredibility.Upsert` after `sourcecredibilitygradestest.Install`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemove/` passes (T-4, T-5, T-7).
+Do: D-4, D-6 – D-9, D-11 – D-13, D-18. Fixtures as above.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemove/` passes (T-4, T-5, T-7, T-10).
 
 **STEP-5 — Both Sources' histories**
 Files: `core/database/audit/scopes_test.go`. Skill: `add-audit-scope`.
-Do: add a `TestSourceScopes` row "move a bundle to the other Source": seed `s.a`'s Artifact, target `s.b`; `sourceRevisions` before and after shows both `a` and `b` equal to the move's revision.
+Do: add a `TestSourceScopes` row "move a bundle to the other Source": `writes.Run` of `sourcemove.Move` with seed `s.artifact`, target `s.b`; `sourceRevisions` after shows both `a` and `b` equal to the move's revision.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/audit/ -run TestSourceScopes` passes (T-6).
 
 **STEP-6 — FFI**
 Files: `api/proto/engine.proto`, generated `api/proto/engine/engine.pb.go` and `macos/App/Platform/Generated/engine.pb.swift`, `api/ffi/dispatch.go`, `api/ffi/handlers/source_move.go` *(new)*, `api/ffi/handlers/source_move_test.go` *(new)*. Skill: `add-ffi-handler`, `use-catalog-session`.
-Do: D-14 and § 6 FFI. Tests use `runRPC` rows and `newGraphFixture` / `otherSource`.
-Check: `./scripts/generate-proto.sh` leaves the tree building; `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/...` passes (T-8, T-9, and `TestEveryAuditedWriteReturnsEffects`).
+Do: D-14 and § 6 FFI. Tests use `runRPC` rows and `newGraphFixture` / `otherSource`. `./scripts/generate-proto.sh` needs `protoc`, `protoc-gen-go` and `protoc-gen-swift` on `PATH`; where one is missing, stop and report it (the generated files must come from the script).
+Check: `./scripts/generate-proto.sh` succeeds; `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/...` passes (T-8, T-9, and `TestEveryAuditedWriteReturnsEffects`).
 
 **STEP-7 — Error copy**
-Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings` (the catalog `add-localized-string` names). Skill: `add-localized-string`.
+Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skill: `add-localized-string`.
 Do: D-15 and § 6 Strings.
-Check: `python3 scripts/check-localizable-xcstrings.py` passes; `xcodebuild test` (as `scripts/check-pr.sh` runs it) passes with no Swift warning.
+Check: `python3 scripts/check-localizable-xcstrings.py` passes. `xcodebuild test` runs only on macOS: on a Linux host, report it as not run and let `scripts/check-pr.sh`'s result on macOS (CI or the reviewer) be the evidence.
 
 **STEP-8 — Version**
 Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`.
-Do: 0.31.0 → 0.32.0 in all three (every `MARKETING_VERSION` line).
+Do: 0.31.0 → 0.32.0 in `VERSION`, `core/version.go` and all four `MARKETING_VERSION` lines.
 Check: `CGO_ENABLED=1 go test ./core/ -run TestVersion` passes.
 
 **STEP-9 — Docs**
 Files: `docs/interpretation-layer-data-model.md` § 4.2, `docs/source-layer-data-model.md` § 7 and § 7.1, `docs/deployment-plan/spike-15/move-artifact-between-sources.md` ("Engine notes"), `docs/deployment-plan/spike-15/completed.md`, `docs/deployment-plan/spike-15/deployment-plan.md` (map row), this plan (status, Landed note).
-Do: § 4.2: replace "A Subject belongs to one graph and never moves." with "A Subject belongs to one graph and never changes graph; moving its graph to another Source (`sourcemove.Move`, S15-24) changes its `source_id` with the graph's." § 7: an Artifact's `source_id` changes only through a move, which carries its bundle. § 7.1: a graph's `source_id` changes only through a move; a Source left with no graph gets a new Default graph. Feature doc "Engine notes": name `GetSourceMoveImpact`, `MoveToSource`, `evidencegraphs.BundleOf`, the deferred keys, the cleared cover, and the reification decision (D-9). Then per the Definition of done.
+Do: § 4.2: replace "A Subject belongs to one graph and never moves." with "A Subject belongs to one graph and never changes graph; moving its graph to another Source (`sourcemove.Move`, S15-24) changes its `source_id` with the graph's." § 7: an Artifact's `source_id` changes only through a move, which carries its bundle. § 7.1: a graph's `source_id` changes only through a move; a Source left with no graph gets a new Default graph. Feature doc "Engine notes": name `GetSourceMoveImpact`, `MoveToSource`, `evidencegraphs.BundleOf`, the deferred keys, the cleared cover, and the reification decision (D-9). `completed.md`: a paragraph at the top in the shape of the others: its bold title "S15-24 — Move a bundle to another Source in the engine" and the PR link, then sentences naming the two RPCs, what moves, what stays, the cover and Default-graph cases, the handle recompute, and "Product 0.32.0." Map row status: `Landed #N`. This plan: Status `Landed in [#N](…) (date)` and a `## Landed` section after the header, as in [`S16-15-graph-catalog.md`](../../spike-16/prs/S16-15-graph-catalog.md), listing only where the code differs from the plan.
 Check: links resolve; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-24-move-bundle.md` reports no errors.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period, like the rest of `git log` ("Restore list scroll after the sort is applied."). No WIP commits.
@@ -351,17 +377,18 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/evidencegraphs/bundle_test.go` `TestBundleOf` *(new)* | Rows: AC-1.1 seed A1 → {A1},{G1}; AC-1.2 seed A1 and seed G2 → {A1,A2,A3},{G1,G2}; a cycle G1–A1–G2–A2–G1 → both graphs and Artifacts once; AC-1.3; AC-1.4; a second Source with its own linked pair is never in the result; missing well-formed seed → `sql.ErrNoRows`; malformed id → `ErrInvalid`. Lists sorted ascending | AC-1.1 – AC-1.4, D-2 |
-| T-2 | Go | `evidencegraphs_test.go` `TestSetSourceTx`, `artifacts_test.go` `TestSetSourceTx`, `subjects_test.go` `TestSetSourceTx` *(new)* | Two rows moved → two `Updated` changes with `source_id` old → new, rows read back on the new Source; a row already there → no change; malformed `sourceID` → package `ErrInvalid` | D-3 |
-| T-3 | Go | `core/database/effects/handle_paths_test.go` `TestHandlePaths` (new rows) | An `artifact` update change carrying `source_id` → the handles of Subjects with Observations on the Artifact's Citations (accepted and provisional; not rejected); the same change carrying only `label` → none | D-10, AC-2.8 |
-| T-4 | Go | `core/database/sourcemove/sourcemove_test.go` `TestImpact` *(new)* | AC-1.1, AC-1.2 (Artifacts by ref, graphs in list order), AC-1.5, AC-1.6, AC-1.7, AC-1.8, AC-1.9 | AC-1.*, D-11, D-12, D-13 |
-| T-5 | Go | `sourcemove_test.go` `TestMove` *(new)* | Rows: AC-2.1 (ids, refs, Citation, Observation, link and both metadata rows unchanged; `sourcemetadata.ListByOwnersTx` for A1 and G1 returns the same values); AC-2.2; AC-2.3 Scale (5 + 5 + 100; one revision); AC-2.4; AC-2.5 both cases; AC-2.9; AC-2.11 (each refusal: no revision written, `audit_transactions` count unchanged). Every row ends with `r.C.Graph().Verify()` nil | AC-2.1 – AC-2.5, AC-2.9, AC-2.11, D-5 – D-9 |
+| T-1 | Go | `core/database/evidencegraphs/bundle_test.go` `TestBundleOf` *(new)*; `TestSourceOf` (existing, unchanged result) | Rows: AC-1.1 seed A1 → {A1},{G1}, `TakesEveryGraph` false; AC-1.2 seed A1 and seed G2 → {A1,A2,A3},{G1,G2}; a cycle G1–A1–G2–A2–G1 → both graphs and Artifacts once; AC-1.3; AC-1.4; AC-1.7 → `TakesEveryGraph` true; a second Source with its own linked pair is never in the result; missing well-formed seed → `sql.ErrNoRows`; neither, both, or a short id → `ErrInvalid`. Lists sorted ascending | AC-1.1 – AC-1.4, AC-1.7, D-1, D-2 |
+| T-2 | Go | `sqlbatch_test.go` `TestExec`; `evidencegraphs_test.go`, `artifacts_test.go`, `subjects_test.go` `TestSetSourceTx`; `sources_test.go` `TestLookup` *(new)* | `Exec` over 1,001 ids runs three statements and touches every row. `SetSourceTx`: two rows moved → two `Updated` changes with `source_id` old → new, rows read back on the new Source; a row already there and an id with no row → no change; a repeated id → one change; no ids → nil, no query; malformed `sourceID` → package `ErrInvalid`. `Lookup`: a Source → it; missing → `ErrNotFound`; short id → `ErrInvalid` | D-3, D-16, D-17 |
+| T-3 | Go | `core/database/effects/handle_paths_test.go` `TestHandlePaths` (new rows) | An `artifact` update change carrying `source_id` → the handles of Subjects with Observations on the Artifact's Citations (accepted and provisional; not rejected); the same change carrying only `label` → none; a `source_credibility_assessment` grade change still names the same handles as before (the rebuilt `sqlHandlesForSource`) | D-10, AC-2.8 |
+| T-4 | Go | `core/database/sourcemove/sourcemove_test.go` `TestImpact` *(new)* | AC-1.1, AC-1.2 (Artifacts in `ListBySource` order, graphs in list order, one `Progress` per graph), AC-1.4, AC-1.5, AC-1.6, AC-1.7, AC-1.8, AC-1.9 | AC-1.*, D-6, D-11 – D-13 |
+| T-5 | Go | `sourcemove_test.go` `TestMove` *(new)* | Rows: AC-2.1 (ids, refs, Citation, Observation, link and both metadata rows unchanged; `sourcemetadata.ListByOwnersTx` for A1 and G1 returns the same values); AC-2.2; `scale` AC-2.3 (5 + 5 + 100; one revision); AC-2.4; AC-2.5 both cases; AC-2.9; AC-2.11 (each refusal and a nil user: the code, and the `audit_transactions` count unchanged). Every row ends with `r.C.Graph().Verify()` nil | AC-2.1 – AC-2.5, AC-2.9, AC-2.11, D-5 – D-9 |
 | T-6 | Go | `core/database/audit/scopes_test.go` `TestSourceScopes` (new row) | A move from `s.a` to `s.b` → both Sources' revisions equal the move's revision | AC-2.6 |
-| T-7 | Go | `sourcemove_test.go` `TestMoveCachesAndSearch`, `TestMoveRecomputesHandles`, `TestMergeByMoving` *(new)* | AC-2.7 (index, records and G1's `catalog_search_docs` row, each built before the move); AC-2.8 (`writes.Result.Effects.Handles` holds H; `Verify` nil); AC-2.10 | AC-2.7, AC-2.8, AC-2.10 |
-| T-8 | Go | `api/ffi/handlers/source_move_test.go` `TestGetSourceMoveImpact` *(new)* | `runRPC` rows: AC-1.1's shape on the wire (Artifacts and graphs mapped, `subject_count`); a target with a different grade; bad proto → error; no seed and two seeds → `sourcemove.invalid`; a missing seed → `sourcemove.not_found`; a missing target → `sources.not_found` | AC-1.*, D-14 |
-| T-9 | Go | `source_move_test.go` `TestMoveToSource` *(new)* | A pair moved: reply ids, `effects.source_scopes` holds both Sources, `ListEvidenceGraphs` for each Source shows the graph under the target; the last-graph case returns `default_graph_id`; no `user_id` → `users.invalid`; same Source → `sourcemove.invalid` | AC-2.1, AC-2.4, AC-2.6, AC-2.11 |
+| T-7 | Go | `sourcemove_test.go` `TestMoveCachesAndSearch`, `TestMoveRecomputesHandles`, `TestMergeByMoving` *(new)* | AC-2.7 (index, records and G1's `catalog_search_docs` row, each built before the move); AC-2.8 (the 1840 row's `reason` 'weak' before, 'kept' after; `Effects.Handles` holds H; `Verify` nil); AC-2.10 | AC-2.7, AC-2.8, AC-2.10 |
+| T-8 | Go | `api/ffi/handlers/source_move_test.go` `TestGetSourceMoveImpact` *(new)* | `runRPC` rows: AC-1.1's shape on the wire (Artifacts, graphs and `progress` mapped); a target with a different grade; bad proto → error; a malformed id → `request.invalid_id`; no seed and two seeds → `sourcemove.invalid`; a missing seed → `sourcemove.not_found`; a missing target → `sources.not_found` | AC-1.*, D-13, D-14 |
+| T-9 | Go | `source_move_test.go` `TestMoveToSource` *(new)* | A pair moved: reply ids, `effects.source_scopes` holds both Sources, `ListEvidenceGraphs` for each Source shows the graph under the target; the last-graph case returns `default_graph_id`; empty `user_id` → `users.invalid`; same Source → `sourcemove.invalid` | AC-2.1, AC-2.4, AC-2.6, AC-2.11 |
+| T-10 | Go | `sourcemove_test.go` `TestSourceKeysAreClassified` *(new)* | Every `catalogmodel.FKs` entry with `To == "sources"` is in the moves list or the stays list; today seven entries, none unclassified | D-18 |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/database/effects` (`registry_completeness_test.go`, `TestHandlePaths`), `core/database/audit` (`TestSourceScopes`), `api/ffi/handlers` (`TestEveryAuditedWriteReturnsEffects`), `core/database/evidencegraphs` (`TestGraphIndexApplyMove`).
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `core/database/effects` (`registry_completeness_test.go`, `TestHandlePaths`), `core/database/audit` (`TestSourceScopes`), `api/ffi/handlers` (`TestEveryAuditedWriteReturnsEffects`), `core/database/evidencegraphs` (`TestGraphIndexApplyMove`, `TestSourceOf`).
 
 ## 9. Definition of done
 
