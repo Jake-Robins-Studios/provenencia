@@ -79,3 +79,12 @@
 
 ### X-11 · nit · Temptations
 **Answer:** Fixed — AC-2.10 names `sources.Delete(tx, userID, S1)` under `r.Run`; the rest were already Out.
+
+## Round 2
+
+Maintainability: every round-1 answer checked against the code and holds; one new blocker.
+
+### M-10 · blocker · `sqlbatch.Exec` added beside the batched IN writes it cites, which stay hand-rolled
+**Answer:** Fixed — D-16's evidence corrected (`searchindex/handles.go` only reads); `searchindex.writeInputs` and `autoreconciler.recomputeBatch`'s two deletes move onto `sqlbatch.Exec` in STEP-2 (§ 6 Go core, Codebase fit, STEP-2 files and check).
+
+Non-blocking notes, also Fixed: D-17 `sources.Get` calls `Lookup` too; D-6 names where `Move` refuses an empty target; D-10's prose says each query adds its own `WHERE`; T-3 gains Artifact create and delete rows (the new `Handles` path returns nothing for them).
