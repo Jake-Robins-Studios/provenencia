@@ -95,7 +95,9 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
 
     @MainActor
     final class Coordinator {
-        weak var anchor: NSView?
+        weak var anchor: NSView? {
+            didSet { host.anchor = anchor }
+        }
         var maxHeight: CGFloat = 288
         var contentHeight: CGFloat = 0
         var optionCount = 0
@@ -103,24 +105,29 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         var anchorRect: (() -> CGRect?)?
         /// The single source of truth for whether the panel should be up,
         /// written synchronously by every `updateNSView`. `applyPresentation`
-        /// mirrors it into AppKit.
+        /// mirrors it into AppKit, so a deferred show can never re-open a list
+        /// the presenter closed.
         var wantsPresented = false
 
-        private var panel: PVPopupPanel?
-        private var hosting: PVPopupHostingView?
-        /// Kept unwidened so `position` can re-wrap it at the field's width.
+        private let host = PVPopupWindowHost(hasShadow: true)
+        /// Kept unwidened so `frame()` can re-wrap it at the field's width.
         private var content: AnyView = AnyView(EmptyView())
-        private var observers: [NSObjectProtocol] = []
+        /// The width the panel was last framed at.
+        private var shownWidth: CGFloat = 0
         /// The content metrics the panel was last framed for; `nil` while it
         /// is down. Comparing against these is what keeps re-framing (which
         /// is disruptive mid-interaction) to actual size changes.
         private var shownHeight: CGFloat?
         private var shownCount: Int?
 
+        init() {
+            host.onFollow = { [weak self] in self?.position() }
+        }
+
         func setContent(_ content: some View) {
             self.content = AnyView(content)
-            if let hosting, let panel, panel.parent != nil {
-                hosting.rootView = widened(to: panel.frame.width)
+            if host.isShown {
+                host.rootView = widened(to: shownWidth)
             }
         }
 
@@ -140,7 +147,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
                 hide()
                 return
             }
-            if panel?.parent == nil {
+            if !host.isShown {
                 show()
                 shownHeight = contentHeight
                 shownCount = optionCount
@@ -155,126 +162,47 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         // MARK: Show / hide
 
         private func show() {
-            guard let anchor, let parent = anchor.window else { return }
-            if hosting == nil {
-                hosting = PVPopupHostingView(rootView: widened(to: width ?? anchor.bounds.width))
-            }
-            guard let hosting else { return }
-            if panel == nil {
-                let created = PVPopupPanel(
-                    contentRect: NSRect(x: 0, y: 0, width: 100, height: 100),
-                    styleMask: [.borderless, .nonactivatingPanel],
-                    backing: .buffered,
-                    defer: false
-                )
-                created.isOpaque = false
-                created.backgroundColor = .clear
-                // AppKit derives the shadow from the window's alpha, so the
-                // rounded content gets a correctly-shaped native popup shadow.
-                created.hasShadow = true
-                created.level = .popUpMenu
-                created.animationBehavior = .none
-                created.contentView = hosting
-                panel = created
-            }
-            guard let panel, panel.parent == nil else { return }
-            position()
-            parent.addChildWindow(panel, ordered: .above)
-            startWatching(parent: parent)
+            guard let frame = frame() else { return }
+            host.show(at: frame)
         }
 
         private func hide() {
             shownHeight = nil
             shownCount = nil
-            guard let panel, panel.parent != nil else { return }
-            stopWatching()
-            panel.parent?.removeChildWindow(panel)
-            panel.orderOut(nil)
+            host.hide()
         }
 
         func tearDown() {
-            stopWatching()
-            if let panel {
-                panel.parent?.removeChildWindow(panel)
-                panel.orderOut(nil)
-            }
-            panel = nil
-            hosting = nil
+            host.tearDown()
         }
 
         // MARK: Geometry
 
         /// Sizes the panel to its content (clamped by `maxHeight` and by the
-        /// room on screen) and puts it just outside the field.
-        private func position() {
-            guard let panel, let anchor, let window = anchor.window, let hosting else { return }
+        /// room on screen) and puts it just outside the field. Nil without an
+        /// anchor window.
+        private func frame() -> CGRect? {
+            guard let anchor, let window = anchor.window else { return nil }
             var anchorOnScreen = anchorRect?() ?? window.convertToScreen(anchor.convert(anchor.bounds, to: nil))
             if let width { anchorOnScreen.size.width = width }
 
-            hosting.rootView = widened(to: anchorOnScreen.width)
+            host.rootView = widened(to: anchorOnScreen.width)
             let wanted = min(contentHeight, maxHeight)
 
             let visible = (window.screen ?? NSScreen.main)?.visibleFrame ?? anchorOnScreen
-            panel.setFrame(
-                PVPopupListPlacement.popupFrame(
-                    anchor: anchorOnScreen,
-                    contentHeight: wanted,
-                    visibleFrame: visible
-                ),
-                display: true
+            let frame = PVPopupListPlacement.popupFrame(
+                anchor: anchorOnScreen,
+                contentHeight: wanted,
+                visibleFrame: visible
             )
-            panel.invalidateShadow()
+            shownWidth = frame.width
+            return frame
         }
 
-        // MARK: Following
-
-        private func startWatching(parent: NSWindow) {
-            let center = NotificationCenter.default
-            // Follow the field when the window moves or resizes, and when the
-            // pane it lives in scrolls — a detached popup is worse than none.
-            for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
-                observers.append(center.addObserver(forName: name, object: parent, queue: .main) { [weak self] _ in
-                    MainActor.assumeIsolated { self?.position() }
-                })
-            }
-            if let clip = anchor?.enclosingScrollView?.contentView {
-                clip.postsBoundsChangedNotifications = true
-                observers.append(
-                    center.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: .main) { [weak self] _ in
-                        MainActor.assumeIsolated { self?.position() }
-                    }
-                )
-            }
+        private func position() {
+            guard host.isShown, let frame = frame() else { return }
+            host.setFrame(frame)
         }
-
-        private func stopWatching() {
-            observers.forEach(NotificationCenter.default.removeObserver)
-            observers.removeAll()
-        }
-    }
-}
-
-/// Borderless popup that never takes key focus, so the text field behind it
-/// keeps handling arrows, Return and Escape while the list is open.
-private final class PVPopupPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
-}
-
-/// Hosting view for the popup's content. Rows commit on the first click, so a
-/// click arriving while the app is inactive still lands on the row instead of
-/// being swallowed to activate the app.
-private final class PVPopupHostingView: NSHostingView<AnyView> {
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) is not used — the popup is built in code")
-    }
-
-    @MainActor
-    required init(rootView: AnyView) {
-        super.init(rootView: rootView)
     }
 }
 
