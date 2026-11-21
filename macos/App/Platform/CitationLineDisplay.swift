@@ -16,9 +16,9 @@ extension CatalogCitationRender {
     }
 }
 
-/// A record's citation line: "Source, Artifact, Citation, page" (S13-11). The
-/// one place to replace when the standard-citation formatter of
-/// `docs/deployment-plan/spike-15/citation-formats.md` lands.
+/// A record's citation line: "Source, Artifact, Citation, page" (S13-11). Today's line: the fallback for a
+/// Source type with no full citation format, and the line its other callers draw
+/// (rule "Today's line stays the fallback, in Swift", `docs/deployment-plan/spike-15/citation-formats.md`).
 enum CitationLineDisplay {
     /// A citation line in its two caption halves (S13-14 D-3).
     struct Parts: Equatable {
