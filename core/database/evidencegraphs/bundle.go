@@ -83,24 +83,31 @@ func BundleOf(q database.Querier, seed Seed) (Bundle, error) {
 		}
 	}
 	seenGraphs, seenArtifacts := map[string]bool{}, map[string]bool{}
-	var visit func(artifact bool, id string)
-	visit = func(artifact bool, id string) {
+	// A worklist, not recursion: a crafted chain of links could be deep.
+	type node struct {
+		artifact bool
+		id       string
+	}
+	var work []node
+	if len(seed.GraphID) != 0 {
+		work = append(work, node{false, string(seed.GraphID)})
+	} else {
+		work = append(work, node{true, string(seed.ArtifactID)})
+	}
+	for len(work) > 0 {
+		n := work[len(work)-1]
+		work = work[:len(work)-1]
 		seen, next := seenGraphs, artifactsOf
-		if artifact {
+		if n.artifact {
 			seen, next = seenArtifacts, graphsOf
 		}
-		if seen[id] {
-			return
+		if seen[n.id] {
+			continue
 		}
-		seen[id] = true
-		for _, n := range next[id] {
-			visit(!artifact, n)
+		seen[n.id] = true
+		for _, m := range next[n.id] {
+			work = append(work, node{!n.artifact, m})
 		}
-	}
-	if len(seed.GraphID) != 0 {
-		visit(false, string(seed.GraphID))
-	} else {
-		visit(true, string(seed.ArtifactID))
 	}
 
 	out := Bundle{SourceID: sourceID}
