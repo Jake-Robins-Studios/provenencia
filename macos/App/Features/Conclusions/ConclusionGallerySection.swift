@@ -305,9 +305,7 @@ struct GalleryTileView<Overlay: View>: View {
         case .large:
             VStack(alignment: .leading, spacing: PVSpacing.space1) {
                 Text(verbatim: tile.citation.title)
-                    .font(tile.citation.titleIsRef
-                        ? PVFont.mono(size: PVTypeScale.caption)
-                        : PVFont.body(size: PVTypeScale.caption))
+                    .font(PVFont.body(size: PVTypeScale.caption))
                     .foregroundStyle(PVColor.textPrimary)
                     .lineLimit(2)
                     .truncationMode(.tail)
