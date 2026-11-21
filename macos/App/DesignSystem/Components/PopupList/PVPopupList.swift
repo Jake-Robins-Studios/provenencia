@@ -112,8 +112,6 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         private let host = PVPopupWindowHost(hasShadow: true)
         /// Kept unwidened so `frame()` can re-wrap it at the field's width.
         private var content: AnyView = AnyView(EmptyView())
-        /// The width the panel was last framed at.
-        private var shownWidth: CGFloat = 0
         /// The content metrics the panel was last framed for; `nil` while it
         /// is down. Comparing against these is what keeps re-framing (which
         /// is disruptive mid-interaction) to actual size changes.
@@ -126,8 +124,8 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
 
         func setContent(_ content: some View) {
             self.content = AnyView(content)
-            if host.isShown {
-                host.rootView = widened(to: shownWidth)
+            if let width = host.frame?.width {
+                host.rootView = widened(to: width)
             }
         }
 
@@ -195,7 +193,6 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
                 contentHeight: wanted,
                 visibleFrame: visible
             )
-            shownWidth = frame.width
             return frame
         }
 

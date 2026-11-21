@@ -16,7 +16,9 @@ final class PVPopupWindowHost {
     var onFollow: () -> Void = {}
 
     private let hasShadow: Bool
-    private let hosting: PVPopupWindowHostingView
+    /// Made on first use and released by `tearDown()`, so a popup that is never
+    /// shown holds no hosting view.
+    private var hostingView: PVPopupWindowHostingView?
     private var panel: PVPopupWindowPanel?
     private var observers: [NSObjectProtocol] = []
 
@@ -25,10 +27,16 @@ final class PVPopupWindowHost {
     /// its own turns it off.
     init(hasShadow: Bool) {
         self.hasShadow = hasShadow
-        hosting = PVPopupWindowHostingView(rootView: AnyView(EmptyView()))
     }
 
     var isShown: Bool { panel?.parent != nil }
+
+    private var hosting: PVPopupWindowHostingView {
+        if let hostingView { return hostingView }
+        let created = PVPopupWindowHostingView(rootView: AnyView(EmptyView()))
+        hostingView = created
+        return created
+    }
 
     var rootView: AnyView {
         get { hosting.rootView }
@@ -36,6 +44,9 @@ final class PVPopupWindowHost {
     }
 
     var fittingSize: CGSize { hosting.fittingSize }
+
+    /// The panel's frame while shown, nil otherwise.
+    var frame: CGRect? { isShown ? panel?.frame : nil }
 
     /// Frames the panel and adds it as a child above the anchor's window. A
     /// no-op when it is already shown or the anchor has no window.
@@ -71,6 +82,7 @@ final class PVPopupWindowHost {
             panel.orderOut(nil)
         }
         panel = nil
+        hostingView = nil
     }
 
     private func makePanel() -> PVPopupWindowPanel {

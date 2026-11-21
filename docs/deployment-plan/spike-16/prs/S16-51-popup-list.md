@@ -421,5 +421,7 @@ None.
 ## Landed
 
 - `main` had moved from the Planned commit to `7898cee50`; no **Current state** row changed under `macos/`.
-- `PVPopupListWindow.Coordinator` keeps the width it last framed at (`shownWidth`) to widen new content, because `PVPopupWindowHost` has no frame accessor (D-14, D-15).
+- D-14 amended (review round 1): `PVPopupWindowHost` builds its hosting view on first use and releases it on `tearDown()`, not in `init`.
+- D-15 amended (review round 1): `PVPopupWindowHost` exposes `frame` (the panel's frame while shown, nil otherwise); `PVPopupListWindow.Coordinator` widens new content to `host.frame?.width`, so `shownWidth` is gone.
+- `.pvPopup` also closes on a left press outside whose release a nested tracking loop (scroller or title-bar drag, native control) swallowed: `PVPopupInput.pressEndedUnseen`, queued in the default run-loop mode (review round 1, CON-1).
 - The manual check (§10), including the STEP-3 and STEP-4 in-app passes, was not run by the implementer; it is owed before merge.
