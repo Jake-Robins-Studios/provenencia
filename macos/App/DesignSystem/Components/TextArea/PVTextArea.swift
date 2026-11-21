@@ -579,6 +579,8 @@ final class PVTextAreaCompletionSession {
     /// The highlighted row; -1 when there is none.
     private var highlight = PVPopupListHighlight()
     var activeIndex: Int { highlight.index }
+    /// The highlighted row's index when it is one of the open rows.
+    var currentIndex: Int? { highlight.current(count: options.count) }
     private(set) var context: PVTextAreaCompletion.Context?
 
     @ObservationIgnored var completion: PVTextAreaCompletion?
@@ -618,8 +620,8 @@ final class PVTextAreaCompletionSession {
         isOpen = true
         if !wasOpen {
             speak(.opened(count: rows.count, first: rows.first))
-        } else if rows.indices.contains(activeIndex) {
-            speak(.highlighted(rows[activeIndex]))
+        } else if let current = currentIndex {
+            speak(.highlighted(rows[current]))
         } else if hadRows {
             // The open list narrowed to nothing: say so once, not on every further key.
             speak(.opened(count: 0, first: nil))
@@ -644,8 +646,8 @@ final class PVTextAreaCompletionSession {
             move(1)
         case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
             // An empty list takes neither: Return types a line and Tab leaves the field.
-            guard options.indices.contains(activeIndex) else { return false }
-            accept(at: activeIndex)
+            guard let current = currentIndex else { return false }
+            accept(at: current)
         case #selector(NSResponder.cancelOperation(_:)):
             escaped = true
             close()
@@ -666,8 +668,8 @@ final class PVTextAreaCompletionSession {
             delta > 0 ? .downArrow : .upArrow, command: false,
             count: options.count, isDisabled: { options[$0].isDisabled }
         )
-        guard highlight.index != before, options.indices.contains(highlight.index) else { return }
-        speak(.highlighted(options[highlight.index]))
+        guard highlight.index != before, let current = currentIndex else { return }
+        speak(.highlighted(options[current]))
     }
 
     /// Puts row `index` in at the context and closes the list.
@@ -724,7 +726,7 @@ private struct PVTextAreaCompletionRows: View {
         let query = session.context?.query ?? ""
         PVPopupListCard(
             rowIDs: options.map(\.id),
-            activeID: options.indices.contains(session.activeIndex) ? options[session.activeIndex].id : nil,
+            activeID: session.currentIndex.map { options[$0].id },
             verticalPadding: PVTextAreaCompletionList.verticalPadding
         ) {
             LazyVStack(spacing: 0) {
