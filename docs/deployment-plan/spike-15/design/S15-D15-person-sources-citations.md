@@ -82,7 +82,7 @@ The Person page's Sources section lists the Sources a person's records come from
 
 A record is drawn from several Citations: the highlighted pieces of a page (on a census row, the name, the age, the birthplace, the occupation, the relationship). The section shows none of them today.
 
-**What changes.** Under each record line, the record's citation reads like a citation: the full citation the engine renders from the Source, its Artifact and the Evidence graph, with its italics, **once** for all the record's Citations that render the same full citation. Beneath it, its **pieces**: what each of those Citations says about this person ("Name Johann Weber · Age 34 · Birthplace Bremen"). Beside it, the provenance sheet's two labelled copy buttons, **Full** and **Short**. The citations are fetched when the section appears; the rows do not wait for them. If they cannot be read, one notice with **Read again** sits above the rows.
+**What changes.** Under each record line, the record's citation reads like a citation: the full citation the engine renders from the Source, its Artifact and the Evidence graph, with its italics, **once** for all the record's Citations that render the same full citation. Beneath it, its **pieces**: what each of those Citations says about this person ("Name Johann Weber · Age 34 · Birthplace Bremen"). Beside it, the provenance sheet's two labelled copy buttons, **Full** and **Short**. The citations are fetched when the section appears; the rows do not wait for them. If they cannot be read, one notice with **Try again** (the Person page's retry word) sits above the rows.
 
 **What stays.** The caption line, the Source cells, the record lines, Unpromote, the folds, the record links diagram and its highlight, the empty, loading and error states of the section's own read. A record whose Source type has no full citation format looks as it does today: no block under its line.
 
@@ -118,7 +118,7 @@ A record is drawn from several Citations: the highlighted pieces of a page (on a
 
 | PR | Ships | Not that PR |
 | --- | --- | --- |
-| **S15-22** | SC-1 – SC-11, SC-W1: the citation block under each record line (formatted citation, pieces, Full and Short), several blocks for a record on two pages, no block without a format, the failed notice with Read again, no blink after Unpromote | Everything in § 2.1 |
+| **S15-22** | SC-1 – SC-11, SC-W1: the citation block under each record line (formatted citation, pieces, Full and Short), several blocks for a record on two pages, no block without a format, the failed notice with Try again, no blink after Unpromote | Everything in § 2.1 |
 
 ---
 
@@ -126,13 +126,13 @@ A record is drawn from several Citations: the highlighted pieces of a page (on a
 
 | ID | Requirement |
 | --- | --- |
-| SC-1 | **The citation.** Under a record line, the record's full citation as the engine renders it, its italic runs in italic: body small, primary ink. Its left edge aligns with the graph link's text above it. It wraps; it never truncates; it keeps a measure of at most 680pt. It is text, not a link. It is selectable. |
+| SC-1 | **The citation.** Under a record line, the record's full citation as the engine renders it, its italic runs in italic: body small, primary ink. Its left edge aligns with the graph link's text above it. It wraps; it never truncates; it keeps a measure of at most 680pt (a citation measure token, beside the kit's prose and form measures). It is text, not a link. It is selectable. |
 | SC-2 | **The pieces.** Directly under the citation, one caption line in secondary ink: each Observation behind that citation as "{Property} {value}", joined by " · ", in the order the record's Observations come; it wraps within the citation's measure. Negative: "{Property} not {value}". No text value: the property alone. The same text twice shows once. |
 | SC-3 | **Same citation once.** All of a record's Citations that render the same full citation make one block: the citation once, all their pieces beneath it. A record whose Citations render two different full citations (two printed pages) shows two blocks, in the order their first Observation comes, 8pt apart. |
-| SC-4 | **Copy buttons.** As on the provenance sheet (S15-D9 PC-3): two labelled kit Buttons, ghost, small, stacked in a 72pt track 8pt right of the citation text, the top one level with the citation's first line: **Full** and **Short**, each with the copy glyph; spoken and tooltipped "Copy full citation" and "Copy short citation". A type with no short format shows Full alone. A copy turns the glyph to a check in success ink for 1.6 seconds. |
+| SC-4 | **Copy buttons.** As on the provenance sheet (S15-D9 PC-3, as shipped): two labelled kit Buttons, ghost, small, stacked in an 84pt track 8pt right of the citation text, the top one level with the citation's first line: **Full** and **Short**, each with the copy glyph; spoken and tooltipped "Copy full citation" and "Copy short citation". A type with no short format shows Full alone. A copy turns the glyph to a check in success ink for 1.6 seconds. |
 | SC-5 | **No format.** A record whose Citations have no full format shows no block; its line reads as today. A record with some formatted and some unformatted Citations shows blocks for the formatted ones only. |
 | SC-6 | **Loading.** The rows draw at once. Until the citations arrive no block is drawn and nothing stands in its place (no skeleton, no spinner, no caption). Back to the page puts the keyboard and scroll on the row it left from once the citations have arrived or failed, so the blocks do not push it away. |
-| SC-7 | **Failed.** If the citations cannot be read, one compact danger callout sits under the caption line, above the first row: title "Citations could not be read", the error's message, and **Read again** (secondary, small). The rows draw without blocks. The callout is announced. While the read runs again, Read again shows its busy state; on success the callout goes and the blocks draw. |
+| SC-7 | **Failed.** If the citations cannot be read, one compact danger callout sits under the caption line, above the first row: title "Citations could not be read", the error's message, and **Try again** (secondary, small: the word every Person page section's read notice uses). The rows draw without blocks. The callout is announced. While the read runs again, Try again shows its busy state; on success the callout goes and the blocks draw. |
 | SC-8 | **No blink.** After Unpromote, or any change that reads the citations again, the blocks already drawn stay until the new answer replaces them. |
 | SC-9 | **Spoken.** The citation reads its plain text. The pieces line reads its pieces joined by commas: "Name Johann Weber, Age 34, Birthplace Bremen". The buttons speak "Copy full citation" and "Copy short citation"; after a copy VoiceOver says "Full citation copied" or "Short citation copied". Tab order: the record line's graph link, its Unpromote, then each block's Full and Short, then the next record line. |
 | SC-10 | **Highlight.** The record links diagram's highlight (a node pointed at or focused) covers the record line only, as today; its blocks take no highlight and do not answer the pointer. |
@@ -143,7 +143,7 @@ A record is drawn from several Citations: the highlighted pieces of a page (on a
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Person page, Sources section | Rows beside the record links diagram (or under it when the rows lack room); a record's blocks under its line, the citation wrapping in the room left of its 72pt copy track | The same columns; the Source cell takes the extra width; blocks keep a 680pt measure, so a citation wraps to fewer lines than at Regular | Nothing moves: blocks sit under their record lines at both widths (the section's Wide arrangement is S13-D10's) |
+| Person page, Sources section | Rows beside the record links diagram (or under it when the rows lack room); a record's blocks under its line, the citation wrapping in the room left of its 84pt copy track | The same columns; the Source cell takes the extra width; blocks keep a 680pt measure, so a citation wraps to fewer lines than at Regular | Nothing moves: blocks sit under their record lines at both widths (the section's Wide arrangement is S13-D10's) |
 
 ---
 
@@ -161,7 +161,7 @@ Invent every person and record.
 | --- | --- | --- |
 | 1a / 1b | SC-1 – SC-5, SC-10, SC-W1 | Johann's Sources section, the diagram beside the rows: the census block with Full and Short, the address book with no block, the confirmation record with two blocks. In 1a, point at the census node in the diagram: the record line highlights, its block does not |
 | 2 | SC-4 | Regular, the census block with **Short** in its copied state |
-| 3 | SC-7 | Regular, the failed callout under the caption line, rows without blocks |
+| 3a / 3b | SC-7, SC-W1 | The failed callout under the caption line, rows without blocks; at Wide it spans the rows' width |
 | 4 | SC-1, SC-4 | Regular, a five-line citation: Full and Short level with its first line, the pieces under its last line |
 | 5 | SC-6 | Regular, the first frame of a visit: rows drawn, no blocks yet (to show nothing stands in for them) |
 | 6 | SC-9 | Regular, a VoiceOver caption under frame 1a: the citation's spoken text, the pieces line, the two buttons' labels and announcements, the Tab order through one record |
@@ -174,14 +174,13 @@ Invent every person and record.
 | --- | --- | --- | --- | --- |
 | Sources section rows and record lines | Snowflake | Extend | `macos/App/Features/Conclusions/PersonSourcesSection.swift` `PersonSourcesRowView`, `PersonSourcesLineView` | A line gains its blocks under it (SC-1). The line itself, its highlight and Unpromote are unchanged |
 | Citation block | Snowflake | New | `macos/App/Features/Conclusions/PersonSourcesSection.swift` | The formatted citation, its copy track beside it, the pieces line under it. Only this section draws it; not a kit component |
-| Formatted citation text | Platform formatter + component | Ship | `macos/App/Platform/CitationLineDisplay.swift` `CatalogCitationRender.styled`, drawn through `macos/App/DesignSystem/Components/TitleText/PVTitleText.swift` `italicizingEmphasis` | As the provenance sheet draws it (S15-D9 PC-1). Not a new text component |
-| Copy Full / Copy Short | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/CitationCopy/` *(new)*, from the provenance sheet's copy track in `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordRow.swift` | The labelled Full and Short `PVClipboardButton`s stacked in the 72pt track, level with the citation's first line. Second call site: this section; the sheet keeps drawing it. Not a split button, menu or new copy control |
+| Formatted citation with Copy Full / Copy Short | Recipe | New (promoted) | `macos/App/DesignSystem/Recipes/CitationCopy/` *(new)*, from the provenance sheet's citation cell and copy track in `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordRow.swift` | One interaction, one piece: the citation text (`CatalogCitationRender.styled` drawn through `PVTitleText.italicizingEmphasis`, as S15-D9 PC-1) with the labelled Full and Short `PVClipboardButton`s stacked in the 84pt track beside it, the top one level with its first line. Second call site: this section; the sheet keeps drawing it (its citation is a link there, text here). Not a split button, menu or new copy control |
 | Clipboard button | Component | Ship | `macos/App/DesignSystem/Components/ClipboardButton/PVClipboardButton.swift` | Its `word:` and `rich:` from S15-21 |
-| Failed notice | Component | Ship | `macos/App/DesignSystem/Components/Callout/PVRetryCallout.swift` | Compact, danger, Read again. Not a toast, not `PVFormLoadArea` (the rows are not waiting on it) |
+| Failed notice | Component | Ship | `macos/App/DesignSystem/Components/Callout/PVRetryCallout.swift` | Compact, danger, Try again, as every Person page section's read notice. Not a toast, not `PVFormLoadArea` (the rows are not waiting on it) |
 | Show more | Snowflake | Ship | `macos/App/Features/Conclusions/ConclusionShowMoreRow.swift` | Unchanged; counts record lines |
 | Divider | Component | Ship | `macos/App/DesignSystem/Components/Divider/` `PVDivider` | Unchanged; no rule between a line and its blocks |
 
-**Non-goals.** No new kit component: the copy track is the provenance sheet's, promoted to a recipe because it gains this second caller. No group card, heading, count, disclosure or chip for a block. No skeleton or spinner for the blocks. No change to the caption line, the Source cells, the record line, the diagram or the folds.
+**Non-goals.** No new kit component: the citation with its copy track is the provenance sheet's, promoted to a recipe because it gains this second caller. No group card, heading, count, disclosure or chip for a block. No skeleton or spinner for the blocks. No change to the caption line, the Source cells, the record line, the diagram or the folds.
 
 ---
 

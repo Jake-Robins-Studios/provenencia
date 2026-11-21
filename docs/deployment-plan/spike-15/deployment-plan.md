@@ -622,7 +622,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-22 — The Sources section groups a Source's Citations by citation
 
-**Ships.** When the Sources section appears it asks S15-16's batch render for its Citations, and a Source's Citations with the same group key show as one citation with the pieces beneath. Lands after S16-03, S16-06 and S16-07. The citation sits under each record line; the pieces are the record's Observations behind it ("Name Johann Weber · Age 34"); Full and Short copy it as on the provenance sheet, whose copy track becomes a recipe; a record whose type has no full format shows nothing new (user, 2026-11-21).
+**Ships.** When the Sources section appears it asks S15-16's batch render for its Citations, and a Source's Citations with the same group key show as one citation with the pieces beneath. Lands after S16-03, S16-06 and S16-07. The citation sits under each record line; the pieces are the record's Observations behind it ("Name Johann Weber · Age 34"); Full and Short copy it as on the provenance sheet, whose copy track becomes a recipe; a record whose type has no full format shows nothing new (user, 2026-11-21). The view-held read becomes one mechanism (`HeldQuery`), which the provenance sheet's host moves onto (plan review M-1).
 **Not this PR.** Re-ordering Sources; today's line for a type with no format; Citation labels as pieces.
 **Check.** Bar 7 in the Sources section, on a person cited 5 times on one household.
 **Context.** S15-D15; rule "Grouping is by the rendered full citation"; `PersonSourcesContent.swift`.
