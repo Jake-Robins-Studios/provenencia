@@ -9,7 +9,10 @@ import (
 
 // sqlArtifactSource is the Source an Artifact is on. It sits beside
 // sqlLinkSources because artifacts imports this package, not the reverse.
-const sqlArtifactSource = `SELECT source_id FROM artifacts WHERE id = ?`
+const (
+	sqlArtifactSource  = `SELECT source_id FROM artifacts WHERE id = ?`
+	sqlSourceArtifacts = `SELECT id FROM artifacts WHERE source_id = ?`
+)
 
 // Seed is the one thing a researcher picks to move: exactly one of an Artifact
 // or an Evidence graph.
@@ -56,10 +59,25 @@ func BundleOf(q database.Querier, seed Seed) (Bundle, error) {
 		return Bundle{}, err
 	}
 
+	// A link to an Artifact on another Source can only be in a crafted
+	// catalog; the bundle never reaches it, so the move never takes a third
+	// Source's Artifact.
+	own, err := database.QueryIDs(q, sqlSourceArtifacts, sourceID)
+	if err != nil {
+		return Bundle{}, err
+	}
+	ownSet := make(map[string]bool, len(own))
+	for _, id := range own {
+		ownSet[string(id)] = true
+	}
+
 	graphsOf := map[string][]string{}    // Artifact id -> graph ids
 	artifactsOf := map[string][]string{} // graph id -> Artifact ids
 	for _, g := range graphs {
 		for _, a := range g.ArtifactIDs {
+			if !ownSet[string(a)] {
+				continue
+			}
 			graphsOf[string(a)] = append(graphsOf[string(a)], string(g.ID))
 			artifactsOf[string(g.ID)] = append(artifactsOf[string(g.ID)], string(a))
 		}

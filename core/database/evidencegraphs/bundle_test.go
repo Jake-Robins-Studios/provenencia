@@ -87,6 +87,20 @@ func TestBundleOf(t *testing.T) {
 		}
 	})
 
+	t.Run("a link to another Source's Artifact is not followed", func(t *testing.T) {
+		// Only a crafted catalog holds one: insert the link with raw SQL.
+		if _, err := db.Exec(`INSERT INTO evidence_graph_artifacts (graph_id, artifact_id) VALUES (?, ?)`, g3, oa); err != nil {
+			t.Fatal(err)
+		}
+		b, err := evidencegraphs.BundleOf(db, evidencegraphs.Seed{GraphID: g3})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.EqualFunc(b.ArtifactIDs, sortedIDs(a4), bytes.Equal) || !slices.EqualFunc(b.GraphIDs, sortedIDs(g3), bytes.Equal) {
+			t.Fatalf("bundle %x %x", b.ArtifactIDs, b.GraphIDs)
+		}
+	})
+
 	t.Run("takes every graph", func(t *testing.T) {
 		src, _ := f.createSource(t, "Solo")
 		solo := graphRows(t, f.c, src.ID)[0].id
