@@ -79,3 +79,21 @@ Nits (logged): `CON-5 · ProvenanceSheetTests.swift · ruleFallsBeforeEachRunBut
 
 ## Result
 Gate PASS at `f6fcfcd7e` (`origin/main` unmoved, `b57c98a70`) · CI see PR · open: none · follow-ups: none · to user: — · manual check (§ 10) not run: the user's
+
+## Manual check — user feedback (2026-11-21)
+The user's § 10 run found two layout defects (screenshots in the session): the labelled copy buttons truncate ("Sho…", "✓ k…"), which is logged nit UX-2 come true; and the Record column's refs sit flush against the records `ScrollView`'s scroll bar.
+
+### Fix plan — manual check
+
+**F-8 — Copy buttons never truncate** (from the user's manual check; UX-2)
+Files: `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceRecordRow.swift`, `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceColumns.swift`, `macos/ProvenenciaTests/PVProvenanceColumnsTests.swift`.
+Do: give each copy button its ideal width (`.fixedSize(horizontal: true, vertical: false)` on the `PVClipboardButton` with a word), and frame the copy track with `minWidth: PVProvenanceColumns.copyTrackWidth` (leading) rather than a fixed width, so a longer word or the check glyph widens the track instead of truncating. Raise `copyTrackWidth` so "Short" with its icon fits with room in Spectral 500 at the `.sm` size (UX-2 measured 70.7pt for "Short"; take 84) and update the constant's comment and `PVProvenanceColumnsTests`. Every button in a track stays the same leading edge.
+Check: the `#Preview`s of `PVProvenanceRecordTable` and `PVProvenanceSheet` show "Full", "Short" and "Copy" whole, before and after a copy; scripts/check-pr.sh PASS.
+
+**F-9 — Room between the Record column and the scroll bar** (from the user's manual check)
+Files: `macos/App/DesignSystem/Recipes/ProvenanceSheet/PVProvenanceSheet.swift` (and `PVProvenanceColumns.swift` if the inset is a named constant).
+Do: inset the records table's trailing edge inside the `ScrollView` by a named constant (`PVProvenanceColumns.scrollBarInset`, `PVSpacing.space5`), and inset `PVProvenanceColumnHeadings` and its divider's content by the same amount so the Record heading stays over its column. Only the sheet: the likeness viewer's lone row and the Why's rows have no scroll bar and keep their layout.
+Check: in the sheet preview the refs clear the scroll bar and the Record heading lines up with the refs; scripts/check-pr.sh PASS.
+
+## Manual check — fix
+Head `a46368e94`. Gate PASS (orchestrator re-run). F-8 (`875a302d8`): copy track `minWidth` 84, each worded button `.fixedSize` horizontally. F-9 (`a46368e94`): `PVProvenanceColumns.scrollBarInset` (`PVSpacing.space5`) as trailing padding on the sheet's headings and records table. Not re-reviewed: layout constants only, from the user's own check. Visual check is the user's rerun of § 10.
