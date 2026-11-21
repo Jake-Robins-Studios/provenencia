@@ -72,7 +72,7 @@ Draw the **Regular** and **Wide** frame of each view side by side, using the sam
 
 ### This brief is a rethink of the results' card
 
-Draw as a new turn "S16-D9 · Omnibar on the popup list" on the board that holds the Omnibar Results frames. Replace the results panel's card and its row highlight with the kit popup list's; do not keep the old panel as a variant. The hit row's content (thumbnail, title, kind badge, secondary line, ref, match line), the omnibar field and the toolbar stay as agreed. These frames need the toolbar: draw the toolbar row (Back and Forward, breadcrumbs, the omnibar field) and the top of a page under it, with the results floating over the page.
+Draw as a new turn "S16-D9 · Omnibar on the popup list" on the board that holds the Omnibar Results frames. Replace the results panel's card and its row highlight with the kit popup list's; do not keep the old panel as a variant. Before you clear the old frames, keep one instance of the agreed hit row (thumbnail, title, kind badge, secondary line, ref, match line) and the toolbar row: they are reused unchanged in every new frame. The omnibar field and the toolbar stay as agreed. These frames need the toolbar: draw the toolbar row (Back and Forward, breadcrumbs, the omnibar field) and the top of a page under it, with the results floating over the page.
 
 ---
 
@@ -82,21 +82,22 @@ The omnibar is the search field at the right of the workspace toolbar (⌘K). Ty
 
 This board draws the omnibar's results **on the kit popup list**, the list a combo box shows under its field: the same card, the same full-width row highlight, the same searching line. The list is its own window under the field, so it can never be clipped by the page, and it stays inside the content column at a narrow window instead of running over the sidebar.
 
-**What stays.** Each hit row's content and its order (the engine's rank); the field, its placeholder and ⌘K; the copy of the no-match and failure lines; Return opens the highlighted hit and clears the field; Escape closes the list and keeps the query; a click on a hit opens it.
+**What stays.** Each hit row's content, its own inset and its order (the engine's rank); the field, its placeholder and ⌘K; the copy of the no-match line; Return opens the highlighted hit and clears the field; Escape closes the list and keeps the query; a click on a hit opens it.
 
 ## 2. Domain facts
 
 | Fact | Meaning for the board |
 | --- | --- |
-| The omnibar field | `PVInput` small, search icon, `⌘K` suffix, 200–420 pt wide at the toolbar's right end, its trailing edge 32 pt from the content column's right edge. It does not change |
+| The omnibar field | `PVInput` small, search icon, `⌘K` suffix, 200–420 pt wide at the toolbar's right end, its trailing edge 32 pt from the content column's right edge, at Regular and at Wide. It does not change |
+| A hit row's size | 40 pt thumbnail plus 7 pt above and below: about 54 pt tall, a little more with a match line. A 420 pt list shows about seven rows |
 | A hit | One catalog record the search found: a Source, a source type, a metadata field, a Person, an Event, a Place or an Evidence graph. The row shows a 40 pt thumbnail or mark, the title, a kind badge (`Source`, `Person`…), a muted secondary line, a mono ref (`SRC-3K9M2`, accent when the query was that exact ref) and, when the match was in a note or a field, a faint match line (`note: …`) |
 | Rank | Hits are listed in the engine's order. The first hit is highlighted when results arrive, so Return opens it |
 | Searching | The search runs 180 ms after the last keystroke. With no hits on screen yet, the list shows the searching line. Hits already on screen stay while the next search runs |
 | No match | A finished search with no hits: `No matches for “zzz”.` and `Check the spelling, or paste a catalog reference such as SRC-3K9M2` |
-| Failure | A search that could not finish: a danger message, `Search couldn’t finish. Try again.` or the mapped error's message |
+| Failure | A search that could not finish: a danger message carrying the error's own words, for example `Catalog closed.`, or `Something went wrong. Please try again.` for an unknown error |
 | Keys | The field keeps focus. ↑/↓ move the highlight one row, Home/End and ⌘↑/⌘↓ to the first or last, Page Up/Down eight rows; the pointer moves the same highlight. Return opens the highlighted hit; Escape closes the list and keeps the query; typing changes the query and searches again |
 | Closing | Escape, a click outside the list and the field, switching to another app, or opening a hit closes it. A click in the field keeps it open |
-| The combo box's list | Today's kit popup list: a card with the card surface, a 1 pt default border, the medium radius and the window's own shadow; 4 pt of air above the first row and below the last; rows full width with the selected-surface fill as the highlight; the searching line is a small spinner and `Searching…` in muted body-small |
+| The combo box's list | Today's kit popup list (in the kit, the ComboBox's open list): a card with the card surface, a 1 pt default border, the medium radius and the window's own shadow; 4 pt of air above the first row and below the last; rows full width with the selected-surface fill as the highlight; the searching line is a small spinner and `Searching…` in muted body-small |
 | VoiceOver | The list is announced as "Search results"; each row reads its title, kind, secondary line and ref; the searching, no-match and failure lines are read as text |
 
 ### 2.1 What this board is not
@@ -104,7 +105,7 @@ This board draws the omnibar's results **on the kit popup list**, the list a com
 - Not the omnibar field, its placeholder, its width or the toolbar.
 - Not the hit row's content, the hit kinds, the ranking or the match line's wording.
 - Not a grouping of hits by kind, a section header, a "show all" row or a footer.
-- Not a new kit component: the card, the row shell and the lines are the kit popup list's.
+- Not a new visible kit component: the card, the row shell and the lines are the kit popup list's.
 - Not the Back and Forward history menu (S16-53) or any combo box.
 
 ---
@@ -122,15 +123,15 @@ This board draws the omnibar's results **on the kit popup list**, the list a com
 | ID | Requirement |
 | --- | --- |
 | OR-1 | **The card.** The results are the kit popup list's card, exactly as a combo box's list draws it: card surface, 1 pt default border, medium radius, the window's own shadow, 4 pt of air above the first row and below the last, no inset at the sides. Today's panel (small radius, subtle border, the 4 pt inset on every side, the overlay shadow) goes |
-| OR-2 | **The rows.** Each hit row keeps its agreed content and layout. Its highlight is the kit popup list row's: the selected-surface fill across the card's full width, square-edged, the card clipping the first and last rows at its corners; today's inset, rounded highlight goes. **The board decides** the row's own inset; recommendation: 12 pt at each side (the combo box's trailing inset, and where the lines' text starts) and 7 pt top and bottom (today's) |
+| OR-2 | **The rows.** Each hit row keeps its agreed content, layout and its own inset (9 pt at each side, 7 pt top and bottom): the same row draws in Promote's record search, which this board does not change. Its highlight is the kit popup list row's: the selected-surface fill across the card's full width, square-edged, the card clipping the first and last rows at its corners; today's inset, rounded highlight goes |
 | OR-3 | **Placement and width.** The list sits 4 pt under the field. Its trailing edge lines up with the field's trailing edge, and it extends leftward. Its width is 640 pt, narrowed so its leading edge stays at least 16 pt inside the content column's left edge, and never narrower than the field. At the default window (pane 1102 pt) it is 640 pt; at the narrowest window (700 pt) the field is about 404 pt from the column's left edge and the list is about 388 pt wide. **The board decides** the width; recommendation: 640 pt, as today |
 | OR-4 | **Height.** The list is as tall as its rows, up to 420 pt; past that it scrolls inside the card and keeps the highlighted row in view |
 | OR-5 | **The highlight.** When results arrive the first hit is highlighted. Draw a list of eight hits with the third highlighted by the pointer. Caption the keys from §2 on that frame; no frame per key |
-| OR-6 | **Searching.** With no hits on screen and a search running, the card holds one line: the kit searching line, a small spinner and `Searching…` in muted body-small, its text starting 12 pt in, as a combo box's searching line does. A search running while hits are on screen shows the hits, no line (draw this as a caption on the OR-5 frame) |
+| OR-6 | **Searching.** With no hits on screen and a search running, the card holds one line: the kit searching line, a small spinner and `Searching…` in muted body-small, starting 12 pt in (the omnibar's rows have no check gutter, so the line starts where a combo box's would without one). A search running while hits are on screen shows the hits, no line (draw this as a caption on the OR-5 frame) |
 | OR-7 | **No match.** The card holds one line, laid out as the searching line is: `No matches for “zzz”.` in body-small medium, primary ink, and under it `Check the spelling, or paste a catalog reference such as SRC-3K9M2` in muted caption. A 120-character query wraps the first line inside the card; the line never widens the card |
-| OR-8 | **Failure.** The card holds one line, laid out as the searching line is, holding the kit's danger Callout with `Search couldn’t finish. Try again.` A failure is never drawn as an empty list or as the no-match line |
+| OR-8 | **Failure.** The card holds one line, laid out as the searching line is, holding the kit's danger Callout with the error's message (draw `Catalog closed.`). A failure is never drawn as an empty list or as the no-match line |
 | OR-9 | **Open and close.** Draw no frame for closing. Caption the OR-5 frame: Return or a click opens the highlighted hit and clears the field; Escape closes the list and keeps the query in the field; a click in the field keeps the list open |
-| OR-W1 | **Wide.** The toolbar keeps its agreed Wide arrangement: the field stays at most 420 pt wide at the toolbar's right end. The list keeps its Regular width and placement (OR-3): it is a popup under a field, and wider rows add nothing (Wide rule 2). Nothing moves between widths |
+| OR-W1 | **Wide.** The toolbar at 2296 pt: Back and Forward at the left, the breadcrumbs taking the space between, the field at most 420 pt wide at the right end, 32 pt from the pane's right edge, as at Regular. The list keeps its Regular width and placement (OR-3): it is a popup under a field, and wider rows add nothing (Wide rule 2). Nothing moves between widths |
 
 ### 4.1 Wide layout
 
@@ -146,31 +147,33 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| R1a / R1b | OR-1 – OR-5, OR-9, OR-W1 | Query `ilmin`: eight hits (two Sources, one with its exact ref in accent; a source type; a Person with a likeness; an Event; a Place; an Evidence graph; a Source matched in a note with its match line), the third highlighted by the pointer. Captions: the keys, Return, Escape, a click in the field, a search running with hits on screen |
+| R1a / R1b | OR-1 – OR-5, OR-9, OR-W1 | Query `ilmin`: eight hits (two Sources, one with its exact ref in accent; a source type; a Person with a likeness; an Event; a Place; an Evidence graph; a Source matched in a note with its match line), the third highlighted by the pointer; the Person's lead is a photo likeness. Captions: the keys, Return, Escape, a click in the field, a search running with hits on screen |
 | R2 | OR-3 | The narrowest window (pane about 436 pt): the toolbar with the field at its 200 pt floor, the list about 388 pt wide, its leading edge 16 pt inside the column |
-| R3 | OR-4 | Regular only: query `smith`, twenty Person hits, scrolled so the highlighted row (the twelfth) is the last fully shown row at the 420 pt height |
+| R3 | OR-4 | Regular only: query `smith`, twenty Person hits (rows about 54 pt), scrolled so the highlighted row (the twelfth) is the last fully shown row at the 420 pt height |
 | R4 | OR-6, OR-7, OR-8 | Regular only: three cards stacked under one toolbar for comparison: the searching line (query `il`), the no-match line (query `zzz`, and a 120-character query wrapping), and the failure line |
 
 ---
 
 ## 6. UI building-block inventory
 
-| Building block | Layer | Status | Home | Notes |
-| --- | --- | --- | --- | --- |
-| The list's card and scroller | Component | Ship | `macos/App/DesignSystem/Components/PopupList/PVPopupList.swift` `PVPopupListCard` | OR-1, OR-4. The same card a combo box's list draws. Not a new card, not a `PVCard` |
-| The row shell | Component | Ship | `PVPopupList.swift` `PVPopupListRow` | OR-2: the highlight, the hit area, the pointer moving the highlight. Replaces the omnibar's `PVMenuRowButtonStyle` rows |
-| The line in place of rows | Component | Ship | `PVPopupList.swift` `PVPopupListLine` | OR-6 – OR-8: the searching, no-match and failure lines all sit in it, so their text starts where a combo box's lines do |
-| The searching line | Component | Extend | `PVPopupList.swift` (today drawn inside `PVComboBox.swift` `rowsStack`) | OR-6: the combo box's spinner and `Searching…`, lifted into the kit list so both fields draw one line |
-| The hit row | Component | Extend | `macos/App/DesignSystem/Recipes/OmnibarHitRow/PVOmnibarHitRow.swift` → `macos/App/DesignSystem/Components/OmnibarHitRow/PVOmnibarHitRow.swift` *(new)* | OR-2. Content unchanged; only its own inset follows the board. It moves to the kit's components because it is content-agnostic and titled with a `String`, as `PVTitleText` moved |
-| The hit's content | Snowflake | Ship | `macos/App/Features/Catalog/Search/CatalogSearchHitRow.swift` `CatalogSearchHitRow` | The thumbnail, title, kind, secondary line, ref and match line for one hit. Unchanged |
-| Failure message | Component | Ship | `PVCallout` (`tone: .danger`) | OR-8. Not italic muted text: a failure reads as one |
-| The omnibar field | Component | Ship | `PVInput` in `macos/App/Features/Workspace/WorkspaceToolbar.swift` `omnibarField` | Unchanged; the list's anchor |
-| The old results panel | Snowflake | Remove | `macos/App/Features/Workspace/OmnibarResultsHost.swift` `OmnibarResultsPanel` | Its card, inset, rounded row highlights and overlay shadow go |
+| Building block | Layer | Status | Home | Notes | Kit piece to instance |
+| --- | --- | --- | --- | --- | --- |
+| The list's card and scroller | Component | Ship | `macos/App/DesignSystem/Components/PopupList/PVPopupList.swift` `PVPopupListCard` | OR-1, OR-4. The same card a combo box's list draws. Not a new card, not a `PVCard` | ComboBox's open list |
+| The row shell | Component | Ship | `PVPopupList.swift` `PVPopupListRow` | OR-2: the highlight, the hit area, the pointer moving the highlight. Replaces the omnibar's `PVMenuRowButtonStyle` rows | ComboBox's open list, one row |
+| The line in place of rows | Component | Ship | `PVPopupList.swift` `PVPopupListLine` | OR-6 – OR-8: the searching, no-match and failure lines all sit in it, so their text starts where a combo box's lines do | ComboBox's open list, its empty line |
+| The searching line | Component | Extend | `PVPopupList.swift` (today drawn inside `PVComboBox.swift` `rowsStack`) | OR-6: the combo box's spinner and `Searching…`, lifted into the kit list so both fields draw one line | ComboBox's open list, its searching line |
+| The hit row | Component | Extend | `macos/App/DesignSystem/Recipes/OmnibarHitRow/PVOmnibarHitRow.swift` → `macos/App/DesignSystem/Components/SearchHitRow/PVSearchHitRow.swift` *(new)* | OR-2. Content and inset unchanged. It moves to the kit's components as `PVSearchHitRow`, because it is content-agnostic and draws in the omnibar and in Promote's record search, as `PVTitleText` moved | the agreed Omnibar Hit Row (Thumbnail, Badge, mono ref) |
+| The list's window and placement | Component | Extend | `PVPopupList.swift` `.pvPopupList`, `PVPopupListPlacement` | OR-3: a list wider than its field hangs from the field's trailing edge, and one width rule keeps a popup 16 pt inside the content column. No visible piece | ComboBox's open list |
+| Measured height | Component | New | `PVPopupList.swift` `PVPopupListMeasure` *(new)* | Sizes the window to its rows before it shows; the omnibar is one caller; second call site: `PVComboBox` (today's `measuringRows`). No visible piece | — |
+| The hit's content | Snowflake | Ship | `macos/App/Features/Catalog/Search/CatalogSearchHitRow.swift` `CatalogSearchHitRow` | The thumbnail, title, kind, secondary line, ref and match line for one hit. Unchanged | Thumbnail, Badge (inside the hit row) |
+| Failure message | Component | Ship | `PVCallout` (`tone: .danger`) | OR-8. Not italic muted text: a failure reads as one | Callout |
+| The omnibar field | Component | Ship | `PVInput` in `macos/App/Features/Workspace/WorkspaceToolbar.swift` `omnibarField` | Unchanged; the list's anchor | Input |
+| The old results panel | Snowflake | Remove | `macos/App/Features/Workspace/OmnibarResultsHost.swift` `OmnibarResultsPanel` | Its card, inset, rounded row highlights and overlay shadow go | — |
 
-**Non-goals.** No new kit primitive, no second card style, no rounded row highlight, no section headers, no footer or "show all" row, no change to the field or to the hit row's content, no new icon, color or token.
+**Non-goals.** No new visible kit primitive, no second card style, no rounded row highlight, no section headers, no footer or "show all" row, no change to the field or to the hit row's content, no new icon, color or token.
 
 ---
 
 ## 7. Handoff
 
-When the board is agreed: record the turn and its frames on the **Board** line here, in [`README.md`](README.md) and on the plan's **Board** line, with the row inset (OR-2) and the width (OR-3) the board chose; the plan copies OR-1 – OR-9 and OR-W1 into its Scope (already there), fixes D-8 and D-9 to the board, and moves from `Blocked` to `Planned`. When S16-52 lands, the brief moves to the spike's design archive.
+When the board is agreed: record the turn and its frames on the **Board** line here, in [`README.md`](README.md) and on the plan's **Board** line, with the width (OR-3) the board chose; the plan copies OR-1 – OR-9 and OR-W1 into its Scope (already there), fixes D-6 and D-7 to the board, and moves from `Blocked` to `Planned`. When S16-52 lands, the brief moves to the spike's design archive.
