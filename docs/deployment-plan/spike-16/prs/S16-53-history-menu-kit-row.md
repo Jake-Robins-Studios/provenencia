@@ -306,4 +306,4 @@ None.
 
 - STEP-3 check `rg "activeIndex" macos/App/Features/Workspace` finds the one `activeIndex: -1` in the keyboard seed that D-6 requires; no `activeIndex` state remains.
 - The in-app passes (STEP-3 macOS check, AC-1.1, AC-1.7, AC-2.1 to AC-2.7 and section 10) were not run by the implementer; they are owed before merge.
-- This plan still names `HistoryJumpMenuModelTests.swift` as a path to delete; the file is gone, so `check-plan-docs.py` flags those lines.
+- This plan still names the deleted `HistoryJumpMenuModelTests.swift` in STEP-4 and Deletes; `check-plan-docs.py` accepts it.

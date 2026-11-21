@@ -11,7 +11,7 @@ Dogfood 2026-10-29:
 ## What is already fixed
 
 - **Width.** S14-35 widened the panel to 600 pt (`HistoryJumpMenuHost.panelWidth`), narrowed only to stay inside the content column (`PVPopupListPlacement.fittedWidth`).
-- **The open section is named.** A record page's row reads "Ada Robins · Timeline": the row builder joins the leaf from `WorkspaceLocationLabels.labels(for:names:)` to its section with `L10n.Conclusions.pageSectionLeaf` (`WorkspaceToolbar.swift`, `rows(for:navigation:names:)`).
+- **The open section is named.** A record page's row reads "Ada Robins · Timeline": the row builder joins the leaf from `WorkspaceLocationLabels.labels(for:names:)` to its section with `L10n.Conclusions.pageSectionLeaf` (`WorkspaceToolbar.swift`, `HistoryJumpMenuHost.rows(_:names:)`).
 
 ## What is still wrong (checked in the code, 2026-11-17)
 
