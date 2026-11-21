@@ -22,7 +22,7 @@ struct CatalogSessionStoreTests {
     @Test func renderCitationsAnswersTheAskedIds() async throws {
         let store = FakeStore()
         func rendered(_ id: String) -> CatalogRenderedCitation {
-            CatalogRenderedCitation(citationID: id, full: .init(), short: .init(), groupKey: "citation:\(id)")
+            renderedCitation(id, key: "citation:\(id)", full: "")
         }
         store.renderCitationsReplies = ["a": rendered("a"), "b": rendered("b")]
         let reply = try await store.renderCitations(projectDir: projectDir, citationIDs: ["a", "b", "c"])

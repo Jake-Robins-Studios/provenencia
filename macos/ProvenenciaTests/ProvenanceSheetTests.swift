@@ -35,21 +35,14 @@ struct ProvenanceSheetTests {
         return record
     }
 
-    private func render(_ id: String, key: String, full: String = "Full") -> CatalogRenderedCitation {
-        CatalogRenderedCitation(
-            citationID: id,
-            full: full.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: full, italic: false)], plain: full),
-            short: .init(), groupKey: key)
-    }
-
     /// T-4 (D-8, AC-1.1, AC-1.2).
     @Test func citationTextFallsBack() {
         var formatted = record("a", rank: 1)
         #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
-        formatted.rendered = render("cit-a", key: "full:x", full: "Rendered, 1880")
+        formatted.rendered = renderedCitation("cit-a", key: "full:x", full: "Rendered, 1880")
         #expect(formatted.isFormatted && formatted.citationText == "Rendered, 1880")
         #expect(formatted.spoken.contains("Rendered, 1880") && !formatted.spoken.contains(formatted.citation.line))
-        formatted.rendered = render("cit-a", key: "citation:cit-a", full: "")
+        formatted.rendered = renderedCitation("cit-a", key: "citation:cit-a", full: "")
         #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
         #expect(formatted.spoken.contains(formatted.citation.line))
     }
@@ -72,43 +65,65 @@ struct ProvenanceSheetTests {
     @Test func groupedGathersByEngineKeyWithinARun() {
         let a = record("a", citation: "ca"), b = record("b", citation: "cb"), c = record("c", citation: "cc")
         let grouped = content([[a, b, c]]).grouped(by: [
-            "ca": render("ca", key: "K"), "cb": render("cb", key: "L"), "cc": render("cc", key: "K"),
+            "ca": renderedCitation("ca", key: "K"), "cb": renderedCitation("cb", key: "L"), "cc": renderedCitation("cc", key: "K"),
         ])
         #expect(runKeys(grouped) == [[["a", "c"], ["b"]]])
         #expect(grouped.records.map(\.id) == ["a", "c", "b"])
         #expect(grouped.records.allSatisfy { $0.rendered != nil })
 
         // The same key in two value runs stays in two runs.
-        let apart = content([[a], [c]]).grouped(by: ["ca": render("ca", key: "K"), "cc": render("cc", key: "K")])
+        let apart = content([[a], [c]]).grouped(by: ["ca": renderedCitation("ca", key: "K"), "cc": renderedCitation("cc", key: "K")])
         #expect(runKeys(apart) == [[["a"]], [["c"]]])
 
         // The engine's key keeps a Citation with no format alone; two records of one share its run.
         let none1 = record("n1", citation: "c1"), none2 = record("n2", citation: "c2"), none3 = record("n3", citation: "c1")
         let alone = content([[none1, none2, none3]]).grouped(by: [
-            "c1": render("c1", key: "citation:c1", full: ""), "c2": render("c2", key: "citation:c2", full: ""),
+            "c1": renderedCitation("c1", key: "citation:c1", full: ""), "c2": renderedCitation("c2", key: "citation:c2", full: ""),
         ])
         #expect(runKeys(alone) == [[["n1", "n3"], ["n2"]]])
 
         // A record missing from the renders is its own run.
-        let missing = content([[a, c]]).grouped(by: ["ca": render("ca", key: "K")])
+        let missing = content([[a, c]]).grouped(by: ["ca": renderedCitation("ca", key: "K")])
         #expect(runKeys(missing) == [[["a"], ["c"]]])
-        #expect(missing.records.map(\.rendered) == [render("ca", key: "K"), nil])
+        #expect(missing.records.map(\.rendered) == [renderedCitation("ca", key: "K"), nil])
     }
 
     /// T-8 (D-9, AC-2.2, AC-2.3, AC-2.4).
     @Test func copyButtonsFollowTheRender() {
-        func short(_ text: String) -> CatalogCitationRender {
-            text.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: text, italic: false)], plain: text)
-        }
         var formatted = record("a", rank: 1)
-        formatted.rendered = render("cit-a", key: "full:x")
-        formatted.rendered?.short = short("Short")
-        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.full, .short])
-        formatted.rendered?.short = short("")
-        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.full])
-        formatted.rendered = render("cit-a", key: "citation:cit-a", full: "")
-        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.citation])
-        #expect(PVProvenanceRecordRow.copies(for: record("b", rank: 1)) == [.citation])
+        formatted.rendered = renderedCitation("cit-a", key: "full:x", short: "Short")
+        let both = PVProvenanceRecordRow.copies(for: formatted)
+        #expect(both.map(\.kind) == [.full, .short])
+        #expect(both.map(\.text) == ["cit-a", "Short"])
+        #expect(both.allSatisfy { $0.rich != nil })
+        formatted.rendered = renderedCitation("cit-a", key: "full:x")
+        #expect(PVProvenanceRecordRow.copies(for: formatted).map(\.kind) == [.full])
+        formatted.rendered = renderedCitation("cit-a", key: "citation:cit-a", full: "")
+        #expect(PVProvenanceRecordRow.copies(for: formatted).map(\.kind) == [.citation])
+        let today = PVProvenanceRecordRow.copies(for: record("b", rank: 1))
+        #expect(today.map(\.kind) == [.citation])
+        #expect(today.first?.rich == nil)
+    }
+
+    /// AC-3.3: the rule before each citation run, in a group's values.
+    @Test func ruleFallsBeforeEachRunButTheFirstAfterALine() {
+        typealias Table = PVProvenanceRecordTable
+        let a = record("a", citation: "ca"), b = record("b", citation: "cb")
+        let led = Table.followsLine(hasHeading: true, valueIndex: 0, hasOwner: false)
+        // A heading leads its first run: no rule before it, one before `b`; the records of a run draw none.
+        #expect(led)
+        #expect(!Table.drawsRule(runIndex: 0, followsLine: led))
+        #expect(Table.drawsRule(runIndex: 1, followsLine: led))
+        let grouped = content([[a, a, b]]).grouped(by: [
+            "ca": renderedCitation("ca", key: "K"), "cb": renderedCitation("cb", key: "L"),
+        ])
+        #expect(runKeys(grouped) == [[["a", "a"], ["b"]]])
+        // The owner line leads only the group's first value.
+        #expect(Table.followsLine(hasHeading: false, valueIndex: 0, hasOwner: true))
+        #expect(!Table.followsLine(hasHeading: false, valueIndex: 1, hasOwner: true))
+        // No heading and no owner line: a rule falls before the first run too.
+        let bare = Table.followsLine(hasHeading: false, valueIndex: 0, hasOwner: false)
+        #expect(!bare && Table.drawsRule(runIndex: 0, followsLine: bare))
     }
 
     /// T-7 (D-11, AC-1.1).

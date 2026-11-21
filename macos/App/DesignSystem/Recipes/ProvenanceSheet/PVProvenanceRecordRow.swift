@@ -55,18 +55,29 @@ struct PVProvenanceRecordRow: View {
     }
 
     /// A copy button of the row's citation: the full form, the short form, or (a row with no format)
-    /// today's line.
-    enum Copy: Equatable {
-        case full
-        case short
-        case citation
+    /// today's line, with the text it writes.
+    struct Copy: Equatable {
+        enum Kind: Equatable {
+            case full
+            case short
+            case citation
+        }
+
+        var kind: Kind
+        var text: String
+        /// The italics kept, for the forms the engine rendered; nil for today's line.
+        var rich: AttributedString?
     }
 
     /// The copy buttons a record shows, top to bottom: the full citation, the short one when
     /// it rendered, or one Copy for a row with no full format.
     nonisolated static func copies(for record: PVProvenanceSheetContent.Record) -> [Copy] {
-        guard record.isFormatted, let rendered = record.rendered else { return [.citation] }
-        return rendered.short.runs.isEmpty ? [.full] : [.full, .short]
+        guard record.isFormatted, let rendered = record.rendered else {
+            return [Copy(kind: .citation, text: record.citation.line)]
+        }
+        let full = Copy(kind: .full, text: rendered.full.plain, rich: rendered.full.styled)
+        guard !rendered.short.runs.isEmpty else { return [full] }
+        return [full, Copy(kind: .short, text: rendered.short.plain, rich: rendered.short.styled)]
     }
 
     private var citation: some View {
@@ -80,7 +91,7 @@ struct PVProvenanceRecordRow: View {
                     // The first line's centre sits about a third of the type size above its baseline.
                     .alignmentGuide(.citationFirstLineCenter) { $0[.firstTextBaseline] - PVTypeScale.bodySmall / 3 }
                 VStack(alignment: .leading, spacing: PVSpacing.space1) {
-                    ForEach(Self.copies(for: record), id: \.self) { copyButton($0) }
+                    ForEach(Self.copies(for: record), id: \.kind) { copyButton($0) }
                 }
                 .frame(width: PVProvenanceColumns.copyTrackWidth, alignment: .leading)
                 // The first button's centre sits level with the citation's first line.
@@ -114,38 +125,34 @@ extension PVProvenanceRecordRow {
 
     @ViewBuilder
     fileprivate func copyButton(_ copy: Copy) -> some View {
-        switch copy {
+        switch copy.kind {
         case .full:
-            if let full = record.rendered?.full {
-                PVClipboardButton(
-                    text: full.plain,
-                    rich: full.styled,
-                    word: L10n.ProvenanceSheet.copyWordFull,
-                    label: L10n.ProvenanceSheet.copyFullCitation,
-                    copiedAnnouncement: L10n.string(L10n.ProvenanceSheet.fullCitationCopied)
-                )
-                .accessibilityIdentifier("\(idPrefix).\(record.id).copyFull")
-            }
+            copyButton(
+                copy, word: L10n.ProvenanceSheet.copyWordFull, label: L10n.ProvenanceSheet.copyFullCitation,
+                announcement: L10n.ProvenanceSheet.fullCitationCopied, idSuffix: "copyFull")
         case .short:
-            if let short = record.rendered?.short {
-                PVClipboardButton(
-                    text: short.plain,
-                    rich: short.styled,
-                    word: L10n.ProvenanceSheet.copyWordShort,
-                    label: L10n.ProvenanceSheet.copyShortCitation,
-                    copiedAnnouncement: L10n.string(L10n.ProvenanceSheet.shortCitationCopied)
-                )
-                .accessibilityIdentifier("\(idPrefix).\(record.id).copyShort")
-            }
+            copyButton(
+                copy, word: L10n.ProvenanceSheet.copyWordShort, label: L10n.ProvenanceSheet.copyShortCitation,
+                announcement: L10n.ProvenanceSheet.shortCitationCopied, idSuffix: "copyShort")
         case .citation:
-            PVClipboardButton(
-                text: record.citation.line,
-                word: L10n.ProvenanceSheet.copyWordCitation,
-                label: L10n.ProvenanceSheet.copyCitation,
-                copiedAnnouncement: L10n.string(L10n.ProvenanceSheet.citationCopied)
-            )
-            .accessibilityIdentifier("\(idPrefix).\(record.id).copy")
+            copyButton(
+                copy, word: L10n.ProvenanceSheet.copyWordCitation, label: L10n.ProvenanceSheet.copyCitation,
+                announcement: L10n.ProvenanceSheet.citationCopied, idSuffix: "copy")
         }
+    }
+
+    private func copyButton(
+        _ copy: Copy, word: LocalizedStringResource, label: LocalizedStringResource,
+        announcement: LocalizedStringResource, idSuffix: String
+    ) -> some View {
+        PVClipboardButton(
+            text: copy.text,
+            rich: copy.rich,
+            word: word,
+            label: label,
+            copiedAnnouncement: L10n.string(announcement)
+        )
+        .accessibilityIdentifier("\(idPrefix).\(record.id).\(idSuffix)")
     }
 }
 

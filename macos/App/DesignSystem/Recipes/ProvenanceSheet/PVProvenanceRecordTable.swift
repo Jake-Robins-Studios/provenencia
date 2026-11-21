@@ -14,6 +14,18 @@ struct PVProvenanceRecordTable: View {
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
 
+    /// Whether a value's first citation run follows a line (its own heading, or the group's owner line for
+    /// the group's first value) rather than a rule.
+    nonisolated static func followsLine(hasHeading: Bool, valueIndex: Int, hasOwner: Bool) -> Bool {
+        hasHeading || (valueIndex == 0 && hasOwner)
+    }
+
+    /// Whether a rule falls before a citation run: before every run but the first, and before the first
+    /// unless a line leads it. A run's later records follow its first, with none between.
+    nonisolated static func drawsRule(runIndex: Int, followsLine: Bool) -> Bool {
+        runIndex > 0 || !followsLine
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(groups) { group in
@@ -26,11 +38,10 @@ struct PVProvenanceRecordTable: View {
                         PVDivider()
                         PVProvenanceValueHeading(heading: heading, face: face)
                     }
-                    // The first citation run under a group or value line follows the line, not a rule; a run's
-                    // later records follow their run's first, with none between.
-                    let followsLine = run.heading != nil || (valueIndex == 0 && group.owner != nil)
+                    let followsLine = Self.followsLine(
+                        hasHeading: run.heading != nil, valueIndex: valueIndex, hasOwner: group.owner != nil)
                     ForEach(Array(run.citations.enumerated()), id: \.element.key) { runIndex, citation in
-                        if runIndex > 0 || !followsLine {
+                        if Self.drawsRule(runIndex: runIndex, followsLine: followsLine) {
                             PVDivider()
                         }
                         ForEach(citation.records, id: \.id) { record in

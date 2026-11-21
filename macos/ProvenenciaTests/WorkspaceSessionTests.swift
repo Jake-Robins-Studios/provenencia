@@ -2515,7 +2515,6 @@ struct WorkspaceSessionTests {
     }
 }
 
-
 private struct RenderBoom: LocalizedError {
     var errorDescription: String? { "render boom" }
 }
@@ -2550,6 +2549,7 @@ struct ProvenanceSheetSessionTests {
 
     @Test func releaseDuringALoadNeverLandsOnTheNewHandle() async {
         let store = makeStore()
+        store.renderCitationsReplies = ["a": renderedCitation("a", key: "released")]
         store.renderCitationsHold.isOn = true
         let session = WorkspaceSession(projectKey: projectKey, store: store)
         let key = makeKey()
@@ -2557,11 +2557,45 @@ struct ProvenanceSheetSessionTests {
         await store.renderCitationsHold.untilSuspended(1)
         session.release(key)
         let second: QueryHandle<CatalogProvenanceSheetRead> = session.query(key)
+        await store.renderCitationsHold.untilSuspended(2)
+        // The released load answers first, with its own reply; the new load answers after, with another.
+        store.renderCitationsHold.release()
+        while store.renderCitationsCalls.isEmpty { await Task.yield() }
+        store.renderCitationsReplies = ["a": renderedCitation("a", key: "current")]
         store.renderCitationsHold.isOn = false
         store.renderCitationsHold.release()
         await waitForQuery(second)
-        #expect(second.value?.citations["a"] != nil)
+        #expect(store.renderCitationsCalls.count == 2)
+        #expect(second.value?.citations["a"]?.groupKey == "current")
+        #expect(second.revision == 1)
         #expect(first.value == nil)
+    }
+
+    /// The host reads the session from its environment, warms the sheet's key on `.task`, and holds the read.
+    @Test(.hostedWindows) func hostReadsTheSessionAndRendersOnTask() async throws {
+        let store = FakeStore()
+        store.renderCitationsReplies = [
+            "cit-census": renderedCitation("cit-census"), "cit-baptism": renderedCitation("cit-baptism"),
+        ]
+        let session = WorkspaceSession(projectKey: projectKey, store: store)
+        let content = PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "Two records")
+        let (_, host) = hostInBorderlessWindow(
+            ProvenanceSheetHost(content: content, columns: PVProvenanceColumns(), idPrefix: "host", open: { _, _ in })
+                .environment(session),
+            windowSize: CGSize(width: 900, height: 600)
+        )
+        host.layoutSubtreeIfNeeded()
+
+        var waited = 0
+        while store.renderCitationsCalls.isEmpty, waited < 300 {
+            try await Task.sleep(for: .milliseconds(10))
+            waited += 1
+        }
+        #expect(store.renderCitationsCalls == [["cit-baptism", "cit-census"]])
+        let key = CatalogQueryKey.provenanceSheet(project: projectKey, citationIds: ["cit-census", "cit-baptism"])
+        let handle = try #require(session.queryHandle(key) as QueryHandle<CatalogProvenanceSheetRead>?)
+        await waitForQuery(handle)
+        #expect(handle.value?.citations.count == 2)
     }
 
     @Test func releaseLeavesAKeyAPlaceShows() {

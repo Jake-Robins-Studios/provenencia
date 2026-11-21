@@ -1881,13 +1881,6 @@ struct CatalogQueryRegistryTests {
     }
 }
 
-
-func renderedCitation(_ id: String, key: String? = nil) -> CatalogRenderedCitation {
-    CatalogRenderedCitation(
-        citationID: id, full: .init(runs: [CatalogCitationRun(text: id, italic: false)], plain: id), short: .init(),
-        groupKey: key ?? "full:\(id)")
-}
-
 @Suite(.serialized)
 @MainActor
 struct ProvenanceSheetKeyTests {
