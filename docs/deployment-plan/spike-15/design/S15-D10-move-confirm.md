@@ -82,7 +82,7 @@ A researcher files an Artifact under one Source, builds Evidence graphs on it, a
 
 **What changes.**
 - **The Artifact row's menu** gains **Move to another Source…** between Edit… and Delete…. Today it reads Edit…, Set cover (on an image that is not the cover), Delete….
-- **The Evidence graph card** gains a right-click menu, titled with the graph's ref, with the card's own actions and Move: Open evidence graph, Edit…, Move to another Source…, Delete…. Today the card has only its visible Open, pencil and trash buttons.
+- **The Evidence graph card** gains a right-click menu, titled with the graph's ref, with the card's own actions and Move: Open, Edit…, Move to another Source…, Delete…. Today the card has only its visible Open, pencil and trash buttons.
 - **The Move dialog** (new): the target picker, the bundle, the side-effect notes, Move and Cancel.
 - **After the move** the app opens the target Source's page at its top, and a Toast names what moved and where (user, 2026-11-21).
 
@@ -128,7 +128,7 @@ A researcher files an Artifact under one Source, builds Evidence graphs on it, a
 | ID | Requirement |
 | --- | --- |
 | MV-1 | **Artifact row menu.** The row's right-click menu, titled with the ref as today, reads Edit…, Set cover (when offered), **Move to another Source…**, Delete…. Same kit ContextMenu, same item style; no icon, no separator. The visible buttons on the row do not change. |
-| MV-2 | **Graph card menu.** Right-clicking a graph card opens the kit ContextMenu titled with the graph's ref (`GPH-3RX8W`, mono, as the Artifact row's menu title): Open evidence graph, Edit…, **Move to another Source…**, Delete…. Open is dimmed when the card's Open button is (a graph the canvas cannot open yet); Edit… and Delete… run the card's pencil and trash. The visible buttons on the card do not change. |
+| MV-2 | **Graph card menu.** Right-clicking a graph card opens the kit ContextMenu titled with the graph's ref (`GPH-3RX8W`, mono, as the Artifact row's menu title): Open, Edit…, **Move to another Source…**, Delete… (Open is the card button's own word). Open is dimmed when the card's Open button is (a graph the canvas cannot open yet); Edit… and Delete… run the card's pencil and trash. The visible buttons on the card do not change. |
 | MV-3 | **The dialog.** A FormDialog, 560pt wide, titled "Move to another Source", subtitle the picked row: the Artifact's label and ref ("Sheet 14 (image 1) · ART-7QK2M") or the graph's name and ref. From the top: the **Move to** field, the bundle, the notes, then the buttons Cancel and **Move** (primary, not danger). Move is dimmed until a target is picked and the bundle has loaded. Escape and Cancel close it without asking: nothing is typed, and a pick is not work to lose. |
 | MV-4 | **Move to.** A Field labeled "Move to" holding a ComboBox of the project's other Sources: each option the Source's title, with its ref as subtext; most recently changed first; typing filters by title or ref; placeholder "Choose a Source"; no match reads "No Source matches". The current Source is never offered. Empty when the dialog opens. |
 | MV-5 | **The bundle.** Under the field, a SubsectionHeader "Moves together" (or the board's caption style for a dialog section), then the Artifacts, then the graphs, each a compact row: an Artifact as a 32pt Thumbnail, its label and its mono ref; a graph as the branch glyph, its name, its mono ref and its count line ("4 people · 6 citations"). The picked row is first in its group and carries no special mark. The rows are read-only: no checkbox, no link, no hover. When the bundle holds more than the picked row, one line of secondary text above the rows says why: "A graph moves with all its Artifacts, so these move together." When it holds only the picked row, no such line. |
@@ -158,12 +158,12 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1 | MV-1 | Regular, the page's Artifacts section with image 1's menu open: Edit…, Set cover, Move to another Source…, Delete… (Set cover absent: image 1 is the cover, so the menu reads Edit…, Move to another Source…, Delete…; draw image 2's menu instead, with Set cover) |
-| 2 | MV-2 | Regular, the graphs section with the "Hale household" card's menu open, titled `GPH-3RX8W` |
+| 1a / 1b | MV-1, MV-W1 | The page's Artifacts section with image 2's menu open (`ART-9TB3C`): Edit…, Set cover, Move to another Source…, Delete… |
+| 2a / 2b | MV-2, MV-W1 | The graphs section with the "Hale household" card's menu open, titled `GPH-3RX8W` |
 | 3a / 3b | MV-3, MV-4, MV-5, MV-8, MV-W1 | The dialog over the page, opened from image 1 before a target is picked: the field empty; Moves together with the "why" line; images 1 and 2; the Hale and Robins graphs; no left-behind note (Sheet 20 and Default stay); Move dimmed |
 | 4 | MV-4 | Regular, the ComboBox open with "ED 2" typed: the ED 237 Source first, ref as subtext; the current Source absent |
 | 5 | MV-7 | Regular, frame 3a with ED 237 picked: the credibility Callout "“1880 census, Ottawa County, Kansas, ED 236” is assessed Low trust; “1880 census, Ottawa County, Kansas, ED 237” is not assessed. The moved records will be weighed as Standard, …"; Move enabled |
-| 6 | MV-5, MV-8 | Regular, the dialog opened from "Sheet 20" on a Source whose only Artifact it is and whose only graph links it: one Artifact, one graph, no "why" line, both left-behind Callouts |
+| 6 | MV-5, MV-8 | Regular, on another Source, "1885 census, Ottawa County, Kansas, ED 12" (`SRC-6JD4T`), whose only Artifact is "Sheet 3" (`ART-4RM6N`) and whose only graph "Weber household" (`GPH-1QW7S`, 3 people · 4 citations) links it: the dialog opened from Sheet 3 shows one Artifact, one graph, no "why" line, both left-behind Callouts |
 | 7 | MV-5 | Regular, the dialog opened from the "Default" graph card (no Artifacts): one graph row, no Artifact group |
 | 8 | MV-9 | Regular, the dialog just opened: the bundle area as skeleton rows |
 | 9 | MV-10 | Regular, the bundle read failed: the load-area failure with Read again |
