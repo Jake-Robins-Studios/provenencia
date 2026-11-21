@@ -14,7 +14,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D10 | Move confirm: the bundle, the target, the credibility note | — | S15-25 |
 | S15-D11 | Event page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
 | S15-D12 | Place page: value rows open the provenance sheet; the Why accordion removed | — | S15-31 |
-| S15-D15 | Person page Sources section: Citations grouped under one citation | — | S15-22 |
+| [S15-D15](S15-D15-person-sources-citations.md) | Person page Sources section: Citations grouped under one citation, under each record line, the Observations as pieces, Full and Short, the failed notice | — (written 2026-11-21, not drawn) | S15-22 |
 | S15-D17 | Provenance sheet: the record table's fold | — | S15-27 |
 | S15-D18 | Provenance sheet: records loading on open, and their failure | — | S15-29 |
 | S15-D19 | Source page: Copy source-list entry | — | S15-23 |

@@ -117,7 +117,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-52 | The Source seed writes through `writes.Run` | 4 | Preparatory, Go: `sourcetypes.UpsertTx` and `metadatafields.UpsertTx` return row changes; `Install(tx)` composes on the transaction `createCatalog` opens, so the effects registry reprojects search (the type's Sources too); `EnsureSuggestion` goes; `Upsert(c, …)` and its hand reprojection go; tests through a helper. No visible change (user, 2026-11-17) | — | — | [plan](prs/S15-52-source-seed-through-writes-run.md) | Landed #891 |
 | S15-20 | Seed the citation formats | 4 | Merged into S15-19: one seed PR (user, 2026-11-17) | — | — | — | Descoped (2026-11-17) → S15-19 |
 | S15-21 | The provenance sheet shows formatted citations | 6 | Swift: the sheet's on-open key renders and groups; Copy full and Copy short copy rich text | [S15-D9](design/archive/S15-D9-provenance-sheet-citations.md) | S15-16, S16-30, S16-04, S15-D9 | [plan](prs/S15-21-provenance-sheet-citations.md) | Landed [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930) |
-| S15-22 | The Sources section groups a Source's Citations by citation | 6 | Swift: the section renders on demand and groups | S15-D15 | S15-16, S15-05, S16-03, S16-06, S16-07, S15-D15 | — | Scoped |
+| S15-22 | The Sources section groups a Source's Citations by citation | 6 | Swift: the section renders on demand and groups each record's Citations under one citation, with its Observations as the pieces and Copy full and Copy short | [S15-D15](design/S15-D15-person-sources-citations.md) | S15-16, S15-05, S15-21, S16-03, S16-06, S16-07, S15-D15 | [plan](prs/S15-22-person-sources-citations.md) | Blocked — on board S15-D15 |
 | S15-23 | The Source page copies its source-list entry | 9 | Swift: **Copy source-list entry** on the Source page; **re-scoped (user, 2026-11-13)**: the citation preview is not built | S15-D19 | S15-16, S15-21, S15-D19 | — | Scoped |
 | S15-24 | Move a bundle to another Source in the engine | 7 | Go: closure, preflight and move RPCs, one transaction through the effects registry | — | S16-12, S16-13, S16-15 | — | Scoped |
 | S15-25 | Move from an Artifact or a graph | 7 | Swift: the menu items and the bundle confirm | S15-D10, S15-D1, S15-D14 | S15-24, S15-35, S15-D10, S15-D1, S15-D14, S16-61 | — | Scoped |
@@ -167,7 +167,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D12 | Place page | **S15-31** | Value rows open the provenance sheet; the Why accordion is removed |
 | S15-D13 | Copy Source dialog | **S15-32** | A Published date tick beside Description, Metadata and Credibility ([brief](design/archive/S15-D13-copy-source-dialog.md)) |
 | S15-D14 | Source page Artifacts | **S15-34**, S15-35, S15-10, S15-25 | The Artifact list with each Artifact's copy details shown read-only and a thumbnail of at most 80pt (rows or compact cards: the board decides); the Artifact sheet in edit and add mode: label, description, graphs, copy details with suggestions, one Save; where Move sits on the new list. Replaces S15-D1 SD-9, SD-10 and S15-D4. Written before "One brief, one PR"; stays as written |
-| S15-D15 | Person page Sources section | **S15-22** | Citations grouped under one citation |
+| [S15-D15](design/S15-D15-person-sources-citations.md) | Person page Sources section | **S15-22** | Citations grouped under one citation, under each record line, with the Observations as pieces and Full and Short; the failed notice |
 | [S15-D16](design/archive/S15-D16-source-type-citation-formats.md) | Source type page | **S15-17** | The three formats under Details, Insert field, the live preview against a Source, warnings listed under each format; Save and Revert move to the foot of the main column and cover Details and formats (user, 2026-11-20) |
 | S15-D17 | Provenance sheet | **S15-27** | The record table's fold |
 | S15-D18 | Provenance sheet | **S15-29** | Records loading when the sheet opens, and their failure |
@@ -622,8 +622,8 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-22 — The Sources section groups a Source's Citations by citation
 
-**Ships.** When the Sources section appears it asks S15-16's batch render for its Citations, and a Source's Citations with the same group key show as one citation with the pieces beneath. Lands after S16-03, S16-06 and S16-07.
-**Not this PR.** Re-ordering Sources.
+**Ships.** When the Sources section appears it asks S15-16's batch render for its Citations, and a Source's Citations with the same group key show as one citation with the pieces beneath. Lands after S16-03, S16-06 and S16-07. The citation sits under each record line; the pieces are the record's Observations behind it ("Name Johann Weber · Age 34"); Full and Short copy it as on the provenance sheet, whose copy track becomes a recipe; a record whose type has no full format shows nothing new (user, 2026-11-21).
+**Not this PR.** Re-ordering Sources; today's line for a type with no format; Citation labels as pieces.
 **Check.** Bar 7 in the Sources section, on a person cited 5 times on one household.
 **Context.** S15-D15; rule "Grouping is by the rendered full citation"; `PersonSourcesContent.swift`.
 
