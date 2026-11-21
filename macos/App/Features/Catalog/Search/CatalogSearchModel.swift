@@ -26,7 +26,6 @@ final class CatalogSearchModel {
     var hasSearched = false
     /// Non-nil when the last completed search failed (not "no matches").
     var searchError: String?
-    var selectedIndex = 0
 
     private let latest = LatestCall()
 
@@ -71,13 +70,13 @@ final class CatalogSearchModel {
         hits = []
         hasSearched = false
         searchError = nil
-        selectedIndex = 0
     }
 
     func scheduleSearch(
         projectDir: String,
         location: WorkspaceLocation?,
-        store: any GenealogyStore
+        store: any GenealogyStore,
+        onResults: @escaping @MainActor () -> Void = {}
     ) {
         let q = trimmedQuery
         guard !isBelowMinimumQuery else {
@@ -105,7 +104,7 @@ final class CatalogSearchModel {
                 }
                 hasSearched = true
                 isLoading = false
-                selectedIndex = 0
+                onResults()
             }
         )
     }
@@ -115,16 +114,5 @@ final class CatalogSearchModel {
     /// of polling against a deadline, which a busy main actor can outlast.
     func settle() async {
         await latest.settle()
-    }
-
-    func moveSelection(delta: Int) {
-        selectedIndex = PVFloatingMenuSelection.moveIndex(
-            from: selectedIndex, delta: delta, count: hits.count
-        )
-    }
-
-    func selectedHit() -> CatalogSearchHit? {
-        guard hits.indices.contains(selectedIndex) else { return nil }
-        return hits[selectedIndex]
     }
 }

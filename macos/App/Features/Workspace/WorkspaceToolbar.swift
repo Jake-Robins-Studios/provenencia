@@ -6,8 +6,6 @@ import SwiftUI
 /// clipped 52pt toolbar row) and can receive clicks over the page below.
 @Observable
 final class HistoryJumpMenuModel {
-    static let contentCoordinateSpace = "workspace.content"
-
     var side: HistoryJumpMenuSide?
     var anchors: [HistoryJumpMenuSide: CGRect] = [:]
 
@@ -48,6 +46,8 @@ struct WorkspaceToolbar: View {
     @Bindable var omnibarResults: OmnibarResultsModel
     let projectDir: String
     let store: any GenealogyStore
+    /// The content column's width, for the omnibar list's width rule.
+    let contentWidth: CGFloat
     @FocusState private var omnibarFocused: Bool
 
     /// Omnibar width at a comfortable window size, and the floor it
@@ -72,7 +72,6 @@ struct WorkspaceToolbar: View {
         .padding(.horizontal, PVSpacing.gutterPage)
         .frame(maxWidth: .infinity)
         .onPreferenceChange(HistoryJumpMenuAnchorKey.self) { jumpMenu.anchors = $0 }
-        .onPreferenceChange(OmnibarFieldAnchorKey.self) { omnibarResults.fieldFrame = $0 }
         // Drag surface sits *behind* the row: an overlay would swallow
         // Back/Forward, breadcrumb, and omnibar hits, but without one only
         // the system title-bar strip at the very top of the 52pt row drags.
@@ -156,7 +155,7 @@ struct WorkspaceToolbar: View {
                 Color.clear.preference(
                     key: HistoryJumpMenuAnchorKey.self,
                     value: [
-                        side: geo.frame(in: .named(HistoryJumpMenuModel.contentCoordinateSpace)),
+                        side: geo.frame(in: .named(WorkspaceContent.coordinateSpace)),
                     ]
                 )
             }
@@ -186,14 +185,12 @@ struct WorkspaceToolbar: View {
             suffix: "⌘K",
             focused: $omnibarFocused
         )
-        .background {
-            GeometryReader { geo in
-                Color.clear.preference(
-                    key: OmnibarFieldAnchorKey.self,
-                    value: geo.frame(in: .named(HistoryJumpMenuModel.contentCoordinateSpace))
-                )
-            }
-        }
+        .modifier(OmnibarResultsHost(
+            results: omnibarResults,
+            projectDir: projectDir,
+            contentWidth: contentWidth,
+            onActivate: { omnibarResults.activate($0, navigation: navigation) }
+        ))
         .accessibilityLabel(Text(L10n.Workspace.omnibarAccessibilityLabel))
         .accessibilityIdentifier("workspace.toolbar.omnibar")
     }
@@ -611,7 +608,8 @@ private struct HistoryJumpMenuPanel: View {
         jumpMenu: HistoryJumpMenuModel(),
         omnibarResults: OmnibarResultsModel(),
         projectDir: "/tmp/preview.provenencia",
-        store: FakeStore()
+        store: FakeStore(),
+        contentWidth: 900
     )
         .environment(WorkspaceNavigation())
         .environment(WorkspaceSession(projectKey: ProjectKey(projectDir: "/tmp/preview.provenencia"), store: FakeStore()))

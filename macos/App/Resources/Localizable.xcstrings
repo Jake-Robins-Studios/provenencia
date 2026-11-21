@@ -11900,30 +11900,6 @@
         }
       }
     },
-    "workspace.omnibar.searchFailed": {
-      "comment": "Omnibar panel message when SearchCatalog fails",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search couldn’t finish. Try again."
-          }
-        }
-      }
-    },
-    "workspace.omnibar.searching": {
-      "comment": "Omnibar panel loading label while SearchCatalog is in flight",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searching…"
-          }
-        }
-      }
-    },
     "workspace.section.evidenceGraph.title": {
       "comment": "Evidence graph deep place title (toolbar breadcrumb and stub)",
       "extractionState": "manual",

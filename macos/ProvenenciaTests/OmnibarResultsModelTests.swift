@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -199,5 +200,115 @@ struct OmnibarResultsModelTests {
         #expect(model.search.hits.isEmpty)
         #expect(model.search.line == .failed(message: L10n.Errors.message(code: "catalog.closed")))
         #expect(model.isPresented)
+    }
+
+    // MARK: Highlight and keys
+
+    private func hit(_ id: String) -> CatalogSearchHit {
+        CatalogSearchHit(
+            kind: "source", id: id, ref: "", title: id.uppercased(), subtitle: "",
+            matchReason: "title", location: WorkspaceLocation(section: .sources, sourceId: id)
+        )
+    }
+
+    /// A model with hits a, b, c landed through a real search, so the first is highlighted.
+    private func landed(query: String = "abc") async -> (OmnibarResultsModel, FakeStore) {
+        let store = FakeStore()
+        store.seededSearchHits = [hit("a"), hit("b"), hit("c")]
+        let model = OmnibarResultsModel()
+        model.search.query = query
+        model.scheduleSearch(projectDir: projectDir, location: .sectionRoot(.sources), store: store)
+        await waitForSearch(model.search)
+        return (model, store)
+    }
+
+    @Test func resultsLandOnTheFirstHit() async {
+        let (model, store) = await landed()
+        #expect(model.highlightedHit?.id == "a")
+        _ = model.handleKey(.downArrow, command: false) { _ in }
+        _ = model.handleKey(.downArrow, command: false) { _ in }
+        #expect(model.highlightedHit?.id == "c")
+        model.search.query = "abcd"
+        model.scheduleSearch(projectDir: projectDir, location: .sectionRoot(.sources), store: store)
+        await waitForSearch(model.search)
+        #expect(model.highlightedHit?.id == "a")
+    }
+
+    @Test func movementKeysMoveTheHighlight() async {
+        let (model, _) = await landed()
+        let steps: [(KeyEquivalent, Bool, String)] = [
+            (.downArrow, false, "b"), (.end, false, "c"), (.home, false, "a"),
+            (.pageDown, false, "c"), (.upArrow, true, "a"), (.upArrow, false, "a"),
+        ]
+        for (key, command, expected) in steps {
+            let result = model.handleKey(key, command: command) { _ in }
+            #expect(result == .handled)
+            #expect(model.highlightedHit?.id == expected)
+        }
+    }
+
+    @Test func keysPassWhileTheListIsClosed() async {
+        let (model, _) = await landed()
+        model.closePanel()
+        let before = model.highlight.index
+        var opened = false
+        for key in [KeyEquivalent.downArrow, .return, .escape] {
+            #expect(model.handleKey(key, command: false) { _ in opened = true } == .ignored)
+        }
+        #expect(model.highlight.index == before)
+        #expect(!opened)
+    }
+
+    @Test func returnOpensTheHighlightedHitAndClears() async {
+        for key in [KeyEquivalent.return, KeyEquivalent("\u{3}")] {
+            let (model, _) = await landed()
+            let navigation = WorkspaceNavigation()
+            _ = model.handleKey(.downArrow, command: false) { _ in }
+            let result = model.handleKey(key, command: false) { model.activate($0, navigation: navigation) }
+            #expect(result == .handled)
+            #expect(navigation.currentLocation.sourceId == "b")
+            #expect(model.search.query.isEmpty)
+            #expect(!model.isPresented)
+        }
+    }
+
+    @Test func returnWithNoHitIsTakenAndOpensNothing() {
+        let model = OmnibarResultsModel()
+        model.search.query = "il"
+        model.search.isLoading = true
+        var opened = false
+        #expect(model.handleKey(.return, command: false) { _ in opened = true } == .handled)
+        #expect(!opened)
+        #expect(model.search.query == "il")
+    }
+
+    @Test func escapeClosesAndKeepsTheQuery() async {
+        let (model, _) = await landed()
+        #expect(model.handleKey(.escape, command: false) { _ in } == .handled)
+        #expect(!model.isPresented)
+        #expect(model.search.query == "abc")
+        #expect(model.userDismissed)
+    }
+
+    @Test func hoverMovesTheHighlight() async {
+        let (model, _) = await landed()
+        model.hover(at: 2)
+        #expect(model.highlightedHit?.id == "c")
+        model.hover(at: 9)
+        #expect(model.highlightedHit?.id == "c")
+    }
+
+    @Test func dismissAndAShortQueryClearTheHighlight() async {
+        let (model, store) = await landed()
+        model.dismiss()
+        #expect(model.highlight.index == -1)
+        #expect(model.highlightedHit == nil)
+        model.search.query = "abc"
+        model.scheduleSearch(projectDir: projectDir, location: .sectionRoot(.sources), store: store)
+        await waitForSearch(model.search)
+        #expect(model.highlight.index == 0)
+        model.search.query = "I"
+        model.scheduleSearch(projectDir: projectDir, location: .sectionRoot(.sources), store: store)
+        #expect(model.highlight.index == -1)
     }
 }

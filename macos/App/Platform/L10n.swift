@@ -1299,18 +1299,6 @@ enum L10n {
             comment: "Accessibility label for the omnibar results panel"
         )
 
-        static let omnibarSearchFailed = LocalizedStringResource(
-            "workspace.omnibar.searchFailed",
-            defaultValue: "Search couldn’t finish. Try again.",
-            comment: "Omnibar panel message when SearchCatalog fails"
-        )
-
-        static let omnibarSearching = LocalizedStringResource(
-            "workspace.omnibar.searching",
-            defaultValue: "Searching…",
-            comment: "Omnibar panel loading label while SearchCatalog is in flight"
-        )
-
         /// Omnibar match-context line for a note body hit; argument is the raw snippet.
         static func omnibarMatchNote(snippet: String) -> String {
             return L10n.format(LocalizedStringResource(
