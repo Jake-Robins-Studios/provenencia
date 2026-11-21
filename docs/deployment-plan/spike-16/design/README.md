@@ -9,6 +9,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
 | [S16-D9](S16-D9-omnibar-results.md) | Omnibar results on the kit popup list: its own window, the combo box's card, the loading, empty and error lines | — (not drawn yet) | S16-52 |
+| [S16-D11](S16-D11-web-kit-popup-list.md) | The web kit: a PopupList component (card, row, line, searching line), the ComboBox's open list composed from it, the Omnibar Hit Row as the SearchHitRow component | — (not drawn yet) | — (kit only; S16-D9's board instances it) |
 | S16-D10 | Toast stack: several toasts stacked top-trailing in the workspace window, a refreshed card, a burst clipped at the bottom, the composer's toast moved into it | — (written just before S16-58) | S16-58 |
 
 ## Archived
