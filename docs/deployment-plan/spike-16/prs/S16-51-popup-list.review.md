@@ -1,15 +1,15 @@
 # Review — S16-51 The combo box's list becomes a kit popup list
 
-**Verdict:** (round 2 pending)
+**Verdict:** Fits with changes — Ready with changes
 **Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
-- None.
+- **Rule "(Batch 6) One kit popup list": who owns Return and the loading line?** Recommended: the list owns the highlight value and the movement rule; each field keeps its Return; `listLine` joins the kit in S16-52. **Answer (user, 2026-11-21):** accepted; the rule is reworded in the map.
+- **A press inside dragged out and released outside: does the popup stay?** Recommended: yes, a click is where its press began, for every popup. **Answer (user, 2026-11-21):** accepted; D-1, D-2, T-1b, AC-1.13; the presenter rule is reworded in the map.
 
 ## Writer's own calls
 - **A click away closes the list on the release, not the press** (D-3). The map row's condition holds: rows commit on the release, inside the panel, which the presenter passes. Visible differences: holding the button outside keeps the list up until release; a click on the list's empty line or padding no longer closes it; a button pressed while the field shows typed text runs its action before the label comes back (it acts on the same pick as today).
 - **⌘↑ lands on the first enabled row**, like Home (D-8). Today it stays put when the first row is disabled; no shipped combo box has a disabled option.
-- **Return stays each field's** (D-5). Rule "(Batch 6) One kit popup list" lists Return among the list's keys; the plan reads it with the same rule's omnibar sentence and S16-57's rule: the list owns the highlight and its movement, each field keeps its Return.
 - **The two window hosts fold into one** (D-14), from S16-50's Out (review M-7), though the map's scope entry did not name it; the scope entry now does.
 - **Tests move with their subjects** (D-10, D-11): movement, landing and placement cases go to `PVPopupListTests` with the same inputs and results. The map Check is reworded from "pass unchanged" to say so.
 - **Patch bump** (0.30.1 → 0.30.2 at the planning base).
@@ -66,3 +66,38 @@
 
 ### X-7 · minor · Small open choices
 **Answer:** Fixed — `move` returns `moveIndex`'s result (nil for a non-movement key, D-5/D-6); `completionPresented` is a `fileprivate var` beside `completionPopup`, which stays (D-17); the README `wantsPresented` sentence is reworded (STEP-5); `PVPopupListTests` gets its own `option` helper and `pool` (D-10); STEP-6 bumps all four `MARKETING_VERSION` lines.
+
+## Round 2
+
+### M-10 · blocker · A stateless key rule leaves the highlight state hand-rolled in every field; S16-52 adds a third copy
+**Answer:** Fixed — D-5: `struct PVPopupListHighlight` (index, `move`, `land`, `hover`, `clear`, `current`, `isMovementKey`); D-7 and D-9 hold one each; T-2, T-2b, T-3 rephrased over it; Next adds: `OmnibarResultsModel` holds one.
+
+### M-11 · blocker · "Rules this plan bends: None" settles a user rule's reading
+**Answer:** To user → answered (see To user). §5 **Rules this plan bends** lists it; the map's rule is reworded in this plan's PR.
+
+### (below blocker) `action`'s `pageStep:` has no caller; stale Builds on line
+**Answer:** Fixed — D-6 drops `pageStep:` from `action`; Builds on names `PVContextMenuKeyboard` instead.
+
+### X-1 · major · STEP-2 says the file moves in STEP-4
+**Answer:** Fixed — STEP-3.
+
+### X-2 · major · The no-Xcode stop condition reads two ways
+**Answer:** Fixed — do not start; the PR is implemented on the user's Mac.
+
+### X-3 · minor · D-14's garbled end
+**Answer:** Fixed.
+
+### X-4 · minor · Host `anchor`, `onFollow`, `frame()` side effects
+**Answer:** Fixed — D-14 names each.
+
+### X-5 · minor · STEP-3 splits `startWatching`
+**Answer:** Fixed — STEP-3 keeps the follow-only observers until STEP-4.
+
+### X-6 · minor · `PVContextMenuKeyboard.handle`'s new body
+**Answer:** Fixed — D-6 gives it.
+
+### X-7 · minor · A press inside released outside
+**Answer:** To user → answered: a click is where its press began (D-1, D-2, T-1b, AC-1.13).
+
+### X-8 · nit · Header Review line
+**Answer:** Fixed.
