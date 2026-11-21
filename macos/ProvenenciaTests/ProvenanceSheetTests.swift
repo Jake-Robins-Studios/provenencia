@@ -29,6 +29,102 @@ struct ProvenanceSheetTests {
         )
     }
 
+    private func record(_ id: String, citation: String, rank: Int = 1) -> PVProvenanceSheetContent.Record {
+        var record = self.record(id, rank: rank)
+        record.outcome.citationID = citation
+        return record
+    }
+
+    private func render(_ id: String, key: String, full: String = "Full") -> CatalogRenderedCitation {
+        CatalogRenderedCitation(
+            citationID: id,
+            full: full.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: full, italic: false)], plain: full),
+            short: .init(), groupKey: key)
+    }
+
+    /// T-4 (D-8, AC-1.1, AC-1.2).
+    @Test func citationTextFallsBack() {
+        var formatted = record("a", rank: 1)
+        #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
+        formatted.rendered = render("cit-a", key: "full:x", full: "Rendered, 1880")
+        #expect(formatted.isFormatted && formatted.citationText == "Rendered, 1880")
+        #expect(formatted.spoken.contains("Rendered, 1880") && !formatted.spoken.contains(formatted.citation.line))
+        formatted.rendered = render("cit-a", key: "citation:cit-a", full: "")
+        #expect(!formatted.isFormatted && formatted.citationText == formatted.citation.line)
+        #expect(formatted.spoken.contains(formatted.citation.line))
+    }
+
+    private func content(_ runs: [[PVProvenanceSheetContent.Record]]) -> PVProvenanceSheetContent {
+        let groups = runs.enumerated().map { index, records in
+            PVProvenanceSheetContent.Group.ValueGroup(
+                heading: .value(.init(rank: index + 1, text: "v\(index)", support: "")), records: records)
+        }
+        return PVProvenanceSheetContent(
+            title: "T", shown: .init(face: .text, lead: "x", emptyText: "", badge: nil), summary: nil,
+            groups: [PVProvenanceSheetContent.Group(owner: nil, values: groups)])
+    }
+
+    private func runKeys(_ content: PVProvenanceSheetContent) -> [[[String]]] {
+        content.groups[0].values.map { $0.citations.map { $0.records.map(\.id) } }
+    }
+
+    /// T-5 (D-7, AC-3.1, AC-3.2, AC-3.4).
+    @Test func groupedGathersByEngineKeyWithinARun() {
+        let a = record("a", citation: "ca"), b = record("b", citation: "cb"), c = record("c", citation: "cc")
+        let grouped = content([[a, b, c]]).grouped(by: [
+            "ca": render("ca", key: "K"), "cb": render("cb", key: "L"), "cc": render("cc", key: "K"),
+        ])
+        #expect(runKeys(grouped) == [[["a", "c"], ["b"]]])
+        #expect(grouped.records.map(\.id) == ["a", "c", "b"])
+        #expect(grouped.records.allSatisfy { $0.rendered != nil })
+
+        // The same key in two value runs stays in two runs.
+        let apart = content([[a], [c]]).grouped(by: ["ca": render("ca", key: "K"), "cc": render("cc", key: "K")])
+        #expect(runKeys(apart) == [[["a"]], [["c"]]])
+
+        // The engine's key keeps a Citation with no format alone; two records of one share its run.
+        let none1 = record("n1", citation: "c1"), none2 = record("n2", citation: "c2"), none3 = record("n3", citation: "c1")
+        let alone = content([[none1, none2, none3]]).grouped(by: [
+            "c1": render("c1", key: "citation:c1", full: ""), "c2": render("c2", key: "citation:c2", full: ""),
+        ])
+        #expect(runKeys(alone) == [[["n1", "n3"], ["n2"]]])
+
+        // A record missing from the renders is its own run.
+        let missing = content([[a, c]]).grouped(by: ["ca": render("ca", key: "K")])
+        #expect(runKeys(missing) == [[["a"], ["c"]]])
+        #expect(missing.records.map(\.rendered) == [render("ca", key: "K"), nil])
+    }
+
+    /// T-8 (D-9, AC-2.2, AC-2.3, AC-2.4).
+    @Test func copyButtonsFollowTheRender() {
+        func short(_ text: String) -> CatalogCitationRender {
+            text.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: text, italic: false)], plain: text)
+        }
+        var formatted = record("a", rank: 1)
+        formatted.rendered = render("cit-a", key: "full:x")
+        formatted.rendered?.short = short("Short")
+        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.full, .short])
+        formatted.rendered?.short = short("")
+        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.full])
+        formatted.rendered = render("cit-a", key: "citation:cit-a", full: "")
+        #expect(PVProvenanceRecordRow.copies(for: formatted) == [.citation])
+        #expect(PVProvenanceRecordRow.copies(for: record("b", rank: 1)) == [.citation])
+    }
+
+    /// T-7 (D-11, AC-1.1).
+    @Test func styledMarksItalicRuns() {
+        let render = CatalogCitationRender(
+            runs: [CatalogCitationRun(text: "a", italic: false), CatalogCitationRun(text: "b", italic: true)],
+            plain: "ab")
+        let styled = render.styled
+        #expect(String(styled.characters) == "ab")
+        let intent = AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self
+        let runs = Array(styled.runs)
+        #expect(runs.count == 2)
+        #expect(runs[0][intent] == nil)
+        #expect(runs[1][intent] == .emphasized)
+    }
+
     @Test func aFaceComesFromTheField() {
         let date = D.field("single", key: "date", label: "Birth date", valueType: "date", [D.value(1, "kept")], outcomes: [])
         let text = D.field("single", key: "name", label: "Name", valueType: "text", [D.value(1, "kept")], outcomes: [])

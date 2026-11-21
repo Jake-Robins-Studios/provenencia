@@ -8834,6 +8834,60 @@ enum L10n {
             comment: "VoiceOver announcement after the provenance sheet's copy citation button copies the citation line"
         )
 
+        static let copyWordFull = LocalizedStringResource(
+            "provenanceSheet.copyWordFull",
+            defaultValue: "Full",
+            comment: "Word on the provenance sheet's copy button that copies a record's full citation"
+        )
+
+        static let copyWordShort = LocalizedStringResource(
+            "provenanceSheet.copyWordShort",
+            defaultValue: "Short",
+            comment: "Word on the provenance sheet's copy button that copies a record's short citation"
+        )
+
+        static let copyWordCitation = LocalizedStringResource(
+            "provenanceSheet.copyWordCitation",
+            defaultValue: "Copy",
+            comment: "Word on the provenance sheet's copy button that copies a record's citation line when its Source type has no citation format"
+        )
+
+        static let copyFullCitation = LocalizedStringResource(
+            "provenanceSheet.copyFullCitation",
+            defaultValue: "Copy full citation",
+            comment: "Tooltip and VoiceOver label of the provenance sheet button that copies a record's full citation"
+        )
+
+        static let copyShortCitation = LocalizedStringResource(
+            "provenanceSheet.copyShortCitation",
+            defaultValue: "Copy short citation",
+            comment: "Tooltip and VoiceOver label of the provenance sheet button that copies a record's short citation"
+        )
+
+        static let fullCitationCopied = LocalizedStringResource(
+            "provenanceSheet.fullCitationCopied",
+            defaultValue: "Full citation copied",
+            comment: "VoiceOver announcement after the provenance sheet copies a record's full citation"
+        )
+
+        static let shortCitationCopied = LocalizedStringResource(
+            "provenanceSheet.shortCitationCopied",
+            defaultValue: "Short citation copied",
+            comment: "VoiceOver announcement after the provenance sheet copies a record's short citation"
+        )
+
+        static let citationsLoading = LocalizedStringResource(
+            "provenanceSheet.citationsLoading",
+            defaultValue: "Loading citations",
+            comment: "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered"
+        )
+
+        static let citationsFailedTitle = LocalizedStringResource(
+            "provenanceSheet.citationsFailedTitle",
+            defaultValue: "Citations could not be read",
+            comment: "Title of the provenance sheet's notice when its citations could not be rendered"
+        )
+
         static let done = LocalizedStringResource(
             "provenanceSheet.done",
             defaultValue: "Done",
