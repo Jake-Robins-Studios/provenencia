@@ -87,4 +87,4 @@ No new findings in round 2 (MNT, UX both Clean). Minors read by the orchestrator
 `origin/main` moved (0774f6e8c: S15-22 docs only); merged at `edc6d835d`. Gate PASS against 0774f6e8c.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: answered (UX-1 close on blur; CON-1/UX-2 keys verified in app by the user; MNT-2 keypad Enter in the combo box accepted). Owed before merge: the rest of plan §10 (the user's manual check), including Tab out of the omnibar.
+Gate PASS · CI green · open: none · follow-ups: none · to user: answered (UX-1 close on blur; CON-1/UX-2 keys verified in app by the user; MNT-2 keypad Enter in the combo box accepted). Owed before merge: the rest of plan §10 (the user's manual check), including Tab out of the omnibar.
