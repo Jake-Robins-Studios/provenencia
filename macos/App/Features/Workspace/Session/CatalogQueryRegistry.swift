@@ -491,6 +491,19 @@ extension CatalogQueryKey.Kind {
             return .entityPage(kind: self) { (key, store) -> CatalogPersonRecordLinks in
                 try await store.getPersonRecordLinks(projectDir: key.project.projectDir, entityID: key.id)
             }
+        case .provenanceSheet:
+            // The renders of a provenance sheet's Citations: held only while
+            // the sheet is shown (`WorkspaceSession.release`). A write that
+            // reaches its Sources, graphs or handles while it is open
+            // reloads it.
+            return .make(
+                kind: self,
+                refreshes: CatalogQueryRefresh.followsInputs(CatalogProvenanceSheetRead.self),
+                load: { key, store in
+                    let reply = try await store.renderCitations(projectDir: key.project.projectDir, citationIDs: key.ids)
+                    return CatalogProvenanceSheetRead(reply)
+                }
+            )
         }
     }
 }

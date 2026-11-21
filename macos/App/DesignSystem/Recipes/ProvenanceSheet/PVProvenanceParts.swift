@@ -198,7 +198,6 @@ struct PVProvenanceColumnHeadings: View {
                 .frame(width: columns.outcomeWidth, alignment: .leading)
             Text(L10n.ProvenanceSheet.columnRecord)
                 .frame(width: PVProvenanceColumns.recordWidth, alignment: .leading)
-            PVProvenanceReservedCell()
         }
         .pvMicroCaps()
         .foregroundStyle(PVColor.textMuted)

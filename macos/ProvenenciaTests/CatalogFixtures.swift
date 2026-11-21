@@ -102,3 +102,13 @@ func catalogMetadataEntry(
         field: field, valueText: value, hasValue: !value.isEmpty, suggested: suggested, sortOrder: order
     )
 }
+
+/// A rendered Citation for tests. `full` is the id's text unless it says otherwise (empty for a Citation with
+/// no format), `short` empty, and `key` the engine's group key, `full:` plus the id.
+func renderedCitation(_ id: String, key: String? = nil, full: String? = nil, short: String = "") -> CatalogRenderedCitation {
+    func render(_ text: String) -> CatalogCitationRender {
+        text.isEmpty ? .init() : .init(runs: [CatalogCitationRun(text: text, italic: false)], plain: text)
+    }
+    return CatalogRenderedCitation(
+        citationID: id, full: render(full ?? id), short: render(short), groupKey: key ?? "full:\(id)")
+}

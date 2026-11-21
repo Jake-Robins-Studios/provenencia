@@ -1,3 +1,4 @@
+import AppKit
 import Testing
 @testable import Provenencia
 
@@ -25,7 +26,7 @@ struct PVClipboardButtonTests {
     }
 
     private final class Pasteboard {
-        var written: [String] = []
+        var written: [PVClipboardPayload] = []
     }
 
     private func state(_ pasteboard: Pasteboard, _ timer: Timer) -> PVClipboardCopyState {
@@ -39,8 +40,35 @@ struct PVClipboardButtonTests {
         #expect(!state.copied)
         state.copy("Parish register, p. 12")
         await timer.settle()
-        #expect(pasteboard.written == ["Parish register, p. 12"])
+        #expect(pasteboard.written.map(\.plain) == ["Parish register, p. 12"])
         #expect(state.copied)
+    }
+
+    /// T-6 (D-11, AC-2.1, AC-2.4).
+    @Test func copyWritesRichAndPlain() async {
+        let pasteboard = Pasteboard()
+        let state = state(pasteboard, Timer())
+        let rich = AttributedString("x")
+        state.copy("x", rich: rich)
+        state.copy("x")
+        #expect(pasteboard.written == [PVClipboardPayload(plain: "x", rich: rich), PVClipboardPayload(plain: "x", rich: nil)])
+    }
+
+    /// T-7b (D-11, AC-2.1): the italic trait survives the RTF round trip.
+    @Test func rtfKeepsEmphasisAsItalic() throws {
+        var rich = AttributedString("a")
+        var emphasized = AttributedString("b")
+        emphasized[AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self] = .emphasized
+        rich += emphasized
+        let data = try #require(PVClipboardCopyState.rtfData(rich))
+        let read = try #require(NSAttributedString(rtf: data, documentAttributes: nil))
+        #expect(read.string == "ab")
+        func isItalic(_ at: Int) -> Bool {
+            let font = read.attribute(.font, at: at, effectiveRange: nil) as? NSFont
+            return font?.fontDescriptor.symbolicTraits.contains(.italic) == true
+        }
+        #expect(!isItalic(0))
+        #expect(isItalic(1))
     }
 
     @Test func theStateReturnsToIdleAfterTheInterval() async {
@@ -62,7 +90,7 @@ struct PVClipboardButtonTests {
         await timer.settle()
         state.copy("b")
         await timer.settle()
-        #expect(pasteboard.written == ["a", "b"])
+        #expect(pasteboard.written.map(\.plain) == ["a", "b"])
         await timer.fire(0)
         #expect(state.copied, "the first timer was replaced, so it must not clear the check")
         await timer.fire(1)

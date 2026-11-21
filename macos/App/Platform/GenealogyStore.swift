@@ -1333,6 +1333,34 @@ struct CatalogCitationRender: Sendable, Equatable {
     var plain: String = ""
 }
 
+/// One Citation rendered by `renderCitations`: its full and short forms and the
+/// engine's key for grouping (`full:<hash>` for a rendered full citation,
+/// `citation:<id>` when its type has no full format).
+struct CatalogRenderedCitation: Sendable, Equatable {
+    var citationID: String
+    var full: CatalogCitationRender
+    var short: CatalogCitationRender
+    var groupKey: String
+}
+
+/// A batch of rendered Citations in the engine's reply order, and what they read.
+struct CatalogRenderedCitations: Sendable, Equatable {
+    var citations: [CatalogRenderedCitation] = []
+    var inputs: CatalogPageInputs = .init()
+}
+
+/// What a provenance sheet reads while it is shown: its Citations' renders by
+/// Citation id, and what they read.
+struct CatalogProvenanceSheetRead: Sendable, Equatable {
+    var citations: [String: CatalogRenderedCitation]
+    var inputs: CatalogPageInputs
+
+    init(_ reply: CatalogRenderedCitations) {
+        citations = Dictionary(reply.citations.map { ($0.citationID, $0) }, uniquingKeysWith: { first, _ in first })
+        inputs = reply.inputs
+    }
+}
+
 /// One way to answer a needed placeholder: a metadata field or a built-in, at a level.
 struct CatalogCitationOption: Sendable, Equatable {
     var level: Level
@@ -1782,6 +1810,9 @@ protocol GenealogyStore: Sendable {
         iconKey: String,
         formats: CatalogCitationFormats?
     ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects)
+    /// The full and short citations of these Citations, in the asked order, for
+    /// those that exist. Empty `citationIDs` answers empty without a call.
+    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations
     /// One form rendered for one Source of a type (nil for none), against
     /// `format` (unsaved text with fields by key; nil renders the stored form).
     /// With no Source and a format, only its diagnostics come back.

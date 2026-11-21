@@ -1,9 +1,9 @@
 # S15-21 — The provenance sheet shows formatted citations
 
-**Status:** Planned
+**Status:** Landed in [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930) (2026-11-21)
 **Spike / slice:** Spike 15 · Slice 6 — Citations in the app
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D9](../design/S15-D9-provenance-sheet-citations.md), board agreed 2026-11-21
+**Brief:** [S15-D9](../design/archive/S15-D9-provenance-sheet-citations.md), board agreed 2026-11-21
 **Board:** [Person page board](https://claude.ai/artifact/N9V52ewQjxeNvh3Az3YkXQ), page *Vitals* (`project/Person Detail - Vitals.dc.html`), turn 20 "S15-D9 · Provenance sheet — formatted citations": frames 20a (F1a Regular), 20b (F1b Wide), 20c (F2 copied), 20d (F3 owner groups), 20e (F4 loading), 20f (F5 failed), 20g (F6 long citation), 20h (F7 no short format), 20i (F8 spoken), and its decision notes (PC-3, Widths, PC-5, PC-6/7, PC-8, Kit). The implementer reads it with the Artifact tool's `read` on that link and `path`. **Board decisions that change the brief (user, 2026-11-21):** the copy buttons are labelled (PC-3 below, D-9); the columns narrow and the reserved column goes (D-14). **Not binding from the board:** its copy writes `text/html` (a web board); the app writes RTF (D-11)
 **Depends on:** S15-16 (landed [#914](https://github.com/Jake-Robins-Studios/provenencia/pull/914)), S16-30 (landed [#812](https://github.com/Jake-Robins-Studios/provenencia/pull/812)), S16-04 (landed [#776](https://github.com/Jake-Robins-Studios/provenencia/pull/776)), S16-25 (landed [#847](https://github.com/Jake-Robins-Studios/provenencia/pull/847): keys are values), S15-17 (landed [#924](https://github.com/Jake-Robins-Studios/provenencia/pull/924): `CatalogCitationRender`, `CitationRunsText`), S15-D9
 **Blocks:** S15-23 (the rich-payload copy), S15-27 (the fold counts this PR's citation runs), S15-29 (grows this PR's key)
@@ -339,3 +339,13 @@ None. (Status is Blocked on the board, not on a question.)
 
 **Title:** S15-21 — The provenance sheet shows formatted citations
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-21-provenance-sheet-citations.md`.
+
+## Landed
+
+Where the code differs from the plan:
+
+- **STEP-8 reached two more tests.** `PersonDetailTests.likenessesBecomeTilesEarliestFirst` (its second picture now has the title "Deed") and `aRecordNamesItsCitation` (its untitled and labelled-untitled lines) asserted the removed empty-title-to-ref fallback, and were changed with the lines the plan named.
+- **The load area's top padding** (`PVSpacing.space5`) applies only while the record area is loading or failed; a ready table keeps its old spacing under the headings.
+- **`PVProvenanceRecordRow.copies(for:)`** is `nonisolated`, so a test calls it with no actor hop.
+- **Version** is 0.31.0 (`main` was at 0.30.2 when the branch was cut).
+- **The manual check (§ 10)** was not run by the implementer, which had no GUI session.

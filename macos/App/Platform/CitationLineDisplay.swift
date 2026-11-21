@@ -1,24 +1,33 @@
 import Foundation
 
-/// A record's citation line: "Source, Artifact, Citation, page" (S13-11). The
-/// one place to replace when the standard-citation formatter of
-/// `docs/deployment-plan/spike-15/citation-formats.md` lands.
+extension CatalogCitationRender {
+    /// The runs joined, each italic run marked `.emphasized` (as `NameDisplay.styled` marks a word),
+    /// for `PVTitleText.italicizingEmphasis` to draw and the clipboard to write as rich text.
+    var styled: AttributedString {
+        var out = AttributedString()
+        for run in runs {
+            var piece = AttributedString(run.text)
+            if run.italic {
+                piece[AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self] = .emphasized
+            }
+            out += piece
+        }
+        return out
+    }
+}
+
+/// A record's citation line: "Source, Artifact, Citation, page" (S13-11). Today's line: the fallback for a
+/// Source type with no full citation format, and the line its other callers draw
+/// (rule "Today's line stays the fallback, in Swift", `docs/deployment-plan/spike-15/citation-formats.md`).
 enum CitationLineDisplay {
     /// A citation line in its two caption halves (S13-14 D-3).
     struct Parts: Equatable {
-        /// The Source's title, else the Observation ref; not trimmed, as the old caption was not.
+        /// The Source's title; not trimmed, as the old caption was not.
         var title: String
-        /// `title` is the Observation ref (the Source has no title).
-        var titleIsRef: Bool
         /// The Artifact label, Citation label and page, joined as in `line`; "" when none.
         var detail: String
         /// `title` then `detail`: the whole citation line.
         var line: String
-    }
-
-    /// The Source's title, else the Observation ref when the Source has none.
-    static func sourceTitle(for outcome: CatalogReconcilerOutcome) -> String {
-        outcome.sourceTitle.isEmpty ? outcome.observationRef : outcome.sourceTitle
     }
 
     /// The page the original prints: "p. 23". The one home of these words; the citation menus use it too.
@@ -31,7 +40,7 @@ enum CitationLineDisplay {
         L10n.Conclusions.citationPageImage(page)
     }
 
-    /// A record's citation line, split into the title and the rest. The Source's title (else the Observation ref), the Artifact label, the Citation label and the page, each trimmed and dropped when empty. The page is the printed label ("p. 23") else the image number ("image 37").
+    /// A record's citation line, split into the title and the rest. The Source's title, the Artifact label, the Citation label and the page, each trimmed and dropped when empty. The page is the printed label ("p. 23") else the image number ("image 37").
     static func parts(_ outcome: CatalogReconcilerOutcome) -> Parts {
         let pageLabel = outcome.pageLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         let page: String
@@ -49,10 +58,9 @@ enum CitationLineDisplay {
                 .filter { !$0.isEmpty }
                 .joined(separator: separator)
         }
-        let title = sourceTitle(for: outcome)
+        let title = outcome.sourceTitle
         return Parts(
             title: title,
-            titleIsRef: outcome.sourceTitle.isEmpty,
             detail: joined([outcome.artifactLabel, outcome.citationLabel, page]),
             line: joined([title, outcome.artifactLabel, outcome.citationLabel, page])
         )

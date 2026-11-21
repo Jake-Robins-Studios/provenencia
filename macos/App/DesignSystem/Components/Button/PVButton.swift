@@ -142,6 +142,8 @@ private struct PVMenuRowButtonBody: View {
 /// `flushLeading` pulls the button left by its own horizontal padding, so a ghost button's
 /// label starts on the edge of the column it sits in instead of inside its padding.
 ///
+/// `iconTint` inks the leading glyph only (a copy button's green check); the title keeps the button's ink.
+///
 /// `iconOnly` draws the same chrome as a square glyph button. The title is
 /// not shown; it is the accessibility label and the help tooltip, because
 /// `PVIcon` is hidden from assistive technologies. Pass an `icon`.
@@ -154,6 +156,7 @@ struct PVButton: View {
     private let loading: Bool
     private let iconOnly: Bool
     private let flushLeading: Bool
+    private let iconTint: Color?
     private let action: () -> Void
 
     init(
@@ -165,6 +168,7 @@ struct PVButton: View {
         loading: Bool = false,
         iconOnly: Bool = false,
         flushLeading: Bool = false,
+        iconTint: Color? = nil,
         action: @escaping () -> Void
     ) {
         self.title = title.pvText
@@ -175,6 +179,7 @@ struct PVButton: View {
         self.loading = loading
         self.iconOnly = iconOnly
         self.flushLeading = flushLeading
+        self.iconTint = iconTint
         self.action = action
     }
 
@@ -185,7 +190,11 @@ struct PVButton: View {
                     ProgressView()
                         .controlSize(.small)
                 } else if let icon {
-                    PVIcon(icon, size: size.iconGlyphSize)
+                    if let iconTint {
+                        PVIcon(icon, size: size.iconGlyphSize).foregroundStyle(iconTint)
+                    } else {
+                        PVIcon(icon, size: size.iconGlyphSize)
+                    }
                 }
                 if !iconOnly {
                     title

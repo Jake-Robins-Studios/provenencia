@@ -19512,6 +19512,114 @@
         }
       }
     },
+    "provenanceSheet.copyWordFull": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyWordShort": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyWordCitation": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's citation line when its Source type has no citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyFullCitation": {
+      "comment": "Tooltip and VoiceOver label of the provenance sheet button that copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy full citation"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyShortCitation": {
+      "comment": "Tooltip and VoiceOver label of the provenance sheet button that copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy short citation"
+          }
+        }
+      }
+    },
+    "provenanceSheet.fullCitationCopied": {
+      "comment": "VoiceOver announcement after the provenance sheet copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full citation copied"
+          }
+        }
+      }
+    },
+    "provenanceSheet.shortCitationCopied": {
+      "comment": "VoiceOver announcement after the provenance sheet copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short citation copied"
+          }
+        }
+      }
+    },
+    "provenanceSheet.citationsLoading": {
+      "comment": "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading citations"
+          }
+        }
+      }
+    },
+    "provenanceSheet.citationsFailedTitle": {
+      "comment": "Title of the provenance sheet's notice when its citations could not be rendered",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citations could not be read"
+          }
+        }
+      }
+    },
     "provenanceSheet.done": {
       "comment": "Button that closes the provenance sheet",
       "extractionState": "manual",

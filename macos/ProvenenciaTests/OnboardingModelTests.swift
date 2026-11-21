@@ -543,6 +543,8 @@ private struct ThrowingStore: GenealogyStore {
         iconKey _: String,
         formats _: CatalogCitationFormats?
     ) async throws -> (CatalogSourceType, CatalogCitationFormatsReply?, CatalogWriteEffects) { throw StoreBoom.boom }
+    func renderCitations(projectDir _: String, citationIDs _: [String]) async throws
+        -> CatalogRenderedCitations { throw StoreBoom.boom }
     func renderCitationPreview(
         projectDir _: String,
         form _: CitationForm,

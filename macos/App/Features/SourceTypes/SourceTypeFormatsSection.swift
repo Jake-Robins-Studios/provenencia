@@ -409,7 +409,7 @@ private struct SourceTypeFormatPreview: View {
             } else if !hasFormat {
                 note(L10n.SourceTypes.Formats.noFormat)
             } else if let render, !render.runs.isEmpty {
-                CitationRunsText(render: render)
+                Text(PVTitleText.italicizingEmphasis(render.styled, font: PVFont.body(size: PVTypeScale.bodySmall)))
                     .accessibilityLabel(
                         L10n.SourceTypes.Formats.previewSpoken(form: L10n.CitationFormats.formTitle(form), text: render.plain)
                     )
@@ -440,17 +440,5 @@ private struct SourceTypeFormatPreview: View {
         Text(copy)
             .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
             .foregroundStyle(PVColor.textMuted)
-    }
-}
-
-/// A rendered citation as styled text: each run, italic where the engine marked it.
-struct CitationRunsText: View {
-    let render: CatalogCitationRender
-
-    var body: some View {
-        render.runs.reduce(Text(verbatim: "")) { text, run in
-            text + (run.italic ? Text(verbatim: run.text).italic() : Text(verbatim: run.text))
-        }
-        .accessibilityLabel(render.plain)
     }
 }

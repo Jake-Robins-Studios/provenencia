@@ -82,13 +82,24 @@ struct PVProvenanceSheetContent: Equatable {
         var outcome: CatalogReconcilerOutcome
         /// "Source, Artifact, Citation, page" (`CitationLineDisplay`).
         var citation: CitationLineDisplay.Parts
+        /// The engine's render of the record's Citation; nil until the sheet's renders arrive, and
+        /// for a Citation missing from them.
+        var rendered: CatalogRenderedCitation? = nil
+
+        /// The record's citation has a full format, so the row shows its render.
+        var isFormatted: Bool { rendered?.full.runs.isEmpty == false }
+
+        /// The citation as plain text: the full render when formatted, else today's line.
+        var citationText: String {
+            isFormatted ? rendered?.full.plain ?? citation.line : citation.line
+        }
 
         /// The record as one VoiceOver line: what it was read as, its citation
-        /// line, the outcome, then its Observation and Subject refs. The links
+        /// text, the outcome, then its Observation and Subject refs. The links
         /// follow as separate controls.
         var spoken: String {
             // A record with no field (a likeness) has no Read as to speak.
-            L10n.DesignSystem.spokenJoin([readAs, citation.line, phrase, observationRef, subjectRef]) ?? ""
+            L10n.DesignSystem.spokenJoin([readAs, citationText, phrase, observationRef, subjectRef]) ?? ""
         }
     }
 
@@ -117,8 +128,27 @@ struct PVProvenanceSheetContent: Equatable {
                 case otherRecords
             }
 
+            /// Records whose full citations read the same, adjacent in a value run. `key` is the
+            /// engine's group key, else `record:<id>` for a record with no render.
+            struct CitationRun: Equatable {
+                var key: String
+                var records: [Record]
+            }
+
             var heading: Heading?
-            var records: [Record]
+            var citations: [CitationRun]
+            /// Every record of the run, in order.
+            var records: [Record] { citations.flatMap(\.records) }
+
+            init(heading: Heading?, citations: [CitationRun]) {
+                self.heading = heading
+                self.citations = citations
+            }
+
+            /// A run whose records each stand alone, until `grouped(by:)` gathers them.
+            init(heading: Heading?, records: [Record]) {
+                self.init(heading: heading, citations: records.map { .init(key: "record:\($0.id)", records: [$0]) })
+            }
         }
 
         var owner: OwnerLine?
@@ -163,6 +193,31 @@ struct PVProvenanceSheetContent: Equatable {
 
     /// Every record, in order.
     var records: [Record] { groups.flatMap(\.records) }
+
+    /// The content with each record's render set and, inside each value run, the records whose
+    /// Citations share the engine's group key gathered together in first-appearance order. A
+    /// run never crosses a value heading or owner group. A record with no render is its own run.
+    func grouped(by renders: [String: CatalogRenderedCitation]) -> PVProvenanceSheetContent {
+        var content = self
+        for g in content.groups.indices {
+            for v in content.groups[g].values.indices {
+                var runs: [Group.ValueGroup.CitationRun] = []
+                var position: [String: Int] = [:]
+                for var record in content.groups[g].values[v].records {
+                    record.rendered = renders[record.outcome.citationID]
+                    let key = record.rendered?.groupKey ?? "record:\(record.id)"
+                    if let at = position[key] {
+                        runs[at].records.append(record)
+                    } else {
+                        position[key] = runs.count
+                        runs.append(.init(key: key, records: [record]))
+                    }
+                }
+                content.groups[g].values[v].citations = runs
+            }
+        }
+        return content
+    }
 }
 
 // MARK: - Assembler

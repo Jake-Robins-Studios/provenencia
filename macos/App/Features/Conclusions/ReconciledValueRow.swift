@@ -262,7 +262,7 @@ struct ConclusionDetailRowsSection: View {
         }
         .pvSheet(item: $provenanceItem) { item in
             if let row = item.row(in: rows) {
-                PVProvenanceSheet(
+                ProvenanceSheetHost(
                     content: row.provenanceContent(),
                     columns: PVProvenanceColumns(widthClass: widthClass),
                     idPrefix: "conclusion.detail.provenance",

@@ -49,6 +49,7 @@ protocol CatalogPageValue: Sendable {
 
 extension CatalogConclusionDetail: CatalogPageValue {}
 extension CatalogPersonClaims: CatalogPageValue {}
+extension CatalogProvenanceSheetRead: CatalogPageValue {}
 extension CatalogPersonFamily: CatalogPageValue {}
 extension CatalogPersonTimeline: CatalogPageValue {}
 extension CatalogPersonRecordLinks: CatalogPageValue {}

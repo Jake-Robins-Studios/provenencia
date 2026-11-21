@@ -547,6 +547,14 @@ final class WorkspaceSession {
         if entity == .handle { shownOrder.removeAll { ids.contains($0) } }
     }
 
+    /// Drops a key the view that queried it no longer shows. A released kind has
+    /// exactly one holder, that view (the provenance sheet). A key a place shows
+    /// stays, as in `evict(_:ids:)`, so a release never pulls a page's live handle.
+    func release(_ key: CatalogQueryKey) {
+        guard !visibleKeys.contains(key) else { return }
+        evict(key)
+    }
+
     /// Drops a key: its in-flight load is cancelled and its handle forgotten,
     /// so the next `query` starts fresh.
     private func evict(_ key: CatalogQueryKey) {

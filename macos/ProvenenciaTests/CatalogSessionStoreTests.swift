@@ -19,6 +19,19 @@ struct CatalogSessionStoreTests {
         #expect(store.heldCatalogProjectDir == projectDir)
     }
 
+    @Test func renderCitationsAnswersTheAskedIds() async throws {
+        let store = FakeStore()
+        store.renderCitationsReplies = [
+            "a": renderedCitation("a", key: "citation:a", full: ""), "b": renderedCitation("b", key: "citation:b", full: ""),
+        ]
+        let reply = try await store.renderCitations(projectDir: projectDir, citationIDs: ["a", "b", "c"])
+        #expect(reply.citations.map(\.citationID) == ["a", "b"])
+        #expect(store.renderCitationsCalls == [["a", "b", "c"]])
+        let empty = try await store.renderCitations(projectDir: projectDir, citationIDs: [])
+        #expect(empty == CatalogRenderedCitations())
+        #expect(store.renderCitationsCalls.count == 1)
+    }
+
     @Test func closeCatalogSessionClearsHeldAndRecordsDir() async throws {
         let store = FakeStore()
         _ = try await store.workspaceNavCounts(projectDir: projectDir)
