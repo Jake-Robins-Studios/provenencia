@@ -1,6 +1,6 @@
 # S16-51 — The combo box's list becomes a kit popup list
 
-**Status:** Landed #928
+**Status:** Landed in [#928](https://github.com/Jake-Robins-Studios/provenencia/pull/928) (2026-11-21)
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every combo box list and the format editor's completion draw as today; only the code that holds them and the moment a click away closes them change)
