@@ -139,6 +139,8 @@ enum Method {
   METHOD_RENDER_CITATIONS = 124;
   METHOD_RENDER_CITATION_PREVIEW = 125;
   METHOD_LIST_CITATION_PLACEHOLDERS = 126;
+  METHOD_GET_SOURCE_MOVE_IMPACT = 127;
+  METHOD_MOVE_TO_SOURCE = 128;
 }
 
 message PingRequest {
@@ -606,6 +608,41 @@ message EvidenceGraphUnlinkBlock {
 
 message GetEvidenceGraphUnlinkImpactResponse {
   repeated EvidenceGraphUnlinkBlock blocked = 1;
+}
+
+// What moving an Artifact or an Evidence graph to another Source moves with it.
+message GetSourceMoveImpactRequest {
+  string project_dir = 1;
+  string artifact_id = 2;      // exactly one of artifact_id and graph_id
+  string graph_id = 3;
+  string target_source_id = 4; // optional; empty leaves the credibility fields empty
+}
+
+message GetSourceMoveImpactResponse {
+  string source_id = 1;                 // the bundle's Source today
+  repeated Artifact artifacts = 2;      // by ref
+  repeated EvidenceGraph graphs = 3;    // the Source's graph order
+  repeated EvidenceGraphProgress progress = 9; // one per graph, same order
+  string source_credibility_key = 4;    // "" when not assessed
+  string target_credibility_key = 5;
+  bool credibility_differs = 6;         // the two grades score differently
+  bool leaves_source_empty = 7;         // every Artifact of the Source moves
+  bool leaves_no_graph = 8;             // every graph moves; the Source gets a new Default graph
+}
+
+message MoveToSourceRequest {
+  string project_dir = 1;
+  string user_id = 2;
+  string artifact_id = 3;
+  string graph_id = 4;
+  string target_source_id = 5;
+}
+
+message MoveToSourceResponse {
+  repeated string artifact_ids = 1;
+  repeated string graph_ids = 2;
+  string default_graph_id = 3; // the old Source's new Default graph, when every graph moved
+  WriteEffects effects = 4;
 }
 
 message UpdateSourceRequest {

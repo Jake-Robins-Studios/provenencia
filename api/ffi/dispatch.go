@@ -61,6 +61,8 @@ const (
 	MethodRenderCitations                   = int32(engine.Method_METHOD_RENDER_CITATIONS)
 	MethodRenderCitationPreview             = int32(engine.Method_METHOD_RENDER_CITATION_PREVIEW)
 	MethodListCitationPlaceholders          = int32(engine.Method_METHOD_LIST_CITATION_PLACEHOLDERS)
+	MethodGetSourceMoveImpact               = int32(engine.Method_METHOD_GET_SOURCE_MOVE_IMPACT)
+	MethodMoveToSource                      = int32(engine.Method_METHOD_MOVE_TO_SOURCE)
 	MethodSearchCatalog                     = int32(engine.Method_METHOD_SEARCH_CATALOG)
 	MethodCreateSubject                     = int32(engine.Method_METHOD_CREATE_SUBJECT)
 	MethodUpdateSubject                     = int32(engine.Method_METHOD_UPDATE_SUBJECT)
@@ -241,6 +243,10 @@ func route(method int32, in []byte) ([]byte, error) {
 		return handlers.RenderCitationPreview(in)
 	case MethodListCitationPlaceholders:
 		return handlers.ListCitationPlaceholders(in)
+	case MethodGetSourceMoveImpact:
+		return handlers.GetSourceMoveImpact(in)
+	case MethodMoveToSource:
+		return handlers.MoveToSource(in)
 	case MethodSearchCatalog:
 		return handlers.SearchCatalog(in)
 	case MethodCreateSubject:
