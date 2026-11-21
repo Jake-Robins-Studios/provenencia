@@ -1,9 +1,9 @@
 # S16-52 — The omnibar's results use the kit popup list
 
-**Status:** Planned
+**Status:** Landed #932
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D9](../design/S16-D9-omnibar-results.md), board agreed 2026-11-21; kit pieces from [S16-D11](../design/S16-D11-web-kit-popup-list.md), agreed 2026-11-21
+**Brief:** [S16-D9](../design/archive/S16-D9-omnibar-results.md), board agreed 2026-11-21; kit pieces from [S16-D11](../design/S16-D11-web-kit-popup-list.md), agreed 2026-11-21
 **Board:** [S16-D9 board](https://claude.ai/artifact/1UzGb9TQCd7ZQrmuAN5AY8), page "S3-01 Omnibar Results", frames R1a, R2, R1b, R3, R4 (open the link; the implementer reads the frames there). The web kit's components the board instances: [design system](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList and SearchHitRow. The board's card shadow is the web's stand-in: the app keeps the window's own shadow and adds no `.pvShadow`
 **Depends on:** S16-51 (landed [#928](https://github.com/Jake-Robins-Studios/provenencia/pull/928)), S16-D9 (agreed), S16-D11 (agreed)
 **Blocks:** —
@@ -357,3 +357,12 @@ None.
 
 **Title:** S16-52 — The omnibar's results use the kit popup list
 **Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence; the `rg` output of AC-4.1, AC-4.2, AC-4.3 and AC-4.4; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-52-omnibar-popup-list.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `496ffa9c2`; no **Current state** row changed under `macos/`.
+- `PromoteModelTests` read `showsErrorState` (not named in STEP-4); it reads `search.line`.
+- `WorkspaceContent` lost its `@Environment(WorkspaceNavigation.self)`, whose only use was the removed overlay, and `WorkspaceContent.coordinateSpace` is `nonisolated` so the field's geometry closure can read it.
+- One test beyond §8: `CatalogSearchModelTests.aFailedSearchIsTheMappedMessageNotNoMatches` (T-12's FakeStore case at the model level).
+- STEP-2 and STEP-3 are one commit.
+- The in-app passes (STEP-5's key check, STEP-2 and STEP-3's macOS checks, and §10) were not run by the implementer; they are owed before merge. Whether `onKeyPress` on the omnibar's `PVInput` receives ↑/↓/Home/End/Page and keypad Enter is therefore unverified (§11 stop condition).
