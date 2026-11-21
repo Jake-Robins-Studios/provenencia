@@ -1,7 +1,7 @@
 # Review — S16-53 The history menu uses the kit presenter and a kit menu row
 
-**Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits — Ready with changes
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 
@@ -78,3 +78,13 @@ Round 2 follows: round 1 had a blocker.
 
 ### X-12 · nit · Doc comment wording
 Logged; D-11 gives the new wording.
+
+### M-8 · minor · The Out line's "second hand-held seed" premise
+**Answer:** Fixed — the Out line says why `PVSelect.presentMenu`'s seed does not count.
+
+### M-9 · major · D-6 derives the row list a second time
+**Answer:** Fixed — the host takes the `items` `historyButton` already has; `rows` maps them without a side switch.
+
+Logged: `PVTableKeyboard.moveIndex(_:delta:count:)` (`PVTable.swift`) is another plain clamped mover, outside this PR's files.
+
+Round 2 verdicts: maintainability Fits; executability Not ready → fixed (X-7). No open blocker; To user answered.
