@@ -20,6 +20,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemove"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -577,6 +578,20 @@ func TestSourceScopes(t *testing.T) {
 				a1, b1 := s.sourceRevisions(t)
 				if a1 != a0 || b1 != b0 {
 					t.Fatalf("promote moved sources: a %d→%d b %d→%d", a0, a1, b0, b1)
+				}
+			},
+		},
+		{
+			name: "move a bundle to the other Source",
+			run: func(t *testing.T, s scopeSeed) {
+				if _, _, err := writes.Run(s.c, writes.Op{Action: "move_to_source", UserID: scopeUserID}, func(tx *database.Tx) (sourcemove.Result, []rowchange.Change, error) {
+					return sourcemove.Move(tx, scopeUserID, evidencegraphs.Seed{ArtifactID: s.artifact.ID}, s.b.ID)
+				}); err != nil {
+					t.Fatal(err)
+				}
+				a, b := s.sourceRevisions(t)
+				if want := s.latest(t); a != want || b != want {
+					t.Fatalf("source revisions a=%d b=%d, want both %d", a, b, want)
 				}
 			},
 		},
