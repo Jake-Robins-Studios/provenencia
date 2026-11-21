@@ -144,9 +144,10 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         }
 
         /// The popup is exactly as wide as the field (or its own `width`), and
-        /// measuring it at that width is what makes `fittingSize` trustworthy — an unconstrained
-        /// `NSHostingView` reports the height its content would take at its
-        /// *ideal* width, which is not the width we are about to give it.
+        /// measuring it at that width is what makes `fittingSize` trustworthy:
+        /// an unconstrained `NSHostingView` reports the height its content
+        /// would take at its *ideal* width, which is not the width we are about
+        /// to give it.
         private func widened(to width: CGFloat) -> AnyView {
             AnyView(content.frame(width: width))
         }
@@ -222,8 +223,8 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
 /// stroke, radius), the scroller that keeps the highlighted row in view, and the
 /// caller's row stack. The caller builds the stack from `PVPopupListRow` and
 /// `PVPopupListLine`, and picks `VStack` (rows of unequal height, measured before
-/// the window shows: `PVComboBox`) or `LazyVStack` (a fixed row height sizes the
-/// window: `PVTextArea`'s completion list).
+/// the window shows: `PVComboBox` and the omnibar's results) or `LazyVStack` (a
+/// fixed row height sizes the window: `PVTextArea`'s completion list).
 struct PVPopupListCard<Stack: View>: View {
     /// The `id` of each row, in order; a new list goes back to its first row.
     let rowIDs: [String]

@@ -1296,7 +1296,7 @@ enum L10n {
         static let omnibarResultsAccessibilityLabel = LocalizedStringResource(
             "workspace.omnibar.resultsAccessibilityLabel",
             defaultValue: "Search results",
-            comment: "Accessibility label for the omnibar results panel"
+            comment: "Accessibility label for the omnibar's results list"
         )
 
         /// Omnibar match-context line for a note body hit; argument is the raw snippet.

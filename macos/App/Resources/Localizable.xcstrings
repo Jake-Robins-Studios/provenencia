@@ -11889,7 +11889,7 @@
       }
     },
     "workspace.omnibar.resultsAccessibilityLabel": {
-      "comment": "Accessibility label for the omnibar results panel",
+      "comment": "Accessibility label for the omnibar's results list",
       "extractionState": "manual",
       "localizations": {
         "en": {
