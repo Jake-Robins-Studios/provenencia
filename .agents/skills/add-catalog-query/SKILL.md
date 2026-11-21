@@ -53,7 +53,7 @@ A package never declares its own querier or scanner interface, named or inline: 
 
 A read made of more than one query straight on `c.DB()` opens one read transaction (`db.Begin`, deferred `Rollback`), as `deleteimpact.Snapshot` does, so its queries see one state. A registry entry's loader runs on the session graph under `catalogsession.Do`'s lock and opens no transaction, as `sources.loadRecords` and `evidencegraphs.list` do. Either way the unexported body takes `database.Querier` and the package's writes call it with their `tx.Tx`; add an exported `…Tx` twin only with its first caller outside the package.
 
-A write across several tables lives in a composing package (`core/database/connect`, `core/database/sourcecopy`). It takes the `*database.Tx`, calls each owner package's write, returns the changes, and never calls `writes.Run`; the handler does.
+A write across several tables lives in a composing package (`core/database/connect`, `core/database/sourcecopy`, `core/database/sourcemove`). It takes the `*database.Tx`, calls each owner package's write, returns the changes, and never calls `writes.Run`; the handler does. A write that changes both sides of a composite foreign key calls `tx.DeferForeignKeys()` before its first update and never issues a PRAGMA itself.
 
 ## Tests
 
