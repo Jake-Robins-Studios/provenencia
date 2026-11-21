@@ -1,0 +1,366 @@
+# S15-25 — Move from an Artifact or a graph
+
+**Status:** Blocked — on board S15-D10
+**Spike / slice:** Spike 15 · Slice 7 — Move
+**Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
+**Brief:** [S15-D10](../design/S15-D10-move-confirm.md), board not drawn yet. S15-D1 SD-14 and S15-D14 SA-5 named where Move sits; S15-D10 is this PR's own brief and draws all of it
+**Board:** — (recorded here when S15-D10 is agreed; until then **Design → macOS** describes each frame in words from the brief)
+**Depends on:** S15-24 (landed [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935)), S15-35 (landed [#824](https://github.com/Jake-Robins-Studios/provenencia/pull/824)), S16-61 (landed [#886](https://github.com/Jake-Robins-Studios/provenencia/pull/886)), S15-D10, S15-D1, S15-D14
+**Blocks:** —
+**Branch:** `s15-25-move-from-artifact-or-graph`
+**Version bump:** minor, 0.32.0 → **0.33.0** (if `main`'s `VERSION` is no longer 0.32.0 when you rebase, the next minor after it): a new feature in the app ([`docs/versioning.md`](../../../versioning.md)); `VERSION`, `core/version.go`, and every `MARKETING_VERSION` line in `macos/Provenencia.xcodeproj/project.pbxproj`
+**Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md) (§ 6, applying a write's effects), [`add-workspace-location`](../../../../.agents/skills/add-workspace-location/SKILL.md) (landing goes through `navigation.go(to:)`)
+**Rules that bind:** `.cursor/rules/macos-l10n.mdc`, `.cursor/rules/versioning.mdc`
+**Context:** working rules "A move is the whole bundle", "One window; nothing is built for a second", "An Artifact is added and edited in one sheet" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../move-artifact-between-sources.md`](../move-artifact-between-sources.md) ("Which graphs move", "Side effects to name in the confirm", "Engine notes"); the landed plan [`S15-24-move-bundle.md`](S15-24-move-bundle.md) (§ 6 FFI, D-11, D-12, D-13; its Landed note); [`S15-35-artifact-list-rows.md`](S15-35-artifact-list-rows.md) D-6, D-13 (the row's action enum and `verbatimTitle`, both left for this PR)
+**Planned:** 2026-11-21 against `main` @ `8d74bd8`
+**Review:** — (not reviewed yet; review-plan runs once the board is agreed and the frames are copied in)
+
+### Implementer — read this first
+
+1. **This file is the whole task.** Read it top to bottom before you change code. Then read every file under **Current state** and load every skill under **Skills to load**.
+2. **Check the base.** Compare `main` with the **Planned** commit. If a file under **Current state** has changed so a row is no longer true, stop and report which rows.
+3. **Decisions are made.** Do not reopen a **Decision** or a **Scope** line, and do not swap in a design you like better. If one cannot work, stop: say which ID it is, what you found (path, line, output), and what you would need. Do not improvise around it.
+4. **Do only In.** Out stays out, even when it is one line away. Do not refactor, rename, or tidy code the plan does not name.
+5. **Work the Steps in order.** Run each step's check before you start the next. A failing check is fixed in that step.
+6. **Hit a Stop condition → stop.** Report it. Do not work around it.
+7. **Done is the Definition of done.** Report each box with its evidence: the command and its result, the test name, or the manual check you ran.
+8. **Docs-only lines in the DoD are part of the PR.** Do not skip them.
+
+---
+
+## 1. Objective
+
+A researcher can re-file an Artifact, or an Evidence graph, under another Source from the Source page. **Move to another Source…** on an Artifact row's menu or a graph card's menu opens a dialog that reads the bundle (everything that must move with it), asks for the target Source, names the side effects (credibility, a Source left with no Artifacts or no graph), and moves it in one write. The app then opens the target Source's page and a Toast says what moved. This is the app half of bar 8 ("An Artifact moves with its graphs"); S15-24 built the engine.
+
+**Why now.** The engine's `GetSourceMoveImpact` and `MoveToSource` landed in S15-24 (#935) with no caller; the Artifact row has a menu with a slot for Move (S15-35); S16-61 removed the second-window paths, so the move needs no "the Source vanished meanwhile" handling.
+
+**What stays.** The rows' and cards' visible buttons, the Artifact sheet and the graph form (no Move in either), the Evidence graph canvas, the engine and the wire (no Go or proto change). No undo.
+
+## 2. User stories
+
+**US-1.** As a researcher, when I right-click an Artifact row or an Evidence graph card on the Source page, I see **Move to another Source…**, so I can re-file it from where I see it.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-1.1 | Source S1's Artifact "Sheet 14 (image 2)" (an image that is not the cover); right-click its row | Menu titled `ART-9TB3C`: Edit…, Set cover, Move to another Source…, Delete… |
+| AC-1.2 | S1's cover Artifact "Sheet 14 (image 1)"; right-click its row | Edit…, Move to another Source…, Delete… |
+| AC-1.3 | S1's graph "Hale household, dwelling 113" (`GPH-3RX8W`, links an Artifact); right-click its card | Menu titled `GPH-3RX8W`: Open, Edit…, Move to another Source…, Delete…; Open, Edit… and Delete… do what the card's Open, pencil and trash do |
+| AC-1.4 | S1's graph "Default" with no Artifacts; right-click its card | The same four items; Open is disabled (the card's Open is disabled for a graph with no Artifact) |
+| AC-1.5 | VoiceOver on an Artifact row or graph card | The actions list includes "Move to another Source…" (the kit menu's items are the element's accessibility actions) |
+
+**US-2.** As a researcher, when the Move dialog opens, I see everything that moves together and can pick where it goes, so nothing moves that I did not see.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-2.1 | S1: graph G1 "Hale household" links A1 "Sheet 14 (image 1)" and A2 "Sheet 14 (image 2)"; G2 "Robins household" links A2; A3 "Sheet 20" and graph "Default" link nothing else. Move on A1 | The dialog opens at once, titled "Move to another Source", subtitle "Sheet 14 (image 1) · ART-7QK2M"; the bundle area shows the load area while `getSourceMoveImpact(seed: .artifact(A1), target: nil)` answers, then "Moves together", the line "A graph moves with all its Artifacts, so these move together.", Artifacts A1, A2 (the reply's order), graphs G1, G2 each with its count line; no Callout; Move disabled |
+| AC-2.2 | Move on A3, which is in no graph | One Artifact row, no graph group, no "why" line |
+| AC-2.3 | Move on the "Default" graph, which links no Artifact | One graph row, no Artifact group, no "why" line |
+| AC-2.4 | The reply has `leaves_source_empty` true and `leaves_no_graph` true | Both neutral Callouts show, naming S1's title, before any target is picked |
+| AC-2.5 | The project's Sources: S1 (current), S2 updated today, S3 updated last week | The "Move to" ComboBox offers S2 then S3 (most recently changed first), each title with its ref as subtext; S1 is not offered; typing "ED 2" keeps options whose title or ref contains it |
+| AC-2.6 | The project holds only S1 | The neutral "There is no other Source to move to…" Callout replaces the field; the bundle still loads; Move disabled |
+| AC-2.7 | The preflight fails | The kit's load-area failure "What moves could not be read." with Read again; Read again calls the preflight again; Move disabled |
+
+**US-3.** As a researcher, when I pick a target, the dialog tells me if the move changes how the records are weighed, so I am not surprised by re-ranked conclusions.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-3.1 | AC-2.1's dialog; pick S2 | The preflight is called again with target S2; the bundle stays drawn; Move stays disabled until it answers, then is enabled |
+| AC-3.2 | The reply: `source_credibility_key` "low_trust", `target_credibility_key` "", `credibility_differs` true; the project's grades list holds `low_trust` labeled "Low trust" | Warning Callout "Credibility changes" with the message naming "Low trust" for S1 and "not assessed" for S2, and "weighed as Standard"(the label of `standard`) |
+| AC-3.3 | `credibility_differs` false | No credibility Callout |
+| AC-3.4 | Pick S2, then S3 before S2's reply arrives; S2's reply arrives after S3's | The S2 reply is dropped; the note and Move follow S3's reply only |
+
+**US-4.** As a researcher, when I press Move, the bundle moves and I land on the target Source, so I can carry on filing there.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-4.1 | AC-3.1's dialog with S2's reply in; press Move | `moveToSource(seed: .artifact(A1), target: S2)` is called once; Move shows running and the dialog cannot close until it answers |
+| AC-4.2 | The move succeeds with 2 Artifacts and 2 graphs | The dialog closes; the app goes to S2's Source page (a new history entry; Back returns to S1); the workspace notice Toast reads "Moved to “{S2 title}”" / "2 Artifacts and 2 graphs", success tone |
+| AC-4.3 | A move of 1 Artifact in no graph; of 1 graph with no Artifacts | Toast bodies "1 Artifact" and "1 graph" |
+| AC-4.4 | After AC-4.2 | S1's and S2's `sourceWorkspace` keys are invalidated (`.mutatedSourceWorkspace` for each), and the write's effects are applied once; going Back to S1 shows neither A1 nor A2 nor G1 nor G2; S2's page lists them |
+| AC-4.5 | The move fails (any error) | The dialog stays open with the pick and the bundle; a danger Callout "Couldn’t move" / "Nothing was moved. {message}" at the top of the body; Move can be pressed again; no navigation, no Toast |
+
+## 3. Scope
+
+| In | Covered by |
+| --- | --- |
+| `.move` on the Artifact row's menu (MV-1) | STEP-4, AC-1.1, AC-1.2 |
+| A right-click menu on the graph card: Open, Edit…, Move…, Delete… (MV-2) | STEP-5, AC-1.3, AC-1.4, AC-1.5 |
+| Store: `getSourceMoveImpact`, `moveToSource` on `GenealogyStore`, `GoStore`, `FakeStore`; their Swift types | STEP-1 |
+| `SourceMoveModel`: preflight on open and on pick, stale-reply drop, targets, notes, move, effects, Toast (MV-3 – MV-13) | STEP-2, STEP-3, US-2, US-3, US-4 |
+| The dialog view on the Source page (MV-3 – MV-13, MV-W1) | STEP-6 |
+| Landing on the target page with the notice Toast (MV-14) | STEP-3, STEP-6, AC-4.2 |
+| Copy (L10n keys and String Catalog) | STEP-7 |
+| Version, docs | STEP-8, STEP-9 |
+
+| Out | Home |
+| --- | --- |
+| Undo; Merge Sources; Move to a new Source | not planned (rule "Refused in this spike") |
+| Move from the Artifact sheet, the graph form, the canvas, the Sources list, the Person page | not planned (S15-D10 § 2.1; the map scope names rows and graphs on the Source page) |
+| Scrolling the target page to the moved Artifact | not planned (user, 2026-11-21: land at the page's top) |
+| A target-specific message when the target Source is deleted while the dialog is open (S15-24 ship log UX-1) | not planned (user, 2026-11-21: only a second window can do it; rule "One window") |
+| Mapping `sourcemove.*` into `EngineErrorCode` and its row in `api/ffi/swift_vocabulary_test.go` (S15-24 Out named this PR) | not planned (D-9: no branch reads them; the generic message shows) |
+| A note about the old Source's cover reverting, about metadata, or about a reification Subject | not planned (S15-D10 § 2.1; `move-artifact-between-sources.md` names two side effects) |
+| A Move button on a row or card | not planned (S15-D1 SD-14, S15-D10 MV-1/MV-2: menu only) |
+
+## 4. Current state
+
+| Area | Where | Today |
+| --- | --- | --- |
+| Artifact row menu | `macos/App/Features/Sources/SourcePageArtifactRow.swift` `ArtifactRowAction` (`edit, setCover, delete`; `menuActions(canSetCover:)`, `title`, `idSuffix`), `SourcePageArtifactRow.perform(_:)`, `.pvRightClickMenu(verbatimTitle: art.ref, …)` | Three actions; the doc comment says "S15-25 adds a `.move` case between edit and delete" |
+| Graph card | `macos/App/Features/Sources/SourcePageGraphsView.swift` private `SourcePageGraphRow` | A `PVCard` with Open (`navigation.go(to: location)`, disabled when `model.graphs.location(for:)` is nil), pencil (`model.graphs.openEdit(id:)`), trash (`model.askDeleteGraph(id:)`); no right-click menu |
+| Kit menu | `macos/App/DesignSystem/Components/ContextMenu/PVActionMenu.swift` `PVActionMenuItem(title:isEnabled:accessibilityIdentifier:action:)`, `pvRightClickMenu(verbatimTitle:accessibilityIdentifier:items:)` | Items are also the element's accessibility actions; `isEnabled` dims an item |
+| Page model | `macos/App/Features/Sources/SourcePageModel.swift` `SourcePageModel` (`copying: SourceCopyModel?`, `openCopy()`, `source`, `graphs.ownGraph(id:)`, `artifacts.items`), `SourcePageContext` (`sourceID`, `projectDir`, `userID`, `store`, `session`, `sourceTypeIconKey`) | Hosts Copy Source as an optional model; nothing for Move |
+| Page view | `macos/App/Features/Sources/SourcePageView.swift` `SourcePageContent` | Chains `.sourceCopyDialog($model.copying)`, `.sourceGraphFormDialog`, `.artifactSheet`, … |
+| Copy Source (the precedent) | `macos/App/Features/Sources/SourceCopyModel.swift` `SourceCopyModel`; `SourceCopyDialog.swift` `View.sourceCopyDialog(_:)`, `SourceCopyDialogModifier` | `pvFormDialog(item:…)` whose `onConfirm` awaits the write, then `navigation.go(to: SourcesListNavigation.pageLocation(for:))`; `PVFormLoadArea` for its read; `copyError` Callout at the top |
+| Source picker (the precedent) | `macos/App/Features/SourceTypes/SourceTypeFormatsSection.swift` `SourceTypeFormatsPreviewPicker`; `SourceTypeFormatsModel.previewSources`, `sourcesAreRead` | `PVComboBox` over `SourcesModel.sourcesListKey(for:)` rows, `PVComboBoxOption(value: id, label: title, subtext: ref)`, sorted by `SourcesModel.updatedOrder`; hidden while the list is unread |
+| Store | `macos/App/Platform/GenealogyStore.swift` protocol; `GoStore.swift` `getEvidenceGraphUnlinkImpact`, `copySource`, private `mapArtifact`, `mapEvidenceGraph`, `mapEvidenceGraphProgress`, `mapWriteEffects`; `FakeStore.swift` `getEvidenceGraphUnlinkImpact` (`…Calls`, `…Error`, scripted `unlinkImpactBlocks`) | No move methods. `CoreMethod.getSourceMoveImpact` and `.moveToSource` exist in `macos/App/Platform/Generated/engine.pb.swift` (S15-24) |
+| Wire | `api/proto/engine.proto` `GetSourceMoveImpactRequest` (`artifact_id`, `graph_id`, `target_source_id`), `GetSourceMoveImpactResponse` (`source_id`, `artifacts`, `graphs`, `progress`, `source_credibility_key`, `target_credibility_key`, `credibility_differs`, `leaves_source_empty`, `leaves_no_graph`), `MoveToSourceRequest` (`user_id`, `artifact_id`, `graph_id`, `target_source_id`), `MoveToSourceResponse` (`artifact_ids`, `graph_ids`, `default_graph_id`, `effects`) | Landed in S15-24; unchanged here |
+| Source workspace cache | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` `.sourceWorkspace` | Follows mutations only (`.mutatedSourceWorkspace(sourceId:)` names one key); no `refreshes` from `WriteEffects`. The Artifact delete patches its own workspace by hand (`SourcePageModel.confirmResourceDelete`) |
+| Session | `WorkspaceSession.apply(_ effects:_ mutation:)`, `apply(_ mutation:)`, `noticeToast` ("Transient notice after leaving a place"), drawn in `WorkspaceView` | Promote sets `noticeToast` then navigates (`PromoteModel.promote()`) |
+| Grades | `CatalogQueryKey.credibilityGradesList(project:)`; `CatalogCredibilityGrade` (`key`, `label`) | The grade labels the credibility note names |
+| Graph counts | `SourcesGraphCountLine(counts: SourcesGraphCounts(progress:countsLoading:countsError:), style: .card)` | The count line the graph cards draw |
+| Thumbnails | `macos/App/Platform/CachedThumbnail.swift` `CachedThumbnail`; `CatalogArtifact.thumbnailTypeIconKey(sourceTypeIconKey:)` | The row's 64pt thumbnail draws through it |
+| Errors | `macos/App/Platform/L10n.swift` `L10n.Errors.message(for:)` (has `sourceMoveInvalid`, `sourceMoveNotFound` copy from S15-24); `ConclusionVocabulary.swift` `EngineErrorCode` | No `sourcemove` case in `EngineErrorCode` |
+| Tests | `macos/ProvenenciaTests/SourcePageModelTests.swift` (line 2524: `ArtifactRowAction.menuActions` expectations); `SourceCopyModelTests.swift` `makeStore`, `makeModel` | The row test pins today's three actions |
+
+**Precedent.** Copy Source (`SourceCopyModel`, `SourceCopyDialog.swift`, tests `SourceCopyModelTests.swift`) is the same shape: an optional model on `SourcePageModel`, a `pvFormDialog(item:)` modifier that navigates on success, a load area for the dialog's read, an error Callout. Copy that. Take the picker from `SourceTypeFormatsPreviewPicker` and the success notice from `PromoteModel.promote()` (`session.apply(effects)`, `session.noticeToast = …`, then navigate). Take the store method shape from `getEvidenceGraphUnlinkImpact` (GoStore and FakeStore). Do not copy Copy Source's dirty tracking (D-7).
+
+## 5. Decisions
+
+| ID | Decision | Why | Rejected |
+| --- | --- | --- | --- |
+| D-1 | `ArtifactRowAction` gains `.move` between `.setCover` and `.delete` (declaration order `edit, setCover, move, delete`), title `L10n.Sources.moveToAnotherSource` *(new)* "Move to another Source…", `idSuffix` "move". `perform(.move)` calls `model.openMove(artifactID: art.id)` *(new)*. `menuActions(canSetCover:)` is unchanged (it filters `allCases`). The doc comment drops its S15-25 sentence | S15-35 D-6 left the slot; MV-1's order | A Move button on the row (MV-1) |
+| D-2 | The graph card gets `GraphCardAction` *(new, in `SourcePageGraphsView.swift`)*: `enum GraphCardAction: CaseIterable { case open, edit, move, delete }` with `title` (`L10n.Sources.openEvidenceGraph`, `L10n.Sources.graphMenuEdit` *(new)* "Edit…", `L10n.Sources.moveToAnotherSource`, `L10n.Sources.graphMenuDelete` *(new)* "Delete…") and `idSuffix` (`open`, `edit`, `move`, `delete`). `SourcePageGraphRow` gains `perform(_:)`, which the visible Open, pencil and trash buttons now call too, and `.pvRightClickMenu(verbatimTitle: graph.ref, accessibilityIdentifier: "sources.page.graph.\(graph.ref).menu", items:)` on the card, each item `isEnabled` as its button: `.open` when `location != nil`, `.edit`/`.move`/`.delete` when `model.source != nil` | One action list for buttons and menu, as S15-35 did for the row (its ship log MNT-1); the menu's ref title uses S15-35 D-13's `verbatimTitle`; graph ids in the card are already keyed by ref | Reusing the Artifact row's `artifactMenuEdit` / `artifactMenuDelete` keys — their comments say Artifact, and a translator may need different words |
+| D-3 | Store: `enum CatalogSourceMoveSeed: Sendable, Equatable { case artifact(String), graph(String) }` with `var id: String`; `struct CatalogSourceMoveImpact: Sendable, Equatable { sourceID: String; artifacts: [CatalogArtifact]; graphs: [CatalogEvidenceGraph]; progress: [EvidenceGraphProgress]; sourceCredibilityKey: String; targetCredibilityKey: String; credibilityDiffers: Bool; leavesSourceEmpty: Bool; leavesNoGraph: Bool }`; `struct CatalogSourceMoveResult: Sendable, Equatable { artifactIDs: [String]; graphIDs: [String]; defaultGraphID: String?; effects: CatalogWriteEffects }` *(all new, in `GenealogyStore.swift` beside `CatalogEvidenceGraphUnlinkBlock`)*. Methods `getSourceMoveImpact(projectDir: String, seed: CatalogSourceMoveSeed, targetSourceID: String?) async throws -> CatalogSourceMoveImpact` and `moveToSource(projectDir: String, userID: String, seed: CatalogSourceMoveSeed, targetSourceID: String) async throws -> CatalogSourceMoveResult` *(new)*. GoStore sets exactly one of `artifactID`/`graphID` from the seed, `targetSourceID ?? ""`, and maps with the existing `mapArtifact`, `mapEvidenceGraph`, `mapEvidenceGraphProgress`, `mapWriteEffects`; an empty `default_graph_id` maps to nil | The wire's "exactly one of" is a Swift enum, so the app cannot send both; reuses every existing mapper | Two optional strings in Swift — the invalid state stays expressible |
+| D-4 | FakeStore: `sourceMoveImpacts: [String: CatalogSourceMoveImpact]` (keyed by the seed's id; the target's credibility fields come from `sourceMoveTargetCredibility: [String: (key: String, differs: Bool)]` keyed by target id, applied when a target is given), `getSourceMoveImpactCalls: [(seed, target)]`, `getSourceMoveImpactError`, `getSourceMoveImpactHold: FakeHold` (the file's existing pause, so a test holds a reply and releases replies in its own order), `moveToSourceCalls`, `moveToSourceError`; a successful `moveToSource` sets `sourceID` to the target on the fake's Artifacts and graphs named by the seed's scripted impact and returns them with `effects` whose `sourceScopes` holds both Source ids | Scripted, as `unlinkImpactBlocks`; the bundle closure is Go's (S15-24), not the fake's to reimplement | A Swift closure walk in FakeStore — a second derivation of the bundle |
+| D-5 | `SourceMoveModel` *(new, `macos/App/Features/Sources/SourceMoveModel.swift`)*, `@MainActor @Observable final class`, built by `SourcePageModel.openMove(artifactID:)` / `openMove(graphID:)` *(new)* into `SourcePageModel.moving: SourceMoveModel?` *(new)*. It holds `seed`, `origin: CatalogSource` (the page's `source`), `seedTitle` and `seedRef` (the Artifact's `displayTitle` and `ref`, or the graph's `name` and `ref`, read from `artifacts.items` / `graphs.ownGraph(id:)`; an id not found opens nothing), handles on `SourcesModel.sourcesListKey(for:)` and `.credibilityGradesList(project:)` (taken with `session.query`, as `SourceCopyModel` takes its handles), `sourceTypeIconKey: String?` (the page context's `sourceTypeIconKey`, for the bundle's thumbnails), `targetID: String?`, `impact: CatalogSourceMoveImpact?`, `impactTarget: String?` (the target the held reply answered), `readState: PVFormLoadState`, `isReading`, `isMoving`, `moveError: String?` | Copy Source's shape; the page already owns the rows the seed comes from | A `CatalogQueryKey` for the preflight — a dialog-local read held only while open, as `getDeleteImpact` and `getEvidenceGraphUnlinkImpact` are read |
+| D-6 | Reads: `init` starts `read(target: nil)`. `pick(targetID:)` sets `targetID` and starts `read(target:)`. Each `read` takes a sequence number (`readSeq += 1`); a reply or error whose number is not the latest is dropped. While a read with a target runs, `impact` keeps the last reply (the bundle stays drawn) and `readState` stays `.ready` once any reply arrived; the first read's loading and any failure set `readState` (`.loading`, `.failed(L10n.Errors.message(for:))`). `readAgain()` repeats the latest read. `canMove` = `impact != nil && targetID != nil && impactTarget == targetID && !isReading && !isMoving` | AC-3.1, AC-3.4; S15-24 D-12 ("ask again with it, through one RPC") | Debouncing the pick — a pick is one click, not typing |
+| D-7 | Cancel and Escape close the dialog without asking: `isDirty` is not passed (false). `pvFormDialog`'s `isRunning: model.isMoving` blocks closing during the write | MV-3: nothing is typed; the kit's running rule covers MV-12 | Copy Source's `isDirty` — a pick is not work to lose |
+| D-8 | `move() async -> CatalogSource?`: guards `canMove`; sets `isMoving`; calls `moveToSource`; on success `session.apply(result.effects, .mutatedSourceWorkspace(sourceId: origin.id))`, then `session.apply(.mutatedSourceWorkspace(sourceId: target.id))`, then `session.noticeToast = VocabularyToast(title: L10n.Sources.moveDoneTitle(target: target.title), body: Self.doneBody(artifacts: result.artifactIDs.count, graphs: result.graphIDs.count), tone: .success)`, and returns the target `CatalogSource` (from the Sources list rows). The dialog modifier's `onConfirm` then calls `navigation.go(to: SourcesListNavigation.pageLocation(for: target))` and returns true. On error: `moveError = L10n.Errors.message(for: error)`, returns nil (the dialog stays) | `.sourceWorkspace` follows mutations only (§ 4), so both Sources' keys are named by mutation; the effects cover the graph lists, the Sources list, the graph index and the provenance reads; the notice Toast outlives the page change (Promote's precedent); landing at the top is the user's call (2026-11-21) | Patching both workspaces by hand as the Artifact delete does — the move changes two Sources' Artifacts, graphs and cover; a page-local Toast — it dies with the old page |
+| D-9 | No `EngineErrorCode` case for `sourcemove.*`, and no parity row: no code branches on them. Every refusal shows `L10n.Errors.message(for:)` (S15-24 added the copy) in the load-area failure or the "Couldn’t move" Callout | One window: the seed and the target cannot vanish while the modal dialog is open; `sourcemove.invalid` is a client bug. The S15-24 plan's Out line named this PR for the mapping; this Decision retires it | Mapping them for parity — a case no `switch` reads |
+| D-10 | Targets: `targets: [CatalogSource]?` = the Sources list's rows minus `origin.id`, sorted by `SourcesModel.updatedOrder`; nil while the list is unread (no field and no Callout, as the format editor's picker). Read and empty → the "nowhere to move" Callout (MV-11). `PVComboBox` options `PVComboBoxOption(value: id, label: title, subtext: ref)`; the kit's own filter matches the typed text | The user's order (2026-11-21); the format editor's picker is the precedent | A target read over FFI — the list is the session's cached Sources list |
+| D-11 | Credibility note: shown when `impact.credibilityDiffers && impactTarget == targetID`. A grade's words: the label of the grade in the grades list whose `key` matches; "" → `L10n.Sources.moveNotAssessed` *(new)* "not assessed"; a key with no grade in the list → the key. "Weighed as" names the target's label, or the label of `standard` when the target is not assessed | MV-7; S15-24 D-11 ("" and "standard" weigh alike) | Sending labels over the wire — the proto carries keys; the grades list is cached |
+| D-12 | Toast body: `doneBody(artifacts:graphs:)` *(static, testable)* picks one of three plural keys by which counts are zero, never by `== 1`: both > 0 → `L10n.Sources.moveDoneBody(artifacts:graphs:)` "%#@artifacts@ and %#@graphs@"; graphs 0 → `moveDoneArtifacts(count)` "%lld Artifacts"; artifacts 0 → `moveDoneGraphs(count)` "%lld graphs", each with plural variations | MV-14; `add-localized-string`: counts are plural keys | Labels joined in the body — up to ten names in a Toast |
+| D-13 | Bundle rows are private views in `SourceMoveDialog.swift` *(new)*: an Artifact row = `CachedThumbnail(…, typeIconKey: art.thumbnailTypeIconKey(sourceTypeIconKey: model.sourceTypeIconKey), size: 32)`, `displayTitle` (body, semibold), `ref` (mono caption, muted); a graph row = `PVIcon(.gitBranch, size: 13)`, `name`, `ref`, `SourcesGraphCountLine(counts: SourcesGraphCounts(progress: impact.progress[i], countsLoading: false, countsError: nil), style: .card)`. Rows in the reply's order; the seed is not marked. The "why" line shows when `artifacts.count + graphs.count > 1` | MV-5; reuses the page's count line and thumbnail; one call site, so a snowflake | `PVArtifactChecklist` — its rows can be unticked; the page's `SourcePageArtifactRow` — it carries actions and copy details |
+| D-14 | The dialog: `View.sourceMoveDialog(_ model: Binding<SourceMoveModel?>)` *(new)* → `pvFormDialog(item:copy:width: 560, isRunning:confirmDisabled: !canMove, accessibilityIdentifierPrefix: "sources.move", scrollsBody: true, onConfirm:form:)`, `PVFormDialogCopy(title: L10n.Sources.moveDialogTitle, verbatimSubtitle: "\(seedTitle) · \(seedRef)", confirm: L10n.Sources.moveConfirm, cancel: L10n.Sources.cancelAction)`. Body order: `moveError` Callout; the field or the nowhere Callout; `PVFormLoadArea(state: readState, …)` holding the bundle; the notes (credibility, then left-behind). Chained in `SourcePageContent` after `.sourceCopyDialog` | MV-3 – MV-13, MV-W1 (one width at both classes) | `pvConfirm` — it has no field slot |
+
+**Rules this plan bends.** None.
+
+## 6. Design
+
+### Codebase fit
+
+| New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
+| --- | --- | --- | --- |
+| `ArtifactRowAction.move` | enum case | `ArtifactRowAction` | Extends it (D-1) |
+| `GraphCardAction` | enum | `ArtifactRowAction` | Same shape for another snowflake; a shared enum would mix Set cover into graphs (searched `rg "enum .*Action: CaseIterable" macos/App/Features/Sources`) |
+| `CatalogSourceMoveSeed`, `CatalogSourceMoveImpact`, `CatalogSourceMoveResult` | types | `CatalogEvidenceGraphUnlinkBlock`, `CatalogDeleteImpact` | A different reply |
+| `getSourceMoveImpact`, `moveToSource` (protocol, GoStore, FakeStore) | store methods | `getEvidenceGraphUnlinkImpact`, `copySource` | New RPCs (S15-24) |
+| `SourceMoveModel` | model | `SourceCopyModel` | Same shape, another write; nothing to share beyond the pattern (searched `rg "final class Source.*Model" macos/App/Features/Sources`) |
+| `SourceMoveDialog.swift` (`sourceMoveDialog`, the form, bundle rows) | view | `SourceCopyDialog.swift` | Same shape; the rows are D-13 |
+| `SourcePageModel.moving`, `openMove(artifactID:)`, `openMove(graphID:)` | state / funcs | `copying`, `openCopy()` | Extends the page model |
+| `L10n.Sources.move*` keys, `graphMenuEdit`, `graphMenuDelete` | keys | `copySource*`, `artifactMenu*` | New copy |
+| `SourceMoveModelTests.swift` | tests | `SourceCopyModelTests.swift` | New model |
+
+**Builds on.** The kit's FormDialog, ComboBox, FormLoadArea, Callout, ContextMenu (`verbatimTitle`); `WorkspaceSession.apply` and `noticeToast`; `SourcesModel.sourcesListKey` and `updatedOrder`; `SourcesGraphCountLine`; `CachedThumbnail`; the Copy Source dialog shape.
+**Deletes.** The stale sentence "S15-25 adds a `.move` case between edit and delete" on `ArtifactRowAction`. Nothing else becomes dead.
+**Next adds.** Undo (refused this spike) would be a second `moveToSource` from the Toast. Move from the canvas or the Artifact sheet would call `SourcePageModel.openMove` from their hosts.
+
+### Reach
+
+| New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
+| --- | --- | --- |
+| The Source page after a move took some or all of its Artifacts and graphs | `SourcePageModel.apply`, `SourceArtifactsSection`, `SourceGraphsSection` | Back to S1 reloads its workspace (invalidated, D-8); an empty Artifacts list and a page with only the new Default graph are states the page already draws (every Artifact deleted; a new Source) |
+| A Source whose cover Artifact moved | Sources list row thumbnail, the page header | The engine reset the cover (S15-24 D-7); the Sources list follows `sourceScopes`, the workspace is invalidated |
+| The target page opened with Artifacts and graphs that were elsewhere | `SourcePageView` via `navigation.go(to:)` | A normal page open; its workspace key was invalidated so a cached copy reloads |
+| The graph canvas or composer of a moved graph, in history | `WorkspaceLocation.sourceId` of an older entry names S1 with the graph | Not handled here: S15-24's effects name the graph (`evidenceGraphs`), and the place reconciles by `graphId`. **Stop condition** if Back to such an entry fails to open (§ 11) |
+
+### Scale
+
+At the map's Scale (a bundle of 5 Artifacts and 5 graphs with up to 100 Subjects; 3,000 Sources): the preflight runs twice per dialog (open, pick) plus once per later pick; each is S15-24's three-query closure and cache reads. The ComboBox holds up to 2,999 options filtered by the kit. The dialog draws at most 10 bundle rows, each one thumbnail from the cache. The move is one write; `apply` reloads the visible workspace and marks the target's stale. No budget is set.
+
+### Edges
+
+- **Assumptions.** (1) The reply's `progress` has one row per graph in the same order (proto comment); D-13 indexes it by position, and a shorter list draws no count line for the missing rows (no crash). (2) The Sources list holds `origin` and the target; the target `CatalogSource` comes from it.
+- **Neighbors.** A bundle of one row draws no "why" line (AC-2.2, AC-2.3); two rows draw it. Credibility "" vs "standard" shows no note because the engine says they do not differ (AC-3.3).
+- **Removed inputs.** The old page loses the moved rows on reload (AC-4.4).
+- **Real data.** None — no table or seed drives a rule here.
+- **Untrusted size.** None — every input is the app's own catalog read.
+
+### Schema
+
+None — no catalog change.
+
+### Go core
+
+None — the engine landed in S15-24.
+
+### FFI
+
+None — `GetSourceMoveImpact` and `MoveToSource` exist; Swift calls them through the generated `CoreMethod.getSourceMoveImpact` and `.moveToSource`.
+
+### macOS
+
+| Building block | Component | Home | Notes |
+| --- | --- | --- | --- |
+| Artifact row menu | `pvRightClickMenu`, `PVActionMenuItem` | `SourcePageArtifactRow.swift` | `.move` (D-1, MV-1) |
+| Graph card menu | `pvRightClickMenu(verbatimTitle:)` | `SourcePageGraphsView.swift` `SourcePageGraphRow` | `GraphCardAction` (D-2, MV-2) |
+| Move dialog | `pvFormDialog(item:)` | `SourceMoveDialog.swift` *(new)* | 560pt, scrolls its body (D-14, MV-3, MV-6) |
+| Target picker | `PVField` + `PVComboBox` | same | D-10, MV-4 |
+| Bundle | `PVFormLoadArea`, `PVSubsectionHeader`, `CachedThumbnail`, `PVIcon`, `SourcesGraphCountLine` | same | D-13, MV-5, MV-9, MV-10 |
+| Notes | `PVCallout` (warning, neutral, danger) | same | MV-7, MV-8, MV-11, MV-13 |
+| Notice | `WorkspaceSession.noticeToast` | `SourceMoveModel.move()` | MV-14 |
+
+**Frames in words (until the board is agreed; from S15-D10 § 5).** *Frame 1*: image 2's row menu `ART-9TB3C`: Edit…, Set cover, Move to another Source…, Delete…. *Frame 2*: the Hale card's menu `GPH-3RX8W`: Open, Edit…, Move to another Source…, Delete…. *Frame 3a/3b*: over the page, a 560pt dialog "Move to another Source" / "Sheet 14 (image 1) · ART-7QK2M"; "Move to" with an empty ComboBox "Choose a Source"; "Moves together", the line "A graph moves with all its Artifacts, so these move together.", two Artifact rows (32pt thumb, label, ref), two graph rows (branch glyph, name, ref, count line); Cancel and a dimmed Move. *Frame 4*: the ComboBox open, "ED 2" typed. *Frame 5*: ED 237 picked, the warning Callout "Credibility changes". *Frame 6*: one Artifact, one graph, both neutral left-behind Callouts. *Frame 7*: from the Default graph, one graph row. *Frame 8*: skeleton bars with "Reading what moves with it". *Frame 9*: the load-area failure with Read again. *Frame 10*: the "no other Source" Callout. *Frame 11*: Move running; "Couldn’t move". *Frame 12*: the target page with the Toast. The agreed board replaces these words; copy its decisions into D-13/D-14 and § 6 Strings before marking Planned.
+
+States: loading (MV-9), read failed (MV-10), nowhere to move (MV-11), running (MV-12), failed (MV-13). Accessibility: the menus' items are accessibility actions (AC-1.5); the bundle rows are combined elements reading "Sheet 14 (image 1), ART-7QK2M" and "Hale household, dwelling 113, GPH-3RX8W, 4 people, 6 citations"; identifiers `sources.move.*`, `sources.page.artifact.<id>.menu.move`, `sources.page.graph.<ref>.menu.<suffix>`.
+
+### Strings
+
+L10n keys *(new)*, in `L10n.Sources`, each in `Localizable.xcstrings`:
+
+| Key | English |
+| --- | --- |
+| `moveToAnotherSource` | "Move to another Source…" |
+| `graphMenuEdit` / `graphMenuDelete` | "Edit…" / "Delete…" |
+| `moveDialogTitle` | "Move to another Source" |
+| `moveConfirm` | "Move" |
+| `moveTargetLabel` / `moveTargetPlaceholder` / `moveTargetNoMatch` | "Move to" / "Choose a Source" / "No Source matches" |
+| `moveNowhere` | "There is no other Source to move to. Add a Source first, or copy this one." |
+| `moveTogether` / `moveTogetherWhy` | "Moves together" / "A graph moves with all its Artifacts, so these move together." |
+| `moveLoading` / `moveLoadErrorTitle` / `moveLoadErrorMessage(_:)` | "Reading what moves with it" / "What moves could not be read." / "Nothing was moved. Try reading it again. %@" |
+| `moveCredibilityTitle` / `moveCredibilityMessage(origin:originGrade:target:targetGrade:weighedAs:)` | "Credibility changes" / "“%1$@” is assessed %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change." |
+| `moveNotAssessed` | "not assessed" |
+| `moveLeavesEmpty(_:)` / `moveLeavesNoGraph(_:)` | "“%@” will have no Artifacts left. It is not deleted." / "“%@” gets a new empty graph named Default, so it keeps one." |
+| `moveFailedTitle` / `moveFailedMessage(_:)` | "Couldn’t move" / "Nothing was moved. %@" |
+| `moveDoneTitle(target:)` | "Moved to “%@”" |
+| `moveDoneBody(artifacts:graphs:)`, `moveDoneArtifacts(_:)`, `moveDoneGraphs(_:)` | plural keys, D-12 |
+
+The board may change wording; its words win, and this table is updated before Planned. No existing copy names the old scope of an action.
+
+## 7. Steps
+
+**STEP-1 — Store methods**
+Files: `macos/App/Platform/GenealogyStore.swift`, `GoStore.swift`, `FakeStore.swift`. Skill: `add-swift-test`.
+Do: D-3 types and protocol methods; GoStore calls and mapping; FakeStore per D-4. Test first: T-1, red until the fake exists.
+Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/SourceMoveModelTests` passes.
+
+**STEP-2 — `SourceMoveModel`: reads and targets**
+Files: `macos/App/Features/Sources/SourceMoveModel.swift` *(new)*, `SourcePageModel.swift` (`moving`, `openMove(artifactID:)`, `openMove(graphID:)`), `macos/ProvenenciaTests/SourceMoveModelTests.swift` *(new)*. Skills: `add-swift-test`, `add-localized-string`.
+Do: D-5, D-6, D-10, D-11, D-13's "why" rule as `showsWhy`, the notes as computed properties (`credibilityNote: (title: String, message: String)?`, `leavesEmptyNote: String?`, `leavesNoGraphNote: String?`).
+Check: T-4 – T-10 pass.
+
+**STEP-3 — `SourceMoveModel`: move and land**
+Files: `SourceMoveModel.swift`, `SourceMoveModelTests.swift`.
+Do: D-8, D-12.
+Check: T-11 – T-13 pass.
+
+**STEP-4 — Move on the Artifact row**
+Files: `SourcePageArtifactRow.swift`, `macos/ProvenenciaTests/SourcePageModelTests.swift`. Skill: `add-localized-string`.
+Do: D-1. Update the test at `SourcePageModelTests.swift:2524` to `[.edit, .setCover, .move, .delete]` and `[.edit, .move, .delete]`, plus the `.move` title.
+Check: T-2 passes.
+
+**STEP-5 — The graph card's menu**
+Files: `SourcePageGraphsView.swift`, `SourcePageModelTests.swift`. Skill: `add-ui-component`.
+Do: D-2. The visible buttons call `perform(_:)`.
+Check: T-3 passes; the app builds.
+
+**STEP-6 — The dialog**
+Files: `macos/App/Features/Sources/SourceMoveDialog.swift` *(new)*, `SourcePageView.swift` (`.sourceMoveDialog($model.moving)`). Skill: `add-ui-component`.
+Do: D-13, D-14, the frames (the agreed board; § 6 Frames in words until then).
+Check: the app builds; manual check steps 2–4 show the frames.
+
+**STEP-7 — Copy**
+Files: `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skill: `add-localized-string`.
+Do: § 6 Strings (written as each step needs it; this step checks the catalog).
+Check: `python3 scripts/check-localizable-xcstrings.py` passes; no hard-coded English in the new files (`rg 'Text\("' macos/App/Features/Sources/SourceMoveDialog.swift` prints nothing).
+
+**STEP-8 — Version**
+Files: `VERSION`, `core/version.go`, `macos/Provenencia.xcodeproj/project.pbxproj`.
+Do: the header's bump.
+Check: `scripts/check-pr.sh` prints `check-pr: PASS`.
+
+**STEP-9 — Docs**
+Files: `docs/deployment-plan/spike-15/completed.md`; `deployment-plan.md` (map row status); this plan (status, Landed note); `design/S15-D10-move-confirm.md`, `design/S15-D1-source-page.md`, `design/S15-D14-source-page-artifacts.md` → `design/archive/` (S15-25 is the last PR each gates) and `design/README.md` (rows to Archived; fix relative links in the moved files); `move-artifact-between-sources.md` (Status: built in S15-24 and S15-25; "Navigation" engine note: lands at the target page's top, user 2026-11-21).
+Do: per the Definition of done.
+Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/design/archive/S15-D10-move-confirm.md` reports no errors.
+
+Commits: one per behavior. The subject is one full imperative sentence that says what changed for the researcher, ending in a period ("Offer Move to another Source on Artifact rows.", "Add a right-click menu to Evidence graph cards."). No WIP commits.
+
+## 8. Tests
+
+Swift Testing, `FakeStore`, built like `SourceCopyModelTests.makeStore` / `makeModel`.
+
+| ID | Layer | File · test | Case: input → expected | Covers |
+| --- | --- | --- | --- | --- |
+| T-1 | Swift | `macos/ProvenenciaTests/SourceMoveModelTests.swift` `fakeStoreRecordsMoveCalls` *(new)* | A scripted impact for A1; call both methods → calls recorded with the seed and target; the fake's A1 now has the target's `sourceID` | D-3, D-4 |
+| T-2 | Swift | `SourcePageModelTests.swift` (the `ArtifactRowAction` test at line 2524) | `menuActions(canSetCover: true)` → `[.edit, .setCover, .move, .delete]`; `false` → `[.edit, .move, .delete]`; `.move` title "Move to another Source…" | AC-1.1, AC-1.2, D-1 |
+| T-3 | Swift | `SourcePageModelTests.swift` `graphCardActions` *(new)* | `GraphCardAction.allCases` → `[.open, .edit, .move, .delete]`; titles "Open", "Edit…", "Move to another Source…", "Delete…" | AC-1.3, D-2 |
+| T-4 | Swift | `SourceMoveModelTests` `opensWithTheBundle` *(new)* | `openMove(artifactID: A1)` → one preflight with target nil; `readState` `.loading` then `.ready`; `impact` the scripted one; `canMove` false; subtitle parts "Sheet 14 (image 1)", "ART-7QK2M"; an unknown id opens nothing | AC-2.1, D-5, D-6 |
+| T-5 | Swift | `SourceMoveModelTests` `whyLineOnlyForMoreThanOneRow` *(new)* | 1 Artifact → false; 1 graph → false; 2 Artifacts + 2 graphs → true | AC-2.1, AC-2.2, AC-2.3, D-13 |
+| T-6 | Swift | `SourceMoveModelTests` `leftBehindNotes` *(new)* | `leavesSourceEmpty`/`leavesNoGraph` each true and false → each note present or nil, naming the origin's title | AC-2.4 |
+| T-7 | Swift | `SourceMoveModelTests` `targetsExcludeOriginRecentFirst` *(new)* | Sources S1 (origin), S2 (updated today), S3 (last week) → `targets` S2, S3; only S1 → `targets` empty and the nowhere state; list unread → nil | AC-2.5, AC-2.6, D-10 |
+| T-8 | Swift | `SourceMoveModelTests` `pickReadsAgainAndDropsStaleReplies` *(new)* | With `getSourceMoveImpactHold` on: pick S2, pick S3, release S3's call, then S2's → `impactTarget` S3; `canMove` true only after S3's reply; the bundle (`impact.artifacts`) stays non-nil throughout | AC-3.1, AC-3.4, D-6 |
+| T-9 | Swift | `SourceMoveModelTests` `credibilityNote` *(new)* | Grades `standard` "Standard", `low_trust` "Low trust"; reply keys "low_trust"/"", differs true → message names "Low trust", "not assessed", "Standard"; differs false → nil; a key absent from the grades → the key | AC-3.2, AC-3.3, D-11 |
+| T-10 | Swift | `SourceMoveModelTests` `readFailureAndReadAgain` *(new)* | Preflight error → `.failed(message)`, `canMove` false; clear the error, `readAgain()` → `.ready` | AC-2.7 |
+| T-11 | Swift | `SourceMoveModelTests` `moveAppliesBothSourcesAndToasts` *(new)* | Move 2 Artifacts + 2 graphs → returns S2; one `moveToSource` call; both `sourceWorkspace` keys of S1 and S2 reload or go stale (after `session.settleWrites()`, the keys' handles show a new read or are stale); `session.noticeToast` title "Moved to “{S2}”", body "2 Artifacts and 2 graphs", tone success | AC-4.1, AC-4.2, AC-4.4, D-8 |
+| T-12 | Swift | `SourceMoveModelTests` `doneBodyCounts` *(new)* | (2,2) → "2 Artifacts and 2 graphs"; (1,1) → "1 Artifact and 1 graph"; (1,0) → "1 Artifact"; (0,1) → "1 graph" | AC-4.3, D-12 |
+| T-13 | Swift | `SourceMoveModelTests` `moveFailureKeepsTheDialog` *(new)* | `moveToSourceError` set → returns nil; `moveError` "Nothing was moved. …"; `targetID` and `impact` kept; no `noticeToast` | AC-4.5 |
+
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `SourcePageModelTests` (the row's actions), any test that asserts the graph card's accessibility tree.
+
+## 9. Definition of done
+
+```
+- [ ] Every AC in §2 is true: test name or manual check line for each
+- [ ] Every T-# in §8 exists and passes
+- [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
+- [ ] No Out line was implemented; no code outside §4 / §6 was refactored
+- [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
+- [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
+- [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — or none
+- [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
+- [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
+- [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — S15-D10, S15-D1 and S15-D14 all move (S15-25 is the last PR each gates)
+- [ ] Domain doc updated if a rule in docs/*.md changed: none; move-artifact-between-sources.md Status and "Navigation" note updated
+- [ ] PR description: what shipped, AC evidence, deviations, manual check
+```
+
+## 10. Manual check
+
+Makes bar 8 true: "**Move to another Source…** from an Artifact or a graph shows everything that moves together, keeps every ref, and the moved Citations then read the target Source."
+
+1. In a dogfood project copy, open a census Source with two images whose household graphs share one image (or make one: link a graph to two images). Note the refs of both images and graphs, and a Citation on one of them. Make a second census Source.
+2. Right-click an image's row: Move to another Source… sits between Set cover (or Edit…) and Delete…. Right-click a graph card: Open, Edit…, Move to another Source…, Delete…; on the Source's Default graph with no Artifact, Open is dimmed (AC-1.4). With VoiceOver on, the row's and the card's actions list Move to another Source… (AC-1.5).
+3. Choose Move on the image: the dialog lists both images and both graphs with "Moves together" and the why line. Pick the second Source; if the two credibility grades differ, the note names both.
+4. Press Move: the second Source's page opens at its top; the Toast says "Moved to “…”" and "2 Artifacts and 2 graphs". The rows are there with the same refs.
+5. Open the Person page of someone in a moved graph; open a value's provenance sheet: the moved Citation's citation reads the second Source's title. Go Back to the first Source: it lists neither image nor graph; if both were all it had, it shows "Default" and no Artifacts.
+6. Window at 1366 and at 2560 wide: the menus and the dialog look the same (MV-W1).
+
+## 11. Risks and stop conditions
+
+| Risk | Mitigation |
+| --- | --- |
+| The old page reloads while the dialog closes and the navigation runs, and flashes a half-empty list | The navigation runs in `onConfirm` right after `move()` returns; the old page leaves the screen in the same update |
+| A history entry for a moved graph's canvas carries the old `sourceId` | § 6 Reach row 4 and the stop condition below |
+| The board draws something the Decisions do not cover | Copy the board's decisions into D-13, D-14 and § 6 before status Planned (this plan is Blocked until then) |
+
+**Stop and report if:**
+
+- `ArtifactRowAction`, `SourcePageGraphRow` or `SourceCopyDialog.swift` no longer read as § 4 says.
+- `WorkspaceSession.apply(_:_:)` or `noticeToast` no longer exist or no longer survive `navigation.go(to:)`.
+- `.sourceWorkspace` gains a `refreshes` entry that follows `sourceScopes` (D-8's mutations would then be a second refresh: report, do not add both).
+- Back to a history entry for a moved graph's canvas (made before the move) shows an error or the wrong Source in manual check step 5.
+- The kit's `PVComboBox` cannot hold 3,000 options without a visible stall when opened (Scale).
+- A test needs `EngineErrorCode` to branch on a `sourcemove.*` code (D-9 would be wrong).
+
+## 12. Open questions
+
+None. The board (S15-D10) is the only gate; its decisions are copied in when it is agreed.
+
+## 13. PR
+
+**Title:** S15-25 — Move from an Artifact or a graph
+**Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-25-move-from-artifact-or-graph.md`.
