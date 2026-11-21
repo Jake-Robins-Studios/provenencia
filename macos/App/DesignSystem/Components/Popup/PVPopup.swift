@@ -7,6 +7,9 @@ struct PVPopupOptions: Equatable {
     /// The popup's keys belong to a field that stays focused (a `PVSelect`),
     /// so the watcher does not watch keys at all, Escape included.
     var keysStayInField = false
+    /// A mouse event on the popup's anchor (its field) passes: the popup stays
+    /// open on a click in its own field (a combo box's list).
+    var staysOpenOnFieldClick = false
 }
 
 enum PVPopupMouseButton: Equatable {
@@ -86,21 +89,28 @@ enum PVPopupDecision: Equatable {
     /// Hand the key to the popup; it is swallowed when the popup handles it.
     case toPopup(KeyEquivalent)
 
+    /// `onAnchor` is whether a mouse event landed on the popup's anchor;
+    /// `pressBeganInside` is whether this release's press began inside the
+    /// popup, or on the anchor with `staysOpenOnFieldClick`. A click is outside
+    /// only when its press began outside.
     static func decide(
         _ input: PVPopupInput,
         openingPressPending: Bool,
+        onAnchor: Bool = false,
+        pressBeganInside: Bool = false,
         options: PVPopupOptions
     ) -> PVPopupDecision {
+        let onField = options.staysOpenOnFieldClick && onAnchor
         switch input {
         case .key(let key):
             if options.keysStayInField { return .pass }
             return key == .escape ? .close(consumesEvent: true) : .toPopup(key)
         case .mouseUp(let button, let inside):
             if openingPressPending { return .endOpeningPress }
-            guard button == .left, !inside else { return .pass }
+            guard button == .left, !inside, !onField, !pressBeganInside else { return .pass }
             return .close(consumesEvent: false)
         case .mouseDown(let button, let inside):
-            guard button != .left, !inside else { return .pass }
+            guard button != .left, !inside, !onField else { return .pass }
             return .close(consumesEvent: false)
         case .windowResignedKey:
             return .close(consumesEvent: false)
@@ -184,6 +194,8 @@ private final class PVPopupWatcherView: NSView {
     /// The event current when the popup turned presented (D-5).
     private var openingEvent: NSEvent?
     private var openingPress = PVPopupOpeningPress.none
+    /// Whether the left press now held began inside the popup or on the field.
+    private var pressBeganInside = false
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -218,7 +230,7 @@ private final class PVPopupWatcherView: NSView {
             openingEvent: openingEvent, pressedMouseButtons: NSEvent.pressedMouseButtons
         )
         var mask: NSEvent.EventTypeMask = [
-            .leftMouseUp, .rightMouseUp, .otherMouseUp, .rightMouseDown, .otherMouseDown,
+            .leftMouseDown, .leftMouseUp, .rightMouseUp, .otherMouseUp, .rightMouseDown, .otherMouseDown,
         ]
         if !options.keysStayInField { mask.insert(.keyDown) }
         monitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
@@ -241,23 +253,51 @@ private final class PVPopupWatcherView: NSView {
         resignObserver = nil
         openingEvent = nil
         openingPress = .none
+        pressBeganInside = false
     }
 
     /// True when the event is swallowed.
     private func handle(_ event: NSEvent) -> Bool {
         guard let input = PVPopupInput(event) else { return false }
+        let onAnchor = isOnAnchor(event)
         let releasesOpeningPress: Bool
-        if case .mouseUp = input {
+        var beganInside = false
+        switch input {
+        case .mouseUp(let button, _):
             releasesOpeningPress = openingPress.endsOpeningPress(event)
-        } else {
+            if button == .left {
+                beganInside = pressBeganInside
+                pressBeganInside = false
+            }
+        case .mouseDown(.left, let inside):
+            releasesOpeningPress = false
+            pressBeganInside = inside || (options.staysOpenOnFieldClick && onAnchor)
+        default:
             releasesOpeningPress = false
         }
-        return apply(input, openingPressPending: releasesOpeningPress)
+        return apply(
+            input, openingPressPending: releasesOpeningPress,
+            onAnchor: onAnchor, pressBeganInside: beganInside
+        )
+    }
+
+    /// The watcher is a `.background` of its anchor, so its bounds are the anchor's.
+    private func isOnAnchor(_ event: NSEvent) -> Bool {
+        guard let window, event.window === window else { return false }
+        return bounds.contains(convert(event.locationInWindow, from: nil))
     }
 
     /// Applies the decision. True when the event is swallowed.
-    private func apply(_ input: PVPopupInput, openingPressPending: Bool = false) -> Bool {
-        switch PVPopupDecision.decide(input, openingPressPending: openingPressPending, options: options) {
+    private func apply(
+        _ input: PVPopupInput,
+        openingPressPending: Bool = false,
+        onAnchor: Bool = false,
+        pressBeganInside: Bool = false
+    ) -> Bool {
+        switch PVPopupDecision.decide(
+            input, openingPressPending: openingPressPending,
+            onAnchor: onAnchor, pressBeganInside: pressBeganInside, options: options
+        ) {
         case .pass, .endOpeningPress:
             return false
         case .close(let consumesEvent):
@@ -275,7 +315,7 @@ extension View {
     /// The one presenter of a floating popup. Attach it to the popup's anchor.
     /// Escape, a left click outside (on release), a right-click outside and an
     /// app switch close it; the press that opened it never does; a click
-    /// inside never does. Keys other than Escape go to `onKey`. See
+    /// inside never does; a click is outside only when its press began outside. Keys other than Escape go to `onKey`. See
     /// `PVPopupDecision.decide`.
     func pvPopup(
         isPresented: Binding<Bool>,
