@@ -21,10 +21,9 @@ struct CatalogSessionStoreTests {
 
     @Test func renderCitationsAnswersTheAskedIds() async throws {
         let store = FakeStore()
-        func rendered(_ id: String) -> CatalogRenderedCitation {
-            renderedCitation(id, key: "citation:\(id)", full: "")
-        }
-        store.renderCitationsReplies = ["a": rendered("a"), "b": rendered("b")]
+        store.renderCitationsReplies = [
+            "a": renderedCitation("a", key: "citation:a", full: ""), "b": renderedCitation("b", key: "citation:b", full: ""),
+        ]
         let reply = try await store.renderCitations(projectDir: projectDir, citationIDs: ["a", "b", "c"])
         #expect(reply.citations.map(\.citationID) == ["a", "b"])
         #expect(store.renderCitationsCalls == [["a", "b", "c"]])
