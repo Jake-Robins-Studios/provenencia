@@ -96,13 +96,14 @@ private struct OmnibarResultsPanel: View {
 
     var body: some View {
         Group {
-            if results.search.showsErrorState {
-                errorState
-            } else if results.search.showsEmptyState {
+            switch results.search.line {
+            case .failed(let message):
+                errorState(message)
+            case .noMatches:
                 emptyState
-            } else if results.search.showsLoadingState {
+            case .searching:
                 loadingState
-            } else {
+            case .rows:
                 // ScrollView expands to the proposed height unless we ask for
                 // the ideal (content) height — clamp only when the list is tall.
                 ScrollView {
@@ -166,11 +167,8 @@ private struct OmnibarResultsPanel: View {
         .accessibilityIdentifier("workspace.toolbar.omnibar.loading")
     }
 
-    private var errorState: some View {
-        PVCallout(
-            tone: .danger,
-            message: results.search.searchError ?? L10n.string(L10n.Workspace.omnibarSearchFailed)
-        )
+    private func errorState(_ message: String) -> some View {
+        PVCallout(tone: .danger, message: message)
         .padding(.horizontal, 9)
         .padding(.vertical, 8)
         .accessibilityIdentifier("workspace.toolbar.omnibar.error")

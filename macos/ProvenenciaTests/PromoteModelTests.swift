@@ -702,7 +702,7 @@ struct PromoteModelTests {
         model.recordSearchQueryChanged("Polly")
         let search = model.recordSearch!.search
         await waitForSearch(search)
-        #expect(search.showsErrorState)
+        #expect(search.line == .failed(message: search.searchError ?? ""))
 
         model.pickSearchHit(id: "nope")
         #expect(model.recordSearch?.subjectID == "a")

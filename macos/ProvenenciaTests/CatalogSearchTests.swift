@@ -69,37 +69,35 @@ struct CatalogSearchModelTests {
         }
     }
 
-    @Test func emptyStateRequiresCompletedSearchWithoutError() {
+    @Test func lineFollowsTheSearch() {
+        let hit = CatalogSearchHit(
+            kind: "source", id: "a", ref: "", title: "A", subtitle: "",
+            matchReason: "title", location: .sectionRoot(.sources)
+        )
         let model = CatalogSearchModel()
-        model.query = "zz"
-        model.hasSearched = true
+        model.query = "il"
+        model.isLoading = true
+        #expect(model.line == .searching)
+        model.hits = [hit]
+        #expect(model.line == .rows)
+        model.hits = []
         model.isLoading = false
-        #expect(model.showsEmptyState)
+        model.hasSearched = true
+        #expect(model.line == .noMatches)
         model.searchError = "boom"
-        #expect(!model.showsEmptyState)
-        #expect(model.showsErrorState)
+        #expect(model.line == .failed(message: "boom"))
     }
 
-    @Test func moveSelectionClampsAndSelectedHit() {
+    @Test func aFailedSearchIsTheMappedMessageNotNoMatches() async {
+        let store = FakeStore()
+        store.searchCatalogError = CoreInvokeError.coded(
+            status: 1, code: "catalog.closed", kind: .user, params: []
+        )
         let model = CatalogSearchModel()
-        model.hits = [
-            CatalogSearchHit(
-                kind: "source", id: "a", ref: "", title: "A", subtitle: "",
-                matchReason: "title", location: .sectionRoot(.sources)
-            ),
-            CatalogSearchHit(
-                kind: "source", id: "b", ref: "", title: "B", subtitle: "",
-                matchReason: "title", location: .sectionRoot(.sources)
-            ),
-        ]
-        #expect(model.selectedHit()?.id == "a")
-        model.moveSelection(delta: 1)
-        #expect(model.selectedIndex == 1)
-        #expect(model.selectedHit()?.id == "b")
-        model.moveSelection(delta: 5)
-        #expect(model.selectedIndex == 1)
-        model.moveSelection(delta: -10)
-        #expect(model.selectedIndex == 0)
+        model.query = "il"
+        model.scheduleSearch(projectDir: projectDir, location: .sectionRoot(.sources), store: store)
+        await waitForSearch(model)
+        #expect(model.line == .failed(message: L10n.Errors.message(code: "catalog.closed")))
     }
 
     @Test func kindsRestrictHits() async throws {

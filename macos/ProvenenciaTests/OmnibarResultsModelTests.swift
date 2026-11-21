@@ -176,9 +176,7 @@ struct OmnibarResultsModelTests {
         model.search.query = "Il"
         model.search.isLoading = true
         #expect(model.isPresented)
-        #expect(model.search.showsLoadingState)
-        #expect(!model.search.showsEmptyState)
-        #expect(!model.search.showsErrorState)
+        #expect(model.search.line == .searching)
     }
 
     @Test func searchFailureSurfacesMappedErrorNotEmpty() async {
@@ -199,8 +197,7 @@ struct OmnibarResultsModelTests {
         await waitForSearch(model.search)
         #expect(model.search.searchError == L10n.Errors.message(code: "catalog.closed"))
         #expect(model.search.hits.isEmpty)
-        #expect(model.search.showsErrorState)
-        #expect(!model.search.showsEmptyState)
+        #expect(model.search.line == .failed(message: L10n.Errors.message(code: "catalog.closed")))
         #expect(model.isPresented)
     }
 }
