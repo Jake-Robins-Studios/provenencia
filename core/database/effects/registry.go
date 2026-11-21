@@ -221,22 +221,16 @@ func (s Set) IDsOf(r Read) [][]byte {
 	return ids
 }
 
-// Handle queries mirror autoreconciler, except sqlHandlesForArtifact, which
-// has no autoreconciler twin. They stay here so the registry can name them
-// before anything calls Handles.
+// Handle queries mirror autoreconciler. They stay here so the registry can
+// name them before anything calls Handles.
 const (
 	sqlHandlesForCitation = `SELECT DISTINCT ic.entity_id FROM identity_claims ic
 		JOIN observations o ON o.subject_id = ic.subject_id
 		WHERE ic.status IN ('accepted', 'provisional') AND o.citation_id = ?`
 
-	// sqlHandlesCitingHead is the join from a handle's claims to the Citations
-	// its Subjects' Observations cite; each query below adds its own WHERE.
-	sqlHandlesCitingHead = `SELECT DISTINCT ic.entity_id FROM identity_claims ic
+	sqlHandlesForSource = `SELECT DISTINCT ic.entity_id FROM identity_claims ic
 		JOIN observations o ON o.subject_id = ic.subject_id
-		JOIN citations c ON c.id = o.citation_id`
-	sqlHandlesForArtifact = sqlHandlesCitingHead + `
-		WHERE ic.status IN ('accepted', 'provisional') AND c.artifact_id = ?`
-	sqlHandlesForSource = sqlHandlesCitingHead + `
+		JOIN citations c ON c.id = o.citation_id
 		JOIN artifacts a ON a.id = c.artifact_id
 		WHERE ic.status IN ('accepted', 'provisional') AND a.source_id = ?`
 
@@ -401,15 +395,11 @@ var registry = map[string]Effect{
 		SourceScope: up("graph_id", "source_id"),
 	},
 	// An Artifact's own fields move no loaded graph row and no citation
-	// membership: its Citations and Observations carry their own graphs. Its
-	// Source does move the reconciler's scores, which grade each Observation
-	// by the Source of its Citation's Artifact, so a change that carries
-	// source_id names the handles whose Observations cite it.
+	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {
 		Entity:      "artifact",
 		Reads:       []ReadPath{{ReadSourceRecords, field("source_id")}},
 		SourceScope: field("source_id"),
-		Handles:     onField("source_id", sqlPath(sqlHandlesForArtifact)),
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	"citations": {

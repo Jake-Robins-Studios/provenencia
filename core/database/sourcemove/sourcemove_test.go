@@ -655,6 +655,9 @@ func TestMoveCachesAndSearch(t *testing.T) { // AC-2.7
 	w.verify()
 }
 
+// A move names a handle through its Subjects' own changes (membersOf): the
+// Artifact's change names none, because observations.requireSameGraph keeps
+// every Subject citing a bundled Artifact in the bundle too.
 func TestMoveRecomputesHandles(t *testing.T) { // AC-2.8
 	w := newWorld(t)
 	s3, scan3 := w.NewSource("Third")

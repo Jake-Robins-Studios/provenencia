@@ -300,32 +300,6 @@ func TestHandlePaths(t *testing.T) {
 		}
 	})
 
-	t.Run("an Artifact that changes Source names its Citations' handles", func(t *testing.T) {
-		moved := rowchange.Change{
-			EntityType: "artifact", EntityID: art.ID, Action: rowchange.ActionUpdate,
-			Fields: map[string]rowchange.FieldDiff{"source_id": {Old: dashed(src.ID), New: dashed(src.ID)}},
-		}
-		if got := mustHandles(t, tx, moved); !idSet(got, bostonRes.Entity.ID, bobRes.Entity.ID, eveRes.Entity.ID) || len(got) != 3 {
-			t.Fatalf("source change resolved %d handles", len(got))
-		}
-		label := moved
-		label.Fields = map[string]rowchange.FieldDiff{"label": {Old: "Scan", New: "Page"}}
-		if got := mustHandles(t, tx, label); len(got) != 0 {
-			t.Fatalf("label edit resolved %d handles", len(got))
-		}
-		fresh, err := uuid.NewV7()
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, action := range []string{rowchange.ActionCreate, rowchange.ActionDelete} {
-			ch := moved
-			ch.EntityID, ch.Action = fresh[:], action
-			if got := mustHandles(t, tx, ch); len(got) != 0 {
-				t.Fatalf("%s resolved %d handles", action, len(got))
-			}
-		}
-	})
-
 	t.Run("a grade change names the handles citing the Source", func(t *testing.T) {
 		ch := rowchange.Change{
 			EntityType: "source_credibility_assessment", EntityID: []byte{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},

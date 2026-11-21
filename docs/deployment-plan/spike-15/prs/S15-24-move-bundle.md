@@ -19,6 +19,8 @@
 
 - `VERSION` was 0.31.1 on `main`, so the bump is 0.31.1 → 0.32.0 (the header's "next minor after it").
 - The `SetSourceTx` tests (T-2) are in new files `core/database/{evidencegraphs,artifacts,subjects}/setsource_test.go`, and `TestLookup` is in `core/database/sources/lookup_test.go`, not in the existing test files: `subjects_test.go` and `sources_test.go` are internal test packages and cannot import `evidencelayertest` (an import cycle). `TestExec` is in `sqlbatch_test.go` as planned.
+- The three `SetSourceTx` bodies are one `database.SetSource(tx, entity, selectHead, updateHead, keys, sourceID)` in `core/database/setsource.go` (review MNT-1); each package's `SetSourceTx` is a thin wrapper that keeps its `ErrInvalid` check and its own SQL. It lives in `core/database`, not `sqlbatch`, which cannot import `database` (`UUIDJSON`, `UniqueBlobIDs`). This supersedes D-3's declined shared change-building helper; its premise was one map literal, and the copy is the whole body.
+- D-10's `artifacts` entry (`Handles: onField("source_id", sqlPath(sqlHandlesForArtifact))`), `sqlHandlesForArtifact`, `sqlHandlesCitingHead` and the T-3 Artifact rows were dropped on review (CON-1, user 2026-11-21): `observations.requireSameGraph` keeps every Subject citing a bundled Artifact in the bundle, so the `subjects` entry's `Handles` already names every handle whose score moves. `sqlHandlesForSource` is unchanged.
 - Not run: the manual check's step 2 (a scratch test against a dogfood copy); step 1 (`TestMove/scale`) passes.
 
 ### Implementer — read this first
