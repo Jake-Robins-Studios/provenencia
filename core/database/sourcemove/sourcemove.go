@@ -199,7 +199,7 @@ func Move(tx *database.Tx, userID []byte, seed evidencegraphs.Seed, targetID []b
 	if err := step(artifacts.SetSourceTx(tx.Tx, bundle.ArtifactIDs, targetID)); err != nil {
 		return Result{}, nil, err
 	}
-	if len(old.PrimaryArtifactID) == 16 && containsID(bundle.ArtifactIDs, old.PrimaryArtifactID) {
+	if len(old.PrimaryArtifactID) == 16 && database.ContainsBlobID(bundle.ArtifactIDs, old.PrimaryArtifactID) {
 		_, ch, err := sources.SetCover(tx, userID, old.ID, sources.CoverModeTypeIcon, nil)
 		if err := step(ch, err); err != nil {
 			return Result{}, nil, err
@@ -213,13 +213,4 @@ func Move(tx *database.Tx, userID []byte, seed evidencegraphs.Seed, targetID []b
 		res.DefaultGraphID = g.ID
 	}
 	return res, changes, nil
-}
-
-func containsID(ids [][]byte, id []byte) bool {
-	for _, x := range ids {
-		if bytes.Equal(x, id) {
-			return true
-		}
-	}
-	return false
 }
