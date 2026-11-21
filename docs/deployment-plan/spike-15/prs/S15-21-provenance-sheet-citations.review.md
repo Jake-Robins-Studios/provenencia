@@ -1,6 +1,6 @@
 # Review — S15-21 The provenance sheet shows formatted citations
 
-**Verdict:** Fits with changes — Ready with changes (round 2 findings fixed; no blocker open). The plan stays Blocked on board S15-D9
+**Verdict:** Fits with changes — Ready with changes (round 2 findings fixed; no blocker open). Board S15-D9 agreed 2026-11-21; the plan is Planned
 **Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet). Reviewed with the brief [S15-D9](../design/S15-D9-provenance-sheet-citations.md)
 
 ## To user
@@ -118,3 +118,7 @@ Round-1 answers checked against the code: M-1, M-3 – M-7 hold; M-2's answer ho
 
 ### X-23 · minor · `rtfData` under-specified
 **Answer:** Fixed — D-11 names the base string, the base font and `NSRange(run.range, in:)`.
+
+## Board (2026-11-21)
+
+The agreed S15-D9 board revised two things after review, both recorded on the board as the user's: labelled Full and Short buttons stacked in a 72pt track (two identical icon buttons could not be told apart), and narrower Read as, Outcome and Record columns with the reserved column removed. The user chose that the likeness viewer's row follows the board too. The plan's D-9, D-11 (`PVClipboardButton(word:)`, `PVButton(iconTint:)`), D-13 and new D-14 carry them; the brief gains PC-10. No second review round: the changes are layout values and one kit parameter on components the reviewers already checked.
