@@ -8,7 +8,8 @@ struct PVProvenanceColumnsTests {
         let wide = PVProvenanceColumns(widthClass: .wide)
         #expect(wide.readAsWidth == 160 && wide.outcomeWidth == 200 && wide.panelWidth == 1280)
         #expect(PVProvenanceColumns.recordWidth == 72 && PVProvenanceColumns.actionWidth == 88)
-        #expect(PVProvenanceColumns.copyTrackWidth == 72 && PVProvenanceColumns.copyTrackSpacing == 8)
+        #expect(PVProvenanceColumns.copyTrackWidth == 84 && PVProvenanceColumns.copyTrackSpacing == 8)
+        #expect(PVProvenanceColumns.scrollBarInset == PVSpacing.space5)
         #expect(regular.showsReadAs && !PVProvenanceColumns(showsReadAs: false).showsReadAs)
     }
 }

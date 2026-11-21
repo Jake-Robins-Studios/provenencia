@@ -93,7 +93,7 @@ struct PVProvenanceRecordRow: View {
                 VStack(alignment: .leading, spacing: PVSpacing.space1) {
                     ForEach(Self.copies(for: record), id: \.kind) { copyButton($0) }
                 }
-                .frame(width: PVProvenanceColumns.copyTrackWidth, alignment: .leading)
+                .frame(minWidth: PVProvenanceColumns.copyTrackWidth, alignment: .leading)
                 // The first button's centre sits level with the citation's first line.
                 .alignmentGuide(.citationFirstLineCenter) { $0[.top] + PVControlSize.sm.height / 2 }
             }
@@ -152,6 +152,7 @@ extension PVProvenanceRecordRow {
             label: label,
             copiedAnnouncement: L10n.string(announcement)
         )
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityIdentifier("\(idPrefix).\(record.id).\(idSuffix)")
     }
 }

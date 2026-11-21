@@ -23,7 +23,10 @@ struct PVProvenanceColumns: Equatable {
     static let recordWidth: CGFloat = 72
     /// The reserved column the Why's rows still draw (`PVProvenanceReservedCell`); the sheet no longer does.
     static let actionWidth: CGFloat = 88
-    /// The labelled copy buttons' track beside the citation text, and the gap before it.
-    static let copyTrackWidth: CGFloat = 72
+    /// The labelled copy buttons' track's least width beside the citation text (a button
+    /// wider than it, or the check glyph, widens the track), and the gap before it. 84 holds "Short" with its icon in Spectral 500 at `.sm` (70.7pt) with room.
+    static let copyTrackWidth: CGFloat = 84
     static let copyTrackSpacing: CGFloat = 8
+    /// The room the sheet's records table keeps between its Record column and the scroll bar; the headings take the same inset.
+    static let scrollBarInset: CGFloat = PVSpacing.space5
 }
