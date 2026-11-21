@@ -43,6 +43,21 @@ func Query[T any](q dbsql.Querier, head, tail string, args []any, ids []T, scan 
 	})
 }
 
+// Exec is Query's write twin: it runs head + placeholders + tail once per
+// batch of ids, binding args first and the batch after them. It stops at the
+// first error. No ids run no statement.
+func Exec[T any](q dbsql.Execer, head, tail string, args []any, ids []T) error {
+	return Each(ids, func(batch []T) error {
+		bound := make([]any, 0, len(args)+len(batch))
+		bound = append(bound, args...)
+		for _, id := range batch {
+			bound = append(bound, id)
+		}
+		_, err := q.Exec(head+dbsql.SQLInPlaceholders(len(batch))+tail, bound...)
+		return err
+	})
+}
+
 // Scan runs one query and calls scan for each row.
 func Scan(q dbsql.Querier, query string, args []any, scan func(rows *sql.Rows) error) error {
 	rows, err := q.Query(query, args...)

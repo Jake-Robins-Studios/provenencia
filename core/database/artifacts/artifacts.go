@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
@@ -30,7 +31,9 @@ var ErrInUse = apperr.New(apperr.CodeArtifactsInUse, apperr.KindConflict)
 var ErrFileAlreadyAttached = apperr.New(apperr.CodeArtifactsFileAlreadyAttached, apperr.KindConflict)
 
 const (
-	sqlInsert = `INSERT INTO artifacts (id, ref, source_id, file_id, label, description)
+	sqlSourceRows = `SELECT id, source_id FROM artifacts WHERE id IN (`
+	sqlSetSource  = `UPDATE artifacts SET source_id = ? WHERE source_id != ? AND id IN (`
+	sqlInsert     = `INSERT INTO artifacts (id, ref, source_id, file_id, label, description)
 		VALUES (?, ?, ?, ?, ?, ?)`
 	sqlUpdate = `UPDATE artifacts SET file_id = ?, label = ?, description = ?
 		WHERE id = ?`
@@ -414,4 +417,46 @@ func mapConstraint(err error) error {
 		return ErrInvalid
 	}
 	return err
+}
+
+// SetSourceTx moves Artifacts to another Source.
+// It returns one update change per row that changed, in ascending id order.
+// An id with no row, a repeated id and a row already on sourceID change nothing.
+// It does not check that sourceID exists: the caller has, and the foreign key
+// checks at commit. Only a move changes a Source, so the caller records the
+// changes inside the write that moves the whole bundle.
+func SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte) ([]rowchange.Change, error) {
+	if tx == nil || len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	ids = database.UniqueBlobIDs(ids)
+	var changes []rowchange.Change
+	err := sqlbatch.Query(tx, sqlSourceRows, `)`, nil, ids, func(rows *sql.Rows) error {
+		var id, old []byte
+		if err := rows.Scan(&id, &old); err != nil {
+			return err
+		}
+		if bytes.Equal(old, sourceID) {
+			return nil
+		}
+		changes = append(changes, *rowchange.Updated("artifact", id,
+			map[string]any{"source_id": database.UUIDJSON(old)},
+			map[string]any{"source_id": database.UUIDJSON(sourceID)}))
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(changes) == 0 {
+		return nil, nil
+	}
+	slices.SortFunc(changes, func(a, b rowchange.Change) int { return bytes.Compare(a.EntityID, b.EntityID) })
+	moved := make([][]byte, len(changes))
+	for i, c := range changes {
+		moved[i] = c.EntityID
+	}
+	if err := sqlbatch.Exec(tx, sqlSetSource, `)`, []any{sourceID, sourceID}, moved); err != nil {
+		return nil, mapConstraint(err)
+	}
+	return changes, nil
 }

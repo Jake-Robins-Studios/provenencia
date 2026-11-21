@@ -3,12 +3,15 @@
 package subjects
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -25,7 +28,9 @@ var (
 )
 
 const (
-	sqlInsert = `INSERT INTO subjects (id, ref, source_id, graph_id, subject_type_id, label, description)
+	sqlSourceRows = `SELECT id, source_id FROM subjects WHERE graph_id IN (`
+	sqlSetSource  = `UPDATE subjects SET source_id = ? WHERE source_id != ? AND graph_id IN (`
+	sqlInsert     = `INSERT INTO subjects (id, ref, source_id, graph_id, subject_type_id, label, description)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
 	sqlUpdate = `UPDATE subjects SET label = ?, description = ? WHERE id = ?`
 	sqlDelete = `DELETE FROM subjects WHERE id = ?`
@@ -302,4 +307,42 @@ func mapConstraint(err error) error {
 		return ErrInvalid
 	}
 	return err
+}
+
+// SetSourceTx moves every Subject of the given graphs to another Source.
+// It returns one update change per row that changed, in ascending id order.
+// A graph with no Subjects, a repeated id and a Subject already on sourceID change nothing.
+// It does not check that sourceID exists: the caller has, and the foreign key
+// checks at commit. Only a move changes a Source, so the caller records the
+// changes inside the write that moves the whole bundle.
+func SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte) ([]rowchange.Change, error) {
+	if tx == nil || len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	graphIDs = database.UniqueBlobIDs(graphIDs)
+	var changes []rowchange.Change
+	err := sqlbatch.Query(tx, sqlSourceRows, `)`, nil, graphIDs, func(rows *sql.Rows) error {
+		var id, old []byte
+		if err := rows.Scan(&id, &old); err != nil {
+			return err
+		}
+		if bytes.Equal(old, sourceID) {
+			return nil
+		}
+		changes = append(changes, *rowchange.Updated("subject", id,
+			map[string]any{"source_id": database.UUIDJSON(old)},
+			map[string]any{"source_id": database.UUIDJSON(sourceID)}))
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(changes) == 0 {
+		return nil, nil
+	}
+	slices.SortFunc(changes, func(a, b rowchange.Change) int { return bytes.Compare(a.EntityID, b.EntityID) })
+	if err := sqlbatch.Exec(tx, sqlSetSource, `)`, []any{sourceID, sourceID}, graphIDs); err != nil {
+		return nil, mapConstraint(err)
+	}
+	return changes, nil
 }

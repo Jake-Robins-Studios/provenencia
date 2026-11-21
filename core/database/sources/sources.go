@@ -465,10 +465,16 @@ func Get(c *database.Catalog, id []byte) (Source, error) {
 	if err != nil {
 		return Source{}, err
 	}
+	return Lookup(db, id)
+}
+
+// Lookup returns a Source by id on any Querier: ErrInvalid for a malformed
+// id, ErrNotFound when there is none.
+func Lookup(q database.Querier, id []byte) (Source, error) {
 	if len(id) != 16 {
 		return Source{}, ErrInvalid
 	}
-	return getOne(db, sqlGet, id)
+	return getOne(q, sqlGet, id)
 }
 
 // getByRef returns a Source by SRC-… ref, or ErrNotFound.
@@ -621,10 +627,7 @@ func CitationDate(s Source) citationformat.Value {
 
 // GetTx returns a Source by id on an open transaction, or ErrNotFound.
 func GetTx(tx *sql.Tx, id []byte) (Source, error) {
-	if len(id) != 16 {
-		return Source{}, ErrInvalid
-	}
-	return getTx(tx, id)
+	return Lookup(tx, id)
 }
 
 func getTx(tx *sql.Tx, id []byte) (Source, error) {
