@@ -37,6 +37,7 @@ struct PVProvenanceSheet: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 0) {
                     PVProvenanceColumnHeadings(columns: columns)
+                        .padding(.trailing, PVProvenanceColumns.scrollBarInset)
                     PVDivider()
                     PVFormLoadArea(
                         state: load,
@@ -51,6 +52,7 @@ struct PVProvenanceSheet: View {
                                 groups: content.groups, face: content.shown.face, columns: columns,
                                 idPrefix: idPrefix, open: close
                             )
+                            .padding(.trailing, PVProvenanceColumns.scrollBarInset)
                         }
                         .frame(maxHeight: Self.recordsMaxHeight)
                     }
