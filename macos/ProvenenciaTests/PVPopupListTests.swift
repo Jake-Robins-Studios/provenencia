@@ -114,6 +114,22 @@ struct PVPopupListHighlightTests {
 }
 
 @Suite
+struct PVPopupListLineKindTests {
+    @Test func searchingLineShowsOnlyWhileLoadingWithNothingIn() {
+        #expect(PVPopupListLineKind.of(rowCount: 0, isLoading: true) == .loading)
+    }
+
+    @Test func rowsAlreadyInStayWhileANewSearchRuns() {
+        #expect(PVPopupListLineKind.of(rowCount: 3, isLoading: true) == .rows)
+    }
+
+    @Test func noRowsAndNoSearchShowsTheEmptyLine() {
+        #expect(PVPopupListLineKind.of(rowCount: 0, isLoading: false) == .empty)
+        #expect(PVPopupListLineKind.of(rowCount: 2, isLoading: false) == .rows)
+    }
+}
+
+@Suite
 struct PVPopupListPlacementTests {
     /// A roomy 1440x900 display with the menu bar taken off the top, in
     /// AppKit screen coordinates (y grows upward).

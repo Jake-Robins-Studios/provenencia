@@ -52,24 +52,6 @@ enum PVComboBoxMatch {
         return 2
     }
 
-    /// What the list draws under its rows.
-    enum ListLine: Equatable {
-        /// The options alone.
-        case rows
-        /// The searching line: remote results are loading and none are in yet.
-        case loading
-        /// The caller's empty line.
-        case empty
-    }
-
-    /// Options already in stay on screen while a new search runs, the way the
-    /// omnibar keeps its hits; the searching line shows only when there is
-    /// nothing else to show.
-    static func listLine(optionCount: Int, isLoading: Bool) -> ListLine {
-        if optionCount > 0 { return .rows }
-        return isLoading ? .loading : .empty
-    }
-
     /// Whether the box tells its caller about a reset it made itself (a click
     /// away or Escape putting the committed label back). Only a remote caller
     /// follows the field's text; a local filter reads the box's own state.
@@ -207,7 +189,7 @@ enum PVComboCommitVia: Equatable {
 /// the field. `isLoading` is true while that search runs: with no options in
 /// yet the list shows a searching line in place of the empty line, and
 /// options already in stay on screen until the new ones replace them
-/// (`PVComboBoxMatch.listLine`). A failed search is the caller's `empty`
+/// (`PVPopupListLineKind`). A failed search is the caller's `empty`
 /// line. When the box resets the field itself (a click away, the second
 /// Escape) it reports the restored text through `onQueryChange` too, so the
 /// caller's query and results follow the field (`PVComboBoxMatch.reportsRestore`).
@@ -454,21 +436,12 @@ struct PVComboBox<Row: View, Empty: View>: View {
             ForEach(Array(visibleOptions.enumerated()), id: \.element.id) { index, option in
                 rowView(option, index: index).id(option.id)
             }
-            switch PVComboBoxMatch.listLine(optionCount: visibleOptions.count, isLoading: isLoading) {
+            switch PVPopupListLineKind.of(rowCount: visibleOptions.count, isLoading: isLoading) {
             case .rows:
                 EmptyView()
             case .loading:
-                PVPopupListLine(gutter: Self.checkGutter) {
-                    HStack(spacing: PVSpacing.space3) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text(L10n.DesignSystem.comboBoxSearching)
-                            .font(PVFont.body(size: PVTypeScale.bodySmall))
-                            .foregroundStyle(PVColor.textMuted)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier(identifier("loading") ?? "")
+                PVPopupListSearchingLine(gutter: Self.checkGutter)
+                    .accessibilityIdentifier(identifier("loading") ?? "")
             case .empty:
                 PVPopupListLine(gutter: Self.checkGutter) {
                     empty(highlightQuery)

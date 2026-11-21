@@ -286,6 +286,43 @@ struct PVPopupListLine<Content: View>: View {
     }
 }
 
+/// What a list draws: its rows, the searching line, or the caller's empty
+/// line. Rows already in stay on screen while a new search runs; the searching
+/// line shows only when there is nothing else to show. A failed search is the
+/// caller's empty line.
+enum PVPopupListLineKind: Equatable {
+    /// The rows alone.
+    case rows
+    /// The searching line: results are loading and none are in yet.
+    case loading
+    /// The caller's empty line.
+    case empty
+
+    static func of(rowCount: Int, isLoading: Bool) -> PVPopupListLineKind {
+        if rowCount > 0 { return .rows }
+        return isLoading ? .loading : .empty
+    }
+}
+
+/// The line a list shows while a remote search runs and no results are in yet.
+/// Its text starts at the column `gutter` points in, where a row's label does.
+struct PVPopupListSearchingLine: View {
+    var gutter: CGFloat = 0
+
+    var body: some View {
+        PVPopupListLine(gutter: gutter) {
+            HStack(spacing: PVSpacing.space3) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(L10n.DesignSystem.popupListSearching)
+                    .font(PVFont.body(size: PVTypeScale.bodySmall))
+                    .foregroundStyle(PVColor.textMuted)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - The highlight
 
 /// The one highlight of a popup list: which row is active, and how a key, a
