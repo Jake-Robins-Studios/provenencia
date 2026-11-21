@@ -1,6 +1,6 @@
 # Review — S16-52 The omnibar's results use the kit popup list
 
-Covers the plan [`S16-52-omnibar-popup-list.md`](S16-52-omnibar-popup-list.md) and its brief [`S16-D9-omnibar-results.md`](../design/S16-D9-omnibar-results.md).
+Covers the plan [`S16-52-omnibar-popup-list.md`](S16-52-omnibar-popup-list.md) and its brief [`S16-D9-omnibar-results.md`](../design/archive/S16-D9-omnibar-results.md).
 
 **Verdict:** Fits with changes — Not ready → every finding answered; no open blocker. The plan stayed `Blocked — on board S16-D9` until the board and the kit were agreed on 2026-11-21; it is now `Planned`.
 **Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet). No round 2: every blocker was a local fix (a shared function, a moved enum, a merged step, a corrected `rg`), with no reshape.

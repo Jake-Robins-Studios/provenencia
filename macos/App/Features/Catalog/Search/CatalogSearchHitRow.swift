@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Resolves lead thumbnail + fills `PVOmnibarHitRow` slots for one hit.
+/// Resolves lead thumbnail + fills `PVSearchHitRow` slots for one hit.
 struct CatalogSearchHitRow: View {
     let hit: CatalogSearchHit
     let projectDir: String
     @Environment(WorkspaceSession.self) private var session
 
     var body: some View {
-        PVOmnibarHitRow(
+        PVSearchHitRow(
             lead: { leadView },
             title: CatalogSearchHitPresentation.title(for: hit, orders: session.nameFormat),
             kindLabel: CatalogSearchHitPresentation.kindLabel(for: hit.searchKind),

@@ -1,204 +1,121 @@
-import AppKit
 import SwiftUI
 
-// MARK: - Omnibar results host (content-column overlay)
+// MARK: - Omnibar results (kit popup list on the omnibar field)
 
-/// Renders the omnibar results panel over the workspace content column —
-/// same overlay family as `HistoryJumpMenuHost` (near-square corners, not
-/// a floating NSPanel / popover).
-struct OmnibarResultsHost: View {
+/// Gives the omnibar field its results: the kit popup list under the field, its
+/// highlight and keys from `OmnibarResultsModel`, and its width kept inside the
+/// content column. Apply it to the field itself — the popup anchors to, and the
+/// presenter's "a click on the field keeps it open" reads, the view it modifies.
+struct OmnibarResultsHost: ViewModifier {
     var results: OmnibarResultsModel
     let projectDir: String
-    let onActivate: (CatalogSearchHit) -> Void
-    @State private var dismissMonitor: Any?
-
-    var body: some View {
-        Group {
-            if results.isPresented, results.fieldFrame != .zero {
-                OmnibarResultsPanel(
-                    results: results,
-                    projectDir: projectDir,
-                    onActivate: onActivate
-                )
-                .offset(
-                    x: results.fieldFrame.maxX - OmnibarResultsModel.panelWidth,
-                    y: results.fieldFrame.maxY + 8
-                )
-            }
-        }
-        .onChange(of: results.isPresented) { _, open in
-            if open {
-                DispatchQueue.main.async { armDismissMonitor() }
-            } else {
-                removeDismissMonitor()
-            }
-        }
-        .onDisappear {
-            results.dismiss()
-            removeDismissMonitor()
-        }
-    }
-
-    private func armDismissMonitor() {
-        removeDismissMonitor()
-        if NSEvent.pressedMouseButtons != 0 {
-            dismissMonitor = NSEvent.addLocalMonitorForEvents(
-                matching: [.leftMouseUp, .rightMouseUp, .otherMouseUp]
-            ) { event in
-                DispatchQueue.main.async { armDismissMonitor() }
-                return event
-            }
-            return
-        }
-
-        dismissMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.leftMouseUp, .keyDown]
-        ) { event in
-            if event.type == .keyDown {
-                switch event.keyCode {
-                case 53: // Escape
-                    DispatchQueue.main.async { results.closePanel() }
-                    return nil
-                case 125: // Down
-                    DispatchQueue.main.async { results.search.moveSelection(delta: 1) }
-                    return nil
-                case 126: // Up
-                    DispatchQueue.main.async { results.search.moveSelection(delta: -1) }
-                    return nil
-                case 36, 76: // Return / keypad Enter
-                    DispatchQueue.main.async {
-                        if let hit = results.search.selectedHit() {
-                            onActivate(hit)
-                        }
-                    }
-                    return nil
-                default:
-                    return event
-                }
-            }
-            DispatchQueue.main.async { results.closePanel() }
-            return event
-        }
-    }
-
-    private func removeDismissMonitor() {
-        if let dismissMonitor {
-            NSEvent.removeMonitor(dismissMonitor)
-            self.dismissMonitor = nil
-        }
-    }
-}
-
-private struct OmnibarResultsPanel: View {
-    var results: OmnibarResultsModel
-    let projectDir: String
+    /// The content column's width.
+    let contentWidth: CGFloat
     let onActivate: (CatalogSearchHit) -> Void
 
-    var body: some View {
-        Group {
-            if results.search.showsErrorState {
-                errorState
-            } else if results.search.showsEmptyState {
-                emptyState
-            } else if results.search.showsLoadingState {
-                loadingState
-            } else {
-                // ScrollView expands to the proposed height unless we ask for
-                // the ideal (content) height — clamp only when the list is tall.
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(results.search.hits.enumerated()), id: \.element.id) { index, hit in
-                            Button {
-                                onActivate(hit)
-                            } label: {
-                                CatalogSearchHitRow(
-                                    hit: hit,
-                                    projectDir: projectDir
-                                )
-                            }
-                            .buttonStyle(PVMenuRowButtonStyle(
-                                isSelected: index == results.search.selectedIndex,
-                                cornerRadius: PVRadius.xs,
-                                onHoverChange: { hovering in
-                                    if hovering { results.search.selectedIndex = index }
-                                }
-                            ))
-                            .accessibilityIdentifier("workspace.toolbar.omnibar.hit.\(hit.id)")
-                            .id(hit.id)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxHeight: 420)
-                .fixedSize(horizontal: false, vertical: true)
-                .pvScrollsRowIntoView(
-                    results.search.selectedHit()?.id,
-                    startsAtTopWhenRowsChange: results.search.hits.map(\.id)
-                )
-            }
-        }
-        .padding(PVSpacing.space2)
-        .frame(width: OmnibarResultsModel.panelWidth, alignment: .leading)
-        .fixedSize(horizontal: false, vertical: true)
-        .background(PVColor.surfaceCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous)
-                .stroke(PVColor.borderSubtle, lineWidth: 1)
+    @State private var measurement = PVPopupListMeasurement()
+
+    /// The list's width: preferred, narrowed to stay inside the content column,
+    /// never narrower than the field.
+    private var listWidth: CGFloat {
+        PVPopupListPlacement.fittedWidth(
+            preferred: OmnibarResultsModel.listWidth,
+            hangsFrom: results.fieldFrame.maxX,
+            alignment: .trailing,
+            columnWidth: contentWidth,
+            minimum: results.fieldFrame.width
         )
-        .clipShape(RoundedRectangle(cornerRadius: PVRadius.sm, style: .continuous))
-        .pvShadow(PVElevation.overlay)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGRect.self) {
+                $0.frame(in: .named(WorkspaceContent.coordinateSpace))
+            } action: {
+                results.fieldFrame = $0
+            }
+            .background {
+                if results.isPresented {
+                    PVPopupListMeasure(isActive: results.isPresented, width: listWidth, onHeight: { measurement.record($0) }) {
+                        rowsStack
+                    }
+                }
+            }
+            .pvPopupList(
+                isPresented: Binding(
+                    get: { results.isPresented },
+                    set: { if !$0 { results.closePanel() } }
+                ),
+                isMeasured: measurement.isMeasured,
+                maxHeight: OmnibarResultsModel.maxListHeight,
+                contentHeight: PVPopupListCard<EmptyView>.height(rows: measurement.height),
+                optionCount: results.search.hits.count,
+                width: listWidth,
+                alignment: .trailing
+            ) {
+                card
+            }
+            .onKeyPress { press in
+                results.handleKey(press.key, command: press.modifiers.contains(.command), activate: onActivate)
+            }
+            .onChange(of: results.isPresented) { _, presented in
+                if !presented { measurement.reset() }
+            }
+            .onDisappear { results.dismiss() }
+    }
+
+    private var card: some View {
+        PVPopupListCard(
+            rowIDs: results.search.hits.map(\.id),
+            activeID: results.highlightedHit?.id
+        ) {
+            rowsStack
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(L10n.Workspace.omnibarResultsAccessibilityLabel))
         .accessibilityIdentifier("workspace.toolbar.omnibar.results")
     }
 
-    private var loadingState: some View {
-        HStack(spacing: PVSpacing.space3) {
-            ProgressView()
-                .controlSize(.small)
-            Text(L10n.Workspace.omnibarSearching)
-                .font(PVFont.body(size: PVTypeScale.bodySmall))
-                .foregroundStyle(PVColor.textMuted)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier("workspace.toolbar.omnibar.loading")
-    }
-
-    private var errorState: some View {
-        PVCallout(
-            tone: .danger,
-            message: results.search.searchError ?? L10n.string(L10n.Workspace.omnibarSearchFailed)
-        )
-        .padding(.horizontal, 9)
-        .padding(.vertical, 8)
-        .accessibilityIdentifier("workspace.toolbar.omnibar.error")
-    }
-
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space3) {
-            Text(L10n.Workspace.omnibarNoMatchesTitle(query: results.search.trimmedQuery))
-                .font(PVFont.body(size: PVTypeScale.bodySmall, weight: PVFontWeight.medium))
-                .foregroundStyle(PVColor.textPrimary)
-            Text(L10n.Workspace.omnibarNoMatchesHint)
-                .font(PVFont.body(size: PVTypeScale.caption))
-                .foregroundStyle(PVColor.textMuted)
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier("workspace.toolbar.omnibar.noMatches")
-    }
-}
-
-struct OmnibarFieldAnchorKey: PreferenceKey {
-    static let defaultValue: CGRect = .zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        if next != .zero {
-            value = next
+    /// What the list shows. Shared by the card and the hidden measuring copy,
+    /// so the two never disagree.
+    private var rowsStack: some View {
+        VStack(spacing: 0) {
+            switch results.search.line {
+            case .rows:
+                ForEach(Array(results.search.hits.enumerated()), id: \.element.id) { index, hit in
+                    PVPopupListRow(
+                        isActive: index == results.highlight.index,
+                        onHighlight: { results.hover(at: index) },
+                        onCommit: { onActivate(hit) }
+                    ) {
+                        CatalogSearchHitRow(hit: hit, projectDir: projectDir)
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .id(hit.id)
+                    .accessibilityIdentifier("workspace.toolbar.omnibar.hit.\(hit.id)")
+                }
+            case .searching:
+                PVPopupListSearchingLine()
+                    .accessibilityIdentifier("workspace.toolbar.omnibar.loading")
+            case .noMatches:
+                PVPopupListLine {
+                    VStack(alignment: .leading, spacing: PVSpacing.space3) {
+                        Text(L10n.Workspace.omnibarNoMatchesTitle(query: results.search.trimmedQuery))
+                            .font(PVFont.body(size: PVTypeScale.bodySmall, weight: PVFontWeight.medium))
+                            .foregroundStyle(PVColor.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(L10n.Workspace.omnibarNoMatchesHint)
+                            .font(PVFont.body(size: PVTypeScale.caption))
+                            .foregroundStyle(PVColor.textMuted)
+                    }
+                }
+                .accessibilityIdentifier("workspace.toolbar.omnibar.noMatches")
+            case .failed(let message):
+                PVPopupListLine {
+                    PVCallout(tone: .danger, message: message)
+                }
+                .accessibilityIdentifier("workspace.toolbar.omnibar.error")
+            }
         }
     }
 }

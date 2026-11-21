@@ -441,8 +441,8 @@
         }
       }
     },
-    "designSystem.comboBox.searching": {
-      "comment": "PVComboBox list line while the caller's remote search runs and no results are in yet",
+    "designSystem.popupList.searching": {
+      "comment": "Kit popup list line while a remote search runs and no results are in yet",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -11889,37 +11889,13 @@
       }
     },
     "workspace.omnibar.resultsAccessibilityLabel": {
-      "comment": "Accessibility label for the omnibar results panel",
+      "comment": "Accessibility label for the omnibar's results list",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Search results"
-          }
-        }
-      }
-    },
-    "workspace.omnibar.searchFailed": {
-      "comment": "Omnibar panel message when SearchCatalog fails",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search couldn’t finish. Try again."
-          }
-        }
-      }
-    },
-    "workspace.omnibar.searching": {
-      "comment": "Omnibar panel loading label while SearchCatalog is in flight",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searching…"
           }
         }
       }

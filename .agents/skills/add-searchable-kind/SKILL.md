@@ -116,7 +116,7 @@ destination UI.
   (`hit.searchKind`; nil for a kind this build doesn't know). Switches on it
   are exhaustive, so a new case names each view spot. Never compare
   `hit.kind` to a string literal.
-- Swift callers search through `CatalogSearchModel` (`macos/App/Features/Catalog/Search/`): kinds at init, an optional location per search (nil: no section nudge). The omnibar and Promote's find-another-record picker both use it; draw hits with `CatalogSearchHitRow`, which carries its own VoiceOver label (the session's name order). A picker is `PVComboBox(onQueryChange:isLoading:empty:)` over `CatalogSearchModel(kinds:)`, as `PromoteRecordSearch` does.
+- Swift callers search through `CatalogSearchModel` (`macos/App/Features/Catalog/Search/`): kinds at init, an optional location per search (nil: no section nudge). The omnibar and Promote's find-another-record picker both use it; draw hits with `CatalogSearchHitRow`, which carries its own VoiceOver label (the session's name order). The omnibar draws its hits on the kit popup list (`OmnibarResultsHost`) and holds its highlight in `OmnibarResultsModel`; both surfaces read `CatalogSearchModel.line` for what to show (rows, searching, no match, failure). A picker is `PVComboBox(onQueryChange:isLoading:empty:)` over `CatalogSearchModel(kinds:)`, as `PromoteRecordSearch` does.
 
 Catalog RPCs use `withProjectCatalog` — see
 [`use-catalog-session`](../use-catalog-session/SKILL.md). New Method →

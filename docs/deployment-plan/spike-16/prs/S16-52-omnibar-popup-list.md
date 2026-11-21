@@ -1,9 +1,9 @@
 # S16-52 — The omnibar's results use the kit popup list
 
-**Status:** Planned
+**Status:** Landed in [#932](https://github.com/Jake-Robins-Studios/provenencia/pull/932) (2026-11-21)
 **Spike / slice:** Spike 16 · Slice 6d — Popups
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D9](../design/S16-D9-omnibar-results.md), board agreed 2026-11-21; kit pieces from [S16-D11](../design/S16-D11-web-kit-popup-list.md), agreed 2026-11-21
+**Brief:** [S16-D9](../design/archive/S16-D9-omnibar-results.md), board agreed 2026-11-21; kit pieces from [S16-D11](../design/S16-D11-web-kit-popup-list.md), agreed 2026-11-21
 **Board:** [S16-D9 board](https://claude.ai/artifact/1UzGb9TQCd7ZQrmuAN5AY8), page "S3-01 Omnibar Results", frames R1a, R2, R1b, R3, R4 (open the link; the implementer reads the frames there). The web kit's components the board instances: [design system](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList and SearchHitRow. The board's card shadow is the web's stand-in: the app keeps the window's own shadow and adds no `.pvShadow`
 **Depends on:** S16-51 (landed [#928](https://github.com/Jake-Robins-Studios/provenencia/pull/928)), S16-D9 (agreed), S16-D11 (agreed)
 **Blocks:** —
@@ -89,6 +89,7 @@ The omnibar's results are the kit popup list, the one a combo box shows: its own
 | `OmnibarResultsModel` holds the highlight and the keys; `CatalogSearchModel` loses `selectedIndex`, `moveSelection`, `selectedHit` (OR-5) | STEP-5, AC-2.1 – AC-2.7, AC-4.2 |
 | `OmnibarResultsHost` draws the kit list on the omnibar field; the overlay, its watcher, `OmnibarResultsPanel`, `OmnibarFieldAnchorKey`, `omnibarSearching` and `omnibarSearchFailed` go (OR-1, OR-2, OR-4, OR-6 – OR-9, OR-W1) | STEP-5, AC-1.1, AC-1.5, AC-3.1 – AC-3.4, AC-4.1, AC-4.3 |
 | `PVOmnibarHitRow` moves to the kit's components as `PVSearchHitRow` | STEP-6, AC-4.4 |
+| The results close, keeping the query, when the omnibar field loses focus (user, 2026-11-21, S16-52 review UX-1: the old app-wide Escape monitor is gone) | Review fix F-7, §10 step 5 |
 | The kit README, `design-system-layers.md`, `add-searchable-kind` and `ideas/kit-layering.md` say where the list and the row live and what is left | STEP-7 |
 
 | Out | Home |
@@ -99,7 +100,6 @@ The omnibar's results are the kit popup list, the one a combo box shows: its own
 | The history menu's `armDismissMonitor`, `activeIndex` and `PVFloatingMenuSelection.moveIndex(from:delta:count:)`, its last caller | S16-53 |
 | `PVMenuRowButtonStyle`, which `PVContextMenu`, `PVDeleteImpact` and the history menu still use | not planned: it keeps three callers |
 | Grouping hits by kind, a footer, a "show all" row | not planned (brief §2.1) |
-| Closing the results when the field loses focus by Tab | not planned: Tab away leaves them open, as today |
 | Promote's record picker pads each hit row twice (the combo box's row padding and the hit row's own) | [`ideas/kit-layering.md`](../../../ideas/kit-layering.md) (added in STEP-7) |
 | A remote combo box (Promote's picker) lands its highlight before its results arrive, so its first hit is not highlighted | [`ideas/kit-layering.md`](../../../ideas/kit-layering.md) (added in STEP-7) |
 | Editing the archived [`omnibar-search.md`](../../archive/spike-3/omnibar-search.md) ("~640px widen-left" still holds) | not planned: archive, not edited |
@@ -322,7 +322,7 @@ Use a project with at least 20 Persons named Smith, a Source titled "Ilminster p
 2. Press ↓, End, Home, Page Down, ⌘↑, ↑; the highlight moves as AC-2.2 says and the caret stays in the field. Hover the third hit; it highlights. Press Return: its place opens and the field empties (AC-2.3, AC-2.7). With a keypad, keypad Enter does the same.
 3. Type `smith`: twenty hits, the list is 420 pt tall and scrolls; End keeps the last row in view (AC-1.5).
 4. Type `ilmin`, click in the field to move the caret: the list stays open. Click the page below: it closes on the release and the field keeps `ilmin` (AC-3.1, AC-3.2). Press ↓ and Return: nothing opens (AC-2.6). Type a letter: the list returns.
-5. With the list open, ⌘-Tab to another app: it closes (AC-3.3). Reopen and click a hit: it opens (AC-3.4). Reopen and press Escape: it closes and the query stays (AC-2.5).
+5. With the list open, ⌘-Tab to another app: it closes (AC-3.3). Reopen and click a hit: it opens (AC-3.4). Reopen and press Escape: it closes and the query stays (AC-2.5). Reopen and Tab out of the omnibar: it closes and the query stays.
 6. Type `il` and watch the searching line before the hits arrive; type `zzzz`: the no-match line; type 120 characters of `z`: the title wraps inside the card (AC-1.4).
 7. Resize the window to its 700 pt minimum with `ilmin` typed: the list narrows and its left edge stays 16 pt inside the content column, never over the sidebar (AC-1.2). Drag the window so the field is near the screen's left edge: the list stays on screen (AC-1.3).
 8. Open the history menu (hold Back) with the results open: the results close; the history menu is as wide as before. A combo box (Source type picker) and the citation format editor's `{` completion open, move and close as before.
@@ -357,3 +357,14 @@ None.
 
 **Title:** S16-52 — The omnibar's results use the kit popup list
 **Body:** objective in one sentence; what shipped against US-1 – US-4; AC evidence; the `rg` output of AC-4.1, AC-4.2, AC-4.3 and AC-4.4; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-52-omnibar-popup-list.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `496ffa9c2`; no **Current state** row changed under `macos/`.
+- `PromoteModelTests` read `showsErrorState` (not named in STEP-4); it reads `search.line`.
+- `WorkspaceContent` lost its `@Environment(WorkspaceNavigation.self)`, whose only use was the removed overlay, and `WorkspaceContent.coordinateSpace` is `nonisolated` so the field's geometry closure can read it.
+- One test beyond §8: `CatalogSearchModelTests.aFailedSearchIsTheMappedMessageNotNoMatches` (T-12's FakeStore case at the model level).
+- STEP-2 and STEP-3 are one commit.
+- The in-app passes (STEP-5's key check, STEP-2 and STEP-3's macOS checks, and §10) were not run by the implementer; they are owed before merge. Whether `onKeyPress` on the omnibar's `PVInput` receives ↑/↓/Home/End/Page and keypad Enter is therefore unverified (§11 stop condition).
+- The results also close when the omnibar field loses focus (Tab or a click that takes focus), keeping the query; the old app-wide Escape monitor that covered this is gone (user, 2026-11-21, review UX-1). One `.onChange(of: omnibarFocused)` in `WorkspaceToolbar`, no model method, so no new test.
+- Review round 1 also added `PVPopupListMeasurement` and `PVPopupListCard.height(rows:)` (one measured-height value and one padding rule for the combo box, the completion list and the omnibar), `PVPopupListHighlight.isCommitKey` (keypad Enter now commits a combo box row, as it does in the omnibar; user, 2026-11-21), `CatalogSearchHit.fixture` for tests, and `.isButton` on the omnibar's hit rows.

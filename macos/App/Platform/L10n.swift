@@ -279,10 +279,10 @@ enum L10n {
             comment: "Accessibility label for a PVList skeleton shown on first load"
         )
 
-        static let comboBoxSearching = LocalizedStringResource(
-            "designSystem.comboBox.searching",
+        static let popupListSearching = LocalizedStringResource(
+            "designSystem.popupList.searching",
             defaultValue: "Searching…",
-            comment: "PVComboBox list line while the caller's remote search runs and no results are in yet"
+            comment: "Kit popup list line while a remote search runs and no results are in yet"
         )
 
         static let thumbnailLoading = LocalizedStringResource(
@@ -1296,19 +1296,7 @@ enum L10n {
         static let omnibarResultsAccessibilityLabel = LocalizedStringResource(
             "workspace.omnibar.resultsAccessibilityLabel",
             defaultValue: "Search results",
-            comment: "Accessibility label for the omnibar results panel"
-        )
-
-        static let omnibarSearchFailed = LocalizedStringResource(
-            "workspace.omnibar.searchFailed",
-            defaultValue: "Search couldn’t finish. Try again.",
-            comment: "Omnibar panel message when SearchCatalog fails"
-        )
-
-        static let omnibarSearching = LocalizedStringResource(
-            "workspace.omnibar.searching",
-            defaultValue: "Searching…",
-            comment: "Omnibar panel loading label while SearchCatalog is in flight"
+            comment: "Accessibility label for the omnibar's results list"
         )
 
         /// Omnibar match-context line for a note body hit; argument is the raw snippet.

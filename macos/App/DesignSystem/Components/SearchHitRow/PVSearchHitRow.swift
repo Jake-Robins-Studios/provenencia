@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Shared omnibar result row skeleton — one layout for every hit kind.
+/// The kit's search hit row: one layout for every hit kind.
 /// Callers fill slots via a lead view + copy; the row is not kind-aware.
 ///
-/// Board: Spike 3 Omnibar Results / Omnibar Hit Row → `PVOmnibarHitRow`.
-struct PVOmnibarHitRow<Lead: View>: View {
+/// Board: Spike 3 Omnibar Results / Omnibar Hit Row → `PVSearchHitRow`.
+struct PVSearchHitRow<Lead: View>: View {
     let lead: Lead
     let title: String
     let kindLabel: LocalizedStringResource
@@ -88,7 +88,7 @@ struct PVOmnibarHitRow<Lead: View>: View {
 
 #Preview {
     VStack(spacing: 0) {
-        PVOmnibarHitRow(
+        PVSearchHitRow(
             lead: { PVThumbnail(PVThumbnail.Content(glyph: .symbol(.scrollText)), size: 40) },
             title: "Ilminster parish register, 1841–1852",
             kindLabel: L10n.Workspace.omnibarKindSource,
@@ -97,7 +97,7 @@ struct PVOmnibarHitRow<Lead: View>: View {
             refAccent: true,
             matchContext: "Exact match — opens on return"
         )
-        PVOmnibarHitRow(
+        PVSearchHitRow(
             lead: { PVThumbnail(PVThumbnail.Content(glyph: .symbol(.library)), size: 40) },
             title: "Parish register",
             kindLabel: L10n.Workspace.omnibarKindType,
