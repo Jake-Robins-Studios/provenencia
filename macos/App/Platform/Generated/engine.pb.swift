@@ -136,6 +136,8 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
   case renderCitations // = 124
   case renderCitationPreview // = 125
   case listCitationPlaceholders // = 126
+  case getSourceMoveImpact // = 127
+  case moveToSource // = 128
   case UNRECOGNIZED(Int)
 
   public init() {
@@ -251,6 +253,8 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     case 124: self = .renderCitations
     case 125: self = .renderCitationPreview
     case 126: self = .listCitationPlaceholders
+    case 127: self = .getSourceMoveImpact
+    case 128: self = .moveToSource
     default: self = .UNRECOGNIZED(rawValue)
     }
   }
@@ -364,6 +368,8 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     case .renderCitations: return 124
     case .renderCitationPreview: return 125
     case .listCitationPlaceholders: return 126
+    case .getSourceMoveImpact: return 127
+    case .moveToSource: return 128
     case .UNRECOGNIZED(let i): return i
     }
   }
@@ -477,6 +483,8 @@ public nonisolated enum Provenencia_Engine_V1_Method: SwiftProtobuf.Enum, Swift.
     .renderCitations,
     .renderCitationPreview,
     .listCitationPlaceholders,
+    .getSourceMoveImpact,
+    .moveToSource,
   ]
 
 }
@@ -2476,6 +2484,111 @@ public nonisolated struct Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResp
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+}
+
+/// What moving an Artifact or an Evidence graph to another Source moves with it.
+public nonisolated struct Provenencia_Engine_V1_GetSourceMoveImpactRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var projectDir: String = String()
+
+  /// exactly one of artifact_id and graph_id
+  public var artifactID: String = String()
+
+  public var graphID: String = String()
+
+  /// optional; empty leaves the credibility fields empty
+  public var targetSourceID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_GetSourceMoveImpactResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// the bundle's Source today
+  public var sourceID: String = String()
+
+  /// by ref
+  public var artifacts: [Provenencia_Engine_V1_Artifact] = []
+
+  /// the Source's graph order
+  public var graphs: [Provenencia_Engine_V1_EvidenceGraph] = []
+
+  /// one per graph, same order
+  public var progress: [Provenencia_Engine_V1_EvidenceGraphProgress] = []
+
+  /// "" when not assessed
+  public var sourceCredibilityKey: String = String()
+
+  public var targetCredibilityKey: String = String()
+
+  /// the two grades score differently
+  public var credibilityDiffers: Bool = false
+
+  /// every Artifact of the Source moves
+  public var leavesSourceEmpty: Bool = false
+
+  /// every graph moves; the Source gets a new Default graph
+  public var leavesNoGraph: Bool = false
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_MoveToSourceRequest: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var projectDir: String = String()
+
+  public var userID: String = String()
+
+  public var artifactID: String = String()
+
+  public var graphID: String = String()
+
+  public var targetSourceID: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+}
+
+public nonisolated struct Provenencia_Engine_V1_MoveToSourceResponse: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var artifactIds: [String] = []
+
+  public var graphIds: [String] = []
+
+  /// the old Source's new Default graph, when every graph moved
+  public var defaultGraphID: String = String()
+
+  public var effects: Provenencia_Engine_V1_WriteEffects {
+    get {_effects ?? Provenencia_Engine_V1_WriteEffects()}
+    set {_effects = newValue}
+  }
+  /// Returns true if `effects` has been explicitly set.
+  public var hasEffects: Bool {self._effects != nil}
+  /// Clears the value of `effects`. Subsequent reads from it will return its default value.
+  public mutating func clearEffects() {self._effects = nil}
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _effects: Provenencia_Engine_V1_WriteEffects? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_UpdateSourceRequest: Sendable {
@@ -9410,7 +9523,7 @@ public nonisolated struct Provenencia_Engine_V1_Error: Sendable {
 fileprivate nonisolated let _protobuf_package = "provenencia.engine.v1"
 
 nonisolated extension Provenencia_Engine_V1_Method: SwiftProtobuf._ProtoNameProviding {
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0METHOD_UNSPECIFIED\0\u{1}METHOD_PING\0\u{1}METHOD_GET_VERSION\0\u{1}METHOD_GET_INSTALL_IDENTITY\0\u{1}METHOD_COMPLETE_ONBOARDING\0\u{2}\u{2}METHOD_GET_ACTIVE_PROJECT\0\u{1}METHOD_OPEN_PROJECT\0\u{1}METHOD_REMOVE_ACTIVE_PROJECT\0\u{1}METHOD_LIST_PROJECT_USERS\0\u{1}METHOD_SIGN_OUT\0\u{1}METHOD_GET_PROJECT_INFO\0\u{1}METHOD_LIST_SOURCES\0\u{1}METHOD_GET_SOURCE_WORKSPACE\0\u{1}METHOD_CREATE_SOURCE\0\u{1}METHOD_UPDATE_SOURCE\0\u{1}METHOD_ADD_SOURCE_NOTE\0\u{1}METHOD_UPDATE_SOURCE_NOTE\0\u{1}METHOD_DELETE_SOURCE_NOTE\0\u{1}METHOD_SET_METADATA\0\u{1}METHOD_CLEAR_METADATA\0\u{1}METHOD_CREATE_ARTIFACT\0\u{1}METHOD_INGEST_ARTIFACT_FILE\0\u{1}METHOD_LIST_SOURCE_TYPES\0\u{1}METHOD_CREATE_SOURCE_TYPE\0\u{1}METHOD_LIST_METADATA_FIELDS\0\u{1}METHOD_CREATE_METADATA_FIELD\0\u{2}\u{2}METHOD_UPDATE_METADATA_FIELD\0\u{1}METHOD_DELETE_SOURCE_TYPE\0\u{1}METHOD_DELETE_METADATA_FIELD\0\u{1}METHOD_UPDATE_SOURCE_TYPE\0\u{1}METHOD_LIST_TYPE_SUGGESTIONS\0\u{1}METHOD_ASSIGN_TYPE_FIELD\0\u{1}METHOD_REMOVE_TYPE_FIELD\0\u{1}METHOD_GET_WORKSPACE_NAV_COUNTS\0\u{1}METHOD_UPDATE_ARTIFACT\0\u{1}METHOD_LIST_SOURCE_CREDIBILITY_GRADES\0\u{1}METHOD_UPSERT_SOURCE_CREDIBILITY_ASSESSMENT\0\u{1}METHOD_DISMISS_METADATA_SUGGESTION\0\u{1}METHOD_REORDER_METADATA\0\u{2}\u{2}METHOD_CLOSE_CATALOG_SESSION\0\u{1}METHOD_SET_SOURCE_COVER\0\u{1}METHOD_SEARCH_CATALOG\0\u{2}\u{2}METHOD_CREATE_SUBJECT\0\u{1}METHOD_UPDATE_SUBJECT\0\u{1}METHOD_DELETE_SUBJECT\0\u{1}METHOD_LIST_SUBJECTS\0\u{1}METHOD_SET_SUBJECT_POSITION\0\u{2}\u{2}METHOD_LIST_SUBJECT_POSITIONS\0\u{2}\u{2}METHOD_CREATE_PROPERTY\0\u{1}METHOD_UPDATE_PROPERTY\0\u{1}METHOD_DELETE_PROPERTY\0\u{2}\u{2}METHOD_ASSIGN_SUBJECT_TYPE_PROPERTY\0\u{1}METHOD_REMOVE_SUBJECT_TYPE_PROPERTY\0\u{2}\u{3}METHOD_LIST_CONNECT_RULES\0\u{1}METHOD_LIST_PROPERTY_TERMS\0\u{1}METHOD_CREATE_PROPERTY_TERM\0\u{1}METHOD_UPDATE_PROPERTY_TERM\0\u{1}METHOD_DELETE_PROPERTY_TERM\0\u{1}METHOD_CREATE_CITATION_WITH_OBSERVATIONS\0\u{1}METHOD_ADD_OBSERVATIONS_TO_CITATION\0\u{1}METHOD_LIST_OBSERVATIONS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_GET_CITATION\0\u{2}\u{2}METHOD_CREATE_CITED_BRIDGE\0\u{1}METHOD_CITATION_COUNTS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_LIST_CITATIONS_BY_ARTIFACT\0\u{1}METHOD_UPDATE_CITATION\0\u{1}METHOD_UPDATE_OBSERVATION\0\u{1}METHOD_DELETE_OBSERVATION\0\u{1}METHOD_GET_PROPERTIES_WORKSPACE\0\u{1}METHOD_LIST_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_DELETE_IMPACT\0\u{1}METHOD_DELETE_SOURCE\0\u{1}METHOD_DELETE_ARTIFACT\0\u{1}METHOD_DELETE_CITATION\0\u{2}\u{2}METHOD_LIST_SUBJECT_MEMBERSHIPS\0\u{1}METHOD_LIST_PERSON_SUMMARIES\0\u{2}\u{3}METHOD_GET_CONCLUSION_DETAIL\0\u{1}METHOD_LIST_EVENT_SUMMARIES\0\u{2}\u{2}METHOD_LIST_PLACE_SUMMARIES\0\u{2}\u{3}METHOD_LIST_EVIDENCE_GRAPH_EVENT_TITLES\0\u{1}METHOD_PROPOSE_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_APPLY_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_GET_NAME_FORMAT\0\u{1}METHOD_UNPROMOTE_SUBJECT\0\u{1}METHOD_SET_PREFERRED_LIKENESS\0\u{1}METHOD_COPY_SOURCE\0\u{1}METHOD_LIST_EVIDENCE_GRAPHS\0\u{1}METHOD_CREATE_EVIDENCE_GRAPH\0\u{1}METHOD_UPDATE_EVIDENCE_GRAPH\0\u{1}METHOD_DELETE_EVIDENCE_GRAPH\0\u{2}\u{3}METHOD_GET_EVIDENCE_GRAPH_UNLINK_IMPACT\0\u{2}\u{2}METHOD_REORDER_SUBJECT_TYPE_PROPERTIES\0\u{1}METHOD_LIST_PERSON_CLAIMS\0\u{1}METHOD_GET_PERSON_FAMILY\0\u{1}METHOD_LIST_PERSON_EVENTS\0\u{1}METHOD_GET_UNPROMOTE_IMPACT\0\u{1}METHOD_GET_PERSON_RECORD_LINKS\0\u{1}METHOD_SET_SOURCE_DATE\0\u{1}METHOD_SET_SOURCE_PUBLIC\0\u{1}METHOD_GET_METADATA_BOARD\0\u{1}METHOD_GET_CITATION_FORMATS\0\u{2}\u{2}METHOD_COPY_SOURCE_TYPE\0\u{1}METHOD_GET_DRAFT_METADATA_BOARD\0\u{1}METHOD_RENDER_CITATIONS\0\u{1}METHOD_RENDER_CITATION_PREVIEW\0\u{1}METHOD_LIST_CITATION_PLACEHOLDERS\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0METHOD_UNSPECIFIED\0\u{1}METHOD_PING\0\u{1}METHOD_GET_VERSION\0\u{1}METHOD_GET_INSTALL_IDENTITY\0\u{1}METHOD_COMPLETE_ONBOARDING\0\u{2}\u{2}METHOD_GET_ACTIVE_PROJECT\0\u{1}METHOD_OPEN_PROJECT\0\u{1}METHOD_REMOVE_ACTIVE_PROJECT\0\u{1}METHOD_LIST_PROJECT_USERS\0\u{1}METHOD_SIGN_OUT\0\u{1}METHOD_GET_PROJECT_INFO\0\u{1}METHOD_LIST_SOURCES\0\u{1}METHOD_GET_SOURCE_WORKSPACE\0\u{1}METHOD_CREATE_SOURCE\0\u{1}METHOD_UPDATE_SOURCE\0\u{1}METHOD_ADD_SOURCE_NOTE\0\u{1}METHOD_UPDATE_SOURCE_NOTE\0\u{1}METHOD_DELETE_SOURCE_NOTE\0\u{1}METHOD_SET_METADATA\0\u{1}METHOD_CLEAR_METADATA\0\u{1}METHOD_CREATE_ARTIFACT\0\u{1}METHOD_INGEST_ARTIFACT_FILE\0\u{1}METHOD_LIST_SOURCE_TYPES\0\u{1}METHOD_CREATE_SOURCE_TYPE\0\u{1}METHOD_LIST_METADATA_FIELDS\0\u{1}METHOD_CREATE_METADATA_FIELD\0\u{2}\u{2}METHOD_UPDATE_METADATA_FIELD\0\u{1}METHOD_DELETE_SOURCE_TYPE\0\u{1}METHOD_DELETE_METADATA_FIELD\0\u{1}METHOD_UPDATE_SOURCE_TYPE\0\u{1}METHOD_LIST_TYPE_SUGGESTIONS\0\u{1}METHOD_ASSIGN_TYPE_FIELD\0\u{1}METHOD_REMOVE_TYPE_FIELD\0\u{1}METHOD_GET_WORKSPACE_NAV_COUNTS\0\u{1}METHOD_UPDATE_ARTIFACT\0\u{1}METHOD_LIST_SOURCE_CREDIBILITY_GRADES\0\u{1}METHOD_UPSERT_SOURCE_CREDIBILITY_ASSESSMENT\0\u{1}METHOD_DISMISS_METADATA_SUGGESTION\0\u{1}METHOD_REORDER_METADATA\0\u{2}\u{2}METHOD_CLOSE_CATALOG_SESSION\0\u{1}METHOD_SET_SOURCE_COVER\0\u{1}METHOD_SEARCH_CATALOG\0\u{2}\u{2}METHOD_CREATE_SUBJECT\0\u{1}METHOD_UPDATE_SUBJECT\0\u{1}METHOD_DELETE_SUBJECT\0\u{1}METHOD_LIST_SUBJECTS\0\u{1}METHOD_SET_SUBJECT_POSITION\0\u{2}\u{2}METHOD_LIST_SUBJECT_POSITIONS\0\u{2}\u{2}METHOD_CREATE_PROPERTY\0\u{1}METHOD_UPDATE_PROPERTY\0\u{1}METHOD_DELETE_PROPERTY\0\u{2}\u{2}METHOD_ASSIGN_SUBJECT_TYPE_PROPERTY\0\u{1}METHOD_REMOVE_SUBJECT_TYPE_PROPERTY\0\u{2}\u{3}METHOD_LIST_CONNECT_RULES\0\u{1}METHOD_LIST_PROPERTY_TERMS\0\u{1}METHOD_CREATE_PROPERTY_TERM\0\u{1}METHOD_UPDATE_PROPERTY_TERM\0\u{1}METHOD_DELETE_PROPERTY_TERM\0\u{1}METHOD_CREATE_CITATION_WITH_OBSERVATIONS\0\u{1}METHOD_ADD_OBSERVATIONS_TO_CITATION\0\u{1}METHOD_LIST_OBSERVATIONS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_GET_CITATION\0\u{2}\u{2}METHOD_CREATE_CITED_BRIDGE\0\u{1}METHOD_CITATION_COUNTS_BY_EVIDENCE_GRAPH\0\u{1}METHOD_LIST_CITATIONS_BY_ARTIFACT\0\u{1}METHOD_UPDATE_CITATION\0\u{1}METHOD_UPDATE_OBSERVATION\0\u{1}METHOD_DELETE_OBSERVATION\0\u{1}METHOD_GET_PROPERTIES_WORKSPACE\0\u{1}METHOD_LIST_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_EVIDENCE_GRAPH_PROGRESS\0\u{1}METHOD_GET_DELETE_IMPACT\0\u{1}METHOD_DELETE_SOURCE\0\u{1}METHOD_DELETE_ARTIFACT\0\u{1}METHOD_DELETE_CITATION\0\u{2}\u{2}METHOD_LIST_SUBJECT_MEMBERSHIPS\0\u{1}METHOD_LIST_PERSON_SUMMARIES\0\u{2}\u{3}METHOD_GET_CONCLUSION_DETAIL\0\u{1}METHOD_LIST_EVENT_SUMMARIES\0\u{2}\u{2}METHOD_LIST_PLACE_SUMMARIES\0\u{2}\u{3}METHOD_LIST_EVIDENCE_GRAPH_EVENT_TITLES\0\u{1}METHOD_PROPOSE_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_APPLY_PROMOTE_GRAPH_ALIGNMENT\0\u{1}METHOD_GET_NAME_FORMAT\0\u{1}METHOD_UNPROMOTE_SUBJECT\0\u{1}METHOD_SET_PREFERRED_LIKENESS\0\u{1}METHOD_COPY_SOURCE\0\u{1}METHOD_LIST_EVIDENCE_GRAPHS\0\u{1}METHOD_CREATE_EVIDENCE_GRAPH\0\u{1}METHOD_UPDATE_EVIDENCE_GRAPH\0\u{1}METHOD_DELETE_EVIDENCE_GRAPH\0\u{2}\u{3}METHOD_GET_EVIDENCE_GRAPH_UNLINK_IMPACT\0\u{2}\u{2}METHOD_REORDER_SUBJECT_TYPE_PROPERTIES\0\u{1}METHOD_LIST_PERSON_CLAIMS\0\u{1}METHOD_GET_PERSON_FAMILY\0\u{1}METHOD_LIST_PERSON_EVENTS\0\u{1}METHOD_GET_UNPROMOTE_IMPACT\0\u{1}METHOD_GET_PERSON_RECORD_LINKS\0\u{1}METHOD_SET_SOURCE_DATE\0\u{1}METHOD_SET_SOURCE_PUBLIC\0\u{1}METHOD_GET_METADATA_BOARD\0\u{1}METHOD_GET_CITATION_FORMATS\0\u{2}\u{2}METHOD_COPY_SOURCE_TYPE\0\u{1}METHOD_GET_DRAFT_METADATA_BOARD\0\u{1}METHOD_RENDER_CITATIONS\0\u{1}METHOD_RENDER_CITATION_PREVIEW\0\u{1}METHOD_LIST_CITATION_PLACEHOLDERS\0\u{1}METHOD_GET_SOURCE_MOVE_IMPACT\0\u{1}METHOD_MOVE_TO_SOURCE\0")
 }
 
 nonisolated extension Provenencia_Engine_V1_CitationNeed: SwiftProtobuf._ProtoNameProviding {
@@ -12272,6 +12385,220 @@ nonisolated extension Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResponse
 
   public static func ==(lhs: Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResponse, rhs: Provenencia_Engine_V1_GetEvidenceGraphUnlinkImpactResponse) -> Bool {
     if lhs.blocked != rhs.blocked {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetSourceMoveImpactRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}artifact_id\0\u{3}graph_id\0\u{3}target_source_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.artifactID) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.graphID) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.targetSourceID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.projectDir.isEmpty {
+      try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
+    }
+    if !self.artifactID.isEmpty {
+      try visitor.visitSingularStringField(value: self.artifactID, fieldNumber: 2)
+    }
+    if !self.graphID.isEmpty {
+      try visitor.visitSingularStringField(value: self.graphID, fieldNumber: 3)
+    }
+    if !self.targetSourceID.isEmpty {
+      try visitor.visitSingularStringField(value: self.targetSourceID, fieldNumber: 4)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_GetSourceMoveImpactRequest, rhs: Provenencia_Engine_V1_GetSourceMoveImpactRequest) -> Bool {
+    if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.artifactID != rhs.artifactID {return false}
+    if lhs.graphID != rhs.graphID {return false}
+    if lhs.targetSourceID != rhs.targetSourceID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".GetSourceMoveImpactResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}source_id\0\u{1}artifacts\0\u{1}graphs\0\u{3}source_credibility_key\0\u{3}target_credibility_key\0\u{3}credibility_differs\0\u{3}leaves_source_empty\0\u{3}leaves_no_graph\0\u{1}progress\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.sourceID) }()
+      case 2: try { try decoder.decodeRepeatedMessageField(value: &self.artifacts) }()
+      case 3: try { try decoder.decodeRepeatedMessageField(value: &self.graphs) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.sourceCredibilityKey) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.targetCredibilityKey) }()
+      case 6: try { try decoder.decodeSingularBoolField(value: &self.credibilityDiffers) }()
+      case 7: try { try decoder.decodeSingularBoolField(value: &self.leavesSourceEmpty) }()
+      case 8: try { try decoder.decodeSingularBoolField(value: &self.leavesNoGraph) }()
+      case 9: try { try decoder.decodeRepeatedMessageField(value: &self.progress) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.sourceID.isEmpty {
+      try visitor.visitSingularStringField(value: self.sourceID, fieldNumber: 1)
+    }
+    if !self.artifacts.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.artifacts, fieldNumber: 2)
+    }
+    if !self.graphs.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.graphs, fieldNumber: 3)
+    }
+    if !self.sourceCredibilityKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.sourceCredibilityKey, fieldNumber: 4)
+    }
+    if !self.targetCredibilityKey.isEmpty {
+      try visitor.visitSingularStringField(value: self.targetCredibilityKey, fieldNumber: 5)
+    }
+    if self.credibilityDiffers != false {
+      try visitor.visitSingularBoolField(value: self.credibilityDiffers, fieldNumber: 6)
+    }
+    if self.leavesSourceEmpty != false {
+      try visitor.visitSingularBoolField(value: self.leavesSourceEmpty, fieldNumber: 7)
+    }
+    if self.leavesNoGraph != false {
+      try visitor.visitSingularBoolField(value: self.leavesNoGraph, fieldNumber: 8)
+    }
+    if !self.progress.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.progress, fieldNumber: 9)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_GetSourceMoveImpactResponse, rhs: Provenencia_Engine_V1_GetSourceMoveImpactResponse) -> Bool {
+    if lhs.sourceID != rhs.sourceID {return false}
+    if lhs.artifacts != rhs.artifacts {return false}
+    if lhs.graphs != rhs.graphs {return false}
+    if lhs.progress != rhs.progress {return false}
+    if lhs.sourceCredibilityKey != rhs.sourceCredibilityKey {return false}
+    if lhs.targetCredibilityKey != rhs.targetCredibilityKey {return false}
+    if lhs.credibilityDiffers != rhs.credibilityDiffers {return false}
+    if lhs.leavesSourceEmpty != rhs.leavesSourceEmpty {return false}
+    if lhs.leavesNoGraph != rhs.leavesNoGraph {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_MoveToSourceRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MoveToSourceRequest"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}artifact_id\0\u{3}graph_id\0\u{3}target_source_id\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.userID) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.artifactID) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.graphID) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.targetSourceID) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.projectDir.isEmpty {
+      try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
+    }
+    if !self.userID.isEmpty {
+      try visitor.visitSingularStringField(value: self.userID, fieldNumber: 2)
+    }
+    if !self.artifactID.isEmpty {
+      try visitor.visitSingularStringField(value: self.artifactID, fieldNumber: 3)
+    }
+    if !self.graphID.isEmpty {
+      try visitor.visitSingularStringField(value: self.graphID, fieldNumber: 4)
+    }
+    if !self.targetSourceID.isEmpty {
+      try visitor.visitSingularStringField(value: self.targetSourceID, fieldNumber: 5)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_MoveToSourceRequest, rhs: Provenencia_Engine_V1_MoveToSourceRequest) -> Bool {
+    if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.userID != rhs.userID {return false}
+    if lhs.artifactID != rhs.artifactID {return false}
+    if lhs.graphID != rhs.graphID {return false}
+    if lhs.targetSourceID != rhs.targetSourceID {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_MoveToSourceResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".MoveToSourceResponse"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}artifact_ids\0\u{3}graph_ids\0\u{3}default_graph_id\0\u{1}effects\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedStringField(value: &self.artifactIds) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.graphIds) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.defaultGraphID) }()
+      case 4: try { try decoder.decodeSingularMessageField(value: &self._effects) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.artifactIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.artifactIds, fieldNumber: 1)
+    }
+    if !self.graphIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.graphIds, fieldNumber: 2)
+    }
+    if !self.defaultGraphID.isEmpty {
+      try visitor.visitSingularStringField(value: self.defaultGraphID, fieldNumber: 3)
+    }
+    try { if let v = self._effects {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    } }()
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_MoveToSourceResponse, rhs: Provenencia_Engine_V1_MoveToSourceResponse) -> Bool {
+    if lhs.artifactIds != rhs.artifactIds {return false}
+    if lhs.graphIds != rhs.graphIds {return false}
+    if lhs.defaultGraphID != rhs.defaultGraphID {return false}
+    if lhs._effects != rhs._effects {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -11419,6 +11419,16 @@ enum L10n {
             defaultValue: "This Source no longer exists.",
             comment: "FFI error sources.not_found: the Source was deleted"
         )
+        static let sourceMoveInvalid = LocalizedStringResource(
+            "error.sourcemove.invalid",
+            defaultValue: "This move could not be made.",
+            comment: "FFI error sourcemove.invalid: no seed, two seeds, or the target is the same Source"
+        )
+        static let sourceMoveNotFound = LocalizedStringResource(
+            "error.sourcemove.not_found",
+            defaultValue: "The Artifact or Evidence graph to move no longer exists.",
+            comment: "FFI error sourcemove.not_found: the picked Artifact or graph was deleted"
+        )
         static let subjectPositionsInvalid = LocalizedStringResource(
             "error.subjectpositions.invalid",
             defaultValue: "Invalid subject position.",
@@ -12057,6 +12067,10 @@ enum L10n {
                 return L10n.string(conclusionDetailsNotFound)
             case "sources.not_found":
                 return L10n.string(sourcesNotFound)
+            case "sourcemove.invalid":
+                return L10n.string(sourceMoveInvalid)
+            case "sourcemove.not_found":
+                return L10n.string(sourceMoveNotFound)
             case "subjectpositions.invalid":
                 return L10n.string(subjectPositionsInvalid)
             case "subjecttypes.invalid":

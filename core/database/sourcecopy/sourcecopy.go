@@ -60,7 +60,7 @@ type CopyInput struct {
 // ReadDraft reads everything a copy can carry from a Source on tx. A missing
 // Source is sources.ErrNotFound.
 func ReadDraft(tx *sql.Tx, sourceID []byte) (Draft, error) {
-	src, err := sources.GetTx(tx, sourceID)
+	src, err := sources.Lookup(tx, sourceID)
 	if err != nil {
 		return Draft{}, err
 	}

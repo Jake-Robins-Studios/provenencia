@@ -434,6 +434,9 @@ var registry = map[string]Effect{
 		EvidenceGraph: subjectGraph,
 		Reads:         []ReadPath{{ReadEvidenceGraphProgress, subjectGraph}},
 		SourceScope:   field("source_id"),
+		// A loaded handle node caches each member's source_id, so a Subject
+		// that changes Source reloads its handles.
+		Handles: onField("source_id", membersOf),
 	},
 	"evidence_graphs": {
 		Entity:        "evidence_graph",

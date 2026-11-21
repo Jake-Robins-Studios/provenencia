@@ -63,7 +63,10 @@ Citations, Observations, `evidence_graph_artifacts`, locators, depictions and id
 
 ## Engine notes
 
-- One write through the catalog session ([`use-catalog-session`](../../../.agents/skills/use-catalog-session/SKILL.md)) and one FFI handler, for example `MoveArtifactsToSource(artifact_ids, target_source_id)` ([`add-ffi-handler`](../../../.agents/skills/add-ffi-handler/SKILL.md)), plus a preflight read that returns the bundle (Artifacts, graphs, Subject counts) and the credibility difference for the confirm; the same closure function drives both, so the confirm and the write cannot disagree.
+- One write through the catalog session ([`use-catalog-session`](../../../.agents/skills/use-catalog-session/SKILL.md)) and one FFI handler, `MoveToSource` (an Artifact or a graph id, and the target Source), plus the preflight read `GetSourceMoveImpact` that returns the bundle (Artifacts, graphs, Subject counts) and the credibility difference for the confirm ([`add-ffi-handler`](../../../.agents/skills/add-ffi-handler/SKILL.md)); `evidencegraphs.BundleOf` is the one closure function that drives both, so the confirm and the write cannot disagree (S15-24).
+- **Keys:** the write runs with deferred foreign keys (`Tx.DeferForeignKeys`), so the composite key on `subjects` is checked at commit, when every Subject has followed its graph; no migration.
+- **Cover and graphs:** a cover pin on a moved Artifact reverts the old Source to the type icon; a Source that loses every graph gets a new Default graph, and the emptied Source is never deleted.
+- **Reifications:** a Subject of type `source` moves with its graph like every Subject; nothing warns (user, 2026-11-21).
 - **Audit:** one transaction scoped to **both** Sources, so each Source's history and "Updated" sort show the move ([`add-audit-scope`](../../../.agents/skills/add-audit-scope/SKILL.md)). Earlier transactions keep their old scope.
 - **Refs:** unchanged; `ART-`, `GPH-`, `CIT-` and Subject refs are project-wide.
 - **Search and caches:** re-project the moved rows' search documents if a hit shows its Source title ([`add-searchable-kind`](../../../.agents/skills/add-searchable-kind/SKILL.md)); refresh both Sources' pages, the Sources list counts, and any Person page whose provenance rows name the old Source.

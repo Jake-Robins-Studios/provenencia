@@ -852,7 +852,7 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	src, err := sources.GetTx(tx, sourceID)
+	src, err := sources.Lookup(tx, sourceID)
 	if errors.Is(err, sources.ErrNotFound) {
 		return nil, ErrInvalid
 	} else if err != nil {

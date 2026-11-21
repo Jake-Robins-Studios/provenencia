@@ -289,15 +289,14 @@ func EnsureCatalog(c *database.Catalog) error {
 //
 // The IN list is bounded: ids is one sqlbatch.Each chunk from recompute.
 func recomputeBatch(q database.Execer, ids [][]byte) (moved [][]byte, err error) {
-	in := database.SQLInPlaceholders(len(ids)) + `)`
 	stored, err := graphcache.Over(q).StoredValues(ids)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := q.Exec(sqlDeleteFor+in, database.BlobArgs(ids)...); err != nil {
+	if err := sqlbatch.Exec(q, sqlDeleteFor, `)`, nil, ids); err != nil {
 		return nil, err
 	}
-	if _, err := q.Exec(sqlDeleteOutcomesFor+in, database.BlobArgs(ids)...); err != nil {
+	if err := sqlbatch.Exec(q, sqlDeleteOutcomesFor, `)`, nil, ids); err != nil {
 		return nil, err
 	}
 	groups, err := load(q, ids)

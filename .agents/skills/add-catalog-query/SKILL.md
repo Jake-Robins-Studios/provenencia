@@ -47,13 +47,13 @@ Official **resource / vocab `Delete`**: follow `.agents/skills/add-catalog-delet
 
 ## Reads inside a write
 
-The catalog has one connection, so a read through `c.DB()` inside `writes.Run` waits on the transaction that is already open. A read a write needs takes the `*sql.Tx` through an exported `…Tx` twin (`sources.GetTx`, `artifacts.ListBySourceTx`, `sourcemetadata.ReadDraftTx`). Write the SQL and scan once in an unexported function over `database.Querier`; the Catalog read and its Tx twin both call it.
+The catalog has one connection, so a read through `c.DB()` inside `writes.Run` waits on the transaction that is already open. A read a write needs takes the `*sql.Tx` through an exported `…Tx` twin (`artifacts.ListBySourceTx`, `sourcemetadata.ReadDraftTx`). Write the SQL and scan once in an unexported function over `database.Querier`; the Catalog read and its Tx twin both call it.
 
 A package never declares its own querier or scanner interface, named or inline: a read takes `database.Querier`, a write `database.Execer`, a row scan `database.Scanner`, even when it calls one method. `sqlbatch`, `graphcache`, `effects` and `dbtest`, which cannot import `core/database`, take the `dbsql` types those alias. `dbsql`'s guard test refuses a copy. A query that selects one id column calls `database.QueryIDs` (`dbsql.QueryIDs` from a leaf package), not a local copy.
 
 A read made of more than one query straight on `c.DB()` opens one read transaction (`db.Begin`, deferred `Rollback`), as `deleteimpact.Snapshot` does, so its queries see one state. A registry entry's loader runs on the session graph under `catalogsession.Do`'s lock and opens no transaction, as `sources.loadRecords` and `evidencegraphs.list` do. Either way the unexported body takes `database.Querier` and the package's writes call it with their `tx.Tx`; add an exported `…Tx` twin only with its first caller outside the package.
 
-A write across several tables lives in a composing package (`core/database/connect`, `core/database/sourcecopy`). It takes the `*database.Tx`, calls each owner package's write, returns the changes, and never calls `writes.Run`; the handler does.
+A write across several tables lives in a composing package (`core/database/connect`, `core/database/sourcecopy`, `core/database/sourcemove`). It takes the `*database.Tx`, calls each owner package's write, returns the changes, and never calls `writes.Run`; the handler does. A write that changes both sides of a composite foreign key calls `tx.DeferForeignKeys()` before its first update and never issues a PRAGMA itself.
 
 ## Tests
 

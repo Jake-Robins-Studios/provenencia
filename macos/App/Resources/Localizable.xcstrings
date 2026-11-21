@@ -9202,6 +9202,30 @@
         }
       }
     },
+    "error.sourcemove.invalid": {
+      "comment": "FFI error sourcemove.invalid: no seed, two seeds, or the target is the same Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This move could not be made."
+          }
+        }
+      }
+    },
+    "error.sourcemove.not_found": {
+      "comment": "FFI error sourcemove.not_found: the picked Artifact or graph was deleted",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Artifact or Evidence graph to move no longer exists."
+          }
+        }
+      }
+    },
     "sources.page.dateKindLabel": {
       "comment": "Label above DateValue kind segmented control",
       "extractionState": "manual",

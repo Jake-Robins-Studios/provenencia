@@ -105,3 +105,47 @@ func TestQueryBindsStringKeysAsText(t *testing.T) {
 		t.Fatalf("rows %d in %d batches, want 501 in 2", got, batches)
 	}
 }
+
+// countingExecer counts the statements Exec runs.
+type countingExecer struct {
+	*sql.DB
+	execs int
+}
+
+func (c *countingExecer) Exec(query string, args ...any) (sql.Result, error) {
+	c.execs++
+	return c.DB.Exec(query, args...)
+}
+
+func TestExec(t *testing.T) {
+	raw, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer raw.Close()
+	raw.SetMaxOpenConns(1)
+	if _, err := raw.Exec(`CREATE TABLE t (id BLOB PRIMARY KEY, tag TEXT)`); err != nil {
+		t.Fatal(err)
+	}
+	all := ids(1001)
+	for _, id := range all {
+		if _, err := raw.Exec(`INSERT INTO t VALUES (?, 'x')`, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	db := &countingExecer{DB: raw}
+	if err := sqlbatch.Exec(db, `UPDATE t SET tag = ? WHERE id IN (`, `)`, []any{"y"}, all[:1001]); err != nil {
+		t.Fatal(err)
+	}
+	if db.execs != 3 {
+		t.Fatalf("statements %d, want 3", db.execs)
+	}
+	var n int
+	if err := raw.QueryRow(`SELECT COUNT(*) FROM t WHERE tag = 'y'`).Scan(&n); err != nil || n != 1001 {
+		t.Fatalf("updated %d (%v)", n, err)
+	}
+	db.execs = 0
+	if err := sqlbatch.Exec(db, `UPDATE t SET tag = ? WHERE id IN (`, `)`, []any{"z"}, [][]byte(nil)); err != nil || db.execs != 0 {
+		t.Fatalf("no ids: %d statements, %v", db.execs, err)
+	}
+}

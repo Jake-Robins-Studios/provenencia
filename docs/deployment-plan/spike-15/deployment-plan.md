@@ -119,7 +119,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-21 | The provenance sheet shows formatted citations | 6 | Swift: the sheet's on-open key renders and groups; Copy full and Copy short copy rich text | [S15-D9](design/archive/S15-D9-provenance-sheet-citations.md) | S15-16, S16-30, S16-04, S15-D9 | [plan](prs/S15-21-provenance-sheet-citations.md) | Landed [#930](https://github.com/Jake-Robins-Studios/provenencia/pull/930) |
 | S15-22 | The Sources section groups a Source's Citations by citation | 6 | Not built: citations stay on the provenance sheet (user, 2026-11-21: citations belong to an Observation, so a researcher reads them on the provenance sheet; the Sources section stays a list of the Sources behind the person) | — | — | — | Descoped (2026-11-21) |
 | S15-23 | The Source page copies its source-list entry | 9 | Swift: **Copy source-list entry** on the Source page; **re-scoped (user, 2026-11-13)**: the citation preview is not built | S15-D19 | S15-16, S15-21, S15-D19 | — | Scoped |
-| S15-24 | Move a bundle to another Source in the engine | 7 | Go: closure, preflight and move RPCs, one transaction through the effects registry | — | S16-12, S16-13, S16-15 | [plan](prs/S15-24-move-bundle.md) | Planned |
+| S15-24 | Move a bundle to another Source in the engine | 7 | Go: closure, preflight and move RPCs, one transaction through the effects registry | — | S16-12, S16-13, S16-15 | [plan](prs/S15-24-move-bundle.md) | Landed [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935) |
 | S15-25 | Move from an Artifact or a graph | 7 | Swift: the menu items and the bundle confirm | S15-D10, S15-D1, S15-D14 | S15-24, S15-35, S15-D10, S15-D1, S15-D14, S16-61 | — | Scoped |
 | S15-26 | The metadata board takes an owner | 2 | Preparatory, Swift: the board model and view take an owner; the Source page unchanged | — | — | [plan](prs/S15-26-metadata-board-takes-an-owner.md) | Landed #798 |
 | S15-27 | The provenance table folds a page at a time | 8 | Swift: the record table folds 50 citation groups at a time with the kit fold (also bounds the Why of an event with thousands of as-ofs, Spike 16's S16-44) | S15-D17 | S15-30, S15-21, S15-D17 | — | Scoped |
@@ -632,7 +632,7 @@ Input to [`plan-pr`](../../../.agents/skills/plan-pr/SKILL.md). Two to six lines
 
 #### S15-25 — Move from an Artifact or a graph
 
-**Ships.** **Move to another Source…** on Artifact rows and graphs on the Source page opens the confirm S15-D10 draws: the target picker, the bundle, and the credibility note when the two Sources' grades differ. After the move, the app lands on the moved Artifact under its new Source.
+**Ships.** **Move to another Source…** on Artifact rows and graphs on the Source page opens the confirm S15-D10 draws: the target picker, the bundle, and the credibility note when the two Sources' grades differ. After the move, the app lands on the moved Artifact under its new Source. `MoveToSource` and `GetSourceMoveImpact` can return `sources.not_found` for the **target** Source when it is deleted after the confirm opened; the generic "This Source no longer exists." reads as the Source being moved from, so the confirm shows that error beside the target picker or names the picked target (S15-24 ship log UX-1).
 **Not this PR.** Undo.
 **Check.** Bar 8.
 **Context.** S15-D10, S15-D1 (graphs), S15-D14 (where Move sits on the Artifact list); [`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md).
