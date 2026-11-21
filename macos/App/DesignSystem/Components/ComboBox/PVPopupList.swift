@@ -378,3 +378,55 @@ struct PVPopupListLine<Content: View>: View {
             .padding(.vertical, minHeight == nil ? PVSpacing.space4 : 0)
     }
 }
+
+// MARK: - The highlight
+
+/// The one highlight of a popup list: which row is active, and how a key, a
+/// landing and the pointer move it. The pointer and the keyboard drive the same
+/// value. Return is the field's, not the list's. Each field holds one.
+struct PVPopupListHighlight: Equatable {
+    /// Rows a Page Up or Page Down moves.
+    static let pageStep = 8
+
+    /// The active row, or -1 for none.
+    private(set) var index: Int
+
+    init(index: Int = -1) {
+        self.index = index
+    }
+
+    /// The keys `move` takes: ↑, ↓, Home, End, Page Up and Page Down.
+    static func isMovementKey(_ key: KeyEquivalent) -> Bool {
+        PVListKeyboard.moveIndex(for: key, option: false, index: -1, count: 1) != nil
+    }
+
+    /// Clamped, no wrap, steps over disabled rows; ⌘ with ↑/↓ jumps to an end.
+    /// Any other key leaves the index.
+    mutating func move(_ key: KeyEquivalent, command: Bool, count: Int, isDisabled: (Int) -> Bool) {
+        guard let next = PVListKeyboard.moveIndex(
+            for: key, option: command, index: index, count: count,
+            isDisabled: isDisabled, pageStep: Self.pageStep
+        ) else { return }
+        index = next
+    }
+
+    /// The Spotlight landing: the first enabled row, or -1 when there is none.
+    mutating func land(count: Int, isDisabled: (Int) -> Bool) {
+        index = PVFloatingMenuSelection.moveIndex(from: -1, delta: 1, count: count, isDisabled: isDisabled)
+    }
+
+    /// The pointer is over `row`: an enabled row in range becomes the active one.
+    mutating func hover(at row: Int, count: Int, isDisabled: (Int) -> Bool) {
+        guard (0..<count).contains(row), !isDisabled(row) else { return }
+        index = row
+    }
+
+    mutating func clear() {
+        index = -1
+    }
+
+    /// The active row when it is one of `count` rows.
+    func current(count: Int) -> Int? {
+        (0..<count).contains(index) ? index : nil
+    }
+}

@@ -566,7 +566,8 @@ final class PVTextAreaCompletionSession {
     private(set) var isOpen = false
     private(set) var options: [PVComboBoxOption] = []
     /// The highlighted row; -1 when there is none.
-    private(set) var activeIndex = -1
+    private var highlight = PVPopupListHighlight()
+    var activeIndex: Int { highlight.index }
     private(set) var context: PVTextAreaCompletion.Context?
 
     @ObservationIgnored var completion: PVTextAreaCompletion?
@@ -602,7 +603,7 @@ final class PVTextAreaCompletionSession {
         let hadRows = !options.isEmpty
         context = found
         options = rows
-        activeIndex = PVComboBoxMatch.firstEnabledIndex(in: rows)
+        highlight.land(count: rows.count, isDisabled: { rows[$0].isDisabled })
         isOpen = true
         if !wasOpen {
             speak(.opened(count: rows.count, first: rows.first))
@@ -618,7 +619,7 @@ final class PVTextAreaCompletionSession {
         guard isOpen else { return }
         isOpen = false
         options = []
-        activeIndex = -1
+        highlight.clear()
         context = nil
     }
 
@@ -645,15 +646,17 @@ final class PVTextAreaCompletionSession {
 
     /// The pointer moved onto row `index`: it becomes the highlighted row, as an arrow key would.
     func highlight(at index: Int) {
-        guard options.indices.contains(index), index != activeIndex else { return }
-        activeIndex = index
+        highlight.hover(at: index, count: options.count, isDisabled: { options[$0].isDisabled })
     }
 
     private func move(_ delta: Int) {
-        let next = PVComboBoxMatch.move(from: activeIndex, delta: delta, in: options)
-        guard next != activeIndex, options.indices.contains(next) else { return }
-        activeIndex = next
-        speak(.highlighted(options[next]))
+        let before = highlight.index
+        highlight.move(
+            delta > 0 ? .downArrow : .upArrow, command: false,
+            count: options.count, isDisabled: { options[$0].isDisabled }
+        )
+        guard highlight.index != before, options.indices.contains(highlight.index) else { return }
+        speak(.highlighted(options[highlight.index]))
     }
 
     /// Puts row `index` in at the context and closes the list.

@@ -59,12 +59,12 @@ struct PVContextMenuKeyboard: Equatable {
         guard itemCount > 0 else { return .ignore }
         switch key {
         case .upArrow, .downArrow, .home, .end:
-            let action = PVListKeyboard.action(
+            guard let next = PVListKeyboard.moveIndex(
                 for: key, option: false, index: activeIndex, count: itemCount,
                 isDisabled: { disabledRows.contains($0) }
-            )
-            if case .move(let index) = action { activeIndex = index }
-            return action
+            ) else { return .ignore }
+            activeIndex = next
+            return .move(to: next)
         case .return:
             // Return on nothing, or on a disabled row, keeps the menu open and
             // lets no key through to a default button behind it.

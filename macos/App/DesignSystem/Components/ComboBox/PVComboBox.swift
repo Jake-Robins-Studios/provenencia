@@ -94,36 +94,6 @@ enum PVComboBoxMatch {
         if (0..<optionCount).contains(activeIndex) { return .commit(activeIndex) }
         return query == committedLabel ? .submit : .swallow
     }
-
-    /// Index of the first row that can be committed, or -1 when every row is
-    /// disabled. This is the Spotlight rule's landing spot.
-    static func firstEnabledIndex(in options: [PVComboBoxOption]) -> Int {
-        options.firstIndex { !$0.isDisabled } ?? -1
-    }
-
-    /// Arrow-key movement. Unlike `PVTable`'s wrapping list this **clamps at
-    /// the ends** — an `NSMenu` does not cycle — and steps over disabled
-    /// rows in the direction of travel. Returns the current index unchanged
-    /// when there is nowhere legal to go.
-    ///
-    /// `from` may be -1 (nothing active yet), in which case a downward move
-    /// lands on the first row and an upward move on the last.
-    static func move(
-        from index: Int,
-        delta: Int,
-        in options: [PVComboBoxOption],
-        to edge: Edge? = nil
-    ) -> Int {
-        PVFloatingMenuSelection.moveIndex(
-            from: index,
-            delta: delta,
-            count: options.count,
-            edge: edge,
-            isDisabled: { options[$0].isDisabled }
-        )
-    }
-
-    typealias Edge = PVFloatingMenuSelection.Edge
 }
 
 /// Where the popup window sits relative to the field.
@@ -233,7 +203,8 @@ enum PVComboCommitVia: Equatable {
 ///   list. Return with no highlighted row reaches the form only when the
 ///   field shows its pick (`PVComboBoxMatch.returnAction`).
 /// - Arrow keys **clamp** at the ends rather than cycling, matching `NSMenu`.
-///   ⌘↑/⌘↓ and Home/End jump to the ends; Page Up/Down move by 8.
+///   ⌘↑/⌘↓ and Home/End jump to the ends; Page Up/Down move by 8
+///   (`PVPopupListHighlight`).
 /// - Escape is two-stage: close the list, then abandon the typed text.
 /// - Clicking anywhere outside the field or its list closes the list **and
 ///   blurs the field** — outside means done. Clicking the field itself
@@ -309,9 +280,9 @@ struct PVComboBox<Row: View, Empty: View>: View {
     /// mirroring the committed label. Only typed text filters.
     @State private var isDirty = false
     @State private var isOpen = false
-    /// The highlighted row, or -1. The keyboard and the pointer both drive
-    /// it — there is no separate hover state.
-    @State private var activeIndex = -1
+    /// The highlighted row. The keyboard and the pointer both drive it —
+    /// there is no separate hover state.
+    @State private var highlight = PVPopupListHighlight()
     /// Natural height of `rowsStack`, reported by `measuringRows`. The popup
     /// window is sized from this rather than from anything inside it.
     @State private var measuredRowsHeight: CGFloat = 0
@@ -401,7 +372,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
             }
             .onChange(of: isOpen) { _, open in
                 if open { return }
-                activeIndex = -1
+                highlight.clear()
                 measuredRowsHeight = 0
                 rowsMeasured = false
             }
@@ -485,7 +456,7 @@ struct PVComboBox<Row: View, Empty: View>: View {
         let options = visibleOptions
         return PVPopupListCard(
             rowIDs: options.map(\.id),
-            activeID: options.indices.contains(activeIndex) ? options[activeIndex].id : nil,
+            activeID: highlight.current(count: options.count).map { options[$0].id },
             verticalPadding: Self.listVerticalPadding
         ) {
             rowsStack
@@ -560,10 +531,13 @@ struct PVComboBox<Row: View, Empty: View>: View {
     /// aligned whatever the caller draws inside it; the shell is `PVPopupListRow`.
     private func rowView(_ option: PVComboBoxOption, index: Int) -> some View {
         PVPopupListRow(
-            isActive: index == activeIndex,
+            isActive: index == highlight.index,
             isSelected: option.value == selection,
             isDisabled: option.isDisabled,
-            onHighlight: { activeIndex = index },
+            onHighlight: {
+                let options = visibleOptions
+                highlight.hover(at: index, count: options.count, isDisabled: { options[$0].isDisabled })
+            },
             onCommit: { _ = commit(option, via: .click) }
         ) {
             HStack(spacing: PVSpacing.space5) {
@@ -590,7 +564,12 @@ struct PVComboBox<Row: View, Empty: View>: View {
     /// Spotlight rule: a query pre-selects the top hit so Return takes it;
     /// with no query the list is a browse list and nothing is highlighted.
     private func resetActiveRow() {
-        activeIndex = hasTypedQuery ? PVComboBoxMatch.firstEnabledIndex(in: visibleOptions) : -1
+        guard hasTypedQuery else {
+            highlight.clear()
+            return
+        }
+        let options = visibleOptions
+        highlight.land(count: options.count, isDisabled: { options[$0].isDisabled })
     }
 
     /// Writes the row, then asks the form. A forward Tab is taken when the
@@ -632,27 +611,22 @@ struct PVComboBox<Row: View, Empty: View>: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        if PVPopupListHighlight.isMovementKey(press.key) {
+            // A closed list opens first (which may land on the top hit), then
+            // the key moves from there.
+            if !isOpen { open() }
+            let options = visibleOptions
+            highlight.move(
+                press.key, command: press.modifiers.contains(.command),
+                count: options.count, isDisabled: { options[$0].isDisabled }
+            )
+            return .handled
+        }
         switch press.key {
-        case .downArrow, .upArrow:
-            let delta = press.key == .downArrow ? 1 : -1
-            let edge: PVComboBoxMatch.Edge? = press.modifiers.contains(.command)
-                ? (delta > 0 ? .last : .first)
-                : nil
-            moveActive(delta: delta, to: edge)
-            return .handled
-        case .home:
-            moveActive(delta: 1, to: .first)
-            return .handled
-        case .end:
-            moveActive(delta: -1, to: .last)
-            return .handled
-        case .pageDown, .pageUp:
-            moveActive(delta: press.key == .pageDown ? 8 : -8, to: nil)
-            return .handled
         case .return:
             let options = visibleOptions
             switch PVComboBoxMatch.returnAction(
-                activeIndex: activeIndex, optionCount: options.count, query: query, committedLabel: selectedLabel
+                activeIndex: highlight.index, optionCount: options.count, query: query, committedLabel: selectedLabel
             ) {
             case .commit(let index):
                 _ = commit(options[index], via: .return)
@@ -678,9 +652,9 @@ struct PVComboBox<Row: View, Empty: View>: View {
         case .tab:
             // Forward Tab commits the highlight and asks the form. The form
             // takes the key whenever another field follows this one.
-            if isOpen, visibleOptions.indices.contains(activeIndex) {
-                let option = visibleOptions[activeIndex]
-                if commit(option, via: .tab) { return .handled }
+            let options = visibleOptions
+            if isOpen, let index = highlight.current(count: options.count) {
+                if commit(options[index], via: .tab) { return .handled }
             }
             isOpen = false
             return focus?.claimTab(shift: false) ?? .ignored
@@ -693,11 +667,6 @@ struct PVComboBox<Row: View, Empty: View>: View {
         default:
             return .ignored
         }
-    }
-
-    private func moveActive(delta: Int, to edge: PVComboBoxMatch.Edge?) {
-        if !isOpen { open() }
-        activeIndex = PVComboBoxMatch.move(from: activeIndex, delta: delta, in: visibleOptions, to: edge)
     }
 
     private func identifier(_ suffix: String) -> String? {

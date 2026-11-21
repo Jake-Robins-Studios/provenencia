@@ -28,6 +28,19 @@ struct PVListTests {
         #expect(action(.pageUp, at: 4) == .move(to: 0))
     }
 
+    @Test func pageStepIsTheCallers() {
+        #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 0, count: 20, pageStep: 8) == 8)
+        #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 0, count: 20) == 10)
+        #expect(action(.pageDown, at: 0, of: 20) == .move(to: 10))
+    }
+
+    @Test func moveIndexTakesOnlyMovementKeys() {
+        for key in [KeyEquivalent.return, .space, .escape] {
+            #expect(PVListKeyboard.moveIndex(for: key, option: false, index: 1, count: 5) == nil)
+        }
+        #expect(PVListKeyboard.moveIndex(for: .downArrow, option: false, index: -1, count: 0) == -1)
+    }
+
     @Test func returnAndSpaceActivateTheFocusedRow() {
         #expect(action(.return, at: 7) == .activate(7))
         #expect(action(.space, at: 0) == .activate(0))

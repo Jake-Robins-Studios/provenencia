@@ -67,53 +67,6 @@ struct PVComboBoxTests {
         #expect(PVComboBoxMatch.filter(rows, query: "par").map(\.value) == ["a", "b", "c", "d"])
     }
 
-    // MARK: Spotlight rule
-
-    @Test func firstEnabledIndexSkipsDisabledLeadingRows() {
-        let rows = [option("a", "A", disabled: true), option("b", "B")]
-        #expect(PVComboBoxMatch.firstEnabledIndex(in: rows) == 1)
-    }
-
-    @Test func firstEnabledIndexIsNegativeWhenEveryRowIsDisabled() {
-        let rows = [option("a", "A", disabled: true), option("b", "B", disabled: true)]
-        #expect(PVComboBoxMatch.firstEnabledIndex(in: rows) == -1)
-        #expect(PVComboBoxMatch.firstEnabledIndex(in: []) == -1)
-    }
-
-    // MARK: Movement
-
-    @Test func movingFromNothingActiveLandsOnTheNearEnd() {
-        #expect(PVComboBoxMatch.move(from: -1, delta: 1, in: pool) == 0)
-        #expect(PVComboBoxMatch.move(from: -1, delta: -1, in: pool) == 2)
-    }
-
-    @Test func movementClampsAtBothEndsRatherThanCycling() {
-        #expect(PVComboBoxMatch.move(from: 2, delta: 1, in: pool) == 2)
-        #expect(PVComboBoxMatch.move(from: 0, delta: -1, in: pool) == 0)
-        // A page jump past the end stops at the end, it does not wrap.
-        #expect(PVComboBoxMatch.move(from: 0, delta: 8, in: pool) == 2)
-    }
-
-    @Test func edgeJumpsGoToFirstAndLast() {
-        #expect(PVComboBoxMatch.move(from: 1, delta: 1, in: pool, to: .last) == 2)
-        #expect(PVComboBoxMatch.move(from: 1, delta: -1, in: pool, to: .first) == 0)
-    }
-
-    @Test func movementStepsOverDisabledRows() {
-        let rows = [option("a", "A"), option("b", "B", disabled: true), option("c", "C")]
-        #expect(PVComboBoxMatch.move(from: 0, delta: 1, in: rows) == 2)
-        #expect(PVComboBoxMatch.move(from: 2, delta: -1, in: rows) == 0)
-    }
-
-    @Test func movementStaysPutWhenOnlyDisabledRowsRemain() {
-        let rows = [option("a", "A"), option("b", "B", disabled: true)]
-        #expect(PVComboBoxMatch.move(from: 0, delta: 1, in: rows) == 0)
-    }
-
-    @Test func movementOnAnEmptyListIsNegative() {
-        #expect(PVComboBoxMatch.move(from: -1, delta: 1, in: []) == -1)
-    }
-
     // MARK: Remote results
 
     @Test func searchingLineShowsOnlyWhileLoadingWithNothingIn() {
