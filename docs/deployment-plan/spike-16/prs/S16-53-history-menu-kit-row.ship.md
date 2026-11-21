@@ -53,3 +53,27 @@ CON-1: **Resolved** (`history-menu-labels.md:14` names `HistoryJumpMenuHost.rows
 
 ## Result
 Gate PASS (head `b7556f1e6`, `origin/main` unchanged since the branch was cut) · CI see PR · open: none · follow-ups: none · to user: UX-1 (close the history menu after a click in another popup, against AC-2.7) · manual check owed: plan §10 plus the UX-2 tooltip hover.
+
+## To user — UX-1 answered
+User, 2026-11-21: "it should close the menu if you click away, even right click". The orchestrator rewrote AC-2.7, AC-2.8, D-1, §6 Edges, T-1, §10 step 4 and the README lines STEP-5 names in the plan, and the spike's Batch 6 working rule, with the user's attribution; the Landed note records it. `ignoresRightClicks` becomes `rightClickOnAnchorPasses`: a right-click on the menu's own button passes (switching sides stays as AC-2.5/2.6 say), one anywhere else closes it.
+
+### Fix plan 2
+**F-5 — A right-click away closes the history menu** (from UX-1, user decision)
+Files: `macos/App/DesignSystem/Components/Popup/PVPopup.swift`, `macos/App/Features/Workspace/WorkspaceToolbar.swift`, `macos/ProvenenciaTests/PVPopupTests.swift`, `macos/App/DesignSystem/README.md` (ContextMenu and Popup rows), `docs/deployment-plan/spike-16/completed.md` (the S16-53 paragraph). Skill: `add-ui-component`, `add-swift-test`.
+Failing test first: replace `PVPopupDecisionTests.rightClicksPassWhenIgnored` with `rightClickOnAnchorPasses`, table rows in the shape of `fieldRows` (input, pending, onAnchor, expected), exactly the eight rows in the plan's T-1. The off-anchor right mouse-down row (`.mouseDown(.right, inside: false)`, onAnchor false → `.close(consumesEvent: false)`) fails against round 1's code.
+Do:
+- `PVPopupOptions.ignoresRightClicks` → `rightClickOnAnchorPasses`, doc comment "A right-click on the anchor passes (the history menu: a right-click on its button switches between Back and Forward). Elsewhere a right-click closes, as any click outside does."
+- `decide`'s `.mouseDown` first line: `if options.rightClickOnAnchorPasses, button == .right, onAnchor { return .pass }`. `onAnchor` already reaches `decide` from `PVPopupWatcherView.handle` for every mouse event; no watcher change.
+- The `pvPopup` doc comment (around line 348): "a right-click outside (except on the anchor with `options.rightClickOnAnchorPasses`)".
+- `HistoryJumpMenuHost`: `PVPopupOptions(rightClickOnAnchorPasses: true)`.
+- README: the plan's STEP-5 lines, now naming `rightClickOnAnchorPasses` (copy them from the plan).
+- `completed.md`: the S16-53 paragraph's "with the new `PVPopupOptions.ignoresRightClicks`, so right-clicks still switch between Back and Forward" becomes "with the new `PVPopupOptions.rightClickOnAnchorPasses`: a right-click on Back or Forward still switches sides, and one anywhere else closes the menu".
+Check: `rg -n "ignoresRightClicks" macos .agents .cursor docs/ideas docs/deployment-plan/spike-16/completed.md` finds nothing; the new test passes; scripts/check-pr.sh PASS. Commit: "Close the history menu on a right-click away from its button."
+
+## Round 2 — fix (F-5)
+Head `15539d184`. Gate PASS (orchestrator run). `f3bc1c64d` records the decision in the plan and map; `15539d184` is F-5. Orchestrator read the diff: `decide` passes a right press only with `onAnchor`; elsewhere it falls to the outside rule and closes; T-1 is eight table rows matching the plan. Deviation: the new test was red as a compile failure (new option name), not run against round 1's logic. No third review round (the cap; the change is the user's own call, two lines of rule plus a rename). AC-2.6 ordering checked in code: Back's watcher closes on the press before Forward's catcher presents, and D-2's side guard covers the other order.
+
+Nits (logged): `F-5 · PVPopup.swift:349 · the pvPopup doc comment's wrap is uneven`
+
+## Result (final)
+Gate PASS (head `15539d184`, `origin/main` unchanged) · open: none · follow-ups: none · to user: UX-1 answered (closes on a right-click away) · manual check owed: plan §10 (step 4 rewritten) plus the UX-2 tooltip hover.
