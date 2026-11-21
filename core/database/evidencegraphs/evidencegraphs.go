@@ -368,8 +368,9 @@ func containsPair(pairs []Pair, p Pair) bool {
 	return false
 }
 
-// CreateDefault inserts the Default graph of a new Source. Its only caller is
-// sources.Create, which has already checked the user and the Source.
+// CreateDefault inserts the Default graph of a Source. Its callers are
+// sources.Create and sourcemove.Move, each of which has already checked the
+// user and the Source.
 func CreateDefault(tx *database.Tx, sourceID []byte) (Graph, []rowchange.Change, error) {
 	if tx == nil || len(sourceID) != 16 {
 		return Graph{}, nil, ErrInvalid
@@ -447,12 +448,17 @@ func SourceOf(q database.Querier, graphID []byte) ([]byte, error) {
 	if q == nil || len(graphID) != 16 {
 		return nil, ErrInvalid
 	}
-	var id []byte
-	err := q.QueryRow(sqlGraphSource, graphID).Scan(&id)
+	id, err := sourceOf(q, graphID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
-	if err != nil {
+	return id, err
+}
+
+// sourceOf is SourceOf without the id check; no such graph is sql.ErrNoRows.
+func sourceOf(q database.Querier, graphID []byte) ([]byte, error) {
+	var id []byte
+	if err := q.QueryRow(sqlGraphSource, graphID).Scan(&id); err != nil {
 		return nil, err
 	}
 	return id, nil
