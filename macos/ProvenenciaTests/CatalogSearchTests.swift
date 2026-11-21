@@ -272,7 +272,7 @@ struct CatalogSearchHitPresentationTests {
         #expect(L10n.string(CatalogSearchHitPresentation.kindLabel(for: .person)) == L10n.string(L10n.Workspace.omnibarKindPerson))
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "event", location: .sectionRoot(.persons)))?.glyph == .mark(.subjectEvent))
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "event", location: .sectionRoot(.persons)))?.label == nil)
-        let typeLead = CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source_type", iconKey: "type_book", location: .sectionRoot(.persons)))
+        let typeLead = CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source_type", location: .sectionRoot(.persons), iconKey: "type_book"))
         #expect(typeLead?.glyph == .mark(.typeBook))
         #expect(typeLead?.label != nil)
         #expect(CatalogSearchHitPresentation.leadThumbnail(for: CatalogSearchHit.fixture(kind: "source_type", location: .sectionRoot(.persons)))?.glyph == .symbol(.tag))

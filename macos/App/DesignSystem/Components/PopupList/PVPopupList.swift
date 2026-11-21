@@ -234,11 +234,11 @@ struct PVPopupListCard<Stack: View>: View {
     @ViewBuilder let stack: Stack
 
     /// Air above and below the rows, inside the card's border.
-    static var defaultVerticalPadding: CGFloat { PVSpacing.space2 }
+    nonisolated static var defaultVerticalPadding: CGFloat { PVSpacing.space2 }
 
     /// How tall a card wants to be around `rows` points of rows: the rows plus
     /// the padding above and below.
-    static func height(rows: CGFloat, verticalPadding: CGFloat = defaultVerticalPadding) -> CGFloat {
+    nonisolated static func height(rows: CGFloat, verticalPadding: CGFloat = defaultVerticalPadding) -> CGFloat {
         rows + verticalPadding * 2
     }
 
