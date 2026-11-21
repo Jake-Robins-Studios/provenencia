@@ -50,8 +50,8 @@ DesignSystem/
     Marks/
       PVMark.swift
       MARKS.md
-    OmnibarHitRow/
-      PVOmnibarHitRow.swift
+    PersonCard/
+      PVPersonCard.swift
     ArtifactChecklist/
       PVArtifactChecklist.swift
     …
