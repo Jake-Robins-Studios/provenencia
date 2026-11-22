@@ -6878,6 +6878,26 @@ enum L10n {
             comment: "Title of the Move dialog's load failure"
         )
 
+        static let moveTargetsLoading = LocalizedStringResource(
+            "sources.move.targets.loading",
+            defaultValue: "Reading your Sources",
+            comment: "Loading text where the Move dialog's target field goes, while the Sources list is read"
+        )
+
+        static let moveTargetsLoadErrorTitle = LocalizedStringResource(
+            "sources.move.targets.loadError.title",
+            defaultValue: "Your Sources could not be read.",
+            comment: "Title of the Move dialog's failure to read the Sources list, where the target field goes"
+        )
+
+        static func moveAssessedAs(_ grade: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.assessedAs",
+                defaultValue: "assessed %@",
+                comment: "A Source's credibility in the Move dialog's credibility note when it has an assessment; argument is the grade label"
+            ), grade)
+        }
+
         static let moveNotAssessed = LocalizedStringResource(
             "sources.move.notAssessed",
             defaultValue: "not assessed",
@@ -6955,8 +6975,8 @@ enum L10n {
         ) -> String {
             return L10n.format(LocalizedStringResource(
                 "sources.move.credibility.message",
-                defaultValue: "“%1$@” is assessed %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change.",
-                comment: "Move dialog credibility note; arguments are the old Source title, its grade, the target Source title, its grade and the grade the moved records will be weighed as"
+                defaultValue: "“%1$@” is %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change.",
+                comment: "Move dialog credibility note; arguments are the old Source title, its grade phrase, the target Source title, its grade phrase (“assessed …” or “not assessed”) and the grade the moved records will be weighed as"
             ), origin, originGrade, target, targetGrade, weighedAs)
         }
 

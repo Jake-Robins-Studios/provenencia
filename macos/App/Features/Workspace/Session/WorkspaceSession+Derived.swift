@@ -12,6 +12,8 @@ enum DerivedValueID: Hashable {
     case sourcesByUpdated
     /// One Source type's Sources, most recently changed first: `sourcesByUpdated` filtered.
     case sourcesOfType(typeID: String)
+    /// The Move dialog's target ComboBox options for one origin Source: `sourcesByUpdated` minus the origin.
+    case sourceMoveTargets(originID: String)
     /// One page or section's content: the key it reads and the content's type,
     /// so one key opened as two page kinds holds two values.
     case conclusionContent(CatalogQueryKey, ObjectIdentifier)

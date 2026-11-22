@@ -235,6 +235,20 @@ struct SourceMoveModelTests {
         unread.listSourcesError = CoreInvokeError.coded(status: 1, code: "x", kind: .internal, params: [])
         let (blind, _) = await openedModel(store: unread)
         #expect(blind.targets == nil)
+        guard case .failed = blind.targetsLoadState else {
+            Issue.record("list failure: \(blind.targetsLoadState)")
+            return
+        }
+
+        // Read again re-reads the Sources list; the field's state follows it.
+        unread.listSourcesError = nil
+        blind.readTargetsAgain()
+        for _ in 0 ..< 200 where blind.targets == nil {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        #expect(blind.targets?.map(\.id) == ["s2", "s3"])
+        #expect(blind.targetsLoadState == .ready)
+        #expect(model.targetsLoadState == .ready)
     }
 
     // MARK: Picking
@@ -253,10 +267,15 @@ struct SourceMoveModelTests {
         await store.getSourceMoveImpactHold.untilSuspended(2)
         #expect(model.impact != nil)
 
+        // The newer read (S3) answers first and lands; S2's late reply must then be dropped, not
+        // replace it.
+        store.getSourceMoveImpactHold.releaseNewest()
+        await model.settleReads()
+        #expect(model.impactTarget == "s3")
         store.getSourceMoveImpactHold.release()
-        await Task.yield()
-        #expect(model.canMove == false)
-        store.getSourceMoveImpactHold.release()
+        await store.getSourceMoveImpactHold.untilSuspended(0)
+        for _ in 0 ..< 10 { await Task.yield() }
+        #expect(model.impactTarget == "s3")
         await model.settleReads()
 
         #expect(store.getSourceMoveImpactCalls.map(\.target) == [nil, "s2", "s3"])
@@ -281,12 +300,25 @@ struct SourceMoveModelTests {
         #expect(note?.title == L10n.string(L10n.Sources.moveCredibilityTitle))
         #expect(note?.message.contains("“Census” is assessed Low trust") == true)
         #expect(note?.message.contains("“Deed” is not assessed") == true)
+        #expect(note?.message.contains("assessed not assessed") == false)
         #expect(note?.message.contains("weighed as Standard") == true)
 
         store.sourceMoveTargetCredibility["s3"] = (label: "", weighedAs: "", differs: false)
         model.pick(targetID: "s3")
         await model.settleReads()
         #expect(model.credibilityNote == nil)
+
+        // An unassessed origin reads in the same shape: "is not assessed", never "is assessed not assessed".
+        reply.sourceCredibilityLabel = ""
+        store.sourceMoveImpacts["a1"] = reply
+        store.sourceMoveTargetCredibility["s3"] = (label: "High trust", weighedAs: "High trust", differs: true)
+        model.pick(targetID: "")
+        model.pick(targetID: "s3")
+        await model.settleReads()
+        let unassessed = model.credibilityNote?.message
+        #expect(unassessed?.contains("“Census” is not assessed") == true)
+        #expect(unassessed?.contains("“Will” is assessed High trust") == true)
+        #expect(unassessed?.contains("assessed not assessed") == false)
     }
 
     @Test
@@ -317,6 +349,8 @@ struct SourceMoveModelTests {
         store.getSourceMoveImpactError = nil
         let callsBefore = store.getSourceMoveImpactCalls.count
         model.readAgain()
+        // Read again shows progress before the reply, though the bundle is still held.
+        #expect(model.readState == .loading)
         await model.settleReads()
         #expect(store.getSourceMoveImpactCalls.count == callsBefore + 1)
         #expect(store.getSourceMoveImpactCalls.last?.target == "s2")
@@ -347,6 +381,10 @@ struct SourceMoveModelTests {
         let s2Page: QueryHandle<CatalogSourceWorkspace> = session.query(.sourceWorkspace(project: session.projectKey, sourceId: "s2"))
         await waitForQuery(s1Page)
         await waitForQuery(s2Page)
+        // The origin's page is the place shown, as it is when Move is clicked: only
+        // `apply(_:leavingPage:)` keeps it from reloading before the page is left.
+        session.apply(location: .sourcePage(sourceId: "s1"))
+        await waitForQuery(s1Page)
         let reads = store.getSourceWorkspaceCalls
 
         model.pick(targetID: "s2")

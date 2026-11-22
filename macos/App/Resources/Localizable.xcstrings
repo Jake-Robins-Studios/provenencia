@@ -25565,6 +25565,42 @@
         }
       }
     },
+    "sources.move.targets.loading": {
+      "comment": "Loading text where the Move dialog's target field goes, while the Sources list is read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading your Sources"
+          }
+        }
+      }
+    },
+    "sources.move.targets.loadError.title": {
+      "comment": "Title of the Move dialog's failure to read the Sources list, where the target field goes",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Sources could not be read."
+          }
+        }
+      }
+    },
+    "sources.move.assessedAs": {
+      "comment": "A Source's credibility in the Move dialog's credibility note when it has an assessment; argument is the grade label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "assessed %@"
+          }
+        }
+      }
+    },
     "sources.move.notAssessed": {
       "comment": "A Source's credibility in the Move dialog's credibility note when it has no assessment",
       "extractionState": "manual",
@@ -25674,13 +25710,13 @@
       }
     },
     "sources.move.credibility.message": {
-      "comment": "Move dialog credibility note; arguments are the old Source title, its grade, the target Source title, its grade and the grade the moved records will be weighed as",
+      "comment": "Move dialog credibility note; arguments are the old Source title, its grade phrase, the target Source title, its grade phrase (“assessed …” or “not assessed”) and the grade the moved records will be weighed as",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“%1$@” is assessed %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change."
+            "value": "“%1$@” is %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change."
           }
         }
       }

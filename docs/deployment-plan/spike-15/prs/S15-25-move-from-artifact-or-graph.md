@@ -20,13 +20,17 @@
 - `VERSION` was 0.32.1 on `main`, so the bump is 0.32.1 → 0.33.0 (the header's "next minor after it").
 - The Move buttons carry no separate `.help`: `PVIconButton` already makes its `label` the tooltip (D-1, D-2 named one).
 - `CoreMethod.getSourceMoveImpact` and `.moveToSource` did not exist in `CoreInvoke.swift` (only in the generated enum); they were added there beside `getEvidenceGraphUnlinkImpact`.
-- `listSources(projectDir:sourceIDs:)` is a second `GenealogyStore` requirement beside `listSources(projectDir:)` (`GoStore`, `FakeStore`, the onboarding tests' `ThrowingStore`). `FakeStore` records its calls in `listSourcesByIDCalls`.
+- `listSources(projectDir:sourceIDs:)` is the one `GenealogyStore` requirement; `listSources(projectDir:)` is a protocol extension that forwards no ids (empty ids read every Source). `FakeStore` records an id-less call in `listSourcesCalls` and a by-id call in `listSourcesByIDCalls`.
 - `WorkspaceSession.sourcesByUpdated` (in `WorkspaceSession+Derived.swift`) is the one reader of the `.sourcesByUpdated` derived value; `SourceTypeFormatsModel.previewSources` and `SourceMoveModel.targets` both read it.
 - `SourceMoveModel`: a pick's read clears a stale read failure when a bundle is already held (`readState` goes back to `.ready`), and `canMove` also requires `readState == .ready`, so a failed re-read of the same target dims Move. `moveError` holds the raw message; the view wraps it with `moveFailedMessage`.
 - D-16's "a file create reads the workspace once" did not hold by itself: a new Artifact saved with a file reported `source_holdings` twice (the create and the ingest). `ArtifactSheetModel.saveCreate` now holds the create's effects while a file follows and applies them merged with the ingest's (`CatalogWriteEffects.merged(with:)`), or alone when the file is refused. This is its own commit, "Refresh the Source page once when a new Artifact's file is added in the same Save."
 - The existing Artifact delete tests in `SourcePageModelTests` script `nextWriteEffects` with `source_holdings` (the fake does not derive it), show the page with `apply(location:)`, and sync the model from the reloaded workspace.
 - `PlaceRegistryTests` and `EvidenceGraphModelTests` pinned the old identity strings of the graph canvas and Promote places; they now pin the ones that start with the Source.
 - STEP-6's last check, `rg verbatimTitle macos/App/DesignSystem/Components/ContextMenu macos/App/DesignSystem/README.md`, still matches the README's FormDialog row (`PVFormDialogCopy(verbatimTitle:…)`), a different form; the ContextMenu row and folder are clean.
+- D-17: the host observes the pending correction (`ResolvedPlace.pendingGraphSourceCorrection`), not the graph row's Source, so a second stale entry for a moved graph is corrected too (the row's Source is the same for every entry of the graph). `PlaceRegistry.Spec.followsGraphSource` is set on the graph, composer and Promote places.
+- D-10 is superseded (user, 2026-11-22): while the Sources list is loading or failed, the dialog draws that state where the target field goes (`PVFormLoadArea` with Read again), not nothing.
+- The credibility note says each Source's grade in one shape: "is assessed High trust" or "is not assessed" (`moveAssessedAs`, `moveNotAssessed`).
+- `CatalogWriteEffects.merged(with:)` builds its result field by field, so a new field fails to compile until merged.
 - Not run: the manual check (§ 10).
 
 ### Implementer — read this first

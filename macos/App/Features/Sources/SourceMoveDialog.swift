@@ -78,11 +78,19 @@ private struct SourceMoveForm: View {
         }
     }
 
-    /// While the Sources list is unread there is neither the field nor the note.
-    @ViewBuilder
+    /// The Sources list's state stands where the field goes: reading, or failed with Read again.
+    /// An empty list says there is nowhere to move.
     private var targetField: some View {
-        if let targets = model.targets {
-            if targets.isEmpty {
+        PVFormLoadArea(
+            state: model.targetsLoadState,
+            loadingText: L10n.Sources.moveTargetsLoading,
+            errorTitle: L10n.Sources.moveTargetsLoadErrorTitle,
+            errorMessage: L10n.Sources.moveLoadErrorMessage,
+            onReadAgain: { model.readTargetsAgain() },
+            compact: true,
+            accessibilityIdentifierPrefix: "sources.move.targets"
+        ) {
+            if model.targets?.isEmpty == true {
                 PVCallout(tone: .neutral, message: L10n.string(L10n.Sources.moveNowhere), compact: true)
                     .accessibilityIdentifier("sources.move.nowhere")
             } else {
@@ -92,7 +100,7 @@ private struct SourceMoveForm: View {
                             get: { model.targetID ?? "" },
                             set: { model.pick(targetID: $0) }
                         ),
-                        options: targets.map { PVComboBoxOption(value: $0.id, label: $0.title, subtext: $0.ref) },
+                        options: model.targetOptions,
                         placeholder: L10n.Sources.moveTargetPlaceholder,
                         emptyLabel: L10n.Sources.moveTargetNoMatch,
                         label: L10n.Sources.moveTargetLabel,
@@ -197,6 +205,7 @@ private struct SourceMoveRow<Lead: View, Detail: View>: View {
             Spacer(minLength: 0)
         }
         .frame(minHeight: 40, alignment: .leading)
+        .help(Text(verbatim: title))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier(identifier)
     }

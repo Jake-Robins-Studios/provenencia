@@ -67,6 +67,26 @@ final class SourceMoveModel {
         return session.sourcesByUpdated.filter { $0.id != origin.id }
     }
 
+    /// The target ComboBox's options, built once per change of the Sources list: the dialog redraws
+    /// on every keystroke and read, and the list can hold thousands of rows.
+    var targetOptions: [PVComboBoxOption] {
+        let sources = session.sourcesByUpdated
+        let originID = origin.id
+        return session.derived(.sourceMoveTargets(originID: originID), inputs: [.derived(.sourcesByUpdated)]) {
+            sources.filter { $0.id != originID }
+                .map { PVComboBoxOption(value: $0.id, label: $0.title, subtext: $0.ref) }
+        }
+    }
+
+    /// The Sources list's own state, for the field's place in the dialog. A value wins: a failed
+    /// refetch keeps the stale list and stays `.ready`.
+    var targetsLoadState: PVFormLoadState { listHandle.read.formLoadState }
+
+    /// Reads the Sources list again, after a failed read.
+    func readTargetsAgain() {
+        let _: QueryHandle<[CatalogSource]> = session.reread(SourcesModel.sourcesListKey(for: session))
+    }
+
     // MARK: Reads
 
     /// The picked target changed; `""` is the ComboBox cleared. A pick reads the bundle again with
@@ -87,6 +107,7 @@ final class SourceMoveModel {
 
     /// Reads again for the current pick (or none), after a failed read.
     func readAgain() {
+        readState = .loading
         read(target: targetID)
     }
 
@@ -153,14 +174,16 @@ final class SourceMoveModel {
     /// The credibility note for the target the held reply answered, when the two grades differ.
     var credibilityNote: (title: String, message: String)? {
         guard let impact, impact.credibilityDiffers, let target, impactTarget == targetID else { return nil }
-        let notAssessed = L10n.string(L10n.Sources.moveNotAssessed)
+        func grade(_ label: String) -> String {
+            label.isEmpty ? L10n.string(L10n.Sources.moveNotAssessed) : L10n.Sources.moveAssessedAs(label)
+        }
         return (
             L10n.string(L10n.Sources.moveCredibilityTitle),
             L10n.Sources.moveCredibilityMessage(
                 origin: origin.title,
-                originGrade: impact.sourceCredibilityLabel.isEmpty ? notAssessed : impact.sourceCredibilityLabel,
+                originGrade: grade(impact.sourceCredibilityLabel),
                 target: target.title,
-                targetGrade: impact.targetCredibilityLabel.isEmpty ? notAssessed : impact.targetCredibilityLabel,
+                targetGrade: grade(impact.targetCredibilityLabel),
                 weighedAs: impact.weighedAsLabel
             )
         )
