@@ -1641,9 +1641,8 @@ protocol GenealogyStore: Sendable {
     func closeCatalogSession(projectDir: String) async throws
     func projectInfo(projectDir: String) async throws -> ProjectInfo
 
-    func listSources(projectDir: String) async throws -> [CatalogSource]
-    /// Just these Sources' rows, in the list's order, as `listSources(projectDir:)` returns them.
-    /// An id that is no longer a Source adds no row.
+    /// The project's Sources, newest first; with `sourceIDs`, just those Sources' rows in the same
+    /// order, an id that is no longer a Source adding no row. No ids reads every Source.
     func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource]
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace
     /// Creates a Source in one audited write and returns it with the write's effects.
@@ -2205,6 +2204,11 @@ struct CatalogObservationDraft: Sendable {
 }
 
 extension GenealogyStore {
+    /// Every Source of the project, newest first.
+    func listSources(projectDir: String) async throws -> [CatalogSource] {
+        try await listSources(projectDir: projectDir, sourceIDs: [])
+    }
+
     func updateObservation(
         projectDir: String,
         userID: String,

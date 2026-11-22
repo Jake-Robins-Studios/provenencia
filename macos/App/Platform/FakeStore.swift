@@ -33,6 +33,16 @@ final class FakeHold: @unchecked Sendable {
         takeOldest()?.resume()
     }
 
+    /// Resumes the newest suspended call, so a test can answer a later call before an earlier one.
+    func releaseNewest() {
+        let (newest, due) = lock.withLock { () -> (CheckedContinuation<Void, Never>?, [CheckedContinuation<Void, Never>]) in
+            let newest = waiting.popLast()
+            return (newest, takeDueWatchers())
+        }
+        due.forEach { $0.resume() }
+        newest?.resume()
+    }
+
     /// Suspends until exactly `n` calls are suspended in `wait()`; returns at once when that
     /// already holds. It has no deadline on purpose: a full-suite run starves the main actor
     /// for longer than any fixed timeout (see `QueryHandleWaiting.swift`'s `waitForSearch`), and
@@ -605,23 +615,15 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func listSources(projectDir: String) async throws -> [CatalogSource] {
+    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource] {
         return try withState {
-            listSourcesCalls += 1
+            if sourceIDs.isEmpty { listSourcesCalls += 1 } else { listSourcesByIDCalls.append(sourceIDs) }
             markCatalogSessionHeld(projectDir)
             if let listSourcesError { throw listSourcesError }
             // Match Go `sources.List`: newest-created-first (UUIDv7 / id DESC).
-            let rows = (sourcesByProject[projectDir] ?? []).sorted { $0.id > $1.id }
-            return rows.map { enrichCoverFields($0) }
-        }
-    }
-
-    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource] {
-        return try withState {
-            listSourcesByIDCalls.append(sourceIDs)
-            markCatalogSessionHeld(projectDir)
-            if let listSourcesError { throw listSourcesError }
-            let rows = (sourcesByProject[projectDir] ?? []).filter { sourceIDs.contains($0.id) }.sorted { $0.id > $1.id }
+            let rows = (sourcesByProject[projectDir] ?? [])
+                .filter { sourceIDs.isEmpty || sourceIDs.contains($0.id) }
+                .sorted { $0.id > $1.id }
             return rows.map { enrichCoverFields($0) }
         }
     }
