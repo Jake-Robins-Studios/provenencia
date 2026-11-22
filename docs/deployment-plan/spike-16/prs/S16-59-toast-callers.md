@@ -1,6 +1,6 @@
 # S16-59 — Workspace callers add to the toast stack
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6e — Stacked toasts
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every toast keeps its copy, tone and host stack; only how a model reaches the list changes)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/design-system-layers.mdc` (no `Features/` type inside `DesignSystem/Components/`)
 **Context:** map scope entry [S16-59](../deployment-plan.md#s16-59--workspace-callers-add-to-the-toast-stack); working rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](../stacked-toasts.md) "Callers add, they do not set"; S16-58's plan [Landed note](S16-58-toast-stack.md#landed) and [ship log](S16-58-toast-stack.ship.md) (CON-6, MNT-2, MNT-7, UX-3); bar 32
 **Planned:** 2026-11-22 against `main` @ `46a2614`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-59-toast-callers.review.md`](S16-59-toast-callers.review.md) — Fits with changes / Ready with changes, 1 round
 
 ### Implementer — read this first
 
@@ -42,7 +42,7 @@ Every workspace model adds its toast to its host's `PVToastList` directly, inste
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | A Metadata field is added (`MetadataModel`, the add path) | `session.toasts.entries.first` is tone `.success`, title `L10n.string(L10n.Metadata.toastAddedTitle)`; the model has no `toast` property |
+| AC-1.1 | A Metadata field is added (`MetadataModel`, the add path) | `session.toasts`' one entry is tone `.success`, title `L10n.string(L10n.Metadata.toastAddedTitle)`; the model has no `toast` property |
 | AC-1.2 | A Source type's Details save with formats unchanged (`SourceTypePageModel.save`) | One entry, title `toastUpdatedTitle`, message `toastUpdatedBody(label:key:)` |
 | AC-1.3 | An Evidence graph is added from the Source page (`SourceGraphFormModel.save`) | One entry: title "Evidence graph added", message "`<ref>` is ready to open." |
 | AC-1.4 | A Source move finishes (`SourceMoveModel.move`) | One `.success` entry in `session.toasts`, title `moveDoneTitle(target:)`, message `doneBody(artifacts:graphs:)` |
@@ -75,7 +75,7 @@ Every workspace model adds its toast to its host's `PVToastList` directly, inste
 | `WorkspaceSession.noticeToast`'s four setters add to `session.toasts`; the property and `WorkspaceView`'s notice overlay go | STEP-5, AC-1.4, AC-1.5 |
 | `ConclusionLeadModel` adds to the viewer's sheet list while the viewer is open, else to `session.toasts`; `toast` and `toastInViewer` go | STEP-6, AC-2.1 – AC-2.4 |
 | `vocabularyToastOverlay`, `VocabularyToastOverlay`, `VocabularyToast` and `PVToastList.add(_: VocabularyToast)` go, with the nine overlay ids (CON-6, UX-3) | STEP-7 |
-| `WorkspaceView` stops setting `\.pvToastList`; the key's comment and `WorkspaceSession.toasts`' comment say what is true (MNT-7) | STEP-5, STEP-7 |
+| `WorkspaceView` stops setting the key; `\.pvToastList` becomes `\.pvSheetToasts` beside the other sheet keys; `WorkspaceSession.toasts`' comment says what is true (MNT-7) | STEP-5, STEP-7 |
 | The models' toast tests assert on the list | STEP-2 – STEP-6 |
 | Kit README Toast row | STEP-8 |
 
@@ -109,6 +109,9 @@ Verified at `46a2614`. Paths under `macos/App/` unless they start with `macos/Pr
 | Sheet list | `DesignSystem/Components/Panel/PVSheet.swift:24-32` `PVSheetChrome` | `@State toasts = PVToastList()`, `.environment(\.pvToastList, toasts)`, draws `PVToastStack(list: toasts, identifier: "sheet.toasts")` |
 | Key | `DesignSystem/Components/Toast/PVToastList.swift:80-89` `EnvironmentValues.pvToastList`; comment "the window, or a sheet over it" | Set by `WorkspaceView` and `PVSheetChrome`; read only by `VocabularyToastOverlay` |
 | Kit README | `DesignSystem/README.md:168` Toast row | "Every toast host (the workspace window, each sheet, Onboarding) owns one `PVToastList`, sets it as `\.pvToastList` …"; Onboarding does not set it today |
+| Sheet guidance | `.agents/skills/add-ui-component/SKILL.md:97` | Teaches `\.pvSheetClose`; says nothing of a sheet's toast list |
+| Feature docs | `docs/deployment-plan/spike-16/stacked-toasts.md:10-24`; `docs/macos-client-patterns.md:105` | Name `noticeToast`, `vocabularyToastOverlay`, `toastInViewer` and "the page owns … its toast" as current |
+| List assertions | `CatalogCountsTests.swift:85-88, 121-124`, `CitationComposerModelTests.swift:916-919`, `PVToastListTests.swift:10` `titles(_:)` | Three shapes for reading a list in tests |
 | Tests | `macos/ProvenenciaTests/VocabularyToastTests.swift` `addingAVocabularyToastForwardsItsFields` | Tests the forward extension this PR deletes |
 
 **Precedent.** `5b1b74a` ("Show the composer's saved-bridge toast in the window's stack.", S16-58 D-11) is this PR's shape for one caller: `CitationComposerModel+Authoring.swift:672` calls `session.toasts.add(tone: .success, title: …, message: …)` through the `session` the model holds, and `CitationComposerModelTests.savingABridgeAddsItsToastToTheWindowList` asserts on `fresh.session.toasts.entries` with the session's default list. Copy both. S16-64 is the precedent for a version-free preparatory PR.
@@ -120,12 +123,12 @@ Verified at `46a2614`. Paths under `macos/App/` unless they start with `macos/Pr
 | D-1 | Every call site writes `<list>.add(tone:title:message:)` with today's tone and copy, each argument the same expression it passes to `VocabularyToast` today (so the `String` conversion it does today, `L10n.string(…)` or a `String`-returning `L10n` function, stays). Where today's `body` is `""`, it passes `message: nil` | One path into the list (map scope); `add` already turns `""` into `nil` (S16-58 D-4), so `nil` says it at the call | Keeping `VocabularyToast` and calling `add(_: VocabularyToast)` — a feature parameter bag over the kit's own three parameters, and a second way to add |
 | D-2 | `VocabularyToast`, `PVToastList.add(_: VocabularyToast)`, `vocabularyToastOverlay(_:identifier:)` and `VocabularyToastOverlay` are deleted, with `VocabularyToastTests.swift` | Each loses its last caller in this PR | Keeping the overlay for the viewer — the viewer adds through its model (D-6) |
 | D-3 | Workspace page models add to `session.toasts` through the `session` they already hold: `PropertiesModel`, `SourcesModel`, `SourceTypePageModel`, `MetadataModel`, `EvidenceGraphModel`, `PromoteModel`, `SourceMoveModel`. The Source page's sections add to `context.session.toasts`. `LeavesForSectionRoot.leave` adds to its `session` parameter's list | Each already holds the session (§4); no new parameter | A list injected into each model — a second way to reach one list |
-| D-4 | `SourceTypePageModel.savedToast(_:detailsChanged:formatsSaved:)` is renamed `savedToastCopy` and returns `(title: String, message: String)`; `save()` adds it with tone `.success` | The three cases stay in one function; its result no longer needs a type | Inlining the three `add` calls in the `switch` inside `save()` — moves 20 lines into the save path |
+| D-4 | `SourceTypePageModel.savedToast(_:detailsChanged:formatsSaved:)` becomes `private func addSavedToast(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool)`: the same `switch`, each case calling `session.toasts.add(tone: .success, …)` with today's copy; `save()` calls it where it set `toast` | Every toast site in the model then calls `add` (D-1), and the three cases stay out of `save()` (review M-4) | A function returning a `(title:message:)` tuple — a value shape for one caller; inlining the switch in `save()` — 20 lines in the save path |
 | D-5 | `WorkspaceSession.noticeToast` goes. Its four setters (§4) add to `session.toasts` directly, before the navigation they precede, as today's set does | The notice existed so a toast outlived the page that raised it; the window's list already does (S16-58 Reach) | Keeping `noticeToast` as a name for "toast after leaving" — it would be a second path to the same list |
-| D-6 | `ConclusionLeadModel` holds `private var viewerToasts: PVToastList?` *(new)* in place of `toast` and `toastInViewer`. `viewerOpened(toasts: PVToastList?)` sets it; `viewerClosed()` sets it to `nil`. `write` adds to `viewerToasts ?? session.toasts`. `ConclusionPictureViewer` reads `@Environment(\.pvToastList) private var sheetToasts` and calls `lead.viewerOpened(toasts: sheetToasts)` in its existing `onAppear`. `ConclusionDetailPage`'s overlay and its "one Toast has one host" comment go; the `lead` property's comment drops "so the page's toast is its own" | The scope entry: a model whose toast can show while its sheet is up decides where it draws (S16-58 Next adds). The sheet's list is `@State` in the kit's `PVSheetChrome`, so the environment is the one way the viewer reaches it | Making `PVSheetChrome`'s list public through a binding — the kit owns it; a `Bool` plus a separate list parameter on `choose` — the caller would pass the list on every call |
-| D-7 | `\.pvToastList` stays; `PVSheetChrome` is its one setter and `ConclusionPictureViewer` its one reader. `WorkspaceView`'s `.environment(\.pvToastList, session.toasts)` goes. The key's comment becomes: "The toast list of the sheet a view is in, set by `PVSheetChrome`; `nil` outside a sheet, where a workspace model adds to `WorkspaceSession.toasts`." | After D-2 nothing outside a sheet reads the key, so the window's set is dead (S16-58 D-5 planned the key's removal before sheets owned lists; its fix round made the sheet's list reachable only through it) | Deleting the key — the viewer could not reach its sheet's list |
+| D-6 | `ConclusionLeadModel` holds `private var viewerToasts: PVToastList?` *(new)* in place of `toast` and `toastInViewer`. `viewerOpened(toasts: PVToastList?)` sets it; `viewerClosed()` sets it to `nil`. `write` adds to `viewerToasts ?? session.toasts`. `ConclusionPictureViewer` reads `@Environment(\.pvSheetToasts) private var sheetToasts` and calls `lead.viewerOpened(toasts: sheetToasts)` in its existing `onAppear`. `ConclusionDetailPage`'s overlay and its "one Toast has one host" comment go; the `lead` property's comment drops "so the page's toast is its own" | The scope entry: a model whose toast can show while its sheet is up decides where it draws (S16-58 Next adds). The sheet's list is `@State` in the kit's `PVSheetChrome`, so the environment is the one way the viewer reaches it | Making `PVSheetChrome`'s list public through a binding — the kit owns it; a `Bool` plus a separate list parameter on `choose` — the caller would pass the list on every call |
+| D-7 | The environment key is renamed `\.pvSheetToasts` and moves from `PVToastList.swift` to `PVSheet.swift`, beside `\.pvSheetClose` and `\.pvSheetInnerEditOpen`: a `private struct PVSheetToastsKey: EnvironmentKey` (default `nil`) and `EnvironmentValues.pvSheetToasts: PVToastList?`, commented "The toast list of the sheet a view is in, set by `PVSheetChrome`; `nil` outside a sheet, where a workspace model adds to `WorkspaceSession.toasts`." `PVSheetChrome` is its one setter and `ConclusionPictureViewer` its one reader. `WorkspaceView`'s `.environment(\.pvToastList, session.toasts)` goes. `add-ui-component`'s sheet sentence gains: "A sheet's content that must raise a toast reads `@Environment(\.pvSheetToasts)` and hands it to its model (`ConclusionLeadModel.viewerOpened(toasts:)`); a workspace model adds to `WorkspaceSession.toasts`." | After D-2 nothing outside a sheet reads the key; its name then says when it is set, and the sheet's keys live in one file (review M-1). The skill line is where the next sheet's author learns D-6's pattern | Keeping `\.pvToastList` with a new comment — a generic name a workspace view would read as the window's list and get `nil`; deleting the key — the viewer could not reach its sheet's list |
 | D-8 | `WorkspaceSession.toasts`' comment reads: "The window's toasts, newest first. Every toast the workspace raises outside a sheet joins this one list (`CatalogCounts` adds its recount failure here); `WorkspaceContent` draws it. A sheet draws its own (`PVSheetChrome`)." | S16-58 ship log MNT-7 | — |
-| D-9 | Tests read the list of the `WorkspaceSession` they built, with its default list, as `CitationComposerModelTests.savingABridgeAddsItsToastToTheWindowList` does. A positive check reads `session.toasts.entries.first` (`tone`, `title`, `message`); a `toast == nil` check becomes `session.toasts.entries.isEmpty`; `toast != nil` becomes `!session.toasts.entries.isEmpty`; `body.contains(x)` becomes `message?.contains(x) == true`. A helper that builds a session and drops it returns it: `PersonDetailTests.leadModel(_:)` returns `(ConclusionLeadModel, WorkspaceSession)`. A test with no session in scope (`SourcePageModelTests` at :802, :1871, :1974 call `makeModel(store:)`) builds `WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)` first and passes it as `session:`. A test that adds twice reads `entries.first` after each add: it is the newest | One way to see a toast in a test; the default list's five seconds are far beyond a fake-store test's run | A `ManualSleep` list in every session — the precedent does not, and no assertion here waits |
+| D-9 | Tests compare a list's cards whole, through a test fixture `macos/ProvenenciaTests/ToastFixtures.swift` *(new)*: `struct ToastCard: Equatable { let tone: PVToastTone; let title: String?; let message: String? }` with an unlabeled `init(_ tone:_ title:_ message: String? = nil)`, and `extension PVToastList { var cards: [ToastCard] }` (newest first). A positive check is `#expect(session.toasts.cards == [ToastCard(.success, title, message)])`, which also checks the count (AC-1.2, AC-1.4 say one entry); a `toast == nil` check is `#expect(session.toasts.cards.isEmpty)`; `toast != nil` is `!cards.isEmpty`; `body.contains(x)` is `cards.first?.message?.contains(x) == true`. A test that adds twice compares the whole list after each add. Tests use the session's default list, as `CitationComposerModelTests.savingABridgeAddsItsToastToTheWindowList` does. A helper that builds a session and drops it returns it: `PersonDetailTests.leadModel(_:)` returns `(ConclusionLeadModel, WorkspaceSession)`. A test with no session in scope (`SourcePageModelTests` at :802, :1871, :1974 call `makeModel(store:)`) builds `WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)` first and passes it as `session:`. `CatalogCountsTests`' and `CitationComposerModelTests`' tone/title/message checks and `PVToastListTests`' private `titles(_:)` move onto `cards` (review M-3) | One way to assert a toast, and a double add fails a test | Hand-written `entries.first` field checks — three shapes exist already, and `.first` cannot see a second card; a `ManualSleep` list per session — no assertion here waits |
 | D-10 | `PersonDetailTests.leavingTheSectionKeepsAPageToast` is replaced by `aToastGoesToTheViewerWhileItIsOpen` *(new)*, T-5 | The old test checks `toast` and `toastInViewer` clearing, which no longer exist; the new rule is where an add lands | — |
 
 **Rules this plan bends.** None.
@@ -138,10 +141,12 @@ Verified at `46a2614`. Paths under `macos/App/` unless they start with `macos/Pr
 | --- | --- | --- | --- |
 | `ConclusionLeadModel.viewerToasts` *(new, private)* | property | `ConclusionLeadModel.toastInViewer` (replaced) | It replaces the flag: the list itself says where an add goes |
 | `ConclusionLeadModel.viewerOpened(toasts:)` | func (signature change) | `viewerOpened()` | Same function, one parameter |
-| `SourceTypePageModel.savedToastCopy` | func (rename of `savedToast`) | `savedToast` | Same switch; returns two strings |
+| `SourceTypePageModel.addSavedToast` | func (replaces `savedToast`) | `savedToast` | Same switch; adds instead of returning |
+| `\.pvSheetToasts`, `PVSheetToastsKey` | key (rename and move of `\.pvToastList`) | `\.pvSheetClose` (`PVSheetCloseKey`) | Its siblings' file and naming |
+| `ToastFixtures.swift`: `ToastCard`, `PVToastList.cards` *(new)* | test helper | `PVToastListTests.titles(_:)` (private), `CatalogCountsTests`' field checks | One shared shape replaces them (D-9) |
 | `PersonDetailTests.aToastGoesToTheViewerWhileItIsOpen` *(new)* | test | `leavingTheSectionKeepsAPageToast` (deleted) | It tests the new rule (D-10) |
 
-Searched: `rg -n "toast" macos/App --glob '*.swift'` for every setter and reader; `rg -n "pvToastList"` for every key use.
+Searched: `rg -n "toast" macos/App --glob '*.swift'` for every setter and reader; `rg -n "pvToastList"` for every key use; `rg -n "entries\[0\]|entries.first|titles\(" macos/ProvenenciaTests` for list assertions.
 
 **Builds on.** `PVToastList.add(tone:title:message:replacing:)` (S16-58), `WorkspaceSession.toasts`, `PVSheetChrome`'s own list, the composer's direct add (`5b1b74a`).
 **Deletes.** `vocabularyToastOverlay(_:identifier:)`, `VocabularyToastOverlay`, `VocabularyToast`, `PVToastList.add(_: VocabularyToast)`, `VocabularyToastTests.swift`; the `toast` property of `PropertiesModel`, `SourcesModel`, `SourceTypePageModel`, `MetadataModel`, `EvidenceGraphModel`, `SourcePageContext`, `SourcePageModel` (its forward) and `ConclusionLeadModel`; `ConclusionLeadModel.toastInViewer`; `WorkspaceSession.noticeToast`; the nine `.vocabularyToastOverlay` call sites and their ids (`properties.toast`, `sources.page.toast`, `sources.toast`, `sourceTypes.page.toast`, `metadata.toast`, `evidenceGraph.toast`, `\(pageIdentifier).toast`, `\(identifier).toast`, `workspace.notice.toast`); `WorkspaceView`'s `.environment(\.pvToastList, …)` and its "Before the environment below" comment; `PersonDetailTests.leavingTheSectionKeepsAPageToast`.
@@ -152,7 +157,7 @@ Searched: `rg -n "toast" macos/App --glob '*.swift'` for every setter and reader
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
 | A page model's async save that finishes after its page was left | `session.toasts` | Today the toast sat in the model's `toast` until the page's overlay mounted again (`initial: true`), or was lost with the model. Now it is added at once and shows in the window's stack. This is the only timing change; manual check 4 |
-| The viewer opened outside a sheet (no `\.pvToastList`) | `ConclusionLeadModel.write` | `viewerToasts` is `nil`, so the add goes to `session.toasts`. The viewer is only presented by `.pvSheet` today (`ConclusionGallerySection.swift:60`) |
+| The viewer opened outside a sheet (no `\.pvSheetToasts`) | `ConclusionLeadModel.write` | `viewerToasts` is `nil`, so the add goes to `session.toasts`. The viewer is only presented by `.pvSheet` today (`ConclusionGallerySection.swift:60`) |
 | A portrait save in flight while the viewer closes | `ConclusionLeadModel.write` | `viewerClosed()` clears `viewerToasts` first, so the add goes to the window's list, as today's `toastInViewer == false` path forwarded it (T-5) |
 
 ### Scale
@@ -192,7 +197,10 @@ func viewerOpened(toasts: PVToastList?)
 func viewerClosed()
 
 // SourceTypePageModel
-private func savedToastCopy(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool) -> (title: String, message: String)
+private func addSavedToast(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool)
+
+// PVSheet.swift
+extension EnvironmentValues { var pvSheetToasts: PVToastList? }
 ```
 
 States: no change. Accessibility: no change; each card announces as since S16-58.
@@ -203,10 +211,10 @@ None — no copy is added, removed or reworded; every call keeps its `L10n` key.
 
 ## 7. Steps
 
-**STEP-1 — Check the base**
-Files: none.
-Do: confirm each §4 row at your checkout with `rg -n "vocabularyToastOverlay|noticeToast|VocabularyToast|toastInViewer|pvToastList" macos`.
-Check: the hits match §4's rows (lines may shift by a few; a new hit is a Stop condition).
+**STEP-1 — Check the base, and one way to assert a toast**
+Files: `macos/ProvenenciaTests/ToastFixtures.swift` *(new)*, `CatalogCountsTests.swift`, `CitationComposerModelTests.swift`, `PVToastListTests.swift`. Skill: `add-swift-test`.
+Do: confirm each §4 row with `rg -n "vocabularyToastOverlay|noticeToast|VocabularyToast|toastInViewer|pvToastList" macos`. Add the fixture (D-9) and move the three existing suites' tone/title/message checks and `titles(_:)` onto `cards`; id checks (`entries[0].id`) stay on `entries`.
+Check: the hits match §4's rows (lines may shift by a few; a new hit is a Stop condition); `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/CatalogCountsTests -only-testing:ProvenenciaTests/CitationComposerModelTests -only-testing:ProvenenciaTests/PVToastListTests` passes.
 
 **STEP-2 — Properties, Sources list and Metadata add to the window's list**
 Files: `macos/App/Features/Properties/PropertiesModel.swift`, `PropertiesView.swift`, `macos/App/Features/Sources/SourcesModel.swift`, `SourcesListView.swift`, `macos/App/Features/Metadata/MetadataModel.swift`, `MetadataView.swift`, `macos/ProvenenciaTests/SourcesModelTests.swift`, `MetadataModelTests.swift`. Skill: `add-swift-test`.
@@ -233,19 +241,19 @@ Files: `macos/App/Features/Conclusions/ConclusionLeadModel.swift`, `ConclusionPi
 Do: D-6, D-10; the model's type comment keeps its first paragraph and its `viewerOpened` / `viewerClosed` comments say where an add goes. Tests T-5, T-6.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PersonDetailTests` passes.
 
-**STEP-7 — The forwarder and the value go**
-Files: `macos/App/Features/Workspace/WorkspaceView.swift`, `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift`, `VocabularyPane.swift`, `macos/ProvenenciaTests/VocabularyToastTests.swift` (deleted), `macos/App/DesignSystem/Components/Toast/PVToastList.swift` (the key's comment only). The project uses synchronized folders, so deleting the file removes it from the target.
-Do: D-2; D-7 (the window's `.environment(\.pvToastList, session.toasts)` in `WorkspaceView.swift` goes, and the key's comment).
-Check: `rg -n "vocabularyToastOverlay|VocabularyToast|toastInViewer|noticeToast" macos` prints nothing; `rg -n "pvToastList" macos/App` prints only `PVToastList.swift`, `PVSheet.swift` and `ConclusionPictureViewer.swift`; the app builds.
+**STEP-7 — The forwarder and the value go; the key becomes the sheet's**
+Files: `macos/App/Features/Workspace/WorkspaceView.swift`, `macos/App/DesignSystem/Components/Panel/PVSheet.swift`, `macos/App/Features/Conclusions/ConclusionPictureViewer.swift`, `.agents/skills/add-ui-component/SKILL.md`, `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift`, `VocabularyPane.swift`, `macos/ProvenenciaTests/VocabularyToastTests.swift` (deleted), `macos/App/DesignSystem/Components/Toast/PVToastList.swift` (the key leaves it). The project uses synchronized folders, so deleting the file removes it from the target.
+Do: D-2; D-7 (the window's `.environment(\.pvToastList, session.toasts)` goes; the key is renamed and moved; the viewer reads `\.pvSheetToasts`; the skill line).
+Check: `rg -n "vocabularyToastOverlay|VocabularyToast|toastInViewer|noticeToast" macos` prints nothing; `rg -n "pvToastList" macos .agents` prints nothing; `rg -n "pvSheetToasts" macos/App` prints only `PVSheet.swift` and `ConclusionPictureViewer.swift`; the app builds.
 
 **STEP-8 — Kit README and guidance**
 Files: `macos/App/DesignSystem/README.md`. Skill: `add-ui-component`.
-Do: the Toast row's sentence on hosts reads: "Every toast host (the workspace window, each sheet, Onboarding) owns one `PVToastList` and draws one `PVToastStack`, so cards expire in one place. A workspace model adds to `WorkspaceSession.toasts`; a sheet sets its list as `\.pvToastList` for content that must add to it (the likeness viewer)." The rest of the row stays.
+Do: the Toast row's sentence on hosts reads: "Every toast host (the workspace window, each sheet, Onboarding) owns one `PVToastList` and draws one `PVToastStack`, so cards expire in one place. A workspace model adds to `WorkspaceSession.toasts`; a sheet sets its list as `\.pvSheetToasts` for content that must add to it (the likeness viewer)." The rest of the row stays.
 Check: `python3 scripts/check-guidance-names.py` passes.
 
 **STEP-9 — Docs**
-Files: `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status, Landed note).
-Do: per the Definition of done.
+Files: `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status, Landed note), `docs/deployment-plan/spike-16/stacked-toasts.md`, `docs/macos-client-patterns.md`.
+Do: per the Definition of done. `stacked-toasts.md`'s Shape bullet "One stack per window" and its "Callers add, they do not set" bullet say what shipped: a workspace model adds to `WorkspaceSession.toasts`; a sheet owns its list, reached as `\.pvSheetToasts`, and the likeness viewer hands it to `ConclusionLeadModel`; Onboarding owns its list; no `noticeToast`, `toastInViewer` or `vocabularyToastOverlay` is named as current. `macos-client-patterns.md:105` "the page owns the lead model (`ConclusionLeadModel`, which chooses a gallery lead) and its toast" becomes "the page owns the lead model (`ConclusionLeadModel`, which chooses a gallery lead); its toast goes to the viewer's sheet list while the viewer is open, else to the window's" (review M-2).
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-59-toast-callers.md` reports no errors.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed, ending in a period, like the rest of `git log` ("Add each page's toast to the window's list directly."). No WIP commits.
@@ -254,12 +262,13 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `MetadataModelTests` (the four tests asserting `model.toast` at :98, :155, :202, :441); `SourcesModelTests` (:375) *(edited)* | add / update / delete a field → `session.toasts.entries.first?.title` is the same `L10n.Metadata` title; Sources list → list not empty | AC-1.1, D-3, D-9 |
+| T-0 | Swift | `ToastFixtures.swift` *(new)*; `CatalogCountsTests`, `CitationComposerModelTests`, `PVToastListTests` *(edited)* | the existing cases, read through `cards` → same results | D-9 |
+| T-1 | Swift | `MetadataModelTests` (the four tests asserting `model.toast` at :98, :155, :202, :441); `SourcesModelTests` (:375) *(edited)* | add / update / delete a field → `session.toasts.cards == [ToastCard(.success, <same L10n.Metadata title>, <body>)]`; Sources list add → `cards` not empty | AC-1.1, D-3, D-9 |
 | T-2 | Swift | `SourceTypePageModelTests` (every `model.toast` assertion in §4) and `SourceTypesModelTests` (:338) *(edited)*; `EvidenceGraphModelTests` (:361-362, :455, :670, :719, :1659) *(edited)* | Details save → title `toastUpdatedTitle`, message `toastUpdatedBody(label:key:)`; formats only → `Formats.toastSavedBody`; both → `Formats.toastBothBody`; a refused save → list empty; graph position failure → first entry `.danger`, title `positionPersistFailedTitle` | AC-1.2, AC-1.6, D-4 |
 | T-3 | Swift | `SourceGraphFormModelTests` (:99-100, :242), `SourcePageModelTests` (:802, :1568-1569, :1871, :1974) *(edited)* | graph added → title "Evidence graph added", message "`<ref>` is ready to open."; graph edit → list empty; graph deleted → "Evidence graph deleted" / "GPH-G-JONES was erased from this source." | AC-1.3, D-9 |
 | T-4 | Swift | `SourceMoveModelTests` (:403-405, :433), `WorkspaceNavigationTests.leavingAGonePageShowsTheNoticeAndRewritesTheEntry`, `SourceTypePageModelTests`' copy-notice test (:737-760) *(edited)* | move done → `.success`, `moveDoneTitle(target: "Deed")`, `doneBody(artifacts: 2, graphs: 2)`; move failed → list empty; `leave(notice: "Gone")` → one `.info` entry, title "Gone", `message == nil`; `notice: nil` → empty; Keep editing after a held copy → one entry whose title contains "State census"; Discard → no entry added | AC-1.4, AC-1.5, D-5 |
-| T-5 | Swift | `PersonDetailTests.aToastGoesToTheViewerWhileItIsOpen` *(new)* | `let sheet = PVToastList()`; `viewerOpened(toasts: sheet)`; `choose(censusTile())` → `sheet.entries.count == 1`, `session.toasts.entries.isEmpty`; `viewerClosed()`; `useEarliest` → `session.toasts.entries.count == 1`, `sheet.entries.count == 1` | AC-2.2, AC-2.3, D-6 |
-| T-6 | Swift | `PersonDetailTests` `choosingAPortraitWritesAndToasts`, `useEarliestClearsAndToasts`, `theLeadCopyIsReadAtCallTime`, `portraitFailureToastsTheError` *(edited)* | each `model.toast == VocabularyToast(…)` → `session.toasts.entries.first` with the same tone, title and message (`nil` where the body was `""`) | AC-2.1, AC-2.4, D-9 |
+| T-5 | Swift | `PersonDetailTests.aToastGoesToTheViewerWhileItIsOpen` *(new)* | `let sheet = PVToastList()`; `viewerOpened(toasts: sheet)`; `choose(censusTile())` → `sheet.cards.count == 1`, `session.toasts.cards.isEmpty`; `viewerClosed()`; `useEarliest` → `session.toasts.cards.count == 1`, `sheet.cards.count == 1` | AC-2.2, AC-2.3, D-6 |
+| T-6 | Swift | `PersonDetailTests` `choosingAPortraitWritesAndToasts`, `useEarliestClearsAndToasts`, `theLeadCopyIsReadAtCallTime`, `portraitFailureToastsTheError` *(edited)* | each `model.toast == VocabularyToast(…)` → `session.toasts.cards == [ToastCard(…)]` with the same tone, title and message (`nil` where the body was `""`) | AC-2.1, AC-2.4, D-9 |
 
 `PropertiesModelTests` and `PromoteModelTests` have no toast assertion today; this PR adds none (no AC rests on them; the Promote card is manual check 3). The views' removal of the overlay has no unit test; the manual check covers AC-3.1 – AC-3.3.
 
@@ -273,14 +282,14 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `S
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left (none expected: no copy changes)
-- [ ] Sweep: `vocabularyToastOverlay`, `VocabularyToastOverlay`, `VocabularyToast`, `noticeToast`, `toastInViewer`, `savedToast(` and the nine overlay ids `rg`'d across `macos`, `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (history under `docs/deployment-plan/`, `stacked-toasts.md` included, stays as written); `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `vocabularyToastOverlay`, `VocabularyToastOverlay`, `VocabularyToast`, `noticeToast`, `toastInViewer`, `savedToast(`, `pvToastList` and the nine overlay ids `rg`'d across `macos`, `.agents/`, `.cursor/rules/`, `docs/` (recursive, except `prs/`, `archive/`, `completed.md` and `*.review.md`) and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated (none)
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New (no brief; no kit primitive added)
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — none
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — not gated
-- [ ] Domain doc updated if a rule in docs/*.md changed: none; stacked-toasts.md already says "callers add, they do not set"
+- [ ] Domain doc updated: stacked-toasts.md and macos-client-patterns.md:105 (STEP-9)
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
@@ -306,7 +315,7 @@ On a project with a Person who has two likenesses from two Sources (Census and R
 
 - `rg -n "vocabularyToastOverlay|noticeToast|VocabularyToast|toastInViewer|pvToastList" macos` at your checkout finds a caller §4 does not list.
 - A model in D-3 does not hold a `WorkspaceSession` (a new `init` without one).
-- A `toast == nil` assertion sits after an earlier add in the same test, so `entries.isEmpty` would be false for a reason the old test did not check.
+- A `toast == nil` assertion sits after an earlier add in the same test, so `cards.isEmpty` would be false for a reason the old test did not check.
 - Manual check 2 shows a viewer toast behind the sheet.
 - `ConclusionPictureViewer` is presented anywhere other than through `.pvSheet`, apart from its `#Preview` (there `viewerToasts` is `nil` and the add goes to `session.toasts`).
 
