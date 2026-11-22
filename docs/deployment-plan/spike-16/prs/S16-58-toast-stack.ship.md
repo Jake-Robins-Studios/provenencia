@@ -109,3 +109,24 @@ Head `cfe35d72b`. Gate PASS (orchestrator run against `1e3faa67d`). F-6 done: `e
 
 ## Round 3 — review
 Reviewers: CON, MNT (fresh), scope `9d4bb2a52...<head>`, by the user's request for this design change. Skipped: UX (no copy or view change), SEC+PRF (no input or growth change: replacing keeps the list smaller).
+Head `ec926373e`.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1 (r3) | CON | blocker | A navigation-history save failure adds a danger card on every navigation | Fix now → F-7 | verified: `WorkspaceView.presentHistoryIssueIfNeeded` adds with no `replacing`, then `acknowledgeHistoryIssue()` clears the issue, so each failed `persist()` is a new change. The user's design ("callers manage their ids") already answers it; D-4's caller list amended to name it, no product call needed |
+| CON-2 (r3) + MNT-1 (r3) | CON, MNT | minor | Spike README, map S16-58 Ships/Check, plan Signatures, Codebase-fit row, T-5/T-8 AC columns still describe merging by text | Fix now (orchestrator, docs) | done in commit "Point the S16-58 docs at caller-held ids" |
+| MNT-2 (r3) | MNT | minor | "A refreshed card is not read again" holds only for unchanged text | Fix now → F-8 (code comment); `stacked-toasts.md` done by orchestrator | `PVAnnounce.swift:16-17` speaks on a text change |
+| MNT-3 (r3) | MNT | nit | `add(_ toast: VocabularyToast)` returns an id no caller reads | Fix now → F-8 (rides along) | `VocabularyChrome.swift:71` discards it |
+
+Nits (logged): `CON-3 (r3) · map S16-58 entry · historical wording` (a note was added to the entry).
+
+### Fix plan 4
+**F-7 — The navigation-history issue holds its card's id** (from CON-1 r3)
+Files: `macos/App/Features/Workspace/WorkspaceView.swift`.
+Failing test first: none (the toast is raised in the view; the plan's Out line keeps `presentHistoryIssueIfNeeded` there). Manual: make the project's navigation folder read-only, navigate three times → one danger card.
+Do: `@State private var historyIssueToastID: PVToastEntry.ID?`; both `session.toasts.add` calls in `presentHistoryIssueIfNeeded` pass `replacing: historyIssueToastID` and store the result. One id for the history card, whichever issue it shows.
+Check: `rg -n "replacing:" macos/App/Features` prints `CatalogCounts.swift` and `WorkspaceView.swift`; scripts/check-pr.sh PASS.
+
+**F-8 — Comments and the forward's return** (from MNT-2 r3, MNT-3 r3, CON-2 r3)
+Files: `PVToastList.swift` (`PVToastEntry` doc comment: VoiceOver does not read a refreshed card again when its text is unchanged; new text is spoken), `VocabularyPane.swift` (the `add(_ toast:)` forward returns nothing), `macos/ProvenenciaTests/PVToastListTests.swift` (T-5's comment says AC-2.3).
+Check: scripts/check-pr.sh PASS.
