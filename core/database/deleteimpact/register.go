@@ -145,7 +145,7 @@ func inboundEdges() []inboundEdge {
 }
 
 var inboundEdgeList = sync.OnceValue(func() []inboundEdge {
-	return []inboundEdge{
+	edges := []inboundEdge{
 		fkEdge(catalogmodel.KindSource, "artifacts.source_id", catalogmodel.KindArtifact, "artifacts", "source_id", "ref"),
 		fkEdge(catalogmodel.KindSource, "subjects.source_id", catalogmodel.KindSubject, "subjects", "source_id", "ref"),
 		fkEdge(catalogmodel.KindEvidenceGraph, "subjects.graph_id", catalogmodel.KindSubject, "subjects", "graph_id", "ref"),
@@ -154,26 +154,9 @@ var inboundEdgeList = sync.OnceValue(func() []inboundEdge {
 		subjectResourceInbound(),
 		fkEdge(catalogmodel.KindSubject, "observations.value_subject_id", catalogmodel.KindObservation, "observations", "value_subject_id", "ref"),
 		fkEdge(catalogmodel.KindSourceType, "sources.source_type_id", catalogmodel.KindSource, "sources", "source_type_id", "ref"),
-		// UNIQUE (owner, field_id) makes COUNT(*) the number of owners holding a
-		// value, without the DISTINCT that cannot use a covering index.
-		withTotals(joinEdge(catalogmodel.KindMetadataField, "source_metadata.field_id", catalogmodel.KindSource,
-			`SELECT COUNT(*) FROM source_metadata WHERE field_id = ?`,
-			`SELECT s.id, s.ref FROM source_metadata m
-				JOIN sources s ON s.id = m.source_id
-				WHERE m.field_id = ?
-				ORDER BY s.ref COLLATE NOCASE LIMIT ?`), "source_metadata", "field_id"),
-		withTotals(joinEdge(catalogmodel.KindMetadataField, "artifact_metadata.field_id", catalogmodel.KindArtifact,
-			`SELECT COUNT(*) FROM artifact_metadata WHERE field_id = ?`,
-			`SELECT a.id, a.ref FROM artifact_metadata m
-				JOIN artifacts a ON a.id = m.artifact_id
-				WHERE m.field_id = ?
-				ORDER BY a.ref COLLATE NOCASE LIMIT ?`), "artifact_metadata", "field_id"),
-		withTotals(joinEdge(catalogmodel.KindMetadataField, "evidence_graph_metadata.field_id", catalogmodel.KindEvidenceGraph,
-			`SELECT COUNT(*) FROM evidence_graph_metadata WHERE field_id = ?`,
-			`SELECT g.id, COALESCE(g.ref, '') FROM evidence_graph_metadata m
-				JOIN evidence_graphs g ON g.id = m.graph_id
-				WHERE m.field_id = ?
-				ORDER BY COALESCE(g.ref, '') COLLATE NOCASE LIMIT ?`), "evidence_graph_metadata", "field_id"),
+	}
+	edges = append(edges, metadataFieldEdges()...)
+	edges = append(edges,
 		citationFormatEdge(),
 		joinEdge(catalogmodel.KindCredibilityGrade, "source_credibility_assessments.credibility_grade_id", catalogmodel.KindSource,
 			`SELECT COUNT(DISTINCT source_id) FROM source_credibility_assessments WHERE credibility_grade_id = ?`,
@@ -190,8 +173,28 @@ var inboundEdgeList = sync.OnceValue(func() []inboundEdge {
 		fkEdge(catalogmodel.KindFile, "artifacts.file_id", catalogmodel.KindArtifact, "artifacts", "file_id", "ref"),
 		fkEdge(catalogmodel.KindSubjectType, "canonical_entities.subject_type_id", catalogmodel.KindCanonicalEntity, "canonical_entities", "subject_type_id", "ref"),
 		fkEdge(catalogmodel.KindCanonicalEntity, "canonical_entities.merged_into_id", catalogmodel.KindCanonicalEntity, "canonical_entities", "merged_into_id", "ref"),
-	}
+	)
+	return edges
 })
+
+// metadataFieldEdges is a field's inbound probe at every metadata level, in
+// catalogmodel.MetadataTables order. UNIQUE (owner, field_id) makes COUNT(*)
+// the number of owners holding a value, without the DISTINCT that cannot use
+// a covering index. COALESCE reads the ref because an Evidence graph's is
+// nullable.
+func metadataFieldEdges() []inboundEdge {
+	var out []inboundEdge
+	for _, e := range catalogmodel.MetadataTables {
+		out = append(out, withTotals(joinEdge(catalogmodel.KindMetadataField, e.Values+".field_id", e.Kind,
+			fmt.Sprintf(`SELECT COUNT(*) FROM %s WHERE field_id = ?`, e.Values),
+			fmt.Sprintf(`SELECT o.id, COALESCE(o.ref, '') FROM %[1]s m
+				JOIN %[2]s o ON o.id = m.%[3]s
+				WHERE m.field_id = ?
+				ORDER BY COALESCE(o.ref, '') COLLATE NOCASE LIMIT ?`, e.Values, e.OwnerTable, e.OwnerColumn)),
+			e.Values, "field_id"))
+	}
+	return out
+}
 
 // extraGate is a per-kind gate Impact checks after the existence check and
 // before the inbound groups: the first entry for the kind that holds refuses.

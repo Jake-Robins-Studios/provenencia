@@ -141,7 +141,7 @@ func init() {
 func facetReleases() []facetRelease { return facetReleaseList }
 
 func buildFacetReleases() []facetRelease {
-	return []facetRelease{
+	out := []facetRelease{
 		// --- Conclusion ---------------------------------------------------
 		// A Subject releases every claim it has on a handle; a handle whose last
 		// accepted member goes is deleted inside releaseClaim.
@@ -172,11 +172,6 @@ func buildFacetReleases() []facetRelease {
 		rowFacet(catalogmodel.KindArtifact, "evidence_graph_artifacts", "artifact_id", "evidence_graph_artifact", "graph_id",
 			col{"graph_id", colUUID}, col{"artifact_id", colUUID}),
 		optionalPointer(catalogmodel.KindArtifact, "sources", "primary_artifact_id", "source", "id", col{"cover_mode", colText}),
-		// An Artifact's metadata goes with it; layout rows are audited under
-		// field_id, as a Source's are.
-		metadataValueFacet(catalogmodel.KindArtifact, "artifact_metadata", "artifact_id"),
-		rowFacet(catalogmodel.KindArtifact, "artifact_metadata_layout", "artifact_id", "artifact_metadata_layout", "field_id",
-			col{"artifact_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
 		// A graph's Citations go with it, each through releaseCitation (a graph
 		// with Subjects is refused first, so none has an Observation).
 		{
@@ -190,9 +185,6 @@ func buildFacetReleases() []facetRelease {
 		// A graph's links go with it, audited under its id.
 		rowFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_artifacts", "graph_id", "evidence_graph_artifact", "graph_id",
 			col{"graph_id", colUUID}, col{"artifact_id", colUUID}),
-		metadataValueFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_metadata", "graph_id"),
-		rowFacet(catalogmodel.KindEvidenceGraph, "evidence_graph_metadata_layout", "graph_id", "evidence_graph_metadata_layout", "field_id",
-			col{"graph_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
 
 		// --- Source ---------------------------------------------------------
 		rowFacet(catalogmodel.KindSource, "source_notes", "source_id", "source_note", "id",
@@ -204,19 +196,11 @@ func buildFacetReleases() []facetRelease {
 			Remaining: `SELECT COUNT(*) FROM evidence_graphs WHERE source_id = ?`,
 			Release:   releaseEach(`SELECT id FROM evidence_graphs WHERE source_id = ? ORDER BY id`, releaseGraph),
 		},
-		metadataValueFacet(catalogmodel.KindSource, "source_metadata", "source_id"),
 		rowFacet(catalogmodel.KindSource, "source_credibility_assessments", "source_id", "source_credibility_assessment", "id",
 			col{"id", colUUID}, col{"source_id", colUUID}, col{"credibility_grade_id", colUUID}, col{"argument", colText}),
-		// Layout rows are audited under field_id (sourcemetadata precedent).
-		rowFacet(catalogmodel.KindSource, "source_metadata_layout", "source_id", "source_metadata_layout", "field_id",
-			col{"source_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
-		rowFacet(catalogmodel.KindMetadataField, "source_metadata_layout", "field_id", "source_metadata_layout", "field_id",
-			col{"source_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
-		rowFacet(catalogmodel.KindMetadataField, "artifact_metadata_layout", "field_id", "artifact_metadata_layout", "field_id",
-			col{"artifact_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
-		rowFacet(catalogmodel.KindMetadataField, "evidence_graph_metadata_layout", "field_id", "evidence_graph_metadata_layout", "field_id",
-			col{"graph_id", colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool}),
-
+	}
+	out = append(out, metadataLevelFacets()...)
+	out = append(out, []facetRelease{
 		// A type's bindings are audited under the property id (subjectvocab
 		// precedent), released from either parent. Subject types have no
 		// delete command yet; the release is what an audited CASCADE needs.
@@ -224,7 +208,8 @@ func buildFacetReleases() []facetRelease {
 			col{"subject_type_id", colUUID}, col{"property_id", colUUID}, col{"sort_order", colInt}),
 		rowFacet(catalogmodel.KindSubjectType, "subject_type_properties", "subject_type_id", "subject_type_property", "property_id",
 			col{"subject_type_id", colUUID}, col{"property_id", colUUID}, col{"sort_order", colInt}),
-	}
+	}...)
+	return out
 }
 
 // --- Conclusion releases ----------------------------------------------------
@@ -464,11 +449,32 @@ func eraseObservation(tx *sql.Tx, id []byte) (released, error) {
 
 // --- Plain row facets -------------------------------------------------------
 
+// metadataLevelFacets builds the facets of every metadata level, in
+// catalogmodel.MetadataTables order: the value table released with its owner,
+// the layout table released with its owner, and the layout table released with
+// its field. Layout rows are audited under field_id (sourcemetadata
+// precedent), and an owner's metadata goes with it. They come after the Source
+// section: they touch tables no other facet of their kinds touches.
+func metadataLevelFacets() []facetRelease {
+	var out []facetRelease
+	for _, e := range catalogmodel.MetadataTables {
+		layout := func(parent catalogmodel.Kind, fkCol string) facetRelease {
+			return rowFacet(parent, e.Layout, fkCol, e.Layout, "field_id",
+				col{e.OwnerColumn, colUUID}, col{"field_id", colUUID}, col{"sort_order", colInt}, col{"dismissed", colBool})
+		}
+		out = append(out,
+			metadataValueFacet(e),
+			layout(e.Kind, e.OwnerColumn),
+			layout(catalogmodel.KindMetadataField, "field_id"))
+	}
+	return out
+}
+
 // metadataValueFacet is a value table's facet: the row audited whole, with the
 // mark it carries (core/valuemark), as sourcemetadata's own delete change.
-func metadataValueFacet(parent catalogmodel.Kind, table, ownerCol string) facetRelease {
-	return rowFacet(parent, table, ownerCol, table, "id",
-		col{"id", colUUID}, col{ownerCol, colUUID}, col{"field_id", colUUID}, col{"value_text", colText},
+func metadataValueFacet(e catalogmodel.MetadataLevelTables) facetRelease {
+	return rowFacet(e.Kind, e.Values, e.OwnerColumn, e.Values, "id",
+		col{"id", colUUID}, col{e.OwnerColumn, colUUID}, col{"field_id", colUUID}, col{"value_text", colText},
 		col{"is_unknown", colBool}, col{"is_supplied", colBool})
 }
 

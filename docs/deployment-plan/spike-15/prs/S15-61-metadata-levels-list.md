@@ -1,6 +1,6 @@
 # S15-61 — Metadata levels are one declared list
 
-**Status:** Planned
+**Status:** Landed in [#943](https://github.com/Jake-Robins-Studios/provenencia/pull/943) (2026-11-22)
 **Spike / slice:** Spike 15 · Slice 11 — Citation metadata
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of how the metadata stores, delete rows and effects entries are built; no view draws anything different)
@@ -14,6 +14,7 @@
 **Context:** map scope entry S15-61 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "Metadata lives at four levels with one vocabulary", "One level type", "A Citation holds metadata"; map review K-5, K11-11 ([`../deployment-plan.review.md`](../deployment-plan.review.md)); [`docs/catalog-deletes.md`](../../../catalog-deletes.md); [`core/database/catalogmodel/README.md`](../../../../core/database/catalogmodel/README.md); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 5.5; [`core/database/effects/README.md`](../../../../core/database/effects/README.md)
 **Planned:** 2026-11-22 against `main` @ `cff856a` (compare with `origin/main` after `git fetch origin main`)
 **Review:** [`S15-61-metadata-levels-list.review.md`](S15-61-metadata-levels-list.review.md) — round 2: Fits with changes / Ready with changes; every finding Fixed or Declined, M-1 answered by the user; nothing open
+**Landed.** Three differences from the plan. The Status line reads "Landed in [#943](https://github.com/Jake-Robins-Studios/provenencia/pull/943)" because `check-plan-docs` rejects "Landed #943". `SourcePath`'s "goes up to" error names the entry being walked, which may differ from the level asked for (§ 6 writes `level <l>`). The `add-catalog-delete` bullet puts the metadata-level exception on the `facetRelease` instruction and adds the `metadataFieldEdges` note to the inbound-probes checklist line.
 
 ### Implementer — read this first
 

@@ -32,7 +32,7 @@ Rule: [`.cursor/rules/catalog-deletes.mdc`](../../../.cursor/rules/catalog-delet
 Every facet `CASCADE` FK is registered as `facet` and classified:
 
 - **Silent**: the rows are never audited (layout, vocab joins, value parts). SQLite does the work.
-- **`Audited: true`**: the rows are research. Add exactly one `facetRelease` entry in `core/database/deleteimpact/facets.go`:
+- **`Audited: true`**: the rows are research. Add exactly one `facetRelease` entry in `core/database/deleteimpact/facets.go` (a metadata level's tables are the exception: `metadataLevelFacets` builds theirs from `catalogmodel.MetadataTables`, see `add-catalog-model`):
   - `rowFacet(...)` for plain rows. List the parent FK column in `cols`: the released delete change is how audit scopes find the owner once the row is gone ([`add-audit-scope`](../add-audit-scope/SKILL.md)).
   - A custom `Release` when the row has facets of its own.
   - `Named: true` with `Count` / `List` / `Child` when the confirm should name what's affected. That fills `Report.Cascades` and never gates.
@@ -46,7 +46,7 @@ Every `BucketOptional` `SET NULL` FK whose parent is deletable needs exactly one
 
 ```
 - [ ] Table and every live FK registered in `catalogmodel` ([`add-catalog-model`](../add-catalog-model/SKILL.md))
-- [ ] Resource inbound edges have count + list probes; owned outbound is declared `BucketOwnedOutbound` in `catalogmodel` (a row child registers `PK`); no `deleteimpact` code
+- [ ] Resource inbound edges have count + list probes (a metadata level's field probes come from `metadataFieldEdges`); owned outbound is declared `BucketOwnedOutbound` in `catalogmodel` (a row child registers `PK`); no `deleteimpact` code
 - [ ] A reference held in text, not a foreign key: a text-reference edge with its own Count, List and Totals (see Text references)
 - [ ] Title + location projectors registered on the blocker kind (domain package)
 - [ ] Proto kind / via keys; recipe L10n heading (unknown via still renders)

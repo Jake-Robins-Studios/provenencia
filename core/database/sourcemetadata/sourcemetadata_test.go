@@ -1070,28 +1070,49 @@ func TestStoresAreRegistered(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Fatalf("store levels = %v, want vocabkey.MetadataLevels %v", got, want)
 	}
-	tables := map[string]bool{}
-	for _, tb := range catalogmodel.Tables {
-		tables[tb.Name] = true
+	for _, e := range catalogmodel.MetadataTables {
+		st := stores[e.Level]
+		if st == nil {
+			t.Fatalf("no store for %q", e.Level)
+		}
+		if st.level != e.Level || st.ownerColumn != e.OwnerColumn || st.values != e.Values || st.layout != e.Layout {
+			t.Fatalf("store %q = (%q, %q, %q, %q), want the entry's names", e.Level, st.level, st.ownerColumn, st.values, st.layout)
+		}
 	}
-	for level, st := range stores {
-		if st.level != level {
-			t.Fatalf("store at %q carries level %q", level, st.level)
-		}
-		for _, name := range []string{st.values, st.layout} {
-			if !tables[name] {
-				t.Fatalf("%s: %q is not in catalogmodel.Tables", level, name)
+}
+
+func TestSourcePathIn(t *testing.T) {
+	citation := catalogmodel.MetadataLevelTables{
+		Level: vocabkey.LevelCitation, Kind: catalogmodel.KindCitation, OwnerTable: "citations", OwnerColumn: "citation_id",
+		Values: "citation_metadata", Layout: "citation_metadata_layout",
+		Up: &catalogmodel.MetadataUp{Level: vocabkey.LevelArtifact, Column: "artifact_id"},
+	}
+	withCitation := append(slices.Clone(catalogmodel.MetadataTables), citation)
+	tests := []struct {
+		name  string
+		list  []catalogmodel.MetadataLevelTables
+		level vocabkey.Level
+		want  string
+	}{
+		{"source", catalogmodel.MetadataTables, vocabkey.LevelSource,
+			"SELECT t0.id, t0.source_type_id, t0.id FROM sources t0 WHERE t0.id IN ("},
+		{"artifact", catalogmodel.MetadataTables, vocabkey.LevelArtifact,
+			"SELECT t0.id, t1.source_type_id, t1.id FROM artifacts t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
+		{"graph", catalogmodel.MetadataTables, vocabkey.LevelGraph,
+			"SELECT t0.id, t1.source_type_id, t1.id FROM evidence_graphs t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
+		{"citation", withCitation, vocabkey.LevelCitation,
+			"SELECT t0.id, t2.source_type_id, t2.id FROM citations t0 JOIN artifacts t1 ON t1.id = t0.artifact_id JOIN sources t2 ON t2.id = t1.source_id WHERE t0.id IN ("},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			path, err := catalogmodel.SourcePath(tc.list, tc.level)
+			if err != nil {
+				t.Fatal(err)
 			}
-			found := false
-			for _, fk := range catalogmodel.FKs {
-				if fk.From == name && fk.Column == st.ownerColumn {
-					found = true
-				}
+			if got := sourcePathIn(path); got != tc.want {
+				t.Fatalf("got  %s\nwant %s", got, tc.want)
 			}
-			if !found {
-				t.Fatalf("%s: catalogmodel.FKs has no FK from %s.%s", level, name, st.ownerColumn)
-			}
-		}
+		})
 	}
 }
 

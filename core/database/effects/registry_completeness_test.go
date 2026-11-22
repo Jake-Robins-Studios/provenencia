@@ -206,3 +206,62 @@ func TestListsValidate(t *testing.T) {
 		t.Fatalf("ListsOnCreateDelete with Lists failed: %v", err)
 	}
 }
+
+// TestMetadataEffects checks the entries built from catalogmodel.MetadataTables:
+// the owned fields, the scope's end, and that a partial literal's extras stay.
+func TestMetadataEffects(t *testing.T) {
+	searchSource := []SearchDoc{{Kind: DocSource, Path: field("source_id")}}
+	for _, e := range catalogmodel.MetadataTables {
+		for _, table := range []string{e.Values, e.Layout} {
+			eff, ok := registry[table]
+			if !ok {
+				t.Fatalf("no entry for %s", table)
+			}
+			if eff.Entity != table {
+				t.Errorf("%s Entity = %q", table, eff.Entity)
+			}
+			if end, err := eff.SourceScope.check(table); err != nil || end != "sources" {
+				t.Errorf("%s SourceScope ends at %q, %v; want sources", table, end, err)
+			}
+			isValues := table == e.Values
+			if got := slices.Equal(eff.Lists, []List{ListMetadataFieldUsage}); got != isValues {
+				t.Errorf("%s Lists = %v, want usage list %v", table, eff.Lists, isValues)
+			}
+			if eff.ListsOnCreateDelete != isValues {
+				t.Errorf("%s ListsOnCreateDelete = %v, want %v", table, eff.ListsOnCreateDelete, isValues)
+			}
+			wantSearch := 0
+			if e.Up == nil {
+				wantSearch = len(searchSource)
+			}
+			if len(eff.Search) != wantSearch {
+				t.Errorf("%s Search = %v, want %d docs", table, eff.Search, wantSearch)
+			}
+			if wantSearch > 0 {
+				if eff.Search[0].Kind != DocSource {
+					t.Errorf("%s Search[0].Kind = %q, want %q", table, eff.Search[0].Kind, DocSource)
+				}
+				if end, err := eff.Search[0].Path.check(table); err != nil || end != "sources" {
+					t.Errorf("%s Search[0] Path ends at %q, %v; want sources", table, end, err)
+				}
+			}
+		}
+	}
+
+	list := catalogmodel.MetadataTables[:1]
+	t.Run("partial literal keeps Search", func(t *testing.T) {
+		reg := map[string]Effect{"source_metadata": {Search: searchSource}}
+		metadataEffects(list, reg)
+		if len(reg["source_metadata"].Search) != 1 || reg["source_metadata"].Entity != "source_metadata" {
+			t.Fatalf("got %+v", reg["source_metadata"])
+		}
+	})
+	t.Run("owned field panics", func(t *testing.T) {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("no panic")
+			}
+		}()
+		metadataEffects(list, map[string]Effect{"source_metadata": {SourceScope: self()}})
+	})
+}

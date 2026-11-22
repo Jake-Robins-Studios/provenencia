@@ -53,7 +53,7 @@ A silent `CASCADE` is only for rows that are never audited on create either. If 
 
 **Optional pointer releases** (`optionalPointer`): `sources.primary_artifact_id` (Artifact delete; `cover_mode` re-read after `sources_clear_cover_on_primary_null`) and `canonical_entities.preferred_likeness_observation_id` (Observation delete). They are not `Named` and do not appear in `Report.Cascades`.
 
-A metadata field is in use while `source_metadata`, `artifact_metadata` or `evidence_graph_metadata` holds a value for it: three inbound probes, one group each in the delete notice. Its layout rows at the three levels never block; they are released, audited, with it. `deleteimpact.InboundTotal` sums the same probes, and a vocabulary row's Used by (a field, a Source type, a Property) reads that total, so the count a list shows is the count that blocks the delete.
+A metadata field is in use while `source_metadata`, `artifact_metadata` or `evidence_graph_metadata` holds a value for it: one inbound probe per entry of `catalogmodel.MetadataTables`, one group each in the delete notice. Its layout rows at every level never block; they are released, audited, with it. `deleteimpact.InboundTotal` sums the same probes, and a vocabulary row's Used by (a field, a Source type, a Property) reads that total, so the count a list shows is the count that blocks the delete.
 
 ### Origin locks
 

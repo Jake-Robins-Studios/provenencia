@@ -10,7 +10,7 @@ description: >-
 
 # Maintain the catalog model
 
-`core/database/catalogmodel` is the hand-written list of catalog tables and foreign keys. `TestPragmaHonesty` checks it against SQLite (`sqlite_schema`, `PRAGMA foreign_key_list`). It is not the SQLite schema itself (`schemahash.go`, `catalog.schema_mismatch`).
+`core/database/catalogmodel` is the hand-written list of catalog tables and foreign keys. It also declares `MetadataTables`, the metadata levels' tables, and imports `core/vocabkey` for their level type. `TestPragmaHonesty` checks it against SQLite (`sqlite_schema`, `PRAGMA foreign_key_list`). It is not the SQLite schema itself (`schemahash.go`, `catalog.schema_mismatch`).
 
 The package imports nothing above it. It does not import `deleteimpact`. Probes, the deletable-kind set, releases, and `Impact` stay in `deleteimpact` — [`add-catalog-delete`](../add-catalog-delete/SKILL.md). DDL lives in a migration — [`add-catalog-migration`](../add-catalog-migration/SKILL.md). FK classification policy: [`docs/catalog-deletes.md`](../../../docs/catalog-deletes.md).
 
@@ -24,6 +24,7 @@ Update the model in the **same PR** as the migration that adds, changes, or drop
 4. The leading column needs a covering index (explicit, `UNIQUE`, or primary key leftmost).
 5. A resource FK needs a list probe; an audited `CASCADE` needs one facet release; a deletable parent's `BucketOptional` `SET NULL` FK needs one `optionalPointer` release. Those stay in `deleteimpact`. An owned-outbound FK is the whole registration: `deleteimpact` derives the release from it, and an owned-outbound row table registers `PK`.
 6. A table outside the skip bucket also needs an `effects` entry in the same PR (`core/database/effects/registry.go`). One `Effect` per table. The field set is `type Effect` in that file; what each field moves and how to add a catalog-wide list are in [`core/database/effects/README.md`](../../../core/database/effects/README.md). Read them there, not from a copy here. An empty field means that job is unaffected; `None: true` is the explicit empty entry. Skip tables stay out of the registry. A path step that names an edge has to be a real `catalogmodel.FKs` row; package init panics when it is not.
+7. A metadata level's values and layout tables are one `MetadataTables` entry. `sourcemetadata`, `deleteimpact` and `effects` derive the store, probe, facets and scope from it. Do not hand-add them.
 
 ```go
 {Name: "citation_notes", Bucket: BucketFacet},

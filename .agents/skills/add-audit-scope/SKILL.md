@@ -48,7 +48,7 @@ Source scopes come from the effect's `SourceScope` path, not a hand resolver. Th
 | Row shape | Effect |
 | --- | --- |
 | Carries `source_id` | `SourceScope: field("source_id")` |
-| Hangs off an artifact / citation / observation | `SourceScope: up(...)` along that chain |
+| Hangs off an artifact / citation / observation | `SourceScope: up(...)` along that chain (a metadata level's tables: built from `catalogmodel.MetadataTables` by `effects.metadataEffects`; only extras such as `Search` or `EvidenceGraph` are a partial literal) |
 | Referenced by another row (values, files) | `SourceScope: chain(inbound(...), ...)` |
 | Vocabulary or conclusion layer | no `SourceScope` path — a deliberate decision, not a default |
 | Work on a handle (claim, member evidence) | `HandleScope: ...` along the chain to the handle id |
