@@ -55,9 +55,10 @@ final class MetadataBoardModel {
         entries.filter(\.hasValue)
     }
 
-    /// Type suggestions without a value — separate from the reorderable list.
+    /// Every row without a value, a type's suggestion or a field the formats read — separate from
+    /// the reorderable list, and drawn as the empty-row group.
     var suggested: [CatalogMetadataEntry] {
-        entries.filter { !$0.hasValue && $0.suggested }
+        entries.filter { !$0.hasValue }
     }
 
     var fieldComboOptions: [PVComboBoxOption] {

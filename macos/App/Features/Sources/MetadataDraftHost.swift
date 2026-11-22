@@ -81,12 +81,12 @@ final class MetadataDraftHost: MetadataBoardHost {
         }
     }
 
-    /// The board draws saved rows then empty suggestions; `moveSaved` rebuilds the rows that way, so the
-    /// two groups are compared apart.
+    /// The board draws saved rows then empty rows (suggestions and unsuggested heads); `moveSaved`
+    /// rebuilds the rows that way, so the two groups are compared apart.
     private static func shown(_ rows: [CatalogMetadataEntry]) -> Shown {
         Shown(
             saved: rows.filter(\.hasValue).map { Shown.Saved(fieldID: $0.field.id, valueText: $0.valueText) },
-            suggestions: rows.filter { !$0.hasValue && $0.suggested }.map(\.field.id)
+            suggestions: rows.filter { !$0.hasValue }.map(\.field.id)
         )
     }
 
@@ -114,7 +114,7 @@ final class MetadataDraftHost: MetadataBoardHost {
 
     func clear(fieldID: String) -> ([CatalogMetadataEntry], CatalogWriteEffects) {
         guard let index = entries.firstIndex(where: { $0.field.id == fieldID }) else { return (entries, .empty) }
-        if entries[index].suggested {
+        if isEmptyRow(entries[index]) {
             entries[index].valueText = ""
             entries[index].hasValue = false
             entries[index].openHref = ""
@@ -126,11 +126,17 @@ final class MetadataDraftHost: MetadataBoardHost {
 
     func dismissSuggestion(fieldID: String) -> ([CatalogMetadataEntry], CatalogWriteEffects) {
         guard let index = entries.firstIndex(where: { $0.field.id == fieldID }),
-              entries[index].suggested, !entries[index].hasValue
+              isEmptyRow(entries[index]), !entries[index].hasValue
         else { return (entries, .empty) }
         entries.remove(at: index)
         dismissed.append(fieldID)
         return (entries, .empty)
+    }
+
+    /// True for a row that stays on the board without a value: a suggestion, or a field the read
+    /// returned empty (a head a format reads).
+    private func isEmptyRow(_ row: CatalogMetadataEntry) -> Bool {
+        row.suggested || opened.contains { $0.field.id == row.field.id && !$0.hasValue }
     }
 
     func reorder(fieldIDs: [String]) -> ([CatalogMetadataEntry], CatalogWriteEffects) {
