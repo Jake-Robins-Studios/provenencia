@@ -12915,7 +12915,7 @@ extension L10n {
 
         static let diagUnknownLevel = LocalizedStringResource(
             "citationFormats.diagnostic.unknown_level",
-            defaultValue: "Not a level: use source, artifact, graph or citation",
+            defaultValue: "Not a field or a level: write meta. and the field, or source, artifact, graph or citation before a built-in",
             comment: "Warning message for the unknown_level mistake in a citation format"
         )
 
