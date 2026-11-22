@@ -400,9 +400,11 @@ struct SourceMoveModelTests {
         #expect(s1Page.isStale)
         #expect(s2Page.isStale)
         #expect(store.getSourceWorkspaceCalls == reads)
-        #expect(session.noticeToast?.title == L10n.Sources.moveDoneTitle(target: "Deed"))
-        #expect(session.noticeToast?.body == SourceMoveModel.doneBody(artifacts: 2, graphs: 2))
-        #expect(session.noticeToast?.tone == .success)
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.Sources.moveDoneTitle(target: "Deed"),
+            SourceMoveModel.doneBody(artifacts: 2, graphs: 2)
+        )])
         #expect(!model.isMoving)
     }
 
@@ -430,7 +432,7 @@ struct SourceMoveModelTests {
         #expect(L10n.Sources.moveFailedMessage(model.moveError ?? "").hasPrefix("Nothing was moved."))
         #expect(model.targetID == "s2")
         #expect(model.impact != nil)
-        #expect(session.noticeToast == nil)
+        #expect(session.toasts.cards.isEmpty)
         #expect(model.canMove)
     }
 }

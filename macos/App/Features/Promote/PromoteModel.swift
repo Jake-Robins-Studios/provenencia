@@ -375,10 +375,10 @@ final class PromoteModel {
                 rows: batch
             )
             session.apply(effects)
-            session.noticeToast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.Promote.promotedTitle(promoted: flow.promoteCount, connections: flow.connectionCount),
-                body: flow.skipCount > 0 ? L10n.Promote.promotedBody(skipped: flow.skipCount) : "",
-                tone: .success
+                message: flow.skipCount > 0 ? L10n.Promote.promotedBody(skipped: flow.skipCount) : nil
             )
             flow.saving = false
             flow.manual = false

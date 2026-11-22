@@ -214,10 +214,10 @@ final class SourceMoveModel {
                 seed: seed,
                 targetSourceID: target.id
             )
-            session.noticeToast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.Sources.moveDoneTitle(target: target.title),
-                body: Self.doneBody(artifacts: result.artifactIDs.count, graphs: result.graphIDs.count),
-                tone: .success
+                message: Self.doneBody(artifacts: result.artifactIDs.count, graphs: result.graphIDs.count)
             )
             session.apply(result.effects, leavingPage: { leave(target) })
             return true

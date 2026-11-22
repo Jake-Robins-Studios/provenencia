@@ -68,14 +68,6 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .environment(navigation)
         .environment(session)
-        // Before the environment below, so the notice forwards into the list.
-        .vocabularyToastOverlay(
-            Binding(
-                get: { session.noticeToast },
-                set: { session.noticeToast = $0 }
-            ),
-            identifier: "workspace.notice.toast"
-        )
         .environment(\.pvToastList, session.toasts)
         .task {
             await session.loadNameFormat()

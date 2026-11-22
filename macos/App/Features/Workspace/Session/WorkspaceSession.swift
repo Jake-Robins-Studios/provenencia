@@ -9,8 +9,9 @@ final class WorkspaceSession {
     let projectKey: ProjectKey
     let store: any GenealogyStore
     let registry: CatalogQueryRegistry
-    /// The window's toasts, newest first. Every toast the workspace raises joins this one list
-    /// (`CatalogCounts` adds its recount failure here); `WorkspaceContent` draws it.
+    /// The window's toasts, newest first. Every toast the workspace raises outside a sheet joins
+    /// this one list (`CatalogCounts` adds its recount failure here); `WorkspaceContent` draws it.
+    /// A sheet draws its own (`PVSheetChrome`).
     let toasts: PVToastList
     /// Default name-format orders. Empty until the catalog read finishes,
     /// which keeps stored part order.
@@ -26,8 +27,6 @@ final class WorkspaceSession {
     private var shownOrder: [String] = []
     /// Hidden entities whose per-entity keys stay cached.
     static let maxHiddenEntities = 50 // decided: user, 2026-11-08
-    /// Transient notice after leaving a place (composer save, etc.).
-    var noticeToast: VocabularyToast?
     /// Recounts the sidebar after a write whose effects report the `counts` list (`WriteEffects.lists`). Set by `WorkspaceView`.
     @ObservationIgnored
     var onNavCountsMoved: (@MainActor () async -> Void)?
