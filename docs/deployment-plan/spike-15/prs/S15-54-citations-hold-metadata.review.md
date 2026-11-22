@@ -1,9 +1,10 @@
 # Review — S15-54 Citations hold metadata
 
-**Verdict:** Fits with changes — Ready with changes (round 2). No blocker open; the plan waits on the S15-D30 board.
+**Verdict:** Fits with changes — Ready with changes (round 2). No blocker open; the S15-D30 board agreed 2026-11-22; the plan is Planned.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
+- **Answered 2026-11-22.** The board is agreed. M-3: the Evidence graph copy reworded as drawn. Not taken from the board: suggested-first ranking in completion and multi-word narrowing (D-15).
 - **M-3 (copy, through the board).** The Evidence graph list's meaning and empty copy say "one item … an entry" and "its line", which the rule "Page-relative fields are read from the Citation first" now gives to the Citation. The brief rewords them ("Your grouping of evidence: a household, a family"). Recommendation: keep the rewording; the board settles the words.
 - **The board.** S15-D30 is written, not drawn. The plan stays Blocked until the board is agreed and its link is on the plan's **Board** line.
 

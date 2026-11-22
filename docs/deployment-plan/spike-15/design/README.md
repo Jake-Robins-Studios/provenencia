@@ -22,7 +22,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | Descoped 2026-11-22 with S15-45: the page is a Citation board row (S15-D20, S15-D22) | — |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
 | S15-D29 | Citation composer: the final shape, the Citation's metadata board beside the locator inputs and no Printed page input | — | S15-56 |
-| [S15-D30](S15-D30-source-type-page-citation-level.md) | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields; the Metadata page's field delete notice gains a Citation group | — (written 2026-11-22, not drawn yet) | S15-54 |
+| [S15-D30](S15-D30-source-type-page-citation-level.md) | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields; the Metadata page's field delete notice gains a Citation group | [agreed 2026-11-22](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): frames "S15-D30 · D30-1a – D30-13" and the Metadata field delete notice artboard; its suggested-first ranking and multi-word completion not taken | S15-54 |
 | S15-D31 | Citation composer: the Printed page input goes | Descoped 2026-11-22: merged into S15-D29 | — |
 
 ## Archived

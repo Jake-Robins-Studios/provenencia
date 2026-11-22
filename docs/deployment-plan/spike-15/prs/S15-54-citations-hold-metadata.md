@@ -1,10 +1,10 @@
 # S15-54 — Citations hold metadata
 
-**Status:** Blocked — on board S15-D30
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 11 — Citation metadata
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D30](../design/S15-D30-source-type-page-citation-level.md), board not drawn yet
-**Board:** — (to be drawn on the Source Type Page board, frames "S15-D30 · …"; the agreed board's link and its decisions are copied here and into D-15 when the user agrees it)
+**Brief:** [S15-D30](../design/S15-D30-source-type-page-citation-level.md), board agreed 2026-11-22
+**Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG) (the implementer opens the link): frames "S15-D30 · D30-1a – D30-13" on the Source type page board and the artboard *S15-D30 · Metadata field delete notice · component*. Not taken: frame 10's suggested-first ranking and frame 10b's multi-word completion (D-15)
 **Depends on:** S15-24 (landed [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935)), S15-61 (landed [#943](https://github.com/Jake-Robins-Studios/provenencia/pull/943)), S15-D30
 **Blocks:** S15-55
 **Branch:** `s15-54-citations-hold-metadata`
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests), `.cursor/rules/catalog-migrations.mdc`, `.cursor/rules/catalog-model.mdc`, `.cursor/rules/catalog-audit.mdc`, `.cursor/rules/ffi-handlers.mdc`, `.cursor/rules/macos-l10n.mdc`, `.cursor/rules/swift-tests.mdc`, `.cursor/rules/versioning.mdc`
 **Context:** map scope entry S15-54 ([`../deployment-plan.md`](../deployment-plan.md#s15-54--citations-hold-metadata)); working rules "Metadata lives at four levels with one vocabulary", "One level type", "Suggestions have a level", "A Citation holds metadata", "Metadata saves with its owner's write", "The printed page is a metadata field" (its effects sentence names S15-56); S15-61's **Next adds** ([`S15-61-metadata-levels-list.md`](S15-61-metadata-levels-list.md)); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) §§ 5.4, 5.5; [`docs/citation-formats.md`](../../../citation-formats.md); [`docs/catalog-deletes.md`](../../../catalog-deletes.md)
 **Planned:** 2026-11-22 against `main` @ `8436190` (compare with `origin/main` after `git fetch origin main`)
-**Review:** [`S15-54-citations-hold-metadata.review.md`](S15-54-citations-hold-metadata.review.md) — rounds 1 – 2: Fits with changes / Ready with changes; every finding Fixed or Declined, M-7 answered by the user; open only the board (M-3's copy rides it)
+**Review:** [`S15-54-citations-hold-metadata.review.md`](S15-54-citations-hold-metadata.review.md) — rounds 1 – 2: Fits with changes / Ready with changes; every finding Fixed or Declined, M-7 answered by the user; the board agreed 2026-11-22 (M-3's copy as drawn); nothing open
 
 ### Implementer — read this first
 
@@ -172,9 +172,9 @@ A Citation is the spot cited in a record: a page, a line, an entry. Today only t
 | D-10 | The Swift store is unchanged: `GenealogyStore`, `GoStore` and `FakeStore` `createCitationWithObservations` / `updateCitation` send no draft and ignore the reply's rows | No Swift caller has a Citation board until S15-56, which adds the parameter with its first caller. An absent draft changes nothing (D-7) | Adding the parameter now: an unused parameter on three stores |
 | D-11 | Deletes need no hand code: `releaseCitation` → `releaseRow(KindCitation)` → `releaseFacets` runs the list's two Citation facets after `citation_notes`; the field's inbound probe and field-layout facet follow the list. An Artifact or Source delete never reaches a Citation: each is refused first while a Citation (`citations.artifact_id`) or an Artifact (`artifacts.source_id`) remains. So a graph delete is the largest release: at Scale a graph of 10 Citations with up to 8 values each, 80 value rows plus layout | S15-61 D-8. The map's scope entry said "a Source delete releases 600 Citations' values"; that delete is refused, so planning corrected the entry (2026-11-22) | — |
 | D-12 | A move needs no change. `sourcemove` keeps a moved Artifact's Citations on it, and `citation_metadata` scopes through `artifact_id`, so its values follow (rule "A Citation holds metadata") | S15-24 | — |
-| D-13 | Swift copy for the Citation list, the tick, the toasts, the warning and the delete heading is § 6 **Strings**, from S15-D30 § 2.1, until the board is agreed; the agreed board's wording replaces it there (D-15) | The brief gates the copy | — |
+| D-13 | Swift copy for the Citation list, the tick, the toasts, the warning, the delete heading and the Evidence graph list's reworded meaning and empty copy is § 6 **Strings**, as the agreed board draws it (S15-D30 § 2.1, unchanged by the board) | The brief gates the copy | — |
 | D-14 | `ListDraftWorkspace` still refuses the Citation level, and `SourceWorkspace.metadataRows(for: .citation)` still returns nil | The draft read's parents and the composer's board are S15-55 and S15-56 | — |
-| D-15 | The view decisions are S15-D30's agreed frames: CL-1 – CL-7, CL-W1 and the inventory. No view code changes for CL-1, CL-2, CL-4, CL-5, CL-W1: `Level.metadataLevels` and the engine's placeholders draw them. If the board changes a layout (not only copy) of the lists, the tick or the completion row, that is a Stop condition | S15-D6, S15-D7 and S15-D16 built the views over the level list | — |
+| D-15 | The view decisions are S15-D30's agreed frames: CL-1 – CL-7, CL-W1 and the inventory. No view code changes for CL-1, CL-2, CL-4, CL-5, CL-W1: `Level.metadataLevels` and the engine's placeholders draw them. Completion is unchanged: rows follow the typed query, in the engine's level order inside each match band (`PVComboBoxMatch.filter`), and the list closes on a space | User, 2026-11-22: the board's suggested-first ranking (frame 10) and multi-word narrowing (frame 10b) are not taken, as S15-17 decided on S15-D16 | Ranking suggested fields first; word-wise matching: both change S15-17's completion rule |
 
 **Rules this plan bends.** None.
 
@@ -448,7 +448,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 1. Open a project with the seeded Census type. Open Source types › Census. See four lists under Suggested fields; the fourth, "On each Citation", is empty with its copy (AC-1.1).
 2. On a plugin type's page the Citation list shows no picker, plus or remove (AC-1.4). On Census, in the Citation list's picker type "line", Return, Return. Line is in the Citation list; the toast names "each Citation of Census Sources" (AC-1.2). The Evidence graph list's picker still offers Line if it is not there (AC-1.3).
 3. Copy the type: the sheet has "Suggested fields on each Citation" with "1 field"; Copy type; the new type's Citation list holds Line (AC-2.1).
-4. In the full note, type `{cit li`: the completion list shows Line at the Citation; Return puts `{citation.meta.line_number}`; no warning shows (AC-3.1, AC-3.2). Type `{meta.page}`: the warning names four levels (AC-3.4).
+4. In the full note, type `{line`: the completion list shows Line at the Source, the Artifact, the Evidence graph and the Citation, in that order; choose the Citation's row; Return puts `{citation.meta.line_number}`; no warning shows (AC-3.1, AC-3.2). Type `{meta.page}`: the warning names four levels (AC-3.4).
 5. With a fixture Citation holding Line "14" (set through `SetMetadata` in a Go test project, or the CLI if one exists), the preview of a Source whose first Citation is that one shows "14" where the format places Line (AC-3.5).
 6. On the Metadata page, delete Line while that Citation holds it: the notice lists "1 citation records a value for this field" (AC-4.9).
 7. Repeat 1 at a pane of 1600pt and wider: the lists stay stacked in the side column (CL-W1).
