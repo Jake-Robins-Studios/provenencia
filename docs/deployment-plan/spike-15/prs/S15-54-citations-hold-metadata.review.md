@@ -58,3 +58,12 @@ Seven assertions in `sourcevocab_test.go`, `copy_test.go`, `sourcemetadata_test.
 **Answer:** Fixed — D-8 gives both closures' shapes. The rest needs no change.
 
 ## Round 2
+
+Executability (sonnet): round-1 answers X-1 – X-5 and X-7 accepted; X-6 partly (see X-8). Verdict Ready with changes.
+
+### X-8 · blocker · STEP-5 and STEP-6 checks run `./api/...`, which fails until STEP-7 and STEP-8
+`api/ffi/swift_vocabulary_test.go` `TestSwiftVocabularyMatchesGo` reads the Swift mirrors, which move only in STEP-7 and STEP-8.
+**Answer:** Fixed — STEP-1, STEP-5 and STEP-6 run their Go checks with `-skip TestSwiftVocabularyMatchesGo`; STEP-7 runs its `metadata_levels` case; STEP-8 runs every case.
+
+### X-9 · major · `TestSourcePath` "missing level" case breaks and the plan does not replace it
+**Answer:** Fixed — T-16 names `"nowhere-level"` for the "missing level" and `missingUp` cases, with each case's expected error.
