@@ -86,8 +86,6 @@ final class EvidenceGraphModel {
     var selectedFileArtifactID = ""
     /// Set when Open could not find the selected file. Cleared by choosing a file.
     var fileOpenError: String?
-    /// Shown when drag / arrow persist fails after an optimistic patch.
-    var toast: VocabularyToast?
     /// Canvas while a drag has carried a card past the resting document.
     /// Cleared when the drop lands; the snapshot's own fit takes over.
     var liveCanvas: EvidenceGraphCanvas?
@@ -261,10 +259,10 @@ final class EvidenceGraphModel {
         _ = await session.readyValue(workspaceKey) as CatalogSourceWorkspace?
         _ = await session.readyValue(citationCountsKey) as [String: Int]?
         if let message = connectRulesError {
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.EvidenceGraph.connectRulesUnavailableTitle),
-                body: message,
-                tone: .danger
+                message: message
             )
         }
         if !canCite {
@@ -362,10 +360,10 @@ final class EvidenceGraphModel {
     func toggleConnect() {
         guard canCite else { return }
         if let connectRulesError {
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.EvidenceGraph.connectRulesUnavailableTitle),
-                body: connectRulesError,
-                tone: .danger
+                message: connectRulesError
             )
             return
         }
@@ -687,10 +685,10 @@ final class EvidenceGraphModel {
             in: connectRules
         )
         if rule.refuse || rule.bridgeTypeKey.isEmpty {
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.EvidenceGraph.connectInvalidPairTitle),
-                body: L10n.string(L10n.EvidenceGraph.connectInvalidPairBody),
-                tone: .danger
+                message: L10n.string(L10n.EvidenceGraph.connectInvalidPairBody)
             )
             return
         }
@@ -1447,10 +1445,10 @@ final class EvidenceGraphModel {
                     gridX: confirmed.gridX,
                     gridY: confirmed.gridY
                 )
-                toast = VocabularyToast(
+                session.toasts.add(
+                    tone: .danger,
                     title: L10n.string(L10n.EvidenceGraph.positionPersistFailedTitle),
-                    body: L10n.Errors.message(for: error),
-                    tone: .danger
+                    message: L10n.Errors.message(for: error)
                 )
             }
             return false

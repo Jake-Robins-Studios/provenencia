@@ -358,8 +358,8 @@ struct EvidenceGraphModelTests {
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(key)
         #expect(handle?.value?.positions.first?.gridX == 1)
         #expect(handle?.value?.positions.first?.gridY == 2)
-        #expect(model.toast?.tone == .danger)
-        #expect(model.toast?.title == L10n.string(L10n.EvidenceGraph.positionPersistFailedTitle))
+        #expect(model.session.toasts.cards.first?.tone == .danger)
+        #expect(model.session.toasts.cards.first?.title == L10n.string(L10n.EvidenceGraph.positionPersistFailedTitle))
     }
 
     /// A location that names a Subject or a bridge selects it on open and records where its
@@ -452,7 +452,7 @@ struct EvidenceGraphModelTests {
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(key)
         #expect(handle?.value?.positions.first?.gridX == limit)
         #expect(store.subjectPositionsBySubject["s1"]?.gridX == limit)
-        #expect(model.toast == nil)
+        #expect(model.session.toasts.cards.isEmpty)
 
         model.moveSubjects([
             EvidenceGraphModel.KeyEffect.SubjectMove(
@@ -667,7 +667,7 @@ struct EvidenceGraphModelTests {
         #expect(model.isCreating == false)
         #expect(model.armedConnect == true)
         #expect(model.connectOriginID == "p1")
-        #expect(model.toast?.tone == .danger)
+        #expect(model.session.toasts.cards.first?.tone == .danger)
         #expect(L10n.string(L10n.EvidenceGraph.connectInvalidPairBody).contains("Person and place"))
     }
 
@@ -716,7 +716,7 @@ struct EvidenceGraphModelTests {
         await model.handleConnectPick(subjectID: "e2", kind: .event, label: "B")
         #expect(model.isCreating == false)
         #expect(model.connectOriginID == "e1")
-        #expect(model.toast?.tone == .danger)
+        #expect(model.session.toasts.cards.first?.tone == .danger)
     }
 
     @Test func confirmEditUpdatesSubjectAndClosesSheet() async throws {
@@ -1656,7 +1656,7 @@ struct EvidenceGraphModelTests {
         #expect(model.connectRulesError != nil)
         model.toggleConnect()
         #expect(model.armedConnect == false)
-        #expect(model.toast?.tone == .danger)
+        #expect(model.session.toasts.cards.first?.tone == .danger)
     }
 
     @Test func escapeDisarmsConnect() async {

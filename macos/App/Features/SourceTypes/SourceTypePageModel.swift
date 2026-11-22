@@ -18,7 +18,6 @@ final class SourceTypePageModel {
     private(set) var labelCheck = SourceTypeLabelCheck()
     /// A refused or failed Save, shown beside Save and announced.
     private(set) var saveError: String?
-    var toast: VocabularyToast?
     /// The Copy type sheet, while it is open (`View.sourceTypeCopyDialog`).
     var copying: SourceTypeCopyModel?
     /// The label of a copy whose move to its page the leave guard is holding; nil otherwise.
@@ -215,32 +214,32 @@ final class SourceTypePageModel {
                 session.apply(.changedCitationFormats(typeId: type.id))
                 formats.saved(reply)
             }
-            toast = savedToast(updated, detailsChanged: detailsChanged, formatsSaved: sendsFormats)
+            addSavedToast(updated, detailsChanged: detailsChanged, formatsSaved: sendsFormats)
         } catch {
             saveError = L10n.Errors.message(for: error)
         }
     }
 
-    /// The toast naming what saved: the Details, the formats, or both.
-    private func savedToast(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool) -> VocabularyToast {
+    /// Adds the toast naming what saved: the Details, the formats, or both.
+    private func addSavedToast(_ updated: CatalogSourceType, detailsChanged: Bool, formatsSaved: Bool) {
         switch (detailsChanged, formatsSaved) {
         case (_, false):
-            return VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.SourceTypes.toastUpdatedTitle),
-                body: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key),
-                tone: .success
+                message: L10n.SourceTypes.toastUpdatedBody(label: updated.label, key: updated.key)
             )
         case (false, true):
-            return VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.SourceTypes.Formats.toastSavedTitle),
-                body: L10n.SourceTypes.Formats.toastSavedBody(label: updated.label),
-                tone: .success
+                message: L10n.SourceTypes.Formats.toastSavedBody(label: updated.label)
             )
         case (true, true):
-            return VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.SourceTypes.toastUpdatedTitle),
-                body: L10n.SourceTypes.Formats.toastBothBody(label: updated.label),
-                tone: .success
+                message: L10n.SourceTypes.Formats.toastBothBody(label: updated.label)
             )
         }
     }
@@ -345,12 +344,12 @@ final class SourceTypePageModel {
             )
             session.apply(.wroteTypeSuggestions(typeId: type.id, level: level, edit: updated))
             assignPicks[level] = ""
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.SourceTypes.toastAssignedTitle),
-                body: L10n.SourceTypes.toastAssignedBody(
+                message: L10n.SourceTypes.toastAssignedBody(
                     field: field.label, phrase: levelPhrase(level, type: type)
-                ),
-                tone: .success
+                )
             )
         } catch {
             suggestionErrors[level] = L10n.Errors.message(for: error)
@@ -368,12 +367,12 @@ final class SourceTypePageModel {
                 projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: level
             )
             session.apply(.wroteTypeSuggestions(typeId: type.id, level: level, edit: updated))
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .info,
                 title: L10n.string(L10n.SourceTypes.toastRemovedTitle),
-                body: L10n.SourceTypes.toastRemovedBody(
+                message: L10n.SourceTypes.toastRemovedBody(
                     field: field.label, phrase: levelPhrase(level, type: type), valueCount: field.usedBy
-                ),
-                tone: .info
+                )
             )
         } catch {
             suggestionErrors[level] = L10n.Errors.message(for: error)
@@ -451,8 +450,10 @@ extension SourceTypePageModel: WorkspaceLeaveGuard {
         pendingLeave = nil
         if let label = heldCopyLabel {
             heldCopyLabel = nil
-            session.noticeToast = VocabularyToast(
-                title: L10n.SourceTypes.copyMadeKeptEditing(label), body: "", tone: .info
+            session.toasts.add(
+                tone: .info,
+                title: L10n.SourceTypes.copyMadeKeptEditing(label),
+                message: nil
             )
         }
         navigation?.cancelHeldNavigation()
