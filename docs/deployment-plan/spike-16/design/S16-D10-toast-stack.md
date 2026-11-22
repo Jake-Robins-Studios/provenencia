@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 16 (odds and ends), batch 6
 **View:** the workspace window's content pane (any destination under the toolbar): the toasts in its top-trailing corner; the Citation composer's saved-bridge toast, which moves there from the foot of its observations column
 **Implements later as:** PR **S16-58** (Toasts stack in one list per window)
-**Board:** — (not drawn yet)
+**Board:** agreed 2026-11-22: [design system](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), component PVToastStack (K1 on its component sheet); [main app layout](https://claude.ai/artifact/1UzGb9TQCd7ZQrmuAN5AY8), page "Workspace Chrome", section "Toast stack" (T1a, T1b, T2–T4), drawn by `PVToastStackHost` in "App Layout"; T5 on the composer's board. Values as briefed; motion added by the board: a 28 pt slide with a fade, 200 ms ease-out in and ease-in out, a 200 ms linear fade under Reduce Motion. The callers' boards send to the stack
 **Depends on:** the kit's Toast (`components/feedback/Toast.jsx`, Swift `PVToast`) as drawn today; the agreed workspace frames (the toolbar above the content pane) and the agreed Citation composer frames
 **Related:** design [`../stacked-toasts.md`](../stacked-toasts.md); working rule "(Batch 6) One toast stack per window" in [`../deployment-plan.md`](../deployment-plan.md#batch-6--idea-follow-ups); plan [`../prs/S16-58-toast-stack.md`](../prs/S16-58-toast-stack.md); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)

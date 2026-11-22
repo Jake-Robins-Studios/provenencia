@@ -1,15 +1,19 @@
 # Review — S16-58 Toasts stack in one list per window
 
 **Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet). Plan and brief S16-D10 reviewed together.
+**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet). Plan and brief S16-D10 reviewed together; board checked 2026-11-22.
 
 No round 2: round 1's blockers (M-1, M-2) were a rule moved into the kit `add` and a missing Rules-bent row, both fixed without a reshape; X-1 is the board, which is the user's.
 
 ## To user
 
-- **X-1 · The S16-D10 board.** The plan stays `Blocked — on board S16-D10` until the board is drawn and agreed.
+- **X-1 · The S16-D10 board.** Answered (user, 2026-11-22): agreed on the design system and the main app layout boards, linked on the plan's **Board** line.
 
-- **How the agreed board reaches the implementer.** Recommendation: the board's artifact link and turn on the **Board** line, as S16-D8 and S16-D9 did.
+- **How the agreed board reaches the implementer.** The artifact links and sections on the **Board** line, as S16-D8 and S16-D9 did.
+
+## Board check (2026-11-22)
+
+The design system's `PVToastStack` (`PVToastStack.jsx`, README, component sheet) and the main app layout's "Workspace Chrome" section "Toast stack" (Two toasts at Regular and Wide, Two surfaces at once, A refreshed card, A burst; drawn by `PVToastStackHost` in "App Layout") against the brief: 360 pt cards, 8 pt apart, trailing edges aligned; 24 pt in from the content pane's top and trailing edges, under the toolbar; newest first; a repeat (tone, title, message equal) moves the card to the top and restarts its five seconds; no cap, the burst cut at the pane's bottom with no fade or counter; click-through outside the cards; Reduce Motion fades; the copy as briefed. The board adds motion values (a 28 pt slide with a fade, 200 ms ease-out in, ease-in out; a 200 ms linear fade under Reduce Motion), taken into D-7. T5 (the composer) is on the composer's board, which the user updated with the other callers; it was not checked here. Plan → Planned.
 
 ## Writer's own calls
 
