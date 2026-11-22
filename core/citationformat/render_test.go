@@ -134,6 +134,13 @@ func TestRender(t *testing.T) {
 			t.Fatalf("rendered %d bytes", len(got))
 		}
 	})
+	t.Run("chain keeps an option that differs", func(t *testing.T) {
+		got := citationformat.Render(mustParse(t, "{source.date:year|source.date}", citationformat.FormFull),
+			values{builtin(src, "date"): date(datevaluetest.YMD(0, 3, 5))}).Plain()
+		if got != "5 March" {
+			t.Fatalf("plain = %q", got)
+		}
+	})
 	t.Run("runs merge", func(t *testing.T) {
 		got := citationformat.Render(mustParse(t, "a*b*{source.title}", citationformat.FormFull), values{builtin(src, "title"): text("c")})
 		want := []citationformat.Run{{Text: "a"}, {Text: "b", Italic: true}, {Text: "c"}}

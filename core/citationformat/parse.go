@@ -355,7 +355,9 @@ func (p *parser) placeholder(base int, body string) {
 		if d != nil {
 			p.diags = append(p.diags, *d)
 		}
-		if !slices.ContainsFunc(chain, func(c Ref) bool { return c.Target == ref.Target }) {
+		// A repeat of the same target with the same option reads the same value; one that
+		// differs only in its option (year, then the whole date) can still render.
+		if !slices.ContainsFunc(chain, func(c Ref) bool { return c.Target == ref.Target && c.Option == ref.Option }) {
 			chain = append(chain, ref)
 		}
 		p.refs = append(p.refs, ref)

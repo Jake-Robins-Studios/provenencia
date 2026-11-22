@@ -40,6 +40,9 @@ func TestRequirements(t *testing.T) {
 	if r := one("{meta.short_title|source.title}", "full"); len(r) != 1 || r[0].Need != citationformat.NeedUsed {
 		t.Errorf("always-set chain = %+v", r)
 	}
+	if r := one("{meta.x|meta.x}", "full"); len(r) != 1 || len(r[0].Targets) != 1 {
+		t.Errorf("repeated target chain = %+v", r)
+	}
 	// A chain needed in the short form and used in the full.
 	r := citationformat.Requirements(mustParse(t, "[{meta.x}]", "full"), mustParse(t, "{meta.x}", "short"))
 	if len(r) != 1 || r[0].Need != citationformat.NeedNeeded {
