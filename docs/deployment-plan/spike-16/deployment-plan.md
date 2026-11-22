@@ -83,6 +83,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 33. **Every seed writes through one transaction.** `rg -n "func (Upsert|EnsureBinding|Install)\(c \*database\.Catalog" core/database/properties core/database/propertyterms core/database/subjecttypes core/database/sourcecredibilitygrades core/database/subjectvocab --glob '!*_test.go' --glob '!*test/**'` finds nothing: the subject vocabulary, Properties, terms and credibility grades install through `writes.Run`, and a failed install leaves none of its rows. Nothing in the app changes.
 36. **One change builder and one change-only write call.** `rg -n "return struct\{\}\{\}, " core api` and `rg -n "rowchange\.(FullRow|UpdatedRow|DeletedRow)\b" core api` find nothing, and no catalog package builds its own create, update or delete change around its column list. Nothing in the app changes.
 35. **A large delete still answers.** Deleting a bridge file whose Subjects are all claimed by one handle works however many Subjects it holds; the delete's Impact is the same as it would be for a few. Nothing else in the app changes.
+37. **Page keys work in the Sources list.** Tab into the Sources list: ↓ and ↑ move the focused row, Page Down and Page Up move it ten rows, Home and End to the first and last Source, the list scrolling to keep it in view; Return opens that Source's page. The Persons, Events and Places lists keep the same keys, through the same kit code. Each row's Evidence graph buttons still open their graphs.
 
 **Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
 
@@ -159,6 +160,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Type-select can land on a disabled menu row" (2026-11-17) | S16-50 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
+| User request (2026-11-22): Page Up, Page Down, Home and End do nothing in the Sources list, which takes no keyboard focus because it is hand-built rows and not a kit list | S16-65, S16-66 |
 
 **Batch 7** comes from a multi-window review with the user (2026-11-18):
 
@@ -259,6 +261,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 6) A section count is a localized plural, hidden at zero** (user, 2026-11-17). Every `PVSectionHeader` that counts its items passes a plural string ("3 notes") and no count when the section is empty, since its empty state says so: the Source page's Notes, Artifacts and Evidence graphs, the citation composer's Citation column and the Conclusion Gallery section. `PVSectionHeader` keeps taking `meta` as a plain string: no count form in the kit (user, 2026-11-17). The change is copy in a header the page already draws, so it needs no brief. Binds S16-55.
 - **(Batch 6) One toast stack per window** (user, 2026-11-17). The workspace window holds one toast list that every workspace surface adds to, drawn by a kit `PVToastStack` top-trailing, newest first. Each entry leaves on its own five-second timer or its dismiss. There is no cap: nothing is pushed out early, and a burst taller than the window clips at its bottom (S16-D10 draws it). Every add makes a new card and returns its id; the list never compares toasts by their text. A caller that wants one card for a repeating event (the failed catalog recount, the navigation-history save failure) keeps the id and passes it back: while that card is on screen it takes the new text, moves to the top and restarts its timer, with no second card (and no second announcement when its text is unchanged); once it has gone, a new card is added (user, 2026-11-22, after S16-58's dogfood: two portrait choices from one Source read as one card). Reduce Motion fades. A sheet (the likeness viewer) and Onboarding each own their own list and stack (S16-58 ship log MNT-2, user 2026-11-22). Binds S16-58, S16-59. Design: [`stacked-toasts.md`](stacked-toasts.md).
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
+- **(Batch 6) A list of rows is one kit focus stop** (user, 2026-11-22). A browse list of button rows gets its keyboard from the kit and never builds its own: one focus stop with ↑/↓ (⌥ to an end), Home/End, Page Up/Down moving the focused row by `PVListKeyboard.pageStep`, Return and Space opening it, and the list scrolling to keep it in view. `PVList` holds this today; it becomes a kit modifier a list of custom rows wears (S16-65), and the Sources list wears it (S16-66) instead of SwiftUI's own scroll keys, which a custom `ScrollView` does not get. Binds S16-65, S16-66.
 
 ### Batch 7 — One window
 
@@ -313,6 +316,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-42 | Every event date line reads the engine's dating | 5a | Go and Swift: summaries date an event through the helper (every `eventDating` reader: list sort, Timeline span and its open sides on the lifeline, place folding; birth and death keep `date` or start); the summary sends the dating (kind, low, high, open sides); search indexes it; `DateRowDisplay` formats it on the Events list, the Event page header, Timeline rows, search hits, Promote's menus and Evidence graph cards | S16-D4, S16-D7 | S16-40, S16-D4, S16-D7 | [plan](prs/S16-42-event-dating-line.md) | Landed #876 |
 | S16-43 | The lifeline draws an as-of event's open sides | 5a | Merged into S16-42: the lifeline already draws a span's open sides from the engine (`CatalogTimelineSpan.openStart`, `openEnd`) (2026-11-16) | — | — | — | Descoped (2026-11-16) → S16-42 |
 | S16-44 | The Event page's Date row shows as-ofs | 5a | Go and Swift: the summary names the Properties behind its dating; the Date row shows those fields and lists the as-ofs with their records, earliest first (Go sends a multi-valued date field's values in date order), folded past 20; the summary's old date fields retire | [S16-D6](design/archive/S16-D6-event-date-row.md) | S16-42, S16-D6 | [plan](prs/S16-44-event-date-row.md) | Landed #881 |
+| S16-D12 | Sources list: the list as one focus stop, the focused row's ring on the Source link at Regular and Wide, a focused row scrolled under the pinned caption band | **S16-66** | An enhancement of the S12-D5 / S15-D2 Sources list frames; reuses `PVListRowStyle`'s focus ring. Written just before S16-66 is planned |
 | S16-60 | The app opens one window, and closing it quits | 7a | Swift: `WindowGroup` becomes one `Window` scene; no New Window, no window tabs; closing the window quits through an app delegate; comments and the client patterns doc name the `Window` scene | — (no view changes: the File menu loses New Window) | — | quick-pr | Landed [#884](https://github.com/Jake-Robins-Studios/provenencia/pull/884) |
 | S16-61 | Nothing in the app waits on a second window | 7a | Swift, strings and skills: the Artifact sheet's close when its Artifact leaves the page goes, with its graph-deleted and graph-made handling and the tests that simulate a second window; the metadata Add row's taken notice stays (a type change reaches it) and is reworded; the UX lens and the comments that name another window say what one window meets | — (copy only: the Add row's notice is reworded; the removed states have no way in once S16-60 lands) | S16-60 | [plan](prs/S16-61-no-second-window.md) | Landed [#886](https://github.com/Jake-Robins-Studios/provenencia/pull/886) |
 | S16-45 | A graph delete names the Artifacts it leaves in no graph | 6a | Go and Swift: `deleteimpact` gains a non-blocking cascade on the graph delete listing the Artifacts linked to that graph and to no other; the confirm says they will be in no evidence graph, in the Artifact sheet's words; `catalog-deletes.md` and `add-catalog-delete` name the new cascade | — (no chrome change: one sentence in the existing confirm; Batch 6 rule) | — | [plan](prs/S16-45-graph-delete-names-no-graph-artifacts.md) | Landed [#888](https://github.com/Jake-Robins-Studios/provenencia/pull/888) |
@@ -333,6 +337,8 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-63 | A delete that leaves a handle with many Subjects still works | 6c | Go: `deleteimpact.handleGoesWithout` stops binding every leaving Subject in one `NOT IN` list (unbounded; SQLite binds at most 32,766), so a bridge-file delete reaching a handle with any number of Subjects answers as today | — | — | quick-pr | Landed #915 |
 | S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once; the Citation composer's toast moves from the foot of its observations column into the stack | S16-D10 | S16-56, S16-D10 | [plan](prs/S16-58-toast-stack.md) | Landed #941 |
 | S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to its host's list (the window's, or a sheet's) instead of setting a `toast` binding; the forwarding overlay goes; no visible change | — | S16-58 | [plan](prs/S16-59-toast-callers.md) | Landed #945 |
+| S16-65 | One kit focus stop for a list of rows | 6f | Preparatory, Swift: `PVList`'s focus stop and keys (focused row, ↑/↓, Home/End, Page Up/Down, Return/Space, scroll into view) move into a kit modifier `.pvListFocusStop` that a list of custom rows can wear; `PVList` wears it; no visible change | — (no chrome change: the Persons, Events and Places lists look and behave as today) | — | [plan](prs/S16-65-list-focus-stop.md) | Planned |
+| S16-66 | The Sources list moves by keyboard | 6f | Swift: the Sources list wears `.pvListFocusStop`, so ↑/↓, Home/End, Page Up/Down move a focused row and Return opens its Source; the focused row draws the row style's focus ring; the graph buttons keep their clicks | S16-D12 | S16-65, S16-D12 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -474,6 +480,11 @@ SLICE 6e — Stacked toasts                            (after S16-56)
   S16-59  Workspace callers add to the toast stack
   Check: bar 32.
 
+SLICE 6f — Sources list keyboard                     (any time; a chain)
+  S16-65  One kit focus stop for a list of rows
+  ✎ S16-D12 ──▶ S16-66  The Sources list moves by keyboard   (after S16-65)
+  Check: bar 37.
+
 S16-99 — Dogfood close / docs
 ```
 
@@ -547,6 +558,8 @@ S16-56 ──▶ S16-58 ──▶ S16-59
 S16-D10 ──▶ S16-58
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
+S16-65 ──▶ S16-66
+S16-D12 ──▶ S16-66
 ```
 
 Batch 5 runs in order: each PR reads what the one before added (the key and the samples rule, then the summary's dating).
@@ -1003,3 +1016,19 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 **Not this PR.** A toast from a sheet joining the window list.
 **Check.** Bar 32 still holds; `rg -n "vocabularyToastOverlay" macos` prints nothing; the models' toast tests pass on the list.
 **Context.** Rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md) "Callers add, they do not set"; the callers named above; [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).
+
+### Slice 6f — Sources list keyboard
+
+#### S16-65 — One kit focus stop for a list of rows
+
+**Ships.** Preparatory, Swift, no visible change. The focus stop `PVList` builds in its `body` (its `focusIndex`, `.focusable()`, `.focused`, `.onKeyPress` through `PVListKeyboard.action`, and `.pvScrollsRowIntoView` on the focused row) moves into a kit modifier, `.pvListFocusStop`, in `DesignSystem/Components/List/`, which any column of rows tagged `.id` can wear. `PVList` wears it, so the Persons, Events and Places lists keep their keys through it. The kit README's List row and [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) name it.
+**Not this PR.** The Sources list (S16-66); `PVTable`'s selection keys, which move a selection and not a focused row.
+**Check.** Bar 37's second sentence; `PVListTests` pass unchanged; the modifier's pure index rule is tested.
+**Context.** Rule "(Batch 6) A list of rows is one kit focus stop"; `macos/App/DesignSystem/Components/List/PVList.swift` (`PVList.body`, `PVListKeyboard`, `PVListRowStyle`), `ScrollRowIntoView/PVScrollRowIntoView.swift`; [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md).
+
+#### S16-66 — The Sources list moves by keyboard
+
+**Ships.** Swift. `SourcesListView.listBody`'s rows wear `.pvListFocusStop`: Tab lands on the list, ↑/↓, Home/End and Page Up/Down move the focused row and the list scrolls to keep it in view below the pinned caption band; Return or Space opens the focused Source's page, as a click on its Source link does. The focused row's Source link draws `PVListRowStyle`'s focus ring (S16-D12 draws it). The Evidence graph buttons, the Copy Source right-click menu and the list's scroll anchor (`ListScrollAnchorModifier`) work as today.
+**Not this PR.** Keyboard movement into a row's graph buttons (←/→); a selection. The plan decides whether the focused row follows its Source through a re-sort or a new Source above it (`.pvListFocusStop` keeps an index; S16-65 D-8).
+**Check.** Bar 37's first and last sentences.
+**Context.** S16-D12; rule "(Batch 6) A list of rows is one kit focus stop"; `macos/App/Features/Sources/SourcesListView.swift` (`listBody`), `SourcesListRow.swift` (`sourceLink`, `PVListRowStyle(focused: nil)`); `WorkspaceNavigation.swift` (`ListScrollAnchorModifier`). Lands after S16-65.
