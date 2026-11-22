@@ -103,3 +103,9 @@ Do:
 - Tests: T-3 becomes `replacingMovesToTopKeepsIdAndRestartsTimer` (add A, add B, add C replacing A's id → `[A', B]` with A's id and C's text, three sleeps; A's first sleep fires → still there; its third fires → gone). T-5 becomes `replacingAGoneIdAddsANewCard` (add A, dismiss A, add replacing A's id → one entry, new id). T-6 becomes `emptyTitleOrMessageIsNone` ((info, "Filed", "") → `message == nil`). Add `equalAddsMakeTwoCards`. T-8: keep the same-failure refresh and dismiss checks; add a failure with a different message (a second error type) → still one entry, its message the new one, same id (AC-2.2).
 - README Toast row: "`add` returns the card's id; a caller that passes it back as `replacing` refreshes that card; the list never compares text". `completed.md` S16-58 paragraph and the Landed note: the dogfood finding and the id design. §8 rows to match.
 Check: `rg -n "replacing:" macos/App` prints only `PVToastList.swift` and `CatalogCounts.swift`; `rg -n "\.tone == tone|\.message == message" macos/App/DesignSystem` prints nothing; the new test red before, green after; scripts/check-pr.sh PASS.
+
+## Round 3 — fix
+Head `cfe35d72b`. Gate PASS (orchestrator run against `1e3faa67d`). F-6 done: `equalAddsMakeTwoCards` red then green; T-3, T-5, T-6, T-8 reworked; AC-2.2 asserted in T-8. Orchestrator reworded the plan's stale "Neighbors" and "Coalesced sets" lines.
+
+## Round 3 — review
+Reviewers: CON, MNT (fresh), scope `9d4bb2a52...<head>`, by the user's request for this design change. Skipped: UX (no copy or view change), SEC+PRF (no input or growth change: replacing keeps the list smaller).

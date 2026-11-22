@@ -174,8 +174,8 @@ None — no catalog read or write. The list holds what the researcher's actions 
 ### Edges
 
 - **Assumptions.** `PVAnnounce` speaks on appear: a refreshed entry keeps its `id`, so its card keeps its identity and is not spoken again (T-3). A cancelled task must not remove its entry after the sleep returns: `guard !Task.isCancelled` (T-3, T-4).
-- **Neighbors.** Same tone and title, different message → two cards (T-5). Same title and message, different tone → two cards (T-5). A title-only toast equals another title-only toast with that title, whether its message is `nil` or `""` (T-6).
-- **Coalesced sets.** A model that sets an equal `VocabularyToast` twice within one update is forwarded once; the result is the same single card a repeat gives.
+- **Neighbors.** *(Amended 2026-11-22.)* Two adds with equal text → two cards (`equalAddsMakeTwoCards`); the list never compares text. `replacing` an id that has gone → a new card (T-5). An empty title or message is `nil` (T-6).
+- **Coalesced sets.** A model that sets an equal `VocabularyToast` twice within one update is forwarded once (SwiftUI's `onChange` sees one change), so it makes one card.
 - **Removed inputs.** A dismissed entry's timer firing later removes nothing else (T-4). `dismiss` of an unknown id does nothing (T-4).
 - **The lead's toast.** A page card forwarded before the likeness viewer opens stays in the window's stack until its timer; `viewerOpened()` clears only the binding. The viewer draws its own toasts in the sheet (D-5), so no toast shows twice; the S13-15 D-10 rule (one surface per toast) holds.
 - **Real data / Untrusted size.** None — no data from the catalog.
