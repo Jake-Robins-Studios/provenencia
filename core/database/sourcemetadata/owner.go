@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -72,16 +74,32 @@ type store struct {
 	layoutGet     string
 }
 
+// sourcePathIn is the type read of a level, up to its IN list: the owner's id,
+// its Source's type id and its Source's id. path is catalogmodel.SourcePath.
+// The owner is t0 and each step up is the next alias; the last is the Source.
+func sourcePathIn(path []catalogmodel.MetadataLevelTables) string {
+	n := len(path) - 1
+	var b strings.Builder
+	fmt.Fprintf(&b, "SELECT t0.id, t%[1]d.source_type_id, t%[1]d.id FROM %[2]s t0", n, path[0].OwnerTable)
+	for k := 1; k <= n; k++ {
+		fmt.Fprintf(&b, " JOIN %s t%d ON t%d.id = t%d.%s", path[k].OwnerTable, k, k, k-1, path[k-1].Up.Column)
+	}
+	b.WriteString(" WHERE t0.id IN (")
+	return b.String()
+}
+
 // newStore builds a level's SQL from its constant names, as deleteimpact's
-// rowFacet does. No argument comes from a caller; typeIn is passed whole, up to its IN list.
-func newStore(level vocabkey.Level, ownerTable, ownerColumn, values, layout, typeIn string) *store {
+// rowFacet does. path is the level's catalogmodel.SourcePath; its first entry
+// is the level itself. No argument comes from a caller.
+func newStore(path []catalogmodel.MetadataLevelTables) *store {
 	f := func(format string, a ...any) string { return fmt.Sprintf(format, a...) }
+	level, ownerTable, ownerColumn, values, layout := path[0].Level, path[0].OwnerTable, path[0].OwnerColumn, path[0].Values, path[0].Layout
 	return &store{
 		level:       level,
 		ownerColumn: ownerColumn,
 		values:      values,
 		layout:      layout,
-		typeIn:      typeIn,
+		typeIn:      sourcePathIn(path),
 		typeSuffix:  `)`,
 		ownerExists: f(`SELECT 1 FROM %s WHERE id = ?`, ownerTable),
 		insert: f(`INSERT INTO %s (id, %s, field_id, value_text, is_unknown, is_supplied)
@@ -119,16 +137,22 @@ func newStore(level vocabkey.Level, ownerTable, ownerColumn, values, layout, typ
 	}
 }
 
-// stores holds one entry per level that keeps metadata. A level with no entry
-// is ErrInvalid everywhere.
-var stores = map[vocabkey.Level]*store{
-	vocabkey.LevelSource: newStore(vocabkey.LevelSource, "sources", "source_id", "source_metadata", "source_metadata_layout",
-		"SELECT id, source_type_id, id FROM sources WHERE id IN ("),
-	vocabkey.LevelArtifact: newStore(vocabkey.LevelArtifact, "artifacts", "artifact_id", "artifact_metadata", "artifact_metadata_layout",
-		"SELECT a.id, s.source_type_id, a.source_id FROM artifacts a JOIN sources s ON s.id = a.source_id WHERE a.id IN ("),
-	vocabkey.LevelGraph: newStore(vocabkey.LevelGraph, "evidence_graphs", "graph_id", "evidence_graph_metadata", "evidence_graph_metadata_layout",
-		"SELECT g.id, s.source_type_id, g.source_id FROM evidence_graphs g JOIN sources s ON s.id = g.source_id WHERE g.id IN ("),
+// buildStores makes one store per list entry. A bad list panics at init.
+func buildStores(list []catalogmodel.MetadataLevelTables) map[vocabkey.Level]*store {
+	m := make(map[vocabkey.Level]*store, len(list))
+	for _, e := range list {
+		path, err := catalogmodel.SourcePath(list, e.Level)
+		if err != nil {
+			panic(err)
+		}
+		m[e.Level] = newStore(path)
+	}
+	return m
 }
+
+// stores holds one entry per level that keeps metadata, built from
+// catalogmodel.MetadataTables. A level with no entry is ErrInvalid everywhere.
+var stores = buildStores(catalogmodel.MetadataTables)
 
 // storeFor is the first check of every exported function: the owner's level
 // has a store and its id is 16 bytes.
