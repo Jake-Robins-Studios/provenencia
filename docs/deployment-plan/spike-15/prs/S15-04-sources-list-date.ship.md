@@ -41,7 +41,7 @@ Do: `sortMenu`'s `menuWidth: 220` (line ~266) → `240`. The filter menus' 220 s
 Check: the app builds.
 
 **F-3 — Docs and comments** (from CON-1, CON-2, CON-4, CON-3)
-Files: `docs/deployment-plan/spike-15/prs/S15-04-sources-list-date.review.md`, `docs/deployment-plan/spike-15/prs/S15-04-sources-list-date.md` (Landed note), `docs/deployment-plan/spike-15/design/S15-D1-source-page.md`, `macos/App/Features/Sources/SourcesListRow.swift`.
+Files: `docs/deployment-plan/spike-15/prs/S15-04-sources-list-date.review.md`, `docs/deployment-plan/spike-15/prs/S15-04-sources-list-date.md` (Landed note), `docs/deployment-plan/spike-15/design/archive/S15-D1-source-page.md`, `macos/App/Features/Sources/SourcesListRow.swift`.
 Do: the review file's Brief link target → `../design/archive/S15-D2-sources-list.md`. Landed note: one line each — the S15-D1 Paste block was brought up to date with the current `add-design-brief` text (rules 2 and 3); `SourcesRowDate` lives in its own file and the Source page header reads it (F-1); the Sort menu is 240 wide (F-2). S15-D1 line 7: add the missing period before "After the S15-D2 board". `SourcesListRow`'s type doc comment: describe the row as it is now — Source link (cover, title, the record line when narrow, the activity line of ref and last update), Type with the published date under it at Regular, a Published column at Wide, and the Evidence graph stack.
 Check: `python3 scripts/check-plan-docs.py` on the plan passes; `test -e` on the review file's brief target; `scripts/check-pr.sh` PASS.
 

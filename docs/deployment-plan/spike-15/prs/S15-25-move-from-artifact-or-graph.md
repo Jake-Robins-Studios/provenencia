@@ -1,9 +1,9 @@
 # S15-25 — Move from an Artifact or a graph
 
-**Status:** Planned
+**Status:** Landed in [#940](https://github.com/Jake-Robins-Studios/provenencia/pull/940) (2026-11-22)
 **Spike / slice:** Spike 15 · Slice 7 — Move
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D10](../design/S15-D10-move-confirm.md), board agreed 2026-11-22. S15-D1 SD-14 and S15-D14 SA-5 had placed Move in a menu; S15-D10's board replaces that with a button
+**Brief:** [S15-D10](../design/archive/S15-D10-move-confirm.md), board agreed 2026-11-22. S15-D1 SD-14 and S15-D14 SA-5 had placed Move in a menu; S15-D10's board replaces that with a button
 **Board:** [agreed 2026-11-22](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): page *Move*, rows "Move: the buttons" (`mv-art-menu`, `mv-graph-menu`, each with a Wide frame), "Move dialog" (`mv-open` … `mv-failed`) and "After the move" (`mv-after`, `mv-after-wide`); decisions panel "S15-D10". Read it with the Artifact tool's `read` on that link, `path` "project/Source.dc.html" (search `S15-D10` and `mv-`). Board decision (user, 2026-11-22): **no right-click menu** on Artifact rows or graph cards; Move is a visible icon button, and the Artifact row's existing menu goes
 **Depends on:** S15-24 (landed [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935)), S15-35 (landed [#824](https://github.com/Jake-Robins-Studios/provenencia/pull/824)), S16-61 (landed [#886](https://github.com/Jake-Robins-Studios/provenencia/pull/886)), S15-D10, S15-D1, S15-D14
 **Blocks:** —
@@ -14,6 +14,20 @@
 **Context:** [`docs/macos-client-patterns.md`](../../../macos-client-patterns.md) (rule 2: writes apply their effects; `LatestCall`), [`docs/catalog-caches.md`](../../../catalog-caches.md), [`core/database/effects/README.md`](../../../../core/database/effects/README.md) (adding a keyed read); working rules "A move is the whole bundle", "One window; nothing is built for a second", "An Artifact is added and edited in one sheet" ([`../deployment-plan.md`](../deployment-plan.md#working-rules)); [`../move-artifact-between-sources.md`](../move-artifact-between-sources.md) ("Which graphs move", "Side effects to name in the confirm", "Engine notes"); the landed plan [`S15-24-move-bundle.md`](S15-24-move-bundle.md) (§ 6 FFI, D-11, D-12, D-13; its Landed note); [`S15-35-artifact-list-rows.md`](S15-35-artifact-list-rows.md) D-6, D-13 (the row's action enum and `verbatimTitle`, both left for this PR)
 **Planned:** 2026-11-22 against `main` @ `8d74bd8` (the S15-D10 board copied in)
 **Review:** [`S15-25-move-from-artifact-or-graph.review.md`](S15-25-move-from-artifact-or-graph.review.md) — 2 rounds: Reshape / Not ready, then Fits with changes / Ready with changes; every finding Fixed or Declined; nothing open
+
+## Landed
+
+- `VERSION` was 0.32.1 on `main`, so the bump is 0.32.1 → 0.33.0 (the header's "next minor after it").
+- The Move buttons carry no separate `.help`: `PVIconButton` already makes its `label` the tooltip (D-1, D-2 named one).
+- `CoreMethod.getSourceMoveImpact` and `.moveToSource` did not exist in `CoreInvoke.swift` (only in the generated enum); they were added there beside `getEvidenceGraphUnlinkImpact`.
+- `listSources(projectDir:sourceIDs:)` is a second `GenealogyStore` requirement beside `listSources(projectDir:)` (`GoStore`, `FakeStore`, the onboarding tests' `ThrowingStore`). `FakeStore` records its calls in `listSourcesByIDCalls`.
+- `WorkspaceSession.sourcesByUpdated` (in `WorkspaceSession+Derived.swift`) is the one reader of the `.sourcesByUpdated` derived value; `SourceTypeFormatsModel.previewSources` and `SourceMoveModel.targets` both read it.
+- `SourceMoveModel`: a pick's read clears a stale read failure when a bundle is already held (`readState` goes back to `.ready`), and `canMove` also requires `readState == .ready`, so a failed re-read of the same target dims Move. `moveError` holds the raw message; the view wraps it with `moveFailedMessage`.
+- D-16's "a file create reads the workspace once" did not hold by itself: a new Artifact saved with a file reported `source_holdings` twice (the create and the ingest). `ArtifactSheetModel.saveCreate` now holds the create's effects while a file follows and applies them merged with the ingest's (`CatalogWriteEffects.merged(with:)`), or alone when the file is refused. This is its own commit, "Refresh the Source page once when a new Artifact's file is added in the same Save."
+- The existing Artifact delete tests in `SourcePageModelTests` script `nextWriteEffects` with `source_holdings` (the fake does not derive it), show the page with `apply(location:)`, and sync the model from the reloaded workspace.
+- `PlaceRegistryTests` and `EvidenceGraphModelTests` pinned the old identity strings of the graph canvas and Promote places; they now pin the ones that start with the Source.
+- STEP-6's last check, `rg verbatimTitle macos/App/DesignSystem/Components/ContextMenu macos/App/DesignSystem/README.md`, still matches the README's FormDialog row (`PVFormDialogCopy(verbatimTitle:…)`), a different form; the ContextMenu row and folder are clean.
+- Not run: the manual check (§ 10).
 
 ### Implementer — read this first
 

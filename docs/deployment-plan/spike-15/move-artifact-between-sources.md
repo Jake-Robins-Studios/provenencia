@@ -1,6 +1,6 @@
 # Move an Artifact to another Source
 
-**Status:** Spike 15 design input, not yet cut into PRs ([`README.md`](README.md)); decisions recorded 2026-11-09; planned with the Source schema pass ([`citation-formats.md`](citation-formats.md), [`source-provenance-date.md`](source-provenance-date.md)) (user, 2026-11-01). Once Sources carry the fields a citation needs, which Source an Artifact sits under matters more, and researchers will want to re-file Artifacts they already built Evidence graphs on.
+**Status:** Built in S15-24 (the engine, [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935)) and S15-25 (the Move buttons and dialog, [#940](https://github.com/Jake-Robins-Studios/provenencia/pull/940)); decisions recorded 2026-11-09; planned with the Source schema pass ([`citation-formats.md`](citation-formats.md), [`source-provenance-date.md`](source-provenance-date.md)) (user, 2026-11-01). Once Sources carry the fields a citation needs, which Source an Artifact sits under matters more, and researchers will want to re-file Artifacts they already built Evidence graphs on.
 
 ## Problem
 
@@ -69,8 +69,8 @@ Citations, Observations, `evidence_graph_artifacts`, locators, depictions and id
 - **Reifications:** a Subject of type `source` moves with its graph like every Subject; nothing warns (user, 2026-11-21).
 - **Audit:** one transaction scoped to **both** Sources, so each Source's history and "Updated" sort show the move ([`add-audit-scope`](../../../.agents/skills/add-audit-scope/SKILL.md)). Earlier transactions keep their old scope.
 - **Refs:** unchanged; `ART-`, `GPH-`, `CIT-` and Subject refs are project-wide.
-- **Search and caches:** re-project the moved rows' search documents if a hit shows its Source title ([`add-searchable-kind`](../../../.agents/skills/add-searchable-kind/SKILL.md)); refresh both Sources' pages, the Sources list counts, and any Person page whose provenance rows name the old Source.
-- **Navigation:** if the researcher was on the moved Artifact or graph, land them on it under its new Source ([`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md)).
+- **Search and caches:** re-project the moved rows' search documents if a hit shows its Source title ([`add-searchable-kind`](../../../.agents/skills/add-searchable-kind/SKILL.md)); both Sources' pages and their Sources list rows follow the effects' `source_holdings` read (the page's workspace reloads, the list re-reads those rows by id), and any Person page whose provenance rows name the old Source follows `source_records`.
+- **Navigation:** the move lands on the target Source's page at its top, with a Toast saying what moved (user, 2026-11-21); a history entry for a moved graph's canvas, composer or Promote is rewritten to the graph's new Source when shown ([`add-workspace-location`](../../../.agents/skills/add-workspace-location/SKILL.md)).
 
 ## Open questions
 

@@ -113,7 +113,7 @@ Head `48be23fef`. Gate PASS (orchestrator run against `064e1f393`; `origin/main`
 
 ## Round 3 — trim (user, 2026-11-12)
 
-After the user looked at the Copy details on each card, they rejected it: cards grow too tall at 60 Artifacts. The work is re-cut in brief [S15-D14](../design/S15-D14-source-page-artifacts.md) and PRs S15-33 – S15-36 (map commit `a8282e8a8`). The user chose to trim #802 before merge so the rejected chrome never reaches `main`. This is a user-directed round, not a review round.
+After the user looked at the Copy details on each card, they rejected it: cards grow too tall at 60 Artifacts. The work is re-cut in brief [S15-D14](../design/archive/S15-D14-source-page-artifacts.md) and PRs S15-33 – S15-36 (map commit `a8282e8a8`). The user chose to trim #802 before merge so the rejected chrome never reaches `main`. This is a user-directed round, not a review round.
 
 ### Fix plan 3
 

@@ -1,6 +1,6 @@
 # Review — S15-25 Move from an Artifact or a graph
 
-**Plan:** [`S15-25-move-from-artifact-or-graph.md`](S15-25-move-from-artifact-or-graph.md) · **Brief:** [S15-D10](../design/S15-D10-move-confirm.md)
+**Plan:** [`S15-25-move-from-artifact-or-graph.md`](S15-25-move-from-artifact-or-graph.md) · **Brief:** [S15-D10](../design/archive/S15-D10-move-confirm.md)
 **Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet), fresh context, read-only.
 **Verdict, round 1:** maintainability **Reshape**; executability **Not ready**. Every finding answered below. Three went to the user, who answered them on 2026-11-21.
 **Round 2:** run after the board was agreed (2026-11-22); verdicts Fits with changes / Ready with changes; every finding answered below.
