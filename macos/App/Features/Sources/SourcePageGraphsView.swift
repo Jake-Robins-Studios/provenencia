@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The Source's Evidence graphs: one card per graph with Open and Delete.
+/// The Source's Evidence graphs: one card per graph with Open, Edit, Move and Delete.
 struct SourcePageGraphsView: View {
     @Bindable var model: SourcePageModel
 
@@ -127,6 +127,16 @@ private struct SourcePageGraphRow: View {
                     }
                     .disabled(model.source == nil)
                     .accessibilityIdentifier("sources.page.graph.edit.\(graph.ref)")
+
+                    PVIconButton(
+                        .folderInput,
+                        label: L10n.Sources.moveGraphLabel(name: graph.name),
+                        size: .sm
+                    ) {
+                        model.openMove(graphID: graph.id)
+                    }
+                    .disabled(model.source == nil)
+                    .accessibilityIdentifier("sources.page.graph.move.\(graph.ref)")
 
                     PVIconButton(
                         .trash,
