@@ -1,6 +1,6 @@
 # S16-65 — One kit focus stop for a list of rows
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6f — Sources list keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Persons, Events and Places lists look and behave as today; the code that draws their focus moves, not the drawing)
@@ -13,7 +13,7 @@
 **Rules that bind:** —
 **Context:** map scope entry [S16-65](../deployment-plan.md#s16-65--one-kit-focus-stop-for-a-list-of-rows); bar 37; working rules: "(Batch 6) A list of rows is one kit focus stop"; kit README [`macos/App/DesignSystem/README.md`](../../../../macos/App/DesignSystem/README.md) List and ScrollRowIntoView rows
 **Planned:** 2026-11-22 against `main` @ `8fcb625`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-65-list-focus-stop.review.md`](S16-65-list-focus-stop.review.md) — Fits with changes / Ready with changes, 1 round
 
 ### Implementer — read this first
 
@@ -51,7 +51,7 @@
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | `focusIndex` 7 and a list of 3 rows (the list shrank) | The focused row is index 2 (`PVListKeyboard.clampedIndex(7, count: 3)` = 2) |
+| AC-2.1 | `focusIndex` 7 and a list of 3 rows (the list shrank) | The ring and the keys use index 2 (`PVListKeyboard.clampedIndex(7, count: 3)` = 2); the scroll row stays nil, as today (D-5) |
 | AC-2.2 | `focusIndex` 0 and a list of 0 rows | `PVListKeyboard.clampedIndex(0, count: 0)` = 0, and no key is handled (`PVListKeyboard.action` returns `.ignore` for count 0) |
 | AC-2.3 | `rg -n "\.onKeyPress" macos/App/DesignSystem/Components/List/PVList.swift` | Prints nothing: `PVList` has no key handler of its own |
 
@@ -60,14 +60,15 @@
 | In | Covered by |
 | --- | --- |
 | `.pvListFocusStop` *(new)* in `Components/List/PVListFocusStop.swift` *(new)*: `.pvScrollsRowIntoView` on the focused row, `.focusable()`, `.focusEffectDisabled()`, `.focused`, `.onKeyPress` through `PVListKeyboard.action` | STEP-2, AC-1.1 – AC-1.4 |
-| `PVListKeyboard.clampedIndex(_:count:)` *(new)*, the clamp `PVList.currentIndex` does today | STEP-1, AC-2.1, AC-2.2 |
+| `PVListKeyboard.clampedIndex(_:count:)` *(new)*, the clamp `PVList.currentIndex` does today; `currentIndex` goes | STEP-1, STEP-3, AC-2.1, AC-2.2 |
 | `PVList` wears the modifier; its own key handler, scroll and focus modifiers go | STEP-3, AC-2.3 |
 | The kit README's List row and `add-ui-component`'s anti-patterns name the modifier | STEP-4 |
 
 | Out | Home |
 | --- | --- |
 | The Sources list on the modifier | S16-66 |
-| `PVTable` on the modifier (it moves a selection with `PVTableSelection`, not a focused row) | not planned |
+| `PVTable` on the modifier (it has a selection, type-to-select and Escape, and rings the whole table) | not planned |
+| `PVTable.handleKey`'s movement keys onto `PVListKeyboard.moveIndex`, and `PVTableSelection.moveIndex` deleted | [`docs/ideas/kit-layering.md`](../../../ideas/kit-layering.md) "The table writes its own movement keys" |
 | ←/→ into a row's secondary buttons | S16-66's Out (not planned) |
 | A `pageStep` other than `PVListKeyboard.pageStep` (10) for a caller | not planned: no caller needs one |
 
@@ -93,9 +94,10 @@
 | D-2 | The caller owns the state: `focusIndex: Binding<Int>` and `isFocused: FocusState<Bool>.Binding`. The modifier owns none | The row view must read both to draw its ring (`PVListRowStyle(focused:)`) and a click sets `focusIndex`; `@FocusState` can only be declared in a `View` | State inside the modifier with a preference back out — two sources of truth for one focused row |
 | D-3 | The modifier takes `count: Int` and `rowID: (Int) -> ID` (`ID: Hashable`), not an array of ids | A `PVList` holds up to 16,000 persons at the Batch 2 Scale; building an id array on every body pass would be a second O(n) copy beside the `ForEach`. `rowID` is called once per pass, for the focused row only | `ids: [ID]` — an allocation per render for nothing |
 | D-4 | `onActivate: (Int) -> Void` takes the row index; the caller maps it to its item | The modifier knows indices, not items; `PVList` passes `{ onActivate(items[$0]) }` | A generic `Item` — ties the modifier to `Identifiable` items the Sources list builds differently |
-| D-5 | The modifier applies, in order: `.pvScrollsRowIntoView(rowID(clamped) if count > 0 else nil, animated: false)`, `.focusable()`, `.focusEffectDisabled()`, `.focused(isFocused)`, `.onKeyPress { … }`. The `.onKeyPress` body is today's, with `index: PVListKeyboard.clampedIndex(focusIndex, count: count)` | Today's behaviour, moved. `.pvScrollsRowIntoView` gets the clamped row: today it gets nil when `focusIndex` is out of range, which leaves a shrunken list unscrolled to the row the ring shows; with the clamp the ring and the scroll name the same row | Today's unclamped scroll row — keeps a mismatch the move would freeze into the kit |
+| D-5 | The modifier applies, in order: `.pvScrollsRowIntoView((0..<count).contains(focusIndex) ? rowID(focusIndex) : nil, animated: false)`, `.focusable()`, `.focusEffectDisabled()`, `.focused(isFocused)`, `.onKeyPress { … }`. The `.onKeyPress` body is today's with `index: PVListKeyboard.clampedIndex(focusIndex, count: count)`: `.move(let i)` sets `focusIndex.wrappedValue = i` and returns `.handled`; `.activate(let i)` calls `onActivate(i)` and returns `.handled`; `.ignore` returns `.ignored` | Today's behaviour, moved, scroll row included: a list that shrinks under the focused index does not scroll, as today (review X-3: clamping it would make a filtered list jump to its end) | A clamped scroll row — a visible change in a PR that promises none; a modifier that writes the clamp back on a count change (review M-1) — same jump, since the scroll follows the written row |
 | D-6 | `PVList` keeps `.scrollTargetLayout()`, `.pvListChrome()`, the accessibility element and label, and applies them around the modifier in this order: `LazyVStack` → `.scrollTargetLayout()` → `.pvListChrome()` → `.pvListFocusStop(…)` → accessibility | The only reorder is `.pvScrollsRowIntoView` moving outside `.pvListChrome()`; `ScrollViewReader` lays out its content unchanged, so nothing drawn moves | Keeping chrome between the scroll and the focus modifiers — would split the modifier in two |
-| D-7 | `PVListKeyboard.clampedIndex(_ index: Int, count: Int) -> Int` *(new)* = `min(index, max(0, count - 1))`, on `PVListKeyboard` | The clamp is the one rule the caller's ring and the modifier must share; it belongs beside the movement rule it feeds, and pure code is tested without a view | Each caller clamps on its own — the Sources list would write a second copy |
+| D-7 | `PVListKeyboard.clampedIndex(_ index: Int, count: Int) -> Int` *(new)* = `min(index, max(0, count - 1))`, on `PVListKeyboard`. `PVList.currentIndex` goes; its row reads `PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count))` | The clamp is the one rule the caller's ring and the modifier must share; it belongs beside the movement rule it feeds, and pure code is tested without a view | Each caller clamps on its own — the Sources list would write a second copy; keeping `currentIndex` as a one-line pass-through (review M-2) |
+| D-8 | The focus is an index, as today: a re-sort, or a row added or removed above it, leaves the ring at the same index on another row | `PVList`'s behaviour today; the Persons, Events and Places lists are sorted by Go and do not re-sort under the ring. Whether the Sources list (which re-sorts on its settings) wants focus to follow the item is S16-66's decision, which can key its `focusIndex` from an id without changing this modifier | An id-keyed focus in the kit now — no caller needs it yet |
 
 **Rules this plan bends.** None.
 
@@ -107,7 +109,7 @@
 | --- | --- | --- | --- |
 | `pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)` and `PVListFocusStop` *(new)* | modifier | `PVList.body`'s focus stop (moved, not copied); `PVPopupList`'s key glue (`131abdb`) | It is `PVList`'s own code, extracted; the popup list moves a highlight in a floating window, not a focused row in the page |
 | `PVListFocusStop.swift` *(new)* | file | `Components/List/PVList.swift` | `PVList.swift` is 513 lines; the modifier is its own concern in the same folder |
-| `PVListKeyboard.clampedIndex` *(new)* | func | `PVList.currentIndex`, `PVTableSelection.moveIndex` (clamps and moves) | `currentIndex` is the same rule, private to the view; `PVTableSelection` moves a selection and treats -1 as none |
+| `PVListKeyboard.clampedIndex` *(new)* | func | `PVList.currentIndex`, `PVFloatingMenuSelection.moveIndex` (moves and clamps) | `currentIndex` is the same rule, private to the view, and goes; the movers move an index and clamp the result, while this holds a stale index in range without moving it |
 
 Searched: `rg -n "focusable\(\)" macos/App` (PVList, PVTable, CitationComposerSubjectGroups, ConclusionPictureViewer, SourceTypeIconGrid — none a list of button rows besides PVList), `rg -n "PVListKeyboard\.(action|moveIndex)" macos/App` (PVList, PVTable's activation, PVContextMenu, PVPopupList).
 
@@ -126,7 +128,7 @@ At the Batch 2 Scale (16,000 persons in the Persons list): the modifier does O(1
 ### Edges
 
 - **Assumptions.** The focused index can outlive the list it was set on (a filter or a reload shrinks it): `clampedIndex` holds it in range (T-1). An empty list: `PVListKeyboard.action` returns `.ignore` for count 0 (T-2, today's `PVListTests`), and the scroll row is nil.
-- **Neighbors.** A list of one row: every movement key lands on 0 (T-2). Keys that are not list keys (letters, Tab, Escape) return `.ignored` as today, so Tab still leaves the list.
+- **Neighbors.** A list of one row: every movement key lands on 0 (T-2). Keys that are not list keys (letters, Tab, Escape) return `.ignored` as today, so Tab still leaves the list. A re-sort or a row added above the focused one: the ring stays on the index (D-8), as today.
 - **Removed inputs.** None — no data is decided or deleted.
 - **Real data.** None — no table-driven rule.
 - **Untrusted size.** None — the rows are the app's own list.
@@ -179,22 +181,22 @@ None — no copy.
 
 **STEP-1 — The clamp joins the movement rule**
 Files: `macos/App/DesignSystem/Components/List/PVList.swift`, `macos/ProvenenciaTests/PVListTests.swift`. Skill: `add-swift-test`.
-Do: add `static func clampedIndex(_ index: Int, count: Int) -> Int` to `PVListKeyboard` (D-7) with a one-line doc comment; `PVList.currentIndex` returns `PVListKeyboard.clampedIndex(focusIndex, count: items.count)`. Add T-1.
+Do: add `static func clampedIndex(_ index: Int, count: Int) -> Int` to `PVListKeyboard` (D-7) with the doc comment "Holds a focused index that may outlive its list (a filter, a reload) inside it; 0 for an empty list." `PVList.currentIndex` returns `PVListKeyboard.clampedIndex(focusIndex, count: items.count)` until STEP-3. Add T-1.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVListTests` passes.
 
 **STEP-2 — The modifier**
 Files: `macos/App/DesignSystem/Components/List/PVListFocusStop.swift` *(new)*. Skill: `add-ui-component` (component; `PV` prefix; tokens only; no `Features/` type).
-Do: write `PVListFocusStop` and `pvListFocusStop(…)` per D-1 – D-5 and the sketch. The `.onKeyPress` body is `PVList.body`'s, reading `focusIndex.wrappedValue` through the clamp and writing `focusIndex.wrappedValue = index` on `.move`. A doc comment on the extension says what the caller owns (D-2) and that rows must carry `.id(rowID(i))`. Add a `#Preview` with 30 static rows drawn with `PVListRowStyle(focused:)`, as `PVList`'s preview does.
+Do: write `PVListFocusStop` and `pvListFocusStop(…)` per D-1 – D-5 and the sketch. The `.onKeyPress` body is `PVList.body`'s, reading `focusIndex.wrappedValue` through the clamp and writing `focusIndex.wrappedValue = index` on `.move`. The doc comment on the extension is the sketch's. Add `private struct PVListFocusStopPreview: View` holding `@State private var focusIndex = 0` and `@FocusState private var isFocused: Bool`: a `ScrollView` around a `LazyVStack(spacing: 0)` of 30 rows, each a `Button { focusIndex = i } label: { Text(verbatim: "Row \(i + 1)").frame(maxWidth: .infinity, alignment: .leading).padding(PVSpacing.space5) }` with `.buttonStyle(PVListRowStyle(focused: isFocused && i == PVListKeyboard.clampedIndex(focusIndex, count: 30)))` and `.id(i)`; the stack wears `.pvListFocusStop(count: 30, rowID: { $0 }, focusIndex: $focusIndex, isFocused: $isFocused, onActivate: { focusIndex = $0 })`; no list chrome (`pvListChrome` is private to `PVList.swift`). End with `#Preview { PVListFocusStopPreview().frame(width: 320, height: 360) }`.
 Check: the app builds (`xcodebuild build -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`) with no new warning.
 
 **STEP-3 — `PVList` wears it**
 Files: `macos/App/DesignSystem/Components/List/PVList.swift`.
-Do: replace `PVList.body`'s `.pvScrollsRowIntoView`, `.focusable()`, `.focusEffectDisabled()`, `.focused($isFocused)` and `.onKeyPress { … }` with `.pvListFocusStop(count: items.count, rowID: { items[$0].id }, focusIndex: $focusIndex, isFocused: $isFocused, onActivate: { onActivate(items[$0]) })`, in D-6's order. Update the `PVList` doc comment's keyboard sentence to say the keys come from `.pvListFocusStop`. Leave `focusIndex`, `isFocused`, `currentIndex`, the row's click and its `PVListRowStyle(focused:)` as they are.
+Do: replace `PVList.body`'s `.pvScrollsRowIntoView`, `.focusable()`, `.focusEffectDisabled()`, `.focused($isFocused)` and `.onKeyPress { … }` with `.pvListFocusStop(count: items.count, rowID: { items[$0].id }, focusIndex: $focusIndex, isFocused: $isFocused, onActivate: { onActivate(items[$0]) })`, in D-6's order. Delete `currentIndex`; the row's style reads `PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count))` (D-7). In the `PVList` doc comment, the keyboard sentence becomes "Keyboard (`.pvListFocusStop`): the list is one focus stop; ↑ / ↓ move the focused row (⌥ jumps to the ends), Home / End, Page Up / Page Down move by ten, Return / Space activate." Leave `focusIndex`, `isFocused` and the row's click (`focusIndex = index; onActivate(item)`) as they are.
 Check: AC-2.3's `rg` prints nothing; `PVListTests` pass; the Persons list behaves per §10.
 
 **STEP-4 — Docs**
 Files: `macos/App/DesignSystem/README.md` (List row), `.agents/skills/add-ui-component/SKILL.md` (Anti-patterns), `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status).
-Do: the List row says `PVList`'s focus stop is `.pvListFocusStop` (`PVListFocusStop.swift`), which any column of button rows wears, and names `PVListKeyboard.clampedIndex`. Add one Anti-patterns bullet to `add-ui-component`: a list of button rows that builds its own focus stop or movement keys; wear `.pvListFocusStop`. Then per the Definition of done.
+Do: in the README List row, after "one focus stop with ↑/↓ · Home/End · Page Up/Down · Return/Space", add "through `.pvListFocusStop` (`PVListFocusStop.swift`), which any column of button rows tagged `.id` wears; the caller owns `focusIndex` and the `FocusState`, and draws its ring at `PVListKeyboard.clampedIndex`"; and change "`PVListKeyboard.moveIndex` is the one list of movement keys" to "`PVListKeyboard.moveIndex` is the list of movement keys (`PVTable` still writes its own: [`docs/ideas/kit-layering.md`](../../../../docs/ideas/kit-layering.md))". In `add-ui-component`'s `## Anti-patterns`, after its last fenced block and before `## Steps when adding a component`, add a `swift` block: `// ❌ BAD — a list of button rows with its own .focusable() and .onKeyPress moving a focused row` then `// ✅ GOOD — the rows' stack wears .pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)`. Then per the Definition of done: `completed.md` gets a `### S16-65 — One kit focus stop for a list of rows` heading and a `**Landed YYYY-MM-DD** in [#N](…).` paragraph, as the entries above it; the map row Status is `Landed #N`; this plan's Status is `Landed in [#N](…) (YYYY-MM-DD)`.
 Check: links resolve; `python3 scripts/check-guidance-names.py` passes.
 
 Commits: one per behavior. The subject is one full imperative sentence that says what changed, ending in a period, like the rest of `git log` ("Move the list's focus stop and keys into a kit modifier any list of rows can wear."). No WIP commits.
@@ -219,7 +221,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `P
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left — none added
-- [ ] Sweep: `rg -n "currentIndex" macos/App/DesignSystem/Components/List` shows only `PVList.currentIndex`'s use of `clampedIndex`; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: `rg -n "currentIndex" macos/App/DesignSystem/Components/List` prints nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — no brief; the modifier is the one new kit piece, with S16-66 as its second caller
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — none

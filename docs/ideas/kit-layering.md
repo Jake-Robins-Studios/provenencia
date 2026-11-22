@@ -29,3 +29,7 @@ The combo box's row padding and `PVSearchHitRow`'s own both apply, so a hit row 
 ## A remote combo box highlights nothing when its results arrive
 
 `PVComboBox.resetActiveRow` lands before the remote options exist, so the first hit is not highlighted; the omnibar lands on arrival through `CatalogSearchModel.scheduleSearch(onResults:)`. (S16-52 review M-9)
+
+## The table writes its own movement keys
+
+`PVTable.handleKey` writes out ⌥↑/↓, Home/End and Page Up/Down itself, with a literal `10` for `PVListKeyboard.pageStep`, and `PVTableSelection.moveIndex` is the no-edge branch of `PVFloatingMenuSelection.moveIndex`. Move the movement cases onto one `PVListKeyboard.moveIndex` call and delete `PVTableSelection.moveIndex` and its tests in `PVTableTests.swift`; no behaviour change. The table keeps its selection, type-to-select and Escape, so it does not wear `.pvListFocusStop`. (S16-65 review M-3)
