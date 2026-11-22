@@ -87,11 +87,12 @@ struct PlaceRegistry: Sendable {
                     .evidenceGraphsList(project: project),
                 ]
             },
-            // The view is built from the Subject the location opens on, so each one is a fresh mount.
+            // The view is built from the Subject the location opens on, so each one is a fresh mount,
+            // and from the Source the graph is on, so a graph that moved remounts on its new Source.
             viewIdentity: { location in
-                guard let graphId = location.graphId else { return nil }
-                guard let subjectId = location.subjectId, !subjectId.isEmpty else { return graphId }
-                return "\(graphId)#\(subjectId)"
+                guard let sourceId = location.sourceId, let graphId = location.graphId else { return nil }
+                guard let subjectId = location.subjectId, !subjectId.isEmpty else { return "\(sourceId)#\(graphId)" }
+                return "\(sourceId)#\(graphId)#\(subjectId)"
             }
         ),
         Spec(

@@ -334,8 +334,8 @@ struct PlaceRegistryTests {
         }
         let graphA = WorkspaceLocation.evidenceGraph(sourceId: "src-1", graphId: "g-a", title: "A")
         let graphB = WorkspaceLocation.evidenceGraph(sourceId: "src-1", graphId: "g-b", title: "B")
-        #expect(identity(graphA) == "g-a")
-        #expect(identity(graphB) == "g-b")
+        #expect(identity(graphA) == "src-1#g-a")
+        #expect(identity(graphB) == "src-1#g-b")
         // The view is built from the Subject the graph opens on.
         var graphOnS1 = graphA
         graphOnS1.subjectId = "s1"

@@ -1792,7 +1792,7 @@ struct EvidenceGraphModelTests {
         #expect(location?.subjectTypeKey == "person")
         #expect(location != card)
         #expect(PromoteEntry(location: location!)?.mapAll == true)
-        #expect(PromoteEntry(location: location!)?.identityKey == "promote|\(graphID)|all")
+        #expect(PromoteEntry(location: location!)?.identityKey == "promote|\(sourceID)|\(graphID)|all")
     }
 
     @Test func promoteAllOpensWhenEveryCardIsAlreadyFiled() async {
