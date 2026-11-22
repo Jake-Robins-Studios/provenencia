@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-59 — Workspace callers add to the toast stack
+
+**Landed 2026-11-22** in [#945](https://github.com/Jake-Robins-Studios/provenencia/pull/945). Every workspace model adds its toast to `WorkspaceSession.toasts` through the session it holds, so a toast has one path and a test asserts on the list (`ToastCard`, `PVToastList.cards`). `vocabularyToastOverlay`, `VocabularyToast`, the models' `toast` properties and `WorkspaceSession.noticeToast` are gone. `ConclusionLeadModel` adds to the likeness viewer's sheet list while the viewer is open (`\.pvSheetToasts`, set by `PVSheetChrome`, replacing `\.pvToastList`), else to the window's. No visible change, no version bump.
+
 ## S16-58 — Toasts stack in one list per window
 
 **Landed 2026-11-22** in [#941](https://github.com/Jake-Robins-Studios/provenencia/pull/941). The workspace window holds one `PVToastList` (`WorkspaceSession.toasts`), drawn by a kit `PVToastStack` over the content pane's top-trailing corner, newest first: each card leaves on its own five-second timer or dismiss, and every add makes a card: `add` returns the card's id, a caller that passes it back as `replacing` refreshes that card (same `id`, timer restarted), and the list never compares text. Dogfood found the first design, which merged any equal toast, collapsed a run of portrait toasts from one Source into one card. History issues, notices and every page's toast (through `vocabularyToastOverlay`'s forwarding) join it; a sheet and Onboarding each own a list and draw their own stack, so `PVToast` has no timer, and the Citation composer's saved-bridge toast moves from the foot of its observations column into it. `CatalogCounts` takes the list and adds the failed recount's toast itself, holding its id so a repeat failure refreshes that one card (a different message included) (`lastRefreshError` and `clearRefreshError` go), closing S16-56's QCK-1; `CatalogCountsTests.writeRecountFailureAddsToastEachTime` and `PVToastListTests` drive it with a `ManualSleep`. 0.33.0 → 0.33.1.
