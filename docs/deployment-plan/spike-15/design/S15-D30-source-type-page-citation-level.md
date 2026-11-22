@@ -97,7 +97,7 @@ A Citation is the spot cited in a record: a page, a line, an entry. Until now on
 
 | Fact | What it means on this board |
 | --- | --- |
-| Level | Where a field's value lives. **Source**: the record as a whole. **Artifact**: one copy used. **Evidence graph**: the researcher's grouping of evidence (a household, an entry). **Citation**: one spot cited in an Artifact (a page, a line, an entry on the page). The fields come from one project vocabulary; the level is only where a type suggests them and where a value is kept. |
+| Level | Where a field's value lives. **Source**: the record as a whole. **Artifact**: one copy used. **Evidence graph**: the researcher's grouping of evidence (a household, a family). **Citation**: one spot cited in an Artifact (a page, a line, an entry on the page). The fields come from one project vocabulary; the level is only where a type suggests them and where a value is kept. |
 | A Citation's suggested field | A field a type offers, empty, on each Citation of its Sources. Seeded types suggest none at this level yet (a later PR seeds Page, Column, Line and others); a new project's Citation lists are empty. |
 | Where the suggestions show | A later board (S15-D29) puts a Citation's fields in the citation composer. On this board the Citation list is edited only; nothing shows it elsewhere yet. |
 | Sizes | A Citation list holds 0 to about 8 fields (page, column, line, dwelling, family, schedule, entry, folio). The other lists 0 to about 12. Four lists of 12 must still read. |
@@ -112,6 +112,8 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 | Where | Text |
 | --- | --- |
 | Citation list title / meaning | "On each Citation" / "The spot you cite: a page, a line, an entry" |
+| Evidence graph list meaning (reworded) | "Your grouping of evidence: a household, a family" (today "One item in the record: a household, an entry"; a graph is the researcher's grouping, not an item, and "line" and "entry" now belong to the Citation) |
+| Empty Evidence graph list (reworded) | "No Evidence graph fields yet. Assign what you note about each grouping, such as its household or family." (today "…about each item, such as its line or household.") |
 | Empty Citation list | "No Citation fields yet. Assign what you note about each spot you cite, such as its page or line." |
 | How the list is named in a sentence | "on each Citation of Census Sources" (the other three as today: "on each Census Source", "on each Artifact of Census Sources", "on each Evidence graph of Census Sources") |
 | Picker label (spoken) | "Metadata field to assign on each Citation" |
@@ -129,7 +131,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 - Where a Citation's values are typed (the citation composer's board: S15-D29 → S15-56).
 - Needed and used marks on any board (S15-D20 → S15-39).
 - The seeded Citation suggestions and the page chain (S15-60).
-- Any change to the three existing lists, ticks or completion rows beyond the copy in § 2.1.
+- Any change to the three existing lists, ticks or completion rows beyond the copy in § 2.1 (the Evidence graph list's meaning and empty copy are reworded there).
 - Reordering a list, creating a field from the picker, a tab or fold over the lists: none, as S15-D6 decided.
 - The rest of the Metadata page: only the notice's new group line.
 
@@ -147,7 +149,7 @@ The board may refine wording; the PR copies what the board shows. Strings marked
 
 | ID | Requirement |
 | --- | --- |
-| CL-1 | **A fourth list.** Suggested fields shows four lists stacked in the order Source, Artifact, Evidence graph, Citation, each as S15-D6 drew them (micro-caps title, mono count trailing, the meaning under it, a hairline and 28pt between lists, the pool hint once). The Citation list's title, meaning and empty copy are § 2.1's. No list is hidden behind a tab or a fold. |
+| CL-1 | **A fourth list.** Suggested fields shows four lists stacked in the order Source, Artifact, Evidence graph, Citation, each as S15-D6 drew them (micro-caps title, mono count trailing, the meaning under it, a hairline and 28pt between lists, the pool hint once). The Citation list's title, meaning and empty copy are § 2.1's, and so are the Evidence graph list's reworded meaning and empty copy, so that no word names two levels. No list is hidden behind a tab or a fold. |
 | CL-2 | **The Citation list behaves as the others.** Its picker offers every field not already in the Citation list (Line in the Evidence graph list is still offered). Return adds, as S15-D6 SL-4. Remove takes the field out of the Citation list only. Its loading, read failure and write failure show in its own place; the other three lists keep working. While any add or remove runs, every list's plus and remove are disabled, the Citation list's included. A plugin's type shows the Citation list read only. |
 | CL-3 | **Copy names the list.** Every tooltip, spoken label and toast that names a list uses § 2.1's phrase for the Citation list. The toast after a remove that keeps values names Citations in every list's sentence. VoiceOver reads the list as a group "On each Citation, 3 fields". |
 | CL-4 | **Copy type's fourth tick.** In the Copy type sheet, "Suggested fields on each Citation" follows "Suggested fields on each Evidence graph", ticked when the sheet opens, with its count as the hint; disabled with "None on this type" when the original's Citation list is empty. Tab order follows the ticks. Nothing else in the sheet changes. |
@@ -174,7 +176,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | CL-1, CL-W1 | Census's page: Details and the formats beside Suggested fields with its four lists, scrolled so the Evidence graph and Citation lists show. In 1b, a pick in progress in the Citation list's picker, to show it survives the resize |
+| 1a / 1b | CL-1, CL-W1 | Census's page: Details and the formats beside Suggested fields with its four lists, scrolled so the Evidence graph list (its reworded meaning) and the Citation list show side by side in the column. In 1b, a pick in progress in the Citation list's picker, to show it survives the resize |
 | 2 | CL-2 | Census, the Citation list's picker open with "fo" typed (Folio highlighted; Column absent because the list has it) |
 | 3 | CL-2, CL-3 | Right after adding Folio to the Citation list by Return: Folio fourth, "4 fields", the picker empty and focused, the toast "Folio is now suggested on each Citation of Census Sources." |
 | 4 | CL-2, CL-3 | After removing Line from the Citation list: the toast with the values clause naming Citations |
