@@ -482,20 +482,30 @@ struct SourcePageModelTests {
     /// A create and its file's ingest apply as one: ids union per read, the later activity wins.
     @Test func mergedWriteEffectsUnion() {
         let create = CatalogWriteEffects(
+            handles: ["h1"],
             evidenceGraphs: ["g1"],
             reads: [
                 CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1"]),
                 CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["s1"]),
             ],
-            lists: [.metadataFieldUsage], sourceScopes: ["s1"],
+            lists: [.metadataFieldUsage], structure: true, summaryHandles: ["h2"],
+            handleScopes: ["h1"], sourceScopes: ["s1"],
+            deleted: [CatalogWriteEffectsDeleted(entity: .handle, ids: ["h9"])],
             activity: CatalogActivity(revision: 4, at: "a")
         )
         let ingest = CatalogWriteEffects(
+            handles: ["h1", "h3"],
             reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1", "s2"])],
+            summaryHandles: ["h2", "h4"], handleScopes: ["h5"],
             sourceScopes: ["s1"], activity: CatalogActivity(revision: 5, at: "b")
         )
         let merged = create.merged(with: ingest)
+        #expect(merged.handles == ["h1", "h3"])
         #expect(merged.evidenceGraphs == ["g1"])
+        #expect(merged.structure)
+        #expect(merged.summaryHandles == ["h2", "h4"])
+        #expect(merged.handleScopes == ["h1", "h5"])
+        #expect(merged.deleted == [CatalogWriteEffectsDeleted(entity: .handle, ids: ["h9"])])
         #expect(merged.reads.first { $0.read == .sourceHoldings }?.ids == ["s1", "s2"])
         #expect(merged.reads.first { $0.read == .evidenceGraphs }?.ids == ["s1"])
         #expect(merged.lists == [.metadataFieldUsage])

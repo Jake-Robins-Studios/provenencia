@@ -158,30 +158,32 @@ struct CatalogWriteEffects: Sendable, Equatable {
             var seen = Set<String>()
             return (a + b).filter { seen.insert($0).inserted }
         }
-        var out = self
-        out.handles = union(handles, later.handles)
-        out.evidenceGraphs = union(evidenceGraphs, later.evidenceGraphs)
-        out.reads = CatalogRead.allCases.compactMap { read in
-            let ids = union(
-                reads.filter { $0.read == read }.flatMap(\.ids),
-                later.reads.filter { $0.read == read }.flatMap(\.ids)
-            )
-            return ids.isEmpty ? nil : CatalogWriteEffectsRead(read: read, ids: ids)
-        }
-        out.lists = lists.union(later.lists)
-        out.structure = structure || later.structure
-        out.summaryHandles = union(summaryHandles, later.summaryHandles)
-        out.handleScopes = union(handleScopes, later.handleScopes)
-        out.sourceScopes = union(sourceScopes, later.sourceScopes)
-        out.deleted = CatalogDeletedEntity.allCases.compactMap { entity in
-            let ids = union(
-                deleted.filter { $0.entity == entity }.flatMap(\.ids),
-                later.deleted.filter { $0.entity == entity }.flatMap(\.ids)
-            )
-            return ids.isEmpty ? nil : CatalogWriteEffectsDeleted(entity: entity, ids: ids)
-        }
-        if later.activity.revision >= activity.revision { out.activity = later.activity }
-        return out
+        // Built field by field, with no `var out = self`: a new stored property fails to compile
+        // here until it says how two writes merge.
+        return CatalogWriteEffects(
+            handles: union(handles, later.handles),
+            evidenceGraphs: union(evidenceGraphs, later.evidenceGraphs),
+            reads: CatalogRead.allCases.compactMap { read in
+                let ids = union(
+                    reads.filter { $0.read == read }.flatMap(\.ids),
+                    later.reads.filter { $0.read == read }.flatMap(\.ids)
+                )
+                return ids.isEmpty ? nil : CatalogWriteEffectsRead(read: read, ids: ids)
+            },
+            lists: lists.union(later.lists),
+            structure: structure || later.structure,
+            summaryHandles: union(summaryHandles, later.summaryHandles),
+            handleScopes: union(handleScopes, later.handleScopes),
+            sourceScopes: union(sourceScopes, later.sourceScopes),
+            deleted: CatalogDeletedEntity.allCases.compactMap { entity in
+                let ids = union(
+                    deleted.filter { $0.entity == entity }.flatMap(\.ids),
+                    later.deleted.filter { $0.entity == entity }.flatMap(\.ids)
+                )
+                return ids.isEmpty ? nil : CatalogWriteEffectsDeleted(entity: entity, ids: ids)
+            },
+            activity: later.activity.revision >= activity.revision ? later.activity : activity
+        )
     }
 
     /// The handles this write deleted: the `canonical_entity` entry of `deleted`.
