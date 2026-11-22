@@ -85,7 +85,7 @@ do; leave how it looks to the agreed board and the user's manual check.
 
 ### Errors
 
-- A swallowed error: `_ =`, an empty `catch`, an ignored `lastRefreshError`.
+- A swallowed error: `_ =`, an empty `catch`, a failed recount that adds no toast.
 - Generic copy ("Something went wrong") where a stable code and a specific
   `L10n.Errors` message fit. A new `apperr` code with no Swift mapping.
 - Wrong placement: an alert where inline field validation fits; a toast for a
