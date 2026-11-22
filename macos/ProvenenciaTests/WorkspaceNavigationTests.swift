@@ -56,6 +56,21 @@ struct WorkspaceNavigationTests {
         }
         #expect(WorkspaceLocation.sourcePage(sourceId: "s1").correctingGraphSource(graph("g1", on: "s2")) == nil)
 
+        // The host observes the pending correction, not the graph's Source: two entries for G1 that
+        // both name S1 (canvas, then composer) after G1 moved to S2 each get their own correction,
+        // though the graph's Source is S2 for both. Only places that follow their graph's Source
+        // have one.
+        let registry = PlaceRegistry.standard
+        let projectKey = ProjectKey(projectDir: "/tmp/pending-graph-source.provenencia")
+        let moved = graph("g1", on: "s2")
+        for location in [canvas, composer, promote] {
+            let place = registry.resolve(location, project: projectKey)
+            #expect(place?.pendingGraphSourceCorrection(for: location, graph: moved)?.sourceId == "s2")
+            #expect(place?.pendingGraphSourceCorrection(for: location, graph: graph("g1", on: "s1")) == nil)
+        }
+        let page = WorkspaceLocation.sourcePage(sourceId: "s1")
+        #expect(registry.resolve(page, project: projectKey)?.pendingGraphSourceCorrection(for: page, graph: moved) == nil)
+
         // The two Sources' locations of one graph mount as different places.
         let project = ProjectKey(projectDir: "/tmp/correct-graph-source.provenencia")
         func identity(_ location: WorkspaceLocation) -> String? {

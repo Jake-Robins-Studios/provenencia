@@ -20,28 +20,17 @@ struct WorkspaceDestinationHost: View {
         .pvMeasuresWidthClass()
         // A graph, composer or Promote entry made before its graph moved to another Source names the
         // old one: rewrite it in place to the graph's Source once the graph list says where it is.
-        .onChange(of: graphSourceID, initial: true) { _, _ in
-            correctGraphSource(presentation: place?.presentation)
+        .onChange(of: pendingCorrection(for: place), initial: true) { _, correction in
+            if let correction { navigation.replaceCurrent(with: correction) }
         }
     }
 
-    /// The Source the graph in the current location is on, per the cached graph list; nil with no
-    /// graph in the location or while the list has no row for it.
-    private var graphSourceID: String? {
-        navigation.currentLocation.graphId.flatMap { session.evidenceGraph(id: $0)?.sourceID }
-    }
-
-    private func correctGraphSource(presentation: WorkspacePresentationID?) {
-        switch presentation {
-        case .sourceGraph, .sourceCitationComposer, .sourcePromote:
-            let location = navigation.currentLocation
-            guard let graphId = location.graphId,
-                  let corrected = location.correctingGraphSource(session.evidenceGraph(id: graphId))
-            else { return }
-            navigation.replaceCurrent(with: corrected)
-        default:
-            return
-        }
+    /// The rewrite the current location needs, nil when its place does not follow its graph's
+    /// Source, the graph list has no row for it yet, or the location already names that Source.
+    private func pendingCorrection(for place: ResolvedPlace?) -> WorkspaceLocation? {
+        let location = navigation.currentLocation
+        guard let graphId = location.graphId else { return nil }
+        return place?.pendingGraphSourceCorrection(for: location, graph: session.evidenceGraph(id: graphId))
     }
 
     @ViewBuilder
