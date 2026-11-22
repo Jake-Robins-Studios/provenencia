@@ -231,11 +231,19 @@ func TestMetadataEffects(t *testing.T) {
 				t.Errorf("%s ListsOnCreateDelete = %v, want %v", table, eff.ListsOnCreateDelete, isValues)
 			}
 			wantSearch := 0
-			if e.Level == "source" {
+			if e.Up == nil {
 				wantSearch = len(searchSource)
 			}
 			if len(eff.Search) != wantSearch {
 				t.Errorf("%s Search = %v, want %d docs", table, eff.Search, wantSearch)
+			}
+			if wantSearch > 0 {
+				if eff.Search[0].Kind != DocSource {
+					t.Errorf("%s Search[0].Kind = %q, want %q", table, eff.Search[0].Kind, DocSource)
+				}
+				if end, err := eff.Search[0].Path.check(table); err != nil || end != "sources" {
+					t.Errorf("%s Search[0] Path ends at %q, %v; want sources", table, end, err)
+				}
 			}
 		}
 	}
