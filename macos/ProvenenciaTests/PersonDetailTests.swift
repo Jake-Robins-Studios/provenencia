@@ -393,6 +393,19 @@ struct PersonDetailTests {
         #expect(!model.isSaving)
     }
 
+    @MainActor
+    @Test func portraitFailureWithTheViewerOpenToastsInTheViewer() async {
+        let store = FakeStore()
+        let failure = CoreInvokeError.coded(status: 1, code: "canonicalentities.invalid", kind: .user, params: [])
+        store.setPreferredLikenessError = failure
+        let (model, session) = leadModel(store)
+        let sheet = PVToastList()
+        model.viewerOpened(toasts: sheet)
+        await model.useEarliest(copy: .personPortrait)
+        #expect(sheet.cards == [ToastCard(.danger, L10n.Errors.message(for: failure))])
+        #expect(session.toasts.cards.isEmpty)
+    }
+
     @Test func aMergedNameRowCarriesItsStateAndWhy() {
         let row = PersonDetailContent(detail: detail()).rows[0]
         #expect(row.shown.lead == "James Robins" && row.shown.face == .text)
