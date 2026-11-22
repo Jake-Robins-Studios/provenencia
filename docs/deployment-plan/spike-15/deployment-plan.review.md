@@ -247,3 +247,42 @@ Logged.
 - **K-7 · minor · S15-18 stale.** Fixed — Context and Check rewritten; depends on S15-12.
 - **K-8 · minor · Back loses the list's scroll.** Fixed — verified `isListRoot` is false for `.sourceTypes`; S15-48 makes it a list root and restores the anchor.
 - **K-9 · nit · Wording and a location factory.** Fixed — S15-47 rewires `onAdd`; S15-48 adds `WorkspaceLocation.sourceTypePage(typeId:title:)`.
+
+## Map review — slice 11, Citation metadata (S15-54 – S15-61), 2026-11-22
+
+**Round 1 verdict:** Fits with changes. Reviewer: maintainability (fresh context). Findings are numbered K11-# here; the map cites them as "map review K-#".
+
+**Writer's own calls**
+- `schedule_number` is page-relative with the fields the user named; `item` and `record_id` stay graph-first.
+- Stored locators keep old printed-page keys until the Citation is saved again; reads ignore them.
+- K11-1's fix means the Conclusion detail, the gallery and the likeness viewer show only a Citation's own page, not one inherited from its graph or Artifact (a reader that needs the inherited page asks the render RPC).
+
+### K11-1 · blocker · A second, hidden page-chain resolver cached in `graphfill`
+**Answer:** Fixed. Rule "The printed page is a metadata field" now says readers outside a rendered citation show only the Citation's own `page` and nothing resolves the chain except a format; S15-54 declares `citation_metadata`'s effects path to its graph; S15-56 switches `graphfill` and `conclusiondetails`.
+
+### K11-2 · blocker · Boards had no slot for a Citation's graph and Artifact
+**Answer:** Fixed. S15-55 is now "Boards meet a chain at every level above": store entries declare ancestors, `listWorkspaces` and the draft read load them, and the draft request names its would-be parents. Rule "Boards flag needed fields" updated.
+
+### K11-3 · major · The level registry ships S15-57's chrome inside S15-54
+**Answer:** Fixed. S15-57 merged into S15-54, which is now visible and gated by S15-D30; S15-54 also adds the Citation owner to `fillValues`, so nothing parses without rendering.
+
+### K11-4 · major · The Citation-first seed split across two PRs; two composer briefs
+**Answer:** Fixed. S15-60 seeds all eight fields, `page` included, through one helper, before the composer PR; S15-56 removes the Printed page input under S15-D29; S15-D31 descoped; S15-58 is the Go retirement of `{citation.page}`.
+
+### K11-5 · major · A fourth hand-copied set of `deleteimpact` rows
+**Answer:** Fixed. New preparatory PR S15-61 builds each level's delete rows from one declared list; S15-54 adds the Citation as one entry.
+
+### K11-6 · major · Rules the slice makes false left standing
+**Answer:** Fixed. "Metadata lives at four levels", "One level type", "Suggestions have a level", "Citation formats are data", "Boards flag needed fields" and "A value can be marked" rewritten in place; S15-D20 and S15-D22 rows name the composer's board.
+
+### K11-7 · major · Docs per PR misnamed or missing
+**Answer:** Fixed. S15-59 names `interpretation-layer-data-model.md` §§ 3.2, 3.3, 3.6; S15-58 `citation-formats.md` and `source-layer-data-model.md` § 5.2; S15-54 `citation-formats.md` and `source-layer-data-model.md`; S15-61 `catalog-deletes.md`.
+
+### K11-8 · minor · Deletes not listed
+**Answer:** Fixed. S15-56, S15-58 and S15-59 carry **Deletes** lines.
+
+### K11-9 · minor · Spike 16's S16-58 and S16-59 edit the same files
+**Answer:** Fixed. A row in Spike 16's "Shared with Spike 15", a line in this map's Spike 16 dependencies, and the in-parallel text.
+
+### K11-10 · minor · Fan-outs and an RPC name
+**Answer:** Fixed. S15-54 states the Source-delete release (up to 4,800 rows) and uses `CreateCitationWithObservations`; S15-56 reads an existing Citation's board through `GetMetadataBoard` with no new query key.
