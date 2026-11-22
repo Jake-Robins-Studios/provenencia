@@ -225,12 +225,12 @@ struct ReconciledValueDisplayTests {
         #expect(ReconciledValueDisplay.againstLine(place) == "1 record disagrees")
     }
 
-    @Test func deniedFallsBackToTheRefThenToAPlainPhrase() {
-        let noTitle = Self.field("single", [Self.value(1, "kept")], outcomes: [
+    @Test func deniedNamesTheDeniersSourceOrAPlainPhrase() {
+        let titled = Self.field("single", [Self.value(1, "kept")], outcomes: [
             Self.outcome("dir", "denied", rank: 2, deniedBy: "depo"),
-            Self.outcome("depo", "against", rank: nil, title: ""),
+            Self.outcome("depo", "against", rank: nil, title: "Deposition"),
         ])
-        #expect(ReconciledValueDisplay.outcomePhrase(noTitle.outcomes[0], in: noTitle) == "denied by OBS-depo")
+        #expect(ReconciledValueDisplay.outcomePhrase(titled.outcomes[0], in: titled) == "denied by Deposition")
         let gone = Self.field("single", [Self.value(1, "kept")], outcomes: [Self.outcome("dir", "denied", rank: 2, deniedBy: "x")])
         #expect(ReconciledValueDisplay.outcomePhrase(gone.outcomes[0], in: gone) == "denied")
     }

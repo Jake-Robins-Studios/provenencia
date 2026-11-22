@@ -21,3 +21,11 @@
 ## The circular link diagram's unused options
 
 `CircularLinkDiagramStyle` has one value and `CircularLinkArc.color` is set only in a preview and a test, and the adapter's `mappingNodes` second pass reads `neighborCount` (it also builds the node labels, help and accessibility text, so only the counting is extra). (P-26, Person page audit)
+
+## Promote's record picker pads its hit rows twice
+
+The combo box's row padding and `PVSearchHitRow`'s own both apply, so a hit row in Promote's picker sits further in than in the omnibar's list. (S16-52 review M-3)
+
+## A remote combo box highlights nothing when its results arrive
+
+`PVComboBox.resetActiveRow` lands before the remote options exist, so the first hit is not highlighted; the omnibar lands on arrival through `CatalogSearchModel.scheduleSearch(onResults:)`. (S16-52 review M-9)

@@ -1,6 +1,14 @@
 import Foundation
 import Observation
 
+/// What a catalog search's results show.
+enum CatalogSearchLine: Equatable {
+    case rows
+    case searching
+    case noMatches
+    case failed(message: String)
+}
+
 /// Debounced SearchCatalog state shared by every find-a-record surface: the
 /// toolbar omnibar and pickers. `kinds` is fixed for the model's life (empty:
 /// every searchable kind); the location is per search (nil: no section nudge).
@@ -18,7 +26,6 @@ final class CatalogSearchModel {
     var hasSearched = false
     /// Non-nil when the last completed search failed (not "no matches").
     var searchError: String?
-    var selectedIndex = 0
 
     private let latest = LatestCall()
 
@@ -40,16 +47,16 @@ final class CatalogSearchModel {
         !isBelowMinimumQuery && (hasSearched || isLoading)
     }
 
-    var showsLoadingState: Bool {
-        isLoading && hits.isEmpty && searchError == nil
-    }
-
-    var showsErrorState: Bool {
-        searchError != nil && !isLoading
-    }
-
-    var showsEmptyState: Bool {
-        hasSearched && !isLoading && hits.isEmpty && searchError == nil
+    /// What the results show: the one decision every find-a-record surface
+    /// reads. A failure is never drawn as no match, and hits already in stay
+    /// on screen while the next search runs.
+    var line: CatalogSearchLine {
+        if let message = searchError, !isLoading { return .failed(message: message) }
+        switch PVPopupListLineKind.of(rowCount: hits.count, isLoading: isLoading) {
+        case .rows: return .rows
+        case .loading: return .searching
+        case .empty: return .noMatches
+        }
     }
 
     /// Stops any pending or in-flight search; keeps the query and the hits on screen.
@@ -63,13 +70,13 @@ final class CatalogSearchModel {
         hits = []
         hasSearched = false
         searchError = nil
-        selectedIndex = 0
     }
 
     func scheduleSearch(
         projectDir: String,
         location: WorkspaceLocation?,
-        store: any GenealogyStore
+        store: any GenealogyStore,
+        onResults: @escaping @MainActor () -> Void = {}
     ) {
         let q = trimmedQuery
         guard !isBelowMinimumQuery else {
@@ -97,7 +104,7 @@ final class CatalogSearchModel {
                 }
                 hasSearched = true
                 isLoading = false
-                selectedIndex = 0
+                onResults()
             }
         )
     }
@@ -107,16 +114,5 @@ final class CatalogSearchModel {
     /// of polling against a deadline, which a busy main actor can outlast.
     func settle() async {
         await latest.settle()
-    }
-
-    func moveSelection(delta: Int) {
-        selectedIndex = PVFloatingMenuSelection.moveIndex(
-            from: selectedIndex, delta: delta, count: hits.count
-        )
-    }
-
-    func selectedHit() -> CatalogSearchHit? {
-        guard hits.indices.contains(selectedIndex) else { return nil }
-        return hits[selectedIndex]
     }
 }

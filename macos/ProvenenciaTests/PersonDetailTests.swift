@@ -171,18 +171,17 @@ struct PersonDetailTests {
 
     @Test func likenessesBecomeTilesEarliestFirst() {
         var source = detail()
-        var second = D.picture("b", path: "objects/ef/01.png", title: "")
-        second.record.observationRef = "OBS-2"
+        let second = D.picture("b", path: "objects/ef/01.png", title: "Deed")
         source.pictures = [D.picture("a", path: "objects/ab/cd.png", title: "Register"), second]
         let content = PersonDetailContent(detail: source)
         let gallery = content.gallery
         #expect(gallery.tiles.map(\.id) == ["a", "b"])
-        #expect(gallery.tiles.map(\.citation.title) == ["Register", "OBS-2"])
+        #expect(gallery.tiles.map(\.citation.title) == ["Register", "Deed"])
         #expect(gallery.title == L10n.Conclusions.likenessesSection)
         #expect(gallery.countLabel == "2 likenesses")
         #expect(L10n.Conclusions.likenessesCount(1) == "1 likeness")
         #expect(gallery.tiles.map(\.accessibilityLabel) == [
-            L10n.Conclusions.likenessLabel("Register"), L10n.Conclusions.likenessLabel("OBS-2"),
+            L10n.Conclusions.likenessLabel("Register"), L10n.Conclusions.likenessLabel("Deed"),
         ])
         #expect(L10n.Conclusions.likenessLabel("X") == "Likeness from X")
         #expect(gallery.choose == .personPortrait)
@@ -225,19 +224,12 @@ struct PersonDetailTests {
         #expect(tile.citation.title == "Hamburger Adressbuch 1861")
         #expect(tile.citation.detail == "Volume 3, Entry 214, p. 23")
         #expect(tile.citation.line == "Hamburger Adressbuch 1861, Volume 3, Entry 214, p. 23")
-        #expect(!tile.citation.titleIsRef)
         #expect(tile.accessibilityLabel == L10n.Conclusions.likenessLabel(tile.citation.line))
 
         picture.leads = true
         source.pictures = [picture]
         tile = PersonDetailContent(detail: source).gallery.tiles[0]
         #expect(tile.accessibilityLabel == L10n.Conclusions.likenessTileLabelLead(tile.citation.line))
-
-        source.pictures = [D.picture("b", path: "objects/ef/01.png", title: "")]
-        tile = PersonDetailContent(detail: source).gallery.tiles[0]
-        #expect(tile.citation.title == "OBS-b" && tile.citation.line == "OBS-b")
-        #expect(tile.citation.detail.isEmpty)
-        #expect(tile.citation.titleIsRef)
     }
 
     @Test func eventPicturesKeepTheirWording() {
@@ -832,10 +824,5 @@ struct PersonDetailTests {
         #expect(CitationLineDisplay.parts(outcome).line == "Register of Baptisms, Vol. 3, Baptism of Ada, p. 23")
         let bare = D.outcome("reg", "kept", title: "Register of Baptisms")
         #expect(CitationLineDisplay.parts(bare).line == "Register of Baptisms")
-        let untitled = D.outcome("reg", "kept", title: "")
-        #expect(CitationLineDisplay.parts(untitled).line == "OBS-reg")
-        var labelled = untitled
-        labelled.artifactLabel = "Vol. 3"
-        #expect(CitationLineDisplay.parts(labelled).line == "OBS-reg, Vol. 3")
     }
 }

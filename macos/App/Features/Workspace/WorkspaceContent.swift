@@ -3,26 +3,26 @@ import SwiftUI
 /// The workspace's single content host (W-3): App Layout toolbar (Back/Forward,
 /// breadcrumbs, omnibar shell) plus the active destination below.
 struct WorkspaceContent: View {
-    @Environment(WorkspaceNavigation.self) private var navigation
+    /// The content column's coordinate space: overlays and popups place
+    /// themselves in it.
+    nonisolated static let coordinateSpace = "workspace.content"
+
     let projectDir: String
     let userID: String
     let sessionDisplayName: String
     let store: any GenealogyStore
 
-    /// Hosted here (not on the 52pt toolbar row) so the jump menu / omnibar
-    /// results can paint and receive hits over the page below.
-    @State private var jumpMenu = HistoryJumpMenuModel()
     @State private var omnibarResults = OmnibarResultsModel()
-    /// The content column's width, for placing overlays only. Pages read \.pvWidthClass.
+    /// The content column's width, for the toolbar popups' width rules. Pages read \.pvWidthClass.
     @State private var contentWidth: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
             WorkspaceToolbar(
-                jumpMenu: jumpMenu,
                 omnibarResults: omnibarResults,
                 projectDir: projectDir,
-                store: store
+                store: store,
+                contentWidth: contentWidth
             )
             WorkspaceDestinationHost(
                 userID: userID,
@@ -33,19 +33,7 @@ struct WorkspaceContent: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
-        .coordinateSpace(name: HistoryJumpMenuModel.contentCoordinateSpace)
-        .overlay(alignment: .topLeading) {
-            HistoryJumpMenuHost(jumpMenu: jumpMenu, contentWidth: contentWidth)
-        }
-        .overlay(alignment: .topLeading) {
-            OmnibarResultsHost(
-                results: omnibarResults,
-                projectDir: projectDir,
-                onActivate: { hit in
-                    omnibarResults.activate(hit, navigation: navigation)
-                }
-            )
-        }
+        .coordinateSpace(name: WorkspaceContent.coordinateSpace)
         .accessibilityIdentifier("workspace.content")
     }
 }

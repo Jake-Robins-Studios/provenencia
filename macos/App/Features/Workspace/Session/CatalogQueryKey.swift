@@ -73,6 +73,14 @@ struct CatalogQueryKey: Hashable, Sendable {
         case personFamily
         case personEvents
         case personRecordLinks
+        case provenanceSheet
+    }
+
+    /// The renders a provenance sheet shows, for these Citation ids (sorted,
+    /// distinct, none empty). Held only while the sheet is shown
+    /// (`WorkspaceSession.release`).
+    static func provenanceSheet(project: ProjectKey, citationIds: [String]) -> CatalogQueryKey {
+        .init(.provenanceSheet, project, Set(citationIds.filter { !$0.isEmpty }).sorted())
     }
 
     static func sourcesList(project: ProjectKey) -> CatalogQueryKey { .init(.sourcesList, project) }

@@ -300,6 +300,40 @@ func TestHandlePaths(t *testing.T) {
 		}
 	})
 
+	t.Run("a grade change names the handles citing the Source", func(t *testing.T) {
+		ch := rowchange.Change{
+			EntityType: "source_credibility_assessment", EntityID: []byte{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+			Action: rowchange.ActionUpdate,
+			Fields: map[string]rowchange.FieldDiff{
+				"source_id":            {New: dashed(src.ID)},
+				"credibility_grade_id": {Old: "a", New: "b"},
+			},
+		}
+		if got := mustHandles(t, tx, ch); !idSet(got, bostonRes.Entity.ID, bobRes.Entity.ID, eveRes.Entity.ID) || len(got) != 3 {
+			t.Fatalf("grade change resolved %d handles", len(got))
+		}
+	})
+
+	t.Run("a Subject that changes Source names its handles", func(t *testing.T) {
+		moved := func(id []byte, field string) rowchange.Change {
+			return rowchange.Change{
+				EntityType: "subject", EntityID: id, Action: rowchange.ActionUpdate,
+				Fields: map[string]rowchange.FieldDiff{field: {Old: "a", New: "b"}},
+			}
+		}
+		for _, id := range [][]byte{alice.ID, drew.ID} {
+			if got := mustHandles(t, tx, moved(id, "source_id")); !idSet(got, aliceRes.Entity.ID) || len(got) != 1 {
+				t.Fatalf("source change resolved %d handles", len(got))
+			}
+		}
+		if got := mustHandles(t, tx, moved(cara.ID, "source_id")); len(got) != 0 {
+			t.Fatalf("rejected member resolved %d handles", len(got))
+		}
+		if got := mustHandles(t, tx, moved(alice.ID, "label")); len(got) != 0 {
+			t.Fatalf("label edit resolved %d handles", len(got))
+		}
+	})
+
 	t.Run("rejected member is not scoped", func(t *testing.T) {
 		if got := mustHandleScopes(t, tx, observationSubject(cara.ID)); len(got) != 0 {
 			t.Fatalf("rejected claim scoped %d handles", len(got))

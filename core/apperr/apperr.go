@@ -71,6 +71,8 @@ const (
 	CodeSourcesInvalid                = "sources.invalid"
 	CodeSourcesInUse                  = "sources.in_use"
 	CodeSourcesNotFound               = "sources.not_found"
+	CodeSourceMoveInvalid             = "sourcemove.invalid"
+	CodeSourceMoveNotFound            = "sourcemove.not_found"
 	CodeEvidenceGraphsInvalid         = "evidencegraphs.invalid"
 	CodeEvidenceGraphsArtifactInUse   = "evidencegraphs.artifact_in_use"
 	CodeEvidenceGraphsLastArtifact    = "evidencegraphs.last_artifact"

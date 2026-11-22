@@ -8,7 +8,10 @@ extension View {
     /// holds the window down until the caller has measured its rows. The field
     /// keeps focus and its keys (`keysStayInField`) and stays open on a click in
     /// its own area (`staysOpenOnFieldClick`); it holds one `PVPopupListHighlight`.
-    /// `PVComboBox` and `PVTextArea`'s completion list both present through it.
+    /// `PVComboBox`, `PVTextArea`'s completion list and the omnibar's results all
+    /// present through it. A list wider than its field passes `width`, and
+    /// `alignment` says which of the field's edges it keeps (`.trailing`: the
+    /// list's trailing edge is the field's, and it grows leftward).
     func pvPopupList<Content: View>(
         isPresented: Binding<Bool>,
         isMeasured: Bool = true,
@@ -16,6 +19,7 @@ extension View {
         contentHeight: CGFloat,
         optionCount: Int,
         width: CGFloat? = nil,
+        alignment: HorizontalEdge = .leading,
         anchorRect: (() -> CGRect?)? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
@@ -26,6 +30,7 @@ extension View {
                 contentHeight: contentHeight,
                 optionCount: optionCount,
                 width: width,
+                alignment: alignment,
                 anchorRect: anchorRect,
                 content: content()
             )
@@ -45,7 +50,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
     let isPresented: Bool
     let maxHeight: CGFloat
     /// The height the content wants, measured by the caller (see
-    /// `PVComboBox.measuringRows`).
+    /// `PVPopupListMeasure`).
     let contentHeight: CGFloat
     /// How many rows the list is showing. Together with `contentHeight` this
     /// is what decides whether the window needs re-framing — SwiftUI hands us
@@ -53,6 +58,8 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
     let optionCount: Int
     /// A width of its own, in points; nil is the anchor's width (a field).
     var width: CGFloat?
+    /// The anchor edge a list with its own `width` keeps.
+    var alignment: HorizontalEdge = .leading
     /// The anchor in AppKit screen coordinates, read each time the popup is
     /// framed; nil is the frame of the view this is a background of.
     var anchorRect: (() -> CGRect?)?
@@ -70,6 +77,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         coordinator.contentHeight = contentHeight
         coordinator.optionCount = optionCount
         coordinator.width = width
+        coordinator.alignment = alignment
         coordinator.anchorRect = anchorRect
         coordinator.wantsPresented = isPresented
         // Rows in the popup see what the field sees: the host's environment
@@ -102,6 +110,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         var contentHeight: CGFloat = 0
         var optionCount = 0
         var width: CGFloat?
+        var alignment: HorizontalEdge = .leading
         var anchorRect: (() -> CGRect?)?
         /// The single source of truth for whether the panel should be up,
         /// written synchronously by every `updateNSView`. `applyPresentation`
@@ -112,11 +121,16 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         private let host = PVPopupWindowHost(hasShadow: true)
         /// Kept unwidened so `frame()` can re-wrap it at the field's width.
         private var content: AnyView = AnyView(EmptyView())
-        /// The content metrics the panel was last framed for; `nil` while it
-        /// is down. Comparing against these is what keeps re-framing (which
-        /// is disruptive mid-interaction) to actual size changes.
-        private var shownHeight: CGFloat?
-        private var shownCount: Int?
+        /// The size metrics the panel was last framed for; `nil` while it is
+        /// down. Comparing against this is what keeps re-framing (which is
+        /// disruptive mid-interaction) to actual size changes.
+        private var framed: Framed?
+
+        private struct Framed: Equatable {
+            let height: CGFloat
+            let count: Int
+            let width: CGFloat?
+        }
 
         init() {
             host.onFollow = { [weak self] in self?.position() }
@@ -129,10 +143,11 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
             }
         }
 
-        /// The popup is exactly as wide as the field, and measuring it at that
-        /// width is what makes `fittingSize` trustworthy — an unconstrained
-        /// `NSHostingView` reports the height its content would take at its
-        /// *ideal* width, which is not the width we are about to give it.
+        /// The popup is exactly as wide as the field (or its own `width`), and
+        /// measuring it at that width is what makes `fittingSize` trustworthy:
+        /// an unconstrained `NSHostingView` reports the height its content
+        /// would take at its *ideal* width, which is not the width we are about
+        /// to give it.
         private func widened(to width: CGFloat) -> AnyView {
             AnyView(content.frame(width: width))
         }
@@ -145,14 +160,14 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
                 hide()
                 return
             }
+            let current = Framed(height: contentHeight, count: optionCount, width: width)
             if !host.isShown {
                 show()
-                shownHeight = contentHeight
-                shownCount = optionCount
-            } else if shownHeight != contentHeight || shownCount != optionCount {
-                // Re-frame when the rows changed, not on every SwiftUI update.
-                shownHeight = contentHeight
-                shownCount = optionCount
+                framed = current
+            } else if framed != current {
+                // Re-frame when the rows or the width changed, not on every
+                // SwiftUI update.
+                framed = current
                 position()
             }
         }
@@ -165,8 +180,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         }
 
         private func hide() {
-            shownHeight = nil
-            shownCount = nil
+            framed = nil
             host.hide()
         }
 
@@ -182,7 +196,7 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
         private func frame() -> CGRect? {
             guard let anchor, let window = anchor.window else { return nil }
             var anchorOnScreen = anchorRect?() ?? window.convertToScreen(anchor.convert(anchor.bounds, to: nil))
-            if let width { anchorOnScreen.size.width = width }
+            anchorOnScreen = PVPopupListPlacement.anchorFrame(anchorOnScreen, width: width, alignment: alignment)
 
             host.rootView = widened(to: anchorOnScreen.width)
             let wanted = min(contentHeight, maxHeight)
@@ -205,19 +219,28 @@ private struct PVPopupListWindow<Content: View>: NSViewRepresentable {
 
 // MARK: - The list inside the window
 
-/// The list both callers of `.pvPopupList` draw in the window: the card (fill,
+/// The list every caller of `.pvPopupList` draws in the window: the card (fill,
 /// stroke, radius), the scroller that keeps the highlighted row in view, and the
 /// caller's row stack. The caller builds the stack from `PVPopupListRow` and
 /// `PVPopupListLine`, and picks `VStack` (rows of unequal height, measured before
-/// the window shows: `PVComboBox`) or `LazyVStack` (a fixed row height sizes the
-/// window: `PVTextArea`'s completion list).
+/// the window shows: `PVComboBox` and the omnibar's results) or `LazyVStack` (a
+/// fixed row height sizes the window: `PVTextArea`'s completion list).
 struct PVPopupListCard<Stack: View>: View {
     /// The `id` of each row, in order; a new list goes back to its first row.
     let rowIDs: [String]
     /// The highlighted row's id, or nil.
     let activeID: String?
-    var verticalPadding: CGFloat = PVSpacing.space2
+    var verticalPadding: CGFloat = defaultVerticalPadding
     @ViewBuilder let stack: Stack
+
+    /// Air above and below the rows, inside the card's border.
+    nonisolated static var defaultVerticalPadding: CGFloat { PVSpacing.space2 }
+
+    /// How tall a card wants to be around `rows` points of rows: the rows plus
+    /// the padding above and below.
+    nonisolated static func height(rows: CGFloat, verticalPadding: CGFloat = defaultVerticalPadding) -> CGFloat {
+        rows + verticalPadding * 2
+    }
 
     var body: some View {
         ScrollView {
@@ -286,6 +309,94 @@ struct PVPopupListLine<Content: View>: View {
     }
 }
 
+/// A hidden, non-interactive copy of a list's rows, laid out behind the field
+/// purely to measure them. The caller mounts it only while the list is open.
+///
+/// The popup window has to know how tall to be *before* it is shown, and a
+/// `ScrollView` inside that window cannot tell it, nor can
+/// `NSHostingView.fittingSize`, reliably. Laying the rows out once more here is
+/// the honest way to get the number: a background never influences its parent's
+/// size, so this costs a layout pass and nothing else. Give it the `width` the
+/// window will be when that is not the field's, so a wrapping line measures as
+/// it will draw. The caller holds the height and the window waits for it.
+struct PVPopupListMeasure<Rows: View>: View {
+    let isActive: Bool
+    var width: CGFloat?
+    let onHeight: (CGFloat) -> Void
+    @ViewBuilder let rows: Rows
+
+    var body: some View {
+        rows
+            .frame(width: width)
+            .fixedSize(horizontal: false, vertical: true)
+            .hidden()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onChange(of: proxy.size.height, initial: true) { _, height in
+                            guard isActive, height > 0 else { return }
+                            onHeight(height)
+                        }
+                }
+            )
+    }
+}
+
+/// The rows' height a caller measured through `PVPopupListMeasure`, and
+/// whether one has come in yet. The window stays down until it has.
+struct PVPopupListMeasurement: Equatable {
+    var height: CGFloat = 0
+    var isMeasured = false
+
+    mutating func record(_ height: CGFloat) {
+        self.height = height
+        isMeasured = true
+    }
+
+    mutating func reset() {
+        self = PVPopupListMeasurement()
+    }
+}
+
+/// What a list draws: its rows, the searching line, or the caller's empty
+/// line. Rows already in stay on screen while a new search runs; the searching
+/// line shows only when there is nothing else to show. A failed search is the
+/// caller's empty line.
+enum PVPopupListLineKind: Equatable {
+    /// The rows alone.
+    case rows
+    /// The searching line: results are loading and none are in yet.
+    case loading
+    /// The caller's empty line.
+    case empty
+
+    static func of(rowCount: Int, isLoading: Bool) -> PVPopupListLineKind {
+        if rowCount > 0 { return .rows }
+        return isLoading ? .loading : .empty
+    }
+}
+
+/// The line a list shows while a remote search runs and no results are in yet.
+/// Its text starts at the column `gutter` points in, where a row's label does.
+struct PVPopupListSearchingLine: View {
+    var gutter: CGFloat = 0
+
+    var body: some View {
+        PVPopupListLine(gutter: gutter) {
+            HStack(spacing: PVSpacing.space3) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(L10n.DesignSystem.popupListSearching)
+                    .font(PVFont.body(size: PVTypeScale.bodySmall))
+                    .foregroundStyle(PVColor.textMuted)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - The highlight
 
 /// The one highlight of a popup list: which row is active, and how a key, a
@@ -300,6 +411,11 @@ struct PVPopupListHighlight: Equatable {
 
     init(index: Int = -1) {
         self.index = index
+    }
+
+    /// Return and keypad Enter: the keys that commit the active row.
+    static func isCommitKey(_ key: KeyEquivalent) -> Bool {
+        key == .return || key == KeyEquivalent("\u{3}")
     }
 
     /// The keys `move` takes: ↑, ↓, Home, End, Page Up and Page Down.
@@ -342,6 +458,34 @@ struct PVPopupListHighlight: Equatable {
 enum PVPopupListPlacement {
     /// Air between the field and its list.
     static let gap: CGFloat = 4
+
+    /// The anchor a list with its own `width` hangs from: nil `width` is the
+    /// anchor itself; `.leading` keeps its `minX`, `.trailing` its `maxX`.
+    static func anchorFrame(_ anchor: CGRect, width: CGFloat?, alignment: HorizontalEdge) -> CGRect {
+        guard let width else { return anchor }
+        var frame = anchor
+        frame.size.width = width
+        if alignment == .trailing { frame.origin.x = anchor.maxX - width }
+        return frame
+    }
+
+    /// The width of a list that hangs from `edgeX` inside a column `columnWidth`
+    /// wide, both measured from the column's left edge. It keeps `inset` clear
+    /// of the column's edge on the side it grows toward (`.trailing`: leftward,
+    /// `.leading`: rightward), never goes under `minimum`, and is `preferred`
+    /// while the column's width is not yet known (0).
+    static func fittedWidth(
+        preferred: CGFloat,
+        hangsFrom edgeX: CGFloat,
+        alignment: HorizontalEdge,
+        columnWidth: CGFloat,
+        minimum: CGFloat = 0,
+        inset: CGFloat = PVSpacing.space6
+    ) -> CGFloat {
+        guard columnWidth > 0 else { return preferred }
+        let room = alignment == .trailing ? edgeX - inset : columnWidth - edgeX - inset
+        return max(minimum, min(preferred, room))
+    }
 
     /// Screen frame for the popup window. All rects are AppKit **screen**
     /// coordinates, so y grows upward and "below the field" means a smaller

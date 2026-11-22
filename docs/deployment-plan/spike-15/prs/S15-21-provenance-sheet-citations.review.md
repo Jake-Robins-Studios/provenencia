@@ -1,7 +1,7 @@
 # Review — S15-21 The provenance sheet shows formatted citations
 
 **Verdict:** Fits with changes — Ready with changes (round 2 findings fixed; no blocker open). Board S15-D9 agreed 2026-11-21; the plan is Planned
-**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet). Reviewed with the brief [S15-D9](../design/S15-D9-provenance-sheet-citations.md)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet). Reviewed with the brief [S15-D9](../design/archive/S15-D9-provenance-sheet-citations.md)
 
 ## To user
 

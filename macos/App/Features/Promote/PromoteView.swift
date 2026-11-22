@@ -522,7 +522,7 @@ private struct PromoteRecordSearch: View {
 
     /// What the list says when it has no hits: the failure, the two-letter floor, or no match.
     private func emptyLine(_ search: CatalogSearchModel) -> String {
-        if search.showsErrorState, let error = search.searchError { return error }
+        if case .failed(let message) = search.line { return message }
         if search.isBelowMinimumQuery { return L10n.string(L10n.Promote.searchHint) }
         return L10n.Promote.searchNoMatches(row.kind, query: search.trimmedQuery)
     }

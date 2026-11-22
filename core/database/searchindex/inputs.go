@@ -39,7 +39,7 @@ const (
 //
 // The IN list is bounded: ids is one sqlbatch.Each chunk from reprojectOn.
 func writeInputs(q database.Execer, g *graphcache.Graph, ids [][]byte, heads map[string]handleHead, s conclusionsummaries.Summaries) error {
-	if _, err := q.Exec(sqlDeleteInputs+database.SQLInPlaceholders(len(ids))+`)`, database.BlobArgs(ids)...); err != nil {
+	if err := sqlbatch.Exec(q, sqlDeleteInputs, `)`, nil, ids); err != nil {
 		return err
 	}
 	var rows []inputRow

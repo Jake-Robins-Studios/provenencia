@@ -1251,13 +1251,13 @@ func TestMissingSourceIsNotFound(t *testing.T) {
 		{"Update", func(id []byte) error { return runUpdate(c, userID, Source{ID: id, SourceTypeID: unused, Title: "x"}) }},
 		{"Delete", func(id []byte) error { return runDelete(c, userID, id) }},
 		{"Get", func(id []byte) error { _, err := Get(c, id); return err }},
-		{"GetTx", func(id []byte) error {
+		{"Lookup", func(id []byte) error {
 			tx, err := db.Begin()
 			if err != nil {
 				return err
 			}
 			defer tx.Rollback()
-			_, err = GetTx(tx, id)
+			_, err = Lookup(tx, id)
 			return err
 		}},
 	}
@@ -1583,13 +1583,13 @@ func TestGetManyTx(t *testing.T) {
 		t.Fatalf("got %d Sources, want the 2 that exist: %+v", len(got), got)
 	}
 	for _, id := range [][]byte{dated.ID, undated.ID} {
-		want, err := GetTx(tx, id)
+		want, err := Lookup(tx, id)
 		if err != nil {
 			t.Fatal(err)
 		}
 		g := got[string(id)]
 		if g.Title != want.Title || g.DateMark != want.DateMark || (g.Date == nil) != (want.Date == nil) {
-			t.Errorf("GetManyTx %q = %+v, want what GetTx returns: %+v", want.Title, g, want)
+			t.Errorf("GetManyTx %q = %+v, want what Lookup returns: %+v", want.Title, g, want)
 		}
 	}
 	if d := got[string(dated.ID)]; d.Date == nil || d.Date.StartYear == nil || *d.Date.StartYear != 1880 || !d.DateMark.Supplied {

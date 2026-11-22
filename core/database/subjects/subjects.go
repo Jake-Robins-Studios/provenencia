@@ -25,7 +25,9 @@ var (
 )
 
 const (
-	sqlInsert = `INSERT INTO subjects (id, ref, source_id, graph_id, subject_type_id, label, description)
+	sqlSourceRows = `SELECT id, source_id FROM subjects WHERE graph_id IN (`
+	sqlSetSource  = `UPDATE subjects SET source_id = ? WHERE source_id != ? AND graph_id IN (`
+	sqlInsert     = `INSERT INTO subjects (id, ref, source_id, graph_id, subject_type_id, label, description)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
 	sqlUpdate = `UPDATE subjects SET label = ?, description = ? WHERE id = ?`
 	sqlDelete = `DELETE FROM subjects WHERE id = ?`
@@ -302,4 +304,18 @@ func mapConstraint(err error) error {
 		return ErrInvalid
 	}
 	return err
+}
+
+// SetSourceTx moves every Subject of the given graphs to another Source.
+// It returns one update change per row that changed, in ascending id order.
+// A graph with no Subjects, a repeated id and a Subject already on sourceID change nothing.
+// It does not check that sourceID exists: the caller has, and the foreign key
+// checks at commit. Only a move changes a Source, so the caller records the
+// changes inside the write that moves the whole bundle.
+func SetSourceTx(tx *sql.Tx, graphIDs [][]byte, sourceID []byte) ([]rowchange.Change, error) {
+	if tx == nil || len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	changes, err := database.SetSource(tx, "subject", sqlSourceRows, sqlSetSource, graphIDs, sourceID)
+	return changes, mapConstraint(err)
 }

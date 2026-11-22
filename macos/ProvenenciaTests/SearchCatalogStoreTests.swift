@@ -6,17 +6,12 @@ import Testing
 struct SearchCatalogStoreTests {
     private let projectDir = "/tmp/search.provenencia"
 
-    private func hit(kind: String, id: String) -> CatalogSearchHit {
-        CatalogSearchHit(
-            kind: kind, id: id, ref: id.uppercased(), title: id, subtitle: "", matchReason: "title",
-            location: WorkspaceLocation(section: .sources)
-        )
-    }
-
     private func seededStore() -> FakeStore {
         let store = FakeStore()
         store.seededSearchHits = [
-            hit(kind: "source", id: "s1"), hit(kind: "person", id: "p1"), hit(kind: "place", id: "l1"),
+            .fixture(kind: "source", id: "s1"),
+            .fixture(kind: "person", id: "p1"),
+            .fixture(kind: "place", id: "l1"),
         ]
         return store
     }

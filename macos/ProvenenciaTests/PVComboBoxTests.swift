@@ -69,19 +69,6 @@ struct PVComboBoxTests {
 
     // MARK: Remote results
 
-    @Test func searchingLineShowsOnlyWhileLoadingWithNothingIn() {
-        #expect(PVComboBoxMatch.listLine(optionCount: 0, isLoading: true) == .loading)
-    }
-
-    @Test func optionsAlreadyInStayWhileANewSearchRuns() {
-        #expect(PVComboBoxMatch.listLine(optionCount: 3, isLoading: true) == .rows)
-    }
-
-    @Test func noOptionsAndNoSearchShowsTheEmptyLine() {
-        #expect(PVComboBoxMatch.listLine(optionCount: 0, isLoading: false) == .empty)
-        #expect(PVComboBoxMatch.listLine(optionCount: 2, isLoading: false) == .rows)
-    }
-
     @Test func aRestoreIsReportedOnlyToRemoteCallers() {
         #expect(PVComboBoxMatch.reportsRestore(isRemote: true, old: "Pol", new: ""))
         #expect(PVComboBoxMatch.reportsRestore(isRemote: true, old: "", new: "") == false)

@@ -474,6 +474,8 @@ Artifacts do not have an `artifact_type`. Technical properties such as MIME type
 
 Application-generated thumbnails and previews are not additional Artifacts.
 
+An Artifact's `source_id` changes only through a move (`sourcemove.Move`), which carries the Artifact's bundle: the Evidence graphs it is linked to, the Artifacts linked to those, and so on, with every Subject of those graphs. Ids and refs stay, so Citations, Observations and metadata stay attached.
+
 ---
 
 # 7.1 `evidence_graphs` and `evidence_graph_artifacts`
@@ -512,6 +514,7 @@ Rules the schema and `core/database/evidencegraphs` hold today:
 - `List` is the one read of graphs: full rows with their linked Artifact ids, by name (case-insensitive), for one Source or the whole project. `Create` needs a name and at least one Artifact of the Source, linked through `Link`. Name and description are editable and names need not be unique. `Update` saves the name, description and the full set of linked Artifacts in one write: Artifacts are linked before others are unlinked, and any refusal rolls back the whole edit.
 - `Delete` refuses a Source's last graph (`deleteimpact` gate `last_graph`, code `evidencegraphs.last_graph`) and a graph with Subjects (`evidencegraphs.in_use`), and releases the graph's links, its Citations and its metadata (`evidence_graph_metadata` and its layout), audited. One removal, `deleteimpact.ReleaseGraph`, runs the graph's facets, deletes the row and returns the graph's own delete change; a graph delete and a Source delete both call it, graph by graph in id order, so a Source delete audits each graph's metadata instead of dropping it by cascade.
 - A graph is part of its Source's record and a link row is part of both ends: their deletes are audited and released with the Source or Artifact ([`catalog-deletes.md`](catalog-deletes.md)). Both audit under the Source's scope and report the `evidence_graphs` read for their Source (`effects.ReadEvidenceGraphs` in `effects.Set.Reads`).
+- A graph's `source_id` changes only through a move (`sourcemove.Move`), with its Subjects and its bundle. A Source left with no graph gets a new `Default` graph, so it keeps at least one.
 
 ---
 

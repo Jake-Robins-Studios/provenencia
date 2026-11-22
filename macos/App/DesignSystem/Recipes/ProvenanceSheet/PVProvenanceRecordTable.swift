@@ -3,7 +3,8 @@ import SwiftUI
 /// The records of one value, in groups, as a table of `PVProvenanceRecordRow`s:
 /// a group line over each owning entity (when the content names an owner), a
 /// value heading over each run of records that count under a different value,
-/// and a rule between rows. The first record under a line follows the line, not
+/// and a rule between citations (records whose full citations read the same sit
+/// together with none). The first record under a line follows the line, not
 /// a rule. Put `PVProvenanceColumnHeadings` above it, sharing its columns.
 struct PVProvenanceRecordTable: View {
     let groups: [PVProvenanceSheetContent.Group]
@@ -12,6 +13,18 @@ struct PVProvenanceRecordTable: View {
     /// The prefix of every row's accessibility ids (`PVProvenanceRecordRow`).
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
+
+    /// Whether a value's first citation run follows a line (its own heading, or the group's owner line for
+    /// the group's first value) rather than a rule.
+    nonisolated static func followsLine(hasHeading: Bool, valueIndex: Int, hasOwner: Bool) -> Bool {
+        hasHeading || (valueIndex == 0 && hasOwner)
+    }
+
+    /// Whether a rule falls before a citation run: before every run but the first, and before the first
+    /// unless a line leads it. A run's later records follow its first, with none between.
+    nonisolated static func drawsRule(runIndex: Int, followsLine: Bool) -> Bool {
+        runIndex > 0 || !followsLine
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -25,15 +38,17 @@ struct PVProvenanceRecordTable: View {
                         PVDivider()
                         PVProvenanceValueHeading(heading: heading, face: face)
                     }
-                    ForEach(Array(run.records.enumerated()), id: \.element.id) { index, record in
-                        // The first record under a group or value line follows the line, not a rule.
-                        let followsLine = run.heading != nil || (valueIndex == 0 && group.owner != nil)
-                        if index > 0 || !followsLine {
+                    let followsLine = Self.followsLine(
+                        hasHeading: run.heading != nil, valueIndex: valueIndex, hasOwner: group.owner != nil)
+                    ForEach(Array(run.citations.enumerated()), id: \.element.key) { runIndex, citation in
+                        if Self.drawsRule(runIndex: runIndex, followsLine: followsLine) {
                             PVDivider()
                         }
-                        PVProvenanceRecordRow(
-                            record: record, face: face, columns: columns, idPrefix: idPrefix, open: open
-                        )
+                        ForEach(citation.records, id: \.id) { record in
+                            PVProvenanceRecordRow(
+                                record: record, face: face, columns: columns, idPrefix: idPrefix, open: open
+                            )
+                        }
                     }
                 }
             }
@@ -57,7 +72,7 @@ enum PVProvenancePreviewData {
         return PVProvenanceSheetContent.Record(
             id: id, readAs: readAs, readAsIsPhrase: false, counted: counted, phrase: phrase, mark: mark,
             observationRef: outcome.observationRef, subjectRef: outcome.subjectRef, outcome: outcome,
-            citation: .init(title: title, titleIsRef: false, detail: detail, line: "\(title), \(detail)")
+            citation: .init(title: title, detail: detail, line: "\(title), \(detail)")
         )
     }
 
@@ -67,6 +82,38 @@ enum PVProvenancePreviewData {
         counted: false, phrase: "Outvoted by 2 Sources", mark: .scale
     )
     static let groups = [PVProvenanceSheetContent.Group(owner: nil, records: [census, baptism])]
+
+    private static func rendered(_ id: String, key: String) -> CatalogRenderedCitation {
+        let full = [
+            CatalogCitationRun(text: "1880 U.S. census, Ontario, Canada; digital image, ", italic: false),
+            CatalogCitationRun(text: "Ancestry", italic: true),
+            CatalogCitationRun(text: " (accessed 12 March 2025)", italic: false),
+        ]
+        let short = "1880 U.S. census, Ontario"
+        return CatalogRenderedCitation(
+            citationID: "cit-\(id)",
+            full: .init(runs: full, plain: full.map(\.text).joined()),
+            short: .init(runs: [CatalogCitationRun(text: short, italic: false)], plain: short),
+            groupKey: key)
+    }
+
+    /// Two records of one formatted citation, then a record with no format.
+    static let formattedGroups: [PVProvenanceSheetContent.Group] = {
+        var first = census
+        first.rendered = rendered("census", key: "full:1")
+        var second = baptism
+        second.rendered = rendered("baptism", key: "full:1")
+        let fallback = record(
+            "diary", readAs: "1817", title: "Family diary", detail: "p. 2", counted: false,
+            phrase: "Another record", mark: .scale)
+        return [PVProvenanceSheetContent.Group(
+            owner: nil,
+            values: [.init(heading: nil, citations: [
+                .init(key: "full:1", records: [first, second]),
+                .init(key: "record:diary", records: [fallback]),
+            ])]
+        )]
+    }()
 
     /// A Birth date with two owners, the shown one first (PSK-2).
     static let ownerGroups = [
@@ -116,6 +163,21 @@ enum PVProvenancePreviewData {
         PVDivider()
         PVProvenanceRecordTable(
             groups: PVProvenancePreviewData.groups, face: .date, columns: columns, idPrefix: "preview", open: { _, _ in }
+        )
+    }
+    .padding(24)
+    .frame(width: 880)
+    .background(PVColor.surfaceCard)
+}
+
+#Preview("Formatted, fallback and a same-citation run") {
+    let columns = PVProvenanceColumns()
+    VStack(alignment: .leading, spacing: 0) {
+        PVProvenanceColumnHeadings(columns: columns)
+        PVDivider()
+        PVProvenanceRecordTable(
+            groups: PVProvenancePreviewData.formattedGroups,
+            face: .date, columns: columns, idPrefix: "preview", open: { _, _ in }
         )
     }
     .padding(24)

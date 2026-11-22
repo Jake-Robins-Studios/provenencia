@@ -379,6 +379,16 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// When set, an `updateSourceType` that carries formats answers this reply and
     /// saves nothing (a refused write); otherwise it stores them in `citationFormatsByType`.
     var updateSourceTypeFormatsReply: CatalogCitationFormatsReply?
+    /// What `renderCitations` answers, by Citation id; the reply holds the asked ids found here, in asked order.
+    var renderCitationsReplies: [String: CatalogRenderedCitation] = [:]
+    /// The `inputs` of a `renderCitations` reply.
+    var renderCitationsInputs: CatalogPageInputs = .init()
+    /// Awaited before a `renderCitations` reply.
+    let renderCitationsHold = FakeHold()
+    /// The ids of every `renderCitations` call, in order.
+    private(set) var renderCitationsCalls: [[String]] = []
+    /// When set, `renderCitations` throws.
+    var renderCitationsError: Error?
     /// What `renderCitationPreview` answers, by form; a form with no entry renders nothing.
     var previewReplies: [CitationForm: CatalogCitationPreview] = [:]
     /// The arguments of every `renderCitationPreview` call, in order.
@@ -1305,6 +1315,20 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             return citationFormatsByType[typeID]
                 ?? CatalogCitationFormatsReply(
                     formats: CatalogCitationFormats(typeID: typeID, full: "", short: "", list: ""))
+        }
+    }
+
+    func renderCitations(projectDir: String, citationIDs: [String]) async throws -> CatalogRenderedCitations {
+        if citationIDs.isEmpty { return CatalogRenderedCitations() }
+        await renderCitationsHold.wait()
+        return try withState {
+            markCatalogSessionHeld(projectDir)
+            renderCitationsCalls.append(citationIDs)
+            if let renderCitationsError { throw renderCitationsError }
+            return CatalogRenderedCitations(
+                citations: citationIDs.compactMap { renderCitationsReplies[$0] },
+                inputs: renderCitationsInputs
+            )
         }
     }
 

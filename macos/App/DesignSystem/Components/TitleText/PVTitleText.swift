@@ -160,14 +160,19 @@ struct PVTitleText: View {
         }
     }
 
+    /// Whether a run is marked `.emphasized`. The one test of it, for the italics drawn here and the RTF
+    /// the clipboard writes. A typed attribute subscript, as in `PVComboBox`: the dynamic members warn under Swift 6.
+    nonisolated static func isEmphasized(_ run: AttributedString.Runs.Run) -> Bool {
+        run[AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self]?.contains(.emphasized) == true
+    }
+
     /// `styled` with `font` italicized on each emphasized run. The italic is set explicitly,
     /// so it does not depend on how SwiftUI draws `.emphasized` in the custom display font.
     nonisolated static func italicizingEmphasis(_ styled: AttributedString, font: Font) -> AttributedString {
         var out = styled
         var italic = AttributeContainer()
         italic[AttributeScopes.SwiftUIAttributes.FontAttribute.self] = font.italic()
-        // Typed attribute subscripts, as in `PVComboBox`: the dynamic members warn under Swift 6.
-        for run in styled.runs where run[AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.self] == .emphasized {
+        for run in styled.runs where isEmphasized(run) {
             out[run.range].mergeAttributes(italic)
         }
         return out

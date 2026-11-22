@@ -441,8 +441,8 @@
         }
       }
     },
-    "designSystem.comboBox.searching": {
-      "comment": "PVComboBox list line while the caller's remote search runs and no results are in yet",
+    "designSystem.popupList.searching": {
+      "comment": "Kit popup list line while a remote search runs and no results are in yet",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -9202,6 +9202,30 @@
         }
       }
     },
+    "error.sourcemove.invalid": {
+      "comment": "FFI error sourcemove.invalid: no seed, two seeds, or the target is the same Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This move could not be made."
+          }
+        }
+      }
+    },
+    "error.sourcemove.not_found": {
+      "comment": "FFI error sourcemove.not_found: the picked Artifact or graph was deleted",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Artifact or Evidence graph to move no longer exists."
+          }
+        }
+      }
+    },
     "sources.page.dateKindLabel": {
       "comment": "Label above DateValue kind segmented control",
       "extractionState": "manual",
@@ -11889,37 +11913,13 @@
       }
     },
     "workspace.omnibar.resultsAccessibilityLabel": {
-      "comment": "Accessibility label for the omnibar results panel",
+      "comment": "Accessibility label for the omnibar's results list",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "Search results"
-          }
-        }
-      }
-    },
-    "workspace.omnibar.searchFailed": {
-      "comment": "Omnibar panel message when SearchCatalog fails",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search couldn’t finish. Try again."
-          }
-        }
-      }
-    },
-    "workspace.omnibar.searching": {
-      "comment": "Omnibar panel loading label while SearchCatalog is in flight",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searching…"
           }
         }
       }
@@ -19508,6 +19508,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "Citation copied"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyWordFull": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyWordShort": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyWordCitation": {
+      "comment": "Word on the provenance sheet's copy button that copies a record's citation line when its Source type has no citation format",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyFullCitation": {
+      "comment": "Tooltip and VoiceOver label of the provenance sheet button that copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy full citation"
+          }
+        }
+      }
+    },
+    "provenanceSheet.copyShortCitation": {
+      "comment": "Tooltip and VoiceOver label of the provenance sheet button that copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy short citation"
+          }
+        }
+      }
+    },
+    "provenanceSheet.fullCitationCopied": {
+      "comment": "VoiceOver announcement after the provenance sheet copies a record's full citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full citation copied"
+          }
+        }
+      }
+    },
+    "provenanceSheet.shortCitationCopied": {
+      "comment": "VoiceOver announcement after the provenance sheet copies a record's short citation",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short citation copied"
+          }
+        }
+      }
+    },
+    "provenanceSheet.citationsLoading": {
+      "comment": "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading citations"
+          }
+        }
+      }
+    },
+    "provenanceSheet.citationsFailedTitle": {
+      "comment": "Title of the provenance sheet's notice when its citations could not be rendered",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Citations could not be read"
           }
         }
       }

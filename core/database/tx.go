@@ -98,3 +98,12 @@ func (c *Catalog) EndWrite() {
 	c.writing = false
 	c.mu.Unlock()
 }
+
+// DeferForeignKeys makes this transaction check foreign keys at commit instead
+// of at each statement, so a write may move both sides of a composite key (a
+// graph and its Subjects changing Source) in any order. SQLite clears the
+// setting at commit or rollback.
+func (t *Tx) DeferForeignKeys() error {
+	_, err := t.Exec(`PRAGMA defer_foreign_keys = ON`)
+	return err
+}

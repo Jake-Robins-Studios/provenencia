@@ -14,6 +14,11 @@ struct PVProvenanceSheet: View {
     /// The prefix of the row ids (`PVProvenanceRecordRow`) and of the Done button's id (`<prefix>.done`).
     let idPrefix: String
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
+    /// What the record area shows while the citations are read: the kit's load area (none of the
+    /// records draw until `.ready`). The header and column headings draw in every state.
+    var load: PVFormLoadState = .ready
+    /// The load area's Read again.
+    var onReadAgain: () -> Void = {}
 
     @Environment(\.pvSheetClose) private var sheetClose
 
@@ -32,14 +37,26 @@ struct PVProvenanceSheet: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 0) {
                     PVProvenanceColumnHeadings(columns: columns)
+                        .padding(.trailing, PVProvenanceColumns.scrollBarInset)
                     PVDivider()
-                    ScrollView {
-                        PVProvenanceRecordTable(
-                            groups: content.groups, face: content.shown.face, columns: columns,
-                            idPrefix: idPrefix, open: close
-                        )
+                    PVFormLoadArea(
+                        state: load,
+                        loadingText: L10n.ProvenanceSheet.citationsLoading,
+                        errorTitle: L10n.ProvenanceSheet.citationsFailedTitle,
+                        errorMessage: { $0 },
+                        onReadAgain: onReadAgain,
+                        accessibilityIdentifierPrefix: "\(idPrefix).citations"
+                    ) {
+                        ScrollView {
+                            PVProvenanceRecordTable(
+                                groups: content.groups, face: content.shown.face, columns: columns,
+                                idPrefix: idPrefix, open: close
+                            )
+                            .padding(.trailing, PVProvenanceColumns.scrollBarInset)
+                        }
+                        .frame(maxHeight: Self.recordsMaxHeight)
                     }
-                    .frame(maxHeight: Self.recordsMaxHeight)
+                    .padding(.top, load == .ready ? 0 : PVSpacing.space5)
                 }
             }
         } footer: {
@@ -80,6 +97,25 @@ struct PVProvenanceSheet: View {
         content: PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "merged from 2 Sources · 2 records"),
         idPrefix: "preview",
         open: { _, _ in }
+    )
+}
+
+#Preview("Citations loading") {
+    PVProvenanceSheet(
+        content: PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "2 records"),
+        idPrefix: "preview",
+        open: { _, _ in },
+        load: .loading
+    )
+}
+
+#Preview("Citations failed") {
+    PVProvenanceSheet(
+        content: PVProvenancePreviewData.content(groups: PVProvenancePreviewData.groups, summary: "2 records"),
+        idPrefix: "preview",
+        open: { _, _ in },
+        load: .failed("The citations could not be rendered."),
+        onReadAgain: {}
     )
 }
 

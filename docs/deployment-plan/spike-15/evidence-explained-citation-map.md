@@ -856,7 +856,7 @@ Following [`citation-formats.md`](citation-formats.md) "How it could arrive":
 5. **Format editor** on the Source type, with the live preview.
 6. **Seed:** every type, field, suggestion and format in § 6.8, installed at create; a one-off command updates the dogfood projects (§ 6.4). It is data, so it can land in batches if one PR is too large.
 7. **Needed fields** flagged on each metadata board, with unknown and supplied values (§ 6.10).
-8. **Grouped display:** the provenance sheet and the Person page's Sources section show one full note per rendered citation (§ 6.9).
+8. **Grouped display:** the provenance sheet shows one full note per rendered citation (§ 6.9). The Person page's Sources section shows no citations (S15-22 descoped, user 2026-11-21).
 9. **Copy citation**, full or short, from a Citation; **Copy source-list entry** from the Source page.
 
 ### 6.8 The seed
@@ -1159,7 +1159,7 @@ A census row is one EE citation (the household, its dwelling, family and line), 
 **What follows:**
 
 1. **Entering the item:** once, on the graph's metadata board, where its name and description are edited. A census Source's type suggests dwelling, family and line there.
-2. **Showing the item once:** wherever Citations are listed for a reader (the provenance sheet, the Person page's Sources section, an export), Citations whose rendered full citation is the same are one EE citation; in practice, the same graph, Artifact and printed page. The full note shows once, with its Citations (the highlighted cells) beneath it. The same key gives the short note on second mention; a source list groups one level up, by Source. The key is computed when read; nothing new is stored.
+2. **Showing the item once:** wherever Citations are listed for a reader (the provenance sheet, an export), Citations whose rendered full citation is the same are one EE citation; in practice, the same graph, Artifact and printed page. The full note shows once, with its Citations (the highlighted cells) beneath it. The same key gives the short note on second mention; a source list groups one level up, by Source. The key is computed when read; nothing new is stored.
 3. **Editing the item:** once, on the graph.
 
 **When one graph covers several items.** A researcher who keeps the Default graph for a page with two households of interest gets one set of item fields for both. The answer is the one Spike 12 intended: one graph per household. The Citation label stays the escape hatch ("line 14"), and the provenance sheet shows the result.
@@ -1170,7 +1170,7 @@ A census row is one EE citation (the household, its dwelling, family and line), 
 
 ### 6.10 Needed fields, unknown and supplied values (user, 2026-11-13)
 
-This replaces the Source page's citation preview (the S15-D1 "Citation" section, SD-11 – SD-13), which is not built. A preview on the Source page reported gaps in one place while most of them are fixed on an Artifact or a graph, and it needed a "For" Citation picker because the full and short notes belong to a Citation, not a Source. Copying a note stays where notes are used (the provenance sheet, the Person page's Sources section).
+This replaces the Source page's citation preview (the S15-D1 "Citation" section, SD-11 – SD-13), which is not built. A preview on the Source page reported gaps in one place while most of them are fixed on an Artifact or a graph, and it needed a "For" Citation picker because the full and short notes belong to a Citation, not a Source. Copying a note stays where notes are used (the provenance sheet).
 
 **The forms and who owns them.** The full and short notes are a Citation's: they read its Artifact (the copy layer), its graph (the item) and its printed page. The source-list entry is the Source's: one line in a bibliography, for every time it is cited. So the Source page offers **Copy source-list entry** (rich text), and nothing renders a note there. Copying the entries of several Sources at once, from the Sources list, is descoped (2026-11-17).
 

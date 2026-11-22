@@ -114,6 +114,22 @@ struct PVPopupListHighlightTests {
 }
 
 @Suite
+struct PVPopupListLineKindTests {
+    @Test func searchingLineShowsOnlyWhileLoadingWithNothingIn() {
+        #expect(PVPopupListLineKind.of(rowCount: 0, isLoading: true) == .loading)
+    }
+
+    @Test func rowsAlreadyInStayWhileANewSearchRuns() {
+        #expect(PVPopupListLineKind.of(rowCount: 3, isLoading: true) == .rows)
+    }
+
+    @Test func noRowsAndNoSearchShowsTheEmptyLine() {
+        #expect(PVPopupListLineKind.of(rowCount: 0, isLoading: false) == .empty)
+        #expect(PVPopupListLineKind.of(rowCount: 2, isLoading: false) == .rows)
+    }
+}
+
+@Suite
 struct PVPopupListPlacementTests {
     /// A roomy 1440x900 display with the menu bar taken off the top, in
     /// AppKit screen coordinates (y grows upward).
@@ -182,5 +198,82 @@ struct PVPopupListPlacementTests {
         )
         #expect(frame.maxX <= screen.maxX)
         #expect(frame.minX >= screen.minX)
+    }
+
+    @Test func anchorFrameAlignsTheWidthToAnEdge() {
+        let field = CGRect(x: 600, y: 100, width: 300, height: 24)
+        #expect(PVPopupListPlacement.anchorFrame(field, width: nil, alignment: .trailing) == field)
+        #expect(
+            PVPopupListPlacement.anchorFrame(field, width: 640, alignment: .leading)
+                == CGRect(x: 600, y: 100, width: 640, height: 24))
+        #expect(
+            PVPopupListPlacement.anchorFrame(field, width: 640, alignment: .trailing)
+                == CGRect(x: 260, y: 100, width: 640, height: 24))
+    }
+
+    @Test func trailingListStaysOnScreen() {
+        let field = CGRect(x: 100, y: 500, width: 300, height: 24)
+        let anchor = PVPopupListPlacement.anchorFrame(field, width: 640, alignment: .trailing)
+        #expect(anchor.minX == -240)
+        let frame = PVPopupListPlacement.popupFrame(
+            anchor: anchor, contentHeight: 200, visibleFrame: CGRect(x: 0, y: 0, width: 1440, height: 900)
+        )
+        #expect(frame.minX == 0)
+        #expect(frame.width == 640)
+        #expect(frame.maxY == 496)
+    }
+
+    @Test(arguments: [
+        (CGFloat(640), CGFloat(1070), HorizontalEdge.trailing, CGFloat(0), CGFloat(420), CGFloat(640)),
+        (CGFloat(640), CGFloat(1070), HorizontalEdge.trailing, CGFloat(1102), CGFloat(420), CGFloat(640)),
+        (CGFloat(640), CGFloat(404), HorizontalEdge.trailing, CGFloat(436), CGFloat(200), CGFloat(388)),
+        (CGFloat(640), CGFloat(210), HorizontalEdge.trailing, CGFloat(436), CGFloat(200), CGFloat(200)),
+        (CGFloat(600), CGFloat(60), HorizontalEdge.leading, CGFloat(436), CGFloat(0), CGFloat(360)),
+        (CGFloat(600), CGFloat(12), HorizontalEdge.leading, CGFloat(1102), CGFloat(0), CGFloat(600)),
+        (CGFloat(600), CGFloat(12), HorizontalEdge.leading, CGFloat(436), CGFloat(0), CGFloat(408)),
+        (CGFloat(600), CGFloat(12), HorizontalEdge.leading, CGFloat(0), CGFloat(0), CGFloat(600)),
+        (CGFloat(600), CGFloat(12), HorizontalEdge.leading, CGFloat(628), CGFloat(0), CGFloat(600)),
+        (CGFloat(600), CGFloat(12), HorizontalEdge.leading, CGFloat(627), CGFloat(0), CGFloat(599)),
+        (CGFloat(600), CGFloat(32), HorizontalEdge.leading, CGFloat(436), CGFloat(0), CGFloat(388)),
+        (CGFloat(600), CGFloat(82), HorizontalEdge.leading, CGFloat(436), CGFloat(0), CGFloat(338)),
+    ])
+    func fittedWidthStaysInTheColumn(
+        preferred: CGFloat, edge: CGFloat, alignment: HorizontalEdge,
+        column: CGFloat, minimum: CGFloat, expected: CGFloat
+    ) {
+        #expect(
+            PVPopupListPlacement.fittedWidth(
+                preferred: preferred, hangsFrom: edge, alignment: alignment,
+                columnWidth: column, minimum: minimum) == expected)
+    }
+}
+
+@Suite
+struct PVPopupListCardTests {
+    @Test func cardHeightAddsThePaddingTwice() {
+        #expect(PVPopupListCard<EmptyView>.height(rows: 100, verticalPadding: 8) == 116)
+        #expect(
+            PVPopupListCard<EmptyView>.height(rows: 100)
+                == 100 + PVPopupListCard<EmptyView>.defaultVerticalPadding * 2
+        )
+    }
+
+    @Test func aMeasurementIsUnmeasuredUntilRecordedAndResets() {
+        var measurement = PVPopupListMeasurement()
+        #expect(!measurement.isMeasured)
+        measurement.record(40)
+        #expect(measurement.isMeasured && measurement.height == 40)
+        measurement.reset()
+        #expect(measurement == PVPopupListMeasurement())
+    }
+}
+
+@Suite
+struct PVPopupListCommitKeyTests {
+    @Test func returnAndKeypadEnterCommit() {
+        #expect(PVPopupListHighlight.isCommitKey(.return))
+        #expect(PVPopupListHighlight.isCommitKey(KeyEquivalent("\u{3}")))
+        #expect(!PVPopupListHighlight.isCommitKey(.escape))
+        #expect(!PVPopupListHighlight.isCommitKey(.downArrow))
     }
 }

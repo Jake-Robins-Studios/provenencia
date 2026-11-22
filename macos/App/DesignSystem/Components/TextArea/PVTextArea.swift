@@ -705,13 +705,12 @@ enum PVTextAreaCompletionList {
     static let width: CGFloat = 360
     static let rowHeight: CGFloat = 40
     static let maxRows = 8
-    fileprivate static let verticalPadding = PVSpacing.space2
 
     static var maxHeight: CGFloat { height(rows: maxRows) }
 
     /// What a list of `rows` rows wants: one line even when empty.
     static func height(rows: Int) -> CGFloat {
-        rowHeight * CGFloat(max(1, min(rows, maxRows))) + verticalPadding * 2
+        PVPopupListCard<EmptyView>.height(rows: rowHeight * CGFloat(max(1, min(rows, maxRows))))
     }
 }
 
@@ -726,8 +725,7 @@ private struct PVTextAreaCompletionRows: View {
         let query = session.context?.query ?? ""
         PVPopupListCard(
             rowIDs: options.map(\.id),
-            activeID: session.currentIndex.map { options[$0].id },
-            verticalPadding: PVTextAreaCompletionList.verticalPadding
+            activeID: session.currentIndex.map { options[$0].id }
         ) {
             LazyVStack(spacing: 0) {
                 ForEach(Array(options.enumerated()), id: \.element.id) { index, option in

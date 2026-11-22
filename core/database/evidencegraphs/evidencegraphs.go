@@ -30,7 +30,9 @@ var (
 )
 
 const (
-	sqlInsert = `INSERT INTO evidence_graphs (id, ref, source_id, name, description)
+	sqlSourceRows = `SELECT id, source_id FROM evidence_graphs WHERE id IN (`
+	sqlSetSource  = `UPDATE evidence_graphs SET source_id = ? WHERE source_id != ? AND id IN (`
+	sqlInsert     = `INSERT INTO evidence_graphs (id, ref, source_id, name, description)
 		VALUES (?, ?, ?, ?, ?)`
 	// The per-Source and project-wide reads share their columns and order; the
 	// per-Source form filters on source_id directly so it seeks
@@ -368,8 +370,9 @@ func containsPair(pairs []Pair, p Pair) bool {
 	return false
 }
 
-// CreateDefault inserts the Default graph of a new Source. Its only caller is
-// sources.Create, which has already checked the user and the Source.
+// CreateDefault inserts the Default graph of a Source. Its callers are
+// sources.Create and sourcemove.Move, each of which has already checked the
+// user and the Source.
 func CreateDefault(tx *database.Tx, sourceID []byte) (Graph, []rowchange.Change, error) {
 	if tx == nil || len(sourceID) != 16 {
 		return Graph{}, nil, ErrInvalid
@@ -447,12 +450,17 @@ func SourceOf(q database.Querier, graphID []byte) ([]byte, error) {
 	if q == nil || len(graphID) != 16 {
 		return nil, ErrInvalid
 	}
-	var id []byte
-	err := q.QueryRow(sqlGraphSource, graphID).Scan(&id)
+	id, err := sourceOf(q, graphID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
-	if err != nil {
+	return id, err
+}
+
+// sourceOf is SourceOf without the id check; no such graph is sql.ErrNoRows.
+func sourceOf(q database.Querier, graphID []byte) ([]byte, error) {
+	var id []byte
+	if err := q.QueryRow(sqlGraphSource, graphID).Scan(&id); err != nil {
 		return nil, err
 	}
 	return id, nil
@@ -748,4 +756,18 @@ func mapConstraint(err error) error {
 		return ErrInvalid
 	}
 	return err
+}
+
+// SetSourceTx moves Evidence graphs to another Source.
+// It returns one update change per row that changed, in ascending id order.
+// An id with no row, a repeated id and a row already on sourceID change nothing.
+// It does not check that sourceID exists: the caller has, and the foreign key
+// checks at commit. Only a move changes a Source, so the caller records the
+// changes inside the write that moves the whole bundle.
+func SetSourceTx(tx *sql.Tx, ids [][]byte, sourceID []byte) ([]rowchange.Change, error) {
+	if tx == nil || len(sourceID) != 16 {
+		return nil, ErrInvalid
+	}
+	changes, err := database.SetSource(tx, "evidence_graph", sqlSourceRows, sqlSetSource, ids, sourceID)
+	return changes, mapConstraint(err)
 }

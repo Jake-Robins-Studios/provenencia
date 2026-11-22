@@ -279,10 +279,10 @@ enum L10n {
             comment: "Accessibility label for a PVList skeleton shown on first load"
         )
 
-        static let comboBoxSearching = LocalizedStringResource(
-            "designSystem.comboBox.searching",
+        static let popupListSearching = LocalizedStringResource(
+            "designSystem.popupList.searching",
             defaultValue: "Searching…",
-            comment: "PVComboBox list line while the caller's remote search runs and no results are in yet"
+            comment: "Kit popup list line while a remote search runs and no results are in yet"
         )
 
         static let thumbnailLoading = LocalizedStringResource(
@@ -1296,19 +1296,7 @@ enum L10n {
         static let omnibarResultsAccessibilityLabel = LocalizedStringResource(
             "workspace.omnibar.resultsAccessibilityLabel",
             defaultValue: "Search results",
-            comment: "Accessibility label for the omnibar results panel"
-        )
-
-        static let omnibarSearchFailed = LocalizedStringResource(
-            "workspace.omnibar.searchFailed",
-            defaultValue: "Search couldn’t finish. Try again.",
-            comment: "Omnibar panel message when SearchCatalog fails"
-        )
-
-        static let omnibarSearching = LocalizedStringResource(
-            "workspace.omnibar.searching",
-            defaultValue: "Searching…",
-            comment: "Omnibar panel loading label while SearchCatalog is in flight"
+            comment: "Accessibility label for the omnibar's results list"
         )
 
         /// Omnibar match-context line for a note body hit; argument is the raw snippet.
@@ -8834,6 +8822,60 @@ enum L10n {
             comment: "VoiceOver announcement after the provenance sheet's copy citation button copies the citation line"
         )
 
+        static let copyWordFull = LocalizedStringResource(
+            "provenanceSheet.copyWordFull",
+            defaultValue: "Full",
+            comment: "Word on the provenance sheet's copy button that copies a record's full citation"
+        )
+
+        static let copyWordShort = LocalizedStringResource(
+            "provenanceSheet.copyWordShort",
+            defaultValue: "Short",
+            comment: "Word on the provenance sheet's copy button that copies a record's short citation"
+        )
+
+        static let copyWordCitation = LocalizedStringResource(
+            "provenanceSheet.copyWordCitation",
+            defaultValue: "Copy",
+            comment: "Word on the provenance sheet's copy button that copies a record's citation line when its Source type has no citation format"
+        )
+
+        static let copyFullCitation = LocalizedStringResource(
+            "provenanceSheet.copyFullCitation",
+            defaultValue: "Copy full citation",
+            comment: "Tooltip and VoiceOver label of the provenance sheet button that copies a record's full citation"
+        )
+
+        static let copyShortCitation = LocalizedStringResource(
+            "provenanceSheet.copyShortCitation",
+            defaultValue: "Copy short citation",
+            comment: "Tooltip and VoiceOver label of the provenance sheet button that copies a record's short citation"
+        )
+
+        static let fullCitationCopied = LocalizedStringResource(
+            "provenanceSheet.fullCitationCopied",
+            defaultValue: "Full citation copied",
+            comment: "VoiceOver announcement after the provenance sheet copies a record's full citation"
+        )
+
+        static let shortCitationCopied = LocalizedStringResource(
+            "provenanceSheet.shortCitationCopied",
+            defaultValue: "Short citation copied",
+            comment: "VoiceOver announcement after the provenance sheet copies a record's short citation"
+        )
+
+        static let citationsLoading = LocalizedStringResource(
+            "provenanceSheet.citationsLoading",
+            defaultValue: "Loading citations",
+            comment: "Caption and VoiceOver label of the provenance sheet's record area while its citations are being rendered"
+        )
+
+        static let citationsFailedTitle = LocalizedStringResource(
+            "provenanceSheet.citationsFailedTitle",
+            defaultValue: "Citations could not be read",
+            comment: "Title of the provenance sheet's notice when its citations could not be rendered"
+        )
+
         static let done = LocalizedStringResource(
             "provenanceSheet.done",
             defaultValue: "Done",
@@ -11377,6 +11419,16 @@ enum L10n {
             defaultValue: "This Source no longer exists.",
             comment: "FFI error sources.not_found: the Source was deleted"
         )
+        static let sourceMoveInvalid = LocalizedStringResource(
+            "error.sourcemove.invalid",
+            defaultValue: "This move could not be made.",
+            comment: "FFI error sourcemove.invalid: no seed, two seeds, or the target is the same Source"
+        )
+        static let sourceMoveNotFound = LocalizedStringResource(
+            "error.sourcemove.not_found",
+            defaultValue: "The Artifact or Evidence graph to move no longer exists.",
+            comment: "FFI error sourcemove.not_found: the picked Artifact or graph was deleted"
+        )
         static let subjectPositionsInvalid = LocalizedStringResource(
             "error.subjectpositions.invalid",
             defaultValue: "Invalid subject position.",
@@ -12015,6 +12067,10 @@ enum L10n {
                 return L10n.string(conclusionDetailsNotFound)
             case "sources.not_found":
                 return L10n.string(sourcesNotFound)
+            case "sourcemove.invalid":
+                return L10n.string(sourceMoveInvalid)
+            case "sourcemove.not_found":
+                return L10n.string(sourceMoveNotFound)
             case "subjectpositions.invalid":
                 return L10n.string(subjectPositionsInvalid)
             case "subjecttypes.invalid":
