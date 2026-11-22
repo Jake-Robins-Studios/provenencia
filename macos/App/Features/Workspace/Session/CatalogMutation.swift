@@ -151,6 +151,39 @@ struct CatalogWriteEffects: Sendable, Equatable {
 
     static let empty = CatalogWriteEffects()
 
+    /// What two writes applied together report: every list unioned, each read's ids unioned, the
+    /// later activity kept.
+    func merged(with later: CatalogWriteEffects) -> CatalogWriteEffects {
+        func union(_ a: [String], _ b: [String]) -> [String] {
+            var seen = Set<String>()
+            return (a + b).filter { seen.insert($0).inserted }
+        }
+        var out = self
+        out.handles = union(handles, later.handles)
+        out.evidenceGraphs = union(evidenceGraphs, later.evidenceGraphs)
+        out.reads = CatalogRead.allCases.compactMap { read in
+            let ids = union(
+                reads.filter { $0.read == read }.flatMap(\.ids),
+                later.reads.filter { $0.read == read }.flatMap(\.ids)
+            )
+            return ids.isEmpty ? nil : CatalogWriteEffectsRead(read: read, ids: ids)
+        }
+        out.lists = lists.union(later.lists)
+        out.structure = structure || later.structure
+        out.summaryHandles = union(summaryHandles, later.summaryHandles)
+        out.handleScopes = union(handleScopes, later.handleScopes)
+        out.sourceScopes = union(sourceScopes, later.sourceScopes)
+        out.deleted = CatalogDeletedEntity.allCases.compactMap { entity in
+            let ids = union(
+                deleted.filter { $0.entity == entity }.flatMap(\.ids),
+                later.deleted.filter { $0.entity == entity }.flatMap(\.ids)
+            )
+            return ids.isEmpty ? nil : CatalogWriteEffectsDeleted(entity: entity, ids: ids)
+        }
+        if later.activity.revision >= activity.revision { out.activity = later.activity }
+        return out
+    }
+
     /// The handles this write deleted: the `canonical_entity` entry of `deleted`.
     var deletedHandles: [String] {
         deleted.first { $0.entity == .handle }?.ids ?? []
