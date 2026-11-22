@@ -146,6 +146,7 @@ private struct SourcePageContent: View {
             SourcePageArtifactsView(model: model).addFileForm
         }
         .sourceCopyDialog($model.copying)
+        .sourceMoveDialog($model.moving)
         .sourceGraphFormDialog($model.graphs.form)
         .artifactSheet($model.artifacts.sheet)
         .sourceDateDialog($model.identity.dateForm)
