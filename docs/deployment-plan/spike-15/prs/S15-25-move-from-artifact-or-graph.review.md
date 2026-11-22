@@ -14,11 +14,11 @@
 | X-3 | blocker | D-6 leaves a failed pick read, Read again's target, a cleared pick, a pick before the first reply, and a repeated pick open | **Fixed** — D-6 states each case; AC-3.5; T-10 extended |
 | X-4 | major | `FakeStore.moveToSource` does not say how the fake's rows move; missing impact key behaviour | **Fixed** — D-4: re-buckets `artifactsBySource`, sets graphs' `sourceID`, `preconditionFailure` on a missing script, defaults for an absent target |
 | X-5 | major | STEP-1 and STEP-2 disagree on who creates the test file; GoStore mapping untested | **Fixed** — the store step creates the file; GoStore gets no Swift test, as its precedent `getEvidenceGraphUnlinkImpact`; the manual check runs it |
-| X-6 | major | ACs without a test (graph seed, card `isEnabled`, navigation, unread list, short `progress`) | **Fixed** — T-14 (graph seed), T-3 (`isEnabled`), T-5 (short progress), T-7 (unread list), T-11/T-13 (`leave` called or not) |
+| X-6 | major | ACs without a test (graph seed, card `isEnabled`, navigation, unread list, short `progress`) | **Fixed** — T-14 (graph seed), T-5 (short progress), T-7 (unread list), T-11/T-13 (`leave` called or not). The graph card's `isEnabled` helper and its T-3 were dropped when the board replaced the menu with buttons (2026-11-22); AC-1.1 – AC-1.4 are manual check step 2 |
 | X-7 | major | Dialog details left open (spacing, ComboBox parameters, Callout ids, plural layout, unused keys) | **Fixed** — D-14 and D-13 name every call, parameter and identifier; D-12 names the plural layout precedent |
 | X-8 | major | "Open" vs "Open evidence graph"; brief frame 1 contradicts itself; frame 6 data; no Wide menu frames | **Fixed** — "Open" in both (the card button's own key); frames 1a/1b and 2a/2b; frame 6 has its own Source |
 | X-9 | major | Target not in the list at move time; apply order; `openMove` with no Source; history check | **Fixed** — `target` kept at the pick (D-6, D-8); `apply(_:leavingPage:)` (D-8); `openMove` guards `source` (D-5); history fixed by D-17 |
-| X-10 | minor | `isEnabled` helper unnamed; stale doc comment; `(0,0)`; "never by `== 1`" wording; STEP-5 check; commit subjects | **Fixed** — `GraphCardAction.isEnabled(canOpen:hasSource:)`; doc comment in Deletes; `(0,0)` stated; wording; manual check; one subject per step |
+| X-10 | minor | `isEnabled` helper unnamed; stale doc comment; `(0,0)`; "never by `== 1`" wording; STEP-5 check; commit subjects | **Fixed** — the `isEnabled` helper went with the menu (board, 2026-11-22); doc comment in Deletes; `(0,0)` stated; wording; manual check; one subject per step |
 
 ## Round 1 — maintainability
 
@@ -40,3 +40,20 @@
 - M-2: the cache design above (2026-11-21: fold the `source_artifacts` read into S15-25).
 - M-3: the engine sends the grade labels (2026-11-21).
 - M-6: fix the history entry in this PR (2026-11-21).
+
+## Board (2026-11-22)
+
+The user agreed the board with one change from the brief: no right-click menus; Move is a visible folder-input IconButton on Artifact rows and graph cards, and the Artifact row's existing menu goes. The plan's D-1, D-2, Deletes, STEP-6, STEP-7, T-2, T-3 and the brief's MV-1, MV-2 now say so. One board detail is not taken: the bundle's graph rows reuse the graph card's count line ("subjects · observations"), not the board's "people · citations" (D-13), so the dialog and the card read alike.
+
+## Round 2 — executability
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| X2-1 | major | `reads_test.go:47` asserts one read on `artifacts`; `Reads` order unstated | **Fixed** — D-15 names the `want` entry, the line-47 change and the position before `ReadSourceRecords`; `registry_completeness_test.go` needs nothing |
+| X2-2 | major | STEP-6 and STEP-11 `rg` checks cannot pass (plan history hits; multi-line declarations; catalog keys) | **Fixed** — scoped to `macos`, `.agents`, `docs/*.md`; `rg verbatimTitle` over the ContextMenu folder and README; the catalog checked by key; the doc comments named |
+| X2-3 | major | No named test file for T-16; host wiring untested; where the modifier attaches | **Fixed** — `WorkspaceNavigationTests.swift`; one `.onChange` on the host's body; AC-6.1 and AC-6.2 host wiring by manual check step 5 |
+| X2-4 | major | T-2 would drop the two width assertions | **Fixed** — delete the five lines, keep the widths, rename the test |
+| X2-5 | major | Log X-6 and X-10 named `GraphCardAction.isEnabled`, which the board removed | **Fixed** — log corrected; AC-1.1 – AC-1.4 manual; T-2 and T-3 no longer overlap |
+| X2-6 | minor | Stale "Frames in words" / "Blocked" text; brief's enhancement paragraph; manual step order | **Fixed** |
+| X2-7 | minor | Open choices: the fallback glyph's drawing, `showsWhy`, how `.sourcesOfType` derives, `followsOwnId`'s type, a flash after D-17 | **Fixed** — each stated in D-2, D-13, D-10 or § 11; `followsOwnId` takes a `CatalogQueryFollows`, which `.reads(.sourceArtifacts)` is (`CatalogLastUpdated.swift:359`) |
+| X2-8 | nit | STEP-4 is large; count-line wording | Logged; the count line is D-13's |

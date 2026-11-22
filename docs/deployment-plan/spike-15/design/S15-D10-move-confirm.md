@@ -72,7 +72,7 @@ Draw the **Regular** and **Wide** frame of each view side by side, using the sam
 
 ### This brief is an enhancement
 
-Draw on the Source page board as a new turn "S15-D10 · Move", starting from the Source page as S15-D14 (the Artifact rows, frames `art-list`, `art-list-wide`, `art-menu`) and S15-D1 (the Evidence graph cards) left it, at Regular and Wide. Keep the header, the Description, Credibility and Metadata sections, every row and card as drawn, and Notes. Add one menu item to each Artifact row's menu, give each graph card a right-click menu, and draw the Move dialog over the page.
+Draw on the Source page board as a new turn "S15-D10 · Move", starting from the Source page as S15-D14 (the Artifact rows, frames `art-list`, `art-list-wide`, `art-menu`) and S15-D1 (the Evidence graph cards) left it, at Regular and Wide. Keep the header, the Description, Credibility and Metadata sections, every row and card as drawn, and Notes. Add a Move button to each Artifact row and each graph card (as drawn, the row's right-click menu goes), and draw the Move dialog over the page. The frames `mv-art-menu` and `mv-graph-menu` keep their ids but draw the buttons.
 
 ---
 
