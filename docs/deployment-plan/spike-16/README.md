@@ -14,7 +14,7 @@ The second odds-and-ends spike ([odd and even spikes](../README.md#odd-and-even-
 | [**Cache architecture**](cache-architecture.md) | Design for Batch 2: entities and indexes in Go memory, updated on commit, answers composed |
 | [**Event as-of dates**](event-as-of.md) | Design for Batch 5: an event's As of date, read as a pair of bounds; one dating in Go |
 | [**Graph delete and its Artifacts**](graph-delete-leaves-no-graph.md) | Design for Batch 6's S16-45: the graph delete confirm names the Artifacts it leaves in no Evidence graph |
-| [**Stacked toasts**](stacked-toasts.md) | Design for Batch 6's S16-58 and S16-59: one toast stack per window, no cap, a repeat refreshes its timer |
+| [**Stacked toasts**](stacked-toasts.md) | Design for Batch 6's S16-58 and S16-59: one toast stack per window, no cap, a caller refreshes its own card by id |
 | [Map review](deployment-plan.review.md) | The map review's findings and answers; what is left for the user |
 | [**Person page audit**](person-page-audit.md) | The 2026-11-08 findings behind Batch 1's `P-n` items, with evidence and failing tests |
 | [**Completed**](completed.md) | Finished steps |

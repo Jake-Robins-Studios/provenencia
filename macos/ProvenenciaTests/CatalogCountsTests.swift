@@ -7,8 +7,16 @@ import Testing
 struct CatalogCountsTests {
     private let projectDir = "/tmp/counts.provenencia"
 
-    private func makeCounts(store: FakeStore = FakeStore()) -> CatalogCounts {
-        CatalogCounts(projectDir: projectDir, store: store)
+    /// The list's sleep never returns, so no entry expires during a test.
+    private func makeToasts() -> PVToastList {
+        PVToastList(sleep: ManualSleep().sleep)
+    }
+
+    private func makeCounts(
+        store: FakeStore = FakeStore(),
+        toasts: PVToastList? = nil
+    ) -> CatalogCounts {
+        CatalogCounts(projectDir: projectDir, store: store, toasts: toasts ?? makeToasts())
     }
 
     @Test func refreshAllPopulatesEveryDestination() async {
@@ -55,68 +63,87 @@ struct CatalogCountsTests {
     }
 
     @Test func refreshAllOnEmptyProjectYieldsZero() async {
-        let counts = makeCounts()
+        let toasts = makeToasts()
+        let counts = makeCounts(toasts: toasts)
         await counts.refreshAll()
         #expect(counts.sources == 0)
         #expect(counts.persons == 0)
         #expect(counts.events == 0)
         #expect(counts.places == 0)
-        #expect(counts.lastRefreshError == nil)
+        #expect(toasts.entries.isEmpty)
     }
 
-    @Test func refreshAllFailureSetsLastRefreshErrorAndLeavesBadgesUnset() async {
+    @Test func refreshAllFailureAddsToastAndLeavesBadgesUnset() async {
         let store = FakeStore()
         enum Boom: Error { case boom }
         store.workspaceNavCountsError = Boom.boom
 
-        let counts = makeCounts(store: store)
+        let toasts = makeToasts()
+        let counts = makeCounts(store: store, toasts: toasts)
         await counts.refreshAll()
 
-        #expect(counts.lastRefreshError == L10n.string(L10n.Errors.unknown))
+        #expect(toasts.entries.count == 1)
+        #expect(toasts.entries[0].tone == .danger)
+        #expect(toasts.entries[0].title == L10n.string(L10n.Workspace.countsRefreshFailedTitle))
+        #expect(toasts.entries[0].message == L10n.string(L10n.Errors.unknown))
         #expect(counts.sources == nil)
         #expect(counts.badge(for: .sources) == nil)
     }
 
-    @Test func refreshAllSuccessClearsLastRefreshError() async {
+    @Test func refreshAllSuccessAddsNoToast() async {
         let store = FakeStore()
-        enum Boom: Error { case boom }
-        store.workspaceNavCountsError = Boom.boom
-        let counts = makeCounts(store: store)
+        let toasts = makeToasts()
+        let counts = makeCounts(store: store, toasts: toasts)
         await counts.refreshAll()
-        #expect(counts.lastRefreshError != nil)
-
-        store.workspaceNavCountsError = nil
-        await counts.refreshAll()
-        #expect(counts.lastRefreshError == nil)
+        #expect(toasts.entries.isEmpty, "a success adds no toast")
         #expect(counts.sources == 0)
     }
 
-    /// A write's recount that fails after a good launch count sets the error the workspace
-    /// toasts and keeps the last badges. Once the toast clears it, the next failure, with the
-    /// same message, sets it again, so `WorkspaceView`'s `.onChange` sees a new value.
-    @Test func writeRecountFailureSetsErrorEachTime() async {
+    /// A write's recount that fails after a good launch count adds the danger toast and keeps
+    /// the last badges. The same failure again refreshes that card; once it is dismissed, the
+    /// next failure adds it again.
+    @Test func writeRecountFailureAddsToastEachTime() async {
         let store = FakeStore()
         store.sourcesByProject[projectDir] = [
             CatalogSource(id: "1", ref: "SRC-1", sourceTypeID: "", title: "A", description: ""),
         ]
-        let counts = makeCounts(store: store)
+        let toasts = makeToasts()
+        let counts = makeCounts(store: store, toasts: toasts)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.onNavCountsMoved = { await counts.refreshAll() }
         await counts.refreshAll()
-        #expect(counts.lastRefreshError == nil)
+        #expect(toasts.entries.isEmpty)
 
         enum Boom: Error { case boom }
         store.workspaceNavCountsError = Boom.boom
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
-        #expect(counts.lastRefreshError == L10n.string(L10n.Errors.unknown))
+        #expect(toasts.entries.count == 1)
+        #expect(toasts.entries[0].tone == .danger)
+        #expect(toasts.entries[0].title == L10n.string(L10n.Workspace.countsRefreshFailedTitle))
+        #expect(toasts.entries[0].message == L10n.string(L10n.Errors.unknown))
         #expect(counts.sources == 1)
+        let first = toasts.entries[0].id
 
-        counts.clearRefreshError()
-        #expect(counts.lastRefreshError == nil)
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
-        #expect(counts.lastRefreshError == L10n.string(L10n.Errors.unknown))
+        #expect(toasts.entries.count == 1, "the same failure refreshes the card")
+        #expect(toasts.entries[0].id == first)
+
+        store.workspaceNavCountsError = CoreInvokeError.coded(status: 1, code: "catalog.closed", kind: .user, params: [])
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        await session.settleWrites()
+        #expect(toasts.entries.count == 1, "a different failure keeps the one card")
+        #expect(toasts.entries[0].id == first)
+        #expect(toasts.entries[0].message == L10n.Errors.message(code: "catalog.closed"))
+        #expect(toasts.entries[0].message != L10n.string(L10n.Errors.unknown))
+
+        toasts.dismiss(first)
+        #expect(toasts.entries.isEmpty)
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        await session.settleWrites()
+        #expect(toasts.entries.count == 1, "a failure after a dismiss adds the card again")
+        #expect(toasts.entries[0].id != first)
     }
 
     /// Two recounts overlap: the one started last reads the newest catalog, so the earlier,

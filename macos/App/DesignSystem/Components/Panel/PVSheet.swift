@@ -21,11 +21,15 @@ private struct PVSheetChrome<Content: View>: View {
     @State private var confirmingDiscard = false
     @State private var gate = PVDiscardGate()
     @State private var innerEditOpen = false
+    @State private var toasts = PVToastList()
 
     var body: some View {
         sheetBody
             .environment(\.pvSheetClose, PVSheetClose(run: { next in run(next) }))
             .environment(\.pvSheetInnerEditOpen, innerEditOpen)
+            // A sheet covers the window, so a toast raised inside it joins the sheet's own stack.
+            .environment(\.pvToastList, toasts)
+            .overlay { PVToastStack(list: toasts, identifier: "sheet.toasts") }
             .onPreferenceChange(PVSheetInnerEditKey.self) { innerEditOpen = $0 }
             // A zero-size button owns Escape, so the rule lives in one place and
             // no visible Cancel needs its own key.

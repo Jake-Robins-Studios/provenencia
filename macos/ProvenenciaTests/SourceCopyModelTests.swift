@@ -275,7 +275,7 @@ struct SourceCopyModelTests {
         let store = makeStore()
         let (model, session) = await loaded(store)
         store.nextWriteEffects = CatalogWriteEffects(lists: [.counts])
-        let counts = CatalogCounts(projectDir: projectDir, store: store)
+        let counts = CatalogCounts(projectDir: projectDir, store: store, toasts: PVToastList())
         session.onNavCountsMoved = { await counts.refreshAll() }
         _ = await model.copy()
         #expect(await waitUntil { counts.sources == 2 })

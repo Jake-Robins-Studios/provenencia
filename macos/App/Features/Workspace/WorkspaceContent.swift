@@ -12,6 +12,7 @@ struct WorkspaceContent: View {
     let sessionDisplayName: String
     let store: any GenealogyStore
 
+    @Environment(WorkspaceSession.self) private var session
     @State private var omnibarResults = OmnibarResultsModel()
     /// The content column's width, for the toolbar popups' width rules. Pages read \.pvWidthClass.
     @State private var contentWidth: CGFloat = 0
@@ -29,6 +30,8 @@ struct WorkspaceContent: View {
                 sessionDisplayName: sessionDisplayName,
                 store: store
             )
+            // The window's toasts: under the toolbar, over the destination, never over the sidebar.
+            .overlay { PVToastStack(list: session.toasts, identifier: "workspace.toasts") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)

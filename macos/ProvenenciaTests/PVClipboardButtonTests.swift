@@ -4,38 +4,17 @@ import Testing
 
 @MainActor
 struct PVClipboardButtonTests {
-    /// A sleep the test releases by hand, so the timer needs no real wait.
-    @MainActor
-    private final class Timer {
-        private var waiting: [CheckedContinuation<Void, Never>] = []
-
-        func sleep(_ duration: Duration) async {
-            await withCheckedContinuation { waiting.append($0) }
-        }
-
-        func settle() async {
-            for _ in 0..<5 { await Task.yield() }
-        }
-
-        func fire(_ index: Int) async {
-            waiting[index].resume()
-            await settle()
-        }
-
-        var sleeps: Int { waiting.count }
-    }
-
     private final class Pasteboard {
         var written: [PVClipboardPayload] = []
     }
 
-    private func state(_ pasteboard: Pasteboard, _ timer: Timer) -> PVClipboardCopyState {
+    private func state(_ pasteboard: Pasteboard, _ timer: ManualSleep) -> PVClipboardCopyState {
         PVClipboardCopyState(write: { pasteboard.written.append($0) }, sleep: { await timer.sleep($0) })
     }
 
     @Test func copyingWritesExactlyTheTextAndShowsCopied() async {
         let pasteboard = Pasteboard()
-        let timer = Timer()
+        let timer = ManualSleep()
         let state = state(pasteboard, timer)
         #expect(!state.copied)
         state.copy("Parish register, p. 12")
@@ -47,7 +26,7 @@ struct PVClipboardButtonTests {
     /// T-6 (D-11, AC-2.1, AC-2.4).
     @Test func copyWritesRichAndPlain() async {
         let pasteboard = Pasteboard()
-        let state = state(pasteboard, Timer())
+        let state = state(pasteboard, ManualSleep())
         let rich = AttributedString("x")
         state.copy("x", rich: rich)
         state.copy("x")
@@ -72,7 +51,7 @@ struct PVClipboardButtonTests {
     }
 
     @Test func theStateReturnsToIdleAfterTheInterval() async {
-        let timer = Timer()
+        let timer = ManualSleep()
         let state = state(Pasteboard(), timer)
         state.copy("a")
         await timer.settle()
@@ -84,7 +63,7 @@ struct PVClipboardButtonTests {
 
     @Test func aSecondCopyRestartsTheTimer() async {
         let pasteboard = Pasteboard()
-        let timer = Timer()
+        let timer = ManualSleep()
         let state = state(pasteboard, timer)
         state.copy("a")
         await timer.settle()
@@ -98,7 +77,7 @@ struct PVClipboardButtonTests {
     }
 
     @Test func leavingStopsTheTimerAndClearsTheCheck() async {
-        let timer = Timer()
+        let timer = ManualSleep()
         let state = state(Pasteboard(), timer)
         state.copy("a")
         await timer.settle()

@@ -119,7 +119,6 @@ final class CitationComposerModel {
     let connections = CitationConnections()
     var authoring = CitationAuthoring.rest
     var freshLineKey: String?
-    var bridgeToast: (title: String, message: String)?
     var editSession: CitationEditSession?
     private(set) var presented: ComposerPresented?
     /// The step "Discard changes?" waits on: the next Citation, a step, or an

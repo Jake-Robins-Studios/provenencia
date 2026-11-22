@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-58 — Toasts stack in one list per window
+
+**Landed 2026-11-22** in [#941](https://github.com/Jake-Robins-Studios/provenencia/pull/941). The workspace window holds one `PVToastList` (`WorkspaceSession.toasts`), drawn by a kit `PVToastStack` over the content pane's top-trailing corner, newest first: each card leaves on its own five-second timer or dismiss, and every add makes a card: `add` returns the card's id, a caller that passes it back as `replacing` refreshes that card (same `id`, timer restarted), and the list never compares text. Dogfood found the first design, which merged any equal toast, collapsed a run of portrait toasts from one Source into one card. History issues, notices and every page's toast (through `vocabularyToastOverlay`'s forwarding) join it; a sheet and Onboarding each own a list and draw their own stack, so `PVToast` has no timer, and the Citation composer's saved-bridge toast moves from the foot of its observations column into it. `CatalogCounts` takes the list and adds the failed recount's toast itself, holding its id so a repeat failure refreshes that one card (a different message included) (`lastRefreshError` and `clearRefreshError` go), closing S16-56's QCK-1; `CatalogCountsTests.writeRecountFailureAddsToastEachTime` and `PVToastListTests` drive it with a `ManualSleep`. 0.33.0 → 0.33.1.
+
 ## S16-56 — A failed sidebar recount says so
 
 **Landed 2026-11-19** in [#909](https://github.com/Jake-Robins-Studios/provenencia/pull/909). `WorkspaceView` observes `CatalogCounts.lastRefreshError` and shows the counts toast through `presentCountsErrorIfNeeded`, then calls `clearRefreshError()`, so the launch count and every write's recount toast each failure, a repeat of the same message included. Before, only the launch `.task` read the error. `CatalogCountsTests.writeRecountFailureSetsErrorEachTime` covers the model; the view's `.onChange` has no test seam, and the review's QCK-1 (a model-owned counts toast a test can drive) moved to S16-58. 0.26.1 → 0.26.2.

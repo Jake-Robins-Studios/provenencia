@@ -84,7 +84,7 @@ Means something **bypassed** the session (second `database.Open` while held). Ov
 - Assert against the catalog with `catalogsession.Do`, not `database.Open`, while a session may be held.
 - External test package (`catalogsession_test`) if the test imports `onboarding` (avoids import cycle).
 - Mac: `FakeStore` tracks `heldCatalogProjectDir` / `lastClosedCatalogProjectDir` (`CatalogSessionStoreTests`). New catalog store entry points on FakeStore must call `markCatalogSessionHeld`.
-- Badge refresh (`CatalogCounts.refreshAll`) must not swallow errors silently — set `lastRefreshError` / surface via workspace toast.
+- Badge refresh (`CatalogCounts.refreshAll`) must not swallow errors silently: a failure adds a danger toast to the window's list (`CatalogCounts(projectDir:store:toasts:)`).
 - Gate: `CGO_ENABLED=1 go test ./core/catalogsession/ ./core/onboarding/ ./api/ffi/...` and Mac ProvenenciaTests for store/workspace changes.
 
 ## Do not

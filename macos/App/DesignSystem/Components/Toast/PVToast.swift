@@ -39,20 +39,15 @@ enum PVToastTone {
 ///
 /// A toast speaks its title and message to VoiceOver when it appears (a danger
 /// toast interrupts), so no call site posts its own announcement. A toast
-/// remounted with `.id(toast)` speaks each new one. New content restarts the
-/// auto-dismiss wait whether or not the caller remounts it.
+/// remounted with `.id(toast)` speaks each new one.
 ///
-/// Auto-dismisses after `autoDismissAfter` (default 5 seconds) by calling
-/// `onDismiss`, unless it's `nil` — pass `autoDismissAfter: nil` to keep a
-/// toast on screen until the user (or the caller) dismisses it explicitly.
+/// A toast has no timer: it draws, announces and calls `onDismiss`. A host expires
+/// its toasts through ``PVToastList`` and draws them in a ``PVToastStack``.
 struct PVToast: View {
-    static let defaultAutoDismissDelay: TimeInterval = 5
-
     let tone: PVToastTone
     var title: String?
     var message: String?
     var onDismiss: (() -> Void)?
-    var autoDismissAfter: TimeInterval? = PVToast.defaultAutoDismissDelay
 
     var body: some View {
         HStack(alignment: .top, spacing: PVSpacing.space5) {
@@ -102,19 +97,6 @@ struct PVToast: View {
             AccessibilityAnnouncement.text(title: title, message: message),
             priority: AccessibilityAnnouncement.priority(danger: tone == .danger)
         )
-        // Keyed on the content, so a toast replaced in place (no `.id` at the caller) waits its
-        // own time: the old wait is cancelled and a new one starts.
-        .task(id: [String(describing: tone), title ?? "", message ?? ""]) {
-            await Self.autoDismiss(after: autoDismissAfter, onDismiss: onDismiss)
-        }
-    }
-
-    /// Waits `delay`, then dismisses. A toast replaced or removed first cancels the wait,
-    /// and a cancelled wait dismisses nothing.
-    static func autoDismiss(after delay: TimeInterval?, onDismiss: (() -> Void)?) async {
-        guard let delay else { return }
-        do { try await Task.sleep(for: .seconds(delay)) } catch { return }
-        onDismiss?()
     }
 }
 
@@ -122,7 +104,7 @@ struct PVToast: View {
     VStack(spacing: PVSpacing.space5) {
         PVToast(tone: .danger, message: L10n.string(L10n.Errors.catalogAlreadyOpen), onDismiss: {})
         PVToast(tone: .info, title: "Heads up", message: "This project was last opened on another Mac.")
-        PVToast(tone: .success, message: "Project created.", autoDismissAfter: nil)
+        PVToast(tone: .success, message: "Project created.", onDismiss: {})
     }
     .padding(PVSpacing.space9)
     .background(PVColor.surfacePage)

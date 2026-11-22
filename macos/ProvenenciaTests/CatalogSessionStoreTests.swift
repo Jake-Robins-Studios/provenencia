@@ -61,7 +61,7 @@ struct CatalogSessionStoreTests {
 
     @Test func refreshAllHoldsSessionViaStore() async {
         let store = FakeStore()
-        let counts = CatalogCounts(projectDir: projectDir, store: store)
+        let counts = CatalogCounts(projectDir: projectDir, store: store, toasts: PVToastList())
         await counts.refreshAll()
         #expect(store.heldCatalogProjectDir == projectDir)
     }

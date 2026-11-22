@@ -20,7 +20,7 @@ struct WorkspaceView: View {
     @State private var navigation: WorkspaceNavigation
     @State private var session: WorkspaceSession
     @State private var catalogCounts: CatalogCounts
-    @State private var countsToast: VocabularyToast?
+    @State private var historyIssueToastID: PVToastEntry.ID?
     @Environment(SignOutCoordinator.self) private var signOutCoordinator
     @Environment(NavigationCoordinator.self) private var navigationCoordinator
 
@@ -44,7 +44,7 @@ struct WorkspaceView: View {
         navigation.onLocationCommit = { location in
             session.apply(location: location)
         }
-        let counts = CatalogCounts(projectDir: projectDir, store: model.store)
+        let counts = CatalogCounts(projectDir: projectDir, store: model.store, toasts: session.toasts)
         session.onNavCountsMoved = { await counts.refreshAll() }
         _session = State(initialValue: session)
         _navigation = State(initialValue: navigation)
@@ -68,7 +68,7 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .environment(navigation)
         .environment(session)
-        .vocabularyToastOverlay($countsToast, identifier: "workspace.counts.toast")
+        // Before the environment below, so the notice forwards into the list.
         .vocabularyToastOverlay(
             Binding(
                 get: { session.noticeToast },
@@ -76,6 +76,7 @@ struct WorkspaceView: View {
             ),
             identifier: "workspace.notice.toast"
         )
+        .environment(\.pvToastList, session.toasts)
         .task {
             await session.loadNameFormat()
             await catalogCounts.refreshAll()
@@ -93,7 +94,6 @@ struct WorkspaceView: View {
         .onChange(of: navigation.canGoForward) { _, _ in bindNavigationCommands() }
         .onChange(of: navigation.currentLocation) { _, _ in bindNavigationCommands() }
         .onChange(of: navigation.lastHistoryIssue) { _, _ in presentHistoryIssueIfNeeded() }
-        .onChange(of: catalogCounts.lastRefreshError) { _, _ in presentCountsErrorIfNeeded() }
         .onChange(of: model.project?.uuid) { _, uuid in
             if let uuid, !uuid.isEmpty {
                 navigation.attachProject(uuid: uuid)
@@ -129,31 +129,22 @@ struct WorkspaceView: View {
         navigationCoordinator.goForward = { navigation.goForward() }
     }
 
-    /// The launch count and every write's recount land here, so each failure toasts once.
-    private func presentCountsErrorIfNeeded() {
-        guard let message = catalogCounts.lastRefreshError else { return }
-        countsToast = VocabularyToast(
-            title: L10n.string(L10n.Workspace.countsRefreshFailedTitle),
-            body: message,
-            tone: .danger
-        )
-        catalogCounts.clearRefreshError()
-    }
-
     private func presentHistoryIssueIfNeeded() {
         guard let issue = navigation.lastHistoryIssue else { return }
         switch issue {
         case .loadFailed:
-            countsToast = VocabularyToast(
+            historyIssueToastID = session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryLoadFailedTitle),
-                body: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody),
-                tone: .danger
+                message: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody),
+                replacing: historyIssueToastID
             )
         case .persistFailed:
-            countsToast = VocabularyToast(
+            historyIssueToastID = session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryPersistFailedTitle),
-                body: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody),
-                tone: .danger
+                message: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody),
+                replacing: historyIssueToastID
             )
         }
         navigation.acknowledgeHistoryIssue()

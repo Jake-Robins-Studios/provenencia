@@ -9,6 +9,9 @@ final class WorkspaceSession {
     let projectKey: ProjectKey
     let store: any GenealogyStore
     let registry: CatalogQueryRegistry
+    /// The window's toasts, newest first. Every toast the workspace raises joins this one list
+    /// (`CatalogCounts` adds its recount failure here); `WorkspaceContent` draws it.
+    let toasts: PVToastList
     /// Default name-format orders. Empty until the catalog read finishes,
     /// which keeps stored part order.
     var nameFormat = NameFormatOrders()
@@ -53,11 +56,13 @@ final class WorkspaceSession {
     init(
         projectKey: ProjectKey,
         store: any GenealogyStore,
-        registry: CatalogQueryRegistry = .standard
+        registry: CatalogQueryRegistry = .standard,
+        toasts: PVToastList = PVToastList()
     ) {
         self.projectKey = projectKey
         self.store = store
         self.registry = registry
+        self.toasts = toasts
     }
 
     func loadNameFormat() async {
