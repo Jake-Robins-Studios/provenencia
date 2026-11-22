@@ -62,6 +62,15 @@ struct SourcePageModelTests {
         )
     }
 
+    /// What the page's view does when a reload lands: it syncs the model from the cached workspace.
+    private func followWorkspace(_ model: SourcePageModel, _ session: WorkspaceSession) async {
+        await session.settleWrites()
+        let handle: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(
+            .sourceWorkspace(project: session.projectKey, sourceId: sourceID)
+        )
+        if let handle { model.sync(from: handle) }
+    }
+
     @Test func loadPopulatesWorkspaceAndDefaultsCredibilityToStandard() async {
         let model = makeModel(store: makeStore())
         await model.warmFromSession()
@@ -422,6 +431,52 @@ struct SourcePageModelTests {
         #expect(model.notes.bodyError != nil)
         #expect(model.notes.editingNoteID == noteID)
         #expect(model.notes.items.first?.body == "Keep me")
+    }
+
+    /// The page's workspace follows `source_holdings` alone (D-16): that read reloads the page on
+    /// screen and marks a hidden one stale; `source_records` (a title edit) reloads nothing, so
+    /// field edits keep patching in place.
+    @Test func workspaceFollowsSourceHoldings() async throws {
+        let store = makeStore()
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        session.apply(location: .sourcePage(sourceId: sourceID))
+        await session.settleWrites()
+        let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: sourceID)
+
+        func reads(_ read: CatalogRead) -> CatalogWriteEffects {
+            CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: read, ids: [sourceID])])
+        }
+
+        var before = store.getSourceWorkspaceCalls
+        session.apply(reads(.sourceRecords))
+        await session.settleWrites()
+        #expect(store.getSourceWorkspaceCalls == before)
+
+        session.apply(reads(.sourceHoldings))
+        await session.settleWrites()
+        #expect(store.getSourceWorkspaceCalls == before + 1)
+
+        // A create with a file is two writes, each reporting the read; the page reads once.
+        store.nextWriteEffects = reads(.sourceHoldings)
+        before = store.getSourceWorkspaceCalls
+        let sheet = try await openAddSheet(model)
+        sheet.draft.label = "Deed"
+        sheet.file.choose(try ArtifactFileFixtures.writeTemp(Data("%PDF-1.1".utf8), named: "deed.pdf"))
+        #expect(await sheet.save())
+        await session.settleWrites()
+        #expect(store.getSourceWorkspaceCalls == before + 1)
+
+        // Hidden: marked stale, not reloaded.
+        session.apply(location: .sectionRoot(.sources))
+        await session.settleWrites()
+        before = store.getSourceWorkspaceCalls
+        session.apply(reads(.sourceHoldings))
+        await session.settleWrites()
+        #expect(store.getSourceWorkspaceCalls == before)
+        let handle: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(key)
+        #expect(handle?.isStale == true)
     }
 
     @Test func createFilelessArtifact() async throws {
@@ -1509,21 +1564,27 @@ struct SourcePageModelTests {
                 ),
             ]
         )
-        let model = makeModel(store: store)
+        store.nextWriteEffects = CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: [sourceID])]
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
         await model.warmFromSession()
+        session.apply(location: .sourcePage(sourceId: sourceID))
         await model.askDeleteArtifact(id: "a1")
         #expect(model.pendingImpact?.report.allowed == true)
         let left = await model.confirmResourceDelete(leaving: {})
         #expect(!left)
         #expect(store.deleteArtifactCalls == 1)
+        await followWorkspace(model, session)
         #expect(model.artifacts.items.isEmpty)
         #expect(model.source?.primaryArtifactID.isEmpty == true)
         #expect(model.source?.coverMode == "type_icon")
     }
 
     /// Deleting a Source's only Artifact changes row fields the activity patch
-    /// cannot (`hasArtifact`, the cover), so the cached Sources row is refreshed
-    /// from the engine as Artifact create and attach do (D-26).
+    /// cannot (`hasArtifact`, the cover): the write reports `source_holdings`, so the
+    /// page's workspace reloads once and the cached Sources row is re-read by id (D-16).
     @Test func deleteOnlyArtifactClearsHasArtifactOnTheCachedRow() async {
         let store = makeStore(
             artifacts: [
@@ -1532,6 +1593,9 @@ struct SourcePageModelTests {
                     label: "Scan", description: "", file: nil
                 ),
             ]
+        )
+        store.nextWriteEffects = CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: [sourceID])]
         )
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         var row = CatalogSource(
@@ -1546,12 +1610,16 @@ struct SourcePageModelTests {
             sessionDisplayName: "Jake Robins", store: store
         )
         await model.warmFromSession()
+        session.apply(location: .sourcePage(sourceId: sourceID))
+        await session.settleWrites()
         await model.askDeleteArtifact(id: "a1")
         let workspaceReads = store.getSourceWorkspaceCalls
         _ = await model.confirmResourceDelete(leaving: {})
+        await session.settleWrites()
         let list: QueryHandle<[CatalogSource]>? = session.queryHandle(listKey)
         #expect(list?.value?.first?.hasArtifact == false)
-        // The refresh is the one read of the Source's workspace, as create does.
+        #expect(store.listSourcesByIDCalls == [[sourceID]])
+        // The effects' one `source_holdings` read is the one read of the Source's workspace.
         #expect(store.getSourceWorkspaceCalls == workspaceReads + 1)
     }
 
@@ -1610,15 +1678,22 @@ struct SourcePageModelTests {
                 ),
             ]
         )
-        let model = makeModel(store: store)
+        store.nextWriteEffects = CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: [sourceID])]
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
         await model.warmFromSession()
         model.identity.beginEditTitle()
         model.identity.titleDraft = "Unsaved title"
         model.notes.draft = "Scratch note"
+        session.apply(location: .sourcePage(sourceId: sourceID))
+        await session.settleWrites()
         await model.askDeleteArtifact(id: "a2")
         let left = await model.confirmResourceDelete(leaving: {})
         #expect(!left)
         #expect(store.deleteArtifactCalls == 1)
+        await followWorkspace(model, session)
         #expect(model.identity.editingTitle)
         #expect(model.identity.titleDraft == "Unsaved title")
         #expect(model.notes.draft == "Scratch note")

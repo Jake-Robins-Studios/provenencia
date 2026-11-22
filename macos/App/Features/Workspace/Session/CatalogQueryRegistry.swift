@@ -141,7 +141,11 @@ extension CatalogQueryKey.Kind {
         switch self {
         case .sourcesList:
             // Work under a Source reports its activity in `WriteEffects`, which
-            // patches the row through `lastUpdated`.
+            // patches the row through `lastUpdated`. An Artifact or a graph joining
+            // or leaving a Source, or an Artifact's file changing, reports
+            // `source_holdings`: the arm re-reads just that Source's row (its
+            // `hasArtifact` and cover thumbnail) and merges it into the warmed
+            // list; a Source that is gone returns no row, so none is kept.
             return .make(
                 kind: self,
                 invalidateOn: [.deletedSource],
@@ -151,6 +155,17 @@ extension CatalogQueryKey.Kind {
                     .lastUpdated([CatalogSource].self, follows: .source),
                     .sourceRow(),
                 ],
+                refreshes: [.merged(
+                    follows: .reads(.sourceHoldings),
+                    as: [CatalogSource].self,
+                    read: { session, key, sourceId in
+                        try await session.store.listSources(projectDir: key.project.projectDir, sourceIDs: [sourceId])
+                    },
+                    merge: { rows, sourceId, part in
+                        rows.removeAll { $0.id == sourceId }
+                        rows.append(contentsOf: part)
+                    }
+                )],
                 load: { key, store in
                     return try await store.listSources(projectDir: key.project.projectDir)
                 }
@@ -202,7 +217,9 @@ extension CatalogQueryKey.Kind {
             // cannot tell from a field create, marks every visited page stale
             // through `.updatedMetadataField` / `.deletedMetadataField`. A format
             // save (`.changedCitationFormats`) changes which fields a page needs, so
-            // it marks every visited page stale the same way.
+            // it marks every visited page stale the same way. An Artifact or a graph
+            // joining or leaving the Source, or an Artifact's file changing, reports
+            // `source_holdings` for it: the page on screen reloads, a hidden one goes stale.
             return .make(
                 kind: self,
                 invalidateOn: [
@@ -223,6 +240,7 @@ extension CatalogQueryKey.Kind {
                     }
                 },
                 patches: [.updatedSourceShell(), .metadataBoard()],
+                refreshes: [.applyHiddenPolicy(followsOwnId: .reads(.sourceHoldings))],
                 load: { key, store in
                     return try await store.getSourceWorkspace(projectDir: key.project.projectDir, sourceID: key.id)
                 }

@@ -216,21 +216,15 @@ final class SourcePageModel {
                     userID: context.userID,
                     artifactID: target.id
                 )
-                if var workspace = context.workspace {
-                    workspace.artifacts.removeAll { $0.id == target.id }
-                    apply(workspace)
-                    context.setWorkspace(workspace)
-                }
                 context.toast = VocabularyToast(
                     title: L10n.string(L10n.Sources.toastArtifactDeletedTitle),
                     body: L10n.Sources.toastArtifactDeletedBody(ref: target.ref),
                     tone: .success
                 )
-                // The refresh below is the one read of the Source's workspace: it
-                // carries the cover and `hasArtifact`, which the activity patch
-                // cannot.
+                // The effects report `source_holdings` for the Source: the page's
+                // workspace reloads once (the row leaves, the cover and `hasArtifact`
+                // follow) and its Sources list row is re-read by id.
                 context.session.apply(effects)
-                await context.refreshCoverFromStore()
             case "evidence_graph":
                 // The effects refresh the graph list; a graph changes no
                 // workspace field and no cover.

@@ -306,6 +306,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     let getConclusionDetailHold = FakeHold()
     /// How many times `listSources` was called.
     var listSourcesCalls = 0
+    /// The ids of every `listSources(projectDir:sourceIDs:)` call, in order.
+    var listSourcesByIDCalls: [[String]] = []
     var createEvidenceGraphError: Error?
     /// Effects every write returns until a test assigns another value.
     var nextWriteEffects: CatalogWriteEffects = .empty
@@ -610,6 +612,16 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             if let listSourcesError { throw listSourcesError }
             // Match Go `sources.List`: newest-created-first (UUIDv7 / id DESC).
             let rows = (sourcesByProject[projectDir] ?? []).sorted { $0.id > $1.id }
+            return rows.map { enrichCoverFields($0) }
+        }
+    }
+
+    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource] {
+        return try withState {
+            listSourcesByIDCalls.append(sourceIDs)
+            markCatalogSessionHeld(projectDir)
+            if let listSourcesError { throw listSourcesError }
+            let rows = (sourcesByProject[projectDir] ?? []).filter { sourceIDs.contains($0.id) }.sorted { $0.id > $1.id }
             return rows.map { enrichCoverFields($0) }
         }
     }

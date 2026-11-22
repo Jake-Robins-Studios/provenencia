@@ -362,6 +362,9 @@ private struct ThrowingStore: GenealogyStore {
     func closeCatalogSession(projectDir _: String) async throws { throw StoreBoom.boom }
     func projectInfo(projectDir _: String) async throws -> ProjectInfo { throw StoreBoom.boom }
     func listSources(projectDir _: String) async throws -> [CatalogSource] { throw StoreBoom.boom }
+    func listSources(projectDir _: String, sourceIDs _: [String]) async throws -> [CatalogSource] {
+        throw StoreBoom.boom
+    }
     func getSourceWorkspace(projectDir _: String, sourceID _: String) async throws -> CatalogSourceWorkspace {
         throw StoreBoom.boom
     }

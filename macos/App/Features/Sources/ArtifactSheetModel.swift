@@ -384,7 +384,6 @@ final class ArtifactSheetModel {
             created = art
             onSaved(art, nil, ingested.effects)
         }
-        await context.refreshCoverFromStore()
         context.toast = VocabularyToast(
             title: L10n.Sources.toastArtifactCreatedTitle(ref: art.ref),
             body: art.fileID.isEmpty

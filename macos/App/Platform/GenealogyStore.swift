@@ -1642,6 +1642,9 @@ protocol GenealogyStore: Sendable {
     func projectInfo(projectDir: String) async throws -> ProjectInfo
 
     func listSources(projectDir: String) async throws -> [CatalogSource]
+    /// Just these Sources' rows, in the list's order, as `listSources(projectDir:)` returns them.
+    /// An id that is no longer a Source adds no row.
+    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource]
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace
     /// Creates a Source in one audited write and returns it with the write's effects.
     func createSource(

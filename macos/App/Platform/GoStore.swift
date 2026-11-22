@@ -134,6 +134,17 @@ struct GoStore: GenealogyStore {
         return resp.sources.map(Self.mapSource)
     }
 
+    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource] {
+        var req = Provenencia_Engine_V1_ListSourcesRequest()
+        req.projectDir = projectDir
+        req.sourceIds = sourceIDs
+        let resp: Provenencia_Engine_V1_ListSourcesResponse = try await provenenciaCall(
+            method: CoreMethod.listSources,
+            request: req
+        )
+        return resp.sources.map(Self.mapSource)
+    }
+
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace {
         var req = Provenencia_Engine_V1_GetSourceWorkspaceRequest()
         req.projectDir = projectDir
