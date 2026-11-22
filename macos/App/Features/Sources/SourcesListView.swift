@@ -78,7 +78,6 @@ private struct SourcesListContent: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pvListBand(widthClass)
         .background(PVColor.surfacePage)
-        .vocabularyToastOverlay($model.toast, identifier: "sources.toast")
         .pvFormDialog(
             isPresented: addPresented,
             copy: PVFormDialogCopy(

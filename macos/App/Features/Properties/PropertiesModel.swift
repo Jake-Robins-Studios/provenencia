@@ -49,7 +49,6 @@ final class PropertiesModel {
     private(set) var cardinalityNotice = false
     private(set) var isSaving = false
     var formError: String?
-    var toast: VocabularyToast?
     private(set) var lockedCallout: String?
     let deleteImpact = DeleteImpactFlow()
     var pendingImpact: PVDeleteImpactRequest? {
@@ -407,10 +406,10 @@ final class PropertiesModel {
             )
             session.apply(effects)
             isEditingIdentity = false
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.Properties.toastUpdatedTitle),
-                body: L10n.Properties.toastUpdatedBody(label: updated.label, key: updated.key),
-                tone: .success
+                message: L10n.Properties.toastUpdatedBody(label: updated.label, key: updated.key)
             )
             return true
         } catch {
@@ -483,10 +482,10 @@ final class PropertiesModel {
             cardinalityNotice = false
             formError = nil
             cancelEdit()
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.Properties.toastDeletedTitle),
-                body: L10n.Properties.toastDeletedBody(label: property.label),
-                tone: .success
+                message: L10n.Properties.toastDeletedBody(label: property.label)
             )
         }
     }
@@ -545,10 +544,10 @@ final class PropertiesModel {
             }
             closeCreate()
             selectedPropertyID = created.id
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.Properties.toastCreatedTitle),
-                body: L10n.Properties.toastCreatedBody(label: created.label),
-                tone: .success
+                message: L10n.Properties.toastCreatedBody(label: created.label)
             )
             return WorkspaceLocation(
                 section: .properties,

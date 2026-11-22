@@ -38,7 +38,6 @@ final class MetadataModel {
     var draft: Draft?
     private(set) var isSaving = false
     var formError: String?
-    var toast: VocabularyToast?
 
     let deleteImpact = DeleteImpactFlow()
     var pendingImpact: PVDeleteImpactRequest? {
@@ -263,10 +262,10 @@ final class MetadataModel {
             patchFieldsList { rows in rows.removeAll { $0.id == target.id } }
             formError = nil
             mode = .empty
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.Metadata.toastDeletedTitle),
-                body: L10n.Metadata.toastDeletedBody(label: field.label),
-                tone: .success
+                message: L10n.Metadata.toastDeletedBody(label: field.label)
             )
         }
     }
@@ -297,10 +296,10 @@ final class MetadataModel {
                 patchFieldsList { rows in rows.append(created) }
                 mode = .editing(id: created.id)
                 self.draft = Draft(label: created.label, dataType: created.dataType, description: created.description)
-                toast = VocabularyToast(
+                session.toasts.add(
+                    tone: .success,
                     title: L10n.string(L10n.Metadata.toastAddedTitle),
-                    body: L10n.Metadata.toastAddedBody(label: created.label, key: created.key),
-                    tone: .success
+                    message: L10n.Metadata.toastAddedBody(label: created.label, key: created.key)
                 )
                 return WorkspaceLocation(
                     section: .metadata,
@@ -320,10 +319,10 @@ final class MetadataModel {
                 }
                 mode = .editing(id: updated.id)
                 self.draft = Draft(label: updated.label, dataType: updated.dataType, description: updated.description)
-                toast = VocabularyToast(
+                session.toasts.add(
+                    tone: .success,
                     title: L10n.string(L10n.Metadata.toastUpdatedTitle),
-                    body: L10n.Metadata.toastUpdatedBody(label: updated.label, key: updated.key),
-                    tone: .success
+                    message: L10n.Metadata.toastUpdatedBody(label: updated.label, key: updated.key)
                 )
                 return nil
             case .empty, .viewing:

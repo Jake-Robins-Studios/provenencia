@@ -92,7 +92,6 @@ final class SourcesModel {
     /// FFI / store failure on Create Source (not field validation).
     var createError: String?
     private(set) var isSaving = false
-    var toast: VocabularyToast?
 
     var pageProjectDir: String { session.projectKey.projectDir }
 
@@ -443,10 +442,10 @@ final class SourcesModel {
             typeError = nil
             titleError = nil
             createError = nil
-            toast = VocabularyToast(
+            session.toasts.add(
+                tone: .success,
                 title: L10n.Sources.toastCreatedTitle(ref: created.ref),
-                body: L10n.Sources.toastCreatedBody(title: created.title),
-                tone: .success
+                message: L10n.Sources.toastCreatedBody(title: created.title)
             )
             return created
         } catch {

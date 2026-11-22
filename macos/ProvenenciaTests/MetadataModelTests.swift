@@ -95,7 +95,11 @@ struct MetadataModelTests {
         #expect(model.fields.first?.label == "Author renamed")
         #expect(model.fields.first?.key == "author")
         #expect(model.fields.first?.origin == "provenencia")
-        #expect(model.toast?.title == L10n.string(L10n.Metadata.toastUpdatedTitle))
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.string(L10n.Metadata.toastUpdatedTitle),
+            L10n.Metadata.toastUpdatedBody(label: "Author renamed", key: "author")
+        )])
     }
 
     @Test func seededAndUserFieldsAreEditedTheSameWay() async {
@@ -152,7 +156,11 @@ struct MetadataModelTests {
         #expect(model.fields.count == 1)
         #expect(model.fields.first?.key == "grandmas-album-code")
         #expect(model.fields.first?.origin == "user")
-        #expect(model.toast?.title == L10n.string(L10n.Metadata.toastAddedTitle))
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.string(L10n.Metadata.toastAddedTitle),
+            L10n.Metadata.toastAddedBody(label: "Grandma's album code", key: "grandmas-album-code")
+        )])
         #expect(model.selectedField?.key == "grandmas-album-code")
         #expect(location?.section == .metadata)
         #expect(location?.fieldId == model.fields.first?.id)
@@ -199,7 +207,11 @@ struct MetadataModelTests {
         #expect(model.formError == nil)
         #expect(model.fields.first?.label == "Grandma's photo album code")
         #expect(model.fields.first?.key == "grandmas-album-code")
-        #expect(model.toast?.title == L10n.string(L10n.Metadata.toastUpdatedTitle))
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.string(L10n.Metadata.toastUpdatedTitle),
+            L10n.Metadata.toastUpdatedBody(label: "Grandma's photo album code", key: "grandmas-album-code")
+        )])
     }
 
     /// T-8 (AC-1.2): a field relabel reports `source_vocabulary`; the Metadata
@@ -438,7 +450,11 @@ struct MetadataModelTests {
         #expect(model.selectedField == nil)
         #expect(model.pendingDeleteField == nil)
         #expect(!model.isDeleting)
-        #expect(model.toast?.title == L10n.string(L10n.Metadata.toastDeletedTitle))
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.string(L10n.Metadata.toastDeletedTitle),
+            L10n.Metadata.toastDeletedBody(label: userField().label)
+        )])
         await settle(session)
     }
 

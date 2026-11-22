@@ -372,7 +372,7 @@ struct SourcesModelTests {
         #expect(!model.isAdding)
         #expect(created?.title == "Family album")
         #expect(model.sources.count == 1)
-        #expect(model.toast != nil)
+        #expect(!session.toasts.cards.isEmpty)
     }
 
     /// The Sources list re-reads one row per Source `source_holdings` names (D-16) and leaves
