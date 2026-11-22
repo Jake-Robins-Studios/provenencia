@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc` (table tests)
 **Context:** map scope entry S15-62 ([`../deployment-plan.md`](../deployment-plan.md)); working rules "A format reads a field from the nearest level that holds it", "A field means one thing", "A format's fields are needed or used", "Boards flag needed fields; the engine decides the rows", "Built-in placeholders are one table", "Formats name fields by id", "One engine, in Go", "The seed is the product default"; map review K-2, K-3, K-13 ([`../deployment-plan.review.md`](../deployment-plan.review.md)); [`docs/citation-formats.md`](../../../citation-formats.md); [`docs/source-layer-data-model.md`](../../../source-layer-data-model.md) § 5.4; map §§ 6.3, 6.6, 6.8 ([`../evidence-explained-citation-map.md`](../evidence-explained-citation-map.md))
 **Planned:** 2026-11-22 against `main` @ `d48e777` (compare with `origin/main` after `git fetch origin main`)
-**Review:** — (not reviewed yet)
+**Review:** [`S15-62-nearest-level-fields.review.md`](S15-62-nearest-level-fields.review.md) — round 1: Fits with changes / Ready with changes; round 2 pending
 
 ### Implementer — read this first
 
@@ -85,11 +85,11 @@ A citation format names a metadata field without a level, `{meta.provider}`, and
 | `CitationValues.Resolve` walks nearest-first; `CitationValues.Without` *(new)* | STEP-3, AC-1.1 – AC-1.5, T-6 |
 | Board annotations per field: heads on every board, `MetElsewhere` at the owner or above, dismiss refused on every board | STEP-4, AC-4.1 – AC-4.4, T-7, T-8 |
 | `citationrender.Placeholders`: each field once under `meta.` | STEP-5, AC-2.1, T-9 |
-| Migration `000069.sql` rewrites stored formats | STEP-6, AC-3.1, AC-3.2, T-10 |
-| Seed formats rewritten; `derivedSuggestions` by usual level | STEP-7, T-11, T-12 |
+| Migration `000069.sql` rewrites stored formats | STEP-6, AC-3.1, AC-3.2 |
+| Seed formats rewritten; seed tests derive fields without levels | STEP-2, T-11, T-12 |
 | Test fixtures across Go packages rewritten to `{meta.key}` | STEP-2 – STEP-7 |
-| Wire comments; Swift completion rows, missing line, diagnostic enum and copy | STEP-8, STEP-9, AC-2.1, AC-2.2, AC-2.6, T-13 – T-15 |
-| Docs: `citation-formats.md`, `source-layer-data-model.md` § 5.4, map §§ 6.3, 6.6, 6.8 | STEP-10 |
+| Wire comments; Swift completion rows, missing line, diagnostic enum and copy | STEP-7, STEP-8, AC-2.1, AC-2.2, AC-2.6, T-13 – T-15 |
+| Docs: `citation-formats.md`, `source-layer-data-model.md` § 5.4, map §§ 6.3, 6.6, 6.8, 6.9 | STEP-9 |
 
 | Out | Home |
 | --- | --- |
@@ -142,24 +142,24 @@ A citation format names a metadata field without a level, `{meta.provider}`, and
 | D-1 | `func NearestFirst() []Level` in `core/vocabkey`: `l := MetadataLevels(); slices.Reverse(l); return l`. A new slice each call. No other list of the order | Rule: declared once, `MetadataLevels()` reversed (the rule's `slices.Reversed` names no stdlib function returning a slice; this is the same order) | A literal list — a second copy (K-13) |
 | D-2 | A metadata option is `meta.<field>`. In `option`: when `first == "meta"`, parse the field (`bad_field` on an empty or bad token, span the field; `unknown_option` on a `:option`). When `first` is a valid level and `rest` is `meta` or starts with `meta.`, the diagnostic is `meta_at_level` (span: the option), at every level, Citation included. An invalid first part stays `unknown_level` | Rule: a level-named metadata placeholder is a parse diagnostic | Keeping `meta_not_at_level` for the Citation — `meta_at_level` already covers it, so the old code is dead |
 | D-3 | `CodeMetaAtLevel = "meta_at_level"` *(new)* takes `unprefixed_meta`'s place in `DiagnosticCodes()`; `CodeUnprefixedMeta` and `CodeMetaNotAtLevel` are deleted. The doc table's order follows | One list, the doc test ties it to the doc | — |
-| D-4 | A field target's `Level` is `""` (read nearest-first) in the full and short forms and `vocabkey.LevelSource` in the list form; the parser sets it. A placeholder's `node.chain` keeps each distinct `Target` once, at its first occurrence; `Template.refs` keeps every occurrence, so `Fields`, `FieldSpans` and `RewriteFields` still see every token | The list form reads the Source alone in every caller (a preview with a Citation target included) without a form on the `Resolver`; dedupe makes a migrated `{meta.#X\|meta.#X}` read as `{meta.#X}` (rule) | Passing the form to `Resolver.Resolve` — widens an interface three packages implement; collapsing duplicates in SQL — needs a recursive CTE over every field id |
-| D-5 | `MetaFieldPlaceholder(key string) Placeholder` writes `{meta.<key>}`, `Level` empty. `MetaPlaceholder` and `metaRef`'s level go; `TestMetaPlaceholder` becomes a case of `TestBuiltinPlaceholders`' file testing `MetaFieldPlaceholder` | One row shape for a field; the only `MetaPlaceholder` caller is its test | Keeping `MetaPlaceholder(key)` — a second name for `.Text` |
+| D-4 | A field target's `Level` is `""` (read nearest-first) in the full and short forms and `ListFormLevel` in the list form; the parser sets it. `const ListFormLevel = vocabkey.LevelSource` *(new)* in `builtins.go` is the one declaration of the list form's level, and `ListFormAllows(l)` becomes `l == ListFormLevel`. A placeholder's `node.chain` keeps each distinct `Target` once, at its first occurrence; `Template.refs` keeps every occurrence, so `Fields`, `FieldSpans` and `RewriteFields` still see every token | The list form reads the Source alone in every caller (a preview with a Citation target included) without a form on the `Resolver`; dedupe makes a migrated `{meta.#X\|meta.#X}` read as `{meta.#X}` (rule) | Passing the form to `Resolver.Resolve` — widens an interface three packages implement; collapsing duplicates in SQL — needs a recursive CTE over every field id |
+| D-5 | `MetaFieldPlaceholder(key string) Placeholder` writes `{meta.<key>}`, `Level` empty. `MetaPlaceholder` and `metaRef`'s level go; `TestMetaPlaceholder` is renamed `TestMetaFieldPlaceholder` and tests `MetaFieldPlaceholder` (T-5) | One row shape for a field; the only `MetaPlaceholder` caller is its test | Keeping `MetaPlaceholder(key)` — a second name for `.Text` |
 | D-6 | `CitationValues.Resolve`: a built-in as today; a field named by key → zero; a field target with a `Level` → that level's row only; with `Level == ""` → the row of the first level in `vocabkey.NearestFirst()` whose `Rows` hold the id. The first row found answers whatever its text: an unknown row stops the walk (AC-1.4). Package doc and the type's doc say "nothing else walks the levels" | Rule: one walker; unknown stops the search | Walking in `citationformat` — the rule keeps it a parser |
 | D-7 | `func (v CitationValues) Without(l vocabkey.Level) CitationValues` *(new)*: a copy whose `Rows` lacks `l`, sharing `Fields` and `Builtins` | `MetElsewhere` needs "the head at a level above the owner"; S15-64's inherited value is the same call (rule) | A second resolver type — two walkers |
-| D-8 | `needsAt(chains, level)`: a field head is any field target named by id, whatever its `Level`; the `level` argument only decides whether `builtinHeads` is kept (Source only, as today). `fieldAt` is replaced by `fieldOf(t) (uuid.UUID, bool)` *(new, unexported)*. `levelNeeds.fieldIDs` reads every field option | Requirements are per field (rule) | Keying needs by (field, level) — there is no level |
-| D-9 | `annotate(ln, level, head, r, fields)` gains the owner's `level`. A needed chain is met elsewhere when its head answers in `r.Without(level)` (for a field head; a built-in head never answers above) or its tail is non-empty and `citationformat.Missing` finds it met in `r`. `MetElsewhere` is true when every needed chain it heads is. A board's `CitationValues` holds only the owner and its ancestors (today the Source), which `listWorkspaces` and `ListDraftWorkspace` keep | Rule: "met elsewhere" is met at the owner or above; the head's own value at the owner is not "elsewhere" | Counting the owner's own value — `MetElsewhere` would be true on every valued entry |
-| D-10 | Every board emits every field head the type's formats read (suggested or not), annotated; a needed one also when dismissed; `needOfTx` refuses dismissing a needed field on any board. No suggestion code changes | User, 2026-11-22: "Every board" — S15-63's end state one PR early, with no code S15-63 would delete | Emitting only where the type suggests the field at some level — temporary code (user declined) |
+| D-8 | `fieldAt(t, level)` keeps its name and widens by one condition: a field target named by id is at `level` when `t.Level == "" \|\| t.Level == level`. So a nearest-first field heads (and is used) on every board, and a list-form field (`ListFormLevel`) only on the Source board. `needsAt`'s `level` keeps both jobs (field heads and `builtinHeads`). `readTypeBoards` keeps its (type, level) keying; `buildEntries`' emit loop over `needs.order` does not change | Requirements are per field (rule); the list form reads the Source, so a list-only need below the Source would be a refusal where rule "The list entry reads the Source; a board flags a list field set below it" says hint (S15-66) (review M-1) | A head at any level whatever its `Level` — a book's Artifact board would show `author_sort` needed and undismissable, though typing it there never meets the list form |
+| D-9 | Each board's caller (`listWorkspaces`, `ListDraftWorkspace`) builds `above := r.Without(o.Level)` once per board and puts it on `boardInput` as `above citationformat.Resolver` *(new field)*; `ListDraftWorkspace`'s `r` holds the Source only, so its `above` is `r` itself (the draft owner has no rows). `annotate(ln, head, r, above, fields)` takes `above` in place of a level. The head `buildEntries` passes is `Target{Field: FieldRef{ID: id}}` with no `Level`; the Source board's `Date` and `Page` heads stay the built-in targets. A needed chain is met elsewhere when its own first option (`ch.Targets[0]`, not the passed head) answers in `above`, or its tail is non-empty and `citationformat.Missing` finds it met in `r`; a built-in first option is tested in `above` as well, which never holds built-ins, so only its tail can meet it. `MetElsewhere` is true when every needed chain it heads is. A board's `CitationValues` holds only the owner and its ancestors (today the Source) (review M-2, X-4) | Rule: "met elsewhere" is met at the owner or above; the head's own value at the owner is not "elsewhere"; one `above` per board is the slot S15-64's inherited value reads | Counting the owner's own value — `MetElsewhere` would be true on every valued entry; `Without` per chain — a map copy per entry |
+| D-10 | Every board emits every nearest-first field head the type's formats read (suggested or not), annotated; a needed one also when dismissed; `needOfTx` (unchanged code, through D-8) refuses dismissing a field needed at that board's level. A list-form-only head shows and is refused only on the Source board. No suggestion code changes | User, 2026-11-22: "Every board" — S15-63's end state one PR early, with no code S15-63 would delete | Emitting only where the type suggests the field at some level — temporary code (user declined) |
 | D-11 | `Placeholders(c, f)`: every built-in row of `BuiltinPlaceholders(f)` (level by level, as today), then every project field once as `MetaFieldPlaceholder(field.Key)` with its `Field`, in `metadatafields.List` order. Same field rows for every form | One row per field (scope) | Fields inside the Source band — mixes a level-less row into a level band |
 | D-12 | Migration `000069.sql` *(new)*: for each of `citation_full`, `citation_short`, `citation_list` on `source_types`, `UPDATE … SET col = replace(…)` nesting six replaces: `{source.meta.` → `{meta.`, `\|source.meta.` → `\|meta.`, and the same for `artifact` and `graph`, `WHERE col IS NOT NULL`. No `-- migrate:` line. No audit row (migrations write none). No test of the migration (skill) | Scope; SQL-only migrations | A Go rewrite at open — the skill forbids install-on-open and Go in migrations |
 | D-13 | `registry.go`: every `{<level>.meta.K` and `\|<level>.meta.K` becomes `{meta.K` / `\|meta.K`, and each `{meta.K\|meta.K` becomes `{meta.K` (so `{graph.meta.item\|source.meta.item\|source.title}` → `{meta.item\|source.title}`). `registry_suggestions.go` does not change | Rule; S15-63 owns suggestions | — |
-| D-14 | `registry_test.go`: `usualLevel(typeKey, key string)` returns `vocabkey.LevelSource` for `website`'s `url` and `accessed_date` (the page's own, rule "A field means one thing"), else today's mapping. `derivedSuggestions` places each field at `usualLevel(st.Key, key)`; the "level it first appears at" branch goes | Formats no longer say a level; website is the one type whose format read those two at the Source (measured over the seed) | Changing the website suggestions — a seed change this PR does not own |
+| D-14 | `registry_test.go`: `derivedSuggestions` returns the type's fields as one list, in the order its formats first read them (full, then the list and short forms' needed chains the full form does not already meet, as today), plus the copy fields for `recordTypes`; no level. `TestSeedSuggestionsFollowFormats` checks that each type's suggested fields over all levels, as a set, equal that list (each field suggested at one level only, as today). Levels stay in `registry_suggestions.go` alone. `usualLevel` is deleted if nothing else calls it. `TestSeededFormatsNeedOnlySuggestedFields` keys `suggested` by type and field (any level) | Formats no longer carry a level, so the test cannot derive one; a hand-kept level table beside `registry_suggestions.go` would be a second copy S15-63 deletes (review M-3) | `usualLevel(typeKey, key)` with a website exception — a second level table |
 | D-15 | Wire: no field changes. `CitationPlaceholder.level` is `""` for a field row; `CitationRequirementOption.level` is `""` for a field read nearest-first and `"source"` for a list-form field. Comments in `engine.proto` say so; regenerate with `./scripts/generate-proto.sh` | Backward-compatible; `level` already a string | A new message — nothing new to carry |
-| D-16 | Swift: `CatalogCitationPlaceholder.level: Level?` and `CatalogCitationOption.level: Level?`, nil for an empty wire level. `GoStore` keeps a field row (id `"meta#<field id>"`, level nil) and drops a row or option only when a non-empty level is unknown or a built-in is unknown | Field rows have no level | A sentinel `Level` case — not a level, and `Level` mirrors Go |
-| D-17 | Completion: `completionOptions` subtext is `[level name if any, field key, ref]`; `SourceTypeFormatCompletionRow` draws the level `PVBadge` only when `row.level` is non-nil; its accessibility label and the `.highlighted` announcement use `completionHighlighted(name:level:)` with a level and the bare label (`SourceTypeFormatsModel.label(of:)`) without | Same list, one row per field (scope) | A new "Any level" badge — chrome the map did not plan |
-| D-18 | Missing line: in `L10n.CitationFormats.missing(_:)`, an option whose `level` is nil prints its name alone; one with a level keeps `missingOption(name:level:)` and `missingOptionSameName(level:)`. "Missing: Jurisdiction"; list form "Missing: Jurisdiction on the Source" | A field has no level to name, except in the list form where the Source is the truth | — |
+| D-16 | Swift: `CatalogCitationPlaceholder.level: Level?` and `CatalogCitationOption.level: Level?`, nil for an empty wire level. `GoStore` keeps a field row (id `"meta#<field id>"` replacing today's `"\(p.level)#\(p.field.id)"`, level nil, `text` and `ref` as sent) and drops a row or option only when a non-empty level is unknown or a built-in is unknown | Field rows have no level | A sentinel `Level` case — not a level, and `Level` mirrors Go |
+| D-17 | Completion: `completionOptions` subtext is `[row.level.map(L10n.CitationFormats.levelName), row.field?.key, row.ref]` compacted. `SourceTypeFormatCompletionRow` draws the level `PVBadge` only when `row.level` is non-nil. `static func spokenLabel(of row:) -> String` *(new)* beside `label(of:)` in `SourceTypeFormatsModel` returns `completionHighlighted(name:level:)` with a level and `label(of:)` without; the row's accessibility label and the `.highlighted` announcement both call it (review M-4) | Same list, one row per field (scope) | A new "Any level" badge — chrome the map did not plan |
+| D-18 | Missing line: in `L10n.CitationFormats.missing(_:)`, an option whose `level` is nil prints its name alone, always (never `missingOptionSameName`); one with a level keeps `missingOption(name:level:)`, and `missingOptionSameName(level:)` when an earlier option with a level has its name. "Missing: Jurisdiction"; list form "Missing: Jurisdiction on the Source" | A field has no level to name, except in the list form where the Source is the truth | — |
 | D-19 | Copy: `L10n.CitationFormats.diagMetaAtLevel` *(new)*, key `citationFormats.diagnostic.meta_at_level`, "Write meta. with no level: a field is read from the nearest level that has it". `diagUnprefixedMeta`, `diagMetaNotAtLevel` and their catalog keys go; `CitationDiagnosticCode.metaAtLevel = "meta_at_level"` replaces `unprefixedMeta` at its position, `metaNotAtLevel` goes | Every diagnostic has a message | — |
 
-**Rules this plan bends.** None. Rule "Boards flag needed fields" says a head is emitted "even when not suggested"; with no level that is every board, which the user confirmed (D-10, 2026-11-22). Its wording is updated in STEP-10.
+**Rules this plan bends.** None. Rule "Boards flag needed fields" says a head is emitted "even when not suggested"; with no level that is every board, which the user confirmed (D-10, 2026-11-22). Its wording is updated in STEP-9.
 
 ## 6. Design
 
@@ -170,13 +170,15 @@ A citation format names a metadata field without a level, `{meta.provider}`, and
 | `vocabkey.NearestFirst` | func | `vocabkey.MetadataLevels` | Built from it (D-1) |
 | `citationformat.CodeMetaAtLevel` | const | `CodeUnprefixedMeta`, `CodeMetaNotAtLevel` | Replaces both |
 | `sourcemetadata.CitationValues.Without` | method | `CitationValues.Resolve` | Extends the one resolver (D-7) |
-| `sourcemetadata.fieldOf` | func | `fieldAt` | Replaces it |
+| `citationformat.ListFormLevel` | const | `ListFormAllows` | The one declaration both it and the parser read (review M-5) |
+| `boardInput.above` | field | `boardInput.resolver` | The board's resolver without the owner's level, built once per board |
+| `SourceTypeFormatsModel.spokenLabel(of:)` | func | `label(of:)` | One place for a row's spoken name (review M-4) |
 | `000069.sql` | migration | `000036.sql` (data backfill) | Next number |
 | `L10n.CitationFormats.diagMetaAtLevel` | key | `diagUnprefixedMeta` | Replaces it |
 | `CitationDiagnosticCode.metaAtLevel` | enum case | `unprefixedMeta` | Replaces it |
 
 **Builds on.** S15-38's one resolver (`CitationValues`) for render and boards; S15-61's level list (unchanged); S15-17's completion rows; the `swift_vocabulary_test` parity.
-**Deletes.** `CodeUnprefixedMeta`, `CodeMetaNotAtLevel`; `MetaPlaceholder` and the level in `MetaFieldPlaceholder`/`metaRef`; `fieldAt`; the Swift cases `unprefixedMeta`, `metaNotAtLevel`, `L10n.CitationFormats.diagUnprefixedMeta`, `diagMetaNotAtLevel` and their `Localizable.xcstrings` keys; `derivedSuggestions`' "first level it appears at" branch.
+**Deletes.** `CodeUnprefixedMeta`, `CodeMetaNotAtLevel`; `MetaPlaceholder` and the level in `MetaFieldPlaceholder`/`metaRef`; the two built `completionHighlighted` calls in `SourceTypeFormatsSection.swift` (now `spokenLabel`); `usualLevel` in `registry_test.go` if unused; the Swift cases `unprefixedMeta`, `metaNotAtLevel`, `L10n.CitationFormats.diagUnprefixedMeta`, `diagMetaNotAtLevel` and their `Localizable.xcstrings` keys; `derivedSuggestions`' level output.
 **Next adds.** S15-54 adds `LevelCitation` to `MetadataLevels()`, so `NearestFirst()` and `Resolve` read it first with no change here. S15-55 adds ancestors' rows to the board resolver; `Without` and D-9 hold as is. S15-64 calls `Resolve` on `Without(owner level)`. S15-63 merges suggestions; D-10 already shows every field on every board.
 
 ### Reach
@@ -189,11 +191,11 @@ A citation format names a metadata field without a level, `{meta.provider}`, and
 
 ### Scale
 
-At the map's Scale: the migration rewrites at most 3 columns per type (26 seeded types plus a researcher's), one statement per column, in one transaction. A render reads the same batched owners as today (`fillValues` unchanged); `Resolve` does at most `len(NearestFirst())` = 3 map lookups per field target (4 from S15-54). A board read is unchanged in queries; each board now annotates every head of its type (a census type: 23 fields), measured by `TestListWorkspacesAnnotationsScale`, which stays green.
+At the map's Scale: the migration rewrites at most 3 columns per type (26 seeded types plus a researcher's), one statement per column, in one transaction. A render reads the same batched owners as today (`fillValues` unchanged); `Resolve` does at most `len(NearestFirst())` = 3 map lookups per field target (4 from S15-54). A board read is unchanged in queries; each board now annotates every head of its type (a census type: 23 fields), with no extra query: `buildEntries` reads `needs.order` and the rows already loaded. `TestListWorkspacesAnnotationsScale` has no time budget; it asserts the annotations of 121 boards (`sourcemetadata_test.go`), so its expected annotations are updated where D-8 – D-10 change them, and its query count does not change.
 
 ### Edges
 
-- **Assumptions.** `Requirements` dedupes by target sequence: a full-form `[F]` and a list-form `[source:F]` are two requirements; `needsAt` merges them by field id (strongest need), T-7. `AppendOptions`' `seen` is keyed by `Target`, so the same field in both forms shows twice in a board's alternatives only when both are tails, once with no level and once at the Source, which is accurate. `Resolve` assumes a board's `Rows` hold only the owner and its ancestors (D-9).
+- **Assumptions.** `Requirements` dedupes by target sequence: a full-form `[F]` and a list-form `[source:F]` are two requirements; on the Source board `needsAt` merges them by field id (strongest need); below it only the full-form one heads (D-8), T-7. `AppendOptions`' `seen` is keyed by `Target`, so the same field in both forms shows twice in a board's alternatives only when both are tails, once with no level and once at the Source, which is accurate. `Resolve` assumes a board's `Rows` hold only the owner and its ancestors (D-9).
 - **Neighbors.** A value at the owner and above: the owner's wins (T-6). A row marked unknown at a nearer level answers (AC-1.4). A whitespace-only row a crafted catalog holds stops the walk and prints nothing; the chain falls to its next option, never a farther level (T-6, a case). A list-form `{meta.K}` ignores graph and Artifact rows (AC-1.5).
 - **Removed inputs.** A field deleted while a format names it: refused today by the field-in-use probe, which matches `#<id>` and still finds `{meta.#<id>}` (T-10's case in `deleteimpact` stays green).
 - **Real data.** The seed's 72 formats: after D-13 every one parses; `TestSeedCitations` renders all 26 types identically (the fixture answers every field at every level). No seeded format names one field at two levels outside a chain (measured, § 4).
@@ -250,15 +252,17 @@ L10n keys *(new)*: `L10n.CitationFormats.diagMetaAtLevel` = "Write meta. with no
 
 ## 7. Steps
 
+The `scripts/check-pr.sh` and Swift checks (STEP-9, the DoD) run on macOS with Xcode; the Go checks run anywhere.
+
 **STEP-1 — The nearest-first order**
 Files: `core/vocabkey/vocabkey.go`, `core/vocabkey/vocabkey_test.go`.
-Do: D-1. Extend `TestLevels` with `NearestFirst`.
+Do: D-1. Extend `TestLevels` with `NearestFirst` (T-1).
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/vocabkey/` passes.
 
-**STEP-2 — The parser reads `{meta.key}`**
-Files: `core/citationformat/parse.go`, `placeholder.go`, `form.go`, and the `core/citationformat` tests; `docs/citation-formats.md` (Syntax and Diagnostics, so `TestDocMatchesEngine` holds).
-Do: D-2 – D-5. Rewrite every level-named field in the package's tests to `{meta.…}`; T-2 – T-5.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/citationformat/` passes, `TestDocMatchesEngine` included. The rest of the tree does not build or pass yet in packages with level-named fixtures; that is fixed in STEP-3 – STEP-7.
+**STEP-2 — The parser reads `{meta.key}`, and the seed is written that way**
+Files: `core/citationformat/parse.go`, `builtins.go`, `placeholder.go`, `form.go` and the `core/citationformat` tests; `core/database/sourcevocab/registry.go`, `registry_test.go`, `copy_test.go`; `docs/citation-formats.md` (Syntax and Diagnostics, so `TestDocMatchesEngine` holds). Skill: `add-seeded-vocabulary`.
+Do: D-2 – D-5, D-13, D-14 in one step: `sourcevocab.Install` refuses a seed format with any diagnostic, so the seed must stop naming levels in the same step the parser starts refusing them, or every test that installs the seed fails. Rewrite every level-named field in these packages' tests to `{meta.…}`. T-2 – T-5, T-11, T-12. Do **not** run `-update`: `core/database/sourcevocab/testdata/seed-citations.txt` stays byte for byte.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/citationformat/ ./core/database/sourcevocab/` passes, `TestDocMatchesEngine`, `TestSeedCitations`, `TestSeedSuggestionsFollowFormats` and `TestSeededFormatsNeedOnlySuggestedFields` included; `git diff --exit-code core/database/sourcevocab/testdata` is clean; `rg -n '(source|artifact|graph)\.meta\.' core/database/sourcevocab/registry.go` prints nothing. Other packages with level-named test fixtures still fail; STEP-3 – STEP-6 fix them.
 
 **STEP-3 — One walker**
 Files: `core/database/sourcemetadata/annotation.go`, `annotation_test.go`.
@@ -266,37 +270,38 @@ Do: D-6, D-7. T-6.
 Check: `CGO_ENABLED=1 go test -tags fts5 -run 'TestCitationValues' ./core/database/sourcemetadata/` passes.
 
 **STEP-4 — Boards annotate per field**
-Files: `annotation.go`, `sourcemetadata.go`, `annotation_test.go`, `annotation_fuzz_test.go`, `sourcemetadata_test.go`.
-Do: D-8, D-9, D-10. Rewrite fixtures to `{meta.…}`. T-7, T-8.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/` passes.
+Files: `annotation.go`, `sourcemetadata.go` (`boardInput`, `buildEntries`' `annotation` closure, `listWorkspaces`, `ListDraftWorkspace`), `annotation_test.go`, `annotation_fuzz_test.go`, `sourcemetadata_test.go`.
+Do: D-8, D-9, D-10. `readTypeBoards` and its (type, level) keying do not change. Rewrite fixtures to `{meta.…}`. T-7, T-8.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/` passes, `TestListWorkspacesAnnotationsScale` included.
 
 **STEP-5 — Completion lists each field once**
 Files: `core/database/citationrender/placeholders.go`, `placeholders_test.go`, `render_test.go`, `preview_test.go`.
-Do: D-11; rewrite fixtures; T-9, T-10.
+Do: D-11; rewrite fixtures. T-9, T-10.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/citationrender/` passes, `TestRenderScale` included.
 
 **STEP-6 — Stored formats are rewritten**
-Files: `core/database/migrations/000069.sql` *(new)*; `core/database/sourcetypes/formats_test.go`, `sourcevocab/copy_test.go`, `metadatafields/metadatafields_test.go`. Skill: `add-catalog-migration`.
-Do: D-12. Rewrite fixtures. T-10.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/...` passes except `sourcevocab` (STEP-7).
+Files: `core/database/migrations/000069.sql` *(new)*; `core/database/sourcetypes/formats_test.go`, `core/database/metadatafields/metadatafields_test.go`. Skill: `add-catalog-migration`.
+Do: D-12. Rewrite fixtures. The migration has no Go test (skill).
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/...` passes (Create runs the step and `verifySchema`). Then run the step's statements by hand on a scratch database holding AC-3.1's stored text:
 
-**STEP-7 — The seed reads fields nearest-first**
-Files: `core/database/sourcevocab/registry.go`, `registry_test.go`. Skill: `add-seeded-vocabulary`.
-Do: D-13, D-14. Do **not** run `-update`: `core/database/sourcevocab/testdata/seed-citations.txt` stays byte for byte.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/` passes with `core/database/sourcevocab/testdata/seed-citations.txt` unchanged (`git diff --exit-code core/database/sourcevocab/testdata`); `rg -n '(source|artifact|graph)\.meta\.' core/database/sourcevocab/registry.go` prints nothing.
+```bash
+sqlite3 :memory: "CREATE TABLE source_types (citation_full TEXT, citation_short TEXT, citation_list TEXT); INSERT INTO source_types VALUES ('{source.meta.#a}, [{graph.meta.#b|source.meta.#b}][ {artifact.meta.#c}]', NULL, NULL);" ".read core/database/migrations/000069.sql" "SELECT citation_full FROM source_types;"
+```
 
-**STEP-8 — Wire and handlers**
+It prints `{meta.#a}, [{meta.#b|meta.#b}][ {meta.#c}]` (AC-3.1).
+
+**STEP-7 — Wire and handlers**
 Files: `api/proto/engine.proto`, generated files; `api/ffi/handlers/citation_render_test.go`, `metadata_test.go`, `source_defs_test.go`. Skill: `add-ffi-handler`.
 Do: D-15; `./scripts/generate-proto.sh`; rewrite fixtures; T-13.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./...` passes except `api/ffi` `TestSwiftVocabularyMatchesGo` (STEP-9).
+Check: `CGO_ENABLED=1 go test -tags fts5 ./...` passes except `api/ffi` `TestSwiftVocabularyMatchesGo` (STEP-8).
 
-**STEP-9 — Swift**
-Files: `macos/App/Platform/CitationFormatVocabulary.swift`, `GenealogyStore.swift`, `GoStore.swift`, `FakeStore.swift` (only if a constructor call needs the optional level), `L10n.swift`, `Resources/Localizable.xcstrings`, `Features/SourceTypes/SourceTypeFormatsModel.swift`, `SourceTypeFormatsSection.swift`, `SourceTypePageView.swift`; `macos/ProvenenciaTests/SourceTypeFormatsModelTests.swift`, `CitationFormatsCopyTests.swift`. Skills: `add-localized-string`, `add-swift-test`.
+**STEP-8 — Swift**
+Files: `macos/App/Platform/CitationFormatVocabulary.swift`, `GenealogyStore.swift`, `GoStore.swift`, `FakeStore.swift` (only where a constructor call needs the optional level), `L10n.swift`, `Resources/Localizable.xcstrings`, `Features/SourceTypes/SourceTypeFormatsModel.swift`, `SourceTypeFormatsSection.swift`, `SourceTypePageView.swift`; `macos/ProvenenciaTests/SourceTypeFormatsModelTests.swift`, `CitationFormatsCopyTests.swift`. Skills: `add-localized-string`, `add-swift-test`.
 Do: D-16 – D-19. T-14, T-15.
 Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/` passes; `scripts/check-pr.sh` prints `check-pr: PASS`.
 
-**STEP-10 — Docs**
-Files: `docs/citation-formats.md` (Forms, Syntax, Built-in placeholders' "The Citation level has only built-ins" stays until S15-54, Needed and used, Storage example `{meta.#<id>}`, Rendering, Diagnostics), `docs/source-layer-data-model.md` § 5.4 (**Citation** bullet: a field head shows on every board; met elsewhere at the owner or above), map §§ 6.3, 6.6 (state the nearest-level rule, drop "every placeholder names its level", mark the old text superseded with the date) and § 6.8 (every seed format rewritten as in D-13), `deployment-plan.md` (rule "Boards flag needed fields": a head is emitted on every board from S15-62; map row status; S15-62 scope entry unchanged), `completed.md`, this plan (status, Landed note); version bump.
+**STEP-9 — Docs**
+Files: `docs/citation-formats.md` (Forms, Syntax, Needed and used, Storage example `{meta.#<id>}`, Rendering, Diagnostics; "The Citation level has only built-ins" stays until S15-54), `docs/source-layer-data-model.md` § 5.4 (**Citation** bullet: a field head shows on every board, a list-form one on the Source's; met elsewhere at the owner or above), map §§ 6.3, 6.6 (state the nearest-level rule, drop "every placeholder names its level", mark the old text superseded with the date), § 6.8 (every seed format rewritten as in D-13) and § 6.9 (its one level-named token); `docs/deployment-plan/spike-15/deployment-plan.md` (rule "A format reads a field from the nearest level that holds it": `NearestFirst()` is `MetadataLevels()` reversed with `slices.Reverse`, and it updates §§ 6.3, 6.6, 6.8, 6.9; rule "Boards flag needed fields": a nearest-first head shows on every board from S15-62; the map row's Status), `docs/deployment-plan/spike-15/completed.md`, this plan (Status, Landed note); version bump.
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-62-nearest-level-fields.md` reports no errors; `rg -n '(source|artifact|graph)\.meta\.' docs/citation-formats.md docs/source-layer-data-model.md .agents .cursor` prints only lines that describe the `meta_at_level` diagnostic or the migration.
 
@@ -312,15 +317,15 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-4 | Go | `core/citationformat/rewrite_test.go` `TestFieldSpans`, `TestRewriteFields` | `{meta.a\|meta.a}` → two spans; a rewrite replaces both tokens | D-4 |
 | T-5 | Go | `core/citationformat/placeholder_test.go` `TestMetaFieldPlaceholder` *(renamed from `TestMetaPlaceholder`)* | `line_number` → Text `{meta.line_number}`, Ref `meta.line_number`, Level empty | D-5 |
 | T-6 | Go | `core/database/sourcemetadata/annotation_test.go` `TestCitationValuesResolve` | graph and Source rows → graph's; Artifact and Source → Artifact's; Source only → Source's; graph row unknown → that row (AC-1.4); list target `{source X}` with a graph row only → zero; a whitespace graph row → that row (prints nothing); `Without(graph)` → Source's | AC-1.2, AC-1.3, AC-1.4, AC-1.5, D-6, D-7 |
-| T-7 | Go | `annotation_test.go` `TestNeedsAt`, `TestAnnotate` | `{meta.#a}.` at graph → a needed head (no level filter); a full `[a]` and list `[source a]` merge to the stronger need; head answered on the Source → met elsewhere on an Artifact board, not on the Source board; head answered at the owner only → not met elsewhere | AC-4.1, AC-4.2, D-8, D-9 |
-| T-8 | Go | `sourcemetadata_test.go` `TestListWorkspacesAnnotations`, `TestDismissNeeded` | A census Source board lists the graph and Artifact fields its formats read, unsuggested; an Artifact board on a certificate Source with jurisdiction on the Source → needed, met elsewhere; dismissing needed jurisdiction on a graph → refused | AC-4.1 – AC-4.4, D-10 |
+| T-7 | Go | `annotation_test.go` `TestNeedsAt`, `TestAnnotate` | `{meta.#a}.` at graph → a needed head; a list-form `{meta.#a}.` alone → a head at source, none at graph; a full `[{meta.#a}]` and a list `{meta.#a}` → needed at source, used at graph; head answered on the Source → met elsewhere on an Artifact board, not on the Source board; head answered at the owner only → not met elsewhere | AC-4.1, AC-4.2, D-8, D-9 |
+| T-8 | Go | `sourcemetadata_test.go` `TestListWorkspacesAnnotations`, `TestDismissNeeded` | A census Source board lists the graph and Artifact fields its formats read, unsuggested; an Artifact board on a certificate Source with jurisdiction on the Source → needed, met elsewhere; dismissing needed jurisdiction on a graph → refused; a book Artifact board does not list `author_sort` as needed (list-only) and dismissing it there is allowed | AC-4.1 – AC-4.4, D-8, D-10 |
 | T-9 | Go | `core/database/citationrender/placeholders_test.go` `TestPlaceholders` | Two project fields, full form → built-ins of every level, then each field once as `{meta.<key>}`, level empty; list form → Source built-ins, then each field once | AC-2.1, D-11 |
 | T-10 | Go | `core/database/citationrender/render_test.go` `TestRender` (new cases) | AC-1.1 census Provider on the Source → "…; digital image, *Ancestry* …"; AC-1.2; AC-1.3 | AC-1.1 – AC-1.3 |
 | T-11 | Go | `core/database/sourcevocab/render_test.go` `TestSeedCitations` | The rewritten seed renders `core/database/sourcevocab/testdata/seed-citations.txt` unchanged | AC-3.2, D-13 |
-| T-12 | Go | `registry_test.go` `TestSeedSuggestionsFollowFormats` | Suggestions derived by usual level (website's url and accessed_date at the Source) equal `registry_suggestions.go` | D-14 |
+| T-12 | Go | `registry_test.go` `TestSeedSuggestionsFollowFormats`, `TestSeededFormatsNeedOnlySuggestedFields` | Each type's suggested fields over all levels, as a set, equal its formats' fields (plus record types' copy fields); every needed chain has a field suggested at some level | D-14 |
 | T-13 | Go | `api/ffi/handlers/citation_render_test.go` (the placeholders and preview cases) | `ListCitationPlaceholders` → a field row with `level` ""; a preview missing option for a full-form field → `level` "", list form → "source" | D-15, AC-2.6 |
-| T-14 | Swift | `macos/ProvenenciaTests/SourceTypeFormatsModelTests.swift` `completionRowsComeFromTheFormsPlaceholdersRankedByTheTypedQueryAlone` (fixture with a nil-level field row) and `aFieldRowHasNoLevelInItsSubtext` *(new)* | Query `meta.prov` → the Provider row first; its subtext is `provider meta.provider` | AC-2.1, D-17 |
-| T-15 | Swift | `macos/ProvenenciaTests/CitationFormatsCopyTests.swift` (missing-line test) | `[Jurisdiction (nil level)]` → "Missing: Jurisdiction"; `[Jurisdiction (source)]` → "Missing: Jurisdiction on the Source"; `diagnosticMessage(.metaAtLevel)` → the D-19 text | AC-2.2, AC-2.6, D-18, D-19 |
+| T-14 | Swift | `macos/ProvenenciaTests/SourceTypeFormatsModelTests.swift` `completionRowsComeFromTheFormsPlaceholdersRankedByTheTypedQueryAlone` (fixture with a nil-level field row) and `aFieldRowHasNoLevelInItsSubtextOrSpokenLabel` *(new)* | Query `meta.prov` → the Provider row first; its subtext is `provider meta.provider`; `spokenLabel(of:)` → "Provider"; a built-in row → "Title, Source" | AC-2.1, D-17 |
+| T-15 | Swift | `macos/ProvenenciaTests/CitationFormatsCopyTests.swift` (missing-line test) | `[Jurisdiction (nil level)]` → "Missing: Jurisdiction"; `[Title (source built-in), Title (nil-level field)]` → "Missing: Title on the Source, or Title"; `[Jurisdiction (source)]` → "Missing: Jurisdiction on the Source"; `diagnosticMessage(.metaAtLevel)` → the D-19 text | AC-2.2, AC-2.6, D-18, D-19 |
 
 AC-3.1 is the migration, not tested directly (skill): T-3 tests the text it produces, and the manual check runs it. Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestDocMatchesEngine`, `TestSwiftVocabularyMatchesGo`, `TestSeedCitations`, `TestListWorkspacesAnnotationsScale`, the `deleteimpact` field-in-use tests.
 
@@ -332,14 +337,14 @@ AC-3.1 is the migration, not tested directly (skill): T-3 tests the text it prod
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`unprefixed_meta`, `meta_not_at_level`, `MetaPlaceholder`, `fieldAt`, `diagUnprefixedMeta`, `diagMetaNotAtLevel`); `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`unprefixed_meta`, `meta_not_at_level`, `MetaPlaceholder`, `diagUnprefixedMeta`, `diagMetaNotAtLevel`, `usualLevel`); `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
-- [ ] deployment-plan.md: map row status; rule "Boards flag needed fields" says a head shows on every board from S15-62; completed.md: one short paragraph of what shipped
+- [ ] deployment-plan.md: map row status; rule "Boards flag needed fields" says a head shows on every board from S15-62; docs/deployment-plan/spike-15/completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — not gated
-- [ ] Domain doc updated: docs/citation-formats.md, docs/source-layer-data-model.md § 5.4, map §§ 6.3, 6.6, 6.8
+- [ ] Domain doc updated: docs/citation-formats.md, docs/source-layer-data-model.md § 5.4, map §§ 6.3, 6.6, 6.8, 6.9
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
@@ -354,16 +359,16 @@ AC-3.1 is the migration, not tested directly (skill): T-3 tests the text it prod
 
 | Risk | Mitigation |
 | --- | --- |
-| A seed format's text changes beyond the token rewrite | STEP-7's check: the golden file is unchanged and no level-named token remains |
+| A seed format's text changes beyond the token rewrite | STEP-2's check: the golden file is unchanged and no level-named token remains |
 | A board shows a field twice (suggested at its level and emitted as a head) | `buildEntries`' `seen` set already dedupes a suggested head; T-8 counts rows |
 | Another branch takes migration `000069` first | Rebase renumbers; the file has no number inside it |
 
 **Stop and report if:**
 
 - `core/database/migrations/` already holds `000069.sql` at your base and it is not this PR's.
-- `TestSeedCitations` differs from `core/database/sourcevocab/testdata/seed-citations.txt` after STEP-7 for any line.
+- `TestSeedCitations` differs from `core/database/sourcevocab/testdata/seed-citations.txt` after STEP-2 for any line.
 - `CitationValues` is built anywhere besides `core/database/citationrender/load.go`, `ListDraftWorkspace` and `listWorkspaces` (`rg -n 'CitationValues\{' core api`), or anything besides `Resolve` would read `Rows` by level.
-- `TestListWorkspacesAnnotationsScale` fails its budget after D-10.
+- `TestListWorkspacesAnnotationsScale` needs a change other than its expected annotations (a new query, a board count).
 - A Swift view besides those in § 4 reads `CatalogCitationPlaceholder.level` or `CatalogCitationOption.level` non-optionally.
 - `TestDocMatchesEngine` needs a doc change outside `docs/citation-formats.md`'s Syntax and Diagnostics.
 
