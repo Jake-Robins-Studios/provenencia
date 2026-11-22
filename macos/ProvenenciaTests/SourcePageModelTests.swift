@@ -1772,7 +1772,7 @@ struct SourcePageModelTests {
         )
         store.nextWriteEffects = CatalogWriteEffects(lists: [.counts])
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        let counts = CatalogCounts(projectDir: projectDir, store: store)
+        let counts = CatalogCounts(projectDir: projectDir, store: store, toasts: PVToastList())
         session.onNavCountsMoved = { await counts.refreshAll() }
         let model = SourcePageModel(
             sourceID: sourceID,

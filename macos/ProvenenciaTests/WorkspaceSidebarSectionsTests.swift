@@ -8,7 +8,7 @@ struct WorkspaceSidebarSectionsTests {
     private let projectDir = "/tmp/sidebar.provenencia"
 
     private func counts(_ store: FakeStore = FakeStore()) -> CatalogCounts {
-        CatalogCounts(projectDir: projectDir, store: store)
+        CatalogCounts(projectDir: projectDir, store: store, toasts: PVToastList())
     }
 
     @Test func sectionsAreSourceConcludeThenConfigure() {

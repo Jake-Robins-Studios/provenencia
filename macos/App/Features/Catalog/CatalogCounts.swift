@@ -14,22 +14,18 @@ final class CatalogCounts {
     private(set) var persons: Int?
     private(set) var events: Int?
     private(set) var places: Int?
-    /// Set when `refreshAll` fails; cleared on the next successful refresh, and by
-    /// `WorkspaceView` once it toasts the failure, so the next one toasts again.
-    private(set) var lastRefreshError: String?
 
     private let projectDir: String
     private let store: any GenealogyStore
+    /// Where a failed recount's toast goes: the window's list.
+    private let toasts: PVToastList
     /// A recount assigns only while it is the newest.
     private let latest = LatestCall()
 
-    init(projectDir: String, store: any GenealogyStore) {
+    init(projectDir: String, store: any GenealogyStore, toasts: PVToastList) {
         self.projectDir = projectDir
         self.store = store
-    }
-
-    func clearRefreshError() {
-        lastRefreshError = nil
+        self.toasts = toasts
     }
 
     /// Sidebar badge for a nav destination.
@@ -45,8 +41,9 @@ final class CatalogCounts {
 
     /// Full badge refresh via `GetWorkspaceNavCounts`. Safe to overlap with
     /// destination `load()` — Go `catalogsession` serializes catalog ops.
-    /// Failures set `lastRefreshError` and leave badges unchanged (absent until
-    /// a later success). A write whose `WriteEffects.lists` has `counts`
+    /// A failure adds a danger toast to the window's list and leaves badges
+    /// unchanged (absent until a later success); the same failure again refreshes
+    /// the card on screen. A write whose `WriteEffects.lists` has `counts`
     /// recounts through here, called by `WorkspaceSession.apply` (wired in
     /// `WorkspaceView`). The newest recount wins: Go serializes catalog ops in
     /// call order, so the call started last read the newest catalog, and a
@@ -64,9 +61,12 @@ final class CatalogCounts {
                     persons = nav.persons
                     events = nav.events
                     places = nav.places
-                    lastRefreshError = nil
                 case .failure(let error):
-                    lastRefreshError = L10n.Errors.message(for: error)
+                    toasts.add(
+                        tone: .danger,
+                        title: L10n.string(L10n.Workspace.countsRefreshFailedTitle),
+                        message: L10n.Errors.message(for: error)
+                    )
                 }
             }
         )
