@@ -73,16 +73,3 @@ final class PVToastList {
         }
     }
 }
-
-private struct PVToastListKey: EnvironmentKey {
-    static let defaultValue: PVToastList? = nil
-}
-
-extension EnvironmentValues {
-    /// The toast list of the nearest host: the window, or a sheet over it, so a toast
-    /// raised inside a sheet draws in the sheet.
-    var pvToastList: PVToastList? {
-        get { self[PVToastListKey.self] }
-        set { self[PVToastListKey.self] = newValue }
-    }
-}

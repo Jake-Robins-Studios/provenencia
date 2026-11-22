@@ -12,10 +12,10 @@ final class ConclusionLeadModel {
     private let userID: String
     private let entityId: String
 
-    var toast: VocabularyToast?
-    /// The likeness viewer is open and draws the Toast itself, so the page does not draw it a second
-    /// time (S13-15 D-10). Only ``viewerOpened()`` and ``viewerClosed()`` write it.
-    private(set) var toastInViewer = false
+    /// The toast list of the likeness viewer's sheet while the viewer is open, so a toast shows in
+    /// the sheet over the page (S13-15 D-10). Only ``viewerOpened(toasts:)`` and ``viewerClosed()``
+    /// write it.
+    private var viewerToasts: PVToastList?
     /// The picture whose save is running ("" for going back to the earliest), nil when none is.
     private(set) var savingID: String?
     var isSaving: Bool { savingID != nil }
@@ -26,19 +26,15 @@ final class ConclusionLeadModel {
         self.entityId = entityId
     }
 
-    /// The viewer is on screen: it draws the Toast, and any the page was showing goes.
-    func viewerOpened() {
-        toastInViewer = true
-        toast = nil
+    /// The viewer is on screen: a toast added from now on goes to `toasts`, the viewer's sheet list
+    /// (`nil` outside a sheet, where it goes to the window's).
+    func viewerOpened(toasts: PVToastList?) {
+        viewerToasts = toasts
     }
 
-    /// The viewer is gone, however it went: the page draws the Toast again, and any the viewer was showing goes.
-    /// With no viewer open (the Gallery section left, or an Event or Place page) it does nothing, so a
-    /// Toast the page is showing stays.
+    /// The viewer is gone, however it went: a toast added from now on goes to the window's list.
     func viewerClosed() {
-        guard toastInViewer else { return }
-        toastInViewer = false
-        toast = nil
+        viewerToasts = nil
     }
 
     /// Makes `picture` the lead. Returns whether the save worked.
@@ -71,11 +67,11 @@ final class ConclusionLeadModel {
             let _: CatalogConclusionDetail? = await session.readyValue(
                 .conclusionDetail(project: session.projectKey, entityId: entityId)
             )
-            toast = VocabularyToast(title: copy.toastTitle, body: body, tone: .success)
+            (viewerToasts ?? session.toasts).add(tone: .success, title: copy.toastTitle, message: body)
             return true
         } catch {
             let message = L10n.Errors.message(for: error)
-            toast = VocabularyToast(title: message, body: "", tone: .danger)
+            (viewerToasts ?? session.toasts).add(tone: .danger, title: message, message: nil)
             return false
         }
     }

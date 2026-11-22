@@ -68,7 +68,6 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .environment(navigation)
         .environment(session)
-        .environment(\.pvToastList, session.toasts)
         .task {
             await session.loadNameFormat()
             await catalogCounts.refreshAll()

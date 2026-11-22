@@ -28,7 +28,7 @@ private struct PVSheetChrome<Content: View>: View {
             .environment(\.pvSheetClose, PVSheetClose(run: { next in run(next) }))
             .environment(\.pvSheetInnerEditOpen, innerEditOpen)
             // A sheet covers the window, so a toast raised inside it joins the sheet's own stack.
-            .environment(\.pvToastList, toasts)
+            .environment(\.pvSheetToasts, toasts)
             .overlay { PVToastStack(list: toasts, identifier: "sheet.toasts") }
             .onPreferenceChange(PVSheetInnerEditKey.self) { innerEditOpen = $0 }
             // A zero-size button owns Escape, so the rule lives in one place and
@@ -156,6 +156,19 @@ private struct PVSheetCloseKey: EnvironmentKey {
     nonisolated(unsafe) static let defaultValue = PVSheetClose(run: { next in
         Task { @MainActor in next() }
     })
+}
+
+private struct PVSheetToastsKey: EnvironmentKey {
+    static let defaultValue: PVToastList? = nil
+}
+
+extension EnvironmentValues {
+    /// The toast list of the sheet a view is in, set by `PVSheetChrome`; `nil` outside a sheet,
+    /// where a workspace model adds to `WorkspaceSession.toasts`.
+    var pvSheetToasts: PVToastList? {
+        get { self[PVSheetToastsKey.self] }
+        set { self[PVSheetToastsKey.self] = newValue }
+    }
 }
 
 extension EnvironmentValues {

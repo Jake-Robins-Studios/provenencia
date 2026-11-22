@@ -140,7 +140,7 @@ struct ConclusionDetailPage<Content: ConclusionDetailBody, Secondary: View, Page
     let secondary: (Content) -> Secondary
     /// Everything below the header. The convenience initializer supplies `ConclusionDetailDefaultPageSections`.
     let pageSections: (Content, ConclusionDetailPageSectionsContext) -> PageSections
-    /// Chooses the lead of any kind's gallery. The page owns it, so the page's toast is its own and the
+    /// Chooses the lead of any kind's gallery. The page owns it, so the
     /// model resets with the page, which is keyed by entity id (S14-02 D-7).
     @State private var lead: ConclusionLeadModel
 
@@ -194,8 +194,6 @@ struct ConclusionDetailPage<Content: ConclusionDetailBody, Secondary: View, Page
         .task {
             let _: QueryHandle<CatalogConclusionDetail> = session.query(key)
         }
-        // The viewer draws the Toast itself while it is open; one Toast has one host.
-        .vocabularyToastOverlay(lead.toastInViewer ? .constant(nil) : $lead.toast, identifier: "\(pageIdentifier).toast")
     }
 
     /// The header-less page shown while the detail loads, before and after its handle exists.
