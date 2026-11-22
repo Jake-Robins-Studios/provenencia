@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var model: OnboardingModel
+    @State private var toasts = PVToastList()
 
     init(store: any GenealogyStore = GoStore(), folders: OnboardingFolders? = nil) {
         _model = State(initialValue: OnboardingModel(store: store, folders: folders))
@@ -39,20 +39,12 @@ struct OnboardingView: View {
         .frame(minWidth: PVSpacing.widthWindowMin, minHeight: PVSpacing.heightWindowMin)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .overlay(alignment: .topTrailing) {
-            if let error = model.error {
-                PVToast(
-                    tone: toastTone(for: error),
-                    message: error.localizedDescription,
-                    onDismiss: { model.error = nil }
-                )
-                .accessibilityIdentifier("onboarding.error")
-                .padding(.top, PVSpacing.space6)
-                .padding(.trailing, PVSpacing.space6)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            }
+        .overlay { PVToastStack(list: toasts, identifier: "onboarding.toasts") }
+        .onChange(of: model.error?.localizedDescription, initial: true) {
+            guard let error = model.error else { return }
+            toasts.add(tone: toastTone(for: error), title: nil, message: error.localizedDescription)
+            model.error = nil
         }
-        .animation(reduceMotion ? nil : PVMotion.easeStandard, value: model.error?.localizedDescription)
         .task {
             await model.load()
         }

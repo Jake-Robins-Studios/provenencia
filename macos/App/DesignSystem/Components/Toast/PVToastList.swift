@@ -19,7 +19,7 @@ struct PVToastEntry: Identifiable, Equatable {
 @Observable
 final class PVToastList {
     /// How long a card stays before it leaves on its own.
-    static let lifetime: Duration = .seconds(PVToast.defaultAutoDismissDelay)
+    static let lifetime: Duration = .seconds(5)
 
     private(set) var entries: [PVToastEntry] = []
 
@@ -68,8 +68,8 @@ private struct PVToastListKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// The window's toast list, when one is set. A sheet clears it for its content, so a
-    /// toast raised inside a sheet draws in the sheet.
+    /// The toast list of the nearest host: the window, or a sheet over it, so a toast
+    /// raised inside a sheet draws in the sheet.
     var pvToastList: PVToastList? {
         get { self[PVToastListKey.self] }
         set { self[PVToastListKey.self] = newValue }

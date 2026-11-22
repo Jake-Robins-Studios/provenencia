@@ -31,7 +31,7 @@ struct WorkspaceContent: View {
                 store: store
             )
             // The window's toasts: under the toolbar, over the destination, never over the sidebar.
-            .overlay { PVToastStack(list: session.toasts) }
+            .overlay { PVToastStack(list: session.toasts, identifier: "workspace.toasts") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)

@@ -47,11 +47,10 @@ struct VocabularyHeader: View {
 }
 
 extension View {
-    /// The vocabulary destinations' toast: top-trailing, slides in from the
-    /// trailing edge, honours Reduce Motion. The tone travels with the toast
-    /// (`VocabularyToast.tone`) — the model decides how an event reads. Where the
-    /// window has a toast list (`\.pvToastList`) the toast joins it and the binding
-    /// clears; a sheet has none, so its toast draws here.
+    /// The vocabulary destinations' toast: the model's `VocabularyToast` joins the
+    /// window's or sheet's toast list (`\.pvToastList`) and the binding clears. The
+    /// tone travels with the toast (`VocabularyToast.tone`) — the model decides how
+    /// an event reads.
     func vocabularyToastOverlay(_ toast: Binding<VocabularyToast?>, identifier: String) -> some View {
         modifier(VocabularyToastOverlay(toast: toast, identifier: identifier))
     }
@@ -60,39 +59,18 @@ extension View {
 private struct VocabularyToastOverlay: ViewModifier {
     @Binding var toast: VocabularyToast?
     let identifier: String
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.pvToastList) private var list
 
     func body(content: Content) -> some View {
-        if let list {
-            content.onChange(of: toast, initial: true) {
-                guard let toast else { return }
-                list.add(toast)
-                self.toast = nil
+        content.onChange(of: toast, initial: true) {
+            guard let toast else { return }
+            guard let list else {
+                assertionFailure("vocabularyToastOverlay needs a toast list in the environment")
+                return
             }
-        } else {
-            card(content)
+            list.add(toast)
+            self.toast = nil
         }
-    }
-
-    private func card(_ content: Content) -> some View {
-        content
-            .overlay(alignment: .topTrailing) {
-                if let toast {
-                    PVToast(
-                        tone: toast.tone,
-                        title: toast.title,
-                        // A title-only notice ("James Robins filed on PER-…") has no body line.
-                        message: toast.body.isEmpty ? nil : toast.body,
-                        onDismiss: { self.toast = nil }
-                    )
-                    .id(toast)
-                    .padding(PVSpacing.space8)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
-                    .accessibilityIdentifier(identifier)
-                }
-            }
-            .animation(reduceMotion ? nil : PVMotion.easeStandard, value: toast)
     }
 }
 
