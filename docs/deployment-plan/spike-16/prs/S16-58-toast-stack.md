@@ -9,11 +9,11 @@
 **Blocks:** S16-59
 **Branch:** `s16-58-toast-stack`
 **Version bump:** patch — the next patch after `VERSION` on `main` when the branch is cut (0.32.1 → 0.32.2 at the planning base): toasts stack and the composer's toast moves; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
-**Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
+**Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`use-catalog-session`](../../../../.agents/skills/use-catalog-session/SKILL.md) (its badge-refresh line changes)
 **Rules that bind:** `.cursor/rules/design-system-layers.mdc` (no `Features/` type inside `DesignSystem/Components/`)
 **Context:** brief [S16-D10](../design/S16-D10-toast-stack.md); design [`stacked-toasts.md`](../stacked-toasts.md); map scope entry [S16-58](../deployment-plan.md#s16-58--toasts-stack-in-one-list-per-window); working rule "(Batch 6) One toast stack per window"; bar 32; S16-56's review QCK-1 ([`completed.md`](../completed.md)); the precedent `PVClipboardCopyState` (a kit `@Observable` with an injected sleep)
 **Planned:** 2026-11-22 against `main` @ `4ca4a23`
-**Review:** [`S16-58-toast-stack.review.md`](S16-58-toast-stack.review.md)
+**Review:** [`S16-58-toast-stack.review.md`](S16-58-toast-stack.review.md) — Fits with changes / Ready with changes, 1 round
 
 ### Implementer — read this first
 
@@ -34,7 +34,7 @@ Every toast in the workspace window joins one stack in the content pane's top-tr
 
 **Why now.** Batch 6 takes parked ideas one at a time; this is [`stacked-toasts.md`](../stacked-toasts.md), from dogfood while choosing portraits (bar 32). It also closes S16-56's review finding QCK-1: the failed recount's toast moves out of `WorkspaceView` into a model a test drives.
 
-**What stays.** The `PVToast` card and every toast's copy and tone. Every caller still sets its own `toast` binding (S16-59 moves them). The likeness viewer's sheet and Onboarding draw their own single toast. The sidebar badges keep their last values when a recount fails.
+**What stays.** The `PVToast` card and every toast's copy and tone. Every caller except the composer still sets its own `toast` binding (S16-59 moves them). The likeness viewer's sheet and Onboarding draw their own single toast. The sidebar badges keep their last values when a recount fails.
 
 ## 2. User stories
 
@@ -81,14 +81,15 @@ Every toast in the workspace window joins one stack in the content pane's top-tr
 | Kit `PVToastStack` *(new)* drawing the list (TS-1, TS-2, TS-6, TS-8, TS-W1) | STEP-3, AC-1.1, AC-5.1 |
 | The list is in the environment (`\.pvToastList`); a sheet clears it for its content | STEP-3, AC-4.1 |
 | `vocabularyToastOverlay` forwards into the list when one is in the environment | STEP-4, AC-1.1, AC-1.4 |
-| `WorkspaceView`'s two overlays go; the stack draws over the content pane; notices and history issues join it | STEP-5, AC-1.4 |
-| `CatalogCounts` adds the failed recount's toast to the list (QCK-1) | STEP-6, AC-2.1–AC-2.3 |
-| The composer's `bridgeToast` joins the stack (TS-7) | STEP-7, AC-3.1 |
+| `WorkspaceView`'s two overlays go; the stack draws over the content pane; notices and history issues join it | STEP-6, AC-1.4 |
+| `CatalogCounts` adds the failed recount's toast to the list (QCK-1) | STEP-5, AC-2.1–AC-2.3 |
+| The composer's saved-bridge toast is added to the list; `bridgeToast` goes (TS-7) | STEP-7, AC-3.1 |
 | Kit README rows and the brief's handoff | STEP-8 |
 
 | Out | Home |
 | --- | --- |
-| Each caller adding to the list directly; the forwarding and `session.noticeToast` going; `bridgeToast` going | S16-59 |
+| Each other caller adding to the list directly; the forwarding, `session.noticeToast`, `\.pvToastList` and `PVSheetChrome`'s clear going | S16-59 |
+| One expiry mechanism for the single cards left (`OnboardingView`, a sheet's card) | not planned (two callers, no refresh need; the kit README names the split, STEP-8) |
 | Onboarding's toast (`OnboardingView`) | not planned (no workspace window; working rule) |
 | A toast raised inside a sheet joining the window's stack | not planned (working rule: a sheet keeps its own toast) |
 | A cap, a pile or a "+N more" line | not planned (refused, user 2026-11-17) |
@@ -123,17 +124,21 @@ Every toast in the workspace window joins one stack in the content pane's top-tr
 | D-1 | The window's list is a kit type, `PVToastList` *(new)*, `@MainActor @Observable final class` in `DesignSystem/Components/Toast/PVToastList.swift`, holding `private(set) var entries: [PVToastEntry]` (newest first). `PVToastEntry` *(new)*: `Identifiable, Equatable` with `id: UUID`, `tone: PVToastTone`, `title: String?`, `message: String?` | It is content-agnostic (tone and two strings), the kit stack draws it, and the kit's sheet chrome clears it (D-5); a `Features/` type cannot be named there | A model in `Features/Workspace/` — the kit could not name it; a `[VocabularyToast]` — a feature type |
 | D-2 | `WorkspaceSession` owns the window's list: `let toasts: PVToastList` *(new)*, an `init` parameter `toasts: PVToastList = PVToastList()` | The session is the one object every workspace model already holds, so S16-59 moves callers to `session.toasts.add` with no new plumbing; `WorkspaceView` builds `CatalogCounts` from the same session in its `init` | `@State` on `WorkspaceView` — S16-59's models could not reach it; a second environment object — two ways to reach one list |
 | D-3 | Expiry is in the model: `add` starts a `Task` per entry that awaits `sleep(PVToastList.lifetime)` *(new, `.seconds(PVToast.defaultAutoDismissDelay)`)* and then removes that entry unless cancelled; `dismiss` cancels only that entry's task. `init(sleep: @escaping @MainActor (Duration) async -> Void = { try? await Task.sleep(for: $0) })`. The stack's cards pass `autoDismissAfter: nil` | A test drives the timers with no window (map Check); a refresh must restart a timer whose content did not change, which `PVToast`'s content-keyed `.task(id:)` cannot | View-owned timers (`PVToast`'s `.task`) — untestable without a window, and blind to a refresh |
-| D-4 | `add(tone:title:message:)`: an entry equal on tone, title and message moves to index 0, keeps its `id`, and its timer restarts (old task cancelled, new task started); otherwise a new entry is inserted at index 0. No cap | Working rule; the kept `id` keeps the card's view identity, so `pvAnnounce` does not speak again | A new id on refresh — VoiceOver would read it again |
-| D-5 | The list reaches views through a kit `EnvironmentKey`: `EnvironmentValues.pvToastList: PVToastList?` *(new)*, default `nil`, declared in `PVToastList.swift`. `WorkspaceView` sets it to `session.toasts`; `PVSheetChrome` sets it to `nil` for its content | A sheet covers the window, so every toast inside any `.pvSheet` draws in the sheet (AC-4.1) — fixed once in the sheet chrome, not at the viewer's call site; a custom key can be cleared, as `\.pvSheetClose` is set | `.environment(object)` by type — no clean way to clear it in a sheet; a `forwards: false` flag at `ConclusionPictureViewer` — the next sheet with a toast would forward behind itself |
-| D-6 | `VocabularyToastOverlay` reads `\.pvToastList`. With a list: `.onChange(of: toast, initial: true)` adds a non-nil toast (`PVToastList.add(_ toast: VocabularyToast)` *(new, feature extension in `VocabularyChrome.swift`)*, an empty `body` → `message: nil`) and sets the binding to nil; it draws no card. Without a list: today's card, unchanged | Every page's toasts stack with no caller change (map); `initial: true` forwards a toast set before the overlay mounted | Forwarding through `onAppear` plus `onChange` — two paths for one rule |
-| D-7 | `PVToastStack(list:)` *(new)*, `DesignSystem/Components/Toast/PVToastStack.swift`: a `VStack(alignment: .trailing, spacing: PVSpacing.space4)` of `ForEach(list.entries)` `PVToast(tone:title:message:onDismiss: { list.dismiss(entry.id) }, autoDismissAfter: nil)`, padded `PVSpacing.space8`, in a frame filling its container aligned `.topTrailing`, `.clipped()`. Transition: `.move(edge: .trailing).combined(with: .opacity)`, or `.opacity` under `accessibilityReduceMotion`; `.animation(PVMotion.easeStandard, value: list.entries.map(\.id))` in both cases. `.accessibilityIdentifier("workspace.toasts")` on the column | TS-1, TS-2, TS-6, TS-8; the rule says Reduce Motion fades, so it keeps an animation with an opacity-only transition (today's overlay drops the animation instead) | A `ScrollView` for a burst — TS-6 cuts it at the pane's edge; no animation under Reduce Motion — the rule says it fades |
-| D-8 | The stack draws as `.overlay` on `WorkspaceDestinationHost` inside `WorkspaceContent`, reading `@Environment(\.pvToastList)`; nothing draws when it is nil | TS-2: under the toolbar, over the content pane, never over Back, Forward, the breadcrumbs or the sidebar | On `WorkspaceView` — it would cover the sidebar and toolbar, as the window's toasts do today |
+| D-4 | `add(tone:title:message:)` first turns an empty title or message into `nil` (the one place this rule lives); then an entry equal on tone, title and message moves to index 0, keeps its `id`, and its timer restarts (old task cancelled, new task started); otherwise a new entry is inserted at index 0. No cap | Working rule; the kept `id` keeps the card's view identity, so `pvAnnounce` does not speak again | A new id on refresh — VoiceOver would read it again |
+| D-5 | The list reaches views through a kit `EnvironmentKey`: `EnvironmentValues.pvToastList: PVToastList?` *(new)*, default `nil`, declared in `PVToastList.swift`. `WorkspaceView` sets it to `session.toasts`; `PVSheetChrome` sets it to `nil` for its content. Its one reader is D-6's forwarding (the stack reads the session, D-8), so it is transitional: S16-59 deletes it | A sheet covers the window, so every toast inside any `.pvSheet` draws in the sheet (AC-4.1) — fixed once in the sheet chrome, not at the viewer's call site; a custom key can be cleared, as `\.pvSheetClose` is set | `.environment(object)` by type — no clean way to clear it in a sheet; a `forwards: false` flag at `ConclusionPictureViewer` — the next sheet with a toast would forward behind itself |
+| D-6 | `VocabularyToastOverlay` reads `\.pvToastList`. With a list: `.onChange(of: toast, initial: true)` adds a non-nil toast through `PVToastList.add(_ toast: VocabularyToast)` *(new, a one-line forward to `add(tone:title:message:)`, a feature extension beside `VocabularyToast` in `VocabularyPane.swift`)* and sets the binding to nil; it draws no card, and its `identifier` is used only on the card path. Without a list: today's card, unchanged | Every page's toasts stack with no caller change (map); `initial: true` forwards a toast set before the overlay mounted | Forwarding through `onAppear` plus `onChange` — two paths for one rule |
+| D-7 | `PVToastStack(list:)` *(new)*, `DesignSystem/Components/Toast/PVToastStack.swift`: a `VStack(alignment: .trailing, spacing: PVSpacing.space4)` of `ForEach(list.entries)` `PVToast(tone:title:message:onDismiss: { list.dismiss(entry.id) }, autoDismissAfter: nil)`, padded `PVSpacing.space8`, in a frame filling its container aligned `.topTrailing`, `.clipped()`. Transition: `.move(edge: .trailing).combined(with: .opacity)`, or `.opacity` under `accessibilityReduceMotion`; `.animation(PVMotion.easeStandard, value: list.entries.map(\.id))` in both cases. `.accessibilityIdentifier("workspace.toasts")` on the column. With no entries it draws nothing (no container). The column and its frame have no background or `contentShape`, so a click outside a card reaches the page | TS-1, TS-2, TS-6, TS-8; the rule says Reduce Motion fades, so it keeps an animation with an opacity-only transition (today's overlay drops the animation instead) | A `ScrollView` for a burst — TS-6 cuts it at the pane's edge; no animation under Reduce Motion — the rule says it fades |
+| D-8 | `WorkspaceContent` draws `PVToastStack(list: session.toasts)` as `.overlay` on `WorkspaceDestinationHost`, reading `@Environment(WorkspaceSession.self)` (as `WorkspaceDestinationHost` does) | TS-2: under the toolbar, over the content pane, never over Back, Forward, the breadcrumbs or the sidebar | On `WorkspaceView` — it would cover the sidebar and toolbar, as the window's toasts do today; reading `\.pvToastList` — the key goes in S16-59, the session stays |
 | D-9 | `WorkspaceView`: `countsToast`, its overlay, `presentCountsErrorIfNeeded` and the `.onChange(of: catalogCounts.lastRefreshError)` go. `presentHistoryIssueIfNeeded` calls `session.toasts.add(tone: .danger, …)` with today's copy. `session.noticeToast` keeps its `.vocabularyToastOverlay` binding, placed before `.environment(\.pvToastList, session.toasts)` in the modifier chain so it forwards | One list, no window-level card; the notice keeps working until S16-59 | Forwarding `noticeToast` by hand in the view — a second forwarding path beside D-6 |
 | D-10 | `CatalogCounts.init(projectDir:store:toasts:)` takes the list (required); a failed `refreshAll` adds `tone: .danger`, title `L10n.string(L10n.Workspace.countsRefreshFailedTitle)`, message `L10n.Errors.message(for: error)`. `lastRefreshError` and `clearRefreshError()` go | QCK-1: a test drives the toast through the model; with D-4 a repeat of the same failure refreshes, and one after a dismiss adds again (AC-2.1, AC-2.3) | Keeping `lastRefreshError` beside the toast — a second record of one failure with no reader |
-| D-11 | `CitationComposerModel.bridgeToast` becomes `VocabularyToast?` with `tone: .success` (title `bridgeSavedTitle`, body the saved sentence); `CitationComposerObservationsColumn`'s `.overlay(alignment: .bottom)` is replaced by `.vocabularyToastOverlay($model.bridgeToast, identifier: "citationComposer.bridgeToast")` | It joins the stack through D-6 like every page's toast; S16-59 removes `bridgeToast` with the other bindings | The model calling `session.toasts.add` now — that is S16-59's move for every caller at once |
+| D-11 | `CitationComposerModel+Authoring.swift`'s bridge save calls `session.toasts.add(tone: .success, title: L10n.string(L10n.CitationComposer.bridgeSavedTitle), message: message)` (the model already holds `session`); `CitationComposerModel.bridgeToast` and `CitationComposerObservationsColumn`'s `.overlay(alignment: .bottom)` go. The S16-59 map row drops `bridgeToast` | The toast moves place in this PR anyway; adding directly touches the code once instead of retyping it here and deleting it in S16-59 (review M-3) | Retyping `bridgeToast` to `VocabularyToast?` behind a forwarding overlay — two edits of one line across two PRs |
 | D-12 | The test sleep moves to a shared helper `ManualSleep` *(new)*, `macos/ProvenenciaTests/ManualSleep.swift`, the body of `PVClipboardButtonTests`'s private `Timer` (`sleep`, `settle`, `fire(_:)`, `sleeps`); `PVClipboardButtonTests` uses it | Two suites need it; reuse beats a copy | A second private copy in `PVToastListTests` |
 
-**Rules this plan bends.** None.
+**Rules this plan bends.**
+
+| Rule | Bent by | Answer | Step |
+| --- | --- | --- | --- |
+| [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md) and `docs/design-system-layers.md`: a kit piece needs two real call sites | D-1, D-7: `PVToastList` and `PVToastStack` in `DesignSystem/Components/` with one caller (the workspace window) | The user, 2026-11-17: working rule "(Batch 6) One toast stack per window" names a kit `PVToastStack` | STEP-8: the README's Toast row says it is a one-caller kit piece by that rule |
 
 ## 6. Design
 
@@ -144,13 +149,14 @@ Every toast in the workspace window joins one stack in the content pane's top-tr
 | `PVToastList`, `PVToastEntry` *(new)* | type | `PVClipboardCopyState` (searched `@Observable` under `DesignSystem/`, "toast" across `macos/App`) | A different job (one flag); it is the pattern copied, not the type |
 | `EnvironmentValues.pvToastList` *(new)* | key | `\.pvSheetClose` (`PVSheetCloseKey`) | Different value; same shape |
 | `PVToastStack` *(new)* | component | `VocabularyToastOverlay` (feature, one card) | It draws one optional toast from a binding; the stack draws a list, and the overlay becomes its forwarder |
-| `PVToastList.add(_: VocabularyToast)` *(new)* | func | `VocabularyToastOverlay`'s card mapping (`toast.body.isEmpty ? nil : toast.body`) | The mapping moves into this one helper, used by the overlay's both paths |
+| `PVToastList.add(_: VocabularyToast)` *(new)* | func | `VocabularyToastOverlay`'s card mapping (`toast.body.isEmpty ? nil : toast.body`) | A one-line forward; the empty-to-nil rule moves into the kit `add` (D-4), so every caller matches repeats the same way |
 | `WorkspaceSession.toasts` *(new)* | property | `WorkspaceSession.noticeToast` | The notice is one optional value; it stays until S16-59 |
+| `VocabularyToastTests.swift` *(new)* | test file | `PVToastListTests` | T-7 tests a feature extension; the kit suite tests only the kit |
 | `ManualSleep` *(new)* | test helper | `PVClipboardButtonTests.Timer` (private) | Moved, not copied |
 
 **Builds on.** `PVToast` (each card), `PVToast.defaultAutoDismissDelay`, `pvAnnounce`, `PVMotion.easeStandard`, the `PVSheetChrome` environment pattern, the `PVClipboardCopyState` timer pattern.
-**Deletes.** `WorkspaceView.countsToast`, `presentCountsErrorIfNeeded`, the `.onChange(of: catalogCounts.lastRefreshError)`, the `countsToast` overlay; `CatalogCounts.lastRefreshError`, `clearRefreshError()` and their doc comments; the composer's `.overlay(alignment: .bottom)` `PVToast`; `PVClipboardButtonTests.Timer` (moved). `vocabularyToastOverlay`'s card path stays (sheets use it).
-**Next adds.** S16-59: each model calls `session.toasts.add(…)`; the forwarding in `VocabularyToastOverlay` and `noticeToast` go.
+**Deletes.** `CitationComposerModel.bridgeToast`; `WorkspaceView.countsToast`, `presentCountsErrorIfNeeded`, the `.onChange(of: catalogCounts.lastRefreshError)`, the `countsToast` overlay; `CatalogCounts.lastRefreshError`, `clearRefreshError()` and their doc comments; the composer's `.overlay(alignment: .bottom)` `PVToast`; `PVClipboardButtonTests.Timer` (moved). `vocabularyToastOverlay`'s card path stays (sheets use it).
+**Next adds.** S16-59: each model calls `session.toasts.add(tone:title:message:)` (or `add(_: VocabularyToast)` where it already builds one); the forwarding in `VocabularyToastOverlay`, `noticeToast`, `\.pvToastList` and `PVSheetChrome`'s clear go with it. `VocabularyToast` and the overlay's card path stay only for the sheet (`ConclusionLeadModel`, `ConclusionPictureViewer`): a model that can raise a toast while its sheet is up decides where it draws, as `ConclusionLeadModel.toastInViewer` does. A new sheet uses `.pvSheet`, so its content clears the key until then.
 
 ### Reach
 
@@ -168,7 +174,8 @@ None — no catalog read or write. The list holds what the researcher's actions 
 ### Edges
 
 - **Assumptions.** `PVAnnounce` speaks on appear: a refreshed entry keeps its `id`, so its card keeps its identity and is not spoken again (T-3). A cancelled task must not remove its entry after the sleep returns: `guard !Task.isCancelled` (T-3, T-4).
-- **Neighbors.** Same tone and title, different message → two cards (T-5). Same title and message, different tone → two cards (T-5). A title-only toast (`body` "") equals another title-only toast with that title (T-6).
+- **Neighbors.** Same tone and title, different message → two cards (T-5). Same title and message, different tone → two cards (T-5). A title-only toast equals another title-only toast with that title, whether its message is `nil` or `""` (T-6).
+- **Coalesced sets.** A model that sets an equal `VocabularyToast` twice within one update is forwarded once; the result is the same single card a repeat gives.
 - **Removed inputs.** A dismissed entry's timer firing later removes nothing else (T-4). `dismiss` of an unknown id does nothing (T-4).
 - **The lead's toast.** A page card forwarded before the likeness viewer opens stays in the window's stack until its timer; `viewerOpened()` clears only the binding. The viewer draws its own toasts in the sheet (D-5), so no toast shows twice; the S13-15 D-10 rule (one surface per toast) holds.
 - **Real data / Untrusted size.** None — no data from the catalog.
@@ -194,7 +201,7 @@ None —.
 | Toast list | `PVToastList` *(new)* | `DesignSystem/Components/Toast/PVToastList.swift` | D-1 – D-5 |
 | The window's toasts | `WorkspaceView`, `WorkspaceContent` | `Features/Workspace/` | D-8, D-9 |
 | A page's toast | `vocabularyToastOverlay` | `Features/CatalogVocabulary/VocabularyChrome.swift` | D-6 |
-| Composer toast | `vocabularyToastOverlay` | `Features/CitationComposer/CitationComposerSubjectGroups.swift` | D-11 |
+| Composer toast | `session.toasts` | `Features/CitationComposer/CitationComposerModel+Authoring.swift` | D-11; the column's overlay goes |
 | Sheet | `PVSheetChrome` | `DesignSystem/Components/Panel/PVSheet.swift` | Clears `\.pvToastList` (D-5) |
 
 Signatures:
@@ -212,7 +219,7 @@ struct PVToastStack: View { let list: PVToastList }
 extension EnvironmentValues { var pvToastList: PVToastList? }
 ```
 
-States: none (no cards: nothing drawn); one; many (cut at the pane's bottom). Accessibility: each card announces once (`PVToast`), its dismiss button is labelled (`L10n.DesignSystem.toastDismiss`); `PVToastTone` keeps its fileprivate color and icon.
+States: none (no cards: no view at all); one; many (cut at the pane's bottom). Accessibility: each card announces once (`PVToast`), its dismiss button is labelled (`L10n.DesignSystem.toastDismiss`); `PVToastTone` keeps its fileprivate color and icon.
 
 ### Strings
 
@@ -232,32 +239,32 @@ Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia
 
 **STEP-3 — The stack, and sheets keep their own toast**
 Files: `PVToastStack.swift` *(new)*, `macos/App/DesignSystem/Components/Panel/PVSheet.swift` (`PVSheetChrome`). Skill: `add-ui-component`.
-Do: D-7 with a `#Preview` of three entries; `PVSheetChrome` adds `.environment(\.pvToastList, nil)` beside `\.pvSheetClose` (D-5).
+Do: D-7, with a `#Preview` of three entries on a list built with `PVToastList(sleep: { _ in await withCheckedContinuation { (_: CheckedContinuation<Void, Never>) in } })`, a sleep that never returns, so the cards stay; `PVSheetChrome` adds `.environment(\.pvToastList, nil)` beside `\.pvSheetClose` (D-5).
 Check: the project builds; the preview shows three stacked cards top-trailing.
 
 **STEP-4 — Pages forward into the list**
-Files: `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift`.
-Do: D-6, with `PVToastList.add(_: VocabularyToast)`. T-7.
+Files: `macos/App/Features/CatalogVocabulary/VocabularyChrome.swift`, `VocabularyPane.swift`.
+Do: D-6; `PVToastList.add(_: VocabularyToast)` beside `VocabularyToast`. T-7.
 Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVToastListTests` passes.
 
-**STEP-5 — The window draws one stack**
-Files: `macos/App/Features/Workspace/Session/WorkspaceSession.swift`, `WorkspaceView.swift`, `WorkspaceContent.swift`.
-Do: D-2, D-8, D-9. `WorkspaceView.init` passes `session.toasts` to `CatalogCounts` (STEP-6 adds the parameter; land STEP-5 and STEP-6 in one commit if the build needs it).
-Check: the app builds; manual check 1 and 2.
+**STEP-5 — The session holds the list, and a failed recount adds its toast**
+Files: `macos/App/Features/Workspace/Session/WorkspaceSession.swift`, `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/App/Features/Workspace/WorkspaceView.swift` (`init` and the counts path only), `.agents/skills/use-catalog-session/SKILL.md`, `macos/ProvenenciaTests/CatalogCountsTests.swift`, and the `CatalogCounts(projectDir:store:)` call sites in `SourcePageModelTests.swift`, `CatalogSessionStoreTests.swift`, `WorkspaceSidebarSectionsTests.swift`, `SourceCopyModelTests.swift`. Skill: `add-swift-test`.
+Do: D-2 (with the doc comment on `WorkspaceSession` naming `toasts`) and D-10. `WorkspaceView.init` builds `CatalogCounts(projectDir:store:toasts: session.toasts)`; `presentCountsErrorIfNeeded` and its `.onChange` go. The skill's line becomes: "Badge refresh (`CatalogCounts.refreshAll`) must not swallow errors silently: a failure adds a danger toast to the window's list (`CatalogCounts(projectDir:store:toasts:)`)." `CatalogCountsTests.makeCounts(store:toasts:)` takes `toasts: PVToastList = PVToastList(sleep: ManualSleep().sleep)`, so no entry expires during a test; T-8 builds its own list, passes it, and dismisses with `toasts.dismiss(toasts.entries[0].id)`. The other files pass `toasts: PVToastList()`. T-8, T-9. One commit.
+Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/CatalogCountsTests` passes; the app builds.
 
-**STEP-6 — A failed recount adds its toast through the model**
-Files: `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/ProvenenciaTests/CatalogCountsTests.swift`, and the `CatalogCounts(projectDir:store:)` call sites in `SourcePageModelTests.swift`, `CatalogSessionStoreTests.swift`, `WorkspaceSidebarSectionsTests.swift`, `SourceCopyModelTests.swift`. Skill: `add-swift-test`.
-Do: D-10. Tests T-8, T-9; the other tests pass `toasts: PVToastList()`.
-Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/CatalogCountsTests` passes.
+**STEP-6 — The window draws one stack**
+Files: `WorkspaceView.swift`, `WorkspaceContent.swift`.
+Do: D-8, D-9 (the `countsToast` state and overlay go; history issues add to `session.toasts`; the notice overlay forwards).
+Check: the app builds; manual checks 1 and 2.
 
 **STEP-7 — The composer's toast joins the stack**
 Files: `macos/App/Features/CitationComposer/CitationComposerModel.swift`, `CitationComposerModel+Authoring.swift`, `CitationComposerSubjectGroups.swift`.
 Do: D-11.
-Check: the app builds; manual check 4.
+Check: the app builds; `rg -n bridgeToast macos` finds nothing; manual check 4.
 
 **STEP-8 — Kit README**
 Files: `macos/App/DesignSystem/README.md`.
-Do: the Toast row names `PVToastStack.swift` and `PVToastList.swift`: one list per workspace window, newest first, each card's own five-second timer, a repeat refreshes, a sheet clears `\.pvToastList` and draws its own card.
+Do: the Toast row names `PVToastStack.swift` and `PVToastList.swift`: one list per workspace window, newest first, a repeat refreshes, a sheet clears `\.pvToastList` and draws its own card. Cards in a stack expire through `PVToastList`; a single `PVToast` keeps `autoDismissAfter`; a single card that needs a refresh moves to a list, not to a third timer. The stack is a one-caller kit piece by the working rule "(Batch 6) One toast stack per window".
 Check: `python3 scripts/check-guidance-names.py` passes.
 
 **STEP-9 — Docs**
@@ -276,14 +283,14 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-3 | Swift | `PVToastListTests` `repeatMovesToTopKeepsIdAndRestartsTimer` *(new)* | add A, add B, add A again → `[A, B]`, A's `id` unchanged, three sleeps; fire A's first sleep → still `[A, B]`; fire A's third → `[B]` | AC-2.1, D-4 |
 | T-4 | Swift | `PVToastListTests` `dismissKeepsTheOtherTimer` *(new)* | add A, add B; `dismiss(B.id)` → `[A]`, no new sleep; fire B's sleep → `[A]`; fire A's → `[]`; `dismiss` of an unknown id → no change | AC-1.2, D-3 |
 | T-5 | Swift | `PVToastListTests` `differentToneOrMessageAddsACard` *(new)* | (success, "Saved", "x") then (danger, "Saved", "x") → 2 entries; then (success, "Saved", "y") → 3 | AC-2.2, D-4 |
-| T-6 | Swift | `PVToastListTests` `titleOnlyRepeatRefreshes` *(new)* | (info, "Filed", nil) twice → 1 entry | D-4 |
-| T-7 | Swift | `PVToastListTests` `vocabularyToastWithEmptyBodyAddsTitleOnly` *(new)* | `add(VocabularyToast(title: "Filed", body: "", tone: .info))` → entry `message == nil`, tone `.info` | D-6 |
+| T-6 | Swift | `PVToastListTests` `titleOnlyRepeatRefreshes` *(new)* | (info, "Filed", nil) then (info, "Filed", "") → 1 entry, `message == nil` | D-4 |
+| T-7 | Swift | `VocabularyToastTests.swift` `addingAVocabularyToastForwardsItsFields` *(new)* | `add(VocabularyToast(title: "Filed", body: "", tone: .info))` → one entry, title "Filed", `message == nil`, tone `.info` | D-6 |
 | T-8 | Swift | `CatalogCountsTests` `writeRecountFailureAddsToastEachTime` *(replaces `writeRecountFailureSetsErrorEachTime`)* | good count; a write's recount fails → one danger entry, title `countsRefreshFailedTitle`, message `L10n.Errors.unknown`, `counts.sources == 1`; fails again → still one entry; dismiss it; fails again → one entry | AC-2.1, AC-2.3, D-10 |
-| T-9 | Swift | `CatalogCountsTests` `refreshAllFailureAddsToastAndLeavesBadgesUnset`, `refreshAllSuccessAddsNoToast`, `refreshAllOnEmptyProjectYieldsZero` *(edited)* | assertions on `lastRefreshError` become assertions on the list's entries | D-10 |
+| T-9 | Swift | `CatalogCountsTests` `refreshAllFailureAddsToastAndLeavesBadgesUnset` *(renamed from `refreshAllFailureSetsLastRefreshErrorAndLeavesBadgesUnset`)*, `refreshAllSuccessAddsNoToast` *(renamed from `refreshAllSuccessClearsLastRefreshError`)*, `refreshAllOnEmptyProjectYieldsZero` *(edited)* | assertions on `lastRefreshError` become assertions on the list's entries | D-10 |
 
-The stack, the forwarding into it and the sheet's clearing are views; the manual check covers AC-1.1, AC-1.4, AC-3.1, AC-4.1 and AC-5.1.
+The stack, the forwarding into it, the sheet's clearing and the composer's save are views or have no test harness today (no test saves a bridge); the manual check covers AC-1.1, AC-1.4, AC-3.1, AC-4.1 and AC-5.1.
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `CatalogCountsTests`, `PVClipboardButtonTests`, `SourceTypePageModelTests` (asserts `session.noticeToast`, which stays).
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `CatalogCountsTests`, `PVClipboardButtonTests`, `PVToastTests` (the single card's timer, unchanged), `SourceTypePageModelTests` (asserts `session.noticeToast`, which stays).
 
 ## 9. Definition of done
 
@@ -293,7 +300,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `C
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`lastRefreshError`, `clearRefreshError`, `presentCountsErrorIfNeeded`, `countsToast`); `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left (`lastRefreshError`, `clearRefreshError`, `presentCountsErrorIfNeeded`, `countsToast`, `bridgeToast`); `scripts/check-guidance-names.py` passes (check-pr runs it)
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — or none
@@ -323,7 +330,7 @@ On a project with a Person who has two likenesses from two Sources:
 | --- | --- |
 | A toast raised inside a sheet forwards to the window's stack behind the sheet | D-5 clears `\.pvToastList` in `PVSheetChrome`; manual check 5 |
 | The overlay on `WorkspaceView` that forwards `noticeToast` sits outside `.environment(\.pvToastList, …)` and draws its own card | D-9 names the order; manual check 2 shows a notice in the stack |
-| The column's empty area swallows clicks on the page | Manual check 7 |
+| The column's empty area swallows clicks on the page | D-7 draws no background; manual check 7. If it fails, stop and report |
 
 **Stop and report if:**
 
@@ -331,6 +338,7 @@ On a project with a Person who has two likenesses from two Sources:
 - `PVToast`'s announce speaks again when a refreshed card moves to the top (T-3 holds the id, but VoiceOver in manual check says otherwise): D-4 needs a different identity rule.
 - A caller other than those in §4 draws a `PVToast` inside the workspace (`rg -n "PVToast\(" macos/App/Features` finds one beyond `VocabularyChrome.swift`, `OnboardingView.swift` and, until STEP-7, `CitationComposerSubjectGroups.swift`).
 - A test outside §8 asserts `CatalogCounts.lastRefreshError`.
+- Manual check 7 finds a click beside the column does not reach the page.
 
 ## 12. Open questions
 
