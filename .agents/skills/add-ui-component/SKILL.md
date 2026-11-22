@@ -94,7 +94,7 @@ A control that owns an open edit inside a sheet raises `.pvSheetInnerEdit(isOpen
 
 **Every floating popup closes through `.pvPopup`** (`Components/Popup/PVPopup.swift`). Do not add an `NSEvent` monitor or a `didResignKeyNotification` observer to close a popup; a popup's real difference is a `PVPopupOptions` field. An action menu is one `.pvActionMenu` (or `.pvRightClickMenu`); its keyboard skips disabled rows. A floating list under a field is one `.pvPopupList`; its field keeps its keys and holds one `PVPopupListHighlight`. Every floating popup's window is a `PVPopupWindowHost` (`Components/Popup/PVPopupWindowHost.swift`); do not subclass `NSPanel`.
 
-Kit components announce themselves: a toast speaks its title and message, and an error callout or error line passes `announces: true`; no call site posts its own. A sheet's content closes its sheet through `@Environment(\.pvSheetClose)`, and a form that asks "Discard changes?" before a step holds the step in a `PVDiscardGate`.
+Kit components announce themselves: a toast speaks its title and message, and an error callout or error line passes `announces: true`; no call site posts its own. A sheet's content closes its sheet through `@Environment(\.pvSheetClose)`, and a form that asks "Discard changes?" before a step holds the step in a `PVDiscardGate`. A sheet's content that must raise a toast reads `@Environment(\.pvSheetToasts)` and hands it to its model (`ConclusionLeadModel.viewerOpened(toasts:)`); a workspace model adds to `WorkspaceSession.toasts`.
 
 macOS sheets: **no scrim/dim**, no redrawing window corner radius/shadow on panel content.
 Dismissal for async work stays on the caller binding (`isRunning` can show). See

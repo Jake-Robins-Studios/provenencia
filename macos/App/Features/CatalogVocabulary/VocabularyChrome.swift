@@ -46,34 +46,6 @@ struct VocabularyHeader: View {
     }
 }
 
-extension View {
-    /// The vocabulary destinations' toast: the model's `VocabularyToast` joins the
-    /// window's or sheet's toast list (`\.pvToastList`) and the binding clears. The
-    /// tone travels with the toast (`VocabularyToast.tone`) — the model decides how
-    /// an event reads.
-    func vocabularyToastOverlay(_ toast: Binding<VocabularyToast?>, identifier: String) -> some View {
-        modifier(VocabularyToastOverlay(toast: toast, identifier: identifier))
-    }
-}
-
-private struct VocabularyToastOverlay: ViewModifier {
-    @Binding var toast: VocabularyToast?
-    let identifier: String
-    @Environment(\.pvToastList) private var list
-
-    func body(content: Content) -> some View {
-        content.onChange(of: toast, initial: true) {
-            guard let toast else { return }
-            guard let list else {
-                assertionFailure("vocabularyToastOverlay needs a toast list in the environment")
-                return
-            }
-            list.add(toast)
-            self.toast = nil
-        }
-    }
-}
-
 /// The Metadata detail pane's header, shared by its add / locked / editable
 /// states: eyebrow with the delete affordance, display title, origin badge
 /// beside the mono key, then the key hint. Mints `<prefix>.detail.key` and
