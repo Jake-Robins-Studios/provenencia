@@ -1,6 +1,6 @@
 # S15-61 — Metadata levels are one declared list
 
-**Status:** Planned
+**Status:** Landed in [#943](https://github.com/Jake-Robins-Studios/provenencia/pull/943) (2026-11-22)
 **Spike / slice:** Spike 15 · Slice 11 — Citation metadata
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: a Go refactor of how the metadata stores, delete rows and effects entries are built; no view draws anything different)
