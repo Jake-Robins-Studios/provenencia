@@ -98,7 +98,11 @@ struct WorkspaceNavigationTests {
             #expect(navigation.currentLocation == .sectionRoot(.sources))
             let remembered = navigation.backJumpItems(limit: 100) + navigation.forwardJumpItems(limit: 100)
             #expect(!remembered.contains { $0.location.graphId == "g-x" })
-            #expect(session.noticeToast?.title == notice)
+            if let notice {
+                #expect(session.toasts.cards == [ToastCard(.info, notice)])
+            } else {
+                #expect(session.toasts.cards.isEmpty)
+            }
         }
     }
 

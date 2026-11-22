@@ -158,7 +158,6 @@ private struct EvidenceGraphContent: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(verbatim: model.canvasAccessibilityLabel))
-        .vocabularyToastOverlay($model.toast, identifier: "evidenceGraph.toast")
         .pvFormDialog(
             isPresented: sheetPresented,
             copy: PVFormDialogCopy(

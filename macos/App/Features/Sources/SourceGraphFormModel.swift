@@ -202,10 +202,10 @@ final class SourceGraphFormModel {
                     metadata: metadata
                 )
                 context.applySavedMetadata(rows, owner: MetadataOwner(level: .graph, id: graph.id), effects: effects)
-                context.toast = VocabularyToast(
+                context.session.toasts.add(
+                    tone: .success,
                     title: L10n.string(L10n.Sources.toastGraphAddedTitle),
-                    body: L10n.Sources.toastGraphAddedBody(ref: graph.ref),
-                    tone: .success
+                    message: L10n.Sources.toastGraphAddedBody(ref: graph.ref)
                 )
             case .edit(let graph):
                 // Empty ids (a Source with no Artifacts) leave the links unchanged.

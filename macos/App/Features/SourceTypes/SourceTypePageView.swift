@@ -40,7 +40,6 @@ struct SourceTypePageView: View {
         SourceTypePageContent(typeID: typeID, typesHandle: model.typesHandle, model: model)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(PVColor.surfacePage)
-            .vocabularyToastOverlay($model.toast, identifier: "sourceTypes.page.toast")
             .sourceTypeCopyDialog($model.copying) { model.open(copy: $0) }
             .workspaceLeaveGuard(model)
             .leavesForSectionRoot(when: model.isGone, notice: model.goneNotice)

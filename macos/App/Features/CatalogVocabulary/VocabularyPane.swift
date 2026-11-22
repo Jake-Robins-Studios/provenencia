@@ -25,19 +25,3 @@ extension Array where Element: CatalogVocabularyRow {
     var userCount: Int { filter { $0.origin == CatalogOrigin.user }.count }
     var pluginCount: Int { filter { CatalogOrigin.isPlugin($0.origin) }.count }
 }
-
-/// A vocabulary destination's toast. Add / update read as success; detaching
-/// a suggestion is not a win, just a change, so it carries `.info` — the
-/// tone is the model's call, never hard-coded at the view.
-struct VocabularyToast: Equatable, Hashable {
-    var title: String
-    var body: String
-    var tone: PVToastTone
-}
-
-extension PVToastList {
-    /// Adds a page's toast to the list; a title-only notice has no body line.
-    func add(_ toast: VocabularyToast) {
-        add(tone: toast.tone, title: toast.title, message: toast.body)
-    }
-}

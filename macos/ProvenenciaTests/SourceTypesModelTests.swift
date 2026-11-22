@@ -335,6 +335,6 @@ struct SourceTypesModelTests {
         #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
         #expect(navigation.currentLocation.typeId == nil)
         #expect(model.types.isEmpty)
-        #expect(page.toast == nil)
+        #expect(session.toasts.cards.isEmpty)
     }
 }

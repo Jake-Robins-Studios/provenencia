@@ -82,10 +82,11 @@ struct CatalogCountsTests {
         let counts = makeCounts(store: store, toasts: toasts)
         await counts.refreshAll()
 
-        #expect(toasts.entries.count == 1)
-        #expect(toasts.entries[0].tone == .danger)
-        #expect(toasts.entries[0].title == L10n.string(L10n.Workspace.countsRefreshFailedTitle))
-        #expect(toasts.entries[0].message == L10n.string(L10n.Errors.unknown))
+        #expect(toasts.cards == [ToastCard(
+            .danger,
+            L10n.string(L10n.Workspace.countsRefreshFailedTitle),
+            L10n.string(L10n.Errors.unknown)
+        )])
         #expect(counts.sources == nil)
         #expect(counts.badge(for: .sources) == nil)
     }
@@ -118,10 +119,11 @@ struct CatalogCountsTests {
         store.workspaceNavCountsError = Boom.boom
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
-        #expect(toasts.entries.count == 1)
-        #expect(toasts.entries[0].tone == .danger)
-        #expect(toasts.entries[0].title == L10n.string(L10n.Workspace.countsRefreshFailedTitle))
-        #expect(toasts.entries[0].message == L10n.string(L10n.Errors.unknown))
+        #expect(toasts.cards == [ToastCard(
+            .danger,
+            L10n.string(L10n.Workspace.countsRefreshFailedTitle),
+            L10n.string(L10n.Errors.unknown)
+        )])
         #expect(counts.sources == 1)
         let first = toasts.entries[0].id
 
@@ -135,8 +137,8 @@ struct CatalogCountsTests {
         await session.settleWrites()
         #expect(toasts.entries.count == 1, "a different failure keeps the one card")
         #expect(toasts.entries[0].id == first)
-        #expect(toasts.entries[0].message == L10n.Errors.message(code: "catalog.closed"))
-        #expect(toasts.entries[0].message != L10n.string(L10n.Errors.unknown))
+        #expect(toasts.cards.first?.message == L10n.Errors.message(code: "catalog.closed"))
+        #expect(toasts.cards.first?.message != L10n.string(L10n.Errors.unknown))
 
         toasts.dismiss(first)
         #expect(toasts.entries.isEmpty)

@@ -1,6 +1,6 @@
 # S16-59 — Workspace callers add to the toast stack
 
-**Status:** Planned
+**Status:** Landed in [#945](https://github.com/Jake-Robins-Studios/provenencia/pull/945) (2026-11-22)
 **Spike / slice:** Spike 16 · Slice 6e — Stacked toasts
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: every toast keeps its copy, tone and host stack; only how a model reaches the list changes)
@@ -327,3 +327,12 @@ None.
 
 **Title:** S16-59 — Workspace callers add to the toast stack
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-59-toast-callers.md`.
+
+## Landed
+
+- The `\.pvSheetToasts` key and the viewer's read of it landed with STEP-6 rather than STEP-7, since the viewer needed it before the old key went; the commits are grouped by behavior, not by step.
+- `SourceTypePageModel.keepEditing`, `PromoteModel`, `SourceMoveModel` and `LeavesForSectionRoot.leave` moved to `session.toasts.add` in the STEP-3 and STEP-5 commits as the plan says; STEP-3 also converted `keepEditing`, so its test's `noticeToast` checks moved there.
+- `PromoteModel`'s title-only-when-no-skips body passes `nil` in place of `""`.
+- Source page tests that had no session in scope (`SourcePageModelTests` attach refusal) build one and pass it as `session:`.
+- Assertions on a toast's title or message alone (where the other field is not what the test is about) read `cards.first?.title` or `cards.first?.message`; whole-card comparisons are used where the test knows both.
+- `docs/deployment-plan/spike-16/deployment-plan.md` scope entries for S16-58 and S16-59 still name `vocabularyToastOverlay`, `noticeToast` and `toastInViewer`: they describe what each PR changed, so they were left.

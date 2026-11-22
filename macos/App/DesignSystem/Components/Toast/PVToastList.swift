@@ -10,9 +10,9 @@ struct PVToastEntry: Identifiable, Equatable {
     let message: String?
 }
 
-/// The toasts of one window, newest first, each leaving on its own timer or when
-/// dismissed. Kept apart from the view so a test proves the timing without a window
-/// or a real wait (the shape of ``PVClipboardCopyState``).
+/// The toasts of one host (the workspace window, a sheet, or Onboarding), newest first, each
+/// leaving on its own timer or when dismissed. Kept apart from the view so a test proves the
+/// timing without a window or a real wait (the shape of ``PVClipboardCopyState``).
 ///
 /// Every add makes a card and returns its id; the list never compares text. A caller
 /// that wants one card for a repeating event holds the id and passes it back as
@@ -71,18 +71,5 @@ final class PVToastList {
             guard !Task.isCancelled, let self else { return }
             dismiss(id)
         }
-    }
-}
-
-private struct PVToastListKey: EnvironmentKey {
-    static let defaultValue: PVToastList? = nil
-}
-
-extension EnvironmentValues {
-    /// The toast list of the nearest host: the window, or a sheet over it, so a toast
-    /// raised inside a sheet draws in the sheet.
-    var pvToastList: PVToastList? {
-        get { self[PVToastListKey.self] }
-        set { self[PVToastListKey.self] = newValue }
     }
 }

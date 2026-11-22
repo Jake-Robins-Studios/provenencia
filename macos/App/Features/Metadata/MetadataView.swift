@@ -73,7 +73,6 @@ private struct MetadataContent: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .vocabularyToastOverlay($model.toast, identifier: "metadata.toast")
         .pvDeleteImpact(
             flow: model.deleteImpact,
             accessibilityIdentifierPrefix: "metadata.deleteImpact",

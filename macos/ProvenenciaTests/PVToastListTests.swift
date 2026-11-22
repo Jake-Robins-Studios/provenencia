@@ -7,8 +7,6 @@ struct PVToastListTests {
         PVToastList(sleep: { await timer.sleep($0) })
     }
 
-    private func titles(_ list: PVToastList) -> [String?] { list.entries.map(\.title) }
-
     /// T-1 (AC-1.1, D-4).
     @Test func addPutsNewestFirst() async {
         let timer = ManualSleep()
@@ -16,7 +14,7 @@ struct PVToastListTests {
         list.add(tone: .success, title: "A", message: nil)
         list.add(tone: .success, title: "B", message: nil)
         await timer.settle()
-        #expect(titles(list) == ["B", "A"])
+        #expect(list.cards.map(\.title) == ["B", "A"])
         #expect(timer.sleeps == 2)
     }
 
@@ -28,7 +26,7 @@ struct PVToastListTests {
         list.add(tone: .success, title: "B", message: nil)
         await timer.settle()
         await timer.fire(0)
-        #expect(titles(list) == ["B"])
+        #expect(list.cards.map(\.title) == ["B"])
         await timer.fire(1)
         #expect(list.entries.isEmpty)
     }
@@ -41,13 +39,13 @@ struct PVToastListTests {
         list.add(tone: .success, title: "B", message: nil)
         list.add(tone: .success, title: "C", message: "z", replacing: a)
         await timer.settle()
-        #expect(titles(list) == ["C", "B"])
+        #expect(list.cards.map(\.title) == ["C", "B"])
         #expect(list.entries[0].id == a)
         #expect(timer.sleeps == 3)
         await timer.fire(0)
-        #expect(titles(list) == ["C", "B"])
+        #expect(list.cards.map(\.title) == ["C", "B"])
         await timer.fire(2)
-        #expect(titles(list) == ["B"])
+        #expect(list.cards.map(\.title) == ["B"])
     }
 
     /// Equal adds are two cards: the list never compares text.
@@ -70,10 +68,10 @@ struct PVToastListTests {
         list.add(tone: .success, title: "B", message: nil)
         await timer.settle()
         list.dismiss(list.entries[0].id)
-        #expect(titles(list) == ["A"])
+        #expect(list.cards.map(\.title) == ["A"])
         #expect(timer.sleeps == 2)
         await timer.fire(1)
-        #expect(titles(list) == ["A"])
+        #expect(list.cards.map(\.title) == ["A"])
         await timer.fire(0)
         #expect(list.entries.isEmpty)
         list.add(tone: .success, title: "C", message: nil)

@@ -277,9 +277,9 @@ struct PersonDetailTests {
     }
 
     @MainActor
-    private func leadModel(_ store: FakeStore) -> ConclusionLeadModel {
+    private func leadModel(_ store: FakeStore) -> (ConclusionLeadModel, WorkspaceSession) {
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: "/tmp/p.provenencia"), store: store)
-        return ConclusionLeadModel(session: session, userID: "user-1", entityId: "per-1")
+        return (ConclusionLeadModel(session: session, userID: "user-1", entityId: "per-1"), session)
     }
 
     private func censusTile() -> ConclusionDetailPicture {
@@ -296,29 +296,32 @@ struct PersonDetailTests {
         )[0]
     }
 
+    /// AC-2.2, AC-2.3: a toast goes to the viewer's sheet list while the viewer is open, else to the window's.
     @MainActor
-    @Test func leavingTheSectionKeepsAPageToast() {
-        let model = leadModel(FakeStore())
-        let toast = VocabularyToast(title: "Saved", body: "", tone: .success)
-        model.toast = toast
+    @Test func aToastGoesToTheViewerWhileItIsOpen() async {
+        let store = FakeStore()
+        let (model, session) = leadModel(store)
+        let sheet = PVToastList()
+        model.viewerOpened(toasts: sheet)
+        await model.choose(censusTile(), copy: .personPortrait)
+        #expect(sheet.cards.count == 1)
+        #expect(session.toasts.cards.isEmpty)
+
         model.viewerClosed()
-        #expect(model.toast == toast)
-        model.viewerOpened()
-        #expect(model.toast == nil)
-        model.toast = toast
-        model.viewerClosed()
-        #expect(model.toast == nil)
+        await model.useEarliest(copy: .personPortrait)
+        #expect(session.toasts.cards.count == 1)
+        #expect(sheet.cards.count == 1)
     }
 
     @MainActor
     @Test func choosingAPortraitWritesAndToasts() async {
         let store = FakeStore()
-        let model = leadModel(store)
+        let (model, session) = leadModel(store)
         await model.choose(censusTile(), copy: .personPortrait)
         #expect(store.recordedCalls.last == "setPreferredLikeness entity=per-1 observation=obs-b")
-        #expect(model.toast == VocabularyToast(
-            title: "Portrait updated", body: "Using the likeness from Census as the portrait.", tone: .success
-        ))
+        #expect(session.toasts.cards == [ToastCard(
+            .success, "Portrait updated", "Using the likeness from Census as the portrait."
+        )])
         #expect(!model.isSaving)
     }
 
@@ -353,30 +356,30 @@ struct PersonDetailTests {
     @MainActor
     @Test func useEarliestClearsAndToasts() async {
         let store = FakeStore()
-        let model = leadModel(store)
+        let (model, session) = leadModel(store)
         await model.useEarliest(copy: .personPortrait)
         #expect(store.recordedCalls.last == "setPreferredLikeness entity=per-1 observation=")
-        #expect(model.toast == VocabularyToast(
-            title: "Portrait updated", body: "Using the earliest likeness as the portrait.", tone: .success
-        ))
+        #expect(session.toasts.cards == [ToastCard(
+            .success, "Portrait updated", "Using the earliest likeness as the portrait."
+        )])
     }
 
     @MainActor
     @Test func theLeadCopyIsReadAtCallTime() async {
         let store = FakeStore()
-        let model = leadModel(store)
+        let (model, session) = leadModel(store)
         var tile = censusTile()
         tile.chosenToastBody = L10n.Conclusions.toastThumbnailChosenBody("Census")
         await model.choose(tile, copy: .eventThumbnail)
         #expect(store.recordedCalls.last == "setPreferredLikeness entity=per-1 observation=obs-b")
-        #expect(model.toast == VocabularyToast(
-            title: "Thumbnail updated", body: "Using the picture from Census as the thumbnail.", tone: .success
-        ))
+        let first = ToastCard(.success, "Thumbnail updated", "Using the picture from Census as the thumbnail.")
+        #expect(session.toasts.cards == [first])
         await model.useEarliest(copy: .eventThumbnail)
         #expect(store.recordedCalls.last == "setPreferredLikeness entity=per-1 observation=")
-        #expect(model.toast == VocabularyToast(
-            title: "Thumbnail updated", body: "Using the earliest picture as the thumbnail.", tone: .success
-        ))
+        #expect(session.toasts.cards == [
+            ToastCard(.success, "Thumbnail updated", "Using the earliest picture as the thumbnail."),
+            first,
+        ])
     }
 
     @MainActor
@@ -384,10 +387,23 @@ struct PersonDetailTests {
         let store = FakeStore()
         let failure = CoreInvokeError.coded(status: 1, code: "canonicalentities.invalid", kind: .user, params: [])
         store.setPreferredLikenessError = failure
-        let model = leadModel(store)
+        let (model, session) = leadModel(store)
         await model.useEarliest(copy: .personPortrait)
-        #expect(model.toast == VocabularyToast(title: L10n.Errors.message(for: failure), body: "", tone: .danger))
+        #expect(session.toasts.cards == [ToastCard(.danger, L10n.Errors.message(for: failure))])
         #expect(!model.isSaving)
+    }
+
+    @MainActor
+    @Test func portraitFailureWithTheViewerOpenToastsInTheViewer() async {
+        let store = FakeStore()
+        let failure = CoreInvokeError.coded(status: 1, code: "canonicalentities.invalid", kind: .user, params: [])
+        store.setPreferredLikenessError = failure
+        let (model, session) = leadModel(store)
+        let sheet = PVToastList()
+        model.viewerOpened(toasts: sheet)
+        await model.useEarliest(copy: .personPortrait)
+        #expect(sheet.cards == [ToastCard(.danger, L10n.Errors.message(for: failure))])
+        #expect(session.toasts.cards.isEmpty)
     }
 
     @Test func aMergedNameRowCarriesItsStateAndWhy() {

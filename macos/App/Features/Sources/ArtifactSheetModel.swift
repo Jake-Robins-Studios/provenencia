@@ -394,12 +394,12 @@ final class ArtifactSheetModel {
             created = art
             onSaved(art, nil, heldEffects.map { $0.merged(with: ingested.effects) } ?? ingested.effects)
         }
-        context.toast = VocabularyToast(
+        context.session.toasts.add(
+            tone: .success,
             title: L10n.Sources.toastArtifactCreatedTitle(ref: art.ref),
-            body: art.fileID.isEmpty
+            message: art.fileID.isEmpty
                 ? L10n.Sources.toastArtifactCreatedFileless
-                : L10n.Sources.toastArtifactCreatedWithFile,
-            tone: .success
+                : L10n.Sources.toastArtifactCreatedWithFile
         )
     }
 

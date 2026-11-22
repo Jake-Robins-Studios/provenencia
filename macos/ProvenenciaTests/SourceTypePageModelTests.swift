@@ -106,13 +106,17 @@ struct SourceTypePageModelTests {
         #expect(store.sourceTypesByProject[projectDir]?.first?.label == "Population census")
         #expect(model.draft?.label == "Population census")
         #expect(!model.isDirty)
-        #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastUpdatedTitle))
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            L10n.string(L10n.SourceTypes.toastUpdatedTitle),
+            L10n.SourceTypes.toastUpdatedBody(label: "Population census", key: "book")
+        )])
     }
 
     /// T-8 (AC-2.3): a blank label shows the required message and writes nothing.
     @Test func blankLabelRefusesSave() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
+        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         model.editLabel("   ")
         #expect(!model.canSubmit)
         await model.submit()
@@ -120,7 +124,7 @@ struct SourceTypePageModelTests {
         #expect(model.labelCheck.error == L10n.string(L10n.SourceTypes.errorLabelRequired))
         #expect(model.saveError == nil)
         #expect(store.sourceTypesByProject[projectDir]?.first?.label == "Book")
-        #expect(model.toast == nil)
+        #expect(session.toasts.cards.isEmpty)
     }
 
     /// UX-1: clearing the label shows the required message as the researcher edits, and typing a
@@ -139,14 +143,14 @@ struct SourceTypePageModelTests {
     /// UX-2: a failed write is a save error, not a Label error.
     @Test func aStoreFailureOnSaveIsNotALabelError() async {
         let store = FakeStore()
-        let (model, _) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
+        let (model, session) = await makePageModel(typeID: "t1", store: store, types: [seededSourceType()])
         store.sourceTypesByProject[projectDir] = []
         model.editLabel("Tome")
         await model.submit()
 
         #expect(model.labelCheck.error == nil)
         #expect(model.saveError != nil)
-        #expect(model.toast == nil)
+        #expect(session.toasts.cards.isEmpty)
 
         model.revertEdit()
         #expect(model.saveError == nil)
@@ -367,7 +371,12 @@ struct SourceTypePageModelTests {
         #expect(model.suggestions(at: .source).map(\.field.id) == ["f2", "f1"])
         #expect(model.assignPicks[.source, default: ""].isEmpty)
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 2)
-        #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastAssignedTitle))
+        let sourcePhrase = L10n.format(L10n.SourceTypes.level(.source).phrase, "Book")
+        let assignedTitle = L10n.string(L10n.SourceTypes.toastAssignedTitle)
+        #expect(session.toasts.cards == [
+            ToastCard(.success, assignedTitle, L10n.SourceTypes.toastAssignedBody(field: "Author", phrase: sourcePhrase)),
+            ToastCard(.success, assignedTitle, L10n.SourceTypes.toastAssignedBody(field: "Publisher", phrase: sourcePhrase)),
+        ])
         #expect(store.listTypeSuggestionsLevels.count == loads)
     }
 
@@ -377,7 +386,7 @@ struct SourceTypePageModelTests {
         let publisher = catalogMetadataField("f2", label: "Publisher")
         let store = FakeStore()
         let sourceRow = CatalogTypeSuggestion(field: author, sortOrder: 0)
-        let (model, _) = await makePageModel(
+        let (model, session) = await makePageModel(
             typeID: "t1",
             store: store,
             types: [seededSourceType()],
@@ -397,13 +406,13 @@ struct SourceTypePageModelTests {
         #expect(model.suggestions(at: .graph).map(\.field.id) == ["f2"])
         #expect(model.assignPicks[.graph, default: ""] == "")
         #expect(model.assignPicks[.source] == "f2")
-        #expect(model.toast?.body == L10n.SourceTypes.toastAssignedBody(field: "Publisher", phrase: phrase))
+        #expect(session.toasts.cards.first?.message == L10n.SourceTypes.toastAssignedBody(field: "Publisher", phrase: phrase))
     }
 
     /// T-6 (AC-2.2, AC-2.3): one field can sit in two lists; each list's pool and remove are its own.
     @Test func aFieldCanSitInTwoLists() async {
         let page = catalogMetadataField("f1", label: "Page", usedBy: 4)
-        let (model, _) = await makePageModel(
+        let (model, session) = await makePageModel(
             typeID: "t1",
             types: [seededSourceType()],
             fields: [page],
@@ -422,7 +431,16 @@ struct SourceTypePageModelTests {
         #expect(model.suggestions(at: .source).map(\.field.id) == ["f1"])
         // The values clause stays: the field and its values survive a remove.
         let phrase = L10n.format(L10n.SourceTypes.level(.artifact).phrase, "Book")
-        #expect(model.toast?.body == L10n.SourceTypes.toastRemovedBody(field: "Page", phrase: phrase, valueCount: 4))
+        #expect(session.toasts.cards == [
+            ToastCard(
+                .info, L10n.string(L10n.SourceTypes.toastRemovedTitle),
+                L10n.SourceTypes.toastRemovedBody(field: "Page", phrase: phrase, valueCount: 4)
+            ),
+            ToastCard(
+                .success, L10n.string(L10n.SourceTypes.toastAssignedTitle),
+                L10n.SourceTypes.toastAssignedBody(field: "Page", phrase: phrase)
+            ),
+        ])
     }
 
     /// T-7 (AC-2.4): a failed write shows in its own list and keeps its pick; no other list shows it.
@@ -540,14 +558,14 @@ struct SourceTypePageModelTests {
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 0)
         // The vocabulary row survives, so the field is assignable again.
         #expect(model.assignPool(at: .source).map(\.id) == ["f1"])
-        #expect(model.toast?.title == L10n.string(L10n.SourceTypes.toastRemovedTitle))
+        #expect(session.toasts.cards.first?.title == L10n.string(L10n.SourceTypes.toastRemovedTitle))
         // T-20: the copy must not imply the existing values went with it.
-        #expect(model.toast?.body.contains("3") == true)
+        #expect(session.toasts.cards.first?.message?.contains("3") == true)
     }
 
     @Test func removingASuggestionNoSourceUsesOmitsTheValueCount() async {
         let author = catalogMetadataField("f1", label: "Author")
-        let (model, _) = await makePageModel(
+        let (model, session) = await makePageModel(
             typeID: "t1",
             types: [seededSourceType()],
             fields: [author],
@@ -556,7 +574,7 @@ struct SourceTypePageModelTests {
 
         await model.removeSuggestion(fieldID: "f1", level: .source)
         let phrase = L10n.format(L10n.SourceTypes.level(.source).phrase, "Book")
-        #expect(model.toast?.body == L10n.SourceTypes.toastRemovedBody(field: "Author", phrase: phrase, valueCount: 0))
+        #expect(session.toasts.cards.first?.message == L10n.SourceTypes.toastRemovedBody(field: "Author", phrase: phrase, valueCount: 0))
     }
 
     // MARK: Delete
@@ -652,7 +670,7 @@ struct SourceTypePageModelTests {
 
             #expect(left == 1)
             #expect(session.sourceTypesHandle?.value?.map(\.id) == ["t1"])
-            #expect(model.toast == nil)
+            #expect(session.toasts.cards.isEmpty)
             #expect(model.pendingLeave == nil)
             #expect(model.pendingDeleteType == nil)
             // The suggestion join cascades; the field vocabulary row does not.
@@ -734,30 +752,31 @@ struct SourceTypePageModelTests {
         // Not held: the new page opens and there is no toast.
         model.open(copy: copy)
         #expect(navigation.currentLocation.typeId == "t9")
-        #expect(session.noticeToast == nil)
+        #expect(session.toasts.cards.isEmpty)
 
         // Held, then Keep editing: the toast names the copy.
         navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
         model.draft?.description = "Changed"
         model.open(copy: copy)
         #expect(navigation.currentLocation.typeId == "t1")
-        #expect(session.noticeToast == nil)
+        #expect(session.toasts.cards.isEmpty)
         model.keepEditing()
-        #expect(session.noticeToast?.title.contains("State census") == true)
+        #expect(session.toasts.cards.count == 1)
+        #expect(session.toasts.cards.first?.title?.contains("State census") == true)
 
-        // Held, then Discard: the move goes through and says nothing.
-        session.noticeToast = nil
+        // Held, then Discard: the move goes through and adds no card.
+        let cardsBefore = session.toasts.entries.count
         model.open(copy: copy)
         model.discardAndLeave()
         #expect(navigation.currentLocation.typeId == "t9")
-        #expect(session.noticeToast == nil)
+        #expect(session.toasts.entries.count == cardsBefore)
 
         // A later, unrelated Keep editing does not repeat it.
         navigation.go(to: .sourceTypePage(typeId: "t1", title: "Book"))
         model.draft?.description = "Changed again"
         navigation.goBack()
         model.keepEditing()
-        #expect(session.noticeToast == nil)
+        #expect(session.toasts.entries.count == cardsBefore)
     }
 
     /// T-9: a move is not held while a Save runs, since the draft is about to be the saved row.
@@ -806,20 +825,20 @@ struct SourceTypePageModelTests {
         #expect(store.updateSourceTypeCalls.count == 1)
         let call = store.updateSourceTypeCalls[0]
         #expect(call.label == "Book" && call.formats?.full == "{source.title} Test." && call.formats?.short == "{source.title}")
-        #expect(model.toast?.body == L10n.SourceTypes.Formats.toastSavedBody(label: "Book"))
+        #expect(session.toasts.cards == [ToastCard(.success, L10n.string(L10n.SourceTypes.Formats.toastSavedTitle), L10n.SourceTypes.Formats.toastSavedBody(label: "Book"))])
         #expect(workspace.isStale)
         #expect(!model.isDirty)
     }
 
     @Test func detailsAndFormatsTogetherAreOneCallWithTheBothToast() async {
         let store = FakeStore()
-        let (model, _) = await makeFormatsPage(store: store)
+        let (model, session) = await makeFormatsPage(store: store)
         model.editLabel("Book (US)")
         model.formats.edit(.short, text: "{source.title}.")
         await model.submit()
         #expect(store.updateSourceTypeCalls.count == 1)
         #expect(store.updateSourceTypeCalls[0].label == "Book (US)" && store.updateSourceTypeCalls[0].formats != nil)
-        #expect(model.toast?.body == L10n.SourceTypes.Formats.toastBothBody(label: "Book (US)"))
+        #expect(session.toasts.cards == [ToastCard(.success, L10n.string(L10n.SourceTypes.toastUpdatedTitle), L10n.SourceTypes.Formats.toastBothBody(label: "Book (US)"))])
     }
 
     @Test func detailsAloneSendNoFormatsAndApplyNoFormatsSignal() async {
@@ -830,7 +849,7 @@ struct SourceTypePageModelTests {
         model.editLabel("Book (US)")
         await model.submit()
         #expect(store.updateSourceTypeCalls[0].formats == nil)
-        #expect(model.toast?.body == L10n.SourceTypes.toastUpdatedBody(label: "Book (US)", key: "book"))
+        #expect(session.toasts.cards == [ToastCard(.success, L10n.string(L10n.SourceTypes.toastUpdatedTitle), L10n.SourceTypes.toastUpdatedBody(label: "Book (US)", key: "book"))])
         #expect(!workspace.isStale)
     }
 
@@ -847,7 +866,7 @@ struct SourceTypePageModelTests {
         model.formats.edit(.short, text: "[x")
         await model.submit()
         #expect(model.saveError == L10n.string(L10n.SourceTypes.Formats.saveRefused))
-        #expect(model.toast == nil)
+        #expect(session.toasts.cards.isEmpty)
         #expect(model.draft?.label == "Renamed" && model.formats.draft(.short) == "[x")
         #expect(model.formats.shownDiagnostics(.short).count == 1)
         #expect(model.type?.label == "Book")

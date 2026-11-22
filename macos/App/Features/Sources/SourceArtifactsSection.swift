@@ -140,10 +140,10 @@ final class SourceArtifactsSection {
         guard canUseAsThumbnail(art) else { return }
         let ok = await context.setSourceCover(mode: "artifact", primaryArtifactID: art.id)
         guard ok else { return }
-        context.toast = VocabularyToast(
+        context.session.toasts.add(
+            tone: .success,
             title: L10n.Sources.toastThumbnailUpdatedTitle,
-            body: L10n.Sources.toastThumbnailUpdatedArtifactBody(ref: art.ref),
-            tone: .success
+            message: L10n.Sources.toastThumbnailUpdatedArtifactBody(ref: art.ref)
         )
     }
 
@@ -151,10 +151,10 @@ final class SourceArtifactsSection {
         guard context.source?.coverMode != "type_icon" else { return }
         let ok = await context.setSourceCover(mode: "type_icon")
         guard ok else { return }
-        context.toast = VocabularyToast(
+        context.session.toasts.add(
+            tone: .success,
             title: L10n.Sources.toastThumbnailUpdatedTitle,
-            body: L10n.Sources.toastThumbnailUpdatedTypeIconBody,
-            tone: .success
+            message: L10n.Sources.toastThumbnailUpdatedTypeIconBody
         )
     }
 
@@ -189,10 +189,10 @@ final class SourceArtifactsSection {
             show(ingested.artifact, effects: ingested.effects)
             isAttaching = false
             attachDraft = AttachDraft()
-            context.toast = VocabularyToast(
+            context.session.toasts.add(
+                tone: .success,
                 title: L10n.Sources.toastFileAttachedTitle,
-                body: L10n.Sources.toastFileAttachedBody(name: ingested.file.originalFilename),
-                tone: .success
+                message: L10n.Sources.toastFileAttachedBody(name: ingested.file.originalFilename)
             )
         } catch {
             // A refused file keeps the dialog open with the refusal under the row.

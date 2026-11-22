@@ -117,6 +117,7 @@ struct ConclusionPictureViewer: View {
     let open: (PVProvenanceSheetContent.Record, PVProvenanceLink) -> Void
 
     @Environment(\.pvSheetClose) private var sheetClose
+    @Environment(\.pvSheetToasts) private var sheetToasts
     @State private var image: ConclusionPictureImage = .waiting
     /// Set once a load has taken 250 ms, so a quick decode shows no spinner and stepping does not flash.
     @State private var showsSpinner = false
@@ -153,9 +154,8 @@ struct ConclusionPictureViewer: View {
         .onKeyPress(.rightArrow) { move(to: step.nextID) }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(identifier)
-        .vocabularyToastOverlay(lead.toastInViewer ? $lead.toast : .constant(nil), identifier: "\(identifier).toast")
         .onAppear {
-            lead.viewerOpened()
+            lead.viewerOpened(toasts: sheetToasts)
             FocusClaim.claim($focus, .image)
         }
         .onDisappear { lead.viewerClosed() }

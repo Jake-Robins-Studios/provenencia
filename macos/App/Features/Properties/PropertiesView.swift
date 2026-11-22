@@ -71,7 +71,6 @@ private struct PropertiesContent: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PVColor.surfacePage)
-        .vocabularyToastOverlay($model.toast, identifier: "properties.toast")
         .pvDeleteImpact(
             flow: model.deleteImpact,
             accessibilityIdentifierPrefix: "properties.deleteImpact",
