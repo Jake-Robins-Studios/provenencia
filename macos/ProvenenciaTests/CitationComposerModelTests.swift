@@ -901,6 +901,24 @@ struct CitationComposerModelTests {
         #expect(fresh.activeCitationID != nil)
     }
 
+    @Test func savingABridgeAddsItsToastToTheWindowList() async {
+        let store = makeStore()
+        seedArtifact(store)
+        let fresh = makeModel(
+            store: store,
+            connectFrom: subjectID,
+            connectTo: eventID,
+            bridge: "participation"
+        )
+        await fresh.prepare()
+        fresh.mutateBridge { $0.termID = "term-witness" }
+        await fresh.saveAuthoring()
+        let entries = fresh.session.toasts.entries
+        #expect(entries.count == 1)
+        #expect(entries.first?.tone == .success)
+        #expect(entries.first?.title == L10n.string(L10n.CitationComposer.bridgeSavedTitle))
+    }
+
     @Test func switchingCitationKeepsPendingConnection() async {
         let store = makeStore()
         seedArtifact(store)
