@@ -34,3 +34,10 @@ struct VocabularyToast: Equatable, Hashable {
     var body: String
     var tone: PVToastTone
 }
+
+extension PVToastList {
+    /// Adds a page's toast to the list; a title-only notice has no body line.
+    func add(_ toast: VocabularyToast) {
+        add(tone: toast.tone, title: toast.title, message: toast.body)
+    }
+}

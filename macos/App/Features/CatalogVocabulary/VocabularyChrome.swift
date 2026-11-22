@@ -49,7 +49,9 @@ struct VocabularyHeader: View {
 extension View {
     /// The vocabulary destinations' toast: top-trailing, slides in from the
     /// trailing edge, honours Reduce Motion. The tone travels with the toast
-    /// (`VocabularyToast.tone`) — the model decides how an event reads.
+    /// (`VocabularyToast.tone`) — the model decides how an event reads. Where the
+    /// window has a toast list (`\.pvToastList`) the toast joins it and the binding
+    /// clears; a sheet has none, so its toast draws here.
     func vocabularyToastOverlay(_ toast: Binding<VocabularyToast?>, identifier: String) -> some View {
         modifier(VocabularyToastOverlay(toast: toast, identifier: identifier))
     }
@@ -59,8 +61,21 @@ private struct VocabularyToastOverlay: ViewModifier {
     @Binding var toast: VocabularyToast?
     let identifier: String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.pvToastList) private var list
 
     func body(content: Content) -> some View {
+        if let list {
+            content.onChange(of: toast, initial: true) {
+                guard let toast else { return }
+                list.add(toast)
+                self.toast = nil
+            }
+        } else {
+            card(content)
+        }
+    }
+
+    private func card(_ content: Content) -> some View {
         content
             .overlay(alignment: .topTrailing) {
                 if let toast {

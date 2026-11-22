@@ -26,6 +26,8 @@ private struct PVSheetChrome<Content: View>: View {
         sheetBody
             .environment(\.pvSheetClose, PVSheetClose(run: { next in run(next) }))
             .environment(\.pvSheetInnerEditOpen, innerEditOpen)
+            // A sheet covers the window, so a toast raised inside it draws in the sheet.
+            .environment(\.pvToastList, nil)
             .onPreferenceChange(PVSheetInnerEditKey.self) { innerEditOpen = $0 }
             // A zero-size button owns Escape, so the rule lives in one place and
             // no visible Cancel needs its own key.
