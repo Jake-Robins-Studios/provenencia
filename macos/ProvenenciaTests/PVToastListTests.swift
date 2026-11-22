@@ -82,7 +82,7 @@ struct PVToastListTests {
         #expect(list.entries == before)
     }
 
-    /// T-5 (AC-2.2, D-4).
+    /// T-5 (AC-2.3, D-4).
     @Test func replacingAGoneIdAddsANewCard() {
         let list = make(ManualSleep())
         let a = list.add(tone: .success, title: "A", message: nil)

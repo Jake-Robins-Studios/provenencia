@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// One card in a ``PVToastList``. The `id` survives a refresh, so a card that
-/// moves to the top keeps its view identity and VoiceOver does not read it again.
+/// moves to the top keeps its view identity. VoiceOver does not read a refreshed card
+/// again when its text is unchanged; new text is spoken.
 struct PVToastEntry: Identifiable, Equatable {
     let id: UUID
     let tone: PVToastTone

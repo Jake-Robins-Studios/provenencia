@@ -20,6 +20,7 @@ struct WorkspaceView: View {
     @State private var navigation: WorkspaceNavigation
     @State private var session: WorkspaceSession
     @State private var catalogCounts: CatalogCounts
+    @State private var historyIssueToastID: PVToastEntry.ID?
     @Environment(SignOutCoordinator.self) private var signOutCoordinator
     @Environment(NavigationCoordinator.self) private var navigationCoordinator
 
@@ -132,16 +133,18 @@ struct WorkspaceView: View {
         guard let issue = navigation.lastHistoryIssue else { return }
         switch issue {
         case .loadFailed:
-            session.toasts.add(
+            historyIssueToastID = session.toasts.add(
                 tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryLoadFailedTitle),
-                message: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody)
+                message: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody),
+                replacing: historyIssueToastID
             )
         case .persistFailed:
-            session.toasts.add(
+            historyIssueToastID = session.toasts.add(
                 tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryPersistFailedTitle),
-                message: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody)
+                message: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody),
+                replacing: historyIssueToastID
             )
         }
         navigation.acknowledgeHistoryIssue()
