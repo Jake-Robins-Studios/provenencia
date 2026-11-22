@@ -4,6 +4,8 @@ import SwiftUI
 enum PVSymbol: String {
     case folderPlus = "folder.badge.plus"
     case folderOpen = "folder"
+    /// Lucide `folder-input` — a folder with an arrow entering it (Move to another Source).
+    case folderInput = "arrow.forward.folder"
     case check = "checkmark"
     /// Lucide `copy` — copy a value to the clipboard (`PVClipboardButton`).
     case copy = "doc.on.doc"

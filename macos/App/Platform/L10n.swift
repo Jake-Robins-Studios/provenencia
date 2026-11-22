@@ -6996,18 +6996,6 @@ enum L10n {
             comment: "Validation when the Artifact sheet (add or edit) is saved without a label"
         )
 
-        static let artifactMenuEdit = LocalizedStringResource(
-            "sources.page.artifact.menu.edit",
-            defaultValue: "Edit…",
-            comment: "Artifact row menu item that opens the Artifact sheet"
-        )
-
-        static let artifactMenuDelete = LocalizedStringResource(
-            "sources.page.artifact.menu.delete",
-            defaultValue: "Delete…",
-            comment: "Artifact row menu item that asks to delete the Artifact"
-        )
-
         /// Argument is the graph names, already joined for speech.
         static func artifactGraphsSpoken(names: String) -> String {
             L10n.format(LocalizedStringResource(

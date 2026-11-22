@@ -479,6 +479,30 @@ struct SourcePageModelTests {
         #expect(handle?.isStale == true)
     }
 
+    /// A create and its file's ingest apply as one: ids union per read, the later activity wins.
+    @Test func mergedWriteEffectsUnion() {
+        let create = CatalogWriteEffects(
+            evidenceGraphs: ["g1"],
+            reads: [
+                CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1"]),
+                CatalogWriteEffectsRead(read: .evidenceGraphs, ids: ["s1"]),
+            ],
+            lists: [.metadataFieldUsage], sourceScopes: ["s1"],
+            activity: CatalogActivity(revision: 4, at: "a")
+        )
+        let ingest = CatalogWriteEffects(
+            reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1", "s2"])],
+            sourceScopes: ["s1"], activity: CatalogActivity(revision: 5, at: "b")
+        )
+        let merged = create.merged(with: ingest)
+        #expect(merged.evidenceGraphs == ["g1"])
+        #expect(merged.reads.first { $0.read == .sourceHoldings }?.ids == ["s1", "s2"])
+        #expect(merged.reads.first { $0.read == .evidenceGraphs }?.ids == ["s1"])
+        #expect(merged.lists == [.metadataFieldUsage])
+        #expect(merged.sourceScopes == ["s1"])
+        #expect(merged.activity.revision == 5)
+    }
+
     @Test func createFilelessArtifact() async throws {
         let store = makeStore()
         let model = makeModel(store: store)
@@ -2595,14 +2619,19 @@ struct SourcePageModelTests {
         #expect(unread.artifacts.graphLines.isEmpty)
     }
 
-    @Test func artifactRowActionsAndWidths() {
-        #expect(ArtifactRowAction.menuActions(canSetCover: true) == [.edit, .setCover, .delete])
-        #expect(ArtifactRowAction.menuActions(canSetCover: false) == [.edit, .delete])
-        #expect(L10n.string(ArtifactRowAction.edit.title) == "Edit…")
-        #expect(L10n.string(ArtifactRowAction.delete.title) == "Delete…")
-        #expect(L10n.string(ArtifactRowAction.setCover.title) == "Set cover")
+    @Test func metadataColumnWidths() {
         #expect(MetadataDetailsColumn.width(.regular) == 320)
         #expect(MetadataDetailsColumn.width(.wide) == 440)
+    }
+
+    @Test func moveButtonLabels() {
+        #expect(
+            L10n.Sources.moveArtifactLabel(name: "Sheet 14 (image 2)") == "Move Sheet 14 (image 2) to another Source"
+        )
+        #expect(
+            L10n.Sources.moveGraphLabel(name: "Hale household, dwelling 113")
+                == "Move Hale household, dwelling 113 to another Source"
+        )
     }
 
     @Test func artifactThumbnailFallsBackToTheSourceType() async {

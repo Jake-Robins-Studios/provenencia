@@ -8602,30 +8602,6 @@
         }
       }
     },
-    "sources.page.artifact.menu.edit": {
-      "comment": "Artifact row menu item that opens the Artifact sheet",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit…"
-          }
-        }
-      }
-    },
-    "sources.page.artifact.menu.delete": {
-      "comment": "Artifact row menu item that asks to delete the Artifact",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete…"
-          }
-        }
-      }
-    },
     "sources.page.artifact.graphsSpoken": {
       "comment": "VoiceOver label of an Artifact row's graph line; argument is the graph names",
       "extractionState": "manual",

@@ -106,8 +106,6 @@ enum PVContextMenuPlacement {
 
 /// Floating menu chrome: card surface, subtle border, overlay shadow.
 /// Optional caps section title matches Source-thumbnail / filter-style menus.
-/// A title is a localized key (`init(title:…)`) or data such as a ref, drawn as
-/// given (`init(verbatimTitle:…)`); never both.
 struct PVContextMenuPanel<Content: View>: View {
     private let heading: Text?
     var width: CGFloat
@@ -124,19 +122,6 @@ struct PVContextMenuPanel<Content: View>: View {
     ) {
         self.init(
             heading: title.map { Text($0) }, width: width, maxHeight: maxHeight,
-            accessibilityIdentifier: accessibilityIdentifier, content: content
-        )
-    }
-
-    init(
-        verbatimTitle: String,
-        width: CGFloat = 180,
-        maxHeight: CGFloat? = nil,
-        accessibilityIdentifier: String? = nil,
-        @ViewBuilder content: @escaping () -> Content
-    ) {
-        self.init(
-            heading: Text(verbatim: verbatimTitle), width: width, maxHeight: maxHeight,
             accessibilityIdentifier: accessibilityIdentifier, content: content
         )
     }

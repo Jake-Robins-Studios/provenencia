@@ -66,19 +66,6 @@ extension View {
             items: items
         ))
     }
-
-    /// The same menu with a title that is data (a ref), drawn as given.
-    func pvRightClickMenu(
-        verbatimTitle: String,
-        accessibilityIdentifier: String?,
-        items: [PVActionMenuItem]
-    ) -> some View {
-        modifier(PVRightClickMenuModifier(
-            heading: Text(verbatim: verbatimTitle),
-            accessibilityIdentifier: accessibilityIdentifier,
-            items: items
-        ))
-    }
 }
 
 private struct PVRightClickMenuModifier: ViewModifier {
