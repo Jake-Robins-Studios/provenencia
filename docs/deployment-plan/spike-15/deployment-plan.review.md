@@ -359,3 +359,18 @@ Every format reader is keyed by type id (`sourcetypes.StoredFormatsTx`, `Require
 **Answer:** Fixed. S15-64, S15-66, S15-69 and S15-70 now have fan-out lines.
 
 Noted, no change: S15-67 and S15-56 are at the ~10-step limit, and `plan-pr` should watch their step count.
+
+### Round 2 (fresh reviewer: answers checked, new blockers only)
+
+K-3, K-4, K-6, K-8, K-9, K-10 and K-11 applied consistently. **Verdict:** Fits with changes; both new blockers fixed. No round 3 (the loop's cap).
+
+#### K-12 · blocker · "In use" for a format had three definitions, and the Source half had no owner
+**Answer:** Fixed. In the rule, "in use" now means named: a type's default (S15-67) or a Source's choice (S15-71), each an inbound `deleteimpact` edge with its FK in `catalogmodel`. That count is the delete gate, `usedBy`. "Sources citing with it" is a separate count, taken through the one Source-to-format read. S15-71 adds the FK, the edge, the `COALESCE` and the skills it uses. S15-68 and S15-70 (row and scope) follow the rule.
+
+#### K-13 · blocker · `NearestFirst` was a third copy of the level order
+**Answer:** Fixed. `NearestFirst()` is `slices.Reversed(MetadataLevels())`. The parity test only checks that each entry's `Ups` agree with it. `citationformat` only parses, and `Resolve` is the one walker (rule; S15-54 and S15-62 scopes).
+
+Minors fixed:
+- S15-69 now applies `.changedSourceType`.
+- Rule "Formats name fields by id" names the write's move to `citationformats`.
+- S15-68's Ships adds the `citation_format` omnibar kind.
