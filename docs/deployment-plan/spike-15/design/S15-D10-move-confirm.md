@@ -1,10 +1,10 @@
-# S15-D10 — Move to another Source: the menu items and the confirm
+# S15-D10 — Move to another Source: the Move buttons and the confirm
 
 **Kind:** Claude Design board (**enhancement** of the Source page as shipped: S15-D14's Artifact rows, S15-D1's Evidence graph cards, at Regular and Wide. Draw on the existing Source page board; add the menu items and the Move dialog over the page)
 **Spike:** Provenencia Spike 15, slice 7
-**View:** the Source page's Artifact rows and Evidence graph cards (one menu item each), and the Move dialog they open
+**View:** the Source page's Artifact rows and Evidence graph cards (one Move button each; the row's right-click menu goes), and the Move dialog they open
 **Implements later as:** PR **S15-25** (MV-1 – MV-14, MV-W1)
-**Board:** — (not drawn yet)
+**Board:** [agreed 2026-11-22](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): page *Move*, rows "Move: the buttons" (`mv-art-menu`, `mv-graph-menu`, each with a Wide frame), "Move dialog" (`mv-open` … `mv-failed`) and "After the move" (`mv-after`, `mv-after-wide`); decisions panel "S15-D10". Board decision (user, 2026-11-22): **no right-click menu** on Artifact rows or graph cards; Move is a visible icon button, and the Artifact row's existing menu goes. § 4 below is the requirement as drawn
 **Depends on:** S15-24 (landed [#935](https://github.com/Jake-Robins-Studios/provenencia/pull/935)): the engine's preflight and move; S15-35 (landed [#824](https://github.com/Jake-Robins-Studios/provenencia/pull/824)): the Artifact rows and their right-click menu
 **Related:** [`../move-artifact-between-sources.md`](../move-artifact-between-sources.md) (the feature: "Which graphs move", "Side effects to name in the confirm"); working rules "A move is the whole bundle", "One window; nothing is built for a second" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [S15-D14](S15-D14-source-page-artifacts.md) (the rows; SA-5 named where Move sits) and [S15-D1](S15-D1-source-page.md) (the graph cards; SD-14), which predate "One brief, one PR": this brief is S15-25's own and draws all of what it ships; plan [`../prs/S15-25-move-from-artifact-or-graph.md`](../prs/S15-25-move-from-artifact-or-graph.md)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -81,12 +81,12 @@ Draw on the Source page board as a new turn "S15-D10 · Move", starting from the
 A researcher files an Artifact under one Source, builds Evidence graphs on it, and later wants it under another Source: two census images were filed as one Source and should be two, a scan was attached to the wrong certificate. **Move to another Source…** on an Artifact row or an Evidence graph card opens a dialog that shows everything that moves together (the bundle), asks for the target Source, names the side effects, and moves it all in one step. Every ref stays the same; Citations, regions and claims to canonical people come along.
 
 **What changes.**
-- **The Artifact row's menu** gains **Move to another Source…** just before Delete…. Today it reads Edit…, Set cover (on an image that is not the cover), Delete….
-- **The Evidence graph card** gains a right-click menu, titled with the graph's ref, with the card's own actions and Move: Open, Edit…, Move to another Source…, Delete…. Today the card has only its visible Open, pencil and trash buttons.
+- **The Artifact row** gains a **Move** button between Edit and Delete, and loses its right-click menu: every action is a button (board, 2026-11-22).
+- **The Evidence graph card** gains a **Move** button between Edit and Delete. No menu.
 - **The Move dialog** (new): the target picker, the bundle, the side-effect notes, Move and Cancel.
 - **After the move** the app opens the target Source's page at its top, and a Toast names what moved and where (user, 2026-11-21).
 
-**What stays.** The rows' and cards' visible buttons (no Move button is added to them), the page's layout at both widths, the Artifact sheet and the graph form (neither offers Move), the Evidence graph canvas.
+**What stays.** The rows' and cards' other buttons, the page's layout at both widths, the Artifact sheet and the graph form (neither offers Move), the Evidence graph canvas.
 
 ---
 
@@ -127,11 +127,11 @@ A researcher files an Artifact under one Source, builds Evidence graphs on it, a
 
 | ID | Requirement |
 | --- | --- |
-| MV-1 | **Artifact row menu.** The row's right-click menu, titled with the ref as today, reads Edit…, Set cover (when offered), **Move to another Source…**, Delete…. Same kit ContextMenu, same item style; no icon, no separator. The visible buttons on the row do not change. |
-| MV-2 | **Graph card menu.** Right-clicking a graph card opens the kit ContextMenu titled with the graph's ref (`GPH-3RX8W`, mono, as the Artifact row's menu title): Open, Edit…, **Move to another Source…**, Delete… (Open is the card button's own word). Open is dimmed when the card's Open button is (a graph the canvas cannot open yet); Edit… and Delete… run the card's pencil and trash. The visible buttons on the card do not change. |
+| MV-1 | **Artifact row.** Every action is a visible button: Set cover (when offered; its space kept when hidden), Edit (pencil), **Move** (an IconButton with the folder-input glyph, labelled and tooltipped "Move {label} to another Source"), Delete. The row has no right-click menu: today's menu goes (board, user 2026-11-22). |
+| MV-2 | **Graph card.** Open, Edit, **Move** (the same IconButton, "Move {name} to another Source"), Delete. Open is dimmed on a graph with no Artifacts, as today; Move is not. No right-click menu. |
 | MV-3 | **The dialog.** A FormDialog, 520pt wide (as Copy Source), titled "Move to another Source", subtitle the picked row: the Artifact's label and ref ("Sheet 14 (image 1) · ART-7QK2M") or the graph's name and ref. From the top: the **Move to** field, the bundle, the notes, then the buttons Cancel and **Move** (primary, not danger). Move is dimmed until a target is picked and the bundle has loaded. Escape and Cancel close it without asking: nothing is typed, and a pick is not work to lose. |
 | MV-4 | **Move to.** A Field labeled "Move to" holding a ComboBox of the project's other Sources: each option the Source's title, with its ref as subtext; most recently changed first; typing filters by title or ref; placeholder "Choose a Source"; no match reads "No Source matches". The current Source is never offered. Empty when the dialog opens. |
-| MV-5 | **The bundle.** Under the field, the kit SubsectionHeader "Moves together" (not a hand-made caption), then the Artifacts, then the graphs, each a compact row: an Artifact as a 32pt Thumbnail, its label and its mono ref; a graph as the branch glyph, its name, its mono ref and its count line ("4 people · 6 citations"). The picked row is first in its group and carries no special mark. The rows are read-only: no checkbox, no link, no hover. When the bundle holds more than the picked row, one line of secondary text above the rows says why: "A graph moves with all its Artifacts, so these move together." When it holds only the picked row, no such line. |
+| MV-5 | **The bundle.** Under the field, the kit SubsectionHeader "Moves together" (not a hand-made caption), then the Artifacts, then a hairline, then the graphs, in one list, each a compact row at least 40pt tall: an Artifact as a 32pt Thumbnail, its label and its mono ref; a graph as the branch glyph, its name, its mono ref and its count line ("4 people · 6 citations"). The picked row is first in its group and carries no special mark. The rows are read-only: no checkbox, no link, no hover. When more than one Artifact moves, one line of secondary text above the rows says why: "A graph moves with all its Artifacts, so these move together." Otherwise no such line (as drawn). |
 | MV-6 | **A big bundle.** At 5 Artifacts and 5 graphs the rows fit without scrolling at 900pt tall; a crafted bundle that does not fit scrolls the dialog body, the buttons staying put. |
 | MV-7 | **Credibility note.** Once a target is picked and the two grades weigh differently, a Callout (warning tone) under the bundle: title "Credibility changes", message "“{old title}” is assessed {old grade}; “{target title}” is {target grade}. The moved records will be weighed as {weighed-as grade}, so conclusions that rest on them can change." An unassessed Source reads "not assessed" in the grade's place; the engine names the grade it weighs as (Standard). No note when they weigh the same, and none before a target is picked. |
 | MV-8 | **Left-behind notes.** When every Artifact moves: a neutral Callout "“{old title}” will have no Artifacts left. It is not deleted." When every graph moves: a neutral Callout "“{old title}” gets a new empty graph named Default, so it keeps one." Both may show; they show from the moment the bundle loads, before a target is picked. |
@@ -141,13 +141,13 @@ A researcher files an Artifact under one Source, builds Evidence graphs on it, a
 | MV-12 | **Moving.** Move shows the kit's running state on the button; every control is dimmed; the dialog cannot be closed until the write answers. |
 | MV-13 | **Move fails.** The dialog stays open with the pick and the bundle; a danger Callout at the top of the dialog body, title "Couldn’t move", message "Nothing was moved." followed by the engine's message. Move can be pressed again. |
 | MV-14 | **After the move.** The dialog closes; the app opens the target Source's page at its top (Back returns to the old Source's page, which no longer lists what moved); a success Toast over the workspace: title "Moved to “{target title}”", body counting what moved: "2 Artifacts and 2 graphs", "1 Artifact and 1 graph", "1 Artifact" (an Artifact in no graph), "1 graph" (a graph with no Artifacts). No Undo in the Toast. The moved rows appear on the target page in their usual place and order. |
-| MV-W1 | **Wide.** The page keeps the arrangement S15-D14 SA-W1 and S15-D1 SD-W1 drew; the menus are the same at both widths. The dialog is a sheet and keeps its 520pt width at Wide, centered over the pane as at Regular: it is a short form, so the extra width has no job here. |
+| MV-W1 | **Wide.** The page keeps the arrangement S15-D14 SA-W1 and S15-D1 SD-W1 drew; the buttons are the same at both widths. The dialog is a sheet and keeps its 520pt width at Wide, centered over the pane as at Regular: it is a short form, so the extra width has no job here. |
 
 ### 4.1 Wide layout
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Source page: Artifact rows and graph cards | As S15-D14 and S15-D1 drew them; the menus open at the pointer | The same rows and cards in the main column beside the Metadata side column | Nothing: a menu item and a menu on existing pieces |
+| Source page: Artifact rows and graph cards | As S15-D14 and S15-D1 drew them, with the Move button | The same rows and cards in the main column beside the Metadata side column | Nothing: one button on existing pieces |
 | Move dialog | 520pt sheet over the page | The same 520pt sheet, centered over the pane | Nothing moves: a short form keeps its measure (MV-W1) |
 
 ---
@@ -158,8 +158,8 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| 1a / 1b | MV-1, MV-W1 | The page's Artifacts section with image 2's menu open (`ART-9TB3C`): Edit…, Set cover, Move to another Source…, Delete… |
-| 2a / 2b | MV-2, MV-W1 | The graphs section with the "Hale household" card's menu open, titled `GPH-3RX8W` |
+| 1a / 1b | MV-1, MV-W1 | The page's Artifacts section: image 2's row with Set cover, Edit, Move, Delete (as drawn: `mv-art-menu`) |
+| 2a / 2b | MV-2, MV-W1 | The graphs section: the "Hale household" card with Open, Edit, Move, Delete; Default with Open dimmed (as drawn: `mv-graph-menu`) |
 | 3a / 3b | MV-3, MV-4, MV-5, MV-8, MV-W1 | The dialog over the page, opened from image 1 before a target is picked: the field empty; Moves together with the "why" line; images 1 and 2; the Hale and Robins graphs; no left-behind note (Sheet 20 and Default stay); Move dimmed |
 | 4 | MV-4 | Regular, the ComboBox open with "ED 2" typed: the ED 237 Source first, ref as subtext; the current Source absent |
 | 5 | MV-7 | Regular, frame 3a with ED 237 picked: the credibility Callout "“1880 census, Ottawa County, Kansas, ED 236” is assessed Low trust; “1880 census, Ottawa County, Kansas, ED 237” is not assessed. The moved records will be weighed as Standard, …"; Move enabled |
@@ -177,9 +177,9 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Artifact row | Snowflake | Extend | `macos/App/Features/Sources/SourcePageArtifactRow.swift` `SourcePageArtifactRow`, `ArtifactRowAction` | One more menu case, `.move`, between Edit and Delete (MV-1); nothing visible changes |
-| Evidence graph card | Snowflake | Extend | `macos/App/Features/Sources/SourcePageGraphsView.swift` `SourcePageGraphRow` | Gains the kit right-click menu with its ref as the menu's title (MV-2); visible buttons unchanged |
-| Right-click menu | Component | Ship | `macos/App/DesignSystem/Components/ContextMenu/` `pvRightClickMenu(verbatimTitle:…)`, `PVActionMenuItem` | Both menus; `verbatimTitle` for the ref (S15-35 added it for this reuse). Its items are also the row's accessibility actions |
+| Artifact row | Snowflake | Extend | `macos/App/Features/Sources/SourcePageArtifactRow.swift` `SourcePageArtifactRow` | A Move IconButton between Edit and Delete (MV-1); the row's right-click menu and `ArtifactRowAction` go |
+| Evidence graph card | Snowflake | Extend | `macos/App/Features/Sources/SourcePageGraphsView.swift` `SourcePageGraphRow` | A Move IconButton between Edit and Delete (MV-2) |
+| Move button | Component | Ship | `macos/App/DesignSystem/Components/IconButton/` `PVIconButton`; `PVSymbol.folderInput` *(new glyph)* | The folder-input glyph, small, labelled "Move {name} to another Source". Not a menu |
 | Move dialog | Snowflake | New | `macos/App/Features/Sources/SourceMoveDialog.swift` *(new)* | The form body; a Source page feature view, like `SourceCopyDialog` |
 | Dialog frame | Component | Ship | `macos/App/DesignSystem/Components/FormDialog/` `pvFormDialog(item:…)`, `PVFormDialogCopy` | Title, subtitle, Move / Cancel, running and closing rules (MV-3, MV-12). Not Confirm: the dialog holds a field |
 | Target picker | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/` `PVComboBox`, `PVComboBoxOption` in a `PVField` | Title with ref as subtext (MV-4), as the format editor's "Preview with" picker draws it. Not Select: up to 3,000 Sources need typing |
@@ -190,7 +190,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | After-move notice | Component | Ship | `WorkspaceSession.noticeToast`, drawn by `WorkspaceView` through `vocabularyToastOverlay` | The workspace's notice Toast, which survives the page change, as Promote's success notice does (MV-14) |
 | Toast | Component | Ship | `macos/App/DesignSystem/Components/Toast/` | Success tone, no action |
 
-**Non-goals.** No new kit component: the dialog and its rows are one call site. No Move button on a row or card. No Undo. No per-row control in the bundle. No metadata comparison, cover note or reification note.
+**Non-goals.** No new kit component: the dialog and its rows are one call site. No right-click menu on a row or card. No Undo. No per-row control in the bundle. No metadata comparison, cover note or reification note.
 
 ---
 
