@@ -25320,7 +25320,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not a level: use source, artifact, graph or citation"
+            "value": "Not a field or a level: write meta. and the field, or source, artifact, graph or citation before a built-in"
           }
         }
       }
