@@ -503,6 +503,17 @@ private struct ThrowingStore: GenealogyStore {
         projectDir _: String,
         pairs _: [CatalogEvidenceGraphArtifactPair]
     ) async throws -> [CatalogEvidenceGraphUnlinkBlock] { throw StoreBoom.boom }
+    func getSourceMoveImpact(
+        projectDir _: String,
+        seed _: CatalogSourceMoveSeed,
+        targetSourceID _: String?
+    ) async throws -> CatalogSourceMoveImpact { throw StoreBoom.boom }
+    func moveToSource(
+        projectDir _: String,
+        userID _: String,
+        seed _: CatalogSourceMoveSeed,
+        targetSourceID _: String
+    ) async throws -> CatalogSourceMoveResult { throw StoreBoom.boom }
     func listSourceCredibilityGrades(projectDir _: String) async throws -> [CatalogCredibilityGrade] {
         throw StoreBoom.boom
     }

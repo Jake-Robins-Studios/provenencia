@@ -136,6 +136,44 @@ struct CatalogEvidenceGraphUnlinkBlock: Sendable, Equatable {
     var citationCount: Int
 }
 
+/// What a Move starts from: one Artifact or one Evidence graph. The wire takes
+/// exactly one of the two ids; this enum cannot hold both.
+enum CatalogSourceMoveSeed: Sendable, Equatable {
+    case artifact(String)
+    case graph(String)
+
+    var id: String {
+        switch self {
+        case .artifact(let id), .graph(let id): id
+        }
+    }
+}
+
+/// What moving a seed's bundle to another Source would move and leave, read by
+/// `getSourceMoveImpact`. The credibility labels are the engine's: "" is not
+/// assessed (and "" for all three when no target was given).
+struct CatalogSourceMoveImpact: Sendable, Equatable {
+    var sourceID: String
+    var artifacts: [CatalogArtifact]
+    var graphs: [CatalogEvidenceGraph]
+    var progress: [EvidenceGraphProgress]
+    var sourceCredibilityLabel: String
+    var targetCredibilityLabel: String
+    var weighedAsLabel: String
+    var credibilityDiffers: Bool
+    var leavesSourceEmpty: Bool
+    var leavesNoGraph: Bool
+}
+
+/// What `moveToSource` moved. `defaultGraphID` is the new Default graph the old
+/// Source got when every graph moved.
+struct CatalogSourceMoveResult: Sendable, Equatable {
+    var artifactIDs: [String]
+    var graphIDs: [String]
+    var defaultGraphID: String?
+    var effects: CatalogWriteEffects
+}
+
 extension CatalogArtifact {
     /// The trimmed label, else the ref: the one name every list and dialog shows.
     var displayTitle: String {
@@ -1760,6 +1798,20 @@ protocol GenealogyStore: Sendable {
         projectDir: String,
         pairs: [CatalogEvidenceGraphArtifactPair]
     ) async throws -> [CatalogEvidenceGraphUnlinkBlock]
+    /// What moving the seed's bundle to `targetSourceID` would move and leave. With no
+    /// target there is no credibility comparison and no same-Source check.
+    func getSourceMoveImpact(
+        projectDir: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String?
+    ) async throws -> CatalogSourceMoveImpact
+    /// Moves the seed's whole bundle to another Source in one write.
+    func moveToSource(
+        projectDir: String,
+        userID: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String
+    ) async throws -> CatalogSourceMoveResult
     func listSourceCredibilityGrades(projectDir: String) async throws -> [CatalogCredibilityGrade]
     func upsertSourceCredibilityAssessment(
         projectDir: String,

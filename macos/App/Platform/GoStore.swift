@@ -609,6 +609,62 @@ struct GoStore: GenealogyStore {
         }
     }
 
+    func getSourceMoveImpact(
+        projectDir: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String?
+    ) async throws -> CatalogSourceMoveImpact {
+        var req = Provenencia_Engine_V1_GetSourceMoveImpactRequest()
+        req.projectDir = projectDir
+        switch seed {
+        case .artifact(let id): req.artifactID = id
+        case .graph(let id): req.graphID = id
+        }
+        req.targetSourceID = targetSourceID ?? ""
+        let resp: Provenencia_Engine_V1_GetSourceMoveImpactResponse = try await provenenciaCall(
+            method: CoreMethod.getSourceMoveImpact,
+            request: req
+        )
+        return CatalogSourceMoveImpact(
+            sourceID: resp.sourceID,
+            artifacts: resp.artifacts.map(Self.mapArtifact),
+            graphs: resp.graphs.map(Self.mapEvidenceGraph),
+            progress: resp.progress.map(Self.mapEvidenceGraphProgress),
+            sourceCredibilityLabel: resp.sourceCredibilityLabel,
+            targetCredibilityLabel: resp.targetCredibilityLabel,
+            weighedAsLabel: resp.weighedAsLabel,
+            credibilityDiffers: resp.credibilityDiffers,
+            leavesSourceEmpty: resp.leavesSourceEmpty,
+            leavesNoGraph: resp.leavesNoGraph
+        )
+    }
+
+    func moveToSource(
+        projectDir: String,
+        userID: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String
+    ) async throws -> CatalogSourceMoveResult {
+        var req = Provenencia_Engine_V1_MoveToSourceRequest()
+        req.projectDir = projectDir
+        req.userID = userID
+        switch seed {
+        case .artifact(let id): req.artifactID = id
+        case .graph(let id): req.graphID = id
+        }
+        req.targetSourceID = targetSourceID
+        let resp: Provenencia_Engine_V1_MoveToSourceResponse = try await provenenciaCall(
+            method: CoreMethod.moveToSource,
+            request: req
+        )
+        return CatalogSourceMoveResult(
+            artifactIDs: resp.artifactIds,
+            graphIDs: resp.graphIds,
+            defaultGraphID: resp.defaultGraphID.isEmpty ? nil : resp.defaultGraphID,
+            effects: Self.mapWriteEffects(resp.effects)
+        )
+    }
+
     func listSourceCredibilityGrades(projectDir: String) async throws -> [CatalogCredibilityGrade] {
         var req = Provenencia_Engine_V1_ListSourceCredibilityGradesRequest()
         req.projectDir = projectDir
