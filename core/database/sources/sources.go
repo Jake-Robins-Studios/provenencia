@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
@@ -64,10 +65,13 @@ const (
 	// here: List reads it from the display cache (Graph.Activity), so no list
 	// load scans the audit history.
 	// has_artifact gates the Evidence graph zone without a per-row query.
-	sqlList = `SELECT ` + sqlColumns + `,
+	sqlListHead = `SELECT ` + sqlColumns + `,
 		EXISTS (SELECT 1 FROM artifacts a WHERE a.source_id = s.id)
-		FROM sources s
+		FROM sources s`
+	sqlList = sqlListHead + `
 		ORDER BY s.id DESC`
+	// Binds: ids, in sqlbatch batches.
+	sqlListIn     = sqlListHead + ` WHERE s.id IN (`
 	sqlCount      = `SELECT COUNT(*) FROM sources`
 	sqlDelete     = `DELETE FROM sources WHERE id = ?`
 	sqlTypeExists = `SELECT 1 FROM source_types WHERE id = ?`
@@ -504,12 +508,10 @@ func List(c *database.Catalog) ([]Source, error) {
 	defer rows.Close()
 	var out []Source
 	for rows.Next() {
-		var hasArtifact bool
-		s, err := scanSource(rows, &hasArtifact)
+		s, err := scanListed(rows)
 		if err != nil {
 			return nil, err
 		}
-		s.HasArtifact = hasArtifact
 		out = append(out, s)
 	}
 	if err := rows.Err(); err != nil {
@@ -517,15 +519,62 @@ func List(c *database.Catalog) ([]Source, error) {
 	}
 	// The scan is finished: the catalog has one connection, so the cache's
 	// first load cannot run while rows is open.
-	if err := fillDates(db, out); err != nil {
+	if err := fillListed(c, db, out); err != nil {
 		return nil, err
 	}
-	for i := range out {
-		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
-			return nil, err
+	return out, nil
+}
+
+// ListByIDs is List for the given Sources only, newest-first, with the same
+// fields filled. An id that is not a Source adds no row.
+func ListByIDs(c *database.Catalog, ids [][]byte) ([]Source, error) {
+	db, err := c.DB()
+	if err != nil {
+		return nil, err
+	}
+	var out []Source
+	err = sqlbatch.Query(db, sqlListIn, ")", nil, database.UniqueBlobIDs(ids), func(rows *sql.Rows) error {
+		s, err := scanListed(rows)
+		if err != nil {
+			return err
 		}
+		out = append(out, s)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	// Batches arrive one after another; List's order is by id, newest first.
+	slices.SortFunc(out, func(a, b Source) int { return bytes.Compare(b.ID, a.ID) })
+	if err := fillListed(c, db, out); err != nil {
+		return nil, err
 	}
 	return out, nil
+}
+
+// scanListed reads one row of the sqlListHead query.
+func scanListed(rows database.Scanner) (Source, error) {
+	var hasArtifact bool
+	s, err := scanSource(rows, &hasArtifact)
+	if err != nil {
+		return Source{}, err
+	}
+	s.HasArtifact = hasArtifact
+	return s, nil
+}
+
+// fillListed fills each listed Source's date and its last activity.
+func fillListed(c *database.Catalog, q database.Querier, out []Source) error {
+	if err := fillDates(q, out); err != nil {
+		return err
+	}
+	for i := range out {
+		var err error
+		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AttachActivity sets Updated from the display cache's last activity.

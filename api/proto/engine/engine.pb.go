@@ -3431,6 +3431,7 @@ func (x *DateValueInput) GetPhrase() string {
 type ListSourcesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectDir    string                 `protobuf:"bytes,1,opt,name=project_dir,json=projectDir,proto3" json:"project_dir,omitempty"`
+	SourceIds     []string               `protobuf:"bytes,2,rep,name=source_ids,json=sourceIds,proto3" json:"source_ids,omitempty"` // empty = every Source
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3470,6 +3471,13 @@ func (x *ListSourcesRequest) GetProjectDir() string {
 		return x.ProjectDir
 	}
 	return ""
+}
+
+func (x *ListSourcesRequest) GetSourceIds() []string {
+	if x != nil {
+		return x.SourceIds
+	}
+	return nil
 }
 
 type ListSourcesResponse struct {
@@ -4861,8 +4869,12 @@ type GetSourceMoveImpactResponse struct {
 	CredibilityDiffers   bool                     `protobuf:"varint,6,opt,name=credibility_differs,json=credibilityDiffers,proto3" json:"credibility_differs,omitempty"` // the two grades score differently
 	LeavesSourceEmpty    bool                     `protobuf:"varint,7,opt,name=leaves_source_empty,json=leavesSourceEmpty,proto3" json:"leaves_source_empty,omitempty"`  // every Artifact of the Source moves
 	LeavesNoGraph        bool                     `protobuf:"varint,8,opt,name=leaves_no_graph,json=leavesNoGraph,proto3" json:"leaves_no_graph,omitempty"`              // every graph moves; the Source gets a new Default graph
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Grade labels, set only when a target is given. "" = not assessed.
+	SourceCredibilityLabel string `protobuf:"bytes,10,opt,name=source_credibility_label,json=sourceCredibilityLabel,proto3" json:"source_credibility_label,omitempty"`
+	TargetCredibilityLabel string `protobuf:"bytes,11,opt,name=target_credibility_label,json=targetCredibilityLabel,proto3" json:"target_credibility_label,omitempty"`
+	WeighedAsLabel         string `protobuf:"bytes,12,opt,name=weighed_as_label,json=weighedAsLabel,proto3" json:"weighed_as_label,omitempty"` // the grade the moved records weigh as
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetSourceMoveImpactResponse) Reset() {
@@ -4956,6 +4968,27 @@ func (x *GetSourceMoveImpactResponse) GetLeavesNoGraph() bool {
 		return x.LeavesNoGraph
 	}
 	return false
+}
+
+func (x *GetSourceMoveImpactResponse) GetSourceCredibilityLabel() string {
+	if x != nil {
+		return x.SourceCredibilityLabel
+	}
+	return ""
+}
+
+func (x *GetSourceMoveImpactResponse) GetTargetCredibilityLabel() string {
+	if x != nil {
+		return x.TargetCredibilityLabel
+	}
+	return ""
+}
+
+func (x *GetSourceMoveImpactResponse) GetWeighedAsLabel() string {
+	if x != nil {
+		return x.WeighedAsLabel
+	}
+	return ""
 }
 
 type MoveToSourceRequest struct {
@@ -23035,10 +23068,12 @@ const file_engine_proto_rawDesc = "" +
 	"\t_end_hourB\r\n" +
 	"\v_end_minuteB\r\n" +
 	"\v_end_secondB\x12\n" +
-	"\x10_end_millisecond\"5\n" +
+	"\x10_end_millisecond\"T\n" +
 	"\x12ListSourcesRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
-	"projectDir\"N\n" +
+	"projectDir\x12\x1d\n" +
+	"\n" +
+	"source_ids\x18\x02 \x03(\tR\tsourceIds\"N\n" +
 	"\x13ListSourcesResponse\x127\n" +
 	"\asources\x18\x01 \x03(\v2\x1d.provenencia.engine.v1.SourceR\asources\"Y\n" +
 	"\x19GetSourceWorkspaceRequest\x12\x1f\n" +
@@ -23150,7 +23185,7 @@ const file_engine_proto_rawDesc = "" +
 	"\vartifact_id\x18\x02 \x01(\tR\n" +
 	"artifactId\x12\x19\n" +
 	"\bgraph_id\x18\x03 \x01(\tR\agraphId\x12(\n" +
-	"\x10target_source_id\x18\x04 \x01(\tR\x0etargetSourceId\"\xf6\x03\n" +
+	"\x10target_source_id\x18\x04 \x01(\tR\x0etargetSourceId\"\x94\x05\n" +
 	"\x1bGetSourceMoveImpactResponse\x12\x1b\n" +
 	"\tsource_id\x18\x01 \x01(\tR\bsourceId\x12=\n" +
 	"\tartifacts\x18\x02 \x03(\v2\x1f.provenencia.engine.v1.ArtifactR\tartifacts\x12<\n" +
@@ -23160,7 +23195,11 @@ const file_engine_proto_rawDesc = "" +
 	"\x16target_credibility_key\x18\x05 \x01(\tR\x14targetCredibilityKey\x12/\n" +
 	"\x13credibility_differs\x18\x06 \x01(\bR\x12credibilityDiffers\x12.\n" +
 	"\x13leaves_source_empty\x18\a \x01(\bR\x11leavesSourceEmpty\x12&\n" +
-	"\x0fleaves_no_graph\x18\b \x01(\bR\rleavesNoGraph\"\xb5\x01\n" +
+	"\x0fleaves_no_graph\x18\b \x01(\bR\rleavesNoGraph\x128\n" +
+	"\x18source_credibility_label\x18\n" +
+	" \x01(\tR\x16sourceCredibilityLabel\x128\n" +
+	"\x18target_credibility_label\x18\v \x01(\tR\x16targetCredibilityLabel\x12(\n" +
+	"\x10weighed_as_label\x18\f \x01(\tR\x0eweighedAsLabel\"\xb5\x01\n" +
 	"\x13MoveToSourceRequest\x12\x1f\n" +
 	"\vproject_dir\x18\x01 \x01(\tR\n" +
 	"projectDir\x12\x17\n" +

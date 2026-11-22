@@ -20,6 +20,7 @@ func TestReadsDeclare(t *testing.T) {
 		ReadEvidenceGraphs: {
 			"evidence_graph_artifacts", "evidence_graphs",
 		},
+		ReadSourceHoldings: {"artifacts", "evidence_graphs"},
 		// The tables sources.loadRecords reads.
 		ReadSourceRecords: {"artifacts", "date_values", "source_credibility_assessments", "sources"},
 	}
@@ -44,7 +45,8 @@ func TestReadsDeclare(t *testing.T) {
 			t.Errorf("tables with %s = %v, want %v", read, got[read], want[read])
 		}
 	}
-	if eff := registry["artifacts"]; !eff.EvidenceGraph.zero() || len(eff.Reads) != 1 || eff.Reads[0].Read != ReadSourceRecords {
+	if eff := registry["artifacts"]; !eff.EvidenceGraph.zero() || len(eff.Reads) != 2 ||
+		eff.Reads[0].Read != ReadSourceRecords || eff.Reads[1].Read != ReadSourceHoldings {
 		t.Errorf("artifacts name graphs or reads: %+v", eff)
 	}
 	if err := (Effect{Reads: []ReadPath{{"nope", self()}}}).validate("x"); err == nil {

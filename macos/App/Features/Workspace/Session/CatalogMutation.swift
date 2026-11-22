@@ -75,7 +75,7 @@ enum CatalogList: String, Sendable, CaseIterable {
 
 /// A keyed partial read a write moved, per id of the read's key table
 /// (Evidence graphs for `citations` and `evidence_graph_progress`, Sources for
-/// `evidence_graphs` and `source_records`). The raw values are
+/// `evidence_graphs`, `source_holdings` and `source_records`). The raw values are
 /// Go's `effects.Read` wire keys (`WriteEffects.reads`); a key this build does
 /// not know is dropped when the effects are decoded.
 enum CatalogRead: String, Sendable, CaseIterable {
@@ -87,12 +87,15 @@ enum CatalogRead: String, Sendable, CaseIterable {
     case evidenceGraphs = "evidence_graphs"
     /// The terms of a Property (the term list).
     case propertyTerms = "property_terms"
+    /// What a Source holds: moved when an Artifact or an Evidence graph joins or
+    /// leaves it, or an Artifact's file changes.
+    case sourceHoldings = "source_holdings"
     /// A Source's words: its row, its Artifacts' labels, its credibility.
     case sourceRecords = "source_records"
 }
 
 /// One keyed read and the key ids (Evidence graphs, Sources for
-/// `evidence_graphs` and `source_records`, Properties for `property_terms`) it moved for.
+/// `evidence_graphs`, `source_holdings` and `source_records`, Properties for `property_terms`) it moved for.
 struct CatalogWriteEffectsRead: Sendable, Equatable {
     var read: CatalogRead
     var ids: [String]

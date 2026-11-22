@@ -45,6 +45,9 @@ const (
 	ReadEvidenceGraphs Read = "evidence_graphs"
 	// ReadPropertyTerms: the terms of a Property (the term list).
 	ReadPropertyTerms Read = "property_terms"
+	// ReadSourceHoldings: what a Source holds: moved when an Artifact or an
+	// Evidence graph joins or leaves it, or an Artifact's file changes.
+	ReadSourceHoldings Read = "source_holdings"
 	// ReadSourceRecords: the words of a Source: its row, its date, its Artifacts'
 	// labels, its credibility (the Source records entry and the app's page
 	// inputs). A table the record gains adds its path here.
@@ -52,13 +55,13 @@ const (
 )
 
 // KeyTable is the table whose ids key the read: Evidence graphs for
-// citations and evidence_graph_progress, Sources for evidence_graphs and
-// source_records, Properties for property_terms. "" for an unknown read.
+// citations and evidence_graph_progress, Sources for evidence_graphs,
+// source_holdings and source_records, Properties for property_terms. "" for an unknown read.
 func (r Read) KeyTable() string {
 	switch r {
 	case ReadCitations, ReadEvidenceGraphProgress:
 		return "evidence_graphs"
-	case ReadEvidenceGraphs, ReadSourceRecords:
+	case ReadEvidenceGraphs, ReadSourceHoldings, ReadSourceRecords:
 		return "sources"
 	case ReadPropertyTerms:
 		return "properties"
@@ -67,7 +70,7 @@ func (r Read) KeyTable() string {
 }
 
 // Reads is every keyed read, in the order Set.Reads reports them.
-var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadPropertyTerms, ReadSourceRecords}
+var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadPropertyTerms, ReadSourceHoldings, ReadSourceRecords}
 
 // DeletedEntities is every Entity that reports deleted ids (an entry with a
 // non-zero Effect.Deleted), sorted: the wire keys of Set.Deleted.
@@ -397,8 +400,11 @@ var registry = map[string]Effect{
 	// An Artifact's own fields move no loaded graph row and no citation
 	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {
-		Entity:      "artifact",
-		Reads:       []ReadPath{{ReadSourceRecords, field("source_id")}},
+		Entity: "artifact",
+		Reads: []ReadPath{
+			{ReadSourceRecords, field("source_id")},
+			{ReadSourceHoldings, union(onField("source_id", field("source_id")), onField("file_id", field("source_id")))},
+		},
 		SourceScope: field("source_id"),
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
@@ -441,9 +447,12 @@ var registry = map[string]Effect{
 	"evidence_graphs": {
 		Entity:        "evidence_graph",
 		EvidenceGraph: self(),
-		Reads:         []ReadPath{{ReadEvidenceGraphs, field("source_id")}},
-		SourceScope:   field("source_id"),
-		Search:        []SearchDoc{{Kind: DocEvidenceGraph, Path: self()}},
+		Reads: []ReadPath{
+			{ReadEvidenceGraphs, field("source_id")},
+			{ReadSourceHoldings, onField("source_id", field("source_id"))},
+		},
+		SourceScope: field("source_id"),
+		Search:      []SearchDoc{{Kind: DocEvidenceGraph, Path: self()}},
 	},
 	"evidence_graph_artifacts": {
 		Entity:      "evidence_graph_artifact",
