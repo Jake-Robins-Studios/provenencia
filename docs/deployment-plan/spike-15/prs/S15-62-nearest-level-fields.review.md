@@ -1,6 +1,6 @@
 # Review — S15-62 A format reads a field from the nearest level
 
-**Verdict:** round 1: Fits with changes — Ready with changes; round 2: see below
+**Verdict:** Fits with changes — Ready with changes (round 2; every finding Fixed, nothing open)
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -72,3 +72,19 @@ Maintainability: every round-1 answer holds; one new blocker from the M-2 fix.
 **Answer:** Fixed. D-7: `Without(l)` also drops every built-in at level `l`. D-9's wording follows. T-6 gains `Without(source)` → zero for `SourceDate`; T-7 gains a set Source date on the Source board → not met elsewhere.
 
 Stale lines (not blockers): § 6 Go core's `sourcemetadata` row now says callers pass `above`; the `citationformat` row names `ListFormLevel` in `builtins.go`. Fixed.
+
+Executability: the round-1 answers hold; one blocker (the same as M-6), one major, two minors.
+
+### X-10 · blocker · `above` answered the Source date
+**Answer:** Fixed, with M-6 (D-7, D-9, T-6, T-7).
+
+### X-11 · major · The migration and the bump against `add-catalog-migration`'s text
+**Answer:** Fixed. D-12 says why this is not a seed backfill: it rewrites the syntax of every stored format, researcher-written ones included, which `Install` never refreshes, and adds or changes no vocabulary row; the map's scope (user) calls for it. The header says the minor bump is for the feature, per `docs/versioning.md` and S15-17 and S15-38, not for the format step.
+
+### X-12 · minor · `buildEntries`' `level` parameter
+**Answer:** Fixed. D-9: it is dropped with the level on the head.
+
+### X-13 · minor · `usualLevel` has one argument
+**Answer:** Fixed in D-14's Rejected column.
+
+No round 3 (the loop's cap).
