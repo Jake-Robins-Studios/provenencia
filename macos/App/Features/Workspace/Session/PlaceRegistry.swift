@@ -12,6 +12,8 @@ struct PlaceRegistry: Sendable {
         let queryKeys: @Sendable (ProjectKey, WorkspaceLocation) -> [CatalogQueryKey]
         /// The id this place's view resets on: a different value remounts the destination. `nil` keeps one view across locations (list roots, master–detail places that follow `currentLocation`).
         let viewIdentity: @Sendable (WorkspaceLocation) -> String?
+        /// Whether the place names its graph's Source in the location, so an entry made before the graph moved to another Source is rewritten to the new one (`ResolvedPlace.pendingGraphSourceCorrection`).
+        var followsGraphSource: Bool = false
     }
 
     /// Higher priority wins when multiple specs could match.
@@ -37,7 +39,8 @@ struct PlaceRegistry: Sendable {
                     .evidenceGraphsList(project: project),
                 ]
             },
-            viewIdentity: { PromoteEntry(location: $0)?.identityKey }
+            viewIdentity: { PromoteEntry(location: $0)?.identityKey },
+            followsGraphSource: true
         ),
         Spec(
             id: .sourceCitationComposer,
@@ -66,7 +69,8 @@ struct PlaceRegistry: Sendable {
                 }
                 return keys
             },
-            viewIdentity: { CitationComposerEntry(location: $0)?.identityKey }
+            viewIdentity: { CitationComposerEntry(location: $0)?.identityKey },
+            followsGraphSource: true
         ),
         Spec(
             id: .sourceGraph,
@@ -87,12 +91,14 @@ struct PlaceRegistry: Sendable {
                     .evidenceGraphsList(project: project),
                 ]
             },
-            // The view is built from the Subject the location opens on, so each one is a fresh mount.
+            // The view is built from the Subject the location opens on, so each one is a fresh mount,
+            // and from the Source the graph is on, so a graph that moved remounts on its new Source.
             viewIdentity: { location in
-                guard let graphId = location.graphId else { return nil }
-                guard let subjectId = location.subjectId, !subjectId.isEmpty else { return graphId }
-                return "\(graphId)#\(subjectId)"
-            }
+                guard let sourceId = location.sourceId, let graphId = location.graphId else { return nil }
+                guard let subjectId = location.subjectId, !subjectId.isEmpty else { return "\(sourceId)#\(graphId)" }
+                return "\(sourceId)#\(graphId)#\(subjectId)"
+            },
+            followsGraphSource: true
         ),
         Spec(
             id: .sourceDetail,
@@ -247,7 +253,8 @@ struct PlaceRegistry: Sendable {
             placeID: spec.id,
             presentation: spec.presentation,
             queryKeys: spec.queryKeys(project, location),
-            viewIdentity: spec.viewIdentity(location)
+            viewIdentity: spec.viewIdentity(location),
+            followsGraphSource: spec.followsGraphSource
         )
     }
 

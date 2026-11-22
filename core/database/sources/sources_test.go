@@ -1603,3 +1603,44 @@ func TestGetManyTx(t *testing.T) {
 		t.Fatalf("nil ids = %+v, %v", none, err)
 	}
 }
+
+func TestListByIDs(t *testing.T) {
+	c, userID, typeID := sourceFixture(t)
+	var made []Source
+	for _, title := range []string{"Census", "Parish register", "Will"} {
+		s, err := runCreate(c, userID, CreateInput{SourceTypeID: typeID, Title: title})
+		if err != nil {
+			t.Fatal(err)
+		}
+		made = append(made, s)
+	}
+	unknown := make([]byte, 16)
+	unknown[0] = 9
+	all, err := List(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := ListByIDs(c, [][]byte{made[0].ID, made[2].ID, made[0].ID, unknown})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || !bytes.Equal(got[0].ID, made[2].ID) || !bytes.Equal(got[1].ID, made[0].ID) {
+		t.Fatalf("two of three ids = %+v, want Will then Census (newest first)", got)
+	}
+	for _, g := range got {
+		for _, want := range all {
+			if bytes.Equal(g.ID, want.ID) && (g.Title != want.Title || g.HasArtifact != want.HasArtifact || g.Updated != want.Updated) {
+				t.Errorf("ListByIDs %q = %+v, want what List returns: %+v", g.Title, g, want)
+			}
+		}
+	}
+	none, err := ListByIDs(c, [][]byte{unknown})
+	if err != nil || len(none) != 0 {
+		t.Fatalf("unknown id = %+v, %v", none, err)
+	}
+	every, err := ListByIDs(c, nil)
+	if err != nil || len(every) != 0 {
+		t.Fatalf("no ids = %+v, %v (the handler, not ListByIDs, reads every Source)", every, err)
+	}
+}

@@ -338,6 +338,9 @@ final class ArtifactSheetModel {
     /// baselines to what was written, then ingest the file as its own write. Assignments follow
     /// each `try`, so a failed write leaves `created`, `prefill` and the host as they were.
     private func saveCreate(label: String, description: String, metadata: CatalogMetadataDraft?) async throws {
+        // The create's effects, held while a file follows: the create and the ingest each report
+        // `source_holdings`, and applying both would read the Source page twice.
+        var heldEffects: CatalogWriteEffects?
         if let made = created {
             if textChanged || metadata != nil {
                 created = try await writeUpdate(
@@ -358,7 +361,12 @@ final class ArtifactSheetModel {
             )
             // Shown before the file is ingested: if the file is refused, the Artifact the
             // engine made still reads on the page, with the rows it answered.
-            onSaved(art, rows, effects)
+            if file.filePath == nil {
+                onSaved(art, rows, effects)
+            } else {
+                onSaved(art, rows, .empty)
+                heldEffects = effects
+            }
             created = art
         }
         prefill = ArtifactSheetDraft(label: label, description: description)
@@ -374,6 +382,8 @@ final class ArtifactSheetModel {
                     path: path
                 )
             } catch {
+                // The Artifact the engine made stays: its effects apply now, not with the file's.
+                if let heldEffects { onSaved(art, nil, heldEffects) }
                 // A refusal is the file's own message; any other failure leaves the Artifact
                 // made without its file, which `save()` says in its own copy.
                 var probe = file
@@ -382,9 +392,8 @@ final class ArtifactSheetModel {
             }
             art = ingested.artifact
             created = art
-            onSaved(art, nil, ingested.effects)
+            onSaved(art, nil, heldEffects.map { $0.merged(with: ingested.effects) } ?? ingested.effects)
         }
-        await context.refreshCoverFromStore()
         context.toast = VocabularyToast(
             title: L10n.Sources.toastArtifactCreatedTitle(ref: art.ref),
             body: art.fileID.isEmpty

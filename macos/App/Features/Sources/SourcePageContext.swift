@@ -207,18 +207,6 @@ final class SourcePageContext {
         )
     }
 
-    /// Reloads Source cover fields after Artifact create/ingest (raster may appear).
-    func refreshCoverFromStore() async {
-        clearPageError()
-        do {
-            let ws = try await store.getSourceWorkspace(projectDir: projectDir, sourceID: sourceID)
-            setWorkspace(ws)
-            session.apply(.updatedSource(ws.source))
-        } catch {
-            showFailure(error)
-        }
-    }
-
     /// Pins a file-bearing Artifact as cover, or reverts to the type icon.
     func setSourceCover(mode: String, primaryArtifactID: String = "") async -> Bool {
         clearPageError()

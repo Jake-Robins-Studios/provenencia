@@ -1976,6 +1976,9 @@ public nonisolated struct Provenencia_Engine_V1_ListSourcesRequest: Sendable {
 
   public var projectDir: String = String()
 
+  /// empty = every Source
+  public var sourceIds: [String] = []
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -2537,6 +2540,14 @@ public nonisolated struct Provenencia_Engine_V1_GetSourceMoveImpactResponse: Sen
 
   /// every graph moves; the Source gets a new Default graph
   public var leavesNoGraph: Bool = false
+
+  /// Grade labels, set only when a target is given. "" = not assessed.
+  public var sourceCredibilityLabel: String = String()
+
+  public var targetCredibilityLabel: String = String()
+
+  /// the grade the moved records weigh as
+  public var weighedAsLabel: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -11378,7 +11389,7 @@ nonisolated extension Provenencia_Engine_V1_DateValueInput: SwiftProtobuf.Messag
 
 nonisolated extension Provenencia_Engine_V1_ListSourcesRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListSourcesRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}source_ids\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -11387,6 +11398,7 @@ nonisolated extension Provenencia_Engine_V1_ListSourcesRequest: SwiftProtobuf.Me
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
+      case 2: try { try decoder.decodeRepeatedStringField(value: &self.sourceIds) }()
       default: break
       }
     }
@@ -11396,11 +11408,15 @@ nonisolated extension Provenencia_Engine_V1_ListSourcesRequest: SwiftProtobuf.Me
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
+    if !self.sourceIds.isEmpty {
+      try visitor.visitRepeatedStringField(value: self.sourceIds, fieldNumber: 2)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_ListSourcesRequest, rhs: Provenencia_Engine_V1_ListSourcesRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
+    if lhs.sourceIds != rhs.sourceIds {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -12437,7 +12453,7 @@ nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactRequest: SwiftPro
 
 nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetSourceMoveImpactResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}source_id\0\u{1}artifacts\0\u{1}graphs\0\u{3}source_credibility_key\0\u{3}target_credibility_key\0\u{3}credibility_differs\0\u{3}leaves_source_empty\0\u{3}leaves_no_graph\0\u{1}progress\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}source_id\0\u{1}artifacts\0\u{1}graphs\0\u{3}source_credibility_key\0\u{3}target_credibility_key\0\u{3}credibility_differs\0\u{3}leaves_source_empty\0\u{3}leaves_no_graph\0\u{1}progress\0\u{3}source_credibility_label\0\u{3}target_credibility_label\0\u{3}weighed_as_label\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -12454,6 +12470,9 @@ nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactResponse: SwiftPr
       case 7: try { try decoder.decodeSingularBoolField(value: &self.leavesSourceEmpty) }()
       case 8: try { try decoder.decodeSingularBoolField(value: &self.leavesNoGraph) }()
       case 9: try { try decoder.decodeRepeatedMessageField(value: &self.progress) }()
+      case 10: try { try decoder.decodeSingularStringField(value: &self.sourceCredibilityLabel) }()
+      case 11: try { try decoder.decodeSingularStringField(value: &self.targetCredibilityLabel) }()
+      case 12: try { try decoder.decodeSingularStringField(value: &self.weighedAsLabel) }()
       default: break
       }
     }
@@ -12487,6 +12506,15 @@ nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactResponse: SwiftPr
     if !self.progress.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.progress, fieldNumber: 9)
     }
+    if !self.sourceCredibilityLabel.isEmpty {
+      try visitor.visitSingularStringField(value: self.sourceCredibilityLabel, fieldNumber: 10)
+    }
+    if !self.targetCredibilityLabel.isEmpty {
+      try visitor.visitSingularStringField(value: self.targetCredibilityLabel, fieldNumber: 11)
+    }
+    if !self.weighedAsLabel.isEmpty {
+      try visitor.visitSingularStringField(value: self.weighedAsLabel, fieldNumber: 12)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -12500,6 +12528,9 @@ nonisolated extension Provenencia_Engine_V1_GetSourceMoveImpactResponse: SwiftPr
     if lhs.credibilityDiffers != rhs.credibilityDiffers {return false}
     if lhs.leavesSourceEmpty != rhs.leavesSourceEmpty {return false}
     if lhs.leavesNoGraph != rhs.leavesNoGraph {return false}
+    if lhs.sourceCredibilityLabel != rhs.sourceCredibilityLabel {return false}
+    if lhs.targetCredibilityLabel != rhs.targetCredibilityLabel {return false}
+    if lhs.weighedAsLabel != rhs.weighedAsLabel {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

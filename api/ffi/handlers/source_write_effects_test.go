@@ -197,3 +197,29 @@ func TestDeleteSourceReturnsEffects(t *testing.T) {
 		t.Fatalf("lists = %v, want counts", eff.GetLists())
 	}
 }
+
+// TestListSourcesByIDs: source_ids narrows the list to those Sources, with the
+// same fields the whole list carries; an unknown id adds no row; none lists all.
+func TestListSourcesByIDs(t *testing.T) {
+	f := sourceWithPNG(t)
+	var all engine.ListSourcesResponse
+	mustRPC(t, ListSources, &engine.ListSourcesRequest{ProjectDir: f.dir}, &all)
+	if len(all.GetSources()) != 1 {
+		t.Fatalf("sources %+v", all.GetSources())
+	}
+	var one engine.ListSourcesResponse
+	mustRPC(t, ListSources, &engine.ListSourcesRequest{
+		ProjectDir: f.dir,
+		SourceIds:  []string{f.sourceID, "01a2036e-5f77-776e-b05e-000000000009"},
+	}, &one)
+	if len(one.GetSources()) != 1 || one.GetSources()[0].GetId() != f.sourceID || !one.GetSources()[0].GetHasArtifact() {
+		t.Fatalf("by ids %+v", one.GetSources())
+	}
+	var none engine.ListSourcesResponse
+	mustRPC(t, ListSources, &engine.ListSourcesRequest{
+		ProjectDir: f.dir, SourceIds: []string{"01a2036e-5f77-776e-b05e-000000000009"},
+	}, &none)
+	if len(none.GetSources()) != 0 {
+		t.Fatalf("unknown id %+v", none.GetSources())
+	}
+}

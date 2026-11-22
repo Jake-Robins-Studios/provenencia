@@ -28,6 +28,62 @@ struct WorkspaceNavigationTests {
         return (navigation, url)
     }
 
+    /// A graph, composer or Promote entry follows its graph to the Source it moved to (D-17):
+    /// the entry is corrected only against a cached row of the same graph on another Source,
+    /// and the place's identity then differs, so it remounts once.
+    @Test func correctingGraphSource() {
+        func graph(_ id: String, on sourceID: String) -> CatalogEvidenceGraph {
+            CatalogEvidenceGraph(id: id, ref: "GPH-\(id)", sourceID: sourceID, name: id, description: "", artifactIDs: [])
+        }
+        let canvas = WorkspaceLocation.evidenceGraph(sourceId: "s1", graphId: "g1", title: "Hale", sourceTitle: "Census")
+        let composer = WorkspaceLocation.citationComposer(
+            sourceId: "s1", graphId: "g1", subjectId: "sub-1", sourceTitle: "Census"
+        )
+        let promote = WorkspaceLocation.promote(
+            sourceId: "s1", graphId: "g1", subjectId: "sub-1", kind: .person, ref: "CPR-1", title: nil, sourceTitle: "Census"
+        )
+
+        for location in [canvas, composer, promote] {
+            let corrected = location.correctingGraphSource(graph("g1", on: "s2"))
+            #expect(corrected?.sourceId == "s2")
+            #expect(corrected?.sourceTitle == nil)
+            #expect(corrected?.graphId == "g1")
+            #expect(corrected?.sourceSurface == location.sourceSurface)
+            // Unchanged: the same Source, no cached row, another graph's row.
+            #expect(location.correctingGraphSource(graph("g1", on: "s1")) == nil)
+            #expect(location.correctingGraphSource(nil) == nil)
+            #expect(location.correctingGraphSource(graph("g9", on: "s2")) == nil)
+        }
+        #expect(WorkspaceLocation.sourcePage(sourceId: "s1").correctingGraphSource(graph("g1", on: "s2")) == nil)
+
+        // The host observes the pending correction, not the graph's Source: two entries for G1 that
+        // both name S1 (canvas, then composer) after G1 moved to S2 each get their own correction,
+        // though the graph's Source is S2 for both. Only places that follow their graph's Source
+        // have one.
+        let registry = PlaceRegistry.standard
+        let projectKey = ProjectKey(projectDir: "/tmp/pending-graph-source.provenencia")
+        let moved = graph("g1", on: "s2")
+        for location in [canvas, composer, promote] {
+            let place = registry.resolve(location, project: projectKey)
+            #expect(place?.pendingGraphSourceCorrection(for: location, graph: moved)?.sourceId == "s2")
+            #expect(place?.pendingGraphSourceCorrection(for: location, graph: graph("g1", on: "s1")) == nil)
+        }
+        let page = WorkspaceLocation.sourcePage(sourceId: "s1")
+        #expect(registry.resolve(page, project: projectKey)?.pendingGraphSourceCorrection(for: page, graph: moved) == nil)
+
+        // The two Sources' locations of one graph mount as different places.
+        let project = ProjectKey(projectDir: "/tmp/correct-graph-source.provenencia")
+        func identity(_ location: WorkspaceLocation) -> String? {
+            PlaceRegistry.standard.resolve(location, project: project)?.viewIdentity
+        }
+        for location in [canvas, composer, promote] {
+            var moved = location
+            moved.sourceId = "s2"
+            #expect(identity(location) != nil)
+            #expect(identity(location) != identity(moved))
+        }
+    }
+
     @Test func leavingAGonePageShowsTheNoticeAndRewritesTheEntry() throws {
         for notice in ["Gone", nil] as [String?] {
             let (navigation, _) = try attachedNavigation()

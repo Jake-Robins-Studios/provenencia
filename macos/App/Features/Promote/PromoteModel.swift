@@ -34,7 +34,7 @@ struct PromoteEntry: Equatable, Sendable {
     }
 
     var identityKey: String {
-        mapAll ? "promote|\(graphID)|all" : "promote|\(graphID)|\(subjectID)"
+        mapAll ? "promote|\(sourceID)|\(graphID)|all" : "promote|\(sourceID)|\(graphID)|\(subjectID)"
     }
 
     var graphLocation: WorkspaceLocation {

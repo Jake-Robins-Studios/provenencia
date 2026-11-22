@@ -403,3 +403,18 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         return value
     }
 }
+
+extension WorkspaceLocation {
+    /// This location with its Source corrected to the Source `graph` is on now: a graph, citation
+    /// composer or Promote entry made before the graph moved to another Source still names the old
+    /// one. Nil when there is nothing to correct: no graph in the location, `graph` is nil or
+    /// another graph (its row is not cached yet), or the Source already matches. The Source title
+    /// cache is cleared, as it named the old Source.
+    func correctingGraphSource(_ graph: CatalogEvidenceGraph?) -> WorkspaceLocation? {
+        guard let graphId, let graph, graph.id == graphId, graph.sourceID != sourceId else { return nil }
+        var corrected = self
+        corrected.sourceId = graph.sourceID
+        corrected.sourceTitle = nil
+        return corrected
+    }
+}

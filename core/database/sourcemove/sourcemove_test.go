@@ -3,6 +3,8 @@ package sourcemove_test
 import (
 	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -28,6 +30,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects/subjectstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/namevalue/namevaluetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
@@ -242,6 +245,9 @@ func TestImpact(t *testing.T) {
 		if rep.SourceCredibilityKey != "low_trust" || rep.TargetCredibilityKey != "" || !rep.CredibilityDiffers {
 			t.Fatalf("report %+v", rep)
 		}
+		if rep.SourceCredibilityLabel != "Low trust" || rep.TargetCredibilityLabel != "" || rep.WeighedAsLabel != "Standard" {
+			t.Fatalf("labels %q %q %q", rep.SourceCredibilityLabel, rep.TargetCredibilityLabel, rep.WeighedAsLabel)
+		}
 
 		w = newWorld(t)
 		a1 = w.art(w.Source, "A1")
@@ -252,6 +258,49 @@ func TestImpact(t *testing.T) {
 		}
 		if rep.SourceCredibilityKey != "" || rep.TargetCredibilityKey != "standard" || rep.CredibilityDiffers {
 			t.Fatalf("report %+v", rep)
+		}
+
+		// A target assessed high_trust weighs as its own grade.
+		w = newWorld(t)
+		a1 = w.art(w.Source, "A1")
+		w.credibility(w.s2, "high_trust")
+		rep, err = sourcemove.Impact(w.C, evidencegraphs.Seed{ArtifactID: a1.ID}, w.s2.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rep.TargetCredibilityLabel != "High trust" || rep.WeighedAsLabel != "High trust" {
+			t.Fatalf("labels %q %q", rep.TargetCredibilityLabel, rep.WeighedAsLabel)
+		}
+
+		// A user grade that shares the key "standard" is named by its own label.
+		w = newWorld(t)
+		a1 = w.art(w.Source, "A1")
+		evidencelayertest.Must(t, sourcecredibilitygradestest.Install(w.C))
+		var ours sourcecredibilitygrades.Grade
+		w.Run("add_grade", func(tx *database.Tx) ([]rowchange.Change, error) {
+			id, ch, err := sourcecredibilitygrades.UpsertTx(tx, sourcecredibilitygrades.Grade{Key: "standard", Origin: vocabkey.OriginUser, Label: "Ours", SortOrder: 9})
+			ours.ID = id
+			return ch, err
+		})
+		w.Run("set_credibility", func(tx *database.Tx) ([]rowchange.Change, error) {
+			_, ch, err := sourcecredibility.Upsert(tx, userID, sourcecredibility.UpsertInput{SourceID: w.s2.ID, CredibilityGradeID: ours.ID})
+			return ch, err
+		})
+		rep, err = sourcemove.Impact(w.C, evidencegraphs.Seed{ArtifactID: a1.ID}, w.s2.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rep.TargetCredibilityLabel != "Ours" || rep.WeighedAsLabel != "Ours" {
+			t.Fatalf("labels %q %q", rep.TargetCredibilityLabel, rep.WeighedAsLabel)
+		}
+
+		// No target: no labels.
+		rep, err = sourcemove.Impact(w.C, evidencegraphs.Seed{ArtifactID: a1.ID}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rep.SourceCredibilityLabel != "" || rep.TargetCredibilityLabel != "" || rep.WeighedAsLabel != "" {
+			t.Fatalf("labels with no target %+v", rep)
 		}
 	})
 
@@ -748,4 +797,82 @@ func TestSourceKeysAreClassified(t *testing.T) { // D-18
 	if n != len(moves)+len(stays) {
 		t.Errorf("%d foreign keys to sources, %d classified", n, len(moves)+len(stays))
 	}
+}
+
+// TestSourceHoldingsRead pins which writes report source_holdings, and for
+// which Sources: an Artifact or a graph joining or leaving a Source, or an
+// Artifact's file changing; never a label or a graph-name edit.
+func TestSourceHoldingsRead(t *testing.T) {
+	w := newWorld(t)
+	s1, s2 := w.Source.ID, w.s2.ID
+	run := func(action string, fn func(tx *database.Tx) ([]rowchange.Change, error)) [][]byte {
+		t.Helper()
+		res, err := writes.RunChanges(w.C, writes.Op{Action: action, UserID: userID}, fn)
+		evidencelayertest.Must(t, err)
+		return res.Effects.IDsOf(effects.ReadSourceHoldings)
+	}
+	check := func(name string, got [][]byte, want ...[]byte) {
+		t.Helper()
+		if !sameIDs(got, want) {
+			t.Errorf("%s: source_holdings %x, want %x", name, got, want)
+		}
+	}
+
+	var created artifacts.Artifact
+	check("create an Artifact", run("create_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
+		a, ch, err := artifacts.Create(tx, userID, artifacts.CreateInput{SourceID: s1, Label: "Sheet", Graphs: evidencegraphs.GraphLinks{Given: true}})
+		created = a
+		return ch, err
+	}), s1)
+
+	path := filepath.Join(t.TempDir(), "a.bin")
+	evidencelayertest.Must(t, os.WriteFile(path, []byte("file-one"), 0o644))
+	ing, err := ingest.File(w.C, path, userID)
+	evidencelayertest.Must(t, err)
+	attach := created
+	attach.FileID = ing.File.ID
+	check("attach a file", run("update_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
+		return artifacts.Update(tx, userID, attach, evidencegraphs.GraphLinks{})
+	}), s1)
+
+	relabel := attach
+	relabel.Label = "Sheet 2"
+	check("update a label", run("update_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
+		return artifacts.Update(tx, userID, relabel, evidencegraphs.GraphLinks{})
+	}))
+
+	check("move an Artifact", run("move_to_source", func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, ch, err := sourcemove.Move(tx, userID, evidencegraphs.Seed{ArtifactID: created.ID}, s2)
+		return ch, err
+	}), s1, s2)
+
+	check("delete an Artifact", run("delete_artifact", func(tx *database.Tx) ([]rowchange.Change, error) {
+		return artifacts.Delete(tx, userID, created.ID)
+	}), s2)
+
+	var g evidencegraphs.Graph
+	other := w.art(w.Source, "Linked")
+	check("create a graph", run("create_evidence_graph", func(tx *database.Tx) ([]rowchange.Change, error) {
+		var ch []rowchange.Change
+		var err error
+		g, ch, err = evidencegraphs.Create(tx, userID, evidencegraphs.CreateInput{SourceID: s1, Name: "G", ArtifactIDs: [][]byte{other.ID}})
+		return ch, err
+	}), s1)
+
+	check("rename a graph", run("update_evidence_graph", func(tx *database.Tx) ([]rowchange.Change, error) {
+		return evidencegraphs.Update(tx, userID, g.ID, evidencegraphs.UpdateInput{Name: "G2"})
+	}))
+
+	// A graph move alone: the Default graph of a Source holding no Artifacts.
+	w2 := newWorld(t)
+	def := w2.Graph(w2.Source)
+	if _, err := dbtest.MustDB(t, w2.C).Exec(`DELETE FROM evidence_graph_artifacts WHERE graph_id = ?`, def); err != nil {
+		t.Fatal(err)
+	}
+	res, err := writes.RunChanges(w2.C, writes.Op{Action: "move_to_source", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		_, ch, err := sourcemove.Move(tx, userID, evidencegraphs.Seed{GraphID: def}, w2.s2.ID)
+		return ch, err
+	})
+	evidencelayertest.Must(t, err)
+	check("move a graph", res.Effects.IDsOf(effects.ReadSourceHoldings), w2.Source.ID, w2.s2.ID)
 }

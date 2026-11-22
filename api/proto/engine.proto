@@ -454,6 +454,7 @@ message DateValueInput {
 
 message ListSourcesRequest {
   string project_dir = 1;
+  repeated string source_ids = 2;  // empty = every Source
 }
 
 message ListSourcesResponse {
@@ -628,6 +629,10 @@ message GetSourceMoveImpactResponse {
   bool credibility_differs = 6;         // the two grades score differently
   bool leaves_source_empty = 7;         // every Artifact of the Source moves
   bool leaves_no_graph = 8;             // every graph moves; the Source gets a new Default graph
+  // Grade labels, set only when a target is given. "" = not assessed.
+  string source_credibility_label = 10;
+  string target_credibility_label = 11;
+  string weighed_as_label = 12;         // the grade the moved records weigh as
 }
 
 message MoveToSourceRequest {

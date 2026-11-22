@@ -47,7 +47,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 ### Properties, vocabulary, Sources
 
-- [`source-page-followups.md`](source-page-followups.md) — missing-Source errors outside the page context, delete after a delete elsewhere, the cover reload after Artifact writes
+- [`source-page-followups.md`](source-page-followups.md) — missing-Source errors outside the page context, delete after a delete elsewhere, the fake's blank Source for a missing id
 - [`source-type-packages.md`](source-type-packages.md) — citation styles as installable packages of types, fields and formats; raised in Spike 15, which seeds the *Evidence Explained*-style set as the product default
 - [`event-as-of-followups.md`](event-as-of-followups.md) — Spike 16 Batch 5 leftovers: as-of on a Place, hide as-of on instantaneous event types
 - [`properties-and-terms.md`](properties-and-terms.md) — binding order, event-type-scoped properties, Occupation seed, term management (direction / inverses), failed bind after create
@@ -57,6 +57,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 ### Kit, tooling and refactors
 
+- [`performance-possibilities.md`](performance-possibilities.md) — small speed-ups reviews found in untouched code: the formats preview picker's options rebuilt on every redraw
 - [`kit-layering.md`](kit-layering.md) — the kit's delete impact taking a Features type, hand-built hover focus rings, page-column metrics and diagram options with one caller
 - [`value-formatting.md`](value-formatting.md) — two date formatters, editor flags in the date draft, integer text, event formatting in Features
 - [`catalog-query-layer.md`](catalog-query-layer.md) — two ways to learn a Source delete; splitting `CatalogLastUpdated.swift`; a commit's repeated effects lookups

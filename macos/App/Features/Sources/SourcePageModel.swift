@@ -20,6 +20,8 @@ final class SourcePageModel {
 
     /// The Copy Source form while it is open.
     var copying: SourceCopyModel?
+    /// The Move to another Source dialog while it is open.
+    var moving: SourceMoveModel?
 
     private(set) var isLoading = false
     var loadError: Error?
@@ -181,6 +183,32 @@ final class SourcePageModel {
         )
     }
 
+    /// Opens the Move dialog for one of this page's Artifacts; nothing opens for an id the page does not hold.
+    func openMove(artifactID: String) {
+        guard let art = artifacts.items.first(where: { $0.id == artifactID }) else { return }
+        openMove(seed: .artifact(art.id), title: art.displayTitle, ref: art.ref)
+    }
+
+    /// Opens the Move dialog for one of this page's Evidence graphs; nothing opens for an id the page does not hold.
+    func openMove(graphID: String) {
+        guard let graph = graphs.ownGraph(id: graphID) else { return }
+        openMove(seed: .graph(graph.id), title: graph.name, ref: graph.ref)
+    }
+
+    private func openMove(seed: CatalogSourceMoveSeed, title: String, ref: String) {
+        guard let source else { return }
+        moving = SourceMoveModel(
+            seed: seed,
+            origin: source,
+            seedTitle: title,
+            seedRef: ref,
+            sourceTypeIconKey: context.sourceTypeIconKey,
+            session: context.session,
+            userID: context.userID,
+            store: context.store
+        )
+    }
+
     func askDeleteSource() async {
         guard let source else { return }
         await presentImpact(kind: "source", id: source.id, ref: source.ref, title: source.title)
@@ -216,21 +244,15 @@ final class SourcePageModel {
                     userID: context.userID,
                     artifactID: target.id
                 )
-                if var workspace = context.workspace {
-                    workspace.artifacts.removeAll { $0.id == target.id }
-                    apply(workspace)
-                    context.setWorkspace(workspace)
-                }
                 context.toast = VocabularyToast(
                     title: L10n.string(L10n.Sources.toastArtifactDeletedTitle),
                     body: L10n.Sources.toastArtifactDeletedBody(ref: target.ref),
                     tone: .success
                 )
-                // The refresh below is the one read of the Source's workspace: it
-                // carries the cover and `hasArtifact`, which the activity patch
-                // cannot.
+                // The effects report `source_holdings` for the Source: the page's
+                // workspace reloads once (the row leaves, the cover and `hasArtifact`
+                // follow) and its Sources list row is re-read by id.
                 context.session.apply(effects)
-                await context.refreshCoverFromStore()
             case "evidence_graph":
                 // The effects refresh the graph list; a graph changes no
                 // workspace field and no cover.

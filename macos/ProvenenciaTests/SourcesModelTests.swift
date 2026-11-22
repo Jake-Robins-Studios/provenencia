@@ -375,6 +375,38 @@ struct SourcesModelTests {
         #expect(model.toast != nil)
     }
 
+    /// The Sources list re-reads one row per Source `source_holdings` names (D-16) and leaves
+    /// the other rows alone; `source_records` alone reads nothing.
+    @Test func listRowsFollowSourceHoldings() async {
+        let store = FakeStore()
+        var s1 = source(id: "s1", title: "Census", typeID: "t1", ref: "SRC-AAAAA")
+        s1.hasArtifact = true
+        let (model, session) = makeModel(
+            store: store,
+            sources: [s1, source(id: "s2", title: "Deed", typeID: "t1", ref: "SRC-BBBBB"),
+                      source(id: "s3", title: "Will", typeID: "t1", ref: "SRC-CCCCC")],
+            types: [photoType()]
+        )
+        // The engine's rows after a move of s1's only Artifact to s2.
+        store.artifactsBySource["s2"] = [catalogArtifact("a1", sourceID: "s2")]
+        await warmLists(model, session: session)
+        session.apply(location: .sectionRoot(.sources))
+
+        session.apply(CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceRecords, ids: ["s1", "s2"])]))
+        await session.settleWrites()
+        #expect(store.listSourcesByIDCalls.isEmpty)
+
+        session.apply(CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: .sourceHoldings, ids: ["s1", "s2"])]))
+        await session.settleWrites()
+
+        #expect(store.listSourcesByIDCalls.sorted { $0[0] < $1[0] } == [["s1"], ["s2"]])
+        let rows = Dictionary(uniqueKeysWithValues: model.sources.map { ($0.id, $0) })
+        #expect(rows["s1"]?.hasArtifact == false)
+        #expect(rows["s2"]?.hasArtifact == true)
+        #expect(rows["s3"]?.title == "Will")
+        #expect(rows.count == 3)
+    }
+
     @Test func createInsertsTheRowThroughSession() async {
         let store = FakeStore()
         let (model, session) = makeModel(

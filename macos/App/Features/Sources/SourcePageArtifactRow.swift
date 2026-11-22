@@ -1,31 +1,5 @@
 import SwiftUI
 
-/// What a row's right-click menu offers; S15-25 adds a `.move` case between edit and delete.
-enum ArtifactRowAction: CaseIterable {
-    case edit, setCover, delete
-
-    /// The actions a row offers: Set cover only when the Artifact can be the cover.
-    static func menuActions(canSetCover: Bool) -> [ArtifactRowAction] {
-        allCases.filter { $0 != .setCover || canSetCover }
-    }
-
-    var title: LocalizedStringResource {
-        switch self {
-        case .edit: L10n.Sources.artifactMenuEdit
-        case .setCover: L10n.Sources.useAsThumbnail
-        case .delete: L10n.Sources.artifactMenuDelete
-        }
-    }
-
-    var idSuffix: String {
-        switch self {
-        case .edit: "edit"
-        case .setCover: "setCover"
-        case .delete: "delete"
-        }
-    }
-}
-
 /// One Artifact on the Source page: a list row (S15-D14). A Source page snowflake: a 64pt
 /// thumbnail, the label, ref, description and graph line, the saved copy details in a column
 /// of their own, then the actions. A row has no hover and nothing in it is editable in place.
@@ -57,28 +31,9 @@ struct SourcePageArtifactRow: View {
         .padding(.vertical, PVSpacing.space6)
         .overlay(alignment: .bottom) { PVDivider() }
         .contentShape(Rectangle())
-        .pvRightClickMenu(
-            verbatimTitle: art.ref,
-            accessibilityIdentifier: "sources.page.artifact.\(id).menu",
-            items: ArtifactRowAction.menuActions(canSetCover: canSetCover).map { action in
-                PVActionMenuItem(
-                    title: action.title,
-                    accessibilityIdentifier: "sources.page.artifact.\(id).menu.\(action.idSuffix)",
-                    action: { perform(action) }
-                )
-            }
-        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(verbatim: art.displayTitle))
         .accessibilityIdentifier("sources.page.artifact.\(id)")
-    }
-
-    private func perform(_ action: ArtifactRowAction) {
-        switch action {
-        case .edit: model.artifacts.openSheet(artifactID: art.id)
-        case .setCover: Task { await model.artifacts.useAsThumbnail(art) }
-        case .delete: Task { await model.askDeleteArtifact(id: art.id) }
-        }
     }
 
     // MARK: Thumbnail
@@ -191,7 +146,7 @@ struct SourcePageArtifactRow: View {
     private func actions(canSetCover: Bool) -> some View {
         HStack(spacing: PVSpacing.space2) {
             PVButton(L10n.Sources.useAsThumbnail, variant: .ghost, size: .sm, icon: .imageUp) {
-                perform(.setCover)
+                Task { await model.artifacts.useAsThumbnail(art) }
             }
             .opacity(canSetCover ? 1 : 0)
             .disabled(!canSetCover)
@@ -202,16 +157,24 @@ struct SourcePageArtifactRow: View {
                 label: L10n.Sources.editArtifactLabel(ref: art.ref),
                 size: .sm
             ) {
-                perform(.edit)
+                model.artifacts.openSheet(artifactID: art.id)
             }
             .accessibilityIdentifier("sources.page.artifact.\(id).edit")
+            PVIconButton(
+                .folderInput,
+                label: L10n.Sources.moveArtifactLabel(name: art.displayTitle),
+                size: .sm
+            ) {
+                model.openMove(artifactID: art.id)
+            }
+            .accessibilityIdentifier("sources.page.artifact.\(id).move")
             PVIconButton(
                 .trash,
                 label: L10n.Sources.deleteArtifact,
                 size: .sm,
                 tone: .danger
             ) {
-                perform(.delete)
+                Task { await model.askDeleteArtifact(id: art.id) }
             }
             .accessibilityIdentifier("sources.page.artifact.\(id).delete")
         }

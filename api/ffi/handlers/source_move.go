@@ -47,12 +47,15 @@ func GetSourceMoveImpact(in []byte) ([]byte, error) {
 			return err
 		}
 		out = &engine.GetSourceMoveImpactResponse{
-			SourceId:             database.UUIDString(rep.Bundle.SourceID),
-			SourceCredibilityKey: rep.SourceCredibilityKey,
-			TargetCredibilityKey: rep.TargetCredibilityKey,
-			CredibilityDiffers:   rep.CredibilityDiffers,
-			LeavesSourceEmpty:    rep.LeavesSourceEmpty,
-			LeavesNoGraph:        rep.LeavesNoGraph,
+			SourceId:               database.UUIDString(rep.Bundle.SourceID),
+			SourceCredibilityKey:   rep.SourceCredibilityKey,
+			TargetCredibilityKey:   rep.TargetCredibilityKey,
+			SourceCredibilityLabel: rep.SourceCredibilityLabel,
+			TargetCredibilityLabel: rep.TargetCredibilityLabel,
+			WeighedAsLabel:         rep.WeighedAsLabel,
+			CredibilityDiffers:     rep.CredibilityDiffers,
+			LeavesSourceEmpty:      rep.LeavesSourceEmpty,
+			LeavesNoGraph:          rep.LeavesNoGraph,
 		}
 		for _, a := range rep.Artifacts {
 			ap, err := artifactProto(c, a, pass)

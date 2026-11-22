@@ -75,7 +75,7 @@ enum CatalogList: String, Sendable, CaseIterable {
 
 /// A keyed partial read a write moved, per id of the read's key table
 /// (Evidence graphs for `citations` and `evidence_graph_progress`, Sources for
-/// `evidence_graphs` and `source_records`). The raw values are
+/// `evidence_graphs`, `source_holdings` and `source_records`). The raw values are
 /// Go's `effects.Read` wire keys (`WriteEffects.reads`); a key this build does
 /// not know is dropped when the effects are decoded.
 enum CatalogRead: String, Sendable, CaseIterable {
@@ -87,12 +87,15 @@ enum CatalogRead: String, Sendable, CaseIterable {
     case evidenceGraphs = "evidence_graphs"
     /// The terms of a Property (the term list).
     case propertyTerms = "property_terms"
+    /// What a Source holds: moved when an Artifact or an Evidence graph joins or
+    /// leaves it, or an Artifact's file changes.
+    case sourceHoldings = "source_holdings"
     /// A Source's words: its row, its Artifacts' labels, its credibility.
     case sourceRecords = "source_records"
 }
 
 /// One keyed read and the key ids (Evidence graphs, Sources for
-/// `evidence_graphs` and `source_records`, Properties for `property_terms`) it moved for.
+/// `evidence_graphs`, `source_holdings` and `source_records`, Properties for `property_terms`) it moved for.
 struct CatalogWriteEffectsRead: Sendable, Equatable {
     var read: CatalogRead
     var ids: [String]
@@ -147,6 +150,41 @@ struct CatalogWriteEffects: Sendable, Equatable {
     var activity = CatalogActivity()
 
     static let empty = CatalogWriteEffects()
+
+    /// What two writes applied together report: every list unioned, each read's ids unioned, the
+    /// later activity kept.
+    func merged(with later: CatalogWriteEffects) -> CatalogWriteEffects {
+        func union(_ a: [String], _ b: [String]) -> [String] {
+            var seen = Set<String>()
+            return (a + b).filter { seen.insert($0).inserted }
+        }
+        // Built field by field so each merge reads plainly. Every field has a default, so the compiler
+        // does not force a new one in: `writeEffectsFieldSetIsPinned` fails until it is added here.
+        return CatalogWriteEffects(
+            handles: union(handles, later.handles),
+            evidenceGraphs: union(evidenceGraphs, later.evidenceGraphs),
+            reads: CatalogRead.allCases.compactMap { read in
+                let ids = union(
+                    reads.filter { $0.read == read }.flatMap(\.ids),
+                    later.reads.filter { $0.read == read }.flatMap(\.ids)
+                )
+                return ids.isEmpty ? nil : CatalogWriteEffectsRead(read: read, ids: ids)
+            },
+            lists: lists.union(later.lists),
+            structure: structure || later.structure,
+            summaryHandles: union(summaryHandles, later.summaryHandles),
+            handleScopes: union(handleScopes, later.handleScopes),
+            sourceScopes: union(sourceScopes, later.sourceScopes),
+            deleted: CatalogDeletedEntity.allCases.compactMap { entity in
+                let ids = union(
+                    deleted.filter { $0.entity == entity }.flatMap(\.ids),
+                    later.deleted.filter { $0.entity == entity }.flatMap(\.ids)
+                )
+                return ids.isEmpty ? nil : CatalogWriteEffectsDeleted(entity: entity, ids: ids)
+            },
+            activity: later.activity.revision >= activity.revision ? later.activity : activity
+        )
+    }
 
     /// The handles this write deleted: the `canonical_entity` entry of `deleted`.
     var deletedHandles: [String] {

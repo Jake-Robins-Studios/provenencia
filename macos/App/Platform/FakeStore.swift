@@ -33,6 +33,16 @@ final class FakeHold: @unchecked Sendable {
         takeOldest()?.resume()
     }
 
+    /// Resumes the newest suspended call, so a test can answer a later call before an earlier one.
+    func releaseNewest() {
+        let (newest, due) = lock.withLock { () -> (CheckedContinuation<Void, Never>?, [CheckedContinuation<Void, Never>]) in
+            let newest = waiting.popLast()
+            return (newest, takeDueWatchers())
+        }
+        due.forEach { $0.resume() }
+        newest?.resume()
+    }
+
     /// Suspends until exactly `n` calls are suspended in `wait()`; returns at once when that
     /// already holds. It has no deadline on purpose: a full-suite run starves the main actor
     /// for longer than any fixed timeout (see `QueryHandleWaiting.swift`'s `waitForSearch`), and
@@ -127,6 +137,21 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// What `getEvidenceGraphUnlinkImpact` returns: each scripted block whose
     /// (graph, Artifact) is a requested pair, in pair order.
     var unlinkImpactBlocks: [CatalogEvidenceGraphUnlinkBlock] = []
+    /// What `getSourceMoveImpact` replies, by the seed's id. A seed with no entry is a test bug.
+    /// The reply's target fields come from `sourceMoveTargetCredibility`.
+    var sourceMoveImpacts: [String: CatalogSourceMoveImpact] = [:]
+    /// The credibility labels `getSourceMoveImpact` copies into its reply when a target is given,
+    /// by target id; an absent target gives "", "" and false. The engine's rule is Go's, not the fake's.
+    var sourceMoveTargetCredibility: [String: (label: String, weighedAs: String, differs: Bool)] = [:]
+    var getSourceMoveImpactCalls: [(seed: CatalogSourceMoveSeed, target: String?)] = []
+    var getSourceMoveImpactError: Error?
+    /// While on, `getSourceMoveImpact` suspends after recording the call and before it replies.
+    let getSourceMoveImpactHold = FakeHold()
+    var moveToSourceCalls: [(seed: CatalogSourceMoveSeed, target: String)] = []
+    var moveToSourceError: Error?
+    /// The effects a successful `moveToSource` returns; the default names both Sources in
+    /// `sourceScopes` and `source_holdings`. A test of a move the default does not describe scripts them.
+    var moveToSourceEffects: CatalogWriteEffects?
     var credibilityBySource: [String: CatalogCredibilityAssessment] = [:]
     var credibilityGradesByProject: [String: [CatalogCredibilityGrade]] = [:]
     var sourceTypesByProject: [String: [CatalogSourceType]] = [:]
@@ -291,6 +316,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     let getConclusionDetailHold = FakeHold()
     /// How many times `listSources` was called.
     var listSourcesCalls = 0
+    /// The ids of every `listSources(projectDir:sourceIDs:)` call, in order.
+    var listSourcesByIDCalls: [[String]] = []
     var createEvidenceGraphError: Error?
     /// Effects every write returns until a test assigns another value.
     var nextWriteEffects: CatalogWriteEffects = .empty
@@ -588,13 +615,15 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func listSources(projectDir: String) async throws -> [CatalogSource] {
+    func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource] {
         return try withState {
-            listSourcesCalls += 1
+            if sourceIDs.isEmpty { listSourcesCalls += 1 } else { listSourcesByIDCalls.append(sourceIDs) }
             markCatalogSessionHeld(projectDir)
             if let listSourcesError { throw listSourcesError }
             // Match Go `sources.List`: newest-created-first (UUIDv7 / id DESC).
-            let rows = (sourcesByProject[projectDir] ?? []).sorted { $0.id > $1.id }
+            let rows = (sourcesByProject[projectDir] ?? [])
+                .filter { sourceIDs.isEmpty || sourceIDs.contains($0.id) }
+                .sorted { $0.id > $1.id }
             return rows.map { enrichCoverFields($0) }
         }
     }
@@ -1110,6 +1139,89 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             return pairs.compactMap { pair in
                 unlinkImpactBlocks.first { $0.graphID == pair.graphID && $0.artifactID == pair.artifactID }
             }
+        }
+    }
+
+    func getSourceMoveImpact(
+        projectDir: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String?
+    ) async throws -> CatalogSourceMoveImpact {
+        withState {
+            getSourceMoveImpactCalls.append((seed, targetSourceID))
+            markCatalogSessionHeld(projectDir)
+        }
+        await getSourceMoveImpactHold.wait()
+        return try withState {
+            if let getSourceMoveImpactError { throw getSourceMoveImpactError }
+            guard var impact = sourceMoveImpacts[seed.id] else {
+                preconditionFailure("no scripted move impact for \(seed.id)")
+            }
+            if let targetSourceID {
+                let target = sourceMoveTargetCredibility[targetSourceID]
+                impact.targetCredibilityLabel = target?.label ?? ""
+                impact.weighedAsLabel = target?.weighedAs ?? ""
+                impact.credibilityDiffers = target?.differs ?? false
+            }
+            return impact
+        }
+    }
+
+    func moveToSource(
+        projectDir: String,
+        userID _: String,
+        seed: CatalogSourceMoveSeed,
+        targetSourceID: String
+    ) async throws -> CatalogSourceMoveResult {
+        try withState {
+            moveToSourceCalls.append((seed, targetSourceID))
+            markCatalogSessionHeld(projectDir)
+            if let moveToSourceError { throw moveToSourceError }
+            guard let impact = sourceMoveImpacts[seed.id] else {
+                preconditionFailure("no scripted move impact for \(seed.id)")
+            }
+            let origin = impact.sourceID
+            let movingArtifacts = Set(impact.artifacts.map(\.id))
+            let moved = (artifactsBySource[origin] ?? []).filter { movingArtifacts.contains($0.id) }
+            artifactsBySource[origin]?.removeAll { movingArtifacts.contains($0.id) }
+            artifactsBySource[targetSourceID, default: []].append(
+                contentsOf: moved.map { art in
+                    var copy = art
+                    copy.sourceID = targetSourceID
+                    return copy
+                }
+            )
+            let movingGraphs = Set(impact.graphs.map(\.id))
+            var defaultGraphID: String?
+            if var graphs = evidenceGraphsByProject[projectDir] {
+                for index in graphs.indices where movingGraphs.contains(graphs[index].id) {
+                    graphs[index].sourceID = targetSourceID
+                }
+                if impact.leavesNoGraph {
+                    let newID = "default-\(origin)"
+                    graphs.append(
+                        CatalogEvidenceGraph(
+                            id: newID, ref: "GPH-FAKE1", sourceID: origin, name: "Default", description: "", artifactIDs: []
+                        )
+                    )
+                    defaultGraphID = newID
+                }
+                evidenceGraphsByProject[projectDir] = graphs
+            } else if impact.leavesNoGraph {
+                defaultGraphID = "default-\(origin)"
+            }
+            let effects = moveToSourceEffects ?? {
+                var e = CatalogWriteEffects()
+                e.sourceScopes = [origin, targetSourceID]
+                e.reads = [CatalogWriteEffectsRead(read: .sourceHoldings, ids: [origin, targetSourceID])]
+                return e
+            }()
+            return CatalogSourceMoveResult(
+                artifactIDs: impact.artifacts.map(\.id),
+                graphIDs: impact.graphs.map(\.id),
+                defaultGraphID: defaultGraphID,
+                effects: effects
+            )
         }
     }
 

@@ -24,7 +24,17 @@ func ListSources(in []byte) ([]byte, error) {
 	}
 	var out *engine.ListSourcesResponse
 	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		rows, err := sources.List(c)
+		var rows []sources.Source
+		var err error
+		if ids := req.GetSourceIds(); len(ids) > 0 {
+			var parsed [][]byte
+			if parsed, err = parseIDs(ids); err != nil {
+				return err
+			}
+			rows, err = sources.ListByIDs(c, parsed)
+		} else {
+			rows, err = sources.List(c)
+		}
 		if err != nil {
 			return err
 		}

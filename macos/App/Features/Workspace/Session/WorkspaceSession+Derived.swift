@@ -8,8 +8,12 @@ enum DerivedValueID: Hashable {
     case evidenceGraphText(graphID: String)
     case citationComposerVocabulary(graphID: String)
     case visibleSources
-    /// One Source type's Sources, most recently changed first (`SourcesModel.updatedOrder`).
+    /// Every Source of the Sources list, most recently changed first (`SourcesModel.updatedOrder`).
+    case sourcesByUpdated
+    /// One Source type's Sources, most recently changed first: `sourcesByUpdated` filtered.
     case sourcesOfType(typeID: String)
+    /// The Move dialog's target ComboBox options for one origin Source: `sourcesByUpdated` minus the origin.
+    case sourceMoveTargets(originID: String)
     /// One page or section's content: the key it reads and the content's type,
     /// so one key opened as two page kinds holds two values.
     case conclusionContent(CatalogQueryKey, ObjectIdentifier)
@@ -87,6 +91,16 @@ extension WorkspaceSession {
         derivedEntries[id] = entry
         derivedBuilds[id, default: 0] += 1
         return value
+    }
+
+    /// Every Source of the Sources list, most recently changed first, sorted once per
+    /// change of the list. Empty until the list is read: ask the list's handle whether it is.
+    var sourcesByUpdated: [CatalogSource] {
+        let key = SourcesModel.sourcesListKey(for: self)
+        return derived(.sourcesByUpdated, inputs: [.key(key)]) {
+            let rows: [CatalogSource] = queryHandle(key)?.value ?? []
+            return rows.sorted(by: SourcesModel.updatedOrder)
+        }
     }
 
     /// Moves the stored value across one merged change of `key` (the handle

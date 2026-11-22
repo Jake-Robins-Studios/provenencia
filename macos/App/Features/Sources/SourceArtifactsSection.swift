@@ -189,7 +189,6 @@ final class SourceArtifactsSection {
             show(ingested.artifact, effects: ingested.effects)
             isAttaching = false
             attachDraft = AttachDraft()
-            await context.refreshCoverFromStore()
             context.toast = VocabularyToast(
                 title: L10n.Sources.toastFileAttachedTitle,
                 body: L10n.Sources.toastFileAttachedBody(name: ingested.file.originalFilename),

@@ -3,7 +3,7 @@
 **Status:** Landed in [#766](https://github.com/Jake-Robins-Studios/provenencia/pull/766) (2026-11-09)
 **Spike / slice:** Spike 15 · Slice 1 — Source date, privacy, credibility
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D1](../design/S15-D1-source-page.md), board drawn and validated 2026-11-10
+**Brief:** [S15-D1](../design/archive/S15-D1-source-page.md), board drawn and validated 2026-11-10
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Source page*: rows "The page" (page, page-wide, page-new, header-wrap), "Date and Private" (date-add, date-edit, date-cleared, date-refused, private-failed, deleted), "Metadata and citation", "Artifact cards", "Evidence graphs"; each frame toggles Regular 1102 / Wide 2296. Decisions panel entries "S15-D1 · SD-1 / SD-2" through "S15-D1 · kit". The implementer reads it with the Artifact tool's `read` on that link, path "project/Source.dc.html" (frames and decisions) and "project/Source page.dc.html" (frame list)
 **Depends on:** S15-02 (landed [#762](https://github.com/Jake-Robins-Studios/provenencia/pull/762)), S15-D1
 **Blocks:** S15-09, S15-23, S15-25 (they build on the page layout this PR adds)

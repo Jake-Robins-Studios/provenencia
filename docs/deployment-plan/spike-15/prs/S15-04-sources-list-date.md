@@ -281,7 +281,7 @@ Do: the minor above `VERSION` on `main` when you branch; if `main` bumps again b
 Check: `VERSION`, `core.Version` and every `MARKETING_VERSION` line agree.
 
 **STEP-8 — Docs.**
-Files: `../completed.md`, `../deployment-plan.md` (map row), this plan (status), `../design/S15-D2-sources-list.md`, `../design/S15-D1-source-page.md` (**Board** line: D-14's copy), `../design/README.md`, `docs/macos-client-patterns.md` § 9.
+Files: `../completed.md`, `../deployment-plan.md` (map row), this plan (status), `../design/S15-D2-sources-list.md`, `../design/archive/S15-D1-source-page.md` (**Board** line: D-14's copy), `../design/README.md`, `docs/macos-client-patterns.md` § 9.
 Do: per the Definition of done. Create the folder `archive` *(new)* under `../design/` and `git mv` the brief into it; in `../design/README.md` move the S15-D2 row from Scheduled to Archived, its link pointing into that folder, its Board cell the board link, its Built by cell "S15-04 (#N)". `completed.md`: one paragraph at the top in the shape of the S15-03 entry. § 9: the sentence on `widthListWideMax` matches the landed token, `pvListBand` and Promote.
 Check: `python3 scripts/check-plan-docs.py` on this plan passes; links resolve.
 

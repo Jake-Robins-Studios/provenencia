@@ -18,6 +18,19 @@ struct WorkspaceDestinationHost: View {
         // Fill the detail area, then measure it once: every destination reads \.pvWidthClass from here.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pvMeasuresWidthClass()
+        // A graph, composer or Promote entry made before its graph moved to another Source names the
+        // old one: rewrite it in place to the graph's Source once the graph list says where it is.
+        .onChange(of: pendingCorrection(for: place), initial: true) { _, correction in
+            if let correction { navigation.replaceCurrent(with: correction) }
+        }
+    }
+
+    /// The rewrite the current location needs, nil when its place does not follow its graph's
+    /// Source, the graph list has no row for it yet, or the location already names that Source.
+    private func pendingCorrection(for place: ResolvedPlace?) -> WorkspaceLocation? {
+        let location = navigation.currentLocation
+        guard let graphId = location.graphId else { return nil }
+        return place?.pendingGraphSourceCorrection(for: location, graph: session.evidenceGraph(id: graphId))
     }
 
     @ViewBuilder

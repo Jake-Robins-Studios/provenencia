@@ -29,8 +29,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibility"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/subjects"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 var (
@@ -82,8 +85,15 @@ type Report struct {
 	// CredibilityDiffers: the two grades score differently, so Conclusions can
 	// re-rank. Not assessed and "standard" score alike.
 	CredibilityDiffers bool
-	LeavesSourceEmpty  bool // every Artifact of the Source moves
-	LeavesNoGraph      bool // every graph moves; the Source gets a new Default graph
+	// The grade labels the preflight names, filled only when a target is given:
+	// each Source's own assessed grade ("" when not assessed), and the grade
+	// the moved records will be weighed as, the target's, or the provenencia
+	// default's when the target is not assessed.
+	SourceCredibilityLabel string
+	TargetCredibilityLabel string
+	WeighedAsLabel         string
+	LeavesSourceEmpty      bool // every Artifact of the Source moves
+	LeavesNoGraph          bool // every graph moves; the Source gets a new Default graph
 }
 
 // Impact reads what moving the seed's bundle would move. targetID is optional:
@@ -150,7 +160,39 @@ func Impact(c *database.Catalog, seed evidencegraphs.Seed, targetID []byte) (Rep
 	}
 	rep.SourceCredibilityKey, rep.TargetCredibilityKey = from.CredibilityKey, to.CredibilityKey
 	rep.CredibilityDiffers = from.Credibility != to.Credibility
+	if rep.SourceCredibilityLabel, err = assessedLabel(c, bundle.SourceID); err != nil {
+		return Report{}, err
+	}
+	if rep.TargetCredibilityLabel, err = assessedLabel(c, targetID); err != nil {
+		return Report{}, err
+	}
+	rep.WeighedAsLabel = rep.TargetCredibilityLabel
+	if rep.WeighedAsLabel == "" {
+		// A Source with no assessment weighs as the provenencia default grade.
+		def, err := sourcecredibilitygrades.Lookup(c, sourcecredibilitygrades.DefaultKey, vocabkey.OriginProvenencia)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return Report{}, err
+		}
+		rep.WeighedAsLabel = def.Label
+	}
 	return rep, nil
+}
+
+// assessedLabel is the label of a Source's own assessed grade, or "" when the
+// Source has no assessment.
+func assessedLabel(c *database.Catalog, sourceID []byte) (string, error) {
+	a, err := sourcecredibility.GetBySource(c, sourceID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	g, err := sourcecredibilitygrades.GetByID(c, a.CredibilityGradeID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return g.Label, err
 }
 
 // Result is what Move moved.

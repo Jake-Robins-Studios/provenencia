@@ -6818,22 +6818,202 @@ enum L10n {
             comment: "Hint under Artifact description on the page"
         )
 
+        static let moveDialogTitle = LocalizedStringResource(
+            "sources.move.title",
+            defaultValue: "Move to another Source",
+            comment: "Title of the Move to another Source dialog"
+        )
+
+        static let moveConfirm = LocalizedStringResource(
+            "sources.move.confirm",
+            defaultValue: "Move",
+            comment: "Confirm button of the Move to another Source dialog"
+        )
+
+        static let moveTargetLabel = LocalizedStringResource(
+            "sources.move.target.label",
+            defaultValue: "Move to",
+            comment: "Label of the target Source field in the Move dialog; also its spoken label"
+        )
+
+        static let moveTargetPlaceholder = LocalizedStringResource(
+            "sources.move.target.placeholder",
+            defaultValue: "Choose a Source",
+            comment: "Placeholder of the target Source field in the Move dialog"
+        )
+
+        static let moveTargetNoMatch = LocalizedStringResource(
+            "sources.move.target.noMatch",
+            defaultValue: "No Source matches",
+            comment: "Shown in the Move dialog's Source picker when nothing matches what was typed"
+        )
+
+        static let moveNowhere = LocalizedStringResource(
+            "sources.move.nowhere",
+            defaultValue: "There is no other Source to move to. Add a Source first, or copy this one.",
+            comment: "Callout in the Move dialog when the project holds no other Source"
+        )
+
+        static let moveTogether = LocalizedStringResource(
+            "sources.move.together",
+            defaultValue: "Moves together",
+            comment: "Header of the list of Artifacts and graphs that move together in the Move dialog"
+        )
+
+        static let moveTogetherWhy = LocalizedStringResource(
+            "sources.move.togetherWhy",
+            defaultValue: "A graph moves with all its Artifacts, so these move together.",
+            comment: "Line under the Moves together header when more than one Artifact moves, saying why"
+        )
+
+        static let moveLoading = LocalizedStringResource(
+            "sources.move.loading",
+            defaultValue: "Reading what moves with it",
+            comment: "Loading text in the Move dialog while the bundle is read"
+        )
+
+        static let moveLoadErrorTitle = LocalizedStringResource(
+            "sources.move.loadError.title",
+            defaultValue: "What moves could not be read.",
+            comment: "Title of the Move dialog's load failure"
+        )
+
+        static let moveTargetsLoading = LocalizedStringResource(
+            "sources.move.targets.loading",
+            defaultValue: "Reading your Sources",
+            comment: "Loading text where the Move dialog's target field goes, while the Sources list is read"
+        )
+
+        static let moveTargetsLoadErrorTitle = LocalizedStringResource(
+            "sources.move.targets.loadError.title",
+            defaultValue: "Your Sources could not be read.",
+            comment: "Title of the Move dialog's failure to read the Sources list, where the target field goes"
+        )
+
+        static func moveAssessedAs(_ grade: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.assessedAs",
+                defaultValue: "assessed %@",
+                comment: "A Source's credibility in the Move dialog's credibility note when it has an assessment; argument is the grade label"
+            ), grade)
+        }
+
+        static let moveNotAssessed = LocalizedStringResource(
+            "sources.move.notAssessed",
+            defaultValue: "not assessed",
+            comment: "A Source's credibility in the Move dialog's credibility note when it has no assessment"
+        )
+
+        static let moveFailedTitle = LocalizedStringResource(
+            "sources.move.failed.title",
+            defaultValue: "Couldn’t move",
+            comment: "Title of the Move dialog's failure callout"
+        )
+
+        static func moveLoadErrorMessage(_ reason: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.loadError.message",
+                defaultValue: "Nothing was moved. Try reading it again. %@",
+                comment: "Message of the Move dialog's load failure; argument is the reason"
+            ), reason)
+        }
+
+        static func moveFailedMessage(_ reason: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.failed.message",
+                defaultValue: "Nothing was moved. %@",
+                comment: "Message of the Move dialog's failure callout; argument is the reason"
+            ), reason)
+        }
+
+        static func moveLeavesEmpty(_ title: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.leavesEmpty",
+                defaultValue: "“%@” will have no Artifacts left. It is not deleted.",
+                comment: "Move dialog note when every Artifact of the Source moves; argument is the Source title"
+            ), title)
+        }
+
+        static func moveLeavesNoGraph(_ title: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.leavesNoGraph",
+                defaultValue: "“%@” gets a new empty graph named Default, so it keeps one.",
+                comment: "Move dialog note when every graph of the Source moves; argument is the Source title"
+            ), title)
+        }
+
+        static func moveDoneTitle(target: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.done.title",
+                defaultValue: "Moved to “%@”",
+                comment: "Toast title after a Move; argument is the target Source title"
+            ), target)
+        }
+
+        static func moveArtifactLabel(name: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.page.artifact.move.label",
+                defaultValue: "Move %@ to another Source",
+                comment: "Accessibility label and tooltip of an Artifact row's Move button; argument is the Artifact's name"
+            ), name)
+        }
+
+        static func moveGraphLabel(name: String) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.page.graph.move.label",
+                defaultValue: "Move %@ to another Source",
+                comment: "Accessibility label and tooltip of an Evidence graph card's Move button; argument is the graph's name"
+            ), name)
+        }
+
+        static func moveCredibilityMessage(
+            origin: String,
+            originGrade: String,
+            target: String,
+            targetGrade: String,
+            weighedAs: String
+        ) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.credibility.message",
+                defaultValue: "“%1$@” is %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change.",
+                comment: "Move dialog credibility note; arguments are the old Source title, its grade phrase, the target Source title, its grade phrase (“assessed …” or “not assessed”) and the grade the moved records will be weighed as"
+            ), origin, originGrade, target, targetGrade, weighedAs)
+        }
+
+        static let moveCredibilityTitle = LocalizedStringResource(
+            "sources.move.credibility.title",
+            defaultValue: "Credibility changes",
+            comment: "Title of the Move dialog's credibility note"
+        )
+
+        static func moveDoneBody(artifacts: Int, graphs: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.done.body",
+                defaultValue: "%1$lld Artifacts and %2$lld graphs",
+                comment: "Toast body after a Move of Artifacts and graphs; arguments are the Artifact count and the graph count"
+            ), artifacts, graphs)
+        }
+
+        static func moveDoneArtifacts(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.done.artifacts",
+                defaultValue: "%lld Artifacts",
+                comment: "Toast body after a Move of Artifacts only; argument is the count"
+            ), count)
+        }
+
+        static func moveDoneGraphs(_ count: Int) -> String {
+            return L10n.format(LocalizedStringResource(
+                "sources.move.done.graphs",
+                defaultValue: "%lld graphs",
+                comment: "Toast body after a Move of graphs only; argument is the count"
+            ), count)
+        }
+
         static let artifactLabelRequired = LocalizedStringResource(
             "sources.page.artifactLabelRequired",
             defaultValue: "Give the artifact a label.",
             comment: "Validation when the Artifact sheet (add or edit) is saved without a label"
-        )
-
-        static let artifactMenuEdit = LocalizedStringResource(
-            "sources.page.artifact.menu.edit",
-            defaultValue: "Edit…",
-            comment: "Artifact row menu item that opens the Artifact sheet"
-        )
-
-        static let artifactMenuDelete = LocalizedStringResource(
-            "sources.page.artifact.menu.delete",
-            defaultValue: "Delete…",
-            comment: "Artifact row menu item that asks to delete the Artifact"
         )
 
         /// Argument is the graph names, already joined for speech.
