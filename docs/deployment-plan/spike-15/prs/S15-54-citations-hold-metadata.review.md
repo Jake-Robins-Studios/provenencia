@@ -1,6 +1,6 @@
 # Review — S15-54 Citations hold metadata
 
-**Verdict:** round 1: Fits with changes — Ready with changes. Round 2 running.
+**Verdict:** Fits with changes — Ready with changes (round 2). No blocker open; the plan waits on the S15-D30 board.
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -11,6 +11,7 @@
 - D-4: delete the `meta_not_at_level` diagnostic and every level check that can no longer fail (Swift `holdsMetadata`, the FakeStore guards, the `Placeholders` branch); keep Go `HoldsMetadata` on the wire guards.
 - D-9: `CreateCitedBridge` takes no draft (the composer creates its Citation first).
 - D-10: the Swift store gets its `metadata` parameter in S15-56, with its first caller.
+- D-5 (user, 2026-11-22, M-7): no graph-cache path for `citation_metadata` in this PR; S15-56 adds it with its reader. Map rule and both scope entries reworded.
 - D-11: corrected the map scope entry's Scale: a Source or Artifact delete never reaches a Citation; a graph delete releases at most about 80 value rows.
 - The brief draws the Metadata page's delete-notice line instead of a second brief for one line.
 - The Citation list's copy ("On each Citation", "The spot you cite: a page, a line, an entry") is proposed; the board may change it.
@@ -67,3 +68,16 @@ Executability (sonnet): round-1 answers X-1 – X-5 and X-7 accepted; X-6 partly
 
 ### X-9 · major · `TestSourcePath` "missing level" case breaks and the plan does not replace it
 **Answer:** Fixed — T-16 names `"nowhere-level"` for the "missing level" and `missingUp` cases, with each case's expected error.
+
+Maintainability (opus): M-1, M-2, M-3, M-5 accepted; M-4 not accepted (the **Next adds** sentence was missing). Verdict Fits with changes.
+
+### M-4 (round 2) · The Next adds sentence was missing
+**Answer:** Fixed — § 6 **Next adds** now says S15-55 derives `ownersOf`'s chain from the declared graph link and deletes the hand-written copy. The round-1 **Deletes** edit had not landed either; it is in now.
+
+### M-7 · blocker · D-5 adds a graph-cache path for a table no cache loads yet, against `add-audit-scope`
+**Answer:** To user → answered (2026-11-22): move the path to S15-56. D-5 now declares no `citation_metadata` literal; AC-4.1, T-5, T-10, Scale, Edges and the stop conditions follow; the map's rule "The printed page is a metadata field" and the S15-54 and S15-56 scope entries say S15-56 adds it. No rule is bent.
+
+### Notes (below the blocker cap)
+- X-4: T-1 and T-11 now use `observationstest.Cite`. **Answer:** Fixed.
+- `api/ffi/handlers/source_defs_test.go` line 581 ("three levels' lists"). **Answer:** Fixed — § 6 Strings "Comments".
+- `TestEvidenceGraphPathsEndAtGraphs` would have broken under D-5's literal. **Answer:** moot after M-7; T-5 says it stays as it is.
