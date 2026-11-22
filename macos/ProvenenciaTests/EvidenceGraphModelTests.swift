@@ -1647,6 +1647,16 @@ struct EvidenceGraphModelTests {
         )
     }
 
+    @Test func aGraphLeftWhileLoadingAddsNoConnectRulesToast() async {
+        let store = makeStore()
+        store.listConnectRulesError = CoreInvokeError.failed(status: 1)
+        let model = makeModel(store: store)
+        let loading = Task { await model.prepare() }
+        loading.cancel()
+        await loading.value
+        #expect(model.session.toasts.cards.isEmpty)
+    }
+
     @Test func connectRulesFailureDisablesConnect() async {
         let store = makeStore()
         store.listConnectRulesError = CoreInvokeError.failed(status: 1)

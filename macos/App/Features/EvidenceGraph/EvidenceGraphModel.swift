@@ -258,6 +258,7 @@ final class EvidenceGraphModel {
         _ = await session.readyValue(session.evidenceGraphsKey) as [CatalogEvidenceGraph]?
         _ = await session.readyValue(workspaceKey) as CatalogSourceWorkspace?
         _ = await session.readyValue(citationCountsKey) as [String: Int]?
+        guard !Task.isCancelled else { return }
         if let message = connectRulesError {
             session.toasts.add(
                 tone: .danger,
