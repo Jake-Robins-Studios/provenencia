@@ -117,4 +117,4 @@ Head `52c7508c0`. Gate PASS. F-10 done: `SourcePageModelTests.writeEffectsFieldS
 Orchestrator docs commit: the plan's Landed note no longer claims a compile-time guard for `merged(with:)` (it named one at line 33), and the D-17 row points at its landed form (CON-5). Head `102bbccf9`. `origin/main` had not moved since `4ca4a236a`; gate PASS.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: PRF-1 neighbor (`SourceTypeFormatsSection.swift:99` builds ComboBox options in `body`) · to user: UX-2 (answered 2026-11-22: fix in this PR, supersedes D-10's "no Callout")
+Gate PASS · CI green · open: none · follow-ups: PRF-1 neighbor (`SourceTypeFormatsSection.swift:99` builds ComboBox options in `body`) → `docs/ideas/performance-possibilities.md` (user, 2026-11-22) · to user: UX-2 (answered 2026-11-22: fix in this PR, supersedes D-10's "no Callout")
