@@ -34,7 +34,7 @@ var seedFields = []seedField{
 	{Key: "software", Label: "Software", DataType: metadatafields.DataTypeText,
 		Description: "The program the file was exported from, as it should appear in a citation (FamilyLedger 4.2)."},
 	{Key: "jurisdiction", Label: "Jurisdiction", DataType: metadatafields.DataTypeText,
-		Description: "The county, province, state or country whose office registered or keeps the record, smallest first, as it should appear in a citation (Calder County, Westmark)."},
+		Description: "The county, province, state or country whose office registered, keeps or enacted the record, smallest first, as it should appear in a citation (Calder County, Westmark)."},
 	{Key: "church_location", Label: "Church location", DataType: metadatafields.DataTypeText,
 		Description: "Where the church is, smallest first, as it should appear in a citation (Port Ellis, Westmark)."},
 	{Key: "cemetery_location", Label: "Cemetery location", DataType: metadatafields.DataTypeText,
