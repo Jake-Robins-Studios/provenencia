@@ -1,7 +1,7 @@
 # Ship log — S16-58 Toasts stack in one list per window
 
 **Plan:** [`S16-58-toast-stack.md`](S16-58-toast-stack.md) · **Branch:** `s16-58-toast-stack` · **PR:** #941
-**State:** ready
+**State:** fixing 3 — user dogfood
 
 ## Round 0 — implement
 Head `d998b278f`. Gate PASS (orchestrator run against `cff856a14`). Report deviations: base moved to `cff856a14` (no Current state row changed); version bump 0.33.0 → 0.33.1 (VERSION was already 0.33.0); `.agents/skills/review-pr/lenses/ux.md:88` reworded (named `lastRefreshError`, failed guidance-names); README Toast row also names the stack, list and one-caller rule. Manual check §10 not run.
@@ -86,3 +86,13 @@ S16-59's map scope entry also updated for the MNT-2 decision: a sheet owns its l
 
 ## Result
 Merged `origin/main` (`1e3faa67d`); gate PASS. CI pending at ready · open: none · follow-ups: none (round-2 leftovers went to S16-59) · to user: MNT-2 (answered: one mechanism now), UX-1 (answered: keep window stack); manual check §10 owed.
+
+## Round 3 — user dogfood (2026-11-22)
+Manual check 1 with likenesses from two Sources: never more than two cards. Cause: D-4 merged any equal toast, and the portrait toast's body is the Source title, so choices from one Source were one card. User's call: merging is opt-in; every add makes a card; only the failed recount merges. Working rule, `stacked-toasts.md`, the plan's Objective, US-2 and D-4 amended (commit "Make merging a repeat toast opt-in").
+
+### Fix plan 3
+**F-6 — Merging a repeat is opt-in** (from user dogfood)
+Files: `macos/App/DesignSystem/Components/Toast/PVToastList.swift`, `macos/App/Features/Catalog/CatalogCounts.swift`, `macos/ProvenenciaTests/PVToastListTests.swift`, `macos/App/DesignSystem/README.md`, `docs/deployment-plan/spike-16/completed.md`, the plan's §8 test rows T-3, T-5, T-6 and its Landed note.
+Failing test first: `PVToastListTests/equalAddsWithoutMergeMakeTwoCards` *(new)* — add (success, "Portrait updated", "Register") twice with no flag → 2 entries, different ids, two sleeps.
+Do: `add(tone:title:message:mergesRepeat: Bool = false)`; the equal-entry search runs only when `mergesRepeat` is true; the empty-to-nil normalization stays for every add. `add(_ toast: VocabularyToast)` keeps the default (no merge). `CatalogCounts.refreshAll`'s failure passes `mergesRepeat: true`. T-3 and T-6 pass `mergesRepeat: true` (T-6 renamed `titleOnlyRepeatMergesWhenAsked`); T-5 passes it too, so it still proves that a different tone or message is not a repeat. T-8 unchanged and must stay green. README Toast row: "a repeat makes a new card unless the caller asks to merge (the failed recount)". `completed.md` S16-58 paragraph and the plan's Landed note say merging is opt-in, with the dogfood reason. Update §8's T-3, T-5 and T-6 rows and add the new test's row.
+Check: `rg -n "mergesRepeat: true" macos/App` prints only `CatalogCounts.swift`; the new test is red before the change and green after; scripts/check-pr.sh PASS.
