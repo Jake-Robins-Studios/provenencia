@@ -1,7 +1,7 @@
 # Review — S15-62 A format reads a field from the nearest level
 
-**Verdict:** round 1: Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** round 1: Fits with changes — Ready with changes; round 2: see below
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
 
@@ -62,3 +62,13 @@ A Source-pinned list-form head under D-8 headed every board, so a book's Artifac
 
 ### X-9 · minor · Smaller choices
 **Answer:** Fixed: D-17 writes `row.level.map(L10n.CitationFormats.levelName)`; D-18 says a nil-level option never uses `missingOptionSameName`, and T-15 tests the mixed case; D-16 names the id change in `GoStore`. The website measurement no longer matters (D-14 has no levels). The token count is left as is (it counts `{`/`|`-prefixed and bare tokens alike).
+
+## Round 2
+
+Maintainability: every round-1 answer holds; one new blocker from the M-2 fix.
+
+### M-6 · blocker · `Without` kept the built-ins, but D-9 relied on `above` having none
+`listWorkspaces` puts `SourceDate` in `r.Builtins`, so `r.Without(source)` still answered it, and the Source board's own date would read met elsewhere.
+**Answer:** Fixed. D-7: `Without(l)` also drops every built-in at level `l`. D-9's wording follows. T-6 gains `Without(source)` → zero for `SourceDate`; T-7 gains a set Source date on the Source board → not met elsewhere.
+
+Stale lines (not blockers): § 6 Go core's `sourcemetadata` row now says callers pass `above`; the `citationformat` row names `ListFormLevel` in `builtins.go`. Fixed.
