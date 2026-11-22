@@ -307,3 +307,55 @@ Round-1 answers: K11-2, K11-3, K11-4, K11-6 and K11-9 confirmed fixed; K11-7, K1
 
 ### K11-13 · blocker · S15-56's fresh board read bends "Forms open from the page's values with no fresh read"
 **Answer:** To user; the user chose (a). S15-56's Ships says the board rides the cached citations-by-Artifact read and the writes patch it.
+
+## Map review — slice 11 re-cut and slice 12, metadata at any level and formats apart from types (2026-11-22, later)
+
+**Verdict:** Fits with changes. **Reviewer:** maintainability, fresh context. Scope: the re-cut slice 11 (S15-61 – S15-64, S15-54, S15-55, S15-60, S15-56, S15-58, S15-59), slice 12 (S15-67 – S15-72), S15-65 and S15-66, and their rules.
+
+**To user.**
+- S15-65 (a citation preview beside the boards) conflicts with the refusal of a Source page preview (2026-11-13). It stays Scoped until the user confirms it and says whether the Source page is included.
+
+**Writer's own calls** (the user may veto):
+- `sources.citation_format_id` NULL means "follow the type", so changing a type's default or a Source's type moves every Source that never chose.
+- A format's delete is refused while in use (not released), and a format outlives the types that name it.
+- Formats take no ref, join the omnibar as `citation_format`, and their list builds on `VocabularyListPane` with Used by widened to types and Sources (K-7).
+- S15-63's merge order for suggestions: Source, then Artifact, then graph rows, a field's first row winning.
+- No brief for S15-62's completion change: the same list with one row per field.
+- S15-64 shows only values from above an owner, never from below (a Source's Citations).
+
+### K-1 · blocker · S15-67 keeps everything keyed by type, so S15-71 re-keys it all
+Every format reader is keyed by type id (`sourcetypes.StoredFormatsTx`, `RequirementsTx`, `readTypeBoards`, `needOfTx`); the format code sits in `sourcetypes/formats.go`.
+**Answer:** Fixed. S15-67 adds `core/database/citationformats/` and one read that maps a Source or type to its format id. Templates and requirements are keyed by format id, and `readTypeBoards` splits into suggestions by type and needs by format. S15-71 changes only that read's SQL expression. Rule "A citation format is its own vocabulary" says so.
+
+### K-2 · blocker · The nearest-level order is declared three times, and the level list holds one parent
+`catalogmodel.MetadataLevelTables.Up` is a single parent; a Citation has two.
+**Answer:** Fixed. The order is declared once in `vocabkey.NearestFirst`, with a parity test against the level list. S15-54 turns `Up` into ordered `Ups`, with the Artifact marked as the audit-scope path. Rule and the S15-54 and S15-62 scopes say so.
+
+### K-3 · major · S15-64 and S15-65 should reuse the one resolver
+**Answer:** Fixed. S15-62 makes `sourcemetadata.CitationValues.Resolve` walk nearest-first. S15-64's inherited value is `Resolve` without the owner's level, and S15-65 builds `CitationValues` with the draft's rows. The rule says nothing else walks the levels.
+
+### K-4 · major · Between S15-68 and S15-69 one format has two editors and two writes
+**Answer:** Fixed. S15-68 moves the editor to `Features/CitationFormats/` with its own `UpdateCitationFormat` write and a format-keyed signal. It also swaps the type page's editor for a link to the format, so S15-D36 draws that link too. S15-69 turns the link into the picker.
+
+### K-5 · major · Field-in-use listing and type delete undecided
+**Answer:** Fixed. From S15-67 the probe lists formats, and a format outlives a deleted type (rule, S15-67 scope and Check).
+
+### K-6 · major · Skills, docs and map rules these PRs make false
+**Answer:** Fixed. S15-63 updates `add-seeded-vocabulary` (`seedSuggestions`) and `add-workspace-place` (`.wroteTypeSuggestions`). S15-67 updates `add-catalog-delete`, `add-seeded-vocabulary` (`seedTypes … Formats`) and the citation-formats intro. S15-68 updates `add-workspace-place` and `docs/catalog-caches.md`. The six rules carry a "From S15-6x" note: "A Source type has its own page", "Requirements need a refresh signal", "A format's fields are needed or used", "Formats name fields by id", "Boards flag needed fields" and "Citations render on demand".
+
+### K-7 · minor · Refs, search and list left to the plan
+**Answer:** Fixed. Decided in the rule (Writer's own calls above).
+
+### K-8 · minor · Three invisible PRs in a row; two dependencies stronger than needed
+**Answer:** Fixed. S15-64 now depends on S15-63 only, since Artifact and graph boards already read their Source. S15-60 depends on S15-54 and S15-62. S15-55, S15-60 and S15-64 meet at S15-56.
+
+### K-9 · minor · S15-72 lands before a shared format has a page
+**Answer:** Fixed. S15-72 now depends on S15-69.
+
+### K-10 · minor · Spike 16 overlap under-named
+**Answer:** Fixed. S15-68 and S15-70 are added to both maps' S16-58/S16-59 row. S15-64 and S15-66 are added to the board-row rebase note.
+
+### K-11 · minor · Missing fan-out lines
+**Answer:** Fixed. S15-64, S15-66, S15-69 and S15-70 now have fan-out lines.
+
+Noted, no change: S15-67 and S15-56 are at the ~10-step limit, and `plan-pr` should watch their step count.
