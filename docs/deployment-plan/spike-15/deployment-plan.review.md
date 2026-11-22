@@ -250,7 +250,10 @@ Logged.
 
 ## Map review — slice 11, Citation metadata (S15-54 – S15-61), 2026-11-22
 
-**Round 1 verdict:** Fits with changes. Reviewer: maintainability (fresh context). Findings are numbered K11-# here; the map cites them as "map review K-#".
+**Verdict:** Fits with changes after round 2; K11-13 is with the user. **Rounds:** 2. Reviewer: maintainability (fresh context each round).
+
+**To user**
+- **K11-13 · How the composer reads an existing Citation's board.** (a) The board rides the cached citations-by-Artifact read and the Citation writes patch it, as every other owner's board rides its owner's read (rule "One window": forms open from the page's values with no fresh read). (b) A fresh `GetMetadataBoard` read when the composer opens, which bends that rule. **Recommendation: (a).** It keeps one way to get an owner's board; the cost is one field on the citations row and its patch, read per Artifact (at Scale, up to 600 Citations with 8 values on one Source). Findings are numbered K11-# here; the map cites them as "map review K-#".
 
 **Writer's own calls**
 - `schedule_number` is page-relative with the fields the user named; `item` and `record_id` stay graph-first.
@@ -286,3 +289,21 @@ Logged.
 
 ### K11-10 · minor · Fan-outs and an RPC name
 **Answer:** Fixed. S15-54 states the Source-delete release (up to 4,800 rows) and uses `CreateCitationWithObservations`; S15-56 reads an existing Citation's board through `GetMetadataBoard` with no new query key.
+
+### Round 2
+
+Round-1 answers: K11-2, K11-3, K11-4, K11-6 and K11-9 confirmed fixed; K11-7, K11-8 and K11-10 were partial and are finished below; K11-1 and K11-5 led to K11-12 and K11-11.
+
+- **K11-7 (finished):** S15-54 now names `source-layer-data-model.md` § 5.4 and § 5.5's heading and `citation-formats.md`'s "at the three levels that hold metadata".
+- **K11-8 (finished):** S15-56's Deletes adds `printedPagePrompt`, `printedPageHelp`, the `.printedPage` focus case, `printedPageField`, the summary's `locator.pageLabel` read and `CitationComposerModel.pageLabel`.
+- **K11-10 (finished):** the rule names `CreateCitationWithObservations`.
+- **Executability note (round 2):** S15-17 replaced Insert field with completion; S15-54's Ships and Check and the S15-D30 rows now name the completion.
+
+### K11-11 · blocker · S15-61's list beside `sourcemetadata.stores`
+**Answer:** Fixed. S15-61 is now "Metadata levels are one declared list": one list in `catalogmodel` builds `sourcemetadata.stores` and the delete rows, with a parity test against `vocabkey.MetadataLevels()`; S15-55 takes ancestors from its parent path; S15-54 adds one entry. Deriving the effects registry's `SourceScope` paths is left as a later cleanup (Not this PR).
+
+### K11-12 · blocker · `graphfill`'s read of the Citation's page named no lookup or reader
+**Answer:** Fixed. Rule "The printed page is a metadata field" and S15-56: the key is declared once in `core/vocabkey`, resolved through `metadatafields.ResolveKeysTx` preferring the seed's origin, values read through `sourcemetadata.ListByOwnersTx`; no field means no page; unknown shows the unknown text, supplied shows in brackets (writer's call, as a citation prints them).
+
+### K11-13 · blocker · S15-56's fresh board read bends "Forms open from the page's values with no fresh read"
+**Answer:** To user (above). S15-56 says the read is open.
