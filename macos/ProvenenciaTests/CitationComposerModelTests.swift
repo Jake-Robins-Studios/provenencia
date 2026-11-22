@@ -913,10 +913,10 @@ struct CitationComposerModelTests {
         await fresh.prepare()
         fresh.mutateBridge { $0.termID = "term-witness" }
         await fresh.saveAuthoring()
-        let entries = fresh.session.toasts.entries
-        #expect(entries.count == 1)
-        #expect(entries.first?.tone == .success)
-        #expect(entries.first?.title == L10n.string(L10n.CitationComposer.bridgeSavedTitle))
+        let cards = fresh.session.toasts.cards
+        #expect(cards.count == 1)
+        #expect(cards.first?.tone == .success)
+        #expect(cards.first?.title == L10n.string(L10n.CitationComposer.bridgeSavedTitle))
     }
 
     @Test func switchingCitationKeepsPendingConnection() async {
