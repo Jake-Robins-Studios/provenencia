@@ -8,11 +8,15 @@ struct CatalogCountsTests {
     private let projectDir = "/tmp/counts.provenencia"
 
     /// The list's sleep never returns, so no entry expires during a test.
+    private func makeToasts() -> PVToastList {
+        PVToastList(sleep: ManualSleep().sleep)
+    }
+
     private func makeCounts(
         store: FakeStore = FakeStore(),
-        toasts: PVToastList = PVToastList(sleep: ManualSleep().sleep)
+        toasts: PVToastList? = nil
     ) -> CatalogCounts {
-        CatalogCounts(projectDir: projectDir, store: store, toasts: toasts)
+        CatalogCounts(projectDir: projectDir, store: store, toasts: toasts ?? makeToasts())
     }
 
     @Test func refreshAllPopulatesEveryDestination() async {
@@ -59,7 +63,7 @@ struct CatalogCountsTests {
     }
 
     @Test func refreshAllOnEmptyProjectYieldsZero() async {
-        let toasts = PVToastList(sleep: ManualSleep().sleep)
+        let toasts = makeToasts()
         let counts = makeCounts(toasts: toasts)
         await counts.refreshAll()
         #expect(counts.sources == 0)
@@ -74,7 +78,7 @@ struct CatalogCountsTests {
         enum Boom: Error { case boom }
         store.workspaceNavCountsError = Boom.boom
 
-        let toasts = PVToastList(sleep: ManualSleep().sleep)
+        let toasts = makeToasts()
         let counts = makeCounts(store: store, toasts: toasts)
         await counts.refreshAll()
 
@@ -88,16 +92,10 @@ struct CatalogCountsTests {
 
     @Test func refreshAllSuccessAddsNoToast() async {
         let store = FakeStore()
-        enum Boom: Error { case boom }
-        store.workspaceNavCountsError = Boom.boom
-        let toasts = PVToastList(sleep: ManualSleep().sleep)
+        let toasts = makeToasts()
         let counts = makeCounts(store: store, toasts: toasts)
         await counts.refreshAll()
-        #expect(toasts.entries.count == 1)
-
-        store.workspaceNavCountsError = nil
-        await counts.refreshAll()
-        #expect(toasts.entries.count == 1, "a success adds no toast")
+        #expect(toasts.entries.isEmpty, "a success adds no toast")
         #expect(counts.sources == 0)
     }
 
@@ -109,7 +107,7 @@ struct CatalogCountsTests {
         store.sourcesByProject[projectDir] = [
             CatalogSource(id: "1", ref: "SRC-1", sourceTypeID: "", title: "A", description: ""),
         ]
-        let toasts = PVToastList(sleep: ManualSleep().sleep)
+        let toasts = makeToasts()
         let counts = makeCounts(store: store, toasts: toasts)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.onNavCountsMoved = { await counts.refreshAll() }
@@ -125,15 +123,18 @@ struct CatalogCountsTests {
         #expect(toasts.entries[0].title == L10n.string(L10n.Workspace.countsRefreshFailedTitle))
         #expect(toasts.entries[0].message == L10n.string(L10n.Errors.unknown))
         #expect(counts.sources == 1)
+        let first = toasts.entries[0].id
 
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
         #expect(toasts.entries.count == 1, "the same failure refreshes the card")
 
-        toasts.dismiss(toasts.entries[0].id)
+        toasts.dismiss(first)
+        #expect(toasts.entries.isEmpty)
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
         #expect(toasts.entries.count == 1, "a failure after a dismiss adds the card again")
+        #expect(toasts.entries[0].id != first)
     }
 
     /// Two recounts overlap: the one started last reads the newest catalog, so the earlier,
