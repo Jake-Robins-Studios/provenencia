@@ -313,7 +313,8 @@ Round-1 answers: K11-2, K11-3, K11-4, K11-6 and K11-9 confirmed fixed; K11-7, K1
 **Verdict:** Fits with changes. **Reviewer:** maintainability, fresh context. Scope: the re-cut slice 11 (S15-61 – S15-64, S15-54, S15-55, S15-60, S15-56, S15-58, S15-59), slice 12 (S15-67 – S15-72), S15-65 and S15-66, and their rules.
 
 **To user.**
-- S15-65 (a citation preview beside the boards) conflicts with the refusal of a Source page preview (2026-11-13). It stays Scoped until the user confirms it and says whether the Source page is included.
+- ~~S15-65 · a citation preview beside the boards~~: skipped for now (user, 2026-11-22); descoped to `ideas/citation-composer-followups.md`.
+- ~~URL follows nearest-wins~~: confirmed (user, 2026-11-22).
 
 **Writer's own calls** (the user may veto):
 - `sources.citation_format_id` NULL means "follow the type", so changing a type's default or a Source's type moves every Source that never chose.

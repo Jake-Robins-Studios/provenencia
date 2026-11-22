@@ -24,7 +24,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 
 ### Citation composer and media
 
-- [`citation-composer-followups.md`](citation-composer-followups.md) — bridge-mode subject filter; cropped citation preview
+- [`citation-composer-followups.md`](citation-composer-followups.md) — bridge-mode subject filter; cropped citation preview; a citation preview beside each metadata board (from S15-65)
 - [`depictions-and-likenesses.md`](depictions-and-likenesses.md) — Spike 10 / 14 leftovers (page-change confirm, PDF Artifact thumbnails, audit items)
 - [`audio-video-sources.md`](audio-video-sources.md)
 - [`text-quote-locators.md`](text-quote-locators.md)

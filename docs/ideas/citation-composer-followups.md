@@ -35,3 +35,9 @@ The citation preview under the citation picker is cropped after roughly eight li
 ## Observation rows keep a draft state only one throwaway row uses
 
 `ObservationRows.rows` holds only rows from `ObservationRow.loaded(from:)`, so `ObservationRowState.draft`, the optional `baseline` and their branches in `canSave`, `deriveState` and `revert` serve only the throwaway row `savePropertyDraft` builds to call `asDraft`. Make `asDraft` a function of `ObservationRowValues`, then drop the state and make `baseline` non-optional. (S14-37 review MNT-2)
+
+## A citation preview beside each metadata board
+
+Parked from Spike 15 (S15-65, descoped 2026-11-22: "skip the previews for now"). The Artifact sheet, the graph form and the composer would show the full citation their owner's values give, re-rendered as the draft changes, so a researcher sees how an inherited or overridden value prints.
+
+**Shape:** one render request (`RenderCitationPreview`) whose `sourcemetadata.CitationValues` takes the unsaved draft's rows at the owner's level; no second resolver. One render per pause in typing. The Source page's own preview was refused 2026-11-13; reopening this idea should ask about it again. Brief S15-D34 was never written.
