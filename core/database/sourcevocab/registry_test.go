@@ -1,6 +1,7 @@
 package sourcevocab
 
 import (
+	"maps"
 	"slices"
 	"testing"
 
@@ -17,13 +18,6 @@ var copyFields = []string{
 	"film_publication", "roll", "film_number", "item_number",
 }
 
-// itemFields is the "item" group: what one Evidence graph is about, usually set
-// on the graph.
-var itemFields = []string{
-	"item", "entry_number", "line_number", "dwelling_number", "family_number",
-	"schedule_number", "folio", "column", "record_id",
-}
-
 // recordTypes are the types whose Artifacts suggest every copy field.
 var recordTypes = []string{
 	"census", "birth_certificate", "marriage_certificate", "death_certificate",
@@ -36,17 +30,6 @@ var recordTypes = []string{
 // and record_id (there for researchers' own formats).
 var unreadFields = []string{"database_title", "record_id"}
 
-// usualLevel is where a field is usually set.
-func usualLevel(key string) vocabkey.Level {
-	switch {
-	case slices.Contains(copyFields, key):
-		return vocabkey.LevelArtifact
-	case slices.Contains(itemFields, key):
-		return vocabkey.LevelGraph
-	}
-	return vocabkey.LevelSource
-}
-
 func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form) *citationformat.Template {
 	t.Helper()
 	tpl, diags := citationformat.Parse(text, form)
@@ -56,14 +39,16 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 	return tpl
 }
 
-// derivedSuggestions is the suggestion rule applied to a type's full format:
-// each field once, at its usual level when the format reads it there and else
-// at the level it first appears at, in the order the format first reads it; the
-// record types add the copy fields their Artifacts do not have yet.
-func derivedSuggestions(t *testing.T, st seedType) map[vocabkey.Level][]string {
+// derivedSuggestions is the suggestion rule applied to a type's formats: the
+// type's fields as one list, each once, in the order its formats first read
+// them (the full format, then the list and short formats' needed chains the
+// full format does not already meet); the record types add the copy fields
+// their Artifacts do not have yet. A format names no level, so neither does the
+// list.
+func derivedSuggestions(t *testing.T, st seedType) []string {
 	t.Helper()
 	var order []string
-	read := map[string][]vocabkey.Level{}
+	read := map[string]bool{}
 	// The full format's fields, then the ones the list and the short format
 	// need outside any group that the full format does not use.
 	full := true
@@ -85,39 +70,26 @@ func derivedSuggestions(t *testing.T, st seedType) map[vocabkey.Level][]string {
 			}
 			for _, target := range req.Targets {
 				key := target.Field.Key
-				if key == "" {
+				if key == "" || read[key] {
 					continue
 				}
-				if _, ok := read[key]; !ok {
-					order = append(order, key)
-				}
-				read[key] = append(read[key], target.Level)
+				read[key] = true
+				order = append(order, key)
 			}
 		}
 		if full {
 			full = false
-			fullKeys = map[string]bool{}
-			for key := range read {
-				fullKeys[key] = true
-			}
+			fullKeys = maps.Clone(read)
 		}
-	}
-	out := map[vocabkey.Level][]string{}
-	for _, key := range order {
-		level := read[key][0]
-		if slices.Contains(read[key], usualLevel(key)) {
-			level = usualLevel(key)
-		}
-		out[level] = append(out[level], key)
 	}
 	if slices.Contains(recordTypes, st.Key) {
 		for _, key := range copyFields {
-			if !slices.Contains(out[vocabkey.LevelArtifact], key) {
-				out[vocabkey.LevelArtifact] = append(out[vocabkey.LevelArtifact], key)
+			if !slices.Contains(order, key) {
+				order = append(order, key)
 			}
 		}
 	}
-	return out
+	return order
 }
 
 func TestSeedSuggestionsFollowFormats(t *testing.T) {
@@ -130,7 +102,7 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 		fields[f.Key] = true
 	}
 	seen := map[string]bool{}
-	got := map[string]map[vocabkey.Level][]string{}
+	got := map[string][]string{}
 	for _, s := range seedSuggestions {
 		id := s.TypeKey + "/" + string(s.Level)
 		if seen[id] {
@@ -148,17 +120,20 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 				t.Errorf("%s names unknown field %s", id, key)
 			}
 		}
-		if got[s.TypeKey] == nil {
-			got[s.TypeKey] = map[vocabkey.Level][]string{}
-		}
-		got[s.TypeKey][s.Level] = s.FieldKeys
+		got[s.TypeKey] = append(got[s.TypeKey], s.FieldKeys...)
 	}
 	for _, st := range seedTypes {
 		want := derivedSuggestions(t, st)
-		for _, level := range vocabkey.MetadataLevels() {
-			if !slices.Equal(got[st.Key][level], want[level]) {
-				t.Errorf("%s %s suggests %v, its formats give %v", st.Key, level, got[st.Key][level], want[level])
+		have := slices.Clone(got[st.Key])
+		slices.Sort(have)
+		for i := 1; i < len(have); i++ {
+			if have[i] == have[i-1] {
+				t.Errorf("%s suggests %s at more than one level", st.Key, have[i])
 			}
+		}
+		slices.Sort(want)
+		if !slices.Equal(have, want) {
+			t.Errorf("%s suggests %v over all levels, its formats give %v", st.Key, have, want)
 		}
 	}
 }
@@ -253,7 +228,7 @@ func TestSeededFormatsNeedOnlySuggestedFields(t *testing.T) {
 	suggested := map[string]bool{}
 	for _, s := range seedSuggestions {
 		for _, key := range s.FieldKeys {
-			suggested[s.TypeKey+"/"+string(s.Level)+"/"+key] = true
+			suggested[s.TypeKey+"/"+key] = true
 		}
 	}
 	for _, st := range seedTypes {
@@ -272,7 +247,7 @@ func TestSeededFormatsNeedOnlySuggestedFields(t *testing.T) {
 					continue
 				}
 				hasField = true
-				id := st.Key + "/" + string(target.Level) + "/" + target.Field.Key
+				id := st.Key + "/" + target.Field.Key
 				options = append(options, id)
 				met = met || suggested[id]
 			}

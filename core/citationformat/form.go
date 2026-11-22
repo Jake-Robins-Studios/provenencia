@@ -1,5 +1,5 @@
 // Package citationformat is the one engine for a Source type's citation
-// formats: text in a small syntax of our own, with {level.meta.key} and
+// formats: text in a small syntax of our own, with {meta.key} and
 // {level.builtin} placeholders, [optional groups] and *italics*. It parses a
 // format into a tree with positioned diagnostics, renders it through a
 // Resolver into styled runs, derives the fields a type's formats need or use,

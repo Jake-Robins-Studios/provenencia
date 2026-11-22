@@ -84,7 +84,7 @@ func newCopyFixture(t *testing.T) *copyFixture {
 		}
 	}
 	_, err = sourcetypestest.SetFormats(c, f.userID, f.census, sourcetypes.Formats{
-		Full: "{source.title} {source.meta.line}", Short: "{source.title}", List: "{source.meta.parish}",
+		Full: "{source.title} {meta.line}", Short: "{source.title}", List: "{meta.parish}",
 	})
 	if err != nil {
 		t.Fatal(err)

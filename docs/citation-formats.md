@@ -12,20 +12,20 @@ A type has up to three formats, one per form:
 | `short` | A later note |
 | `list` | The entry in a source list |
 
-The list form describes the Source as a whole, so it reads Source values only: a placeholder at any other level is a diagnostic there.
+The list form describes the Source as a whole, so it reads Source values only: a built-in at any other level is a diagnostic there, and a field is read from the Source alone.
 
 ## Syntax
 
 | Syntax | Meaning |
 | --- | --- |
-| `{source.meta.key}`, `{artifact.meta.key}`, `{graph.meta.key}` | The metadata value with that key on that level, as typed |
+| `{meta.key}` | The metadata value with that key from the nearest level that holds one: the Evidence graph, then the Artifact, then the Source; as typed. In the list form, the Source's alone |
 | `{source.title}` and the other built-ins | A value that is not metadata (below) |
-| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; the only way a format falls back from one level to another |
+| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; a chain falls from one field or built-in to another, never from one level to another (a field already does that). A target repeated in a chain counts once |
 | `[ ... ]` | An optional group: removed with its text and punctuation if any placeholder of its own is empty. Groups nest, and a nested group decides for itself only when its parent prints |
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
 
-Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
+Everything else is literal text, `|` included. A metadata placeholder names no level: `{artifact.meta.key}` is the diagnostic `meta_at_level`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
 
 ## Built-in placeholders
 
@@ -98,13 +98,12 @@ Deleting a field is refused while any format names its id; the delete notice lis
 | `group_without_placeholder` | A group with no placeholder of its own | `[` through `]` |
 | `empty_option` | An empty option, as in `{}` | Zero width at its place |
 | `bad_character` | An option holding a space, `\`, `{`, `[`, `]` or `*` | The first space, `\`, `{`, `[`, `]` or `*` in the option |
-| `unprefixed_meta` | An option whose first part is `meta` | The option |
-| `unknown_level` | A first part that is not a level | The option |
-| `meta_not_at_level` | `meta` at the Citation level | The option |
+| `meta_at_level` | A level before `meta`, as in `{artifact.meta.key}` | The option |
+| `unknown_level` | A first part that is neither `meta` nor a level | The option |
 | `bad_field` | No field after `meta.`, or one that is neither a key nor an id | The field |
 | `unknown_builtin` | A name not in the built-in table at that level | The option |
 | `unknown_option` | An option on metadata or one the built-in does not take | The text after the first `:` |
-| `not_in_list_form` | A level other than the Source in the list form | The option |
+| `not_in_list_form` | A built-in at a level other than the Source in the list form | The option |
 | `unknown_field` | Reported by a type's format write, not `Parse`: no field has the key, or the id | The field |
 | `ambiguous_field` | Reported by a type's format write, not `Parse`: more than one field holds the key and no choice was made | The field |
 

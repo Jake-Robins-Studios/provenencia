@@ -1,6 +1,7 @@
 package citationformat
 
 import (
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -55,6 +56,8 @@ func (f FieldRef) Token() string {
 // bare name, "date") and Field is set. It is comparable and is the identity
 // requirements and resolvers use.
 type Target struct {
+	// Level is a built-in's level. For a field it is "" (read nearest-first) or
+	// the Source (the list form).
 	Level   vocabkey.Level
 	Builtin string
 	Field   FieldRef
@@ -92,9 +95,8 @@ const (
 	CodeGroupWithoutPlaceholder DiagnosticCode = "group_without_placeholder"
 	CodeEmptyOption             DiagnosticCode = "empty_option"
 	CodeBadCharacter            DiagnosticCode = "bad_character"
-	CodeUnprefixedMeta          DiagnosticCode = "unprefixed_meta"
+	CodeMetaAtLevel             DiagnosticCode = "meta_at_level"
 	CodeUnknownLevel            DiagnosticCode = "unknown_level"
-	CodeMetaNotAtLevel          DiagnosticCode = "meta_not_at_level"
 	CodeBadField                DiagnosticCode = "bad_field"
 	CodeUnknownBuiltin          DiagnosticCode = "unknown_builtin"
 	CodeUnknownOption           DiagnosticCode = "unknown_option"
@@ -110,8 +112,8 @@ func DiagnosticCodes() []DiagnosticCode {
 		CodeUnknownForm, CodeTooLong, CodeTooDeep, CodeUnclosedPlaceholder,
 		CodeStrayCloseBrace, CodeUnclosedGroup, CodeStrayCloseBracket,
 		CodeUnclosedItalic, CodeBadEscape, CodeGroupWithoutPlaceholder,
-		CodeEmptyOption, CodeBadCharacter, CodeUnprefixedMeta, CodeUnknownLevel,
-		CodeMetaNotAtLevel, CodeBadField, CodeUnknownBuiltin, CodeUnknownOption,
+		CodeEmptyOption, CodeBadCharacter, CodeMetaAtLevel, CodeUnknownLevel,
+		CodeBadField, CodeUnknownBuiltin, CodeUnknownOption,
 		CodeNotInListForm, CodeUnknownField, CodeAmbiguousField,
 	}
 }
@@ -353,7 +355,9 @@ func (p *parser) placeholder(base int, body string) {
 		if d != nil {
 			p.diags = append(p.diags, *d)
 		}
-		chain = append(chain, ref)
+		if !slices.ContainsFunc(chain, func(c Ref) bool { return c.Target == ref.Target }) {
+			chain = append(chain, ref)
+		}
 		p.refs = append(p.refs, ref)
 		offset += len(opt) + 1
 	}
@@ -381,33 +385,34 @@ func (p *parser) option(opt string, start int) (Ref, *Diagnostic) {
 	}
 	first, rest, hasDot := strings.Cut(main, ".")
 	if first == "meta" {
-		return bad(CodeUnprefixedMeta, whole)
-	}
-	level := vocabkey.Level(first)
-	if !level.Valid() {
-		return bad(CodeUnknownLevel, whole)
-	}
-	ref := Ref{Target: Target{Level: level}, Option: Option(optText), Span: whole}
-	if hasDot && (rest == "meta" || strings.HasPrefix(rest, "meta.")) {
-		if !level.HoldsMetadata() {
-			return bad(CodeMetaNotAtLevel, whole)
+		field := rest
+		fieldStart := start + len("meta.")
+		if !hasDot {
+			fieldStart = start + len(main)
 		}
-		field := strings.TrimPrefix(strings.TrimPrefix(rest, "meta"), ".")
-		fieldStart := start + len(main) - len(field)
 		fieldSpan := Span{fieldStart, fieldStart + len(field)}
 		fr, ok := parseField(field)
 		if !ok {
 			return bad(CodeBadField, fieldSpan)
 		}
+		level := vocabkey.Level("")
+		if p.form == FormList {
+			level = ListFormLevel
+		}
 		r := Ref{Target: Target{Level: level, Field: fr}, Option: Option(optText), Span: whole, fieldSpan: fieldSpan}
 		if hasOpt {
 			return r, &Diagnostic{CodeUnknownOption, optSpan}
 		}
-		if p.form == FormList && !ListFormAllows(level) {
-			return r, &Diagnostic{CodeNotInListForm, whole}
-		}
 		return r, nil
 	}
+	level := vocabkey.Level(first)
+	if !level.Valid() {
+		return bad(CodeUnknownLevel, whole)
+	}
+	if hasDot && (rest == "meta" || strings.HasPrefix(rest, "meta.")) {
+		return bad(CodeMetaAtLevel, whole)
+	}
+	ref := Ref{Target: Target{Level: level}, Option: Option(optText), Span: whole}
 	row, ok := builtinRow(level, rest)
 	if !hasDot || !ok {
 		return bad(CodeUnknownBuiltin, whole)

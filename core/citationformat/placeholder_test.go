@@ -3,8 +3,6 @@ package citationformat
 import (
 	"slices"
 	"testing"
-
-	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 func TestBuiltinPlaceholders(t *testing.T) {
@@ -50,12 +48,12 @@ func TestBuiltinPlaceholders(t *testing.T) {
 	})
 }
 
-func TestMetaPlaceholder(t *testing.T) {
-	got := MetaPlaceholder(vocabkey.LevelGraph, "line_number")
-	if got != "{graph.meta.line_number}" {
-		t.Fatalf("got %q", got)
+func TestMetaFieldPlaceholder(t *testing.T) {
+	p := MetaFieldPlaceholder("line_number")
+	if p.Text != "{meta.line_number}" || p.Ref != "meta.line_number" || p.Level != "" || p.Builtin != "" {
+		t.Fatalf("got %+v", p)
 	}
-	if _, diags := Parse(got, FormFull); len(diags) != 0 {
+	if _, diags := Parse(p.Text, FormFull); len(diags) != 0 {
 		t.Errorf("does not parse: %v", diags)
 	}
 }
