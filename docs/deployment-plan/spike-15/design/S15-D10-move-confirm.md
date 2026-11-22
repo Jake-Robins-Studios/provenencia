@@ -1,6 +1,6 @@
 # S15-D10 — Move to another Source: the Move buttons and the confirm
 
-**Kind:** Claude Design board (**enhancement** of the Source page as shipped: S15-D14's Artifact rows, S15-D1's Evidence graph cards, at Regular and Wide. Draw on the existing Source page board; add the menu items and the Move dialog over the page)
+**Kind:** Claude Design board (**enhancement** of the Source page as shipped: S15-D14's Artifact rows, S15-D1's Evidence graph cards, at Regular and Wide. Draw on the existing Source page board; add the Move buttons and the Move dialog over the page)
 **Spike:** Provenencia Spike 15, slice 7
 **View:** the Source page's Artifact rows and Evidence graph cards (one Move button each; the row's right-click menu goes), and the Move dialog they open
 **Implements later as:** PR **S15-25** (MV-1 – MV-14, MV-W1)

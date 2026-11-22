@@ -1,9 +1,9 @@
 # Review — S15-25 Move from an Artifact or a graph
 
 **Plan:** [`S15-25-move-from-artifact-or-graph.md`](S15-25-move-from-artifact-or-graph.md) · **Brief:** [S15-D10](../design/S15-D10-move-confirm.md)
-**Rounds:** 1 of 2 so far. **Reviewers:** maintainability (Opus), executability (Sonnet), fresh context, read-only.
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet), fresh context, read-only.
 **Verdict, round 1:** maintainability **Reshape**; executability **Not ready**. Every finding answered below. Three went to the user, who answered them on 2026-11-21.
-**Round 2:** runs once the S15-D10 board is agreed and its frames are copied into the plan. The plan stays `Blocked — on board S15-D10` until then.
+**Round 2:** run after the board was agreed (2026-11-22); verdicts Fits with changes / Ready with changes; every finding answered below.
 
 ## Round 1 — executability
 
@@ -57,3 +57,16 @@ The user agreed the board with one change from the brief: no right-click menus; 
 | X2-6 | minor | Stale "Frames in words" / "Blocked" text; brief's enhancement paragraph; manual step order | **Fixed** |
 | X2-7 | minor | Open choices: the fallback glyph's drawing, `showsWhy`, how `.sourcesOfType` derives, `followsOwnId`'s type, a flash after D-17 | **Fixed** — each stated in D-2, D-13, D-10 or § 11; `followsOwnId` takes a `CatalogQueryFollows`, which `.reads(.sourceArtifacts)` is (`CatalogLastUpdated.swift:359`) |
 | X2-8 | nit | STEP-4 is large; count-line wording | Logged; the count line is D-13's |
+
+## Round 2 — maintainability
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M2-1 | blocker | The Sources list rows stop following Artifact create and delete once `refreshCoverFromStore` goes, and never follow a move | **Fixed** — D-16 (b): `.sourcesList` follows the read with a per-id merged re-read (`.evidenceGraphsList`'s shape); `ListSources` gains `source_ids`, `sources.ListByIDs`; AC-5.3 – AC-5.5, T-0c, T-17 |
+| M2-2 | blocker | The read misses graphs, which the workspace also holds; the fake reported it where the engine would not | **Fixed** — renamed `source_holdings`, also on `evidence_graphs` (D-15); the fake's move effects are scripted per test (D-4). Cost stated: a graph create or delete reloads the visible page once |
+| M2-3 | blocker | `replaceCurrent` does not remount the place, so the canvas keeps the old Source | **Fixed** — D-17: `sourceId` joins the three places' identities in `PlaceRegistry`, `CitationComposerEntry.identityKey`, `PromoteEntry.identityKey`; T-16 asserts it |
+| M2-4 | blocker | Hand re-reads after an ingest beside the declared reload | **Fixed** in part — the read also fires on an Artifact's `file_id` change; `refreshCoverFromStore` and its three calls go. **Declined** in part: the create's and attach's in-place patch through `SourceArtifactsSection.show` stays. It draws the reply's own row at once and is what `docs/macos-client-patterns.md` rule 2 asks of a write (patch the moved rows, then the declared refreshes follow); removing it would make the new row wait for the reload |
+| M2-5 | nit | Brief Kind line says "menu items" | **Fixed** |
+| M2-6 | nit | Grades unique on (key, origin) | **Fixed** — D-11 reads each Source's label through its assessment's grade id, and the default by `Lookup(DefaultKey, provenencia)`; T-0b row |
+
+**Stop.** Round 2 was the last round (`review-plan`: two rounds, then the user). No blocker is open: each was Fixed, M2-4's remaining part Declined with the rule that sets it. The fixes add scope the user has not seen: the Sources list re-reads changed rows by id (a `ListSources` id filter), and a graph create or delete now reloads the visible Source page. Both are reported to the user with the plan.
