@@ -20,7 +20,6 @@ struct WorkspaceView: View {
     @State private var navigation: WorkspaceNavigation
     @State private var session: WorkspaceSession
     @State private var catalogCounts: CatalogCounts
-    @State private var countsToast: VocabularyToast?
     @Environment(SignOutCoordinator.self) private var signOutCoordinator
     @Environment(NavigationCoordinator.self) private var navigationCoordinator
 
@@ -68,7 +67,7 @@ struct WorkspaceView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .environment(navigation)
         .environment(session)
-        .vocabularyToastOverlay($countsToast, identifier: "workspace.counts.toast")
+        // Before the environment below, so the notice forwards into the list.
         .vocabularyToastOverlay(
             Binding(
                 get: { session.noticeToast },
@@ -76,6 +75,7 @@ struct WorkspaceView: View {
             ),
             identifier: "workspace.notice.toast"
         )
+        .environment(\.pvToastList, session.toasts)
         .task {
             await session.loadNameFormat()
             await catalogCounts.refreshAll()
@@ -132,16 +132,16 @@ struct WorkspaceView: View {
         guard let issue = navigation.lastHistoryIssue else { return }
         switch issue {
         case .loadFailed:
-            countsToast = VocabularyToast(
+            session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryLoadFailedTitle),
-                body: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody),
-                tone: .danger
+                message: L10n.string(L10n.Workspace.navigationHistoryLoadFailedBody)
             )
         case .persistFailed:
-            countsToast = VocabularyToast(
+            session.toasts.add(
+                tone: .danger,
                 title: L10n.string(L10n.Workspace.navigationHistoryPersistFailedTitle),
-                body: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody),
-                tone: .danger
+                message: L10n.string(L10n.Workspace.navigationHistoryPersistFailedBody)
             )
         }
         navigation.acknowledgeHistoryIssue()
