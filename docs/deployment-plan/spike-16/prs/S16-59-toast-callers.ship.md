@@ -80,4 +80,4 @@ MNT round 2: MNT-1 **Resolved** (`stacked-toasts.md:18` now names `WorkspaceSess
 CON round 2: CON-1 **Resolved**. F-4 (CON-3) **Resolved** (`PersonDetailTests.swift:396-407`). F-3 (CON-2) **Resolved** in `SourceTypePageModelTests` (:374-379, :434-443, whole two-card lists, newest first); CON-4 **Resolved in part** (same composer-test gap MNT noted). F-5 checked for regressions: none. No new blockers.
 
 ## Result
-Gate PASS (`7feb71d33`; `origin/main` unchanged since the branch was cut) · CI pending · open: none · follow-ups: none · to user: — · logged nits: MNT-2. Known gap (minor, recorded): `CitationComposerModelTests.swift:917-919` does not check the bridge toast's message.
+Gate PASS (`7feb71d33`; `origin/main` unchanged since the branch was cut) · CI green (test, localizable) · open: none · follow-ups: none · to user: — · logged nits: MNT-2. Known gap (minor, recorded): `CitationComposerModelTests.swift:917-919` does not check the bridge toast's message.
