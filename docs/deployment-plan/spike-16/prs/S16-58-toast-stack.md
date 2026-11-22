@@ -1,9 +1,9 @@
 # S16-58 — Toasts stack in one list per window
 
-**Status:** Planned
+**Status:** Landed in [#941](https://github.com/Jake-Robins-Studios/provenencia/pull/941) (2026-11-22)
 **Spike / slice:** Spike 16 · Slice 6e — Stacked toasts
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D10](../design/S16-D10-toast-stack.md), board agreed 2026-11-22
+**Brief:** [S16-D10](../design/archive/S16-D10-toast-stack.md), board agreed 2026-11-22
 **Board:** [design system, agreed 2026-11-22](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), component `PVToastStack` (`PVToastStack.jsx`, its README and component sheet K1: one, two and five cards, entering and leaving, Reduce Motion); [main app layout, agreed 2026-11-22](https://claude.ai/artifact/1UzGb9TQCd7ZQrmuAN5AY8), page "Workspace Chrome", section "Toast stack" (Two toasts · Regular and Wide = T1a, T1b; T2 Two surfaces at once; T3 A refreshed card; T4 A burst), drawn by `PVToastStackHost` in "App Layout". Values as briefed: 360 pt cards, 8 pt apart, 24 pt in from the content pane's top and trailing edges under the toolbar, cut at the pane's bottom, the column click-through outside the cards. The board adds motion values: a card enters sliding 28 pt from the trailing edge while fading in, 200 ms ease-out; it leaves the same way, 200 ms ease-in; with Reduce Motion it fades, 200 ms linear (D-7). The callers' boards were updated to send to the stack (user, 2026-11-22); T5 (the composer) is on the composer's board
 **Depends on:** S16-56 (landed [#909](https://github.com/Jake-Robins-Studios/provenencia/pull/909)), S16-D10 (board agreed 2026-11-22)
 **Blocks:** S16-59
@@ -11,7 +11,7 @@
 **Version bump:** patch — the next patch after `VERSION` on `main` when the branch is cut (0.32.1 → 0.32.2 at the planning base): toasts stack and the composer's toast moves; no wire or catalog change ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`use-catalog-session`](../../../../.agents/skills/use-catalog-session/SKILL.md) (its badge-refresh line changes)
 **Rules that bind:** `.cursor/rules/design-system-layers.mdc` (no `Features/` type inside `DesignSystem/Components/`)
-**Context:** brief [S16-D10](../design/S16-D10-toast-stack.md); design [`stacked-toasts.md`](../stacked-toasts.md); map scope entry [S16-58](../deployment-plan.md#s16-58--toasts-stack-in-one-list-per-window); working rule "(Batch 6) One toast stack per window"; bar 32; S16-56's review QCK-1 ([`completed.md`](../completed.md)); the precedent `PVClipboardCopyState` (a kit `@Observable` with an injected sleep)
+**Context:** brief [S16-D10](../design/archive/S16-D10-toast-stack.md); design [`stacked-toasts.md`](../stacked-toasts.md); map scope entry [S16-58](../deployment-plan.md#s16-58--toasts-stack-in-one-list-per-window); working rule "(Batch 6) One toast stack per window"; bar 32; S16-56's review QCK-1 ([`completed.md`](../completed.md)); the precedent `PVClipboardCopyState` (a kit `@Observable` with an injected sleep)
 **Planned:** 2026-11-22 against `main` @ `4ca4a23`
 **Review:** [`S16-58-toast-stack.review.md`](S16-58-toast-stack.review.md) — Fits with changes / Ready with changes, 1 round; board checked 2026-11-22
 
@@ -348,3 +348,9 @@ None.
 
 **Title:** S16-58 — Toasts stack in one list per window
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-58-toast-stack.md`.
+
+## Landed
+
+- `main` had moved from the Planned commit to `cff856a14`; no **Current state** row changed in the files this PR touches. `VERSION` was 0.33.0 on `main`, so the bump is 0.33.0 → 0.33.1.
+- The manual check (§10) was not run by the implementer; it is owed before merge.
+- The review lens `.agents/skills/review-pr/lenses/ux.md` named `lastRefreshError` ("an ignored `lastRefreshError`"); it now reads "a failed recount that adds no toast", so the guidance-names check passes.
