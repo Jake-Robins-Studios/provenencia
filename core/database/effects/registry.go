@@ -355,13 +355,10 @@ var registry = map[string]Effect{
 		SourceScope: field("source_id"),
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
+	// The metadata tables' Entity, SourceScope and Lists come from
+	// catalogmodel.MetadataTables (metadataEffects); only extras are listed.
 	"source_metadata": {
-		Entity:      "source_metadata",
-		SourceScope: field("source_id"),
-		// A value held or released moves the field list's usedBy; an edit does not.
-		Lists:               []List{ListMetadataFieldUsage},
-		ListsOnCreateDelete: true,
-		Search:              []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
+		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	"source_credibility_assessments": {
 		Entity:      "source_credibility_assessment",
@@ -371,31 +368,7 @@ var registry = map[string]Effect{
 		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	"source_metadata_layout": {
-		Entity:      "source_metadata_layout",
-		SourceScope: field("source_id"),
-		Search:      []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
-	},
-	"artifact_metadata": {
-		Entity:      "artifact_metadata",
-		SourceScope: up("artifact_id", "source_id"),
-		// A value held or released moves the field list's usedBy; an edit does not.
-		Lists:               []List{ListMetadataFieldUsage},
-		ListsOnCreateDelete: true,
-	},
-	"artifact_metadata_layout": {
-		Entity:      "artifact_metadata_layout",
-		SourceScope: up("artifact_id", "source_id"),
-	},
-	"evidence_graph_metadata": {
-		Entity:      "evidence_graph_metadata",
-		SourceScope: up("graph_id", "source_id"),
-		// A value held or released moves the field list's usedBy; an edit does not.
-		Lists:               []List{ListMetadataFieldUsage},
-		ListsOnCreateDelete: true,
-	},
-	"evidence_graph_metadata_layout": {
-		Entity:      "evidence_graph_metadata_layout",
-		SourceScope: up("graph_id", "source_id"),
+		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	// An Artifact's own fields move no loaded graph row and no citation
 	// membership: its Citations and Observations carry their own graphs.
@@ -544,7 +517,45 @@ var registry = map[string]Effect{
 // reverse. Both are filled in init.
 var entityTable, tableEntity map[string]string
 
+// metadataEffects fills the owned fields of every metadata level's values and
+// layout entries in reg: Entity, SourceScope, and for the values table Lists
+// and ListsOnCreateDelete. An entry in reg may carry extras such as Search but
+// not an owned field. A value held or released moves the field list's usedBy;
+// an edit does not. A bad list panics.
+func metadataEffects(list []catalogmodel.MetadataLevelTables, reg map[string]Effect) {
+	for _, e := range list {
+		var scope Path
+		if e.Up == nil {
+			scope = field(e.OwnerColumn)
+		} else {
+			path, err := catalogmodel.SourcePath(list, e.Level)
+			if err != nil {
+				panic(err)
+			}
+			cols := []string{e.OwnerColumn}
+			for _, p := range path[:len(path)-1] {
+				cols = append(cols, p.Up.Column)
+			}
+			scope = up(cols...)
+		}
+		for _, table := range []string{e.Values, e.Layout} {
+			eff := reg[table]
+			if eff.Entity != "" || !eff.SourceScope.zero() || eff.Lists != nil || eff.ListsOnCreateDelete {
+				panic("effects: " + table + " sets a field metadataEffects owns")
+			}
+			eff.Entity = table
+			eff.SourceScope = scope
+			if table == e.Values {
+				eff.Lists = []List{ListMetadataFieldUsage}
+				eff.ListsOnCreateDelete = true
+			}
+			reg[table] = eff
+		}
+	}
+}
+
 func init() {
+	metadataEffects(catalogmodel.MetadataTables, registry)
 	seen := map[string]struct{}{}
 	byEntity := map[string]string{}
 	for _, t := range catalogmodel.Tables {
