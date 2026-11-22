@@ -872,15 +872,18 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 	if err != nil {
 		return nil, err
 	}
-	return buildEntries(level, boardInput{
+	// The draft owner has no rows, so what is above it is everything there is.
+	r := CitationValues{
+		Rows:     map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rowsByField(rows)},
+		Fields:   fields,
+		Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: sources.CitationDate(src)},
+	}
+	return buildEntries(boardInput{
 		suggestions: tb.suggestions,
 		needs:       tb.needs,
 		fields:      fields,
-		resolver: CitationValues{
-			Rows:     map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rowsByField(rows)},
-			Fields:   fields,
-			Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: sources.CitationDate(src)},
-		},
+		resolver:    r,
+		above:       r,
 	}), nil
 }
 
@@ -1044,17 +1047,19 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 			Fields:   fields,
 			Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: dateOf[string(sourceOf[o.key()])]},
 		}
-		board := Board{Entries: buildEntries(o.Level, boardInput{
+		above := r.Without(o.Level)
+		board := Board{Entries: buildEntries(boardInput{
 			suggestions: boards[k].suggestions,
 			values:      valuesOf[o.key()],
 			layout:      layoutOf[o.key()],
 			needs:       ln,
 			fields:      fields,
 			resolver:    r,
+			above:       above,
 		})}
 		if o.Level == vocabkey.LevelSource {
-			board.Date = annotate(ln, citationformat.SourceDate, r, fields)
-			board.Page = annotate(ln, citationformat.CitationPage, r, fields)
+			board.Date = annotate(ln, citationformat.SourceDate, r, above, fields)
+			board.Page = annotate(ln, citationformat.CitationPage, r, above, fields)
 		}
 		out[o.key()] = board
 	}
@@ -1071,13 +1076,16 @@ type boardInput struct {
 	// alternatives the formats name; a head with no row is dropped.
 	fields   map[string]metadatafields.Field
 	resolver citationformat.Resolver
+	// above answers as the resolver does with the owner's own level left out:
+	// what the owner's ancestors hold.
+	above citationformat.Resolver
 }
 
 // buildEntries is the owner's board at one level: the type's suggestions, then
 // each field the formats head that is neither suggested nor valued (empty), then
 // the valued extras, each once and each annotated; a dismissed field with no
 // value is left out unless its formats need it; then the layout's order.
-func buildEntries(level vocabkey.Level, in boardInput) []WorkspaceEntry {
+func buildEntries(in boardInput) []WorkspaceEntry {
 	layoutRows := make(map[string]LayoutRow, len(in.layout))
 	maxOrder := -1
 	for _, l := range in.layout {
@@ -1092,7 +1100,7 @@ func buildEntries(level vocabkey.Level, in boardInput) []WorkspaceEntry {
 		if err != nil {
 			return Annotation{}
 		}
-		return annotate(in.needs, citationformat.Target{Level: level, Field: citationformat.FieldRef{ID: id}}, in.resolver, in.fields)
+		return annotate(in.needs, citationformat.Target{Field: citationformat.FieldRef{ID: id}}, in.resolver, in.above, in.fields)
 	}
 	hidden := func(key string, note Annotation) bool {
 		return note.Need != citationformat.NeedNeeded && layoutRows[key].Dismissed

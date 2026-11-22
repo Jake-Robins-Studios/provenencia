@@ -1,6 +1,6 @@
 # S15-62 — A format reads a field from the nearest level
 
-**Status:** Planned
+**Status:** Landed in [#950](https://github.com/Jake-Robins-Studios/provenencia/pull/950) (2026-11-22)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no brief, the map's writer's call that the user did not veto, 2026-11-22: the completion list keeps its rows and components, and a field row loses its level badge. Boards gain rows drawn by the existing board row, per D-10, the user's answer)
@@ -375,6 +375,13 @@ AC-3.1 is the migration, not tested directly (skill): T-3 tests the text it prod
 ## 12. Open questions
 
 None.
+
+## Landed
+
+- **D-12 dropped (user, 2026-11-22, after review):** no migration `000069.sql`. The app has no users and one dogfood project, so stored formats are not carried over; the dogfood project's `source_types` formats were rewritten once by hand with the same `replace` statements. AC-3.1 and AC-3.2 are met by that one-off, not by the app.
+- `itemFields` in `core/database/sourcevocab/registry_test.go` is deleted with `usualLevel` (nothing else read it).
+- `TestSeedAnnotations`' expectation table is rebuilt for D-10: each Source board lists its unsuggested heads (120 across the 26 types), and the Artifact and graph boards need the same fields as the Source board except those only the list form needs.
+- The handler's draft-board test (`TestGetDraftMetadataBoard`) now expects the type's suggestions first, then the unsuggested heads the formats read.
 
 ## 13. PR
 

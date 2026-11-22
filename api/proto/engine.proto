@@ -423,6 +423,8 @@ message CitationRequirement {
 // CitationRequirementOption is one later option of a chain: a metadata field, or
 // a built-in by its bare name ("date"), at a level.
 message CitationRequirementOption {
+  // A built-in's level. For a field: "" when the format reads it from the
+  // nearest level that holds it, "source" in the list form.
   string level = 1;
   MetadataField field = 2; // set for a metadata field
   string builtin = 3;      // set for a built-in
@@ -2943,12 +2945,13 @@ message ListCitationPlaceholdersRequest {
 // One placeholder a format can hold at a level: a built-in, a built-in with an
 // option, or a metadata field. Rows come in the order completion shows them.
 message CitationPlaceholder {
+  // A built-in's level; "" for a field row, which has no level.
   string level = 1;
   string builtin = 2;         // the built-in's name; "" for a field
   string option = 3;          // "year" for {source.date:year}; "" for none
   MetadataField field = 4;    // set for a field row
-  string text = 5;            // the whole placeholder: {graph.meta.line_number}
-  string ref = 6;             // what sits inside the braces: graph.meta.line_number
+  string text = 5;            // the whole placeholder: {meta.line_number}
+  string ref = 6;             // what sits inside the braces: meta.line_number
 }
 
 message ListCitationPlaceholdersResponse {

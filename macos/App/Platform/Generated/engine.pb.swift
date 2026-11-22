@@ -1778,6 +1778,8 @@ public nonisolated struct Provenencia_Engine_V1_CitationRequirementOption: Senda
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
+  /// A built-in's level. For a field: "" when the format reads it from the
+  /// nearest level that holds it, "source" in the list form.
   public var level: String = String()
 
   /// set for a metadata field
@@ -9426,6 +9428,7 @@ public nonisolated struct Provenencia_Engine_V1_CitationPlaceholder: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
+  /// A built-in's level; "" for a field row, which has no level.
   public var level: String = String()
 
   /// the built-in's name; "" for a field
@@ -9444,10 +9447,10 @@ public nonisolated struct Provenencia_Engine_V1_CitationPlaceholder: Sendable {
   /// Clears the value of `field`. Subsequent reads from it will return its default value.
   public mutating func clearField() {self._field = nil}
 
-  /// the whole placeholder: {graph.meta.line_number}
+  /// the whole placeholder: {meta.line_number}
   public var text: String = String()
 
-  /// what sits inside the braces: graph.meta.line_number
+  /// what sits inside the braces: meta.line_number
   public var ref: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()

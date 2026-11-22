@@ -12,20 +12,20 @@ A type has up to three formats, one per form:
 | `short` | A later note |
 | `list` | The entry in a source list |
 
-The list form describes the Source as a whole, so it reads Source values only: a placeholder at any other level is a diagnostic there.
+The list form describes the Source as a whole, so it reads Source values only: a built-in at any other level is a diagnostic there, and a field is read from the Source alone.
 
 ## Syntax
 
 | Syntax | Meaning |
 | --- | --- |
-| `{source.meta.key}`, `{artifact.meta.key}`, `{graph.meta.key}` | The metadata value with that key on that level, as typed |
+| `{meta.key}` | The metadata value with that key from the nearest level that holds one: the Evidence graph, then the Artifact, then the Source; as typed. In the list form, the Source's alone |
 | `{source.title}` and the other built-ins | A value that is not metadata (below) |
-| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; the only way a format falls back from one level to another |
+| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; a chain falls from one field or built-in to another, never from one level to another (a field already does that). A target repeated in a chain with the same option counts once |
 | `[ ... ]` | An optional group: removed with its text and punctuation if any placeholder of its own is empty. Groups nest, and a nested group decides for itself only when its parent prints |
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
 
-Everything else is literal text, `|` included. Every metadata placeholder names its level; there is no unprefixed `{meta.key}`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
+Everything else is literal text, `|` included. A metadata placeholder names no level: `{artifact.meta.key}` is the diagnostic `meta_at_level`. A field is named by its key (letters, digits, `_` and `-`) as the researcher types it, or by `#` and its canonical lowercase id as a format is stored. A placeholder may end in `:option` (see Dates). A format holds at most 4,000 characters (stored, at most 8,192 bytes) and 8 open groups and italic spans at once, and a rendered citation at most 65,536 bytes: a value that crosses that is cut there and nothing after it prints.
 
 ## Built-in placeholders
 
@@ -56,7 +56,7 @@ A DateValue prints in citation terms through `datevalue.CitationDisplay`: day-mo
 
 ## Storage
 
-A type stores its three formats in `source_types.citation_full`, `citation_short` and `citation_list`. A column is NULL when the form has no format; an empty or all-whitespace text is never stored. A format is stored as sent, byte for byte, except that each field a placeholder names is written by id (`{graph.meta.#<id>}`, the id in canonical lowercase), so a field's key can never mean two fields once saved and a field a format names cannot be deleted. The wire writes fields by key, as the researcher types them.
+A type stores its three formats in `source_types.citation_full`, `citation_short` and `citation_list`. A column is NULL when the form has no format; an empty or all-whitespace text is never stored. A format is stored as sent, byte for byte, except that each field a placeholder names is written by id (`{meta.#<id>}`, the id in canonical lowercase), so a field's key can never mean two fields once saved and a field a format names cannot be deleted. The wire writes fields by key, as the researcher types them.
 
 `GetCitationFormats` carries the three forms by key, and `UpdateSourceType` saves them: its optional `formats` draft is written in the same transaction as the type's label, description and icon, so one Save is one revision and one `source_types` change (`sourcetypes.UpdateWithFormats`; every update of a type's row goes through one step, `applyTx`). A write replaces all three, parses each, resolves each key to a field and refuses the whole write with every diagnostic when any form fails: `Parse`'s, then `unknown_field` and `ambiguous_field` at each occurrence of the key (resolution runs only on forms that parsed). Nothing saves, the label included, and no revision is recorded; the reply carries the diagnostics and the stored formats. A write that stores the texts already stored records nothing. A request with no `formats` saves the details alone and its reply carries none.
 
@@ -68,9 +68,9 @@ Deleting a field is refused while any format names its id; the delete notice lis
 
 ## Rendering
 
-`RenderCitations`, `RenderCitationPreview` and `ListCitationPlaceholders` (package `core/database/citationrender`) turn the formats into text; the last lists what a form can hold, for the editor's completion: each level the form may read in turn, its built-ins from the one table (`citationformat.BuiltinPlaceholders`), then, at the three levels that hold metadata, every field of the project in `metadatafields.List` order, each row with its whole placeholder text. Nothing they produce is cached: a screen asks when it shows its citations, so a format or field edit needs no refresh signal.
+`RenderCitations`, `RenderCitationPreview` and `ListCitationPlaceholders` (package `core/database/citationrender`) turn the formats into text; the last lists what a form can hold, for the editor's completion: every built-in the form may use, level by level, from the one table (`citationformat.BuiltinPlaceholders`), then every field of the project once, in `metadatafields.List` order, as `{meta.key}` with no level (every form lists the same fields); each row carries its whole placeholder text. Nothing they produce is cached: a screen asks when it shows its citations, so a format or field edit needs no refresh signal.
 
-**What each built-in reads.** `source.title` is the Source's title; `source.type` the type's label; `source.date` the Source's date with its mark; `artifact.label` the Citation's Artifact label; `graph.name` its graph's name; `citation.page` the printed page label with its mark (`locator.Page`); `citation.image` the file page when the locator holds one (a Citation with none leaves it unset); `citation.label` the Citation's label. A metadata field named by id reads the stored value at its level, with its mark and the field's unknown text; a field named by key answers nothing. The boards and the render answer through one resolver (`sourcemetadata.CitationValues`), so they cannot disagree about what has a value.
+**What each built-in reads.** `source.title` is the Source's title; `source.type` the type's label; `source.date` the Source's date with its mark; `artifact.label` the Citation's Artifact label; `graph.name` its graph's name; `citation.page` the printed page label with its mark (`locator.Page`); `citation.image` the file page when the locator holds one (a Citation with none leaves it unset); `citation.label` the Citation's label. A metadata field named by id reads the stored value with its mark and the field's unknown text, from the nearest level that holds a value: the Evidence graph, then the Artifact, then the Source (`vocabkey.NearestFirst`). The first value found answers, whatever its text, so one marked unknown at a nearer level stops the search; in the list form a field reads the Source alone. A field named by key answers nothing. The boards and the render answer through one resolver (`sourcemetadata.CitationValues`), so they cannot disagree about what has a value.
 
 **The Citation's Source is its graph's.** A Citation never leaves its graph, so its Source is the Source of that graph; its Artifact's own values are still read at the Artifact level.
 
@@ -78,7 +78,7 @@ Deleting a field is refused while any format names its id; the delete notice lis
 
 **The group key.** Citations whose full citations render the same, run for run (italics count), share a key; one that differs in a field the format reads does not, and one that differs only in a field it does not read does. A Citation with no full citation gets a key of its own, so none groups with another. The key is opaque.
 
-**The preview.** `RenderCitationPreview` renders one form against one target: a Citation (any form; the list form reads only its Source) or a Source (any form: the full and short forms read the Source's first Citation, the oldest by id, or the Source alone when it has none, and the list form reads the Source alone), or, with a `format` and no target, checks an unsaved format alone. With no `format` it renders the target's type's stored format. With one, the text is unsaved and written with field keys, checked the way a save checks it (`field_choices` say which field a shared key means), before any target is loaded: any diagnostic comes back alone, with nothing rendered, even for a Citation that is not in the catalog; with no target that is all there is, an empty render when the format parses. No target and no format is `citations.invalid`. A blank format renders nothing. A Citation or Source that is not in the catalog is `citations.not_found` or `sources.not_found`. The reply lists what a needed chain lacks, as the options of that chain that can be shown, in chain order.
+**The preview.** `RenderCitationPreview` renders one form against one target: a Citation (any form; the list form reads only its Source) or a Source (any form: the full and short forms read the Source's first Citation, the oldest by id, or the Source alone when it has none, and the list form reads the Source alone), or, with a `format` and no target, checks an unsaved format alone. With no `format` it renders the target's type's stored format. With one, the text is unsaved and written with field keys, checked the way a save checks it (`field_choices` say which field a shared key means), before any target is loaded: any diagnostic comes back alone, with nothing rendered, even for a Citation that is not in the catalog; with no target that is all there is, an empty render when the format parses. No target and no format is `citations.invalid`. A blank format renders nothing. A Citation or Source that is not in the catalog is `citations.not_found` or `sources.not_found`. The reply lists what a needed chain lacks, as the options of that chain that can be shown, in chain order; a field read nearest-first has no level, and one in the list form is at the Source.
 
 ## Diagnostics
 
@@ -98,13 +98,12 @@ Deleting a field is refused while any format names its id; the delete notice lis
 | `group_without_placeholder` | A group with no placeholder of its own | `[` through `]` |
 | `empty_option` | An empty option, as in `{}` | Zero width at its place |
 | `bad_character` | An option holding a space, `\`, `{`, `[`, `]` or `*` | The first space, `\`, `{`, `[`, `]` or `*` in the option |
-| `unprefixed_meta` | An option whose first part is `meta` | The option |
-| `unknown_level` | A first part that is not a level | The option |
-| `meta_not_at_level` | `meta` at the Citation level | The option |
+| `meta_at_level` | A level before `meta`, as in `{artifact.meta.key}` | The option |
+| `unknown_level` | A first part that is neither `meta` nor a level | The option |
 | `bad_field` | No field after `meta.`, or one that is neither a key nor an id | The field |
 | `unknown_builtin` | A name not in the built-in table at that level | The option |
 | `unknown_option` | An option on metadata or one the built-in does not take | The text after the first `:` |
-| `not_in_list_form` | A level other than the Source in the list form | The option |
+| `not_in_list_form` | A built-in at a level other than the Source in the list form | The option |
 | `unknown_field` | Reported by a type's format write, not `Parse`: no field has the key, or the id | The field |
 | `ambiguous_field` | Reported by a type's format write, not `Parse`: more than one field holds the key and no choice was made | The field |
 

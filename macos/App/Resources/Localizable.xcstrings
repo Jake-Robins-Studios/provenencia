@@ -24618,7 +24618,7 @@
       }
     },
     "sourceTypes.formats.completion.highlighted": {
-      "comment": "Spoken for the highlighted completion row; arguments are the placeholder name then its level",
+      "comment": "Spoken for the highlighted completion row, for a row with a level; arguments are the placeholder name then its level",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -25301,14 +25301,14 @@
         }
       }
     },
-    "citationFormats.diagnostic.unprefixed_meta": {
-      "comment": "Warning message for the unprefixed_meta mistake in a citation format",
+    "citationFormats.diagnostic.meta_at_level": {
+      "comment": "Warning message for the meta_at_level mistake in a citation format",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Name a level before meta: source, artifact or graph"
+            "value": "Write meta. with no level: a field is read from the nearest level that has it"
           }
         }
       }
@@ -25320,19 +25320,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not a level: use source, artifact, graph or citation"
-          }
-        }
-      }
-    },
-    "citationFormats.diagnostic.meta_not_at_level": {
-      "comment": "Warning message for the meta_not_at_level mistake in a citation format",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A citation has no metadata fields"
+            "value": "Not a field or a level: write meta. and the field, or source, artifact, graph or citation before a built-in"
           }
         }
       }

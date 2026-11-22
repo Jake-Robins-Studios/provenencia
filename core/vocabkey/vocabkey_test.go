@@ -135,8 +135,15 @@ func TestLevels(t *testing.T) {
 	if got := MetadataLevels(); !slices.Equal(got, meta) {
 		t.Fatalf("MetadataLevels() = %v, want %v", got, meta)
 	}
+	if got, want := NearestFirst(), []Level{"graph", "artifact", "source"}; !slices.Equal(got, want) {
+		t.Fatalf("NearestFirst() = %v, want %v", got, want)
+	}
 	Levels()[0] = "x"
 	MetadataLevels()[0] = "x"
+	NearestFirst()[0] = "x"
+	if NearestFirst()[0] != LevelGraph || MetadataLevels()[2] != LevelGraph {
+		t.Fatal("NearestFirst must return a fresh slice per call")
+	}
 	if Levels()[0] != LevelSource || MetadataLevels()[0] != LevelSource {
 		t.Fatal("Levels and MetadataLevels must return a fresh slice per call")
 	}

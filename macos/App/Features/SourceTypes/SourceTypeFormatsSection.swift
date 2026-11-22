@@ -251,8 +251,7 @@ private struct SourceTypeFormatEditor: View {
                         : L10n.SourceTypes.Formats.completionOpened(count: count)
                 case .highlighted(let option):
                     formats.placeholder(form, id: option.value).map {
-                        L10n.SourceTypes.Formats.completionHighlighted(
-                            name: SourceTypeFormatsModel.label(of: $0), level: L10n.CitationFormats.levelName($0.level))
+                        SourceTypeFormatsModel.spokenLabel(of: $0)
                     }
                 case .inserted(let option):
                     formats.placeholder(form, id: option.value).map {
@@ -264,7 +263,7 @@ private struct SourceTypeFormatEditor: View {
     }
 }
 
-/// One completion row: the name, the origin pill of a field, the level, and the whole placeholder in mono.
+/// One completion row: the name, the origin pill of a field, the level of a built-in, and the whole placeholder in mono.
 private struct SourceTypeFormatCompletionRow: View {
     let row: CatalogCitationPlaceholder
 
@@ -279,7 +278,9 @@ private struct SourceTypeFormatCompletionRow: View {
                     OriginPill(origin: field.origin)
                 }
                 Spacer(minLength: 0)
-                PVBadge(text: L10n.CitationFormats.levelName(row.level), subtle: true)
+                if let level = row.level {
+                    PVBadge(text: L10n.CitationFormats.levelName(level), subtle: true)
+                }
             }
             Text(verbatim: row.text)
                 .font(PVFont.mono(size: PVTypeScale.micro))
@@ -288,10 +289,7 @@ private struct SourceTypeFormatCompletionRow: View {
                 .truncationMode(.middle)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            L10n.SourceTypes.Formats.completionHighlighted(
-                name: SourceTypeFormatsModel.label(of: row), level: L10n.CitationFormats.levelName(row.level))
-        )
+        .accessibilityLabel(SourceTypeFormatsModel.spokenLabel(of: row))
     }
 }
 

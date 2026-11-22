@@ -12511,7 +12511,7 @@ extension L10n.SourceTypes {
             return L10n.format(LocalizedStringResource(
             "sourceTypes.formats.completion.highlighted",
             defaultValue: "%1$@, %2$@",
-            comment: "Spoken for the highlighted completion row; arguments are the placeholder name then its level"
+            comment: "Spoken for the highlighted completion row, for a row with a level; arguments are the placeholder name then its level"
         ), name, level)
         }
 
@@ -12907,22 +12907,16 @@ extension L10n {
             comment: "Warning message for the bad_character mistake in a citation format"
         )
 
-        static let diagUnprefixedMeta = LocalizedStringResource(
-            "citationFormats.diagnostic.unprefixed_meta",
-            defaultValue: "Name a level before meta: source, artifact or graph",
-            comment: "Warning message for the unprefixed_meta mistake in a citation format"
+        static let diagMetaAtLevel = LocalizedStringResource(
+            "citationFormats.diagnostic.meta_at_level",
+            defaultValue: "Write meta. with no level: a field is read from the nearest level that has it",
+            comment: "Warning message for the meta_at_level mistake in a citation format"
         )
 
         static let diagUnknownLevel = LocalizedStringResource(
             "citationFormats.diagnostic.unknown_level",
-            defaultValue: "Not a level: use source, artifact, graph or citation",
+            defaultValue: "Not a field or a level: write meta. and the field, or source, artifact, graph or citation before a built-in",
             comment: "Warning message for the unknown_level mistake in a citation format"
-        )
-
-        static let diagMetaNotAtLevel = LocalizedStringResource(
-            "citationFormats.diagnostic.meta_not_at_level",
-            defaultValue: "A citation has no metadata fields",
-            comment: "Warning message for the meta_not_at_level mistake in a citation format"
         )
 
         static let diagBadField = LocalizedStringResource(
@@ -13039,9 +13033,8 @@ extension L10n.CitationFormats {
         case .groupWithoutPlaceholder: return L10n.string(diagGroupWithoutPlaceholder)
         case .emptyOption: return L10n.string(diagEmptyOption)
         case .badCharacter: return L10n.string(diagBadCharacter)
-        case .unprefixedMeta: return L10n.string(diagUnprefixedMeta)
+        case .metaAtLevel: return L10n.string(diagMetaAtLevel)
         case .unknownLevel: return L10n.string(diagUnknownLevel)
-        case .metaNotAtLevel: return L10n.string(diagMetaNotAtLevel)
         case .badField: return L10n.string(diagBadField)
         case .unknownBuiltin: return L10n.string(diagUnknownBuiltin)
         case .unknownOption: return L10n.string(diagUnknownOption)
@@ -13057,22 +13050,29 @@ extension L10n.CitationFormats {
     }
 
     /// The missing line for one needed chain: "Missing: Line on the Evidence graph, or on the Source". An
-    /// option with the first one's name reads "on the <level>" alone.
+    /// option with no level (a field read from the nearest level that has it) reads its name alone; one with
+    /// a level that has the name of an earlier option with a level reads "on the <level>" alone.
     static func missing(_ chain: [CatalogCitationOption]) -> String {
         func name(_ option: CatalogCitationOption) -> String {
             if let field = option.field { return field.label }
             return option.builtin.map { builtinName($0) } ?? ""
         }
-        guard let first = chain.first else { return "" }
-        let firstName = name(first)
-        var parts = [missingOption(name: firstName, level: levelName(first.level))]
-        for option in chain.dropFirst() {
+        var parts: [String] = []
+        var namesWithALevel: Set<String> = []
+        for option in chain {
+            let optionName = name(option)
+            guard let level = option.level else {
+                parts.append(optionName)
+                continue
+            }
             parts.append(
-                name(option) == firstName
-                    ? missingOptionSameName(level: levelName(option.level))
-                    : missingOption(name: name(option), level: levelName(option.level))
+                namesWithALevel.contains(optionName)
+                    ? missingOptionSameName(level: levelName(level))
+                    : missingOption(name: optionName, level: levelName(level))
             )
+            namesWithALevel.insert(optionName)
         }
+        guard !parts.isEmpty else { return "" }
         return missingLine(options: parts.joined(separator: L10n.string(missingJoin)))
     }
 }

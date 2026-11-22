@@ -218,6 +218,31 @@ struct MetadataBoardModelTests {
         #expect(!board.hasUnconfirmedInput)
     }
 
+    @Test func anEmptyUnsuggestedHeadIsDrawnAndOutOfThePicker() {
+        let provider = catalogMetadataField("provider", label: "Provider")
+        let film = catalogMetadataField("film", label: "Film number")
+        let head = catalogMetadataEntry(provider)
+        #expect(!head.suggested && !head.hasValue)
+        let host = TestMetadataBoardHost(entries: [head])
+        host.fields = [provider, film]
+        let board = MetadataBoardModel(host: host)
+
+        #expect(board.suggested == [head])
+        #expect(board.fieldComboOptions.map(\.value) == ["film"])
+    }
+
+    @Test func reorderKeepsAnEmptyUnsuggestedHead() async {
+        let a = catalogMetadataEntry(catalogMetadataField("f-a", label: "A"), "1", order: 0)
+        let b = catalogMetadataEntry(catalogMetadataField("f-b", label: "B"), "2", order: 1)
+        let head = catalogMetadataEntry(catalogMetadataField("provider", label: "Provider"), order: 2)
+        let host = TestMetadataBoardHost(entries: [a, b, head])
+        let board = MetadataBoardModel(host: host)
+
+        await board.moveSaved(from: IndexSet(integer: 0), to: 2)
+
+        #expect(host.calls.contains(.reorder(["f-b", "f-a", "provider"])))
+    }
+
     @Test func refusalWithTypedTextElsewhereAnswersFalse() {
         let provider = catalogMetadataEntry(catalogMetadataField("provider", label: "Provider"), "A")
         let url = catalogMetadataEntry(catalogMetadataField("url", label: "URL"), "https://x.org")

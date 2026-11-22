@@ -3172,10 +3172,12 @@ func (x *CitationRequirement) GetAlternatives() []*CitationRequirementOption {
 // CitationRequirementOption is one later option of a chain: a metadata field, or
 // a built-in by its bare name ("date"), at a level.
 type CitationRequirementOption struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Level         string                 `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
-	Field         *MetadataField         `protobuf:"bytes,2,opt,name=field,proto3" json:"field,omitempty"`     // set for a metadata field
-	Builtin       string                 `protobuf:"bytes,3,opt,name=builtin,proto3" json:"builtin,omitempty"` // set for a built-in
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A built-in's level. For a field: "" when the format reads it from the
+	// nearest level that holds it, "source" in the list form.
+	Level         string         `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+	Field         *MetadataField `protobuf:"bytes,2,opt,name=field,proto3" json:"field,omitempty"`     // set for a metadata field
+	Builtin       string         `protobuf:"bytes,3,opt,name=builtin,proto3" json:"builtin,omitempty"` // set for a built-in
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -22498,13 +22500,14 @@ func (x *ListCitationPlaceholdersRequest) GetForm() string {
 // One placeholder a format can hold at a level: a built-in, a built-in with an
 // option, or a metadata field. Rows come in the order completion shows them.
 type CitationPlaceholder struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Level         string                 `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
-	Builtin       string                 `protobuf:"bytes,2,opt,name=builtin,proto3" json:"builtin,omitempty"` // the built-in's name; "" for a field
-	Option        string                 `protobuf:"bytes,3,opt,name=option,proto3" json:"option,omitempty"`   // "year" for {source.date:year}; "" for none
-	Field         *MetadataField         `protobuf:"bytes,4,opt,name=field,proto3" json:"field,omitempty"`     // set for a field row
-	Text          string                 `protobuf:"bytes,5,opt,name=text,proto3" json:"text,omitempty"`       // the whole placeholder: {graph.meta.line_number}
-	Ref           string                 `protobuf:"bytes,6,opt,name=ref,proto3" json:"ref,omitempty"`         // what sits inside the braces: graph.meta.line_number
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A built-in's level; "" for a field row, which has no level.
+	Level         string         `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+	Builtin       string         `protobuf:"bytes,2,opt,name=builtin,proto3" json:"builtin,omitempty"` // the built-in's name; "" for a field
+	Option        string         `protobuf:"bytes,3,opt,name=option,proto3" json:"option,omitempty"`   // "year" for {source.date:year}; "" for none
+	Field         *MetadataField `protobuf:"bytes,4,opt,name=field,proto3" json:"field,omitempty"`     // set for a field row
+	Text          string         `protobuf:"bytes,5,opt,name=text,proto3" json:"text,omitempty"`       // the whole placeholder: {meta.line_number}
+	Ref           string         `protobuf:"bytes,6,opt,name=ref,proto3" json:"ref,omitempty"`         // what sits inside the braces: meta.line_number
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

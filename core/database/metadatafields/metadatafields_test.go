@@ -235,8 +235,8 @@ func TestDelete(t *testing.T) {
 					}
 				}
 				// Census names the field twice (full and list), Bible once.
-				setFormats(census, sourcetypes.Formats{Full: "{source.title}[, line {graph.meta.line}]", List: "{source.meta.line}"})
-				setFormats(bible, sourcetypes.Formats{Short: "{graph.meta.line}"})
+				setFormats(census, sourcetypes.Formats{Full: "{source.title}[, line {meta.line}]", List: "{meta.line}"})
+				setFormats(bible, sourcetypes.Formats{Short: "{meta.line}"})
 
 				impact := func() deleteimpact.Report {
 					t.Helper()

@@ -143,7 +143,7 @@ func TestRenderCitations(t *testing.T) {
 		var ty engine.CreateSourceTypeResponse
 		mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: w.dir, UserId: w.userID, Label: "Pamphlet"}, &ty)
 		formats := setFormats(t, w.dir, w.userID, ty.GetType().GetId(), &engine.CitationFormats{
-			Full: "{source.meta.publisher}; {source.date}; p. {citation.page}.",
+			Full: "{meta.publisher}; {source.date}; p. {citation.page}.",
 		})
 		if len(formats.GetDiagnostics()) != 0 {
 			t.Fatalf("diagnostics %v", formats.GetDiagnostics())
@@ -210,15 +210,31 @@ func TestRenderCitationPreview(t *testing.T) {
 	})
 	t.Run("AC-2.3 an unknown field", func(t *testing.T) {
 		out, err := preview(&engine.RenderCitationPreviewRequest{
-			Form: "full", Format: strp(`{source.meta.nope}.`),
+			Form: "full", Format: strp(`{meta.nope}.`),
 			Target: &engine.RenderCitationPreviewRequest_CitationId{CitationId: w.citation},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := &engine.CitationFormatDiagnostic{Form: "full", Code: string(citationformat.CodeUnknownField), Start: 13, End: 17}
+		want := &engine.CitationFormatDiagnostic{Form: "full", Code: string(citationformat.CodeUnknownField), Start: 6, End: 10}
 		if len(out.GetDiagnostics()) != 1 || out.GetDiagnostics()[0].String() != want.String() || out.GetRender().GetPlain() != "" || len(out.GetMissing()) != 0 {
 			t.Errorf("got %v", out)
+		}
+	})
+	t.Run("a needed field read nearest-first has no level in a missing option", func(t *testing.T) {
+		bare := seededSourceOfType(t, w.dir, w.userID, "census")
+		out, err := preview(&engine.RenderCitationPreviewRequest{
+			Form: "full", Format: strp(`{meta.jurisdiction}.`),
+			Target: &engine.RenderCitationPreviewRequest_SourceId{SourceId: bare},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(out.GetMissing()) != 1 || len(out.GetMissing()[0].GetOptions()) != 1 {
+			t.Fatalf("missing = %v", out.GetMissing())
+		}
+		if o := out.GetMissing()[0].GetOptions()[0]; o.GetLevel() != "" || o.GetField().GetKey() != "jurisdiction" {
+			t.Errorf("option = %v, want jurisdiction with no level", o)
 		}
 	})
 	t.Run("AC-2.4 a needed field with no value", func(t *testing.T) {
@@ -310,28 +326,29 @@ func TestListCitationPlaceholders(t *testing.T) {
 		if want := []string{"{source.title}", "{source.type}", "{source.date}", "{source.date:year}"}; !slices.Equal(texts, want) {
 			t.Errorf("built-ins = %v, want %v", texts, want)
 		}
-		for _, p := range out.GetPlaceholders() {
-			if p.GetLevel() != "source" {
-				t.Errorf("%s at level %s", p.GetText(), p.GetLevel())
+		for i, p := range out.GetPlaceholders() {
+			// A built-in has its level; a field row has none.
+			if want := map[bool]string{true: "source", false: ""}[i < 4]; p.GetLevel() != want {
+				t.Errorf("%s at level %q, want %q", p.GetText(), p.GetLevel(), want)
 			}
 		}
 	})
 
-	t.Run("the full form lists the four levels with their fields", func(t *testing.T) {
+	t.Run("the full form lists the four levels, then each field once", func(t *testing.T) {
 		var line *engine.CitationPlaceholder
 		var levels []string
 		for _, p := range list("full").GetPlaceholders() {
 			if len(levels) == 0 || levels[len(levels)-1] != p.GetLevel() {
 				levels = append(levels, p.GetLevel())
 			}
-			if p.GetText() == "{graph.meta.line_number}" {
+			if p.GetText() == "{meta.line_number}" {
 				line = p
 			}
 		}
-		if !slices.Equal(levels, []string{"source", "artifact", "graph", "citation"}) {
+		if !slices.Equal(levels, []string{"source", "artifact", "graph", "citation", ""}) {
 			t.Errorf("levels = %v", levels)
 		}
-		if line == nil || line.GetRef() != "graph.meta.line_number" || line.GetField().GetKey() != "line_number" || line.GetBuiltin() != "" {
+		if line == nil || line.GetRef() != "meta.line_number" || line.GetLevel() != "" || line.GetField().GetKey() != "line_number" || line.GetBuiltin() != "" {
 			t.Errorf("line = %v", line)
 		}
 	})

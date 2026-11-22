@@ -33,9 +33,9 @@ func (a answersFrom) Resolve(t citationformat.Target) citationformat.Value {
 func FuzzAnnotate(f *testing.F) {
 	a, b := uuid.MustParse("00000000-0000-4000-8000-00000000000a"), uuid.MustParse("00000000-0000-4000-8000-00000000000b")
 	tok := func(id uuid.UUID) string { return "#" + id.String() }
-	f.Add("{source.meta."+tok(a)+"}.", "[{graph.meta."+tok(a)+"|source.meta."+tok(b)+"}]", "{citation.page|source.meta."+tok(b)+"}", []byte{1, 0, 1})
-	f.Add("{source.date}, {citation.page|graph.meta."+tok(a)+"|artifact.meta."+tok(b)+"}", "{source.title}", "{source.meta."+tok(a)+"|source.title}", []byte{0})
-	f.Add("[{source.meta."+tok(a)+"}]{source.meta."+tok(a)+"}", "{a", `\n`, []byte(nil))
+	f.Add("{meta."+tok(a)+"}.", "[{meta."+tok(a)+"|meta."+tok(b)+"}]", "{citation.page|meta."+tok(b)+"}", []byte{1, 0, 1})
+	f.Add("{source.date}, {citation.page|meta."+tok(a)+"|meta."+tok(b)+"}", "{source.title}", "{meta."+tok(a)+"|source.title}", []byte{0})
+	f.Add("[{meta."+tok(a)+"}]{meta."+tok(a)+"}", "{a", `\n`, []byte(nil))
 	f.Fuzz(func(t *testing.T, full, short, list string, answers []byte) {
 		var tpls []*citationformat.Template
 		for _, in := range []struct {
@@ -57,10 +57,10 @@ func FuzzAnnotate(f *testing.F) {
 				}
 			}
 			for _, id := range ln.order {
-				annotate(ln, fieldTarget(level, id), r, fields)
+				annotate(ln, fieldTarget(id), r, r, fields)
 			}
-			annotate(ln, citationformat.SourceDate, r, fields)
-			annotate(ln, citationformat.CitationPage, r, fields)
+			annotate(ln, citationformat.SourceDate, r, r, fields)
+			annotate(ln, citationformat.CitationPage, r, r, fields)
 		}
 	})
 }

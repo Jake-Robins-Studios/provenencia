@@ -17,7 +17,7 @@ func toIDs(f citationformat.FieldRef) (citationformat.FieldRef, error) {
 }
 
 func TestRewriteFields(t *testing.T) {
-	round := "{graph.meta.line_number|source.meta.line_number}"
+	round := "{meta.line_number}"
 	tpl := mustParse(t, round, "full")
 	ids := map[string]uuid.UUID{}
 	toID := func(f citationformat.FieldRef) (citationformat.FieldRef, error) {
@@ -45,28 +45,28 @@ func TestRewriteFields(t *testing.T) {
 		t.Fatalf("round trip = %q, %v", got, err)
 	}
 
-	got, err = mustParse(t, "{source.meta.url}", "full").RewriteFields(toIDs)
-	if want := "{source.meta.#0192f3a4-0000-7000-8000-000000000001}"; err != nil || got != want {
+	got, err = mustParse(t, "{meta.url}", "full").RewriteFields(toIDs)
+	if want := "{meta.#0192f3a4-0000-7000-8000-000000000001}"; err != nil || got != want {
 		t.Fatalf("got %q, %v", got, err)
 	}
 
-	spaced := `\{ x  [{source.meta.a}] *{source.title}* {graph.meta.a|source.meta.a}  \\`
+	spaced := `\{ x  [{meta.a}] *{source.title}* {meta.a}  \\`
 	got, err = mustParse(t, spaced, "full").RewriteFields(func(f citationformat.FieldRef) (citationformat.FieldRef, error) {
 		return citationformat.FieldRef{Key: "bb"}, nil
 	})
-	if want := `\{ x  [{source.meta.bb}] *{source.title}* {graph.meta.bb|source.meta.bb}  \\`; err != nil || got != want {
+	if want := `\{ x  [{meta.bb}] *{source.title}* {meta.bb}  \\`; err != nil || got != want {
 		t.Fatalf("got %q, %v", got, err)
 	}
 
 	boom := errors.New("boom")
-	got, err = mustParse(t, "{source.meta.a}", "full").RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
+	got, err = mustParse(t, "{meta.a}", "full").RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
 		return citationformat.FieldRef{}, boom
 	})
 	if got != "" || !errors.Is(err, boom) {
 		t.Fatalf("got %q, %v", got, err)
 	}
 	for _, bad := range []citationformat.FieldRef{{}, {Key: "a", ID: testID}} {
-		got, err = mustParse(t, "{source.meta.a}", "full").RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
+		got, err = mustParse(t, "{meta.a}", "full").RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
 			return bad, nil
 		})
 		if got != "" || !errors.Is(err, citationformat.ErrFieldRef) {
@@ -74,7 +74,7 @@ func TestRewriteFields(t *testing.T) {
 		}
 	}
 	t.Run("invalid key answer", func(t *testing.T) {
-		tpl := mustParse(t, "[{source.meta.#0192f3a4-0000-7000-8000-000000000001}, ]{source.title}", "full")
+		tpl := mustParse(t, "[{meta.#0192f3a4-0000-7000-8000-000000000001}, ]{source.title}", "full")
 		got, err := tpl.RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
 			return citationformat.FieldRef{Key: "x}]*{citation.page"}, nil
 		})
@@ -89,7 +89,7 @@ func TestRewriteFields(t *testing.T) {
 }
 
 func TestFields(t *testing.T) {
-	tpl := mustParse(t, "{graph.meta.b|source.meta.a}{source.meta.b}{source.meta.a}{source.title}", "full")
+	tpl := mustParse(t, "{meta.b|meta.a}{meta.b}{meta.a}{source.title}", "full")
 	want := []citationformat.FieldRef{{Key: "b"}, {Key: "a"}}
 	if got := tpl.Fields(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("Fields = %v", got)
@@ -103,11 +103,24 @@ func TestFields(t *testing.T) {
 	}
 }
 
+func TestFieldSpansOfARepeatedField(t *testing.T) {
+	tpl := mustParse(t, "{meta.a|meta.a}", citationformat.FormFull)
+	if got, want := tpl.FieldSpans(citationformat.FieldRef{Key: "a"}), []citationformat.Span{{6, 7}, {13, 14}}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("spans %v, want %v", got, want)
+	}
+	got, err := tpl.RewriteFields(func(citationformat.FieldRef) (citationformat.FieldRef, error) {
+		return citationformat.FieldRef{Key: "bb"}, nil
+	})
+	if want := "{meta.bb|meta.bb}"; err != nil || got != want {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
 func TestFieldSpans(t *testing.T) {
-	const text = "{source.meta.a} {graph.meta.a|source.meta.b}"
+	const text = "{meta.a} {meta.a|meta.b}"
 	tpl := mustParse(t, text, citationformat.FormFull)
 	a := tpl.FieldSpans(citationformat.FieldRef{Key: "a"})
-	if want := []citationformat.Span{{13, 14}, {28, 29}}; !reflect.DeepEqual(a, want) {
+	if want := []citationformat.Span{{6, 7}, {15, 16}}; !reflect.DeepEqual(a, want) {
 		t.Fatalf("a spans %v, want %v", a, want)
 	}
 	if b := tpl.FieldSpans(citationformat.FieldRef{Key: "b"}); len(b) != 1 || text[b[0].Start:b[0].End] != "b" {

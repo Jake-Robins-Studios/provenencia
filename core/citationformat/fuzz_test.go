@@ -57,7 +57,7 @@ func FuzzParse(f *testing.F) {
 			}
 		}
 		if key := slug.Kebab(text); key != "" && len(key) <= 4000 {
-			if _, diags := citationformat.Parse("{source.meta."+key+"}", citationformat.FormFull); len(diags) > 0 {
+			if _, diags := citationformat.Parse("{meta."+key+"}", citationformat.FormFull); len(diags) > 0 {
 				t.Fatalf("key %q: %v", key, diags)
 			}
 		}

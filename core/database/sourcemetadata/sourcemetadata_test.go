@@ -739,6 +739,15 @@ func runDismissSuggestion(c *database.Catalog, userID, sourceID, fieldID []byte)
 	return err
 }
 
+// runDismissOwner runs DismissSuggestion on any owner in its own transaction.
+func runDismissOwner(c *database.Catalog, userID []byte, owner Owner, fieldID []byte) error {
+	_, err := writes.RunChanges(c, writes.Op{Action: "dismiss_metadata_suggestion", UserID: userID},
+		func(tx *database.Tx) ([]rowchange.Change, error) {
+			return DismissSuggestion(tx, userID, owner, fieldID)
+		})
+	return err
+}
+
 func runReorder(c *database.Catalog, userID, sourceID []byte, fieldIDs [][]byte) error {
 	_, err := writes.RunChanges(c, writes.Op{Action: "reorder_metadata", UserID: userID},
 		func(tx *database.Tx) ([]rowchange.Change, error) {
@@ -2248,7 +2257,7 @@ func TestDraftBoardScenarios(t *testing.T) {
 		// The type's list format reads each needed field outside any group.
 		var list string
 		for _, key := range file.Needed {
-			list += "{source.meta." + key + "}."
+			list += "{meta." + key + "}."
 		}
 		cert, err := sourcetypes.Lookup(c, "birth_certificate", vocabkey.OriginProvenencia)
 		if err != nil {
@@ -2853,7 +2862,7 @@ func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
 	if err := sourcevocab.AppendSuggestion(c, ty.ID, l.line.ID, vocabkey.LevelGraph); err != nil {
 		t.Fatal(err)
 	}
-	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{graph.meta.line_number|source.meta.line_number}."})
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{meta.line_number}."})
 	l.src = newSource(t, c, userID, ty.ID, "Ledger 1")
 	l.graph = newLevelOwner(t, c, userID, l.src, vocabkey.LevelGraph)
 	return l
@@ -2887,10 +2896,67 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if e, ok := entryOf(boards[1].Entries, "url"); !ok || e.Annotation.Need != citationformat.NeedUsed {
 			t.Errorf("artifact url = %+v, %v; want used", e.Annotation, ok)
 		}
-		for _, key := range []string{"item", "line_number", "folio", "dwelling_number", "family_number", "schedule_number"} {
-			if _, ok := entryOf(boards[0].Entries, key); ok {
-				t.Errorf("%s is on the census Source board; a later option shows only where suggested or valued", key)
+		// A field the formats read with no level heads on every board: the ones
+		// the formats read at other levels before show here, empty and unsuggested.
+		for _, key := range []string{"item", "line_number", "folio", "dwelling_number", "family_number", "schedule_number", "provider"} {
+			if e, ok := entryOf(boards[0].Entries, key); !ok || e.Suggested || e.Value != nil || e.Annotation.Need != citationformat.NeedUsed {
+				t.Errorf("%s on the census Source board = %+v, %v; want an empty unsuggested used head", key, e, ok)
 			}
+		}
+	})
+
+	t.Run("a Source's jurisdiction is met elsewhere on its Artifact's board", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Ada")
+		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+		gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+		jur := seededField(t, c, "jurisdiction")
+		jurOn := func(o Owner) WorkspaceEntry {
+			e, ok := entryOf(boardOf(t, c, o).Entries, "jurisdiction")
+			if !ok {
+				t.Fatalf("no jurisdiction entry on the %s board", o.Level)
+			}
+			return e
+		}
+		if e := jurOn(art); e.Annotation.Need != needed || e.Annotation.MetElsewhere || e.Value != nil {
+			t.Errorf("artifact, no value anywhere = %+v, %v", e.Annotation, e.Value)
+		}
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: jur.ID, ValueText: "Ottawa County"}); err != nil {
+			t.Fatal(err)
+		}
+		if e := jurOn(art); e.Annotation.Need != needed || !e.Annotation.MetElsewhere || e.Value != nil {
+			t.Errorf("artifact, value on the Source = %+v, %v; want needed, met elsewhere, no value", e.Annotation, e.Value)
+		}
+		if e := jurOn(gr); !e.Annotation.MetElsewhere {
+			t.Errorf("graph, value on the Source = %+v; want met elsewhere", e.Annotation)
+		}
+		if e := jurOn(sourceOwner(src.ID)); e.Annotation.Need != needed || e.Annotation.MetElsewhere {
+			t.Errorf("Source board with its own value = %+v; want needed, not met elsewhere", e.Annotation)
+		}
+	})
+
+	t.Run("a graph's value is below the Source's board", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "birth_certificate").ID, "Birth of Bea")
+		gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+		if _, _, err := runSetOwner(c, userID, gr, Input{FieldID: seededField(t, c, "jurisdiction").ID, ValueText: "Ottawa County"}); err != nil {
+			t.Fatal(err)
+		}
+		e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "jurisdiction")
+		if !ok || e.Annotation.Need != needed || e.Annotation.MetElsewhere {
+			t.Errorf("Source board = %+v, %v; want needed, not met elsewhere", e.Annotation, ok)
+		}
+	})
+
+	t.Run("a list-only field is needed on the Source board alone", func(t *testing.T) {
+		src := newSource(t, c, userID, seededType(t, c, "book").ID, "Another book")
+		art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+		if e, ok := entryOf(boardOf(t, c, sourceOwner(src.ID)).Entries, "author_sort"); !ok || e.Annotation.Need != needed {
+			t.Errorf("Source board author_sort = %+v, %v; want needed", e.Annotation, ok)
+		}
+		if e, ok := entryOf(boardOf(t, c, art).Entries, "author_sort"); ok {
+			t.Errorf("Artifact board lists author_sort = %+v; the list form reads the Source alone", e.Annotation)
+		}
+		if err := runDismissOwner(c, userID, art, seededField(t, c, "author_sort").ID); err != nil {
+			t.Errorf("dismissing a list-only field below the Source = %v, want allowed", err)
 		}
 	})
 
@@ -2947,10 +3013,9 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 			}
 			return e.Annotation
 		}
-		alt := []Alternative{{Level: vocabkey.LevelSource, Field: &l.line}}
 		check := func(name string, got Annotation, met bool) {
 			t.Helper()
-			want := Annotation{Need: needed, MetElsewhere: met, Alternatives: alt}
+			want := Annotation{Need: needed, MetElsewhere: met}
 			if !reflect.DeepEqual(got, want) {
 				t.Errorf("%s = %+v, want %+v", name, got, want)
 			}
@@ -3004,6 +3069,13 @@ func TestDismissNeeded(t *testing.T) {
 	if n := layoutRows(); n != 0 {
 		t.Errorf("%d layout rows after a refused dismissal", n)
 	}
+
+	t.Run("a needed field is refused on a graph board too", func(t *testing.T) {
+		gr := newLevelOwner(t, c, userID, cert, vocabkey.LevelGraph)
+		if err := runDismissOwner(c, userID, gr, jur.ID); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("dismissing a needed field on a graph = %v, want ErrInvalid", err)
+		}
+	})
 
 	t.Run("a dismissed row for a needed field still shows, in its place", func(t *testing.T) {
 		if _, err := runApply(c, userID, cert.ID, Draft{Layout: []LayoutRow{{FieldID: jur.ID, SortOrder: 0, Dismissed: true}}}); err != nil {
@@ -3079,12 +3151,12 @@ func TestAnnotationsDanglingField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	full := "{graph.meta.#" + uuid.UUID(l.line.ID).String() + "|source.meta.#" + dangling.String() + "}.{source.meta.#" + dangling.String() + "}"
+	full := "{meta.#" + uuid.UUID(l.line.ID).String() + "|meta.#" + dangling.String() + "}.{meta.#" + dangling.String() + "}"
 	if _, err := db.Exec(`UPDATE source_types SET citation_full = ? WHERE id = ?`, full, l.typeID); err != nil {
 		t.Fatal(err)
 	}
-	if entries := boardOf(t, c, sourceOwner(l.src.ID)).Entries; len(entries) != 0 {
-		t.Errorf("source board = %+v, want no entry for a dangling head", entries)
+	if entries := boardOf(t, c, sourceOwner(l.src.ID)).Entries; len(entries) != 1 || entries[0].Field.Key != "line_number" {
+		t.Errorf("source board = %+v, want the line number alone and no entry for a dangling head", entries)
 	}
 	e, ok := entryOf(boardOf(t, c, l.graph).Entries, "line_number")
 	if !ok || e.Annotation.Need != citationformat.NeedNeeded || len(e.Annotation.Alternatives) != 0 || e.Annotation.MetElsewhere {
@@ -3104,9 +3176,9 @@ func TestSourceBoardBuiltins(t *testing.T) {
 	b := boardOf(t, c, sourceOwner(court.ID))
 	pages := seededField(t, c, "page_range")
 	if b.Page.Need != citationformat.NeedNeeded || b.Page.MetElsewhere || len(b.Page.Alternatives) != 1 ||
-		b.Page.Alternatives[0].Level != vocabkey.LevelSource || b.Page.Alternatives[0].Field == nil ||
+		b.Page.Alternatives[0].Level != "" || b.Page.Alternatives[0].Field == nil ||
 		!bytes.Equal(b.Page.Alternatives[0].Field.ID, pages.ID) {
-		t.Errorf("court report page = %+v, want needed, unmet, alternative [source page_range]", b.Page)
+		t.Errorf("court report page = %+v, want needed, unmet, alternative page_range read nearest-first", b.Page)
 	}
 	if _, err := runSet(c, userID, court.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
@@ -3137,42 +3209,44 @@ func sourcetypesLedger(t *testing.T, c *database.Catalog, userID []byte) sources
 }
 
 // seedExpect is what the seeded formats ask of one Source type's Source board,
-// measured over full, short and list at planning.
+// measured over full, short and list at planning. A field a format reads with
+// no level heads on every board, so a chain's later options that were once left
+// off the Source board show there too.
 type seedExpect struct {
-	needed  []string // Source fields needed, valued or not
-	unsug   []string // empty unsuggested heads, "key:need"
-	omitted []string // later options the board leaves off
-	date    citationformat.Need
-	page    citationformat.Need
+	needed   []string // Source fields needed, valued or not
+	listOnly []string // of those, the ones only the list form needs: the Artifact and graph boards do not need them
+	unsug    []string // empty unsuggested heads, "key:need"
+	date     citationformat.Need
+	page     citationformat.Need
 }
 
 var seedExpectations = map[string]seedExpect{
-	"birth_certificate":    {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
-	"book":                 {needed: []string{"author", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"short_title:used", "collection:used"}, omitted: []string{"item"}},
-	"cemetery_marker":      {needed: []string{"creator", "cemetery_location"}, omitted: []string{"item"}},
-	"census":               {needed: []string{"jurisdiction"}, omitted: []string{"dwelling_number", "family_number", "folio", "item", "line_number", "schedule_number"}, date: "needed", page: "used"},
-	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"entry_number", "folio", "item"}, page: "used"},
+	"birth_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
+	"book":                 {needed: []string{"author", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "collection:used"}},
+	"cemetery_marker":      {needed: []string{"creator", "cemetery_location"}, listOnly: []string{"cemetery_location"}, unsug: []string{"item:used", "accessed_date:used"}},
+	"census":               {needed: []string{"jurisdiction"}, unsug: []string{"folio:used", "schedule_number:used", "dwelling_number:used", "family_number:used", "line_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "citing:used"}, date: "needed", page: "used"},
+	"church_register":      {needed: []string{"creator"}, unsug: []string{"folio:used", "entry_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_number:used", "item_number:used", "short_title:used", "coverage:used"}, page: "used"},
 	"correspondence":       {needed: []string{"creator", "recipient"}, unsug: []string{"coverage:used"}, date: "needed"},
 	"court_report":         {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "used", page: "needed"},
-	"death_certificate":    {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
-	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
-	"family_bible":         {unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
-	"gedcom_file":          {unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
-	"government_file":      {needed: []string{"repository"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}, date: "used"},
-	"interview":            {needed: []string{"interviewee", "interviewer"}, omitted: []string{"item"}, date: "needed"},
-	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"manuscript":           {needed: []string{"repository"}, unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
-	"marriage_certificate": {needed: []string{"jurisdiction"}, omitted: []string{"entry_number", "item"}, date: "used", page: "used"},
-	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, omitted: []string{"column"}, date: "needed", page: "used"},
-	"oral_testimony":       {needed: []string{"interviewee"}, omitted: []string{"item"}, date: "needed"},
-	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}, omitted: []string{"item", "line_number"}, page: "used"},
+	"death_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
+	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"item:used", "short_title:used"}, date: "used"},
+	"family_bible":         {unsug: []string{"item:used", "short_title:used", "coverage:used"}, date: "used"},
+	"gedcom_file":          {unsug: []string{"item:used", "short_title:used"}, date: "used"},
+	"government_file":      {needed: []string{"repository"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_publication:used", "roll:used", "short_title:used"}, date: "used"},
+	"interview":            {needed: []string{"interviewee", "interviewer"}, unsug: []string{"item:used"}, date: "needed"},
+	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"manuscript":           {needed: []string{"repository"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "coverage:used"}, date: "used"},
+	"marriage_certificate": {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
+	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"column:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used"}, date: "needed", page: "used"},
+	"oral_testimony":       {needed: []string{"interviewee"}, unsug: []string{"item:used"}, date: "needed"},
+	"passenger_list":       {unsug: []string{"line_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "citing:used", "film_publication:used", "roll:used", "short_title:used", "creator:used", "collection:used", "repository:used"}, page: "used"},
 	"photograph":           {unsug: []string{"short_title:used"}, date: "used"},
-	"private_papers":       {unsug: []string{"short_title:used", "coverage:used"}, omitted: []string{"item"}, date: "used"},
-	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"coverage:used"}, omitted: []string{"entry_number", "item"}, page: "used"},
+	"private_papers":       {unsug: []string{"item:used", "short_title:used", "coverage:used"}, date: "used"},
+	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"entry_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_number:used", "coverage:used"}, page: "used"},
 	"statute":              {needed: []string{"jurisdiction", "published_in"}, date: "used", page: "used"},
-	"website":              {needed: []string{"site_name"}, unsug: []string{"short_title:used"}, omitted: []string{"item"}},
+	"website":              {needed: []string{"site_name"}, unsug: []string{"format:used", "item:used", "citing:used", "short_title:used"}},
 }
 
 func TestSeedAnnotations(t *testing.T) {
@@ -3190,7 +3264,7 @@ func TestSeedAnnotations(t *testing.T) {
 	if len(seeded) != len(seedExpectations) {
 		t.Fatalf("%d seeded types, the table holds %d", len(seeded), len(seedExpectations))
 	}
-	var neededAtSource, neededBelow, unsuggested, dates, pages, omittedPairs int
+	var neededAtSource, neededBelow, unsuggested, dates, pages int
 	for _, ty := range seeded {
 		want, ok := seedExpectations[ty.Key]
 		if !ok {
@@ -3214,18 +3288,23 @@ func TestSeedAnnotations(t *testing.T) {
 					unsug = append(unsug, e.Field.Key+":"+string(e.Annotation.Need))
 				}
 			}
-			for _, key := range want.omitted {
-				if _, ok := entryOf(boards[0].Entries, key); ok {
-					t.Errorf("%s is on the Source board; a later option shows only where suggested or valued", key)
-				}
-			}
+			// Every field the formats read heads on the Artifact and graph boards
+			// too, needed as on the Source board, except what only the list form
+			// needs: the list form reads the Source alone.
+			wantBelow := slices.DeleteFunc(slices.Clone(want.needed), func(key string) bool { return slices.Contains(want.listOnly, key) })
+			slices.Sort(wantBelow)
 			for _, b := range boards[1:] {
+				var below []string
 				for _, e := range b.Entries {
 					if e.Annotation.Need == citationformat.NeedNeeded {
-						neededBelow++
-						t.Errorf("%s is needed on an Artifact or graph board", e.Field.Key)
+						below = append(below, e.Field.Key)
 					}
 				}
+				slices.Sort(below)
+				if !slices.Equal(below, wantBelow) {
+					t.Errorf("needed on an Artifact or graph board = %v, want %v", below, wantBelow)
+				}
+				neededBelow += len(below)
 			}
 			slices.Sort(needed)
 			wantNeeded := slices.Clone(want.needed)
@@ -3241,7 +3320,6 @@ func TestSeedAnnotations(t *testing.T) {
 			}
 			neededAtSource += len(needed)
 			unsuggested += len(unsug)
-			omittedPairs += len(want.omitted)
 			if boards[0].Date.Need == citationformat.NeedNeeded {
 				dates++
 			}
@@ -3250,9 +3328,9 @@ func TestSeedAnnotations(t *testing.T) {
 			}
 		})
 	}
-	if neededAtSource != 30 || neededBelow != 0 || unsuggested != 29 || dates != 5 || pages != 1 || omittedPairs != 31 {
-		t.Errorf("needed %d (want 30), needed below %d (0), unsuggested heads %d (29), needed dates %d (5), needed pages %d (1), omitted %d (31)",
-			neededAtSource, neededBelow, unsuggested, dates, pages, omittedPairs)
+	if neededAtSource != 30 || neededBelow != 2*(30-4) || unsuggested != 120 || dates != 5 || pages != 1 {
+		t.Errorf("needed %d (want 30), needed below %d (52), unsuggested heads %d (120), needed dates %d (5), needed pages %d (1)",
+			neededAtSource, neededBelow, unsuggested, dates, pages)
 	}
 }
 

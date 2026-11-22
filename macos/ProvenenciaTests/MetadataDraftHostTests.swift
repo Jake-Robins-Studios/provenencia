@@ -130,6 +130,27 @@ struct MetadataDraftHostTests {
         #expect(last == .init(fieldID: "provider", sortOrder: 2, dismissed: true))
     }
 
+    @Test func anEmptyHeadTheReadReturnedClearsToEmptyAndDismisses() async throws {
+        let host = MetadataDraftHost(
+            entries: [catalogMetadataEntry(provider, order: 0), catalogMetadataEntry(url, order: 1)],
+            fields: [provider, url]
+        )
+        let board = MetadataBoardModel(host: host)
+        #expect(board.suggested.map(\.field.id) == ["provider", "url"])
+        #expect(!host.isChanged)
+
+        let added = await board.add(fieldID: "provider", valueText: "Ancestry")
+        guard case .saved = added else { Issue.record("add did not save"); return }
+        _ = await board.clear(fieldID: "provider")
+        let emptied = host.entries.first { $0.field.id == "provider" }
+        #expect(emptied?.hasValue == false)
+        #expect(!host.isChanged)
+
+        await board.dismissSuggestion(fieldID: "url")
+        #expect(!ids(host.entries).contains("url"))
+        #expect(host.draft?.layout.last == .init(fieldID: "url", sortOrder: 1, dismissed: true))
+    }
+
     @Test func readdingADismissedFieldListsItOnce() async throws {
         let host = makeHost()
         let board = MetadataBoardModel(host: host)

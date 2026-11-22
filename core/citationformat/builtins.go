@@ -73,9 +73,13 @@ func builtinRow(l vocabkey.Level, name string) (int, bool) {
 	return i, i >= 0
 }
 
+// ListFormLevel is the one level the list form reads: it describes the Source
+// as a whole. A field in the list form is read at this level alone.
+const ListFormLevel = vocabkey.LevelSource
+
 // ListFormAllows reports whether the list form may read level l: it describes
-// the Source as a whole, so only the Source level.
-func ListFormAllows(l vocabkey.Level) bool { return l == vocabkey.LevelSource }
+// the Source as a whole, so only ListFormLevel.
+func ListFormAllows(l vocabkey.Level) bool { return l == ListFormLevel }
 
 // InListForm reports whether the list form may use b.
 func (b Builtin) InListForm() bool { return ListFormAllows(b.Level) }

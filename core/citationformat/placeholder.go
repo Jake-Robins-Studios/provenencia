@@ -2,10 +2,11 @@ package citationformat
 
 import "github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 
-// Placeholder is one placeholder a format can hold at a level, as the editor's
-// completion lists it: a built-in, a built-in with an option, or (when Option
-// and Builtin are empty) a metadata field the caller adds.
+// Placeholder is one placeholder a format can hold, as the editor's completion
+// lists it: a built-in at its level, a built-in with an option, or (when Option
+// and Builtin are empty) a metadata field the caller adds, which has no level.
 type Placeholder struct {
+	// Level is a built-in's level; empty for a metadata field.
 	Level vocabkey.Level
 	// Builtin is the built-in's bare name; empty for a metadata field.
 	Builtin string
@@ -17,20 +18,14 @@ type Placeholder struct {
 	Ref string
 }
 
-// MetaPlaceholder is the whole placeholder of metadata field key at level l,
-// written by key: {graph.meta.line_number}.
-func MetaPlaceholder(l vocabkey.Level, key string) string {
-	return MetaFieldPlaceholder(l, key).Text
+// MetaFieldPlaceholder is the placeholder row of metadata field key: no level
+// and no built-in, its Text and Ref (written by key) built from one ref:
+// {meta.line_number}. The engine reads the field from the nearest level that
+// holds it.
+func MetaFieldPlaceholder(key string) Placeholder {
+	ref := "meta." + key
+	return Placeholder{Text: "{" + ref + "}", Ref: ref}
 }
-
-// MetaFieldPlaceholder is the placeholder row of metadata field key at level l:
-// no built-in, its Text and Ref (written by key) built from one ref.
-func MetaFieldPlaceholder(l vocabkey.Level, key string) Placeholder {
-	ref := metaRef(l, key)
-	return Placeholder{Level: l, Text: "{" + ref + "}", Ref: ref}
-}
-
-func metaRef(l vocabkey.Level, key string) string { return string(l) + ".meta." + key }
 
 // BuiltinPlaceholders lists the built-in placeholders form f may use, per level
 // in vocabkey order: each built-in bare and, for each option other than

@@ -17,9 +17,10 @@ import (
 type Annotation struct {
 	// Need is needed or used; "" is none.
 	Need citationformat.Need
-	// MetElsewhere is set only on a needed head: another option of every
-	// needed chain it heads already answers (the Source's value standing in
-	// for an empty graph value). A marked-unknown value answers.
+	// MetElsewhere is set only on a needed head: every needed chain it heads
+	// already answers at the owner or above (the Source's value standing in
+	// for an empty graph value), or at a later option of the chain. A
+	// marked-unknown value answers.
 	MetElsewhere bool
 	// Alternatives are the later options of the needed chains the head
 	// heads, in chain order, without repeats. Set only on a needed head.
@@ -50,11 +51,13 @@ func CitationValue(r Row, f metadatafields.Field) citationformat.Value {
 }
 
 // CitationValues answers a format's targets from what one render or board
-// loaded: a field named by id at a level from that level's rows, and a
+// loaded: a field named by id from the rows of the nearest level that holds it
+// (or, when the target names a level, from that level's rows alone), and a
 // built-in from Builtins. Any other target answers the zero Value: a field
 // named by key (stored formats name fields by id), a built-in nothing set, a
 // level with no rows. A board and a render both build it, so they cannot
-// disagree about what answers.
+// disagree about what answers. Resolve is the one place the levels are
+// walked: nothing else reads Rows by level.
 type CitationValues struct {
 	// Rows holds the stored values per level, keyed by field id.
 	Rows map[vocabkey.Level]map[string]Row
@@ -74,11 +77,42 @@ func (v CitationValues) Resolve(t citationformat.Target) citationformat.Value {
 		return citationformat.Value{}
 	}
 	id := string(t.Field.ID[:])
-	row, ok := v.Rows[t.Level][id]
-	if !ok {
+	if t.Level != "" {
+		if row, ok := v.Rows[t.Level][id]; ok {
+			return CitationValue(row, v.Fields[id])
+		}
 		return citationformat.Value{}
 	}
-	return CitationValue(row, v.Fields[id])
+	// The first row found answers, whatever its text: a value marked unknown at
+	// a nearer level stops the walk.
+	for _, l := range vocabkey.NearestFirst() {
+		if row, ok := v.Rows[l][id]; ok {
+			return CitationValue(row, v.Fields[id])
+		}
+	}
+	return citationformat.Value{}
+}
+
+// Without is the values as if level l held nothing: a copy whose Rows lack l
+// and whose Builtins lack every target at l. It shares Fields. A board asks it
+// what the levels above the owner answer.
+func (v CitationValues) Without(l vocabkey.Level) CitationValues {
+	out := CitationValues{
+		Rows:     make(map[vocabkey.Level]map[string]Row, len(v.Rows)),
+		Fields:   v.Fields,
+		Builtins: make(map[citationformat.Target]citationformat.Value, len(v.Builtins)),
+	}
+	for level, rows := range v.Rows {
+		if level != l {
+			out.Rows[level] = rows
+		}
+	}
+	for t, val := range v.Builtins {
+		if t.Level != l {
+			out.Builtins[t] = val
+		}
+	}
+	return out
 }
 
 // AppendOptions appends to dst the options of a chain's targets that can be
@@ -125,9 +159,11 @@ type levelNeeds struct {
 	builtinHeads map[citationformat.Target][]citationformat.Requirement
 }
 
-// fieldAt is the id of t when it is a field, named by id, at level.
+// fieldAt is the id of t when it is a field, named by id, at level: one read
+// nearest-first (no level) is at every level, one the list form reads at the
+// Source alone.
 func fieldAt(t citationformat.Target, level vocabkey.Level) (uuid.UUID, bool) {
-	if t.Builtin != "" || t.Level != level || !t.Field.ByID() {
+	if t.Builtin != "" || (t.Level != "" && t.Level != level) || !t.Field.ByID() {
 		return uuid.Nil, false
 	}
 	return t.Field.ID, true
@@ -191,14 +227,15 @@ func (ln levelNeeds) fieldIDs() [][]byte {
 	return out
 }
 
-// annotate is what the formats ask of one head, answered from r. A field head
-// reads its need from the level; a built-in head from the chains it heads. A
-// needed head is met elsewhere when every needed chain it heads has a later
-// option that answers (citationformat.Missing on the chain's tail, built needed
-// because Missing skips the others); a one-option chain has no tail and is not
-// met. The alternatives are those tails' options, a field only when its row
-// loaded.
-func annotate(ln levelNeeds, head citationformat.Target, r citationformat.Resolver, fields map[string]metadatafields.Field) Annotation {
+// annotate is what the formats ask of one head. A field head (a target with no
+// level) reads its need from the board's level; a built-in head from the chains
+// it heads. A needed head is met elsewhere when every needed chain it heads is
+// met: its own first option answers in above (the owner's levels left out), or
+// it has a later option that answers in r (citationformat.Missing on the
+// chain's tail, built needed because Missing skips the others). The head's own
+// value at the owner is not elsewhere. The alternatives are the tails' options,
+// a field only when its row loaded.
+func annotate(ln levelNeeds, head citationformat.Target, r, above citationformat.Resolver, fields map[string]metadatafields.Field) Annotation {
 	var need citationformat.Need
 	var chains []citationformat.Requirement
 	if head.Builtin != "" {
@@ -221,8 +258,9 @@ func annotate(ln levelNeeds, head citationformat.Target, r citationformat.Resolv
 			continue
 		}
 		tail := ch.Targets[1:]
+		first := citationformat.Missing([]citationformat.Requirement{{Targets: ch.Targets[:1], Need: citationformat.NeedNeeded}}, above)
 		unmet := citationformat.Missing([]citationformat.Requirement{{Targets: tail, Need: citationformat.NeedNeeded}}, r)
-		if len(tail) == 0 || len(unmet) > 0 {
+		if len(first) > 0 && (len(tail) == 0 || len(unmet) > 0) {
 			a.MetElsewhere = false
 		}
 		a.Alternatives = AppendOptions(a.Alternatives, seen, tail, fields)

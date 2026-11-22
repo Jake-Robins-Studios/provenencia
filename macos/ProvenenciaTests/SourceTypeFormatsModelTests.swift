@@ -20,10 +20,11 @@ struct SourceTypeFormatsModelTests {
         )
     }
 
-    private func fieldRow(_ f: CatalogMetadataField, at level: Level) -> CatalogCitationPlaceholder {
+    /// A field row: one per field, with no level.
+    private func fieldRow(_ f: CatalogMetadataField) -> CatalogCitationPlaceholder {
         CatalogCitationPlaceholder(
-            id: "\(level.rawValue)#\(f.id)", level: level, builtin: nil, option: nil, field: f,
-            text: "{\(level.rawValue).meta.\(f.key)}", ref: "\(level.rawValue).meta.\(f.key)"
+            id: "meta#\(f.id)", level: nil, builtin: nil, option: nil, field: f,
+            text: "{meta.\(f.key)}", ref: "meta.\(f.key)"
         )
     }
 
@@ -69,9 +70,9 @@ struct SourceTypeFormatsModelTests {
         #expect(typed?.query == "li")
         #expect(typed?.range == NSRange(location: 1, length: 2))
 
-        let chained = CitationCompletionContext.at("{graph.meta.line_number|so", caret: 26)
+        let chained = CitationCompletionContext.at("{meta.line_number|so", caret: 20)
         #expect(chained?.query == "so")
-        #expect(chained?.range == NSRange(location: 24, length: 2))
+        #expect(chained?.range == NSRange(location: 18, length: 2))
 
         #expect(CitationCompletionContext.at("\\{li", caret: 4) == nil)
         #expect(CitationCompletionContext.at("\\\\{li", caret: 5)?.query == "li")
@@ -91,23 +92,23 @@ struct SourceTypeFormatsModelTests {
             let context = try #require(CitationCompletionContext.at(text, caret: caret))
             return CitationCompletionContext.accept(ref: ref, in: text, context: context)
         }
-        let open = try accept("{li", caret: 3, ref: "graph.meta.line_number")
-        #expect(open.text == "graph.meta.line_number}")
+        let open = try accept("{li", caret: 3, ref: "meta.line_number")
+        #expect(open.text == "meta.line_number}")
         #expect(open.caretAfter == 1 + open.text.utf16.count)
 
         // A `}` already follows: kept, and the caret steps past it.
-        let closed = try accept("{li}", caret: 3, ref: "graph.meta.line_number")
-        #expect(closed.text == "graph.meta.line_number")
+        let closed = try accept("{li}", caret: 3, ref: "meta.line_number")
+        #expect(closed.text == "meta.line_number")
         #expect(closed.caretAfter == 1 + closed.text.utf16.count + 1)
 
         // A `|` follows: another option comes next, so no `}` and the caret stays before the pipe.
-        let piped = try accept("{li|x}", caret: 3, ref: "graph.meta.line_number")
-        #expect(piped.text == "graph.meta.line_number")
+        let piped = try accept("{li|x}", caret: 3, ref: "meta.line_number")
+        #expect(piped.text == "meta.line_number")
         #expect(piped.caretAfter == 1 + piped.text.utf16.count)
 
-        let chained = try accept("{graph.meta.line_number|so", caret: 26, ref: "source.meta.line_number")
-        #expect(chained.text == "source.meta.line_number}")
-        #expect(chained.caretAfter == 24 + chained.text.utf16.count)
+        let chained = try accept("{meta.line_number|so", caret: 20, ref: "source.title")
+        #expect(chained.text == "source.title}")
+        #expect(chained.caretAfter == 18 + chained.text.utf16.count)
     }
 
     // MARK: Completion rows (T-6b)
@@ -115,14 +116,21 @@ struct SourceTypeFormatsModelTests {
     @Test func completionRowsComeFromTheFormsPlaceholdersRankedByTheTypedQueryAlone() async {
         let line = field("f1", "line_number", "Line")
         let (model, _, _) = await makeModel(placeholders: [
-            .full: [
-                builtin(.sourceTitle), fieldRow(line, at: .source), fieldRow(line, at: .artifact), fieldRow(line, at: .graph),
-            ],
-            .list: [builtin(.sourceTitle), fieldRow(line, at: .source)],
+            .full: [builtin(.sourceTitle), fieldRow(line)],
+            .list: [builtin(.sourceTitle), fieldRow(line)],
         ])
-        #expect(model.completionOptions(.full, query: "graph li").first?.value == "graph#f1")
-        #expect(model.completionOptions(.full, query: "li").map(\.value) == ["source#f1", "artifact#f1", "graph#f1"])
-        #expect(Set(model.completionOptions(.list, query: "").map(\.value)) == ["source.title", "source#f1"])
+        #expect(model.completionOptions(.full, query: "li").map(\.value) == ["meta#f1"])
+        #expect(Set(model.completionOptions(.list, query: "").map(\.value)) == ["source.title", "meta#f1"])
+    }
+
+    @Test func aFieldRowHasNoLevelInItsSubtextOrSpokenLabel() async {
+        let provider = field("f2", "provider", "Provider")
+        let (model, _, _) = await makeModel(placeholders: [.full: [builtin(.sourceTitle), fieldRow(provider)]])
+        let options = model.completionOptions(.full, query: "meta.prov")
+        #expect(options.first?.value == "meta#f2")
+        #expect(options.first?.subtext == "provider meta.provider")
+        #expect(SourceTypeFormatsModel.spokenLabel(of: fieldRow(provider)) == "Provider")
+        #expect(SourceTypeFormatsModel.spokenLabel(of: builtin(.sourceTitle)) == "Title, Source")
     }
 
     // MARK: Choices (T-7)
@@ -130,7 +138,7 @@ struct SourceTypeFormatsModelTests {
     @Test func completingAFieldRecordsItsChoiceAndABuiltInDoesNot() async {
         let page = field("f9", "page", "Page", origin: "user")
         let (model, store, _) = await makeModel(sources: [source("s1", revision: 1)])
-        model.didComplete(fieldRow(page, at: .source), into: .full)
+        model.didComplete(fieldRow(page), into: .full)
         #expect(model.fieldChoices == ["page": "f9"])
         model.didComplete(builtin(.sourceTitle), into: .full)
         #expect(model.fieldChoices == ["page": "f9"])

@@ -1399,9 +1399,11 @@ struct CatalogProvenanceSheetRead: Sendable, Equatable {
     }
 }
 
-/// One way to answer a needed placeholder: a metadata field or a built-in, at a level.
+/// One way to answer a needed placeholder: a metadata field or a built-in. A built-in has its level; a
+/// field has none when the format reads it from the nearest level that holds it, and the Source in the
+/// list form.
 struct CatalogCitationOption: Sendable, Equatable {
-    var level: Level
+    var level: Level?
     var field: CatalogMetadataField?
     var builtin: CitationBuiltin?
 }
@@ -1417,16 +1419,17 @@ struct CatalogCitationPreview: Sendable, Equatable {
 /// One placeholder a form can hold, as completion lists it.
 struct CatalogCitationPlaceholder: Sendable, Equatable, Identifiable {
     /// What the row is, never its text: `"<level>.<builtin>[:<option>]"` for a
-    /// built-in and `"<level>#<field id>"` for a field, so two fields with one
+    /// built-in and `"meta#<field id>"` for a field, so two fields with one
     /// key are two rows.
     var id: String
-    var level: Level
+    /// A built-in's level; nil for a field row, which has none.
+    var level: Level?
     var builtin: CitationBuiltin?
     var option: CitationOption?
     var field: CatalogMetadataField?
-    /// The whole placeholder: `{graph.meta.line_number}`.
+    /// The whole placeholder: `{meta.line_number}`.
     var text: String
-    /// What sits inside the braces: `graph.meta.line_number`.
+    /// What sits inside the braces: `meta.line_number`.
     var ref: String
 }
 
