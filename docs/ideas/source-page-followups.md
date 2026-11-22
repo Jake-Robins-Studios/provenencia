@@ -1,6 +1,6 @@
 # Source page follow-ups
 
-**Status:** idea only — not roadmapped. Split out of the retired `structural-debt.md` on 2026-11-17 (checked against the code that day). No user-visible change unless a section says so; pull one in when a feature next changes that code. How the Source page learns that its Source is gone, and what it reloads after an Artifact write.
+**Status:** idea only — not roadmapped. Split out of the retired `structural-debt.md` on 2026-11-17 (checked against the code that day). No user-visible change unless a section says so; pull one in when a feature next changes that code. How the Source page learns that its Source is gone.
 
 ## Missing-Source errors outside the page context
 
@@ -13,7 +13,3 @@ Delete from the Source page after the Source was deleted in another window: `Del
 ## The fake answers a missing Source with a blank one
 
 `FakeStore.getSourceWorkspace` returns a blank `SRC-XXXXX` Source for an unknown id where the engine answers `sources.not_found`. `CatalogSessionStoreTests.getSourceWorkspaceMarksSessionHeld` reads the missing id `"missing"` and relies on the blank read; seed a Source in that test, then throw `sourceNotFound` from the fake. (S15-03 review MNT-6)
-
-## Artifact writes reload the whole workspace for the cover
-
-Three Artifact writes reload the whole Source workspace (`SourcePageContext.refreshCoverFromStore`, a full `getSourceWorkspace`) only to pick up the Source's cover fields: attach (`SourceArtifactsSection`), add (`ArtifactSheetModel`) and delete (`SourcePageModel`). Their replies could carry the updated Source's cover fields, applied through the context, so each path drops the reload. (S15-10 plan M-9)
