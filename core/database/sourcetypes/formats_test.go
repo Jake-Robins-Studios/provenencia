@@ -125,7 +125,7 @@ func diag(form citationformat.Form, code citationformat.DiagnosticCode, start, e
 }
 
 func TestUpdateWithFormats(t *testing.T) {
-	const full = "{source.title}[, line {graph.meta.line_number}]"
+	const full = "{source.title}[, line {meta.line_number}]"
 
 	t.Run("saves fields by id and reads them by key (AC-1.1, AC-1.5)", func(t *testing.T) {
 		f := newFormatFixture(t)
@@ -133,7 +133,7 @@ func TestUpdateWithFormats(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "{source.title}[, line {graph.meta." + idToken(f.line) + "}]"
+		want := "{source.title}[, line {meta." + idToken(f.line) + "}]"
 		if got := f.raw(t, "citation_full", f.typeID); got.String != want {
 			t.Fatalf("stored %q, want %q", got.String, want)
 		}
@@ -218,21 +218,21 @@ func TestUpdateWithFormats(t *testing.T) {
 			nil, []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnclosedPlaceholder, 0, 1)}},
 		{"list form refuses a non-Source level (AC-2.2)", Formats{List: "{artifact.label}"},
 			nil, []citationformat.FormDiagnostic{diag("list", citationformat.CodeNotInListForm, 1, 15)}},
-		{"unknown key (AC-2.3)", Formats{Short: "{source.meta.no_such_key}"},
-			nil, []citationformat.FormDiagnostic{diag("short", citationformat.CodeUnknownField, 13, 24)}},
-		{"shared key without a choice (AC-2.4)", Formats{Full: "{source.meta.publisher}"},
-			nil, []citationformat.FormDiagnostic{diag("full", citationformat.CodeAmbiguousField, 13, 22)}},
-		{"parse errors and unknown keys together (AC-2.6)", Formats{Full: "{source.title", Short: "{source.meta.nope}"},
+		{"unknown key (AC-2.3)", Formats{Short: "{meta.no_such_key}"},
+			nil, []citationformat.FormDiagnostic{diag("short", citationformat.CodeUnknownField, 6, 17)}},
+		{"shared key without a choice (AC-2.4)", Formats{Full: "{meta.publisher}"},
+			nil, []citationformat.FormDiagnostic{diag("full", citationformat.CodeAmbiguousField, 6, 15)}},
+		{"parse errors and unknown keys together (AC-2.6)", Formats{Full: "{source.title", Short: "{meta.nope}"},
 			nil, []citationformat.FormDiagnostic{
 				diag("full", citationformat.CodeUnclosedPlaceholder, 0, 1),
-				diag("short", citationformat.CodeUnknownField, 13, 17),
+				diag("short", citationformat.CodeUnknownField, 6, 10),
 			}},
-		{"a typed id no field has (AC-2.9)", Formats{Full: "{source.meta.#0192f3a4-0000-7000-8000-000000000001}"},
-			nil, []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownField, 13, 50)}},
-		{"every occurrence of a shared key", Formats{Full: "{source.meta.publisher} {graph.meta.publisher}"},
+		{"a typed id no field has (AC-2.9)", Formats{Full: "{meta.#0192f3a4-0000-7000-8000-000000000001}"},
+			nil, []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownField, 6, 43)}},
+		{"every occurrence of a shared key", Formats{Full: "{meta.publisher} {meta.publisher}"},
 			nil, []citationformat.FormDiagnostic{
-				diag("full", citationformat.CodeAmbiguousField, 13, 22),
-				diag("full", citationformat.CodeAmbiguousField, 36, 45),
+				diag("full", citationformat.CodeAmbiguousField, 6, 15),
+				diag("full", citationformat.CodeAmbiguousField, 23, 32),
 			}},
 	}
 	for _, tc := range diagCases {
@@ -262,16 +262,16 @@ func TestUpdateWithFormats(t *testing.T) {
 
 	t.Run("a choice settles a shared key (AC-2.5)", func(t *testing.T) {
 		f := newFormatFixture(t)
-		view, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.publisher}"},
+		view, _, err := f.update(t, f.typeID, Formats{Full: "{meta.publisher}"},
 			FieldChoice{Key: "publisher", FieldID: f.pubUser})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := f.raw(t, "citation_full", f.typeID).String; got != "{source.meta."+idToken(f.pubUser)+"}" {
+		if got := f.raw(t, "citation_full", f.typeID).String; got != "{meta."+idToken(f.pubUser)+"}" {
 			t.Fatalf("stored %q", got)
 		}
 		wantChoices := []FieldChoice{{Key: "publisher", FieldID: f.pubUser}}
-		if view.Full != "{source.meta.publisher}" || !reflect.DeepEqual(view.Choices, wantChoices) {
+		if view.Full != "{meta.publisher}" || !reflect.DeepEqual(view.Choices, wantChoices) {
 			t.Fatalf("view %+v", view)
 		}
 	})
@@ -297,24 +297,24 @@ func TestUpdateWithFormats(t *testing.T) {
 
 	t.Run("a choice for a sole holder is accepted, one for an unused key ignored", func(t *testing.T) {
 		f := newFormatFixture(t)
-		_, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.author}"},
+		_, _, err := f.update(t, f.typeID, Formats{Full: "{meta.author}"},
 			FieldChoice{Key: "author", FieldID: f.author}, FieldChoice{Key: "publisher", FieldID: f.pubUser})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := f.raw(t, "citation_full", f.typeID).String; got != "{source.meta."+idToken(f.author)+"}" {
+		if got := f.raw(t, "citation_full", f.typeID).String; got != "{meta."+idToken(f.author)+"}" {
 			t.Fatalf("stored %q", got)
 		}
 	})
 
 	t.Run("a choice naming a deleted field is ignored and the key resolves (D-14)", func(t *testing.T) {
 		f := newFormatFixture(t)
-		view, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.author}"},
+		view, _, err := f.update(t, f.typeID, Formats{Full: "{meta.author}"},
 			FieldChoice{Key: "author", FieldID: make([]byte, 16)})
 		if err != nil || len(view.Diagnostics) != 0 {
 			t.Fatalf("view %+v, err %v", view, err)
 		}
-		if got := f.raw(t, "citation_full", f.typeID).String; got != "{source.meta."+idToken(f.author)+"}" {
+		if got := f.raw(t, "citation_full", f.typeID).String; got != "{meta."+idToken(f.author)+"}" {
 			t.Fatalf("stored %q", got)
 		}
 	})
@@ -366,11 +366,11 @@ func TestUpdateWithFormats(t *testing.T) {
 
 	t.Run("a key and an id of one field store one token", func(t *testing.T) {
 		f := newFormatFixture(t)
-		_, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.line_number} {graph.meta." + idToken(f.line) + "}"})
+		_, _, err := f.update(t, f.typeID, Formats{Full: "{meta.line_number} {meta." + idToken(f.line) + "}"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := "{source.meta." + idToken(f.line) + "} {graph.meta." + idToken(f.line) + "}"
+		want := "{meta." + idToken(f.line) + "} {meta." + idToken(f.line) + "}"
 		if got := f.raw(t, "citation_full", f.typeID).String; got != want {
 			t.Fatalf("stored %q, want %q", got, want)
 		}
@@ -387,11 +387,11 @@ func TestUpdateWithFormats(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer func() { _ = tx.Rollback() }()
-		got, diags, err := ToStored(tx, Formats{Full: "{source.meta.publisher}"}, nil, vocabkey.OriginProvenencia)
+		got, diags, err := ToStored(tx, Formats{Full: "{meta.publisher}"}, nil, vocabkey.OriginProvenencia)
 		if err != nil || len(diags) != 0 {
 			t.Fatalf("err %v, diagnostics %+v", err, diags)
 		}
-		if want := "{source.meta." + idToken(f.pubProduct) + "}"; got.Full != want {
+		if want := "{meta." + idToken(f.pubProduct) + "}"; got.Full != want {
 			t.Fatalf("stored %q, want %q", got.Full, want)
 		}
 	})
@@ -432,7 +432,7 @@ func TestToStoredLimits(t *testing.T) {
 	t.Run("short keys under 4,000 characters store past 4,096 bytes", func(t *testing.T) {
 		f := newFormatFixture(t)
 		field(t, f, "a")
-		typed := strings.Repeat("{source.meta.a}", 100) // 1,500 characters
+		typed := strings.Repeat("{meta.a}", 100) // 1,500 characters
 		got, diags, err := toStored(t, f, typed)
 		if err != nil || len(diags) != 0 {
 			t.Fatalf("err %v, diagnostics %+v", err, diags)
@@ -466,7 +466,7 @@ func TestToStoredLimits(t *testing.T) {
 	t.Run("stored text over 8,192 bytes is refused over the typed text", func(t *testing.T) {
 		f := newFormatFixture(t)
 		field(t, f, "a")
-		typed := strings.Repeat("{source.meta.a}", 200) // 3,000 characters, 10,200 stored
+		typed := strings.Repeat("{meta.a}", 200) // 3,000 characters, 10,200 stored
 		got, diags, err := toStored(t, f, typed)
 		tooLong(t, got, diags, err, len(typed))
 	})
@@ -485,7 +485,7 @@ func TestToStoredLimits(t *testing.T) {
 func TestGetFormats(t *testing.T) {
 	t.Run("keys survive a relabel (AC-1.2)", func(t *testing.T) {
 		f := newFormatFixture(t)
-		if _, _, err := f.update(t, f.typeID, Formats{Full: "{graph.meta.line_number}"}); err != nil {
+		if _, _, err := f.update(t, f.typeID, Formats{Full: "{meta.line_number}"}); err != nil {
 			t.Fatal(err)
 		}
 		_, _, err := writes.Run(f.c, writes.Op{Action: "update_metadata_field", UserID: f.userID},
@@ -499,7 +499,7 @@ func TestGetFormats(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if view.Full != "{graph.meta.line_number}" {
+		if view.Full != "{meta.line_number}" {
 			t.Fatalf("full %q", view.Full)
 		}
 	})
@@ -536,7 +536,7 @@ func TestGetFormats(t *testing.T) {
 	t.Run("an id with no field stays an id token (AC-4.2)", func(t *testing.T) {
 		f := newFormatFixture(t)
 		x := uuid.New()
-		text := "{source.meta.#" + x.String() + "}"
+		text := "{meta.#" + x.String() + "}"
 		f.setRaw(t, "citation_full", text, f.typeID)
 		view, err := GetFormats(f.c, f.typeID)
 		if err != nil {
@@ -551,7 +551,7 @@ func TestGetFormats(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		wantDiags := []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownField, 13, 50)}
+		wantDiags := []citationformat.FormDiagnostic{diag("full", citationformat.CodeUnknownField, 6, 43)}
 		if !reflect.DeepEqual(saved.Diagnostics, wantDiags) || res.Revision != 0 {
 			t.Fatalf("resave: view %+v, result %+v", saved, res)
 		}
@@ -562,15 +562,15 @@ func TestGetFormats(t *testing.T) {
 
 	t.Run("two fields sharing a key: the first shown takes it (AC-4.3)", func(t *testing.T) {
 		f := newFormatFixture(t)
-		f.setRaw(t, "citation_full", "{source.meta."+idToken(f.pubProduct)+"}", f.typeID)
-		f.setRaw(t, "citation_short", "{source.meta."+idToken(f.pubUser)+"}", f.typeID)
+		f.setRaw(t, "citation_full", "{meta."+idToken(f.pubProduct)+"}", f.typeID)
+		f.setRaw(t, "citation_short", "{meta."+idToken(f.pubUser)+"}", f.typeID)
 		view, err := GetFormats(f.c, f.typeID)
 		if err != nil {
 			t.Fatal(err)
 		}
-		wantShort := "{source.meta." + idToken(f.pubUser) + "}"
+		wantShort := "{meta." + idToken(f.pubUser) + "}"
 		wantChoices := []FieldChoice{{Key: "publisher", FieldID: f.pubProduct}}
-		if view.Full != "{source.meta.publisher}" || view.Short != wantShort || !reflect.DeepEqual(view.Choices, wantChoices) {
+		if view.Full != "{meta.publisher}" || view.Short != wantShort || !reflect.DeepEqual(view.Choices, wantChoices) {
 			t.Fatalf("view %+v", view)
 		}
 		_, res, err := f.update(t, f.typeID, view.Formats, view.Choices...)
@@ -580,7 +580,7 @@ func TestGetFormats(t *testing.T) {
 		if res.Revision != 0 {
 			t.Fatalf("resave changed the type: %+v", res)
 		}
-		if got := f.raw(t, "citation_full", f.typeID).String; got != "{source.meta."+idToken(f.pubProduct)+"}" {
+		if got := f.raw(t, "citation_full", f.typeID).String; got != "{meta."+idToken(f.pubProduct)+"}" {
 			t.Fatalf("stored %q", got)
 		}
 		if got := f.raw(t, "citation_short", f.typeID).String; got != wantShort {
@@ -617,7 +617,7 @@ func TestGetFormats(t *testing.T) {
 
 func TestRequirementsTx(t *testing.T) {
 	f := newFormatFixture(t)
-	if _, _, err := f.update(t, f.typeID, Formats{Full: "{source.meta.line_number}.", List: "[{source.meta.author}]"}); err != nil {
+	if _, _, err := f.update(t, f.typeID, Formats{Full: "{meta.line_number}.", List: "[{meta.author}]"}); err != nil {
 		t.Fatal(err)
 	}
 	read := func(t *testing.T, ids ...[]byte) map[string][]citationformat.Requirement {
@@ -637,7 +637,12 @@ func TestRequirementsTx(t *testing.T) {
 		}
 		return got
 	}
+	// The full form reads a field nearest-first, with no level; the list form
+	// reads it at the Source.
 	target := func(id []byte) citationformat.Target {
+		return citationformat.Target{Field: citationformat.FieldRef{ID: uuid.UUID(id)}}
+	}
+	listTarget := func(id []byte) citationformat.Target {
 		return citationformat.Target{Level: vocabkey.LevelSource, Field: citationformat.FieldRef{ID: uuid.UUID(id)}}
 	}
 
@@ -645,7 +650,7 @@ func TestRequirementsTx(t *testing.T) {
 		got := read(t, f.typeID, f.typeIDOther)
 		want := []citationformat.Requirement{
 			{Targets: []citationformat.Target{target(f.line)}, Need: citationformat.NeedNeeded},
-			{Targets: []citationformat.Target{target(f.author)}, Need: citationformat.NeedUsed},
+			{Targets: []citationformat.Target{listTarget(f.author)}, Need: citationformat.NeedUsed},
 		}
 		if !reflect.DeepEqual(got[string(f.typeID)], want) {
 			t.Errorf("census chains = %+v, want %+v", got[string(f.typeID)], want)
@@ -659,7 +664,7 @@ func TestRequirementsTx(t *testing.T) {
 	})
 
 	t.Run("a form that does not parse adds nothing", func(t *testing.T) {
-		f.setRaw(t, "citation_short", "{source.meta.", f.typeID)
+		f.setRaw(t, "citation_short", "{meta.", f.typeID)
 		got := read(t, f.typeID)
 		if len(got[string(f.typeID)]) != 2 {
 			t.Errorf("chains = %+v, want the two the other forms read", got[string(f.typeID)])
