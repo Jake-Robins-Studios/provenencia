@@ -29,7 +29,6 @@ final class SourcePageContext {
     /// How many times a page error has been shown; clearing does not change it. The page folds
     /// it into its scroll-reset key so a new error scrolls up to the banner.
     private(set) var pageErrorShownCount = 0
-    var toast: VocabularyToast?
     /// The notice to show when a write found this Source deleted; the page leaves
     /// for the Sources list while it is set.
     var gone: String?

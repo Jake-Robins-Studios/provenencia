@@ -783,7 +783,8 @@ struct SourcePageModelTests {
         store.ingestArtifactFileError = CoreInvokeError.coded(
             status: 1, code: "ingest.invalid", kind: .user, params: []
         )
-        let model = makeModel(store: store)
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
         await model.warmFromSession()
         model.artifacts.openAttach(to: "a1")
         model.artifacts.attachDraft.file.choose(url)
@@ -799,7 +800,7 @@ struct SourcePageModelTests {
         await model.artifacts.confirmAttach()
 
         #expect(!model.artifacts.isAttaching)
-        #expect(model.toast != nil)
+        #expect(!session.toasts.cards.isEmpty)
     }
 
     @Test func ingestThenRejectSecondAttach() async throws {
@@ -1565,8 +1566,11 @@ struct SourcePageModelTests {
         #expect(!left)
         #expect(store.deleteEvidenceGraphCalls == 1)
         #expect(store.deleteArtifactCalls == 0)
-        #expect(model.toast?.title == "Evidence graph deleted")
-        #expect(model.toast?.body == "GPH-G-JONES was erased from this source.")
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            "Evidence graph deleted",
+            "GPH-G-JONES was erased from this source."
+        )])
         // The page is the visible place, so the effects revalidate the list.
         #expect(await waitUntil { model.graphs.rows?.map(\.id) == ["g-default"] })
     }
@@ -1855,7 +1859,7 @@ struct SourcePageModelTests {
     }
 
     @Test func addArtifactLinksOnlyTheCheckedGraphs() async throws {
-        let (model, store, _) = await makeCensus()
+        let (model, store, session) = await makeCensus()
         #expect(model.artifacts.visibleGraphs?.map(\.id) == ["g-b", "g-j", "g-s"])
         let sheet = try await openAddSheet(model)
         #expect(sheet.checkedGraphIDs == ["g-b", "g-j", "g-s"])
@@ -1868,7 +1872,7 @@ struct SourcePageModelTests {
         let created = store.artifactsBySource[sourceID]?.last
         #expect(created?.label == "Page 7")
         #expect(store.createArtifactGraphIDs.last == ["g-j"])
-        #expect(model.toast != nil)
+        #expect(!session.toasts.cards.isEmpty)
     }
 
     @Test func addArtifactWithNoGraphChecked() async throws {
@@ -1971,7 +1975,7 @@ struct SourcePageModelTests {
         let key = CatalogQueryKey.sourceWorkspace(project: session.projectKey, sourceId: sourceID)
         let cached: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(key)
         #expect(cached?.value?.metadataRows(for: owner) == rows)
-        #expect(model.toast != nil)
+        #expect(!session.toasts.cards.isEmpty)
     }
 
     @Test func anUntouchedBoardSendsNoDraftButKeepsTheRows() async throws {

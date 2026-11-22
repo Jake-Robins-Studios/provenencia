@@ -128,7 +128,6 @@ private struct SourcePageContent: View {
         }, isTargeted: { targeted in
             pageFileDrag = targeted
         })
-        .vocabularyToastOverlay($model.toast, identifier: "sources.page.toast")
         .pvFormDialog(
             isPresented: addFilePresented,
             copy: PVFormDialogCopy(

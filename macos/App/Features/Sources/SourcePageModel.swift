@@ -94,11 +94,6 @@ final class SourcePageModel {
         return nil
     }
 
-    var toast: VocabularyToast? {
-        get { context.toast }
-        set { context.toast = newValue }
-    }
-
     /// The content pane takes a file drop when no sheet is already up.
     var acceptsArtifactPageDrop: Bool {
         !context.isOpeningForm
@@ -244,10 +239,10 @@ final class SourcePageModel {
                     userID: context.userID,
                     artifactID: target.id
                 )
-                context.toast = VocabularyToast(
+                context.session.toasts.add(
+                    tone: .success,
                     title: L10n.string(L10n.Sources.toastArtifactDeletedTitle),
-                    body: L10n.Sources.toastArtifactDeletedBody(ref: target.ref),
-                    tone: .success
+                    message: L10n.Sources.toastArtifactDeletedBody(ref: target.ref)
                 )
                 // The effects report `source_holdings` for the Source: the page's
                 // workspace reloads once (the row leaves, the cover and `hasArtifact`
@@ -261,10 +256,10 @@ final class SourcePageModel {
                     userID: context.userID,
                     graphID: target.id
                 )
-                context.toast = VocabularyToast(
+                context.session.toasts.add(
+                    tone: .success,
                     title: L10n.string(L10n.Sources.toastGraphDeletedTitle),
-                    body: L10n.Sources.toastGraphDeletedBody(ref: target.ref),
-                    tone: .success
+                    message: L10n.Sources.toastGraphDeletedBody(ref: target.ref)
                 )
                 context.session.apply(effects)
             default:

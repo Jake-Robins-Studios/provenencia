@@ -82,7 +82,7 @@ struct SourceGraphFormModelTests {
     }
 
     @Test func createSavesOneGraphAndToasts() async throws {
-        let (model, store, _) = await makeModel()
+        let (model, store, session) = await makeModel()
         await model.graphs.openAdd()
         let form = try #require(model.graphs.form)
         form.draft.name = "Jones household"
@@ -96,8 +96,11 @@ struct SourceGraphFormModelTests {
         #expect(created.sourceID == "src-1")
         #expect(created.description == "Household 14, page 3")
         #expect(created.artifactIDs == ["a3"])
-        #expect(model.toast?.title == "Evidence graph added")
-        #expect(model.toast?.body == "\(created.ref) is ready to open.")
+        #expect(session.toasts.cards == [ToastCard(
+            .success,
+            "Evidence graph added",
+            "\(created.ref) is ready to open."
+        )])
     }
 
     enum Blocked: CaseIterable, Sendable {
@@ -228,7 +231,7 @@ struct SourceGraphFormModelTests {
     }
 
     @Test func editSavesNameAndFullLinkSet() async throws {
-        let (model, store, _) = await makeModel(graphs: [smith()])
+        let (model, store, session) = await makeModel(graphs: [smith()])
         let form = try #require(await openSmithEdit(store: store, model: model))
         form.draft.name = "Smith family"
         form.draft.excludedArtifactIDs.insert("a4")
@@ -239,7 +242,7 @@ struct SourceGraphFormModelTests {
         #expect(await waitUntil { model.graphs.rows?.contains { $0.name == "Smith family" } == true })
         let updated = try #require(model.graphs.rows?.first { $0.id == "g-smith" })
         #expect(updated.artifactIDs == ["a3", "a5"])
-        #expect(model.toast == nil)
+        #expect(session.toasts.cards.isEmpty)
     }
 
     @Test func editRefusedInUseRereadsKeptLinks() async throws {
