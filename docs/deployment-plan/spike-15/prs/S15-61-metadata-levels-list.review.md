@@ -1,7 +1,7 @@
 # Review — S15-61 Metadata levels are one declared list
 
-**Verdict (round 1):** maintainability: Fits with changes; executability: Ready with changes. Round 2 is pending.
-**Rounds:** 1 so far. **Reviewers:** maintainability (Opus) and executability (Sonnet), each in fresh context.
+**Verdict:** Fits with changes — Ready with changes. After round 2 every finding is Fixed or Declined, and nothing is open.
+**Rounds:** 2. **Reviewers:** maintainability (Opus) and executability (Sonnet), each in fresh context.
 
 ## To user
 
@@ -33,3 +33,20 @@ These are calls the writer made that no source dictated; the user can veto any o
 - **M-5 · minor · The entry states the owner table twice.** **Answer:** Declined (D-3). `catalogmodel` has no exported Kind → table lookup; `deleteimpact.tableByKind` is private and filtered to deletable kinds. Adding one would save one string per entry, and T-1 ties the two fields together.
 - **M-6 · minor · `ListDraftWorkspace` keeps a hand level check.** **Answer:** Fixed. It is in **Out** and **Next adds**, under S15-55.
 - **M-7 · nit · Where `TestMetadataFacetOrder` lives.** **Answer:** Fixed. It moves to `facets_test.go`.
+
+## Round 2 — executability
+
+- **X-6 · major · The DoD sweep cannot reach zero hits.** **Answer:** Fixed. The effects sweep matches only the Artifact and graph metadata literals. "At the three levels" in `docs/source-layer-data-model.md` and `docs/citation-formats.md` stays, because it is true until S15-54.
+- **X-7 · major · The splices are not valid Go inside a composite literal.** **Answer:** Fixed. D-7 and D-8 give the split-and-append shape and say where each list splits.
+- **X-8 · major · D-9's scope formula is wrong as written.** **Answer:** Fixed. The columns are the owner column, then `path[i].Up.Column` for every entry but the last, passed as `up(cols...)`.
+- **X-9 · major · T-3 cannot compile in `facets_test.go`.** **Answer:** Fixed. T-3 goes in a new internal-package file, `core/database/deleteimpact/facet_order_test.go`.
+- **X-10 · minor · Test fixtures are left to the implementer.** **Answer:** Fixed. § 6 names the Citation fixture and the four bad lists, and says the error checks run in table order.
+- **X-11 · minor · D-6's join rule is implied, not stated.** **Answer:** Fixed. D-6 now states the rule for any depth.
+- **X-12 · minor · STEP-6 anchors.** **Answer:** Fixed. Each skill edit names the sentence or step it follows.
+
+## Round 2 — maintainability
+
+All round-1 answers were checked against the code and hold.
+
+- **M-8 · blocker · The effects overlay only has room for `Search`, not for S15-54's values-only `EvidenceGraph`.** **Answer:** Fixed, in the reviewer's simpler shape. Extras stay partial literals in `registry`, and `metadataEffects` fills only the fields it owns, panicking if a literal sets one of them. S15-54 adds `"citation_metadata": {EvidenceGraph: …}` with no builder change. T-6 tests both the keep case and the panic case (D-9).
+- **Below the bar (major):** `add-audit-scope` and `.cursor/rules/catalog-deletes.mdc` still teach the hand-wiring. **Answer:** Fixed. STEP-6 adds a one-clause exception to each.
