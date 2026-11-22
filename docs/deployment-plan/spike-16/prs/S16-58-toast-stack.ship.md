@@ -1,7 +1,7 @@
 # Ship log — S16-58 Toasts stack in one list per window
 
 **Plan:** [`S16-58-toast-stack.md`](S16-58-toast-stack.md) · **Branch:** `s16-58-toast-stack` · **PR:** #941
-**State:** fixing 3 — user dogfood
+**State:** ready
 
 ## Round 0 — implement
 Head `d998b278f`. Gate PASS (orchestrator run against `cff856a14`). Report deviations: base moved to `cff856a14` (no Current state row changed); version bump 0.33.0 → 0.33.1 (VERSION was already 0.33.0); `.agents/skills/review-pr/lenses/ux.md:88` reworded (named `lastRefreshError`, failed guidance-names); README Toast row also names the stack, list and one-caller rule. Manual check §10 not run.
@@ -130,3 +130,9 @@ Check: `rg -n "replacing:" macos/App/Features` prints `CatalogCounts.swift` and 
 **F-8 — Comments and the forward's return** (from MNT-2 r3, MNT-3 r3, CON-2 r3)
 Files: `PVToastList.swift` (`PVToastEntry` doc comment: VoiceOver does not read a refreshed card again when its text is unchanged; new text is spoken), `VocabularyPane.swift` (the `add(_ toast:)` forward returns nothing), `macos/ProvenenciaTests/PVToastListTests.swift` (T-5's comment says AC-2.3).
 Check: scripts/check-pr.sh PASS.
+
+## Round 4 — fix
+Head `1d5c6f8cd`. Gate PASS (orchestrator run against `1e3faa67d`; `origin/main` unchanged). F-7 and F-8 done in one commit. Orchestrator read the diff: CON-1 (r3) **Resolved** (`historyIssueToastID` passed as `replacing:` and stored, both cases); MNT-2 (r3) and MNT-3 (r3) **Resolved**. The F-7 manual check (read-only navigation folder) is added to the PR's manual check.
+
+## Result (after user dogfood)
+Gate PASS · CI pending · open: none · follow-ups: none · to user: AC-2.2 now keeps the recount's one card with the new message (orchestrator's call under "callers decide"); manual check §10 owed.
