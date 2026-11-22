@@ -25468,6 +25468,360 @@
           }
         }
       }
+    },
+    "sources.move.title": {
+      "comment": "Title of the Move to another Source dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to another Source"
+          }
+        }
+      }
+    },
+    "sources.move.confirm": {
+      "comment": "Confirm button of the Move to another Source dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
+          }
+        }
+      }
+    },
+    "sources.move.target.label": {
+      "comment": "Label of the target Source field in the Move dialog; also its spoken label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to"
+          }
+        }
+      }
+    },
+    "sources.move.target.placeholder": {
+      "comment": "Placeholder of the target Source field in the Move dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a Source"
+          }
+        }
+      }
+    },
+    "sources.move.target.noMatch": {
+      "comment": "Shown in the Move dialog's Source picker when nothing matches what was typed",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Source matches"
+          }
+        }
+      }
+    },
+    "sources.move.nowhere": {
+      "comment": "Callout in the Move dialog when the project holds no other Source",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no other Source to move to. Add a Source first, or copy this one."
+          }
+        }
+      }
+    },
+    "sources.move.together": {
+      "comment": "Header of the list of Artifacts and graphs that move together in the Move dialog",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moves together"
+          }
+        }
+      }
+    },
+    "sources.move.togetherWhy": {
+      "comment": "Line under the Moves together header when more than one Artifact moves, saying why",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A graph moves with all its Artifacts, so these move together."
+          }
+        }
+      }
+    },
+    "sources.move.loading": {
+      "comment": "Loading text in the Move dialog while the bundle is read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading what moves with it"
+          }
+        }
+      }
+    },
+    "sources.move.loadError.title": {
+      "comment": "Title of the Move dialog's load failure",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What moves could not be read."
+          }
+        }
+      }
+    },
+    "sources.move.notAssessed": {
+      "comment": "A Source's credibility in the Move dialog's credibility note when it has no assessment",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not assessed"
+          }
+        }
+      }
+    },
+    "sources.move.failed.title": {
+      "comment": "Title of the Move dialog's failure callout",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t move"
+          }
+        }
+      }
+    },
+    "sources.move.loadError.message": {
+      "comment": "Message of the Move dialog's load failure; argument is the reason",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was moved. Try reading it again. %@"
+          }
+        }
+      }
+    },
+    "sources.move.failed.message": {
+      "comment": "Message of the Move dialog's failure callout; argument is the reason",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was moved. %@"
+          }
+        }
+      }
+    },
+    "sources.move.leavesEmpty": {
+      "comment": "Move dialog note when every Artifact of the Source moves; argument is the Source title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” will have no Artifacts left. It is not deleted."
+          }
+        }
+      }
+    },
+    "sources.move.leavesNoGraph": {
+      "comment": "Move dialog note when every graph of the Source moves; argument is the Source title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” gets a new empty graph named Default, so it keeps one."
+          }
+        }
+      }
+    },
+    "sources.move.done.title": {
+      "comment": "Toast title after a Move; argument is the target Source title",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved to “%@”"
+          }
+        }
+      }
+    },
+    "sources.page.artifact.move.label": {
+      "comment": "Accessibility label and tooltip of an Artifact row's Move button; argument is the Artifact's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move %@ to another Source"
+          }
+        }
+      }
+    },
+    "sources.page.graph.move.label": {
+      "comment": "Accessibility label and tooltip of an Evidence graph card's Move button; argument is the graph's name",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move %@ to another Source"
+          }
+        }
+      }
+    },
+    "sources.move.credibility.message": {
+      "comment": "Move dialog credibility note; arguments are the old Source title, its grade, the target Source title, its grade and the grade the moved records will be weighed as",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@” is assessed %2$@; “%3$@” is %4$@. The moved records will be weighed as %5$@, so conclusions that rest on them can change."
+          }
+        }
+      }
+    },
+    "sources.move.credibility.title": {
+      "comment": "Title of the Move dialog's credibility note",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credibility changes"
+          }
+        }
+      }
+    },
+    "sources.move.done.body": {
+      "comment": "Toast body after a Move of Artifacts and graphs; arguments are the Artifact count and the graph count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%#@artifacts@ and %#@graphs@"
+          },
+          "substitutions": {
+            "artifacts": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Artifact"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg Artifacts"
+                    }
+                  }
+                }
+              }
+            },
+            "graphs": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg graph"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg graphs"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sources.move.done.artifacts": {
+      "comment": "Toast body after a Move of Artifacts only; argument is the count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Artifact"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Artifacts"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sources.move.done.graphs": {
+      "comment": "Toast body after a Move of graphs only; argument is the count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld graph"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld graphs"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.1"

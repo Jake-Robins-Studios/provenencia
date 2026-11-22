@@ -20,6 +20,8 @@ final class SourcePageModel {
 
     /// The Copy Source form while it is open.
     var copying: SourceCopyModel?
+    /// The Move to another Source dialog while it is open.
+    var moving: SourceMoveModel?
 
     private(set) var isLoading = false
     var loadError: Error?
@@ -175,6 +177,32 @@ final class SourcePageModel {
         guard let source else { return }
         copying = SourceCopyModel(
             original: source,
+            session: context.session,
+            userID: context.userID,
+            store: context.store
+        )
+    }
+
+    /// Opens the Move dialog for one of this page's Artifacts; nothing opens for an id the page does not hold.
+    func openMove(artifactID: String) {
+        guard let art = artifacts.items.first(where: { $0.id == artifactID }) else { return }
+        openMove(seed: .artifact(art.id), title: art.displayTitle, ref: art.ref)
+    }
+
+    /// Opens the Move dialog for one of this page's Evidence graphs; nothing opens for an id the page does not hold.
+    func openMove(graphID: String) {
+        guard let graph = graphs.ownGraph(id: graphID) else { return }
+        openMove(seed: .graph(graph.id), title: graph.name, ref: graph.ref)
+    }
+
+    private func openMove(seed: CatalogSourceMoveSeed, title: String, ref: String) {
+        guard let source else { return }
+        moving = SourceMoveModel(
+            seed: seed,
+            origin: source,
+            seedTitle: title,
+            seedRef: ref,
+            sourceTypeIconKey: context.sourceTypeIconKey,
             session: context.session,
             userID: context.userID,
             store: context.store

@@ -315,10 +315,9 @@ final class SourceTypeFormatsModel {
     /// The type's Sources, most recently changed first.
     var previewSources: [CatalogSource] {
         let typeID = typeID
-        let key = SourcesModel.sourcesListKey(for: session)
-        return session.derived(.sourcesOfType(typeID: typeID), inputs: [.key(key)]) {
-            let rows: [CatalogSource] = session.queryHandle(key)?.value ?? []
-            return rows.filter { $0.sourceTypeID == typeID }.sorted(by: SourcesModel.updatedOrder)
+        let sourcesByUpdated = session.sourcesByUpdated
+        return session.derived(.sourcesOfType(typeID: typeID), inputs: [.derived(.sourcesByUpdated)]) {
+            sourcesByUpdated.filter { $0.sourceTypeID == typeID }
         }
     }
 
