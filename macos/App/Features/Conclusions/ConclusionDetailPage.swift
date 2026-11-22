@@ -140,8 +140,8 @@ struct ConclusionDetailPage<Content: ConclusionDetailBody, Secondary: View, Page
     let secondary: (Content) -> Secondary
     /// Everything below the header. The convenience initializer supplies `ConclusionDetailDefaultPageSections`.
     let pageSections: (Content, ConclusionDetailPageSectionsContext) -> PageSections
-    /// Chooses the lead of any kind's gallery. The page owns it, so the
-    /// model resets with the page, which is keyed by entity id (S14-02 D-7).
+    /// Chooses the lead of any kind's gallery. The page owns it, so the model resets with the page,
+    /// which is keyed by entity id (S14-02 D-7).
     @State private var lead: ConclusionLeadModel
 
     init(

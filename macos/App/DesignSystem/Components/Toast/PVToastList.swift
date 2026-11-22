@@ -10,9 +10,9 @@ struct PVToastEntry: Identifiable, Equatable {
     let message: String?
 }
 
-/// The toasts of one window, newest first, each leaving on its own timer or when
-/// dismissed. Kept apart from the view so a test proves the timing without a window
-/// or a real wait (the shape of ``PVClipboardCopyState``).
+/// The toasts of one host (the workspace window, a sheet, or Onboarding), newest first, each
+/// leaving on its own timer or when dismissed. Kept apart from the view so a test proves the
+/// timing without a window or a real wait (the shape of ``PVClipboardCopyState``).
 ///
 /// Every add makes a card and returns its id; the list never compares text. A caller
 /// that wants one card for a repeating event holds the id and passes it back as
