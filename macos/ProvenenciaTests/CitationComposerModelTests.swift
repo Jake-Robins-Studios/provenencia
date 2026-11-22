@@ -914,9 +914,9 @@ struct CitationComposerModelTests {
         fresh.mutateBridge { $0.termID = "term-witness" }
         await fresh.saveAuthoring()
         let cards = fresh.session.toasts.cards
-        #expect(cards.count == 1)
-        #expect(cards.first?.tone == .success)
-        #expect(cards.first?.title == L10n.string(L10n.CitationComposer.bridgeSavedTitle))
+        #expect(cards == [ToastCard(
+            .success, L10n.string(L10n.CitationComposer.bridgeSavedTitle), cards.first?.message
+        )])
     }
 
     @Test func switchingCitationKeepsPendingConnection() async {

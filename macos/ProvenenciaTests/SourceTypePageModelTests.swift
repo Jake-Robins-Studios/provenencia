@@ -371,7 +371,12 @@ struct SourceTypePageModelTests {
         #expect(model.suggestions(at: .source).map(\.field.id) == ["f2", "f1"])
         #expect(model.assignPicks[.source, default: ""].isEmpty)
         #expect(session.sourceType(id: "t1")?.suggestedFieldCount == 2)
-        #expect(session.toasts.cards.first?.title == L10n.string(L10n.SourceTypes.toastAssignedTitle))
+        let sourcePhrase = L10n.format(L10n.SourceTypes.level(.source).phrase, "Book")
+        let assignedTitle = L10n.string(L10n.SourceTypes.toastAssignedTitle)
+        #expect(session.toasts.cards == [
+            ToastCard(.success, assignedTitle, L10n.SourceTypes.toastAssignedBody(field: "Author", phrase: sourcePhrase)),
+            ToastCard(.success, assignedTitle, L10n.SourceTypes.toastAssignedBody(field: "Publisher", phrase: sourcePhrase)),
+        ])
         #expect(store.listTypeSuggestionsLevels.count == loads)
     }
 
@@ -426,7 +431,16 @@ struct SourceTypePageModelTests {
         #expect(model.suggestions(at: .source).map(\.field.id) == ["f1"])
         // The values clause stays: the field and its values survive a remove.
         let phrase = L10n.format(L10n.SourceTypes.level(.artifact).phrase, "Book")
-        #expect(session.toasts.cards.first?.message == L10n.SourceTypes.toastRemovedBody(field: "Page", phrase: phrase, valueCount: 4))
+        #expect(session.toasts.cards == [
+            ToastCard(
+                .info, L10n.string(L10n.SourceTypes.toastRemovedTitle),
+                L10n.SourceTypes.toastRemovedBody(field: "Page", phrase: phrase, valueCount: 4)
+            ),
+            ToastCard(
+                .success, L10n.string(L10n.SourceTypes.toastAssignedTitle),
+                L10n.SourceTypes.toastAssignedBody(field: "Page", phrase: phrase)
+            ),
+        ])
     }
 
     /// T-7 (AC-2.4): a failed write shows in its own list and keeps its pick; no other list shows it.
