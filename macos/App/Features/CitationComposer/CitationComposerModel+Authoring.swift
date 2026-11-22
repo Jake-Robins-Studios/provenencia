@@ -669,7 +669,8 @@ extension CitationComposerModel {
             let message = draft.origin == .duplicate
                 ? L10n.CitationComposer.duplicateSavedBody(reading: sentence, ref: ref)
                 : L10n.CitationComposer.bridgeSavedBody(reading: sentence, ref: ref)
-            bridgeToast = (
+            session.toasts.add(
+                tone: .success,
                 title: L10n.string(L10n.CitationComposer.bridgeSavedTitle),
                 message: message
             )

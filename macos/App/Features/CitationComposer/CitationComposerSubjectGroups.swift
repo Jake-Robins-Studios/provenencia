@@ -28,14 +28,6 @@ struct CitationComposerObservationsColumn: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(PVColor.surfacePage)
-        .overlay(alignment: .bottom) {
-            if let toast = model.bridgeToast {
-                PVToast(tone: .success, title: toast.title, message: toast.message) {
-                    model.bridgeToast = nil
-                }
-                .padding(PVSpacing.space5)
-            }
-        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(L10n.CitationComposer.observationsSection))
     }
