@@ -250,10 +250,10 @@ Logged.
 
 ## Map review — slice 11, Citation metadata (S15-54 – S15-61), 2026-11-22
 
-**Verdict:** Fits with changes after round 2; K11-13 is with the user. **Rounds:** 2. Reviewer: maintainability (fresh context each round).
+**Verdict:** Fits with changes after round 2; every To user item answered. **Rounds:** 2. Reviewer: maintainability (fresh context each round).
 
 **To user**
-- **K11-13 · How the composer reads an existing Citation's board.** (a) The board rides the cached citations-by-Artifact read and the Citation writes patch it, as every other owner's board rides its owner's read (rule "One window": forms open from the page's values with no fresh read). (b) A fresh `GetMetadataBoard` read when the composer opens, which bends that rule. **Recommendation: (a).** It keeps one way to get an owner's board; the cost is one field on the citations row and its patch, read per Artifact (at Scale, up to 600 Citations with 8 values on one Source). Findings are numbered K11-# here; the map cites them as "map review K-#".
+- **K11-13 · How the composer reads an existing Citation's board.** (a) The board rides the cached citations-by-Artifact read and the Citation writes patch it, as every other owner's board rides its owner's read (rule "One window": forms open from the page's values with no fresh read). (b) A fresh `GetMetadataBoard` read when the composer opens, which bends that rule. **Recommendation: (a).** It keeps one way to get an owner's board; the cost is one field on the citations row and its patch, read per Artifact (at Scale, up to 600 Citations with 8 values on one Source). **Answered (user, 2026-11-22): (a).** Findings are numbered K11-# here; the map cites them as "map review K-#".
 
 **Writer's own calls**
 - `schedule_number` is page-relative with the fields the user named; `item` and `record_id` stay graph-first.
@@ -306,4 +306,4 @@ Round-1 answers: K11-2, K11-3, K11-4, K11-6 and K11-9 confirmed fixed; K11-7, K1
 **Answer:** Fixed. Rule "The printed page is a metadata field" and S15-56: the key is declared once in `core/vocabkey`, resolved through `metadatafields.ResolveKeysTx` preferring the seed's origin, values read through `sourcemetadata.ListByOwnersTx`; no field means no page; unknown shows the unknown text, supplied shows in brackets (writer's call, as a citation prints them).
 
 ### K11-13 · blocker · S15-56's fresh board read bends "Forms open from the page's values with no fresh read"
-**Answer:** To user (above). S15-56 says the read is open.
+**Answer:** To user; the user chose (a). S15-56's Ships says the board rides the cached citations-by-Artifact read and the writes patch it.
