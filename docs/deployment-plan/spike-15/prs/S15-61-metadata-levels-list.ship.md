@@ -40,4 +40,4 @@ Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15
 Head `92e425b93`. Gate PASS (orchestrator run). F-1 done (`461a1005f`); F-2 done, red first with the Kind swapped (`9bc0b9ab9`), MNT-2 taken; F-3 done (`92e425b93`). Read by the orchestrator: CON-2/MNT-1 **Resolved**; CON-3 **Resolved** (asserts Kind and that the path ends at `sources`; `Path.check` exposes no columns, and on `source_metadata` the only path to `sources` is `source_id`); CON-1 **Resolved**. No round 2: no Fix-now blocker or major.
 
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: —
+Gate PASS · CI green · open: none · follow-ups: none · to user: —
