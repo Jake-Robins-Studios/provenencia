@@ -304,9 +304,9 @@ private struct SourceTypePageContent: View {
     store.suggestedFieldCounts["t1"] = 7
     store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(formats: CatalogCitationFormats(
         typeID: "t1",
-        full: "{source.meta.author}, *{source.title}* ({source.date:year})[, p. {citation.page}].",
-        short: "{source.meta.author}, *{source.title}*.",
-        list: "{source.meta.author}. *{source.title}*. {source.date:year}."
+        full: "{meta.author}, *{source.title}* ({source.date:year})[, p. {citation.page}].",
+        short: "{meta.author}, *{source.title}*.",
+        list: "{meta.author}. *{source.title}*. {source.date:year}."
     ))
     let line = fields[0]
     store.placeholdersByForm = [
@@ -315,8 +315,8 @@ private struct SourceTypePageContent: View {
                 id: "source.title", level: .source, builtin: .sourceTitle, option: nil, field: nil,
                 text: "{source.title}", ref: "source.title"),
             CatalogCitationPlaceholder(
-                id: "source#f1", level: .source, builtin: nil, option: nil, field: line,
-                text: "{source.meta.author}", ref: "source.meta.author"),
+                id: "meta#f1", level: nil, builtin: nil, option: nil, field: line,
+                text: "{meta.author}", ref: "meta.author"),
         ],
         .short: [], .list: [],
     ]

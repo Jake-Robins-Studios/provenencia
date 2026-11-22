@@ -278,7 +278,7 @@ final class SourceTypeFormatsModel {
             PVComboBoxOption(
                 value: row.id,
                 label: Self.label(of: row),
-                subtext: [L10n.CitationFormats.levelName(row.level), row.field?.key, row.ref]
+                subtext: [row.level.map(L10n.CitationFormats.levelName), row.field?.key, row.ref]
                     .compactMap { $0 }.joined(separator: " ")
             )
         }
@@ -289,6 +289,12 @@ final class SourceTypeFormatsModel {
     static func label(of row: CatalogCitationPlaceholder) -> String {
         if let field = row.field { return field.label }
         return row.builtin.map { L10n.CitationFormats.builtinName($0, option: row.option) } ?? row.ref
+    }
+
+    /// What a screen reader says for a row: its name, then its level when it has one.
+    static func spokenLabel(of row: CatalogCitationPlaceholder) -> String {
+        guard let level = row.level else { return label(of: row) }
+        return L10n.SourceTypes.Formats.completionHighlighted(name: label(of: row), level: L10n.CitationFormats.levelName(level))
     }
 
     /// The placeholder row behind a completion option.

@@ -56,5 +56,19 @@ struct CitationFormatsCopyTests {
         #expect(L10n.CitationFormats.missing(chain) == "Missing: Line on the Evidence graph, or on the Source")
         let jurisdiction = [CatalogCitationOption(level: .source, field: field("Jurisdiction"), builtin: nil)]
         #expect(L10n.CitationFormats.missing(jurisdiction) == "Missing: Jurisdiction on the Source")
+        // A field read from the nearest level has no level to name.
+        let nearest = [CatalogCitationOption(level: nil, field: field("Jurisdiction"), builtin: nil)]
+        #expect(L10n.CitationFormats.missing(nearest) == "Missing: Jurisdiction")
+        let title = [
+            CatalogCitationOption(level: .source, field: nil, builtin: .sourceTitle),
+            CatalogCitationOption(level: nil, field: field("Title"), builtin: nil),
+        ]
+        #expect(L10n.CitationFormats.missing(title) == "Missing: Title on the Source, or Title")
+    }
+
+    @Test func aFieldAtALevelIsAMistakeWithAMessage() {
+        #expect(
+            L10n.CitationFormats.diagnostic(.metaAtLevel, key: "artifact.meta.provider")
+                == "Write meta. with no level: a field is read from the nearest level that has it")
     }
 }

@@ -847,7 +847,11 @@ struct GoStore: GenealogyStore {
             render: Self.mapCitationRender(resp.render),
             missing: resp.missing.map { chain in
                 chain.options.compactMap { opt -> CatalogCitationOption? in
-                    guard let level = Level(rawValue: opt.level) else { return nil }
+                    var level: Level?
+                    if !opt.level.isEmpty {
+                        guard let known = Level(rawValue: opt.level) else { return nil }
+                        level = known
+                    }
                     return CatalogCitationOption(
                         level: level,
                         field: opt.hasField ? Self.mapMetadataField(opt.field) : nil,
@@ -868,14 +872,14 @@ struct GoStore: GenealogyStore {
             request: req
         )
         return resp.placeholders.compactMap { p -> CatalogCitationPlaceholder? in
-            guard let level = Level(rawValue: p.level) else { return nil }
             if p.hasField {
                 return CatalogCitationPlaceholder(
-                    id: "\(p.level)#\(p.field.id)", level: level, builtin: nil, option: nil,
+                    id: "meta#\(p.field.id)", level: nil, builtin: nil, option: nil,
                     field: Self.mapMetadataField(p.field), text: p.text, ref: p.ref
                 )
             }
-            guard let builtin = CitationBuiltin(rawValue: "\(p.level).\(p.builtin)") else { return nil }
+            guard let level = Level(rawValue: p.level),
+                let builtin = CitationBuiltin(rawValue: "\(p.level).\(p.builtin)") else { return nil }
             var option: CitationOption?
             if !p.option.isEmpty {
                 guard let known = CitationOption(rawValue: p.option) else { return nil }
