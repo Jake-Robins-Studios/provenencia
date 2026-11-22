@@ -32,7 +32,7 @@ Rule: [`.cursor/rules/catalog-deletes.mdc`](../../../.cursor/rules/catalog-delet
 Every facet `CASCADE` FK is registered as `facet` and classified:
 
 - **Silent**: the rows are never audited (layout, vocab joins, value parts). SQLite does the work.
-- **`Audited: true`**: the rows are research. Add exactly one `facetRelease` entry in `core/database/deleteimpact/facets.go`:
+- **`Audited: true`**: the rows are research, except a metadata level's tables, which `metadataLevelFacets` builds from `catalogmodel.MetadataTables` (`add-catalog-model`). Add exactly one `facetRelease` entry in `core/database/deleteimpact/facets.go`:
   - `rowFacet(...)` for plain rows. List the parent FK column in `cols`: the released delete change is how audit scopes find the owner once the row is gone ([`add-audit-scope`](../add-audit-scope/SKILL.md)).
   - A custom `Release` when the row has facets of its own.
   - `Named: true` with `Count` / `List` / `Child` when the confirm should name what's affected. That fills `Report.Cascades` and never gates.
