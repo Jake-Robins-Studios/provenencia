@@ -445,7 +445,7 @@ func TestMetadataBoardRequirements(t *testing.T) {
 }
 
 // lineLedgerSource is a Source of a new type whose full format reads line_number
-// from a graph, else the Source, with line_number suggested at graph and "14" on
+// from the nearest level, with line_number suggested at graph and "14" on
 // the Source.
 func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string) {
 	t.Helper()
@@ -456,7 +456,7 @@ func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string
 		ProjectDir: dir, TypeId: ty.GetType().GetId(), FieldId: lineID, Level: "graph",
 	}, &engine.AssignTypeFieldResponse{})
 	formats := setFormats(t, dir, userID, ty.GetType().GetId(), &engine.CitationFormats{
-		Full: "{graph.meta.line_number|source.meta.line_number}.",
+		Full: "{meta.line_number}.",
 	})
 	if len(formats.GetDiagnostics()) != 0 {
 		t.Fatalf("diagnostics %+v", formats.GetDiagnostics())
@@ -490,12 +490,20 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 			t.Fatal(err)
 		}
 		want := listSuggestions(t, dir, ws.GetSource().GetSourceTypeId(), "artifact")
-		if len(entries) != len(want) {
-			t.Fatalf("%d entries, want the type's %d suggestions", len(entries), len(want))
+		// The type's suggestions lead, then every other field its formats read,
+		// unsuggested: a field with no level heads on every board.
+		if len(entries) < len(want) {
+			t.Fatalf("%d entries, want at least the type's %d suggestions", len(entries), len(want))
 		}
 		for i, e := range entries {
-			if e.GetField().GetId() != want[i].GetField().GetId() || e.GetHasValue() || !e.GetSuggested() {
-				t.Errorf("entry %d = %+v, want suggestion %s, empty", i, e, want[i].GetField().GetId())
+			if i < len(want) && (e.GetField().GetId() != want[i].GetField().GetId() || !e.GetSuggested()) {
+				t.Errorf("entry %d = %+v, want suggestion %s", i, e, want[i].GetField().GetId())
+			}
+			if i >= len(want) && (e.GetSuggested() || e.GetRequirement().GetNeed() == engine.CitationNeed_CITATION_NEED_UNSPECIFIED) {
+				t.Errorf("entry %d = %+v, want an unsuggested head the formats read", i, e)
+			}
+			if e.GetHasValue() {
+				t.Errorf("entry %d = %+v, want empty", i, e)
 			}
 		}
 		if url := metadataByKey(entries, "url"); url.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
@@ -509,9 +517,8 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 		}
 		e := metadataByField(entries, lineID)
 		if e == nil || e.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED || !e.GetRequirement().GetMetElsewhere() ||
-			len(e.GetRequirement().GetAlternatives()) != 1 || e.GetRequirement().GetAlternatives()[0].GetLevel() != "source" ||
-			e.GetRequirement().GetAlternatives()[0].GetField().GetId() != lineID {
-			t.Errorf("line_number = %+v, want needed, met elsewhere, alternative [source line_number]", e)
+			len(e.GetRequirement().GetAlternatives()) != 0 {
+			t.Errorf("line_number = %+v, want needed, met elsewhere (the Source holds it), no alternative", e)
 		}
 	})
 	t.Run("refusals", func(t *testing.T) {

@@ -924,7 +924,7 @@ func TestCopySourceType(t *testing.T) {
 		}, &engine.AssignTypeFieldResponse{})
 	}
 	setFormats(t, dir, userID, typeID, &engine.CitationFormats{
-		Full: "{source.title}[, line {graph.meta.line-number}]", List: "{source.title}",
+		Full: "{source.title}[, line {meta.line-number}]", List: "{source.title}",
 	})
 	copyReq := func(mutate func(*engine.CopySourceTypeRequest)) *engine.CopySourceTypeRequest {
 		req := &engine.CopySourceTypeRequest{
@@ -983,7 +983,7 @@ func TestCitationFormats(t *testing.T) {
 	mustRPC(t, CreateMetadataField, &engine.CreateMetadataFieldRequest{
 		ProjectDir: dir, UserId: userID, Label: "Line number", DataType: "text",
 	}, &field)
-	const full = "{source.title}[, line {graph.meta.line-number}]"
+	const full = "{source.title}[, line {meta.line-number}]"
 	// update saves formats through UpdateSourceType with the seeded type's own
 	// label; a nil formats saves the details alone.
 	update := func(typeID string, formats *engine.CitationFormats) (*engine.UpdateSourceTypeResponse, error) {
