@@ -23,8 +23,11 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D21 | Source page Artifacts: the list entry's mark for a missing citation field | — | S15-40 |
 | S15-D22 | Metadata board row: the Unknown and Supplied control, reused by S15-42 and S15-45 | — | S15-41 |
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
-| S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | — | S15-45 |
+| S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | Descoped 2026-11-22 with S15-45: the page is a Citation board row (S15-D20, S15-D22) | — |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
+| S15-D29 | Citation composer: the Citation's metadata board beside the locator inputs | — | S15-56 |
+| S15-D30 | Source type page: a fourth suggestion list (Citation); Insert field with the Citation's fields | — | S15-57 |
+| S15-D31 | Citation composer: the Printed page input goes; the page is a board row | — | S15-58 |
 
 ## Archived
 

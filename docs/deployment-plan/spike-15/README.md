@@ -4,7 +4,7 @@
 
 **Open.** Planned 2026-11-09. PR map: [`deployment-plan.md`](deployment-plan.md). Finished steps: [`completed.md`](completed.md).
 
-Sources gain a date, a not-public switch and metadata at three levels (the Source, the Artifact, the Evidence graph); citation formats become editable data on each Source type, seeded with *Evidence Explained*-style formats; Artifacts move between Sources with their graphs. Slices 1 to 4 run alongside Spike 16; the rest build on its caches.
+Sources gain a date, a not-public switch and metadata at four levels (the Source, the Artifact, the Evidence graph and, from slice 11, the Citation); citation formats become editable data on each Source type, seeded with *Evidence Explained*-style formats; Artifacts move between Sources with their graphs. Slices 1 to 4 run alongside Spike 16; the rest build on its caches.
 
 ## Documents
 
