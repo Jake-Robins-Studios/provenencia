@@ -158,8 +158,8 @@ struct CatalogWriteEffects: Sendable, Equatable {
             var seen = Set<String>()
             return (a + b).filter { seen.insert($0).inserted }
         }
-        // Built field by field, with no `var out = self`: a new stored property fails to compile
-        // here until it says how two writes merge.
+        // Built field by field so each merge reads plainly. Every field has a default, so the compiler
+        // does not force a new one in: `writeEffectsFieldSetIsPinned` fails until it is added here.
         return CatalogWriteEffects(
             handles: union(handles, later.handles),
             evidenceGraphs: union(evidenceGraphs, later.evidenceGraphs),

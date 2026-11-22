@@ -513,6 +513,19 @@ struct SourcePageModelTests {
         #expect(merged.activity.revision == 5)
     }
 
+    /// `merged(with:)` has no compile-time guard: every field has a default, so an unnamed new field
+    /// silently drops both writes' values. This pins the field set instead.
+    @Test func writeEffectsFieldSetIsPinned() {
+        let fields = Mirror(reflecting: CatalogWriteEffects()).children.compactMap(\.label)
+        #expect(
+            fields == [
+                "handles", "evidenceGraphs", "reads", "lists", "structure", "summaryHandles",
+                "handleScopes", "sourceScopes", "deleted", "activity",
+            ],
+            "CatalogWriteEffects gained or lost a field: say how it merges in merged(with:), add it to mergedWriteEffectsUnion's assertions, then update this list."
+        )
+    }
+
     @Test func createFilelessArtifact() async throws {
         let store = makeStore()
         let model = makeModel(store: store)
