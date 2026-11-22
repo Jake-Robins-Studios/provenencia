@@ -37,7 +37,8 @@ struct VocabularyToast: Equatable, Hashable {
 
 extension PVToastList {
     /// Adds a page's toast to the list; a title-only notice has no body line.
-    func add(_ toast: VocabularyToast) {
+    @discardableResult
+    func add(_ toast: VocabularyToast) -> PVToastEntry.ID {
         add(tone: toast.tone, title: toast.title, message: toast.body)
     }
 }

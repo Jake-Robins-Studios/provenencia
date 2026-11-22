@@ -77,7 +77,7 @@ Every toast in the workspace window joins one stack in the content pane's top-tr
 
 | In | Covered by |
 | --- | --- |
-| Kit `PVToastList` *(new)*: add (newest first, a repeat refreshes), dismiss, each entry's own expiry | STEP-2, AC-1.2, AC-1.3, AC-2.1 |
+| Kit `PVToastList` *(new)*: add (newest first, returns its id), replacing by id, dismiss, each entry's own expiry | STEP-2, AC-1.2, AC-1.3, AC-2.1 |
 | Kit `PVToastStack` *(new)* drawing the list (TS-1, TS-2, TS-6, TS-8, TS-W1) | STEP-3, AC-1.1, AC-5.1 |
 | The list is in the environment (`\.pvToastList`); a sheet clears it for its content | STEP-3, AC-4.1 |
 | `vocabularyToastOverlay` forwards into the list when one is in the environment | STEP-4, AC-1.1, AC-1.4 |
@@ -280,12 +280,12 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | --- | --- | --- | --- | --- |
 | T-1 | Swift | `PVToastListTests.swift` `addPutsNewestFirst` *(new)* | add A, add B → `entries` titles `[B, A]`; two sleeps started | AC-1.1, D-4 |
 | T-2 | Swift | `PVToastListTests` `eachEntryLeavesOnItsOwnTimer` *(new)* | add A, add B; fire A's sleep → `[B]`; fire B's → `[]` | AC-1.3, D-3 |
-| T-3 | Swift | `PVToastListTests` `repeatMovesToTopKeepsIdAndRestartsTimer` *(new)* | add A, add B, add A again → `[A, B]`, A's `id` unchanged, three sleeps; fire A's first sleep → still `[A, B]`; fire A's third → `[B]` | AC-2.1, D-4 |
+| T-3 | Swift | `PVToastListTests` `replacingMovesToTopKeepsIdAndRestartsTimer` *(new; also `equalAddsMakeTwoCards`: two equal adds → 2 entries, different ids, two sleeps)* | add A, add B, add C replacing A's id → `[C, B]`, A's `id` kept and C's text, three sleeps; fire A's first sleep → still `[C, B]`; fire A's third → `[B]` | AC-2.1, D-4 |
 | T-4 | Swift | `PVToastListTests` `dismissKeepsTheOtherTimer` *(new)* | add A, add B; `dismiss(B.id)` → `[A]`, no new sleep; fire B's sleep → `[A]`; fire A's → `[]`; `dismiss` of an unknown id → no change | AC-1.2, D-3 |
-| T-5 | Swift | `PVToastListTests` `differentToneOrMessageAddsACard` *(new)* | (success, "Saved", "x") then (danger, "Saved", "x") → 2 entries; then (success, "Saved", "y") → 3 | AC-2.2, D-4 |
-| T-6 | Swift | `PVToastListTests` `titleOnlyRepeatRefreshes` *(new)* | (info, "Filed", nil) then (info, "Filed", "") → 1 entry, `message == nil` | D-4 |
+| T-5 | Swift | `PVToastListTests` `replacingAGoneIdAddsANewCard` *(new)* | add A, dismiss A, add replacing A's id → one entry with a new id | AC-2.2, D-4 |
+| T-6 | Swift | `PVToastListTests` `emptyTitleOrMessageIsNone` *(new)* | (info, "Filed", "") → `message == nil`; (info, "", "Body") → `title == nil` | D-4 |
 | T-7 | Swift | `VocabularyToastTests.swift` `addingAVocabularyToastForwardsItsFields` *(new)* | `add(VocabularyToast(title: "Filed", body: "", tone: .info))` → one entry, title "Filed", `message == nil`, tone `.info` | D-6 |
-| T-8 | Swift | `CatalogCountsTests` `writeRecountFailureAddsToastEachTime` *(replaces `writeRecountFailureSetsErrorEachTime`)* | good count; a write's recount fails → one danger entry, title `countsRefreshFailedTitle`, message `L10n.Errors.unknown`, `counts.sources == 1`; fails again → still one entry; dismiss it; fails again → one entry | AC-2.1, AC-2.3, D-10 |
+| T-8 | Swift | `CatalogCountsTests` `writeRecountFailureAddsToastEachTime` *(replaces `writeRecountFailureSetsErrorEachTime`)* | good count; a write's recount fails → one danger entry, title `countsRefreshFailedTitle`, message `L10n.Errors.unknown`, `counts.sources == 1`; fails again → still one entry, same id; a failure with a different message (`catalog.closed`) → still one entry, same id, the new message; dismiss it; fails again → one entry, a new id | AC-2.1, AC-2.3, D-10 |
 | T-9 | Swift | `CatalogCountsTests` `refreshAllFailureAddsToastAndLeavesBadgesUnset` *(renamed from `refreshAllFailureSetsLastRefreshErrorAndLeavesBadgesUnset`)*, `refreshAllSuccessAddsNoToast` *(renamed from `refreshAllSuccessClearsLastRefreshError`)*, `refreshAllOnEmptyProjectYieldsZero` *(edited)* | assertions on `lastRefreshError` become assertions on the list's entries | D-10 |
 
 The stack, the forwarding into it, the sheet's clearing and the composer's save are views or have no test harness today (no test saves a bridge); the manual check covers AC-1.1, AC-1.4, AC-3.1, AC-4.1 and AC-5.1.
@@ -358,3 +358,4 @@ None.
 - §8's "no test saves a bridge" was wrong: `CitationComposerModelTests.savingABridgeAddsItsToastToTheWindowList` tests AC-3.1's list half. The user kept the bridge toast in the window's stack while the chained dialog is open (UX-1, 2026-11-22).
 - D-7: `PVToastStack` always draws its column, with no background or content shape, so it catches no click; with no entries it shows nothing. The column stays mounted so the last card's leave animation runs.
 - `PVToastStack` takes `identifier:` and puts it on the column (`workspace.toasts`, `sheet.toasts`, `onboarding.toasts`); the `onboarding.error` identifier is gone.
+- Dogfood (2026-11-22), manual check 1 with likenesses from two Sources: never more than two cards, because the first design merged any equal toast and the portrait toast's body is the Source title. The user's call: the list never compares text. `add` returns the card's id and takes `replacing:`; only `CatalogCounts` holds its id (`failureToastID`) and passes it back, so a failed recount refreshes its own card, a failure with a different message included (AC-2.2). T-3, T-5, T-6 and T-8 changed to match (the §8 rows now describe them); `equalAddsMakeTwoCards` is new.

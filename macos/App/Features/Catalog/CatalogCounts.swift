@@ -19,6 +19,9 @@ final class CatalogCounts {
     private let store: any GenealogyStore
     /// Where a failed recount's toast goes: the window's list.
     private let toasts: PVToastList
+    /// The recount's own failure card, so the same failure again refreshes it
+    /// instead of stacking a second one.
+    private var failureToastID: PVToastEntry.ID?
     /// A recount assigns only while it is the newest.
     private let latest = LatestCall()
 
@@ -43,7 +46,7 @@ final class CatalogCounts {
     /// destination `load()` — Go `catalogsession` serializes catalog ops.
     /// A failure adds a danger toast to the window's list and leaves badges
     /// unchanged (absent until a later success); the same failure again refreshes
-    /// the card on screen. A write whose `WriteEffects.lists` has `counts`
+    /// the recount's own card. A write whose `WriteEffects.lists` has `counts`
     /// recounts through here, called by `WorkspaceSession.apply` (wired in
     /// `WorkspaceView`). The newest recount wins: Go serializes catalog ops in
     /// call order, so the call started last read the newest catalog, and a
@@ -62,10 +65,11 @@ final class CatalogCounts {
                     events = nav.events
                     places = nav.places
                 case .failure(let error):
-                    toasts.add(
+                    failureToastID = toasts.add(
                         tone: .danger,
                         title: L10n.string(L10n.Workspace.countsRefreshFailedTitle),
-                        message: L10n.Errors.message(for: error)
+                        message: L10n.Errors.message(for: error),
+                        replacing: failureToastID
                     )
                 }
             }

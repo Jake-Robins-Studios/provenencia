@@ -13,8 +13,10 @@ struct PVToastEntry: Identifiable, Equatable {
 /// dismissed. Kept apart from the view so a test proves the timing without a window
 /// or a real wait (the shape of ``PVClipboardCopyState``).
 ///
-/// A toast equal on tone, title and message to one already listed refreshes it: it
-/// moves to the top, keeps its `id`, and its five seconds restart. There is no cap.
+/// Every add makes a card and returns its id; the list never compares text. A caller
+/// that wants one card for a repeating event holds the id and passes it back as
+/// `replacing`: that card takes the new text, moves to the top, keeps its `id`, and
+/// its five seconds restart. There is no cap.
 @MainActor
 @Observable
 final class PVToastList {
@@ -30,21 +32,29 @@ final class PVToastList {
         self.sleep = sleep
     }
 
-    /// Adds a card on top, or refreshes the equal one already listed. An empty
-    /// title or message counts as none.
-    func add(tone: PVToastTone, title: String?, message: String?) {
+    /// Adds a card on top and returns its id. An empty title or message counts as
+    /// none. A caller that holds the id of a card it raised passes it back as
+    /// `replacing`: that card takes the new text in place, moves to the top, and its
+    /// five seconds restart. An id no longer listed adds a new card.
+    @discardableResult
+    func add(
+        tone: PVToastTone,
+        title: String?,
+        message: String?,
+        replacing: PVToastEntry.ID? = nil
+    ) -> PVToastEntry.ID {
         let title = title.flatMap { $0.isEmpty ? nil : $0 }
         let message = message.flatMap { $0.isEmpty ? nil : $0 }
         let id: PVToastEntry.ID
-        if let index = entries.firstIndex(where: { $0.tone == tone && $0.title == title && $0.message == message }) {
-            let entry = entries.remove(at: index)
-            entries.insert(entry, at: 0)
-            id = entry.id
+        if let replacing, let index = entries.firstIndex(where: { $0.id == replacing }) {
+            entries.remove(at: index)
+            id = replacing
         } else {
             id = UUID()
-            entries.insert(PVToastEntry(id: id, tone: tone, title: title, message: message), at: 0)
         }
+        entries.insert(PVToastEntry(id: id, tone: tone, title: title, message: message), at: 0)
         startTimer(for: id)
+        return id
     }
 
     /// Removes one card and its timer. An unknown id does nothing.

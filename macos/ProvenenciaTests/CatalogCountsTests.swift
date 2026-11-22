@@ -128,6 +128,15 @@ struct CatalogCountsTests {
         session.apply(CatalogWriteEffects(lists: [.counts]))
         await session.settleWrites()
         #expect(toasts.entries.count == 1, "the same failure refreshes the card")
+        #expect(toasts.entries[0].id == first)
+
+        store.workspaceNavCountsError = CoreInvokeError.coded(status: 1, code: "catalog.closed", kind: .user, params: [])
+        session.apply(CatalogWriteEffects(lists: [.counts]))
+        await session.settleWrites()
+        #expect(toasts.entries.count == 1, "a different failure keeps the one card")
+        #expect(toasts.entries[0].id == first)
+        #expect(toasts.entries[0].message == L10n.Errors.message(code: "catalog.closed"))
+        #expect(toasts.entries[0].message != L10n.string(L10n.Errors.unknown))
 
         toasts.dismiss(first)
         #expect(toasts.entries.isEmpty)
