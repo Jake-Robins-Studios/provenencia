@@ -63,21 +63,21 @@ func TestRenderPreview(t *testing.T) {
 			wantPlain: censusFull},
 		{name: "AC-2.2 an unsaved format",
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation},
-				Format: strp(`{source.meta.jurisdiction}, line {graph.meta.line_number}.`)},
+				Format: strp(`{meta.jurisdiction}, line {meta.line_number}.`)},
 			wantPlain: "Calder County, Westmark, line 14."},
 		{name: "AC-2.3 an unknown field",
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation},
-				Format: strp(`{source.meta.nope}.`)},
-			wantDiagCode: citationformat.CodeUnknownField, wantDiagAt: citationformat.Span{Start: 13, End: 17}},
+				Format: strp(`{meta.nope}.`)},
+			wantDiagCode: citationformat.CodeUnknownField, wantDiagAt: citationformat.Span{Start: 6, End: 10}},
 		{name: "AC-2.4 a needed field with no value",
 			in:          PreviewInput{Form: citationformat.FormList, Target: Target{SourceID: bare.ID}},
 			wantPlain:   ". 1880 census.",
 			wantMissing: [][]string{{"source.jurisdiction"}}},
-		{name: "a chain empty on both levels lists both options",
+		{name: "a chain empty everywhere lists both options",
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation},
-				Format: strp(`{graph.meta.piece|source.meta.volume}.`)},
+				Format: strp(`{meta.coverage|meta.volume}.`)},
 			wantPlain:   ".",
-			wantMissing: [][]string{{"graph.piece", "source.volume"}}},
+			wantMissing: [][]string{{".coverage", ".volume"}}},
 		{name: "AC-7.1 a Source target with the full form reads its oldest Citation",
 			in:        PreviewInput{Form: citationformat.FormFull, Target: Target{SourceID: w.src.ID}},
 			wantPlain: censusFull},
@@ -117,7 +117,7 @@ func TestRenderPreview(t *testing.T) {
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation}, Format: strp("   ")}},
 		{name: "a choice naming a field of another key",
 			in: PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation},
-				Format:  strp(`{source.meta.folio}.`),
+				Format:  strp(`{meta.folio}.`),
 				Choices: []sourcetypes.FieldChoice{{Key: "folio", FieldID: w.fieldID("piece")}}},
 			wantErr: sourcetypes.ErrInvalid},
 	}
@@ -155,7 +155,7 @@ func TestRenderPreview(t *testing.T) {
 	t.Run("an unsaved format under 4,000 characters previews though its stored text passes 4,096 bytes", func(t *testing.T) {
 		w.userField("a")
 		w.set(vocabkey.LevelSource, w.src.ID, "a", "x", valuemark.Mark{})
-		format := strings.Repeat("{source.meta.a}", 100) // 1,500 characters, 5,100 bytes stored
+		format := strings.Repeat("{meta.a}", 100) // 1,500 characters, 5,100 bytes stored
 		got, err := RenderPreview(w.c, PreviewInput{Form: citationformat.FormFull, Target: Target{CitationID: w.citation}, Format: &format})
 		if err != nil || len(got.Diagnostics) != 0 {
 			t.Fatalf("got %+v, %v", got, err)

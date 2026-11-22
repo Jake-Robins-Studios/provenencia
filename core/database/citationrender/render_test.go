@@ -253,6 +253,61 @@ func newCensus(t *testing.T) *census {
 	return &census{world: w, typ: typ, src: src, art: art, graph: graph, citation: cit}
 }
 
+// TestRenderNearestLevel: a format names a field with no level and the render
+// reads it from the nearest level that holds a value (AC-1.1 – AC-1.3).
+func TestRenderNearestLevel(t *testing.T) {
+	m := valuemark.Mark{}
+	build := func(t *testing.T, set func(w *world, src sources.Source, art, graph []byte)) string {
+		t.Helper()
+		w := newWorld(t)
+		typ, err := sourcetypes.Lookup(w.c, "census", vocabkey.OriginProvenencia)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := w.source(typ.ID, "1880 census of Calder County")
+		art := w.artifact(src.ID, "County film")
+		graph := w.graph(src.ID)
+		set(w, src, art.ID, graph.ID)
+		return w.render(w.cite(art.ID, graph.ID, "", pageLocator("14")))[0].Full.Plain()
+	}
+	t.Run("AC-1.1 a Provider typed on the Source", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+			w.set(vocabkey.LevelSource, src.ID, "provider", "Ancestry", m)
+			w.set(vocabkey.LevelArtifact, art, "format", "digital image", m)
+		})
+		if want := "; digital image, Ancestry"; !strings.Contains(got, want) {
+			t.Errorf("full = %q, want it to hold %q", got, want)
+		}
+	})
+	t.Run("AC-1.2 the graph's line number over the Source's", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+			w.set(vocabkey.LevelGraph, graph, "line_number", "14", m)
+			w.set(vocabkey.LevelSource, src.ID, "line_number", "9", m)
+		})
+		if !strings.Contains(got, ", line 14") || strings.Contains(got, "line 9") {
+			t.Errorf("full = %q, want line 14", got)
+		}
+	})
+	t.Run("AC-1.3 the Artifact's item over the Source's", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+			w.set(vocabkey.LevelArtifact, art, "item", "From the film", m)
+			w.set(vocabkey.LevelSource, src.ID, "item", "From the record", m)
+		})
+		if !strings.Contains(got, "From the film") || strings.Contains(got, "From the record") {
+			t.Errorf("full = %q, want the Artifact's item", got)
+		}
+	})
+	t.Run("AC-1.4 an unknown value at the graph stops the walk", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+			w.set(vocabkey.LevelGraph, graph, "line_number", "", valuemark.Mark{Unknown: true})
+			w.set(vocabkey.LevelSource, src.ID, "line_number", "9", m)
+		})
+		if strings.Contains(got, "line") {
+			t.Errorf("full = %q, want no line number: the unknown value answers, so the Source's 9 is not read", got)
+		}
+	})
+}
+
 func TestRenderCensus(t *testing.T) {
 	w := newCensus(t)
 	got := w.render(w.citation)
@@ -312,14 +367,14 @@ func TestRender(t *testing.T) {
 		{name: "the image is the file page", full: `image {citation.image}`, locator: imageLocator, want: "image 37"},
 		{name: "no file page drops the image group", full: `[image {citation.image}]`, locator: pageLocator("23"), dropsGroup: true},
 		{
-			name: "an unknown value with no unknown text drops its group", full: `Bible[ x {source.meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
+			name: "an unknown value with no unknown text drops its group", full: `Bible[ x {meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
 			setup: func(w *world, src sources.Source) {
 				w.setField(vocabkey.LevelSource, src.ID, w.userField("k"), "", valuemark.Mark{Unknown: true})
 			},
 			want: "Bible",
 		},
 		{
-			name: "a blank value with a stored supplied mark prints nothing", full: `Bible[ x {source.meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
+			name: "a blank value with a stored supplied mark prints nothing", full: `Bible[ x {meta.k}]`, fields: []string{"k"}, locator: pageLocator("1"),
 			setup: func(w *world, src sources.Source) {
 				k := w.userField("k")
 				w.setField(vocabkey.LevelSource, src.ID, k, "v", valuemark.Mark{})
@@ -369,7 +424,7 @@ func TestRender(t *testing.T) {
 	t.Run("a field named by key in a stored format answers nothing", func(t *testing.T) {
 		w, typ, _, art, graph := base(t, `{source.title}`, "")
 		w.userField("k")
-		if _, err := w.db.Exec(`UPDATE source_types SET citation_full = '{source.meta.k}' WHERE id = ?`, typ.ID); err != nil {
+		if _, err := w.db.Exec(`UPDATE source_types SET citation_full = '{meta.k}' WHERE id = ?`, typ.ID); err != nil {
 			t.Fatal(err)
 		}
 		r := one(t, w, w.cite(art.ID, graph.ID, "", pageLocator("1")))
@@ -380,7 +435,7 @@ func TestRender(t *testing.T) {
 	t.Run("a Citation's Source is its graph's", func(t *testing.T) {
 		w := newWorld(t)
 		k := w.userField("k")
-		typ := w.newType("Book of hours", sourcetypes.Formats{Full: `{source.title}: {artifact.meta.k}`})
+		typ := w.newType("Book of hours", sourcetypes.Formats{Full: `{source.title}: {meta.k}`})
 		a := w.source(typ.ID, "Source A")
 		b := w.source(typ.ID, "Source B")
 		artB := w.artifact(b.ID, "Scan B")
@@ -444,7 +499,7 @@ func TestRender(t *testing.T) {
 // TestRenderUnknownAndSupplied is AC-1.6.
 func TestRenderUnknownAndSupplied(t *testing.T) {
 	w := newWorld(t)
-	typ := w.newType("Pamphlet", sourcetypes.Formats{Full: `{source.meta.publisher}; {source.date}; p. {citation.page}.`})
+	typ := w.newType("Pamphlet", sourcetypes.Formats{Full: `{meta.publisher}; {source.date}; p. {citation.page}.`})
 	a := w.source(typ.ID, "Source A")
 	b := w.source(typ.ID, "Source B")
 	w.set(vocabkey.LevelSource, a.ID, "publisher", "", valuemark.Mark{Unknown: true})

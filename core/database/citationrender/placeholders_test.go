@@ -21,7 +21,7 @@ func TestPlaceholders(t *testing.T) {
 		keys = append(keys, f.Key)
 	}
 
-	t.Run("AC-7.9 the list form: the Source built-ins, then every field", func(t *testing.T) {
+	t.Run("AC-7.9 the list form: the Source built-ins, then every field once", func(t *testing.T) {
 		got, err := Placeholders(w.c, citationformat.FormList)
 		if err != nil {
 			t.Fatal(err)
@@ -31,46 +31,48 @@ func TestPlaceholders(t *testing.T) {
 			t.Fatalf("got %d rows, want %d", len(got), builtins+len(all))
 		}
 		for i, p := range got {
-			if p.Level != vocabkey.LevelSource {
-				t.Errorf("row %d at level %s", i, p.Level)
-			}
 			if (i < builtins) != (p.Field == nil) {
 				t.Errorf("row %d (%s): field %v", i, p.Text, p.Field)
+			}
+			if i < builtins && p.Level != vocabkey.LevelSource {
+				t.Errorf("row %d at level %s", i, p.Level)
 			}
 		}
 		for i, f := range all {
 			row := got[builtins+i]
-			if row.Field == nil || row.Field.Key != f.Key || row.Text != "{source.meta."+f.Key+"}" {
-				t.Errorf("field row %d = %+v, want key %s", i, row, f.Key)
+			if row.Field == nil || row.Field.Key != f.Key || row.Text != "{meta."+f.Key+"}" || row.Level != "" {
+				t.Errorf("field row %d = %+v, want key %s with no level", i, row, f.Key)
 			}
 		}
 	})
 
-	t.Run("AC-7.10 the full form: Source, Artifact, Evidence graph, Citation", func(t *testing.T) {
+	t.Run("AC-7.10 the full form: Source, Artifact, Evidence graph, Citation, then every field once", func(t *testing.T) {
 		got, err := Placeholders(w.c, citationformat.FormFull)
 		if err != nil {
 			t.Fatal(err)
 		}
 		var levels []vocabkey.Level
-		fieldsAt := map[vocabkey.Level][]string{}
+		var fieldKeys []string
 		for _, p := range got {
+			if p.Field != nil {
+				fieldKeys = append(fieldKeys, p.Field.Key)
+				if p.Level != "" || p.Text != "{meta."+p.Field.Key+"}" {
+					t.Errorf("field row %+v: want no level, {meta.key}", p)
+				}
+				continue
+			}
+			if len(fieldKeys) > 0 {
+				t.Errorf("built-in %s after a field row", p.Text)
+			}
 			if len(levels) == 0 || levels[len(levels)-1] != p.Level {
 				levels = append(levels, p.Level)
-			}
-			if p.Field != nil {
-				fieldsAt[p.Level] = append(fieldsAt[p.Level], p.Field.Key)
 			}
 		}
 		if !slices.Equal(levels, vocabkey.Levels()) {
 			t.Errorf("levels = %v", levels)
 		}
-		for _, l := range vocabkey.MetadataLevels() {
-			if !slices.Equal(fieldsAt[l], keys) {
-				t.Errorf("%s fields = %v, want %v", l, fieldsAt[l], keys)
-			}
-		}
-		if len(fieldsAt[vocabkey.LevelCitation]) != 0 {
-			t.Errorf("citation fields = %v", fieldsAt[vocabkey.LevelCitation])
+		if !slices.Equal(fieldKeys, keys) {
+			t.Errorf("fields = %v, want %v", fieldKeys, keys)
 		}
 	})
 

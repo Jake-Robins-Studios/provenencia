@@ -8,37 +8,31 @@ import (
 
 // Placeholder is one row of the editor's completion list: a built-in
 // (citationformat.Placeholder with no Field) or a metadata field the project
-// holds, at one level.
+// holds, which has no level (a format reads it from the nearest level that
+// holds it).
 type Placeholder struct {
 	citationformat.Placeholder
 	Field *metadatafields.Field
 }
 
-// Placeholders lists what form f can hold, level by level in vocabkey order,
-// only the levels f may read: each level's built-ins (citationformat.
-// BuiltinPlaceholders), then, for a level that holds metadata, every field of
-// the project in metadatafields.List order, unfiltered and not re-sorted.
+// Placeholders lists what form f can hold: every built-in it may use, level by
+// level in vocabkey order (citationformat.BuiltinPlaceholders), then every
+// field of the project once in metadatafields.List order, unfiltered and not
+// re-sorted. Every form lists the same fields.
 func Placeholders(c *database.Catalog, f citationformat.Form) ([]Placeholder, error) {
 	fields, err := metadatafields.List(c)
 	if err != nil {
 		return nil, err
 	}
 	var out []Placeholder
-	builtins := citationformat.BuiltinPlaceholders(f)
-	for i := 0; i < len(builtins); {
-		level := builtins[i].Level
-		for ; i < len(builtins) && builtins[i].Level == level; i++ {
-			out = append(out, Placeholder{Placeholder: builtins[i]})
-		}
-		if !level.HoldsMetadata() {
-			continue
-		}
-		for _, field := range fields {
-			out = append(out, Placeholder{
-				Placeholder: citationformat.MetaFieldPlaceholder(level, field.Key),
-				Field:       &field,
-			})
-		}
+	for _, b := range citationformat.BuiltinPlaceholders(f) {
+		out = append(out, Placeholder{Placeholder: b})
+	}
+	for _, field := range fields {
+		out = append(out, Placeholder{
+			Placeholder: citationformat.MetaFieldPlaceholder(field.Key),
+			Field:       &field,
+		})
 	}
 	return out, nil
 }
