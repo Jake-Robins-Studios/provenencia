@@ -51,3 +51,6 @@ Nits (logged): `CON-3 · docs/citation-formats.md:23 · "A target repeated in a 
 
 ## Result
 Merged `origin/main` @ `00679ff1c`; gate PASS. CI <pending> · open: none · follow-ups: none · later PR: UX-5 → S15-63 · to user: —
+
+## After review — user change
+User, 2026-11-22: no migration; the app has no users and one dogfood project. `000069.sql` removed (D-12 dropped); the dogfood project's stored formats are rewritten once by hand with the same `replace` statements. Map rule, map row, `completed.md` and the plan's Landed note say so. CON-3 nit fixed in the same commit (`docs/citation-formats.md:23`). Gate PASS.

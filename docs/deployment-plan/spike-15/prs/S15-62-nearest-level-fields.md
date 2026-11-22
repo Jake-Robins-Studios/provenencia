@@ -378,6 +378,7 @@ None.
 
 ## Landed
 
+- **D-12 dropped (user, 2026-11-22, after review):** no migration `000069.sql`. The app has no users and one dogfood project, so stored formats are not carried over; the dogfood project's `source_types` formats were rewritten once by hand with the same `replace` statements. AC-3.1 and AC-3.2 are met by that one-off, not by the app.
 - `itemFields` in `core/database/sourcevocab/registry_test.go` is deleted with `usualLevel` (nothing else read it).
 - `TestSeedAnnotations`' expectation table is rebuilt for D-10: each Source board lists its unsuggested heads (120 across the 26 types), and the Artifact and graph boards need the same fields as the Source board except those only the list form needs.
 - The handler's draft-board test (`TestGetDraftMetadataBoard`) now expects the type's suggestions first, then the unsuggested heads the formats read.

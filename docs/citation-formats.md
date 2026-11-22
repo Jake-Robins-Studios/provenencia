@@ -20,7 +20,7 @@ The list form describes the Source as a whole, so it reads Source values only: a
 | --- | --- |
 | `{meta.key}` | The metadata value with that key from the nearest level that holds one: the Evidence graph, then the Artifact, then the Source; as typed. In the list form, the Source's alone |
 | `{source.title}` and the other built-ins | A value that is not metadata (below) |
-| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; a chain falls from one field or built-in to another, never from one level to another (a field already does that). A target repeated in a chain counts once |
+| `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; a chain falls from one field or built-in to another, never from one level to another (a field already does that). A target repeated in a chain with the same option counts once |
 | `[ ... ]` | An optional group: removed with its text and punctuation if any placeholder of its own is empty. Groups nest, and a nested group decides for itself only when its parent prints |
 | `*...*` | Italic; closes with the next `*` in the same group |
 | `\\` `\{` `\}` `\[` `\]` `\*` | A literal character; no other escape exists |
