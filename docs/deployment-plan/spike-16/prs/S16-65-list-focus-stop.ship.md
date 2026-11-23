@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** re-planned 2026-11-23 — resume at Round 0 against the re-plan (page keys on the page's scroll view)
+**State:** review 1 (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -61,3 +61,9 @@ Gate PASS (`origin/main` still `a0923028f`, no merge needed) · CI see PR #951 �
 
 ## Re-plan (2026-11-23)
 The user moved Page Up/Down and Home/End from the list to the page's scroll view (content-agnostic, with nothing focused too) and split the bounce and the scroll memory into S16-67. A throwaway spike, run by the user, showed a SwiftUI `ScrollView` handles none of the page keys and that a responder after the window receives keys nothing handled. The temporary logging build (no app code scrolled to the top; the remembered row id never changed while arrowing) is recorded in S16-67's scope entry. The plan was rewritten in place and passed review-plan in two rounds (log: `S16-65-list-focus-stop.review.md`). The first round's commits (`.pvListFocusStop`, `clampedIndex`, `isFocusedRow`) stay on the branch as the new plan's base. The loop restarts at Round 0 with the implementer.
+
+## Re-plan round 0 — implement
+Head `eeb64049c`. Gate PASS (orchestrator, against `a0923028f`). Report: two commits, not three (STEP-4's doc comments rode in the first); `PVPageKeyResponder` and `PVPageKeys.scrollToEdge` are `@MainActor` (Swift 6 warned without it); doc wording on `PVListKeyboard.action` and `isSideList` is the implementer's; §10 not run (needs a window).
+
+## Re-plan round 1 — review
+Reviewers: CON, MNT, UX, SEC+PRF. UX: `macos/App/**`, keyboard behavior on every page. SEC+PRF: a responder that sees every unhandled key event in the window and walks a probe list per key, list and table code at the 16,000-row Scale.
