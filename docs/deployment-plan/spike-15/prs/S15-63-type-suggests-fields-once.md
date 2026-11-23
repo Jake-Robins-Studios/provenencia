@@ -42,18 +42,18 @@ A Source type suggests each field once. Every board of a Source of that type (th
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | A new project; a census Source with one Artifact and one graph; read the three boards | Each board's suggested entries are the census list's 21 fields in the same order (`creator` first, `item_number` last); Jurisdiction, Provider and Dwelling are on all three |
+| AC-1.1 | A new project; a census Source with one Artifact and one graph; read the three boards | Each board's suggested entries are the census list's 16 fields in the same order (`creator` first, `citing` last); Jurisdiction, Provider and Dwelling are on all three |
 | AC-1.2 | On the census Artifact's board, dismiss `jurisdiction` (not needed at the Artifact level) | The Artifact's board no longer shows it; the Source's and the graph's boards still do |
-| AC-1.5 | Create a new project | Each of the 26 seeded types suggests exactly its `seedSuggestions` list, in order, with `sort_order` 0, 1, 2 …; Census suggests 21 fields, `creator` first and `item_number` last; a seeded type with no entry suggests nothing |
-| AC-1.4 | A census Source; click Add Artifact, then Add graph | Each form starts with the census list's 21 empty rows, the rows the engine's draft board returns; the read is `GetDraftMetadataBoard` with level `artifact`, then `graph` |
+| AC-1.5 | Create a new project | Each of the 26 seeded types suggests exactly its `seedSuggestions` list, in order, with `sort_order` 0, 1, 2 …; Census suggests 16 fields, `creator` first and `citing` last; a seeded type with no entry suggests nothing |
+| AC-1.4 | A census Source; click Add Artifact, then Add graph | Each form starts with the census list's 16 empty rows, the rows the engine's draft board returns; the read is `GetDraftMetadataBoard` with level `artifact`, then `graph` |
 | AC-1.3 | A project made before this PR; open it with this build | It opens (schema hash matches); every type suggests nothing until the one-time script restores the lists (D-1, D-14) |
 
 **US-2.** As a researcher, on a Source type's page I edit one Suggested fields list.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | Census's page | One list of 21 rows; the count reads "21 fields"; the types list's Associated fields reads 21 |
-| AC-2.2 | Add Column from the picker | Column is 22nd; the count reads 22; the toast reads "Column is now suggested for Census Sources." (or the board's wording, D-9) |
+| AC-2.1 | Census's page | One list of 16 rows; the count reads "16 fields"; the types list's Associated fields reads 16 |
+| AC-2.2 | Add Column from the picker | Column is 17th; the count reads 17; the toast reads "Column is now suggested for Census Sources." (or the board's wording, D-9) |
 | AC-2.3 | Add a field the type already suggests (by a second, stale page) | No error; the list is unchanged |
 | AC-2.4 | Remove URL | URL leaves the list; the field and every typed URL value stay |
 
@@ -61,7 +61,7 @@ A Source type suggests each field once. Every board of a Source of that type (th
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-3.1 | Copy Census with every tick on | The sheet shows four ticks (Icon, Description, Citation formats, Suggested fields "21 fields"); the copy suggests the same 21 fields in the same order |
+| AC-3.1 | Copy Census with every tick on | The sheet shows four ticks (Icon, Description, Citation formats, Suggested fields "16 fields"); the copy suggests the same 16 fields in the same order |
 | AC-3.2 | Copy Census with Suggested fields unticked | The copy suggests nothing |
 | AC-3.3 | Copy a type with no suggestions | The Suggested fields tick is unticked and disabled, "None on this type" |
 
@@ -172,19 +172,19 @@ A Source type suggests each field once. Every board of a Source of that type (th
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
 | An Artifact or graph board now shows Source-ish fields (Jurisdiction on an Artifact) | `MetadataBoardView` suggested group | Same rows and controls as today's suggestions; a value typed there is read nearest-first (S15-62) |
-| An Add form starts with up to 21 empty rows (was 10 on census Artifacts), read from `GetDraftMetadataBoard` | `DraftMetadataBoardField` | The sheet scrolls its board today (S15-D14). The entries now carry `requirement`, which the row does not draw until S15-39; on a researcher's type whose formats read a field it does not suggest, that field's empty row now shows in the Add form as it already does on the saved board (S15-62 D-10). A read failure takes the path `readSuggestionsForAdd` has today (nil, the page banner) |
+| An Add form starts with up to 16 empty rows (was 10 on census Artifacts), read from `GetDraftMetadataBoard` | `DraftMetadataBoardField` | The sheet scrolls its board today (S15-D14). The entries now carry `requirement`, which the row does not draw until S15-39; on a researcher's type whose formats read a field it does not suggest, that field's empty row now shows in the Add form as it already does on the saved board (S15-62 D-10). A read failure takes the path `readSuggestionsForAdd` has today (nil, the page banner) |
 | A field suggested and also valued at another level of the same owner chain | `buildEntries` | One entry per field per owner, as today |
 
 ### Scale
 
-At the map's Scale: a census Source with 60 Artifacts and 60 graphs. `listWorkspaces` reads 121 boards; suggestions are read once per distinct type (one query instead of three). Each board carries up to 21 suggested entries instead of 5 – 10, so a Source workspace reply carries about 2,500 entries; the Artifact list and graph rows draw values only. A board lists at most 30 suggested fields (map Scale); the largest seeded list is 21. The migration copies no rows. No write fans out: a suggestion add or remove patches one key.
+At the map's Scale: a census Source with 60 Artifacts and 60 graphs. `listWorkspaces` reads 121 boards; suggestions are read once per distinct type (one query instead of three). Each board carries up to 16 suggested entries instead of 5 – 10, so a Source workspace reply carries about 1,900 entries; the Artifact list and graph rows draw values only. A board lists at most 30 suggested fields (map Scale); the largest seeded list is 16. The migration copies no rows. No write fans out: a suggestion add or remove patches one key.
 
 ### Edges
 
 - **Assumptions.** `buildEntries` assumes each suggestion's field appears once (it fills `seen`); one row per (type, field) now guarantees it, where three levels could not repeat a field within one level either. `listWorkspaces` assumes every owner's type has a `typeBoard`; D-5 keeps the key set. The Add forms' draft board comes from `ListDraftWorkspace` through the same `buildEntries` (`seen`), one entry per field. Test: T-4.
 - **Neighbors.** A field suggested and also a needed head at this level: one entry, `Suggested` true (today's rule; T-4 holds it). A field suggested and dismissed on one owner: hidden only there (AC-1.2, T-4). A list-form-only head on an Artifact board: still not emitted unless suggested (T-4 keeps S15-62's case).
 - **Removed inputs.** A field deleted from the vocabulary: its suggestion row cascades as today. Removing a suggestion leaves values (AC-2.4, T-2). The migration drops every existing suggestion row (D-1); the one-time script restores the product owner's project.
-- **Real data.** The derived lists over the whole shipped seed (26 types, run at planning base): census 21, the three certificates 17 each, church_register 17, manuscript 17, record_book 16, case_file 15, government_file 14, book 13, passenger_list 12, cemetery_marker 7, newspaper_item 7, website 7, family_bible 5, dna_match_report 5, interview 5, oral_testimony 5, journal_article 5, broadcast 5, statute 5, photograph 4, gedcom_file 4, correspondence 4, private_papers 3, court_report 3. Census in order: `creator jurisdiction schedule enumeration_district piece folio schedule_number dwelling_number family_number line_number item format provider url accessed_date citing database_title film_publication roll film_number item_number`. Worth a second look: `website` interleaves `format` between `creator` and `site_name` (its format reads them so); accept as derived.
+- **Real data.** The derived lists over the whole shipped seed (26 types, run at planning base): census 16, church_register 13, book 13, the three certificates 11 each, record_book 11, manuscript 11, government_file 10, passenger_list 9, case_file 9, cemetery_marker 7, newspaper_item 7, website 7, family_bible 5, dna_match_report 5, interview 5, oral_testimony 5, journal_article 5, broadcast 5, statute 5, photograph 4, gedcom_file 4, correspondence 4, private_papers 3, court_report 3 (the lists after F-6; the planning-base run had census 21 and the three certificates 17). Census in order: `creator jurisdiction schedule enumeration_district piece folio schedule_number dwelling_number family_number line_number item format provider url accessed_date citing`. Worth a second look: `website` interleaves `format` between `creator` and `site_name` (its format reads them so); accept as derived.
 - **Untrusted size.** None — the list is the app's own table, bounded by the vocabulary.
 
 ### Schema
@@ -330,9 +330,9 @@ Sweep names (also across `macos/` and `core/`): `typeSuggestionsKeys`, `suggesti
 
 ## 10. Manual check
 
-1. Make a new project. Open Source types › Census: one list of 21 fields, Creator first (AC-1.5). Add a census Source. Click Add Artifact: the sheet starts with 21 empty rows (AC-1.4); save it. Add a graph the same way. Open the Artifact sheet, the graph form and the Source's Metadata section: each offers the same 21 empty fields in the same order, Jurisdiction, Provider and Dwelling among them (AC-1.1). Dismiss Jurisdiction on the Artifact; the Source and the graph still show it (AC-1.2). The empty group's heading reads "Suggested by this type" (D-11).
-2. Open Source types › Census: one list, "21 fields"; the types list reads 21 (AC-2.1). Add Column with Return: 22nd, toast names Census Sources (AC-2.2). Remove URL (AC-2.4). Resize across 1600pt with a pick in progress: it survives (OL-W1). Open a plugin type: read only (OL-6).
-3. Copy Census: four ticks, Suggested fields "22 fields"; the copy's page shows the same list (AC-3.1). Copy again with the tick off: empty list (AC-3.2). Copy Letter (no suggestions): the tick disabled (AC-3.3).
+1. Make a new project. Open Source types › Census: one list of 16 fields, Creator first (AC-1.5). Add a census Source. Click Add Artifact: the sheet starts with 16 empty rows (AC-1.4); save it. Add a graph the same way. Open the Artifact sheet, the graph form and the Source's Metadata section: each offers the same 16 empty fields in the same order, Jurisdiction, Provider and Dwelling among them (AC-1.1). Dismiss Jurisdiction on the Artifact; the Source and the graph still show it (AC-1.2). The empty group's heading reads "Suggested by this type" (D-11).
+2. Open Source types › Census: one list, "16 fields"; the types list reads 16 (AC-2.1). Add Column with Return: 17th, toast names Census Sources (AC-2.2). Remove URL (AC-2.4). Resize across 1600pt with a pick in progress: it survives (OL-W1). Open a plugin type: read only (OL-6).
+3. Copy Census: four ticks, Suggested fields "16 fields"; the copy's page shows the same list (AC-3.1). Copy again with the tick off: empty list (AC-3.2). Copy Letter (no suggestions): the tick disabled (AC-3.3).
 4. Copy a project made before this PR and open the copy: it opens, and its types suggest nothing (AC-1.3). Do not open the product owner's dogfood project with this build before taking a copy.
 
 ## 11. Risks and stop conditions
@@ -364,6 +364,7 @@ None.
 - `PVComboBox.swift`'s preview (not named in § 4) took `L10n.SourceTypes.level(.source).pickerLabel` and now takes `suggestedPickerLabel`; `L10nResolutionTests` (not named in § 4) takes the new `assignFieldNamed(field:type:)` and the list label's new title.
 - `TestMetadataBoardsKeepTheirLevel` became `TestMetadataBoardsOfferTheTypeList`, and `TestSeedAnnotations`' table (`unsug`) shrinks with the lists: the empty unsuggested heads over the 26 seeded types are 29, not 120, because a type's list now holds every field its formats read at any level; three more tests in `sourcemetadata_test.go` (`TestListWorkspacesExported`, the census case and "a valued extra" in `TestListWorkspacesAnnotations`) assert the fields by id and as suggested, as STEP-3 said for `TestOwnerTables`.
 - `SourceTypeCopyModelTests.formatsReadFailureThenReadAgain` was folded into `aFailedFormatsReadFailsTheSheetAndReloads` (both read the formats' failure; the plan named the second). `FakeStore.draftMetadataBoardCalls` holds `(sourceID:, level:)` tuples, so tests compare its `.level` and `.sourceID` columns.
+- **F-6 (user, 2026-11-23): a type's seeded suggestions are only the fields its formats read.** The copy-field rule is dropped: the seed no longer adds `format`, `provider`, `database_title`, `url`, `accessed_date`, `citing`, `film_publication`, `roll`, `film_number` and `item_number` to the ten record types on top of what their formats read, because no format prints the extras and now every board offers them. Census suggests 16 fields, ending with `citing`; the three certificates suggest 11 each (§ 6 Real data, § 10 and AC-1.1, AC-1.4, AC-1.5, AC-2.1, AC-2.2, AC-3.1 carry the new counts).
 - The seed's entry count is 26 lists (every seeded type that suggests anything); the types with none have no entry, as § 6 Edges says.
 - A local, untracked `bin/reseed-source-vocab` (gitignored) calls the old per-level reads and no longer builds; it is the product owner's one-off for the 0.24 seed and is not part of the PR.
 - STEP-5 and STEP-6 are one commit: the generated Swift engine file changes with the Go commit, so no Swift commit builds alone.

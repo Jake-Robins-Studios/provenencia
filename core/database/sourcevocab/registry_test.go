@@ -11,23 +11,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// copyFields is the "copy" group of the map's citation vocabulary, in order:
-// the fields about the copy a researcher used, usually set on an Artifact.
-var copyFields = []string{
-	"format", "provider", "database_title", "url", "accessed_date", "citing",
-	"film_publication", "roll", "film_number", "item_number",
-}
-
-// recordTypes are the types whose Artifacts suggest every copy field.
-var recordTypes = []string{
-	"census", "birth_certificate", "marriage_certificate", "death_certificate",
-	"church_register", "record_book", "passenger_list", "case_file", "manuscript",
-	"government_file",
-}
-
 // unreadFields are the two seeded fields no seeded format reads:
-// database_title (suggested on record types' Artifacts by the copy exception)
-// and record_id (there for researchers' own formats).
+// database_title and record_id (there for researchers' own formats).
 var unreadFields = []string{"database_title", "record_id"}
 
 func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form) *citationformat.Template {
@@ -42,8 +27,7 @@ func mustParseForm(t *testing.T, typeKey, text string, form citationformat.Form)
 // derivedSuggestions is the suggestion rule applied to a type's formats: the
 // type's fields as one list, each once, in the order its formats first read
 // them (the full format, then the list and short formats' needed chains the
-// full format does not already meet); the record types add the copy fields
-// their Artifacts do not have yet. A format names no level, so neither does the
+// full format does not already meet); nothing is appended. A format names no level, so neither does the
 // list.
 func derivedSuggestions(t *testing.T, st seedType) []string {
 	t.Helper()
@@ -80,13 +64,6 @@ func derivedSuggestions(t *testing.T, st seedType) []string {
 		if full {
 			full = false
 			fullKeys = maps.Clone(read)
-		}
-	}
-	if slices.Contains(recordTypes, st.Key) {
-		for _, key := range copyFields {
-			if !slices.Contains(order, key) {
-				order = append(order, key)
-			}
 		}
 	}
 	return order
@@ -128,8 +105,8 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 			t.Errorf("%s suggests %v, its formats give %v in order", st.Key, got[st.Key], want)
 		}
 	}
-	if census := got["census"]; len(census) == 0 || census[0] != "creator" || census[len(census)-1] != "item_number" {
-		t.Errorf("census suggests %v, want creator first and item_number last", census)
+	if census := got["census"]; len(census) != 16 || census[0] != "creator" || census[len(census)-1] != "citing" {
+		t.Errorf("census suggests %v, want 16 fields, creator first and citing last", census)
 	}
 }
 

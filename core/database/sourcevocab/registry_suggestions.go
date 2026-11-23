@@ -2,19 +2,18 @@ package sourcevocab
 
 // Each type's suggested fields, one list per seeded type with any, in order.
 // They follow the type's formats (a test derives them): the fields its formats
-// read, each once, in the order the formats first read them. The record types
-// also suggest every copy field.
+// read, each once, in the order the formats first read them; nothing else.
 var seedSuggestions = []seedSuggestion{
-	{TypeKey: "census", FieldKeys: []string{"creator", "jurisdiction", "schedule", "enumeration_district", "piece", "folio", "schedule_number", "dwelling_number", "family_number", "line_number", "item", "format", "provider", "url", "accessed_date", "citing", "database_title", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "birth_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository", "database_title", "citing", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "marriage_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository", "database_title", "citing", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "death_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository", "database_title", "citing", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "church_register", FieldKeys: []string{"creator", "church_location", "volume", "folio", "entry_number", "item", "format", "provider", "url", "accessed_date", "film_number", "item_number", "repository", "database_title", "citing", "film_publication", "roll"}},
-	{TypeKey: "record_book", FieldKeys: []string{"jurisdiction", "creator", "book", "entry_number", "item", "format", "provider", "url", "accessed_date", "film_number", "repository", "database_title", "citing", "film_publication", "roll", "item_number"}},
-	{TypeKey: "passenger_list", FieldKeys: []string{"line_number", "item", "format", "provider", "url", "accessed_date", "citing", "film_publication", "roll", "database_title", "film_number", "item_number"}},
-	{TypeKey: "case_file", FieldKeys: []string{"jurisdiction", "creator", "case_number", "item", "format", "provider", "url", "accessed_date", "repository", "database_title", "citing", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "manuscript", FieldKeys: []string{"creator", "item", "collection", "call_number", "box", "folder", "format", "provider", "url", "accessed_date", "repository", "database_title", "citing", "film_publication", "roll", "film_number", "item_number"}},
-	{TypeKey: "government_file", FieldKeys: []string{"item", "collection", "record_group", "format", "provider", "url", "accessed_date", "film_publication", "roll", "repository", "database_title", "citing", "film_number", "item_number"}},
+	{TypeKey: "census", FieldKeys: []string{"creator", "jurisdiction", "schedule", "enumeration_district", "piece", "folio", "schedule_number", "dwelling_number", "family_number", "line_number", "item", "format", "provider", "url", "accessed_date", "citing"}},
+	{TypeKey: "birth_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
+	{TypeKey: "marriage_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
+	{TypeKey: "death_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
+	{TypeKey: "church_register", FieldKeys: []string{"creator", "church_location", "volume", "folio", "entry_number", "item", "format", "provider", "url", "accessed_date", "film_number", "item_number", "repository"}},
+	{TypeKey: "record_book", FieldKeys: []string{"jurisdiction", "creator", "book", "entry_number", "item", "format", "provider", "url", "accessed_date", "film_number", "repository"}},
+	{TypeKey: "passenger_list", FieldKeys: []string{"line_number", "item", "format", "provider", "url", "accessed_date", "citing", "film_publication", "roll"}},
+	{TypeKey: "case_file", FieldKeys: []string{"jurisdiction", "creator", "case_number", "item", "format", "provider", "url", "accessed_date", "repository"}},
+	{TypeKey: "manuscript", FieldKeys: []string{"creator", "item", "collection", "call_number", "box", "folder", "format", "provider", "url", "accessed_date", "repository"}},
+	{TypeKey: "government_file", FieldKeys: []string{"item", "collection", "record_group", "format", "provider", "url", "accessed_date", "film_publication", "roll", "repository"}},
 	{TypeKey: "cemetery_marker", FieldKeys: []string{"creator", "cemetery_location", "item", "section", "lot", "photographer", "accessed_date"}},
 	{TypeKey: "family_bible", FieldKeys: []string{"published_in", "publication_place", "publisher", "item", "holder"}},
 	{TypeKey: "photograph", FieldKeys: []string{"medium", "photographer", "studio", "holder"}},
