@@ -69,33 +69,33 @@ struct PVDatePlaceLine: View {
             if let leading {
                 Text(verbatim: leading)
                     .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
             }
             if let date {
                 Text(verbatim: date)
                     .font(PVFont.mono(size: dateSize))
-                    .foregroundStyle(dateTone)
+                    .foregroundStyle(PVColor.onSelection(dateTone))
                     .lineLimit(missing == .omitted ? 1 : nil)
                     .layoutPriority(1)
             } else if missing == .stated {
                 Text(L10n.DesignSystem.datePlaceLineDateUnknown)
                     .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
             }
             if missing == .stated || (date != nil && place != nil) {
                 Text(verbatim: "·")
-                    .foregroundStyle(PVColor.textFaint)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textFaint))
             }
             if let place {
                 Text(verbatim: place)
                     .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                    .foregroundStyle(PVColor.textSecondary)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textSecondary))
                     .lineLimit(missing == .omitted ? 1 : nil)
                     .truncationMode(.tail)
             } else if missing == .stated {
                 Text(L10n.DesignSystem.datePlaceLinePlaceUnknown)
                     .font(PVFont.body(size: PVTypeScale.bodySmall, italic: true))
-                    .foregroundStyle(PVColor.textMuted)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
             }
             if extraCount > 0 {
                 PVBadge.moreCount(extraCount)

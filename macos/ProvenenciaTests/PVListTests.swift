@@ -54,6 +54,21 @@ struct PVListTests {
         }
     }
 
+    @MainActor
+    @Test func datePlaceLineTakesTheOnSelectionInk() throws {
+        func png(_ prominence: BackgroundProminence) throws -> Data {
+            let view = PVDatePlaceLine(
+                date: "1851", place: "Lyon, France", accessibilityLabel: "",
+                missing: .omitted, dateTone: PVColor.textMuted
+            )
+            .padding(4).background(Color.blue)
+            .environment(\.backgroundProminence, prominence)
+            let image = try #require(ImageRenderer(content: view).nsImage)
+            return try #require(image.tiffRepresentation)
+        }
+        #expect(try png(.increased) != png(.standard))
+    }
+
     @Test func pageKeysMoveByTenAndClamp() {
         #expect(action(.pageDown, at: 3) == .move(to: 13))
         #expect(action(.pageDown, at: 20) == .move(to: 24))
