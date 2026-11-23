@@ -1,51 +1,5 @@
 import SwiftUI
 
-/// The vocabulary destinations' page header: display title and description on
-/// the left, the origin count line and the add button on the right. Mints
-/// `<prefix>.countLine` and `<prefix>.add`.
-struct VocabularyHeader: View {
-    let title: LocalizedStringResource
-    let description: LocalizedStringResource
-    var countLine: String? = nil
-    let addLabel: LocalizedStringResource
-    let isAddDisabled: Bool
-    let identifierPrefix: String
-    var descriptionItalic: Bool = false
-    var addSize: PVControlSize = .md
-    let onAdd: () -> Void
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: PVSpacing.space8) {
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(title)
-                    .font(PVFont.display(size: PVTypeScale.h1))
-                    .foregroundStyle(PVColor.textDisplay)
-                Text(description)
-                    .font(PVFont.body(size: PVTypeScale.bodySmall, italic: descriptionItalic))
-                    .foregroundStyle(PVColor.textMuted)
-                    .frame(maxWidth: PVSpacing.measureProse, alignment: .leading)
-            }
-            Spacer(minLength: PVSpacing.space6)
-            HStack(spacing: PVSpacing.space6) {
-                if let countLine {
-                    Text(countLine)
-                        .font(PVFont.mono(size: PVTypeScale.micro))
-                        .foregroundStyle(PVColor.textMuted)
-                        .accessibilityIdentifier("\(identifierPrefix).countLine")
-                }
-                PVButton(addLabel, variant: .primary, size: addSize, icon: .plus) {
-                    onAdd()
-                }
-                .disabled(isAddDisabled)
-                .accessibilityIdentifier("\(identifierPrefix).add")
-            }
-        }
-        .padding(.horizontal, PVSpacing.gutterPage)
-        .padding(.top, PVSpacing.space8)
-        .padding(.bottom, PVSpacing.space6)
-    }
-}
-
 /// The Metadata detail pane's header, shared by its add / locked / editable
 /// states: eyebrow with the delete affordance, display title, origin badge
 /// beside the mono key, then the key hint. Mints `<prefix>.detail.key` and

@@ -49,9 +49,7 @@ private struct SourceTypesContent: View {
             PVDivider()
             if let loadError = model.loadError, model.types.isEmpty {
                 PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError), announces: true)
-                    .padding(.horizontal, PVSpacing.gutterPage)
-                    .padding(.top, PVSpacing.space8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .pvListPageMessage()
                     .accessibilityIdentifier("sourceTypes.loadError")
             } else {
                 SourceTypesListPane(model: model)
@@ -66,14 +64,12 @@ private struct SourceTypesContent: View {
     }
 
     private var header: some View {
-        VocabularyHeader(
+        PVListPageHeader(
             title: L10n.Workspace.sourceTypesTitle,
             description: L10n.SourceTypes.description,
             countLine: model.countLine,
-            addLabel: L10n.SourceTypes.addType,
-            isAddDisabled: model.isAdding,
-            identifierPrefix: "sourceTypes",
-            onAdd: { model.openAdd() }
+            add: .init(label: L10n.SourceTypes.addType, isDisabled: model.isAdding) { model.openAdd() },
+            identifierPrefix: "sourceTypes"
         )
     }
 }

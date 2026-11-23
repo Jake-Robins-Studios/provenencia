@@ -64,9 +64,7 @@ private struct SourcesListContent: View {
                     .padding(.top, PVSpacing.space9)
             } else if let loadError = model.loadError, model.sources.isEmpty {
                 PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
-                    .padding(.horizontal, PVSpacing.gutterPage)
-                    .padding(.top, PVSpacing.space8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .pvListPageMessage()
                     .accessibilityIdentifier("sources.loadError")
             } else if model.isCatalogEmpty {
                 emptyState
@@ -129,33 +127,13 @@ private struct SourcesListContent: View {
     }
 
     private func header(visibleCount: Int) -> some View {
-        HStack(alignment: .bottom, spacing: PVSpacing.space8) {
-            VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                Text(L10n.Workspace.sourcesTitle)
-                    .font(PVFont.display(size: PVTypeScale.h1))
-                    .foregroundStyle(PVColor.textDisplay)
-                Text(L10n.Sources.description)
-                    .font(PVFont.body(size: PVTypeScale.bodySmall))
-                    .foregroundStyle(PVColor.textMuted)
-                    .frame(maxWidth: PVSpacing.measureProse, alignment: .leading)
-            }
-            Spacer(minLength: PVSpacing.space6)
-            HStack(spacing: PVSpacing.space6) {
-                if !model.isCatalogEmpty {
-                    Text(model.countLine(visibleCount: visibleCount))
-                        .font(PVFont.mono(size: PVTypeScale.micro))
-                        .foregroundStyle(PVColor.textMuted)
-                        .accessibilityIdentifier("sources.countLine")
-                }
-                PVButton(L10n.Sources.addSource, variant: .primary, icon: .plus) {
-                    model.openAdd()
-                }
-                .accessibilityIdentifier("sources.add")
-            }
-        }
-        .padding(.horizontal, PVSpacing.gutterPage)
-        .padding(.top, PVSpacing.space8)
-        .padding(.bottom, PVSpacing.space7)
+        PVListPageHeader(
+            title: L10n.Workspace.sourcesTitle,
+            description: L10n.Sources.description,
+            countLine: model.isCatalogEmpty ? nil : model.countLine(visibleCount: visibleCount),
+            add: .init(label: L10n.Sources.addSource) { model.openAdd() },
+            identifierPrefix: "sources"
+        )
     }
 
     private var toolbar: some View {
