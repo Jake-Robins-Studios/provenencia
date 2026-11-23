@@ -1,7 +1,7 @@
 # Ship log — S16-67 The Persons, Events and Places lists are native lists
 
 **Plan:** [`S16-67-native-conclusion-lists.md`](S16-67-native-conclusion-lists.md) · **Branch:** `s16-67-native-conclusion-lists` · **PR:** [#958](https://github.com/Jake-Robins-Studios/provenencia/pull/958)
-**State:** stopped — PRF-1 is only partly resolved after round 2; the user decides on Fix plan 2
+**State:** ready
 
 ## Round 0 — implement
 Base `3d8863a57`. Head `3c3db8c2c`. Gate PASS (orchestrator run; xcode-test 63s). Report deviations: version 0.35.0 → 0.36.0 (main moved); row content framed to 44 pt; row insets less the platform's 8 pt cell inset; T-1 compares drawn colors; live-app checks left to the manual check. STEP-2 was reported without its `PVDatePlaceLine.swift` change and without listing it (CON-1).
@@ -86,11 +86,28 @@ Reviewers: CON, MNT, UX, SEC+PRF. Scope `3c3db8c2c...d2120d0fa`. No new blockers
 - PRF-1 (major): **partly resolved → To user.** The three row modifiers still sit in the `ForEach` closure, so it runs for 8,919 rows per selection move. Probe (a model of `PVList`, not the app), median per mid-list move at 16,000: 169 ms before F-3, 102 ms now, 63 ms with the modifiers on the `ForEach`, 65 ms with none. Dropping the selection scroll: 102 → 80 ms; this replaces the round-1 evidence that rejected that part, so that question is reopened too (D-7). First jump to row 8,000: about 0.8 s.
 - Not a round-2 blocker, so no Fix plan 2 runs without the user.
 
-### Fix plan 2 (proposed, needs the user)
+### Fix plan 2 (approved by the user, 2026-11-23)
 **F-8 — A selection move runs no row modifiers for rows off screen** (from PRF-1)
 Files: `macos/App/DesignSystem/Components/List/PVList.swift`.
 Do: move `.listRowInsets`, `.listRowSeparator`, `.listRowSeparatorTint` onto the `ForEach`, before `.transaction`; if 66 pt rows, the gutters or the separators change in the hosted bitmap, put them at the end of `PVListRow.body` instead. Correct the `PVListRow` doc.
 Check: hosted bitmap as F-6 (66 pt rows, hairline gutter to gutter); the probe's closure count; scripts/check-pr.sh PASS.
 
+**F-9 — A mouse wheel scrolls the list a row per step** (from the user's manual check, 2026-11-23)
+Cause: `.environment(\.defaultMinListRowHeight, 1)` on `PVList` (copied from `PVReorderableList`, not in D-1) makes the table's `rowHeight`, and so the scroll view's `verticalLineScroll`, 1 pt. Measured in a hosted `List`: a one-line wheel event moves 1 pt at minimum 1, 24 pt at the default, 66 pt at 66. Trackpads send precise deltas and are unaffected.
+Files: `macos/App/DesignSystem/Components/List/PVList.swift`, `macos/ProvenenciaTests/PVListTests.swift`, the plan's Landed note.
+Failing test first: `PVListTests/aWheelStepScrollsOneRow`, `@MainActor`: host a `PVList` of a few rows in an `NSHostingView` in an offscreen window, find its `NSScrollView`, expect `verticalLineScroll == 66` (1 today).
+Do: the minimum is the row's own height, `thumbnailSize + 2 * density.vertical`, with a one-line comment that it sets the wheel step. Rows stay 66 pt. Leave `PVReorderableList` (it does not scroll).
+Check: test red then green; row heights in the F-8 bitmap still 66 pt.
+
+**F-10 — An Xcode build adds no key to the String Catalog** (from the round-2 gate)
+Cause: `PVListPreview`'s `label: "Persons"` is a `LocalizedStringResource` literal outside a `#Preview` macro, so an Xcode build extracts it as a bare key and `localizable` fails. It was there at the base; this PR rewrites the preview.
+Files: `macos/App/DesignSystem/Components/List/PVList.swift`.
+Do: use the existing `L10n` Persons title. Same in the F-9 test.
+Check: after a build, `PVList.stringsdata` lists no `Persons` key; scripts/check-pr.sh PASS.
+
+## Round 2 — fix
+F-8 (`734baf455`), F-9 (`14615f755`, test red first), F-10 and Landed note done; head `8ab40d939`, gate PASS (implementer), re-run by the orchestrator after merging main. Hosted bitmap identical before and after: 66 pt rows, hairlines x 16–583 of 600. Probe at 16,000: mid-list move 108–109 → 57–58 ms, closures per move about 8,919 → 13, first deep jump 0.80 → 0.18 s (with F-9's row height; one run).
+PRF-1: the reviewer's fix is applied; what remains (57 ms in the probe) is the platform list. Held ↓ in the app is the user's check (§10 step 3).
+
 ## Result
-Gate PASS · CI not run (draft) · open: PRF-1 (major) · to user: PRF-1, UX-2, MNT-2 · follow-up: CON-2's scroll to the top on a jump between two entries of one list
+Gate PASS · CI see PR · open: none · to user: UX-2, MNT-2, PRF-1's selection-scroll part (D-7), the wheel step's feel · follow-up (home asked): CON-2's scroll to the top on a jump between two entries of one list
