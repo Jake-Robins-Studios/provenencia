@@ -364,6 +364,8 @@ private struct ThrowingStore: GenealogyStore {
     func listSources(projectDir _: String, sourceIDs _: [String]) async throws -> [CatalogSource] {
         throw StoreBoom.boom
     }
+    func getDraftMetadataBoard(projectDir _: String, sourceID _: String, level _: Level) async throws
+        -> [CatalogMetadataEntry] { throw StoreBoom.boom }
     func getSourceWorkspace(projectDir _: String, sourceID _: String) async throws -> CatalogSourceWorkspace {
         throw StoreBoom.boom
     }
@@ -542,7 +544,7 @@ private struct ThrowingStore: GenealogyStore {
         copyIcon _: Bool,
         copyDescription _: Bool,
         copyFormats _: Bool,
-        levels _: [Level]
+        copySuggestions _: Bool
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) { throw StoreBoom.boom }
     func citationFormats(projectDir _: String, typeID _: String) async throws -> CatalogCitationFormatsReply {
         throw StoreBoom.boom
@@ -572,19 +574,17 @@ private struct ThrowingStore: GenealogyStore {
         userID _: String,
         typeID _: String
     ) async throws -> CatalogWriteEffects { .empty }
-    func listTypeSuggestions(projectDir _: String, typeID _: String, level _: Level) async throws
+    func listTypeSuggestions(projectDir _: String, typeID _: String) async throws
         -> [CatalogTypeSuggestion] { throw StoreBoom.boom }
     func assignTypeField(
         projectDir _: String,
         typeID _: String,
-        fieldID _: String,
-        level _: Level
+        fieldID _: String
     ) async throws -> CatalogTypeSuggestionEdit { throw StoreBoom.boom }
     func removeTypeField(
         projectDir _: String,
         typeID _: String,
-        fieldID _: String,
-        level _: Level
+        fieldID _: String
     ) async throws -> CatalogTypeSuggestionEdit { throw StoreBoom.boom }
     func listMetadataFields(projectDir _: String) async throws -> [CatalogMetadataField] { throw StoreBoom.boom }
     func createMetadataField(

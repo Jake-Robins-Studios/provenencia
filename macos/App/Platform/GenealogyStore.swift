@@ -1304,9 +1304,8 @@ struct CatalogSourceType: Sendable, Equatable, Identifiable {
     /// 0 — the engine refuses otherwise (`sourcetypes.in_use`). Only
     /// `listSourceTypes` and `updateSourceType` populate it.
     var usedBy: Int = 0
-    /// How many metadata fields this type suggests at all three levels —
-    /// the list's third column, so browsing never fetches every type's join
-    /// rows. Only
+    /// How many metadata fields this type suggests, each once — the list's
+    /// third column, so browsing never fetches every type's join rows. Only
     /// `listSourceTypes` and `updateSourceType` populate it.
     var suggestedFieldCount: Int = 0
 }
@@ -1445,9 +1444,9 @@ extension [CatalogSourceType] {
     }
 }
 
-/// One `source_type_metadata_fields` join row: a field a type suggests at a
-/// level, in its stored order. Suggestions are not a schema — a source of the
-/// type may leave any of them blank.
+/// One `source_type_metadata_fields` join row: a field a type suggests, in its
+/// stored order; every board of a Source of the type offers it. Suggestions are
+/// not a schema — a source of the type may leave any of them blank.
 struct CatalogTypeSuggestion: Sendable, Equatable, Identifiable {
     var field: CatalogMetadataField
     var sortOrder: Int
@@ -1455,8 +1454,8 @@ struct CatalogTypeSuggestion: Sendable, Equatable, Identifiable {
     var id: String { field.id }
 }
 
-/// What an assign or remove of a type's suggested field answers: the list at
-/// that level after the write, and the engine's suggested-field count for the
+/// What an assign or remove of a type's suggested field answers: the type's
+/// list after the write, and the engine's suggested-field count for the
 /// type (`CatalogSourceType.suggestedFieldCount`), so no caller derives the
 /// count from the list.
 struct CatalogTypeSuggestionEdit: Sendable, Equatable {
@@ -1648,6 +1647,11 @@ protocol GenealogyStore: Sendable {
     /// order, an id that is no longer a Source adding no row. No ids reads every Source.
     func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource]
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace
+    /// The board a new Artifact (`level: .artifact`) or Evidence graph (`.graph`) starts with on this
+    /// Source: its type's suggestions, empty, then the fields the type's citation formats head there.
+    /// The engine's read (`GetDraftMetadataBoard`), so no caller builds the rows itself.
+    func getDraftMetadataBoard(projectDir: String, sourceID: String, level: Level) async throws
+        -> [CatalogMetadataEntry]
     /// Creates a Source in one audited write and returns it with the write's effects.
     func createSource(
         projectDir: String,
@@ -1837,7 +1841,7 @@ protocol GenealogyStore: Sendable {
     ) async throws -> (CatalogSourceType, CatalogWriteEffects)
     /// Starts a new `user` type from `typeID`, with the parts chosen, in one
     /// audited write: its icon, description, citation formats (as stored), and
-    /// the suggested fields at each of `levels`, in order. The key is minted from
+    /// the suggested fields when `copySuggestions`, in order. The key is minted from
     /// `label` as `createSourceType` does. Sources of the type and their values
     /// are never copied. The reply's type carries `suggestedFieldCount`.
     func copySourceType(
@@ -1848,7 +1852,7 @@ protocol GenealogyStore: Sendable {
         copyIcon: Bool,
         copyDescription: Bool,
         copyFormats: Bool,
-        levels: [Level]
+        copySuggestions: Bool
     ) async throws -> (CatalogSourceType, CatalogWriteEffects)
     /// A type's three citation formats. A stored text that does not parse comes
     /// back as stored.
@@ -1889,28 +1893,24 @@ protocol GenealogyStore: Sendable {
         userID: String,
         typeID: String
     ) async throws -> CatalogWriteEffects
-    /// A type's suggested fields at one level, in order. The engine refuses a
-    /// level that holds no metadata (`.citation`) with `sourcevocab.invalid`.
-    func listTypeSuggestions(projectDir: String, typeID: String, level: Level) async throws
+    /// A type's suggested fields, in order: one list per type.
+    func listTypeSuggestions(projectDir: String, typeID: String) async throws
         -> [CatalogTypeSuggestion]
-    /// Attaches an existing field to a type at the end of its order at one
-    /// level. Assigning a field the type already suggests there is a no-op.
-    /// Returns that level's whole suggestion list so the caller never
-    /// re-derives order, and the type's suggested-field count.
+    /// Attaches an existing field to a type at the end of its order. Assigning
+    /// a field the type already suggests is a no-op. Returns the type's whole
+    /// suggestion list so the caller never re-derives order, and the type's
+    /// suggested-field count.
     func assignTypeField(
         projectDir: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit
-    /// Detaches a field from a type at one level — the join row only. The field
-    /// stays in the vocabulary, its rows at other levels stay, and sources
-    /// already carrying a value for it keep it.
+    /// Detaches a field from a type — the join row only. The field stays in the
+    /// vocabulary, and sources already carrying a value for it keep it.
     func removeTypeField(
         projectDir: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit
     func listMetadataFields(projectDir: String) async throws -> [CatalogMetadataField]
     /// `key` is never accepted from the caller — the engine mints it as a

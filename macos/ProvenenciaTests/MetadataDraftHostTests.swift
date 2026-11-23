@@ -46,11 +46,11 @@ struct MetadataDraftHostTests {
     /// T-13: after the owner's write the board's baseline moves to what it shows.
     @Test func markSavedMovesTheBaseline() async throws {
         let host = MetadataDraftHost(
-            entries: MetadataDraftHost.unsavedRows(from: [
-                CatalogTypeSuggestion(field: provider, sortOrder: 0),
-                CatalogTypeSuggestion(field: url, sortOrder: 1),
-                CatalogTypeSuggestion(field: roll, sortOrder: 2),
-            ]),
+            entries: [
+                CatalogMetadataEntry(field: provider, valueText: "", hasValue: false, suggested: true, sortOrder: 0),
+                CatalogMetadataEntry(field: url, valueText: "", hasValue: false, suggested: true, sortOrder: 1),
+                CatalogMetadataEntry(field: roll, valueText: "", hasValue: false, suggested: true, sortOrder: 2),
+            ],
             fields: [provider, url, roll, film]
         )
         _ = host.set(fieldID: "provider", valueText: "Ancestry")
@@ -202,16 +202,6 @@ struct MetadataDraftHostTests {
         let reordered = [a, b].reordered(by: ["roll", "x", "roll"])
         #expect(ids(reordered) == ["roll", "provider"])
         #expect(reordered.map(\.sortOrder) == [0, 1])
-    }
-
-    @Test func unsavedRowsAreTheTypesSuggestions() {
-        let rows = MetadataDraftHost.unsavedRows(from: [
-            CatalogTypeSuggestion(field: provider, sortOrder: 0),
-            CatalogTypeSuggestion(field: url, sortOrder: 1),
-        ])
-        #expect(ids(rows) == ["provider", "url"])
-        #expect(rows.allSatisfy { $0.suggested && !$0.hasValue && $0.valueText.isEmpty })
-        #expect(MetadataDraftHost.unsavedRows(from: []).isEmpty)
     }
 
     @Test func addRowConfirmsOnlyWhenFilled() async {

@@ -16,41 +16,24 @@ struct SourceTypeCopyModelTests {
         return type
     }
 
-    private func suggestions(_ count: Int) -> [CatalogTypeSuggestion] {
-        (0..<count).map {
-            CatalogTypeSuggestion(field: catalogMetadataField("f\($0)", label: "Field \($0)"), sortOrder: $0)
-        }
-    }
-
     private let allForms = CatalogCitationFormats(typeID: "t1", full: "{source.title}", short: "{source.title}", list: "{source.title}")
 
-    /// A model over `original` with the three lists read; the formats are read by the test.
+    /// A model over `original` (which suggests `suggested` fields: the type row's count); the
+    /// formats are read by the test.
     private func makeModel(
         store: FakeStore = FakeStore(),
         original: CatalogSourceType? = nil,
-        source: Int = 4,
-        artifact: Int = 3,
-        graph: Int = 5,
+        suggested: Int = 21,
         formats: CatalogCitationFormats? = nil
     ) async -> (SourceTypeCopyModel, WorkspaceSession) {
-        let type = original ?? self.original()
+        var type = original ?? self.original()
+        type.suggestedFieldCount = suggested
         store.sourceTypesByProject[projectDir] = [type]
-        store.suggestionsByLevel = [
-            .source: [type.id: suggestions(source)],
-            .artifact: [type.id: suggestions(artifact)],
-            .graph: [type.id: suggestions(graph)],
-        ]
         store.citationFormatsByType[type.id] = CatalogCitationFormatsReply(formats: formats ?? allForms)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let handle: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         await waitForQuery(handle)
         let model = SourceTypeCopyModel(original: type, session: session, userID: userID, store: store)
-        for level in Level.metadataLevels {
-            let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: type.id, level: level)
-            if let levelHandle: QueryHandle<[CatalogTypeSuggestion]> = session.queryHandle(key) {
-                await waitForQuery(levelHandle)
-            }
-        }
         return (model, session)
     }
 
@@ -61,6 +44,7 @@ struct SourceTypeCopyModelTests {
         return created
     }
 
+    /// T-9: four ticks, the Suggested fields one counted from the type row.
     @Test func prefillsBlankLabelAndEveryTick() async {
         let (model, _) = await makeModel()
         await model.loadFormats()
@@ -69,35 +53,36 @@ struct SourceTypeCopyModelTests {
         #expect(model.choices.includeIcon)
         #expect(model.choices.includeDescription)
         #expect(model.choices.includeFormats)
-        #expect(model.choices.includedLevels == Set(Level.metadataLevels))
+        #expect(model.choices.includeSuggestions)
         #expect(!model.isDirty)
         #expect(model.loadState == .ready)
         #expect(!model.canCopy)
         #expect(model.iconHint == L10n.string(PVMarkKey.typeScroll.typePickerTitle))
         #expect(model.formsPresent == [.full, .short, .list])
-        #expect(model.levelHint(.artifact) == L10n.SourceTypes.assignedCount(count: 3))
+        #expect(model.suggestionsAvailable)
+        #expect(model.suggestionsHint == L10n.SourceTypes.assignedCount(count: 21))
     }
 
     @Test func absentPartsReadUntickedAndAreNotSent() async {
         let store = FakeStore()
         let (model, _) = await makeModel(
-            store: store, original: original(description: ""), source: 2, artifact: 0, graph: 0,
+            store: store, original: original(description: ""), suggested: 0,
             formats: CatalogCitationFormats(typeID: "t1", full: "", short: "", list: "")
         )
         await model.loadFormats()
-        _ = scriptCopy(store, count: 2)
+        _ = scriptCopy(store, count: 0)
         model.editLabel("Letter copy")
 
         #expect(!model.descriptionAvailable)
         #expect(!model.formatsAvailable)
-        #expect(model.levelsToCopy == [.source])
+        #expect(!model.suggestionsAvailable)
         #expect(await model.copy() != nil)
 
         let call = store.copySourceTypeCalls.first
         #expect(call?.copyIcon == true)
         #expect(call?.copyDescription == false)
         #expect(call?.copyFormats == false)
-        #expect(call?.levels == [.source])
+        #expect(call?.copySuggestions == false)
     }
 
     @Test func copySendsTickedPartsAndPatchesTheList() async {
@@ -106,8 +91,6 @@ struct SourceTypeCopyModelTests {
         await model.loadFormats()
         let created = scriptCopy(store)
         model.editLabel("  State census ")
-        model.choices.includedLevels.remove(.artifact)
-
         #expect(model.canCopy)
         let got = await model.copy()
 
@@ -115,7 +98,7 @@ struct SourceTypeCopyModelTests {
         #expect(store.copySourceTypeCalls == [
             CopySourceTypeCall(
                 projectDir: projectDir, userID: userID, typeID: "t1", label: "State census",
-                copyIcon: true, copyDescription: true, copyFormats: true, levels: [.source, .graph]
+                copyIcon: true, copyDescription: true, copyFormats: true, copySuggestions: true
             ),
         ])
         #expect(session.sourceType(id: "t9")?.suggestedFieldCount == 12)
@@ -137,7 +120,7 @@ struct SourceTypeCopyModelTests {
         #expect(call?.copyIcon == false)
         #expect(call?.copyDescription == false)
         #expect(call?.copyFormats == false)
-        #expect(call?.levels == Level.metadataLevels)
+        #expect(call?.copySuggestions == true)
     }
 
     @Test func aBlankOrUnslugifiableLabelCannotBeCopied() async {
@@ -178,18 +161,18 @@ struct SourceTypeCopyModelTests {
         let gone = CoreInvokeError.coded(status: 1, code: "sourcetypes.invalid", kind: .user, params: [])
         store.copySourceTypeError = gone
         model.editLabel("State census")
-        model.choices.includedLevels.remove(.graph)
+        model.choices.includeSuggestions = false
 
         #expect(await model.copy() == nil)
 
         #expect(model.copyError == L10n.Errors.message(for: gone))
         #expect(model.labelCheck.error == nil)
         #expect(model.choices.draft.label == "State census")
-        #expect(model.choices.includedLevels == [.source, .artifact])
+        #expect(!model.choices.includeSuggestions)
         #expect(!model.isSaving)
     }
 
-    @Test func formatsReadFailureThenReadAgain() async {
+    @Test func aFailedFormatsReadFailsTheSheetAndReloads() async {
         let store = FakeStore()
         let (model, _) = await makeModel(store: store)
         store.citationFormatsError = CopyBoom.boom
@@ -199,6 +182,7 @@ struct SourceTypeCopyModelTests {
             Issue.record("expected a failed read, got \(model.loadState)")
             return
         }
+
         model.editLabel("State census")
         #expect(!model.canCopy)
 
@@ -210,28 +194,8 @@ struct SourceTypeCopyModelTests {
 
         #expect(model.loadState == .ready)
         #expect(model.formatsAvailable)
+        #expect(model.suggestionCount == 21)
         #expect(model.canCopy)
-    }
-
-    @Test func aFailedListReadFailsTheSheetAndReloads() async {
-        let store = FakeStore()
-        store.listTypeSuggestionsError = CopyBoom.boom
-        store.listTypeSuggestionsErrorLevels = [.artifact]
-        let (model, session) = await makeModel(store: store)
-        await model.loadFormats()
-
-        guard case .failed = model.loadState else {
-            Issue.record("expected a failed read, got \(model.loadState)")
-            return
-        }
-
-        store.listTypeSuggestionsError = nil
-        model.reload()
-        let key = CatalogQueryKey.typeSuggestions(project: session.projectKey, typeId: "t1", level: .artifact)
-        if let handle: QueryHandle<[CatalogTypeSuggestion]> = session.queryHandle(key) { await waitForQuery(handle) }
-
-        #expect(model.loadState == .ready)
-        #expect(model.suggestionCount(at: .artifact) == 3)
     }
 
     @Test func cannotCopyWhileReading() async {
@@ -259,7 +223,7 @@ struct SourceTypeCopyModelTests {
         model.choices.includeIcon = false
         #expect(model.isDirty)
         model.choices.includeIcon = true
-        model.choices.includedLevels.remove(.source)
+        model.choices.includeSuggestions = false
         #expect(model.isDirty)
     }
 }

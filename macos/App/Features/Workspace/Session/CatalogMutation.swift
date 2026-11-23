@@ -33,11 +33,11 @@ enum CatalogMutation: Sendable, Equatable {
     case deletedMetadataField(id: String)
 
     /// Add or remove a suggested field on a type's page. The join is not audited and
-    /// reports no effects, so the mutation carries the reply: the written level's
-    /// suggestions and the type's count over all three levels, which `CatalogQueryPatch.typeSuggestions()` and
+    /// reports no effects, so the mutation carries the reply: the type's
+    /// one suggestion list and its count, which `CatalogQueryPatch.typeSuggestions()` and
     /// `.typeSuggestionCount()` write into the cache with no reload. Every cached Source
     /// page derives its suggested rows from the type, so each is marked stale.
-    case wroteTypeSuggestions(typeId: String, level: Level, edit: CatalogTypeSuggestionEdit)
+    case wroteTypeSuggestions(typeId: String, edit: CatalogTypeSuggestionEdit)
 
     /// Bust-only: a Save carried citation formats. Every Source page derives which
     /// fields its type's formats need from them, so each cached page is marked stale.

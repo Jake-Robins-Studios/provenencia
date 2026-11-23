@@ -1901,14 +1901,14 @@ struct SourcePageModelTests {
     private let artifactURLField = catalogMetadataField("url", label: "URL")
     private let artifactAccessedField = catalogMetadataField("accessed", label: "Accessed")
 
-    /// The census whose type suggests Provider, URL and Accessed at the `artifact` level.
+    /// The census whose draft board for a new Artifact is Provider, URL and Accessed, empty and suggested.
     private func makeSuggestingCensus() async -> (model: SourcePageModel, store: FakeStore, session: WorkspaceSession) {
         let fields = [artifactProviderField, artifactURLField, artifactAccessedField]
         let census = await makeCensus(fields: fields)
-        census.store.suggestionsByLevel[.artifact, default: [:]]["t1"] = [
-            CatalogTypeSuggestion(field: artifactProviderField, sortOrder: 0),
-            CatalogTypeSuggestion(field: artifactURLField, sortOrder: 1),
-            CatalogTypeSuggestion(field: artifactAccessedField, sortOrder: 2),
+        census.store.draftMetadataBoardEntries["\(sourceID)/artifact"] = [
+            catalogMetadataEntry(artifactProviderField, suggested: true, order: 0),
+            catalogMetadataEntry(artifactURLField, suggested: true, order: 1),
+            catalogMetadataEntry(artifactAccessedField, suggested: true, order: 2),
         ]
         return census
     }
@@ -1924,26 +1924,27 @@ struct SourcePageModelTests {
         }
     }
 
-    @Test func addOpensTheSheetWithTheTypesArtifactSuggestions() async throws {
+    @Test func addArtifactStartsFromTheDraftBoard() async throws {
         let (model, store, _) = await makeSuggestingCensus()
         let sheet = try await openAddSheet(model)
         #expect(sheet.isCreate)
         #expect(sheet.board.entries.map(\.field.id) == ["provider", "url", "accessed"])
         #expect(sheet.board.entries.allSatisfy { $0.suggested && !$0.hasValue && $0.valueText.isEmpty })
-        #expect(store.listTypeSuggestionsLevels == [.artifact])
+        #expect(store.draftMetadataBoardCalls.map(\.level) == [.artifact])
+        #expect(store.draftMetadataBoardCalls.map(\.sourceID) == [sourceID])
         #expect(!sheet.canSave)
         #expect(sheet.subtitle == "SRC-AAAAA · Family album")
 
-        // A type with no `artifact` suggestions opens an empty board.
+        // A draft board with no entries opens an empty board.
         let (bare, _, _) = await makeCensus(fields: [artifactProviderField])
         let bareSheet = try await openAddSheet(bare)
         #expect(bareSheet.board.entries.isEmpty)
     }
 
-    @Test func aFailedSuggestionReadOpensNoSheet() async {
+    @Test func aFailedDraftBoardReadOpensNoSheet() async {
         let (model, store, _) = await makeSuggestingCensus()
         let error = CoreInvokeError.failed(status: 3)
-        store.listTypeSuggestionsError = error
+        store.draftMetadataBoardError = error
         let opened = await model.artifacts.openAdd()
         #expect(opened == nil)
         #expect(model.artifacts.sheet == nil)
@@ -2471,18 +2472,18 @@ struct SourcePageModelTests {
     @Test func anEditSheetOpenedDuringTheReadIsKept() async throws {
         let (model, store, _) = await makeCensus()
         model.artifacts.sheet = nil
-        store.listTypeSuggestionsHold.isOn = true
+        store.draftMetadataBoardHold.isOn = true
         let firstOpen = Task { await model.artifacts.openAdd() }
-        await store.listTypeSuggestionsHold.untilSuspended(1)
+        await store.draftMetadataBoardHold.untilSuspended(1)
         #expect(!model.acceptsArtifactPageDrop)
         let secondOpen = Task { await model.artifacts.openAdd() }
         // A second open must not start its own read.
-        #expect(!(await waitUntil(timeout: .milliseconds(300)) { store.listTypeSuggestionsHold.count == 2 }))
+        #expect(!(await waitUntil(timeout: .milliseconds(300)) { store.draftMetadataBoardHold.count == 2 }))
 
         model.artifacts.openSheet(artifactID: "P3")
         let edit = model.artifacts.sheet
-        store.listTypeSuggestionsHold.release()
-        store.listTypeSuggestionsHold.release()
+        store.draftMetadataBoardHold.release()
+        store.draftMetadataBoardHold.release()
 
         #expect(await secondOpen.value == nil)
         #expect(await firstOpen.value == nil)
@@ -2493,14 +2494,14 @@ struct SourcePageModelTests {
     @Test func artifactPencilDuringGraphAddReadKeepsOneForm() async throws {
         let (model, store, _) = await makeCensus()
         model.artifacts.sheet = nil
-        store.listTypeSuggestionsHold.isOn = true
+        store.draftMetadataBoardHold.isOn = true
         let graphOpen = Task { await model.graphs.openAdd() }
-        await store.listTypeSuggestionsHold.untilSuspended(1)
+        await store.draftMetadataBoardHold.untilSuspended(1)
 
         model.artifacts.openSheet(artifactID: "P3")
         let edit = model.artifacts.sheet
         #expect(edit != nil)
-        store.listTypeSuggestionsHold.release()
+        store.draftMetadataBoardHold.release()
 
         #expect(await graphOpen.value == nil)
         #expect(model.graphs.form == nil)

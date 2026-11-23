@@ -10,7 +10,7 @@ extension PVColumnSplit {
 }
 
 /// One Source type's page (S15-48, S15-D27): a pinned header with Delete, Details (Label, Icon,
-/// Description, Save, Revert) or the locked note on a plugin's type, and the Source-level suggested
+/// Description, Save, Revert) or the locked note on a plugin's type, and the one list of suggested
 /// fields beside them, on Page columns. It mounts once per type, so the draft belongs to one type;
 /// it leaves for the list when the type is gone, and asks before leaving with unsaved details.
 struct SourceTypePageView: View {
@@ -288,18 +288,14 @@ private struct SourceTypePageContent: View {
         CatalogMetadataField(id: "f7", key: "line", origin: CatalogOrigin.provenencia, label: "Line", dataType: "text", description: ""),
     ]
     store.fieldsByProject[projectDir] = fields + artifactFields + graphFields
-    store.suggestionsByLevel[.source] = ["t1": [
+    store.suggestionsByType = ["t1": [
         CatalogTypeSuggestion(field: fields[0], sortOrder: 0),
         CatalogTypeSuggestion(field: fields[2], sortOrder: 1),
         CatalogTypeSuggestion(field: fields[1], sortOrder: 2),
-    ]]
-    store.suggestionsByLevel[.artifact] = ["t1": [
-        CatalogTypeSuggestion(field: artifactFields[0], sortOrder: 0),
-        CatalogTypeSuggestion(field: artifactFields[1], sortOrder: 1),
-    ]]
-    store.suggestionsByLevel[.graph] = ["t1": [
-        CatalogTypeSuggestion(field: graphFields[0], sortOrder: 0),
-        CatalogTypeSuggestion(field: graphFields[1], sortOrder: 1),
+        CatalogTypeSuggestion(field: artifactFields[0], sortOrder: 3),
+        CatalogTypeSuggestion(field: artifactFields[1], sortOrder: 4),
+        CatalogTypeSuggestion(field: graphFields[0], sortOrder: 5),
+        CatalogTypeSuggestion(field: graphFields[1], sortOrder: 6),
     ]]
     store.suggestedFieldCounts["t1"] = 7
     store.citationFormatsByType["t1"] = CatalogCitationFormatsReply(formats: CatalogCitationFormats(

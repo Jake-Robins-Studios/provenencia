@@ -118,6 +118,7 @@ enum CoreMethod {
     static let setSourceDate = Int32(Provenencia_Engine_V1_Method.setSourceDate.rawValue)
     static let setSourcePublic = Int32(Provenencia_Engine_V1_Method.setSourcePublic.rawValue)
     static let getMetadataBoard = Int32(Provenencia_Engine_V1_Method.getMetadataBoard.rawValue)
+    static let getDraftMetadataBoard = Int32(Provenencia_Engine_V1_Method.getDraftMetadataBoard.rawValue)
     static let searchCatalog = Int32(Provenencia_Engine_V1_Method.searchCatalog.rawValue)
     static let createSubject = Int32(Provenencia_Engine_V1_Method.createSubject.rawValue)
     static let updateSubject = Int32(Provenencia_Engine_V1_Method.updateSubject.rawValue)

@@ -313,7 +313,7 @@ extension CatalogQueryKey.Kind {
                 refreshes: [.applyHiddenPolicyOnAny(follows: .list(.sourceVocabulary))],
                 load: { key, store in
                     return try await store.listTypeSuggestions(
-                        projectDir: key.project.projectDir, typeID: key.suggestionsTypeId, level: key.suggestionsLevel
+                        projectDir: key.project.projectDir, typeID: key.id
                     )
                 }
             )

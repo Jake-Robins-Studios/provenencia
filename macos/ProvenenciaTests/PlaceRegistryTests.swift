@@ -88,9 +88,7 @@ struct PlaceRegistryTests {
         #expect(place?.queryKeys == [
             .sourceTypesList(project: project),
             .metadataFieldsList(project: project),
-            .typeSuggestions(project: project, typeId: "typ-1", level: .source),
-            .typeSuggestions(project: project, typeId: "typ-1", level: .artifact),
-            .typeSuggestions(project: project, typeId: "typ-1", level: .graph),
+            .typeSuggestions(project: project, typeId: "typ-1"),
         ])
     }
 
@@ -200,9 +198,7 @@ struct PlaceRegistryTests {
                 [
                     .sourceTypesList(project: project),
                     .metadataFieldsList(project: project),
-                    .typeSuggestions(project: project, typeId: "t1", level: .source),
-                    .typeSuggestions(project: project, typeId: "t1", level: .artifact),
-                    .typeSuggestions(project: project, typeId: "t1", level: .graph),
+                    .typeSuggestions(project: project, typeId: "t1"),
                 ]
             ),
             (

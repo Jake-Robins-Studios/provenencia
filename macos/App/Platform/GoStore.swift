@@ -135,6 +135,20 @@ struct GoStore: GenealogyStore {
         return resp.sources.map(Self.mapSource)
     }
 
+    func getDraftMetadataBoard(projectDir: String, sourceID: String, level: Level) async throws
+        -> [CatalogMetadataEntry]
+    {
+        var req = Provenencia_Engine_V1_GetDraftMetadataBoardRequest()
+        req.projectDir = projectDir
+        req.sourceID = sourceID
+        req.level = level.rawValue
+        let resp: Provenencia_Engine_V1_GetDraftMetadataBoardResponse = try await provenenciaCall(
+            method: CoreMethod.getDraftMetadataBoard,
+            request: req
+        )
+        return resp.entries.map(Self.mapMetadataEntry)
+    }
+
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace {
         var req = Provenencia_Engine_V1_GetSourceWorkspaceRequest()
         req.projectDir = projectDir
@@ -734,7 +748,7 @@ struct GoStore: GenealogyStore {
         copyIcon: Bool,
         copyDescription: Bool,
         copyFormats: Bool,
-        levels: [Level]
+        copySuggestions: Bool
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
         var req = Provenencia_Engine_V1_CopySourceTypeRequest()
         req.projectDir = projectDir
@@ -744,7 +758,7 @@ struct GoStore: GenealogyStore {
         req.copyIcon = copyIcon
         req.copyDescription = copyDescription
         req.copyFormats = copyFormats
-        req.levels = levels.map(\.rawValue)
+        req.copySuggestions = copySuggestions
         let resp: Provenencia_Engine_V1_CopySourceTypeResponse = try await provenenciaCall(
             method: CoreMethod.copySourceType,
             request: req
@@ -908,13 +922,12 @@ struct GoStore: GenealogyStore {
         return Self.mapWriteEffects(resp.effects)
     }
 
-    func listTypeSuggestions(projectDir: String, typeID: String, level: Level) async throws
+    func listTypeSuggestions(projectDir: String, typeID: String) async throws
         -> [CatalogTypeSuggestion]
     {
         var req = Provenencia_Engine_V1_ListTypeSuggestionsRequest()
         req.projectDir = projectDir
         req.typeID = typeID
-        req.level = level.rawValue
         let resp: Provenencia_Engine_V1_ListTypeSuggestionsResponse = try await provenenciaCall(
             method: CoreMethod.listTypeSuggestions,
             request: req
@@ -925,14 +938,12 @@ struct GoStore: GenealogyStore {
     func assignTypeField(
         projectDir: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit {
         var req = Provenencia_Engine_V1_AssignTypeFieldRequest()
         req.projectDir = projectDir
         req.typeID = typeID
         req.fieldID = fieldID
-        req.level = level.rawValue
         let resp: Provenencia_Engine_V1_AssignTypeFieldResponse = try await provenenciaCall(
             method: CoreMethod.assignTypeField,
             request: req
@@ -946,14 +957,12 @@ struct GoStore: GenealogyStore {
     func removeTypeField(
         projectDir: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit {
         var req = Provenencia_Engine_V1_RemoveTypeFieldRequest()
         req.projectDir = projectDir
         req.typeID = typeID
         req.fieldID = fieldID
-        req.level = level.rawValue
         let resp: Provenencia_Engine_V1_RemoveTypeFieldResponse = try await provenenciaCall(
             method: CoreMethod.removeTypeField,
             request: req

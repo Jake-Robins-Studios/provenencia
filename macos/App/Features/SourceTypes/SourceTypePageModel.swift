@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// State for one Source type's page (S15-48): its saved row, the Details draft, Save and Revert,
-/// the suggested fields it assigns and removes at each of the three levels, and Delete. The page mounts once per
+/// the one list of suggested fields it assigns and removes, and Delete. The page mounts once per
 /// type (`PlaceRegistry` `viewIdentity`), so the draft belongs to one type. It reads the type from
 /// the session's types list and writes through the declared patches (`.updatedSourceType`,
 /// `.deletedSourceType`, `.wroteTypeSuggestions`); the list model never edits.
@@ -23,18 +23,17 @@ final class SourceTypePageModel {
     /// The label of a copy whose move to its page the leave guard is holding; nil otherwise.
     private var heldCopyLabel: String?
 
-    /// The one suggestion write in flight, across all three lists.
+    /// The one suggestion write in flight.
     enum SuggestionWrite: Equatable {
-        case assigning(Level)
-        case removing(Level, fieldID: String)
+        case assigning
+        case removing(fieldID: String)
     }
 
-    /// The field picked in each list's picker, by level; absent or empty means none.
-    var assignPicks: [Level: String] = [:]
+    /// The field picked in the picker; empty means none.
+    var assignPick: String = ""
     private(set) var suggestionWrite: SuggestionWrite?
-    /// A failed suggestion write's message, by the level it was at (read failures live on the
-    /// level's query handle).
-    private(set) var suggestionErrors: [Level: String] = [:]
+    /// A failed suggestion write's message (a read failure lives on the list's query handle).
+    private(set) var suggestionError: String?
 
     let deleteImpact = DeleteImpactFlow()
     var pendingImpact: PVDeleteImpactRequest? {
@@ -74,24 +73,22 @@ final class SourceTypePageModel {
 
     private var fieldsKey: CatalogQueryKey { .metadataFieldsList(project: session.projectKey) }
 
-    private func suggestionsKey(at level: Level) -> CatalogQueryKey {
-        .typeSuggestions(project: session.projectKey, typeId: typeID, level: level)
+    private var suggestionsKey: CatalogQueryKey {
+        .typeSuggestions(project: session.projectKey, typeId: typeID)
     }
 
     /// Starts the reads the page shows: the types list, the Metadata fields (the assign pool) and
-    /// this type's suggestions at each level.
+    /// this type's suggestions.
     func warm() {
         let _: QueryHandle<[CatalogSourceType]> = session.query(session.sourceTypesKey)
         let _: QueryHandle<[CatalogMetadataField]> = session.query(fieldsKey)
-        for key in CatalogQueryKey.typeSuggestionsKeys(project: session.projectKey, typeId: typeID) {
-            let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(key)
-        }
+        let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestionsKey)
     }
 
     var typesHandle: QueryHandle<[CatalogSourceType]>? { session.sourceTypesHandle }
 
-    func suggestionsHandle(at level: Level) -> QueryHandle<[CatalogTypeSuggestion]>? {
-        session.queryHandle(suggestionsKey(at: level))
+    var suggestionsHandle: QueryHandle<[CatalogTypeSuggestion]>? {
+        session.queryHandle(suggestionsKey)
     }
 
     /// Reads the types list again after a failure (Try again).
@@ -99,9 +96,9 @@ final class SourceTypePageModel {
         let _: QueryHandle<[CatalogSourceType]> = session.reread(session.sourceTypesKey)
     }
 
-    /// Reads one level's suggestions again after a failure (Try again).
-    func rereadSuggestions(at level: Level) {
-        let _: QueryHandle<[CatalogTypeSuggestion]> = session.reread(suggestionsKey(at: level))
+    /// Reads the suggestions again after a failure (Try again).
+    func rereadSuggestions() {
+        let _: QueryHandle<[CatalogTypeSuggestion]> = session.reread(suggestionsKey)
     }
 
     // MARK: The type
@@ -136,9 +133,9 @@ final class SourceTypePageModel {
         type.map { CatalogOrigin.isPlugin($0.origin) } ?? false
     }
 
-    /// The level's loaded suggestions in stored order; empty until it loads.
-    func suggestions(at level: Level) -> [CatalogTypeSuggestion] {
-        suggestionsHandle(at: level)?.value ?? []
+    /// The loaded suggestions in stored order; empty until they load.
+    var suggestions: [CatalogTypeSuggestion] {
+        suggestionsHandle?.value ?? []
     }
 
     var fields: [CatalogMetadataField] {
@@ -275,107 +272,99 @@ final class SourceTypePageModel {
         type != nil && !isLocked
     }
 
-    /// True once the level's list has been read: its picker and plus show, and nothing is assigned
+    /// True once the list has been read: its picker and plus show, and nothing is assigned
     /// against a list that has not.
-    func isLoaded(at level: Level) -> Bool {
-        if case .loaded? = suggestionsHandle(at: level)?.reading { return true }
+    var isLoaded: Bool {
+        if case .loaded? = suggestionsHandle?.reading { return true }
         return false
     }
 
-    /// The vocabulary fields not yet in the level's list, by label.
-    func assignPool(at level: Level) -> [CatalogMetadataField] {
-        let assigned = Set(suggestions(at: level).map(\.field.id))
+    /// The vocabulary fields not yet in the list, by label.
+    var assignPool: [CatalogMetadataField] {
+        let assigned = Set(suggestions.map(\.field.id))
         return fields
             .filter { !assigned.contains($0.id) }
             .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
     }
 
-    func pickedField(at level: Level) -> CatalogMetadataField? {
-        guard let pick = assignPicks[level], !pick.isEmpty else { return nil }
-        return assignPool(at: level).first { $0.id == pick }
+    var pickedField: CatalogMetadataField? {
+        guard !assignPick.isEmpty else { return nil }
+        return assignPool.first { $0.id == assignPick }
     }
 
-    func canAssign(at level: Level) -> Bool {
-        isLoaded(at: level) && pickedField(at: level) != nil && suggestionWrite == nil && canEditAssociations
+    var canAssign: Bool {
+        isLoaded && pickedField != nil && suggestionWrite == nil && canEditAssociations
     }
 
-    /// Whether a row's remove may run: no write is in flight, at any level.
+    /// Whether a row's remove may run: no write is in flight.
     var canRemove: Bool {
         suggestionWrite == nil && canEditAssociations
     }
 
-    /// The type's level phrase ("on each Artifact of Census Sources").
-    private func levelPhrase(_ level: Level, type: CatalogSourceType) -> String {
-        L10n.format(L10n.SourceTypes.level(level).phrase, type.label)
-    }
-
-    func assignTooltip(at level: Level) -> String {
-        if assignPool(at: level).isEmpty { return L10n.string(L10n.SourceTypes.assignTipPoolEmpty) }
-        guard let field = pickedField(at: level), let type else {
+    var assignTooltip: String {
+        if assignPool.isEmpty { return L10n.string(L10n.SourceTypes.assignTipPoolEmpty) }
+        guard let field = pickedField, let type else {
             return L10n.string(L10n.SourceTypes.assignTipChoose)
         }
-        return L10n.SourceTypes.assignTipField(label: field.label, phrase: levelPhrase(level, type: type))
+        return L10n.SourceTypes.assignTipField(label: field.label, type: type.label)
     }
 
-    func assignAccessibilityLabel(at level: Level) -> String {
-        // The page draws its lists once the type is known, so the picker's own label is a fallback.
-        guard let type else { return L10n.string(L10n.SourceTypes.level(level).pickerLabel) }
-        let phrase = levelPhrase(level, type: type)
-        guard let field = pickedField(at: level) else {
-            return L10n.SourceTypes.assignField(phrase: phrase)
+    var assignAccessibilityLabel: String {
+        // The page draws its list once the type is known, so the picker's own label is a fallback.
+        guard let type else { return L10n.string(L10n.SourceTypes.suggestedPickerLabel) }
+        guard let field = pickedField else {
+            return L10n.SourceTypes.assignField(type: type.label)
         }
-        return L10n.SourceTypes.assignFieldNamed(field: field.label, phrase: phrase)
+        return L10n.SourceTypes.assignFieldNamed(field: field.label, type: type.label)
     }
 
-    /// A row's remove button label: it names the field and the list.
-    func removeLabel(for field: CatalogMetadataField, at level: Level) -> String {
+    /// A row's remove button label: it names the field and the type.
+    func removeLabel(for field: CatalogMetadataField) -> String {
         guard let type else { return field.label }
-        return L10n.SourceTypes.removeSuggestion(label: field.label, phrase: levelPhrase(level, type: type))
+        return L10n.SourceTypes.removeSuggestion(label: field.label, type: type.label)
     }
 
-    func assignPickedField(at level: Level) async {
-        guard canAssign(at: level), let type, let field = pickedField(at: level) else { return }
-        suggestionWrite = .assigning(level)
-        suggestionErrors[level] = nil
+    func assignPickedField() async {
+        guard canAssign, let type, let field = pickedField else { return }
+        suggestionWrite = .assigning
+        suggestionError = nil
         defer { suggestionWrite = nil }
         do {
             let updated = try await store.assignTypeField(
-                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: field.id, level: level
+                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: field.id
             )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, level: level, edit: updated))
-            assignPicks[level] = ""
+            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
+            assignPick = ""
             session.toasts.add(
                 tone: .success,
                 title: L10n.string(L10n.SourceTypes.toastAssignedTitle),
-                message: L10n.SourceTypes.toastAssignedBody(
-                    field: field.label, phrase: levelPhrase(level, type: type)
-                )
+                message: L10n.SourceTypes.toastAssignedBody(field: field.label, type: type.label)
             )
         } catch {
-            suggestionErrors[level] = L10n.Errors.message(for: error)
+            suggestionError = L10n.Errors.message(for: error)
         }
     }
 
-    func removeSuggestion(fieldID: String, level: Level) async {
+    func removeSuggestion(fieldID: String) async {
         guard canRemove, let type else { return }
-        guard let field = suggestions(at: level).first(where: { $0.field.id == fieldID })?.field else { return }
-        suggestionWrite = .removing(level, fieldID: fieldID)
-        suggestionErrors[level] = nil
+        guard let field = suggestions.first(where: { $0.field.id == fieldID })?.field else { return }
+        suggestionWrite = .removing(fieldID: fieldID)
+        suggestionError = nil
         defer { suggestionWrite = nil }
         do {
             let updated = try await store.removeTypeField(
-                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID, level: level
+                projectDir: session.projectKey.projectDir, typeID: type.id, fieldID: fieldID
             )
-            session.apply(.wroteTypeSuggestions(typeId: type.id, level: level, edit: updated))
+            session.apply(.wroteTypeSuggestions(typeId: type.id, edit: updated))
             session.toasts.add(
                 tone: .info,
                 title: L10n.string(L10n.SourceTypes.toastRemovedTitle),
                 message: L10n.SourceTypes.toastRemovedBody(
-                    field: field.label, phrase: levelPhrase(level, type: type), valueCount: field.usedBy
+                    field: field.label, type: type.label, valueCount: field.usedBy
                 )
             )
         } catch {
-            suggestionErrors[level] = L10n.Errors.message(for: error)
+            suggestionError = L10n.Errors.message(for: error)
         }
     }
 

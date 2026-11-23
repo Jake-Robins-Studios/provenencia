@@ -95,15 +95,15 @@ final class SourceArtifactsSection {
         )
     }
 
-    /// Opens the Artifact sheet in add mode, its copy details board starting as the Source type's
-    /// `artifact` suggestions, empty. Answers the sheet, or nil when none opened: one is open or
-    /// opening, or the suggestion read failed (the page banner shows the message).
+    /// Opens the Artifact sheet in add mode, its copy details board starting as the draft board
+    /// (the Source type's suggestions, empty). Answers the sheet, or nil when none opened: one is
+    /// open or opening, or the draft board read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> ArtifactSheetModel? {
-        guard let suggestions = await context.readSuggestionsForAdd(level: .artifact) else { return nil }
+        guard let entries = await context.readDraftBoardForAdd(level: .artifact) else { return nil }
         let created = ArtifactSheetModel(
             context: context,
-            mode: .create(suggestions: suggestions),
+            mode: .create(entries: entries),
             opensAt: .top,
             onSaved: sheetSaved()
         )

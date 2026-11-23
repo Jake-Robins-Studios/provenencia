@@ -7077,7 +7077,7 @@
       }
     },
     "sourceTypes.list.columnFields": {
-      "comment": "Source types list column header: how many metadata fields the type suggests at all three levels",
+      "comment": "Source types list column header: how many metadata fields the type suggests, each once",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7313,25 +7313,25 @@
       }
     },
     "sourceTypes.suggested.assignField": {
-      "comment": "Spoken label for the plus button when no field is picked yet; argument is the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Spoken label for the plus button when no field is picked yet; argument is the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suggest a field %@"
+            "value": "Suggest a field for %@ Sources"
           }
         }
       }
     },
     "sourceTypes.suggested.assignFieldNamed": {
-      "comment": "Spoken label for the plus button; arguments are the picked field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Spoken label for the plus button; arguments are the picked field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suggest %1$@ %2$@"
+            "value": "Suggest %1$@ for %2$@ Sources"
           }
         }
       }
@@ -7373,13 +7373,13 @@
       }
     },
     "sourceTypes.suggested.assignTipField": {
-      "comment": "Tooltip on the enabled assign button; arguments are the picked field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Tooltip on the enabled assign button; arguments are the picked field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suggest %1$@ %2$@"
+            "value": "Suggest %1$@ for %2$@ Sources"
           }
         }
       }
@@ -7397,7 +7397,7 @@
       }
     },
     "sourceTypes.suggested.count": {
-      "comment": "Count beside one suggestion list's title; argument is how many fields that list holds",
+      "comment": "Count beside the suggestion list's title, and on the Copy source type sheet's tick; argument is how many fields the type suggests",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7420,188 +7420,8 @@
         }
       }
     },
-    "sourceTypes.suggested.level.source.title": {
-      "comment": "Title of a Source type page's list of fields suggested on the Source itself",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On the Source"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.source.meaning": {
-      "comment": "Under the Source-level suggestion list's title: what the Source level holds",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The record as a whole"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.source.empty": {
-      "comment": "Body of the notice shown when a type suggests no fields on the Source",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Source fields yet. Assign the fields these records usually carry."
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.source.pickerLabel": {
-      "comment": "Accessibility label for the Source-level assign-field combo box",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Metadata field to assign on the Source"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.source.phrase": {
-      "comment": "Whole phrase naming the Source-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "on each %@ Source"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.title": {
-      "comment": "Title of a Source type page's list of fields suggested on each Artifact of its Sources",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On each Artifact"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.meaning": {
-      "comment": "Under the Artifact-level suggestion list's title: what an Artifact is",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The copy you used: an image, a scan, a transcript"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.empty": {
-      "comment": "Body of the notice shown when a type suggests no fields on its Artifacts",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Artifact fields yet. Assign what you note about each copy, such as its provider or URL."
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.pickerLabel": {
-      "comment": "Accessibility label for the Artifact-level assign-field combo box",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Metadata field to assign on each Artifact"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.phrase": {
-      "comment": "Whole phrase naming the Artifact-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "on each Artifact of %@ Sources"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.title": {
-      "comment": "Title of a Source type page's list of fields suggested on each Evidence graph of its Sources",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On each Evidence graph"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.meaning": {
-      "comment": "Under the Evidence-graph-level suggestion list's title: what an Evidence graph is",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "One item in the record: a household, an entry"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.empty": {
-      "comment": "Body of the notice shown when a type suggests no fields on its Evidence graphs",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No Evidence graph fields yet. Assign what you note about each item, such as its line or household."
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.pickerLabel": {
-      "comment": "Accessibility label for the Evidence-graph-level assign-field combo box",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Metadata field to assign on each Evidence graph"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.phrase": {
-      "comment": "Whole phrase naming the Evidence-graph-level list of a type; argument is the type label. Ends the sentences assignField, assignTipField, assignFieldNamed, remove, assignedBody, removedBodyNoValues and removedBodyWithValues. No article agrees with the label",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "on each Evidence graph of %@ Sources"
-          }
-        }
-      }
-    },
     "sourceTypes.suggested.listLabel": {
-      "comment": "Spoken label for one suggestion list on a Source type page; arguments are the list's title then how many fields it holds",
+      "comment": "Spoken label for the suggestion list on a Source type page; arguments are the list's title then how many fields it holds",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7659,7 +7479,7 @@
       }
     },
     "sourceTypes.suggested.poolHint": {
-      "comment": "Hint once under the suggested fields section hint naming where every list's pool comes from",
+      "comment": "Hint once under the suggested fields section hint naming where the list's pool comes from",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7671,7 +7491,7 @@
       }
     },
     "sourceTypes.suggested.poolHintEmpty": {
-      "comment": "Hint under one list's picker when nothing is left to assign to that list",
+      "comment": "Hint under the list's picker when nothing is left to assign to the list",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7683,13 +7503,13 @@
       }
     },
     "sourceTypes.suggested.remove": {
-      "comment": "Accessibility label and tooltip on the control that detaches one suggested field; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Accessibility label and tooltip on the control that detaches one suggested field; arguments are the field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stop suggesting %1$@ %2$@"
+            "value": "Stop suggesting %1$@ for %2$@ Sources"
           }
         }
       }
@@ -7707,13 +7527,13 @@
       }
     },
     "sourceTypes.toast.assignedBody": {
-      "comment": "Toast body after attaching a field to a type's list; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Toast body after attaching a field to a type's list; arguments are the field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ is now suggested %2$@."
+            "value": "%1$@ is now suggested for %2$@ Sources."
           }
         }
       }
@@ -7731,25 +7551,25 @@
       }
     },
     "sourceTypes.toast.removedBodyNoValues": {
-      "comment": "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the list's level phrase (see sourceTypes.suggested.level.*.phrase)",
+      "comment": "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary."
+            "value": "%1$@ is no longer suggested for %2$@ Sources. The field stays in this project’s vocabulary."
           }
         }
       }
     },
     "sourceTypes.toast.removedBodyWithValues": {
-      "comment": "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the list's level phrase (see sourceTypes.suggested.level.*.phrase), then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format",
+      "comment": "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the type's label, then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ is no longer suggested %2$@. The field stays in this project’s vocabulary, and the %#@records@."
+            "value": "%1$@ is no longer suggested for %2$@ Sources. The field stays in this project’s vocabulary, and the %#@records@."
           },
           "substitutions": {
             "records": {
@@ -24281,42 +24101,6 @@
         }
       }
     },
-    "sourceTypes.suggested.level.source.copyTick": {
-      "comment": "Label of the Copy source type tick for the type's source-level suggested fields; its hint is the field count",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggested fields on the Source"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.artifact.copyTick": {
-      "comment": "Label of the Copy source type tick for the type's artifact-level suggested fields; its hint is the field count",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggested fields on each Artifact"
-          }
-        }
-      }
-    },
-    "sourceTypes.suggested.level.graph.copyTick": {
-      "comment": "Label of the Copy source type tick for the type's graph-level suggested fields; its hint is the field count",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggested fields on each Evidence graph"
-          }
-        }
-      }
-    },
     "sources.page.notesCount": {
       "comment": "Notes section count; argument is note count",
       "extractionState": "manual",
@@ -25819,6 +25603,54 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.meaning": {
+      "comment": "Italic line under a Source type page's suggested fields hint: where the type's suggestions show",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offered on every Source, Artifact and Evidence graph of this type"
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.empty": {
+      "comment": "Body of the notice shown when a type suggests no fields",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No suggested fields yet. Assign the fields these records usually carry."
+          }
+        }
+      }
+    },
+    "sourceTypes.suggested.pickerLabel": {
+      "comment": "Accessibility label for the assign-field combo box",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata field to suggest"
+          }
+        }
+      }
+    },
+    "sourceTypes.copy.suggestions": {
+      "comment": "Label of the Copy source type tick for the type's suggested fields; its hint is the field count",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggested fields"
           }
         }
       }
