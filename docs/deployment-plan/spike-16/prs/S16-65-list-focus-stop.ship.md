@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** fixing — user manual check (re-plan)
+**State:** ready (re-plan) — the user re-runs §10 steps 1 and 5
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -136,3 +136,6 @@ Files: `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift`, `macos
 Failing test first: `PVPageKeysTests.edgeReachedOnlyAtTheEdge` *(new)* for a pure `PVPageKeys.edgeReached(visible: CGRect, document: CGRect, flipped: Bool, top: Bool) -> Bool` *(new)*: flipped, top: visible.minY ≤ document.minY + 0.5 → true, else false; flipped, bottom: visible.maxY ≥ document.maxY − 0.5 → true, else false; the unflipped mirrors (top is maxY). Cases: (visible y 0…500, document 0…5000, flipped, top) → true; same, bottom → false; (visible 4500…5000, document 0…5000, flipped, bottom) → true; (visible 4500…5000, document 0…9000, flipped, bottom) → false (the document grew); the unflipped mirror of the first and third.
 Do: `scrollToEdge(_:top:)` scrolls as today, then re-checks on later main-actor turns: `DispatchQueue.main.async` (no `Task` sleep), up to 10 passes in all, each pass calling `scrollView.layoutSubtreeIfNeeded()` then `edgeReached(visible: scrollView.contentView.bounds, document: doc.bounds, flipped: doc.isFlipped, top:)`; while it is false, scroll to the edge again with the document's current height. Stop at the first pass that is true, or after 10. A new key press while passes remain does not start a second chain over the first: keep one `@MainActor` generation counter on `PVPageKeys`; a pass whose generation is stale stops. `startsAtTopWhen` goes through the same function and gains the same settling. Record in the plan's Landed note: D-5's edge scroll settles over up to 10 main-actor turns because a lazy page's height is an estimate until its rows are built (user manual check).
 Check: the test passes; the user's §10 step 1 and step 5 on Persons: the first End after the list loads reaches the last row; scripts/check-pr.sh PASS.
+
+## Fix plan 2 — fix
+Head `65b82ed72`. Gate PASS (orchestrator). F-6 done: `PVPageKeys.edgeReached` (tested by `edgeReachedOnlyAtTheEdge`) and a settle of up to 10 main-actor passes with a generation counter; the first pass always scrolls. The new test failed by not compiling before the function existed. Orchestrator read the diff. The user's manual check of the first End after a list loads is owed.
