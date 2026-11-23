@@ -1,9 +1,9 @@
 # S15-64 — Boards show inherited values
 
-**Status:** Planned
+**Status:** Landed in [#959](https://github.com/Jake-Robins-Studios/provenencia/pull/959) (2026-11-23)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D33](../design/S15-D33-inherited-values.md), board drawn 2026-11-23
+**Brief:** [S15-D33](../design/archive/S15-D33-inherited-values.md), board drawn 2026-11-23
 **Board:** [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Artifacts* frames `d33-sheet`, `d33-override`, `d33-overridden`, `d33-marks`, `sheet-add`; page *Evidence graphs* frame `d33-gf`; the S15-D33 spec note (the brief's **Board** line lists the rest). The implementer can open the link; D-11 and D-12 describe what it draws
 **Depends on:** S15-63 (landed [#955](https://github.com/Jake-Robins-Studios/provenencia/pull/955)), S15-D33
 **Blocks:** S15-56, S15-66
@@ -362,6 +362,15 @@ Use a project with a **Census** Source "1880 census, Calder County" holding Prov
 ## 12. Open questions
 
 None.
+
+## Landed
+
+- The version is 0.37.0 (`main` was 0.36.0 when the branch was cut).
+- `Nearest` takes a `uuid.UUID` (D-1), not the `[]byte` the § 6 Go core table shows.
+- `metadataOverrides` and `metadataInheritedAccessibility` use numbered placeholders (`%1$@: %2$@`) because `check-localizable-xcstrings.py` requires it for several arguments; the wording is the board's.
+- T-2's dismissed-suggestion case dismisses `schedule` (valued on the Source), not Provider: Provider is a needed head under T-2's formats, and a needed field cannot be dismissed.
+- T-12: 1,906,144 ns/op on an Apple M1 (about 1.9 ms; budget 100 ms). The benchmark looks the census type up with `sourcetypes.Lookup` because `seededType` stays a `*testing.T` helper.
+- **The board was not opened and § 10 was not run.** The row follows D-11, D-12 and the brief as written; the Swift tests check the models and the draft host, not the drawn row.
 
 ## 13. PR
 
