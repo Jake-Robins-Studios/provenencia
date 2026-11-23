@@ -3022,6 +3022,30 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		}
 	})
 
+	t.Run("a valued unsuggested head is annotated once", func(t *testing.T) {
+		census := seededType(t, c, "census")
+		item := seededField(t, c, "item")
+		if err := sourcevocab.DeleteSuggestion(c, census.ID, item.ID); err != nil {
+			t.Fatal(err)
+		}
+		src := newSource(t, c, userID, census.ID, "1920 census")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: item.ID, ValueText: "Roll 4"}); err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, e := range boardOf(t, c, sourceOwner(src.ID)).Entries {
+			if e.Field.Key == "item" {
+				n++
+				if e.Value == nil || e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
+					t.Errorf("item = %+v, want a valued unsuggested head, used", e)
+				}
+			}
+		}
+		if n != 1 {
+			t.Errorf("item comes out %d times", n)
+		}
+	})
+
 	t.Run("the line-number type", func(t *testing.T) {
 		l := newLedger(t, c, userID)
 		note := func() Annotation {
