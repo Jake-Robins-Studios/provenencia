@@ -4,7 +4,7 @@
 **Rounds:** 1. **Reviewers:** maintainability, executability
 
 ## To user
-- SO-4 (open or closed at first) and SO-W1 (Wide) are picked on the board.
+- SO-4: answered 2026-11-23, every Source starts closed. SO-W1 (Wide) is picked on the board.
 - Filling the pane at Wide reverses the 2026-11-10 decision for this list (M-7); judged on the board.
 
 ## Writer's own calls

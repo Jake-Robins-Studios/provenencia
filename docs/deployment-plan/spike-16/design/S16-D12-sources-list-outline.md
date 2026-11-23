@@ -79,7 +79,7 @@ Replace the Sources list's caption band, rows and graph buttons. Keep the header
 
 The Sources list shows each Source with its Evidence graphs in a column of buttons, so a row grows with its graphs, and the list has no selection and no arrow keys. It moves onto the **native macOS list**, as the Persons, Events and Places lists did, and is redrawn in the platform's own pattern for this data: an **outline**. Each Source is a row; each of its Evidence graphs is a thinner, indented row under it, as a folder's files are in Finder's list view.
 
-**The one thing that must hold** (user, 2026-11-23): from the Sources list the researcher can go directly to every Evidence graph. Nothing else about today's row must be preserved.
+**The one thing that must hold** (user, 2026-11-23): from the Sources list the researcher can reach every Evidence graph: opening its Source first is fine. Nothing else about today's row must be preserved.
 
 **What stays.** The header and toolbar; sort and filter; what opens (a Source's page, a graph's canvas); Copy… on a Source; the empty, filter-empty and failure copy.
 
@@ -100,7 +100,7 @@ The Sources list shows each Source with its Evidence graphs in a column of butto
 | Size | Hundreds to several thousand Sources |
 | Opening | Double-click a row, or select it and press Return: a Source row opens the Source page, a graph row opens its canvas. Back returns with the row opened from selected and in view |
 | Keyboard | The platform's ↑/↓ cross Source and graph rows alike; Page Up/Down scroll a screen without moving the selection (S16-D13). The app adds Home and End (scroll, no selection change). → opens a closed Source and ← closes it, or moves from a graph row to its Source; **expected**, proven in S16-66 |
-| Right-click | Source row: Open, Copy…. Graph row: Open, disabled when it has no Artifact. Under SO-4 (b) a **closed** Source also lists Open for each graph (`Open <graph name>`, in row order, a graph with no Artifact disabled; left out while the graph list loads or after it fails). Opening from a menu selects that row first, so Back returns to it |
+| Right-click | Source row: Open, Copy…. Graph row: Open, disabled when it has no Artifact. A **closed** Source also lists Open for each graph (`Open <graph name>`, in row order, a graph with no Artifact disabled; left out while the graph list loads or after it fails). Opening from a menu selects that row first, so Back returns to it |
 
 ### 2.1 What the native list can and cannot draw
 
@@ -138,13 +138,13 @@ Stay inside this table. Rows marked * are S16-66's to prove, with the fallback g
 | SO-1 | **The page.** Header and toolbar as drawn today at the pane's gutter, then the list edge to edge across the pane and down to its bottom, as the Persons page. The caption band goes. The toolbar shows wherever it does today: not while first loading, on the whole-list failure, or in the empty catalog |
 | SO-2 | **Source row.** Cover, title over one secondary line (Type · published date; a missing one is left out, with its dot; Type truncates first), the updated column, the ref. A Persons row's geometry, with the triangle hanging in the gutter |
 | SO-3 | **Graph row.** Indented under its Source: glyph, name (truncates first), counts, status badge in one trailing column so the badges line up. **The board decides** one line or two, and its height: prefer the thinnest that reads well |
-| SO-4 | **Open or closed at first.** Draw both and let the user choose: **(a)** every Source open, with a triangle whenever it has a graph; **(b)** a Source with one graph always open with no triangle, and one with more closed. Under (b) a closed Source ends its secondary line with its summary (`8 graphs · 3 in progress`; all one status reads `8 graphs · Not started`; `8 graphs` alone while counts load or fail). Recommendation: (a), since a graph must be one step away |
+| SO-4 | **Closed at first** (user, 2026-11-23: one click to open is fine). Every Source starts closed, whether it has one graph or ten, with a triangle whenever it has a graph. A closed Source ends its secondary line with its summary, so statuses show without opening it: `1 graph · In progress`, `8 graphs · 3 in progress`, `8 graphs · Not started` when all are one status, `8 graphs` alone while counts load or fail. The summary never truncates; Type does first. An open Source drops the summary, since its rows say it |
 | SO-5 | **Toggling.** Clicking the triangle opens or closes one Source; ⌥-click sets every Source to the clicked one's new state. Draw open and closed |
 | SO-6 | **Selection.** A Source row and a graph row selected, focused and unfocused, light and dark. Selecting opens nothing |
 | SO-7 | **Opening.** Double-click or Return (§ 2). Caption on SO-6 |
 | SO-8 | **Cannot open.** A Source with no Artifact: no graph row or triangle; its secondary line ends `· Needs an artifact`, which never truncates. A graph with no Artifact: a faint row, `Needs an artifact to open` in its counts slot, no badge. Return and double-click do nothing on that graph |
-| SO-9 | **Menu.** The right-click menus of § 2 (under (a): two short ones) |
-| SO-10 | **Loading and late counts.** Skeleton rows (a Source bar with a graph bar under it) filling the list area, also while a filter waits; a graph row whose counts are not in yet, badge slot held; one whose counts failed; one Source whose graph is not in the list yet |
+| SO-9 | **Menu.** The right-click menus of § 2 |
+| SO-10 | **Loading and late counts.** Skeleton Source rows filling the list area, also while a filter waits; a graph row whose counts are not in yet, badge slot held; one whose counts failed; one Source whose graph is not in the list yet |
 | SO-11 | **Failure and empty.** The failures of § 2; the whole-list failure (Callout at the top on the gutter); the empty catalog (centered, as Persons) and the no-match state with its Clear filters button (centered under the toolbar) |
 | SO-12 | **Arrival and Back.** The list has keyboard focus on arrival, nothing selected, at its top. Back selects the row opened from, in view, with its Source open. Caption only |
 | SO-W1 | **Wide.** Header, toolbar and list span the pane. Draw both: **(a)** the title takes the extra width, as Persons; **(b)** Type and Published become columns on the Source row. Recommendation: (a); the kit list has one detail column and (b) needs several. If the graph row's gap fails at 2296, its counts and badge sit next to the name |
@@ -162,14 +162,14 @@ Stay inside this table. Rows marked * are S16-66's to prove, with the fallback g
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| S1a / S1b | SO-1 – SO-4, SO-W1 | Regular 1102 × 900 and Wide 2296 × 1440, scrolled mid-list: mostly one-graph Sources, one with 8 graphs, one with none. Draw SO-4 (a) and (b) at Regular, and SO-W1 (a) and (b) at Wide under SO-4 (a) |
+| S1a / S1b | SO-1 – SO-4, SO-W1 | Regular 1102 × 900 and Wide 2296 × 1440, scrolled mid-list: mostly one-graph Sources, one with 8 graphs, one with none. Regular: every Source closed, then the same with the 8-graph Source and a one-graph Source open. Wide: SO-W1 (a) and (b), the same two open |
 | S2 | SO-5 – SO-8 | Crops: a Source open, closed and with no Artifact; a Source and a graph selected, focused and unfocused, light and dark; a graph with no Artifact; a 90-character title |
-| S3 | SO-9 | The two menus; under SO-4 (b), a closed Source's menu with eight graphs |
+| S3 | SO-9 | The Source menu open, and closed with eight graphs; the graph menu |
 | S4a / S4b | SO-10, SO-W2 | Loading; crops of the three graph-row states |
 | S5a / S5b | SO-11, SO-W2 | Graph list failure with and without a status filter; whole-list failure; empty; no match |
 | S6 | SO-2, SO-3 | Regular pane at 800 wide (a narrow window): nothing may overlap; the title and graph name truncate first |
 
-Beside S1a, note how many Sources are visible against the old frame: the row pair must be judged for length.
+Beside S1a, note how many Sources are visible against the old frame: the closed list must be judged for length, and the open one for reading.
 
 ---
 
@@ -189,7 +189,7 @@ Beside S1a, note how many Sources are visible against the old frame: the row pai
 | Status badge | Component | Ship | `PVBadge` (`EvidenceStatus`) | Keeps its colors on a selected row |
 | Disclosure triangle | Component | Ship | `PVIcon` chevron in a plain button, `.pvExpandedState` for VoiceOver | Not `PVDisclosureButton`, whose chevrons point down and up |
 | Right-click menu | Platform | Ship | the list's own context menu | Open, Copy…; per-graph Open only on a closed Source |
-| Loading rows | Component | Extend | `PVListSkeleton` | Graph-row skeletons under each |
+| Loading rows | Component | Extend | `PVListSkeleton` | Source rows only |
 | Empty, no match | Component | Ship | `PVEmptyState` | As today |
 | Failure | Component | Ship | `PVCallout` (`.danger`) with `.pvListPageMessage` | As Persons |
 
@@ -199,4 +199,4 @@ Beside S1a, note how many Sources are visible against the old frame: the row pai
 
 ## 7. Handoff
 
-When the board is agreed: record it on the **Board** line here and in [`README.md`](README.md), with each "the board decides" choice and the user's SO-4 and SO-W1 picks. The S16-66 plan copies SO-1 – SO-12, SO-W1 and SO-W2 into its Scope and the inventory into its Design, and proves the § 2 "expected" keys and the § 2.1 rows marked *. When S16-66 lands, this brief moves to `archive/`.
+When the board is agreed: record it on the **Board** line here and in [`README.md`](README.md), with each "the board decides" choice and the user's SO-W1 pick. The S16-66 plan copies SO-1 – SO-12, SO-W1 and SO-W2 into its Scope and the inventory into its Design, and proves the § 2 "expected" keys and the § 2.1 rows marked *. When S16-66 lands, this brief moves to `archive/`.
