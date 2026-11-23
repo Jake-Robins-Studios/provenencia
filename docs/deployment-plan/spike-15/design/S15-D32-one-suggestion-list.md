@@ -192,7 +192,7 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Page and its columns | Component | Ship | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` with `PVColumnSplit.sourceTypePage` (`macos/App/Features/SourceTypes/SourceTypePageView.swift`) | Unchanged widths |
-| Suggested fields section | Snowflake | Rethink | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` `SourceTypeSuggestedFields` | One view: header, hint, meaning, pool hint, rows, empty, spinner, retry, error, picker. The per-level list view goes |
+| Suggested fields section | Snowflake | Rethink | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` `SourceTypeSuggestedFields` (the file is renamed `SourceTypeSuggestedFields.swift` by S15-63) | One view: header, hint, meaning, pool hint, rows, empty, spinner, retry, error, picker. The per-level list view goes |
 | Section title and count | Component | Ship | `PVSectionHeader` (title + `meta`) | "Suggested fields" with "21 fields" trailing, as `ConclusionGallerySection` shows its count |
 | List header | Component | Remove | `PVSubsectionHeader` | No micro-caps list header in this section |
 | Rows | Component | Ship | `PVCard` + `PVDivider`, `CatalogFieldDataTypeBadge` | As today |

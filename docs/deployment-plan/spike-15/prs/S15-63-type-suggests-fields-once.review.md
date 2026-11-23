@@ -1,7 +1,7 @@
 # Review — S15-63 A type suggests fields once
 
-**Verdict:** Fits with changes — Ready with changes (round 1)
-**Rounds:** 1 (round 2 below). **Reviewers:** maintainability (Opus), executability (Sonnet). The brief S15-D32 was reviewed with the plan.
+**Verdict:** Fits with changes — Ready with changes; no open blocker
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet). The brief S15-D32 was reviewed with the plan.
 
 ## To user
 
@@ -86,4 +86,27 @@
 
 ## Round 2
 
-(pending)
+Fresh reviewers checked the round-1 answers against the code at `c57f2a1`. Maintainability: Fits with changes. Executability: Ready with changes. Both confirmed D-17's symbols (`GetDraftMetadataBoard`, `GoStore.mapMetadataEntry`, the Add-form callers) and that `sources.source_type_id` is NOT NULL.
+
+### M2-1 · blocker · Two readers of the suggestion list in one package
+**Answer:** Fixed — D-2: one batched `ListSuggestionsTx`; `ListSuggestions` wraps it; `sqlListSuggestions` and `listSuggestions` deleted.
+
+### M2 · round-1 answer M-3 rested on a wrong reason
+**Answer:** Fixed — D-18: Swift `Level.metadataLevels` stays under the working rule "One level type", not for owners or S15-54.
+
+### M2 · minor points
+**Answer:** Fixed — `getDraftMetadataBoard` (the `get*` convention); `readDraftBoardForAdd(level:)` and `.create(entries:)` with draft-board comments; `typeBoard` deleted for `map[typeLevel]levelNeeds`; the file renamed `SourceTypeSuggestedFields.swift`; the Edges line restated; sweep names and STEP-6/STEP-9 comment and doc lines added (`GenealogyStore.swift` 1307, 1449, 1459; `CatalogMutation.swift` 37; `seeded-vocabulary.md` 83).
+
+### X2-1 · blocker · Add-form "one read at a time" tests wait on a hold the new read never reaches
+**Answer:** Fixed — D-17 adds `draftMetadataBoardHold` and deletes `listTypeSuggestionsHold`; STEP-5 names the four tests that switch to it.
+
+### X2-2 · major · STEP-5 could not build without STEP-6's change
+**Answer:** Fixed — the Add-form step now comes first (STEP-5), then the store and cache (STEP-6).
+
+### X2-3 · minor · `typelessSourceOpensWithNoSuggestions`
+**Answer:** Fixed — deleted in STEP-5.
+
+### X2-4 · minor · Guards and existing Add tests
+**Answer:** Fixed — D-17 says the guards stay; STEP-5 maps each existing test to its rewrite; T-10 is a rename.
+
+Stop: round 2 done, no blocker open.
