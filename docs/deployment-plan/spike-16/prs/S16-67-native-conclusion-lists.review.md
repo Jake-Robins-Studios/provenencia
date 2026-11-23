@@ -1,7 +1,7 @@
 # Review — S16-67 The Persons, Events and Places lists are native lists
 
-**Verdict:** (round 2 pending)
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits with changes — Ready with changes. Every blocker Fixed; the M-11 fix (round 2) was checked by the writer against `WorkspaceNavigation.apply` and `noteListScroll`, not by a third reviewer (the loop stops at two rounds).
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - None.
@@ -11,6 +11,8 @@
 - **The Sources header loses 4 pt** under it (`space7` → `space6`) to share `VocabularyHeader`'s metrics, which CL-1 names (D-3).
 - **The failure Callout is capped at `PVSpacing.measureForm` (560 pt)** on the three Conclusion pages, not the board's 640 pt, which is no token (D-11). The other four list pages keep an uncapped Callout.
 - **A second click on the open list's sidebar item clears the selection** (AC-4.7), because that visit writes a nil anchor to history today, and the selection follows history (M-2).
+- **The selected row lives in navigation** (`WorkspaceNavigation.listAnchor`, observed), not in the list view (M-11).
+- **`PVWidthClass.fullPaneGutter`** is named for the lists that fill the pane, so it does not read as the page-wide Wide gutter.
 - **On-selection ink is the system's `alternateSelectedControlTextColor`**, not `PVColor.textInverse`, which is near-black in dark appearance (D-4).
 - **Version: minor, 0.35.0**, for the changed interaction on three pages.
 
@@ -83,3 +85,38 @@ A coalesced sidebar visit writes a nil anchor; the plan's once-only restore woul
 
 ### X-12 · minor · Smaller choices
 **Answer:** Fixed — a Stop condition for row animation; D-2 says a single-selection list hands at most one id and opens the first; STEP-8 gives a five-line format including the separator branch; `completed.md` paths made full. The Sources header's 4 pt stays a manual check (§10 step 5).
+
+## Round 2
+
+Executability: Ready with changes, no new blocker. Maintainability: Fits with changes, one new blocker (M-11).
+
+### M-11 · blocker · D-7 (2) watches a value that does not change on the common coalesced visit
+`noteListScroll` writes only the `@ObservationIgnored` pending anchor, never `currentLocation`; a sidebar click on the open list goes from nil to nil, so `.onChange(of: anchor)` never fires and the drawn selection and history disagree. T-4 as written passed at the base and never drove the modifier. Also: a click during a refetch would be overwritten by a later once-only restore.
+**Answer:** Fixed — D-7, D-8: navigation owns the selection. The pending anchor becomes `listAnchor` (`private(set)`, observed), which `apply` resets on every commit; `ConclusionListBody` binds `PVList`'s selection to it (get `listAnchor`, set `noteListAnchor`). `ListSelectionAnchorModifier` only clears an anchor whose row is gone once the read settles. T-4 rewritten to fail at the base (`theListAnchorIsTheSelectionAndFollowsHistory`); Reach rows, STEP-5 and STEP-6 updated. Checked: `WorkspaceNavigation.apply` sets the pending anchor from the entry for every list-root commit (`WorkspaceNavigation.swift:247`).
+
+### M-11 note · `PVWidthClass.pageGutter` reads as page-wide
+**Answer:** Fixed — renamed `fullPaneGutter` with a doc line; the Next adds no longer says `PVTable` reuses it.
+
+### X-13 · major · Return may not fire the primary action; no fallback
+**Answer:** Fixed — D-2 names the fallback (`.onKeyPress(.return)` opening the selection); STEP-3's check looks first.
+
+### X-14 · major · No Swift check can run off a Mac
+**Answer:** Fixed — a **Runs on** header line: the Swift checks need a Mac, STEP-8 and §10 a person.
+
+### X-15 · major · D-12's branch can only be chosen by running the app
+**Answer:** Fixed — D-12 and STEP-3's check: look at a separator in STEP-3, before STEP-4.
+
+### X-16 · major · The modifier's triggers
+**Answer:** Fixed by M-11 — the modifier has one job with named triggers (`.onChange(of: isSettled, initial: true)`, `.onChange(of: rowIDs)`); there is no restore and no report step left to order.
+
+### X-17 · major · T-4 passes at the base; the modifier has no test
+**Answer:** Fixed — T-4 now needs `listAnchor` (fails at the base) and covers the coalesced visit with no Back. The modifier's clear is `ListAnchor.resolved` (T-3) plus two `onChange` triggers; AC-4.5 stays a manual check.
+
+### X-18 · minor · The `PVList(` stop rule always trips
+**Answer:** Fixed — excludes `PVList.swift`.
+
+### X-19 · minor · STEP-6 names `PersonsListTests.swift` with no work
+**Answer:** Fixed — dropped from Files; the check says the list tests stay unchanged.
+
+### X-20 · minor · Smaller choices
+**Answer:** Fixed — the ink preview's row content; the skeleton's arguments (D-9); `PVTitleText`'s `.rowLink` gating (D-4); STEP-9's wording for § 9, the README List row and kit-layering line 35; D-1 lists the kept parameters; STEP-9 matches the map row's scope text to D-3 and D-7.
