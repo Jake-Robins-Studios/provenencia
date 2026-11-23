@@ -110,8 +110,8 @@ The first draft's D-8 put a `level == .source` branch in `SourcePageContext.appl
 
 ## To user
 
-- **R-1** (from M-3). The rule "A format reads a field from the nearest level that holds it" names `CitationValues.Resolve` as the one walker. D-1 moves the walk into `CitationValues.Nearest`, which `Resolve` calls, and the inherited value reads `Nearest` too. **Recommendation:** accept, and have STEP-9 rewrite the rule's sentences and the map row.
+- **R-1** (from M-3). The rule "A format reads a field from the nearest level that holds it" names `CitationValues.Resolve` as the one walker. D-1 moves the walk into `CitationValues.Nearest`, which `Resolve` calls, and the inherited value reads `Nearest` too. **Recommendation:** accept, and have STEP-9 rewrite the rule's sentences and the map row. **User (2026-11-23):** accepted as recommended.
 
 ## Verdict
 
-Two rounds are done, and no blocker is open. The plan stays **Blocked — on board S15-D33**: D-12 is filled once the board is agreed. R-1 waits on the user.
+Two rounds are done, and no blocker is open. The board was drawn on 2026-11-23 and D-12 is filled from it. R-1 is accepted. The plan is **Planned**.

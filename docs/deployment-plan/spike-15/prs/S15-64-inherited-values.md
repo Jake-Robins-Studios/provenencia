@@ -1,6 +1,6 @@
 # S15-64 — Boards show inherited values
 
-**Status:** Blocked — on R-1 (board drawn 2026-11-23)
+**Status:** Planned
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D33](../design/S15-D33-inherited-values.md), board drawn 2026-11-23
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** working rules "A board shows what its owner inherits", "A format reads a field from the nearest level that holds it", "One metadata board", "Metadata saves with its owner's write", "A value can be marked unknown or supplied", "Boards flag needed fields; the engine decides the rows"; [`source-layer-data-model.md` § 5.2](../../../source-layer-data-model.md); [`catalog-caches.md` § Swift caches](../../../catalog-caches.md#swift-caches)
 **Planned:** 2026-11-23 against `main` @ `3d8863a`
-**Review:** [`S15-64-inherited-values.review.md`](S15-64-inherited-values.review.md) — two rounds; no blocker open; R-1 To user; blocked on the board
+**Review:** [`S15-64-inherited-values.review.md`](S15-64-inherited-values.review.md) — two rounds; no blocker open; R-1 answered by the user (2026-11-23)
 
 ### Implementer — read this first
 
@@ -133,7 +133,7 @@ A citation reads each field from the nearest level that holds a value (S15-62), 
 | D-11 | Composition, pinned by the brief (IH-1, IH-2): an inherited row (no own value, `inherited` set) is `MetadataBoardSuggestionRow` whose value column is `PVInlineEdit` (the saved row's control, `axis: .horizontal`, `actionsStyle: .iconStack`). Its display is `MetadataValueText(text: displayText, …, lineLimit: 1, secondary: true, italic: isUnknown)` ("Unknown" when `displayText` is empty) with the caption "From {level}" on a second line under it; its pencil (`editLabel` "Override {field}") opens the editor; `restingTrailing` is the dismiss `PVIconButton`; the editor is `PVTextArea` as `MetadataBoardTextEditor`'s, empty, with the caption "Overrides {level}: {value}" under it; Save with text saves through `board.save` as a suggestion's save does; Save is disabled with no text; Escape and Cancel close it and drop the text, and the sheet's own Escape stands down while it is open (`PVInlineEdit`'s inner edit, as a saved row's). The row has no Save button or open `PVInput` at rest. A row without `inherited` is today's. A saved row with `inherited` shows the "Overrides" caption under `MetadataBoardTextEditor`, at rest and in edit. The three captions (the two new and the add row's taken notice) draw through one file-private `MetadataBoardCaption` *(new)* | The brief's IH-1 – IH-4 and inventory; one inline-edit control on the board (review M-11) | A prompt holding the inherited value — `PVInput.prompt` cannot hold a link, italics or hover help (review M-5); a click-to-open row — a second open mechanism; click-to-open on `PVInlineEdit` is a kit change for the board to propose (D-12) |
 | D-12 | The board (2026-11-23) as D-11, with: the label column muted on an inherited row as on an empty suggestion; "From Source" muted under the value, hidden from VoiceOver because the value's label already says "Inherited from Source: Ancestry"; the whole value on hover through `MetadataValueText`'s `.help` (the board's kit tooltip past 36 characters); the editor is the app's `PVInlineEdit` with `PVTextArea`, as saved rows are (the board draws an input with ✓ and ✕ for its own saved rows too, and its note records that); copy as § 6 Strings, unchanged. A later wish to open the row on a click rather than the pencil goes to the user as a `PVInlineEdit` option for every row | The agreed frames and the board's spec note | — |
 
-**Rules this plan bends.** One, pending the user (review R-1): the rule "A format reads a field from the nearest level that holds it" and the map's S15-64 row name `CitationValues.Resolve` as the one walker and the inherited value as "`Resolve` with the owner's own level left out". D-1 moves the walk into `Nearest`, which `Resolve` calls; the inherited value is `Nearest` on `Without(owner level)`. Recommended answer: accept, and STEP-9 rewrites the rule sentence and the map row to name `Nearest`.
+**Rules this plan bends.** One, accepted by the user (2026-11-23, review R-1): the rule "A format reads a field from the nearest level that holds it" and the map's S15-64 row name `CitationValues.Resolve` as the one walker and the inherited value as "`Resolve` with the owner's own level left out". D-1 moves the walk into `Nearest`, which `Resolve` calls; the inherited value is `Nearest` on `Without(owner level)`. Answer: accepted; STEP-9 rewrites the rule's sentences and the map row to name `Nearest`.
 
 ## 6. Design
 
@@ -358,11 +358,10 @@ Use a project with a **Census** Source "1880 census, Calder County" holding Prov
 - `registry["source_metadata"]` cannot take `Reads` because `metadataEffects` panics on it.
 - T-11 shows a reload resetting an open edit, or T-12 is over 100 ms.
 - The agreed board draws the inherited row differently from D-11 in kind (an input holding the value, a new row type), or needs a new kit primitive.
-- R-1 is not answered by the user.
 
 ## 12. Open questions
 
-- R-1 (To user): accept `Nearest` as the one walker and rewrite the rule sentence (§ 5 Rules this plan bends).
+None.
 
 ## 13. PR
 
