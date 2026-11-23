@@ -277,11 +277,12 @@ The same six rules are in the [`add-design-brief`](../.agents/skills/add-design-
 1. **The extra space does a job.** Show more at once: a second column of supporting content, the detail beside its list, more grid or table columns, an inspector docked open. If the view truly has nothing to add, center its content. Content jammed to one side with empty space beside it is never the Wide design.
 2. **Readable things keep their measure.** Prose, forms and the primary column keep their Regular maximum widths, unless the section opts into Page columns' full-width mode (`primaryFill`: at Wide, with no secondary, the primary fills the pane between the gutters and the header keeps its band; with `fillSplitSideMax` the primary and the band are the main-and-side group the page lays out inside it, as the Source page does); its text still keeps its measure. Wide adds columns; it does not stretch text or fields.
 3. **Fill the width only with something useful.** A list, table, grid or canvas takes the extra width when Wide has more to show in it: more columns, more cards, the detail beside the list. When it has nothing more to show, it keeps a maximum width (1600pt of content for a list) and is centered, with the page gutters outside it. Empty space stretched between a row's columns is never the Wide design. Cards keep their size and add columns. A table may show an optional column only from its own width, as the Source types list's Description does from 1200pt (`PVTableColumn.minTableWidth`, read through `PVWidthBreakpoints`); the width class still decides bands and page layout.
+
+The Persons, Events and Places lists fill the pane at every width (S16-67, user 2026-11-23): the selection and the clickable row run edge to edge.
+
 4. **Same content, same actions.** Width changes arrangement only. Anything in the Wide second column is stacked below, in an inspector, or behind a disclosure at Regular.
 5. **Crossing the line keeps state.** Selection, scroll position, focus and unsaved edits survive a resize across 1600.
 6. **Past every column's maximum, center the group.** Page gutters are never narrower than at Regular; they take what is left.
-
-The Persons, Events and Places lists fill the pane at every width (S16-67, user 2026-11-23): the selection and the clickable row run edge to edge.
 
 Rule 3's list maximum is a token, `PVSpacing.widthListWideMax` (1600pt of content, gutters outside; S15-04 adds it, and Promote's list reads it): a list whose Wide arrangement adds no column, or only a narrow one, centers at that width with hairlines at its sides through `pvListBand(_:)` (`Components/PageColumns/PVPageColumns.swift`), as the Sources and Source types lists do (S15-04, S15-49, user 2026-11-10: a list stretched across a 2296pt pane left a wide empty band between its title and its graphs).
 
