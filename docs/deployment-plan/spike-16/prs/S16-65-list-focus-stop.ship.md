@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** fixing 1
+**State:** review 2
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -37,3 +37,12 @@ Check: `rg -n "== PVListKeyboard.clampedIndex" macos/App` prints nothing; `PVLis
 Files: `docs/deployment-plan/spike-16/prs/S16-65-list-focus-stop.md`.
 Do: add to the Landed note, as S16-39 does: "the §10 manual check was not run by the implementer (no UI session); the user runs steps 1–5 before merge."
 Check: scripts/check-pr.sh PASS (plan-docs).
+
+## Round 1 — fix
+Head `c15277256` (code), `7e86b15e2` after the orchestrator's `completed.md` wording fix (it still said the ring is drawn at `clampedIndex`). Gate PASS. F-1, F-2, F-3 done in one commit (all touch `PVList.swift` or its plan). F-1 ran red first; F-2's test did not compile before `isFocusedRow`.
+- MNT-2 (minor): **Resolved** — `PVList`'s row and the preview read `PVListKeyboard.isFocusedRow`; `rg "== PVListKeyboard.clampedIndex" macos/App` prints nothing; README and modifier doc point at it.
+- CON-1 (minor): **Resolved** — the Landed note says §10 was not run and the user runs steps 1–5 before merge.
+- MNT-1 (major): to round 2.
+
+## Round 2 — review
+Reviewers: MNT (MNT-1 was a Fix-now major). Scope `8d444edb1...7e86b15e2`. Not sent: CON (minor only, resolved above), UX and SEC+PRF (no findings).
