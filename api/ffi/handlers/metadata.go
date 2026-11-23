@@ -308,11 +308,13 @@ func metadataEntriesProto(entries []sourcemetadata.WorkspaceEntry) []*engine.Met
 
 func metadataEntryProto(e sourcemetadata.WorkspaceEntry) *engine.MetadataWorkspaceEntry {
 	out := &engine.MetadataWorkspaceEntry{
-		Field:       metadataFieldProto(e.Field),
-		Suggested:   e.Suggested,
-		SortOrder:   int32(e.SortOrder),
-		OpenHref:    e.OpenHref(),
-		Requirement: requirementProto(e.Annotation),
+		Field:             metadataFieldProto(e.Field),
+		Suggested:         e.Suggested,
+		SortOrder:         int32(e.SortOrder),
+		OpenHref:          e.OpenHref(),
+		Requirement:       requirementProto(e.Annotation),
+		Inherited:         inheritedProto(e),
+		StaysWithoutValue: e.StaysWithoutValue,
 	}
 	if e.Value != nil {
 		out.HasValue = true
@@ -320,6 +322,20 @@ func metadataEntryProto(e sourcemetadata.WorkspaceEntry) *engine.MetadataWorkspa
 		out.Mark = valueMarkProto(e.Value.Mark)
 	}
 	return out
+}
+
+// inheritedProto is the value an entry's owner inherits as a citation prints it,
+// nil when nothing above the owner holds the field.
+func inheritedProto(e sourcemetadata.WorkspaceEntry) *engine.InheritedMetadataValue {
+	if e.Inherited == nil {
+		return nil
+	}
+	return &engine.InheritedMetadataValue{
+		DisplayText: citationformat.Display(sourcemetadata.CitationValue(*e.Inherited, e.Field)),
+		Mark:        valueMarkProto(e.Inherited.Mark),
+		Owner:       &engine.MetadataOwner{Level: string(e.Inherited.Owner.Level), Id: database.UUIDString(e.Inherited.Owner.ID)},
+		OpenHref:    e.InheritedOpenHref(),
+	}
 }
 
 // requirementProto is what the formats ask of a head as a wire requirement, nil

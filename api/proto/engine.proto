@@ -398,6 +398,18 @@ message MetadataWorkspaceEntry {
   ValueMark mark = 10; // set only when has_value; absent for a value with no mark
   // What the Source type's citation formats ask of this field; absent when they do not read it.
   CitationRequirement requirement = 11;
+  InheritedMetadataValue inherited = 12; // absent when nothing above the owner holds the field
+  bool stays_without_value = 13; // the board keeps this entry with no value of its own (suggested, or a head its formats read)
+}
+
+// InheritedMetadataValue is the value a board entry's owner inherits: the
+// nearest level above the owner that holds the field (sourcemetadata
+// CitationValues.Nearest), printed as a citation prints it.
+message InheritedMetadataValue {
+  string display_text = 1; // citationformat.Display; empty for an unknown value whose field has no unknown text
+  ValueMark mark = 2; // absent means no mark
+  MetadataOwner owner = 3; // the ancestor that holds it
+  string open_href = 4; // web link to open; empty when the value is not one
 }
 
 // CitationNeed is how much a citation format wants a value: needed (outside every

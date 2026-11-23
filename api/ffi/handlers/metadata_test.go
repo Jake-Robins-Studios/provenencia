@@ -533,3 +533,92 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 		}
 	})
 }
+
+// TestMetadataBoardInherited: the boards below a Source carry the Source's values
+// as inherited, printed as a citation prints them; the Source's own board
+// carries none.
+func TestMetadataBoardInherited(t *testing.T) {
+	m := newMetadataOwners(t)
+	source := sourceOwnerProto(m.sourceID)
+	set := func(owner *engine.MetadataOwner, fieldID, text string, mark *engine.ValueMark) {
+		t.Helper()
+		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+			ProjectDir: m.dir, UserId: m.userID, Owner: owner, FieldId: fieldID, ValueText: text, Mark: mark,
+		}, &engine.SetMetadataResponse{})
+	}
+	set(source, m.suggested, "Ancestry", nil)
+	set(source, m.extra, "Calder County", nil)
+
+	var ws engine.GetSourceWorkspaceResponse
+	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &ws)
+	for name, boards := range map[string][]*engine.MetadataBoard{"artifact": ws.GetArtifactMetadata(), "graph": ws.GetGraphMetadata()} {
+		if len(boards) == 0 {
+			t.Fatalf("no %s boards", name)
+		}
+		for _, b := range boards {
+			provider := metadataByField(b.GetEntries(), m.suggested)
+			in := provider.GetInherited()
+			if in.GetDisplayText() != "Ancestry" || in.GetOwner().GetLevel() != "source" || in.GetOwner().GetId() != m.sourceID ||
+				!provider.GetStaysWithoutValue() || provider.GetHasValue() {
+				t.Fatalf("%s board provider = %+v, want Ancestry inherited from the Source, kept", name, provider)
+			}
+			if extra := metadataByField(b.GetEntries(), m.extra); extra != nil {
+				t.Fatalf("%s board holds the Source's extra: %+v", name, extra)
+			}
+		}
+	}
+	if sb := boardEntries(t, m.dir, source); len(sb) == 0 {
+		t.Fatal("no Source board")
+	} else {
+		for _, e := range sb {
+			if e.GetInherited() != nil {
+				t.Fatalf("Source entry %+v inherits", e)
+			}
+		}
+	}
+
+	set(source, m.suggested, "Calder County", &engine.ValueMark{Supplied: true})
+	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &ws)
+	if in := metadataByField(ws.GetArtifactMetadata()[0].GetEntries(), m.suggested).GetInherited(); in.GetDisplayText() != "[Calder County]" || !in.GetMark().GetSupplied() {
+		t.Fatalf("a supplied Source value inherits as %+v, want [Calder County] marked supplied", in)
+	}
+
+	census := seededSourceOfType(t, m.dir, m.userID, "census")
+	censusOwner := sourceOwnerProto(census)
+	url := metadataByKey(boardEntries(t, m.dir, censusOwner), "url").GetField().GetId()
+	set(censusOwner, url, "https://example.org/calder/1880", nil)
+	for _, level := range []string{"artifact", "graph"} {
+		var draft engine.GetDraftMetadataBoardResponse
+		mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, SourceId: census, Level: level}, &draft)
+		e := metadataByKey(draft.GetEntries(), "url")
+		if e.GetInherited().GetDisplayText() != "https://example.org/calder/1880" || e.GetInherited().GetOpenHref() == "" ||
+			e.GetInherited().GetOwner().GetId() != census || !e.GetStaysWithoutValue() {
+			t.Fatalf("%s draft url = %+v, want the Source's link inherited", level, e)
+		}
+	}
+}
+
+// TestSetMetadataReportsInheritedValues: a Source's metadata value write reports
+// the inherited_values read for that Source; an Artifact's does not.
+func TestSetMetadataReportsInheritedValues(t *testing.T) {
+	m := newMetadataOwners(t)
+	reads := func(owner *engine.MetadataOwner) []*engine.WriteEffectsRead {
+		var set engine.SetMetadataResponse
+		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+			ProjectDir: m.dir, UserId: m.userID, Owner: owner, FieldId: m.suggested, ValueText: "Ancestry",
+		}, &set)
+		var out []*engine.WriteEffectsRead
+		for _, r := range set.GetEffects().GetReads() {
+			if r.GetRead() == "inherited_values" {
+				out = append(out, r)
+			}
+		}
+		return out
+	}
+	if got := reads(sourceOwnerProto(m.sourceID)); len(got) != 1 || !slices.Equal(got[0].GetIds(), []string{m.sourceID}) {
+		t.Fatalf("a Source write reports %v, want inherited_values for %s", got, m.sourceID)
+	}
+	if got := reads(m.artifact); len(got) != 0 {
+		t.Fatalf("an Artifact write reports %v, want no inherited_values", got)
+	}
+}
