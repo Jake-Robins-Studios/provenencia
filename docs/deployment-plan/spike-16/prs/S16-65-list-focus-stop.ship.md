@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** review 2 (re-plan)
+**State:** ready (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -114,3 +114,13 @@ Head `c1a2eec5a`. Gate PASS (orchestrator). F-1 – F-5 done in two commits. F-1
 
 ## Re-plan round 2 — review
 Reviewers: UX (UX-1), MNT (MNT-1, MNT-2). Scope `bca57a4a9...c1a2eec5a`. Not sent: CON (minors only), SEC+PRF (no findings).
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | major | (round 1) second key-code table | **Resolved** | one `PVKeyCode`; no numeric key-code literal left in `macos/App` |
+| MNT-2 | MNT | major | (round 1) README `moveIndex` callers | **Resolved** | README names the context menu and popup list only |
+| UX-1 | UX | major | (round 1) page scrolls behind an open popup | **Resolved** | watcher maps 116/121; context menu and open select consume them; closed select passes them |
+| UX-5 | UX (outside lens) | minor | A `PVActionMenu` with every item disabled passes `keyboard: nil`, so Page Up/Down and the arrows scroll the page behind it | Follow-up | `PVActionMenu.swift:107`; round 2 adds only blockers |
+
+## Result (re-plan)
+Gate PASS after merging `origin/main` (`dc609b731`) · CI see PR #951 · open: none · follow-ups: UX-5 · to user: — · owed: §10 manual check (steps 1–7)
