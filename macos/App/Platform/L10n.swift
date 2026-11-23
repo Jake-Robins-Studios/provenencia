@@ -5850,6 +5850,54 @@ enum L10n {
             ), field)
         }
 
+        /// Pencil on a board row that inherits its value. Argument is the field label.
+        static func overrideMetadataValueLabel(field: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.page.overrideMetadataValueLabel",
+                defaultValue: "Override %@",
+                comment: "VoiceOver label for the pencil on a metadata row that shows the value its owner inherits; argument is the field label"
+            ), field)
+        }
+
+        /// Caption under an inherited value. Argument is the level it comes from.
+        static func metadataInheritedFrom(level: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.page.metadataInheritedFrom",
+                defaultValue: "From %@",
+                comment: "Caption under a metadata value the owner inherits; argument is the level that holds it (Source)"
+            ), level)
+        }
+
+        /// Spoken value of an inherited row. Arguments are the level and the value.
+        static func metadataInheritedAccessibility(level: String, value: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.page.metadataInheritedAccessibility",
+                defaultValue: "Inherited from %1$@: %2$@",
+                comment: "VoiceOver value of a metadata row that shows the value its owner inherits; arguments are the level that holds it and the value"
+            ), level, value)
+        }
+
+        static let metadataInheritedHint = LocalizedStringResource(
+            "sources.page.metadataInheritedHint",
+            defaultValue: "Opens a field to type a value that overrides it",
+            comment: "VoiceOver hint on an inherited metadata value"
+        )
+
+        /// Caption under a value that overrides an inherited one. Arguments are the level and the value.
+        static func metadataOverrides(level: String, value: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.page.metadataOverrides",
+                defaultValue: "Overrides %1$@: %2$@",
+                comment: "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value and the value"
+            ), level, value)
+        }
+
+        static let metadataInheritedUnknown = LocalizedStringResource(
+            "sources.page.metadataInheritedUnknown",
+            defaultValue: "Unknown",
+            comment: "Shown for an inherited metadata value marked unknown whose field prints no unknown text"
+        )
+
         static let openMetadataURL = LocalizedStringResource(
             "sources.page.openMetadataURL",
             defaultValue: "Open in browser",

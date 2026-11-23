@@ -55,11 +55,14 @@ struct MetadataBoardView: View {
                             MetadataBoardSuggestionRow(
                                 accessibilityIdentifierPrefix: accessibilityIdentifierPrefix,
                                 entry: entry,
+                                isEditing: board.editingFieldID == entry.field.id,
                                 isSaving: board.savingFieldID == entry.field.id,
                                 error: board.fieldErrorID == entry.field.id
                                     ? board.fieldError
                                     : nil,
                                 onTyped: { board.setTyped($0, fieldID: entry.field.id) },
+                                onBeginEdit: { board.beginEdit(fieldID: entry.field.id) },
+                                onCancel: { board.cancelEdit() },
                                 onSave: { value in
                                     board.drafts[entry.field.id] = value
                                     Task { await board.save(fieldID: entry.field.id) }
@@ -187,9 +190,7 @@ private struct MetadataBoardAddRowView: View {
             if let error = board.addRow?.error, !error.isEmpty {
                 PVErrorText(error, size: .caption, announces: true)
             } else if let taken = board.addRow?.takenFieldLabel {
-                Text(L10n.Sources.metadataAddRowFieldTaken(field: taken))
-                    .font(PVFont.body(size: PVTypeScale.caption))
-                    .foregroundStyle(PVColor.textMuted)
+                MetadataBoardCaption(L10n.Sources.metadataAddRowFieldTaken(field: taken))
                     .pvAnnounce(L10n.Sources.metadataAddRowFieldTaken(field: taken))
             }
         }
@@ -198,13 +199,18 @@ private struct MetadataBoardAddRowView: View {
     }
 }
 
-/// Suggestion quick-add row with a local draft.
+/// Suggestion quick-add row with a local draft. A row whose owner inherits a
+/// value shows it read only, with the level it comes from, and opens an empty
+/// editor to override it.
 private struct MetadataBoardSuggestionRow: View {
     let accessibilityIdentifierPrefix: String
     let entry: CatalogMetadataEntry
+    let isEditing: Bool
     let isSaving: Bool
     var error: String? = nil
     let onTyped: (Bool) -> Void
+    let onBeginEdit: () -> Void
+    let onCancel: () -> Void
     let onSave: (String) -> Void
     let onDismiss: () -> Void
 
@@ -215,44 +221,41 @@ private struct MetadataBoardSuggestionRow: View {
         let fieldID = entry.field.id
         return PVCard(border: .dashed, cornerRadius: PVRadius.sm) {
             VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                HStack(spacing: PVSpacing.space5) {
+                HStack(alignment: .top, spacing: PVSpacing.space5) {
                     MetadataBoardLabel(
                         text: entry.field.label,
                         leadingInset: PVReorderHandle.width
                     )
-                    PVInput(
-                        text: $draft,
-                        size: .sm,
-                        mono: true,
-                        prompt: L10n.Sources.metadataSuggestionPlaceholder,
-                        isInvalid: error != nil,
-                        focused: $isFocused
-                    )
-                    .onSubmit { onSave(draft) }
-                    .accessibilityLabel(entry.field.label)
-                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).value")
+                    if let inherited = entry.inherited {
+                        inheritedValue(inherited)
+                    } else {
+                        PVInput(
+                            text: $draft,
+                            size: .sm,
+                            mono: true,
+                            prompt: L10n.Sources.metadataSuggestionPlaceholder,
+                            isInvalid: error != nil,
+                            focused: $isFocused
+                        )
+                        .onSubmit { onSave(draft) }
+                        .accessibilityLabel(entry.field.label)
+                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).value")
 
-                    PVButton(
-                        L10n.Sources.saveMetadataSuggestion,
-                        variant: .ghost,
-                        size: .sm,
-                        loading: isSaving
-                    ) {
-                        onSave(draft)
-                    }
-                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).save")
+                        PVButton(
+                            L10n.Sources.saveMetadataSuggestion,
+                            variant: .ghost,
+                            size: .sm,
+                            loading: isSaving
+                        ) {
+                            onSave(draft)
+                        }
+                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).save")
 
-                    PVIconButton(
-                        .dismiss,
-                        label: L10n.Sources.dismissMetadataSuggestionLabel(field: entry.field.label),
-                        size: .sm
-                    ) {
-                        onDismiss()
+                        dismissButton
                     }
-                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).dismiss")
                 }
-                if let error, !error.isEmpty {
+                if entry.inherited == nil, let error, !error.isEmpty {
                     PVErrorText(error, size: .caption)
                 }
             }
@@ -263,6 +266,108 @@ private struct MetadataBoardSuggestionRow: View {
         .pvSheetInnerEdit(isFocused && !draft.isEmpty)
         .onExitCommand { draft = "" }
         .onChange(of: draft) { _, text in onTyped(!text.isEmpty) }
+        .onChange(of: isEditing) { _, editing in
+            if !editing { draft = "" }
+        }
+    }
+
+    private var dismissButton: some View {
+        PVIconButton(
+            .dismiss,
+            label: L10n.Sources.dismissMetadataSuggestionLabel(field: entry.field.label),
+            size: .sm
+        ) {
+            onDismiss()
+        }
+        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(entry.field.id).dismiss")
+    }
+
+    /// The inherited value at rest and the empty editor that overrides it: the saved row's inline
+    /// edit, so the board has one open-to-edit control.
+    private func inheritedValue(_ inherited: CatalogInheritedMetadataValue) -> some View {
+        let fieldID = entry.field.id
+        let level = L10n.CitationFormats.levelName(inherited.level)
+        let shown = inherited.shownText
+        return PVInlineEdit(
+            isEditing: isEditing,
+            isSaving: isSaving,
+            error: error,
+            saveLabel: L10n.Sources.saveMetadataValue,
+            cancelLabel: L10n.Sources.cancelEdit,
+            editLabel: L10n.Sources.overrideMetadataValueLabel(field: entry.field.label),
+            saveDisabled: draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            axis: .horizontal,
+            actionsStyle: .iconStack,
+            accessibilityIdentifierPrefix: "\(accessibilityIdentifierPrefix).\(fieldID)",
+            onEdit: {
+                draft = ""
+                onBeginEdit()
+            },
+            onSave: { onSave(draft) },
+            onCancel: {
+                draft = ""
+                onCancel()
+            },
+            display: {
+                VStack(alignment: .leading, spacing: PVSpacing.space1) {
+                    inheritedText(inherited, shown: shown, level: level)
+                    MetadataBoardCaption(L10n.Sources.metadataInheritedFrom(level: level))
+                        .padding(.horizontal, PVInputChrome.horizontalInset)
+                        .accessibilityHidden(true)
+                        .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).inheritedFrom")
+                }
+            },
+            editor: {
+                VStack(alignment: .leading, spacing: PVSpacing.space1) {
+                    PVTextArea(
+                        text: $draft,
+                        lineLimit: 1...6,
+                        typography: .mono,
+                        isInvalid: error != nil,
+                        activateOnAppear: true
+                    )
+                    .onSubmit { onSave(draft) }
+                    .disabled(isSaving)
+                    .accessibilityLabel(entry.field.label)
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).value")
+                    MetadataBoardCaption(L10n.Sources.metadataOverrides(level: level, value: shown))
+                        .padding(.horizontal, PVInputChrome.horizontalInset)
+                }
+            },
+            restingTrailing: { dismissButton },
+            editingTrailing: { EmptyView() }
+        )
+    }
+
+    /// The value read only, drawn as a saved value is, quieter. A value that is not a link reads as
+    /// one element with its field label; a link is its own element.
+    @ViewBuilder
+    private func inheritedText(_ inherited: CatalogInheritedMetadataValue, shown: String, level: String) -> some View {
+        let text = MetadataValueText(
+            text: shown,
+            openURL: inherited.openURL,
+            isURL: entry.field.dataType == CatalogFieldDataType.url,
+            accessibilityIdentifier: "\(accessibilityIdentifierPrefix).\(entry.field.id).inherited",
+            lineLimit: 1,
+            chrome: true,
+            secondary: true,
+            italic: inherited.isUnknown
+        )
+        if inherited.openURL != nil, entry.field.dataType == CatalogFieldDataType.url {
+            text
+        } else {
+            text
+                .accessibilityLabel(L10n.Sources.metadataInheritedAccessibility(level: level, value: shown))
+                .accessibilityHint(L10n.string(L10n.Sources.metadataInheritedHint))
+        }
+    }
+}
+
+private extension CatalogInheritedMetadataValue {
+    /// The text a row draws: the engine's printed value, or "Unknown" for an unknown value that
+    /// prints nothing.
+    var shownText: String {
+        displayText.isEmpty ? L10n.string(L10n.Sources.metadataInheritedUnknown) : displayText
     }
 }
 
@@ -307,18 +412,26 @@ private struct MetadataBoardTextEditor: View {
                 draft = entry.valueText
                 onCancel()
             },
-            display: { displayValue },
+            display: {
+                VStack(alignment: .leading, spacing: PVSpacing.space1) {
+                    displayValue
+                    overridesCaption
+                }
+            },
             editor: {
-                PVTextArea(
-                    text: $draft,
-                    lineLimit: 1...6,
-                    typography: .mono,
-                    isInvalid: error != nil,
-                    activateOnAppear: true
-                )
-                .onSubmit { onSave(draft) }
-                .disabled(isSaving)
-                .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).value")
+                VStack(alignment: .leading, spacing: PVSpacing.space1) {
+                    PVTextArea(
+                        text: $draft,
+                        lineLimit: 1...6,
+                        typography: .mono,
+                        isInvalid: error != nil,
+                        activateOnAppear: true
+                    )
+                    .onSubmit { onSave(draft) }
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(fieldID).value")
+                    overridesCaption
+                }
             },
             restingTrailing: {
                 PVIconButton(
@@ -350,6 +463,21 @@ private struct MetadataBoardTextEditor: View {
             chrome: true
         )
     }
+
+    /// What the saved value overrides, under it at rest and in edit; nothing when the owner
+    /// inherits nothing for the field.
+    @ViewBuilder
+    private var overridesCaption: some View {
+        if let inherited = entry.inherited {
+            MetadataBoardCaption(
+                L10n.Sources.metadataOverrides(
+                    level: L10n.CitationFormats.levelName(inherited.level), value: inherited.shownText
+                )
+            )
+            .padding(.horizontal, PVInputChrome.horizontalInset)
+            .accessibilityIdentifier("\(accessibilityIdentifierPrefix).\(entry.field.id).overrides")
+        }
+    }
 }
 
 /// One metadata value, drawn the same on a board row and in a card's read-only
@@ -357,17 +485,44 @@ private struct MetadataBoardTextEditor: View {
 /// underlined link button. `chrome` adds the board row's resting inset so
 /// entering edit does not shift glyphs; `lineLimit` nil wraps, 1 truncates the tail.
 struct MetadataValueText: View {
-    let entry: CatalogMetadataEntry
+    let text: String
+    let openURL: URL?
+    let isURL: Bool
     let accessibilityIdentifier: String
     var lineLimit: Int?
     var chrome: Bool
+    /// Quieter colour, for a value the row only inherits.
+    var secondary = false
+    var italic = false
 
-    @Environment(\.openURL) private var openURL
+    @Environment(\.openURL) private var openURLAction
+
+    init(
+        text: String, openURL: URL?, isURL: Bool, accessibilityIdentifier: String, lineLimit: Int?,
+        chrome: Bool, secondary: Bool = false, italic: Bool = false
+    ) {
+        self.text = text
+        self.openURL = openURL
+        self.isURL = isURL
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.lineLimit = lineLimit
+        self.chrome = chrome
+        self.secondary = secondary
+        self.italic = italic
+    }
+
+    init(entry: CatalogMetadataEntry, accessibilityIdentifier: String, lineLimit: Int?, chrome: Bool) {
+        self.init(
+            text: entry.valueText, openURL: entry.openURL,
+            isURL: entry.field.dataType == CatalogFieldDataType.url,
+            accessibilityIdentifier: accessibilityIdentifier, lineLimit: lineLimit, chrome: chrome
+        )
+    }
 
     var body: some View {
-        if entry.field.dataType == CatalogFieldDataType.url, let url = entry.openURL {
+        if isURL, let url = openURL {
             Button {
-                openURL(url)
+                openURLAction(url)
             } label: {
                 valueText
                     .foregroundStyle(PVColor.textLink)
@@ -378,20 +533,21 @@ struct MetadataValueText: View {
             .accessibilityIdentifier(accessibilityIdentifier)
             .help(lineLimit == nil
                 ? L10n.string(L10n.Sources.openMetadataURL)
-                : "\(L10n.string(L10n.Sources.openMetadataURL))\n\(entry.valueText)")
+                : "\(L10n.string(L10n.Sources.openMetadataURL))\n\(text)")
         } else {
             valueText
-                .foregroundStyle(PVColor.textPrimary)
+                .foregroundStyle(secondary ? PVColor.textSecondary : PVColor.textPrimary)
                 .modifier(MetadataValueChromeIf(chrome: chrome))
                 .accessibilityIdentifier(accessibilityIdentifier)
                 // A truncated value shows whole on hover.
-                .help(lineLimit == nil ? "" : entry.valueText)
+                .help(lineLimit == nil ? "" : text)
         }
     }
 
     private var valueText: some View {
-        Text(verbatim: entry.valueText)
+        Text(verbatim: text)
             .font(PVFont.mono(size: PVTypeScale.caption))
+            .italic(italic)
             .lineLimit(lineLimit)
             .truncationMode(.tail)
             .fixedSize(horizontal: false, vertical: lineLimit == nil)
@@ -450,5 +606,23 @@ private struct MetadataBoardLabel: View {
             .frame(width: Self.width, alignment: .leading)
             .padding(.leading, leadingInset)
             .padding(.top, topPadding)
+    }
+}
+
+/// The one-line muted sentence under a board row's value or editor: where an inherited value
+/// comes from, what a value overrides, the add row's taken notice. Text, not a Badge: it is a
+/// sentence, not a status.
+private struct MetadataBoardCaption: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(PVFont.body(size: PVTypeScale.caption))
+            .foregroundStyle(PVColor.textMuted)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

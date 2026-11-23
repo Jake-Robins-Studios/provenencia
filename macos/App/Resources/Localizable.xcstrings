@@ -8818,6 +8818,78 @@
         }
       }
     },
+    "sources.page.overrideMetadataValueLabel": {
+      "comment": "VoiceOver label for the pencil on a metadata row that shows the value its owner inherits; argument is the field label",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Override %@"
+          }
+        }
+      }
+    },
+    "sources.page.metadataInheritedFrom": {
+      "comment": "Caption under a metadata value the owner inherits; argument is the level that holds it (Source)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From %@"
+          }
+        }
+      }
+    },
+    "sources.page.metadataInheritedAccessibility": {
+      "comment": "VoiceOver value of a metadata row that shows the value its owner inherits; arguments are the level that holds it and the value",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inherited from %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "sources.page.metadataInheritedHint": {
+      "comment": "VoiceOver hint on an inherited metadata value",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens a field to type a value that overrides it"
+          }
+        }
+      }
+    },
+    "sources.page.metadataOverrides": {
+      "comment": "Caption under a metadata value, saved or being typed, that overrides one its owner inherits; arguments are the level that holds the inherited value and the value",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overrides %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "sources.page.metadataInheritedUnknown": {
+      "comment": "Shown for an inherited metadata value marked unknown whose field prints no unknown text",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown"
+          }
+        }
+      }
+    },
     "sources.page.sourceDate.add": {
       "comment": "Button in the Source page header: open the published date dialog for an undated Source",
       "extractionState": "manual",
