@@ -109,5 +109,8 @@ Check: after a build, `PVList.stringsdata` lists no `Persons` key; scripts/check
 F-8 (`734baf455`), F-9 (`14615f755`, test red first), F-10 and Landed note done; head `8ab40d939`, gate PASS (implementer), re-run by the orchestrator after merging main. Hosted bitmap identical before and after: 66 pt rows, hairlines x 16–583 of 600. Probe at 16,000: mid-list move 108–109 → 57–58 ms, closures per move about 8,919 → 13, first deep jump 0.80 → 0.18 s (with F-9's row height; one run).
 PRF-1: the reviewer's fix is applied; what remains (57 ms in the probe) is the platform list. Held ↓ in the app is the user's check (§10 step 3).
 
+## User's manual check — after round 2
+Persons rows read birth (date, place) then death (date, place) as the board draws (`b. … d. …`, each half a `PVDatePlaceLine` with its own +N); they joined dates, then places. User-requested quick fix, made by the orchestrator; not reviewed, by the user's choice. Search hits and Promote's menus keep the joined text.
+
 ## Result
 Gate PASS · CI green · open: none · dropped by the user (2026-11-23): UX-2 (edge case), MNT-2, PRF-1's selection-scroll part (D-7) · with the user: the wheel step's feel · follow-ups: none (CON-2's scroll to the top dropped by the user)

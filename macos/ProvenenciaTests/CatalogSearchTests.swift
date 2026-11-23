@@ -180,7 +180,7 @@ struct CatalogSearchHitPresentationTests {
             == PersonTitleDisplay.title(person, style: .sorted))
         #expect(ConclusionSummaryDisplay.title(.event(event)) == EventTitleDisplay.title(event))
         #expect(ConclusionSummaryDisplay.title(.place(place)) == PlaceTitleDisplay.title(place))
-        #expect(ConclusionSummaryDisplay.secondary(.person(person)) == PersonLifeDisplay.line(person).text)
+        #expect(ConclusionSummaryDisplay.secondary(.person(person)) == PersonLifeDisplay.line(person))
         #expect(ConclusionSummaryDisplay.secondary(.event(event)) == EventSecondaryDisplay.line(event))
         #expect(ConclusionSummaryDisplay.secondary(.place(place))
             == PlaceChainDisplay.line(parents: ["Ontario", "Canada"], candidates: false))

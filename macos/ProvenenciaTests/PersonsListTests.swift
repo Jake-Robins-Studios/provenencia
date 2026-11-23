@@ -195,6 +195,14 @@ struct ConclusionListKindTests {
         #expect(PersonsList.accessibilityLabel(person).hasSuffix(L10n.Conclusions.morePlaces(count: 1)))
         person.birth.places = [places[0]]
         #expect(!PersonsList.accessibilityLabel(person).contains(L10n.Conclusions.morePlaces(count: 1)))
+        // Birth then death, each with its own place.
+        person.birth.date = CatalogDateValueInput(kind: "point", startYear: 1817)
+        person.death = CatalogLifeFacts(
+            date: CatalogDateValueInput(kind: "point", startYear: 1880), dateCount: 1, places: [places[1]]
+        )
+        let spoken = PersonsList.accessibilityLabel(person)
+        let found = ["1817", "York", "1880", "Kingston"].compactMap { spoken.range(of: $0)?.lowerBound }
+        #expect(found.count == 4 && found == found.sorted())
 
         let event = CatalogEventSummary(
             entity: CatalogCanonicalEntity(id: "ev1", ref: "EVT-1", subjectTypeID: "t", label: ""),

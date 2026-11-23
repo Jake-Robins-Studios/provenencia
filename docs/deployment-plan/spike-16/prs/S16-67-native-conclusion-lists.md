@@ -22,6 +22,7 @@
 - VoiceOver reading a row and Return opening it: VoiceOver not yet checked (user's manual check); Return opens the selected row — works (hosted `NSTableView`, the table's own key handling reached the primary action; D-2's `.onKeyPress(.return)` fallback was not needed)
 - iron selection in dark appearance: not yet checked (user's manual check); a selected row's `backgroundProminence` is `.increased` once its row view is emphasized (hosted), `.standard` while not
 - D-12 separator branch: the system separators (`.listRowSeparator`) shipped; they draw a hairline under each row (hosted bitmap), running gutter to gutter, from the thumbnail's leading edge to the ref's trailing edge (the row content's `.listRowSeparatorLeading` and `.listRowSeparatorTrailing` guides; hosted bitmap, 16 to 582 pt in a 600 pt list)
+A Persons row's life line reads birth (date, place), then death (date, place), as the board draws; the plan kept today's line, which grouped dates and places (user, 2026-11-23).
 Also found: the platform's own table scrolls to the first and last row on Home and End with the selection unchanged, so `PVList`'s D-5 handler may be redundant on this macOS (kept as planned; noted in `docs/ideas/kit-layering.md`).
 
 ### Implementer — read this first

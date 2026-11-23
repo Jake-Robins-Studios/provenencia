@@ -474,8 +474,8 @@ struct PersonDetailTests {
                 places: [CatalogChainedPlace(entity: toronto, names: ["Toronto"])]
             )
         )
-        #expect(PersonLifeDisplay.line(james, locale: en).text == "1817 – 1880 · York → Toronto")
-        #expect(PersonLifeDisplay.line(james, locale: en).extraPlaces == 0)
+        #expect(PersonLifeDisplay.line(james, locale: en) == "1817 – 1880 · York → Toronto")
+        #expect(PersonLifeDisplay.lifeLines(james, locale: en, missing: .omitted).map(\.extraPlaces) == [0, 0])
 
         let page = PersonDetailContent(detail: detail(summary: james), locale: en)
         #expect(page.lifeLines.map(\.date) == ["1817", "1880"])
@@ -492,18 +492,18 @@ struct PersonDetailTests {
 
         var loneBirth = james
         loneBirth.death = CatalogLifeFacts()
-        #expect(PersonLifeDisplay.line(loneBirth, locale: en).text == "1817 – · York")
+        #expect(PersonLifeDisplay.line(loneBirth, locale: en) == "1817 – · York")
 
         // A death with no birth is marked as a death, never read as a birth.
         var loneDeath = james
         loneDeath.birth = CatalogLifeFacts()
-        #expect(PersonLifeDisplay.line(loneDeath, locale: en).text == "– 1880 · → Toronto")
+        #expect(PersonLifeDisplay.line(loneDeath, locale: en) == "– 1880 · → Toronto")
 
         // Two names of one Place are one place: no +N, not mixed.
         var renamed = james
         renamed.birth.places = [CatalogChainedPlace(entity: york, names: ["York", "Tkaronto"])]
-        #expect(PersonLifeDisplay.line(renamed, locale: en).text == "1817 – 1880 · York → Toronto")
-        #expect(PersonLifeDisplay.line(renamed, locale: en).extraPlaces == 0)
+        #expect(PersonLifeDisplay.line(renamed, locale: en) == "1817 – 1880 · York → Toronto")
+        #expect(PersonLifeDisplay.lifeLines(renamed, locale: en, missing: .omitted).map(\.extraPlaces) == [0, 0])
         let oneplace = PersonDetailContent(detail: detail(summary: renamed), locale: en)
         #expect(oneplace.rows[2].shown.lead == "York" && oneplace.rows[2].shown.badge == nil)
 
@@ -514,7 +514,7 @@ struct PersonDetailTests {
             CatalogChainedPlace(entity: york, names: ["York"]),
             CatalogChainedPlace(entity: upper, names: ["Kingston"]),
         ]
-        #expect(PersonLifeDisplay.line(twoPlaces, locale: en).extraPlaces == 1)
+        #expect(PersonLifeDisplay.lifeLines(twoPlaces, locale: en, missing: .omitted).map(\.extraPlaces) == [1, 0])
         let mixed = PersonDetailContent(detail: detail(summary: twoPlaces), locale: en)
         #expect(mixed.rows[2].shown.lead == "York" && mixed.rows[2].shown.badge == .mixed && mixed.rows[2].provenanceContent().records.isEmpty)
         #expect(mixed.rows[1].shown.badge == nil, "one birth event with one date is not mixed")
@@ -611,7 +611,7 @@ struct PersonDetailTests {
             birth: CatalogLifeFacts(date: born, dateCount: 1),
             death: CatalogLifeFacts(date: CatalogDateValueInput(kind: "point", startYear: 1851), dateCount: 1)
         )
-        #expect(PersonLifeDisplay.line(anna, locale: en).text == "3 May 1790 – 1851")
+        #expect(PersonLifeDisplay.line(anna, locale: en) == "3 May 1790 – 1851")
         #expect(PVDatePlaceLine.spokenDate(nil) == "date unknown")
         #expect(PVDatePlaceLine.spokenDate("1851") == "1851")
         #expect(PVDatePlaceLine.spokenPlace(nil) == "place unknown")

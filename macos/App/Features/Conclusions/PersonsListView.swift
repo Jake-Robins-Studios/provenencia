@@ -32,11 +32,16 @@ enum PersonsList: ConclusionListKind {
 
     static func accessibilityLabel(_ summary: CatalogPersonSummary, orders: NameFormatOrders) -> String {
         let title = ConclusionListRow.accessibilityLabel(titleSource(summary, orders: orders), ref: summary.entity.ref)
-        let line = PersonLifeDisplay.line(summary)
-        guard !line.text.isEmpty else { return title }
-        let label = L10n.DesignSystem.spokenJoin(title, line.text)
-        guard line.extraPlaces > 0 else { return label }
-        return L10n.DesignSystem.spokenJoin(label, L10n.Conclusions.morePlaces(count: line.extraPlaces))
+        let lines = lifeLines(summary)
+        guard let life = L10n.DesignSystem.spokenJoin(lines.map(\.accessibilityLabel)) else { return title }
+        let label = L10n.DesignSystem.spokenJoin(title, life)
+        let extra = lines.reduce(0) { $0 + $1.extraPlaces }
+        guard extra > 0 else { return label }
+        return L10n.DesignSystem.spokenJoin(label, L10n.Conclusions.morePlaces(count: extra))
+    }
+
+    private static func lifeLines(_ summary: CatalogPersonSummary) -> [PersonLifeDisplay.LifeLine] {
+        PersonLifeDisplay.lifeLines(summary, missing: .omitted)
     }
 
     static func location(_ summary: CatalogPersonSummary) -> WorkspaceLocation {
@@ -53,24 +58,32 @@ enum PersonsList: ConclusionListKind {
 
     @MainActor
     static func secondary(_ summary: CatalogPersonSummary) -> PersonLifeLine {
-        PersonLifeLine(line: PersonLifeDisplay.line(summary))
+        PersonLifeLine(lines: lifeLines(summary))
     }
 }
 
-/// Birth and death under a Person's name. The +N is other kept places.
+/// Birth, then death, under a Person's name: each its date and place, with a +N for other
+/// kept places. The row's own label speaks them, so they are hidden from VoiceOver.
 struct PersonLifeLine: View {
-    let line: PersonLifeDisplay.Line
+    let lines: [PersonLifeDisplay.LifeLine]
 
     /// Nothing when nothing is recorded, so `PVList` lays out no second line.
     var body: some View {
-        if !line.text.isEmpty {
-            HStack(spacing: PVSpacing.space4) {
-                Text(verbatim: line.text)
-                    .lineLimit(1)
-                if line.extraPlaces > 0 {
-                    PVBadge.moreCount(line.extraPlaces)
+        if !lines.isEmpty {
+            HStack(alignment: .firstTextBaseline, spacing: PVSpacing.space6) {
+                ForEach(lines, id: \.abbreviation) { line in
+                    PVDatePlaceLine(
+                        leading: line.abbreviation,
+                        date: line.date,
+                        place: line.place,
+                        accessibilityLabel: line.accessibilityLabel,
+                        missing: .omitted,
+                        dateTone: PVColor.textMuted,
+                        extraCount: line.extraPlaces
+                    )
                 }
             }
+            .accessibilityHidden(true)
         }
     }
 }
