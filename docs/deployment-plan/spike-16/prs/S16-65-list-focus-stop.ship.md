@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** review 1 (re-plan)
+**State:** fixing 1 (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -67,3 +67,43 @@ Head `eeb64049c`. Gate PASS (orchestrator, against `a0923028f`). Report: two com
 
 ## Re-plan round 1 — review
 Reviewers: CON, MNT, UX, SEC+PRF. UX: `macos/App/**`, keyboard behavior on every page. SEC+PRF: a responder that sees every unhandled key event in the window and walks a probe list per key, list and table code at the 16,000-row Scale.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| UX-1 | UX | major | Page Up/Down scroll the page behind an open context menu or select popup | Fix now → F-1 | verified: `PVPopupInput.keyEquivalent` (`PVPopup.swift:64`) maps no 116/121, so the event passes; `PVContextMenuState.handle` takes only ↑/↓/Home/End; `PVSelect.handleTriggerKey` has no page case; the responder then pages the scroll view the popup follows. Contradicts the plan's Out line (popups own their keys) and §10 step 6 |
+| MNT-1 | MNT | major | A second hardware key-code table beside `PVPopupInput.keyEquivalent` | Fix now → F-2 | verified: literal switches in `PVPopup.swift:64` and `PVPageScroll.swift:92`, literals in `ArtifactRegionOverlay.swift:254,262`. Same-pass cleanup: this PR adds a copy; all three move onto one named set |
+| MNT-2, CON-1 | MNT, CON | major | README says `PVTable` calls `PVListKeyboard.moveIndex` | Fix now → F-3 | verified: `PVTable.handleKey` calls `PVTableSelection.moveIndex` (`PVTable.swift:404,414`); the plan's STEP-5 text and D-6's Why carried the error |
+| MNT-3, UX-4 | MNT, UX | minor | `isSideList` names a layout; wrong on Source types, where the table is the page | Fix now → F-4 | verified: `SourceTypesView.swift:57` shows only the table |
+| UX-2, CON-2 | UX, CON | minor | A clicked field leaves the table focused, so Page Down moves the selection; AC-1.7 / §10 step 2 contradict §10 step 6 | Fix now → F-5 (plan text) | verified: `PVTable.rowList` `.focusable().focused` + `handleKey` returns `.handled`; the Out line keeps a focused table's keys. Only the test state was unstated |
+| UX-3 | UX | minor | §10 step 3 expects Home/End to move the omnibar's cursor | Fix now → F-5 (plan text) | Mac text fields bind Home/End to scrolling, not to the cursor; AC-1.5 is right |
+| SEC/PRF | SEC+PRF | — | No findings | — | — |
+
+Nits (logged): `MNT-4 · PVPageScroll.swift · type register/unregister/WeakProbe as Probe, drop the cast` · `MNT-5 · PVPageScroll.swift:41 · PVPageScrollHandle could be private` · `MNT-6 · PVListTests.swift:33,41 · test names now pin moveIndex` · `MNT-7 · PVList.swift:351 · action's isDisabled has no app caller (pre-existing)` · `CON-3 · PVPageKeysTests · add a [.capsLock] case` · `CON-4 · plan Landed note · omits the isSideList doc paragraph and the README link path`
+
+### Fix plan 1 (re-plan)
+
+**F-1 — An open popup keeps the page keys** (from UX-1)
+Files: `macos/App/DesignSystem/Components/Popup/PVPopup.swift`, `macos/App/DesignSystem/Components/ContextMenu/PVContextMenu.swift`, `macos/App/DesignSystem/Components/Select/PVSelect.swift`, their tests (`macos/ProvenenciaTests/PVPopupTests.swift`, the context-menu and select tests that exist).
+Failing tests first: `PVPopupTests` — `PVPopupInput.keyEquivalent(keyCode: 121, …)` → `.pageDown`, `116` → `.pageUp` (today's test at line 195 that pins 121 as not taken flips); `PVContextMenuState.handle(.pageDown)` on a 30-row menu at row 3 → `.move(to: 13)` (consumed); `.pageUp` likewise.
+Do: `keyEquivalent` maps 116 → `.pageUp`, 121 → `.pageDown`. `PVContextMenuState.handle` adds `.pageUp, .pageDown` to its movement case (through `PVListKeyboard.moveIndex`, as `PVPopupListHighlight.move` does). `PVSelect.handleTriggerKey`: while its popup is open, `.pageUp` / `.pageDown` move the highlight by `PVListKeyboard.moveIndex` the same way its Home/End do (add `PVSelectKey` cases if its Home/End go through `PVSelectKey`), and return `.handled`; while closed, `.ignored` as today. Check every other `PVPopupInput` consumer (`rg -n "PVPopupInput|\.key\(" macos/App/DesignSystem`) still compiles and treats the two new keys as movement or ignores them by design.
+Check: the tests pass; §10 step 6 (a row's context menu open, Page Down moves its highlight, the page stays); scripts/check-pr.sh PASS.
+
+**F-2 — One named set of hardware key codes** (from MNT-1)
+Files: `macos/App/DesignSystem/Components/Popup/PVPopup.swift`, `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift`, `macos/App/Features/ArtifactViewer/ArtifactRegionOverlay.swift`, new `macos/App/DesignSystem/Components/KeyCode/PVKeyCode.swift`.
+Do: `enum PVKeyCode` with `static let` `UInt16` constants named for each key the three files read: `escape = 53`, `upArrow = 126`, `downArrow = 125`, `home = 115`, `end = 119`, `pageUp = 116`, `pageDown = 121`, `returnKey = 36`, `keypadEnter = 76`, `delete = 51`. `PVPopupInput.keyEquivalent`, `PVPageKeys.command` and `ArtifactRegionOverlay` (lines 254, 262) use the names; each keeps its own subset. Doc comment: "Hardware key codes (`NSEvent.keyCode`) the app reads by name. Add a key here, not a literal at a call site."
+Check: `rg -n "keyCode (==|!=) [0-9]|case [0-9]+(, [0-9]+)*:" macos/App/DesignSystem/Components/Popup macos/App/DesignSystem/Components/PageScroll macos/App/Features/ArtifactViewer/ArtifactRegionOverlay.swift` prints nothing; T-1 and `PVPopupTests` pass.
+
+**F-3 — The README says who calls `moveIndex`** (from MNT-2, CON-1)
+Files: `macos/App/DesignSystem/README.md`, the plan (D-6 Why, Landed note).
+Do: the List row's clause becomes "…`PVListKeyboard.moveIndex` is the list of movement keys (with the caller's `pageStep`) that the context menu and the popup list call (`PVTable` still moves by its own `PVTableSelection.moveIndex` and reads only `action`'s activation: <the row's existing kit-layering link>)". D-6's Why: "Menus and the popup list move by `moveIndex`"; record both in the Landed note.
+Check: `rg -n "popup list and .PVTable. call" macos/App/DesignSystem/README.md` prints nothing.
+
+**F-4 — Name the flag for what it does** (from MNT-3, UX-4)
+Files: `PVPageScroll.swift`, `macos/App/DesignSystem/Components/Table/PVTable.swift`, the README PageScroll row if it names the flag, the plan's Landed note.
+Do: rename `isSideList` → `yieldsPageKeys` everywhere (parameter, probe property). Its doc: "When another page scroll view in the window can scroll and the pointer is over neither, the page keys go to that one. A focused view that handles the keys (a focused `PVTable`) keeps them." Record the rename in the Landed note (D-4 named `isSideList`).
+Check: `rg -n "isSideList" macos docs/deployment-plan/spike-16/prs/S16-65-list-focus-stop.md` prints only the Landed note's mention.
+
+**F-5 — The manual check says what state it tests** (from UX-2, CON-2, UX-3)
+Files: the plan, §2 AC-1.7, §10 steps 2 and 3.
+Do: AC-1.7's Then gains "(with the table not focused: click in the detail pane first; a focused table keeps its own page keys, Out)". §10 step 2's Metadata/Properties sentence begins "Click in the detail pane so the table is not focused; then, with the pointer over the list…". §10 step 3: "press Home and End: the page does not scroll (the field keeps the key)". Record in the Landed note that these are wording fixes from review.
+Check: scripts/check-pr.sh PASS (plan-docs).
