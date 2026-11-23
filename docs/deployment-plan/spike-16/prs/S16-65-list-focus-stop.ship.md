@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** ready (re-plan) — the user re-runs §10 steps 1 and 5
+**State:** fixing — user manual check 2 (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -139,3 +139,14 @@ Check: the test passes; the user's §10 step 1 and step 5 on Persons: the first 
 
 ## Fix plan 2 — fix
 Head `65b82ed72`. Gate PASS (orchestrator). F-6 done: `PVPageKeys.edgeReached` (tested by `edgeReachedOnlyAtTheEdge`) and a settle of up to 10 main-actor passes with a generation counter; the first pass always scrolls. The new test failed by not compiling before the function existed. Orchestrator read the diff. The user's manual check of the first End after a list loads is owed.
+
+## Manual check 2 (user, 2026-11-23)
+End on a freshly loaded list still stops short on one of the three Conclusion lists, and which one varies between runs. Cause (from the code): F-6's settle stops at the first pass where `edgeReached` is true, but on that pass the document's height is still the lazy stack's estimate, so the clip already shows the estimated bottom and the check passes. The stack grows the document when it builds the rows near the end, which can land after the passes have stopped, so the result depends on timing. Defect in code this PR adds: Fix now → F-7.
+
+### Fix plan 3 (user check 2)
+
+**F-7 — Home and End stay pinned to the edge while the page's height settles** (from manual check 2)
+Files: `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift`, `macos/ProvenenciaTests/PVPageKeysTests.swift`, the plan's Landed note.
+Failing test first: `PVPageKeysTests.edgePinKeepsTheEdgeUntilTheUserScrolls` *(new)* for a pure `struct PVPageEdgePinState` *(new)*: `mutating func documentChanged() -> Bool` (true = scroll to the edge again) while pinned; `mutating func clipMoved(bySelf: Bool, atEdge: Bool)` — a move not made by the pin while not at the edge unpins; a move by the pin, or one that leaves the page at the edge, keeps it; `mutating func quiet(for seconds: TimeInterval)` unpins at ≥ 0.6 s since the last document change; `mutating func elapsed(_ seconds: TimeInterval)` unpins at ≥ 3 s since the pin began; once unpinned, `documentChanged()` returns false. Cases: a fresh pin rescrolls on a document change; our own scroll keeps it; a user scroll away from the edge unpins it, then a document change returns false; 0.6 s of quiet unpins; 3 s total unpins even with changes in between.
+Do: replace F-6's ten-pass `settle` and its generation counter with a pin: `scrollToEdge(_:top:)` scrolls to the edge as before, then pins that scroll view. One `@MainActor final class PVPageEdgePin` *(new)*, at most one alive (a new `scrollToEdge` call, or a call for another scroll view, ends the old pin first). It sets `documentView.postsFrameChangedNotifications = true` and `contentView.postsBoundsChangedNotifications = true`, observes `NSView.frameDidChangeNotification` on the document view and `NSView.boundsDidChangeNotification` on the clip view, and feeds them to `PVPageEdgePinState`. On a document change it scrolls to the edge again (marking that scroll as its own, so the bounds change it causes counts as `bySelf`). A main-queue timer (0.1 s) feeds `quiet` and `elapsed`. When the state unpins, it removes its observers and timer and releases itself. `startsAtTopWhen` goes through the same `scrollToEdge`. Keep `edgeReached` (the pin reads it for `atEdge`) and its test; delete `edgePasses`, `generation` and `settle`. Record in the plan's Landed note: D-5's edge scroll pins to the edge until the lazy page's height has been still for 0.6 s (3 s at most) or the user scrolls away, replacing F-6's fixed passes (user manual check 2).
+Check: the test passes; `rg -n "edgePasses|func settle" macos/App` prints nothing; scripts/check-pr.sh PASS; the user's check: End on each freshly loaded Conclusion list, several launches.
