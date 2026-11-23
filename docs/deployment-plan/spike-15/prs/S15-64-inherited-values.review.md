@@ -68,10 +68,50 @@ The first draft's D-8 put a `level == .source` branch in `SourcePageContext.appl
 - FakeStore computing values is an Out line.
 - The step-7 check now runs all seven manual steps.
 
+## Round 2 (2026-11-23)
+
+**Maintainability:** Fits with changes. The round-1 answers M-1, M-4, M-6 – M-9 hold against the code. **Executability:** Not ready. Every round-1 answer holds; no Current state row is false.
+
+### M-10 · blocker · `Display` takes only the field branch; the bracket stays in two places
+**Answer:** Fixed. D-4 now has one unexported `marked(text, mark)` that `printed` calls on both branches (date and text) and that `Display` calls. `Display` also prints a date (`CitationLong`), so S15-42 reuses it. T-3 adds a supplied date.
+
+### M-11 · blocker · D-11 builds a second open-to-edit interaction beside `PVInlineEdit`
+**Answer:** Fixed. The inherited row's value column is now `PVInlineEdit`, opened by its pencil ("Override {field}"), through the board's `editingFieldID` and `beginEdit` (D-10, D-11). The brief's IH-1, IH-2, IH-8 and inventory match. Opening on a click instead of the pencil would be a `PVInlineEdit` option for every row: D-12 sends that to the user if the board asks for it.
+
+### M (major, unnumbered) · guides that list the keyed reads
+**Answer:** Fixed. STEP-9 and the DoD add `docs/macos-client-patterns.md`, the `add-workspace-place` and `add-audit-scope` skills, and (X-15) `core/database/effects/README.md` and the `KeyTable` comment.
+
+### X-10 · blocker · T-4 names a test that cannot hold the case
+**Answer:** Fixed. T-4 is now a new `TestListDraftWorkspaceInherited` on `seededWorld`. The shared `draft_board_scenarios.json` stays untouched and is named under "most likely to break" as a file not to touch.
+
+### X-11 · major · T-12 cannot reuse the helpers
+**Answer:** Fixed. T-12 and STEP-8 widen `seededWorld`, `emptyWorld`, `newSource` and `newLevelOwner` to `testing.TB`, and set each field with `runSet`.
+
+### X-12 · major · No seeded unsuggested head on census
+**Answer:** Fixed. T-2's world replaces the census formats with `sourcetypestest.SetFormats` (`Full: "{meta.provider}, {meta.publisher}"`), so `publisher` is a needed unsuggested head. Every row names its field, its helper (`runSet`, `runSetOwner`, `runDismissOwner`) and the Book Source for the mark.
+
+### X-13 · major · The opened row's keys undecided
+**Answer:** Fixed by M-11. `PVInlineEdit` owns Save and Cancel, Escape, and the sheet's inner-edit stand-down. D-11 says Save is disabled with no text and Escape drops the text. One edit at a time comes from the model's `editingFieldID`.
+
+### X-14 · major · `Display` versus `printed`'s "answered"
+**Answer:** Fixed. D-4 states that `printed` keeps its unknown branch and returns `marked(text, mark), marked(...) != ""`. Truncation comes before the bracket, as today.
+
+### X-15 · minor · Docs the read touches
+**Answer:** Fixed. See the unnumbered major above. The `catalog-caches.md` edit is now named as the "Per-view query results" row's sentence.
+
+### X-16 · minor · Smaller choices
+**Answer:** Fixed.
+- D-1 takes `uuid.UUID`.
+- D-2 and D-5 convert with `uuid.FromBytes`.
+- D-8 extends `catalogMetadataEntry` and says what the hover help shows.
+- T-6 sets `url` with `runSet`.
+- T-7 names `GetSourceWorkspace` in `sources.go` through `boardsProto`.
+- The brief puts "From Source" on a second line under the value.
+
 ## To user
 
-- **R-1** (from M-3). The rule "A format reads a field from the nearest level that holds it" names `CitationValues.Resolve` as the one walker. D-1 moves the walk into `CitationValues.Nearest`, which `Resolve` calls, and the inherited value reads `Nearest` too. **Recommendation:** accept, and have STEP-9 rewrite the rule sentence and the map row.
+- **R-1** (from M-3). The rule "A format reads a field from the nearest level that holds it" names `CitationValues.Resolve` as the one walker. D-1 moves the walk into `CitationValues.Nearest`, which `Resolve` calls, and the inherited value reads `Nearest` too. **Recommendation:** accept, and have STEP-9 rewrite the rule's sentences and the map row.
 
-## Verdict after round 1
+## Verdict
 
-All round-1 findings are answered: Fixed, Fixed in part with a reason, or To user. Round 2 runs because round 1 had blockers.
+Two rounds are done, and no blocker is open. The plan stays **Blocked — on board S15-D33**: D-12 is filled once the board is agreed. R-1 waits on the user.
