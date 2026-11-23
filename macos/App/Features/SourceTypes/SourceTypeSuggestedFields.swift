@@ -20,7 +20,7 @@ struct SourceTypeSuggestedFields: View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             PVSectionHeader(
                 title: L10n.SourceTypes.suggestedSectionLabel,
-                meta: model.isLoaded ? L10n.SourceTypes.assignedCount(count: suggestions.count) : nil
+                meta: model.isLoaded ? L10n.SourceTypes.assignedCount(count: model.suggestionCount) : nil
             )
             notes
             VStack(alignment: .leading, spacing: PVSpacing.space4) {
@@ -62,7 +62,7 @@ struct SourceTypeSuggestedFields: View {
     private var listAccessibilityLabel: String {
         guard model.isLoaded else { return L10n.string(L10n.SourceTypes.suggestedSectionLabel) }
         return L10n.SourceTypes.listAccessibilityLabel(
-            title: L10n.string(L10n.SourceTypes.suggestedSectionLabel), count: suggestions.count
+            title: L10n.string(L10n.SourceTypes.suggestedSectionLabel), count: model.suggestionCount
         )
     }
 

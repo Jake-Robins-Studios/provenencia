@@ -106,6 +106,10 @@ final class SourceTypePageModel {
     /// The saved row; nil while the types list has no value or has no such type.
     var type: CatalogSourceType? { session.sourceType(id: typeID) }
 
+    /// The engine's count of the type's suggested fields: the figure the types column and the Copy
+    /// sheet show too.
+    var suggestionCount: Int { type?.suggestedFieldCount ?? 0 }
+
     /// True once a settled types list lacks the type: the page leaves for the list.
     var isGone: Bool { session.sourceTypePresence(id: typeID).isGone }
 

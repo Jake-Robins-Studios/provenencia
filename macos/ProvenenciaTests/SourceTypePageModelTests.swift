@@ -54,6 +54,20 @@ struct SourceTypePageModelTests {
         #expect(model.copying?.original.label == "Grave memorial")
     }
 
+    /// F-1: the page counts the engine's `suggestedFieldCount`, as the types column and Copy sheet do,
+    /// not the length of the list it loaded.
+    @Test func suggestionCountComesFromTheEngine() async {
+        let store = FakeStore()
+        store.suggestedFieldCounts["t1"] = 5
+        let (model, _) = await makePageModel(
+            typeID: "t1", store: store, types: [seededSourceType()]
+        )
+        #expect(model.suggestions.isEmpty)
+        #expect(model.suggestionCount == 5)
+        let (missing, _) = await makePageModel(typeID: "t9", types: [])
+        #expect(missing.suggestionCount == 0)
+    }
+
     // MARK: Details
 
     @Test func seededOrUserTypeEditsAndPluginTypeLocks() async {
