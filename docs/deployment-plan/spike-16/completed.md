@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-65 — Page keys belong to the page's scroll view
+
+**Landed 2026-11-23** in [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951). Every workspace page scrolls in one kit `PVPageScrollView` (`PVTable`'s rows too), and Page Up, Page Down, Home and End scroll it whenever no focused view, text field or menu takes them: one `PVPageKeyResponder` sits after the window in the responder chain and scrolls the page under the pointer, else the detail pane, the AppKit way. `startsAtTopWhen:` is the one way a page returns to its top, replacing `restartsAt:whenChanged:` and the top-anchor marker. `.pvListFocusStop` keeps ↑/↓ (⌥ to an end) and Return/Space and hands the page keys on.
+
 ## S16-59 — Workspace callers add to the toast stack
 
 **Landed 2026-11-22** in [#945](https://github.com/Jake-Robins-Studios/provenencia/pull/945). Every workspace model adds its toast to `WorkspaceSession.toasts` through the session it holds, so a toast has one path and a test asserts on the list (`ToastCard`, `PVToastList.cards`). `vocabularyToastOverlay`, `VocabularyToast`, the models' `toast` properties and `WorkspaceSession.noticeToast` are gone. `ConclusionLeadModel` adds to the likeness viewer's sheet list while the viewer is open (`\.pvSheetToasts`, set by `PVSheetChrome`, replacing `\.pvToastList`), else to the window's. No visible change, no version bump.

@@ -146,8 +146,9 @@ PVWidthBreakpoints([Self.compactBelow]) { met in
 
 ```swift
 // ❌ BAD — a list of button rows with its own .focusable() and .onKeyPress moving a focused row
+// ❌ BAD — a page on a bare ScrollView, or a list that moves its row by Page Down
 
-// ✅ GOOD — the rows' stack wears .pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)
+// ✅ GOOD — the page scrolls in PVPageScrollView; the list's rows wear .pvListFocusStop (↑/↓, Return/Space)
 ```
 
 ## Steps when adding a component

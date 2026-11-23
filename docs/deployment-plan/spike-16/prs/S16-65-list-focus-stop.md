@@ -1,6 +1,6 @@
 # S16-65 — Page keys belong to the page's scroll view
 
-**Status:** Planned
+**Status:** Landed in [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951) (2026-11-23)
 **Spike / slice:** Spike 16 · Slice 6f — Page and list keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: no view draws anything new; keys that did nothing now scroll)
@@ -341,3 +341,8 @@ None.
 
 **Title:** S16-65 — Page keys belong to the page's scroll view
 **Body:** objective in one sentence; what shipped against US-1 – US-3; AC evidence; deviations; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-65-list-focus-stop.md`.
+
+## Landed
+
+- STEP-4's doc comments (`PVList`, `.pvListFocusStop`, `PVListKeyboard.action`) landed in the first commit with STEP-1 – STEP-3, so there is no separate STEP-4 commit.
+- `PVPageKeyResponder` is `@MainActor` and `PVPageKeys.scrollToEdge` is `@MainActor`, since AppKit's scroll calls are main-actor isolated.
