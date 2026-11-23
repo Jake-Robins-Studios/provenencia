@@ -1,4 +1,83 @@
-# Review — S16-65 One kit focus stop for a list of rows
+# Review — S16-65 Page keys belong to the page's scroll view
+
+**Verdict:** Fits with changes — Ready with changes (re-plan, 2 rounds; no blocker open)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
+
+## To user
+- M-7 (round 2): which pane takes the page keys on Metadata and Properties. Writer's recommendation: the pane under the pointer, else the detail pane. **User (2026-11-23): the pane under the pointer.** D-4 now says so.
+- Earlier: (The user settled the shape on 2026-11-22: page keys on every page's scroll view, with nothing focused too; the bounce and the scroll memory in their own PR, S16-67.)
+
+## Writer's own calls
+- D-2: the keys reach the page through a responder after the window, not an event monitor, so a focused text field, table, popup or menu keeps them (spike evidence, plan §4).
+- D-4: one page per window, the last registered; the sidebar and the Citation composer's columns get no page keys in this PR.
+- Out: Space does not page; a focused `PVTable` keeps moving its selection by the page keys.
+- M-2 is fixed in this PR rather than moved to S16-67: the reset to the top joins `PVPageScrollView` now, so S16-67 starts from one scroll path.
+
+## Re-plan round 1
+
+### M-1 · blocker · The table pages are left on a bare `ScrollView`
+`PVTable.rowList` is the main scrolling column of the Source types, Metadata and Properties lists; S16-67 names the Source types list.
+**Answer:** Fixed — `PVTable.rowList` is a seventh page site (Scope, §4 Table row, D-7, AC-1.7, AC-3.1, §10 steps 2 and 6); D-4 says which of a table and its detail pane pages; the Out row now covers only a focused table's own keys.
+
+### M-2 · blocker · A second way to scroll a page to its top
+`PVPageColumns.scroll`'s marker id and `PVScrollRowIntoView`'s `restartsAt:whenChanged:` beside D-5's edge scroll.
+**Answer:** Fixed — D-1 gives `PVPageScrollView` `startsAtTopWhen:` through `PVPageScrollHandle` and the same edge scroll; D-7 and STEP-3 delete the marker, `PVPageColumnsMetrics.topAnchor` and `restartTop` / `restartKey`; AC-1.8, AC-3.3, §10 step 7, a Stop condition.
+
+### M-3 · major · `pageKeys: Bool = true` is a parameter no caller needs
+**Answer:** Fixed — D-6: `action` ignores the four page keys outright; STEP-1 moves the existing page-key tests onto `moveIndex`; T-2 rewritten; §4 caller list corrected.
+
+### M-4 · minor · The README List row keeps false claims
+**Answer:** Fixed — STEP-5 gives the row's whole keyboard text.
+
+### M-5 · minor · The name does not follow `PVFittedScrollView`
+**Answer:** Fixed — `PVPageScrollView` throughout the plan and the map; folder and file stay `PageScroll/PVPageScroll.swift`, as `FittedScroll/PVFittedScroll.swift`.
+
+### M-6 · nit · `top, end` mixes two pairs
+**Answer:** Fixed — `top, bottom`.
+
+### X-1 · blocker · STEP-5 rewrites a `completed.md` paragraph that is not there
+**Answer:** Fixed — STEP-5 adds a new section under the intro line, above `## S16-59`, with its heading and Landed form.
+
+### X-2 · major · The probe bookkeeping is under-specified
+**Answer:** Fixed — D-4 names `[WeakProbe]`, register / unregister, compaction, the probe's weak responder, `viewWillMove(toWindow:)` for a window change; D-2 names who holds the responder.
+
+### X-3 · major · `PVListFocusStopPreview` is a bare `ScrollView`
+**Answer:** Fixed — STEP-3 swaps it to `PVPageScrollView`.
+
+### X-4 · minor · §4's `action` callers are wrong
+**Answer:** Fixed — §4 Movement rule row.
+
+### X-5 · minor · STEP-3's Properties check names `inspector`
+**Answer:** Fixed — `PropertiesView.swift` joins AC-3.1's `rg` (it has one `ScrollView`, `inspectorCard`).
+
+### X-6 · minor · Doc replacements are not exact
+**Answer:** Fixed — STEP-4 replaces `PVList.swift` doc lines 17–20 with a fenced block (the `ScrollView` line becomes `PVPageScrollView`); STEP-5 gives the anti-pattern block fenced.
+
+### X-7 · minor · Commit split not mapped to steps
+**Answer:** Fixed — §7 Commits lists three.
+
+## Re-plan round 2
+
+Round-1 answers: M-1, M-2, M-3 Resolved (maintainability); X-1 – X-7 confirmed (executability).
+
+### X-8 · blocker · Nothing owns the responder: `nextResponder` does not retain it
+**Answer:** Fixed — D-2: `install` makes the window own the responder through `objc_setAssociatedObject`; it stays in the chain for the window's life.
+
+### X-9 · major · The responder has no window to compare against
+**Answer:** Fixed — D-2 sets `weak var window` in `install`; the sketch lists it.
+
+### X-10 · minor · Same-pass registration order is only assumed
+**Answer:** Fixed with M-7.
+
+### M-7 · blocker · On two-pane places, which pane gets the page keys depends on mount order
+**Answer:** To user → answered (pane under the pointer). Fixed — D-4's five-step choice (scrollable candidates, pointer, non-side-list, last registered, none); `PVTable` passes `isSideList: true`; Edges, AC-1.7, §10 step 2, STEP-3.
+
+### Outside the lens · AC-3.1's `rg` matches `PVPageScrollView {`
+**Answer:** Fixed — the pattern is `(^|[^A-Za-z])ScrollView \{`.
+
+Logged: the anti-pattern block keeps today's BAD line beside the new one (STEP-5, fixed); `startsAtTopWhen:`'s doc names `startsAtTopWhenRowsChange:` as the list's first-row reset (STEP-2, fixed).
+
+## First plan (superseded 2026-11-22)
 
 **Verdict:** Fits with changes — Ready with changes
 **Rounds:** 1 (no blocker, so no round 2). **Reviewers:** maintainability (opus), executability (sonnet)

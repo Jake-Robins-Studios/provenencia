@@ -83,7 +83,7 @@ Spike 16's Apply for Source records and the graph catalog must handle an Artifac
 33. **Every seed writes through one transaction.** `rg -n "func (Upsert|EnsureBinding|Install)\(c \*database\.Catalog" core/database/properties core/database/propertyterms core/database/subjecttypes core/database/sourcecredibilitygrades core/database/subjectvocab --glob '!*_test.go' --glob '!*test/**'` finds nothing: the subject vocabulary, Properties, terms and credibility grades install through `writes.Run`, and a failed install leaves none of its rows. Nothing in the app changes.
 36. **One change builder and one change-only write call.** `rg -n "return struct\{\}\{\}, " core api` and `rg -n "rowchange\.(FullRow|UpdatedRow|DeletedRow)\b" core api` find nothing, and no catalog package builds its own create, update or delete change around its column list. Nothing in the app changes.
 35. **A large delete still answers.** Deleting a bridge file whose Subjects are all claimed by one handle works however many Subjects it holds; the delete's Impact is the same as it would be for a few. Nothing else in the app changes.
-37. **Page keys work in the Sources list.** Tab into the Sources list: ↓ and ↑ move the focused row, Page Down and Page Up move it ten rows, Home and End to the first and last Source, the list scrolling to keep it in view; Return opens that Source's page. The Persons, Events and Places lists keep the same keys, through the same kit code. Each row's Evidence graph buttons still open their graphs.
+37. **Page keys scroll every page.** With nothing focused, Page Down and Page Up scroll the page by a window and Home and End to its top and bottom, on the Persons, Events and Places lists, a record page, the Sources list, Metadata, Properties and Promote. In the Persons, Events, Places and Sources lists, Tab in: ↓ and ↑ move the focused row, the list scrolling to keep it in view; the page keys scroll the page and leave the row; Return opens it; each Sources row's Evidence graph buttons still open their graphs. Holding ↓ past the window's edge keeps the focused row in view every step, and Back to a list finds it scrolled where it was left.
 
 **Batch 7 — One window** (user, 2026-11-18; lands before Batch 6):
 
@@ -161,6 +161,7 @@ The last eight rows were parked in idea files and folded into the PRs that alrea
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "Return adds a pick the combo box no longer shows" (S15-12 CON-1, UX-2; 2026-11-17) | S16-57 |
 | `ideas/shared-list-helpers.md` (retired 2026-11-17) "One popup dismissal", "One popup list under the combo box and the omnibar" and "The history menu on the shared rows" (2026-11-17) | S16-50 – S16-53 |
 | User request (2026-11-22): Page Up, Page Down, Home and End do nothing in the Sources list, which takes no keyboard focus because it is hand-built rows and not a kit list | S16-65, S16-66 |
+| S16-65 manual check (2026-11-22): on the Persons list, every other ↓ past the window edge jumps the page to the top (on `main` too); the user: the scroll view, not its rows, remembers the scroll position | S16-67 |
 
 **Batch 7** comes from a multi-window review with the user (2026-11-18):
 
@@ -261,7 +262,7 @@ These are the calls for this spike. PR plans treat them as binding.
 - **(Batch 6) A section count is a localized plural, hidden at zero** (user, 2026-11-17). Every `PVSectionHeader` that counts its items passes a plural string ("3 notes") and no count when the section is empty, since its empty state says so: the Source page's Notes, Artifacts and Evidence graphs, the citation composer's Citation column and the Conclusion Gallery section. `PVSectionHeader` keeps taking `meta` as a plain string: no count form in the kit (user, 2026-11-17). The change is copy in a header the page already draws, so it needs no brief. Binds S16-55.
 - **(Batch 6) One toast stack per window** (user, 2026-11-17). The workspace window holds one toast list that every workspace surface adds to, drawn by a kit `PVToastStack` top-trailing, newest first. Each entry leaves on its own five-second timer or its dismiss. There is no cap: nothing is pushed out early, and a burst taller than the window clips at its bottom (S16-D10 draws it). Every add makes a new card and returns its id; the list never compares toasts by their text. A caller that wants one card for a repeating event (the failed catalog recount, the navigation-history save failure) keeps the id and passes it back: while that card is on screen it takes the new text, moves to the top and restarts its timer, with no second card (and no second announcement when its text is unchanged); once it has gone, a new card is added (user, 2026-11-22, after S16-58's dogfood: two portrait choices from one Source read as one card). Reduce Motion fades. A sheet (the likeness viewer) and Onboarding each own their own list and stack (S16-58 ship log MNT-2, user 2026-11-22). Binds S16-58, S16-59. Design: [`stacked-toasts.md`](stacked-toasts.md).
 - **(Batch 6) A count inside a substitution is checked too.** `scripts/check-localizable-xcstrings.py` tests each `%n$lld <word>` that is not itself a substitution, including in entries that have other substitutions, and `provenanceSheet.recordsFromBirthEvents` and `…DeathEvents` gain an `events` substitution like `recordsFromPlaces`. Binds S16-47.
-- **(Batch 6) A list of rows is one kit focus stop** (user, 2026-11-22). A browse list of button rows gets its keyboard from the kit and never builds its own: one focus stop with ↑/↓ (⌥ to an end), Home/End, Page Up/Down moving the focused row by `PVListKeyboard.pageStep`, Return and Space opening it, and the list scrolling to keep it in view. `PVList` holds this today; it becomes a kit modifier a list of custom rows wears (S16-65), and the Sources list wears it (S16-66) instead of SwiftUI's own scroll keys, which a custom `ScrollView` does not get. Binds S16-65, S16-66.
+- **(Batch 6) Page keys belong to the page's scroll view** (user, 2026-11-22). Page Up, Page Down, Home and End scroll the page, whatever it holds and whether or not anything on it has focus, as in Safari and Finder; they never move a list's focused row. Every workspace page scrolls in one kit `PVPageScrollView`, whose keys come from one responder after the window in the responder chain, so a focused text field, table, popup or menu keeps them; where a place shows a list beside a detail pane, the pane under the pointer takes them, else the detail pane (user, 2026-11-23). A browse list of button rows is one kit focus stop (`.pvListFocusStop`): ↑/↓ (⌥ to an end) move its focused row and scroll it into view, Return and Space open it, and the page keys go on to the page. The page scroll view also remembers how far down it is, not which row is at its top (S16-67). Binds S16-65, S16-66, S16-67.
 
 ### Batch 7 — One window
 
@@ -337,8 +338,9 @@ These are the calls for this spike. PR plans treat them as binding.
 | S16-63 | A delete that leaves a handle with many Subjects still works | 6c | Go: `deleteimpact.handleGoesWithout` stops binding every leaving Subject in one `NOT IN` list (unbounded; SQLite binds at most 32,766), so a bridge-file delete reaching a handle with any number of Subjects answers as today | — | — | quick-pr | Landed #915 |
 | S16-58 | Toasts stack in one list per window | 6e | Swift: kit `PVToastStack`; a window toast list in the environment; `WorkspaceView`'s two overlays become the stack; `vocabularyToastOverlay` inside the workspace forwards into it, so every page's toasts stack at once; the Citation composer's toast moves from the foot of its observations column into the stack | S16-D10 | S16-56, S16-D10 | [plan](prs/S16-58-toast-stack.md) | Landed #941 |
 | S16-59 | Workspace callers add to the toast stack | 6e | Preparatory, Swift: each workspace caller adds to its host's list (the window's, or a sheet's) instead of setting a `toast` binding; the forwarding overlay goes; no visible change | — | S16-58 | [plan](prs/S16-59-toast-callers.md) | Landed #945 |
-| S16-65 | One kit focus stop for a list of rows | 6f | Preparatory, Swift: `PVList`'s focus stop and keys (focused row, ↑/↓, Home/End, Page Up/Down, Return/Space, scroll into view) move into a kit modifier `.pvListFocusStop` that a list of custom rows can wear; `PVList` wears it; no visible change | — (no chrome change: the Persons, Events and Places lists look and behave as today) | — | [plan](prs/S16-65-list-focus-stop.md) | Landed #951 |
-| S16-66 | The Sources list moves by keyboard | 6f | Swift: the Sources list wears `.pvListFocusStop`, so ↑/↓, Home/End, Page Up/Down move a focused row and Return opens its Source; the focused row draws the row style's focus ring; the graph buttons keep their clicks | S16-D12 | S16-65, S16-D12 | — | Scoped |
+| S16-65 | Page keys belong to the page's scroll view | 6f | Swift: kit `PVPageScrollView`, which every workspace page scrolls in (`PVTable`'s rows too), and the one way a page goes back to its top; Page Up/Down and Home/End scroll it through one responder after the window, with nothing focused too; `PVList`'s focus stop (extracted to `.pvListFocusStop` in the PR's first round) keeps ↑/↓ and Return/Space and hands the page keys on | — (no chrome change: keys that did nothing now scroll) | — | [plan](prs/S16-65-list-focus-stop.md) | Planned |
+| S16-66 | The Sources list moves by keyboard | 6f | Swift: the Sources list wears `.pvListFocusStop`, so ↑/↓ move a focused row and Return opens its Source; the focused row draws the row style's focus ring; the graph buttons keep their clicks | S16-D12 | S16-65, S16-D12 | — | Scoped |
+| S16-67 | The page scroll view remembers how far down it is | 6f | Swift: `PVPageScrollView` records its scroll offset in the history entry and restores it on Back, replacing `ListScrollAnchorModifier` and its top-row id (`listScrollAnchor`); the Persons list's every-other-↓ bounce is found and fixed | — (no chrome change) | S16-65 | — | Scoped |
 | S16-99 | Dogfood close / docs | — | Bar pass; the ship logs' follow-ups triaged; the audit's [Close the loop](person-page-audit.md#close-the-loop) classes added to the lenses' Known traps; [`archive-docs`](../../../.agents/skills/archive-docs/SKILL.md) | — | all | — | Scoped |
 
 ## Design track
@@ -480,9 +482,10 @@ SLICE 6e — Stacked toasts                            (after S16-56)
   S16-59  Workspace callers add to the toast stack
   Check: bar 32.
 
-SLICE 6f — Sources list keyboard                     (any time; a chain)
-  S16-65  One kit focus stop for a list of rows
+SLICE 6f — Page and list keyboard                    (any time; a chain)
+  S16-65  Page keys belong to the page's scroll view
   ✎ S16-D12 ──▶ S16-66  The Sources list moves by keyboard   (after S16-65)
+  S16-67  The page scroll view remembers how far down it is  (after S16-65)
   Check: bar 37.
 
 S16-99 — Dogfood close / docs
@@ -559,6 +562,7 @@ S16-D10 ──▶ S16-58
 S16-50 ──▶ S16-53
 S16-D9 ──▶ S16-52
 S16-65 ──▶ S16-66
+S16-65 ──▶ S16-67
 S16-D12 ──▶ S16-66
 ```
 
@@ -1017,18 +1021,25 @@ Wrong today: three headers show a bare number that skips the strings catalog, an
 **Check.** Bar 32 still holds; `rg -n "vocabularyToastOverlay" macos` prints nothing; the models' toast tests pass on the list.
 **Context.** Rule "(Batch 6) One toast stack per window"; [`stacked-toasts.md`](stacked-toasts.md) "Callers add, they do not set"; the callers named above; [`add-swift-test`](../../../.agents/skills/add-swift-test/SKILL.md).
 
-### Slice 6f — Sources list keyboard
+### Slice 6f — Page and list keyboard
 
-#### S16-65 — One kit focus stop for a list of rows
+#### S16-65 — Page keys belong to the page's scroll view
 
-**Ships.** Preparatory, Swift, no visible change. The focus stop `PVList` builds in its `body` (its `focusIndex`, `.focusable()`, `.focused`, `.onKeyPress` through `PVListKeyboard.action`, and `.pvScrollsRowIntoView` on the focused row) moves into a kit modifier, `.pvListFocusStop`, in `DesignSystem/Components/List/`, which any column of rows tagged `.id` can wear. `PVList` wears it, so the Persons, Events and Places lists keep their keys through it. The kit README's List row and [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md) name it.
-**Not this PR.** The Sources list (S16-66); `PVTable`'s selection keys, which move a selection and not a focused row.
-**Check.** Bar 37's second sentence; `PVListTests` pass unchanged; the modifier's pure index rule is tested.
-**Context.** Rule "(Batch 6) A list of rows is one kit focus stop"; `macos/App/DesignSystem/Components/List/PVList.swift` (`PVList.body`, `PVListKeyboard`, `PVListRowStyle`), `ScrollRowIntoView/PVScrollRowIntoView.swift`; [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md).
+**Ships.** Swift. A kit `PVPageScrollView` (`DesignSystem/Components/PageScroll/`) that every workspace page scrolls in: the Persons, Events and Places lists, the record pages (`PVPageColumns`), the Sources list, Metadata, a Property's inspector, Promote and `PVTable`'s rows (the Source types, Metadata and Properties lists). Its `startsAtTopWhen:` replaces `PVScrollRowIntoView`'s `restartsAt:whenChanged:` and `PVPageColumnsMetrics.topAnchor`, so a page has one way back to its top. Page Up/Down and Home/End scroll it, with nothing focused too, through one `PVPageKeyResponder` after the window in the responder chain (a spike, 2026-11-22, showed a SwiftUI `ScrollView` handles none of them and that a key nothing handled reaches such a responder). `PVList`'s focus stop, extracted to `.pvListFocusStop` in the PR's first round, keeps ↑/↓ (⌥ to an end) and Return/Space and hands the page keys on (`PVListKeyboard.action(pageKeys: false)`). Fan-out: one key-code switch per key press.
+**Not this PR.** The bounce and the remembered scroll position (S16-67); the Sources list's focus stop (S16-66); the sidebar and the Citation composer's columns; a focused `PVTable`'s own selection keys.
+**Check.** Bar 37's first two sentences; `PVPageKeysTests`; `PVListTests`.
+**Context.** Rule "(Batch 6) Page keys belong to the page's scroll view"; the PR's ship log (the first round and the manual check); `macos/App/DesignSystem/Components/List/`, `PageColumns/PVPageColumns.swift`, `Popup/PVPopup.swift` (the `NSView` bridge); [`add-ui-component`](../../../.agents/skills/add-ui-component/SKILL.md).
 
 #### S16-66 — The Sources list moves by keyboard
 
-**Ships.** Swift. `SourcesListView.listBody`'s rows wear `.pvListFocusStop`: Tab lands on the list, ↑/↓, Home/End and Page Up/Down move the focused row and the list scrolls to keep it in view below the pinned caption band; Return or Space opens the focused Source's page, as a click on its Source link does. The focused row's Source link draws `PVListRowStyle`'s focus ring (S16-D12 draws it). The Evidence graph buttons, the Copy Source right-click menu and the list's scroll anchor (`ListScrollAnchorModifier`) work as today.
+**Ships.** Swift. `SourcesListView.listBody`'s rows wear `.pvListFocusStop`: Tab lands on the list, ↑/↓ move the focused row and the list scrolls to keep it in view below the pinned caption band (the page keys scroll the page since S16-65); Return or Space opens the focused Source's page, as a click on its Source link does. The focused row's Source link draws `PVListRowStyle`'s focus ring (S16-D12 draws it). The Evidence graph buttons, the Copy Source right-click menu and the list's scroll anchor (`ListScrollAnchorModifier`) work as today.
 **Not this PR.** Keyboard movement into a row's graph buttons (←/→); a selection. The plan decides whether the focused row follows its Source through a re-sort or a new Source above it (`.pvListFocusStop` keeps an index; S16-65 D-8).
 **Check.** Bar 37's first and last sentences.
-**Context.** S16-D12; rule "(Batch 6) A list of rows is one kit focus stop"; `macos/App/Features/Sources/SourcesListView.swift` (`listBody`), `SourcesListRow.swift` (`sourceLink`, `PVListRowStyle(focused: nil)`); `WorkspaceNavigation.swift` (`ListScrollAnchorModifier`). Lands after S16-65.
+**Context.** S16-D12; rule "(Batch 6) Page keys belong to the page's scroll view"; `macos/App/Features/Sources/SourcesListView.swift` (`listBody`), `SourcesListRow.swift` (`sourceLink`, `PVListRowStyle(focused: nil)`); `WorkspaceNavigation.swift` (`ListScrollAnchorModifier`). Lands after S16-65.
+
+#### S16-67 — The page scroll view remembers how far down it is
+
+**Ships.** Swift. `PVPageScrollView` records its vertical offset (points from the top of its content) on the current history entry as it scrolls and restores it when Back or Forward returns to the place, in place of `ListScrollAnchorModifier`'s top-row id: `WorkspaceLocation.listScrollAnchor` becomes an offset, and the modifier and its `.scrollPosition(id:anchor:)` binding go from the Persons, Events and Places lists, the Sources list and the Source types list. The Persons list's bounce is found and fixed: past the window edge, every other ↓ scrolls the focused row into view and the next jumps the page to the top (on `main` too). A logged run (2026-11-22, S16-65 ship log) showed no app code scrolling to the top and the bound row id never changing; a bare SwiftUI list with the same binding did not bounce. The plan finds the cause before it decides the fix.
+**Not this PR.** Remembering the offset across launches beyond what history already persists; horizontal offsets.
+**Check.** Bar 37's last sentence; on the Persons list, ↓ held past the window edge keeps the focused row in view every step; scroll a list, open a row, Back: the list is where it was.
+**Context.** Rule "(Batch 6) Page keys belong to the page's scroll view"; `macos/App/Features/Workspace/WorkspaceNavigation.swift` (`ListScrollAnchorModifier`, `noteListScroll`), `NavigationHistoryStore.swift` (`stampListScrollAnchor`), `WorkspaceLocation.swift` (`listScrollAnchor`); `PVPageScrollView`. Lands after S16-65.

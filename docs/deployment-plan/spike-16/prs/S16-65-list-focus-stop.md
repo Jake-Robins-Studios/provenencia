@@ -1,21 +1,19 @@
-# S16-65 — One kit focus stop for a list of rows
+# S16-65 — Page keys belong to the page's scroll view
 
-**Status:** Landed in [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951) (2026-11-22)
-
-**Landed:** the kit README link to `kit-layering.md` is `../../../docs/ideas/kit-layering.md` (the step's `../../../../` does not resolve from that folder); the README and `add-ui-component` edits ride in their own commit. D-7's clamp gained a lower bound (`min(max(index, 0), max(0, count - 1))`) and `PVListKeyboard.action`'s activate clamp now calls it (ship log MNT-1); the focused-row ring rule is one `PVListKeyboard.isFocusedRow(_:focusIndex:count:listFocused:)` that `PVList`'s row and the preview read, instead of each caller spelling `isFocused && index == clampedIndex(…)` (MNT-2); the §10 manual check was not run by the implementer (no UI session); the user runs steps 1–5 before merge.
-**Spike / slice:** Spike 16 · Slice 6f — Sources list keyboard
+**Status:** Planned
+**Spike / slice:** Spike 16 · Slice 6f — Page and list keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** — (no chrome change: the Persons, Events and Places lists look and behave as today; the code that draws their focus moves, not the drawing)
+**Brief:** — (no chrome change: no view draws anything new; keys that did nothing now scroll)
 **Board:** —
 **Depends on:** —
-**Blocks:** S16-66
-**Branch:** `s16-65-list-focus-stop`
-**Version bump:** none — a preparatory refactor with no change a researcher can see, no wire change and no catalog format change, as S16-59 and S16-64 ([`docs/versioning.md`](../../../versioning.md))
+**Blocks:** S16-66, S16-67
+**Branch:** `s16-65-list-focus-stop` (PR [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951), back to draft for this plan; its first round extracted `.pvListFocusStop`, which this plan keeps)
+**Version bump:** none — a keyboard behavior in the app with no wire or catalog format change, as S16-59 ([`docs/versioning.md`](../../../versioning.md))
 **Skills to load:** [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md)
 **Rules that bind:** —
-**Context:** map scope entry [S16-65](../deployment-plan.md#s16-65--one-kit-focus-stop-for-a-list-of-rows); bar 37; working rules: "(Batch 6) A list of rows is one kit focus stop"; kit README [`macos/App/DesignSystem/README.md`](../../../../macos/App/DesignSystem/README.md) List and ScrollRowIntoView rows
-**Planned:** 2026-11-22 against `main` @ `8fcb625`
-**Review:** [`S16-65-list-focus-stop.review.md`](S16-65-list-focus-stop.review.md) — Fits with changes / Ready with changes, 1 round
+**Context:** map scope entry [S16-65](../deployment-plan.md#s16-65--page-keys-belong-to-the-pages-scroll-view); bar 37; working rule "(Batch 6) Page keys belong to the page's scroll view"; ship log [`S16-65-list-focus-stop.ship.md`](S16-65-list-focus-stop.ship.md) (the first round and the manual check that stopped it); kit README [`macos/App/DesignSystem/README.md`](../../../../macos/App/DesignSystem/README.md) List and ScrollRowIntoView rows
+**Planned:** 2026-11-22 against branch `s16-65-list-focus-stop` @ `17fb862dd` (`main` @ `a0923028f` plus the first round's commits)
+**Review:** [`S16-65-list-focus-stop.review.md`](S16-65-list-focus-stop.review.md) — re-plan: Fits with changes / Ready with changes, 2 rounds; M-7 answered by the user (2026-11-23)
 
 ### Implementer — read this first
 
@@ -32,76 +30,111 @@
 
 ## 1. Objective
 
-`PVList` is the kit's browse list: one focus stop whose focused row moves with ↑/↓ (⌥ to an end), Home/End and Page Up/Down, scrolls into view, and opens on Return or Space. That keyboard lives inside `PVList.body`, so a list whose rows are not `PVList`'s fixed shape cannot have it. The Sources list is such a list (a row holds the Source link and one button per Evidence graph), so today Page Up, Page Down, Home and End do nothing there. This PR moves the focus stop out of `PVList.body` into a kit modifier, `.pvListFocusStop`, that any column of rows can wear, and `PVList` wears it. S16-66 then puts the Sources list on it.
+Page Up, Page Down, Home and End scroll the page a researcher is looking at, whatever the page holds and whether or not anything on it has keyboard focus, as they do in Safari, Preview and Finder. Today they do nothing on most pages: a SwiftUI `ScrollView` on macOS handles none of them, and on a page with nothing focusable no view receives them. The one place they work, `PVList`, moves its focused row instead of scrolling. That is not the Mac's behavior: there, ↑/↓ move a list's selection and the page keys scroll the view without moving it.
 
-**Why now.** The user asked for Page Up, Page Down, Home and End in the Sources list (2026-11-22) and chose to fix the list's setup over a Sources-only key handler (rule "(Batch 6) A list of rows is one kit focus stop").
+This PR adds one kit scroll view, `PVPageScrollView`, that every workspace page scrolls in, `PVTable`'s row list included. A key that no focused view, text field or menu used travels up the window's responder chain to one kit responder, which scrolls the window's page the AppKit way. Sending a page back to its top on a section change moves into the same view, so the kit has one way to scroll a page to its top. `PVList`'s focus stop keeps ↑/↓ (⌥ to an end) and Return/Space and passes the page keys on.
 
-**What stays.** Every `PVList` (the Persons, Events and Places lists through `ConclusionListPage`) looks and behaves exactly as today: the same keys, the same focus ring on the focused row, the same scrolling, the same VoiceOver. `PVListKeyboard` keeps its movement rule. `PVTable` keeps its own selection keys.
+**Why now.** The user asked for Page Up, Page Down, Home and End in the Sources list (2026-11-22). The first round of this PR made them a list feature; the manual check and the user's review (2026-11-22) moved them to the scroll view: "It's a function of the scroll view and has nothing to do with the content."
+
+**What stays.** Every page looks as it does today. ↑/↓, ⌥↑/⌥↓, Return and Space in the Persons, Events and Places lists behave as today. A record page still returns to its top when its section changes. Text fields, text areas, popup lists, menus, a focused `PVTable` and the Evidence graph canvas keep their own keys.
+
+**Not here.** The every-other-↓ bounce on the Persons list (it happens on `main` too) and the page's remembered scroll position: S16-67.
 
 ## 2. User stories
 
-**US-1.** As a researcher on the Persons, Events or Places list, I move through the list with the keyboard exactly as before, so nothing I rely on changes.
+**US-1.** As a researcher on any page longer than the window, I press Page Down, Page Up, Home or End and the page scrolls, without clicking or tabbing first.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-1.1 | Persons list with 30 people; Tab until the list is focused; press ↓ twice | The third row shows the focus ring |
-| AC-1.2 | Same list, third row focused; Page Down; then End; then Home | The 13th row is focused; then the 30th, scrolled into view; then the first |
-| AC-1.3 | Same list, a row focused; Return | That person's page opens |
-| AC-1.4 | Same list; ⌥↓ | The last row is focused |
+| AC-1.1 | A Person page taller than the window, nothing focused; Page Down | The page scrolls down by one window height less AppKit's page overlap (`NSScrollView.pageDown`) |
+| AC-1.2 | Same page; End; then Home | The page's bottom is in view; then its top |
+| AC-1.3 | Same page; Page Up at the top, Page Down at the bottom, or any page key on a page shorter than the window | Nothing moves |
+| AC-1.4 | The Persons list with 30 people, nothing focused; Page Down | The list page scrolls; no row gains the focus ring |
+| AC-1.5 | A text field holding the cursor (the omnibar, a form field); Home, End | The field handles the key as today; the page does not scroll |
+| AC-1.6 | Any page; ⌘↓, ⇧Page Down, ⌥Page Down, ⌃End | The page keys do not act; the key goes where it went before |
+| AC-1.7 | The Source page, the Sources list, the Metadata page with a field selected, a Property's inspector, the Promote page, the Source types list with nothing focused | AC-1.1 and AC-1.2 hold on each; on Metadata and Properties, the list when the pointer is over it, else the detail pane |
+| AC-1.8 | A Person page scrolled down; open another section from its section bar (`scrollResetKey` changes) | The page is at its top, as today |
 
-**US-2.** As a contributor building a list of custom rows, I wear one kit modifier and get the list keyboard, so I never write a second focus stop.
+**US-2.** As a researcher in the Persons, Events or Places list, ↑/↓ move the focused row and the page keys scroll the page, as in Finder.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | `focusIndex` 7 and a list of 3 rows (the list shrank) | The ring and the keys use index 2 (`PVListKeyboard.clampedIndex(7, count: 3)` = 2); the scroll row stays nil, as today (D-5) |
-| AC-2.2 | `focusIndex` 0 and a list of 0 rows | `PVListKeyboard.clampedIndex(0, count: 0)` = 0, and no key is handled (`PVListKeyboard.action` returns `.ignore` for count 0) |
-| AC-2.3 | `rg -n "\.onKeyPress" macos/App/DesignSystem/Components/List/PVList.swift` | Prints nothing: `PVList` has no key handler of its own |
+| AC-2.1 | Persons list, Tab until the first row has the ring; ↓ twice | The third row has the ring (as today) |
+| AC-2.2 | Same; Page Down | The page scrolls one window; the ring stays on the third row, now off screen |
+| AC-2.3 | Same; ↓ | The fourth row has the ring and scrolls into view |
+| AC-2.4 | Same; ⌥↓; then Return | The last row has the ring (as today); then that person's page opens |
+| AC-2.5 | `PVListKeyboard.action(for:option:index:count:)` with `.home`, `.end`, `.pageUp`, `.pageDown` | `.ignore` |
+
+**US-3.** As a contributor, a new page scrolls in `PVPageScrollView` and gets the page keys and the reset to its top with no key code and no marker id of its own.
+
+| AC | Given / when | Then |
+| --- | --- | --- |
+| AC-3.1 | `rg -n "(^|[^A-Za-z])ScrollView \{" macos/App/Features/Conclusions/ConclusionListPage.swift macos/App/Features/Sources/SourcesListView.swift macos/App/Features/Metadata/MetadataDetailPane.swift macos/App/Features/Promote/PromoteView.swift macos/App/Features/Properties/PropertiesView.swift macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift macos/App/DesignSystem/Components/Table/PVTable.swift` | Prints nothing |
+| AC-3.2 | `PVPageKeys.command(keyCode:modifiers:)` for each key code and modifier set in T-1 | The command T-1 lists |
+| AC-3.3 | `rg -n "restartsAt|restartTop|restartKey|topAnchor" macos/App -g '*.swift' -g '*.md'` | Prints only lines in `macos/App/Features/ArtifactViewer/ArtifactPDFViewport.swift` (AppKit's `NSView.topAnchor`) |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
-| `.pvListFocusStop` *(new)* in `Components/List/PVListFocusStop.swift` *(new)*: `.pvScrollsRowIntoView` on the focused row, `.focusable()`, `.focusEffectDisabled()`, `.focused`, `.onKeyPress` through `PVListKeyboard.action` | STEP-2, AC-1.1 – AC-1.4 |
-| `PVListKeyboard.clampedIndex(_:count:)` *(new)*, the clamp `PVList.currentIndex` does today; `currentIndex` goes | STEP-1, STEP-3, AC-2.1, AC-2.2 |
-| `PVList` wears the modifier; its own key handler, scroll and focus modifiers go | STEP-3, AC-2.3 |
-| The kit README's List row and `add-ui-component`'s anti-patterns name the modifier | STEP-4 |
+| `PVPageScrollView` *(new)*: a vertical `ScrollView` whose content carries a zero-size `PVPageScrollProbe` *(new)*; `startsAtTopWhen:` sends it to its top | STEP-2, AC-1.1 – AC-1.3, AC-1.8 |
+| `PVPageKeys` *(new)*: the pure key rule (`command(keyCode:modifiers:)`), the edge scroll; `PVPageKeyResponder` *(new)*, the window responder | STEP-1, STEP-2, AC-1.1 – AC-1.6, AC-3.2 |
+| The page sites move onto `PVPageScrollView`: `ConclusionListPage.page`, `PVPageColumns.scroll`, `SourcesListView` (the list's `ScrollView`), `MetadataDetailPane`, `PropertiesView.inspectorCard`, `PromoteView`, `PVTable.rowList` | STEP-3, AC-1.7, AC-3.1 |
+| The reset to the top moves from `PVScrollRowIntoView`'s `restartsAt:whenChanged:` and `PVPageColumnsMetrics.topAnchor` to `PVPageScrollView(startsAtTopWhen:)`; the old path is deleted | STEP-3, AC-1.8, AC-3.3 |
+| `PVListKeyboard.action` returns `.ignore` for the four page keys; `moveIndex` is unchanged | STEP-1, STEP-4, AC-2.1 – AC-2.5 |
+| Docs: kit README (List, ScrollRowIntoView and a new PageScroll row), `add-ui-component` anti-pattern, `PVList` and `.pvListFocusStop` doc comments | STEP-4, STEP-5 |
 
 | Out | Home |
 | --- | --- |
-| The Sources list on the modifier | S16-66 |
-| `PVTable` on the modifier (it has a selection, type-to-select and Escape, and rings the whole table) | not planned |
-| `PVTable.handleKey`'s movement keys onto `PVListKeyboard.moveIndex`, and `PVTableSelection.moveIndex` deleted | [`docs/ideas/kit-layering.md`](../../../ideas/kit-layering.md) "The table writes its own movement keys" |
-| ←/→ into a row's secondary buttons | S16-66's Out (not planned) |
-| A `pageStep` other than `PVListKeyboard.pageStep` (10) for a caller | not planned: no caller needs one |
+| The bounce on ↓ past the window edge, and remembering the page's scroll offset instead of its top row (`ListScrollAnchorModifier`) | S16-67 |
+| The Sources list's focus stop | S16-66 |
+| The sidebar and the Citation composer's two columns: page keys reach only the window's page (D-4) | not planned |
+| A focused `PVTable` scrolling by the page keys (it moves its selection by them) | [`docs/ideas/kit-layering.md`](../../../ideas/kit-layering.md) "The table writes its own movement keys" |
+| Space and ⇧Space paging (Safari's) | not planned: the user named four keys; Space opens a focused row |
+| Dialogs, sheets, popups, text areas, the graph canvas | not planned: they own their keys or are not pages |
 
 ## 4. Current state
 
 | Area | Where | Today |
 | --- | --- | --- |
-| List focus stop | `macos/App/DesignSystem/Components/List/PVList.swift` `PVList.body` (lines 99–134) | `LazyVStack` of rows → `.scrollTargetLayout()` → `.pvScrollsRowIntoView(items[focusIndex].id, animated: false)` → `.pvListChrome()` → `.focusable()` → `.focusEffectDisabled()` → `.focused($isFocused)` → `.onKeyPress` that maps `PVListKeyboard.action(for:option:index:count:)` to `focusIndex = index` (`.move`), `onActivate(items[index])` (`.activate`) or `.ignored` → `.accessibilityElement(children: .contain)` and `.accessibilityLabel`. Wrong for this PR: none of it is reachable by a list that is not a `PVList` |
-| Focus state | `PVList` `@FocusState private var isFocused`, `@State private var focusIndex = 0`, `currentIndex` (`min(focusIndex, max(0, items.count - 1))`) | Owned by the view; the row style reads `isFocused && index == currentIndex`; a click on a row sets `focusIndex = index` before `onActivate` |
-| Movement rule | same file `PVListKeyboard.action`, `moveIndex`, `pageStep` | Pure; stays as is |
-| Row chrome | same file `PVListRowStyle(focused:)`, `PVListRowBody` | Draws the focus ring from `focused` (or the button's own focus when nil, which the Sources list passes) |
-| Scroll into view | `macos/App/DesignSystem/Components/ScrollRowIntoView/PVScrollRowIntoView.swift` `.pvScrollsRowIntoView` | The one kit way to keep a row in view; the README says not to add another `ScrollViewReader` for this |
-| Caller | `macos/App/Features/Conclusions/ConclusionListPage.swift` `PVList(…)` (line 163) | The only `PVList` caller: the Persons, Events and Places lists. No change |
-| Tests | `macos/ProvenenciaTests/PVListTests.swift` `PVListTests` | Pure tests of `PVListKeyboard.action` and `moveIndex`; nothing tests `PVList.body` |
+| List focus stop | `macos/App/DesignSystem/Components/List/PVListFocusStop.swift` `pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)`; its `PVListFocusStopPreview` (a bare `ScrollView`) | Landed in this branch's first round. `.onKeyPress` maps `PVListKeyboard.action` to `.move` / `.activate` / `.ignore`. Page Up/Down and Home/End come back `.move`, so the list moves its focused row and scrolls to it. Wrong for this PR: those keys belong to the page |
+| Ring and clamp | `macos/App/DesignSystem/Components/List/PVList.swift` `PVListKeyboard.clampedIndex(_:count:)`, `isFocusedRow(_:focusIndex:count:listFocused:)` | First round; unchanged by this plan |
+| Movement rule | `PVList.swift` `PVListKeyboard.action(for:option:index:count:isDisabled:)` (line 344), `moveIndex(for:option:index:count:isDisabled:pageStep:)` | `moveIndex` maps ↑/↓, Home/End, Page Up/Down. `action` returns `.move` for any of them. `action` is called by `PVListFocusStop.swift:41` and `PVTable.swift:44` (`PVTableSelection.activationTarget`, which reads only `.activate`); `moveIndex` by `PVContextMenu.swift:62` and `PVPopupList.swift:423`, `:429` |
+| List tests | `macos/ProvenenciaTests/PVListTests.swift` | Helper `action(_:option:at:of:)` (count 25). `optionArrowsAndHomeEndJumpToTheEnds`, `pageKeysMoveByTenAndClamp`, `pageStepIsTheCallers` (third line) and `homeAndEndSkipDisabledRows` (first two `#expect`s) test Home/End and the page keys through `action` |
+| Doc text that names the page keys on the list | `PVList.swift` doc comment lines 17–20 ("The list does not scroll itself; put it in the page's `ScrollView`. … Page Down move by ten, Return / Space activate."); `macos/App/DesignSystem/README.md` List row; `.agents/skills/add-ui-component/SKILL.md` `## Anti-patterns`, the fenced block at lines 147–151 | Say the list moves by Home/End and Page Up/Down; the README row also says "action menus use `action` too" and "`PVListKeyboard.action` takes `isDisabled`", neither true of an app caller |
+| List page | `macos/App/Features/Conclusions/ConclusionListPage.swift` `ConclusionListPage.page(meta:body:)` (line 117) | A bare `ScrollView`; `ConclusionListBody` applies `ListScrollAnchorModifier` (`.scrollPosition(id:anchor:)`) outside it |
+| Record pages | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` `scroll(content:)` (line 370) | A bare `ScrollView` whose content starts with `Color.clear.frame(height: 0).id(PVPageColumnsMetrics.topAnchor)` (lines 375–377); `.coordinateSpace`, `.onGeometryChange`, `.environment` and `.pvScrollsRowIntoView(Optional<String>.none, restartsAt: PVPageColumnsMetrics.topAnchor, whenChanged: scrollResetKey)` on it. `scrollResetKey` is passed by `SourcePageView`, `SourceTypePageView` and `ConclusionDetailPage` |
+| Reset to top | `macos/App/DesignSystem/Components/ScrollRowIntoView/PVScrollRowIntoView.swift` `PVScrollRowIntoView.restartTop`, `restartKey`, the `.onChange(of: restartKey)` (`proxy.scrollTo(restartTop, anchor: .top)`), and `pvScrollsRowIntoView(…restartsAt:whenChanged:…)` (lines 87–88); `PVPageColumnsMetrics.topAnchor` (line 67) | `PVPageColumns.scroll` is the only caller |
+| Sources list | `macos/App/Features/Sources/SourcesListView.swift` (line 294) | A bare `ScrollView` around a `LazyVStack` with a pinned caption band; `ListScrollAnchorModifier` at line 307 |
+| Metadata page | `macos/App/Features/Metadata/MetadataDetailPane.swift` `body` (line 11) | A bare `ScrollView` |
+| Property inspector | `macos/App/Features/Properties/PropertiesView.swift` `inspectorCard` (line 433) | A bare `ScrollView` around `inspectorBody(property)`; the file's only `ScrollView` |
+| Promote page | `macos/App/Features/Promote/PromoteView.swift` (line 29) | A bare `ScrollView` under `PromoteHeader` |
+| Table | `macos/App/DesignSystem/Components/Table/PVTable.swift` `rowList(_:)` (line 240) | A bare `ScrollView` with `.pvScrollsRowIntoView(selection)`, `.focusable()`, `.focusEffectDisabled()`, `.focused`, `.onKeyPress(action: handleKey)`, `.pvFocusRing`, accessibility on it. The main scrolling column of the Source types list, the Metadata list (`VocabularyListPane`) and the Properties list |
+| AppKit precedent | `macos/App/DesignSystem/Components/Popup/PVPopup.swift` (`viewDidMoveToWindow`, line 214); `PVPopupWindowHost.swift` line 116 (`anchor?.enclosingScrollView`) | The kit already bridges to AppKit from a zero-size `NSView` and reads `enclosingScrollView` |
 
-**Precedent.** `131abdb` ("Move a popup list's highlight, its landing and its movement keys onto one kit rule.") moved the popup list's keys out of its callers into one kit piece that the combo box and the omnibar both wear. Copy its shape: the pure rule stays in `PVListKeyboard`, the view glue becomes one kit piece, and the old copy goes in the same commit.
+**Evidence for the design** (spike, 2026-11-22, run by the user on macOS in a throwaway app; the code is not in the repo):
+
+- A plain SwiftUI `ScrollView` with nothing focusable: Page Up/Down, Home and End do nothing.
+- The same view with a zero-size `NSViewRepresentable` in its content's `background`, whose `viewDidMoveToWindow` sets `responder.nextResponder = window.nextResponder; window.nextResponder = responder`, and a responder whose `keyDown` calls `enclosingScrollView.pageDown(nil)` / `pageUp(nil)`: Page Up/Down scroll with nothing focused.
+- `NSScrollView` has no Home/End action (`scrollToBeginningOfDocument(_:)` is `NSResponder`'s and passes up). `documentView.scrollToVisible(NSRect(x: 0, y: isFlipped ? 0 : height - 1, width: 1, height: 1))` and its mirror scroll to the top and the bottom: both work.
+- A focused SwiftUI list whose `.onKeyPress` returns `.ignored` for the page keys and `.handled` for ↑/↓: ↑/↓ move its row; Page Down and End reach the responder and scroll the page; the row stays; ↓ moves on from it and scrolls back.
+
+**Precedent.** `PVPopup.swift`'s zero-size `NSView` bridge (lines 200–260) for the AppKit side; `131abdb` (one kit popup list's keys) for moving key handling out of callers into one kit piece.
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | A `View` extension `pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)` *(new)* backed by a `private struct PVListFocusStop: ViewModifier` *(new)* in `Components/List/PVListFocusStop.swift` *(new)* | A modifier is the kit's shape for behaviour a caller's own views wear (`.pvScrollsRowIntoView`, `.pvPopup`); it lives beside `PVList` in the List folder (add-ui-component: one folder per control, helpers colocated) | A generic `PVRowList<Row>` container view — it would fix the stack and the chrome, which the Sources list (a `LazyVStack` with a pinned caption band) does not share; a Sources-only handler — the user chose the kit fix |
-| D-2 | The caller owns the state: `focusIndex: Binding<Int>` and `isFocused: FocusState<Bool>.Binding`. The modifier owns none | The row view must read both to draw its ring (`PVListRowStyle(focused:)`) and a click sets `focusIndex`; `@FocusState` can only be declared in a `View` | State inside the modifier with a preference back out — two sources of truth for one focused row |
-| D-3 | The modifier takes `count: Int` and `rowID: (Int) -> ID` (`ID: Hashable`), not an array of ids | A `PVList` holds up to 16,000 persons at the Batch 2 Scale; building an id array on every body pass would be a second O(n) copy beside the `ForEach`. `rowID` is called once per pass, for the focused row only | `ids: [ID]` — an allocation per render for nothing |
-| D-4 | `onActivate: (Int) -> Void` takes the row index; the caller maps it to its item | The modifier knows indices, not items; `PVList` passes `{ onActivate(items[$0]) }` | A generic `Item` — ties the modifier to `Identifiable` items the Sources list builds differently |
-| D-5 | The modifier applies, in order: `.pvScrollsRowIntoView((0..<count).contains(focusIndex) ? rowID(focusIndex) : nil, animated: false)`, `.focusable()`, `.focusEffectDisabled()`, `.focused(isFocused)`, `.onKeyPress { … }`. The `.onKeyPress` body is today's with `index: PVListKeyboard.clampedIndex(focusIndex, count: count)`: `.move(let i)` sets `focusIndex.wrappedValue = i` and returns `.handled`; `.activate(let i)` calls `onActivate(i)` and returns `.handled`; `.ignore` returns `.ignored` | Today's behaviour, moved, scroll row included: a list that shrinks under the focused index does not scroll, as today (review X-3: clamping it would make a filtered list jump to its end) | A clamped scroll row — a visible change in a PR that promises none; a modifier that writes the clamp back on a count change (review M-1) — same jump, since the scroll follows the written row |
-| D-6 | `PVList` keeps `.scrollTargetLayout()`, `.pvListChrome()`, the accessibility element and label, and applies them around the modifier in this order: `LazyVStack` → `.scrollTargetLayout()` → `.pvListChrome()` → `.pvListFocusStop(…)` → accessibility | The only reorder is `.pvScrollsRowIntoView` moving outside `.pvListChrome()`; `ScrollViewReader` lays out its content unchanged, so nothing drawn moves | Keeping chrome between the scroll and the focus modifiers — would split the modifier in two |
-| D-7 | `PVListKeyboard.clampedIndex(_ index: Int, count: Int) -> Int` *(new)* = `min(index, max(0, count - 1))`, on `PVListKeyboard`. `PVList.currentIndex` goes; its row reads `PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count))` | The clamp is the one rule the caller's ring and the modifier must share; it belongs beside the movement rule it feeds, and pure code is tested without a view | Each caller clamps on its own — the Sources list would write a second copy; keeping `currentIndex` as a one-line pass-through (review M-2) |
-| D-8 | The focus is an index, as today: a re-sort, or a row added or removed above it, leaves the ring at the same index on another row | `PVList`'s behaviour today; the Persons, Events and Places lists are sorted by Go and do not re-sort under the ring. Whether the Sources list (which re-sorts on its settings) wants focus to follow the item is S16-66's decision, which can key its `focusIndex` from an id without changing this modifier | An id-keyed focus in the kit now — no caller needs it yet |
+| D-1 | `PVPageScrollView<Content: View>: View` *(new)*, `init(startsAtTopWhen resetKey: AnyHashable? = nil, isSideList: Bool = false, @ViewBuilder content: () -> Content)`, in `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift` *(new)*. It holds `@State private var handle = PVPageScrollHandle()` (*new*: a `@MainActor final class` with `weak var probe: NSView?` and `func scrollToTop()`). Its body is `ScrollView(.vertical) { content.background(PVPageScrollProbe(handle: handle, isSideList: isSideList).frame(width: 0, height: 0)) }.onChange(of: resetKey) { handle.scrollToTop() }`. `scrollToTop()` calls `PVPageKeys.scrollToEdge(probe?.enclosingScrollView, top: true)`. A caller's other modifiers go on it as they went on the `ScrollView` | One kit view every page scrolls in, with one way to its top; S16-67's offset memory joins it (user, 2026-11-22: content-agnostic) | A modifier on the caller's `ScrollView` — it sits outside the scroll view, so its `NSView` has no `enclosingScrollView`; keeping `restartsAt:whenChanged:` beside the edge scroll — two ways to the top (review M-2) |
+| D-2 | Keys reach the page through one `PVPageKeyResponder: NSResponder` *(new)* per window, inserted directly after the window: `responder.nextResponder = window.nextResponder; window.nextResponder = responder`. `static func install(in window: NSWindow) -> PVPageKeyResponder` walks the chain from `window.nextResponder`; it returns the first `PVPageKeyResponder` it meets, or inserts a new one and sets its `weak var window`. `nextResponder` does not retain, so `install` makes the window own the responder: `objc_setAssociatedObject(window, &PVPageKeyResponder.associationKey, responder, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)` (`import ObjectiveC`); a probe holds it `weak`. The responder stays in the chain for the window's life and passes every key on when it has no page. `keyDown(with:)` acts when `PVPageKeys.command` returns a command and the window has a page (D-4), and otherwise calls `super.keyDown(with:)` | The responder chain hands it only keys every focused view, text field and menu left (spike evidence) | `NSEvent.addLocalMonitorForEvents` — sees keys before focused views, so it would take Page Down from a text area, a focused `PVTable` and the popup list; SwiftUI `.onKeyPress` on the page — needs focus, which a page of text never has; macOS 15 `ScrollPosition` — the deployment target is 14.0 |
+| D-3 | `enum PVPageKeyCommand: Equatable { case pageUp, pageDown, top, bottom }` *(new)* and `PVPageKeys.command(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> PVPageKeyCommand?` *(new)*: key codes 116 → `.pageUp`, 121 → `.pageDown`, 115 → `.top`, 119 → `.bottom`; nil for any other code, and nil when `modifiers.intersection([.command, .option, .control, .shift])` is not empty. `.function` and `.numericPad` do not matter (fn + arrow on a laptop sets `.function`) | Pure and testable without a window; plain keys only, so ⌘↓ and ⇧Page Down keep their meanings elsewhere | Matching `KeyEquivalent` — the responder gets an `NSEvent`, not a SwiftUI key press |
+| D-4 | The window's page is chosen on each key from the live probes in that window. The responder keeps `private var probes: [WeakProbe]`, `struct WeakProbe { weak var view: NSView? }`. `register(_:)` removes any entry for that view, drops entries whose view is nil, then appends. `unregister(_:)` removes that view's entry. On a key: (1) the candidates are the entries whose `view?.window` is the responder's `window` and whose `view?.enclosingScrollView` can scroll (`documentView.frame.height > contentView.bounds.height`); (2) if the pointer (`window.mouseLocationOutsideOfEventStream`, converted into each scroll view) is inside one candidate's scroll view, that one; (3) else the last registered candidate whose probe is not `isSideList`; (4) else the last registered candidate; (5) none → `super.keyDown`. The probe keeps `weak var responder: PVPageKeyResponder?` and its `isSideList`. Its `viewWillMove(toWindow:)` unregisters from `responder` when the new window differs from the current one; its `viewDidMoveToWindow` registers with `PVPageKeyResponder.install(in: window)` when `window` is non-nil and stores that responder. `PVTable.rowList` passes `isSideList: true` | One page per place: the pane under the pointer, as the scroll wheel picks (user, 2026-11-23); with the pointer elsewhere, the detail pane beside a list on Metadata and Properties, which does not depend on mount order (review M-7); a pane with nothing to scroll never takes the keys. A focused table takes them itself (`handleKey` returns `.handled`). The sidebar and the composer's columns do not wear `PVPageScrollView` (Out) | The last registered probe alone — two panes mounted in one pass have no defined order (review M-7); finding the scroll view that holds focus — SwiftUI focus inside one `NSHostingView` has no `NSView` to look up; `NSHashTable.weakObjects()` — no order |
+| D-5 | The commands: `.pageDown` → `scrollView.pageDown(nil)`; `.pageUp` → `scrollView.pageUp(nil)`; `.top` / `.bottom` → `PVPageKeys.scrollToEdge(_ scrollView: NSScrollView?, top: Bool)` *(new)*: `guard let doc = scrollView?.documentView else { return }`; `let y: CGFloat = doc.isFlipped == top ? 0 : doc.bounds.height - 1`; `doc.scrollToVisible(NSRect(x: 0, y: y, width: 1, height: 1))`. No animation of our own | AppKit's own page amount and overlap; the spike's edge scroll; the same call serves D-1's reset | `ScrollViewReader.scrollTo` with an id — needs content ids, which a page of text has none of |
+| D-6 | `PVListKeyboard.action` returns `.ignore` for `.home`, `.end`, `.pageUp` and `.pageDown`, checked after `guard count > 0` and before `moveIndex` runs. No parameter. `moveIndex` is unchanged | `action` is the focus stop's rule; its other caller (`PVTable`) reads only `.activate`. Menus, the popup list and the table move by `moveIndex`, which keeps the page keys (review M-3) | A `pageKeys: Bool` parameter — no caller would pass the default's behavior |
+| D-7 | The page sites in Scope's third In row swap `ScrollView {` for `PVPageScrollView {` and keep every modifier they had, in the same order. In `PVPageColumns.scroll`, the `Color.clear … .id(PVPageColumnsMetrics.topAnchor)` marker and the `.pvScrollsRowIntoView(…restartsAt:whenChanged:)` call go, and `scrollResetKey` is passed as `PVPageScrollView(startsAtTopWhen: scrollResetKey)`; `.coordinateSpace`, `.onGeometryChange` and `.environment` stay | No visible change beyond the keys | — |
+| D-8 | `PVPageScroll.swift` holds `PVPageScrollView`, `PVPageScrollHandle`, `PVPageScrollProbe` (a `private struct … : NSViewRepresentable` whose `makeNSView` returns a `final class Probe: NSView` and sets `handle.probe`), `PVPageKeyResponder`, `PVPageKeyCommand` and `PVPageKeys`. One file (add-ui-component: one folder per control, helpers colocated) | The pieces exist only for each other | Putting the responder in `Platform/` — it serves one kit control |
 
-**Rules this plan bends.** None.
+**Rules this plan bends.** None. The working rule "(Batch 6) A list of rows is one kit focus stop" is rewritten by the user's answer of 2026-11-22 as "(Batch 6) Page keys belong to the page's scroll view" (map Working rules).
 
 ## 6. Design
 
@@ -109,31 +142,33 @@
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)` and `PVListFocusStop` *(new)* | modifier | `PVList.body`'s focus stop (moved, not copied); `PVPopupList`'s key glue (`131abdb`) | It is `PVList`'s own code, extracted; the popup list moves a highlight in a floating window, not a focused row in the page |
-| `PVListFocusStop.swift` *(new)* | file | `Components/List/PVList.swift` | `PVList.swift` is 513 lines; the modifier is its own concern in the same folder |
-| `PVListKeyboard.clampedIndex` *(new)* | func | `PVList.currentIndex`, `PVFloatingMenuSelection.moveIndex` (moves and clamps) | `currentIndex` is the same rule, private to the view, and goes; the movers move an index and clamp the result, while this holds a stale index in range without moving it |
+| `PVPageScrollView` | component | `PVPageColumns.scroll` (private), `PVFittedScrollView` | `scroll` is private to the record-page layout; the fitted scroll view sizes to its content for dialogs. `PVPageColumns.scroll` and `PVTable.rowList` now build on `PVPageScrollView`; the name pairs with `PVFittedScrollView` |
+| `startsAtTopWhen:` | parameter | `PVScrollRowIntoView`'s `restartsAt:whenChanged:` | Replaces it: same trigger (a key change), no marker id (review M-2) |
+| `PVPageScrollProbe`, `PVPageScrollHandle` | `NSViewRepresentable`, reference | `PVPopup`'s anchor view | Same bridge shape; a different job |
+| `PVPageKeyResponder` | `NSResponder` | none: no responder in the app sits in the chain | — |
+| `PVPageKeys.command`, `PVPageKeyCommand` | pure rule | `PVListKeyboard.moveIndex` | That rule moves an index through rows; this one names a scroll command from a key code |
 
-Searched: `rg -n "focusable\(\)" macos/App` (PVList, PVTable, CitationComposerSubjectGroups, ConclusionPictureViewer, SourceTypeIconGrid — none a list of button rows besides PVList), `rg -n "PVListKeyboard\.(action|moveIndex)" macos/App` (PVList, PVTable's activation, PVContextMenu, PVPopupList).
+Searched: `rg -n "nextResponder|enclosingScrollView|addLocalMonitorForEvents" macos/App` (PVPopup, PVPopupWindowHost, WindowDragRegion, GraphCanvasDocumentView: none handle page keys); `rg -l "ScrollView(\(|\s*\{)" macos/App -g '*.swift'` (26 files; the seven page sites are In, the rest are Out); `rg -n "restartsAt|topAnchor" macos/App` (`PVPageColumns` the only caller).
 
-**Builds on.** `PVListKeyboard` (the one movement rule), `.pvScrollsRowIntoView` (the one scroll-into-view), the List folder.
-**Deletes.** `PVList.currentIndex` (replaced by `PVListKeyboard.clampedIndex`), and `PVList.body`'s `.pvScrollsRowIntoView`, `.focusable()`, `.focusEffectDisabled()`, `.focused` and `.onKeyPress` (replaced by the modifier).
-**Next adds.** S16-66: the Sources list wears `.pvListFocusStop` on its `LazyVStack` and passes `focused:` to its Source link's `PVListRowStyle`. Any later list of button rows does the same.
+**Builds on.** `PVListKeyboard`, `.pvListFocusStop` (this branch), `PVPopup`'s bridge shape.
+**Deletes.** `.pvListFocusStop` moving the focused row by Home/End and Page Up/Down; seven bare page `ScrollView`s; `PVPageColumnsMetrics.topAnchor` and its marker view; `PVScrollRowIntoView`'s `restartTop`, `restartKey`, their `.onChange` and the `restartsAt:whenChanged:` parameters.
+**Next adds.** S16-67 gives `PVPageScrollView` its remembered offset and removes `ListScrollAnchorModifier` (every list it names already scrolls in `PVPageScrollView`); S16-66 puts the Sources list's rows on `.pvListFocusStop`. A new workspace page scrolls in `PVPageScrollView`.
 
 ### Reach
 
-None — no new path into existing code; `PVList` reaches the same code through the modifier.
+The responder sees every key event no view handled in a workspace window. It acts on four plain keys and passes everything else to `super`, which ends where it ends today.
 
 ### Scale
 
-At the Batch 2 Scale (16,000 persons in the Persons list): the modifier does O(1) work per body pass (one `rowID` call for the focused row, one clamp); the `ForEach` over the rows is `PVList`'s, unchanged.
+O(1) per key press: one key-code switch and a walk over the window's probes (one to three). No per-row work.
 
 ### Edges
 
-- **Assumptions.** The focused index can outlive the list it was set on (a filter or a reload shrinks it): `clampedIndex` holds it in range (T-1). An empty list: `PVListKeyboard.action` returns `.ignore` for count 0 (T-2, today's `PVListTests`), and the scroll row is nil.
-- **Neighbors.** A list of one row: every movement key lands on 0 (T-2). Keys that are not list keys (letters, Tab, Escape) return `.ignored` as today, so Tab still leaves the list. A re-sort or a row added above the focused one: the ring stays on the index (D-8), as today.
-- **Removed inputs.** None — no data is decided or deleted.
+- **Assumptions.** One scroll view takes each key (D-4): the one under the pointer, else the non-side-list one, else the last registered. During a place change both places' probes may be registered for one layout pass; the old one unregisters when it leaves its window.
+- **Neighbors.** A focused text field or text area handles the page keys itself (`NSTextView` implements `scrollPageDown:`, `moveToBeginningOfDocument:`), so they never reach the responder (AC-1.5). A focused `PVTable`, popup list or context menu handles them through its own `.onKeyPress` (`.handled`). A focused `PVList` returns `.ignored` (D-6), so they reach the page. Sheets and popup windows are other windows with no probe, so the responder is not in their chain. A place with a table and a detail pane (Metadata, Properties): the pane under the pointer pages; with the pointer elsewhere, the detail pane; a pane that fits its window never takes the keys (D-4).
+- **Removed inputs.** None.
 - **Real data.** None — no table-driven rule.
-- **Untrusted size.** None — the rows are the app's own list.
+- **Untrusted size.** None — the key codes are the system's.
 
 ### Schema
 
@@ -145,35 +180,40 @@ None — Swift only.
 
 ### FFI
 
-None —
+None — no engine call.
 
 ### macOS
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| List focus stop | `.pvListFocusStop` *(new)* | `macos/App/DesignSystem/Components/List/PVListFocusStop.swift` | Component layer, content-agnostic; no catalog type |
-| Browse list | `PVList` | `macos/App/DesignSystem/Components/List/PVList.swift` | Wears the modifier; draws as today |
+| Page scroll view | `PVPageScrollView` *(new)* | `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift` | Component layer, content-agnostic, no `Features/` type |
+| Page keys | `PVPageKeyResponder`, `PVPageKeys` *(new)* | same file | AppKit bridge; pure rule tested |
+| Browse list | `PVList`, `.pvListFocusStop` | `macos/App/DesignSystem/Components/List/` | Passes the page keys on |
+| Table | `PVTable` | `macos/App/DesignSystem/Components/Table/PVTable.swift` | Scrolls in `PVPageScrollView`; its keys unchanged |
 
-Sketch (signature only):
+Sketch (signatures only):
 
 ```swift
-extension View {
-    /// One focus stop over a column of rows tagged `.id(rowID(i))`: ↑/↓ (⌥ to an end),
-    /// Home/End and Page Up/Down move `focusIndex` (`PVListKeyboard`), the list scrolls
-    /// to keep that row in view, and Return or Space calls `onActivate` with it.
-    /// The caller draws the focused row from `isFocused` and
-    /// `PVListKeyboard.clampedIndex(focusIndex, count:)`.
-    func pvListFocusStop<ID: Hashable>(
-        count: Int,
-        rowID: @escaping (Int) -> ID,
-        focusIndex: Binding<Int>,
-        isFocused: FocusState<Bool>.Binding,
-        onActivate: @escaping (Int) -> Void
-    ) -> some View
+struct PVPageScrollView<Content: View>: View {
+    init(startsAtTopWhen resetKey: AnyHashable? = nil, isSideList: Bool = false, @ViewBuilder content: () -> Content)
+}
+
+enum PVPageKeyCommand: Equatable { case pageUp, pageDown, top, bottom }
+
+enum PVPageKeys {
+    static func command(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> PVPageKeyCommand?
+    static func scrollToEdge(_ scrollView: NSScrollView?, top: Bool)
+}
+
+final class PVPageKeyResponder: NSResponder {
+    static func install(in window: NSWindow) -> PVPageKeyResponder
+    weak var window: NSWindow?
+    func register(_ probe: NSView)
+    func unregister(_ probe: NSView)
 }
 ```
 
-States: empty (no key handled, nothing scrolled), shrunk (clamped). Accessibility: unchanged; the accessibility element and label stay on `PVList`, after the modifier.
+States: a page shorter than the window (nothing moves, AC-1.3); no probe in the window (the responder passes every key on). Accessibility: unchanged; VoiceOver keeps its own scrolling.
 
 ### Strings
 
@@ -181,80 +221,117 @@ None — no copy.
 
 ## 7. Steps
 
-**STEP-1 — The clamp joins the movement rule**
-Files: `macos/App/DesignSystem/Components/List/PVList.swift`, `macos/ProvenenciaTests/PVListTests.swift`. Skill: `add-swift-test`.
-Do: add `static func clampedIndex(_ index: Int, count: Int) -> Int` to `PVListKeyboard` (D-7) with the doc comment "Holds a focused index that may outlive its list (a filter, a reload) inside it; 0 for an empty list." `PVList.currentIndex` returns `PVListKeyboard.clampedIndex(focusIndex, count: items.count)` until STEP-3. Add T-1.
-Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVListTests` passes.
+**STEP-1 — The pure rules**
+Files: `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift` *(new)*, `macos/App/DesignSystem/Components/List/PVList.swift`, `macos/ProvenenciaTests/PVPageKeysTests.swift` *(new)*, `macos/ProvenenciaTests/PVListTests.swift`. Skill: `add-swift-test`.
+Failing tests first: T-1, T-2.
+Do: add `PVPageKeyCommand` and `PVPageKeys.command(keyCode:modifiers:)` per D-3 in the new file (`import AppKit`, `import SwiftUI`). Change `PVListKeyboard.action` per D-6; its doc comment gains "Home, End, Page Up and Page Down are ignored: they scroll the page (`PVPageScrollView`)." Move the existing page-key checks that go through `action` onto `moveIndex`, same expected indices: in `optionArrowsAndHomeEndJumpToTheEnds`, `action(.home, at: 12) == .move(to: 0)` becomes `PVListKeyboard.moveIndex(for: .home, option: false, index: 12, count: 25) == 0`, and `.end` likewise `== 24`; the four lines of `pageKeysMoveByTenAndClamp` become `moveIndex(…count: 25)` with results 13, 24, 3, 0; delete `pageStepIsTheCallers`' third line (its second line checks the same through `moveIndex`); the `.home` and `.end` `#expect`s of `homeAndEndSkipDisabledRows` call `moveIndex(for:option:index:count:isDisabled:)` and expect `1` and `2`; its `.downArrow` line stays on `action`.
+Check: `xcodebuild test -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS' -only-testing:ProvenenciaTests/PVPageKeysTests -only-testing:ProvenenciaTests/PVListTests` passes.
 
-**STEP-2 — The modifier**
-Files: `macos/App/DesignSystem/Components/List/PVListFocusStop.swift` *(new)*. Skill: `add-ui-component` (component; `PV` prefix; tokens only; no `Features/` type).
-Do: write `PVListFocusStop` and `pvListFocusStop(…)` per D-1 – D-5 and the sketch. The `.onKeyPress` body is `PVList.body`'s, reading `focusIndex.wrappedValue` through the clamp and writing `focusIndex.wrappedValue = index` on `.move`. The doc comment on the extension is the sketch's. Add `private struct PVListFocusStopPreview: View` holding `@State private var focusIndex = 0` and `@FocusState private var isFocused: Bool`: a `ScrollView` around a `LazyVStack(spacing: 0)` of 30 rows, each a `Button { focusIndex = i } label: { Text(verbatim: "Row \(i + 1)").frame(maxWidth: .infinity, alignment: .leading).padding(PVSpacing.space5) }` with `.buttonStyle(PVListRowStyle(focused: isFocused && i == PVListKeyboard.clampedIndex(focusIndex, count: 30)))` and `.id(i)`; the stack wears `.pvListFocusStop(count: 30, rowID: { $0 }, focusIndex: $focusIndex, isFocused: $isFocused, onActivate: { focusIndex = $0 })`; no list chrome (`pvListChrome` is private to `PVList.swift`). End with `#Preview { PVListFocusStopPreview().frame(width: 320, height: 360) }`.
-Check: the app builds (`xcodebuild build -project macos/Provenencia.xcodeproj -scheme Provenencia -destination 'platform=macOS'`) with no new warning.
+**STEP-2 — The page scroll view and its responder**
+Files: `PVPageScroll.swift`. Skill: `add-ui-component` (component; `PV` prefix; no `Features/` type).
+Do: write `PVPageScrollView`, `PVPageScrollHandle`, `PVPageScrollProbe`, `PVPageKeyResponder` and `PVPageKeys.scrollToEdge` per D-1, D-2, D-4, D-5, D-8. `keyDown(with:)`: `guard let command = PVPageKeys.command(keyCode: event.keyCode, modifiers: event.modifierFlags), let scrollView = <the D-4 page>?.enclosingScrollView else { return super.keyDown(with: event) }`, then D-5's call. Add `private struct PVPageScrollPreview: View`: `PVPageScrollView` around a `VStack(alignment: .leading)` of 120 `Text(verbatim: "Line \(i)")` rows, and `#Preview { PVPageScrollPreview().frame(width: 320, height: 360) }`. Doc comment on `PVPageScrollView`: "The scroll view a workspace page scrolls in. Page Up, Page Down, Home and End scroll it whenever no focused view, text field or menu takes them (`PVPageKeyResponder`), and a change of `startsAtTopWhen` sends it to its top (a page's reset; `pvScrollsRowIntoView`'s `startsAtTopWhenRowsChange:` is a list's first row); the content needs no key code and no ids."
+Check: the app builds with no new warning (`scripts/check-pr.sh` swift-warnings).
 
-**STEP-3 — `PVList` wears it**
-Files: `macos/App/DesignSystem/Components/List/PVList.swift`.
-Do: replace `PVList.body`'s `.pvScrollsRowIntoView`, `.focusable()`, `.focusEffectDisabled()`, `.focused($isFocused)` and `.onKeyPress { … }` with `.pvListFocusStop(count: items.count, rowID: { items[$0].id }, focusIndex: $focusIndex, isFocused: $isFocused, onActivate: { onActivate(items[$0]) })`, in D-6's order. Delete `currentIndex`; the row's style reads `PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count))` (D-7). In the `PVList` doc comment, the keyboard sentence becomes "Keyboard (`.pvListFocusStop`): the list is one focus stop; ↑ / ↓ move the focused row (⌥ jumps to the ends), Home / End, Page Up / Page Down move by ten, Return / Space activate." Leave `focusIndex`, `isFocused` and the row's click (`focusIndex = index; onActivate(item)`) as they are.
-Check: AC-2.3's `rg` prints nothing; `PVListTests` pass; the Persons list behaves per §10.
+**STEP-3 — Every page scrolls in it; one way to the top**
+Files: `macos/App/Features/Conclusions/ConclusionListPage.swift`, `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift`, `macos/App/Features/Sources/SourcesListView.swift`, `macos/App/Features/Metadata/MetadataDetailPane.swift`, `macos/App/Features/Properties/PropertiesView.swift`, `macos/App/Features/Promote/PromoteView.swift`, `macos/App/DesignSystem/Components/Table/PVTable.swift`, `macos/App/DesignSystem/Components/ScrollRowIntoView/PVScrollRowIntoView.swift`, `macos/App/DesignSystem/Components/List/PVListFocusStop.swift`.
+Do: per D-7, `ScrollView {` → `PVPageScrollView {` at each site named in §4 (`PVTable.rowList`: `PVPageScrollView(isSideList: true) {`), nothing else changed, except `PVPageColumns.scroll` (D-7: marker and restart call go, `startsAtTopWhen: scrollResetKey`). Delete `PVPageColumnsMetrics.topAnchor`. In `PVScrollRowIntoView`, delete `restartTop`, `restartKey`, the `.onChange(of: restartKey)` block, the `restartsAt restartTop:` and `whenChanged restartKey:` parameters and their doc lines. `PVPageColumns`' doc sentence on `scrollResetKey` stays as it is. `PVListFocusStopPreview`'s `ScrollView {` becomes `PVPageScrollView {`.
+Check: AC-3.1 and AC-3.3's `rg` print as stated; `scripts/check-pr.sh` PASS.
 
-**STEP-4 — Docs**
-Files: `macos/App/DesignSystem/README.md` (List row), `.agents/skills/add-ui-component/SKILL.md` (Anti-patterns), `docs/deployment-plan/spike-16/completed.md`, `deployment-plan.md` (map row), this plan (status).
-Do: in the README List row, after "one focus stop with ↑/↓ · Home/End · Page Up/Down · Return/Space", add "through `.pvListFocusStop` (`PVListFocusStop.swift`), which any column of button rows tagged `.id` wears; the caller owns `focusIndex` and the `FocusState`, and draws its ring at `PVListKeyboard.clampedIndex`"; and change "`PVListKeyboard.moveIndex` is the one list of movement keys" to "`PVListKeyboard.moveIndex` is the list of movement keys (`PVTable` still writes its own: [`docs/ideas/kit-layering.md`](../../../../docs/ideas/kit-layering.md))". In `add-ui-component`'s `## Anti-patterns`, after its last fenced block and before `## Steps when adding a component`, add a `swift` block: `// ❌ BAD — a list of button rows with its own .focusable() and .onKeyPress moving a focused row` then `// ✅ GOOD — the rows' stack wears .pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)`. Then per the Definition of done: `completed.md` gets a `### S16-65 — One kit focus stop for a list of rows` heading and a `**Landed YYYY-MM-DD** in [#N](…).` paragraph, as the entries above it; the map row Status is `Landed #N`; this plan's Status is `Landed in [#N](…) (YYYY-MM-DD)`.
+**STEP-4 — The list passes the page keys on**
+Files: `macos/App/DesignSystem/Components/List/PVListFocusStop.swift`, `PVList.swift`.
+Do: `.pvListFocusStop`'s doc comment's first sentence becomes "One focus stop over a column of rows tagged `.id(rowID(i))`: ↑/↓ (⌥ to an end) move `focusIndex` (`PVListKeyboard`), the list scrolls to keep that row in view, and Return or Space calls `onActivate` with it; Page Up/Down and Home/End go on to the page (`PVPageScrollView`)." In `PVList.swift`, replace doc lines 17–20 with:
+
+```swift
+/// The list does not scroll itself; put it in the page's `PVPageScrollView`.
+/// Rows are lazy, so hundreds stay cheap. Keyboard (`.pvListFocusStop`): the
+/// list is one focus stop; ↑ / ↓ move the focused row (⌥ jumps to the ends),
+/// Return / Space activate; the page keys scroll the page.
+```
+
+Check: T-2 passes; §10 steps 4–6.
+
+**STEP-5 — Docs**
+Files: `macos/App/DesignSystem/README.md`, `.agents/skills/add-ui-component/SKILL.md`, `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan (status).
+Do:
+- README List row: from "one focus stop with ↑/↓ · Home/End · Page Up/Down · Return/Space" up to "; `PVListSkeleton` for first load", the text becomes: "one focus stop with ↑/↓ (⌥ to an end) · Return/Space through `.pvListFocusStop` (`PVListFocusStop.swift`), which any column of button rows tagged `.id` wears and which hands Page Up/Down and Home/End to the page; the caller owns `focusIndex` and the `FocusState`, and draws its ring with `PVListKeyboard.isFocusedRow`. `PVListKeyboard.action` is the focus stop's key rule; `PVListKeyboard.moveIndex` is the list of movement keys (with the caller's `pageStep`) that the context menu, the popup list and `PVTable` call (`PVTable` still writes its own selection keys: KIT-LAYERING-LINK)", where KIT-LAYERING-LINK is the row's existing link to `kit-layering.md`, kept as it is.
+- README ScrollRowIntoView row: delete the clause on restarting a page at its top (`restartsAt:whenChanged:`) and mend the sentence around it.
+- README: a new row after ScrollRowIntoView: `| PageScroll | `Components/PageScroll/PVPageScroll.swift` (`PVPageScrollView`: the scroll view every workspace page scrolls in, `PVTable`'s rows included; Page Up/Down and Home/End scroll it whenever no focused view takes them, through one `PVPageKeyResponder` after the window in the responder chain; `startsAtTopWhen:` sends it to its top; do not build a page on a bare `ScrollView`) |`.
+- `add-ui-component` `## Anti-patterns`, the block at lines 147–151 becomes:
+
+```swift
+// ❌ BAD — a list of button rows with its own .focusable() and .onKeyPress moving a focused row
+// ❌ BAD — a page on a bare ScrollView, or a list that moves its row by Page Down
+
+// ✅ GOOD — the page scrolls in PVPageScrollView; the list's rows wear .pvListFocusStop (↑/↓, Return/Space)
+```
+
+- `completed.md`: a new section directly under the intro line, above `## S16-59`: `## S16-65 — Page keys belong to the page's scroll view`, then a `**Landed YYYY-MM-DD** in [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951).` paragraph of what shipped.
+- Map row Status `Landed #951`; this plan `Landed in [#951](…) (YYYY-MM-DD)` with a Landed note.
+
 Check: links resolve; `python3 scripts/check-guidance-names.py` passes.
 
-Commits: one per behavior. The subject is one full imperative sentence that says what changed, ending in a period, like the rest of `git log` ("Move the list's focus stop and keys into a kit modifier any list of rows can wear."). No WIP commits.
+**Commits** (subjects are full imperative sentences ending in a period):
+1. STEP-1 – STEP-3: "Scroll every page by Page Up, Page Down, Home and End through one kit scroll view."
+2. STEP-4: "Hand the page keys from a list's focus stop on to the page."
+3. STEP-5: "Name the page scroll view in the kit README and add-ui-component, and record S16-65."
 
 ## 8. Tests
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `macos/ProvenenciaTests/PVListTests.swift` `clampedIndexStaysInTheList` *(new)* | (7, count 3) → 2; (2, count 3) → 2; (0, count 3) → 0; (0, count 0) → 0; (5, count 0) → 0 | AC-2.1, AC-2.2, D-7 |
-| T-2 | Swift | `PVListTests` (existing: `arrowsMoveOneAndClampWithoutWrapping`, `optionArrowsAndHomeEndJumpToTheEnds`, the page and empty cases) | unchanged → pass | AC-1.1, AC-1.2, AC-1.4 (the rule), AC-2.2 |
-| T-3 | Check | `rg -n "\.onKeyPress" macos/App/DesignSystem/Components/List/PVList.swift` | → no output | AC-2.3 |
+| T-1 | Swift | `macos/ProvenenciaTests/PVPageKeysTests.swift` `pageKeysNameTheirCommand` *(new)* | (116, []) → `.pageUp`; (121, []) → `.pageDown`; (115, []) → `.top`; (119, []) → `.bottom`; (121, [.function]) → `.pageDown`; (121, [.function, .numericPad]) → `.pageDown`; (125, []) → nil (↓); (49, []) → nil (Space); (121, [.shift]) → nil; (119, [.command]) → nil; (115, [.option]) → nil; (116, [.control]) → nil | AC-1.6, AC-3.2, D-3 |
+| T-2 | Swift | `macos/ProvenenciaTests/PVListTests.swift` `aListHandsThePageKeysOn` *(new)* | `action(_, at: 3)` with `.home`, `.end`, `.pageUp`, `.pageDown` → `.ignore`; `.downArrow` → `.move(to: 4)`; `.return` → `.activate(3)` | AC-2.5, D-6 |
+| T-3 | Swift | `PVListTests` (existing, with STEP-1's moves onto `moveIndex`) | → pass | AC-2.1, AC-2.4, D-6 |
+| T-4 | Check | AC-3.1 and AC-3.3's `rg` | → as stated | AC-3.1, AC-3.3 |
 
-The modifier's view glue (focus, key routing, scrolling) has no unit test: SwiftUI focus and key presses need a window, and the test host runs none (Batch 3). The manual check covers it.
+The responder, the probe, the reset and the scroll calls have no unit test: they need a window and key events, and the test host runs none (Batch 3). §10 covers them.
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `PVListTests`, and a Swift warning from an unused `PVList` property after STEP-3.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `PVListTests` cases still calling `action` with a page key (STEP-1 moves them), and a site whose modifier chain needs a `ScrollView` (none found; every modifier at the seven sites is a `View` modifier).
 
 ## 9. Definition of done
 
 ```
-- [ ] Every AC in §2 is true: T-1 / T-2, AC-2.3's rg, and §10 for AC-1.1 – AC-1.4
+- [ ] Every AC in §2 is true: T-1, T-2, T-4, and §10 for AC-1.1 – AC-1.8 and AC-2.1 – AC-2.4
 - [ ] Every T-# in §8 exists and passes
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left — none added
-- [ ] Sweep: `rg -n "currentIndex" macos/App/DesignSystem/Components/List` prints nothing; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: AC-3.1 and AC-3.3's rg; `rg -n "Home/End · Page Up/Down|action menus use" macos/App/DesignSystem/README.md` prints nothing; scripts/check-guidance-names.py passes
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated — none
-- [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — no brief; the modifier is the one new kit piece, with S16-66 as its second caller
-- [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together) — none
+- [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New — no brief; `PVPageScrollView` is the one new component, with S16-67 as its next caller
+- [ ] Version bump as the header says — none
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
 - [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated (if gated) — not gated
-- [ ] Domain doc updated if a rule in docs/*.md changed — none; the kit README and add-ui-component per STEP-4
+- [ ] Domain doc updated if a rule in docs/*.md changed — none; the kit README and add-ui-component per STEP-5
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
 ## 10. Manual check
 
-1. Open a project with at least 30 Persons. Open Persons. Press Tab until the list shows a focus ring on its first row (AC-1.1).
-2. Press ↓ twice: the third row has the ring (AC-1.1). Page Down: the 13th. End: the last row, scrolled into view. Home: the first, scrolled back (AC-1.2). ⌥↓: the last. ⌥↑: the first (AC-1.4).
-3. Press Return: that person's page opens (AC-1.3). Back: the Persons list.
-4. Click a row: its page opens, as today. Back, then Tab into the list: the ring is on the clicked row.
-5. Repeat step 2 on Events and Places. Nothing looks different from `main` on any of the three lists.
+1. Open a project with at least 30 Persons. Open a Person whose page is taller than the window. Click nothing. Press Page Down: the page scrolls by a window. End: its bottom. Page Up. Home: its top. Page Up again: nothing moves (AC-1.1, AC-1.2, AC-1.3).
+2. Repeat step 1 on the Source page, the Sources list, the Metadata page with a field selected, a Property's inspector (Properties, select one), the Promote page, and the Source types list with nothing focused (AC-1.7). On Metadata and Properties, with the pointer over the list, Page Down scrolls the list; over the detail pane or the sidebar, it scrolls the detail pane.
+3. Click in the omnibar and type a word; press Home and End: the cursor moves in the field, the page does not scroll (AC-1.5). On a page, press ⌘↓ and ⇧Page Down: the page keys do not act (AC-1.6).
+4. Open Persons. Click nothing; Page Down: the list page scrolls and no row has the ring (AC-1.4).
+5. Press Tab until the first row has the ring. ↓ twice: the third row (AC-2.1). Page Down: the page scrolls; the ring stays on the third row (AC-2.2). ↓: the fourth row has the ring and is in view (AC-2.3). ⌥↓: the last row; Return: that person's page opens (AC-2.4).
+6. Repeat step 5 on Events and Places. Open the omnibar's results and a row's context menu: Page Down and Home/End still move their highlight. Click a row in the Source types list, then Page Down: its selection moves, as today.
+7. On a Person page, scroll down, then open another section from its section bar: the page is at its top (AC-1.8). Do the same on a Source page by opening another Source.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| Moving `.pvScrollsRowIntoView` outside `.pvListChrome()` changes the list's clip or scroll | D-6 reasons it does not; §10 step 2 checks it; Stop condition below |
-| `FocusState<Bool>.Binding` passed into a modifier does not drive `.focused` the same way | It is the documented SwiftUI pattern (`PVFieldFocus` passes focus bindings across views); §10 step 1 checks the ring |
+| SwiftUI's hosting window replaces `window.nextResponder` after the probe inserts the responder | `install(in:)` runs on every `viewDidMoveToWindow`; the spike ran the same insertion; Stop condition below |
+| The reset runs before the new section's content lays out, so the page lands short of its top | The top of a flipped document view is y = 0 whatever its height; §10 step 7; Stop condition below |
+| `.function` on fn + arrow, or a page key arriving with another flag set | T-1 covers `.function` and `.numericPad`; §10 step 1 on a laptop keyboard |
 
 **Stop and report if:**
 
-- `PVList.body` no longer matches §4's chain (another PR changed it).
-- After STEP-3, §10 shows any difference from `main`: the ring on the wrong row, a key that no longer moves, or the list scrolling or clipping differently.
-- `.focused(isFocused)` with a passed `FocusState<Bool>.Binding` does not focus the list on Tab.
-- `PVList` has a caller other than `ConclusionListPage` (`rg -n "PVList\(" macos/App` shows another).
+- With `PVPageScrollView` in place, Page Down on a Person page with nothing focused does not scroll it (§10 step 1).
+- A focused text field or the omnibar scrolls the page on Page Down, Home or End (§10 step 3).
+- `PVPageScrollView` cannot replace a site's `ScrollView` without dropping or reordering one of its modifiers.
+- A focused `PVTable`, `PVPopupList` or `PVContextMenu` stops moving its highlight or selection by Page Up/Down or Home/End (§10 step 6).
+- A record page does not return to its top on a section change (§10 step 7).
 
 ## 12. Open questions
 
@@ -262,5 +339,5 @@ None.
 
 ## 13. PR
 
-**Title:** S16-65 — One kit focus stop for a list of rows
-**Body:** objective in one sentence; what shipped against US-1 and US-2; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-65-list-focus-stop.md`.
+**Title:** S16-65 — Page keys belong to the page's scroll view
+**Body:** objective in one sentence; what shipped against US-1 – US-3; AC evidence; deviations; manual check; `Plan: docs/deployment-plan/spike-16/prs/S16-65-list-focus-stop.md`.
