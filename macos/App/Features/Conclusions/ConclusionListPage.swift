@@ -110,7 +110,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
     /// shift when the times arrive: 30 rows fill the list area.
     static func loadingArea(gutter: CGFloat) -> some View {
         PVListSkeleton(rows: 30, detailWidth: PVLastUpdated.columnWidth, horizontalInset: gutter)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
             .clipped()
     }
 
@@ -153,6 +153,7 @@ private struct ConclusionListFrame<Content: View>: View {
                 .background(PVColor.surfaceCard)
         }
         .background(PVColor.surfacePage)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("\(identifierRoot).list")
     }
 }

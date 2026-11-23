@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import Provenencia
 
@@ -10,6 +11,12 @@ struct PersonsListTests {
             name: name.map { CatalogNameValue(form: $0) },
             nameValueCount: name == nil ? 0 : 1
         )
+    }
+
+    @Test func loadingAreaFitsTheListArea() {
+        let host = NSHostingController(rootView: ConclusionListPage<PersonsList>.loadingArea(gutter: 32))
+        let size = host.sizeThatFits(in: CGSize(width: 1000, height: 700))
+        #expect(size.height == 700)
     }
 
     @Test func listThumbIsTheLikenessPath() {
