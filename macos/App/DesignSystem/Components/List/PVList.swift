@@ -155,7 +155,13 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
             .padding(.vertical, density.vertical)
             .padding(.horizontal, density.horizontal)
         }
-        .buttonStyle(PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count)))
+        .buttonStyle(
+            PVListRowStyle(
+                focused: PVListKeyboard.isFocusedRow(
+                    index, focusIndex: focusIndex, count: items.count, listFocused: isFocused
+                )
+            )
+        )
         .overlay(alignment: .bottom) {
             if index < items.count - 1 {
                 PVDivider()
@@ -291,9 +297,14 @@ enum PVListKeyAction: Equatable {
 enum PVListKeyboard {
     static let pageStep = 10
 
-    /// Holds a focused index that may outlive its list (a filter, a reload) inside it; 0 for an empty list.
+    /// Holds a focused index that may outlive its list (a filter, a reload) inside it, and a negative one at 0; 0 for an empty list.
     static func clampedIndex(_ index: Int, count: Int) -> Int {
-        min(index, max(0, count - 1))
+        min(max(index, 0), max(0, count - 1))
+    }
+
+    /// The row that draws the focus ring: the clamped focused row while the list holds focus.
+    static func isFocusedRow(_ index: Int, focusIndex: Int, count: Int, listFocused: Bool) -> Bool {
+        listFocused && index == clampedIndex(focusIndex, count: count)
     }
 
     /// The one list of movement keys: ↑/↓ (⌥ to an end), Home, End, Page Up and
@@ -343,7 +354,7 @@ enum PVListKeyboard {
         }
         switch key {
         case .return, .space:
-            return .activate(min(max(index, 0), count - 1))
+            return .activate(clampedIndex(index, count: count))
         default:
             return .ignore
         }

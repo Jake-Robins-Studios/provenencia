@@ -13,6 +13,14 @@ struct PVListTests {
         #expect(PVListKeyboard.clampedIndex(0, count: 3) == 0)
         #expect(PVListKeyboard.clampedIndex(0, count: 0) == 0)
         #expect(PVListKeyboard.clampedIndex(5, count: 0) == 0)
+        #expect(PVListKeyboard.clampedIndex(-1, count: 3) == 0)
+    }
+
+    @Test func isFocusedRowIsTheClampedRowWhileFocused() {
+        #expect(PVListKeyboard.isFocusedRow(2, focusIndex: 2, count: 3, listFocused: true))
+        #expect(PVListKeyboard.isFocusedRow(2, focusIndex: 7, count: 3, listFocused: true))
+        #expect(!PVListKeyboard.isFocusedRow(1, focusIndex: 7, count: 3, listFocused: true))
+        #expect(!PVListKeyboard.isFocusedRow(2, focusIndex: 2, count: 3, listFocused: false))
     }
 
     @Test func arrowsMoveOneAndClampWithoutWrapping() {

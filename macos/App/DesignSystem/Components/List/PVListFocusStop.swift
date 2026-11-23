@@ -4,8 +4,7 @@ extension View {
     /// One focus stop over a column of rows tagged `.id(rowID(i))`: ↑/↓ (⌥ to an end),
     /// Home/End and Page Up/Down move `focusIndex` (`PVListKeyboard`), the list scrolls
     /// to keep that row in view, and Return or Space calls `onActivate` with it.
-    /// The caller draws the focused row from `isFocused` and
-    /// `PVListKeyboard.clampedIndex(focusIndex, count:)`.
+    /// The caller draws the focused row with `PVListKeyboard.isFocusedRow`.
     func pvListFocusStop<ID: Hashable>(
         count: Int,
         rowID: @escaping (Int) -> ID,
@@ -75,7 +74,11 @@ private struct PVListFocusStopPreview: View {
                             .padding(PVSpacing.space5)
                     }
                     .buttonStyle(
-                        PVListRowStyle(focused: isFocused && i == PVListKeyboard.clampedIndex(focusIndex, count: 30))
+                        PVListRowStyle(
+                            focused: PVListKeyboard.isFocusedRow(
+                                i, focusIndex: focusIndex, count: 30, listFocused: isFocused
+                            )
+                        )
                     )
                     .id(i)
                 }
