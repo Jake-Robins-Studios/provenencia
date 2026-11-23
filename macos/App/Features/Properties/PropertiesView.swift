@@ -430,7 +430,7 @@ private struct PropertiesContent: View {
         PVCard {
             Group {
                 if let property = model.selectedProperty {
-                    ScrollView {
+                    PVPageScrollView {
                         inspectorBody(property)
                             .padding(16)
                     }

@@ -26,7 +26,7 @@ struct PromoteView: View {
         let connections = model.flow.connectionsByRow
         VStack(spacing: 0) {
             PromoteHeader(model: model)
-            ScrollView {
+            PVPageScrollView {
                 VStack(alignment: .leading, spacing: PVSpacing.space7) {
                     notices
                     if model.flow.mappedRest && !model.entry.mapAll {

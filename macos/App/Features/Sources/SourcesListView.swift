@@ -291,7 +291,7 @@ private struct SourcesListContent: View {
         } else {
             PVWidthBreakpoints(SourcesListColumns.breakpoints) { met in
                 let columns = SourcesListColumns(met: met, widthClass: widthClass)
-                ScrollView {
+                PVPageScrollView {
                     LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                         Section {
                             ForEach(rows) { source in

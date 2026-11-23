@@ -1,9 +1,10 @@
 import SwiftUI
 
 extension View {
-    /// One focus stop over a column of rows tagged `.id(rowID(i))`: ↑/↓ (⌥ to an end),
-    /// Home/End and Page Up/Down move `focusIndex` (`PVListKeyboard`), the list scrolls
-    /// to keep that row in view, and Return or Space calls `onActivate` with it.
+    /// One focus stop over a column of rows tagged `.id(rowID(i))`: ↑/↓ (⌥ to an end)
+    /// move `focusIndex` (`PVListKeyboard`), the list scrolls to keep that row in view,
+    /// and Return or Space calls `onActivate` with it; Page Up/Down and Home/End go on
+    /// to the page (`PVPageScrollView`).
     /// The caller draws the focused row with `PVListKeyboard.isFocusedRow`.
     func pvListFocusStop<ID: Hashable>(
         count: Int,
@@ -63,7 +64,7 @@ private struct PVListFocusStopPreview: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        ScrollView {
+        PVPageScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(0..<30, id: \.self) { i in
                     Button {

@@ -63,8 +63,6 @@ enum PVPageColumnsMetrics {
         return PVPageSideColumnWidths(main: w.primary, side: w.secondary, group: w.group, stacked: w.stacked)
     }
 
-    /// The id of the zero-height view at the very top of the scroll content.
-    static let topAnchor = "pv.pageColumns.top"
     /// The scroll view's coordinate space, for a section that measures its rows in it.
     static let scrollSpace = "pv.pageColumns.scroll"
     /// The padding above and below the page's columns, and the distance a pinned
@@ -370,11 +368,8 @@ struct PVPageColumns<Header: View, Primary: View, Secondary: View>: View {
     private func scroll<Content: View>(
         @ViewBuilder content: () -> Content
     ) -> some View {
-        ScrollView {
+        PVPageScrollView(startsAtTopWhen: scrollResetKey) {
             VStack(spacing: 0) {
-                Color.clear
-                    .frame(height: 0)
-                    .id(PVPageColumnsMetrics.topAnchor)
                 content()
             }
             .frame(maxWidth: .infinity)
@@ -384,11 +379,6 @@ struct PVPageColumns<Header: View, Primary: View, Secondary: View>: View {
             viewportSize = $0
         }
         .environment(\.pvPageViewportSize, viewportSize)
-        .pvScrollsRowIntoView(
-            Optional<String>.none,
-            restartsAt: PVPageColumnsMetrics.topAnchor,
-            whenChanged: scrollResetKey
-        )
     }
 }
 

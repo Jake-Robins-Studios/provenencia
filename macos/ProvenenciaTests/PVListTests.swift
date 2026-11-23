@@ -33,21 +33,20 @@ struct PVListTests {
     @Test func optionArrowsAndHomeEndJumpToTheEnds() {
         #expect(action(.downArrow, option: true, at: 3) == .move(to: 24))
         #expect(action(.upArrow, option: true, at: 20) == .move(to: 0))
-        #expect(action(.home, at: 12) == .move(to: 0))
-        #expect(action(.end, at: 12) == .move(to: 24))
+        #expect(PVListKeyboard.moveIndex(for: .home, option: false, index: 12, count: 25) == 0)
+        #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 12, count: 25) == 24)
     }
 
     @Test func pageKeysMoveByTenAndClamp() {
-        #expect(action(.pageDown, at: 3) == .move(to: 13))
-        #expect(action(.pageDown, at: 20) == .move(to: 24))
-        #expect(action(.pageUp, at: 13) == .move(to: 3))
-        #expect(action(.pageUp, at: 4) == .move(to: 0))
+        #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 3, count: 25) == 13)
+        #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 20, count: 25) == 24)
+        #expect(PVListKeyboard.moveIndex(for: .pageUp, option: false, index: 13, count: 25) == 3)
+        #expect(PVListKeyboard.moveIndex(for: .pageUp, option: false, index: 4, count: 25) == 0)
     }
 
     @Test func pageStepIsTheCallers() {
         #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 0, count: 20, pageStep: 8) == 8)
         #expect(PVListKeyboard.moveIndex(for: .pageDown, option: false, index: 0, count: 20) == 10)
-        #expect(action(.pageDown, at: 0, of: 20) == .move(to: 10))
     }
 
     @Test func moveIndexTakesOnlyMovementKeys() {
@@ -57,18 +56,26 @@ struct PVListTests {
         #expect(PVListKeyboard.moveIndex(for: .downArrow, option: false, index: -1, count: 0) == -1)
     }
 
+    @Test func aListHandsThePageKeysOn() {
+        for key in [KeyEquivalent.home, .end, .pageUp, .pageDown] {
+            #expect(action(key, at: 3) == .ignore)
+        }
+        #expect(action(.downArrow, at: 3) == .move(to: 4))
+        #expect(action(.return, at: 3) == .activate(3))
+    }
+
     @Test func returnAndSpaceActivateTheFocusedRow() {
         #expect(action(.return, at: 7) == .activate(7))
         #expect(action(.space, at: 0) == .activate(0))
     }
 
     @Test func homeAndEndSkipDisabledRows() {
-        #expect(PVListKeyboard.action(
+        #expect(PVListKeyboard.moveIndex(
             for: .home, option: false, index: 2, count: 4, isDisabled: { $0 == 0 }
-        ) == .move(to: 1))
-        #expect(PVListKeyboard.action(
+        ) == 1)
+        #expect(PVListKeyboard.moveIndex(
             for: .end, option: false, index: 0, count: 4, isDisabled: { $0 == 3 }
-        ) == .move(to: 2))
+        ) == 2)
         #expect(PVListKeyboard.action(
             for: .downArrow, option: false, index: 0, count: 4, isDisabled: { $0 == 1 }
         ) == .move(to: 2))

@@ -238,7 +238,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
 
     /// The scrolling row list: one focus stop, list-like semantics.
     private func rowList(_ shown: [PVTableColumn<Row>]) -> some View {
-        ScrollView {
+        PVPageScrollView(isSideList: true) {
             LazyVStack(spacing: 0) {
                 ForEach(rows) { row in
                     rowView(row, shown: shown).id(row.id)

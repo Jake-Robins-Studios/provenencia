@@ -8,7 +8,7 @@ struct MetadataDetailPane: View {
     @Bindable var model: MetadataModel
 
     var body: some View {
-        ScrollView {
+        PVPageScrollView {
             content
         }
         .background(PVColor.surfaceCard)

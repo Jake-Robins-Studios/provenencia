@@ -115,7 +115,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
     /// Page chrome shared by every state: the section header over the body,
     /// in the content column.
     static func page<Body: View>(meta: String?, @ViewBuilder body: () -> Body) -> some View {
-        ScrollView {
+        PVPageScrollView {
             VStack(alignment: .leading, spacing: PVSpacing.space6) {
                 PVSectionHeader(title: Kind.title, meta: meta)
                 body()

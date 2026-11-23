@@ -14,10 +14,10 @@ enum PVListText {
 /// model, no sort — only hover, a pressed tint, and keyboard focus. The
 /// counterpart to `PVTable` (single-selection browse with columns).
 ///
-/// The list does not scroll itself; put it in the page's `ScrollView`. Rows
-/// are lazy, so hundreds stay cheap. Keyboard (`.pvListFocusStop`): the list is one focus stop;
-/// ↑ / ↓ move the focused row (⌥ jumps to the ends), Home / End, Page Up /
-/// Page Down move by ten, Return / Space activate.
+/// The list does not scroll itself; put it in the page's `PVPageScrollView`.
+/// Rows are lazy, so hundreds stay cheap. Keyboard (`.pvListFocusStop`): the
+/// list is one focus stop; ↑ / ↓ move the focused row (⌥ jumps to the ends),
+/// Return / Space activate; the page keys scroll the page.
 struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
     private let items: [Item]
     private let thumbnail: ((Item) -> Thumbnail)?
@@ -341,6 +341,8 @@ enum PVListKeyboard {
         }
     }
 
+    /// The focus stop's key rule. Home, End, Page Up and Page Down are ignored:
+    /// they scroll the page (`PVPageScrollView`).
     static func action(
         for key: KeyEquivalent,
         option: Bool,
@@ -349,6 +351,7 @@ enum PVListKeyboard {
         isDisabled: (Int) -> Bool = { _ in false }
     ) -> PVListKeyAction {
         guard count > 0 else { return .ignore }
+        if [KeyEquivalent.home, .end, .pageUp, .pageDown].contains(key) { return .ignore }
         if let next = moveIndex(for: key, option: option, index: index, count: count, isDisabled: isDisabled) {
             return .move(to: next)
         }
