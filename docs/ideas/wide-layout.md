@@ -10,7 +10,7 @@ Done and gone from this list: the Source page (Page columns with the pinned head
 
 | Page | Wide pattern to start from | Notes |
 | --- | --- | --- |
-| Persons, Events and Places lists | List beside the selected detail | `ConclusionListPage` reads no width class and is not on Page columns. The Sources list went another way at Wide (centered with an extra column, S15-04); the lists' redesign picks one of the two |
+| Persons, Events and Places lists | Answered: they fill the pane | S16-67 (user, 2026-11-23): each list fills the pane at every width, with 56pt gutters at Wide; `ConclusionListPage` reads the width class for its gutter only. The detail beside the list is not planned |
 | Properties, Metadata | List with a side pane | Each keeps its fixed side pane at every width; its brief decides whether the list or the pane takes the width (S14-24 D-6). Source types left this shape for a list and its own page (S15-48, S15-49); Metadata keeps it (user, 2026-11-14) |
 | Event and Place pages | Page columns with a secondary column | On Page columns through `ConclusionDetailPage`, so centered at Wide, with no Wide arrangement of their own yet; it comes with their redesigns |
 
