@@ -553,13 +553,15 @@ private enum PersonTimelineDrawing {
         case .bar(let from, let to, let openStart, let openEnd):
             let top = from, bottom = max(to, top + 6)
             let rect = CGRect(x: lineX - 3, y: top, width: 6, height: bottom - top)
-            let fade = min(16, rect.height)
+            let stops = PersonTimelineLifeline.barFadeStops(
+                height: rect.height, openStart: openStart, openEnd: openEnd
+            )
             let shading: GraphicsContext.Shading = .linearGradient(
                 Gradient(stops: [
-                    .init(color: openStart ? color.opacity(0) : color, location: 0),
-                    .init(color: color, location: openStart ? fade / rect.height : 0),
-                    .init(color: color, location: openEnd ? 1 - fade / rect.height : 1),
-                    .init(color: openEnd ? color.opacity(0) : color, location: 1),
+                    .init(color: openStart ? color.opacity(0) : color, location: stops[0]),
+                    .init(color: color, location: stops[1]),
+                    .init(color: color, location: stops[2]),
+                    .init(color: openEnd ? color.opacity(0) : color, location: stops[3]),
                 ]),
                 startPoint: CGPoint(x: lineX, y: rect.minY),
                 endPoint: CGPoint(x: lineX, y: rect.maxY)
