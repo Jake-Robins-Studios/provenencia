@@ -144,6 +144,12 @@ PVWidthBreakpoints([Self.compactBelow]) { met in
 }
 ```
 
+```swift
+// ❌ BAD — a list of button rows with its own .focusable() and .onKeyPress moving a focused row
+
+// ✅ GOOD — the rows' stack wears .pvListFocusStop(count:rowID:focusIndex:isFocused:onActivate:)
+```
+
 ## Steps when adding a component
 
 1. Confirm layer = component (decision step 2).
