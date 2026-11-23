@@ -9,6 +9,8 @@
 - After the review (answered 2026-11-23): the migration changes the schema only and carries no rows; the product owner's one dogfood project is restored by a one-time command-line script built after the PR lands (D-1, D-14, Out). The earlier merge SQL is gone.
 - While planning (answered 2026-11-23): the board heading "Suggested by this type" and its dismiss label stay (D-11); no reorder (D-12).
 
+- The S15-D32 board was agreed (2026-11-23). It matches the brief: the count on the section header, no list header, the brief's copy. The plan moves to Planned.
+
 ## Writer's own calls
 
 - D-6: the seed takes the formats' first-read order.
