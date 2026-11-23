@@ -54,5 +54,8 @@ Reviewers: CON (CON-1), MNT (MNT-1). UX and SEC+PRF not sent: no Fix-now blocker
 ## User answer — UX-1
 User approved the change (2026-11-23). F-5: `sourceTypes.copy.loading` → "Reading the original's formats"; Landed note records it superseding § 6's "stays". Head `7861562f2`. Gate PASS (orchestrator run). Minor, so no re-review.
 
+## User decision — seeded suggestions are formats only
+User, 2026-11-23, spot-checking the dogfood project: the certificates suggested film and database fields no format reads. Cause: the seed's record-type rule added every copy field to 10 types (2–6 fields each); before S15-63 that reached Artifact boards only, now every board. User: "formats only". F-6: rule dropped, `seedSuggestions` regenerated from `derivedSuggestions` (census 21 → 16, `citing` last; certificates 17 → 11), § 2.3, plan ACs, § 10 and Landed note updated. Head `8cc0db3bd`. Gate PASS (orchestrator run). Seed data and docs only; no re-review.
+
 ## Result
-Gate PASS · CI green · open: none · follow-ups: none · to user: — (UX-1 answered) · manual check § 10 incl. AC-1.3 left to the product owner
+Gate PASS (`8cc0db3bd`) · CI green · open: none · follow-ups: none · to user: — (UX-1 answered) · manual check § 10 incl. AC-1.3 left to the product owner
