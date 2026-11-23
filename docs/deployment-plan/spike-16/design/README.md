@@ -8,6 +8,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
+| [S16-D13](S16-D13-conclusion-lists-native.md) | The Persons, Events and Places lists on the native list: a header band across the pane, the list filling it, click selects and double-click opens, loading, empty and failure states | — | S16-67 |
 | [S16-D11](S16-D11-web-kit-popup-list.md) | The web kit: a PopupList component (card, row, line, searching line), the ComboBox's open list composed from it, the Omnibar Hit Row as the SearchHitRow component | [agreed 2026-11-21](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList, ComboBox, SearchHitRow | — (kit only; S16-D9's board instances it) |
 
 ## Archived

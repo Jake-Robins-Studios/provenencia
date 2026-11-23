@@ -1,7 +1,7 @@
 # S16-65 — One kit focus stop for a list of rows
 
-**Status:** Planned
-**Spike / slice:** Spike 16 · Slice 6f — Sources list keyboard
+**Status:** Descoped (2026-11-23) — re-planned on branch `s16-65-list-focus-stop` as "Page keys belong to the page's scroll view", then PR [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951) closed; superseded by S16-67 (map)
+**Spike / slice:** Spike 16 · Slice 6f — List keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Persons, Events and Places lists look and behave as today; the code that draws their focus moves, not the drawing)
 **Board:** —
