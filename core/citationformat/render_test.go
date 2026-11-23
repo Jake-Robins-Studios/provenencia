@@ -194,3 +194,34 @@ func TestRenderMarks(t *testing.T) {
 		}
 	})
 }
+
+func TestDisplay(t *testing.T) {
+	supplied := valuemark.Mark{Supplied: true}
+	unknown := valuemark.Mark{Unknown: true}
+	tests := []struct {
+		name string
+		v    citationformat.Value
+		want string
+	}{
+		{"text", citationformat.Value{Text: "Ancestry"}, "Ancestry"},
+		{"supplied", citationformat.Value{Text: "Calder County", Mark: supplied}, "[Calder County]"},
+		{"unknown with unknown text", citationformat.Value{Mark: unknown, UnknownText: "n.p."}, "n.p."},
+		{"unknown with none", citationformat.Value{Mark: unknown}, ""},
+		{"only space", citationformat.Value{Text: "  "}, ""},
+		{"supplied date", citationformat.Value{Date: datevaluetest.About(1880, 0, 0), Mark: supplied}, "[ca. 1880]"},
+		{"date", citationformat.Value{Date: datevaluetest.YMD(1830, 3, 3)}, "3 March 1830"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := citationformat.Display(tt.v); got != tt.want {
+				t.Fatalf("Display = %q, want %q", got, tt.want)
+			}
+		})
+	}
+	t.Run("long text truncates", func(t *testing.T) {
+		got := citationformat.Display(citationformat.Value{Text: strings.Repeat("a", citationformat.MaxRenderedBytes+10)})
+		if len(got) > citationformat.MaxRenderedBytes {
+			t.Fatalf("len = %d", len(got))
+		}
+	})
+}

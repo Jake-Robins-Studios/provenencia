@@ -56,8 +56,9 @@ func CitationValue(r Row, f metadatafields.Field) citationformat.Value {
 // built-in from Builtins. Any other target answers the zero Value: a field
 // named by key (stored formats name fields by id), a built-in nothing set, a
 // level with no rows. A board and a render both build it, so they cannot
-// disagree about what answers. Resolve is the one place the levels are
-// walked: nothing else reads Rows by level.
+// disagree about what answers. Nearest is the one place the levels are walked;
+// Resolve and the boards' inherited values read it: nothing else reads Rows by
+// level.
 type CitationValues struct {
 	// Rows holds the stored values per level, keyed by field id.
 	Rows map[vocabkey.Level]map[string]Row
@@ -83,14 +84,23 @@ func (v CitationValues) Resolve(t citationformat.Target) citationformat.Value {
 		}
 		return citationformat.Value{}
 	}
-	// The first row found answers, whatever its text: a value marked unknown at
-	// a nearer level stops the walk.
-	for _, l := range vocabkey.NearestFirst() {
-		if row, ok := v.Rows[l][id]; ok {
-			return CitationValue(row, v.Fields[id])
-		}
+	if row, ok := v.Nearest(t.Field.ID); ok {
+		return CitationValue(row, v.Fields[id])
 	}
 	return citationformat.Value{}
+}
+
+// Nearest is the row of the nearest level that holds field id, and false when
+// no level does. The first row found answers, whatever its text: a value marked
+// unknown at a nearer level stops the walk. Its Owner.Level says which level
+// answered.
+func (v CitationValues) Nearest(id uuid.UUID) (Row, bool) {
+	for _, l := range vocabkey.NearestFirst() {
+		if row, ok := v.Rows[l][string(id[:])]; ok {
+			return row, true
+		}
+	}
+	return Row{}, false
 }
 
 // Without is the values as if level l held nothing: a copy whose Rows lack l

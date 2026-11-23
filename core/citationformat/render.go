@@ -182,13 +182,37 @@ func printed(r Ref, v Value, form Form) (text string, answered bool) {
 	} else {
 		text = truncate(v.Text, MaxRenderedBytes)
 	}
+	text = marked(text, v.Mark)
+	return text, text != ""
+}
+
+// marked is text as a citation prints it under mark m: "" when the text is only
+// space, else the text in square brackets when it is supplied.
+func marked(text string, m valuemark.Mark) string {
 	if strings.TrimSpace(text) == "" {
-		return "", false
+		return ""
 	}
-	if v.Mark.Supplied {
-		text = "[" + text + "]"
+	if m.Supplied {
+		return "[" + text + "]"
 	}
-	return text, true
+	return text
+}
+
+// Display is the value of a metadata field as a citation prints it in the long
+// form, for a board that shows it: the unknown text of a value marked unknown
+// (empty when the field has none), else its text, in square brackets when
+// supplied, and "" when the text is only space. A date prints its long display.
+func Display(v Value) string {
+	if v.Mark.Unknown {
+		return v.UnknownText
+	}
+	text := ""
+	if v.Date != nil {
+		text = datevalue.CitationDisplay(*v.Date, datevalue.CitationLong)
+	} else {
+		text = truncate(v.Text, MaxRenderedBytes)
+	}
+	return marked(text, v.Mark)
 }
 
 func dateStyle(o Option, form Form) datevalue.CitationStyle {
