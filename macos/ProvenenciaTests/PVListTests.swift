@@ -143,7 +143,7 @@ struct PVListTests {
             items: rows,
             selection: .constant(nil),
             thumbnail: { _ in Color.red },
-            label: LocalizedStringResource(stringLiteral: "Persons"),
+            label: L10n.Workspace.personsTitle,
             itemAccessibilityLabel: { $0.id },
             onActivate: { _ in },
             primary: { Text(verbatim: $0.id) },

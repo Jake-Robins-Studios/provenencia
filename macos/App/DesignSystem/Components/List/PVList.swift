@@ -379,7 +379,7 @@ private struct PVListPreview: View {
             thumbnail: { _ in PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson))) },
             meta: { $0.id },
             detail: PVListDetailColumn(width: 136, content: { $0.detail }),
-            label: "Persons",
+            label: L10n.Workspace.personsTitle,
             itemAccessibilityLabel: { "\($0.title), \($0.id)" },
             onActivate: { _ in },
             primary: { Text(verbatim: $0.title) },
