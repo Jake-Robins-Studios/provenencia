@@ -56,9 +56,7 @@ private struct MetadataContent: View {
             PVDivider()
             if let loadError = model.loadError, model.fields.isEmpty {
                 PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
-                    .padding(.horizontal, PVSpacing.gutterPage)
-                    .padding(.top, PVSpacing.space8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .pvListPageMessage()
                     .accessibilityIdentifier("metadata.loadError")
             } else {
                 HStack(spacing: 0) {
@@ -111,14 +109,12 @@ private struct MetadataContent: View {
     }
 
     private var header: some View {
-        VocabularyHeader(
+        PVListPageHeader(
             title: L10n.Workspace.metadataTitle,
             description: L10n.Metadata.description,
             countLine: model.countLine,
-            addLabel: L10n.Metadata.addField,
-            isAddDisabled: model.isAdding,
-            identifierPrefix: "metadata",
-            onAdd: { model.openAdd() }
+            add: .init(label: L10n.Metadata.addField, isDisabled: model.isAdding) { model.openAdd() },
+            identifierPrefix: "metadata"
         )
     }
 }

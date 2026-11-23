@@ -96,8 +96,8 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
             if let handle: QueryHandle<CatalogListRows<Kind.Row>> = session.queryHandle(key) {
                 ConclusionListBody<Kind>(handle: handle)
             } else {
-                Self.page(meta: nil) {
-                    Self.skeleton()
+                ConclusionListFrame(title: Kind.title, meta: nil, identifierRoot: Kind.identifierRoot) { gutter in
+                    Self.loadingArea(gutter: gutter)
                 }
             }
         }
@@ -107,25 +107,54 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
     }
 
     /// First-load placeholder with the last-updated column bar, so rows do not
-    /// shift when the times arrive.
-    static func skeleton() -> PVListSkeleton {
-        PVListSkeleton(detailWidth: PVLastUpdated.columnWidth)
+    /// shift when the times arrive: 30 rows fill the list area.
+    static func loadingArea(gutter: CGFloat) -> some View {
+        PVListSkeleton(rows: 30, detailWidth: PVLastUpdated.columnWidth, horizontalInset: gutter)
+            .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
+            .clipped()
     }
 
-    /// Page chrome shared by every state: the section header over the body,
-    /// in the content column.
-    static func page<Body: View>(meta: String?, @ViewBuilder body: () -> Body) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: PVSpacing.space6) {
-                PVSectionHeader(title: Kind.title, meta: meta)
-                body()
-            }
-            .frame(maxWidth: PVSpacing.widthContentMax, alignment: .leading)
-            .padding(.horizontal, PVSpacing.gutterPage)
-            .padding(.vertical, PVSpacing.space8)
-            .frame(maxWidth: .infinity)
+    /// No records of this kind: the empty state, centered in the list area.
+    static func emptyArea() -> some View {
+        PVEmptyState(
+            glyph: .mark(Kind.mark),
+            title: Kind.emptyTitle,
+            message: L10n.string(Kind.emptyMessage)
+        )
+        .accessibilityIdentifier("\(Kind.identifierRoot).empty")
+    }
+
+    /// The read failed with nothing to show: the danger Callout at the top of the list area.
+    static func failureArea(_ message: String, gutter: CGFloat) -> some View {
+        PVCallout(tone: .danger, message: message)
+            .pvListPageMessage(gutter: gutter, maxWidth: PVSpacing.measureForm)
+    }
+}
+
+/// Page chrome shared by every state: the list page header across the pane on the page surface, a
+/// full-width hairline, then the list area filling the rest of the pane on the card surface. The
+/// gutter is chosen once, here, from the width class, and handed to the area.
+private struct ConclusionListFrame<Content: View>: View {
+    let title: LocalizedStringResource
+    let meta: String?
+    let identifierRoot: String
+    @ViewBuilder let content: (CGFloat) -> Content
+
+    @Environment(\.pvWidthClass) private var widthClass
+
+    var body: some View {
+        let gutter = widthClass.fullPaneGutter
+        VStack(spacing: 0) {
+            PVListPageHeader(title: title, countLine: meta, identifierPrefix: identifierRoot, gutter: gutter)
+                .background(PVColor.surfacePage)
+            PVDivider()
+            content(gutter)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(PVColor.surfaceCard)
         }
-        .accessibilityIdentifier("\(Kind.identifierRoot).list")
+        .background(PVColor.surfacePage)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("\(identifierRoot).list")
     }
 }
 
@@ -146,23 +175,23 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
     }
 
     var body: some View {
-        ConclusionListPage<Kind>.page(meta: headerMeta) {
+        ConclusionListFrame(title: Kind.title, meta: headerMeta, identifierRoot: Kind.identifierRoot) { gutter in
             switch presentation {
             case .loading:
-                ConclusionListPage<Kind>.skeleton()
+                ConclusionListPage<Kind>.loadingArea(gutter: gutter)
             case .empty:
-                PVEmptyState(
-                    glyph: .mark(Kind.mark),
-                    title: Kind.emptyTitle,
-                    message: L10n.string(Kind.emptyMessage)
-                )
-                .accessibilityIdentifier("\(Kind.identifierRoot).empty")
+                ConclusionListPage<Kind>.emptyArea()
             case .failed(let message):
-                PVCallout(tone: .danger, message: message)
+                ConclusionListPage<Kind>.failureArea(message, gutter: gutter)
             case .rows(let rows, _):
                 PVList(
                     // Go owns list order (conclusionsummaries.SortByTitle); rows show as given.
                     items: rows,
+                    // Navigation owns the selected row: it is the row history stamps on leaving.
+                    selection: Binding(
+                        get: { navigation.listAnchor },
+                        set: { navigation.noteListAnchor($0) }
+                    ),
                     thumbnail: {
                         CachedThumbnail(
                             projectDir: session.projectKey.projectDir,
@@ -172,6 +201,7 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
                     },
                     meta: { Kind.ref($0) },
                     detail: ConclusionListRow.updatedColumn(Kind.self),
+                    horizontalInset: gutter,
                     label: Kind.title,
                     itemAccessibilityLabel: {
                         PVLastUpdated.label(
@@ -187,20 +217,41 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
                 )
             }
         }
-        .modifier(ListScrollAnchorModifier(
-            anchor: navigation.currentLocation.listScrollAnchor,
-            rowIDs: scrollRowIDs,
-            isLoaded: scrollIsLoaded
-        ))
+        .modifier(ListSelectionAnchorModifier(rowIDs: rowIDs, isSettled: handle.isSettled))
     }
 
-    private var scrollIsLoaded: Bool {
-        if case .loading = presentation { return false }
-        return true
-    }
-
-    private var scrollRowIDs: [String] {
+    private var rowIDs: [String] {
         guard case .rows(let rows, _) = presentation else { return [] }
         return rows.map(\.id)
     }
 }
+
+#if DEBUG
+/// One state of the list page at a pane width, on the width class that width measures.
+@MainActor
+private func conclusionListStatePreview<Area: View>(
+    width: CGFloat, @ViewBuilder area: @escaping (CGFloat) -> Area
+) -> some View {
+    ConclusionListFrame(title: PersonsList.title, meta: nil, identifierRoot: PersonsList.identifierRoot, content: area)
+        .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
+        .frame(width: width, height: 480)
+}
+
+#Preview("Empty") {
+    VStack(spacing: PVSpacing.space8) {
+        conclusionListStatePreview(width: 1102) { _ in ConclusionListPage<PersonsList>.emptyArea() }
+        conclusionListStatePreview(width: 2296) { _ in ConclusionListPage<PersonsList>.emptyArea() }
+    }
+}
+
+#Preview("Failed") {
+    VStack(spacing: PVSpacing.space8) {
+        conclusionListStatePreview(width: 1102) { gutter in
+            ConclusionListPage<PersonsList>.failureArea("The catalog could not be read.", gutter: gutter)
+        }
+        conclusionListStatePreview(width: 2296) { gutter in
+            ConclusionListPage<PersonsList>.failureArea("The catalog could not be read.", gutter: gutter)
+        }
+    }
+}
+#endif

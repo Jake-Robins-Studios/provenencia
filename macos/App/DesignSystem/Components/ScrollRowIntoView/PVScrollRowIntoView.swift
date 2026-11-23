@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Keeps the keyboard's row in view in a scrolling list. When `row` changes,
-/// the enclosing `ScrollView` scrolls to the row tagged `.id(row)`; with no
+/// the enclosing `ScrollView` or `List` scrolls to the row tagged `.id(row)`; with no
 /// `anchor` it moves only as far as it must, so a row already on screen (the
 /// one the pointer hovers, say) does not move the list.
 ///

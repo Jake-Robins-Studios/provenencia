@@ -67,7 +67,8 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
     /// Denormalized Source title, the Source crumb's label while the Sources list has no value
     /// (composer, Promote); ignored for navigation identity.
     var sourceTitle: String?
-    /// Id of the row at the top of a list place (Sources, People, Events, Places).
+    /// Id of a list place's anchor row: the row at its top (Sources, Source types) or the row
+    /// selected in it (Persons, Events, Places).
     /// Ignored for navigation identity, like `title` and `ref`. Written when leaving
     /// the list. A missing key in older history files decodes as nil, which opens at the top.
     var listScrollAnchor: String?

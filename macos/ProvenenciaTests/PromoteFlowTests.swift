@@ -759,7 +759,7 @@ struct PromoteFlowTests {
         #expect(held.target == .handle(id: "e7", ref: "PER-7", title: "Jones, Polly"))
         #expect(held.menu.last == PromoteFlow.Alternative(
             id: "e7", ref: "PER-7", title: "Jones, Polly",
-            subtitle: PersonLifeDisplay.line(polly).text
+            subtitle: PersonLifeDisplay.line(polly)
         ))
         #expect(held.decided)
         #expect(flow.manual)

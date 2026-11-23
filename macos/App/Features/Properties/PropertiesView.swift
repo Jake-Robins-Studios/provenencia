@@ -51,9 +51,7 @@ private struct PropertiesContent: View {
             header
             if let loadError = model.loadError, model.snapshot.properties.isEmpty {
                 PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
-                    .padding(.horizontal, PVSpacing.gutterPage)
-                    .padding(.top, PVSpacing.space8)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .pvListPageMessage()
             } else {
                 typeStrip
                     .padding(.horizontal, PVSpacing.gutterPage)
@@ -141,15 +139,12 @@ private struct PropertiesContent: View {
     }
 
     private var header: some View {
-        VocabularyHeader(
+        PVListPageHeader(
             title: L10n.Workspace.propertiesTitle,
             description: L10n.Properties.description,
-            addLabel: L10n.Properties.newProperty,
-            isAddDisabled: false,
+            add: .init(label: L10n.Properties.newProperty, size: .sm) { model.openCreate() },
             identifierPrefix: "properties",
-            descriptionItalic: true,
-            addSize: .sm,
-            onAdd: { model.openCreate() }
+            descriptionItalic: true
         )
     }
 

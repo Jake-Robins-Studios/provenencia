@@ -1,9 +1,9 @@
 # S16-67 — The Persons, Events and Places lists are native lists
 
-**Status:** Planned
+**Status:** Landed in [#958](https://github.com/Jake-Robins-Studios/provenencia/pull/958) (2026-11-23)
 **Spike / slice:** Spike 16 · Slice 6f — List keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D13](../design/S16-D13-conclusion-lists-native.md), board agreed 2026-11-23
+**Brief:** [S16-D13](../design/archive/S16-D13-conclusion-lists-native.md), board agreed 2026-11-23
 **Board:** [Persons List](https://claude.ai/artifact/MQtjRymfDNraEx9roK69q4), page "Persons List" (frames L1a–L7b). The implementer opens the link; §6 macOS also describes each frame in words, and the brief's **Board** line records every choice the board made
 **Depends on:** S16-D13 (agreed 2026-11-23)
 **Blocks:** S16-66
@@ -15,6 +15,15 @@
 **Runs on:** macOS with Xcode. The Swift checks (`xcodebuild test`, `scripts/check-pr.sh`, previews) need a Mac; STEP-8 and §10 need a person at the Mac. An agent on another platform hands those checks to the user and says which it could not run.
 **Planned:** 2026-11-23 against `main` @ `f9114de40`
 **Review:** [`S16-67-native-conclusion-lists.review.md`](S16-67-native-conclusion-lists.review.md) — Fits with changes / Ready with changes, 2 rounds; every blocker Fixed; no To user item
+
+**Landed:** differences from the plan. (1) The version bump is 0.35.0 → 0.36.0: main was already 0.35.0 when the PR began (S15-63 landed after the plan; the coordinator's course correction). (2) AC-1.3's 66 pt row needed `.frame(height: thumbnailSize)` on the row's content: the text column's natural height is 47 pt, which made a row with a secondary line 69 pt. (3) D-1's `listRowInsets` take `horizontalInset` less 8 pt (`PVList.platformCellInset`): the platform's table lays each cell in 8 pt on each side, so the plan's insets put the content at 40 pt, not 32. (4) T-1 compares the colors as drawn under each appearance (`NSAppearance.performAsCurrentDrawingAppearance`) on the main actor; resolving a dynamic color through `Color.resolve(in:)` hung the test run. (5) The map row's scope text names `PVListPageHeader` and navigation's `listAnchor`. (6) STEP-2 also changed `PVDatePlaceLine`: every ink in it is wrapped in `PVColor.onSelection`, so a selected Events row's date and place read as on-selection text (`PVListTests/datePlaceLineTakesTheOnSelectionInk`). (7) Review round 1: the loading area takes `minHeight: 0` so its 30 skeleton rows clip to the list area (`PersonsListTests/loadingAreaFitsTheListArea`); `PVList`'s row is a private `PVListRow` view, and the row modifiers (insets, separator, tint) sit on the `ForEach`, so a selection move builds and modifies only the rows on screen (round 1 left the modifiers in the closure, which ran for every row; a probe model of `PVList`, not the app, shows about 10 closure runs per move against 8,900); the list's minimum row height is the row's own 66 pt, so a mouse wheel step scrolls one row (it was 1 pt); `ListSelectionAnchorModifier` also clears a vanished row when the anchor changes (a jump between two entries of one list); the list page is an accessibility container. STEP-8 (the implementer ran what a hosted window allows; the rest is the user's manual check):
+- type-select: not yet checked (user's manual check)
+- ⌥↑/⌥↓: not yet checked (user's manual check)
+- VoiceOver reading a row and Return opening it: VoiceOver not yet checked (user's manual check); Return opens the selected row — works (hosted `NSTableView`, the table's own key handling reached the primary action; D-2's `.onKeyPress(.return)` fallback was not needed)
+- iron selection in dark appearance: not yet checked (user's manual check); a selected row's `backgroundProminence` is `.increased` once its row view is emphasized (hosted), `.standard` while not
+- D-12 separator branch: the system separators (`.listRowSeparator`) shipped; they draw a hairline under each row (hosted bitmap), running gutter to gutter, from the thumbnail's leading edge to the ref's trailing edge (the row content's `.listRowSeparatorLeading` and `.listRowSeparatorTrailing` guides; hosted bitmap, 16 to 582 pt in a 600 pt list)
+A Persons row's life line reads birth (date, place), then death (date, place), as the board draws; the plan kept today's line, which grouped dates and places (user, 2026-11-23).
+Also found: the platform's own table scrolls to the first and last row on Home and End with the selection unchanged, so `PVList`'s D-5 handler may be redundant on this macOS (kept as planned; noted in `docs/ideas/kit-layering.md`).
 
 ### Implementer — read this first
 
@@ -323,7 +332,7 @@ Use a project with Persons, Events and Places, and the user's 16,000-person proj
 
 1. Open Persons from the sidebar at the default window (Regular): the header across the pane, the list to the pane's edges and bottom, no chevrons, nothing selected, list at its top. Press ↓: the first row is selected (AC-1.1, AC-1.3, AC-3.1, AC-4.1).
 2. Click a row: selected, white text on the accent, nothing opens. Click the window's title bar area of another app: the bar turns grey. Hover: nothing. Right-click: no menu. Double-click: the page opens; Back: the row selected and in view. Select another, press Return: it opens. Press ↓ and ↑: the selection moves one row and stays in view (AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5, AC-2.6, AC-3.4, AC-4.2).
-3. At 16,000 persons, fresh launch, before clicking: End, Home, End again — the last and first rows show each time; the selection does not change. Page Down/Up scroll a screen (AC-3.2, AC-3.3).
+3. At 16,000 persons, fresh launch, before clicking: End, Home, End again — the last and first rows show each time; the selection does not change. Page Down/Up scroll a screen (AC-3.2, AC-3.3). Hold ↓ from row ~8,000: the selection keeps up. Double-click row ~8,000, then Back: the row shows without a visible stall.
 4. Scroll to row ~800, select it, open Events from the sidebar, Back: row ~800 selected and in view. Deselect, Events, Back: top, nothing selected. Select a row, click Persons in the sidebar again: the selection clears; Events, Back: nothing selected (AC-4.3, AC-4.4, AC-4.7).
 5. Widen the window past 1600 pt of pane with a row selected: 56 pt insets, title column wider, selection, scroll and focus kept. Events with a 90-character title at Regular truncates (AC-1.2, AC-1.4, AC-1.9). Sources and Source types: Back restores their top row; their headers look as before (Sources 4 pt tighter under the header) (AC-4.6).
 6. Type the first letters of a name with the list focused: record whether the selection jumps (type-select).

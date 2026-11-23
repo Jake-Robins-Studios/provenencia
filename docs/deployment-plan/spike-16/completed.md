@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-67 — The Persons, Events and Places lists are native lists
+
+**Landed 2026-11-23** in [#958](https://github.com/Jake-Robins-Studios/provenencia/pull/958). The Persons, Events and Places lists are SwiftUI's own list through the kit's `PVList`, so selection, ↑/↓, Page Up/Down and scrolling come from the platform at any size; each page draws the kit's list page header (`PVListPageHeader`, the vocabulary pages' header moved into the kit, which Sources now uses too) across the pane and its list filling the pane at Regular and Wide (56 pt gutters at Wide). A click selects with the system bar and its on-selection text (`PVColor.onSelection`); a double-click or Return opens the page; the Events rows' date and place take the on-selection text too (`PVDatePlaceLine`); row separators run gutter to gutter; Home and End scroll to the first and last row; the list takes the keys on arrival. Back returns to the list with the opened row selected and in view: navigation's `listAnchor` holds the selected row, stamped on leaving and cleared by a sidebar re-click or a row that is gone (`ListSelectionAnchorModifier`, `ListAnchor.resolved`). The list pages' failure message is one kit placement (`.pvListPageMessage`). Release 0.36.0. Left for the user's manual check: type-select, ⌥↑/⌥↓, VoiceOver and the iron selection in dark appearance.
+
 ## S16-59 — Workspace callers add to the toast stack
 
 **Landed 2026-11-22** in [#945](https://github.com/Jake-Robins-Studios/provenencia/pull/945). Every workspace model adds its toast to `WorkspaceSession.toasts` through the session it holds, so a toast has one path and a test asserts on the list (`ToastCard`, `PVToastList.cards`). `vocabularyToastOverlay`, `VocabularyToast`, the models' `toast` properties and `WorkspaceSession.noticeToast` are gone. `ConclusionLeadModel` adds to the likeness viewer's sheet list while the viewer is open (`\.pvSheetToasts`, set by `PVSheetChrome`, replacing `\.pvToastList`), else to the window's. No visible change, no version bump.

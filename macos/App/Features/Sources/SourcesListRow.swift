@@ -71,7 +71,7 @@ struct SourcesListRow: View {
             }
             .frame(maxHeight: .infinity, alignment: .top)
         }
-        .buttonStyle(PVListRowStyle(focused: nil))
+        .buttonStyle(SourcesListRowButtonStyle())
         .accessibilityLabel(Text(L10n.Sources.openSourcePage))
         .accessibilityValue(Text(verbatim: PVLastUpdated.label(
             SourceDateText.spokenRow(
@@ -286,5 +286,33 @@ extension SourcesModel.EvidenceStatus {
     @MainActor var badge: some View {
         PVBadge(label, tone: badgeTone, icon: badgeIcon, subtle: badgeSubtle)
             .accessibilityHidden(true)
+    }
+}
+
+
+/// The Sources row's button chrome: card at rest, hover tint, pressed tint with
+/// the shared press scale (via `PVHoverEffect`), and an inset focus ring on the
+/// button's own keyboard focus.
+private struct SourcesListRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        SourcesListRowButtonBody(configuration: configuration)
+    }
+}
+
+private struct SourcesListRowButtonBody: View {
+    let configuration: ButtonStyleConfiguration
+
+    /// Read here, in the button's focus scope (see `PVButtonBody`).
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        PVHoverEffect(isPressed: configuration.isPressed) { hovering in
+            configuration.label
+                .background(
+                    configuration.isPressed ? PVColor.surfaceActive
+                        : hovering ? PVColor.surfaceHover : PVColor.surfaceCard
+                )
+                .pvFocusRing(isFocused, cornerRadius: PVRadius.sm)
+        }
     }
 }

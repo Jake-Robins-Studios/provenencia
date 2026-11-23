@@ -19,6 +19,54 @@ struct PVListTests {
         #expect(action(.upArrow, option: true, at: 20) == .move(to: 0))
         #expect(action(.home, at: 12) == .move(to: 0))
         #expect(action(.end, at: 12) == .move(to: 24))
+        // Home and End on a list with no rows: -1 is not an index, so `PVList` ignores the key.
+        #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 0, count: 0) == -1)
+        #expect(PVListKeyboard.moveIndex(for: .home, option: false, index: 0, count: 16_000) == 0)
+        #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 0, count: 16_000) == 15_999)
+    }
+
+    /// The color as drawn under `scheme`, as sRGB components.
+    @MainActor
+    private func drawn(_ color: Color, in scheme: ColorScheme) -> [CGFloat] {
+        var components: [CGFloat] = []
+        let appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)!
+        appearance.performAsCurrentDrawingAppearance {
+            let ns = NSColor(color).usingColorSpace(.sRGB)!
+            components = [ns.redComponent, ns.greenComponent, ns.blueComponent, ns.alphaComponent]
+        }
+        return components
+    }
+
+    @MainActor
+    @Test func onSelectionInkIsTheSystemsOnlyWhenProminent() {
+        for scheme in [ColorScheme.light, .dark] {
+            var selected = EnvironmentValues()
+            selected.backgroundProminence = .increased
+            var resting = EnvironmentValues()
+            resting.backgroundProminence = .standard
+
+            let style = PVColor.onSelection(PVColor.textMuted)
+            #expect(
+                drawn(style.resolve(in: selected), in: scheme)
+                    == drawn(Color(nsColor: .alternateSelectedControlTextColor), in: scheme)
+            )
+            #expect(drawn(style.resolve(in: resting), in: scheme) == drawn(PVColor.textMuted, in: scheme))
+        }
+    }
+
+    @MainActor
+    @Test func datePlaceLineTakesTheOnSelectionInk() throws {
+        func png(_ prominence: BackgroundProminence) throws -> Data {
+            let view = PVDatePlaceLine(
+                date: "1851", place: "Lyon, France", accessibilityLabel: "",
+                missing: .omitted, dateTone: PVColor.textMuted
+            )
+            .padding(4).background(Color.blue)
+            .environment(\.backgroundProminence, prominence)
+            let image = try #require(ImageRenderer(content: view).nsImage)
+            return try #require(image.tiffRepresentation)
+        }
+        #expect(try png(.increased) != png(.standard))
     }
 
     @Test func pageKeysMoveByTenAndClamp() {
@@ -77,5 +125,33 @@ struct PVListTests {
         #expect(PVListDensity.comfortable.horizontal == 16)
         #expect(PVListDensity.compact.vertical == 7)
         #expect(PVListDensity.compact.horizontal == 12)
+    }
+
+    private struct WheelRow: Identifiable { let id: String }
+
+    @MainActor
+    private func firstScrollView(in view: NSView) -> NSScrollView? {
+        if let scroll = view as? NSScrollView { return scroll }
+        return view.subviews.lazy.compactMap { firstScrollView(in: $0) }.first
+    }
+
+    /// A mouse wheel moves the list by `verticalLineScroll`, which the table takes from its row
+    /// height: a minimum row height of 1 pt made one wheel step 1 pt.
+    @Test(.hostedWindows) @MainActor func aWheelStepScrollsOneRow() throws {
+        let rows = (0 ..< 5).map { WheelRow(id: "PER-0000\($0)") }
+        let list = PVList(
+            items: rows,
+            selection: .constant(nil),
+            thumbnail: { _ in Color.red },
+            label: L10n.Workspace.personsTitle,
+            itemAccessibilityLabel: { $0.id },
+            onActivate: { _ in },
+            primary: { Text(verbatim: $0.id) },
+            secondary: { _ in Text(verbatim: "second") }
+        )
+        let (_, host) = hostInBorderlessWindow(list, windowSize: CGSize(width: 600, height: 400))
+        host.layoutSubtreeIfNeeded()
+        let scroll = try #require(firstScrollView(in: host))
+        #expect(scroll.verticalLineScroll == 66)
     }
 }

@@ -19,7 +19,7 @@ enum ConclusionSummaryDisplay {
     /// The line under the title: a person's life, an event's date and place, a place's chain.
     static func secondary(_ summary: CatalogConclusionSummary) -> String {
         switch summary {
-        case .person(let person): PersonLifeDisplay.line(person).text
+        case .person(let person): PersonLifeDisplay.line(person)
         case .event(let event): EventSecondaryDisplay.line(event)
         case .place(let place):
             PlaceChainDisplay.line(parents: place.parents, candidates: place.parentsAreCandidates)

@@ -23,6 +23,10 @@ enum PVColor {
     static let textMuted = Color.pvDynamic(light: PVPalette.paper500, dark: PVPalette.paper400)
     static let textFaint = Color.pvDynamic(light: PVPalette.paper400, dark: PVPalette.paper500)
     static let textInverse = Color.pvDynamic(light: PVPalette.paper0, dark: PVPalette.paper950)
+    /// The ink of text on a native list's selected row: `base` at rest, the system's on-selection text
+    /// color (white, in light and dark appearance) on the row's selection bar. Wrap every ink a row
+    /// draws in it; `textInverse` is near-black in dark appearance, so it does not serve.
+    static func onSelection(_ base: Color) -> PVOnSelectionStyle { PVOnSelectionStyle(base: base) }
     static let textLink = Color.pvDynamic(light: PVPalette.lapis700, dark: PVPalette.lapis300)
     static let textLinkHover = Color.pvDynamic(light: PVPalette.lapis500, dark: PVPalette.hex("#C3CDF0"))
     static let textDisplay = Color.pvDynamic(light: PVPalette.paper950, dark: PVPalette.hex("#FBF7F0"))
@@ -271,5 +275,18 @@ extension Color {
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             return NSColor(isDark ? dark : light)
         })
+    }
+}
+
+
+/// `PVColor.onSelection(_:)`: `base`, or the system's on-selection text color while the row it is on
+/// shows a selection (`backgroundProminence == .increased`). Reads the environment once per resolve.
+struct PVOnSelectionStyle: ShapeStyle {
+    let base: Color
+
+    func resolve(in environment: EnvironmentValues) -> Color {
+        environment.backgroundProminence == .increased
+            ? Color(nsColor: .alternateSelectedControlTextColor)
+            : base
     }
 }

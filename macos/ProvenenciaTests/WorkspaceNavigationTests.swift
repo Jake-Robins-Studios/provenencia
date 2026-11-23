@@ -594,7 +594,7 @@ struct WorkspaceNavigationTests {
 
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.sourceTypes))
-        navigation.noteListScroll("typ-7")
+        navigation.noteListAnchor("typ-7")
         navigation.go(to: .sourceTypePage(typeId: "typ-1", title: "Census"))
         navigation.goBack()
         #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
@@ -605,17 +605,43 @@ struct WorkspaceNavigationTests {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
         let count = entryCount(navigation)
-        navigation.noteListScroll("person-1")
-        navigation.noteListScroll("person-2")
+        navigation.noteListAnchor("person-1")
+        navigation.noteListAnchor("person-2")
         #expect(entryCount(navigation) == count)
         #expect(!navigation.canGoForward)
         #expect(navigation.currentLocation.listScrollAnchor == nil)
     }
 
+    @Test func listAnchorResolvesOnlyAListedRow() {
+        #expect(ListAnchor.resolved("p2", in: ["p1", "p2", "p3"]) == "p2")
+        #expect(ListAnchor.resolved("p9", in: ["p1", "p2", "p3"]) == nil)
+        #expect(ListAnchor.resolved(nil, in: ["p1", "p2", "p3"]) == nil)
+        #expect(ListAnchor.resolved("p1", in: []) == nil)
+    }
+
+    @Test func theListAnchorIsTheSelectionAndFollowsHistory() throws {
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.persons))
+        #expect(navigation.listAnchor == nil)
+
+        navigation.noteListAnchor("person-1")
+        #expect(navigation.listAnchor == "person-1")
+
+        // A coalesced visit (the sidebar's Persons again) clears the selection with no Back.
+        navigation.go(to: .sectionRoot(.persons))
+        #expect(navigation.listAnchor == nil)
+
+        navigation.noteListAnchor("person-2")
+        navigation.go(to: .sectionRoot(.events))
+        #expect(navigation.listAnchor == nil)
+        navigation.goBack()
+        #expect(navigation.listAnchor == "person-2")
+    }
+
     @Test func leavingAListStampsTheOutgoingEntry() throws {
         let (navigation, url) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListScroll("person-1")
+        navigation.noteListAnchor("person-1")
         navigation.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
         #expect(navigation.currentLocation.listScrollAnchor == nil)
 
@@ -636,13 +662,13 @@ struct WorkspaceNavigationTests {
     @Test func forwardAndJumpRestoreTheStampedAnchor() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListScroll("person-1")
+        navigation.noteListAnchor("person-1")
         navigation.goBack()
         navigation.goForward()
         #expect(navigation.currentLocation == .sectionRoot(.persons))
         #expect(navigation.currentLocation.listScrollAnchor == "person-1")
 
-        navigation.noteListScroll("person-4")
+        navigation.noteListAnchor("person-4")
         navigation.go(to: .sectionRoot(.places))
         let persons = try #require(
             navigation.backJumpItems(limit: 15).first { $0.location.section == .persons }
@@ -655,7 +681,7 @@ struct WorkspaceNavigationTests {
     @Test func revisitingAListWithoutAnAnchorClearsItAndDoesNotPush() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListScroll("person-1")
+        navigation.noteListAnchor("person-1")
         navigation.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
         navigation.goBack()
         #expect(navigation.currentLocation.listScrollAnchor == "person-1")

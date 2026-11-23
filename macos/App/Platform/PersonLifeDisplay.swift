@@ -4,18 +4,10 @@ import Foundation
 /// A birth with no death keeps the dash after it; a death with no birth gets
 /// the dash (or the arrow) before it, so it never reads as a birth.
 enum PersonLifeDisplay {
-    struct Line: Equatable {
-        var text: String
-        /// Places beyond the ones in `text`. The list's +N.
-        var extraPlaces: Int
-    }
-
-    static func line(_ summary: CatalogPersonSummary, locale: Locale = .autoupdatingCurrent) -> Line {
+    static func line(_ summary: CatalogPersonSummary, locale: Locale = .autoupdatingCurrent) -> String {
         let dates = dateSpan(birth: summary.birth.date, death: summary.death.date, locale: locale, precision: .full)
         let places = placeSpan(birth: summary.birth.places, death: summary.death.places)
-        let extra = DerivedPlace.extra(summary.birth.places) + DerivedPlace.extra(summary.death.places)
-        let text = PVDatePlaceLine.text(date: dates, place: places)
-        return Line(text: text, extraPlaces: extra)
+        return PVDatePlaceLine.text(date: dates, place: places)
     }
 
     /// One life line: *b. 14 May 1817 · York*. Date and place come from the
@@ -24,6 +16,8 @@ enum PersonLifeDisplay {
         var abbreviation: String
         var date: String?
         var place: String?
+        /// Kept places beyond `place`. The list's +N.
+        var extraPlaces: Int = 0
         var accessibilityLabel: String
 
         /// The line as plain text: the abbreviation, then date and place; a
@@ -93,6 +87,7 @@ enum PersonLifeDisplay {
             abbreviation: L10n.string(abbreviation),
             date: date.isEmpty ? nil : date,
             place: place.isEmpty ? nil : place,
+            extraPlaces: DerivedPlace.extra(facts?.places ?? []),
             accessibilityLabel: label
         )
     }

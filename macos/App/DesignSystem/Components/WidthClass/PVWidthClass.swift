@@ -19,6 +19,12 @@ enum PVWidthClass: Equatable, Sendable {
     init(paneWidth: CGFloat) {
         self.init(PVBreakpointsMet(breakpoints: Self.breakpoints, width: paneWidth))
     }
+
+    /// The side gutter of a list that fills the pane: `gutterPageWide` at Wide, else
+    /// `gutterPage`. Every other page keeps `gutterPage` at Wide.
+    var fullPaneGutter: CGFloat {
+        self == .wide ? PVSpacing.gutterPageWide : PVSpacing.gutterPage
+    }
 }
 
 private struct PVWidthClassKey: EnvironmentKey {
