@@ -33,4 +33,39 @@ struct PVPageKeysTests {
         #expect(!PVPageKeys.edgeReached(visible: bottomView, document: doc, flipped: false, top: false))
         #expect(PVPageKeys.edgeReached(visible: topView, document: doc, flipped: false, top: false))
     }
+
+    @Test func edgePinKeepsTheEdgeUntilTheUserScrolls() {
+        var fresh = PVPageEdgePinState()
+        let r_2267 = fresh.documentChanged()
+        #expect(r_2267)
+        // Our own scroll keeps the pin, even away from the edge.
+        fresh.clipMoved(bySelf: true, atEdge: false)
+        #expect(fresh.isPinned)
+        // A move that leaves the page at the edge keeps it.
+        fresh.clipMoved(bySelf: false, atEdge: true)
+        #expect(fresh.isPinned)
+
+        var scrolled = PVPageEdgePinState()
+        scrolled.clipMoved(bySelf: false, atEdge: false)
+        #expect(!scrolled.isPinned)
+        let r_2743 = scrolled.documentChanged()
+        #expect(!r_2743)
+
+        var quiet = PVPageEdgePinState()
+        quiet.quiet(for: 0.5)
+        #expect(quiet.isPinned)
+        quiet.quiet(for: 0.6)
+        #expect(!quiet.isPinned)
+
+        var long = PVPageEdgePinState()
+        let r_2996 = long.documentChanged()
+        #expect(r_2996)
+        long.elapsed(2.9)
+        let r_3062 = long.documentChanged()
+        #expect(r_3062)
+        long.elapsed(3)
+        #expect(!long.isPinned)
+        let r_3158 = long.documentChanged()
+        #expect(!r_3158)
+    }
 }
