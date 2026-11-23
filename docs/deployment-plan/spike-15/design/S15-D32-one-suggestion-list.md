@@ -146,7 +146,7 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 
 | ID | Requirement |
 | --- | --- |
-| OL-1 | **One list.** The Suggested fields column shows the section title, the hint, the meaning line (§ 2.1) and the pool hint once, then one list. The count sits where the board puts it: on the section title or trailing a single micro-caps header; the board decides, and there is exactly one count. No level title, no level meaning, no divider inside the list. |
+| OL-1 | **One list.** The Suggested fields column shows the section title with the count trailing it (the kit's SectionHeader with its meta, as the Conclusion gallery's section shows its count), then the hint, the meaning line (§ 2.1) and the pool hint once, then one list. There is exactly one count. No micro-caps list header, no level title, no level meaning, no divider inside the list. |
 | OL-2 | **Rows.** As today: ordinal from 1, label over mono key, data type badge, and on an editable type the remove IconButton. Stored order. No drag handle. |
 | OL-3 | **Adding.** One picker (the ComboBox over the vocabulary, label and key searchable) and one plus. The picker leaves out the fields already in the list. The added field goes last, the count goes up, the picker clears and keeps focus, and the toast names the field and the type. Return adds a picked field, as today. |
 | OL-4 | **Removing.** A row's remove takes the field out at once with no confirm; the toast says the field stays in the vocabulary and, when values were typed, that they stay. While an add or remove runs, the plus and every remove are disabled. |
@@ -192,10 +192,9 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Page and its columns | Component | Ship | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` with `PVColumnSplit.sourceTypePage` (`macos/App/Features/SourceTypes/SourceTypePageView.swift`) | Unchanged widths |
-| Suggested fields section | Snowflake | Rethink | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` `SourceTypeSuggestedFields` | Title, hint, meaning, pool hint once, then the one list; no `ForEach` over levels |
-| The list | Snowflake | Rethink | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` `SourceTypeSuggestionList` | One instance, no level: rows, empty, spinner, retry, error, picker |
-| Section title | Component | Ship | `PVSectionHeader` | "Suggested fields"; carries the count when the board puts it there |
-| List header | Component | Remove or Ship | `PVSubsectionHeader` | Kept only if the board puts the count on a micro-caps header; no level title |
+| Suggested fields section | Snowflake | Rethink | `macos/App/Features/SourceTypes/SourceTypeSuggestionList.swift` `SourceTypeSuggestedFields` | One view: header, hint, meaning, pool hint, rows, empty, spinner, retry, error, picker. The per-level list view goes |
+| Section title and count | Component | Ship | `PVSectionHeader` (title + `meta`) | "Suggested fields" with "21 fields" trailing, as `ConclusionGallerySection` shows its count |
+| List header | Component | Remove | `PVSubsectionHeader` | No micro-caps list header in this section |
 | Rows | Component | Ship | `PVCard` + `PVDivider`, `CatalogFieldDataTypeBadge` | As today |
 | Field picker | Component | Ship | `macos/App/DesignSystem/Components/ComboBox/PVComboBox.swift` `PVComboBox` | One |
 | Add / remove | Component | Ship | `PVIconButton` `.plus` / `.dismiss` | Labels name the type (§ 2.1) |
@@ -213,4 +212,4 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and the board's decisions (where the count sits, whether a list header stays, any copy change) on the **Board** line here and in [`README.md`](README.md). S15-63's plan copies OL-1 – OL-8, OL-W1, the copy and the inventory, fills D-9 and § 6 Strings from the board, and moves from `Blocked — on board S15-D32` to `Planned`. When S15-63 lands, this brief moves to the spike's design archive.
+When the board is agreed: record the frames and the board's decisions (any copy change) on the **Board** line here and in [`README.md`](README.md). S15-63's plan copies OL-1 – OL-8, OL-W1, the copy and the inventory, fills D-9 and § 6 Strings from the board, and moves from `Blocked — on board S15-D32` to `Planned`. When S15-63 lands, this brief moves to the spike's design archive.
