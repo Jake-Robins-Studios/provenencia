@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** ready (re-plan)
+**State:** fixing — user manual check (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -120,7 +120,19 @@ Reviewers: UX (UX-1), MNT (MNT-1, MNT-2). Scope `bca57a4a9...c1a2eec5a`. Not sen
 | MNT-1 | MNT | major | (round 1) second key-code table | **Resolved** | one `PVKeyCode`; no numeric key-code literal left in `macos/App` |
 | MNT-2 | MNT | major | (round 1) README `moveIndex` callers | **Resolved** | README names the context menu and popup list only |
 | UX-1 | UX | major | (round 1) page scrolls behind an open popup | **Resolved** | watcher maps 116/121; context menu and open select consume them; closed select passes them |
-| UX-5 | UX (outside lens) | minor | A `PVActionMenu` with every item disabled passes `keyboard: nil`, so Page Up/Down and the arrows scroll the page behind it | Follow-up | `PVActionMenu.swift:107`; round 2 adds only blockers |
+| UX-5 | UX (outside lens) | minor | A `PVActionMenu` with every item disabled passes `keyboard: nil`, so Page Up/Down and the arrows scroll the page behind it | Rejected | the user dropped it (2026-11-23): not worth a change |
 
 ## Result (re-plan)
-Gate PASS after merging `origin/main` (`dc609b731`) · CI see PR #951 · open: none · follow-ups: UX-5 · to user: — · owed: §10 manual check (steps 1–7)
+Gate PASS after merging `origin/main` (`dc609b731`) · CI see PR #951 · open: none · follow-ups: none (UX-5 dropped by the user) · to user: — · owed: §10 manual check (steps 1–7)
+
+## Manual check (user, 2026-11-23)
+- On the Persons, Events and Places lists, the first End after a list loads does not reach the bottom; paging down until every row has drawn makes Home and End work. Cause: `PVPageKeys.scrollToEdge` scrolls once to the document's current height, which a `LazyVStack` only estimates until its rows are built; building the rows near the estimated end changes the height. Defect in code this PR adds (D-5): Fix now → F-6.
+- Xcode reports "Gradient stop locations must be ordered" at `PersonTimelineSection.swift:558`. Not this PR: the file is untouched since `a0923028f`; with a bar shorter than 32 pt open at both ends, `fade / height` and `1 - fade / height` cross. Out of this PR (a quick fix of its own, offered to the user).
+
+### Fix plan 2 (user check)
+
+**F-6 — Home and End land on the edge of a lazy page** (from the user's manual check)
+Files: `macos/App/DesignSystem/Components/PageScroll/PVPageScroll.swift`, `macos/ProvenenciaTests/PVPageKeysTests.swift`, the plan's Landed note.
+Failing test first: `PVPageKeysTests.edgeReachedOnlyAtTheEdge` *(new)* for a pure `PVPageKeys.edgeReached(visible: CGRect, document: CGRect, flipped: Bool, top: Bool) -> Bool` *(new)*: flipped, top: visible.minY ≤ document.minY + 0.5 → true, else false; flipped, bottom: visible.maxY ≥ document.maxY − 0.5 → true, else false; the unflipped mirrors (top is maxY). Cases: (visible y 0…500, document 0…5000, flipped, top) → true; same, bottom → false; (visible 4500…5000, document 0…5000, flipped, bottom) → true; (visible 4500…5000, document 0…9000, flipped, bottom) → false (the document grew); the unflipped mirror of the first and third.
+Do: `scrollToEdge(_:top:)` scrolls as today, then re-checks on later main-actor turns: `DispatchQueue.main.async` (no `Task` sleep), up to 10 passes in all, each pass calling `scrollView.layoutSubtreeIfNeeded()` then `edgeReached(visible: scrollView.contentView.bounds, document: doc.bounds, flipped: doc.isFlipped, top:)`; while it is false, scroll to the edge again with the document's current height. Stop at the first pass that is true, or after 10. A new key press while passes remain does not start a second chain over the first: keep one `@MainActor` generation counter on `PVPageKeys`; a pass whose generation is stale stops. `startsAtTopWhen` goes through the same function and gains the same settling. Record in the plan's Landed note: D-5's edge scroll settles over up to 10 main-actor turns because a lazy page's height is an estimate until its rows are built (user manual check).
+Check: the test passes; the user's §10 step 1 and step 5 on Persons: the first End after the list loads reaches the last row; scripts/check-pr.sh PASS.
