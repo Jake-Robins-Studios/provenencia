@@ -75,7 +75,12 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
     var body: some View {
         List(selection: selection) {
             ForEach(items) { item in
-                row(item)
+                PVListRow(
+                    item: item, thumbnail: thumbnail, thumbnailSize: thumbnailSize,
+                    primary: primary, secondary: secondary, meta: meta, detail: detail,
+                    accessibilityLabel: itemAccessibilityLabel,
+                    accessibilityIdentifier: itemAccessibilityIdentifier
+                )
                     .listRowInsets(EdgeInsets(
                         top: density.vertical, leading: rowInset,
                         bottom: density.vertical, trailing: rowInset
@@ -119,8 +124,22 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
         guard let id, let item = items.first(where: { $0.id == id }) else { return }
         onActivate(item)
     }
+}
 
-    private func row(_ item: Item) -> some View {
+/// One row of a `PVList`. A view of its own, so the list's `ForEach` builds only this value and
+/// SwiftUI builds a row's content for the rows on screen.
+private struct PVListRow<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
+    let item: Item
+    let thumbnail: (Item) -> Thumbnail
+    let thumbnailSize: CGFloat
+    let primary: (Item) -> Primary
+    let secondary: (Item) -> Secondary
+    let meta: (Item) -> String?
+    let detail: PVListDetailColumn<Item>?
+    let accessibilityLabel: (Item) -> String
+    let accessibilityIdentifier: ((Item) -> String)?
+
+    var body: some View {
         HStack(spacing: PVSpacing.space6) {
             thumbnail(item)
                 .frame(width: thumbnailSize, height: thumbnailSize)
@@ -149,9 +168,11 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
             }
         }
         .frame(height: thumbnailSize)
+        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+        .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: itemAccessibilityLabel(item)))
-        .accessibilityIdentifier(itemAccessibilityIdentifier?(item) ?? "")
+        .accessibilityLabel(Text(verbatim: accessibilityLabel(item)))
+        .accessibilityIdentifier(accessibilityIdentifier?(item) ?? "")
     }
 }
 
