@@ -15,7 +15,7 @@ enum PVListText {
 /// counterpart to `PVTable` (single-selection browse with columns).
 ///
 /// The list does not scroll itself; put it in the page's `ScrollView`. Rows
-/// are lazy, so hundreds stay cheap. Keyboard: the list is one focus stop;
+/// are lazy, so hundreds stay cheap. Keyboard (`.pvListFocusStop`): the list is one focus stop;
 /// ↑ / ↓ move the focused row (⌥ jumps to the ends), Home / End, Page Up /
 /// Page Down move by ten, Return / Space activate.
 struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
@@ -92,10 +92,6 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
         self.onActivate = onActivate
     }
 
-    private var currentIndex: Int {
-        min(focusIndex, max(0, items.count - 1))
-    }
-
     var body: some View {
         LazyVStack(spacing: 0) {
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -104,32 +100,14 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
             }
         }
         .scrollTargetLayout()
-        .pvScrollsRowIntoView(
-            items.indices.contains(focusIndex) ? items[focusIndex].id : nil,
-            animated: false
-        )
         .pvListChrome()
-        .focusable()
-        .focusEffectDisabled()
-        .focused($isFocused)
-        .onKeyPress { press in
-            let action = PVListKeyboard.action(
-                for: press.key,
-                option: press.modifiers.contains(.option),
-                index: currentIndex,
-                count: items.count
-            )
-            switch action {
-            case .move(let index):
-                focusIndex = index
-                return .handled
-            case .activate(let index):
-                onActivate(items[index])
-                return .handled
-            case .ignore:
-                return .ignored
-            }
-        }
+        .pvListFocusStop(
+            count: items.count,
+            rowID: { items[$0].id },
+            focusIndex: $focusIndex,
+            isFocused: $isFocused,
+            onActivate: { onActivate(items[$0]) }
+        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text(label))
     }
@@ -177,7 +155,7 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
             .padding(.vertical, density.vertical)
             .padding(.horizontal, density.horizontal)
         }
-        .buttonStyle(PVListRowStyle(focused: isFocused && index == currentIndex))
+        .buttonStyle(PVListRowStyle(focused: isFocused && index == PVListKeyboard.clampedIndex(focusIndex, count: items.count)))
         .overlay(alignment: .bottom) {
             if index < items.count - 1 {
                 PVDivider()
@@ -312,6 +290,11 @@ enum PVListKeyAction: Equatable {
 
 enum PVListKeyboard {
     static let pageStep = 10
+
+    /// Holds a focused index that may outlive its list (a filter, a reload) inside it; 0 for an empty list.
+    static func clampedIndex(_ index: Int, count: Int) -> Int {
+        min(index, max(0, count - 1))
+    }
 
     /// The one list of movement keys: ↑/↓ (⌥ to an end), Home, End, Page Up and
     /// Page Down. Nil for any other key; otherwise the shared mover's index

@@ -7,6 +7,14 @@ struct PVListTests {
         PVListKeyboard.action(for: key, option: option, index: index, count: count)
     }
 
+    @Test func clampedIndexStaysInTheList() {
+        #expect(PVListKeyboard.clampedIndex(7, count: 3) == 2)
+        #expect(PVListKeyboard.clampedIndex(2, count: 3) == 2)
+        #expect(PVListKeyboard.clampedIndex(0, count: 3) == 0)
+        #expect(PVListKeyboard.clampedIndex(0, count: 0) == 0)
+        #expect(PVListKeyboard.clampedIndex(5, count: 0) == 0)
+    }
+
     @Test func arrowsMoveOneAndClampWithoutWrapping() {
         #expect(action(.downArrow, at: 3) == .move(to: 4))
         #expect(action(.upArrow, at: 3) == .move(to: 2))
