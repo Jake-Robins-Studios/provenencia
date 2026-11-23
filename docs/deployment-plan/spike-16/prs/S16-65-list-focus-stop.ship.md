@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** fixing 1 (re-plan)
+**State:** review 2 (re-plan)
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -107,3 +107,10 @@ Check: `rg -n "isSideList" macos docs/deployment-plan/spike-16/prs/S16-65-list-f
 Files: the plan, §2 AC-1.7, §10 steps 2 and 3.
 Do: AC-1.7's Then gains "(with the table not focused: click in the detail pane first; a focused table keeps its own page keys, Out)". §10 step 2's Metadata/Properties sentence begins "Click in the detail pane so the table is not focused; then, with the pointer over the list…". §10 step 3: "press Home and End: the page does not scroll (the field keeps the key)". Record in the Landed note that these are wording fixes from review.
 Check: scripts/check-pr.sh PASS (plan-docs).
+
+## Re-plan round 1 — fix
+Head `c1a2eec5a`. Gate PASS (orchestrator). F-1 – F-5 done in two commits. F-1's tests were written after the fix (new behavior, so they could not have passed before). F-4: the plan's D-1, D-4, §6 and STEP text still say `isSideList`; the Landed note records the rename, as the Decisions stay as planned. `PVPopupList` / `PVComboBox` untouched (`keysStayInField`; `PVPopupListHighlight` already takes the page keys).
+- MNT-3/UX-4, UX-2/CON-2, UX-3 (minors): **Resolved** (orchestrator read the fix commits).
+
+## Re-plan round 2 — review
+Reviewers: UX (UX-1), MNT (MNT-1, MNT-2). Scope `bca57a4a9...c1a2eec5a`. Not sent: CON (minors only), SEC+PRF (no findings).
