@@ -201,7 +201,7 @@ Copy a Source type makes a new Source type from an existing one so a researcher 
 - the icon (otherwise the default mark);
 - the description (otherwise none);
 - the three citation formats, as stored, with their fields named by id, so the copy's formats name the same fields as the original's (a field either type names cannot be deleted while it does);
-- the suggested fields at each chosen level (Source, Artifact, Evidence graph), in the original's order; a level the original has no suggestions at copies none.
+- the suggested fields, in the original's order; an original with none copies none.
 
 **Never copied:** the Sources of the type and their metadata values, and the key.
 
@@ -249,14 +249,13 @@ A Source type may suggest metadata fields useful for that type. This is a join t
 CREATE TABLE source_type_metadata_fields (
     source_type_id  BLOB NOT NULL REFERENCES source_types(id) ON DELETE CASCADE,
     field_id        BLOB NOT NULL REFERENCES source_metadata_fields(id) ON DELETE CASCADE,
-    level           TEXT NOT NULL CHECK (level IN ('source', 'artifact', 'graph')),
     sort_order      INTEGER,
 
-    PRIMARY KEY (source_type_id, field_id, level)
+    PRIMARY KEY (source_type_id, field_id)
 ) STRICT;
 ```
 
-A type suggests fields per level: `source` (the record), `artifact` (the copy used) or `graph` (the item cited). Each level is its own ordered list, and a field may be suggested at more than one. The Source page reads the `source` rows.
+A type suggests each field once, in one ordered list per type, and every board of a Source of the type (the Source's Metadata section, each Artifact's sheet, each Evidence graph's form) offers all of it. A field has no level here: where a value lives is the researcher's choice, and a citation reads the nearest level that holds one.
 
 
 For example, `book` might suggest:
@@ -360,7 +359,7 @@ CREATE TABLE artifact_metadata_layout (
 
 `evidence_graph_metadata` and `evidence_graph_metadata_layout` are the same with `graph_id REFERENCES evidence_graphs(id)`, and graph values carry `is_unknown` and `is_supplied` too. Each table has an index on `field_id` for the field delete's probe and release.
 
-- **Suggestions have a level.** A Source type suggests fields per level (`source_type_metadata_fields.level`); an Artifact's or a graph's board lists its own Source's type's suggestions at its level, plus extras.
+- **A type suggests fields once; every board offers them.** A Source type suggests each field once (`source_type_metadata_fields`, no level); an Artifact's or a graph's board lists its Source's type's whole suggestion list, plus extras.
 - **Audit.** Every change carries the owner column (`artifact_id`, `graph_id`) and scopes the owner's Source (`effects` registry, `up(owner, "source_id")`), so a write refreshes the Source's page and moves its last activity.
 - **Delete.** A field is in use while any of the three value tables holds it, and `deleteimpact.UsedBy` counts all three; a layout row alone never blocks. A field's layout rows at every level are released, audited, with it.
 - **Search and citations.** No search document is built from Artifact or graph metadata. A citation reads the graph's value, else the Artifact's, else the Source's (spike 15).
