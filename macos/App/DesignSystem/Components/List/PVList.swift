@@ -6,46 +6,49 @@ enum PVListText {
     static let titleFont = PVFont.body(size: PVTypeScale.body)
 }
 
-/// The browse list for navigation targets — mirrors the design system's
-/// `components/PVList.jsx`. Homogeneous rows: an optional thumbnail slot, a
-/// title, an optional secondary line, a trailing mono reference, and a
-/// chevron. One optional fixed-width text column (`detail`) sits before the
-/// ref, content-agnostic. Rows are **buttons, not selection**: no selection
-/// model, no sort — only hover, a pressed tint, and keyboard focus. The
-/// counterpart to `PVTable` (single-selection browse with columns).
-///
-/// The list does not scroll itself; put it in the page's `ScrollView`. Rows
-/// are lazy, so hundreds stay cheap. Keyboard: the list is one focus stop;
-/// ↑ / ↓ move the focused row (⌥ jumps to the ends), Home / End, Page Up /
-/// Page Down move by ten, Return / Space activate.
+/// The browse list for navigation targets: the platform's own list (SwiftUI's
+/// `List`, an `NSTableView`), so selection, ↑ / ↓, Page Up / Page Down and
+/// scrolling come from the platform at any size. Homogeneous rows: a
+/// thumbnail, a title, an optional secondary line, an optional fixed-width
+/// detail column and a trailing mono ref. A click selects (the system's
+/// full-width bar); a double-click or Return opens (`onActivate`). Home and
+/// End scroll to the first and last row. The list takes keyboard focus when it
+/// appears and is its own scroll view: give it the whole area. The caller's
+/// area draws the card fill behind it (the list's own background is hidden), so
+/// nothing covers the system selection. The counterpart to `PVTable` (custom
+/// chrome, columns).
 struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
     private let items: [Item]
-    private let thumbnail: ((Item) -> Thumbnail)?
+    private let thumbnail: (Item) -> Thumbnail
     private let thumbnailSize: CGFloat
     private let primary: (Item) -> Primary
     private let secondary: (Item) -> Secondary
     private let meta: (Item) -> String?
     private let detail: PVListDetailColumn<Item>?
-    private let chevron: Bool
     private let density: PVListDensity
+    private let horizontalInset: CGFloat
     private let label: LocalizedStringResource
     private let itemAccessibilityLabel: (Item) -> String
     private let itemAccessibilityIdentifier: ((Item) -> String)?
+    private let selection: Binding<Item.ID?>
     private let onActivate: (Item) -> Void
 
     @FocusState private var isFocused: Bool
-    @State private var focusIndex = 0
+    @State private var edgeRow: Item.ID?
+    @State private var edgeAnchor: UnitPoint = .top
+    @State private var edgeRequest = 0
 
     /// The thumbnail slot is a view, so a row can load an image; the list frames
-    /// it to `thumbnailSize`.
+    /// it to `thumbnailSize`. `horizontalInset` is the rows' inset on both sides.
     init(
         items: [Item],
+        selection: Binding<Item.ID?>,
         @ViewBuilder thumbnail: @escaping (Item) -> Thumbnail,
         thumbnailSize: CGFloat = 44,
         meta: @escaping (Item) -> String? = { _ in nil },
         detail: PVListDetailColumn<Item>? = nil,
-        chevron: Bool = true,
         density: PVListDensity = .comfortable,
+        horizontalInset: CGFloat? = nil,
         label: LocalizedStringResource,
         itemAccessibilityLabel: @escaping (Item) -> String,
         itemAccessibilityIdentifier: ((Item) -> String)? = nil,
@@ -53,189 +56,102 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
         @ViewBuilder primary: @escaping (Item) -> Primary,
         @ViewBuilder secondary: @escaping (Item) -> Secondary
     ) {
-        self.init(
-            items: items, optionalThumbnail: thumbnail, thumbnailSize: thumbnailSize, meta: meta,
-            detail: detail, chevron: chevron, density: density, label: label,
-            itemAccessibilityLabel: itemAccessibilityLabel,
-            itemAccessibilityIdentifier: itemAccessibilityIdentifier,
-            onActivate: onActivate, primary: primary, secondary: secondary
-        )
-    }
-
-    fileprivate init(
-        items: [Item],
-        optionalThumbnail thumbnail: ((Item) -> Thumbnail)?,
-        thumbnailSize: CGFloat,
-        meta: @escaping (Item) -> String?,
-        detail: PVListDetailColumn<Item>?,
-        chevron: Bool,
-        density: PVListDensity,
-        label: LocalizedStringResource,
-        itemAccessibilityLabel: @escaping (Item) -> String,
-        itemAccessibilityIdentifier: ((Item) -> String)?,
-        onActivate: @escaping (Item) -> Void,
-        primary: @escaping (Item) -> Primary,
-        secondary: @escaping (Item) -> Secondary
-    ) {
         self.items = items
+        self.selection = selection
         self.thumbnail = thumbnail
         self.thumbnailSize = thumbnailSize
         self.primary = primary
         self.secondary = secondary
         self.meta = meta
         self.detail = detail
-        self.chevron = chevron
         self.density = density
+        self.horizontalInset = horizontalInset ?? density.horizontal
         self.label = label
         self.itemAccessibilityLabel = itemAccessibilityLabel
         self.itemAccessibilityIdentifier = itemAccessibilityIdentifier
         self.onActivate = onActivate
     }
 
-    private var currentIndex: Int {
-        min(focusIndex, max(0, items.count - 1))
-    }
-
     var body: some View {
-        LazyVStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                row(item, index: index)
-                    .id(item.id)
+        List(selection: selection) {
+            ForEach(items) { item in
+                row(item)
+                    .listRowInsets(EdgeInsets(
+                        top: density.vertical, leading: rowInset,
+                        bottom: density.vertical, trailing: rowInset
+                    ))
+                    .listRowSeparator(.visible)
+                    .listRowSeparatorTint(PVColor.borderSubtle)
             }
+            .transaction { $0.animation = nil }
         }
-        .scrollTargetLayout()
-        .pvScrollsRowIntoView(
-            items.indices.contains(focusIndex) ? items[focusIndex].id : nil,
-            animated: false
-        )
-        .pvListChrome()
-        .focusable()
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 1)
         .focusEffectDisabled()
         .focused($isFocused)
-        .onKeyPress { press in
-            let action = PVListKeyboard.action(
-                for: press.key,
-                option: press.modifiers.contains(.option),
-                index: currentIndex,
-                count: items.count
-            )
-            switch action {
-            case .move(let index):
-                focusIndex = index
-                return .handled
-            case .activate(let index):
-                onActivate(items[index])
-                return .handled
-            case .ignore:
-                return .ignored
-            }
+        .onAppear { FocusClaim.claim($isFocused, true) }
+        .contextMenu(forSelectionType: Item.ID.self, menu: { _ in EmptyView() }, primaryAction: { ids in
+            open(ids.first)
+        })
+        .onKeyPress(keys: [.home, .end]) { press in
+            guard let index = PVListKeyboard.moveIndex(
+                for: press.key, option: false, index: 0, count: items.count
+            ), items.indices.contains(index) else { return .ignored }
+            edgeRow = items[index].id
+            edgeAnchor = press.key == .home ? .top : .bottom
+            edgeRequest += 1
+            return .handled
         }
-        .accessibilityElement(children: .contain)
+        .pvScrollsRowIntoView(edgeRow, anchor: edgeAnchor, animated: false, whenRequested: edgeRequest)
+        .pvScrollsRowIntoView(selection.wrappedValue, animated: false, scrollsOnAppear: true)
         .accessibilityLabel(Text(label))
     }
 
-    private func row(_ item: Item, index: Int) -> some View {
-        Button {
-            focusIndex = index
-            onActivate(item)
-        } label: {
-            HStack(spacing: PVSpacing.space6) {
-                if let thumbnail {
-                    thumbnail(item)
-                        .frame(width: thumbnailSize, height: thumbnailSize)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    primary(item)
-                        .font(PVListText.titleFont)
-                        .foregroundStyle(PVColor.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    secondary(item)
-                        .font(PVFont.body(size: PVTypeScale.caption))
-                        .foregroundStyle(PVColor.textMuted)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if let detail {
-                    PVListDetailCell(detail: detail.content(item), width: detail.width)
-                }
-                HStack(spacing: PVSpacing.space7) {
-                    if let meta = meta(item) {
-                        Text(verbatim: meta)
-                            .font(PVFont.mono(size: PVTypeScale.micro))
-                            .foregroundStyle(PVColor.textMuted)
-                            .lineLimit(1)
-                            .fixedSize()
-                    }
-                    if chevron {
-                        PVIcon(.chevronForward, size: 15)
-                            .foregroundStyle(PVColor.textFaint)
-                    }
-                }
-                .layoutPriority(1)
+    /// The platform's table lays a row's cell in 8 pt on each side of the insets; the row's own inset
+    /// is `horizontalInset` less that, so the content sits `horizontalInset` from the list's edges.
+    private static var platformCellInset: CGFloat { 8 }
+
+    private var rowInset: CGFloat { max(0, horizontalInset - Self.platformCellInset) }
+
+    /// Opens the item with `id`; nothing when a reload has removed it.
+    private func open(_ id: Item.ID?) {
+        guard let id, let item = items.first(where: { $0.id == id }) else { return }
+        onActivate(item)
+    }
+
+    private func row(_ item: Item) -> some View {
+        HStack(spacing: PVSpacing.space6) {
+            thumbnail(item)
+                .frame(width: thumbnailSize, height: thumbnailSize)
+            VStack(alignment: .leading, spacing: 3) {
+                primary(item)
+                    .font(PVListText.titleFont)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textPrimary))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                secondary(item)
+                    .font(PVFont.body(size: PVTypeScale.caption))
+                    .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
+                    .lineLimit(1)
             }
-            .padding(.vertical, density.vertical)
-            .padding(.horizontal, density.horizontal)
-        }
-        .buttonStyle(PVListRowStyle(focused: isFocused && index == currentIndex))
-        .overlay(alignment: .bottom) {
-            if index < items.count - 1 {
-                PVDivider()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let detail {
+                PVListDetailCell(detail: detail.content(item), width: detail.width)
+            }
+            if let meta = meta(item) {
+                Text(verbatim: meta)
+                    .font(PVFont.mono(size: PVTypeScale.micro))
+                    .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .layoutPriority(1)
             }
         }
+        .frame(height: thumbnailSize)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: itemAccessibilityLabel(item)))
-        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier(itemAccessibilityIdentifier?(item) ?? "")
-    }
-}
-
-extension PVList where Thumbnail == EmptyView {
-    /// A list with no thumbnail slot.
-    init(
-        items: [Item],
-        meta: @escaping (Item) -> String? = { _ in nil },
-        detail: PVListDetailColumn<Item>? = nil,
-        chevron: Bool = true,
-        density: PVListDensity = .comfortable,
-        label: LocalizedStringResource,
-        itemAccessibilityLabel: @escaping (Item) -> String,
-        itemAccessibilityIdentifier: ((Item) -> String)? = nil,
-        onActivate: @escaping (Item) -> Void,
-        @ViewBuilder primary: @escaping (Item) -> Primary,
-        @ViewBuilder secondary: @escaping (Item) -> Secondary
-    ) {
-        self.init(
-            items: items, optionalThumbnail: nil, thumbnailSize: 44, meta: meta,
-            detail: detail, chevron: chevron, density: density, label: label,
-            itemAccessibilityLabel: itemAccessibilityLabel,
-            itemAccessibilityIdentifier: itemAccessibilityIdentifier,
-            onActivate: onActivate, primary: primary, secondary: secondary
-        )
-    }
-}
-
-extension PVList where Thumbnail == EmptyView, Secondary == EmptyView {
-    /// A list with no thumbnail slot and no secondary line.
-    init(
-        items: [Item],
-        meta: @escaping (Item) -> String? = { _ in nil },
-        detail: PVListDetailColumn<Item>? = nil,
-        chevron: Bool = true,
-        density: PVListDensity = .comfortable,
-        label: LocalizedStringResource,
-        itemAccessibilityLabel: @escaping (Item) -> String,
-        itemAccessibilityIdentifier: ((Item) -> String)? = nil,
-        onActivate: @escaping (Item) -> Void,
-        @ViewBuilder primary: @escaping (Item) -> Primary
-    ) {
-        self.init(
-            items: items, meta: meta,
-            detail: detail, chevron: chevron, density: density, label: label,
-            itemAccessibilityLabel: itemAccessibilityLabel,
-            itemAccessibilityIdentifier: itemAccessibilityIdentifier,
-            onActivate: onActivate, primary: primary, secondary: { _ in EmptyView() }
-        )
     }
 }
 
@@ -265,7 +181,7 @@ struct PVListDetailCell: View {
     @ViewBuilder
     private var content: some View {
         if let detail {
-            let color = detail.faint ? PVColor.textFaint : PVColor.textMuted
+            let color = PVColor.onSelection(detail.faint ? PVColor.textFaint : PVColor.textMuted)
             let cell = HStack(spacing: 6) {
                 if let icon = detail.icon {
                     PVIcon(icon, size: iconSize)
@@ -367,37 +283,6 @@ enum PVListKeyboard {
     }
 }
 
-/// Row chrome: card at rest, hover tint, pressed tint with the shared press
-/// scale (via `PVHoverEffect`), and an inset focus ring on the focused row.
-/// `PVList` passes its own `focused`; the Sources list's Source link passes nil
-/// and takes the button's own keyboard focus.
-struct PVListRowStyle: ButtonStyle {
-    let focused: Bool?
-
-    func makeBody(configuration: Configuration) -> some View {
-        PVListRowBody(configuration: configuration, focused: focused)
-    }
-}
-
-private struct PVListRowBody: View {
-    let configuration: ButtonStyleConfiguration
-    let focused: Bool?
-
-    /// Read here, in the button's focus scope (see `PVButtonBody`).
-    @Environment(\.isFocused) private var isFocused
-
-    var body: some View {
-        PVHoverEffect(isPressed: configuration.isPressed) { hovering in
-            configuration.label
-                .background(
-                    configuration.isPressed ? PVColor.surfaceActive
-                        : hovering ? PVColor.surfaceHover : PVColor.surfaceCard
-                )
-                .pvFocusRing(focused ?? isFocused, cornerRadius: PVRadius.sm)
-        }
-    }
-}
-
 /// First-load placeholder in row geometry: static rule bars, a loading tile,
 /// no spinner, inert. Pair it with no count in the section header.
 struct PVListSkeleton: View {
@@ -406,6 +291,8 @@ struct PVListSkeleton: View {
     var density: PVListDensity = .comfortable
     /// Width of the list's detail column; draws a bar there before the ref bar.
     var detailWidth: CGFloat?
+    /// The rows' inset on both sides, and the separators'; the density's when nil.
+    var horizontalInset: CGFloat?
 
     private static let titleWidths: [CGFloat] = [0.46, 0.32, 0.54, 0.38, 0.42]
 
@@ -429,46 +316,43 @@ struct PVListSkeleton: View {
                 }
                 .frame(height: thumbnailSize)
                 .padding(.vertical, density.vertical)
-                .padding(.horizontal, density.horizontal)
+                .padding(.horizontal, horizontalInset ?? density.horizontal)
                 .overlay(alignment: .bottom) {
-                    if index < rows - 1 { PVDivider() }
+                    if index < rows - 1 {
+                        PVDivider().padding(.horizontal, horizontalInset ?? density.horizontal)
+                    }
                 }
             }
         }
-        .pvListChrome()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(L10n.DesignSystem.listLoading))
     }
 }
 
-private extension View {
-    /// Card fill, hairline border, medium radius — shared by the list and its skeleton.
-    func pvListChrome() -> some View {
-        background(PVColor.surfaceCard)
-            .clipShape(RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: PVRadius.md, style: .continuous)
-                    .strokeBorder(PVColor.borderSubtle, lineWidth: 1)
-            )
-    }
-}
-
-#Preview {
+private struct PVListPreview: View {
     struct Row: Identifiable {
         let id: String
         let title: String
         let subtitle: String?
+        let detail: PVListDetail?
     }
+
     let rows = [
-        Row(id: "PER-7KD45", title: "James Robins", subtitle: "b. 14 May 1817"),
-        Row(id: "PER-2HT08", title: "Eliza Robins", subtitle: nil),
-        Row(id: "PER-9ZZ02", title: "PER-9ZZ02", subtitle: nil),
+        Row(id: "PER-7KD45", title: "James Robins", subtitle: "b. 14 May 1817",
+            detail: PVListDetail(text: "Yesterday", help: "Last updated", icon: .history)),
+        Row(id: "PER-2HT08", title: "Eliza Robins", subtitle: nil,
+            detail: PVListDetail(text: "—", help: nil, icon: .history, faint: true)),
+        Row(id: "PER-9ZZ02", title: "PER-9ZZ02", subtitle: nil, detail: nil),
     ]
-    return VStack(spacing: PVSpacing.space8) {
+    @State private var selection: String?
+
+    var body: some View {
         PVList(
             items: rows,
+            selection: $selection,
             thumbnail: { _ in PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson))) },
             meta: { $0.id },
+            detail: PVListDetailColumn(width: 136, content: { $0.detail }),
             label: "Persons",
             itemAccessibilityLabel: { "\($0.title), \($0.id)" },
             onActivate: { _ in },
@@ -477,37 +361,40 @@ private extension View {
                 if let subtitle = row.subtitle { Text(verbatim: subtitle) }
             }
         )
-        PVListSkeleton(rows: 3)
+        .background(PVColor.surfaceCard)
+    }
+}
+
+#Preview {
+    VStack(spacing: PVSpacing.space8) {
+        PVListPreview().frame(height: 220)
+        PVListSkeleton(rows: 3, detailWidth: 136)
     }
     .padding(PVSpacing.space9)
     .frame(width: 640)
     .background(PVColor.surfacePage)
 }
 
-#Preview("With detail column") {
-    struct Row: Identifiable {
-        let id: String
-        let title: String
-        let detail: PVListDetail?
-    }
-    let rows = [
-        Row(id: "PER-7KD45", title: "James Robins", detail: PVListDetail(text: "Yesterday", help: "Last updated", icon: .history)),
-        Row(id: "PER-2HT08", title: "Eliza Robins", detail: PVListDetail(text: "—", help: nil, icon: .history, faint: true)),
-        Row(id: "PER-9ZZ02", title: "PER-9ZZ02", detail: nil),
-    ]
-    return VStack(spacing: PVSpacing.space8) {
-        PVList(
-            items: rows,
-            meta: { $0.id },
-            detail: PVListDetailColumn(width: 136, content: { $0.detail }),
-            label: "Persons",
-            itemAccessibilityLabel: { "\($0.title), \($0.id)" },
-            onActivate: { _ in },
-            primary: { Text(verbatim: $0.title) }
+#Preview("Selected row ink") {
+    HStack(spacing: PVSpacing.space6) {
+        PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson)), size: 44)
+        VStack(alignment: .leading, spacing: 3) {
+            PVTitleText(.name("Josephine Marchand"), extraCount: 2)
+                .font(PVListText.titleFont)
+                .foregroundStyle(PVColor.onSelection(PVColor.textPrimary))
+            PVDatePlaceLine(date: "1851", place: "Lyon, France", accessibilityLabel: "", extraCount: 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        PVListDetailCell(
+            detail: PVListDetail(text: "Yesterday", help: nil, icon: .history), width: 136
         )
-        PVListSkeleton(rows: 3, detailWidth: 136)
+        Text(verbatim: "PER-7K2QX")
+            .font(PVFont.mono(size: PVTypeScale.micro))
+            .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
     }
-    .padding(PVSpacing.space9)
+    .padding(.horizontal, PVSpacing.space6)
+    .padding(.vertical, 11)
+    .background(Color.accentColor)
+    .environment(\.backgroundProminence, .increased)
     .frame(width: 640)
-    .background(PVColor.surfacePage)
 }

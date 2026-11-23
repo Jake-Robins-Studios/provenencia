@@ -45,11 +45,11 @@ final class WorkspaceNavigation {
 
     private var history: NavigationHistoryStore?
     private(set) var projectUuid: String = ""
-    /// Top row the visible list last reported. Stamped onto the outgoing entry
-    /// on the next Back, Forward, jump, or `go(to:)`. Scrolling does not write
-    /// the history file.
-    @ObservationIgnored
-    private var pendingListScrollAnchor: String?
+    /// The visible list's anchor row: its top row on Sources and Source types, its selected row on the
+    /// Conclusion lists (the list draws it selected). Stamped onto the outgoing entry on the next Back,
+    /// Forward, jump, or `go(to:)`; `apply` sets it to the entry's anchor on every commit. Scrolling and
+    /// selecting do not write the history file. Only the Conclusion list body reads it.
+    private(set) var listAnchor: String?
 
     init(selectedSection: WorkspaceSection = .sources) {
         self.selectedSection = selectedSection
@@ -94,11 +94,12 @@ final class WorkspaceNavigation {
         lastHistoryIssue = nil
     }
 
-    /// The visible list reports the row at the top as the researcher scrolls.
+    /// The visible list reports its anchor row: the row at the top as the researcher scrolls
+    /// (Sources, Source types), or the selected row (Persons, Events, Places).
     /// This does not push a history entry and does not write the history file.
-    func noteListScroll(_ anchor: String?) {
+    func noteListAnchor(_ anchor: String?) {
         guard currentLocation.isListRoot else { return }
-        pendingListScrollAnchor = Self.normalizedScrollAnchor(anchor)
+        listAnchor = Self.normalizedListAnchor(anchor)
     }
 
     /// Committed navigation. Coalesces identical locations; truncates forward.
@@ -200,7 +201,7 @@ final class WorkspaceNavigation {
         // Leaving a list stamps the row the list reported. Staying on the list
         // (a coalesced visit) lets the incoming anchor replace it, including nil.
         if location != currentLocation {
-            history.stampListScrollAnchor(pendingListScrollAnchor)
+            history.stampListAnchor(listAnchor)
         }
         apply(history.go(to: location))
         refreshHistoryIssue()
@@ -208,7 +209,7 @@ final class WorkspaceNavigation {
 
     private func performBack() {
         guard let history, history.canGoBack else { return }
-        history.stampListScrollAnchor(pendingListScrollAnchor)
+        history.stampListAnchor(listAnchor)
         guard let location = history.goBack() else { return }
         apply(location)
         refreshHistoryIssue()
@@ -216,7 +217,7 @@ final class WorkspaceNavigation {
 
     private func performForward() {
         guard let history, history.canGoForward else { return }
-        history.stampListScrollAnchor(pendingListScrollAnchor)
+        history.stampListAnchor(listAnchor)
         guard let location = history.goForward() else { return }
         apply(location)
         refreshHistoryIssue()
@@ -224,7 +225,7 @@ final class WorkspaceNavigation {
 
     private func performIndex(_ index: Int) {
         guard let history, history.contains(index: index) else { return }
-        history.stampListScrollAnchor(pendingListScrollAnchor)
+        history.stampListAnchor(listAnchor)
         guard let location = history.go(toIndex: index) else { return }
         apply(location)
         refreshHistoryIssue()
@@ -244,7 +245,7 @@ final class WorkspaceNavigation {
         selectedSection = location.section
         canGoBack = history?.canGoBack ?? false
         canGoForward = history?.canGoForward ?? false
-        pendingListScrollAnchor = location.isListRoot ? location.listScrollAnchor : nil
+        listAnchor = location.isListRoot ? location.listScrollAnchor : nil
         onLocationCommit?(location)
     }
 
@@ -254,9 +255,40 @@ final class WorkspaceNavigation {
         }
     }
 
-    private static func normalizedScrollAnchor(_ anchor: String?) -> String? {
+    private static func normalizedListAnchor(_ anchor: String?) -> String? {
         guard let anchor, !anchor.isEmpty else { return nil }
         return anchor
+    }
+}
+
+/// The one rule for an anchor row against the rows a list now shows.
+enum ListAnchor {
+    /// `anchor` when a row has that id, else nil (the list opens at the top, nothing selected).
+    static func resolved(_ anchor: String?, in ids: [String]) -> String? {
+        guard let anchor, ids.contains(anchor) else { return nil }
+        return anchor
+    }
+}
+
+/// Clears a selected row that a list no longer shows. Once the list's read settles, a
+/// `navigation.listAnchor` with no row of that id (a record deleted since, a reload that
+/// removed it) becomes nil; a listed one stays. The list itself binds `listAnchor` as its selection.
+struct ListSelectionAnchorModifier: ViewModifier {
+    var rowIDs: [String]
+    var isSettled: Bool
+
+    @Environment(WorkspaceNavigation.self) private var navigation
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: isSettled, initial: true) { _, _ in clearIfGone() }
+            .onChange(of: rowIDs) { _, _ in clearIfGone() }
+    }
+
+    private func clearIfGone() {
+        guard isSettled, let anchor = navigation.listAnchor else { return }
+        let resolved = ListAnchor.resolved(anchor, in: rowIDs)
+        if resolved != anchor { navigation.noteListAnchor(resolved) }
     }
 }
 
@@ -292,8 +324,7 @@ struct ListScrollAnchorModifier: ViewModifier {
                     return
                 }
                 if let scrolledID, !ids.contains(scrolledID) {
-                    let resolved = anchor.flatMap { ids.contains($0) ? $0 : nil }
-                    pin(resolved)
+                    pin(ListAnchor.resolved(anchor, in: ids))
                 }
             }
             .onChange(of: scrolledID) { _, id in
@@ -302,7 +333,7 @@ struct ListScrollAnchorModifier: ViewModifier {
                     if id == pinnedAnchor {
                         self.pinnedAnchor = nil
                         pinAttempts = 0
-                        navigation.noteListScroll(id)
+                        navigation.noteListAnchor(id)
                         return
                     }
                     if id == nil, pinAttempts < 3 {
@@ -313,14 +344,13 @@ struct ListScrollAnchorModifier: ViewModifier {
                     self.pinnedAnchor = nil
                     pinAttempts = 0
                 }
-                navigation.noteListScroll(id)
+                navigation.noteListAnchor(id)
             }
     }
 
     private func applyIfReady() {
         guard isLoaded else { return }
-        let resolved = anchor.flatMap { rowIDs.contains($0) ? $0 : nil }
-        pin(resolved)
+        pin(ListAnchor.resolved(anchor, in: rowIDs))
     }
 
     private func pin(_ resolved: String?) {
@@ -331,7 +361,7 @@ struct ListScrollAnchorModifier: ViewModifier {
             scrolledID = resolved
         } else {
             pinnedAnchor = nil
-            navigation.noteListScroll(resolved)
+            navigation.noteListAnchor(resolved)
         }
     }
 }

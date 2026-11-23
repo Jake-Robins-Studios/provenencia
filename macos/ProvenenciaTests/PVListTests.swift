@@ -19,6 +19,27 @@ struct PVListTests {
         #expect(action(.upArrow, option: true, at: 20) == .move(to: 0))
         #expect(action(.home, at: 12) == .move(to: 0))
         #expect(action(.end, at: 12) == .move(to: 24))
+        // Home and End on a list with no rows: -1 is not an index, so `PVList` ignores the key.
+        #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 0, count: 0) == -1)
+        #expect(PVListKeyboard.moveIndex(for: .home, option: false, index: 0, count: 16_000) == 0)
+        #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 0, count: 16_000) == 15_999)
+    }
+
+    @Test func onSelectionInkIsTheSystemsOnlyWhenProminent() {
+        for scheme in [ColorScheme.light, .dark] {
+            var selected = EnvironmentValues()
+            selected.colorScheme = scheme
+            selected.backgroundProminence = .increased
+            var resting = selected
+            resting.backgroundProminence = .standard
+
+            let style = PVColor.onSelection(PVColor.textMuted)
+            #expect(
+                style.resolve(in: selected).resolve(in: selected)
+                    == Color(nsColor: .alternateSelectedControlTextColor).resolve(in: selected)
+            )
+            #expect(style.resolve(in: resting).resolve(in: resting) == PVColor.textMuted.resolve(in: resting))
+        }
     }
 
     @Test func pageKeysMoveByTenAndClamp() {

@@ -82,10 +82,10 @@ final class NavigationHistoryStore {
         lastIssue = nil
     }
 
-    /// Write the visible list's top row onto the current entry. No persist:
+    /// Write the visible list's anchor row (its top or selected row) onto the current entry. No persist:
     /// the navigation that is about to move the stack writes the file once.
     /// No-op unless the current entry is a list root.
-    func stampListScrollAnchor(_ anchor: String?) {
+    func stampListAnchor(_ anchor: String?) {
         guard document.entries.indices.contains(document.index) else { return }
         guard document.entries[document.index].isListRoot else { return }
         stampCurrent(\.listScrollAnchor, anchor?.isEmpty == false ? anchor : nil)

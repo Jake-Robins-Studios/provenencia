@@ -124,7 +124,7 @@ struct PVTitleText: View {
             } else {
                 Text(verbatim: text)
                     .font(PVFont.mono(size: PVTypeScale.bodySmall))
-                    .foregroundStyle(PVColor.textSecondary)
+                    .foregroundStyle(PVColor.onSelection(PVColor.textSecondary))
             }
         }
     }
