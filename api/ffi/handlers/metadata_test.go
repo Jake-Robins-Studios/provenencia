@@ -37,11 +37,9 @@ func newMetadataOwners(t *testing.T) metadataOwners {
 		artifact:     &engine.MetadataOwner{Level: "artifact", Id: f.page1},
 		graph:        &engine.MetadataOwner{Level: "graph", Id: f.defaultGraphID},
 	}
-	for _, level := range []string{"artifact", "graph"} {
-		mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
-			ProjectDir: f.dir, TypeId: sourceType, FieldId: m.suggested, Level: level,
-		}, &engine.AssignTypeFieldResponse{})
-	}
+	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
+		ProjectDir: f.dir, TypeId: sourceType, FieldId: m.suggested,
+	}, &engine.AssignTypeFieldResponse{})
 	return m
 }
 
@@ -325,18 +323,18 @@ func draftOf(fieldID, text string) *engine.MetadataDraft {
 	}
 }
 
-// TestMetadataBoardsKeepTheirLevel suggests one field at the artifact level
-// only and one at the graph level only: each board lists its own level's
-// suggestions and not the other's, on the board read and on the Source page.
-func TestMetadataBoardsKeepTheirLevel(t *testing.T) {
+// TestMetadataBoardsOfferTheTypeList suggests two more fields on the type: the
+// Artifact board, the graph board and the Source page's Artifact boards all
+// list the type's one list.
+func TestMetadataBoardsOfferTheTypeList(t *testing.T) {
 	m := newMetadataOwners(t)
-	artifactOnly := newUserField(t, m.dir, m.userID, "Provider URL")
-	graphOnly := newUserField(t, m.dir, m.userID, "Tree")
+	more := newUserField(t, m.dir, m.userID, "Provider URL")
+	tree := newUserField(t, m.dir, m.userID, "Tree")
 	var ws engine.GetSourceWorkspaceResponse
 	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &ws)
-	for field, level := range map[string]string{artifactOnly: "artifact", graphOnly: "graph"} {
+	for _, field := range []string{more, tree} {
 		mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
-			ProjectDir: m.dir, TypeId: ws.GetSource().GetSourceTypeId(), FieldId: field, Level: level,
+			ProjectDir: m.dir, TypeId: ws.GetSource().GetSourceTypeId(), FieldId: field,
 		}, &engine.AssignTypeFieldResponse{})
 	}
 	ids := func(entries []*engine.MetadataWorkspaceEntry) []string {
@@ -348,24 +346,19 @@ func TestMetadataBoardsKeepTheirLevel(t *testing.T) {
 		return out
 	}
 	sorted := func(ids ...string) []string { slices.Sort(ids); return ids }
-	for name, tt := range map[string]struct {
-		owner *engine.MetadataOwner
-		want  []string
-	}{
-		"artifact": {m.artifact, sorted(m.suggested, artifactOnly)},
-		"graph":    {m.graph, sorted(m.suggested, graphOnly)},
-	} {
+	want := sorted(m.suggested, more, tree)
+	for name, owner := range map[string]*engine.MetadataOwner{"artifact": m.artifact, "graph": m.graph} {
 		t.Run(name, func(t *testing.T) {
-			if got := ids(withoutFormatRows(boardEntries(t, m.dir, tt.owner))); !slices.Equal(got, tt.want) {
-				t.Fatalf("board fields %v, want %v", got, tt.want)
+			if got := ids(withoutFormatRows(boardEntries(t, m.dir, owner))); !slices.Equal(got, want) {
+				t.Fatalf("board fields %v, want %v", got, want)
 			}
 		})
 	}
-	// The Source page's Artifact boards carry the artifact-level fields only.
+	// The Source page's Artifact boards carry the same list.
 	var after engine.GetSourceWorkspaceResponse
 	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &after)
 	for _, board := range after.GetArtifactMetadata() {
-		if got, want := ids(withoutFormatRows(board.GetEntries())), sorted(m.suggested, artifactOnly); !slices.Equal(got, want) {
+		if got := ids(withoutFormatRows(board.GetEntries())); !slices.Equal(got, want) {
 			t.Fatalf("Artifact board fields %v, want %v", got, want)
 		}
 	}
@@ -453,7 +446,7 @@ func lineLedgerSource(t *testing.T, dir, userID string) (sourceID, lineID string
 	var ty engine.CreateSourceTypeResponse
 	mustRPC(t, CreateSourceType, &engine.CreateSourceTypeRequest{ProjectDir: dir, UserId: userID, Label: "Line ledger"}, &ty)
 	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
-		ProjectDir: dir, TypeId: ty.GetType().GetId(), FieldId: lineID, Level: "graph",
+		ProjectDir: dir, TypeId: ty.GetType().GetId(), FieldId: lineID,
 	}, &engine.AssignTypeFieldResponse{})
 	formats := setFormats(t, dir, userID, ty.GetType().GetId(), &engine.CitationFormats{
 		Full: "{meta.line_number}.",
@@ -489,7 +482,7 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := listSuggestions(t, dir, ws.GetSource().GetSourceTypeId(), "artifact")
+		want := listSuggestions(t, dir, ws.GetSource().GetSourceTypeId())
 		// The type's suggestions lead, then every other field its formats read,
 		// unsuggested: a field with no level heads on every board.
 		if len(entries) < len(want) {

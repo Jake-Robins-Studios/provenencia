@@ -148,25 +148,21 @@ func TestLevels(t *testing.T) {
 		t.Fatal("Levels and MetadataLevels must return a fresh slice per call")
 	}
 	tests := []struct {
-		l        Level
-		valid    bool
-		metadata bool
+		l     Level
+		valid bool
 	}{
-		{"source", true, true},
-		{"artifact", true, true},
-		{"graph", true, true},
-		{"citation", true, false},
-		{"", false, false},
-		{"Source", false, false},
-		{" source", false, false},
-		{"page", false, false},
+		{"source", true},
+		{"artifact", true},
+		{"graph", true},
+		{"citation", true},
+		{"", false},
+		{"Source", false},
+		{" source", false},
+		{"page", false},
 	}
 	for _, tc := range tests {
 		if got := tc.l.Valid(); got != tc.valid {
 			t.Errorf("Level(%q).Valid() = %v, want %v", tc.l, got, tc.valid)
-		}
-		if got := tc.l.HoldsMetadata(); got != tc.metadata {
-			t.Errorf("Level(%q).HoldsMetadata() = %v, want %v", tc.l, got, tc.metadata)
 		}
 	}
 }

@@ -43,21 +43,19 @@ func newGraphFixture(t *testing.T) graphFixture {
 	return f
 }
 
-// clearBoardSuggestions detaches the artifact and graph fields the Source's
-// seeded type suggests, so the boards these tests read start with no suggested
-// rows. The product seed suggests copy and item fields at those levels; the
-// tests here are about the rows they add themselves.
+// clearBoardSuggestions detaches every field the Source's seeded type
+// suggests, so the boards these tests read start with no suggested rows. The
+// product seed suggests copy and item fields; the tests here are about the
+// rows they add themselves.
 func (f graphFixture) clearBoardSuggestions(t *testing.T) {
 	t.Helper()
 	var ws engine.GetSourceWorkspaceResponse
 	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: f.dir, SourceId: f.sourceID}, &ws)
 	typeID := ws.GetSource().GetSourceTypeId()
-	for _, level := range []string{"artifact", "graph"} {
-		for _, s := range listSuggestions(t, f.dir, typeID, level) {
-			mustRPC(t, RemoveTypeField, &engine.RemoveTypeFieldRequest{
-				ProjectDir: f.dir, TypeId: typeID, FieldId: s.GetField().GetId(), Level: level,
-			}, &engine.RemoveTypeFieldResponse{})
-		}
+	for _, s := range listSuggestions(t, f.dir, typeID) {
+		mustRPC(t, RemoveTypeField, &engine.RemoveTypeFieldRequest{
+			ProjectDir: f.dir, TypeId: typeID, FieldId: s.GetField().GetId(),
+		}, &engine.RemoveTypeFieldResponse{})
 	}
 }
 

@@ -1,4 +1,4 @@
-// Package sourcevocab owns type↔field suggestions per level and provenencia create-time seed.
+// Package sourcevocab owns type↔field suggestions (one ordered list per type) and provenencia create-time seed.
 //
 // Install upserts the shipped vocabulary registry (origin=provenencia) once at
 // catalog create. It composes on the caller's transaction and never calls
@@ -21,6 +21,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sqlbatch"
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
@@ -30,50 +31,49 @@ var ErrInvalid = apperr.New(apperr.CodeSourceVocabInvalid, apperr.KindUser)
 const ActionInstall = "install_source_vocabulary"
 
 const (
-	sqlEnsureSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order)
-		VALUES (?, ?, ?, ?)
-		ON CONFLICT(source_type_id, field_id, level) DO UPDATE SET sort_order = excluded.sort_order`
+	sqlEnsureSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, sort_order)
+		VALUES (?, ?, ?)
+		ON CONFLICT(source_type_id, field_id) DO UPDATE SET sort_order = excluded.sort_order`
 	sqlDeleteSuggestion = `DELETE FROM source_type_metadata_fields
-		WHERE source_type_id = ? AND field_id = ? AND level = ?`
+		WHERE source_type_id = ? AND field_id = ?`
 	// The next sort_order is computed inside the INSERT so concurrent
 	// appends cannot read the same MAX and share a slot. (The WHERE clause
 	// is also what lets SQLite parse INSERT…SELECT with an upsert clause.)
-	sqlAppendSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order)
-		SELECT ?, ?, ?, COALESCE(MAX(sort_order), -1) + 1
-		FROM source_type_metadata_fields WHERE source_type_id = ? AND level = ?
-		ON CONFLICT(source_type_id, field_id, level) DO NOTHING`
+	sqlAppendSuggestion = `INSERT INTO source_type_metadata_fields (source_type_id, field_id, sort_order)
+		SELECT ?, ?, COALESCE(MAX(sort_order), -1) + 1
+		FROM source_type_metadata_fields WHERE source_type_id = ?
+		ON CONFLICT(source_type_id, field_id) DO NOTHING`
 )
 
-var sqlListSuggestions = `SELECT ` + metadatafields.Columns("f") + `, j.sort_order
+// sqlListSuggestionsIn reads the suggestions of the types in the IN list the
+// caller closes with sqlListSuggestionsTail. The order is one type's order, so
+// a type's rows (always in one batch) come back in it.
+var sqlListSuggestionsIn = `SELECT ` + metadatafields.Columns("f") + `, j.sort_order, j.source_type_id
 	FROM source_type_metadata_fields j
 	JOIN source_metadata_fields f ON f.id = j.field_id
-	WHERE j.source_type_id = ? AND j.level = ?
-	ORDER BY j.sort_order ASC, f.label COLLATE NOCASE, f.key`
+	WHERE j.source_type_id IN (`
 
-// Suggestion is one ordered field attached to a source type at a level.
+const sqlListSuggestionsTail = `) ORDER BY j.sort_order ASC, f.label COLLATE NOCASE, f.key`
+
+// Suggestion is one ordered field a source type suggests.
 type Suggestion struct {
 	Field     metadatafields.Field
 	SortOrder int
 }
 
-// ensureSuggestionTx inserts or updates the join row's sort_order on tx. A
-// level outside vocabkey.MetadataLevels is ErrInvalid.
-func ensureSuggestionTx(tx *database.Tx, typeID, fieldID []byte, level vocabkey.Level, sortOrder int) error {
-	if !level.HoldsMetadata() || len(typeID) != 16 || len(fieldID) != 16 {
+// ensureSuggestionTx inserts or updates the join row's sort_order on tx.
+func ensureSuggestionTx(tx *database.Tx, typeID, fieldID []byte, sortOrder int) error {
+	if len(typeID) != 16 || len(fieldID) != 16 {
 		return ErrInvalid
 	}
-	_, err := tx.Exec(sqlEnsureSuggestion, typeID, fieldID, string(level), sortOrder)
+	_, err := tx.Exec(sqlEnsureSuggestion, typeID, fieldID, sortOrder)
 	return err
 }
 
 // AppendSuggestion attaches a field to a type at the end of its existing
-// order at one level. Re-attaching a field already suggested for the type at
-// that level leaves its place alone — the join is a set, so assigning twice is
-// not an error. A level outside vocabkey.MetadataLevels is ErrInvalid.
-func AppendSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabkey.Level) error {
-	if !level.HoldsMetadata() {
-		return ErrInvalid
-	}
+// order. Re-attaching a field the type already suggests leaves its place
+// alone — the join is a set, so assigning twice is not an error.
+func AppendSuggestion(c *database.Catalog, typeID, fieldID []byte) error {
 	db, err := c.DB()
 	if err != nil {
 		return err
@@ -96,64 +96,64 @@ func AppendSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabke
 		}
 		return err
 	}
-	_, err = db.Exec(sqlAppendSuggestion, typeID, fieldID, string(level), typeID, string(level))
+	_, err = db.Exec(sqlAppendSuggestion, typeID, fieldID, typeID)
 	return err
 }
 
-// ListSuggestions returns a type's suggested fields at one level, ordered by
-// sort_order. A level outside vocabkey.MetadataLevels is ErrInvalid.
-func ListSuggestions(c *database.Catalog, typeID []byte, level vocabkey.Level) ([]Suggestion, error) {
+// ListSuggestions returns a type's suggested fields, ordered by sort_order. An
+// id that is not 16 bytes is ErrInvalid.
+func ListSuggestions(c *database.Catalog, typeID []byte) ([]Suggestion, error) {
+	if len(typeID) != 16 {
+		return nil, ErrInvalid
+	}
 	db, err := c.DB()
 	if err != nil {
 		return nil, err
 	}
-	return listSuggestions(db, typeID, level)
-}
-
-// ListSuggestionsTx is ListSuggestions on an open transaction. A nil tx is
-// ErrInvalid.
-func ListSuggestionsTx(tx *sql.Tx, typeID []byte, level vocabkey.Level) ([]Suggestion, error) {
-	if tx == nil {
-		return nil, ErrInvalid
-	}
-	return listSuggestions(tx, typeID, level)
-}
-
-func listSuggestions(q database.Querier, typeID []byte, level vocabkey.Level) ([]Suggestion, error) {
-	if !level.HoldsMetadata() {
-		return nil, ErrInvalid
-	}
-	if len(typeID) != 16 {
-		return nil, ErrInvalid
-	}
-	rows, err := q.Query(sqlListSuggestions, typeID, string(level))
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var out []Suggestion
-	for rows.Next() {
+	defer func() { _ = tx.Rollback() }()
+	byType, err := ListSuggestionsTx(tx, [][]byte{typeID})
+	if err != nil {
+		return nil, err
+	}
+	return byType[string(typeID)], nil
+}
+
+// ListSuggestionsTx reads the suggestions of the given types on an open
+// transaction in one batched query, keyed by string(type id), each list in the
+// type's order (sort_order, then label, then key). A type with none is absent;
+// no ids runs no query. A nil tx is ErrInvalid.
+func ListSuggestionsTx(tx *sql.Tx, typeIDs [][]byte) (map[string][]Suggestion, error) {
+	if tx == nil {
+		return nil, ErrInvalid
+	}
+	out := map[string][]Suggestion{}
+	err := sqlbatch.Query(tx, sqlListSuggestionsIn, sqlListSuggestionsTail, nil, database.UniqueBlobIDs(typeIDs), func(rows *sql.Rows) error {
+		var typeID []byte
 		var sort sql.NullInt64
-		f, err := metadatafields.ScanField(rows, &sort)
+		f, err := metadatafields.ScanField(rows, &sort, &typeID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		s := Suggestion{Field: f}
 		if sort.Valid {
 			s.SortOrder = int(sort.Int64)
 		}
-		out = append(out, s)
+		out[string(typeID)] = append(out[string(typeID)], s)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
-// DeleteSuggestion removes one join row at one level — the detach behind the
-// RemoveTypeField RPC. The field itself stays in the vocabulary, and its rows
-// at other levels stay. A level outside vocabkey.MetadataLevels is ErrInvalid.
-func DeleteSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabkey.Level) error {
-	if !level.HoldsMetadata() {
-		return ErrInvalid
-	}
+// DeleteSuggestion removes one join row — the detach behind the RemoveTypeField
+// RPC. The field itself stays in the vocabulary.
+func DeleteSuggestion(c *database.Catalog, typeID, fieldID []byte) error {
 	db, err := c.DB()
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func DeleteSuggestion(c *database.Catalog, typeID, fieldID []byte, level vocabke
 	if len(typeID) != 16 || len(fieldID) != 16 {
 		return ErrInvalid
 	}
-	_, err = db.Exec(sqlDeleteSuggestion, typeID, fieldID, string(level))
+	_, err = db.Exec(sqlDeleteSuggestion, typeID, fieldID)
 	return err
 }
 
@@ -224,7 +224,7 @@ func Install(tx *database.Tx) ([]rowchange.Change, error) {
 			if len(fieldID) == 0 {
 				return nil, ErrInvalid
 			}
-			if err := ensureSuggestionTx(tx, typeID, fieldID, s.Level, order); err != nil {
+			if err := ensureSuggestionTx(tx, typeID, fieldID, order); err != nil {
 				return nil, err
 			}
 		}

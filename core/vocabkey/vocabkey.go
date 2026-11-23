@@ -22,8 +22,8 @@ const (
 // Level is a layer a citation reads: the Source (the record), one of its
 // Artifacts (the copy used), one of its Evidence graphs (the item cited), or
 // the Citation itself. From S15-62 a format names fields with no level; the
-// level stays for owners, built-ins and the order. The first three hold metadata values and type
-// suggestions; the Citation only built-ins.
+// level stays for owners, built-ins and the order. The first three hold
+// metadata values; the Citation only built-ins.
 type Level string
 
 const (
@@ -55,9 +55,6 @@ func NearestFirst() []Level {
 
 // Valid reports whether l is one of Levels. The match is exact.
 func (l Level) Valid() bool { return slices.Contains(Levels(), l) }
-
-// HoldsMetadata reports whether l is one of MetadataLevels. The match is exact.
-func (l Level) HoldsMetadata() bool { return slices.Contains(MetadataLevels(), l) }
 
 // SubjectType is a Subject type key, typed for registry maps.
 type SubjectType string

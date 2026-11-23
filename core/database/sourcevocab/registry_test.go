@@ -104,7 +104,7 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 	seen := map[string]bool{}
 	got := map[string][]string{}
 	for _, s := range seedSuggestions {
-		id := s.TypeKey + "/" + string(s.Level)
+		id := s.TypeKey
 		if seen[id] {
 			t.Errorf("%s appears twice", id)
 		}
@@ -120,21 +120,16 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 				t.Errorf("%s names unknown field %s", id, key)
 			}
 		}
-		got[s.TypeKey] = append(got[s.TypeKey], s.FieldKeys...)
+		got[s.TypeKey] = s.FieldKeys
 	}
 	for _, st := range seedTypes {
 		want := derivedSuggestions(t, st)
-		have := slices.Clone(got[st.Key])
-		slices.Sort(have)
-		for i := 1; i < len(have); i++ {
-			if have[i] == have[i-1] {
-				t.Errorf("%s suggests %s at more than one level", st.Key, have[i])
-			}
+		if !slices.Equal(got[st.Key], want) {
+			t.Errorf("%s suggests %v, its formats give %v in order", st.Key, got[st.Key], want)
 		}
-		slices.Sort(want)
-		if !slices.Equal(have, want) {
-			t.Errorf("%s suggests %v over all levels, its formats give %v", st.Key, have, want)
-		}
+	}
+	if census := got["census"]; len(census) == 0 || census[0] != "creator" || census[len(census)-1] != "item_number" {
+		t.Errorf("census suggests %v, want creator first and item_number last", census)
 	}
 }
 
@@ -278,12 +273,9 @@ func TestSeedPlaceFields(t *testing.T) {
 		"correspondence":       "written_from",
 	}
 	for _, s := range seedSuggestions {
-		if s.Level != vocabkey.LevelSource {
-			continue
-		}
 		key, ok := want[s.TypeKey]
 		if ok && !slices.Contains(s.FieldKeys, key) {
-			t.Errorf("type %s suggests %v at the source, want %s among them", s.TypeKey, s.FieldKeys, key)
+			t.Errorf("type %s suggests %v, want %s among them", s.TypeKey, s.FieldKeys, key)
 		}
 		if key != "jurisdiction" && slices.Contains(s.FieldKeys, "jurisdiction") {
 			t.Errorf("type %s suggests jurisdiction, which only government records use", s.TypeKey)

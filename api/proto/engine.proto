@@ -351,16 +351,16 @@ message SourceType {
   // (see sourcetypes.ErrInUse); the client uses the count to disable its
   // delete affordance and say what is holding the type.
   int32 used_by = 6;
-  // How many metadata fields this type suggests at all three levels (a field
-  // at two levels counts twice) — the list's third column, so browsing does not have to fetch every type's
-  // join rows.
+  // How many metadata fields this type suggests, each once — the list's third
+  // column, so browsing does not have to fetch every type's join rows.
   int32 suggested_field_count = 7;
   // Closed design-system type_* key for evidence representation.
   string icon_key = 8;
 }
 
 // TypeSuggestion is one source_type_metadata_fields join row: a field this
-// type suggests at one level, in its stored order. Suggestions are not a
+// type suggests, in its stored order. One list per type, offered on every
+// board of a Source of the type. Suggestions are not a
 // schema — a source of the type may leave any of them blank.
 message TypeSuggestion {
   MetadataField field = 1;
@@ -480,11 +480,11 @@ message GetSourceWorkspaceResponse {
   // owns each list; duplicating them here staled every open page on a
   // vocabulary edit made elsewhere.
   reserved 6, 7, 8;
-  // One board per Artifact, in the order of artifacts: its type's artifact-level
+  // One board per Artifact, in the order of artifacts: its type's
   // suggestions plus extras, by its layout.
   repeated MetadataBoard artifact_metadata = 9;
   // One board per Evidence graph of the Source, in graph list order: its type's
-  // graph-level suggestions plus extras, by its layout.
+  // suggestions plus extras, by its layout.
   repeated MetadataBoard graph_metadata = 10;
   // What the Source's type asks of the Source date and of the printed page; each
   // absent when its citation formats do not read it.
@@ -855,8 +855,8 @@ message MetadataLayoutRow {
   bool dismissed = 3;
 }
 
-// MetadataBoard is one owner's entries: its type's suggestions at its level
-// plus extras, by its layout.
+// MetadataBoard is one owner's entries: its type's suggestions plus extras, by
+// its layout.
 message MetadataBoard {
   string owner_id = 1;
   repeated MetadataWorkspaceEntry entries = 2;
@@ -872,8 +872,8 @@ message GetMetadataBoardResponse {
 }
 
 // GetDraftMetadataBoard is the board a new Artifact or graph starts with on a
-// Source: its type's suggestions at level, empty, then the fields its citation
-// formats head, each with its requirement. level is "artifact" or "graph".
+// Source: its type's suggestions, empty, then the fields its citation formats
+// head at level, each with its requirement. level is "artifact" or "graph".
 message GetDraftMetadataBoardRequest {
   string project_dir = 1;
   string source_id = 2;
@@ -1066,7 +1066,7 @@ message CreateSourceTypeResponse {
 }
 
 // CopySourceTypeRequest starts a new user type from the type type_id with the
-// parts ticked; levels are the metadata levels whose suggested fields copy.
+// parts ticked; copy_suggestions copies the suggested fields, in order.
 message CopySourceTypeRequest {
   string project_dir = 1;
   string user_id = 2;
@@ -1075,7 +1075,9 @@ message CopySourceTypeRequest {
   bool copy_icon = 5;
   bool copy_description = 6;
   bool copy_formats = 7;
-  repeated string levels = 8;
+  reserved 8;
+  reserved "levels";
+  bool copy_suggestions = 9;
 }
 
 message CopySourceTypeResponse {
@@ -1178,13 +1180,13 @@ message GetCitationFormatsResponse {
   repeated CitationFormatDiagnostic diagnostics = 2;
 }
 
-// ListTypeSuggestions lists a type's suggested fields at one level, in order.
+// ListTypeSuggestions lists a type's suggested fields, in order: one list per
+// type, each field once.
 message ListTypeSuggestionsRequest {
   string project_dir = 1;
   string type_id = 2;
-  // "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  // value, "citation" included, is sourcevocab.invalid.
-  string level = 3;
+  reserved 3;
+  reserved "level";
 }
 
 message ListTypeSuggestionsResponse {
@@ -1193,7 +1195,7 @@ message ListTypeSuggestionsResponse {
 
 // AssignTypeField attaches an existing metadata field to a type at the end
 // of its order. Assigning a field the type already suggests is a no-op, not
-// an error. Both replies carry the type's whole suggestion list at that level
+// an error. Both replies carry the type's whole suggestion list
 // back so the client never has to re-derive sort_order.
 message AssignTypeFieldRequest {
   string project_dir = 1;
@@ -1201,15 +1203,14 @@ message AssignTypeFieldRequest {
   reserved "user_id"; // the join is not audited (catalog-deletes.md)
   string type_id = 3;
   string field_id = 4;
-  // "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  // value, "citation" included, is sourcevocab.invalid.
-  string level = 5;
+  reserved 5;
+  reserved "level";
 }
 
 message AssignTypeFieldResponse {
   repeated TypeSuggestion suggestions = 1;
-  // The type's suggested-field count after the write, over all three levels,
-  // as SourceType.suggested_field_count.
+  // The type's suggested-field count after the write, each field once, as
+  // SourceType.suggested_field_count.
   int32 suggested_field_count = 2;
 }
 
@@ -1222,15 +1223,14 @@ message RemoveTypeFieldRequest {
   reserved "user_id"; // the join is not audited (catalog-deletes.md)
   string type_id = 3;
   string field_id = 4;
-  // "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  // value, "citation" included, is sourcevocab.invalid.
-  string level = 5;
+  reserved 5;
+  reserved "level";
 }
 
 message RemoveTypeFieldResponse {
   repeated TypeSuggestion suggestions = 1;
-  // The type's suggested-field count after the write, over all three levels,
-  // as SourceType.suggested_field_count.
+  // The type's suggested-field count after the write, each field once, as
+  // SourceType.suggested_field_count.
   int32 suggested_field_count = 2;
 }
 

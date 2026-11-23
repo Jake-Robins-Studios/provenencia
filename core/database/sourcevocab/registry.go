@@ -2,7 +2,6 @@ package sourcevocab
 
 import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
-	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
 // Declarative provenencia seed registry (create-time starter for new catalogs):
@@ -23,11 +22,10 @@ type seedField struct {
 	Key, Label, DataType, Description, UnknownText string
 }
 
-// seedSuggestion is one type's suggested fields at one level, in order; a
-// field's position is its sort order.
+// seedSuggestion is one type's suggested fields, in order; a field's position
+// is its sort order.
 type seedSuggestion struct {
 	TypeKey   string
-	Level     vocabkey.Level
 	FieldKeys []string
 }
 

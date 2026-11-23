@@ -82,15 +82,12 @@ func snapshot(t *testing.T, c *database.Catalog) catalogSnapshot {
 	for _, ty := range types {
 		f := storedFormats(t, c, ty.ID)
 		snap.Types[ty.Key] = string(ty.ID) + "|" + ty.Label + "|" + f.Full + "|" + f.Short + "|" + f.List
-		for _, level := range vocabkey.MetadataLevels() {
-			sugs, err := ListSuggestions(c, ty.ID, level)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, s := range sugs {
-				k := ty.Key + "/" + string(level)
-				snap.Suggestions[k] = append(snap.Suggestions[k], fmt.Sprintf("%s@%d", s.Field.Key, s.SortOrder))
-			}
+		sugs, err := ListSuggestions(c, ty.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, s := range sugs {
+			snap.Suggestions[ty.Key] = append(snap.Suggestions[ty.Key], fmt.Sprintf("%s@%d", s.Field.Key, s.SortOrder))
 		}
 	}
 	return snap
@@ -181,37 +178,35 @@ func TestInstall(t *testing.T) {
 				}
 
 				// Every suggestion list is written in registry order, and a
-				// (type, level) the registry does not list has no rows.
+				// type the registry does not list has no rows.
 				listed := map[string]bool{}
 				for _, want := range seedSuggestions {
 					ty, err := sourcetypes.Lookup(c, want.TypeKey, vocabkey.OriginProvenencia)
 					if err != nil {
 						t.Fatalf("type %s: %v", want.TypeKey, err)
 					}
-					listed[want.TypeKey+"/"+string(want.Level)] = true
-					sugs, err := ListSuggestions(c, ty.ID, want.Level)
+					listed[want.TypeKey] = true
+					sugs, err := ListSuggestions(c, ty.ID)
 					if err != nil {
 						t.Fatal(err)
 					}
 					if len(sugs) != len(want.FieldKeys) {
-						t.Fatalf("%s/%s lists %d fields, want %d", want.TypeKey, want.Level, len(sugs), len(want.FieldKeys))
+						t.Fatalf("%s lists %d fields, want %d", want.TypeKey, len(sugs), len(want.FieldKeys))
 					}
 					for i, s := range sugs {
 						if s.Field.Key != want.FieldKeys[i] || s.Field.Origin != vocabkey.OriginProvenencia || s.SortOrder != i {
-							t.Fatalf("%s/%s[%d] = %s origin %s sort %d, want %s origin provenencia sort %d",
-								want.TypeKey, want.Level, i, s.Field.Key, s.Field.Origin, s.SortOrder, want.FieldKeys[i], i)
+							t.Fatalf("%s[%d] = %s origin %s sort %d, want %s origin provenencia sort %d",
+								want.TypeKey, i, s.Field.Key, s.Field.Origin, s.SortOrder, want.FieldKeys[i], i)
 						}
 					}
 				}
 				for _, ty := range types {
-					for _, level := range vocabkey.MetadataLevels() {
-						if listed[ty.Key+"/"+string(level)] {
-							continue
-						}
-						sugs, err := ListSuggestions(c, ty.ID, level)
-						if err != nil || len(sugs) != 0 {
-							t.Fatalf("%s/%s = %+v, %v, want no suggestions", ty.Key, level, sugs, err)
-						}
+					if listed[ty.Key] {
+						continue
+					}
+					sugs, err := ListSuggestions(c, ty.ID)
+					if err != nil || len(sugs) != 0 {
+						t.Fatalf("%s = %+v, %v, want no suggestions", ty.Key, sugs, err)
 					}
 				}
 			},
@@ -221,7 +216,7 @@ func TestInstall(t *testing.T) {
 			run: func(t *testing.T, c *database.Catalog) {
 				saved := seedSuggestions
 				t.Cleanup(func() { seedSuggestions = saved })
-				seedSuggestions = []seedSuggestion{{TypeKey: "no_such_type", Level: vocabkey.LevelSource}}
+				seedSuggestions = []seedSuggestion{{TypeKey: "no_such_type"}}
 				if err := install(c); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("Install = %v, want ErrInvalid", err)
 				}
@@ -272,14 +267,14 @@ func TestInstall(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := DeleteSuggestion(c, census.ID, field.ID, vocabkey.LevelSource); err != nil {
+				if err := DeleteSuggestion(c, census.ID, field.ID); err != nil {
 					t.Fatal(err)
 				}
 				if err := install(c); err != nil {
 					t.Fatal(err)
 				}
-				sugs, err := ListSuggestions(c, census.ID, vocabkey.LevelSource)
-				if err != nil || len(sugs) != 4 {
+				sugs, err := ListSuggestions(c, census.ID)
+				if err != nil || len(sugs) != len(seedSuggestionKeys(t, "census"))-1 {
 					t.Fatalf("after second install %v %d", err, len(sugs))
 				}
 			},
@@ -378,11 +373,11 @@ func TestInstall(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := DeleteSuggestion(c, census.ID, field.ID, vocabkey.LevelSource); err != nil {
+				if err := DeleteSuggestion(c, census.ID, field.ID); err != nil {
 					t.Fatal(err)
 				}
-				sugs, err := ListSuggestions(c, census.ID, vocabkey.LevelSource)
-				if err != nil || len(sugs) != 4 {
+				sugs, err := ListSuggestions(c, census.ID)
+				if err != nil || len(sugs) != len(seedSuggestionKeys(t, "census"))-1 {
 					t.Fatalf("after delete %v %d", err, len(sugs))
 				}
 			},
@@ -473,6 +468,34 @@ func TestInstall(t *testing.T) {
 	}
 }
 
+// suggestionFixture makes a user type "Book" and fields labelled as given.
+func suggestionFixture(t *testing.T, c *database.Catalog, labels ...string) ([]byte, [][]byte) {
+	t.Helper()
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
+		Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fieldIDs [][]byte
+	for _, label := range labels {
+		f, err := runFieldCreate(c, label, metadatafields.DataTypeText, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		fieldIDs = append(fieldIDs, f.ID)
+	}
+	return typeID, fieldIDs
+}
+
+func suggestionLabels(sugs []Suggestion) []string {
+	var out []string
+	for _, s := range sugs {
+		out = append(out, s.Field.Label)
+	}
+	return out
+}
+
 func TestAppendSuggestion(t *testing.T) {
 	tests := []struct {
 		name string
@@ -481,111 +504,53 @@ func TestAppendSuggestion(t *testing.T) {
 		{
 			name: "appends in call order and is idempotent",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
-					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
-				})
-				if err != nil {
-					t.Fatal(err)
-				}
-				var fieldIDs [][]byte
-				for _, label := range []string{"Author", "Publisher"} {
-					f, err := runFieldCreate(c, label, metadatafields.DataTypeText, "")
-					if err != nil {
-						t.Fatal(err)
-					}
-					fieldIDs = append(fieldIDs, f.ID)
-				}
+				typeID, ids := suggestionFixture(t, c, "Author", "Publisher")
 				// Assigned second first, so a plain label sort would disagree
 				// with the stored order the UI has to preserve.
-				for _, id := range [][]byte{fieldIDs[1], fieldIDs[0]} {
-					if err := AppendSuggestion(c, typeID, id, vocabkey.LevelSource); err != nil {
+				for _, id := range [][]byte{ids[1], ids[0]} {
+					if err := AppendSuggestion(c, typeID, id); err != nil {
 						t.Fatal(err)
 					}
 				}
-				// Re-assigning an existing pair must not move it to the end.
-				if err := AppendSuggestion(c, typeID, fieldIDs[1], vocabkey.LevelSource); err != nil {
+				// Re-assigning an existing pair is no error and must not move it.
+				if err := AppendSuggestion(c, typeID, ids[1]); err != nil {
 					t.Fatal(err)
 				}
-				got, err := ListSuggestions(c, typeID, vocabkey.LevelSource)
+				got, err := ListSuggestions(c, typeID)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if len(got) != 2 || got[0].Field.Label != "Publisher" || got[1].Field.Label != "Author" {
+				if !slices.Equal(suggestionLabels(got), []string{"Publisher", "Author"}) || got[0].SortOrder != 0 || got[1].SortOrder != 1 {
 					t.Fatalf("got %+v", got)
-				}
-				// Each level is its own ordered list: Author appended at
-				// artifact starts at 0 and the source list does not move.
-				if err := AppendSuggestion(c, typeID, fieldIDs[0], vocabkey.LevelArtifact); err != nil {
-					t.Fatal(err)
-				}
-				art, err := ListSuggestions(c, typeID, vocabkey.LevelArtifact)
-				if err != nil || len(art) != 1 || art[0].Field.Label != "Author" || art[0].SortOrder != 0 {
-					t.Fatalf("artifact suggestions %+v %v", art, err)
-				}
-				again, err := ListSuggestions(c, typeID, vocabkey.LevelSource)
-				if err != nil || len(again) != 2 || again[0].Field.Label != "Publisher" || again[1].Field.Label != "Author" {
-					t.Fatalf("source suggestions moved: %+v %v", again, err)
-				}
-			},
-		},
-		{
-			name: "removing a suggestion leaves the field in the vocabulary",
-			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
-					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
-				})
-				if err != nil {
-					t.Fatal(err)
-				}
-				f, err := runFieldCreate(c, "Author", metadatafields.DataTypeText, "")
-				if err != nil {
-					t.Fatal(err)
-				}
-				if err := AppendSuggestion(c, typeID, f.ID, vocabkey.LevelSource); err != nil {
-					t.Fatal(err)
-				}
-				if err := AppendSuggestion(c, typeID, f.ID, vocabkey.LevelGraph); err != nil {
-					t.Fatal(err)
-				}
-				if before, err := ListSuggestions(c, typeID, vocabkey.LevelGraph); err != nil || len(before) != 1 {
-					t.Fatalf("graph suggestions before the delete %+v %v", before, err)
-				}
-				if err := DeleteSuggestion(c, typeID, f.ID, vocabkey.LevelGraph); err != nil {
-					t.Fatal(err)
-				}
-				graph, err := ListSuggestions(c, typeID, vocabkey.LevelGraph)
-				if err != nil || len(graph) != 0 {
-					t.Fatalf("graph suggestions %+v %v", graph, err)
-				}
-				got, err := ListSuggestions(c, typeID, vocabkey.LevelSource)
-				if err != nil || len(got) != 1 || got[0].Field.Label != "Author" {
-					t.Fatalf("source suggestions %+v %v", got, err)
-				}
-				if err := DeleteSuggestion(c, typeID, f.ID, vocabkey.LevelSource); err != nil {
-					t.Fatal(err)
-				}
-				got, err = ListSuggestions(c, typeID, vocabkey.LevelSource)
-				if err != nil || len(got) != 0 {
-					t.Fatalf("suggestions %+v %v", got, err)
-				}
-				if _, err := metadatafields.GetByID(c, f.ID); err != nil {
-					t.Fatalf("field should survive: %v", err)
 				}
 			},
 		},
 		{
 			name: "bad ids are rejected",
 			run: func(t *testing.T, c *database.Catalog) {
-				if err := AppendSuggestion(c, []byte{1}, []byte{2}, vocabkey.LevelSource); !errors.Is(err, ErrInvalid) {
+				if err := AppendSuggestion(c, []byte{1}, []byte{2}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("got %v", err)
+				}
+				if _, err := ListSuggestions(c, make([]byte, 15)); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("ListSuggestions = %v", err)
+				}
+				if err := DeleteSuggestion(c, []byte{1}, []byte{2}); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("DeleteSuggestion = %v", err)
 				}
 			},
 		},
 		{
-			name: "ListSuggestionsTx reads what ListSuggestions reads",
+			name: "ListSuggestionsTx reads what ListSuggestions reads, for many types at once",
 			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
-					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
+				typeID, _ := suggestionFixture(t, c)
+				otherID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
+					Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter",
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				emptyID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
+					Key: "diary", Origin: vocabkey.OriginUser, Label: "Diary",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -595,8 +560,13 @@ func TestAppendSuggestion(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if err := AppendSuggestion(c, typeID, f.ID, vocabkey.LevelSource); err != nil {
+					if err := AppendSuggestion(c, typeID, f.ID); err != nil {
 						t.Fatal(err)
+					}
+					if label == "Author" {
+						if err := AppendSuggestion(c, otherID, f.ID); err != nil {
+							t.Fatal(err)
+						}
 					}
 					if label == "Publisher" {
 						unknownText := "n.p."
@@ -608,7 +578,7 @@ func TestAppendSuggestion(t *testing.T) {
 						}
 					}
 				}
-				want, err := ListSuggestions(c, typeID, vocabkey.LevelSource)
+				want, err := ListSuggestions(c, typeID)
 				if err != nil || len(want) != 2 || want[1].Field.UnknownText != "n.p." {
 					t.Fatalf("ListSuggestions = %+v, %v", want, err)
 				}
@@ -621,10 +591,17 @@ func TestAppendSuggestion(t *testing.T) {
 					t.Fatal(err)
 				}
 				defer func() { _ = tx.Rollback() }()
-				got, err := ListSuggestionsTx(tx, typeID, vocabkey.LevelSource)
+				all, err := ListSuggestionsTx(tx, [][]byte{typeID, otherID, emptyID, typeID})
 				if err != nil {
 					t.Fatal(err)
 				}
+				if len(all) != 2 {
+					t.Fatalf("keys %d, want the two types that suggest something", len(all))
+				}
+				if _, ok := all[string(emptyID)]; ok {
+					t.Fatal("a type with no suggestions must be absent")
+				}
+				got := all[string(typeID)]
 				if len(got) != len(want) {
 					t.Fatalf("got %d suggestions, want %d", len(got), len(want))
 				}
@@ -633,53 +610,20 @@ func TestAppendSuggestion(t *testing.T) {
 						t.Fatalf("suggestion %d = %+v, want %+v", i, got[i], want[i])
 					}
 				}
-				if _, err := ListSuggestionsTx(tx, typeID, vocabkey.LevelCitation); !errors.Is(err, ErrInvalid) {
-					t.Fatalf("citation level = %v", err)
+				if l := suggestionLabels(all[string(otherID)]); !slices.Equal(l, []string{"Author"}) {
+					t.Fatalf("other type's list = %v", l)
+				}
+				none, err := ListSuggestionsTx(tx, nil)
+				if err != nil || len(none) != 0 {
+					t.Fatalf("no ids = %v, %v", none, err)
 				}
 			},
 		},
 		{
 			name: "ListSuggestionsTx with a nil tx is invalid",
 			run: func(t *testing.T, c *database.Catalog) {
-				if _, err := ListSuggestionsTx(nil, make([]byte, 16), vocabkey.LevelSource); !errors.Is(err, ErrInvalid) {
+				if _, err := ListSuggestionsTx(nil, [][]byte{make([]byte, 16)}); !errors.Is(err, ErrInvalid) {
 					t.Fatalf("got %v", err)
-				}
-			},
-		},
-		{
-			name: "levels that hold no metadata are rejected",
-			run: func(t *testing.T, c *database.Catalog) {
-				typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{
-					Key: "book", Origin: vocabkey.OriginUser, Label: "Book",
-				})
-				if err != nil {
-					t.Fatal(err)
-				}
-				f, err := runFieldCreate(c, "Author", metadatafields.DataTypeText, "")
-				if err != nil {
-					t.Fatal(err)
-				}
-				for _, l := range []vocabkey.Level{"page", vocabkey.LevelCitation, "", "Source"} {
-					if err := AppendSuggestion(c, typeID, f.ID, l); !errors.Is(err, ErrInvalid) {
-						t.Fatalf("AppendSuggestion(%q) = %v", l, err)
-					}
-					_, err := writes.RunChanges(c, writes.Op{Action: "ensure_suggestion"}, func(tx *database.Tx) ([]rowchange.Change, error) {
-						return nil, ensureSuggestionTx(tx, typeID, f.ID, l, 0)
-					})
-					if !errors.Is(err, ErrInvalid) {
-						t.Fatalf("ensureSuggestionTx(%q) = %v", l, err)
-					}
-					if _, err := ListSuggestions(c, typeID, l); !errors.Is(err, ErrInvalid) {
-						t.Fatalf("ListSuggestions(%q) = %v", l, err)
-					}
-					if err := DeleteSuggestion(c, typeID, f.ID, l); !errors.Is(err, ErrInvalid) {
-						t.Fatalf("DeleteSuggestion(%q) = %v", l, err)
-					}
-				}
-				for _, l := range vocabkey.MetadataLevels() {
-					if got, err := ListSuggestions(c, typeID, l); err != nil || len(got) != 0 {
-						t.Fatalf("a refused write left %s rows: %+v %v", l, got, err)
-					}
 				}
 			},
 		},
@@ -693,6 +637,33 @@ func TestAppendSuggestion(t *testing.T) {
 			defer c.Close()
 			tt.run(t, c)
 		})
+	}
+}
+
+func TestDeleteSuggestion(t *testing.T) {
+	c, err := database.Create(t.TempDir(), "t.provenencia")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	typeID, ids := suggestionFixture(t, c, "Author", "Publisher")
+	for _, id := range ids {
+		if err := AppendSuggestion(c, typeID, id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Twice: the second delete finds nothing and is no error.
+	for range 2 {
+		if err := DeleteSuggestion(c, typeID, ids[1]); err != nil {
+			t.Fatal(err)
+		}
+		got, err := ListSuggestions(c, typeID)
+		if err != nil || !slices.Equal(suggestionLabels(got), []string{"Author"}) {
+			t.Fatalf("suggestions %+v %v", got, err)
+		}
+	}
+	if _, err := metadatafields.GetByID(c, ids[1]); err != nil {
+		t.Fatalf("field should survive: %v", err)
 	}
 }
 
@@ -710,4 +681,16 @@ func runFieldCreate(c *database.Catalog, label, dataType, description string) (m
 			return metadatafields.Create(tx, label, dataType, description)
 		})
 	return got, err
+}
+
+// seedSuggestionKeys is the seed's list of one type.
+func seedSuggestionKeys(t *testing.T, typeKey string) []string {
+	t.Helper()
+	for _, s := range seedSuggestions {
+		if s.TypeKey == typeKey {
+			return s.FieldKeys
+		}
+	}
+	t.Fatalf("no seed suggestions for %s", typeKey)
+	return nil
 }
