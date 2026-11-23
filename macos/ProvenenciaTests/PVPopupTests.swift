@@ -192,7 +192,8 @@ struct PVPopupInputTests {
         #expect(PVPopupInput.keyEquivalent(keyCode: 8, characters: "c", modifiers: .command) == nil)
         #expect(PVPopupInput.keyEquivalent(keyCode: 8, characters: "c", modifiers: .control) == nil)
         #expect(PVPopupInput.keyEquivalent(keyCode: 27, characters: "-", modifiers: none) == nil)
-        #expect(PVPopupInput.keyEquivalent(keyCode: 121, characters: nil, modifiers: none) == nil)
+        #expect(PVPopupInput.keyEquivalent(keyCode: 116, characters: nil, modifiers: none) == .pageUp)
+        #expect(PVPopupInput.keyEquivalent(keyCode: 121, characters: nil, modifiers: none) == .pageDown)
 
         let escape = NSEvent.keyEvent(
             with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0,

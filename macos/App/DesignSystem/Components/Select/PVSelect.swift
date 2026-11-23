@@ -314,6 +314,10 @@ struct PVSelect<Row: View>: View {
             return focus?.claimTab(shift: true) ?? .ignored
         case .home: key = .home
         case .end: key = .end
+        case .pageUp, .pageDown:
+            // Closed, the page keys belong to the page.
+            guard session.isOpen else { return .ignored }
+            key = press.key == .pageUp ? .pageUp : .pageDown
         case .escape: key = .escape
         case .space: key = .space
         case .return: key = .return

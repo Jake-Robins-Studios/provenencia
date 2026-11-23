@@ -67,6 +67,8 @@ enum PVPopupInput: Equatable {
         case 125: return .downArrow
         case 115: return .home
         case 119: return .end
+        case 116: return .pageUp
+        case 121: return .pageDown
         case 36, 76: return .return
         default:
             return PVTypeSelectMatcher.typeSelectCharacter(

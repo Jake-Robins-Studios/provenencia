@@ -65,6 +65,15 @@ struct PVContextMenuKeyboardTests {
         #expect(nav.activeIndex == 2)
     }
 
+    @Test func pageKeysMoveTheHighlightAndAreConsumed() {
+        var nav = PVContextMenuKeyboard.opened(titles: (0..<30).map { "Row \($0)" })
+        nav.activeIndex = 3
+        #expect(nav.handle(.pageDown) == .move(to: 13))
+        #expect(nav.activeIndex == 13)
+        #expect(nav.handle(.pageUp) == .move(to: 3))
+        #expect(nav.activeIndex == 3)
+    }
+
     @Test func typeSelectAccumulatesAPrefix() {
         var nav = PVContextMenuKeyboard(
             itemCount: 3,

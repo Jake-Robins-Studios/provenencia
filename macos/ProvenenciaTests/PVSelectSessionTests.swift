@@ -202,6 +202,23 @@ struct PVSelectSessionTests {
         #expect(nav.selection == "given")
     }
 
+    @Test func openPageKeysMoveHighlightByAPageAndClamp() {
+        var nav = session()
+        nav.handleKey(.space)
+        nav.handleKey(.pageDown)
+        #expect(nav.highlightIndex == 3)
+        nav.handleKey(.pageUp)
+        #expect(nav.highlightIndex == 0)
+        #expect(nav.selection == "given")
+    }
+
+    @Test func closedPageKeysDoNothing() {
+        var nav = session()
+        nav.handleKey(.pageDown)
+        #expect(!nav.isOpen)
+        #expect(nav.selection == "given")
+    }
+
     @Test func openHomeAndEndJumpHighlightOnly() {
         var nav = session()
         nav.handleKey(.space)

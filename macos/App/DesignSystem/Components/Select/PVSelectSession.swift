@@ -102,6 +102,8 @@ struct PVSelectSession: Equatable {
             jumpCommitted(toFirst: true)
         case .end:
             jumpCommitted(toFirst: false)
+        case .pageUp, .pageDown:
+            break
         case .space, .return:
             open()
         case .escape:
@@ -144,6 +146,10 @@ struct PVSelectSession: Equatable {
             jumpHighlight(toFirst: true)
         case .end:
             jumpHighlight(toFirst: false)
+        case .pageUp:
+            moveHighlight(delta: -PVListKeyboard.pageStep)
+        case .pageDown:
+            moveHighlight(delta: PVListKeyboard.pageStep)
         case .space, .return:
             commitHighlight()
         case .escape:
@@ -224,6 +230,8 @@ enum PVSelectKey: Equatable {
     case down
     case home
     case end
+    case pageUp
+    case pageDown
     case space
     case `return`
     case escape

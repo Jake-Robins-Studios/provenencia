@@ -58,7 +58,7 @@ struct PVContextMenuKeyboard: Equatable {
     mutating func handle(_ key: KeyEquivalent, now: Date = Date()) -> PVListKeyAction {
         guard itemCount > 0 else { return .ignore }
         switch key {
-        case .upArrow, .downArrow, .home, .end:
+        case .upArrow, .downArrow, .home, .end, .pageUp, .pageDown:
             guard let next = PVListKeyboard.moveIndex(
                 for: key, option: false, index: activeIndex, count: itemCount,
                 isDisabled: { disabledRows.contains($0) }
