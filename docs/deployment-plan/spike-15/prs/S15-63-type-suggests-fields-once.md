@@ -45,7 +45,7 @@ A Source type suggests each field once. Every board of a Source of that type (th
 | AC-1.1 | A new project; a census Source with one Artifact and one graph; read the three boards | Each board's suggested entries are the census list's 21 fields in the same order (`creator` first, `item_number` last); Jurisdiction, Provider and Dwelling are on all three |
 | AC-1.2 | On the census Artifact's board, dismiss `jurisdiction` (not needed at the Artifact level) | The Artifact's board no longer shows it; the Source's and the graph's boards still do |
 | AC-1.4 | A census Source; click Add Artifact, then Add graph | Each form starts with the census list's 21 empty rows, the rows the engine's draft board returns; the read is `GetDraftMetadataBoard` with level `artifact`, then `graph` |
-| AC-1.3 | A project made before this PR whose type suggests `page` on the Source (order 0) and on each Artifact (order 3), and `provider` on each Artifact (order 0); open it | The type suggests `page` (order 0) then `provider` (order 1), each once |
+| AC-1.3 | A project made before this PR; open it with this build | It opens (schema hash matches); every type suggests nothing until the one-time script restores the lists (D-1, D-14) |
 
 **US-2.** As a researcher, on a Source type's page I edit one Suggested fields list.
 
@@ -68,7 +68,7 @@ A Source type suggests each field once. Every board of a Source of that type (th
 
 | In | Covered by |
 | --- | --- |
-| Migration: `source_type_metadata_fields` without `level`, rows merged (D-1) | STEP-1, AC-1.3 |
+| Migration: `source_type_metadata_fields` without `level`, schema only (D-1) | STEP-1, AC-1.3 |
 | `sourcevocab` suggestion functions and `CopyType` without a level (D-2, D-3, D-16) | STEP-2, AC-2.3, AC-3.1, AC-3.2 |
 | The seed: one list per type, derived in first-read order (D-6) | STEP-2, AC-1.1 |
 | Boards read the type's one list at every level (D-5) | STEP-3, AC-1.1, AC-1.2 |
@@ -89,7 +89,8 @@ A Source type suggests each field once. Every board of a Source of that type (th
 | Reordering a type's suggestions | not planned (user, 2026-11-14, 2026-11-23) |
 | A dismissal shared across an owner's levels | not planned (scope entry: each owner's layout keeps its own) |
 | Changing the board heading "Suggested by this type" or its dismiss label | not planned (user, 2026-11-23) |
-| Re-running `Install` on dogfood projects | not planned (the migration carries them) |
+| Carrying an existing project's suggestions over (the product owner's one dogfood project) | A one-time command-line script the product owner has built after this PR lands, outside the app and the map (user, 2026-11-23). It reads a copy of the project taken before the upgrade, because the migration drops the rows |
+| Re-running `Install` on dogfood projects | not planned |
 
 ## 4. Current state
 
@@ -125,7 +126,7 @@ A Source type suggests each field once. Every board of a Source of that type (th
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | Migration `000069.sql` *(new)* rebuilds `source_type_metadata_fields` as `(source_type_id, field_id, sort_order)`, PK `(source_type_id, field_id)`, same FKs, and recreates `source_type_metadata_fields_field_id_idx`. Each (type, field) keeps its first row in the order Source, Artifact, graph, then that level's `sort_order` (NULL as 0), then `field_id`; the kept rows are renumbered from 0 per type in that order | Working rule "A type suggests fields, not levels" names the merge; contiguous orders keep "append last" simple | Dropping the rows (a dogfood project would lose its lists); keeping old sort orders (collisions across levels) |
+| D-1 | Migration `000069.sql` *(new)* changes the schema only: it creates `source_type_metadata_fields` as `(source_type_id, field_id, sort_order)`, PK `(source_type_id, field_id)`, the same two CASCADE FKs, drops the old table, renames, and recreates `source_type_metadata_fields_field_id_idx`. It copies no rows: a project made before this PR opens with no type suggestions | User, 2026-11-23: the migration changes the schema and nothing else; the one dogfood project is handled by a one-time script. Copying rows would need a rule for a field at two levels, which collides on the new key: that is the merge the user wants kept out | Merging the rows in SQL (the earlier draft); `INSERT OR IGNORE` copying (a merge rule by accident) |
 | D-2 | `sourcevocab`: `ensureSuggestionTx(tx, typeID, fieldID, sortOrder)`, `AppendSuggestion(c, typeID, fieldID)`, `DeleteSuggestion(c, typeID, fieldID)`; the SQL drops `level`. One reader: `ListSuggestionsTx(tx, typeIDs [][]byte) (map[string][]Suggestion, error)`, batched with `sqlbatch.Query` (as `sourcetypes.StoredFormatsTx`), one SQL text ordered by `j.sort_order`, then `f.label COLLATE NOCASE`, then `f.key`, keyed by `string(typeID)`; a type with none is absent; no ids runs no query. `ListSuggestions(c, typeID) ([]Suggestion, error)` checks the 16-byte id and returns `ListSuggestionsTx(tx, [][]byte{typeID})[string(typeID)]` in a read transaction. `sqlListSuggestions` (`= ?`) and `listSuggestions` are deleted; the comment on `ListSuggestionsTx` is rewritten. `Suggestion` is unchanged. The `HoldsMetadata` guards go (D-18) | The level is gone; one reader, so the handler's reply and every board read the same list (review M-9, M2-1) | Two readers (a single-type query beside the batch) |
 | D-3 | `CopyTypeInput.Levels` becomes `Suggestions bool`; true copies every row of the original with its `sort_order` | One tick | A level list of one element |
 | D-4 | `engine.proto`: delete `level` from `ListTypeSuggestionsRequest` (reserve 3 and `"level"`), `AssignTypeFieldRequest` and `RemoveTypeFieldRequest` (reserve 5 and `"level"`); in `CopySourceTypeRequest` delete `levels` (reserve 8 and `"levels"`) and add `bool copy_suggestions = 9`. Rewrite every comment in § 4's Proto row to say one list per type, each field once. `GetDraftMetadataBoardRequest.level` stays (needs are per level; S15-55 uses it) | Repo convention for removed fields (`reserved 2; reserved "user_id"`) | Keeping `level` and ignoring it — a field that lies |
@@ -138,8 +139,8 @@ A Source type suggests each field once. Every board of a Source of that type (th
 | D-11 | The board's empty-group heading "Suggested by this type" and "Dismiss the suggestion for %@" stay | User, 2026-11-23: a type's formats are part of the type | Renaming the heading — a second view's chrome |
 | D-12 | No reorder | User, 2026-11-14, 2026-11-23 | — |
 | D-13 | `sqlSuggestedFields` keeps its SQL; with one row per field it counts each field once. Its comment, `Type.SuggestedFields`' and `SuggestedFields`' say so | — | — |
-| D-14 | Dogfood projects are carried by the migration; `Install` is not re-run | No users; rule in [`add-catalog-migration`](../../../../.agents/skills/add-catalog-migration/SKILL.md) "do not backfill seeds" | — |
-| D-15 | Test layers: the merge is not tested directly ([`add-catalog-migration`](../../../../.agents/skills/add-catalog-migration/SKILL.md)); AC-1.3 is the manual check. Boards and API in Go table tests; the page and sheet in Swift model tests against FakeStore | Skills | A migration test — the skill forbids it |
+| D-14 | No migration, `Install` re-run or app code carries existing suggestions. The product owner's one-time script (Out) does it from a pre-upgrade copy of the project | User, 2026-11-23; no users yet | — |
+| D-15 | Test layers: the migration is not tested directly ([`add-catalog-migration`](../../../../.agents/skills/add-catalog-migration/SKILL.md)); AC-1.3 is the manual check. Boards and API in Go table tests; the page and sheet in Swift model tests against FakeStore | Skills | A migration test — the skill forbids it |
 | D-17 | The Add forms read the engine's draft board. `GenealogyStore.getDraftMetadataBoard(projectDir:sourceID:level:) -> [CatalogMetadataEntry]` *(new)* calls `GetDraftMetadataBoard` (`CoreMethod.getDraftMetadataBoard` *(new)* in `macos/App/Platform/CoreInvoke.swift`; each entry through `GoStore.mapMetadataEntry`). `SourcePageContext.readSuggestionsForAdd(level:)` is renamed `readDraftBoardForAdd(level:)` and returns those entries; its guards (`isOpeningForm`, `hasOpenOwnerForm()` before and after the read, nil on failure with the page banner) stay unchanged. `ArtifactSheetModel.Mode.create(suggestions:)` and `SourceGraphFormModel.Mode.create(suggestions:)` become `.create(entries:)`, and the doc comments in `SourceArtifactsSection.openAdd` and `SourceGraphsSection.openAdd` say "the draft board". `unsavedMetadataRows(level:)` and `MetadataDraftHost.unsavedRows(from:)` are deleted, with `unsavedRowsAreTheTypesSuggestions`; `MetadataDraftHostTests` line 49 builds its entries as literals. FakeStore: `draftMetadataBoardEntries: [String: [CatalogMetadataEntry]]` keyed `"<sourceID>/<level rawValue>"` (absent: empty), `draftMetadataBoardError: Error?`, `draftMetadataBoardCalls: [(sourceID: String, level: Level)]`, and `let draftMetadataBoardHold = FakeHold()` awaited first in `getDraftMetadataBoard`; `listTypeSuggestionsHold` is deleted (only Add-form tests use it). Tests: T-10 | User, 2026-11-23 (review M-1): one owner for a new owner's starting board; rule "a draft board with no owner reads `GetDraftMetadataBoard`"; `get*` names as the other `Get*` reads | Leaving the Swift copy to S15-55, whose scope is Go only |
 | D-18 | `vocabkey.Level.HoldsMetadata` and its cases in `core/vocabkey/vocabkey_test.go`, and Swift `Level.holdsMetadata`, are deleted (no caller remains). Go `MetadataLevels()` stays (owners: `sourcemetadata.eachLevel`, `catalogmodel`). Swift `Level.metadataLevels` stays under working rule "One level type" (Swift mirrors the type with a `metadataLevels` subset, each with a row in `api/ffi/swift_vocabulary_test.go`), though no app code reads it after this PR. The comments above `type Level` in `vocabkey.go` and in `Level.swift` drop "and type suggestions" | Review M-3 | — |
 | D-19 | The Copy sheet's Suggested fields count is `original.suggestedFieldCount` (the engine's count, D-13, already on the type row). `SourceTypeCopyModel` reads no suggestion key: its `init` warms none, `loadState` is `formatsState`, `reload()` rereads only the formats. Names: `choices.includeSuggestions` (default true), `suggestionCount`, `suggestionsAvailable` (count > 0), `suggestionsHint` (`assignedCount(count:)`) | One source for the count, the one the types list shows (review M-2); names follow `includeFormats`, `formatsAvailable`, `formatsHint` | Warming the list only to count it |
@@ -175,48 +176,35 @@ A Source type suggests each field once. Every board of a Source of that type (th
 
 ### Scale
 
-At the map's Scale: a census Source with 60 Artifacts and 60 graphs. `listWorkspaces` reads 121 boards; suggestions are read once per distinct type (one query instead of three). Each board carries up to 21 suggested entries instead of 5 – 10, so a Source workspace reply carries about 2,500 entries; the Artifact list and graph rows draw values only. A board lists at most 30 suggested fields (map Scale); the largest seeded list is 21. The migration rewrites at most 26 × 21 rows on a seeded project. No write fans out: a suggestion add or remove patches one key.
+At the map's Scale: a census Source with 60 Artifacts and 60 graphs. `listWorkspaces` reads 121 boards; suggestions are read once per distinct type (one query instead of three). Each board carries up to 21 suggested entries instead of 5 – 10, so a Source workspace reply carries about 2,500 entries; the Artifact list and graph rows draw values only. A board lists at most 30 suggested fields (map Scale); the largest seeded list is 21. The migration copies no rows. No write fans out: a suggestion add or remove patches one key.
 
 ### Edges
 
 - **Assumptions.** `buildEntries` assumes each suggestion's field appears once (it fills `seen`); one row per (type, field) now guarantees it, where three levels could not repeat a field within one level either. `listWorkspaces` assumes every owner's type has a `typeBoard`; D-5 keeps the key set. The Add forms' draft board comes from `ListDraftWorkspace` through the same `buildEntries` (`seen`), one entry per field. Test: T-4.
 - **Neighbors.** A field suggested and also a needed head at this level: one entry, `Suggested` true (today's rule; T-4 holds it). A field suggested and dismissed on one owner: hidden only there (AC-1.2, T-4). A list-form-only head on an Artifact board: still not emitted unless suggested (T-4 keeps S15-62's case).
-- **Removed inputs.** A field deleted from the vocabulary: its suggestion row cascades as today. Removing a suggestion leaves values (AC-2.4, T-2). The merge drops a field's later-level rows; nothing reads them.
+- **Removed inputs.** A field deleted from the vocabulary: its suggestion row cascades as today. Removing a suggestion leaves values (AC-2.4, T-2). The migration drops every existing suggestion row (D-1); the one-time script restores the product owner's project.
 - **Real data.** The derived lists over the whole shipped seed (26 types, run at planning base): census 21, the three certificates 17 each, church_register 17, manuscript 17, record_book 16, case_file 15, government_file 14, book 13, passenger_list 12, cemetery_marker 7, newspaper_item 7, website 7, family_bible 5, dna_match_report 5, interview 5, oral_testimony 5, journal_article 5, broadcast 5, statute 5, photograph 4, gedcom_file 4, correspondence 4, private_papers 3, court_report 3. Census in order: `creator jurisdiction schedule enumeration_district piece folio schedule_number dwelling_number family_number line_number item format provider url accessed_date citing database_title film_publication roll film_number item_number`. Worth a second look: `website` interleaves `format` between `creator` and `site_name` (its format reads them so); accept as derived.
 - **Untrusted size.** None — the list is the app's own table, bounded by the vocabulary.
 
 ### Schema
 
-Migration `core/database/migrations/000069.sql` *(new)*, with `-- migrate: foreign_keys off`:
+Migration `core/database/migrations/000069.sql` *(new)*, schema only:
 
 ```sql
+-- migrate: foreign_keys off
 CREATE TABLE source_type_metadata_fields__new (
 	source_type_id BLOB NOT NULL REFERENCES source_types(id) ON DELETE CASCADE,
 	field_id       BLOB NOT NULL REFERENCES source_metadata_fields(id) ON DELETE CASCADE,
 	sort_order     INTEGER,
 	PRIMARY KEY (source_type_id, field_id)
 ) STRICT;
-INSERT INTO source_type_metadata_fields__new (source_type_id, field_id, sort_order)
-SELECT source_type_id, field_id,
-	ROW_NUMBER() OVER (PARTITION BY source_type_id ORDER BY lr, so, field_id) - 1
-FROM (
-	SELECT source_type_id, field_id, lr, so,
-		ROW_NUMBER() OVER (PARTITION BY source_type_id, field_id ORDER BY lr, so) AS nth
-	FROM (
-		SELECT source_type_id, field_id,
-			CASE level WHEN 'source' THEN 0 WHEN 'artifact' THEN 1 ELSE 2 END AS lr,
-			COALESCE(sort_order, 0) AS so
-		FROM source_type_metadata_fields
-	)
-)
-WHERE nth = 1;
 
 DROP TABLE source_type_metadata_fields;
 ALTER TABLE source_type_metadata_fields__new RENAME TO source_type_metadata_fields;
 CREATE INDEX source_type_metadata_fields_field_id_idx ON source_type_metadata_fields(field_id);
 ```
 
-This SQL was run at planning on a sample (`page` at Source 0 and Artifact 3, `provider` at Artifact 0, `x` at graph NULL) and gave `page` 0, `provider` 1, `x` 2. Use it as written, with a header comment in the style of `000064.sql`. `catalogmodel` needs no change (same FKs, same bucket). Delete class: facet, unchanged. Audit: none, unchanged.
+Use it as written, with a header comment saying the rows are not carried over (D-1). No `INSERT`. `catalogmodel` needs no change (same FKs, same bucket). Delete class: facet, unchanged. Audit: none, unchanged.
 
 ### Go core
 
@@ -343,17 +331,19 @@ Sweep names (also across `macos/` and `core/`): `typeSuggestionsKeys`, `suggesti
 1. Make a new project. Add a census Source. Click Add Artifact: the sheet starts with 21 empty rows (AC-1.4); save it. Add a graph the same way. Open the Artifact sheet, the graph form and the Source's Metadata section: each offers the same 21 empty fields in the same order, Jurisdiction, Provider and Dwelling among them (AC-1.1). Dismiss Jurisdiction on the Artifact; the Source and the graph still show it (AC-1.2). The empty group's heading reads "Suggested by this type" (D-11).
 2. Open Source types › Census: one list, "21 fields"; the types list reads 21 (AC-2.1). Add Column with Return: 22nd, toast names Census Sources (AC-2.2). Remove URL (AC-2.4). Resize across 1600pt with a pick in progress: it survives (OL-W1). Open a plugin type: read only (OL-6).
 3. Copy Census: four ticks, Suggested fields "22 fields"; the copy's page shows the same list (AC-3.1). Copy again with the tick off: empty list (AC-3.2). Copy Letter (no suggestions): the tick disabled (AC-3.3).
-4. Open the dogfood project, made before this PR: a type that suggested a field at two levels lists it once, at its Source-level place (AC-1.3).
+4. Copy a project made before this PR and open the copy: it opens, and its types suggest nothing (AC-1.3). Do not open the product owner's dogfood project with this build before taking a copy.
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
 | A board in a dogfood project grows long | The rule is the user's; S15-64 and later dismissals handle it |
-| The window function in the migration is not available | SQLite 3.25+ has `ROW_NUMBER`; the bundled `go-sqlite3` v1.14.50 ships 3.4x |
+| The dogfood project is opened with this build before a copy is taken, so its suggestions are lost | The PR description and the manual check say to copy it first; the one-time script reads the copy |
 | Another spike's PR (S16-58, S16-59) edits `SourceTypePageModel.swift` | Whichever lands second rebases (map) |
 
 **Stop and report if:**
+
+- The rebuild cannot be written without copying rows (D-1).
 
 - `readTypeBoards`, `listWorkspaces` or `sourcevocab`'s suggestion functions no longer match § 4 at your base.
 - The migration fails `PRAGMA foreign_key_check` or the schema hash check after a correct rebuild.

@@ -100,7 +100,7 @@ A Source type suggests the fields its records usually carry. Since S15-12 the ty
 | Order | One order, the order the rows show on every board. A new suggestion goes last. No reorder |
 | Sizes | A seeded list holds 3 to 21 fields (Census 21); the vocabulary has about 70. A list of 30 must still read |
 | Writes | Adding and removing save at once, one field at a time, as today; never part of the Details draft |
-| Existing projects | A type's three lists merge into one, in the order Source, then Artifact, then graph, a field's first place winning. No frame draws the merge |
+| Existing projects | The upgrade carries no suggestions over; the one existing project is restored by hand. No frame draws it |
 
 ### 2.1 Copy
 

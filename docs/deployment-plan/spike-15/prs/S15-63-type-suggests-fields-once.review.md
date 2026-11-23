@@ -6,12 +6,12 @@
 ## To user
 
 - **M-1** (answered 2026-11-23): the Add forms switch to `GetDraftMetadataBoard` **in S15-63** (user's choice, the writer's recommendation). Plan D-17, STEP-6, T-10.
+- After the review (answered 2026-11-23): the migration changes the schema only and carries no rows; the product owner's one dogfood project is restored by a one-time command-line script built after the PR lands (D-1, D-14, Out). The earlier merge SQL is gone.
 - While planning (answered 2026-11-23): the board heading "Suggested by this type" and its dismiss label stay (D-11); no reorder (D-12).
 
 ## Writer's own calls
 
-- D-1: the merge renumbers each type's kept rows from 0, tie-broken by `field_id`; NULL `sort_order` counts as 0.
-- D-6: the seed takes the formats' first-read order. The migration's merge order (Source, Artifact, graph) applies only to projects made before this PR, so a dogfood project and a new one may order the same type's list differently.
+- D-6: the seed takes the formats' first-read order.
 - D-4: the proto removes the level fields (reserved) instead of ignoring them; `GetDraftMetadataBoardRequest.level` stays.
 - D-10: new key names `sourceTypes.suggested.meaning`, `.empty`, `.pickerLabel`, `sourceTypes.copy.suggestions`; sentences rewritten whole under their existing keys.
 - Version: minor, 0.35.0.
