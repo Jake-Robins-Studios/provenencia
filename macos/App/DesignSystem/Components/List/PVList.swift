@@ -81,13 +81,15 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
                     accessibilityLabel: itemAccessibilityLabel,
                     accessibilityIdentifier: itemAccessibilityIdentifier
                 )
-                    .listRowInsets(EdgeInsets(
-                        top: density.vertical, leading: rowInset,
-                        bottom: density.vertical, trailing: rowInset
-                    ))
-                    .listRowSeparator(.visible)
-                    .listRowSeparatorTint(PVColor.borderSubtle)
             }
+            // On the `ForEach`, not in its closure: a selection move re-runs the closure for every
+            // row, so a modifier inside it runs for rows far off screen.
+            .listRowInsets(EdgeInsets(
+                top: density.vertical, leading: rowInset,
+                bottom: density.vertical, trailing: rowInset
+            ))
+            .listRowSeparator(.visible)
+            .listRowSeparatorTint(PVColor.borderSubtle)
             .transaction { $0.animation = nil }
         }
         .listStyle(.plain)
@@ -127,7 +129,9 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
 }
 
 /// One row of a `PVList`. A view of its own, so the list's `ForEach` builds only this value and
-/// SwiftUI builds a row's content for the rows on screen.
+/// SwiftUI builds a row's content for the rows on screen. The row modifiers (insets, separator and
+/// its tint) are on the `ForEach`, not here and not in its closure, so a selection move runs none
+/// of them for rows off screen.
 private struct PVListRow<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
     let item: Item
     let thumbnail: (Item) -> Thumbnail
