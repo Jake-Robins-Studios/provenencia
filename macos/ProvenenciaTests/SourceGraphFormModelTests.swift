@@ -340,14 +340,14 @@ struct SourceGraphFormModelTests {
 
     private var graphOwner: MetadataOwner { MetadataOwner(level: .graph, id: "g-smith") }
 
-    /// A page whose type suggests Item, Line, Dwelling and Family at the `graph` level.
+    /// A page whose draft board for a new graph is Item, Line, Dwelling and Family, empty and suggested.
     private func makeSuggestingModel(
         graphs: [CatalogEvidenceGraph] = []
     ) async -> (model: SourcePageModel, store: FakeStore, session: WorkspaceSession) {
         let store = makeStore(artifactCount: 6, graphs: graphs)
         store.fieldsByProject[projectDir] = [itemField, lineField, dwellingField, familyField, folioField]
-        store.suggestionsByLevel[.graph, default: [:]]["t1"] = [itemField, lineField, dwellingField, familyField]
-            .enumerated().map { CatalogTypeSuggestion(field: $1, sortOrder: $0) }
+        store.draftMetadataBoardEntries["\(sourceID)/graph"] = [itemField, lineField, dwellingField, familyField]
+            .enumerated().map { catalogMetadataEntry($1, suggested: true, order: Int32($0)) }
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let model = SourcePageModel(
             sourceID: sourceID, session: session, userID: userID,
@@ -369,13 +369,14 @@ struct SourceGraphFormModelTests {
         ]
     }
 
-    @Test func openAddReadsSuggestions() async throws {
+    @Test func openAddReadsTheDraftBoard() async throws {
         let (model, store, _) = await makeSuggestingModel()
         let form = try #require(await model.graphs.openAdd())
         #expect(model.graphs.form === form)
         #expect(form.board.entries.map(\.field.id) == ["item", "line", "dwelling", "family"])
         #expect(form.board.entries.allSatisfy { $0.suggested && !$0.hasValue })
-        #expect(store.listTypeSuggestionsLevels == [.graph])
+        #expect(store.draftMetadataBoardCalls.map(\.level) == [.graph])
+        #expect(store.draftMetadataBoardCalls.map(\.sourceID) == [sourceID])
         #expect(form.scrollTarget == nil)
         #expect(!form.isDirty)
     }
@@ -383,7 +384,7 @@ struct SourceGraphFormModelTests {
     @Test func openAddFailureShowsBanner() async {
         let (model, store, _) = await makeSuggestingModel()
         let error = CoreInvokeError.failed(status: 3)
-        store.listTypeSuggestionsError = error
+        store.draftMetadataBoardError = error
         let opened = await model.graphs.openAdd()
         #expect(opened == nil)
         #expect(model.graphs.form == nil)
@@ -392,25 +393,25 @@ struct SourceGraphFormModelTests {
 
     @Test func secondAddWhileReadingOpensNothing() async throws {
         let (model, store, _) = await makeSuggestingModel()
-        store.listTypeSuggestionsHold.isOn = true
+        store.draftMetadataBoardHold.isOn = true
         let first = Task { await model.graphs.openAdd() }
-        await store.listTypeSuggestionsHold.untilSuspended(1)
+        await store.draftMetadataBoardHold.untilSuspended(1)
         let second = Task { await model.graphs.openAdd() }
-        #expect(!(await waitUntil(timeout: .milliseconds(300)) { store.listTypeSuggestionsHold.count == 2 }))
-        store.listTypeSuggestionsHold.release()
-        store.listTypeSuggestionsHold.release()
+        #expect(!(await waitUntil(timeout: .milliseconds(300)) { store.draftMetadataBoardHold.count == 2 }))
+        store.draftMetadataBoardHold.release()
+        store.draftMetadataBoardHold.release()
         #expect(await second.value == nil)
         #expect(await first.value != nil)
-        #expect(store.listTypeSuggestionsLevels == [.graph])
+        #expect(store.draftMetadataBoardCalls.map(\.level) == [.graph])
     }
 
     @Test func dropDuringGraphAddReadIsRefused() async throws {
         let (model, store, _) = await makeSuggestingModel()
-        store.listTypeSuggestionsHold.isOn = true
+        store.draftMetadataBoardHold.isOn = true
         let first = Task { await model.graphs.openAdd() }
-        await store.listTypeSuggestionsHold.untilSuspended(1)
+        await store.draftMetadataBoardHold.untilSuspended(1)
         #expect(!model.acceptsArtifactPageDrop)
-        store.listTypeSuggestionsHold.release()
+        store.draftMetadataBoardHold.release()
         #expect(await first.value != nil)
     }
 
@@ -421,17 +422,6 @@ struct SourceGraphFormModelTests {
         model.graphs.openEdit(id: "g-smith")
         #expect(model.graphs.form != nil)
         #expect(!model.acceptsArtifactPageDrop)
-    }
-
-    @Test func typelessSourceOpensWithNoSuggestions() async throws {
-        let (model, store, _) = await makeSuggestingModel()
-        store.sourcesByProject[projectDir] = [
-            CatalogSource(id: sourceID, ref: "SRC-AAAAA", sourceTypeID: "", title: "1851 census", description: ""),
-        ]
-        await model.warmFromSession()
-        let form = try #require(await model.graphs.openAdd())
-        #expect(form.board.entries.isEmpty)
-        #expect(store.listTypeSuggestionsLevels.isEmpty)
     }
 
     @Test func createSendsTheDraft() async throws {

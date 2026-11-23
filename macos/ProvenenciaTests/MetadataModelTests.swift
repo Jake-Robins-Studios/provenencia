@@ -221,9 +221,9 @@ struct MetadataModelTests {
     @Test func renamingAFieldReloadsItsDependents() async throws {
         let store = FakeStore()
         let (model, session) = makeModel(store: store, fields: [userField()])
-        store.suggestionsByLevel[.source] = ["t1": [CatalogTypeSuggestion(field: userField(), sortOrder: 0)]]
+        store.suggestionsByType = ["t1": [CatalogTypeSuggestion(field: userField(), sortOrder: 0)]]
         let project = session.projectKey
-        let suggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1", level: .source)
+        let suggestionsKey = CatalogQueryKey.typeSuggestions(project: project, typeId: "t1")
         let suggestions: QueryHandle<[CatalogTypeSuggestion]> = session.query(suggestionsKey)
         await waitForQuery(suggestions)
         let workspaceKey = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1")
@@ -234,7 +234,7 @@ struct MetadataModelTests {
         await warm(model, session: session)
 
         // The engine restates every suggestion that embeds the field.
-        store.suggestionsByLevel[.source] = ["t1": [
+        store.suggestionsByType = ["t1": [
             CatalogTypeSuggestion(field: userField(label: "Book"), sortOrder: 0),
         ]]
         store.nextWriteEffects = CatalogWriteEffects(lists: [.sourceVocabulary])

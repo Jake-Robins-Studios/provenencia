@@ -296,7 +296,7 @@ func TestSourceMetadata(t *testing.T) {
 			},
 		},
 		{
-			name: "list workspace suggests the source level only",
+			name: "list workspace suggests the type's one list",
 			run: func(t *testing.T, c *database.Catalog) {
 				src := birthOfAlice(t, c, userID)
 				fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
@@ -305,7 +305,7 @@ func TestSourceMetadata(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := sourcevocab.AppendSuggestion(c, src.SourceTypeID, fieldID, vocabkey.LevelGraph); err != nil {
+				if err := sourcevocab.AppendSuggestion(c, src.SourceTypeID, fieldID); err != nil {
 					t.Fatal(err)
 				}
 				ws, err := ListWorkspace(c, sourceOwner(src.ID))
@@ -313,16 +313,21 @@ func TestSourceMetadata(t *testing.T) {
 					t.Fatal(err)
 				}
 				suggested := 0
+				sawShelf := false
 				for _, e := range ws {
 					if e.Field.Key == "shelf_mark" {
-						t.Fatalf("graph-level suggestion listed on the Source page: %+v", e)
+						sawShelf = e.Suggested
 					}
 					if e.Suggested {
 						suggested++
 					}
 				}
-				if suggested != 3 {
-					t.Fatalf("suggested = %d, want the 3 seeded source fields", suggested)
+				want, err := sourcevocab.ListSuggestions(c, src.SourceTypeID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !sawShelf || suggested != len(want) {
+					t.Fatalf("shelf_mark suggested = %v, suggested = %d, want the type's %d", sawShelf, suggested, len(want))
 				}
 			},
 		},
@@ -641,7 +646,7 @@ func TestSourceMetadata(t *testing.T) {
 				if !slices.Equal(extras, []string{"a", "b", "c"}) {
 					t.Fatalf("extras %v", extras)
 				}
-				list, err := sourcevocab.ListSuggestions(c, src.SourceTypeID, vocabkey.LevelSource)
+				list, err := sourcevocab.ListSuggestions(c, src.SourceTypeID)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -1001,7 +1006,7 @@ func seedBirthCertificate(t *testing.T, c *database.Catalog) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := sourcevocab.AppendSuggestion(c, typeID, fieldID, vocabkey.LevelSource); err != nil {
+		if err := sourcevocab.AppendSuggestion(c, typeID, fieldID); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1239,7 +1244,7 @@ func TestListWorkspaces(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, f := range []metadatafields.Field{f2, f1} {
-		if err := sourcevocab.AppendSuggestion(c, other.ID, f.ID, vocabkey.LevelSource); err != nil {
+		if err := sourcevocab.AppendSuggestion(c, other.ID, f.ID); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -1940,30 +1945,35 @@ func TestOwnerTables(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := sourcevocab.AppendSuggestion(c, cert.ID, doc.ID, level); err != nil {
+			if err := sourcevocab.AppendSuggestion(c, cert.ID, doc.ID); err != nil {
 				t.Fatal(err)
 			}
-			// A field suggested at each other level must not reach this owner.
-			for _, other := range []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelArtifact, vocabkey.LevelGraph} {
-				if other == level {
-					continue
-				}
-				if err := sourcevocab.AppendSuggestion(c, cert.ID, f2.ID, other); err != nil {
-					t.Fatal(err)
-				}
+			// The type's one list reaches every owner: f2 is suggested too.
+			if err := sourcevocab.AppendSuggestion(c, cert.ID, f2.ID); err != nil {
+				t.Fatal(err)
 			}
 			if _, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Anchor"}); err != nil {
 				t.Fatal(err)
 			}
 			o := newLevelOwner(t, c, userID, src, level)
 
-			// Only this level's suggestion, not the Source level's.
+			// The board holds document_number suggested and unset, and f2
+			// suggested (the seeded certificate suggests more besides).
 			ws, err := ListWorkspace(c, o)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(ws) != 1 || !bytes.Equal(ws[0].Field.ID, doc.ID) || !ws[0].Suggested || ws[0].Value != nil {
-				t.Fatalf("workspace = %+v, want document_number suggested only", ws)
+			var sawDoc, sawF2 bool
+			for _, e := range ws {
+				switch {
+				case bytes.Equal(e.Field.ID, doc.ID):
+					sawDoc = e.Suggested && e.Value == nil
+				case bytes.Equal(e.Field.ID, f2.ID):
+					sawF2 = e.Suggested
+				}
+			}
+			if !sawDoc || !sawF2 {
+				t.Fatalf("workspace = %+v, want document_number and f2 suggested and unset", ws)
 			}
 
 			run := func(f func(tx *database.Tx) ([]rowchange.Change, error)) []rowchange.Change {
@@ -2071,7 +2081,7 @@ func TestListWorkspacesExported(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sourcevocab.AppendSuggestion(c, cert.ID, doc.ID, vocabkey.LevelArtifact); err != nil {
+	if err := sourcevocab.AppendSuggestion(c, cert.ID, doc.ID); err != nil {
 		t.Fatal(err)
 	}
 	s := sourceOwner(src.ID)
@@ -2103,11 +2113,19 @@ func TestListWorkspacesExported(t *testing.T) {
 	if !reflect.DeepEqual(got[1].Entries, got[3].Entries) {
 		t.Error("a repeated owner got different lists")
 	}
-	if len(got[1].Entries) != 1 || got[1].Entries[0].Value == nil || got[1].Entries[0].Value.ValueText != "No. 7" {
+	entryOf := func(entries []WorkspaceEntry) (WorkspaceEntry, bool) {
+		for _, e := range entries {
+			if bytes.Equal(e.Field.ID, doc.ID) {
+				return e, true
+			}
+		}
+		return WorkspaceEntry{}, false
+	}
+	if e, ok := entryOf(got[1].Entries); !ok || e.Value == nil || e.Value.ValueText != "No. 7" {
 		t.Errorf("A1's list = %+v", got[1].Entries)
 	}
-	if len(got[2].Entries) != 1 || got[2].Entries[0].Value != nil || !got[2].Entries[0].Suggested {
-		t.Errorf("A2's list = %+v, want the suggestion only", got[2].Entries)
+	if e, ok := entryOf(got[2].Entries); !ok || e.Value != nil || !e.Suggested {
+		t.Errorf("A2's list = %+v, want the suggestion unset", got[2].Entries)
 	}
 
 	if none, err := ListWorkspaces(c, nil); err != nil || none != nil {
@@ -2859,7 +2877,7 @@ func newLedger(t *testing.T, c *database.Catalog, userID []byte) ledger {
 		t.Fatal(err)
 	}
 	l.typeID = ty.ID
-	if err := sourcevocab.AppendSuggestion(c, ty.ID, l.line.ID, vocabkey.LevelGraph); err != nil {
+	if err := sourcevocab.AppendSuggestion(c, ty.ID, l.line.ID); err != nil {
 		t.Fatal(err)
 	}
 	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{meta.line_number}."})
@@ -2896,11 +2914,11 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if e, ok := entryOf(boards[1].Entries, "url"); !ok || e.Annotation.Need != citationformat.NeedUsed {
 			t.Errorf("artifact url = %+v, %v; want used", e.Annotation, ok)
 		}
-		// A field the formats read with no level heads on every board: the ones
-		// the formats read at other levels before show here, empty and unsuggested.
+		// The census list is every board's: the fields its formats read at
+		// other levels show on the Source board too, empty and suggested.
 		for _, key := range []string{"item", "line_number", "folio", "dwelling_number", "family_number", "schedule_number", "provider"} {
-			if e, ok := entryOf(boards[0].Entries, key); !ok || e.Suggested || e.Value != nil || e.Annotation.Need != citationformat.NeedUsed {
-				t.Errorf("%s on the census Source board = %+v, %v; want an empty unsuggested used head", key, e, ok)
+			if e, ok := entryOf(boards[0].Entries, key); !ok || !e.Suggested || e.Value != nil || e.Annotation.Need != citationformat.NeedUsed {
+				t.Errorf("%s on the census Source board = %+v, %v; want an empty suggested used field", key, e, ok)
 			}
 		}
 	})
@@ -2985,7 +3003,7 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		}
 	})
 
-	t.Run("a valued extra is annotated once", func(t *testing.T) {
+	t.Run("a valued suggested field is annotated once", func(t *testing.T) {
 		src := newSource(t, c, userID, seededType(t, c, "census").ID, "1910 census")
 		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "item").ID, ValueText: "Roll 4"}); err != nil {
 			t.Fatal(err)
@@ -2994,8 +3012,32 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		for _, e := range boardOf(t, c, sourceOwner(src.ID)).Entries {
 			if e.Field.Key == "item" {
 				n++
+				if e.Value == nil || !e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
+					t.Errorf("item = %+v, want a valued suggested field, used", e)
+				}
+			}
+		}
+		if n != 1 {
+			t.Errorf("item comes out %d times", n)
+		}
+	})
+
+	t.Run("a valued unsuggested head is annotated once", func(t *testing.T) {
+		census := seededType(t, c, "census")
+		item := seededField(t, c, "item")
+		if err := sourcevocab.DeleteSuggestion(c, census.ID, item.ID); err != nil {
+			t.Fatal(err)
+		}
+		src := newSource(t, c, userID, census.ID, "1920 census")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: item.ID, ValueText: "Roll 4"}); err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		for _, e := range boardOf(t, c, sourceOwner(src.ID)).Entries {
+			if e.Field.Key == "item" {
+				n++
 				if e.Value == nil || e.Suggested || e.Annotation.Need != citationformat.NeedUsed {
-					t.Errorf("item = %+v, want a valued extra, used", e)
+					t.Errorf("item = %+v, want a valued unsuggested head, used", e)
 				}
 			}
 		}
@@ -3039,7 +3081,7 @@ func TestListWorkspacesAnnotations(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := sourcevocab.AppendSuggestion(c, ty.ID, seededField(t, c, "folio").ID, vocabkey.LevelSource); err != nil {
+		if err := sourcevocab.AppendSuggestion(c, ty.ID, seededField(t, c, "folio").ID); err != nil {
 			t.Fatal(err)
 		}
 		src := newSource(t, c, userID, ty.ID, "Plain")
@@ -3209,9 +3251,9 @@ func sourcetypesLedger(t *testing.T, c *database.Catalog, userID []byte) sources
 }
 
 // seedExpect is what the seeded formats ask of one Source type's Source board,
-// measured over full, short and list at planning. A field a format reads with
-// no level heads on every board, so a chain's later options that were once left
-// off the Source board show there too.
+// measured over full, short and list at planning. A type suggests its fields
+// once, on every board, so the empty unsuggested heads are only the fields its
+// formats read that its list does not hold.
 type seedExpect struct {
 	needed   []string // Source fields needed, valued or not
 	listOnly []string // of those, the ones only the list form needs: the Artifact and graph boards do not need them
@@ -3221,32 +3263,32 @@ type seedExpect struct {
 }
 
 var seedExpectations = map[string]seedExpect{
-	"birth_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
-	"book":                 {needed: []string{"author", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"birth_certificate":    {needed: []string{"jurisdiction"}, date: "used", page: "used"},
+	"book":                 {needed: []string{"author", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
 	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "collection:used"}},
-	"cemetery_marker":      {needed: []string{"creator", "cemetery_location"}, listOnly: []string{"cemetery_location"}, unsug: []string{"item:used", "accessed_date:used"}},
-	"census":               {needed: []string{"jurisdiction"}, unsug: []string{"folio:used", "schedule_number:used", "dwelling_number:used", "family_number:used", "line_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "citing:used"}, date: "needed", page: "used"},
-	"church_register":      {needed: []string{"creator"}, unsug: []string{"folio:used", "entry_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_number:used", "item_number:used", "short_title:used", "coverage:used"}, page: "used"},
+	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"short_title:used", "collection:used"}},
+	"cemetery_marker":      {needed: []string{"creator", "cemetery_location"}, listOnly: []string{"cemetery_location"}},
+	"census":               {needed: []string{"jurisdiction"}, date: "needed", page: "used"},
+	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}, page: "used"},
 	"correspondence":       {needed: []string{"creator", "recipient"}, unsug: []string{"coverage:used"}, date: "needed"},
 	"court_report":         {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "used", page: "needed"},
-	"death_certificate":    {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
-	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"item:used", "short_title:used"}, date: "used"},
-	"family_bible":         {unsug: []string{"item:used", "short_title:used", "coverage:used"}, date: "used"},
-	"gedcom_file":          {unsug: []string{"item:used", "short_title:used"}, date: "used"},
-	"government_file":      {needed: []string{"repository"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_publication:used", "roll:used", "short_title:used"}, date: "used"},
-	"interview":            {needed: []string{"interviewee", "interviewer"}, unsug: []string{"item:used"}, date: "needed"},
+	"death_certificate":    {needed: []string{"jurisdiction"}, date: "used", page: "used"},
+	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"short_title:used"}, date: "used"},
+	"family_bible":         {unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
+	"gedcom_file":          {unsug: []string{"short_title:used"}, date: "used"},
+	"government_file":      {needed: []string{"repository"}, unsug: []string{"short_title:used"}, date: "used"},
+	"interview":            {needed: []string{"interviewee", "interviewer"}, date: "needed"},
 	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"manuscript":           {needed: []string{"repository"}, unsug: []string{"item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used", "coverage:used"}, date: "used"},
-	"marriage_certificate": {needed: []string{"jurisdiction"}, unsug: []string{"item:used", "entry_number:used", "format:used", "provider:used", "url:used", "accessed_date:used"}, date: "used", page: "used"},
-	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"column:used", "format:used", "provider:used", "url:used", "accessed_date:used", "short_title:used"}, date: "needed", page: "used"},
-	"oral_testimony":       {needed: []string{"interviewee"}, unsug: []string{"item:used"}, date: "needed"},
-	"passenger_list":       {unsug: []string{"line_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "citing:used", "film_publication:used", "roll:used", "short_title:used", "creator:used", "collection:used", "repository:used"}, page: "used"},
+	"manuscript":           {needed: []string{"repository"}, unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
+	"marriage_certificate": {needed: []string{"jurisdiction"}, date: "used", page: "used"},
+	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "needed", page: "used"},
+	"oral_testimony":       {needed: []string{"interviewee"}, date: "needed"},
+	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}, page: "used"},
 	"photograph":           {unsug: []string{"short_title:used"}, date: "used"},
-	"private_papers":       {unsug: []string{"item:used", "short_title:used", "coverage:used"}, date: "used"},
-	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"entry_number:used", "item:used", "format:used", "provider:used", "url:used", "accessed_date:used", "film_number:used", "coverage:used"}, page: "used"},
+	"private_papers":       {unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
+	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"coverage:used"}, page: "used"},
 	"statute":              {needed: []string{"jurisdiction", "published_in"}, date: "used", page: "used"},
-	"website":              {needed: []string{"site_name"}, unsug: []string{"format:used", "item:used", "citing:used", "short_title:used"}},
+	"website":              {needed: []string{"site_name"}, unsug: []string{"short_title:used"}},
 }
 
 func TestSeedAnnotations(t *testing.T) {
@@ -3328,8 +3370,8 @@ func TestSeedAnnotations(t *testing.T) {
 			}
 		})
 	}
-	if neededAtSource != 30 || neededBelow != 2*(30-4) || unsuggested != 120 || dates != 5 || pages != 1 {
-		t.Errorf("needed %d (want 30), needed below %d (52), unsuggested heads %d (120), needed dates %d (5), needed pages %d (1)",
+	if neededAtSource != 30 || neededBelow != 2*(30-4) || unsuggested != 29 || dates != 5 || pages != 1 {
+		t.Errorf("needed %d (want 30), needed below %d (52), unsuggested heads %d (29), needed dates %d (5), needed pages %d (1)",
 			neededAtSource, neededBelow, unsuggested, dates, pages)
 	}
 }
@@ -3361,6 +3403,59 @@ func TestListWorkspacesAnnotationsScale(t *testing.T) {
 		e, ok := entryOf(boards[i].Entries, key[o.Level])
 		if !ok || e.Annotation.Need != want[o.Level] {
 			t.Fatalf("board %d (%s) %s = %+v, %v; want %q", i, o.Level, key[o.Level], e.Annotation, ok, want[o.Level])
+		}
+	}
+}
+
+// TestEveryBoardOffersTheTypeList: a type suggests each field once, so the
+// Source, an Artifact and an Evidence graph of it offer the same entries, and a
+// dismissal hides a field on that owner only.
+func TestEveryBoardOffersTheTypeList(t *testing.T) {
+	c, userID, _, doc, _, _, f2 := applyWorld(t)
+	ty, _, err := writes.Run(c, writes.Op{Action: "create_source_type", UserID: userID},
+		func(tx *database.Tx) (sourcetypes.Type, []rowchange.Change, error) {
+			return sourcetypes.Create(tx, sourcetypes.CreateInput{Label: "Parish list"})
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []metadatafields.Field{doc, f2} {
+		if err := sourcevocab.AppendSuggestion(c, ty.ID, f.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	src := newSource(t, c, userID, ty.ID, "Parish register")
+	art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+	gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+	s := sourceOwner(src.ID)
+
+	suggestedKeys := func(o Owner) []string {
+		var keys []string
+		for _, e := range boardOf(t, c, o).Entries {
+			if e.Suggested {
+				keys = append(keys, e.Field.Key)
+			}
+		}
+		return keys
+	}
+	want := []string{doc.Key, f2.Key}
+	for _, o := range []Owner{s, art, gr} {
+		if got := suggestedKeys(o); !slices.Equal(got, want) {
+			t.Fatalf("%s board suggests %v, want %v", o.Level, got, want)
+		}
+	}
+
+	if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+		return DismissSuggestion(tx, userID, art, f2.ID)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got := suggestedKeys(art); !slices.Equal(got, []string{doc.Key}) {
+		t.Fatalf("Artifact board after the dismissal suggests %v, want only %s", got, doc.Key)
+	}
+	for _, o := range []Owner{s, gr} {
+		if got := suggestedKeys(o); !slices.Equal(got, want) {
+			t.Fatalf("%s board after an Artifact dismissal suggests %v, want %v", o.Level, got, want)
 		}
 	}
 }

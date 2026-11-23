@@ -35,7 +35,7 @@ new Install into **`onboarding.createCatalog` only**.
 1. Edit the registry in **`core/database/sourcevocab/`** — declarative lists:
    - `registry.go` `seedTypes` — `key`, `label`, `description`, `IconKey`, `Formats` (the three citation formats, fields written by key; `Install` stores them by id through `sourcetypes.ToStored` with `preferOrigin` `provenencia`, so a researcher's field with the same key never captures one). The three certificates share `certificateFormats`, the journal article and the broadcast `journalArticleFormats`.
    - `registry_fields.go` `seedFields` — `key`, `label`, `data_type` (`text`|`url`), `Description`, `UnknownText` (what a value marked unknown prints, "" for none; no date key is seeded)
-   - `registry_suggestions.go` `seedSuggestions` — one entry per `(type_key, level)` with its `FieldKeys` in order; a field's position is its sort order. The lists follow each type's full format; `TestSeedSuggestionsFollowFormats` derives them and fails on a difference.
+   - `registry_suggestions.go` `seedSuggestions` — one entry per `type_key` with its `FieldKeys` in order; a field's position is its sort order. The lists follow each type's full format; `TestSeedSuggestionsFollowFormats` derives them and fails on a difference.
    After a format edit, `go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update` rewrites `testdata/seed-citations.txt` (every seeded format rendered against an invented Source); read the diff.
 2. The Source seed is the citation vocabulary of the Spike 15 map § 6.8, the one
    exception to a small starter: the Spike 15 rule "The seed is the product

@@ -2,7 +2,6 @@ package sourcevocab
 
 import (
 	"bytes"
-	"database/sql"
 	"errors"
 	"slices"
 	"testing"
@@ -22,7 +21,7 @@ import (
 )
 
 // copyFixture is a catalog with a Provenencia census type that has an icon, a
-// description, all three formats and suggestions at all three levels, and a
+// description, all three formats and three suggested fields, and a
 // bare plugin type.
 type copyFixture struct {
 	c        *database.Catalog
@@ -67,20 +66,10 @@ func newCopyFixture(t *testing.T) *copyFixture {
 		}
 		f.fieldIDs = append(f.fieldIDs, field.ID)
 	}
-	// Source: Parish, Line, Enumerator (stored order is not label order).
-	// Artifact: Line. Graph: Enumerator, Parish.
-	for _, s := range []struct {
-		level  vocabkey.Level
-		fields []int
-	}{
-		{vocabkey.LevelSource, []int{1, 0, 2}},
-		{vocabkey.LevelArtifact, []int{0}},
-		{vocabkey.LevelGraph, []int{2, 1}},
-	} {
-		for _, i := range s.fields {
-			if err := AppendSuggestion(c, f.census, f.fieldIDs[i], s.level); err != nil {
-				t.Fatal(err)
-			}
+	// Parish, Line, Enumerator (stored order is not label order).
+	for _, i := range []int{1, 0, 2} {
+		if err := AppendSuggestion(c, f.census, f.fieldIDs[i]); err != nil {
+			t.Fatal(err)
 		}
 	}
 	_, err = sourcetypestest.SetFormats(c, f.userID, f.census, sourcetypes.Formats{
@@ -107,9 +96,9 @@ func (f *copyFixture) formats(t *testing.T, typeID []byte) sourcetypes.Formats {
 	return storedFormats(t, f.c, typeID)
 }
 
-func (f *copyFixture) ids(t *testing.T, typeID []byte, level vocabkey.Level) [][]byte {
+func (f *copyFixture) ids(t *testing.T, typeID []byte) [][]byte {
 	t.Helper()
-	sugs, err := ListSuggestions(f.c, typeID, level)
+	sugs, err := ListSuggestions(f.c, typeID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,9 +109,9 @@ func (f *copyFixture) ids(t *testing.T, typeID []byte, level vocabkey.Level) [][
 	return out
 }
 
-func (f *copyFixture) orders(t *testing.T, typeID []byte, level vocabkey.Level) []int {
+func (f *copyFixture) orders(t *testing.T, typeID []byte) []int {
 	t.Helper()
-	sugs, err := ListSuggestions(f.c, typeID, level)
+	sugs, err := ListSuggestions(f.c, typeID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +135,7 @@ func sameIDs(a, b [][]byte) bool {
 }
 
 func TestCopyType(t *testing.T) {
-	all := CopyTypeInput{Icon: true, Description: true, Formats: true, Levels: vocabkey.MetadataLevels()}
+	all := CopyTypeInput{Icon: true, Description: true, Formats: true, Suggestions: true}
 	tests := []struct {
 		name string
 		run  func(t *testing.T, f *copyFixture)
@@ -167,13 +156,11 @@ func TestCopyType(t *testing.T) {
 				if f.formats(t, got.ID) != f.formats(t, f.census) || f.formats(t, got.ID).Full == "" {
 					t.Fatalf("formats %+v vs %+v", f.formats(t, got.ID), f.formats(t, f.census))
 				}
-				for _, level := range vocabkey.MetadataLevels() {
-					if want, have := f.ids(t, f.census, level), f.ids(t, got.ID, level); !sameIDs(want, have) || len(have) == 0 {
-						t.Fatalf("%s: %x vs %x", level, have, want)
-					}
-					if want, have := f.orders(t, f.census, level), f.orders(t, got.ID, level); !slices.Equal(want, have) {
-						t.Fatalf("%s sort orders %v vs %v", level, have, want)
-					}
+				if want, have := f.ids(t, f.census), f.ids(t, got.ID); !sameIDs(want, have) || len(have) == 0 {
+					t.Fatalf("%x vs %x", have, want)
+				}
+				if want, have := f.orders(t, f.census), f.orders(t, got.ID); !slices.Equal(want, have) {
+					t.Fatalf("sort orders %v vs %v", have, want)
 				}
 				if len(changes) != 1 || changes[0].Action != rowchange.ActionCreate || changes[0].EntityType != "source_type" {
 					t.Fatalf("changes %+v", changes)
@@ -186,20 +173,17 @@ func TestCopyType(t *testing.T) {
 			},
 		},
 		{
-			name: "a level left out is not copied and the others are",
+			name: "suggestions left out are not copied",
 			run: func(t *testing.T, f *copyFixture) {
 				in := all
 				in.TypeID, in.Label = f.census, "State census"
-				in.Levels = []vocabkey.Level{vocabkey.LevelSource, vocabkey.LevelGraph}
+				in.Suggestions = false
 				got, _, err := f.copyType(in)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if n := len(f.ids(t, got.ID, vocabkey.LevelArtifact)); n != 0 {
-					t.Fatalf("artifact rows %d", n)
-				}
-				if len(f.ids(t, got.ID, vocabkey.LevelSource)) != 3 || len(f.ids(t, got.ID, vocabkey.LevelGraph)) != 2 {
-					t.Fatal("source and graph rows not copied")
+				if n := len(f.ids(t, got.ID)); n != 0 {
+					t.Fatalf("rows %d", n)
 				}
 			},
 		},
@@ -221,10 +205,8 @@ func TestCopyType(t *testing.T) {
 						t.Fatalf("%s in %+v", col, changes[0].Fields)
 					}
 				}
-				for _, level := range vocabkey.MetadataLevels() {
-					if n := len(f.ids(t, got.ID, level)); n != 0 {
-						t.Fatalf("%s rows %d", level, n)
-					}
+				if n := len(f.ids(t, got.ID)); n != 0 {
+					t.Fatalf("rows %d", n)
 				}
 			},
 		},
@@ -264,34 +246,14 @@ func TestCopyType(t *testing.T) {
 			},
 		},
 		{
-			name: "a level that holds no metadata or repeats is ErrInvalid and writes nothing",
+			name: "an original with no suggestions copies none",
 			run: func(t *testing.T, f *copyFixture) {
-				for _, levels := range [][]vocabkey.Level{
-					{vocabkey.LevelCitation},
-					{vocabkey.LevelGraph, vocabkey.LevelGraph},
-					{"nonsense"},
-				} {
-					_, _, err := f.copyType(CopyTypeInput{TypeID: f.census, Label: "State census", Levels: levels})
-					if !errors.Is(err, ErrInvalid) {
-						t.Fatalf("levels %v: got %v", levels, err)
-					}
-				}
-				if _, err := sourcetypes.Lookup(f.c, "state-census", vocabkey.OriginUser); !errors.Is(err, sql.ErrNoRows) {
-					t.Fatalf("a type was written: %v", err)
-				}
-			},
-		},
-		{
-			name: "a level with no rows copies none",
-			run: func(t *testing.T, f *copyFixture) {
-				got, _, err := f.copyType(CopyTypeInput{TypeID: f.plugin, Label: "Memorial copy", Levels: vocabkey.MetadataLevels()})
+				got, _, err := f.copyType(CopyTypeInput{TypeID: f.plugin, Label: "Memorial copy", Suggestions: true})
 				if err != nil {
 					t.Fatal(err)
 				}
-				for _, level := range vocabkey.MetadataLevels() {
-					if n := len(f.ids(t, got.ID, level)); n != 0 {
-						t.Fatalf("%s rows %d", level, n)
-					}
+				if n := len(f.ids(t, got.ID)); n != 0 {
+					t.Fatalf("rows %d", n)
 				}
 			},
 		},
@@ -304,13 +266,13 @@ func TestCopyType(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := DeleteSuggestion(f.c, got.ID, f.fieldIDs[0], vocabkey.LevelSource); err != nil {
+				if err := DeleteSuggestion(f.c, got.ID, f.fieldIDs[0]); err != nil {
 					t.Fatal(err)
 				}
-				if n := len(f.ids(t, f.census, vocabkey.LevelSource)); n != 3 {
+				if n := len(f.ids(t, f.census)); n != 3 {
 					t.Fatalf("original has %d", n)
 				}
-				if n := len(f.ids(t, got.ID, vocabkey.LevelSource)); n != 2 {
+				if n := len(f.ids(t, got.ID)); n != 2 {
 					t.Fatalf("copy has %d", n)
 				}
 			},

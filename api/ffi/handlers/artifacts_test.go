@@ -608,7 +608,7 @@ func TestCreateArtifactMetadata(t *testing.T) {
 	provider := newUserField(t, dir, userID, "Provider")
 	link := newField(t, dir, userID, "URL", "url")
 	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
-		ProjectDir: dir, TypeId: typeID, FieldId: link, Level: "artifact",
+		ProjectDir: dir, TypeId: typeID, FieldId: link,
 	}, &engine.AssignTypeFieldResponse{})
 	owner := func(id string) *engine.MetadataOwner { return &engine.MetadataOwner{Level: "artifact", Id: id} }
 	artifactCount := func() int {

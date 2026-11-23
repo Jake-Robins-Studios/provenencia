@@ -30,17 +30,6 @@ final class MetadataDraftHost: MetadataBoardHost {
         dismissed = []
     }
 
-    /// The starting rows of a board for an owner that holds no values and no layout yet:
-    /// each of the type's suggestions, in its order, empty.
-    static func unsavedRows(from suggestions: [CatalogTypeSuggestion]) -> [CatalogMetadataEntry] {
-        suggestions.map {
-            CatalogMetadataEntry(
-                field: $0.field, valueText: "", hasValue: false, suggested: true,
-                sortOrder: Int32($0.sortOrder)
-            )
-        }
-    }
-
     // MARK: What the board shows against what it opened with
 
     /// True when what the board shows differs from what it opened with: a value, the order of the

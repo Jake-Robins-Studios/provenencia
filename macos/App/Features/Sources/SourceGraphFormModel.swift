@@ -18,8 +18,8 @@ struct SourceGraphFormDraft: Equatable {
 @Observable
 final class SourceGraphFormModel {
     enum Mode {
-        /// A new graph; `suggestions` are the Source type's `graph`-level rows, empty.
-        case create(suggestions: [CatalogMetadataEntry])
+        /// A new graph; `entries` are the engine's draft board: the Source type's suggestions, empty.
+        case create(entries: [CatalogMetadataEntry])
         case edit(CatalogEvidenceGraph)
     }
 
@@ -58,8 +58,8 @@ final class SourceGraphFormModel {
         scrollTarget = opensAt == .top ? nil : opensAt
         let artifactIDs = (context.workspace?.artifacts ?? []).map(\.id)
         switch mode {
-        case .create(let suggestions):
-            host = MetadataDraftHost(entries: suggestions, fields: context.fields)
+        case .create(let entries):
+            host = MetadataDraftHost(entries: entries, fields: context.fields)
             // A new graph starts with the Artifacts in no graph checked; when
             // the session cannot say, or every Artifact is in a graph, all are.
             var excluded: Set<String> = []

@@ -26,17 +26,6 @@ struct CatalogQueryKey: Hashable, Sendable {
         return ids[0]
     }
 
-    /// The type of a `typeSuggestions` key.
-    var suggestionsTypeId: String {
-        precondition(kind == .typeSuggestions, "\(kind) has no type id")
-        return ids[0]
-    }
-    /// The level of a `typeSuggestions` key.
-    var suggestionsLevel: Level {
-        precondition(kind == .typeSuggestions, "\(kind) has no level")
-        return Level(rawValue: ids[1])!
-    }
-
     /// The graph of a `citationsByArtifact` key.
     var citationGraphId: String {
         precondition(kind == .citationsByArtifact, "\(kind) has no graph id")
@@ -97,13 +86,9 @@ struct CatalogQueryKey: Hashable, Sendable {
     static func citationCounts(project: ProjectKey, graphId: String) -> CatalogQueryKey {
         .init(.citationCounts, project, [graphId])
     }
-    /// A type's suggested fields at one level.
-    static func typeSuggestions(project: ProjectKey, typeId: String, level: Level) -> CatalogQueryKey {
-        .init(.typeSuggestions, project, [typeId, level.rawValue])
-    }
-    /// A type's suggestion keys, one per metadata level, in `Level.metadataLevels` order.
-    static func typeSuggestionsKeys(project: ProjectKey, typeId: String) -> [CatalogQueryKey] {
-        Level.metadataLevels.map { typeSuggestions(project: project, typeId: typeId, level: $0) }
+    /// A type's suggested fields: one list per type.
+    static func typeSuggestions(project: ProjectKey, typeId: String) -> CatalogQueryKey {
+        .init(.typeSuggestions, project, [typeId])
     }
     static func propertiesWorkspace(project: ProjectKey) -> CatalogQueryKey { .init(.propertiesWorkspace, project) }
     static func connectRules(project: ProjectKey) -> CatalogQueryKey { .init(.connectRules, project) }

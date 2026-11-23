@@ -1611,9 +1611,8 @@ public nonisolated struct Provenencia_Engine_V1_SourceType: Sendable {
   /// delete affordance and say what is holding the type.
   public var usedBy: Int32 = 0
 
-  /// How many metadata fields this type suggests at all three levels (a field
-  /// at two levels counts twice) — the list's third column, so browsing does not have to fetch every type's
-  /// join rows.
+  /// How many metadata fields this type suggests, each once — the list's third
+  /// column, so browsing does not have to fetch every type's join rows.
   public var suggestedFieldCount: Int32 = 0
 
   /// Closed design-system type_* key for evidence representation.
@@ -1625,7 +1624,8 @@ public nonisolated struct Provenencia_Engine_V1_SourceType: Sendable {
 }
 
 /// TypeSuggestion is one source_type_metadata_fields join row: a field this
-/// type suggests at one level, in its stored order. Suggestions are not a
+/// type suggests, in its stored order. One list per type, offered on every
+/// board of a Source of the type. Suggestions are not a
 /// schema — a source of the type may leave any of them blank.
 public nonisolated struct Provenencia_Engine_V1_TypeSuggestion: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
@@ -2051,7 +2051,7 @@ public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceResponse: @unc
   /// Clears the value of `credibility`. Subsequent reads from it will return its default value.
   public mutating func clearCredibility() {_uniqueStorage()._credibility = nil}
 
-  /// One board per Artifact, in the order of artifacts: its type's artifact-level
+  /// One board per Artifact, in the order of artifacts: its type's
   /// suggestions plus extras, by its layout.
   public var artifactMetadata: [Provenencia_Engine_V1_MetadataBoard] {
     get {_storage._artifactMetadata}
@@ -2059,7 +2059,7 @@ public nonisolated struct Provenencia_Engine_V1_GetSourceWorkspaceResponse: @unc
   }
 
   /// One board per Evidence graph of the Source, in graph list order: its type's
-  /// graph-level suggestions plus extras, by its layout.
+  /// suggestions plus extras, by its layout.
   public var graphMetadata: [Provenencia_Engine_V1_MetadataBoard] {
     get {_storage._graphMetadata}
     set {_uniqueStorage()._graphMetadata = newValue}
@@ -3318,8 +3318,8 @@ public nonisolated struct Provenencia_Engine_V1_MetadataLayoutRow: Sendable {
   public init() {}
 }
 
-/// MetadataBoard is one owner's entries: its type's suggestions at its level
-/// plus extras, by its layout.
+/// MetadataBoard is one owner's entries: its type's suggestions plus extras, by
+/// its layout.
 public nonisolated struct Provenencia_Engine_V1_MetadataBoard: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -3379,8 +3379,8 @@ public nonisolated struct Provenencia_Engine_V1_GetMetadataBoardResponse: Sendab
 }
 
 /// GetDraftMetadataBoard is the board a new Artifact or graph starts with on a
-/// Source: its type's suggestions at level, empty, then the fields its citation
-/// formats head, each with its requirement. level is "artifact" or "graph".
+/// Source: its type's suggestions, empty, then the fields its citation formats
+/// head at level, each with its requirement. level is "artifact" or "graph".
 public nonisolated struct Provenencia_Engine_V1_GetDraftMetadataBoardRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -3980,7 +3980,7 @@ public nonisolated struct Provenencia_Engine_V1_CreateSourceTypeResponse: @unche
 }
 
 /// CopySourceTypeRequest starts a new user type from the type type_id with the
-/// parts ticked; levels are the metadata levels whose suggested fields copy.
+/// parts ticked; copy_suggestions copies the suggested fields, in order.
 public nonisolated struct Provenencia_Engine_V1_CopySourceTypeRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -4000,7 +4000,7 @@ public nonisolated struct Provenencia_Engine_V1_CopySourceTypeRequest: Sendable 
 
   public var copyFormats: Bool = false
 
-  public var levels: [String] = []
+  public var copySuggestions: Bool = false
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -4353,7 +4353,8 @@ public nonisolated struct Provenencia_Engine_V1_GetCitationFormatsResponse: Send
   fileprivate var _formats: Provenencia_Engine_V1_CitationFormats? = nil
 }
 
-/// ListTypeSuggestions lists a type's suggested fields at one level, in order.
+/// ListTypeSuggestions lists a type's suggested fields, in order: one list per
+/// type, each field once.
 public nonisolated struct Provenencia_Engine_V1_ListTypeSuggestionsRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -4362,10 +4363,6 @@ public nonisolated struct Provenencia_Engine_V1_ListTypeSuggestionsRequest: Send
   public var projectDir: String = String()
 
   public var typeID: String = String()
-
-  /// "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  /// value, "citation" included, is sourcevocab.invalid.
-  public var level: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -4386,7 +4383,7 @@ public nonisolated struct Provenencia_Engine_V1_ListTypeSuggestionsResponse: Sen
 
 /// AssignTypeField attaches an existing metadata field to a type at the end
 /// of its order. Assigning a field the type already suggests is a no-op, not
-/// an error. Both replies carry the type's whole suggestion list at that level
+/// an error. Both replies carry the type's whole suggestion list
 /// back so the client never has to re-derive sort_order.
 public nonisolated struct Provenencia_Engine_V1_AssignTypeFieldRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
@@ -4398,10 +4395,6 @@ public nonisolated struct Provenencia_Engine_V1_AssignTypeFieldRequest: Sendable
   public var typeID: String = String()
 
   public var fieldID: String = String()
-
-  /// "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  /// value, "citation" included, is sourcevocab.invalid.
-  public var level: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -4415,8 +4408,8 @@ public nonisolated struct Provenencia_Engine_V1_AssignTypeFieldResponse: Sendabl
 
   public var suggestions: [Provenencia_Engine_V1_TypeSuggestion] = []
 
-  /// The type's suggested-field count after the write, over all three levels,
-  /// as SourceType.suggested_field_count.
+  /// The type's suggested-field count after the write, each field once, as
+  /// SourceType.suggested_field_count.
   public var suggestedFieldCount: Int32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -4438,10 +4431,6 @@ public nonisolated struct Provenencia_Engine_V1_RemoveTypeFieldRequest: Sendable
 
   public var fieldID: String = String()
 
-  /// "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other
-  /// value, "citation" included, is sourcevocab.invalid.
-  public var level: String = String()
-
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -4454,8 +4443,8 @@ public nonisolated struct Provenencia_Engine_V1_RemoveTypeFieldResponse: Sendabl
 
   public var suggestions: [Provenencia_Engine_V1_TypeSuggestion] = []
 
-  /// The type's suggested-field count after the write, over all three levels,
-  /// as SourceType.suggested_field_count.
+  /// The type's suggested-field count after the write, each field once, as
+  /// SourceType.suggested_field_count.
   public var suggestedFieldCount: Int32 = 0
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
@@ -15234,7 +15223,7 @@ nonisolated extension Provenencia_Engine_V1_CreateSourceTypeResponse: SwiftProto
 
 nonisolated extension Provenencia_Engine_V1_CopySourceTypeRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CopySourceTypeRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}type_id\0\u{1}label\0\u{3}copy_icon\0\u{3}copy_description\0\u{3}copy_formats\0\u{1}levels\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}type_id\0\u{1}label\0\u{3}copy_icon\0\u{3}copy_description\0\u{3}copy_formats\0\u{4}\u{2}copy_suggestions\0\u{b}levels\0\u{c}\u{8}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -15249,7 +15238,7 @@ nonisolated extension Provenencia_Engine_V1_CopySourceTypeRequest: SwiftProtobuf
       case 5: try { try decoder.decodeSingularBoolField(value: &self.copyIcon) }()
       case 6: try { try decoder.decodeSingularBoolField(value: &self.copyDescription) }()
       case 7: try { try decoder.decodeSingularBoolField(value: &self.copyFormats) }()
-      case 8: try { try decoder.decodeRepeatedStringField(value: &self.levels) }()
+      case 9: try { try decoder.decodeSingularBoolField(value: &self.copySuggestions) }()
       default: break
       }
     }
@@ -15277,8 +15266,8 @@ nonisolated extension Provenencia_Engine_V1_CopySourceTypeRequest: SwiftProtobuf
     if self.copyFormats != false {
       try visitor.visitSingularBoolField(value: self.copyFormats, fieldNumber: 7)
     }
-    if !self.levels.isEmpty {
-      try visitor.visitRepeatedStringField(value: self.levels, fieldNumber: 8)
+    if self.copySuggestions != false {
+      try visitor.visitSingularBoolField(value: self.copySuggestions, fieldNumber: 9)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -15291,7 +15280,7 @@ nonisolated extension Provenencia_Engine_V1_CopySourceTypeRequest: SwiftProtobuf
     if lhs.copyIcon != rhs.copyIcon {return false}
     if lhs.copyDescription != rhs.copyDescription {return false}
     if lhs.copyFormats != rhs.copyFormats {return false}
-    if lhs.levels != rhs.levels {return false}
+    if lhs.copySuggestions != rhs.copySuggestions {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -16063,7 +16052,7 @@ nonisolated extension Provenencia_Engine_V1_GetCitationFormatsResponse: SwiftPro
 
 nonisolated extension Provenencia_Engine_V1_ListTypeSuggestionsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".ListTypeSuggestionsRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}type_id\0\u{1}level\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}type_id\0\u{b}level\0\u{c}\u{3}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16073,7 +16062,6 @@ nonisolated extension Provenencia_Engine_V1_ListTypeSuggestionsRequest: SwiftPro
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.typeID) }()
-      case 3: try { try decoder.decodeSingularStringField(value: &self.level) }()
       default: break
       }
     }
@@ -16086,16 +16074,12 @@ nonisolated extension Provenencia_Engine_V1_ListTypeSuggestionsRequest: SwiftPro
     if !self.typeID.isEmpty {
       try visitor.visitSingularStringField(value: self.typeID, fieldNumber: 2)
     }
-    if !self.level.isEmpty {
-      try visitor.visitSingularStringField(value: self.level, fieldNumber: 3)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_ListTypeSuggestionsRequest, rhs: Provenencia_Engine_V1_ListTypeSuggestionsRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
     if lhs.typeID != rhs.typeID {return false}
-    if lhs.level != rhs.level {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -16133,7 +16117,7 @@ nonisolated extension Provenencia_Engine_V1_ListTypeSuggestionsResponse: SwiftPr
 
 nonisolated extension Provenencia_Engine_V1_AssignTypeFieldRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".AssignTypeFieldRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{4}\u{2}type_id\0\u{3}field_id\0\u{1}level\0\u{b}user_id\0\u{c}\u{2}\u{1}")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{4}\u{2}type_id\0\u{3}field_id\0\u{b}user_id\0\u{b}level\0\u{c}\u{2}\u{1}\u{c}\u{5}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16144,7 +16128,6 @@ nonisolated extension Provenencia_Engine_V1_AssignTypeFieldRequest: SwiftProtobu
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.typeID) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.fieldID) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.level) }()
       default: break
       }
     }
@@ -16160,9 +16143,6 @@ nonisolated extension Provenencia_Engine_V1_AssignTypeFieldRequest: SwiftProtobu
     if !self.fieldID.isEmpty {
       try visitor.visitSingularStringField(value: self.fieldID, fieldNumber: 4)
     }
-    if !self.level.isEmpty {
-      try visitor.visitSingularStringField(value: self.level, fieldNumber: 5)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -16170,7 +16150,6 @@ nonisolated extension Provenencia_Engine_V1_AssignTypeFieldRequest: SwiftProtobu
     if lhs.projectDir != rhs.projectDir {return false}
     if lhs.typeID != rhs.typeID {return false}
     if lhs.fieldID != rhs.fieldID {return false}
-    if lhs.level != rhs.level {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -16213,7 +16192,7 @@ nonisolated extension Provenencia_Engine_V1_AssignTypeFieldResponse: SwiftProtob
 
 nonisolated extension Provenencia_Engine_V1_RemoveTypeFieldRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".RemoveTypeFieldRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{4}\u{2}type_id\0\u{3}field_id\0\u{1}level\0\u{b}user_id\0\u{c}\u{2}\u{1}")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{4}\u{2}type_id\0\u{3}field_id\0\u{b}user_id\0\u{b}level\0\u{c}\u{2}\u{1}\u{c}\u{5}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -16224,7 +16203,6 @@ nonisolated extension Provenencia_Engine_V1_RemoveTypeFieldRequest: SwiftProtobu
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.typeID) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self.fieldID) }()
-      case 5: try { try decoder.decodeSingularStringField(value: &self.level) }()
       default: break
       }
     }
@@ -16240,9 +16218,6 @@ nonisolated extension Provenencia_Engine_V1_RemoveTypeFieldRequest: SwiftProtobu
     if !self.fieldID.isEmpty {
       try visitor.visitSingularStringField(value: self.fieldID, fieldNumber: 4)
     }
-    if !self.level.isEmpty {
-      try visitor.visitSingularStringField(value: self.level, fieldNumber: 5)
-    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -16250,7 +16225,6 @@ nonisolated extension Provenencia_Engine_V1_RemoveTypeFieldRequest: SwiftProtobu
     if lhs.projectDir != rhs.projectDir {return false}
     if lhs.typeID != rhs.typeID {return false}
     if lhs.fieldID != rhs.fieldID {return false}
-    if lhs.level != rhs.level {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

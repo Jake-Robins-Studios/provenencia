@@ -16,8 +16,8 @@ struct ArtifactSheetDraft: Equatable {
 final class ArtifactSheetModel {
     enum Mode {
         case edit(CatalogArtifact)
-        /// A new Artifact; `suggestions` are the Source type's `artifact`-level rows, empty.
-        case create(suggestions: [CatalogMetadataEntry])
+        /// A new Artifact; `entries` are the engine's draft board: the Source type's suggestions, empty.
+        case create(entries: [CatalogMetadataEntry])
     }
 
     /// Which part of the sheet its body opens at the top of.
@@ -92,9 +92,9 @@ final class ArtifactSheetModel {
             let rows = context.metadataRows(for: MetadataOwner(level: .artifact, id: artifact.id))
             host = MetadataDraftHost(entries: rows, fields: context.fields)
             locks = UnlinkLocks()
-        case .create(let suggestions):
+        case .create(let entries):
             initial = ArtifactSheetDraft()
-            host = MetadataDraftHost(entries: suggestions, fields: context.fields)
+            host = MetadataDraftHost(entries: entries, fields: context.fields)
             // A new Artifact is in no graph yet: nothing can keep it, so no lock is read.
             locks = UnlinkLocks(state: .ready)
         }

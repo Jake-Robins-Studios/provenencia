@@ -1,45 +1,11 @@
 import SwiftUI
 
-/// The Suggested fields section of a Source type's page: its title, the hint and the pool hint
-/// once, then one list per level (Source, Artifact, Evidence graph) with a hairline between them.
-/// A plugin's type is read only: no hint and no pool hint.
+/// The Suggested fields section of a Source type's page: the title with the count trailing it, three
+/// italic lines under it (the hint, the meaning and the pool hint; the first and last on an editable type
+/// only), then the one list: the numbered rows, the empty card, the loading spinner or retry notice, the
+/// error callout, and the picker that assigns a field. A plugin's type is read only: no remove, no picker.
 struct SourceTypeSuggestedFields: View {
     @Bindable var model: SourceTypePageModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space6) {
-            PVSectionHeader(title: L10n.SourceTypes.suggestedSectionLabel)
-            if !model.isLocked {
-                VStack(alignment: .leading, spacing: PVSpacing.space2) {
-                    Text(L10n.SourceTypes.suggestedHint)
-                        .accessibilityIdentifier("sourceTypes.suggested.hint")
-                    Text(L10n.SourceTypes.poolHint)
-                        .accessibilityIdentifier("sourceTypes.suggested.poolHint")
-                }
-                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                .foregroundStyle(PVColor.textMuted)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(Level.metadataLevels.enumerated()), id: \.element) { index, level in
-                    if index > 0 {
-                        PVDivider()
-                            .padding(.top, PVSpacing.space5)
-                            .padding(.bottom, PVSpacing.space6)
-                    }
-                    SourceTypeSuggestionList(model: model, level: level)
-                }
-            }
-        }
-        .accessibilityIdentifier("sourceTypes.suggested")
-    }
-}
-
-/// One level's list of the fields a Source type suggests: its title, count and meaning, the
-/// numbered rows, the empty card, the loading spinner or retry notice, the error callout, and the
-/// picker that assigns a field. A plugin's type is read only: no remove and no picker.
-struct SourceTypeSuggestionList: View {
-    @Bindable var model: SourceTypePageModel
-    let level: Level
 
     private enum PickerFocus { case picker }
     @FocusState private var focus: PickerFocus?
@@ -47,50 +13,62 @@ struct SourceTypeSuggestionList: View {
     @State private var refocusPending = false
 
     private var isLocked: Bool { model.isLocked }
-    private var copy: L10n.SourceTypes.LevelCopy { L10n.SourceTypes.level(level) }
-    private var suggestions: [CatalogTypeSuggestion] { model.suggestions(at: level) }
-    private var prefix: String { "sourceTypes.suggested.\(level.rawValue)" }
+    private var suggestions: [CatalogTypeSuggestion] { model.suggestions }
+    private let prefix = "sourceTypes.suggested"
 
     var body: some View {
-        VStack(alignment: .leading, spacing: PVSpacing.space4) {
-            header
-            if let error = model.suggestionErrors[level] {
-                PVCallout(tone: .danger, message: error, announces: true)
-                    .accessibilityIdentifier("\(prefix).error")
+        VStack(alignment: .leading, spacing: PVSpacing.space6) {
+            PVSectionHeader(
+                title: L10n.SourceTypes.suggestedSectionLabel,
+                meta: model.isLoaded ? L10n.SourceTypes.assignedCount(count: model.suggestionCount) : nil
+            )
+            notes
+            VStack(alignment: .leading, spacing: PVSpacing.space4) {
+                if let error = model.suggestionError {
+                    PVCallout(tone: .danger, message: error, announces: true)
+                        .accessibilityIdentifier("\(prefix).error")
+                }
+                content
+                if !isLocked, model.isLoaded {
+                    assignControl
+                }
             }
-            content
-            if !isLocked, model.isLoaded(at: level) {
-                assignControl
-            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(listAccessibilityLabel)
+            .accessibilityIdentifier("\(prefix).list")
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(listAccessibilityLabel)
         .accessibilityIdentifier(prefix)
     }
 
-    /// The spoken label: the title alone until the level is loaded, matching the visible header.
-    private var listAccessibilityLabel: String {
-        guard model.isLoaded(at: level) else { return L10n.string(copy.title) }
-        return L10n.SourceTypes.listAccessibilityLabel(
-            title: L10n.string(copy.title), count: suggestions.count
-        )
+    /// The hint, the meaning (always) and the pool hint, in italic micro lines.
+    private var notes: some View {
+        VStack(alignment: .leading, spacing: PVSpacing.space2) {
+            if !isLocked {
+                Text(L10n.SourceTypes.suggestedHint)
+                    .accessibilityIdentifier("\(prefix).hint")
+            }
+            Text(L10n.SourceTypes.suggestedMeaning)
+                .accessibilityIdentifier("\(prefix).meaning")
+            if !isLocked {
+                Text(L10n.SourceTypes.poolHint)
+                    .accessibilityIdentifier("\(prefix).poolHint")
+            }
+        }
+        .font(PVFont.body(size: PVTypeScale.micro, italic: true))
+        .foregroundStyle(PVColor.textMuted)
     }
 
-    /// The level title in micro caps with the count trailing once loaded, then the meaning.
-    private var header: some View {
-        PVSubsectionHeader(
-            title: copy.title,
-            meta: model.isLoaded(at: level) ? L10n.SourceTypes.assignedCount(count: suggestions.count) : nil
-        ) {
-            Text(copy.meaning)
-                .font(PVFont.body(size: PVTypeScale.micro, italic: true))
-                .foregroundStyle(PVColor.textMuted)
-        }
+    /// The spoken label: the title alone until the list is loaded, matching the visible header.
+    private var listAccessibilityLabel: String {
+        guard model.isLoaded else { return L10n.string(L10n.SourceTypes.suggestedSectionLabel) }
+        return L10n.SourceTypes.listAccessibilityLabel(
+            title: L10n.string(L10n.SourceTypes.suggestedSectionLabel), count: model.suggestionCount
+        )
     }
 
     @ViewBuilder
     private var content: some View {
-        if let handle = model.suggestionsHandle(at: level) {
+        if let handle = model.suggestionsHandle {
             switch handle.reading {
             case .loading:
                 spinner
@@ -100,7 +78,7 @@ struct SourceTypeSuggestionList: View {
                     message: L10n.Errors.message(for: error),
                     handle: handle,
                     id: "\(prefix).loadError",
-                    onRetry: { model.rereadSuggestions(at: level) }
+                    onRetry: { model.rereadSuggestions() }
                 )
                 .accessibilityIdentifier("\(prefix).loadError")
             case .loaded:
@@ -129,7 +107,7 @@ struct SourceTypeSuggestionList: View {
             cornerRadius: PVRadius.sm,
             padding: PVSpacing.space6
         ) {
-            Text(copy.emptyBody)
+            Text(L10n.SourceTypes.suggestedEmpty)
                 .font(PVFont.body(size: PVTypeScale.bodySmall))
                 .foregroundStyle(PVColor.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,10 +142,10 @@ struct SourceTypeSuggestionList: View {
                         if !isLocked {
                             PVIconButton(
                                 .dismiss,
-                                label: model.removeLabel(for: suggestion.field, at: level),
+                                label: model.removeLabel(for: suggestion.field),
                                 size: .sm
                             ) {
-                                Task { await model.removeSuggestion(fieldID: suggestion.field.id, level: level) }
+                                Task { await model.removeSuggestion(fieldID: suggestion.field.id) }
                             }
                             .disabled(!model.canRemove)
                             .accessibilityIdentifier("\(prefix).remove.\(suggestion.field.id)")
@@ -195,7 +173,7 @@ struct SourceTypeSuggestionList: View {
     private var assignControl: some View {
         // Resolved once per render, not once per row — the row builder runs
         // for every visible option and only needs the badge's data type.
-        let pool = model.assignPool(at: level)
+        let pool = model.assignPool
         let dataTypes = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, $0.dataType) })
         return VStack(alignment: .leading, spacing: PVSpacing.space4) {
             // A small form: Return in the picker with no row highlighted reaches this submit only
@@ -203,15 +181,12 @@ struct SourceTypeSuggestionList: View {
             // field as the plus does. The combo box itself takes no key handling.
             HStack(spacing: PVSpacing.space5) {
                 PVComboBox(
-                    selection: Binding(
-                        get: { model.assignPicks[level] ?? "" },
-                        set: { model.assignPicks[level] = $0 }
-                    ),
+                    selection: $model.assignPick,
                     options: poolOptions(pool),
                     placeholder: L10n.SourceTypes.assignPlaceholder,
                     emptyLabel: L10n.SourceTypes.assignNoMatch,
                     maxListHeight: Self.assignListMaxHeight,
-                    label: copy.pickerLabel,
+                    label: L10n.SourceTypes.suggestedPickerLabel,
                     accessibilityIdentifierPrefix: "\(prefix).pool",
                     focus: PVFieldFocus($focus, equals: .picker)
                 ) { option, query in
@@ -220,19 +195,19 @@ struct SourceTypeSuggestionList: View {
                 .disabled(pool.isEmpty || model.suggestionWrite != nil)
                 PVIconButton(
                     .plus,
-                    label: model.assignTooltip(at: level),
-                    accessibilityLabel: model.assignAccessibilityLabel(at: level)
+                    label: model.assignTooltip,
+                    accessibilityLabel: model.assignAccessibilityLabel
                 ) {
-                    Task { await model.assignPickedField(at: level) }
+                    Task { await model.assignPickedField() }
                 }
-                .disabled(!model.canAssign(at: level))
+                .disabled(!model.canAssign)
                 .accessibilityIdentifier("\(prefix).assign")
             }
             .onSubmit { Task { await submitPick() } }
             .onChange(of: model.suggestionWrite) { _, write in
                 guard write == nil, refocusPending else { return }
                 refocusPending = false
-                if !model.assignPool(at: level).isEmpty { focus = .picker }
+                if !model.assignPool.isEmpty { focus = .picker }
             }
             if pool.isEmpty {
                 Text(L10n.SourceTypes.poolHintEmpty)
@@ -246,9 +221,9 @@ struct SourceTypeSuggestionList: View {
     /// Return in the picker: adds the picked field when there is one. The write disables the
     /// picker, which drops focus; `onChange` of the write returns it once the picker is enabled.
     private func submitPick() async {
-        guard model.canAssign(at: level) else { return }
+        guard model.canAssign else { return }
         refocusPending = true
-        await model.assignPickedField(at: level)
+        await model.assignPickedField()
     }
 
     /// The board's `max-height` for the assign list.

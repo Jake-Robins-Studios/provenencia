@@ -726,7 +726,7 @@ private struct PVComboBoxPreview: View {
                 ],
                 placeholder: L10n.SourceTypes.assignPlaceholder,
                 emptyLabel: L10n.SourceTypes.assignNoMatch,
-                label: L10n.SourceTypes.level(.source).pickerLabel
+                label: L10n.SourceTypes.suggestedPickerLabel
             )
             // Remote results mid-search: the list shows the searching line.
             PVComboBox(
@@ -734,7 +734,7 @@ private struct PVComboBoxPreview: View {
                 options: [],
                 placeholder: L10n.SourceTypes.assignPlaceholder,
                 emptyLabel: L10n.SourceTypes.assignNoMatch,
-                label: L10n.SourceTypes.level(.source).pickerLabel,
+                label: L10n.SourceTypes.suggestedPickerLabel,
                 onQueryChange: { _ in },
                 isLoading: true
             ) { option, query in

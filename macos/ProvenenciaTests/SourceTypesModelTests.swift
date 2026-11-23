@@ -18,7 +18,7 @@ struct SourceTypesModelTests {
     ) -> (SourceTypesModel, WorkspaceSession) {
         store.sourceTypesByProject[projectDir] = types
         store.fieldsByProject[projectDir] = fields
-        store.suggestionsByLevel[.source] = suggestions
+        store.suggestionsByType = suggestions
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         let model = SourceTypesModel(
             session: session,

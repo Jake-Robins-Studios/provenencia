@@ -95,7 +95,7 @@ private struct SourceTypesContent: View {
         CatalogSourceType(id: "t4", key: "family-scrapbook", origin: "user", label: "Family scrapbook", description: "Nan's albums.", usedBy: 3),
         CatalogSourceType(id: "t5", key: "grave-memorial", origin: "plugin:findagrave", label: "Grave memorial", description: "A memorial page.", usedBy: 5),
     ]
-    store.suggestionsByLevel[.source] = ["t2": [
+    store.suggestionsByType = ["t2": [
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![0], sortOrder: 0),
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![2], sortOrder: 1),
         CatalogTypeSuggestion(field: store.fieldsByProject[projectDir]![1], sortOrder: 2),

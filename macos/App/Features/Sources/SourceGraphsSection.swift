@@ -68,13 +68,13 @@ final class SourceGraphsSection {
         return L10n.string(L10n.Sources.addEvidenceGraphNeedsArtifact)
     }
 
-    /// Opens the Add form, its metadata board starting as the Source type's `graph` suggestions,
-    /// empty. Answers the form, or nil when none opened: one is open or opening, or the
-    /// suggestion read failed (the page banner shows the message).
+    /// Opens the Add form, its metadata board starting as the draft board (the Source type's
+    /// suggestions, empty). Answers the form, or nil when none opened: one is open or opening, or
+    /// the draft board read failed (the page banner shows the message).
     @discardableResult
     func openAdd() async -> SourceGraphFormModel? {
-        guard canAdd, let suggestions = await context.readSuggestionsForAdd(level: .graph) else { return nil }
-        let model = SourceGraphFormModel(context: context, mode: .create(suggestions: suggestions))
+        guard canAdd, let entries = await context.readDraftBoardForAdd(level: .graph) else { return nil }
+        let model = SourceGraphFormModel(context: context, mode: .create(entries: entries))
         form = model
         return model
     }

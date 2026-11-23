@@ -260,8 +260,8 @@ func GetMetadataBoard(in []byte) ([]byte, error) {
 }
 
 // GetDraftMetadataBoard reads the board a new Artifact or graph starts with on a
-// Source: the type's suggestions at the level, empty, then the fields its
-// citation formats head, each with its requirement. A Source that does not
+// Source: the type's suggestions, empty, then the fields its citation formats
+// head at the level, each with its requirement. A Source that does not
 // exist, or a level other than artifact or graph, is sourcemetadata.invalid.
 func GetDraftMetadataBoard(in []byte) ([]byte, error) {
 	var req engine.GetDraftMetadataBoardRequest

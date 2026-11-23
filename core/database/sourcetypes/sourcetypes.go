@@ -67,9 +67,8 @@ const (
 	// sqlInsert is the one insert of a new type with its citation formats.
 	sqlInsert = `INSERT INTO source_types (id, key, origin, label, description, icon_key, citation_full, citation_short, citation_list)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	// sqlSuggestedFields counts the fields a type suggests at all three
-	// levels (a field at two levels counts twice); the type id follows it. It
-	// is the one place the rule for which suggestions count lives.
+	// sqlSuggestedFields counts the fields a type suggests, each once;
+	// the type id follows it. It is the one place the rule for which suggestions count lives.
 	sqlSuggestedFields = `SELECT COUNT(*) FROM source_type_metadata_fields j WHERE j.source_type_id = `
 	sqlUpdate          = `UPDATE source_types SET label = ?, description = ?, icon_key = ? WHERE id = ?`
 	sqlDelete          = `DELETE FROM source_types WHERE id = ?`
@@ -87,8 +86,8 @@ type Type struct {
 	// UsedBy is how many sources reference this type. Only List and
 	// Update populate it; the other readers leave it 0.
 	UsedBy int
-	// SuggestedFields is how many fields this type suggests at all three
-	// levels. Only List and Update populate it; the other readers leave it 0.
+	// SuggestedFields is how many fields this type suggests, each once.
+	// Only List and Update populate it; the other readers leave it 0.
 	SuggestedFields int
 }
 
@@ -399,8 +398,8 @@ func GetByID(c *database.Catalog, id []byte) (Type, error) {
 	return scanType(db.QueryRow(sqlGetByID, id))
 }
 
-// SuggestedFields reports how many fields the type suggests at all three
-// levels, the number List returns in Type.SuggestedFields.
+// SuggestedFields reports how many fields the type suggests, each once,
+// the number List returns in Type.SuggestedFields.
 func SuggestedFields(c *database.Catalog, typeID []byte) (int, error) {
 	db, err := c.DB()
 	if err != nil {

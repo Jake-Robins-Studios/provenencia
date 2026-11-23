@@ -133,7 +133,8 @@ struct PlaceRegistry: Sendable {
                 return [
                     .sourceTypesList(project: project),
                     .metadataFieldsList(project: project),
-                ] + CatalogQueryKey.typeSuggestionsKeys(project: project, typeId: typeId)
+                    .typeSuggestions(project: project, typeId: typeId),
+                ]
             },
             viewIdentity: { $0.typeId }
         ),

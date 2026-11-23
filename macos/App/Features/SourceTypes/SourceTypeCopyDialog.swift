@@ -113,32 +113,17 @@ private struct SourceTypeCopyForm: View {
                 isDisabled: model.isSaving
             )
             .accessibilityIdentifier("sourceTypes.copy.formats")
-            ForEach(Level.metadataLevels, id: \.self) { level in
-                PVCopyPartTick(
-                    label: L10n.SourceTypes.level(level).copyTick,
-                    hint: model.levelHint(level),
-                    absentHint: absentHint,
-                    isChecked: levelBinding(level),
-                    isAvailable: model.levelAvailable(level),
-                    isDisabled: model.isSaving
-                )
-                .accessibilityIdentifier("sourceTypes.copy.\(level.rawValue)")
-            }
+            PVCopyPartTick(
+                label: L10n.SourceTypes.copySuggestions,
+                hint: model.suggestionsHint,
+                absentHint: absentHint,
+                isChecked: $model.choices.includeSuggestions,
+                isAvailable: model.suggestionsAvailable,
+                isDisabled: model.isSaving
+            )
+            .accessibilityIdentifier("sourceTypes.copy.suggestions")
         }
     }
 
     private var absentHint: String { L10n.string(L10n.SourceTypes.copyPartAbsent) }
-
-    private func levelBinding(_ level: Level) -> Binding<Bool> {
-        Binding(
-            get: { model.choices.includedLevels.contains(level) },
-            set: { isOn in
-                if isOn {
-                    model.choices.includedLevels.insert(level)
-                } else {
-                    model.choices.includedLevels.remove(level)
-                }
-            }
-        )
-    }
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcevocab"
-	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"google.golang.org/protobuf/proto"
 )
@@ -138,10 +137,6 @@ func CopySourceType(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	levels := make([]vocabkey.Level, len(req.GetLevels()))
-	for i, level := range req.GetLevels() {
-		levels[i] = vocabkey.Level(level)
-	}
 	var out *engine.CopySourceTypeResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		got, wrote, err := writes.Run(c, writes.Op{Action: "copy_source_type", UserID: userID},
@@ -152,7 +147,7 @@ func CopySourceType(in []byte) ([]byte, error) {
 					Icon:        req.GetCopyIcon(),
 					Description: req.GetCopyDescription(),
 					Formats:     req.GetCopyFormats(),
-					Levels:      levels,
+					Suggestions: req.GetCopySuggestions(),
 				})
 			})
 		if err != nil {
@@ -253,7 +248,7 @@ func ListTypeSuggestions(in []byte) ([]byte, error) {
 	}
 	var out *engine.ListTypeSuggestionsResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		suggestions, err := suggestionsProto(c, typeID, vocabkey.Level(req.GetLevel()))
+		suggestions, err := suggestionsProto(c, typeID)
 		if err != nil {
 			return err
 		}
@@ -277,11 +272,10 @@ func AssignTypeField(in []byte) ([]byte, error) {
 	}
 	var out *engine.AssignTypeFieldResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		level := vocabkey.Level(req.GetLevel())
-		if err := sourcevocab.AppendSuggestion(c, typeID, fieldID, level); err != nil {
+		if err := sourcevocab.AppendSuggestion(c, typeID, fieldID); err != nil {
 			return err
 		}
-		suggestions, err := suggestionsProto(c, typeID, level)
+		suggestions, err := suggestionsProto(c, typeID)
 		if err != nil {
 			return err
 		}
@@ -309,11 +303,10 @@ func RemoveTypeField(in []byte) ([]byte, error) {
 	}
 	var out *engine.RemoveTypeFieldResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		level := vocabkey.Level(req.GetLevel())
-		if err := sourcevocab.DeleteSuggestion(c, typeID, fieldID, level); err != nil {
+		if err := sourcevocab.DeleteSuggestion(c, typeID, fieldID); err != nil {
 			return err
 		}
-		suggestions, err := suggestionsProto(c, typeID, level)
+		suggestions, err := suggestionsProto(c, typeID)
 		if err != nil {
 			return err
 		}
@@ -344,8 +337,8 @@ func parseSuggestionJoin(typeID, fieldID string) ([]byte, []byte, error) {
 	return tid, fid, nil
 }
 
-func suggestionsProto(c *database.Catalog, typeID []byte, level vocabkey.Level) ([]*engine.TypeSuggestion, error) {
-	rows, err := sourcevocab.ListSuggestions(c, typeID, level)
+func suggestionsProto(c *database.Catalog, typeID []byte) ([]*engine.TypeSuggestion, error) {
+	rows, err := sourcevocab.ListSuggestions(c, typeID)
 	if err != nil {
 		return nil, err
 	}

@@ -94,7 +94,7 @@ struct CopySourceTypeCall: Equatable, Sendable {
     var copyIcon: Bool
     var copyDescription: Bool
     var copyFormats: Bool
-    var levels: [Level]
+    var copySuggestions: Bool
 }
 
 /// One `FakeStore.updateSourceType` call's arguments, for tests to assert on.
@@ -206,9 +206,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The Identity Claim Promote wrote per Subject id.
     var claimBySubject: [String: CatalogIdentityClaim] = [:]
     var subjectPositionsBySubject: [String: CatalogSubjectPosition] = [:]
-    /// Type↔field suggestion joins per level, then by source type id, held in
-    /// the order they were assigned — the engine's `sort_order`.
-    var suggestionsByLevel: [Level: [String: [CatalogTypeSuggestion]]] = [:]
+    /// Type↔field suggestion joins by source type id, held in the order they
+    /// were assigned — the engine's `sort_order`. One list per type.
+    var suggestionsByType: [String: [CatalogTypeSuggestion]] = [:]
     /// The count the engine would report for a type, scripted per type id. The rule behind it
     /// lives in Go, so the fake does not derive it from the lists: a type with no entry reports 0,
     /// and a test that checks a count seeds it.
@@ -278,20 +278,25 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// The id the next `createEvidenceGraph` gives the new graph (then cleared), so a test can
     /// script `metadataWriteResults` for its reply rows.
     var nextEvidenceGraphID: String?
-    /// When set, `listTypeSuggestions` throws it, at the levels in `listTypeSuggestionsErrorLevels`.
+    /// When set, `listTypeSuggestions` throws it, on every call.
     var listTypeSuggestionsError: Error?
-    /// The levels `listTypeSuggestionsError` applies to; nil means every level.
-    var listTypeSuggestionsErrorLevels: Set<Level>?
-    /// When set, `assignTypeField` throws it before writing, at every level.
+    /// When set, `assignTypeField` throws it before writing.
     var assignTypeFieldError: Error?
-    /// When set, `removeTypeField` throws it before removing, at every level.
+    /// When set, `removeTypeField` throws it before removing.
     var removeTypeFieldError: Error?
-    /// The level of each `listTypeSuggestions` call, in order.
-    var listTypeSuggestionsLevels: [Level] = []
+    /// The type id of each `listTypeSuggestions` call, in order.
+    var listTypeSuggestionsTypeIDs: [String] = []
+    /// What `getDraftMetadataBoard` answers, keyed `"<sourceID>/<level rawValue>"`; absent is empty.
+    var draftMetadataBoardEntries: [String: [CatalogMetadataEntry]] = [:]
+    /// When set, `getDraftMetadataBoard` throws it.
+    var draftMetadataBoardError: Error?
+    /// The arguments of every `getDraftMetadataBoard` call, in order.
+    private(set) var draftMetadataBoardCalls: [(sourceID: String, level: Level)] = []
+    /// Awaited first in `getDraftMetadataBoard`, so a test can act while an Add form's read is in flight.
+    let draftMetadataBoardHold = FakeHold()
     /// While on, `updateArtifact` suspends after recording the call and before it
     /// throws or writes, so a test can act mid-save.
     let updateArtifactHold = FakeHold()
-    let listTypeSuggestionsHold = FakeHold()
     /// Suspends `updateSourceType` while on, so a test can look at the page mid-Save.
     let updateSourceTypeHold = FakeHold()
     /// Suspends `assignTypeField` before it writes while on, so a test can look at the page mid-add.
@@ -625,6 +630,17 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 .filter { sourceIDs.isEmpty || sourceIDs.contains($0.id) }
                 .sorted { $0.id > $1.id }
             return rows.map { enrichCoverFields($0) }
+        }
+    }
+
+    func getDraftMetadataBoard(projectDir _: String, sourceID: String, level: Level) async throws
+        -> [CatalogMetadataEntry]
+    {
+        await draftMetadataBoardHold.wait()
+        return try withState {
+            draftMetadataBoardCalls.append((sourceID: sourceID, level: level))
+            if let draftMetadataBoardError { throw draftMetadataBoardError }
+            return draftMetadataBoardEntries["\(sourceID)/\(level.rawValue)"] ?? []
         }
     }
 
@@ -1402,7 +1418,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         copyIcon: Bool,
         copyDescription: Bool,
         copyFormats: Bool,
-        levels: [Level]
+        copySuggestions: Bool
     ) async throws -> (CatalogSourceType, CatalogWriteEffects) {
         return try withState {
             copySourceTypeCalls.append(CopySourceTypeCall(
@@ -1413,7 +1429,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
                 copyIcon: copyIcon,
                 copyDescription: copyDescription,
                 copyFormats: copyFormats,
-                levels: levels
+                copySuggestions: copySuggestions
             ))
             if let copySourceTypeError { throw copySourceTypeError }
             guard let copySourceTypeResult else { throw StoreBoom.boom }
@@ -1532,48 +1548,37 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
             list.remove(at: idx)
             sourceTypesByProject[projectDir] = list
             // Suggestion joins cascade; the fields they named do not.
-            for level in suggestionsByLevel.keys {
-                suggestionsByLevel[level]?[typeID] = nil
-            }
+            suggestionsByType[typeID] = nil
             return nextWriteEffects
         }
     }
 
-    func listTypeSuggestions(projectDir _: String, typeID: String, level: Level) async throws
+    func listTypeSuggestions(projectDir _: String, typeID: String) async throws
         -> [CatalogTypeSuggestion]
     {
-        await listTypeSuggestionsHold.wait()
         return try withState {
-            listTypeSuggestionsLevels.append(level)
-            if let listTypeSuggestionsError,
-               listTypeSuggestionsErrorLevels.map({ $0.contains(level) }) ?? true
-            {
-                throw listTypeSuggestionsError
-            }
-            // The engine refuses a level that holds no metadata.
-            guard level.holdsMetadata else { throw StoreBoom.boom }
-            return suggestionsByLevel[level]?[typeID] ?? []
+            listTypeSuggestionsTypeIDs.append(typeID)
+            if let listTypeSuggestionsError { throw listTypeSuggestionsError }
+            return suggestionsByType[typeID] ?? []
         }
     }
 
     func assignTypeField(
         projectDir: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit {
         await assignTypeFieldHold.wait()
         return try withState {
             if let assignTypeFieldError { throw assignTypeFieldError }
-            guard level.holdsMetadata else { throw StoreBoom.boom }
             guard let field = (fieldsByProject[projectDir] ?? []).first(where: { $0.id == fieldID }) else {
                 throw StoreBoom.boom
             }
-            var list = suggestionsByLevel[level]?[typeID] ?? []
+            var list = suggestionsByType[typeID] ?? []
             // Assigning a field the type already suggests leaves its place alone.
             if !list.contains(where: { $0.field.id == fieldID }) {
                 list.append(CatalogTypeSuggestion(field: field, sortOrder: (list.last?.sortOrder ?? -1) + 1))
-                suggestionsByLevel[level, default: [:]][typeID] = list
+                suggestionsByType[typeID] = list
             }
             return CatalogTypeSuggestionEdit(
                 suggestions: list, suggestedFieldCount: suggestedFieldCount(typeID: typeID)
@@ -1584,14 +1589,12 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     func removeTypeField(
         projectDir _: String,
         typeID: String,
-        fieldID: String,
-        level: Level
+        fieldID: String
     ) async throws -> CatalogTypeSuggestionEdit {
         return try withState {
             if let removeTypeFieldError { throw removeTypeFieldError }
-            guard level.holdsMetadata else { throw StoreBoom.boom }
-            let list = (suggestionsByLevel[level]?[typeID] ?? []).filter { $0.field.id != fieldID }
-            suggestionsByLevel[level, default: [:]][typeID] = list
+            let list = (suggestionsByType[typeID] ?? []).filter { $0.field.id != fieldID }
+            suggestionsByType[typeID] = list
             return CatalogTypeSuggestionEdit(
                 suggestions: list, suggestedFieldCount: suggestedFieldCount(typeID: typeID)
             )

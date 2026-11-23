@@ -229,7 +229,7 @@ func TestDelete(t *testing.T) {
 					t.Fatal(err)
 				}
 				if _, err := db.Exec(
-					`INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order) VALUES (?, ?, 'source', 0)`,
+					`INSERT INTO source_type_metadata_fields (source_type_id, field_id, sort_order) VALUES (?, ?, 0)`,
 					id, fieldID,
 				); err != nil {
 					t.Fatal(err)
@@ -563,7 +563,7 @@ func TestCreateUpdateGetByID(t *testing.T) {
 			},
 		},
 		{
-			name: "list counts the fields a type suggests at every level",
+			name: "list counts each suggested field once",
 			run: func(t *testing.T, c *database.Catalog) {
 				typeID, err := upsert(c, Type{Key: "book", Origin: vocabkey.OriginUser, Label: "Book"})
 				if err != nil {
@@ -572,11 +572,15 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				if _, err := upsert(c, Type{Key: "letter", Origin: vocabkey.OriginUser, Label: "Letter"}); err != nil {
 					t.Fatal(err)
 				}
-				fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
-					Key: "author", Origin: vocabkey.OriginUser, Label: "Author", DataType: metadatafields.DataTypeText,
-				})
-				if err != nil {
-					t.Fatal(err)
+				var fieldIDs [][]byte
+				for _, key := range []string{"author", "publisher"} {
+					fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{
+						Key: key, Origin: vocabkey.OriginUser, Label: key, DataType: metadatafields.DataTypeText,
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+					fieldIDs = append(fieldIDs, fieldID)
 				}
 				// The join belongs to sourcevocab, which imports this
 				// package — insert the row directly to avoid the cycle.
@@ -584,10 +588,10 @@ func TestCreateUpdateGetByID(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				for _, level := range []string{"source", "graph"} {
+				for i, fieldID := range fieldIDs {
 					if _, err := db.Exec(
-						`INSERT INTO source_type_metadata_fields (source_type_id, field_id, level, sort_order) VALUES (?, ?, ?, 0)`,
-						typeID, fieldID, level,
+						`INSERT INTO source_type_metadata_fields (source_type_id, field_id, sort_order) VALUES (?, ?, ?)`,
+						typeID, fieldID, i,
 					); err != nil {
 						t.Fatal(err)
 					}

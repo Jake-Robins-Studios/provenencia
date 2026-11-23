@@ -9,7 +9,7 @@ struct SourceTypeCopyChoices: Equatable {
     var includeIcon = true
     var includeDescription = true
     var includeFormats = true
-    var includedLevels: Set<Level> = Set(Level.metadataLevels)
+    var includeSuggestions = true
 }
 
 /// State of the Copy type sheet: the new type's Label, which parts the original has, what the
@@ -45,9 +45,6 @@ final class SourceTypeCopyModel {
         self.session = session
         self.userID = userID
         self.store = store
-        for key in CatalogQueryKey.typeSuggestionsKeys(project: session.projectKey, typeId: original.id) {
-            let _: QueryHandle<[CatalogTypeSuggestion]> = session.query(key)
-        }
         prefill = SourceTypeCopyChoices()
     }
 
@@ -67,28 +64,11 @@ final class SourceTypeCopyModel {
         }
     }
 
-    /// The first failed read in the order formats, Source, Artifact, Evidence graph; else loading
-    /// while any read is; else ready. A value wins: a failed refetch of a list keeps the stale
-    /// list and stays ready.
-    var loadState: PVFormLoadState {
-        PVFormLoadState.combining(
-            [formatsState] + Level.metadataLevels.map { suggestionsHandle(at: $0)?.read.formLoadState ?? .loading }
-        )
-    }
+    /// The formats' read, the sheet's only one: the count of suggested fields is the type row's.
+    var loadState: PVFormLoadState { formatsState }
 
-    private func suggestionsKey(at level: Level) -> CatalogQueryKey {
-        .typeSuggestions(project: session.projectKey, typeId: original.id, level: level)
-    }
-
-    private func suggestionsHandle(at level: Level) -> QueryHandle<[CatalogTypeSuggestion]>? {
-        session.queryHandle(suggestionsKey(at: level))
-    }
-
-    /// Reads again what failed: each failed list, and the formats.
+    /// Reads the formats again after a failure.
     func reload() {
-        for level in Level.metadataLevels where suggestionsHandle(at: level)?.read.isFailed == true {
-            let _: QueryHandle<[CatalogTypeSuggestion]> = session.reread(suggestionsKey(at: level))
-        }
         if case .failed = formatsState {
             formatsState = .loading
             Task { await loadFormats() }
@@ -118,20 +98,13 @@ final class SourceTypeCopyModel {
         ListFormatter.localizedString(byJoining: formsPresent.map { L10n.string(L10n.CitationForms.name($0)) })
     }
 
-    /// How many fields the original suggests at the level; 0 until it is read.
-    func suggestionCount(at level: Level) -> Int {
-        suggestionsHandle(at: level)?.value?.count ?? 0
-    }
+    /// How many fields the original suggests: the engine's count, as the types list shows it.
+    var suggestionCount: Int { original.suggestedFieldCount }
 
-    func levelAvailable(_ level: Level) -> Bool { suggestionCount(at: level) > 0 }
+    var suggestionsAvailable: Bool { suggestionCount > 0 }
 
-    func levelHint(_ level: Level) -> String {
-        L10n.SourceTypes.assignedCount(count: suggestionCount(at: level))
-    }
-
-    /// The levels ticked and present, in `Level.metadataLevels` order.
-    var levelsToCopy: [Level] {
-        Level.metadataLevels.filter { choices.includedLevels.contains($0) && levelAvailable($0) }
+    var suggestionsHint: String {
+        L10n.SourceTypes.assignedCount(count: suggestionCount)
     }
 
     // MARK: Actions
@@ -165,7 +138,7 @@ final class SourceTypeCopyModel {
                 copyIcon: choices.includeIcon,
                 copyDescription: choices.includeDescription && descriptionAvailable,
                 copyFormats: choices.includeFormats && formatsAvailable,
-                levels: levelsToCopy
+                copySuggestions: choices.includeSuggestions && suggestionsAvailable
             )
             session.apply(effects, .createdSourceType(created))
             return created

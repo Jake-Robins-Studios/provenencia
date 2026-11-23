@@ -489,7 +489,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 						t.Fatalf("board %d is for %s, want the Artifact at that index, %s", i, board.GetOwnerId(), resp.Artifacts[i].GetId())
 					}
 					if len(withoutFormatRows(board.GetEntries())) != 1 || !board.GetEntries()[0].GetSuggested() {
-						t.Fatalf("board %d = %+v, want the artifact-level suggestion only", i, board)
+						t.Fatalf("board %d = %+v, want the type's one suggestion only", i, board)
 					}
 					entry := board.GetEntries()[0]
 					if holds := board.GetOwnerId() == artifactBoardOwner; entry.GetHasValue() != holds || (holds && entry.GetValueText() != "FamilySearch") {
@@ -507,7 +507,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 				sourceType := ws.GetSource().GetSourceTypeId()
 				second := newUserField(t, m.dir, m.userID, "Dwelling")
 				mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
-					ProjectDir: m.dir, TypeId: sourceType, FieldId: second, Level: "graph",
+					ProjectDir: m.dir, TypeId: sourceType, FieldId: second,
 				}, &engine.AssignTypeFieldResponse{})
 				m.createGraph(t, "Jones", m.page1)
 				m.createGraph(t, "Smith", m.page2)
@@ -536,7 +536,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 						t.Fatalf("board %d is for %s, want the graph at that index, %s", i, board.GetOwnerId(), listed.GetGraphs()[i].GetId())
 					}
 					if len(withoutFormatRows(board.GetEntries())) != 2 {
-						t.Fatalf("board %d = %+v, want both graph-level suggestions", i, board)
+						t.Fatalf("board %d = %+v, want both of the type's suggestions", i, board)
 					}
 					entry := metadataByField(board.GetEntries(), graphBoardSuggested)
 					if holds := board.GetOwnerId() == graphBoardOwner; entry == nil || entry.GetHasValue() != holds || (holds && entry.GetValueText() != "FamilySearch") {
@@ -981,7 +981,7 @@ func metadataSuggestionFixture(t *testing.T) (dir, userID, typeID, sourceID, fie
 	}
 	sourceID = created.Source.Id
 	sout, err := ListTypeSuggestions(marshalProto(t, &engine.ListTypeSuggestionsRequest{
-		ProjectDir: dir, TypeId: typeID, Level: "source",
+		ProjectDir: dir, TypeId: typeID,
 	}))
 	if err != nil {
 		t.Fatal(err)
