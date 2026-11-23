@@ -99,10 +99,45 @@ enum PVPageKeys {
         }
     }
 
+    /// Whether `visible` (the clip view's bounds) shows the document's top or
+    /// bottom edge, within half a point.
+    static func edgeReached(visible: CGRect, document: CGRect, flipped: Bool, top: Bool) -> Bool {
+        let atMin = flipped == top
+        return atMin ? visible.minY <= document.minY + 0.5 : visible.maxY >= document.maxY - 0.5
+    }
+
+    /// Most scroll passes one Home or End makes.
+    private static let edgePasses = 10
+    @MainActor private static var generation = 0
+
+    /// Scrolls to the edge, then re-checks on later main-actor turns: a lazy
+    /// page's height is an estimate until its rows are built, so the first
+    /// scroll can stop short. A newer call makes an older chain stop.
     @MainActor static func scrollToEdge(_ scrollView: NSScrollView?, top: Bool) {
-        guard let doc = scrollView?.documentView else { return }
+        generation += 1
+        settle(scrollView, top: top, generation: generation, passesLeft: edgePasses)
+    }
+
+    @MainActor private static func settle(
+        _ scrollView: NSScrollView?, top: Bool, generation gen: Int, passesLeft: Int
+    ) {
+        guard gen == generation, let scrollView, let doc = scrollView.documentView else { return }
+        scrollView.layoutSubtreeIfNeeded()
+        if passesLeft < edgePasses,
+            edgeReached(
+                visible: scrollView.contentView.bounds, document: doc.bounds,
+                flipped: doc.isFlipped, top: top)
+        {
+            return
+        }
         let y: CGFloat = doc.isFlipped == top ? 0 : doc.bounds.height - 1
         doc.scrollToVisible(NSRect(x: 0, y: y, width: 1, height: 1))
+        guard passesLeft > 1 else { return }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                settle(scrollView, top: top, generation: gen, passesLeft: passesLeft - 1)
+            }
+        }
     }
 }
 
