@@ -129,6 +129,7 @@ struct PVListTests {
 
     private struct WheelRow: Identifiable { let id: String }
 
+    @MainActor
     private func firstScrollView(in view: NSView) -> NSScrollView? {
         if let scroll = view as? NSScrollView { return scroll }
         return view.subviews.lazy.compactMap { firstScrollView(in: $0) }.first
@@ -142,7 +143,7 @@ struct PVListTests {
             items: rows,
             selection: .constant(nil),
             thumbnail: { _ in Color.red },
-            label: "Persons",
+            label: LocalizedStringResource(stringLiteral: "Persons"),
             itemAccessibilityLabel: { $0.id },
             onActivate: { _ in },
             primary: { Text(verbatim: $0.id) },
