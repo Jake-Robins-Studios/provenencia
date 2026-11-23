@@ -48,7 +48,8 @@ final class WorkspaceNavigation {
     /// The visible list's anchor row: its top row on Sources and Source types, its selected row on the
     /// Conclusion lists (the list draws it selected). Stamped onto the outgoing entry on the next Back,
     /// Forward, jump, or `go(to:)`; `apply` sets it to the entry's anchor on every commit. Scrolling and
-    /// selecting do not write the history file. Only the Conclusion list body reads it.
+    /// selecting do not write the history file. Its view readers are the Conclusion list and
+    /// `ListSelectionAnchorModifier`.
     private(set) var listAnchor: String?
 
     init(selectedSection: WorkspaceSection = .sources) {
@@ -283,6 +284,7 @@ struct ListSelectionAnchorModifier: ViewModifier {
         content
             .onChange(of: isSettled, initial: true) { _, _ in clearIfGone() }
             .onChange(of: rowIDs) { _, _ in clearIfGone() }
+            .onChange(of: navigation.listAnchor) { _, _ in clearIfGone() }
     }
 
     private func clearIfGone() {
