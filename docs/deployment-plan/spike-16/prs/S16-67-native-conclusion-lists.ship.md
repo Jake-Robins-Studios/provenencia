@@ -110,4 +110,4 @@ F-8 (`734baf455`), F-9 (`14615f755`, test red first), F-10 and Landed note done;
 PRF-1: the reviewer's fix is applied; what remains (57 ms in the probe) is the platform list. Held ↓ in the app is the user's check (§10 step 3).
 
 ## Result
-Gate PASS · CI see PR · open: none · to user: UX-2, MNT-2, PRF-1's selection-scroll part (D-7), the wheel step's feel · follow-up (home asked): CON-2's scroll to the top on a jump between two entries of one list
+Gate PASS · CI green · open: none · dropped by the user (2026-11-23): UX-2 (edge case), MNT-2, PRF-1's selection-scroll part (D-7) · with the user: the wheel step's feel · follow-up (home asked): CON-2's scroll to the top on a jump between two entries of one list
