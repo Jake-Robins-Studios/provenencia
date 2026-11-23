@@ -25,20 +25,32 @@ struct PVListTests {
         #expect(PVListKeyboard.moveIndex(for: .end, option: false, index: 0, count: 16_000) == 15_999)
     }
 
+    /// The color as drawn under `scheme`, as sRGB components.
+    @MainActor
+    private func drawn(_ color: Color, in scheme: ColorScheme) -> [CGFloat] {
+        var components: [CGFloat] = []
+        let appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)!
+        appearance.performAsCurrentDrawingAppearance {
+            let ns = NSColor(color).usingColorSpace(.sRGB)!
+            components = [ns.redComponent, ns.greenComponent, ns.blueComponent, ns.alphaComponent]
+        }
+        return components
+    }
+
+    @MainActor
     @Test func onSelectionInkIsTheSystemsOnlyWhenProminent() {
         for scheme in [ColorScheme.light, .dark] {
             var selected = EnvironmentValues()
-            selected.colorScheme = scheme
             selected.backgroundProminence = .increased
-            var resting = selected
+            var resting = EnvironmentValues()
             resting.backgroundProminence = .standard
 
             let style = PVColor.onSelection(PVColor.textMuted)
             #expect(
-                style.resolve(in: selected).resolve(in: selected)
-                    == Color(nsColor: .alternateSelectedControlTextColor).resolve(in: selected)
+                drawn(style.resolve(in: selected), in: scheme)
+                    == drawn(Color(nsColor: .alternateSelectedControlTextColor), in: scheme)
             )
-            #expect(style.resolve(in: resting).resolve(in: resting) == PVColor.textMuted.resolve(in: resting))
+            #expect(drawn(style.resolve(in: resting), in: scheme) == drawn(PVColor.textMuted, in: scheme))
         }
     }
 
