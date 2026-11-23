@@ -863,7 +863,7 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 		return nil, err
 	}
 	k := typeLevel{string(src.SourceTypeID), level}
-	needs, suggestionsOf, err := readTypeBoards(tx, []typeLevel{k})
+	needs, suggestionsOf, err := readTypeNeedsAndSuggestions(tx, []typeLevel{k})
 	if err != nil {
 		return nil, err
 	}
@@ -893,11 +893,11 @@ type typeLevel struct {
 	level  vocabkey.Level
 }
 
-// readTypeBoards reads the formats' requirements of every distinct type once,
+// readTypeNeedsAndSuggestions reads the formats' requirements of every distinct type once,
 // the needs of each distinct (type, level), and the suggestions of every
 // distinct type in one read: a type's one list is every board's suggestions at
 // every level, keyed by string(type id), a type with none absent.
-func readTypeBoards(tx *sql.Tx, keys []typeLevel) (map[typeLevel]levelNeeds, map[string][]sourcevocab.Suggestion, error) {
+func readTypeNeedsAndSuggestions(tx *sql.Tx, keys []typeLevel) (map[typeLevel]levelNeeds, map[string][]sourcevocab.Suggestion, error) {
 	var typeIDs [][]byte
 	seenType := make(map[string]struct{}, len(keys))
 	for _, k := range keys {
@@ -926,9 +926,8 @@ func readTypeBoards(tx *sql.Tx, keys []typeLevel) (map[typeLevel]levelNeeds, map
 // listWorkspaces is ListWorkspace over many owners, keyed by Owner.key: each
 // level's types and Sources in one query, the suggestions once per distinct
 // type, the formats' requirements and their heads once per distinct
-// (type, level), the values of
-// the owners and of their Sources, the layout, each distinct Source, and every
-// field a board names in one read each.
+// (type, level), the values of the owners and of their Sources, the layout,
+// each distinct Source, and every field a board names in one read each.
 func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	var uniq []Owner
 	seenOwner := make(map[string]struct{}, len(owners))
@@ -964,7 +963,7 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		}
 		keys = append(keys, typeLevel{string(typeID), o.Level})
 	}
-	needsOf, suggestionsOf, err := readTypeBoards(tx, keys)
+	needsOf, suggestionsOf, err := readTypeNeedsAndSuggestions(tx, keys)
 	if err != nil {
 		return nil, err
 	}
