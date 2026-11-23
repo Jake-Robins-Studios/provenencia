@@ -4,16 +4,16 @@
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S15-D33](../design/S15-D33-inherited-values.md), board not drawn yet
-**Board:** — (filled when the board is agreed; the plan's § 6 macOS and Strings follow it)
+**Board:** — (filled when the board is agreed; D-12, § 6 macOS and Strings follow it)
 **Depends on:** S15-63 (landed [#955](https://github.com/Jake-Robins-Studios/provenencia/pull/955)), S15-D33
 **Blocks:** S15-56, S15-66
 **Branch:** `s15-64-inherited-values`
-**Version bump:** minor, 0.35.0 (today's `VERSION`) → **0.36.0** (or the next minor after `main`'s `VERSION` when you rebase): every Artifact and graph board shows what it inherits, a new wire field ([`docs/versioning.md`](../../../versioning.md))
-**Skills to load:** [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md) (the Source workspace cache key)
+**Version bump:** minor, 0.35.0 (today's `VERSION`) → **0.36.0** (or the next minor after `main`'s `VERSION` when you rebase): every Artifact and graph board shows what it inherits, with new wire fields ([`docs/versioning.md`](../../../versioning.md))
+**Skills to load:** [`add-ffi-handler`](../../../../.agents/skills/add-ffi-handler/SKILL.md), [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md), [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md), [`add-swift-test`](../../../../.agents/skills/add-swift-test/SKILL.md), [`add-workspace-place`](../../../../.agents/skills/add-workspace-place/SKILL.md) (the Source workspace's refreshes)
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
-**Context:** working rules "A board shows what its owner inherits", "A format reads a field from the nearest level that holds it", "One metadata board", "Metadata saves with its owner's write", "A value can be marked unknown or supplied", "Boards flag needed fields; the engine decides the rows"; [`source-layer-data-model.md` § 5.2](../../../source-layer-data-model.md); [`catalog-caches.md`](../../../catalog-caches.md)
+**Context:** working rules "A board shows what its owner inherits", "A format reads a field from the nearest level that holds it", "One metadata board", "Metadata saves with its owner's write", "A value can be marked unknown or supplied", "Boards flag needed fields; the engine decides the rows"; [`source-layer-data-model.md` § 5.2](../../../source-layer-data-model.md); [`catalog-caches.md` § Swift caches](../../../catalog-caches.md#swift-caches)
 **Planned:** 2026-11-23 against `main` @ `3d8863a`
-**Review:** [`S15-64-inherited-values.review.md`](S15-64-inherited-values.review.md)
+**Review:** [`S15-64-inherited-values.review.md`](S15-64-inherited-values.review.md) — round 1: Fits with changes (maintainability), Not ready (executability); every finding answered, R-1 To user; blocked on the board
 
 ### Implementer — read this first
 
@@ -30,7 +30,7 @@
 
 ## 1. Objective
 
-A citation reads each field from the nearest level that holds a value (S15-62), so Provider "Ancestry" typed once on a Source serves every Artifact and Evidence graph of it. Today the Artifact sheet and the graph form show that row empty. After this PR each board entry carries the value its owner inherits, with the level and the mark it comes from; the board row shows it read only ("From Source"), typing a value saves this owner's own and overrides it, and clearing that value falls back. It shows on the Artifact sheet (edit and add) and the graph form (edit and add); the Source's own board has nothing above it.
+A citation reads each field from the nearest level that holds a value (S15-62), so Provider "Ancestry" typed once on a Source serves every Artifact and Evidence graph of it. Today the Artifact sheet and the graph form show that row empty. After this PR each board entry carries the value its owner inherits, with the level it comes from, printed as a citation prints it; the board row shows it read only ("From Source"), opening it and saving a value overrides it for this owner, and clearing that value falls back. It shows on the Artifact sheet (edit and add) and the graph form (edit and add); the Source's own board has nothing above it.
 
 **Why now.** S15-62 made formats read the nearest level and S15-63 put every suggested field on every board, so an Artifact board now lists Provider while its citation already reads the Source's. The rule "A board shows what its owner inherits" (user, 2026-11-22) closes that gap before the composer's Citation board (S15-56) reuses the same row.
 
@@ -46,83 +46,94 @@ A citation reads each field from the nearest level that holds a value (S15-62), 
 | AC-1.2 | The same, Add an Artifact on that Source | The draft board's Provider row shows "Ancestry", "From Source" (IH-7) |
 | AC-1.3 | Graph of that Source with no Provider; open the graph form (edit or add) | Provider shows "Ancestry", "From Source" (IH-7) |
 | AC-1.4 | The Source's own Metadata section | No row shows an inherited value (IH-7) |
-| AC-1.5 | Source's Publisher marked unknown (unknown text "n.p."); Place of publication "Calder County" marked supplied | The Artifact sheet's Publisher reads "n.p." in italics and Place of publication "[Calder County]" (IH-5) |
-| AC-1.6 | Source's URL "https://example.org/calder/1880" | The Artifact's URL row opens it from the inherited value (IH-6) |
-| AC-1.7 | Census Source with a Source-only extra field Column (not suggested, not read by a format) valued "4" | The Artifact board has no Column row (D-3) |
+| AC-1.5 | Book Source with Publisher marked unknown (unknown text "n.p.") and Place of publication "Calder County" marked supplied | Its Artifact's board reads Publisher "n.p." (italic) and Place of publication "[Calder County]" (IH-5) |
+| AC-1.6 | Census Source's URL "https://example.org/calder/1880" | The Artifact's URL row shows it as a link that opens it (IH-6) |
+| AC-1.7 | Census Source with an extra field Column (not suggested, not read by a format) valued "4" | The Artifact board has no Column row (D-3) |
 
 **US-2.** As a researcher, I override an inherited value for one Artifact or graph and can go back to the Source's.
 
 | AC | Given / when | Then |
 | --- | --- | --- |
-| AC-2.1 | AC-1.1's sheet; type "FamilySearch" in Provider, Save the row, Save the sheet | The Artifact stores Provider "FamilySearch"; its row is a saved row with "Overrides Source: Ancestry" (IH-2, IH-3); the Source keeps "Ancestry" |
+| AC-2.1 | AC-1.1's sheet; open Provider, type "FamilySearch", Save the row, Save the sheet | The Artifact stores Provider "FamilySearch"; its row is a saved row with "Overrides Source: Ancestry" (IH-2, IH-3); the Source keeps "Ancestry" |
 | AC-2.2 | After AC-2.1, the Artifact's citation | Reads "FamilySearch" (the S15-62 resolver; no change here) |
 | AC-2.3 | Reopen the sheet; trash Provider | The row shows "Ancestry", "From Source" again, the sheet is dirty; Save clears the Artifact's value; reopening shows the inherited row (IH-4) |
-| AC-2.4 | On the Source page, change the Source's Provider to "Calder Archives", then open the Artifact sheet of an Artifact with no Provider | The row shows "Calder Archives" (D-8) |
+| AC-2.4 | A head the formats read but the type does not suggest, valued on the Artifact and on the Source; trash it in the sheet | The row stays and shows the Source's value (D-7) |
+| AC-2.5 | On the Source page, change the Source's Provider to "Calder Archives", then open the Artifact sheet of an Artifact with no Provider | The row shows "Calder Archives" (D-9) |
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
-| Each board entry carries the nearest ancestor's row (value, mark, level) from the board's own read; no extra read (D-1, D-2) | STEP-1, STEP-2, AC-1.1 – AC-1.4 |
-| The wire entry carries it, with its link (D-4, D-5) | STEP-3, AC-1.6 |
-| Swift decodes it; the draft host keeps it across set and clear (D-6, D-7) | STEP-4, STEP-5, AC-2.3 |
-| A Source-owner board write reloads the Source workspace so cached Artifact and graph boards inherit the new value (D-8) | STEP-6, AC-2.4 |
-| The board row draws IH-1 – IH-8, IH-W1 on the Artifact sheet and the graph form (D-10) | STEP-7, AC-1.1 – AC-2.3 |
+| Each board entry carries the nearest ancestor's row from the board's own read; no extra read (D-1, D-2, D-3) | STEP-1, STEP-2, AC-1.1 – AC-1.4, AC-1.7 |
+| The engine prints the inherited value as a citation prints it (D-4) | STEP-1, AC-1.5 |
+| Each entry says whether the board keeps it with no value (D-5) | STEP-2, AC-2.4 |
+| The wire carries both (D-6) | STEP-3, AC-1.6 |
+| A Source's metadata value write reports a keyed read the Source page follows (D-9) | STEP-4, STEP-6, AC-2.5 |
+| Swift decodes the entry (D-7, D-8) and the draft host keeps a row the engine keeps (D-7) | STEP-5, AC-2.3, AC-2.4 |
+| The board row draws IH-1 – IH-8, IH-W1 on the Artifact sheet and the graph form (D-10, D-11, D-12) | STEP-7, AC-1.1 – AC-2.3 |
 | Copy (§ 6 Strings) | STEP-7 |
-| Docs: `source-layer-data-model.md` § 5.2, `catalog-caches.md`, map, completed, brief archive | STEP-9 |
+| Docs: the rule's walker name, `source-layer-data-model.md` § 5.2, `catalog-caches.md`, map, completed, brief archive | STEP-9 |
 
 | Out | Home |
 | --- | --- |
-| The composer's Citation board and a Citation's ancestors (graph, Artifact, Source) | S15-55 (the read), S15-56 (the board) |
+| The composer's Citation board and a Citation's ancestors (graph, Artifact, Source); an Artifact- or graph-level value reporting `inherited_values` | S15-55 (the read), S15-56 (the board and the read's Artifact and graph paths) |
 | Hiding inherited rows behind a control | Not planned (rule "A board shows what its owner inherits": a later choice once the boards are in use) |
 | Values below an owner (a Source's Artifacts' values on the Source's section) | Not planned (same rule) |
 | Inherited values in the Artifacts list's read-only copy details or on graph cards | Not planned (the brief's § 2.2: those show own values only) |
 | A row for a field only an ancestor holds (not suggested, not read, no own value) | Not planned (D-3) |
-| Drawing an own value's mark; the Unknown and Supplied control | S15-41 |
-| Needed and used flags on the rows | S15-39 |
+| Mapping an own value's `mark` in Swift; drawing it; the Unknown and Supplied control | S15-41 |
+| Needed and used flags on the rows (Swift reading `requirement`) | S15-39 |
 | The list-below hint and Move to Source | S15-66 |
+| `FakeStore` computing inherited values or `inherited_values` reads by itself | Not planned (tests set them, as they set `nextWriteEffects`) |
 
 ## 4. Current state
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Resolver | `core/database/sourcemetadata/annotation.go` `CitationValues.Resolve` | Walks `vocabkey.NearestFirst()` over `Rows` for a field target with no level and returns a `citationformat.Value` (text, mark, unknown text). The level that answered is lost |
+| Resolver | `core/database/sourcemetadata/annotation.go` `CitationValues.Resolve` | Walks `vocabkey.NearestFirst()` over `Rows` for a field target with no level and returns `CitationValue(row, field)`. The level that answered is lost. Its doc comment: "Resolve is the one place the levels are walked" |
 | Without | `annotation.go` `CitationValues.Without` | Copy with one level's rows and built-ins removed; boards use it as `above` |
-| Board entry | `core/database/sourcemetadata/sourcemetadata.go` `WorkspaceEntry` | `Field`, `Value *Row`, `Suggested`, `Annotation`, `SortOrder`; `OpenHref()` reads `Value` only |
+| Value of a row | `annotation.go` `CitationValue(r Row, f metadatafields.Field) citationformat.Value` | Text, mark, the field's unknown text |
+| Printing a value | `core/citationformat/render.go` `printed` | Unknown → unknown text (empty possible); text only space → not answered; supplied → `[text]`; a built-in date through `datevalue.CitationDisplay` |
+| Board entry | `core/database/sourcemetadata/sourcemetadata.go` `WorkspaceEntry` | `Field`, `Value *Row`, `Suggested`, `Annotation`, `SortOrder`; `OpenHref()` reads `Value` only; its comment says it is "the only link the app opens from metadata" |
 | Board build | `sourcemetadata.go` `listWorkspaces` | Reads the owners' and their Sources' values in one `readByOwners`; per owner builds `r` (own level + Source) and `above := r.Without(o.Level)`; passes both to `buildEntries` |
 | Draft board | `sourcemetadata.go` `ListDraftWorkspace` | `r` holds the Source's rows only; passes `above: r` |
-| Entries | `sourcemetadata.go` `buildEntries`, `boardInput` | Three loops: suggestions, unsuggested heads with no own value, own-valued extras; `boardInput.above` is a `citationformat.Resolver` used only by `annotate` |
-| Wire | `api/proto/engine.proto` `MetadataWorkspaceEntry` (fields 1 – 11; 3, 7, 8 reserved) | No inherited value |
+| Entries | `sourcemetadata.go` `buildEntries`, `boardInput` | Loop 1: suggestions (valued or not). Loop 2: heads in `in.needs.order` that are neither suggested nor valued. Loop 3: valued fields not yet seen (a valued unsuggested head lands here). `boardInput.above` is a `citationformat.Resolver` used only by `annotate` |
+| Effects | `core/database/effects/registry.go` `Read`, `Reads`, `KeyTable`, `registry["source_metadata"]` | Keyed reads `citations` … `source_records`; `source_metadata` carries only `Search`. `metadataEffects` owns Entity, SourceScope and Lists of the metadata tables and leaves `Reads` to the entry |
+| Effects tests | `core/database/effects/reads_test.go` `TestReadsDeclare`; `api/ffi/swift_vocabulary_test.go` (Swift `CatalogRead` parity) | The read → tables map; the Swift enum matches `Reads` |
+| Wire | `api/proto/engine.proto` `MetadataWorkspaceEntry` (fields 1 – 11; 3, 7, 8 reserved); `MetadataOwner` (`level`, `id`) | No inherited value |
 | Handler | `api/ffi/handlers/metadata.go` `metadataEntryProto` | The one mapper every board reply uses (`ListWorkspaces` boards at line 68, the draft board, `ownerBoardProto`) |
-| Mark on the wire | `api/ffi/handlers/value_mark.go` `valueMarkProto` | Nil for the zero mark |
-| Swift entry | `macos/App/Platform/GenealogyStore.swift` `CatalogMetadataEntry`, `CatalogMetadataField` | No mark, no inherited value; `CatalogMetadataField` has no `unknownText` |
-| Swift mapping | `macos/App/Platform/GoStore.swift` `mapMetadataEntry`, `mapMetadataField` | Field by field; the only mapper |
-| Draft host | `macos/App/Features/Sources/MetadataDraftHost.swift` `MetadataDraftHost` | `set` and `clear` change `valueText`, `hasValue`, `openHref` in place; `clear` removes a row that is not an empty row (`isEmptyRow`: suggested, or opened empty) |
+| Swift entry | `macos/App/Platform/GenealogyStore.swift` `CatalogMetadataEntry` | `field`, `valueText`, `hasValue`, `suggested`, `sortOrder`, `openHref`, `openURL`; its `openHref` comment says "The only link the app opens from metadata" |
+| Swift reads | `macos/App/Features/Workspace/Session/CatalogMutation.swift` `CatalogRead` | Mirrors Go's `Read` |
+| Source workspace key | `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift` `.sourceWorkspace` | `refreshes: [.applyHiddenPolicy(followsOwnId: .reads(.sourceHoldings))]`, `patches: [.updatedSourceShell(), .metadataBoard()]` |
+| Swift mapping | `macos/App/Platform/GoStore.swift` `mapMetadataEntry` | Field by field; the only mapper |
+| Draft host | `macos/App/Features/Sources/MetadataDraftHost.swift` `MetadataDraftHost`, `isEmptyRow` | `set` and `clear` change `valueText`, `hasValue`, `openHref` in place; `clear` keeps a row only when `isEmptyRow` (`row.suggested`, or `opened` held it with no value), else removes it |
 | Board model | `macos/App/Features/Sources/MetadataBoardModel.swift` `saved`, `suggested` | Split by `hasValue` |
-| Board view | `macos/App/Features/Sources/MetadataBoardView.swift` `MetadataBoardSuggestionRow`, `savedRow`, `MetadataBoardTextEditor`, `MetadataValueText` | Empty row: dashed card, label, `PVInput` with prompt "Add a value…", Save, dismiss. Saved row: handle, label, `PVInlineEdit` over `MetadataValueText` with trash |
-| Source board writes | `macos/App/Features/Sources/SourcePageContext.swift` `applySavedMetadata` | Every owner's write applies `.wroteMetadataBoard`, a patch of that owner's rows only (`CatalogQueryPatch.metadataBoard()` in `CatalogLastUpdated.swift`). A Source write leaves the cached Artifact and graph boards as they were |
-| Sheet open | `macos/App/Features/Sources/ArtifactSheetModel.swift` (line 92), `SourceGraphFormModel.swift` (line 82) | Edit mode builds `MetadataDraftHost` from the cached rows (`context.metadataRows(for:)`); add mode from `readDraftBoardForAdd` |
+| Board view | `macos/App/Features/Sources/MetadataBoardView.swift` `MetadataBoardSuggestionRow`, `savedRow`, `MetadataBoardTextEditor`, `MetadataValueText`, `MetadataBoardAddRowView` | Empty row: dashed card, label, always-open `PVInput` ("Add a value…"), Save, dismiss. Saved row: handle, label, `PVInlineEdit` over `MetadataValueText` (takes a `CatalogMetadataEntry`) with trash. The add row's "taken" notice draws the caption tokens inline |
+| Source board writes | `macos/App/Features/Sources/SourcePageContext.swift` `applySavedMetadata` | Every owner's write applies `.wroteMetadataBoard`, a patch of that owner's rows only. A Source write leaves the cached Artifact and graph boards (their `met_elsewhere` since S15-62) as they were |
+| Sheet open | `macos/App/Features/Sources/ArtifactSheetModel.swift` (line 92), `SourceGraphFormModel.swift` (line 82) | Edit mode builds `MetadataDraftHost` from the cached rows; add mode from `readDraftBoardForAdd` |
 | Level names | `macos/App/Platform/L10n.swift` `L10n.CitationFormats.levelName(_:)` | "Source", "Artifact", "Evidence graph", "Citation" |
-| Tests | `core/database/sourcemetadata/annotation_test.go` `TestCitationValuesResolve`; `sourcemetadata_test.go` `TestListWorkspacesAnnotations`, `TestDraftBoardScenarios`, `TestListWorkspacesAnnotationsScale`; `api/ffi/handlers/metadata_test.go` `TestMetadataBoardRequirements`, `TestGetDraftMetadataBoard`; `macos/ProvenenciaTests/MetadataDraftHostTests.swift`, `SourcePageModelTests.swift` (`saveMetadataValueFillsSuggestion`), `CatalogQueryRegistryTests.swift` | Cover the requirement on the wire, the draft host's set and clear, and the patch |
+| Tests | `annotation_test.go` `TestCitationValuesResolve`; `sourcemetadata_test.go` `TestWorkspaceEntryOpenHref`, `TestListWorkspacesAnnotations`, `TestDraftBoardScenarios`, `TestListWorkspacesAnnotationsScale` (121 boards on a `census` Source; helpers `seededWorld`, `newSource`, `seededType`, `newLevelOwner`); `api/ffi/handlers/metadata_test.go` `TestMetadataBoardRequirements`, `TestGetDraftMetadataBoard` (helpers `newMetadataOwners`, `boardEntries`); `core/citationformat/render_test.go`; `macos/ProvenenciaTests/MetadataDraftHostTests.swift` (`anEmptyHeadTheReadReturnedClearsToEmptyAndDismisses`), `SourcePageModelTests.swift` (the reads test at line 445), `CatalogQueryRegistryTests.swift` | Cover the requirement on the wire, the draft host's set and clear, the page following `source_holdings` |
 
-**Precedent.** S15-38 ([#910](https://github.com/Jake-Robins-Studios/provenencia/pull/910)) added `requirement` to every board entry the same way: computed in `buildEntries` from the board's one read, carried by `metadataEntryProto`, a new optional proto field. Copy its shape: one Go field, one proto field, one mapper line, table tests in `sourcemetadata_test.go` and `metadata_test.go`. `openHref` (field 9) is the precedent for a derived link the client opens.
+**Precedent.** S15-38 ([#910](https://github.com/Jake-Robins-Studios/provenencia/pull/910)) added `requirement` to every board entry the same way: computed in `buildEntries` from the board's one read, carried by `metadataEntryProto`, a new optional proto field. Copy its shape. For D-9, `ReadSourceHoldings` is the precedent: declared on `effects.Read`, put on its tables' entries in `registry`, mirrored in `CatalogRead`, followed by `.sourceWorkspace` with `.applyHiddenPolicy(followsOwnId:)`, tested in `TestReadsDeclare` and in `SourcePageModelTests` at line 445.
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `func (v CitationValues) Nearest(fieldID []byte) (Row, bool)` *(new)* in `annotation.go`: the row of the nearest level in `vocabkey.NearestFirst()` that holds `fieldID`. `Resolve`'s no-level branch becomes `if row, ok := v.Nearest(id); ok { return CitationValue(row, v.Fields[id]) }`. The doc comment on `CitationValues` says "Nearest is the one place the levels are walked" | The rule: the inherited value is the resolver without the owner's level, "no second walk". `Resolve` returns a `citationformat.Value`, which has no level; `Row.Owner.Level` carries it | A second loop over `NearestFirst()` in `buildEntries` — two walkers; returning the level from `Resolve` — changes `citationformat.Resolver`, which the renderer and the format package share |
-| D-2 | `WorkspaceEntry.Inherited *Row` *(new)*: `above.Nearest(field id)` for every entry `buildEntries` emits (the three loops), whether or not the entry has its own value; nil when nothing above holds the field. Its level is `Inherited.Owner.Level`. `boardInput.above` becomes `CitationValues` (from `citationformat.Resolver`); `annotate` still takes it as a `Resolver` | The rule: "each board entry carries, besides its own value, the value it inherits". Carried with an own value so a draft can fall back on clear without a read (D-7), and so IH-3 can say what an override hides. `listWorkspaces` and `ListDraftWorkspace` already build `above` as a `CitationValues` | An `Inherited` only on entries with no own value — the draft host could not fall back until Save; a level field beside it — `Row.Owner` already holds it |
-| D-3 | Inherited values attach to the entries the board already emits. A field only an ancestor holds (not suggested, not a head, no own value) adds no entry; a dismissed suggestion stays hidden | Rule "Boards flag needed fields; the engine decides the rows": which fields a board lists is unchanged; the rule says each *entry* carries what it inherits | Emitting an entry per ancestor value — every Source extra would appear on every Artifact and graph board, a change to which rows a board lists that no rule asks for |
-| D-4 | Proto: `MetadataWorkspaceEntry.inherited = 12` of `InheritedMetadataValue` *(new)* `{ string value_text = 1; ValueMark mark = 2; string level = 3; string open_href = 4; }`; absent when nil. `level` is the `vocabkey.Level` string ("source"), as `MetadataOwner.level` | One message the Citation board (S15-56) reuses with "graph" and "artifact" | Reusing `MetadataValue` — it has `field_id` and no level or link |
-| D-5 | The link: `func openHref(f metadatafields.Field, r *Row) string` *(new, unexported)* holds today's `WorkspaceEntry.OpenHref` body; `OpenHref()` calls it with `e.Value`, and `InheritedOpenHref()` *(new)* with `e.Inherited` | One rule for which values are links (`urlshape.OpenHref`) | Swift building the link — rule "No client-side copy of an engine rule"; a second copy of the body |
-| D-6 | Swift: `CatalogValueMark` *(new)* `{ var unknown: Bool; var supplied: Bool }` (Sendable, Equatable), `CatalogInheritedMetadataValue` *(new)* `{ var valueText: String; var mark: CatalogValueMark; var level: Level; var openHref: String; var openURL: URL? }`, `CatalogMetadataEntry.inherited: CatalogInheritedMetadataValue? = nil` *(new)*, `CatalogMetadataField.unknownText: String = ""` *(new)*. `GoStore.mapMetadataEntry` maps `hasInherited`; a `level` string `Level(rawValue:)` does not know maps to nil | The row draws the level name, the mark and the unknown text (IH-5); S15-41 reuses `CatalogValueMark` for own values | A display string from Go — the mark's look is the board's (brief IH-5), and the level name is localized in Swift (`L10n.CitationFormats.levelName`) |
-| D-7 | `MetadataDraftHost.set` and `clear` leave `inherited` as it is. `clear` of a row with an inherited value follows today's rule: an empty row (suggested, or opened empty) keeps its place with no value and shows the inherited value; an extra is removed, as the engine drops it after Save (D-3). `isChanged` and `draft` are unchanged | Fall back (IH-4) is the entry with no own value; nothing to compute | Keeping an extra row because it inherits — the board would show a row the next read drops |
-| D-8 | A write to the Source's own board reloads the Source workspace: in `SourcePageContext.applySavedMetadata`, when `owner.level == .source`, apply `.mutatedSourceWorkspace(sourceId: sourceID)` in place of `.wroteMetadataBoard`. Every other owner keeps `.wroteMetadataBoard`. The local `workspace?.setMetadataRows` before it stays, so the row shows at once | A Source value is what every Artifact and graph board inherits (and their `met_elsewhere`, since S15-62); a patch of the Source's rows leaves those cached boards stale, and the sheets open from the cache (AC-2.4). `applyWrite` is the precedent for a page write that reloads | Swift recomputing the boards' inherited values — a client copy of the engine's walk; re-reading the board each time a sheet opens — a read and a loading state per open; carrying every child board on the Source write's reply — a wider reply for every field save |
-| D-9 | Who reads `inherited`: `MetadataBoardView` only. `MetadataBoardModel.saved` and `suggested` stay split by `hasValue`, so an inherited row is in `suggested` | The row's look is a view concern; the model's groups already match IH-1's placement | A third group in the model — IH-1 places inherited rows with the suggestions |
-| D-10 | The row's composition, copy and VoiceOver: what the agreed S15-D33 board draws for IH-1 – IH-8. **Filled when the board is agreed** | The brief is the gate | — |
+| D-1 | `func (v CitationValues) Nearest(fieldID []byte) (Row, bool)` *(new)* in `annotation.go`: the row of the nearest level in `vocabkey.NearestFirst()` that holds `fieldID`. `Resolve`'s no-level branch becomes `if row, ok := v.Nearest(id); ok { return CitationValue(row, v.Fields[id]) }`. The doc comment says "Nearest is the one place the levels are walked; Resolve and the boards' inherited values read it" | The inherited value needs the level, which `Resolve`'s `citationformat.Value` does not carry; `Row.Owner.Level` does. One walker stays one walker | A second loop over `NearestFirst()` in `buildEntries` — two walkers; a level on `citationformat.Value` or `Resolver` — the format package and the renderer share them |
+| D-2 | `WorkspaceEntry.Inherited *Row` *(new)*: `above.Nearest(field id)` for every entry `buildEntries` emits (all three loops), whether or not the entry has its own value; nil when nothing above holds the field. `boardInput.above` becomes `CitationValues` (from `citationformat.Resolver`); `annotate` still takes it as a `Resolver` | The rule: "each board entry carries, besides its own value, the value it inherits". Carried with an own value so a draft falls back on clear with no read, and IH-3 can say what an override hides. Both callers already build `above` as `CitationValues` | `Inherited` only on entries with no own value — no fall back until Save; a level field beside it — `Row.Owner` holds it |
+| D-3 | Inherited values attach to the entries the board already emits. A field only an ancestor holds adds no entry; a dismissed suggestion stays hidden | Rule "Boards flag needed fields; the engine decides the rows": which fields a board lists does not change; the rule gives each *entry* its inherited value | An entry per ancestor value — every Source extra on every Artifact and graph board, a change no rule asks for |
+| D-4 | `func Display(v Value) string` *(new)* in `core/citationformat/render.go`: the field branch of `printed` (unknown → `v.UnknownText`; else the text truncated to `MaxRenderedBytes`, in square brackets when supplied; "" when the text is only space). `printed` calls it for every non-built-in option and keeps its "answered" logic. The handler sends `Display(sourcemetadata.CitationValue(*e.Inherited, e.Field))` as the inherited value's text | Working rules "A value can be marked unknown or supplied" (supplied prints in brackets) and "No client-side copy of an engine rule": one rule for how a marked value reads, which S15-41, S15-42 and S15-56 reuse | Swift composing brackets and unknown text — a client copy; a second Go function — two rules |
+| D-5 | `WorkspaceEntry.StaysWithoutValue bool` *(new)*: true when `buildEntries` would emit the entry with no own value: suggested, or a head in `in.needs.heads`. Set in all three loops | The draft host must know whether clearing keeps the row (IH-4). Today it guesses from `suggested` or "opened empty", which drops a valued unsuggested head (AC-2.4). The engine decides the rows | Swift mapping `requirement` and re-deriving the rule — a used later option has a requirement and is not kept; a client copy of loop 2 |
+| D-6 | Proto. `message InheritedMetadataValue { string display_text = 1; ValueMark mark = 2; MetadataOwner owner = 3; string open_href = 4; }` *(new)*; `MetadataWorkspaceEntry.inherited = 12` (absent when nil) and `bool stays_without_value = 13`. `display_text` is D-4; `mark` styles it (italic when unknown); `owner` is the ancestor that answered (`level`, `id`) | One message the Citation board (S15-56) reuses, where the ancestor can be a graph or an Artifact | Reusing `MetadataValue` — a draft input with a `field_id`; a bare `level` string — `MetadataOwner` exists |
+| D-7 | Swift. `CatalogMetadataEntry.staysWithoutValue: Bool = false` *(new)*. `MetadataDraftHost.isEmptyRow(row)` becomes `row.suggested \|\| row.staysWithoutValue`; the "opened with no value" clause goes (the engine says it). `set` and `clear` leave `inherited` as it is. A row added through Add field is appended by `set` with `inherited` nil and `staysWithoutValue` false: it shows no "Overrides" caption and clears away until the owner's Save returns the engine's rows | The engine decides which rows stay (D-5); fall back is the kept row with no own value | Computing `inherited` for an added row in Swift — a copy of the walk |
+| D-8 | Swift. `CatalogInheritedMetadataValue` *(new)* `{ var displayText: String; var isUnknown: Bool; var level: Level; var openHref: String; var openURL: URL? }` and `CatalogMetadataEntry.inherited: CatalogInheritedMetadataValue? = nil` *(new)*, mapped in `GoStore.mapMetadataEntry` when `hasInherited`. A level `Level(rawValue:)` does not know maps `inherited` to nil: `Level` mirrors `vocabkey.MetadataLevels` under `api/ffi/swift_vocabulary_test.go`, so that is a version skew, not data. `MetadataValueText` gains `init(text: String, openURL: URL?, isURL: Bool, accessibilityIdentifier: String, lineLimit: Int?, chrome: Bool, secondary: Bool = false, italic: Bool = false)` *(new)*; its entry init forwards to it | `MetadataValueText` is the one value view (inventory); the inherited value draws through it (IH-1, IH-6) | A shared value struct for own and inherited values — an own value's mark lands in S15-41, which reshapes the entry then; a forked value view |
+| D-9 | A Source's metadata value write reports a keyed read. `effects.ReadInheritedValues Read = "inherited_values"` *(new)*: "what the boards below a Source inherit: moved when the Source's metadata values change", key table `sources`, added to `Reads`; `registry["source_metadata"]` gains `Reads: []ReadPath{{ReadInheritedValues, field("source_id")}}`. Swift: `CatalogRead.inheritedValues = "inherited_values"` *(new)*; `.sourceWorkspace` adds `.applyHiddenPolicy(followsOwnId: .reads(.inheritedValues))` to its `refreshes`. `applySavedMetadata` is unchanged | The engine says what a write moves (catalog-caches: "every cache names the signal that updates it"); the shown page reloads, so the cached Artifact and graph boards inherit the new value and their `met_elsewhere` follows. S15-56 adds the Artifact and graph values tables' paths, with no Swift branch | A `level == .source` branch in `applySavedMetadata` applying `.mutatedSourceWorkspace` — a second mechanism beside the effects (review M-1); Swift recomputing inherited values; re-reading a board each time a sheet opens |
+| D-10 | Who reads `inherited`: `MetadataBoardView` only. `MetadataBoardModel.saved` and `suggested` stay split by `hasValue`, so an inherited row is in `suggested`. The row's open or closed state is the row view's `@State` | The model's groups already match IH-1's placement; the open state is local, as the suggestion row's draft is | A third group in the model |
+| D-11 | Composition, pinned by the brief (IH-1, IH-2): the inherited row is `MetadataBoardSuggestionRow`; with `entry.inherited` and the row closed, its value column is `MetadataValueText(text: displayText, …, secondary: true, italic: isUnknown)` (one line; "Unknown" when `displayText` is empty), then a caption "From {level}"; clicking the value column (outside a link), or Return or Space on it, opens today's `PVInput` empty and focused, with "Overrides {level}: {value}" under it; Escape, or Save with nothing typed, closes it. With no `inherited`, the row is today's. A saved row with `inherited` shows the "Overrides" caption under `MetadataBoardTextEditor`. The three captions (the two new and the add row's taken notice) draw through one file-private `MetadataBoardCaption` *(new)* | The brief's IH-1 – IH-4 and inventory | A prompt holding the inherited value — `PVInput.prompt` is a `LocalizedStringResource` and cannot hold a link, italics or hover help (review M-5) |
+| D-12 | What the agreed board changes in spacing, colour or copy. **Filled when the board is agreed** | The brief is the gate | — |
 
-**Rules this plan bends.** None. D-1 moves the level walk from `Resolve` into `Nearest`, which `Resolve` calls; the rule "nothing else walks the levels" holds, and STEP-1 updates the comment.
+**Rules this plan bends.** One, pending the user (review R-1): the rule "A format reads a field from the nearest level that holds it" and the map's S15-64 row name `CitationValues.Resolve` as the one walker and the inherited value as "`Resolve` with the owner's own level left out". D-1 moves the walk into `Nearest`, which `Resolve` calls; the inherited value is `Nearest` on `Without(owner level)`. Recommended answer: accept, and STEP-9 rewrites the rule sentence and the map row to name `Nearest`.
 
 ## 6. Design
 
@@ -130,38 +141,41 @@ A citation reads each field from the nearest level that holds a value (S15-62), 
 
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
-| `CitationValues.Nearest` *(new)* | func | `CitationValues.Resolve` | Extends it: `Resolve` calls it; searched `NearestFirst()` callers (`rg -n "NearestFirst\(\)" core`): `Resolve` is the only walker |
-| `WorkspaceEntry.Inherited` *(new)* | field | `WorkspaceEntry.Value` | Same type, one field beside it |
-| `openHref`, `WorkspaceEntry.InheritedOpenHref` *(new)* | func | `WorkspaceEntry.OpenHref` | Its body moves into `openHref`; both call it |
-| `InheritedMetadataValue` *(new)* | proto message | `MetadataValue`, `ValueMark` | `MetadataValue` is a draft's input (field id, no level); it reuses `ValueMark` |
+| `CitationValues.Nearest` *(new)* | func | `CitationValues.Resolve` | Extends it: `Resolve` calls it; `rg -n "NearestFirst\(\)" core` finds `Resolve` the only walker |
+| `citationformat.Display` *(new)* | func | `citationformat.printed` | The field branch moves into it; `printed` calls it |
+| `WorkspaceEntry.Inherited`, `StaysWithoutValue` *(new)* | field | `WorkspaceEntry.Value`, `Suggested` | Fields beside them |
+| `openHref(f, r)`, `WorkspaceEntry.InheritedOpenHref` *(new)* | func | `WorkspaceEntry.OpenHref` | Its body moves into `openHref`; both call it |
+| `effects.ReadInheritedValues`, `CatalogRead.inheritedValues` *(new)* | keyed read | `ReadSourceHoldings` | A different set of tables moves it; the keyed-read registry is the slot |
+| `InheritedMetadataValue` *(new)* | proto message | `MetadataValue`, `ValueMark`, `MetadataOwner` | Reuses `ValueMark` and `MetadataOwner` |
 | `inheritedProto` *(new)* | func | `metadataEntryProto` | A helper beside it, as `requirementProto` |
-| `CatalogValueMark`, `CatalogInheritedMetadataValue` *(new)* | Swift type | `CatalogMetadataEntry` | Searched `rg -n "Mark" macos/App/Platform/GenealogyStore.swift`: no Swift mark type yet |
-| `CatalogMetadataField.unknownText` *(new)* | Swift field | `mapMetadataField` | The wire field exists (`MetadataField.unknown_text`), unmapped |
+| `CatalogInheritedMetadataValue` *(new)* | Swift type | `CatalogMetadataEntry` | Holds a level and printed text an entry does not |
+| `MetadataValueText.init(text:…)` *(new)* | init | `MetadataValueText` | Extends the one value view |
+| `MetadataBoardCaption` *(new, file-private)* | view | the taken notice in `MetadataBoardAddRowView` | Extracted from it; three call sites in the file |
 | L10n keys in § 6 Strings *(new)* | key | `L10n.Sources.metadataAddRowFieldTaken` | Same namespace |
 
-**Builds on.** S15-62's `CitationValues` and `Without` (the "above" slot its D-9 left for this PR); S15-38's annotation path through `buildEntries` and `metadataEntryProto`; `applyWrite`'s reload; `L10n.CitationFormats.levelName`.
-**Deletes.** None — nothing becomes dead. `Resolve`'s inline loop moves into `Nearest`.
-**Next adds.** S15-55 adds the Citation's ancestors to `r`; `Nearest` then answers a Citation's graph, Artifact or Source with no change here. S15-56 draws the composer's board through the same row. S15-41 reuses `CatalogValueMark` for own values. S15-66 adds `list_below` beside `inherited` on the entry.
+**Builds on.** S15-62's `CitationValues` and `Without` (the `above` slot its D-9 left for this PR); S15-38's annotation path through `buildEntries` and `metadataEntryProto`; the effects registry's keyed reads; `MetadataValueText`; `L10n.CitationFormats.levelName`.
+**Deletes.** `MetadataDraftHost.isEmptyRow`'s "opened with no value" clause (D-7). The add row's inline caption styling (moves into `MetadataBoardCaption`). `Resolve`'s inline loop (moves into `Nearest`).
+**Next adds.** S15-55 adds the Citation's ancestors to `r`; `Nearest` then answers a Citation's graph, Artifact or Source unchanged. S15-56 draws the composer's board through the same row and adds `inherited_values` paths for the Artifact and graph values tables. S15-41 maps an own value's mark and reuses `Display` for it. S15-66 adds `list_below` beside `inherited` on the entry.
 
 ### Reach
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
-| An entry with an inherited value and no own value | `MetadataBoardSuggestionRow` | New state; drawn per D-10. An entry whose field is gone does not reach here (`buildEntries` drops a head with no field row) |
+| An entry with an inherited value and no own value | `MetadataBoardSuggestionRow` | New state (D-11). An entry whose field is gone does not reach here (`buildEntries` drops a head with no field row) |
 | An entry with both | `savedRow` | New state; IH-3 |
-| A Source-board write now reloads the workspace (D-8) | `SourcePageModel`'s workspace observer (`resetIfChanged`, `SourcePageModel.swift` line 162) | A reload that returns the same Source rows does not reset an open edit (`resetIfChanged` compares rows); T-9 holds it |
+| A Source value write now refreshes the shown Source page (D-9) | `SourcePageModel`'s workspace observer (`metadata.resetIfChanged`, `SourcePageModel.swift` line 162) | The reload returns the Source rows the patch already set, so `resetIfChanged` keeps an open edit; T-11 holds it. A hidden page goes stale and reloads when shown (`whenHidden: .markStale`) |
 
 ### Scale
 
-At the map's Scale ("a board showing up to 30 suggested fields, each with the value it inherits, read with its owner's ancestors in one batched read"; a Source with 60 Artifacts and 60 graphs): `Nearest` is a map lookup per level (two levels until S15-55), per entry; no read is added. `TestListWorkspacesAnnotationsScale` (121 boards) asserts the inherited value on every board (T-5). D-8 adds one `GetSourceWorkspace` per Source-board field write; it is the same read the page opens with, already 121 boards in one `listWorkspaces`.
+At the map's Scale ("a board showing up to 30 suggested fields, each with the value it inherits, read with its owner's ancestors in one batched read"; a Source with 60 Artifacts and 60 graphs): `Nearest` is a map lookup per level (two levels until S15-55) per entry; no read is added to a board. D-9 adds one `GetSourceWorkspace` per Source value save while the page is shown; `BenchmarkListWorkspacesScale` *(new, T-12)* measures `ListWorkspaces` over 121 owners on a census Source with all 16 suggested fields valued on the Source, and the PR reports its ns/op. Budget: 100 ms per read on the implementer's machine; over it is a Stop condition.
 
 ### Edges
 
-- **Assumptions.** `Resolve`'s walk stops at the first level holding a row, whatever its text: an unknown value with empty text answers (T-1). `Without(owner level)` holds only ancestors, so `Inherited` is never the owner's own row (T-2). `rowsByField` keys one row per field per level (the value tables' unique key).
-- **Neighbors.** A field valued on the owner and the Source → both, own wins in a render (T-2). Valued on the owner only → `Inherited` nil. A dismissed suggestion valued on the Source → hidden (T-2). A needed head with no own value and a Source value → inherited set, `MetElsewhere` true as today (T-2). The Source's own board → every `Inherited` nil (T-2).
-- **Removed inputs.** The Source's value cleared → the next read has no inherited value; on the Source page D-8's reload carries it to the cached boards (T-9). A Source deleted → its boards go with it. An Artifact moved to another Source (S15-24) → the move applies its effects and lands on the target page (`SourceMoveModel`), whose workspace read builds the board against the target Source.
-- **Real data.** None — no table- or seed-driven rule changes.
-- **Untrusted size.** None — the inherited value is one row per entry already read.
+- **Assumptions.** `Nearest` stops at the first level holding a row, whatever its text: an unknown value with empty text answers (T-1). `Without(owner level)` holds only ancestors, so `Inherited` is never the owner's own row (T-2). One row per field per level (the values tables' unique key). `Display` keeps `printed`'s results for every option (T-3, and the existing render tests stay green).
+- **Neighbors.** Valued on the owner and the Source → both, own wins in a render (T-2). Owner only → `Inherited` nil. A dismissed suggestion valued on the Source → hidden (T-2). A needed head with no own value and a Source value → inherited set, `MetElsewhere` true as today (T-2). An unsuggested head valued on the owner → `StaysWithoutValue` true; an unsuggested non-head extra → false (T-2). The Source's own board → every `Inherited` nil (T-2).
+- **Removed inputs.** The Source's value cleared → the write reports `inherited_values`, the page reloads, the boards lose the inherited value (T-10, T-11). An Artifact moved to another Source (S15-24) → the move lands on the target page, whose workspace read builds the boards against the target Source.
+- **Real data.** `TestEveryBoardOffersTheTypeList` and T-12 run on the seeded census type; no seed changes.
+- **Untrusted size.** None — the inherited value is one row per entry already read; `Display` truncates to `MaxRenderedBytes` as the render does.
 
 ### Schema
 
@@ -171,8 +185,10 @@ None — no catalog change.
 
 | Package | Change |
 | --- | --- |
-| `core/database/sourcemetadata` (`annotation.go`) | `func (v CitationValues) Nearest(fieldID []byte) (Row, bool)` *(new)* (D-1); `Resolve` calls it |
-| `core/database/sourcemetadata` (`sourcemetadata.go`) | `WorkspaceEntry.Inherited *Row` *(new)*; `boardInput.above CitationValues`; `buildEntries` sets `Inherited` on every emitted entry (D-2); `openHref(f, r)` *(new)*, `InheritedOpenHref()` *(new)* (D-5) |
+| `core/citationformat` (`render.go`) | `func Display(v Value) string` *(new)* (D-4); `printed` calls it |
+| `core/database/sourcemetadata` (`annotation.go`) | `func (v CitationValues) Nearest(fieldID []byte) (Row, bool)` *(new)* (D-1); `Resolve` calls it; doc comment |
+| `core/database/sourcemetadata` (`sourcemetadata.go`) | `WorkspaceEntry.Inherited *Row`, `StaysWithoutValue bool` *(new)*; `boardInput.above CitationValues`; `buildEntries` sets both on every emitted entry (D-2, D-5); `openHref(f, r)`, `InheritedOpenHref()` *(new)*; `OpenHref`'s comment drops "the only link" |
+| `core/database/effects` (`registry.go`) | `ReadInheritedValues` *(new)*, in `Reads` and `KeyTable` (`sources`); `registry["source_metadata"].Reads` (D-9) |
 
 Errors: none new.
 
@@ -183,39 +199,41 @@ Errors: none new.
 ```proto
 // InheritedMetadataValue is the value a board entry's owner inherits: the
 // nearest level above the owner that holds the field (sourcemetadata
-// CitationValues.Nearest).
+// CitationValues.Nearest), printed as a citation prints it.
 message InheritedMetadataValue {
-  string value_text = 1;
-  ValueMark mark = 2;   // absent means no mark
-  string level = 3;     // vocabkey.Level: "source", "artifact" or "graph"
-  string open_href = 4; // web link to open; empty when the value is not one
+  string display_text = 1; // citationformat.Display; empty for an unknown value whose field has no unknown text
+  ValueMark mark = 2;      // absent means no mark
+  MetadataOwner owner = 3; // the ancestor that holds it
+  string open_href = 4;    // web link to open; empty when the value is not one
 }
 // in MetadataWorkspaceEntry:
   InheritedMetadataValue inherited = 12; // absent when nothing above holds the field
+  bool stays_without_value = 13;         // the board keeps this entry with no own value (suggested, or a head its formats read)
 ```
 
-Handler: `api/ffi/handlers/metadata.go` `inheritedProto(e sourcemetadata.WorkspaceEntry) *engine.InheritedMetadataValue` *(new)*, set in `metadataEntryProto`. Regenerate with `./scripts/generate-proto.sh`. No new method.
+Handler: `api/ffi/handlers/metadata.go` `inheritedProto(e sourcemetadata.WorkspaceEntry) *engine.InheritedMetadataValue` *(new)*, set in `metadataEntryProto` with `StaysWithoutValue`. The `inherited_values` read rides `WriteEffects.reads` with no handler change. Regenerate with `./scripts/generate-proto.sh`. No new method.
 
 ### macOS
 
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
-| Entry types | — | `macos/App/Platform/GenealogyStore.swift` | D-6 |
-| Mapping | — | `macos/App/Platform/GoStore.swift` `mapMetadataEntry`, `mapMetadataField` | D-6 |
-| Draft host | — | `MetadataDraftHost.swift` | D-7: no change to `set` and `clear` beyond keeping `inherited` (they already keep it); T-7 pins it |
-| Source-board write | — | `SourcePageContext.swift` `applySavedMetadata` | D-8 |
-| Inherited row | `MetadataBoardSuggestionRow`, `PVInput`, caption text | `MetadataBoardView.swift` | IH-1, IH-2, IH-5, IH-6, IH-8 — per D-10 |
-| Override caption | caption text under `MetadataBoardTextEditor` | `MetadataBoardView.swift` `savedRow` | IH-3 |
-| Value text | `MetadataValueText` | `MetadataBoardView.swift` | Inherited value and link drawn through it (inventory) |
+| Entry types | — | `macos/App/Platform/GenealogyStore.swift` | D-7, D-8; `openHref`'s comment drops "The only link" |
+| Mapping | — | `macos/App/Platform/GoStore.swift` `mapMetadataEntry` | D-7, D-8 |
+| Keyed read | — | `CatalogMutation.swift` `CatalogRead`, `CatalogQueryRegistry.swift` `.sourceWorkspace` | D-9 |
+| Draft host | — | `MetadataDraftHost.swift` `isEmptyRow` | D-7 |
+| Inherited row | `MetadataBoardSuggestionRow`, `MetadataValueText`, `PVInput`, `MetadataBoardCaption` | `MetadataBoardView.swift` | D-11; IH-1, IH-2, IH-5, IH-6, IH-8 |
+| Override caption | `MetadataBoardCaption` under `MetadataBoardTextEditor` | `MetadataBoardView.swift` `savedRow` | IH-3 |
+| Caption | `MetadataBoardCaption` *(new, file-private)* | `MetadataBoardView.swift` | The taken notice moves to it |
 
-States: no inherited value → today's rows; inherited unknown → unknown text or "Unknown", italic (IH-5); supplied → square brackets; long → one line, truncated, whole on hover (IH-6). Accessibility: IH-8. Width: the 880pt sheets at Regular and Wide; the one-column form (IH-W1).
+States: no inherited value → today's rows; unknown → `displayText` italic, or "Unknown" when empty (IH-5); supplied → the engine's brackets; long → one line, truncated, whole on hover (IH-6). Accessibility: IH-8; identifiers `<prefix>.<fieldID>.inherited` *(new)* for the closed value and `<prefix>.<fieldID>.inheritedFrom` *(new)* for its caption. Width: the 880pt sheets at Regular and Wide (IH-W1); there is no one-column form.
 
 ### Strings
 
-L10n keys *(new)*, final wording from the board (D-10):
+L10n keys *(new)*, final wording from the board (D-12):
 
 - `L10n.Sources.metadataInheritedFrom(level:)` = "From %@"
 - `L10n.Sources.metadataInheritedAccessibility(level:value:)` = "Inherited from %@: %@"
+- `L10n.Sources.metadataInheritedHint` = "Opens a field to type a value that overrides it"
 - `L10n.Sources.metadataOverrides(level:value:)` = "Overrides %@: %@"
 - `L10n.Sources.metadataInheritedUnknown` = "Unknown"
 
@@ -223,47 +241,48 @@ L10n keys *(new)*, final wording from the board (D-10):
 
 ## 7. Steps
 
-**STEP-1 — The resolver names the level**
-Files: `core/database/sourcemetadata/annotation.go`, `annotation_test.go`.
-Do: D-1. Update `CitationValues`'s doc comment ("Nearest is the one place the levels are walked").
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/ -run 'TestCitationValues'` passes, T-1 included.
+**STEP-1 — One walker names the level; one rule prints a value**
+Files: `core/database/sourcemetadata/annotation.go`, `annotation_test.go`, `core/citationformat/render.go`, `render_test.go`.
+Do: D-1, D-4.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/citationformat/ ./core/database/sourcemetadata/` passes, T-1 and T-3 included.
 
-**STEP-2 — Board entries carry what they inherit**
+**STEP-2 — Board entries carry what they inherit and whether they stay**
 Files: `core/database/sourcemetadata/sourcemetadata.go`, `sourcemetadata_test.go`.
-Do: D-2, D-3, D-5.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/` passes, T-2 – T-5 included.
+Do: D-2, D-3, D-5; `openHref`, `InheritedOpenHref`; the `OpenHref` comment.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcemetadata/` passes, T-2, T-4, T-5, T-6 included.
 
-**STEP-3 — The wire carries it**
+**STEP-3 — The wire carries them**
 Files: `api/proto/engine.proto`, generated code, `api/ffi/handlers/metadata.go`, `metadata_test.go`. Skill: `add-ffi-handler`.
-Do: D-4; `./scripts/generate-proto.sh`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/...` passes, T-6 included; `git status` shows the regenerated Go and Swift files.
+Do: D-6; `./scripts/generate-proto.sh`.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./api/ffi/...` passes, T-7 included; `git status` shows the regenerated Go and Swift files.
 
-**STEP-4 — Swift decodes it**
-Files: `macos/App/Platform/GenealogyStore.swift`, `GoStore.swift`.
-Do: D-6.
-Check: the app builds (`xcodebuild build` as `scripts/check-pr.sh` runs it).
+**STEP-4 — A Source value write reports `inherited_values`**
+Files: `core/database/effects/registry.go`, `reads_test.go`, `api/ffi/handlers/metadata_test.go`, `macos/App/Features/Workspace/Session/CatalogMutation.swift`.
+Do: D-9's Go part and the `CatalogRead` case.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/effects/ ./api/ffi/...` passes, T-10 and the Swift vocabulary parity test included.
 
-**STEP-5 — The draft host keeps it**
-Files: `macos/ProvenenciaTests/MetadataDraftHostTests.swift`. Skill: `add-swift-test`.
-Do: D-7 (T-7, T-8). If a test fails because `set` or `clear` drops `inherited`, fix that line in `MetadataDraftHost.swift`.
-Check: T-7 and T-8 pass.
+**STEP-5 — Swift decodes the entry; the draft host keeps what the engine keeps**
+Files: `macos/App/Platform/GenealogyStore.swift`, `GoStore.swift`, `macos/App/Features/Sources/MetadataDraftHost.swift`, `macos/ProvenenciaTests/MetadataDraftHostTests.swift`. Skill: `add-swift-test`.
+Do: D-7, D-8 (types and mapping). Update `anEmptyHeadTheReadReturnedClearsToEmptyAndDismisses` to build its head with `staysWithoutValue: true`.
+Check: T-8 and T-9 pass; `MetadataDraftHostTests` green.
 
-**STEP-6 — A Source write refreshes the children's boards**
-Files: `macos/App/Features/Sources/SourcePageContext.swift`, `macos/ProvenenciaTests/SourcePageModelTests.swift`. Skill: `add-workspace-place`.
-Do: D-8.
-Check: T-9 passes; `CatalogQueryRegistryTests` stays green.
+**STEP-6 — The Source page follows `inherited_values`**
+Files: `macos/App/Features/Workspace/Session/CatalogQueryRegistry.swift`, `macos/ProvenenciaTests/SourcePageModelTests.swift`. Skill: `add-workspace-place`.
+Do: D-9's `refreshes` line.
+Check: T-11 passes; `CatalogQueryRegistryTests` green.
 
 **STEP-7 — The row shows it**
 Files: `macos/App/Features/Sources/MetadataBoardView.swift`, `macos/App/Platform/L10n.swift`, `macos/App/Resources/Localizable.xcstrings`. Skills: `add-ui-component`, `add-localized-string`.
-Do: D-9, D-10; IH-1 – IH-8 from the board; § 6 Strings.
-Check: the manual check (§ 10) steps 1 – 6.
+Do: D-8's `MetadataValueText` init, D-10, D-11, D-12; § 6 Strings.
+Check: the manual check (§ 10) steps 1 – 7.
 
-**STEP-8 — Full check**
-Do: `scripts/check-pr.sh`.
-Check: prints `check-pr: PASS`.
+**STEP-8 — Measure and run the full check**
+Files: `core/database/sourcemetadata/sourcemetadata_test.go`.
+Do: T-12; `CGO_ENABLED=1 go test -tags fts5 -run '^$' -bench BenchmarkListWorkspacesScale ./core/database/sourcemetadata/`; then `scripts/check-pr.sh`.
+Check: ns/op under the § 6 Scale budget and recorded in the PR body; `check-pr: PASS`.
 
 **STEP-9 — Docs**
-Files: `docs/source-layer-data-model.md` § 5.2 (a board entry carries the value it inherits, from `CitationValues.Nearest`), `docs/catalog-caches.md` (a Source-board write reloads `.sourceWorkspace`, D-8), `completed.md`, `deployment-plan.md` (map row), this plan (status, Landed note), `design/S15-D33-inherited-values.md` → `design/archive/`, `design/README.md`.
+Files: `docs/deployment-plan/spike-15/deployment-plan.md` (the rule "A format reads a field from the nearest level that holds it": its sentences from "One resolver walks them" to "nothing else walks the levels" name `CitationValues.Nearest`, which `Resolve` and the inherited value read; the S15-64 row and scope entry name `Nearest` on `Without(owner level)`; map row status), `docs/source-layer-data-model.md` § 5.2 (beside the paragraph on every board offering the type's list: each board entry carries the value it inherits, from `CitationValues.Nearest`, printed by `citationformat.Display`), `docs/catalog-caches.md` § Swift caches (the `.sourceWorkspace` row follows `inherited_values`), `completed.md`, this plan (status, Landed note), `design/S15-D33-inherited-values.md` → `design/archive/`, `design/README.md`.
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-15/prs/S15-64-inherited-values.md` reports no errors.
 
@@ -273,17 +292,20 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Go | `core/database/sourcemetadata/annotation_test.go` `TestCitationValuesNearest` *(new)* | Rows at graph and Source for field f → the graph's row, level graph; Source only → Source's; none → false; graph row marked unknown with "" → that row; `Without(graph)` → the Source's | D-1 |
-| T-2 | Go | `sourcemetadata_test.go` `TestListWorkspacesInherited` *(new)*, table | Census Source with Provider "Ancestry": Artifact with no Provider → `Inherited` text "Ancestry", level source; Artifact with Provider "FamilySearch" → `Value` "FamilySearch", `Inherited` "Ancestry"; graph → same as the Artifact; Source's own board → every `Inherited` nil; Source Publisher marked unknown → `Inherited.Mark.Unknown`; Provider dismissed on the Artifact → no entry; Source-only extra Column → no Column entry on the Artifact; a needed head with a Source value → `Inherited` set and `MetElsewhere` true | AC-1.1, AC-1.3 – AC-1.5, AC-1.7, D-2, D-3 |
-| T-3 | Go | `sourcemetadata_test.go` `TestDraftBoardScenarios` (new row) | Draft Artifact board on that Source → Provider `Inherited` "Ancestry" | AC-1.2 |
-| T-4 | Go | `sourcemetadata_test.go` `TestWorkspaceEntryOpenHref` (new rows) | Entry with no value and an inherited URL → `OpenHref()` "", `InheritedOpenHref()` the link; inherited text that is not a URL → "" | D-5, AC-1.6 |
-| T-5 | Go | `sourcemetadata_test.go` `TestListWorkspacesAnnotationsScale` (extend) | Source holds `url`; each of the 120 Artifact and graph boards → its `url` entry's `Inherited` is the Source's | D-2 (at Scale) |
-| T-6 | Go | `api/ffi/handlers/metadata_test.go` `TestMetadataBoardInherited` *(new)* | `GetSourceWorkspace` and `GetDraftMetadataBoard` on the T-2 world → Artifact entry Provider `inherited` {value_text "Ancestry", level "source"}; URL entry `open_href` set; unknown Publisher `mark.unknown`; Source board entries have no `inherited` | D-4, AC-1.1, AC-1.2, AC-1.4 |
-| T-7 | Swift | `macos/ProvenenciaTests/MetadataDraftHostTests.swift` `setAndClearKeepTheInheritedValue` *(new)* | Suggested entry with inherited "Ancestry": set "FamilySearch" → `hasValue`, `inherited` "Ancestry"; clear → `hasValue` false, `inherited` "Ancestry", row kept, `isChanged` false | D-7, AC-2.3 |
-| T-8 | Swift | `MetadataDraftHostTests.swift` `clearingAnInheritingExtraDropsIt` *(new)* | Extra entry (not suggested, opened with a value) with an inherited value: clear → row removed | D-7 |
-| T-9 | Swift | `macos/ProvenenciaTests/SourcePageModelTests.swift` `sourceMetadataSaveReloadsTheWorkspace` *(new)* | Save a Source value → `store.getSourceWorkspaceCalls` up by one and the Source board's open edit of another row kept; an Artifact sheet Save → no reload | D-8, AC-2.4 |
+| T-1 | Go | `core/database/sourcemetadata/annotation_test.go` `TestCitationValuesNearest` *(new)* | Rows at graph and Source for field f → the graph's row, `Owner.Level` graph; Source only → Source's; none → false; graph row marked unknown with "" → that row; `Without(graph)` → the Source's | D-1 |
+| T-2 | Go | `sourcemetadata_test.go` `TestListWorkspacesInherited` *(new)*, table | Census Source with Provider "Ancestry": Artifact with no Provider → `Inherited` "Ancestry", level source, `StaysWithoutValue` true; Artifact with Provider "FamilySearch" → `Value` "FamilySearch", `Inherited` "Ancestry"; graph → as the Artifact; Source's board → every `Inherited` nil; Book Source Publisher unknown → `Inherited.Mark.Unknown`; Provider dismissed on the Artifact → no entry; Source extra Column → no Column entry on the Artifact; a needed head with a Source value → `Inherited` set, `MetElsewhere` true; an unsuggested head valued on the Artifact → `StaysWithoutValue` true; an unsuggested non-head extra → false | AC-1.1, AC-1.3 – AC-1.5, AC-1.7, AC-2.4, D-2, D-3, D-5 |
+| T-3 | Go | `core/citationformat/render_test.go` `TestDisplay` *(new)* | {"Ancestry"} → "Ancestry"; supplied "Calder County" → "[Calder County]"; unknown with unknown text "n.p." → "n.p."; unknown, none → ""; "  " → ""; text over `MaxRenderedBytes` → truncated | D-4, AC-1.5 |
+| T-4 | Go | `sourcemetadata_test.go` `TestDraftBoardScenarios` (new row) | Draft Artifact board on the census Source → Provider `Inherited` "Ancestry" | AC-1.2 |
+| T-5 | Go | `sourcemetadata_test.go` `TestWorkspaceEntryOpenHref` (new rows) | No value, inherited URL → `OpenHref()` "", `InheritedOpenHref()` the link; inherited text not a URL → "" | AC-1.6 |
+| T-6 | Go | `sourcemetadata_test.go` `TestListWorkspacesAnnotationsScale` (extend) | The census Source holds `url` (census suggests it); each of the 120 Artifact and graph boards → its `url` entry's `Inherited` is the Source's | D-2 (at Scale) |
+| T-7 | Go | `api/ffi/handlers/metadata_test.go` `TestMetadataBoardInherited` *(new)* (helpers `newMetadataOwners`, `boardEntries`) | `GetSourceWorkspace` and `GetDraftMetadataBoard` → Artifact Provider `inherited` {display_text "Ancestry", owner {level "source", id the Source}}; URL `open_href` set; supplied value `display_text` "[Calder County]"; `stays_without_value` true on suggestions; Source board entries have no `inherited` | D-6, AC-1.1, AC-1.2, AC-1.4, AC-1.6 |
+| T-8 | Swift | `macos/ProvenenciaTests/MetadataDraftHostTests.swift` `setAndClearKeepTheInheritedValue` *(new)* | Suggested entry with inherited "Ancestry": set "FamilySearch" → `hasValue`, `inherited` "Ancestry"; clear → `hasValue` false, `inherited` kept, row kept, `isChanged` false | D-7, AC-2.3 |
+| T-9 | Swift | `MetadataDraftHostTests.swift` `clearKeepsOnlyRowsTheEngineKeeps` *(new)* | Unsuggested entry opened with a value and `staysWithoutValue` true, with inherited → clear keeps it, inherited shown; `staysWithoutValue` false → removed; a row added through `set` for a new field → `inherited` nil, removed on clear | D-7, AC-2.4 |
+| T-10 | Go | `core/database/effects/reads_test.go` `TestReadsDeclare` (new key) and `api/ffi/handlers/metadata_test.go` `TestSetMetadataReportsInheritedValues` *(new)* | `ReadInheritedValues: {"source_metadata"}`; `SetMetadata` on a Source owner → the reply's `effects.reads` hold `inherited_values` with the Source's id; on an Artifact owner → no `inherited_values` | D-9 |
+| T-11 | Swift | `macos/ProvenenciaTests/SourcePageModelTests.swift` `sourcePageFollowsInheritedValues` *(new)*, beside the reads test at line 445 | `session.apply(reads(.inheritedValues))` → `getSourceWorkspaceCalls` + 1; a Source board save whose `nextWriteEffects` report it → one reload, and an open edit on another Source row kept | D-9, AC-2.5 |
+| T-12 | Go | `sourcemetadata_test.go` `BenchmarkListWorkspacesScale` *(new)* | 121 owners on a census Source with its 16 suggested fields valued on the Source → ns/op reported | D-9 (Scale) |
 
-Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestListWorkspacesAnnotations`, `TestDraftBoardScenarios` (entry struct equality), `MetadataDraftHostTests`, `CatalogQueryRegistryTests`.
+Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestListWorkspacesAnnotations`, `TestDraftBoardScenarios` (entry struct equality), `core/citationformat` render tests, `MetadataDraftHostTests`, `CatalogQueryRegistryTests`.
 
 ## 9. Definition of done
 
@@ -293,50 +315,55 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 - [ ] scripts/check-pr.sh prints check-pr: PASS (gofmt, go vet, go test, Xcode tests with no Swift warning, catalog and plan-doc checks)
 - [ ] No Out line was implemented; no code outside §4 / §6 was refactored
 - [ ] New user-facing copy is in L10n + Localizable.xcstrings; no stale strings left
-- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it)
+- [ ] Sweep: each renamed or deleted name `rg`'d by its old, qualified name across `.agents/`, `.cursor/rules/`, `docs/*.md` and `L10n.swift` with no hit left; `scripts/check-guidance-names.py` passes (check-pr runs it); "the only link the app opens from metadata" gone from both comments
 - [ ] Every row of **Rules this plan bends** has the user's answer, and its rule is updated
 - [ ] UI matches the brief inventory; no new kit primitive unless the brief marks it New
 - [ ] Version bump as the header says (VERSION, core/version.go, MARKETING_VERSION together)
+- [ ] T-12's ns/op is in the PR body
 - [ ] This plan: Status → Landed in #N (date); a Landed note lists every difference from the plan
-- [ ] deployment-plan.md: map row status; completed.md: one short paragraph of what shipped
+- [ ] deployment-plan.md: map row status, the rule and row naming Nearest; completed.md: one short paragraph of what shipped
 - [ ] Brief moved to design/archive/ and design/README.md updated
-- [ ] Domain docs updated: source-layer-data-model.md § 5.2 (inherited value), catalog-caches.md (D-8)
+- [ ] Domain docs updated: source-layer-data-model.md § 5.2, catalog-caches.md § Swift caches
 - [ ] PR description: what shipped, AC evidence, deviations, manual check
 ```
 
 ## 10. Manual check
 
-Use a project with a **Census** Source "1880 census, Calder County" holding Provider "Ancestry" and a URL, with at least one Artifact and one Evidence graph that hold no Provider. The app cannot mark a value unknown or supplied until S15-41, so AC-1.5 is covered by T-2 and T-6, not here.
+Use a project with a **Census** Source "1880 census, Calder County" holding Provider "Ancestry" and a URL, with at least one Artifact and one Evidence graph that hold no Provider. The app cannot mark a value unknown or supplied until S15-41, so AC-1.5 is covered by T-2, T-3 and T-7, not here.
 
-1. Open the Source; open an Artifact's sheet. Provider reads "Ancestry", "From Source"; the Source's URL opens from the URL row (AC-1.1, AC-1.6).
-2. Type "FamilySearch" in Provider, Return, Save. Reopen: Provider is "FamilySearch" with "Overrides Source: Ancestry". Open the provenance sheet of a Citation on that Artifact: the citation reads FamilySearch (AC-2.1, AC-2.2).
+1. Open the Source; open an Artifact's sheet. Provider reads "Ancestry", "From Source"; the URL row's link opens the Source's URL (AC-1.1, AC-1.6).
+2. Click Provider's value: an empty input with "Overrides Source: Ancestry" under it. Type "FamilySearch", Return, Save. Reopen: Provider is "FamilySearch" with "Overrides Source: Ancestry". Open the provenance sheet of a Citation on that Artifact: the citation reads FamilySearch (AC-2.1, AC-2.2).
 3. Trash Provider: the row shows "Ancestry", "From Source" again; Save; reopen: still inherited (AC-2.3).
 4. Add an Artifact: Provider reads "Ancestry", "From Source" before anything is typed; Cancel (AC-1.2).
 5. Open a graph's form, then Add graph: Provider inherited in both (AC-1.3).
-6. On the Source's Metadata section change Provider to "Calder Archives"; open the Artifact sheet: "Calder Archives". The Source's section shows no "From" line anywhere (AC-2.4, AC-1.4).
-7. Repeat step 1 with the window at 2560pt: the sheet is the same, centred (IH-W1).
+6. On the Source's Metadata section change Provider to "Calder Archives"; open the Artifact sheet: "Calder Archives". The Source's section shows no "From" line anywhere (AC-2.5, AC-1.4).
+7. With VoiceOver, focus the inherited Provider row: it reads "Provider, Inherited from Source: Ancestry" and the hint. Repeat step 1 with the window at 2560pt: the sheet is the same, centred (IH-8, IH-W1).
 
 ## 11. Risks and stop conditions
 
 | Risk | Mitigation |
 | --- | --- |
-| D-8's reload resets an edit on the Source's board | `resetIfChanged` compares rows; T-9 |
-| An inherited value on an extra disappears on clear | D-7, as the engine reads it after Save; T-8 |
-| Entry equality in Go tests changes with the new field | Extend the expected entries; do not drop the field from comparisons |
+| D-9's reload resets an edit on the Source's board | `resetIfChanged` compares rows; T-11 |
+| `Display` changes a rendered citation | `printed` calls it with today's logic; the render tests stay green |
+| Entry equality in Go tests changes with the new fields | Extend the expected entries; do not drop the fields from comparisons |
 
 **Stop and report if:**
 
 - `CitationValues.Resolve` no longer walks `vocabkey.NearestFirst()` itself, or a second walker over `NearestFirst()` exists at the base.
 - `boardInput.above` cannot become `CitationValues` because a caller passes another `Resolver`.
 - A board reply path builds `MetadataWorkspaceEntry` without `metadataEntryProto`.
-- `SourcePageContext.applySavedMetadata` is not the one apply for Source-board writes, or T-9 shows `resetIfChanged` resetting an open edit after the reload.
-- The board draws the inherited value in a way IH-1 – IH-8 does not describe (for example a row that cannot be typed into), or a frame needs a new kit primitive.
+- `printed` cannot call `Display` without changing a render test's expected text.
+- `registry["source_metadata"]` cannot take `Reads` because `metadataEffects` panics on it.
+- T-11 shows a reload resetting an open edit, or T-12 is over 100 ms.
+- The agreed board draws the inherited row differently from D-11 in kind (an input holding the value, a new row type), or needs a new kit primitive.
+- R-1 is not answered by the user.
 
 ## 12. Open questions
 
-- The board's composition of IH-1 – IH-8 (D-10): blocked on the S15-D33 board.
+- D-12: the board's refinements of IH-1 – IH-8 (blocked on the S15-D33 board).
+- R-1 (To user): accept `Nearest` as the one walker and rewrite the rule sentence (§ 5 Rules this plan bends).
 
 ## 13. PR
 
 **Title:** S15-64 — Boards show inherited values
-**Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-64-inherited-values.md`.
+**Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; T-12's ns/op; `Plan: docs/deployment-plan/spike-15/prs/S15-64-inherited-values.md`.

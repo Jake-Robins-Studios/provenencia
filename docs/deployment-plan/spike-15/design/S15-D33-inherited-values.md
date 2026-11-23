@@ -83,8 +83,8 @@ After this board, a board row shows the value its owner **inherits**: read only,
 
 **What changes.**
 
-- **An inherited row.** A field with no value of its own here and a value on the Source shows the Source's value, visibly read only and visibly not this owner's, with the level it comes from.
-- **Override.** Typing in that row and saving it (Save, or Return) makes it this owner's own value, a saved row as today. The citation of this Artifact or graph reads the new value; the Source and its other Artifacts and graphs keep theirs.
+- **An inherited row.** A field with no value of its own here and a value on the Source shows the Source's value, visibly read only and visibly not this owner's, with the level it comes from. Clicking it opens an empty input to type this owner's own value.
+- **Override.** Typing in that input and saving it (Save, or Return) makes it this owner's own value, a saved row as today. The citation of this Artifact or graph reads the new value; the Source and its other Artifacts and graphs keep theirs.
 - **What an override hides.** A saved row whose field also has an inherited value says what it overrides, so the researcher knows that clearing falls back rather than empties.
 - **Fall back.** Clearing the own value (the row's trash) returns the row to the inherited value. In the sheet and the form this changes only the draft, as today: nothing saves until Save, and Cancel restores.
 
@@ -101,10 +101,10 @@ After this board, a board row shows the value its owner **inherits**: read only,
 | Own value | A value typed on this Artifact or graph. It overrides the Source's for this owner only. A citation of this Artifact or graph reads it |
 | Which rows | Only rows the board already shows: the type's suggested fields, the fields its citation formats read, and this owner's own values. A Source value for a field none of those name adds no row |
 | Dismissed | A suggestion dismissed on this owner stays hidden even when the Source holds a value; its citation still reads the Source's value |
-| Marks | A value can be marked **unknown** (the record does not give it; no text; prints the field's unknown text, "n.p." for Publisher, or nothing when the field has none) or **supplied** (not on the record; prints in square brackets, "[Calder County]"). An inherited value carries the Source's mark |
+| Marks | A value can be marked **unknown** (the record does not give it; no text; prints the field's unknown text, "n.p." for Publisher, or nothing when the field has none) or **supplied** (not on the record; prints in square brackets, "[Calder County]"). An inherited value carries the Source's mark and reads as a citation prints it; the engine gives the printed text |
 | Links | A URL value opens in the browser from a saved row today. An inherited URL opens the same way |
 | Sizes | A board of up to 30 rows; up to every one of them inheriting. Values up to a long URL (about 200 characters) |
-| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the left column at about 400pt; one column when the window is narrow. The sheet is the same at Regular and Wide |
+| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the left column at about 400pt. There is no one-column form (S15-D5: not built). The sheet is the same at Regular and Wide |
 
 ### 2.1 Copy
 
@@ -115,7 +115,9 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 | Where an inherited value comes from | "From {level}" ("From Source") |
 | Inherited row, spoken (VoiceOver, on the value input) | "Provider. Inherited from Source: Ancestry" |
 | Inherited value marked unknown, with no unknown text | "Unknown" |
-| What a saved row overrides | "Overrides {level}: {value}" ("Overrides Source: Ancestry") |
+| Inherited row's input, once opened | "Add a value…" *(today's prompt)* |
+| What a saved row overrides, and an opened inherited row | "Overrides {level}: {value}" ("Overrides Source: Ancestry") |
+| Inherited row's spoken hint | "Opens a field to type a value that overrides it" |
 | Empty suggestion's input, nothing inherited | "Add a value…" *(today)* |
 | Suggestion's save | "Save" *(today)* |
 | Suggestions heading | "Suggested by this type" *(today)* |
@@ -143,15 +145,15 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 
 | ID | Requirement |
 | --- | --- |
-| IH-1 | **The inherited row.** A row with no own value and an inherited value shows the inherited value and "From Source", both read only and both quieter than a saved value (the saved row's value is primary mono; the inherited one reads as secondary). It stays an input the researcher can type into, with its Save and its dismiss, as an empty suggestion row is today. It sits where an empty suggestion sits (under "Suggested by this type"). Recommended: the value input's prompt is the inherited value in place of "Add a value…", with "From Source" as a caption line under the input; the board may choose a different composition from the kit, the same on every inherited row. |
-| IH-2 | **Override.** Typing in an inherited row hides the inherited value as the typed text replaces it; Save (or Return) moves the row to the saved rows as this owner's value, as an empty suggestion's save does today. Escape with typed text clears the text and shows the inherited value again. |
+| IH-1 | **The inherited row.** A row with no own value and an inherited value is the dashed suggestion row (label, value column, dismiss) with its value column at rest showing the inherited value on one line, in the saved value's mono caption face but secondary colour, then "From Source" as a caption after it. No input shows at rest. It sits where an empty suggestion sits (under "Suggested by this type"). The board may refine spacing and colour; it keeps this composition: the value drawn as a saved value is drawn, quieter, not inside an input's placeholder (a placeholder cannot hold a link, italics or the whole value on hover). |
+| IH-2 | **Override.** Clicking the inherited value (or tabbing to it and pressing Return or Space) opens the row's input, empty, with today's prompt, Save and dismiss, as a saved row opens its inline edit; the inherited value shows as the caption "Overrides Source: Ancestry" under the input while it is open. Save (or Return) moves the row to the saved rows as this owner's value, as an empty suggestion's save does today. Escape, or Save with nothing typed, closes the input and shows the inherited value again. |
 | IH-3 | **What an override hides.** A saved row whose field has an inherited value shows, under its value, "Overrides Source: Ancestry" in the caption style. Shown at rest and in edit. A saved row with nothing inherited is unchanged. |
-| IH-4 | **Fall back.** The trash on a saved row that overrides an inherited value takes the row back to the inherited row (IH-1) with no confirm, as clearing in a draft is today. A saved row with nothing inherited clears as today. |
-| IH-5 | **Marks.** An inherited value marked unknown shows the field's unknown text ("n.p."), else "Unknown", in italics. An inherited value marked supplied shows its text in square brackets ("[Calder County]"). The same in IH-3's caption ("Overrides Source: n.p."). |
-| IH-6 | **Links and length.** An inherited URL opens in the browser from the row as a saved URL does, without making the row's input lose its place. A long inherited value truncates on one line with the whole value on hover; it never pushes the row's actions out. |
+| IH-4 | **Fall back.** The trash on a saved row that overrides an inherited value takes the row back to the inherited row (IH-1) with no confirm, as clearing in a draft is today, when the field is one the board lists without a value (a suggestion, or a field the formats read). A field added through Add field that the board would not otherwise list is removed, as today; the citation then reads the Source's value. A saved row with nothing inherited clears as today. |
+| IH-5 | **Marks.** An inherited value reads as its citation prints it: marked unknown, the field's unknown text ("n.p."), else "Unknown", in italics; marked supplied, its text in square brackets ("[Calder County]"). The same in IH-2's and IH-3's caption ("Overrides Source: n.p."). |
+| IH-6 | **Links and length.** An inherited URL is a link, as a saved URL is, and opens in the browser; clicking elsewhere in the value column opens the input (IH-2). A long inherited value truncates on one line with the whole value on hover; it never pushes the row's actions out. |
 | IH-7 | **Where.** The Artifact sheet in edit and in add, and the Evidence graph form in edit and in add, show IH-1 – IH-6 on the same rows. The Source's own Metadata section shows no inherited row. |
-| IH-8 | **VoiceOver.** An inherited row's input reads its field label, then "Inherited from Source: Ancestry"; IH-3's caption is read with the saved value ("Ancestry. Overrides Source: FamilySearch" for a value "Ancestry" over "FamilySearch"). The link in IH-6 is its own element, labelled as a saved URL's is. |
-| IH-W1 | **Wide.** The Artifact sheet and the graph form are 880pt sheets at both widths and nothing in them moves: the sheet centres over the pane at Wide as at Regular. The inherited row also fits the one-column form (S15-D5's narrow frame). A typed override and the scroll survive a resize across 1600pt. |
+| IH-8 | **VoiceOver.** An inherited row at rest is one element: its field label, then "Inherited from Source: Ancestry", with the hint "Opens a field to type a value that overrides it"; its link (IH-6) is its own element, labelled as a saved URL's is. Once opened, the input reads its field label and the caption is read after it. IH-3's caption is read with the saved value ("FamilySearch. Overrides Source: Ancestry"). |
+| IH-W1 | **Wide.** The Artifact sheet and the graph form are 880pt sheets at both widths and nothing in them moves: the sheet centres over the pane at Wide as at Regular. A typed override and the scroll survive a resize across 1600pt. |
 
 ### 4.1 Wide layout
 
@@ -166,20 +168,19 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 
 Draw the sheets over the Source page, from the existing Artifact sheet and graph form frames. Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide** (pane 2296 × 1440); the others at Regular.
 
-**Data** (invent every record). Source **1880 census, Calder County** of type **Census**, whose own Metadata holds Provider "Ancestry", Jurisdiction "Calder County", Database title "Calder County Censuses, 1850–1900", URL "https://example.org/calder/1880/census-population-schedules-district-4" and Publisher marked unknown (the field's unknown text "n.p."); Place of publication "Calder County" marked supplied. Its Artifact **Page 12, image 1** holds its own URL "https://example.org/calder/1880/image/12" and its own Provider "FamilySearch" only in frames that say so. Its graph **Household of Ada Robins** holds Item "Ada Robins". Census suggests, in order: Provider, Jurisdiction, Database title, URL, Accessed, Format, Publisher, Place of publication, Line, Item (draw at least these).
+**Data** (invent every record). Source **1880 census, Calder County** of type **Census**, whose own Metadata holds Creator "Calder County enumerator", Jurisdiction "Calder County", Provider "Ancestry" and URL "https://example.org/calder/1880/census-population-schedules-district-4". Its Artifact **Page 12, image 1** holds its own Line "14" and its own Provider "FamilySearch" only in frames that say so. Its graph **Household of Ada Robins** holds Item "Ada Robins". Census suggests, in this order: Creator, Jurisdiction, Schedule, Enumeration district, Piece, Folio, Schedule number, Dwelling, Family, Line, Item, Format, Provider, URL, Accessed, Citing (16; draw them all, scrolled where the frame needs). For marks, Source **History of Calder County** of type **Book** (suggesting Author, Editor, Compiler, Translator, Edition, Volume, Series, Place of publication, Publisher, Format, Provider, URL, Accessed) with Publisher marked unknown (unknown text "n.p.") and Place of publication "Calder County" marked supplied.
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| D33-1a / 1b | IH-1, IH-6, IH-W1 | Artifact sheet, edit: its own URL as a saved row; Provider, Jurisdiction, Database title inherited ("From Source"); Accessed and Format empty with nothing inherited ("Add a value…"). In 1b, the same sheet centred over the Wide pane |
-| D33-2 | IH-2 | Typing "FamilySearch" in Provider: the inherited value gone from the input, Save enabled |
+| D33-1a / 1b | IH-1, IH-6, IH-W1 | Artifact sheet, edit: Line its own, a saved row; Creator, Jurisdiction, Provider and URL inherited ("From Source"); Schedule and the rest empty with nothing inherited ("Add a value…"). In 1b, the same sheet centred over the Wide pane |
+| D33-2 | IH-2 | Provider opened and "FamilySearch" typed: the input, "Overrides Source: Ancestry" under it, Save enabled |
 | D33-3 | IH-3 | After Save: Provider "FamilySearch" a saved row with "Overrides Source: Ancestry" under it; in edit as well |
 | D33-4 | IH-4 | After the trash on Provider: the row back to "Ancestry", "From Source"; the sheet's Save enabled (the draft changed) |
-| D33-5 | IH-5 | Publisher inherited as unknown ("n.p." in italics), Place of publication inherited as supplied ("[Calder County]"); and Publisher overridden ("Overrides Source: n.p.") |
-| D33-6 | IH-6 | URL not overridden on another Artifact: the Source's long URL inherited, truncated, hover showing it whole, the link opening it |
+| D33-5 | IH-5 | An Artifact of the Book Source: Publisher inherited as unknown ("n.p." in italics), Place of publication inherited as supplied ("[Calder County]"); and Publisher overridden ("Overrides Source: n.p.") |
+| D33-6 | IH-6 | The Source's long URL inherited, truncated, hover showing it whole, the link opening it |
 | D33-7 | IH-7 | Add an Artifact: the draft board with the inherited rows before anything is typed |
-| D33-8a / 8b | IH-7, IH-W1 | Evidence graph form, edit: Item its own value, Provider and Jurisdiction inherited. 8b at Wide |
-| D33-9 | IH-W1 | The graph form's one-column narrow frame with inherited rows |
-| D33-10 | IH-7 | The Source page's own Metadata section unchanged (no inherited rows), for comparison only |
+| D33-8a / 8b | IH-7, IH-W1 | Evidence graph form, edit: Item its own value, Creator, Jurisdiction, Provider and URL inherited. 8b at Wide |
+| D33-9 | IH-7 | The Source page's own Metadata section unchanged (no inherited rows), for comparison only |
 
 ---
 
@@ -188,11 +189,11 @@ Draw the sheets over the Source page, from the existing Artifact sheet and graph
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Metadata board | Snowflake | Extend | `macos/App/Features/Sources/MetadataBoardView.swift` `MetadataBoardView` | One board on every owner (rule "One metadata board"); this board extends its rows, not a second board |
-| Empty / inherited suggestion row | Snowflake | Extend | `MetadataBoardView.swift` `MetadataBoardSuggestionRow` | The inherited row is this row with the inherited value and its source; not a new row type |
+| Empty / inherited suggestion row | Snowflake | Extend | `MetadataBoardView.swift` `MetadataBoardSuggestionRow` | The inherited row is this row: at rest its value column is the inherited value and its caption; opened, today's input, Save and dismiss. Not a new row type |
 | Saved row | Snowflake | Extend | `MetadataBoardView.swift` `MetadataBoardView.savedRow`, `MetadataBoardTextEditor` | Gains IH-3's caption |
-| Value text and link | Snowflake | Extend | `MetadataBoardView.swift` `MetadataValueText` | The inherited value and its link draw through it, quieter; one value view, as S15-35 made it |
-| Value input | Component | Ship | `macos/App/DesignSystem/Components/Input/PVInput.swift` `PVInput` | Its prompt holds the inherited value (IH-1, recommended) |
-| Caption line ("From Source", "Overrides …") | Component | Ship | `PVFont.body(size: PVTypeScale.caption)` in `PVColor.textMuted`, as the add row's "taken" notice | Text, not a Badge or Chip: it is a sentence, not a status |
+| Value text and link | Snowflake | Extend | `MetadataBoardView.swift` `MetadataValueText` | The inherited value and its link draw through it, quieter (secondary colour, italic when unknown); one value view, as S15-35 made it |
+| Value input | Component | Ship | `macos/App/DesignSystem/Components/Input/PVInput.swift` `PVInput` | Today's prompt "Add a value…"; shown once the inherited row is opened |
+| Caption line ("From Source", "Overrides …") | Snowflake | Extend | `MetadataBoardView.swift` `MetadataBoardAddRowView`'s taken notice, extracted as a file-private caption view; the caption tokens `PVFont.body(size: PVTypeScale.caption)` in `PVColor.textMuted`, as the add row's "taken" notice | One private caption view for the three captions in the file. Text, not a Badge or Chip: it is a sentence, not a status |
 | Inline edit | Component | Ship | `macos/App/DesignSystem/Components/InlineEdit/PVInlineEdit.swift` `PVInlineEdit` | Unchanged |
 | Save / dismiss / trash | Component | Ship | `PVButton` ghost sm, `PVIconButton` `.dismiss`, `.trash` | Unchanged |
 | Dashed row card | Component | Ship | `PVCard(border: .dashed)` | Unchanged |
