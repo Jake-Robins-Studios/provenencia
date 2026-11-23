@@ -798,6 +798,7 @@ func TestWorkspaceEntryOpenHref(t *testing.T) {
 		{name: "url field, damaged smb value", entry: entry(metadatafields.DataTypeURL, "smb://server.example.org/share"), want: ""},
 		{name: "text field, host-shaped value", entry: entry(metadatafields.DataTypeText, "www.example.org"), want: ""},
 		{name: "url field, suggested and unset", entry: WorkspaceEntry{Field: metadatafields.Field{DataType: metadatafields.DataTypeURL}, Suggested: true}, want: ""},
+		{name: "url field, no value of its own, inherited link", entry: WorkspaceEntry{Field: metadatafields.Field{DataType: metadatafields.DataTypeURL}, Inherited: &Row{ValueText: "https://example.org/calder"}}, want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -806,6 +807,20 @@ func TestWorkspaceEntryOpenHref(t *testing.T) {
 			}
 		})
 	}
+	inherited := func(dataType, value string) WorkspaceEntry {
+		return WorkspaceEntry{Field: metadatafields.Field{DataType: dataType}, Inherited: &Row{ValueText: value}}
+	}
+	t.Run("inherited", func(t *testing.T) {
+		if got := inherited(metadatafields.DataTypeURL, "https://example.org/calder").InheritedOpenHref(); got != "https://example.org/calder" {
+			t.Fatalf("InheritedOpenHref() = %q", got)
+		}
+		if got := inherited(metadatafields.DataTypeText, "www.example.org").InheritedOpenHref(); got != "" {
+			t.Fatalf("a text field's InheritedOpenHref() = %q, want none", got)
+		}
+		if got := (WorkspaceEntry{Field: metadatafields.Field{DataType: metadatafields.DataTypeURL}}).InheritedOpenHref(); got != "" {
+			t.Fatalf("nothing inherited: InheritedOpenHref() = %q, want none", got)
+		}
+	})
 }
 
 func TestCreateAll(t *testing.T) {
@@ -1022,7 +1037,7 @@ func testWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 
 // seededWorld is a catalog with a user and the product seed (sourcevocabtest.Install).
 // It never calls seedBirthCertificate, whose format-less type the seed's would collide with.
-func seededWorld(t *testing.T) (c *database.Catalog, userID []byte) {
+func seededWorld(t testing.TB) (c *database.Catalog, userID []byte) {
 	t.Helper()
 	c, userID = emptyWorld(t)
 	if err := sourcevocabtest.Install(c); err != nil {
@@ -1032,7 +1047,7 @@ func seededWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 }
 
 // emptyWorld is a catalog with a user and no vocabulary.
-func emptyWorld(t *testing.T) (c *database.Catalog, userID []byte) {
+func emptyWorld(t testing.TB) (c *database.Catalog, userID []byte) {
 	t.Helper()
 	userID = []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
 	c, err := database.Create(t.TempDir(), "t.provenencia")
@@ -1050,7 +1065,7 @@ func emptyWorld(t *testing.T) (c *database.Catalog, userID []byte) {
 	return c, userID
 }
 
-func newSource(t *testing.T, c *database.Catalog, userID, typeID []byte, title string) sources.Source {
+func newSource(t testing.TB, c *database.Catalog, userID, typeID []byte, title string) sources.Source {
 	t.Helper()
 	s, _, err := writes.Run(c, writes.Op{Action: "create_source", UserID: userID}, func(tx *database.Tx) (sources.Source, []rowchange.Change, error) {
 		return sources.Create(tx, userID, sources.CreateInput{SourceTypeID: typeID, Title: title})
@@ -1903,7 +1918,7 @@ func listByOwnersBatches(t *testing.T) {
 // newLevelOwner makes one more owner at the level on the Source: an Artifact
 // (linked to its graphs) or a bare graph inserted by SQL, since a graph made
 // through evidencegraphs.Create needs an Artifact and keeps its last one.
-func newLevelOwner(t *testing.T, c *database.Catalog, userID []byte, src sources.Source, level vocabkey.Level) Owner {
+func newLevelOwner(t testing.TB, c *database.Catalog, userID []byte, src sources.Source, level vocabkey.Level) Owner {
 	t.Helper()
 	switch level {
 	case vocabkey.LevelArtifact:
@@ -3381,6 +3396,9 @@ func TestSeedAnnotations(t *testing.T) {
 func TestListWorkspacesAnnotationsScale(t *testing.T) {
 	c, userID := seededWorld(t)
 	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "url").ID, ValueText: "https://example.org/census"}); err != nil {
+		t.Fatal(err)
+	}
 	owners := []Owner{sourceOwner(src.ID)}
 	for i := 0; i < 60; i++ {
 		owners = append(owners, newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact))
@@ -3403,6 +3421,47 @@ func TestListWorkspacesAnnotationsScale(t *testing.T) {
 		e, ok := entryOf(boards[i].Entries, key[o.Level])
 		if !ok || e.Annotation.Need != want[o.Level] {
 			t.Fatalf("board %d (%s) %s = %+v, %v; want %q", i, o.Level, key[o.Level], e.Annotation, ok, want[o.Level])
+		}
+		if o.Level == vocabkey.LevelSource {
+			continue
+		}
+		u, ok := entryOf(boards[i].Entries, "url")
+		if !ok || u.Inherited == nil || u.Inherited.ValueText != "https://example.org/census" || u.Inherited.Owner.Level != vocabkey.LevelSource {
+			t.Fatalf("board %d (%s) url = %+v, %v; want the Source's value inherited", i, o.Level, u, ok)
+		}
+	}
+}
+
+// BenchmarkListWorkspacesScale reads 121 boards of a census Source with its 16
+// suggested fields valued on the Source: every Artifact and graph board carries
+// the 16 inherited values.
+func BenchmarkListWorkspacesScale(b *testing.B) {
+	c, userID := seededWorld(b)
+	census, err := sourcetypes.Lookup(c, "census", vocabkey.OriginProvenencia)
+	if err != nil {
+		b.Fatal(err)
+	}
+	src := newSource(b, c, userID, census.ID, "1900 census")
+	suggested, err := sourcevocab.ListSuggestions(c, census.ID)
+	if err != nil {
+		b.Fatal(err)
+	}
+	for _, s := range suggested {
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: s.Field.ID, ValueText: "https://example.org/" + s.Field.Key}); err != nil {
+			b.Fatal(err)
+		}
+	}
+	owners := []Owner{sourceOwner(src.ID)}
+	for i := 0; i < 60; i++ {
+		owners = append(owners, newLevelOwner(b, c, userID, src, vocabkey.LevelArtifact))
+	}
+	for i := 0; i < 60; i++ {
+		owners = append(owners, newLevelOwner(b, c, userID, src, vocabkey.LevelGraph))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if _, err := ListWorkspaces(c, owners); err != nil {
+			b.Fatal(err)
 		}
 	}
 }
@@ -3456,6 +3515,132 @@ func TestEveryBoardOffersTheTypeList(t *testing.T) {
 	for _, o := range []Owner{s, gr} {
 		if got := suggestedKeys(o); !slices.Equal(got, want) {
 			t.Fatalf("%s board after an Artifact dismissal suggests %v, want %v", o.Level, got, want)
+		}
+	}
+}
+
+// TestListWorkspacesInherited: each entry a board emits carries the value its
+// owner inherits from the Source and says whether the board keeps it with no
+// value of its own; the Source's own board inherits nothing.
+func TestListWorkspacesInherited(t *testing.T) {
+	c, userID := seededWorld(t)
+	census := seededType(t, c, "census")
+	if _, err := sourcetypestest.SetFormats(c, userID, census.ID, sourcetypes.Formats{Full: "{meta.provider}, {meta.publisher}"}); err != nil {
+		t.Fatal(err)
+	}
+	src := newSource(t, c, userID, census.ID, "1880 census, Calder County")
+	for key, text := range map[string]string{"provider": "Ancestry", "publisher": "Ashby Press", "column": "4"} {
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	art := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+	gr := newLevelOwner(t, c, userID, src, vocabkey.LevelGraph)
+
+	entry := func(o Owner, key string) (WorkspaceEntry, bool) {
+		return entryOf(boardOf(t, c, o).Entries, key)
+	}
+	inheritedText := func(e WorkspaceEntry) string {
+		if e.Inherited == nil {
+			return "<none>"
+		}
+		return e.Inherited.ValueText + "@" + string(e.Inherited.Owner.Level)
+	}
+
+	t.Run("no value of its own", func(t *testing.T) {
+		for _, o := range []Owner{art, gr} {
+			e, ok := entry(o, "provider")
+			if !ok || e.Value != nil || inheritedText(e) != "Ancestry@source" || !e.StaysWithoutValue {
+				t.Fatalf("%s provider = %+v, %v (inherited %s)", o.Level, e, ok, inheritedText(e))
+			}
+		}
+	})
+	t.Run("a needed unsuggested head met by the Source", func(t *testing.T) {
+		e, ok := entry(art, "publisher")
+		if !ok || e.Suggested || inheritedText(e) != "Ashby Press@source" || !e.Annotation.MetElsewhere || !e.StaysWithoutValue {
+			t.Fatalf("publisher = %+v, %v (inherited %s)", e, ok, inheritedText(e))
+		}
+	})
+	t.Run("a Source extra no format reads adds no entry", func(t *testing.T) {
+		if e, ok := entry(art, "column"); ok {
+			t.Fatalf("the Artifact board holds column: %+v", e)
+		}
+	})
+	t.Run("the Source's board inherits nothing", func(t *testing.T) {
+		for _, e := range boardOf(t, c, sourceOwner(src.ID)).Entries {
+			if e.Inherited != nil {
+				t.Fatalf("Source entry %s inherits %s", e.Field.Key, inheritedText(e))
+			}
+		}
+	})
+	t.Run("own values", func(t *testing.T) {
+		for key, text := range map[string]string{"provider": "FamilySearch", "publisher": "Calder Press", "line_number": "14", "column": "7"} {
+			if _, _, err := runSetOwner(c, userID, art, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		for key, want := range map[string]struct {
+			value, inherited string
+			stays            bool
+		}{
+			"provider":    {"FamilySearch", "Ancestry@source", true},
+			"publisher":   {"Calder Press", "Ashby Press@source", true},
+			"line_number": {"14", "<none>", true},
+			"column":      {"7", "4@source", false},
+		} {
+			e, ok := entry(art, key)
+			if !ok || e.Value == nil || e.Value.ValueText != want.value || inheritedText(e) != want.inherited || e.StaysWithoutValue != want.stays {
+				t.Fatalf("%s = %+v, %v (inherited %s), want %+v", key, e, ok, inheritedText(e), want)
+			}
+		}
+	})
+	t.Run("a dismissed suggestion stays hidden though the Source holds a value", func(t *testing.T) {
+		d := newLevelOwner(t, c, userID, src, vocabkey.LevelArtifact)
+		schedule := seededField(t, c, "schedule")
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: schedule.ID, ValueText: "Population"}); err != nil {
+			t.Fatal(err)
+		}
+		if err := runDismissOwner(c, userID, d, schedule.ID); err != nil {
+			t.Fatal(err)
+		}
+		if e, ok := entry(d, "schedule"); ok {
+			t.Fatalf("a dismissed schedule is on the board: %+v", e)
+		}
+	})
+	t.Run("marks", func(t *testing.T) {
+		book := newSource(t, c, userID, seededType(t, c, "book").ID, "History of Calder County")
+		if _, err := runSet(c, userID, book.ID, Input{FieldID: seededField(t, c, "publisher").ID, Mark: valuemark.Mark{Unknown: true}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := runSet(c, userID, book.ID, Input{FieldID: seededField(t, c, "publication_place").ID, ValueText: "Calder County", Mark: valuemark.Mark{Supplied: true}}); err != nil {
+			t.Fatal(err)
+		}
+		a := newLevelOwner(t, c, userID, book, vocabkey.LevelArtifact)
+		if e, _ := entry(a, "publisher"); e.Inherited == nil || !e.Inherited.Mark.Unknown {
+			t.Fatalf("publisher inherited %+v, want marked unknown", e.Inherited)
+		}
+		if e, _ := entry(a, "publication_place"); e.Inherited == nil || !e.Inherited.Mark.Supplied || e.Inherited.ValueText != "Calder County" {
+			t.Fatalf("publication_place inherited %+v, want supplied", e.Inherited)
+		}
+	})
+}
+
+// TestListDraftWorkspaceInherited: the draft board of an Artifact or a graph
+// not yet made carries the Source's values as inherited.
+func TestListDraftWorkspaceInherited(t *testing.T) {
+	c, userID := seededWorld(t)
+	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1880 census, Calder County")
+	if _, err := runSet(c, userID, src.ID, Input{FieldID: seededField(t, c, "provider").ID, ValueText: "Ancestry"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
+		entries, err := ListDraftWorkspace(c, src.ID, level)
+		if err != nil {
+			t.Fatal(err)
+		}
+		e, ok := entryOf(entries, "provider")
+		if !ok || e.Value != nil || e.Inherited == nil || e.Inherited.ValueText != "Ancestry" || !e.StaysWithoutValue {
+			t.Fatalf("%s draft provider = %+v, %v", level, e, ok)
 		}
 	}
 }

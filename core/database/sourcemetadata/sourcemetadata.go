@@ -73,17 +73,33 @@ type WorkspaceEntry struct {
 	// layout order once the owner has any layout row, otherwise the type's
 	// suggestion order (0 for extras).
 	SortOrder int
+	// Inherited is the row of the nearest level above the owner that holds the
+	// field (CitationValues.Nearest), whether or not the entry has a value of
+	// its own; nil when nothing above holds it.
+	Inherited *Row
+	// StaysWithoutValue is true when the board keeps the entry with no value of
+	// its own: the type suggests the field, or its formats head it.
+	StaysWithoutValue bool
 }
 
-// OpenHref is the web link to open for this entry: the browser-ready form of a
-// url-typed value (urlshape.OpenHref), or "" when the entry has no value, is not
-// a url field, or holds a value that is not a web address (a damaged row). It
-// is the only link the app opens from metadata.
+// OpenHref is the web link to open for this entry's own value: the
+// browser-ready form of a url-typed value (urlshape.OpenHref), or "" when the
+// entry has no value, is not a url field, or holds a value that is not a web
+// address (a damaged row).
 func (e WorkspaceEntry) OpenHref() string {
-	if e.Value == nil || e.Field.DataType != metadatafields.DataTypeURL {
+	return openHref(e.Field, e.Value)
+}
+
+// InheritedOpenHref is OpenHref for the inherited value.
+func (e WorkspaceEntry) InheritedOpenHref() string {
+	return openHref(e.Field, e.Inherited)
+}
+
+func openHref(f metadatafields.Field, r *Row) string {
+	if r == nil || f.DataType != metadatafields.DataTypeURL {
 		return ""
 	}
-	href, err := urlshape.OpenHref(e.Value.ValueText)
+	href, err := urlshape.OpenHref(r.ValueText)
 	if err != nil {
 		return ""
 	}
@@ -1072,7 +1088,7 @@ type boardInput struct {
 	resolver citationformat.Resolver
 	// above answers as the resolver does with the owner's own level left out:
 	// what the owner's ancestors hold.
-	above citationformat.Resolver
+	above CitationValues
 }
 
 // buildEntries is the owner's board at one level: the type's suggestions, then
@@ -1096,6 +1112,19 @@ func buildEntries(in boardInput) []WorkspaceEntry {
 		}
 		return annotate(in.needs, citationformat.Target{Field: citationformat.FieldRef{ID: id}}, in.resolver, in.above, in.fields)
 	}
+	// place sets what every emitted entry carries beside its own value.
+	place := func(e WorkspaceEntry) WorkspaceEntry {
+		id, err := uuid.FromBytes(e.Field.ID)
+		if err != nil {
+			return e
+		}
+		if row, ok := in.above.Nearest(id); ok {
+			e.Inherited = &row
+		}
+		_, head := in.needs.heads[id]
+		e.StaysWithoutValue = e.Suggested || head
+		return e
+	}
 	hidden := func(key string, note Annotation) bool {
 		return note.Need != citationformat.NeedNeeded && layoutRows[key].Dismissed
 	}
@@ -1112,7 +1141,7 @@ func buildEntries(in boardInput) []WorkspaceEntry {
 		if entry.Value == nil && hidden(key, entry.Annotation) {
 			continue
 		}
-		entries = append(entries, entry)
+		entries = append(entries, place(entry))
 	}
 	for _, id := range in.needs.order {
 		key := string(id[:])
@@ -1128,20 +1157,20 @@ func buildEntries(in boardInput) []WorkspaceEntry {
 		if hidden(key, entry.Annotation) {
 			continue
 		}
-		entries = append(entries, entry)
+		entries = append(entries, place(entry))
 	}
 	for _, v := range in.values {
 		if _, ok := seen[string(v.FieldID)]; ok {
 			continue
 		}
 		v := v
-		entries = append(entries, WorkspaceEntry{
+		entries = append(entries, place(WorkspaceEntry{
 			Field:      in.fields[string(v.FieldID)],
 			Value:      &v,
 			Suggested:  false,
 			SortOrder:  0,
 			Annotation: annotation(v.FieldID),
-		})
+		}))
 	}
 
 	if len(layoutRows) > 0 {
