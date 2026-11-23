@@ -1,6 +1,8 @@
 # S16-65 — One kit focus stop for a list of rows
 
-**Status:** Planned
+**Status:** Landed in [#951](https://github.com/Jake-Robins-Studios/provenencia/pull/951) (2026-11-22)
+
+**Landed:** the kit README link to `kit-layering.md` is `../../../docs/ideas/kit-layering.md` (the step's `../../../../` does not resolve from that folder); the README and `add-ui-component` edits ride in their own commit.
 **Spike / slice:** Spike 16 · Slice 6f — Sources list keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the Persons, Events and Places lists look and behave as today; the code that draws their focus moves, not the drawing)
