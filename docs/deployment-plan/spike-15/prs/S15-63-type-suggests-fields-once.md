@@ -1,9 +1,9 @@
 # S15-63 — A type suggests fields once
 
-**Status:** Planned
+**Status:** Landed in [#955](https://github.com/Jake-Robins-Studios/provenencia/pull/955) (2026-11-23)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S15-D32](../design/S15-D32-one-suggestion-list.md), board agreed 2026-11-23 (user)
+**Brief:** [S15-D32](../design/archive/S15-D32-one-suggestion-list.md), board agreed 2026-11-23 (user)
 **Board:** [Claude Design — Source Type Page](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): artboard *Source type page board* (`Main.dc.html`), the frames in its **Suggested fields** group (The list; A pick in progress · Wide; The picker; Return adds; Removing; A write in progress; Empty; Read failed; An add refused; Associated fields) and its **Copy type** group (The sheet · Regular and · Wide; Parts the original lacks; the S15-D7 frames kept), the Page group's *A plugin's type* frame, and the board's **Suggested fields** and **Copy type** spec notes; drawn by *Source type page · component* (`Source-Type-Page.dc.html`). Board decisions: the count is `PVSectionHeader`'s `meta`; three italic micro lines under it (the hint, "Offered on every Source, Artifact and Evidence graph of this type", the pool hint; the first and last on an editable type only); no list header; copy exactly as the brief's § 2.1; an extra frame shows every plus and remove disabled while a write runs. The board's failed read is a `PVCallout` with Try again because the web kit has no `PVRetryCallout`; the app uses `PVRetryCallout`. Its Copy sheet reads the suggestion list to count it; the app takes the count from the type row (D-19). Open the link in a browser; if you cannot, D-9 and § 6 macOS describe the frames
 **Depends on:** S15-62 (landed [#950](https://github.com/Jake-Robins-Studios/provenencia/pull/950)), S15-D32 (board agreed 2026-11-23)
 **Blocks:** S15-64, S15-54
@@ -356,6 +356,17 @@ Sweep names (also across `macos/` and `core/`): `typeSuggestionsKeys`, `suggesti
 ## 12. Open questions
 
 None.
+
+## Landed
+
+- The migration is `000069.sql`, as planned (no rebase renumbering). The version is 0.35.0 (`main` was 0.34.1 when the branch was cut).
+- **The board was not opened.** The implementer could not open the claude.ai board link, so the page and the Copy sheet follow D-9, § 6 macOS and the brief's OL-1 – OL-8, OL-W1 and § 2.1 copy as written; the frames D32-1 – D32-10 were not compared by eye. The Swift tests check the model and the copy, not the drawing.
+- `PVComboBox.swift`'s preview (not named in § 4) took `L10n.SourceTypes.level(.source).pickerLabel` and now takes `suggestedPickerLabel`; `L10nResolutionTests` (not named in § 4) takes the new `assignFieldNamed(field:type:)` and the list label's new title.
+- `TestMetadataBoardsKeepTheirLevel` became `TestMetadataBoardsOfferTheTypeList`, and `TestSeedAnnotations`' table (`unsug`) shrinks with the lists: the empty unsuggested heads over the 26 seeded types are 29, not 120, because a type's list now holds every field its formats read at any level; three more tests in `sourcemetadata_test.go` (`TestListWorkspacesExported`, the census case and "a valued extra" in `TestListWorkspacesAnnotations`) assert the fields by id and as suggested, as STEP-3 said for `TestOwnerTables`.
+- `SourceTypeCopyModelTests.formatsReadFailureThenReadAgain` was folded into `aFailedFormatsReadFailsTheSheetAndReloads` (both read the formats' failure; the plan named the second). `FakeStore.draftMetadataBoardCalls` holds `(sourceID:, level:)` tuples, so tests compare its `.level` and `.sourceID` columns.
+- The seed's entry count is 26 lists (every seeded type that suggests anything); the types with none have no entry, as § 6 Edges says.
+- A local, untracked `bin/reseed-source-vocab` (gitignored) calls the old per-level reads and no longer builds; it is the product owner's one-off for the 0.24 seed and is not part of the PR.
+- STEP-5 and STEP-6 are one commit: the generated Swift engine file changes with the Go commit, so no Swift commit builds alone.
 
 ## 13. PR
 

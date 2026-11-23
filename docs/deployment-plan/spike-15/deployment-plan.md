@@ -173,7 +173,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-60 | The seed has a page field | 11 | Go: the seed adds `page` (unknown text "unpaginated"), suggested by each type whose format prints a page; its formats read `{meta.page\|citation.page}` until S15-58; map § 6.9 and `seeded-vocabulary.md` rewritten. **Re-scoped (2026-11-22, later):** nearest-wins replaces the chain helper | — | S15-54, S15-62 | — | Scoped |
 | S15-61 | Metadata levels are one declared list | 11 | Preparatory, Go: one list of levels in `catalogmodel` builds `sourcemetadata.stores`, each level's four `deleteimpact` rows and its two effects entries; the three levels move onto it. No visible change | — | — | [plan](prs/S15-61-metadata-levels-list.md) | Landed #943 |
 | S15-62 | A format reads a field from the nearest level | 11 | Go: `{meta.key}` resolves nearest-first (graph, Artifact, Source; the Citation joins with S15-54); `meta_at_level` replaces `unprefixed_meta`; requirements per field; seed formats rewritten (no migration: user, 2026-11-22); the editor's completion lists each field once | — | S15-61 | [plan](prs/S15-62-nearest-level-fields.md) | Landed #950 |
-| S15-63 | A type suggests fields once | 11 | Go and Swift: migration drops the suggestion level (schema only, no rows carried; user, 2026-11-23); every board offers all the type's suggestions; the type page's three lists become one; Copy type's suggestion ticks become one; the seed's suggestions one list per type | [S15-D32](design/S15-D32-one-suggestion-list.md) | S15-62, S15-D32 | [plan](prs/S15-63-type-suggests-fields-once.md) | Planned |
+| S15-63 | A type suggests fields once | 11 | Go and Swift: migration drops the suggestion level (schema only, no rows carried; user, 2026-11-23); every board offers all the type's suggestions; the type page's three lists become one; Copy type's suggestion ticks become one; the seed's suggestions one list per type | [S15-D32](design/archive/S15-D32-one-suggestion-list.md) | S15-62, S15-D32 | [plan](prs/S15-63-type-suggests-fields-once.md) | Landed #955 |
 | S15-64 | Boards show inherited values | 11 | Go and Swift: each board entry carries the nearest ancestor's value, level and mark (`Resolve` without the owner's level); the row shows it read-only with its source, typing overrides, clearing falls back; on the Artifact sheet and the graph form | S15-D33 | S15-63, S15-D33 | — | Scoped |
 | S15-65 | Boards show a citation preview | 9 | Not built for now (user, 2026-11-22): parked in [`ideas/citation-composer-followups.md`](../../ideas/citation-composer-followups.md) | — | — | — | Descoped (2026-11-22) → idea |
 | S15-66 | Boards flag a list field set below the Source | 9 | Go and Swift: a `list_below` annotation on Artifact, graph and Citation entries; the row's hint and **Move to Source**, one engine write | S15-D35 | S15-39, S15-64, S15-D35 | — | Scoped |
@@ -216,7 +216,7 @@ These are the calls for this spike. PR plans treat them as binding.
 | S15-D25 | Metadata page | **S15-46** | A field's unknown text |
 | S15-D29 | Citation composer | **S15-56** | The composer's final shape: the Citation's metadata board beside the locator inputs, its suggestions and Add field, and no Printed page input, at Regular and Wide (S15-D31 merged in) |
 | S15-D30 | Source type page | — | **Descoped (2026-11-22, later)**: suggestions lose their level (S15-63), so there is no fourth list; S15-54 has no chrome |
-| [S15-D32](design/S15-D32-one-suggestion-list.md) | Source type page, Copy type sheet | **S15-63** | One Suggested fields list in place of three; Copy type's one suggestions tick |
+| [S15-D32](design/archive/S15-D32-one-suggestion-list.md) | Source type page, Copy type sheet | **S15-63** | One Suggested fields list in place of three; Copy type's one suggestions tick |
 | S15-D33 | Metadata board row | **S15-64** | A row inheriting a value: the value, where it comes from, typing to override, clearing to fall back; on the Artifact sheet and the graph form |
 | S15-D34 | Artifact sheet, graph form, composer | — | **Descoped (2026-11-22)** with S15-65 |
 | S15-D35 | Metadata board row | **S15-66** | The list-below hint and Move to Source |
@@ -296,7 +296,7 @@ SLICE 7 — Move                                        (after S16-12, S16-13, S
 SLICE 11 — Metadata at any level                      (after slice 7, before slice 8; re-cut 2026-11-22)
   S15-61  Metadata levels are one declared list
   S15-62  A format reads a field from the nearest level
-  ✎ S15-D32 ──▶ S15-63  A type suggests fields once
+  S15-63  A type suggests fields once
   ✎ S15-D33 ──▶ S15-64  Boards show inherited values
   S15-54  Citations hold metadata
   S15-55  Boards read every level above
