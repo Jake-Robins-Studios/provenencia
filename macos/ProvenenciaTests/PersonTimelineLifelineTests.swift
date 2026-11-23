@@ -348,4 +348,20 @@ struct PersonTimelineLifelineTests {
         #expect(years.first.map { $0 < 0 } == true)
         #expect(String(years.first ?? 0).hasPrefix("-"))
     }
+
+    /// A bar's fade stops never cross: a short bar open at both ends fades over half its height from each end.
+    @Test func barFadeStopsStayOrdered() {
+        for height in [CGFloat(6), 10, 31, 40, 200] {
+            for (openStart, openEnd) in [(true, true), (true, false), (false, true), (false, false)] {
+                let stops = PersonTimelineLifeline.barFadeStops(height: height, openStart: openStart, openEnd: openEnd)
+                #expect(stops.count == 4)
+                #expect(zip(stops, stops.dropFirst()).allSatisfy { $0 <= $1 }, "height \(height), open \(openStart)/\(openEnd): \(stops)")
+                #expect(stops.first == 0 && stops.last == 1)
+            }
+        }
+        #expect(PersonTimelineLifeline.barFadeStops(height: 10, openStart: true, openEnd: true) == [0, 0.5, 0.5, 1])
+        #expect(PersonTimelineLifeline.barFadeStops(height: 64, openStart: true, openEnd: true) == [0, 0.25, 0.75, 1])
+        #expect(PersonTimelineLifeline.barFadeStops(height: 10, openStart: true, openEnd: false) == [0, 1, 1, 1])
+        #expect(PersonTimelineLifeline.barFadeStops(height: 64, openStart: false, openEnd: false) == [0, 0, 1, 1])
+    }
 }

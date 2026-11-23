@@ -12,6 +12,19 @@ struct PersonTimelineLifeline: Equatable {
     static let columnWidth: CGFloat = 80
     /// The line's x in its column.
     static let lineX: CGFloat = 56
+
+    /// The four gradient stop locations of a bar `height` tall, fading over up
+    /// to 16 pt at each open end. Each fade is at most the whole bar, and at
+    /// most half of it when both ends are open, so the stops never cross.
+    static func barFadeStops(height: CGFloat, openStart: Bool, openEnd: Bool) -> [CGFloat] {
+        let fade = min(16, openStart && openEnd ? height / 2 : height)
+        return [
+            0,
+            openStart ? fade / height : 0,
+            openEnd ? 1 - fade / height : 1,
+            1,
+        ]
+    }
     /// The gap between the line's column and the list.
     static let listGap: CGFloat = 12
     /// The x of a row's flag: where a tether ends.
