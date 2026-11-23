@@ -1,7 +1,7 @@
 # Ship log — S16-65 One kit focus stop for a list of rows
 
 **Plan:** [`S16-65-list-focus-stop.md`](S16-65-list-focus-stop.md) · **Branch:** `s16-65-list-focus-stop` · **PR:** #951
-**State:** review 2
+**State:** ready
 
 ## Round 0 — implement
 Head `8d444edb1`. Gate PASS (orchestrator run against `a0923028f`). Report: the README's `kit-layering.md` link is `../../../docs/ideas/kit-layering.md` (the plan's `../../../../` does not resolve from `macos/App/DesignSystem/`); STEP-1's targeted `-only-testing` run and STEP-2's build were covered by check-pr's xcode-test and swift-warnings; §10 manual check not run (needs a window).
@@ -46,3 +46,12 @@ Head `c15277256` (code), `7e86b15e2` after the orchestrator's `completed.md` wor
 
 ## Round 2 — review
 Reviewers: MNT (MNT-1 was a Fix-now major). Scope `8d444edb1...7e86b15e2`. Not sent: CON (minor only, resolved above), UX and SEC+PRF (no findings).
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| MNT-1 | MNT | major | (round 1) second clamp | **Resolved** | one `clampedIndex`, called by `action`; `rg "min\(max\(index" macos/App/DesignSystem` finds only it; `(-1, 3) → 0` tested |
+
+No new findings; no nits.
+
+## Result
+Gate PASS (`origin/main` still `a0923028f`, no merge needed) · CI see PR #951 · open: none · follow-ups: none · to user: — · owed: §10 manual check (steps 1–5) before merge
