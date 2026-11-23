@@ -14,7 +14,7 @@ Reviewers: CON, MNT, UX, SEC+PRF (diff touches `macos/App/**`, `Localizable.xcst
 | MNT-1 | MNT | major | Page header counts the list; the types column and Copy sheet use the engine's `suggestedFieldCount` | Fix now → F-1 | verified: `SourceTypeSuggestedFields.swift:23` `suggestions.count`; `SourceTypeCopyModel.suggestionCount` is `original.suggestedFieldCount`. D-9 names where the count shows, not its source |
 | CON-1 | CON | major | AC-1.3 (open a pre-PR project) has no run evidence; PR body cites it as checked | Fix now → F-3 | verified: round-0 report says § 10 not run; Landed note silent. The run itself is the user's manual check (no migration tests, user rule); the defect is the claim |
 | CON-2 | CON | minor | Valued, unsuggested format-head case lost when the test was repurposed | Fix now → F-2 | verified: `sourcemetadata_test.go:3006` renamed to the suggested path; no other case reaches `buildEntries`' valued-head skip for an unsuggested head |
-| UX-1 | UX | minor | Copy sheet's loading caption still says it reads suggested fields | To user | plan § 6 Strings: "`sourceTypes.copy.loading` … stays"; D-19 dropped the read, so the copy is stale but the plan keeps it |
+| UX-1 | UX | minor | Copy sheet's loading caption still says it reads suggested fields | To user → Fix now (F-5, user 2026-11-23) | plan § 6 Strings: "`sourceTypes.copy.loading` … stays"; D-19 dropped the read, so the copy is stale but the plan keeps it |
 | CON-3 | CON | nit | `GetDraftMetadataBoard` doc says "suggestions at the level" | Fix now → F-4 (rider) | stale comment this PR made stale |
 | CON-4 | CON | nit | `sources_test.go:492,539` messages name a suggestion level | Fix now → F-4 (rider) | stale text in a file this PR changes |
 | MNT-4 | MNT | nit | `readTypeBoards` named after the deleted `typeBoard` | Fix now → F-4 (rider) | stale name in code this PR changes |
@@ -51,5 +51,8 @@ Head `209569d94`. Gate PASS (orchestrator run). F-1 done (`suggestionCountComesF
 ## Round 2 — review
 Reviewers: CON (CON-1), MNT (MNT-1). UX and SEC+PRF not sent: no Fix-now blocker or major in their lenses. CON-2 (minor): Resolved, read by orchestrator (`sourcemetadata_test.go:3025`). Both reviewers clean; MNT-1 and CON-1 Resolved; no new findings. PR body's AC-1.3 row rewritten by the orchestrator.
 
+## User answer — UX-1
+User approved the change (2026-11-23). F-5: `sourceTypes.copy.loading` → "Reading the original's formats"; Landed note records it superseding § 6's "stays". Head `7861562f2`. Gate PASS (orchestrator run). Minor, so no re-review.
+
 ## Result
-Gate PASS · CI pending · open: none · follow-ups: none · to user: UX-1 (Copy sheet loading caption) · manual check § 10 incl. AC-1.3 left to the product owner
+Gate PASS · CI green · open: none · follow-ups: none · to user: — (UX-1 answered) · manual check § 10 incl. AC-1.3 left to the product owner
