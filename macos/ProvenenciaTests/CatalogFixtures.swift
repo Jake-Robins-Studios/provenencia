@@ -96,10 +96,12 @@ func catalogMetadataRefusal(params: [String] = []) -> CoreInvokeError {
 
 /// A metadata row for tests; it holds a value exactly when `value` is not empty.
 func catalogMetadataEntry(
-    _ field: CatalogMetadataField, _ value: String = "", suggested: Bool = false, order: Int32 = 0
+    _ field: CatalogMetadataField, _ value: String = "", suggested: Bool = false, order: Int32 = 0,
+    inherited: CatalogInheritedMetadataValue? = nil, staysWithoutValue: Bool = false
 ) -> CatalogMetadataEntry {
     CatalogMetadataEntry(
-        field: field, valueText: value, hasValue: !value.isEmpty, suggested: suggested, sortOrder: order
+        field: field, valueText: value, hasValue: !value.isEmpty, suggested: suggested, sortOrder: order,
+        inherited: inherited, staysWithoutValue: staysWithoutValue
     )
 }
 

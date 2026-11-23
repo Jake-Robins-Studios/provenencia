@@ -1485,7 +1485,31 @@ struct CatalogMetadataEntry: Sendable, Equatable, Identifiable {
     var suggested: Bool
     var sortOrder: Int32
     /// The web link Go computed for a url-typed value (`sourcemetadata.WorkspaceEntry.OpenHref`);
-    /// empty when the value is not one. The only link the app opens from metadata.
+    /// empty when the value is not one.
+    var openHref: String = ""
+    /// The value the owner inherits from the nearest level above it, printed as a
+    /// citation prints it; nil when nothing above holds the field.
+    var inherited: CatalogInheritedMetadataValue? = nil
+    /// The board keeps this entry with no value of its own (the type suggests the
+    /// field, or its citation formats head it): clearing the value leaves the row.
+    var staysWithoutValue: Bool = false
+
+    /// `openHref` as a URL, or nil when Go computed no link.
+    var openURL: URL? {
+        openHref.isEmpty ? nil : URL(string: openHref)
+    }
+}
+
+/// The value a board entry's owner inherits (the wire `InheritedMetadataValue`).
+struct CatalogInheritedMetadataValue: Sendable, Equatable {
+    /// The value as a citation prints it: the field's unknown text for a value
+    /// marked unknown (empty when the field has none), the text in square
+    /// brackets when supplied.
+    var displayText: String
+    var isUnknown: Bool
+    /// The level that holds it.
+    var level: Level
+    /// The web link Go computed for a url-typed value; empty when it is not one.
     var openHref: String = ""
 
     /// `openHref` as a URL, or nil when Go computed no link.
