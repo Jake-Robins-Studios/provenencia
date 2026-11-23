@@ -251,7 +251,7 @@ final class ArtifactRegionOverlayView: NSView {
             return
         }
         if event.charactersIgnoringModifiers == String(UnicodeScalar(NSDeleteCharacter)!)
-            || event.keyCode == 51
+            || event.keyCode == PVKeyCode.delete
         {
             if !inProgressPoints.isEmpty {
                 inProgressPoints.removeLast()
@@ -259,7 +259,7 @@ final class ArtifactRegionOverlayView: NSView {
             }
             return
         }
-        if event.keyCode == 53 {
+        if event.keyCode == PVKeyCode.escape {
             inProgressPoints = []
             onDisarm?()
             needsDisplay = true

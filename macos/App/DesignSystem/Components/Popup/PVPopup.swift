@@ -62,14 +62,14 @@ enum PVPopupInput: Equatable {
         modifiers: NSEvent.ModifierFlags
     ) -> KeyEquivalent? {
         switch keyCode {
-        case 53: return .escape
-        case 126: return .upArrow
-        case 125: return .downArrow
-        case 115: return .home
-        case 119: return .end
-        case 116: return .pageUp
-        case 121: return .pageDown
-        case 36, 76: return .return
+        case PVKeyCode.escape: return .escape
+        case PVKeyCode.upArrow: return .upArrow
+        case PVKeyCode.downArrow: return .downArrow
+        case PVKeyCode.home: return .home
+        case PVKeyCode.end: return .end
+        case PVKeyCode.pageUp: return .pageUp
+        case PVKeyCode.pageDown: return .pageDown
+        case PVKeyCode.returnKey, PVKeyCode.keypadEnter: return .return
         default:
             return PVTypeSelectMatcher.typeSelectCharacter(
                 characters, command: modifiers.contains(.command), control: modifiers.contains(.control)

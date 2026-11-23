@@ -8,28 +8,29 @@ import SwiftUI
 /// top (a page's reset; `pvScrollsRowIntoView`'s `startsAtTopWhenRowsChange:`
 /// is a list's first row); the content needs no key code and no ids.
 ///
-/// `isSideList` marks a list beside a detail pane: with the pointer over
-/// neither, the keys scroll the pane.
+/// `yieldsPageKeys`: when another page scroll view in the window can scroll and
+/// the pointer is over neither, the page keys go to that one. A focused view
+/// that handles the keys (a focused `PVTable`) keeps them.
 struct PVPageScrollView<Content: View>: View {
     private let resetKey: AnyHashable?
-    private let isSideList: Bool
+    private let yieldsPageKeys: Bool
     private let content: Content
     @State private var handle = PVPageScrollHandle()
 
     init(
         startsAtTopWhen resetKey: AnyHashable? = nil,
-        isSideList: Bool = false,
+        yieldsPageKeys: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.resetKey = resetKey
-        self.isSideList = isSideList
+        self.yieldsPageKeys = yieldsPageKeys
         self.content = content()
     }
 
     var body: some View {
         ScrollView(.vertical) {
             content.background(
-                PVPageScrollProbe(handle: handle, isSideList: isSideList).frame(width: 0, height: 0)
+                PVPageScrollProbe(handle: handle, yieldsPageKeys: yieldsPageKeys).frame(width: 0, height: 0)
             )
         }
         .onChange(of: resetKey) { handle.scrollToTop() }
@@ -48,11 +49,11 @@ final class PVPageScrollHandle {
 
 private struct PVPageScrollProbe: NSViewRepresentable {
     let handle: PVPageScrollHandle
-    let isSideList: Bool
+    let yieldsPageKeys: Bool
 
     final class Probe: NSView {
         weak var responder: PVPageKeyResponder?
-        var isSideList = false
+        var yieldsPageKeys = false
 
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             if newWindow !== window { responder?.unregister(self) }
@@ -70,13 +71,13 @@ private struct PVPageScrollProbe: NSViewRepresentable {
 
     func makeNSView(context: Context) -> Probe {
         let probe = Probe()
-        probe.isSideList = isSideList
+        probe.yieldsPageKeys = yieldsPageKeys
         handle.probe = probe
         return probe
     }
 
     func updateNSView(_ probe: Probe, context: Context) {
-        probe.isSideList = isSideList
+        probe.yieldsPageKeys = yieldsPageKeys
         handle.probe = probe
     }
 }
@@ -90,10 +91,10 @@ enum PVPageKeys {
     static func command(keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> PVPageKeyCommand? {
         guard modifiers.intersection([.command, .option, .control, .shift]).isEmpty else { return nil }
         switch keyCode {
-        case 116: return .pageUp
-        case 121: return .pageDown
-        case 115: return .top
-        case 119: return .bottom
+        case PVKeyCode.pageUp: return .pageUp
+        case PVKeyCode.pageDown: return .pageDown
+        case PVKeyCode.home: return .top
+        case PVKeyCode.end: return .bottom
         default: return nil
         }
     }
@@ -170,7 +171,7 @@ final class PVPageKeyResponder: NSResponder {
         }) {
             return hovered
         }
-        return candidates.last(where: { ($0 as? PVPageScrollProbe.Probe)?.isSideList == false })
+        return candidates.last(where: { ($0 as? PVPageScrollProbe.Probe)?.yieldsPageKeys == false })
             ?? candidates.last
     }
 }
