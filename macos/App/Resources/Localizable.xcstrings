@@ -24030,13 +24030,13 @@
       }
     },
     "sourceTypes.copy.loading": {
-      "comment": "Caption under the skeleton bars while the Copy source type sheet reads the original",
+      "comment": "Caption under the skeleton bars while the Copy source type sheet reads the original; the sheet reads only the formats, and the suggestion count comes from the type row",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reading the original's formats and suggested fields"
+            "value": "Reading the original's formats"
           }
         }
       }

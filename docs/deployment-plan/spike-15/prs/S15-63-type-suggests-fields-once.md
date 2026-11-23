@@ -368,6 +368,7 @@ None.
 - A local, untracked `bin/reseed-source-vocab` (gitignored) calls the old per-level reads and no longer builds; it is the product owner's one-off for the 0.24 seed and is not part of the PR.
 - STEP-5 and STEP-6 are one commit: the generated Swift engine file changes with the Go commit, so no Swift commit builds alone.
 - AC-1.3 is checked only by § 10 step 4 (D-15), and that open of a pre-PR project was not run by the implementer; it is left to the product owner's manual check.
+- `sourceTypes.copy.loading` changed to "Reading the original's formats" (UX-1, user, 2026-11-23), superseding § 6's "stays": the sheet reads only the formats, and the suggestion count comes from the type row (D-19).
 
 ## 13. PR
 

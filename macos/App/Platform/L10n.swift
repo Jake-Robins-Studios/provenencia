@@ -8613,8 +8613,8 @@ enum L10n {
 
         static let copyLoading = LocalizedStringResource(
             "sourceTypes.copy.loading",
-            defaultValue: "Reading the original's formats and suggested fields",
-            comment: "Caption under the skeleton bars while the Copy source type sheet reads the original"
+            defaultValue: "Reading the original's formats",
+            comment: "Caption under the skeleton bars while the Copy source type sheet reads the original; the sheet reads only the formats, and the suggestion count comes from the type row"
         )
 
         static let copyLoadErrorTitle = LocalizedStringResource(
