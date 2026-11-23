@@ -23,7 +23,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
 | S15-D29 | Citation composer: the final shape, the Citation's metadata board beside the locator inputs and no Printed page input | — | S15-56 |
 | S15-D30 | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields | Descoped 2026-11-22: suggestions lose their level (S15-63) | — |
-| S15-D32 | Source type page and Copy type sheet: one Suggested fields list in place of three; one suggestions tick | — | S15-63 |
+| [S15-D32](S15-D32-one-suggestion-list.md) | Source type page and Copy type sheet: one Suggested fields list in place of three; one suggestions tick | [agreed 2026-11-23](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): the Suggested fields and Copy type frames; count on the section header, no list header | S15-63 |
 | S15-D33 | Metadata board row: an inherited value, where it comes from, override and fall back (Artifact sheet, graph form) | — | S15-64 |
 | S15-D34 | Artifact sheet, graph form, composer: the citation preview | Descoped 2026-11-22 with S15-65 | — |
 | S15-D35 | Metadata board row: the list-below hint and Move to Source | — | S15-66 |
