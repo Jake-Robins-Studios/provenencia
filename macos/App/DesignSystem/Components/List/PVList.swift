@@ -94,7 +94,8 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .environment(\.defaultMinListRowHeight, 1)
+        // The table's row height sets the mouse wheel's step: the row's own height, one row a step.
+        .environment(\.defaultMinListRowHeight, thumbnailSize + 2 * density.vertical)
         .focusEffectDisabled()
         .focused($isFocused)
         .onAppear { FocusClaim.claim($isFocused, true) }

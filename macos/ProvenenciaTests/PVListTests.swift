@@ -126,4 +126,31 @@ struct PVListTests {
         #expect(PVListDensity.compact.vertical == 7)
         #expect(PVListDensity.compact.horizontal == 12)
     }
+
+    private struct WheelRow: Identifiable { let id: String }
+
+    private func firstScrollView(in view: NSView) -> NSScrollView? {
+        if let scroll = view as? NSScrollView { return scroll }
+        return view.subviews.lazy.compactMap { firstScrollView(in: $0) }.first
+    }
+
+    /// A mouse wheel moves the list by `verticalLineScroll`, which the table takes from its row
+    /// height: a minimum row height of 1 pt made one wheel step 1 pt.
+    @Test(.hostedWindows) @MainActor func aWheelStepScrollsOneRow() throws {
+        let rows = (0 ..< 5).map { WheelRow(id: "PER-0000\($0)") }
+        let list = PVList(
+            items: rows,
+            selection: .constant(nil),
+            thumbnail: { _ in Color.red },
+            label: "Persons",
+            itemAccessibilityLabel: { $0.id },
+            onActivate: { _ in },
+            primary: { Text(verbatim: $0.id) },
+            secondary: { _ in Text(verbatim: "second") }
+        )
+        let (_, host) = hostInBorderlessWindow(list, windowSize: CGSize(width: 600, height: 400))
+        host.layoutSubtreeIfNeeded()
+        let scroll = try #require(firstScrollView(in: host))
+        #expect(scroll.verticalLineScroll == 66)
+    }
 }
