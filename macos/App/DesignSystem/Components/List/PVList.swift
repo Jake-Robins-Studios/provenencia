@@ -123,8 +123,9 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
 /// modifiers (insets, separator tint) are on the `ForEach`, not here and not in its closure, so a
 /// selection move runs none of them for rows off screen. The row pads itself `density.vertical` top and
 /// bottom, so it owns its height. With a leading slot the thumbnail sits `PVListMetrics.hang` in from
-/// the row's leading edge, which the body's smaller leading inset puts back on the gutter. A nil
-/// `accessibilityLabel` leaves the row's accessibility to its caller.
+/// the row's leading edge, which the body's smaller leading inset puts back on the gutter. The row is one
+/// accessibility element, with the caller's label and identifier. The separator's guides are the body's
+/// (`PVListBody`), not the row's.
 struct PVListRow<Item: Identifiable, Leading: View, Thumbnail: View, Primary: View, Secondary: View>: View {
     let item: Item
     let leading: (Item) -> Leading
@@ -137,7 +138,7 @@ struct PVListRow<Item: Identifiable, Leading: View, Thumbnail: View, Primary: Vi
     let meta: (Item) -> String?
     let details: [PVListDetailColumn<Item>]
     var density: PVListDensity = .comfortable
-    let accessibilityLabel: ((Item) -> String)?
+    let accessibilityLabel: (Item) -> String
     let accessibilityIdentifier: ((Item) -> String)?
 
     var body: some View {
@@ -169,9 +170,9 @@ struct PVListRow<Item: Identifiable, Leading: View, Thumbnail: View, Primary: Vi
         }
         .frame(height: thumbnailSize)
         .padding(.vertical, density.vertical)
-        .alignmentGuide(.listRowSeparatorLeading) { [hang = PVListMetrics.hang(leadingWidth: leadingWidth)] _ in hang }
-        .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
-        .modifier(PVListRowAccessibility(item: item, label: accessibilityLabel, identifier: accessibilityIdentifier))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: accessibilityLabel(item)))
+        .accessibilityIdentifier(accessibilityIdentifier?(item) ?? "")
     }
 
     /// The thumbnail, after the leading slot when there is one. The slot lays out at the thumbnail's
@@ -190,25 +191,6 @@ struct PVListRow<Item: Identifiable, Leading: View, Thumbnail: View, Primary: Vi
         } else {
             thumbnail(item)
                 .frame(width: thumbnailSize, height: thumbnailSize)
-        }
-    }
-}
-
-/// A row's accessibility element, label and identifier, when its caller gives a label.
-private struct PVListRowAccessibility<Item>: ViewModifier {
-    let item: Item
-    let label: ((Item) -> String)?
-    let identifier: ((Item) -> String)?
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if let label {
-            content
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: label(item)))
-                .accessibilityIdentifier(identifier?(item) ?? "")
-        } else {
-            content
         }
     }
 }

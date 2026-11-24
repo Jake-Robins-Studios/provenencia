@@ -97,7 +97,9 @@ struct SourcesOutlineTests {
         let outline = outline(expanded: ["s1", "s2"])
         let collapsing: Set<String> = ["s1"]
         #expect(outline.selectionAfterCollapsing(collapsing, selection: "g1a") == "s1")
-        #expect(outline.selectionAfterCollapsing(collapsing, selection: "s1#graphs") == "s1")
+        // A placeholder row is a drawn row too.
+        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), expanded: ["s4"])
+        #expect(pending.selectionAfterCollapsing(["s4"], selection: SourcesOutlineRow.pendingID(sourceID: "s4")) == "s4")
         #expect(outline.selectionAfterCollapsing(collapsing, selection: "g2") == "g2")
         #expect(outline.selectionAfterCollapsing(collapsing, selection: "s1") == "s1")
         #expect(outline.selectionAfterCollapsing(collapsing, selection: nil) == nil)

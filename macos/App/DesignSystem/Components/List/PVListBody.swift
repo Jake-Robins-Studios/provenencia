@@ -67,7 +67,7 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
     var body: some View {
         List(selection: selection) {
             ForEach(items) { item in
-                PVListBodyRow(item: item, separator: separator, row: row)
+                PVListBodyRow(item: item, leadingHang: leadingHang, separator: separator, row: row)
             }
             // On the `ForEach`, not in its closure: a selection move re-runs the closure for every
             // row, so a modifier inside it runs for rows far off screen. The insets are horizontal
@@ -148,15 +148,20 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
     }
 }
 
-/// One row of a `PVListBody`: the caller's row, and whether its separator shows. A view of its own, so
-/// a selection move evaluates the separator only for the rows on screen.
+/// One row of a `PVListBody`: the caller's row, whether its separator shows, and where it runs: from the
+/// `leadingHang` the row draws before its thumbnail to the row's trailing edge, so the rules run gutter to
+/// gutter at every row height. A view of its own, so a selection move evaluates the separator only for the
+/// rows on screen.
 private struct PVListBodyRow<Item: Identifiable, Row: View>: View {
     let item: Item
+    let leadingHang: CGFloat
     let separator: (Item) -> Visibility
     let row: (Item) -> Row
 
     var body: some View {
         row(item)
             .listRowSeparator(separator(item))
+            .alignmentGuide(.listRowSeparatorLeading) { [leadingHang] _ in leadingHang }
+            .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
     }
 }

@@ -210,4 +210,81 @@ struct SourcesOutlineHostedTests {
         try? await Task.sleep(for: .milliseconds(300))
         #expect(holder(harness) == "field")
     }
+
+    /// The x-extent of the hairline drawn under a row: the first and last column where a pixel is drawn
+    /// across most of a one-pixel band inside the row's rect. Nil when the row draws no rule.
+    private func ruleExtent(row: Int, in table: NSTableView) -> ClosedRange<Int>? {
+        guard let rep = table.bitmapImageRepForCachingDisplay(in: table.bounds) else { return nil }
+        table.cacheDisplay(in: table.bounds, to: rep)
+        let scale = CGFloat(rep.pixelsWide) / table.bounds.width
+        let rect = table.rect(ofRow: row)
+        let yRange = Int((rect.minY + rect.height * 0.6) * scale) ..< Int(rect.maxY * scale)
+        var best: ClosedRange<Int>?
+        for y in yRange {
+            var first: Int?
+            var last = 0
+            var count = 0
+            for x in 0 ..< rep.pixelsWide {
+                guard let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.05 else { continue }
+                if first == nil { first = x }
+                last = x
+                count += 1
+            }
+            if let first, count > rep.pixelsWide / 2, count >= (last - first) * 9 / 10 {
+                best = first ... last
+            }
+        }
+        return best.map { Int(CGFloat($0.lowerBound) / scale) ... Int(CGFloat($0.upperBound) / scale) }
+    }
+
+    /// A rule starts at the gutter and ends within the platform's few points of the trailing gutter.
+    private func expectGutterToGutter(_ extent: ClosedRange<Int>?, gutter: Int, width: Int) {
+        #expect(extent?.lowerBound == gutter)
+        #expect((extent?.upperBound ?? 0) >= width - gutter - 4 && (extent?.upperBound ?? 0) <= width - gutter)
+    }
+
+    private struct PlainRow: Identifiable {
+        let id: String
+    }
+
+    @Test func theRulesRunGutterToGutter() async throws {
+        let harness = try await makeHarness(expanded: ["s2"])
+        #expect(await settle(harness, rows: 4))
+        try? await Task.sleep(for: .milliseconds(300))
+        let gutter = Int(PVWidthClass(paneWidth: 1102).fullPaneGutter)
+        let width = Int(harness.table.bounds.width)
+        // Rows: a Source with no triangle, an open Source, its last graph.
+        expectGutterToGutter(ruleExtent(row: 0, in: harness.table), gutter: gutter, width: width)
+        #expect(ruleExtent(row: 1, in: harness.table) == nil)
+        expectGutterToGutter(ruleExtent(row: 2, in: harness.table), gutter: gutter, width: width)
+    }
+
+    /// A list with no leading slot (the Persons list's shape): its rules also run gutter to gutter.
+    @Test func aPlainListsRulesRunGutterToGutter() async throws {
+        var selection: String?
+        let rows = (0 ..< 3).map { PlainRow(id: "r\($0)") }
+        let view = AnyView(
+            PVList(
+                items: rows,
+                selection: Binding(get: { selection }, set: { selection = $0 }),
+                thumbnail: { _ in PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson))) },
+                horizontalInset: 32,
+                label: L10n.Workspace.personsTitle,
+                itemAccessibilityLabel: { $0.id },
+                onActivate: { _ in },
+                primary: { Text(verbatim: $0.id) },
+                secondary: { _ in EmptyView() }
+            )
+        )
+        let (_, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 800, height: 400))
+        var table: NSTableView?
+        _ = await waitUntil(timeout: .seconds(10)) {
+            host.layoutSubtreeIfNeeded()
+            table = descendant(NSTableView.self, in: host)
+            return (table?.numberOfRows ?? 0) == 3
+        }
+        let tableView = try #require(table)
+        try? await Task.sleep(for: .milliseconds(300))
+        expectGutterToGutter(ruleExtent(row: 0, in: tableView), gutter: 32, width: Int(tableView.bounds.width))
+    }
 }

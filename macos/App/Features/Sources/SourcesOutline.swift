@@ -126,12 +126,9 @@ struct SourcesOutline {
     /// The selection after the Sources in `collapsing` close: a graph or placeholder row of one of them
     /// selects its Source instead of a row that is going away; any other selection is unchanged.
     func selectionAfterCollapsing(_ collapsing: Set<String>, selection: String?) -> String? {
-        guard let selection else { return nil }
-        let pendingSuffix = "#graphs"
-        let owner = ownerByGraphID[selection]?.id
-            ?? (selection.hasSuffix(pendingSuffix) ? String(selection.dropLast(pendingSuffix.count)) : nil)
-        if let owner, collapsing.contains(owner) { return owner }
-        return selection
+        guard let selection, let row = row(id: selection) else { return selection }
+        if case .source = row.kind { return selection }
+        return collapsing.contains(row.source.id) ? row.source.id : selection
     }
 
     /// What → and ← do at `selected`: → opens a closed Source, ← closes an open one or climbs from a
@@ -244,7 +241,7 @@ enum SourcesRowMenu {
                 sections.append(list.map { graph in
                     PVActionMenuItem(
                         title: LocalizedStringResource(stringLiteral: L10n.Sources.menuOpenGraph(graph.name)),
-                        isEnabled: graph.hasArtifact,
+                        isEnabled: SourcesListNavigation.graphBlockedReason(for: graph) == nil,
                         accessibilityIdentifier: "\(prefix).menu.openGraph.\(graph.ref)",
                         action: { actions.openGraph(graph, source) }
                     )
@@ -254,7 +251,7 @@ enum SourcesRowMenu {
         case .graph(let graph, let source):
             return [[PVActionMenuItem(
                 title: L10n.Sources.menuOpen,
-                isEnabled: graph.hasArtifact,
+                isEnabled: SourcesListNavigation.graphBlockedReason(for: graph) == nil,
                 accessibilityIdentifier: "sources.row.\(source.id).graph.\(graph.ref).menu.open",
                 action: { actions.open(row) }
             )]]

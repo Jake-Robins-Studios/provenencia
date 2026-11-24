@@ -5452,23 +5452,6 @@ enum L10n {
             comment: "VoiceOver action on an open Source row in the Sources list: closes it"
         )
 
-        /// VoiceOver label of a graph row: name, counts, then the status (left out while the counts
-        /// load or failed).
-        static func graphRowLabel(name: String, counts: String, status: String?) -> String {
-            guard let status else {
-                return L10n.format(LocalizedStringResource(
-                    "sources.list.graphRowLabelNoStatus",
-                    defaultValue: "%1$@, %2$@",
-                    comment: "VoiceOver label of a Sources list graph row without a status: name, counts"
-                ), name, counts)
-            }
-            return L10n.format(LocalizedStringResource(
-                "sources.list.graphRowLabel",
-                defaultValue: "%1$@, %2$@, %3$@",
-                comment: "VoiceOver label of a Sources list graph row: name, counts, status"
-            ), name, counts, status)
-        }
-
         static let menuOpen = LocalizedStringResource(
             "sources.list.menu.open",
             defaultValue: "Open",

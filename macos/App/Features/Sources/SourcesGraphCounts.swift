@@ -39,3 +39,15 @@ enum SourcesGraphCounts: Equatable {
         }
     }
 }
+
+extension WorkspaceSession {
+    /// What one Evidence graph's counts show: the graph row, a closed Source's summary and the Source
+    /// page's card all read it, so they agree while the counts load or fail.
+    func graphCounts(graphID: String) -> SourcesGraphCounts {
+        SourcesGraphCounts(
+            progress: evidenceGraphProgress(graphID: graphID),
+            countsLoading: evidenceGraphCountsLoading,
+            countsError: evidenceGraphCountsError
+        )
+    }
+}

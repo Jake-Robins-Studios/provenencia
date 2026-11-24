@@ -760,15 +760,13 @@ struct SourcesModelTests {
     @Test func graphRowCopyMatchesBoard() {
         #expect(L10n.Sources.openEvidenceGraphLabel(name: "Jones household") == "Open graph Jones household")
         #expect(
-            L10n.Sources.graphRowLabel(
-                name: "Jones household",
-                counts: "12 subjects, 40 observations",
-                status: L10n.string(SourcesModel.EvidenceStatus.inProgress.label)
-            ) == "Jones household, 12 subjects, 40 observations, In progress"
+            L10n.DesignSystem.spokenJoin([
+                "Jones household", "12 subjects, 40 observations",
+                L10n.string(SourcesModel.EvidenceStatus.inProgress.label),
+            ]) == "Jones household, 12 subjects, 40 observations, In progress"
         )
         #expect(
-            L10n.Sources.graphRowLabel(name: "Jones household", counts: "counts loading", status: nil)
-                == "Jones household, counts loading"
+            L10n.DesignSystem.spokenJoin(["Jones household", "counts loading", ""]) == "Jones household, counts loading"
         )
         #expect(L10n.Sources.menuOpenGraph("Default") == "Open Default")
         #expect(L10n.string(L10n.Sources.menuOpen) == "Open")

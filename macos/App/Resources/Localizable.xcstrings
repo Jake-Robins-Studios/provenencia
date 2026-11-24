@@ -8110,30 +8110,6 @@
         }
       }
     },
-    "sources.list.graphRowLabel": {
-      "comment": "VoiceOver label of a Sources list graph row: name, counts, status",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@, %2$@, %3$@"
-          }
-        }
-      }
-    },
-    "sources.list.graphRowLabelNoStatus": {
-      "comment": "VoiceOver label of a Sources list graph row without a status: name, counts",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@, %2$@"
-          }
-        }
-      }
-    },
     "sources.list.menu.open": {
       "comment": "Sources list right-click menu: opens the Source's page or the graph's canvas",
       "extractionState": "manual",

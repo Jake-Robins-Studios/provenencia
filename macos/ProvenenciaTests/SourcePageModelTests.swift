@@ -1550,10 +1550,8 @@ struct SourcePageModelTests {
         let (model, _) = await progressSession(makeStore())
         let graphs = model.graphs.rows ?? []
         #expect(graphs.map(\.id) == ["g-default", "g-jones"])
-        #expect(model.graphs.progress(for: graphs[1])?.subjectCount == 12)
-        #expect(model.graphs.progress(for: graphs[1])?.observationCount == 40)
-        #expect(model.graphs.progress(for: graphs[0]) == nil)
-        #expect(!model.graphs.countsLoading)
+        #expect(model.graphs.counts(for: graphs[1]) == .counts(subjects: 12, observations: 40, filed: 0))
+        #expect(model.graphs.counts(for: graphs[0]) == .notStarted)
     }
 
     @Test func aGraphWriteMovesOnlyItsRow() async {
@@ -1567,8 +1565,8 @@ struct SourcePageModelTests {
             evidenceGraphs: ["g-jones"], reads: [CatalogWriteEffectsRead(read: .evidenceGraphProgress, ids: ["g-jones"])]
         ))
         await session.settleWrites()
-        #expect(model.graphs.progress(for: graphs[1])?.observationCount == 41)
-        #expect(model.graphs.progress(for: graphs[0]) == nil)
+        #expect(model.graphs.counts(for: graphs[1]) == .counts(subjects: 12, observations: 41, filed: 0))
+        #expect(model.graphs.counts(for: graphs[0]) == .notStarted)
     }
 
     @Test func addGraphNeedsAnArtifact() async {

@@ -33,7 +33,7 @@ struct SourcesSourceRow: View {
                 )
             },
             thumbnailSize: Self.coverSize,
-            primary: { Text(verbatim: $0.title) },
+            primary: { Text(verbatim: $0.title).help($0.title) },
             secondary: { source in
                 SourcesSecondaryLine(parts: SourcesOutline.secondaryParts(
                     type: typeLabel, date: source.date, tail: summary, isWide: isWide
@@ -41,12 +41,9 @@ struct SourcesSourceRow: View {
             },
             meta: { $0.ref },
             details: SourcesRowColumns.details(isWide: isWide, typeLabel: { model.typeLabel(for: $0) }),
-            accessibilityLabel: nil,
-            accessibilityIdentifier: nil
+            accessibilityLabel: { _ in spokenLabel(typeLabel: typeLabel, tail: summary) },
+            accessibilityIdentifier: { "sources.row.\($0.id)" }
         )
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: spokenLabel(typeLabel: typeLabel, tail: summary)))
-        .accessibilityIdentifier("sources.row.\(source.id)")
         .modifier(SourcesExpandedState(disclosure: disclosure, toggle: { toggle(false) }))
     }
 
@@ -55,13 +52,7 @@ struct SourcesSourceRow: View {
         if !source.hasArtifact { return L10n.string(L10n.Sources.needsArtifact) }
         guard disclosure == .collapsed, case .loaded(let graphs) = session.evidenceGraphsRead(sourceID: source.id)
         else { return nil }
-        let loading = session.evidenceGraphCountsLoading
-        let error = session.evidenceGraphCountsError
-        return SourcesGraphSummary.text(graphs.map {
-            SourcesGraphCounts(
-                progress: session.evidenceGraphProgress(graphID: $0.id), countsLoading: loading, countsError: error
-            )
-        })
+        return SourcesGraphSummary.text(graphs.map { session.graphCounts(graphID: $0.id) })
     }
 
     private func spokenLabel(typeLabel: String, tail: String?) -> String {
@@ -187,12 +178,16 @@ struct SourcesGraphRow: View {
             Spacer(minLength: 0)
         }
         .frame(height: Self.height)
-        .alignmentGuide(.listRowSeparatorLeading) { [hang = PVListMetrics.hang(leadingWidth: SourcesSourceRow.triangleWidth)] _ in hang }
-        .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: spokenLabel))
         .accessibilityHint(Text(verbatim: hint))
         .accessibilityIdentifier(identifier)
+    }
+
+    /// Why the graph does not open (it links no Artifact); nil when it opens, and for the placeholder.
+    private var blockedReason: String? {
+        guard case .graph(let graph) = content else { return nil }
+        return SourcesListNavigation.graphBlockedReason(for: graph)
     }
 
     @ViewBuilder
@@ -207,8 +202,9 @@ struct SourcesGraphRow: View {
                 Spacer(minLength: 0)
             }
         case .graph(let graph):
-            let counts = self.counts(for: graph)
-            let opens = graph.hasArtifact
+            let counts = session.graphCounts(graphID: graph.id)
+            let reason = blockedReason
+            let opens = reason == nil
             HStack(spacing: 10) {
                 PVIcon(.network, size: 14)
                     .foregroundStyle(PVColor.onSelection(opens ? PVColor.textMuted : PVColor.textFaint))
@@ -218,6 +214,7 @@ struct SourcesGraphRow: View {
                     .foregroundStyle(PVColor.onSelection(opens ? PVColor.textPrimary : PVColor.textFaint))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .help(graph.name)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 ZStack(alignment: .leading) {
                     Color.clear
@@ -233,9 +230,9 @@ struct SourcesGraphRow: View {
                     }
                 }
                 .frame(width: Self.countsSlotWidth)
+                .help(reason ?? "")
                 statusSlot(counts: counts, opens: opens)
             }
-            .help(opens ? "" : L10n.string(L10n.Sources.graphNeedsArtifactTooltip))
         }
     }
 
@@ -253,35 +250,22 @@ struct SourcesGraphRow: View {
         .frame(width: Self.statusSlotWidth)
     }
 
-    private func counts(for graph: CatalogEvidenceGraph) -> SourcesGraphCounts {
-        SourcesGraphCounts(
-            progress: session.evidenceGraphProgress(graphID: graph.id),
-            countsLoading: session.evidenceGraphCountsLoading,
-            countsError: session.evidenceGraphCountsError
-        )
-    }
-
     private var spokenLabel: String {
         switch content {
         case .pending:
             return L10n.string(L10n.Sources.graphsLoading)
         case .graph(let graph):
-            guard graph.hasArtifact else { return graph.name }
-            let counts = self.counts(for: graph)
-            return L10n.Sources.graphRowLabel(
-                name: graph.name,
-                counts: L10n.Sources.graphCounts(counts, style: .spoken, notStarted: .zeroCounts),
-                status: counts.status.map { L10n.string($0.label) }
-            )
+            guard blockedReason == nil else { return graph.name }
+            let counts = session.graphCounts(graphID: graph.id)
+            return L10n.DesignSystem.spokenJoin([
+                graph.name,
+                L10n.Sources.graphCounts(counts, style: .spoken, notStarted: .zeroCounts),
+                counts.status.map { L10n.string($0.label) } ?? "",
+            ]) ?? graph.name
         }
     }
 
-    private var hint: String {
-        if case .graph(let graph) = content, !graph.hasArtifact {
-            return L10n.string(L10n.Sources.graphNeedsArtifactTooltip)
-        }
-        return ""
-    }
+    private var hint: String { blockedReason ?? "" }
 
     private var identifier: String {
         switch content {
