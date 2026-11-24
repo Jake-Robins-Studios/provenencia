@@ -24,7 +24,9 @@ struct SourcesOutlineHostedTests {
         return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
     }
 
-    private func makeHarness(width: CGFloat = 1102, expanded: [String] = []) async throws -> Harness {
+    private func makeHarness(
+        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil
+    ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "census", origin: "provenencia", label: "Census", description: "")
@@ -36,7 +38,9 @@ struct SourcesOutlineHostedTests {
                 updated: CatalogActivity(revision: 1, at: "2026-11-21T10:00:00Z")
             )
         }
-        store.sourcesByProject[projectDir] = [
+        // Ids sort after "s": they list before the three below in the newest-added order.
+        let extras = (0 ..< extraSources).map { source("x\(String(format: "%02d", $0))", "Extra \($0)", artifact: false) }
+        store.sourcesByProject[projectDir] = extras.reversed() + [
             source("s3", "Passport of J. Robins", artifact: false),
             source("s2", "1851 Census, Robins household", artifact: true),
             source("s1", "Parish register, Lyon", artifact: true),
@@ -58,6 +62,7 @@ struct SourcesOutlineHostedTests {
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.setSourcesExpanded(expanded, true)
         let navigation = WorkspaceNavigation()
+        if let anchor { navigation.noteListAnchor(anchor) }
         let view = AnyView(
             SourcesListView(
                 session: session, userID: "00000000-0000-7000-8000-000000000001",
@@ -112,12 +117,77 @@ struct SourcesOutlineHostedTests {
         #expect(harness.scroll.verticalLineScroll == 34)
     }
 
-    @Test func aSelectedGraphRowStaysSelectedAndClosingItsSourceSelectsTheSource() async throws {
+    @Test func aSelectedGraphRowIsSelectedInItsOpenSource() async throws {
         let harness = try await makeHarness(expanded: ["s1"])
         #expect(await settle(harness, rows: 11))
         harness.navigation.noteListAnchor("g1-2")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
         #expect(harness.table.selectedRow == 5)
+    }
+
+    @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
+        let harness = try await makeHarness()
+        #expect(harness.session.expandedSourceIDs.isEmpty)
+        harness.navigation.noteListAnchor("g1-2")
+        #expect(await settle(harness, rows: 11))
+        #expect(harness.session.expandedSourceIDs == ["s1"])
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
+        #expect(harness.table.selectedRow == 5)
+    }
+
+    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndScrollsTheGraphIntoView() async throws {
+        // 15 Source rows above s1 push its graphs past the 760 pt window.
+        let harness = try await makeHarness(extraSources: 15, anchor: "g1-7")
+        #expect(await settle(harness, rows: 15 + 3 + 8))
+        #expect(harness.session.expandedSourceIDs == ["s1"])
+        let graphRow = 15 + 3 + 7
+        #expect(await waitUntil {
+            harness.host.layoutSubtreeIfNeeded()
+            return harness.table.selectedRow == graphRow
+                && harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow))
+        })
+        #expect(harness.table.selectedRow == graphRow)
+        #expect(harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow)))
+        // Off screen before the reveal: the top of the list is not what is shown.
+        #expect(harness.scroll.contentView.bounds.minY > 0)
+    }
+
+    /// The page's own path for closing a Source (the triangle, ⌥-click and the VoiceOver action all call
+    /// it): a selected graph of the Source gives way to the Source itself.
+    @Test func closingTheSourceOfASelectedGraphSelectsTheSource() async throws {
+        let harness = try await makeHarness(expanded: ["s1"])
+        #expect(await settle(harness, rows: 11))
+        harness.navigation.noteListAnchor("g1-2")
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
+        let hide = try #require(accessibilityAction(named: L10n.string(L10n.Sources.hideGraphs), onRowWithID: "sources.row.s1", row: 2, in: harness))
+        hide()
+        #expect(await settle(harness, rows: 3))
+        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.navigation.listAnchor == "s1")
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 })
+    }
+
+    /// The VoiceOver action `name` of the row's element whose identifier is `id`. The elements are
+    /// SwiftUI's own objects, so their accessibility getters are read by selector.
+    private func accessibilityAction(named name: String, onRowWithID id: String, row: Int, in harness: Harness) -> (() -> Void)? {
+        func read(_ object: NSObject, _ key: String) -> Any? {
+            object.responds(to: Selector(key)) ? object.value(forKey: key) : nil
+        }
+        func search(_ object: NSObject, depth: Int = 0) -> (() -> Void)? {
+            if read(object, "accessibilityIdentifier") as? String == id {
+                for case let action as NSAccessibilityCustomAction in (read(object, "accessibilityCustomActions") as? [Any]) ?? []
+                where action.name == name {
+                    return { _ = action.handler?() }
+                }
+            }
+            let views = (object as? NSView)?.subviews ?? []
+            for case let child as NSObject in ((read(object, "accessibilityChildren") as? [Any]) ?? []) + views {
+                if let found = search(child, depth: depth + 1) { return found }
+            }
+            return nil
+        }
+        guard let rowView = harness.table.rowView(atRow: row, makeIfNecessary: true) else { return nil }
+        return search(rowView)
     }
 
     private func keyEvent(_ key: Int, in window: NSWindow) -> NSEvent {
