@@ -222,6 +222,36 @@ Writing rules:
   dogfood log is never a home: `docs/dogfood/` holds feedback from people using
   the app, not what a plan or review leaves over.
 
+### Write it once
+
+A plan is read by about a dozen agents before its PR lands, so every word in
+it is paid for a dozen times. Cut repetition, not detail: a fact the
+implementer needs stays, however long.
+
+- **One home per fact.** New names live in **Codebase fit**, removals in
+  **Deletes**, tests in §8, ordered work in Steps. A Decision states the
+  choice and the constraint that binds it, and points at those sections
+  ("the types in Codebase fit"); it does not list them again. There is no
+  Decision whose content is a test list or a delete list.
+- **No history.** Leave out review IDs ("review M-3"), earlier drafts ("D-1 of
+  the first draft"), and "was X, now Y". The review log keeps that. Keep
+  "(user, YYYY-MM-DD)" on a call the user made: it says who owns the
+  Decision.
+- **Spell out what cannot be derived; point at the rest.** Exact names and
+  signatures for what crosses a layer (Go, proto, Swift, FFI), what is
+  public, and what a test asserts. A local detail that follows from a named
+  precedent is "as `NameDisplay { text, styled }` does", not a re-description
+  of it.
+- **Why and Rejected are one clause each.** Rejected is "—" when there was no
+  real alternative.
+- **Current state is `path` + symbol + what is wrong for this PR.** Do not
+  paraphrase what the code does line by line; the implementer reads it.
+- **Tables over paragraphs** where rows share a shape.
+
+`python3 scripts/check-plan-docs.py <plan>` prints an info line with the
+plan's word count and largest sections. It is not a limit. A section far
+larger than its neighbors is where to look for a second copy.
+
 ### Size
 
 One PR is one behavior a reviewer can check. A plan has reached the limit when:
@@ -261,13 +291,15 @@ Do not mark a plan `Planned` until each line is true. Fix the plan, not the gate
 - [ ] Reach, Scale and Edges are filled, or None with one clause why
 - [ ] A budget the PR sets or leans on is measured at the map's Scale, not only on a smaller fixture
 - [ ] The DoD carries the sweep line; a PR that changes what an action covers lists its old-scope copy under Strings
+- [ ] Write it once: no fact stated in two sections, no review IDs or draft history
 - [ ] python3 scripts/check-plan-docs.py <plan> reports no errors
 ```
 
 **Cold read.** Reread the plan as the implementer: you have this file, the
 linked files, and the repo, and nothing from this conversation. At each step,
 ask "what would I have to choose here?" Each answer is a missing Decision or a
-missing path. Then ask "what would I be tempted to add?" Each answer is an Out line.
+missing path. Then ask "what would I be tempted to add?" Each answer is an Out line. Last,
+ask "where did I read this before?" Each answer is a second copy to delete.
 
 ## 8. Review
 

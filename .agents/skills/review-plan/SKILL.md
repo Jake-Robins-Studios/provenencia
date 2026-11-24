@@ -125,6 +125,7 @@ should not be empty is a finding at the severity the class carries.
 | Replace, not beside | §6 **Deletes** | Does each new mechanism retire the one it replaces (the old key, field, list, preflight, patch path)? Is every callee whose last caller the PR removes in **Deletes**? |
 | Sweep | §6 **Strings**, §9 | Does the DoD `rg` each renamed or deleted name, qualified, across skills, rules, docs and copy? When the PR changes what an action covers, does **Strings** list the copy that names the old scope? |
 | Imports and locks | §7 | Does a Step move a type or call into another package (check the import graph), or take a lock, slot or session a caller may already hold? |
+| Written once | §4–§8 | Is a fact stated in two sections (a Decision that re-lists Codebase fit, Deletes or tests), or does the plan carry review IDs or draft history? Each is a minor: name the second copy to delete ([`plan-pr`](../plan-pr/SKILL.md) "Write it once") |
 
 ## Reviewer prompts
 
@@ -211,7 +212,19 @@ the next planner and the user need.
 ### M-1 · blocker · Title
 <finding as returned>
 **Answer:** Fixed — §6 Codebase fit row 2 now extends `X` instead of adding `Y`.
+
+## Cost
+Plan: 7,410 words at round 1, 6,980 at the verdict (check-plan-docs info line).
+
+| Round | Reviewer | Model | Tokens |
+| --- | --- | --- | --- |
+| 1 | maintainability | opus | 88k |
+| 1 | executability | sonnet | 54k |
 ```
+
+Record each reviewer's tokens as the Agent tool's result reports them (`—`
+where the client shows none), as [`ship-pr`](../ship-pr/SKILL.md) "Cost"
+does.
 
 Then set the plan's **Review:** line to the log and the verdict. A plan goes to
 `Planned` only when no blocker is open and **To user** is answered.

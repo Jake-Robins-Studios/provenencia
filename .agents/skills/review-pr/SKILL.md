@@ -54,6 +54,8 @@ the gate already ran it and parallel builds collide.
 3. Read the diff, then the code around it. Every lens needs the neighbors, not
    only the changed lines.
 4. Work the rubric's **How to work** and **Look for**. Search before every claim.
+   The gate's `scripts/check-patterns.py` already failed any added line with a
+   trap shape it knows; do not spend reading on those shapes.
 5. Write findings in the format below, most severe first. Then a verdict.
 
 **Round 2.** Your scope is the fix commits (`git diff <round-1 head>...<head>`)
@@ -150,6 +152,7 @@ area feels heavy.
    and rated too low, answered Logged or by an Out line, or a Decision that
    bent a rule. Then add one line per class to the lens's **Known traps**, a
    question or check to [`review-plan`](../review-plan/SKILL.md), a section
-   to the `plan-pr` template, or a check to `scripts/check-pr.sh`, so the next
+   to the `plan-pr` template, or a check to `scripts/check-pr.sh` (a trap with
+   a code shape a regex can see goes in `scripts/check-patterns.py`), so the next
    spike's reviews catch the class before an audit does. Report the classes
    and the guidance changed beside the action list.

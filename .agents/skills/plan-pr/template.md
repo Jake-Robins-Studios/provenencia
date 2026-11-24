@@ -71,7 +71,7 @@ planner; delete it from the finished plan.
 
 ## 4. Current state
 
-<!-- Verified at the planning base. Exact paths and symbols. What it does today and what is wrong with it for this PR. Include the tests that cover it today. -->
+<!-- Verified at the planning base. Exact paths and symbols. What is wrong with it for this PR, in a clause; do not paraphrase the code. Include the tests that cover it today. -->
 
 | Area | Where | Today |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ planner; delete it from the finished plan.
 
 ## 5. Decisions
 
-<!-- Every choice the implementer would otherwise face. Product calls the user answered, and technical calls made here. Binding. -->
+<!-- Every choice the implementer would otherwise face. Product calls the user answered, and technical calls made here. Binding. State the choice and what binds it; new names live in Codebase fit, removals in Deletes, tests in §8 — point there, do not list them again. No review IDs or draft history. Why and Rejected: one clause each (plan-pr "Write it once"). -->
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |

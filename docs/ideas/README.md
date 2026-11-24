@@ -65,6 +65,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`search-index-followups.md`](search-index-followups.md) — search kinds owning their columns; a term rename leaving handle documents stale
 - [`swift-test-fixtures.md`](swift-test-fixtures.md) — Artifact file fixtures, per-key registry tests and fake reads, the fake's saved observations
 - [`plan-docs-tooling.md`](plan-docs-tooling.md) — the spike-close link comparison as a script; anchors and a gate over every doc
+- [`workflow-token-reduction.md`](workflow-token-reduction.md) — per-lens plan slices, a middle review tier, more of the plan gate and the ship log as scripts
 - [`history-menu-labels.md`](history-menu-labels.md) — the Back/Forward history menu's rows: a long name loses its section, graph rows do not name their Source
 - [`value-row-owner-check.md`](value-row-owner-check.md) — a date or name row shared by two owners in a crafted catalog; `PutTx` edits it in place for both
 
