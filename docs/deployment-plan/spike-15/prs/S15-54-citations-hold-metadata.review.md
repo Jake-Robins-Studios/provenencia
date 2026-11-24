@@ -72,3 +72,15 @@ None.
 **Answer:** Fixed. STEP-3 names `set`'s fifth parameter; T-12 lists its two rows; T-6 covers the graph path (M-2).
 
 **Checks the reviewer could not run here:** `generate-proto.sh` (no `protoc`) and `xcodebuild`. They run on the implementer's Mac through `scripts/check-pr.sh`.
+
+## Round 2 (2026-11-24)
+
+**Maintainability:** Fits. Every round-1 answer checked against the code; `from("citation_id", citationObservationGraphs)` composes (`core/database/effects/path.go` `from`, `inbound`). No new blocker.
+
+- **M2-1 · minor · T-6's `TestEvidenceGraphsResolve` file is not in STEP-2's Files.** **Answer:** Fixed. STEP-2 names `core/database/effects/evidence_graphs_test.go`.
+- **M2-2 · minor · Two `effects/README.md` sentences go stale after D-7** (a metadata write drops no cached graph; `metadata_field_usage` names three levels). **Answer:** Fixed. The DoD's README line names both.
+
+**Executability:** Ready with changes. Round-1 answers hold; no new blocker.
+
+- **X-11 · major · T-16 cannot be written from its row.** `citedBundle` has no Citation id; `w.metadata` and `TestMove`'s count name two owners; `w.Run` returns no effects. **Answer:** Fixed. T-16 names `citedBundle.cit`, how `cited()` fills it and sets its value, the count of 3, and `writes.RunChanges` for the scope check.
+- **X-12 · minor · T-6's file and field.** **Answer:** Fixed (with M2-1); the field comes from `setProviderValue`'s `metadatafields.Create`, as in `released_metadata_scope_test.go`.
