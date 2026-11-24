@@ -18,7 +18,7 @@ The list form describes the Source as a whole, so it reads Source values only: a
 
 | Syntax | Meaning |
 | --- | --- |
-| `{meta.key}` | The metadata value with that key from the nearest level that holds one: the Evidence graph, then the Artifact, then the Source; as typed. In the list form, the Source's alone |
+| `{meta.key}` | The metadata value with that key from the nearest level that holds one: the Citation, then the Evidence graph, then the Artifact, then the Source; as typed. In the list form, the Source's alone |
 | `{source.title}` and the other built-ins | A value that is not metadata (below) |
 | `{a\|b\|c}` | The first option that has a value, like SQL `COALESCE`; a chain falls from one field or built-in to another, never from one level to another (a field already does that). A target repeated in a chain with the same option counts once |
 | `[ ... ]` | An optional group: removed with its text and punctuation if any placeholder of its own is empty. Groups nest, and a nested group decides for itself only when its parent prints |
@@ -40,7 +40,7 @@ Everything else is literal text, `|` included. A metadata placeholder names no l
 | `citation.image` | The Citation's page in the file | none | none |
 | `citation.label` | The Citation label | none | none |
 
-The Citation level has only built-ins. Metadata sits under `meta.`, so a built-in and a metadata key never collide.
+The Citation level's built-ins are `citation.page`, `citation.image` and `citation.label`; it also holds metadata. Metadata sits under `meta.`, so a built-in and a metadata key never collide.
 
 ## Needed and used
 
@@ -70,7 +70,7 @@ Deleting a field is refused while any format names its id; the delete notice lis
 
 `RenderCitations`, `RenderCitationPreview` and `ListCitationPlaceholders` (package `core/database/citationrender`) turn the formats into text; the last lists what a form can hold, for the editor's completion: every built-in the form may use, level by level, from the one table (`citationformat.BuiltinPlaceholders`), then every field of the project once, in `metadatafields.List` order, as `{meta.key}` with no level (every form lists the same fields); each row carries its whole placeholder text. Nothing they produce is cached: a screen asks when it shows its citations, so a format or field edit needs no refresh signal.
 
-**What each built-in reads.** `source.title` is the Source's title; `source.type` the type's label; `source.date` the Source's date with its mark; `artifact.label` the Citation's Artifact label; `graph.name` its graph's name; `citation.page` the printed page label with its mark (`locator.Page`); `citation.image` the file page when the locator holds one (a Citation with none leaves it unset); `citation.label` the Citation's label. A metadata field named by id reads the stored value with its mark and the field's unknown text, from the nearest level that holds a value: the Evidence graph, then the Artifact, then the Source (`vocabkey.NearestFirst`). The first value found answers, whatever its text, so one marked unknown at a nearer level stops the search; in the list form a field reads the Source alone. A field named by key answers nothing. The boards and the render answer through one resolver (`sourcemetadata.CitationValues`), so they cannot disagree about what has a value.
+**What each built-in reads.** `source.title` is the Source's title; `source.type` the type's label; `source.date` the Source's date with its mark; `artifact.label` the Citation's Artifact label; `graph.name` its graph's name; `citation.page` the printed page label with its mark (`locator.Page`); `citation.image` the file page when the locator holds one (a Citation with none leaves it unset); `citation.label` the Citation's label. A metadata field named by id reads the stored value with its mark and the field's unknown text, from the nearest level that holds a value: the Citation, then the Evidence graph, then the Artifact, then the Source (`vocabkey.NearestFirst`). The first value found answers, whatever its text, so one marked unknown at a nearer level stops the search; in the list form a field reads the Source alone. A field named by key answers nothing. The boards and the render answer through one resolver (`sourcemetadata.CitationValues`), so they cannot disagree about what has a value.
 
 **The Citation's Source is its graph's.** A Citation never leaves its graph, so its Source is the Source of that graph; its Artifact's own values are still read at the Artifact level.
 
