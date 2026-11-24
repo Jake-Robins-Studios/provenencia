@@ -846,6 +846,48 @@ struct SourcesModelTests {
         #expect(graphsModel.status(for: sources[0]) == nil)
     }
 
+    /// T-5 (CON-4): while the counts load or when they failed, a Source with a graph that links an Artifact
+    /// shows no badge; a Source whose only graph links none is Not started either way, and never waits.
+    @Test func aGraphWithNoArtifactDoesNotWaitForCountsAndALinkedOneDoes() async {
+        enum Boom: Error { case boom }
+        let sources = [
+            source(id: "linked", title: "Linked", typeID: "t1", hasArtifact: true),
+            source(id: "bare", title: "Bare", typeID: "t1", hasArtifact: true),
+        ]
+        func store() -> FakeStore {
+            let store = FakeStore()
+            store.evidenceGraphsByProject[projectDir] = [
+                graph("g-linked", source: "linked"), graph("g-bare", source: "bare", hasArtifact: false),
+            ]
+            return store
+        }
+
+        // The progress read has started and not answered: the counts are loading.
+        let loading = store()
+        loading.listEvidenceGraphProgressHold.isOn = true
+        let (loadingModel, loadingSession) = makeModel(
+            store: loading, sources: sources, types: [photoType()], holdsArtifacts: true
+        )
+        await warmLists(loadingModel, session: loadingSession)
+        await loading.listEvidenceGraphProgressHold.untilSuspended(1)
+        #expect(loadingModel.graphCountsLoading)
+        #expect(loadingModel.status(for: sources[0]) == nil)
+        #expect(loadingModel.status(for: sources[1]) == .empty)
+        loading.listEvidenceGraphProgressHold.isOn = false
+        loading.listEvidenceGraphProgressHold.release()
+
+        // The read failed.
+        let failing = store()
+        failing.listEvidenceGraphProgressError = Boom.boom
+        let (failedModel, failedSession) = makeModel(
+            store: failing, sources: sources, types: [photoType()], holdsArtifacts: true
+        )
+        await warmLists(failedModel, session: failedSession)
+        await warmProgress(failedModel, session: failedSession)
+        #expect(failedModel.status(for: sources[0]) == nil)
+        #expect(failedModel.status(for: sources[1]) == .empty)
+    }
+
     /// T-5: the filter keeps what the badge shows.
     @Test func statusFilterMatchesTheBadge() async {
         let store = FakeStore()
