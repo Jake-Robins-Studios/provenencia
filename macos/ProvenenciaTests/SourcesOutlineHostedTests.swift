@@ -26,7 +26,7 @@ struct SourcesOutlineHostedTests {
 
     private func makeHarness(
         width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil,
-        currentEvent: @escaping @MainActor () -> NSEvent? = { nil }
+        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }
     ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [

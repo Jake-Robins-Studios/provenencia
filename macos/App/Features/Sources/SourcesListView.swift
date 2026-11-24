@@ -491,13 +491,14 @@ final class SourcesTriangleHover {
 extension EnvironmentValues {
     /// The event the application is dispatching: what the Sources list reads to tell a click from a key.
     /// A hosted test replaces it, since a window that is never shown is sent no real events.
-    @Entry var sourcesCurrentEvent = SourcesEventSource { NSApp.currentEvent }
+    @Entry var sourcesCurrentEvent = SourcesEventSource.live
 }
 
 /// Where the Sources list reads the event being dispatched.
-@MainActor
-final class SourcesEventSource {
-    let read: () -> NSEvent?
+final class SourcesEventSource: Sendable {
+    let read: @MainActor @Sendable () -> NSEvent?
 
-    init(_ read: @escaping () -> NSEvent?) { self.read = read }
+    init(_ read: @escaping @MainActor @Sendable () -> NSEvent?) { self.read = read }
+
+    static let live = SourcesEventSource { NSApp.currentEvent }
 }
