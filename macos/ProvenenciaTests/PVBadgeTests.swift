@@ -8,11 +8,21 @@ struct PVBadgeTests {
         NSHostingView(rootView: view).fittingSize.width
     }
 
-    private func png(_ badge: PVBadge, _ prominence: BackgroundProminence) throws -> Data {
+    /// The badge's pixels on a blue ground, at `prominence`.
+    private func pixels(_ badge: PVBadge, _ prominence: BackgroundProminence) throws -> [UInt8] {
         let view = badge.padding(4).background(Color.blue).environment(\.backgroundProminence, prominence)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
-        return try #require(renderer.nsImage?.tiffRepresentation)
+        let image = try #require(renderer.cgImage)
+        let data = try #require(image.dataProvider?.data)
+        return [UInt8](data as Data)
+    }
+
+    /// Whether two renders draw the same ink. A process's first renders of a rounded corner differ from its
+    /// later ones by one level of 255 in two antialiased pixels (the rasterizer's rounding), so one level is
+    /// the same ink.
+    private func sameInk(_ a: [UInt8], _ b: [UInt8]) -> Bool {
+        a.count == b.count && zip(a, b).allSatisfy { max($0, $1) - min($0, $1) <= 1 }
     }
 
     @Test func aMinimumWidthHoldsTheBadge() {
@@ -43,11 +53,11 @@ struct PVBadgeTests {
 
     @Test func anOutlinedBadgeTakesTheOnSelectionInkAndAFilledOneKeepsItsOwn() throws {
         let outlined = PVBadge(L10n.Sources.statusEmpty, tone: .neutral, icon: .circleDashed, subtle: true)
-        #expect(try png(outlined, .increased) != png(outlined, .standard))
+        #expect(try !sameInk(pixels(outlined, .increased), pixels(outlined, .standard)))
         let filled = PVBadge(L10n.Sources.statusPromoted, tone: .success, icon: .circleCheck)
-        #expect(try png(filled, .increased) == png(filled, .standard))
+        #expect(try sameInk(pixels(filled, .increased), pixels(filled, .standard)))
         let overridden = PVBadge(text: "+2", tone: .neutral, subtle: true, foreground: .red)
-        #expect(try png(overridden, .increased) != png(overridden, .standard))
+        #expect(try !sameInk(pixels(overridden, .increased), pixels(overridden, .standard)))
     }
 
     @Test func relativeDetailHasNoIconAndTakesTheCallersHelp() {
