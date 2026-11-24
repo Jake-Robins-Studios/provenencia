@@ -701,14 +701,14 @@ A small syntax of our own, modelled on the convention genealogy programs use for
 
 | Syntax | Meaning |
 | --- | --- |
-| `{meta.key}` | The value of the metadata field with that key, as typed, from the **nearest level that holds one**: the Evidence graph, then the Artifact, then the Source (the Citation joins first with S15-54). In the list form, the Source's alone |
+| `{meta.key}` | The value of the metadata field with that key, as typed, from the **nearest level that holds one**: the Citation, then the Evidence graph, then the Artifact, then the Source. In the list form, the Source's alone |
 | `{source.title}` and the other built-ins | Values that are not metadata (below) |
 | `{a\|b\|…}` | The first that has a value, like SQL `COALESCE` (`{meta.short_title\|source.title}`). A chain falls from one field or built-in to another; a field already reads the nearest level that has it |
 | `[ … ]` | Optional group: removed entirely, its text and punctuation included, if any placeholder inside it is empty. Groups nest |
 | `*…*` | Italic |
 | `\{` `\[` `\*` `\\` | A literal character |
 
-Everything else is literal text, including quotation marks and parentheses. **A metadata placeholder names no level (user, 2026-11-22; this replaced "every metadata placeholder names its level", 2026-11-13, which a field's level kept getting wrong in dogfood).** A format writes `{meta.key}` and the engine reads it from the nearest level that holds a value: the Evidence graph, then the Artifact, then the Source (`vocabkey.NearestFirst`, `MetadataLevels()` reversed). A value marked unknown at a nearer level answers and stops the search. A level-named placeholder, `{artifact.meta.key}`, is the parse diagnostic `meta_at_level`. Metadata always sits under `meta.`, so a built-in and a metadata key can never collide, whatever the researcher names their fields (user, 2026-11-09).
+Everything else is literal text, including quotation marks and parentheses. **A metadata placeholder names no level (user, 2026-11-22; this replaced "every metadata placeholder names its level", 2026-11-13, which a field's level kept getting wrong in dogfood).** A format writes `{meta.key}` and the engine reads it from the nearest level that holds a value: the Citation, then the Evidence graph, then the Artifact, then the Source (`vocabkey.NearestFirst`, `MetadataLevels()` reversed). A value marked unknown at a nearer level answers and stops the search. A level-named placeholder, `{artifact.meta.key}`, is the parse diagnostic `meta_at_level`. Metadata always sits under `meta.`, so a built-in and a metadata key can never collide, whatever the researcher names their fields (user, 2026-11-09).
 
 **Needed and used fields (user, 2026-11-13).** A placeholder outside any group is **needed**: empty, it leaves a hole and prints nothing. A placeholder inside a group is **used**: empty, its group drops out cleanly. A `{a|b}` chain is one requirement, met when any option has a value. The engine reads the type's three formats and derives, per level, the fields and built-ins they need or use; one function turns those requirements and the resolved values into what is missing (the format editor's preview shows it), and each metadata board shows its level's requirements (§ 6.10). A chain that is empty everywhere is flagged on its **first** option only, with a hint naming the others ("or on the Source"). A built-in in a chain whose last option always has a value (`{meta.short_title|source.title}`) is never needed.
 
@@ -733,11 +733,11 @@ Values that are not metadata, named directly under their level. Metadata keys ar
 | `{citation.image}` | The Citation's page in the file (`artifact_page`), for the online-image layer ("image 37") |
 | `{citation.label}` | The Citation label |
 
-The Citation level has only built-ins: Citations carry no metadata (§ 6.9).
+The Citation level's built-ins are above; a Citation also holds metadata (S15-54).
 
 #### Resolving a placeholder
 
-A placeholder reads its own level only; a `{a|b}` chain is how a format reads another level when the first is empty. The **list** form describes the Source as a whole, so it reads Source values only: an `artifact.`, `graph.` or `citation.` placeholder there is an error the editor reports. An unprefixed `{meta.key}` is a parse error that names the three levels.
+A placeholder reads its own level only; a `{a|b}` chain is how a format reads another level when the first is empty. The **list** form describes the Source as a whole, so it reads Source values only: an `artifact.`, `graph.` or `citation.` placeholder there is an error the editor reports.
 
 The editor's **Insert field** picker groups fields by level (Source, Artifact, Evidence graph, Citation) and lists each field once and inserts `{meta.line_number}`; a researcher who files at another level writes the same text.
 
@@ -783,7 +783,7 @@ Keeping everything on the Source fails in two places, and both come from the app
 - **The copy layer belongs to the Artifact.** A Source can hold several representations of one record as separate Artifacts ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 7): a microfilm printout and an Ancestry download of the same register page. EE cites the copy that was used, and a Citation already points at one Artifact. With the provider, URL and accessed date on the Source, one of those two Artifacts is always cited with the wrong copy layer.
 - **Item numbers belong below the Source.** One census page is one Artifact, and a researcher often cites several households on it, each with its own dwelling, family and line numbers. The same goes for entries on a register page and items on a newspaper page. These cannot be one value on the Source. They belong to the Evidence graph, one per household or entry (§ 6.9).
 
-**Decision (user, 2026-11-09): the Source's metadata structure, repeated on the Artifact and the Evidence graph.** Values, layout (order and dismiss) and type templating all work the same at the three levels.
+**Decision (user, 2026-11-09): the Source's metadata structure, repeated on the Artifact and the Evidence graph (and, from S15-54, the Citation).** Values, layout (order and dismiss) and type templating all work the same at every level.
 
 ```sql
 -- Values: one per owner and field, as on the Source.
@@ -828,12 +828,12 @@ CREATE TABLE evidence_graph_metadata_layout (
 -- Existing rows become level = 'source'.
 ```
 
-- **Same fields, three levels.** All three levels take any field from the one vocabulary, seeded and researcher-made alike. No new columns on `artifacts` or `citations`.
+- **Same fields, every level.** All four levels take any field from the one vocabulary, seeded and researcher-made alike. No new columns on `artifacts` or `citations`.
 - **A format reads a field from the nearest level that holds it.** A placeholder names no level (§ 6.3; user, 2026-11-22, which replaced "each placeholder names its level" of 2026-11-13, itself a replacement of an earlier implicit rule). The seeded formats read item fields as `{meta.key}`, so a researcher who files one Source per household never needs the graph level; one who files the whole page as a Source fills line numbers per graph, one graph per household (§ 6.9).
 - **Templating follows the Source's type.** An Artifact's and a graph's suggestions are the `artifact` and `graph` rows of their Source's type, so a census Source suggests provider and URL on each Artifact and line, dwelling and family on each graph. The Source types admin edits the three lists the way it edits one today.
 - **Layout works as on the Source.** `ListWorkspace`'s merge rules (dismiss hides an empty suggestion, saved order first, then suggestions, then extras) apply unchanged per Artifact and per graph ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 5.4). The Artifact form and the graph's edit view each get a metadata board built from the Source page's. The Citation composer gets none.
 - **Readers of the join** filter by level: `sourcetypes` and `sourcevocab` (suggestion ops and Install). The `effects` registry and the catalog model are unchanged (D-7).
-- **Name.** `source_metadata_fields` now serves all three levels. Renaming it to `metadata_fields` would be accurate but touches every reader; keeping the name and noting the wider use is the cheaper choice.
+- **Name.** `source_metadata_fields` now serves every level. Renaming it to `metadata_fields` would be accurate but touches every reader; keeping the name and noting the wider use is the cheaper choice.
 
 **Knock-on work** (each with its skill): register the four tables in the catalog model (`add-catalog-model`); audit them under their Source's scope so the Source's history shows them, with dismiss and reorder audited as on the Source (`add-audit-scope`); add them to the field delete-impact probe, so a field in use on an Artifact or graph cannot be deleted (`add-catalog-delete`); release them with their Artifact or graph (a graph delete is already audited per facet, [`source-layer-data-model.md`](../../source-layer-data-model.md) § 7.1). Copy Source copies a chosen Artifact's values and layout with it, and copies no graph values, since it copies no graphs. Moving an Artifact to another Source carries its values and its graphs' values for free, because they hang off `artifact_id` and `graph_id`.
 
@@ -1213,7 +1213,7 @@ A field that is both suggested and needed shows once, as needed. A chain empty e
 - ~~Layout at the Artifact and item levels~~: same as the Source, with templating per level (user, 2026-11-09).
 - ~~Where the item lives~~: on the Evidence graph; the composer gets no new fields (user, 2026-11-09, § 6.9).
 - ~~How much seed~~: everything the patterns use; researchers remove what they don't want (user, 2026-11-09, § 6.8).
-- **Field vocabulary name.** Keep `source_metadata_fields` for all three levels, or rename it to `metadata_fields`.
+- **Field vocabulary name.** Keep `source_metadata_fields` for every level, or rename it to `metadata_fields`.
 - **Printed page map.** Whether a per-Artifact page map ("image 37 is page 23") should replace typing the printed page in the composer (§ 6.9).
 - **One graph, several items.** Whether the app should nudge a researcher toward one graph per household when a Source's type suggests item fields at the graph level.
 - ~~Syntax details~~: `{a|b}` is enough for now (user, 2026-11-09). The engine returns diagnostics with positions, and the editor shows them (map review K-10, [`deployment-plan.md`](deployment-plan.md)).

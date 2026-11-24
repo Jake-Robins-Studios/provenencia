@@ -426,11 +426,9 @@ var (
 	wordingCase = regexp.MustCompile(`case \(SeededPropertyKey\.\w+, (Seeded\w+Term)\.(\w+)\): return \.?(\w+)`)
 	sentenceRow = regexp.MustCompile(`namedTermSentence\(\s*\.\w+,\s*(Seeded\w+Term)\.(\w+),`)
 	rawCase     = regexp.MustCompile(`(?m)^\s+case (\w+)\s*$`)
-	// levelListEntry reads one `.source,` entry per line of Level.metadataLevels.
-	levelListEntry = regexp.MustCompile(`(?m)^\s+\.(\w+),\s*$`)
-	unrecogniz     = regexp.MustCompile(`case unrecognized\(String\)`)
-	listCase       = regexp.MustCompile(`case \w+ = "([a-z_.]+)"`)
-	subjectMark    = regexp.MustCompile(`case \w+ = "(subject_[a-z_]+)"`)
+	unrecogniz  = regexp.MustCompile(`case unrecognized\(String\)`)
+	listCase    = regexp.MustCompile(`case \w+ = "([a-z_.]+)"`)
+	subjectMark = regexp.MustCompile(`case \w+ = "(subject_[a-z_]+)"`)
 )
 
 // citationBuiltinNames is level.name of every built-in placeholder, sorted.
@@ -575,10 +573,6 @@ func TestSwiftVocabularyMatchesGo(t *testing.T) {
 		{
 			name: "citation built-ins", path: swiftCitationVocabulary, enum: "CitationBuiltin", re: listCase,
 			want: citationBuiltinNames(),
-		},
-		{
-			name: "metadata levels", path: swiftLevel, enum: "Level", re: levelListEntry,
-			want: sorted(strs(vocabkey.MetadataLevels())...),
 		},
 		{
 			name: "catalog-wide lists", path: swiftCatalogMut, enum: "CatalogList", re: listCase,

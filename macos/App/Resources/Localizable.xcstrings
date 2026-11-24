@@ -3012,6 +3012,30 @@
         }
       }
     },
+    "deleteImpact.via.citationMetadataFieldId": {
+      "comment": "Inbound heading for citation_metadata.field_id; argument is how many",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citation records a value for this field"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citations record a value for this field"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "deleteImpact.via.evidenceGraphMetadataFieldId": {
       "comment": "Inbound heading for evidence_graph_metadata.field_id; argument is how many",
       "extractionState": "manual",
@@ -4183,7 +4207,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "That metadata field still holds a value on a Source, Artifact or Evidence graph."
+            "value": "That metadata field still holds a value on a Source, Artifact, Evidence graph or Citation."
           }
         }
       }
@@ -7551,7 +7575,7 @@
       }
     },
     "sourceTypes.toast.removedBodyNoValues": {
-      "comment": "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the type's label",
+      "comment": "Toast body after detaching a field no Source, Artifact, graph, Citation or Source type uses; arguments are the field label then the type's label",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7563,7 +7587,7 @@
       }
     },
     "sourceTypes.toast.removedBodyWithValues": {
-      "comment": "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the type's label, then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format",
+      "comment": "Toast body after detaching a field that Sources, Artifacts, graphs, Citations or Source types still use; arguments are the field label, the type's label, then how many Sources, Artifacts, graphs and Citations hold a value plus how many Source types name it in a citation format",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -7580,13 +7604,13 @@
                   "one": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Source, Artifact, graph or Source type that uses it is unchanged"
+                      "value": "%arg Source, Artifact, graph, Citation or Source type that uses it is unchanged"
                     }
                   },
                   "other": {
                     "stringUnit": {
                       "state": "translated",
-                      "value": "%arg Sources, Artifacts, graphs and Source types that use it are unchanged"
+                      "value": "%arg Sources, Artifacts, graphs, Citations and Source types that use it are unchanged"
                     }
                   }
                 }

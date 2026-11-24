@@ -374,8 +374,8 @@ message MetadataField {
   string label = 4;
   string data_type = 5; // text | url
   string description = 6;
-  // How many Sources, Artifacts and Evidence graphs hold a value for this
-  // field, plus how many Source types name it in a citation format (the
+  // How many Sources, Artifacts, Evidence graphs and Citations hold a value
+  // for this field, plus how many Source types name it in a citation format (the
   // delete-impact total). Deleting is only allowed at 0 (see
   // metadatafields.ErrInUse); the client uses the count to disable its delete
   // affordance and say what is holding the field.
@@ -766,7 +766,9 @@ message DeleteSourceNoteResponse {
 
 // MetadataOwner names the record a metadata board hangs off.
 message MetadataOwner {
-  string level = 1; // "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other value is sourcemetadata.invalid
+  // "source", "artifact", "graph" or "citation" (vocabkey.Levels); any other
+  // value is sourcemetadata.invalid.
+  string level = 1;
   string id = 2;
 }
 
@@ -2656,12 +2658,15 @@ message CreateCitationWithObservationsRequest {
   repeated string citation_notes = 9;
   repeated ObservationDraft observations = 10;
   string graph_id = 11;
+  MetadataDraft metadata = 12; // absent = no metadata
 }
 
 message CreateCitationWithObservationsResponse {
   Citation citation = 1;
   repeated Observation observations = 2;
   WriteEffects effects = 3;
+  // The new Citation's board after the write.
+  repeated MetadataWorkspaceEntry metadata = 4;
 }
 
 message AddObservationsToCitationRequest {
@@ -2768,10 +2773,13 @@ message UpdateCitationRequest {
   string label = 6;
   bool transcription_uncertain = 7;
   string transcription_note = 8;
+  MetadataDraft metadata = 9; // absent = metadata unchanged; present = the stored values become these
 }
 message UpdateCitationResponse {
   Citation citation = 1;
   WriteEffects effects = 2;
+  // The Citation's board after the write; the stored board when no draft was sent.
+  repeated MetadataWorkspaceEntry metadata = 3;
 }
 
 message UpdateObservationRequest {

@@ -287,7 +287,7 @@ CREATE TABLE source_metadata (
 ) STRICT;
 ```
 
-**Unknown and supplied.** A value carries the two facts of `core/valuemark`. *Unknown*: the record does not give the value, so it has no text (`value_text` NULL, `is_unknown` 1). *Supplied*: the text is not on the record; the researcher took it from elsewhere (`is_supplied` 1, with text). Never both. The checks repeat `valuemark.Validate` so the table refuses what Go refuses. A write without a mark is a value with no mark, and the audit records the mark columns with the value. The same two columns sit on `artifact_metadata` and `evidence_graph_metadata` (§5.5).
+**Unknown and supplied.** A value carries the two facts of `core/valuemark`. *Unknown*: the record does not give the value, so it has no text (`value_text` NULL, `is_unknown` 1). *Supplied*: the text is not on the record; the researcher took it from elsewhere (`is_supplied` 1, with text). Never both. The checks repeat `valuemark.Validate` so the table refuses what Go refuses. A write without a mark is a value with no mark, and the audit records the mark columns with the value. The same two columns sit on `artifact_metadata`, `evidence_graph_metadata` and `citation_metadata` (§5.5).
 
 Metadata preserves text directly, including catalog dates:
 
@@ -328,11 +328,11 @@ Reorder rewrites `sort_order` as `0..n-1` over the fields it is given and leaves
 
 Dismiss and reorder are researcher decisions about their own catalog, so both are audited (`dismiss_metadata_suggestion`, `reorder_metadata`).
 
-`sourcemetadata` takes an owner (a level and an id) on every function, at the three levels that hold metadata: a Source, an Artifact and an Evidence graph (`vocabkey.MetadataLevels`). Its stores are built from `catalogmodel.MetadataTables`, which `deleteimpact` and `effects` read too, so a level adds an entry and no code. `Apply` saves a draft of values and layout by comparing it with what is stored, writing layout rows verbatim and keeping the rows the draft leaves out; `CreateAll` is `Apply` on an owner that holds nothing.
+`sourcemetadata` takes an owner (a level and an id) on every function, at the four levels that hold metadata: a Source, an Artifact, an Evidence graph and a Citation (`vocabkey.Levels`). Its stores are built from `catalogmodel.MetadataTables`, which `deleteimpact` and `effects` read too, so a level adds an entry and no code. `Apply` saves a draft of values and layout by comparing it with what is stored, writing layout rows verbatim and keeping the rows the draft leaves out; `CreateAll` is `Apply` on an owner that holds nothing.
 
-## 5.5 Metadata at three levels
+## 5.5 Metadata at four levels
 
-An Artifact (the copy used) and an Evidence graph (the item cited) hold metadata values and a layout with the same fields, rules and audit as a Source: one vocabulary (`source_metadata_fields`), one set of functions, one table pair per level.
+An Artifact (the copy used), an Evidence graph (the item cited) and a Citation (the spot cited) hold metadata values and a layout with the same fields, rules and audit as a Source: one vocabulary (`source_metadata_fields`), one set of functions, one table pair per level.
 
 ```sql
 CREATE TABLE artifact_metadata (
@@ -357,12 +357,12 @@ CREATE TABLE artifact_metadata_layout (
 ) STRICT;
 ```
 
-`evidence_graph_metadata` and `evidence_graph_metadata_layout` are the same with `graph_id REFERENCES evidence_graphs(id)`, and graph values carry `is_unknown` and `is_supplied` too. Each table has an index on `field_id` for the field delete's probe and release.
+`evidence_graph_metadata` and `evidence_graph_metadata_layout` are the same with `graph_id REFERENCES evidence_graphs(id)`, and `citation_metadata` and `citation_metadata_layout` with `citation_id REFERENCES citations(id)`; every level's values carry `is_unknown` and `is_supplied` too. Each table has an index on `field_id` for the field delete's probe and release.
 
-- **A type suggests fields once; every board offers them.** A Source type suggests each field once (`source_type_metadata_fields`, no level); an Artifact's or a graph's board lists its Source's type's whole suggestion list, plus extras.
-- **Audit.** Every change carries the owner column (`artifact_id`, `graph_id`) and scopes the owner's Source (`effects` registry, `up(owner, "source_id")`), so a write refreshes the Source's page and moves its last activity.
-- **Delete.** A field is in use while any of the three value tables holds it, and `deleteimpact.UsedBy` counts all three; a layout row alone never blocks. A field's layout rows at every level are released, audited, with it.
-- **Search and citations.** No search document is built from Artifact or graph metadata. A citation reads the graph's value, else the Artifact's, else the Source's (spike 15).
+- **A type suggests fields once; every board offers them.** A Source type suggests each field once (`source_type_metadata_fields`, no level); an Artifact's, a graph's or a Citation's board lists its Source's type's whole suggestion list, plus extras.
+- **Audit.** Every change carries the owner column (`artifact_id`, `graph_id`, `citation_id`) and scopes the owner's Source (`effects` registry: `up(owner, "source_id")`, and for a Citation `up("citation_id", "artifact_id", "source_id")`), so a write refreshes the Source's page and moves its last activity.
+- **Delete.** A field is in use while any of the four value tables holds it, and `deleteimpact.UsedBy` counts all four; a layout row alone never blocks. A field's layout rows at every level are released, audited, with it.
+- **Search and citations.** No search document is built from Artifact, graph or Citation metadata. A citation reads the Citation's value, else the graph's, else the Artifact's, else the Source's (spike 15).
 
 ---
 
@@ -424,8 +424,6 @@ Source
   └── Artifact B -> File (newer clear scan)
 ```
 
-Interpretation may later offer flows to move or duplicate Citations from Artifact A to Artifact B (and adjust locators). That is outside the Source layer.
-
 The initial implementation does not support destructive deletion of primary Files.
 
 ---
@@ -451,7 +449,7 @@ CREATE TABLE artifacts (
 
 An Artifact has zero or one primary File.
 
-An Artifact holds metadata of its own (provider, URL, accessed date, film number): `artifact_metadata` and `artifact_metadata_layout` ([§5.5](#55-metadata-at-three-levels)). Deleting an Artifact releases them, audited, before the Artifact's own delete change; a File's own data stays on the File.
+An Artifact holds metadata of its own (provider, URL, accessed date, film number): `artifact_metadata` and `artifact_metadata_layout` ([§5.5](#55-metadata-at-four-levels)). Deleting an Artifact releases them, audited, before the Artifact's own delete change; a File's own data stays on the File.
 
 Fileless Artifacts are valid and can represent physical-only evidence:
 
@@ -600,6 +598,8 @@ evidence_graphs
 evidence_graph_artifacts
 evidence_graph_metadata
 evidence_graph_metadata_layout
+citation_metadata
+citation_metadata_layout
 ```
 
 with these directly supporting storage tables:

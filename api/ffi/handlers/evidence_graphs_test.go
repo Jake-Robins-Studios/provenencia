@@ -19,6 +19,7 @@ type graphFixture struct {
 	sourceID, page1, page2 string
 	subjectID              string
 	defaultGraphID         string
+	citationID             string // the Citation on page1
 }
 
 func newGraphFixture(t *testing.T) graphFixture {
@@ -31,6 +32,7 @@ func newGraphFixture(t *testing.T) graphFixture {
 		ProjectDir: dir, UserId: userID, ArtifactId: page1, GraphId: graphLinking(t, dir, page1), LocatorJson: validLocatorJSON,
 		Observations: []*engine.ObservationDraft{{SubjectId: subjectID, PropertyId: toponymID, ValueText: "Boston"}},
 	}, &cit)
+	f.citationID = cit.GetCitation().GetId()
 	graphs := f.graphsOf(t, sourceID)
 	if len(graphs) != 1 {
 		t.Fatalf("graphs %+v", graphs)
@@ -384,6 +386,32 @@ func TestDeleteEvidenceGraph(t *testing.T) {
 			t.Fatal("graph still listed")
 		}
 	})
+}
+
+// TestDeleteEvidenceGraphReleasesCitationMetadata is AC-4.2: deleting a graph
+// releases the values of the Citations made in it.
+func TestDeleteEvidenceGraphReleasesCitationMetadata(t *testing.T) {
+	m := newMetadataOwners(t)
+	empty := m.createGraph(t, "Empty", m.page2).GetGraph().GetId()
+	var cit engine.CreateCitationWithObservationsResponse
+	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+		ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: empty, LocatorJson: validLocatorJSON,
+		Metadata: draftOf(m.suggested, "FamilySearch"),
+	}, &cit)
+	if countCatalogRows(t, m.dir, "citation_metadata") != 1 {
+		t.Fatal("the Citation's value was not saved")
+	}
+	var resp engine.DeleteEvidenceGraphResponse
+	mustRPC(t, DeleteEvidenceGraph, &engine.DeleteEvidenceGraphRequest{ProjectDir: m.dir, UserId: m.userID, GraphId: empty}, &resp)
+	if !slices.Contains(latestRevisionTypes(t, m.dir), "citation_metadata delete") {
+		t.Fatalf("changes %v, want a citation_metadata delete", latestRevisionTypes(t, m.dir))
+	}
+	if !slices.Contains(resp.GetEffects().GetSourceScopes(), m.sourceID) {
+		t.Fatalf("source_scopes %v, want %s", resp.GetEffects().GetSourceScopes(), m.sourceID)
+	}
+	if countCatalogRows(t, m.dir, "citation_metadata") != 0 {
+		t.Fatal("citation_metadata rows remain")
+	}
 }
 
 func TestGetEvidenceGraphUnlinkImpact(t *testing.T) {

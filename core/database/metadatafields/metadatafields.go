@@ -31,7 +31,8 @@ var ErrDuplicateKey = apperr.New(apperr.CodeMetadataFieldsDuplicateKey, apperr.K
 var ErrLocked = apperr.New(apperr.CodeMetadataFieldsInvalid, apperr.KindUser)
 
 // ErrInUse is returned by Delete when a value in source_metadata,
-// artifact_metadata or evidence_graph_metadata still references the field.
+// artifact_metadata, evidence_graph_metadata or citation_metadata still
+// references the field.
 var ErrInUse = apperr.New(apperr.CodeMetadataFieldsInUse, apperr.KindConflict)
 
 // ErrOriginLocked is returned by Delete when the field is plugin-origin.
@@ -71,8 +72,8 @@ type Field struct {
 	// UnknownText is what a value of this field marked unknown prints ("n.p."),
 	// or "" when the field names none.
 	UnknownText string
-	// UsedBy is how many Sources, Artifacts and Evidence graphs hold a value
-	// for this field plus how many Source types name it in a citation format:
+	// UsedBy is how many Sources, Artifacts, Evidence graphs and Citations hold
+	// a value for this field plus how many Source types name it in a citation format:
 	// the total that blocks its delete. List and Update populate
 	// it; the other readers leave it 0.
 	UsedBy int
@@ -391,7 +392,7 @@ func List(c *database.Catalog) ([]Field, error) {
 	return out, nil
 }
 
-// Delete erases a field when no Source, Artifact or Evidence graph stores a value for it. Suggestion
+// Delete erases a field when no Source, Artifact, Evidence graph or Citation stores a value for it. Suggestion
 // and layout joins CASCADE. Plugin-origin fields are origin_locked even
 // when unused. The caller records the returned changes, including layout
 // rows released before the field itself.

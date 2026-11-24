@@ -17,7 +17,10 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields/metadatafieldstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
@@ -1088,7 +1091,7 @@ func birthOfAlice(t *testing.T, c *database.Catalog, userID []byte) sources.Sour
 
 func TestStoresAreRegistered(t *testing.T) {
 	var want, got []string
-	for _, l := range vocabkey.MetadataLevels() {
+	for _, l := range vocabkey.Levels() {
 		want = append(want, string(l))
 	}
 	for l := range stores {
@@ -1097,7 +1100,7 @@ func TestStoresAreRegistered(t *testing.T) {
 	sort.Strings(want)
 	sort.Strings(got)
 	if !slices.Equal(got, want) {
-		t.Fatalf("store levels = %v, want vocabkey.MetadataLevels %v", got, want)
+		t.Fatalf("store levels = %v, want vocabkey.Levels %v", got, want)
 	}
 	for _, e := range catalogmodel.MetadataTables {
 		st := stores[e.Level]
@@ -1111,12 +1114,6 @@ func TestStoresAreRegistered(t *testing.T) {
 }
 
 func TestSourcePathIn(t *testing.T) {
-	citation := catalogmodel.MetadataLevelTables{
-		Level: vocabkey.LevelCitation, Kind: catalogmodel.KindCitation, OwnerTable: "citations", OwnerColumn: "citation_id",
-		Values: "citation_metadata", Layout: "citation_metadata_layout",
-		Up: &catalogmodel.MetadataUp{Level: vocabkey.LevelArtifact, Column: "artifact_id"},
-	}
-	withCitation := append(slices.Clone(catalogmodel.MetadataTables), citation)
 	tests := []struct {
 		name  string
 		list  []catalogmodel.MetadataLevelTables
@@ -1129,7 +1126,7 @@ func TestSourcePathIn(t *testing.T) {
 			"SELECT t0.id, t1.source_type_id, t1.id FROM artifacts t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
 		{"graph", catalogmodel.MetadataTables, vocabkey.LevelGraph,
 			"SELECT t0.id, t1.source_type_id, t1.id FROM evidence_graphs t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
-		{"citation", withCitation, vocabkey.LevelCitation,
+		{"citation", catalogmodel.MetadataTables, vocabkey.LevelCitation,
 			"SELECT t0.id, t2.source_type_id, t2.id FROM citations t0 JOIN artifacts t1 ON t1.id = t0.artifact_id JOIN sources t2 ON t2.id = t1.source_id WHERE t0.id IN ("},
 	}
 	for _, tc := range tests {
@@ -1156,7 +1153,7 @@ func TestOwnerLevels(t *testing.T) {
 		"short id":          {Level: vocabkey.LevelSource, ID: src.ID[:15]},
 		"short artifact id": {Level: vocabkey.LevelArtifact, ID: src.ID[:15]},
 		"short graph id":    {Level: vocabkey.LevelGraph, ID: src.ID[:15]},
-		"citation":          {Level: vocabkey.LevelCitation, ID: src.ID},
+		"short citation id": {Level: vocabkey.LevelCitation, ID: src.ID[:15]},
 	}
 	owners["empty level"] = Owner{Level: "", ID: src.ID}
 	owners["page"] = Owner{Level: "page", ID: src.ID}
@@ -1830,8 +1827,8 @@ func TestListByOwnersTx(t *testing.T) {
 	if none, err := ListByOwnersTx(tx, nil); err != nil || none != nil {
 		t.Fatalf("nil owners = %+v, %v", none, err)
 	}
-	if _, err := ListByOwnersTx(tx, []Owner{sourceOwner(a.ID), {Level: vocabkey.LevelCitation, ID: a.ID}}); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("citation owner = %v", err)
+	if _, err := ListByOwnersTx(tx, []Owner{sourceOwner(a.ID), {Level: vocabkey.LevelCitation, ID: a.ID[:15]}}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("short owner id = %v", err)
 	}
 
 	listByOwnersBatches(t)
@@ -1940,6 +1937,17 @@ func newLevelOwner(t testing.TB, c *database.Catalog, userID []byte, src sources
 			t.Fatal(err)
 		}
 		return Owner{Level: level, ID: id[:]}
+	case vocabkey.LevelCitation:
+		a, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Page"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		g := evidencegraphstest.SoleGraph(t, c, src.ID)
+		cit, err := citationstest.Create(c, userID, citations.CreateInput{ArtifactID: a.ID, GraphID: g.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Owner{Level: level, ID: cit.ID}
 	}
 	t.Fatalf("no fixture for level %s", level)
 	return Owner{}
@@ -1951,8 +1959,9 @@ func TestOwnerTables(t *testing.T) {
 	tables := map[vocabkey.Level]struct{ values, layout, column string }{
 		vocabkey.LevelArtifact: {"artifact_metadata", "artifact_metadata_layout", "artifact_id"},
 		vocabkey.LevelGraph:    {"evidence_graph_metadata", "evidence_graph_metadata_layout", "graph_id"},
+		vocabkey.LevelCitation: {"citation_metadata", "citation_metadata_layout", "citation_id"},
 	}
-	for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
+	for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph, vocabkey.LevelCitation} {
 		t.Run(string(level), func(t *testing.T) {
 			tb := tables[level]
 			c, userID, src, doc, _, f1, f2 := applyWorld(t)
@@ -2083,6 +2092,31 @@ func TestOwnerTables(t *testing.T) {
 			if !errors.Is(err, ErrInvalid) {
 				t.Fatalf("Set on missing owner = %v, want ErrInvalid", err)
 			}
+			// Every other write is refused the same way and leaves no row.
+			// Clear is not: it releases nothing and returns no changes, as at
+			// every level.
+			values, layout := countRows(t, c, tb.values), countRows(t, c, tb.layout)
+			for name, f := range map[string]func(tx *database.Tx) ([]rowchange.Change, error){
+				"DismissSuggestion": func(tx *database.Tx) ([]rowchange.Change, error) {
+					return DismissSuggestion(tx, userID, missing, doc.ID)
+				},
+				"Reorder": func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Reorder(tx, userID, missing, [][]byte{doc.ID})
+				},
+				"Apply":     func(tx *database.Tx) ([]rowchange.Change, error) { return Apply(tx, userID, missing, draft) },
+				"CreateAll": func(tx *database.Tx) ([]rowchange.Change, error) { return CreateAll(tx, userID, missing, draft) },
+			} {
+				if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, f); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("%s on missing owner = %v, want ErrInvalid", name, err)
+				}
+			}
+			if v, l := countRows(t, c, tb.values), countRows(t, c, tb.layout); v != values || l != layout {
+				t.Fatalf("rows %d and %d after refused writes, want %d and %d", v, l, values, layout)
+			}
+			clearChanges := run(func(tx *database.Tx) ([]rowchange.Change, error) { return Clear(tx, userID, missing, doc.ID) })
+			if len(clearChanges) != 0 {
+				t.Fatalf("Clear on missing owner = %+v, want no changes", clearChanges)
+			}
 		})
 	}
 }
@@ -2208,8 +2242,8 @@ func TestReadDraftsTx(t *testing.T) {
 	if _, err := ReadDraftsTx(nil, []Owner{a1}); !errors.Is(err, ErrInvalid) {
 		t.Errorf("nil tx = %v, want ErrInvalid", err)
 	}
-	if _, err := ReadDraftsTx(tx, []Owner{a1, {Level: vocabkey.LevelCitation, ID: a1.ID}}); !errors.Is(err, ErrInvalid) {
-		t.Errorf("citation owner = %v, want ErrInvalid", err)
+	if _, err := ReadDraftsTx(tx, []Owner{a1, {Level: vocabkey.LevelCitation, ID: a1.ID[:15]}}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("short owner id = %v, want ErrInvalid", err)
 	}
 }
 

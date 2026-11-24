@@ -1109,10 +1109,16 @@ struct CatalogQueryRegistryTests {
         let workspaceKey = CatalogQueryKey.sourceWorkspace(project: project, sourceId: "s1")
         let fieldsKey = CatalogQueryKey.metadataFieldsList(project: project)
 
+        // The fields list is read on the Source page, so it is visible there and reloads at once.
+        session.apply(location: WorkspaceLocation(
+            section: .sources, sourceId: "s1", title: "Alpha"
+        ))
+        #expect(session.visibleKeys.contains(fieldsKey))
         let workspaceHandle: QueryHandle<CatalogSourceWorkspace> = session.query(workspaceKey)
         let fieldsHandle: QueryHandle<[CatalogMetadataField]> = session.query(fieldsKey)
         await waitForQuery(workspaceHandle)
         await waitForQuery(fieldsHandle)
+        await session.settleWrites()
         store.heldCatalogProjectDir = nil
 
         store.fieldsByProject[projectDir]?.append(
@@ -1209,13 +1215,15 @@ struct CatalogQueryRegistryTests {
     }
 
     /// `usedBy` gates Delete on the Metadata page, and it moves whenever a
-    /// Source, Artifact or Evidence graph gains or loses a value: the write
-    /// reports `metadata_field_usage`.
-    @Test func metadataFieldUsageRevalidatesFieldsList() async {
+    /// Source, Artifact, Evidence graph or Citation gains or loses a value: the
+    /// write reports `metadata_field_usage`. A visible list reloads at once.
+    @Test func metadataFieldUsageRevalidatesAVisibleFieldsList() async {
         let store = FakeStore()
         seedStore(store)
         let session = makeSession(store: store)
+        session.apply(location: WorkspaceLocation(section: .metadata))
         let key = CatalogQueryKey.metadataFieldsList(project: session.projectKey)
+        #expect(session.visibleKeys.contains(key))
 
         let handle: QueryHandle<[CatalogMetadataField]> = session.query(key)
         await waitForQuery(handle)
@@ -1223,10 +1231,35 @@ struct CatalogQueryRegistryTests {
 
         store.fieldsByProject[projectDir]?[0].usedBy = 1
         session.apply(CatalogWriteEffects(lists: [.metadataFieldUsage]))
+        await session.settleWrites()
+        #expect(handle.value?.first?.usedBy == 1)
+        #expect(!handle.isStale)
+    }
+
+    /// A hidden list is not read for a usage write (a Citation value save is
+    /// one): it keeps its value, is marked stale, and reloads on the next query.
+    @Test func metadataFieldUsageMarksAHiddenFieldsListStale() async {
+        let store = FakeStore()
+        seedStore(store)
+        let session = makeSession(store: store)
+        let key = CatalogQueryKey.metadataFieldsList(project: session.projectKey)
+        #expect(!session.visibleKeys.contains(key))
+        #expect(session.registry.hiddenPolicy(key) == .markStale)
+
+        let handle: QueryHandle<[CatalogMetadataField]> = session.query(key)
+        await waitForQuery(handle)
+        #expect(handle.value?.first?.usedBy == 0)
+
+        store.fieldsByProject[projectDir]?[0].usedBy = 1
+        session.apply(CatalogWriteEffects(lists: [.metadataFieldUsage]))
+        await session.settleWrites()
+        #expect(handle.value?.first?.usedBy == 0)
+        #expect(handle.isStale)
 
         let _: QueryHandle<[CatalogMetadataField]> = session.query(key)
         await waitForQuery(handle)
         #expect(handle.value?.first?.usedBy == 1)
+        #expect(!handle.isStale)
     }
 
     /// Adding a source moves its type's `usedBy`, which gates deleting the type.

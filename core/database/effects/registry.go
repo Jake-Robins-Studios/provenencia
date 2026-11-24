@@ -124,7 +124,7 @@ const (
 	// another Property, so the Properties workspace's usedBy counts changed.
 	ListPropertyUsage List = "property_usage"
 	// ListMetadataFieldUsage: a metadata value was created or deleted on a
-	// Source, Artifact or Evidence graph, so the field list's usedBy counts
+	// Source, Artifact, Evidence graph or Citation, so the field list's usedBy counts
 	// changed. An edit of a held value moves no count.
 	ListMetadataFieldUsage List = "metadata_field_usage"
 	// ListCounts: a Source or a handle (of any type) was created, deleted or
@@ -375,6 +375,8 @@ var registry = map[string]Effect{
 	"source_metadata_layout": {
 		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
+	// A Citation's value names the graphs its Citation's Observations show.
+	"citation_metadata": {EvidenceGraph: from("citation_id", citationObservationGraphs)},
 	// An Artifact's own fields move no loaded graph row and no citation
 	// membership: its Citations and Observations carry their own graphs.
 	"artifacts": {
@@ -530,7 +532,7 @@ var entityTable, tableEntity map[string]string
 func metadataEffects(list []catalogmodel.MetadataLevelTables, reg map[string]Effect) {
 	for _, e := range list {
 		var scope Path
-		if e.Up == nil {
+		if len(e.Ups) == 0 {
 			scope = field(e.OwnerColumn)
 		} else {
 			path, err := catalogmodel.SourcePath(list, e.Level)
@@ -539,7 +541,7 @@ func metadataEffects(list []catalogmodel.MetadataLevelTables, reg map[string]Eff
 			}
 			cols := []string{e.OwnerColumn}
 			for _, p := range path[:len(path)-1] {
-				cols = append(cols, p.Up.Column)
+				cols = append(cols, p.SourceUp().Column)
 			}
 			scope = up(cols...)
 		}

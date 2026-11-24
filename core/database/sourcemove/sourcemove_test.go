@@ -344,11 +344,13 @@ func TestImpact(t *testing.T) {
 }
 
 // citedBundle is S1's A1 in graph G1 with a Citation and an Observation on P1,
-// a metadata value on A1 and on G1, and 3 Subjects in G1.
+// a metadata value on A1, on G1 and on the Citation, and 3 Subjects in G1.
 type citedBundle struct {
 	a1       artifacts.Artifact
 	g1       evidencegraphs.Graph
 	subjects []subjects.Subject
+	line     []byte             // the Line field
+	cit      []byte             // the Citation on A1 in G1, holding a value
 	other    artifacts.Artifact // S1's A2 in its own graph
 	otherG   evidencegraphs.Graph
 }
@@ -362,6 +364,7 @@ func (w *world) cited() citedBundle {
 	b.otherG = w.graph(w.Source, "G2", b.other)
 	b.subjects = w.people(b.g1, 3)
 	w.Cite(b.a1, b.subjects[0], observations.Input{PropertyID: w.Prop("name").ID, Name: namevaluetest.Western("Ada")})
+	evidencelayertest.Must(w.T, dbtest.MustDB(w.T, w.C).QueryRow(`SELECT id FROM citations WHERE artifact_id = ?`, b.a1.ID).Scan(&b.cit))
 	line, _, err := writes.Run(w.C, writes.Op{Action: "create_metadata_field", UserID: userID}, func(tx *database.Tx) (metadatafields.Field, []rowchange.Change, error) {
 		return metadatafields.Create(tx, "Line", metadatafields.DataTypeText, "")
 	})
@@ -372,8 +375,14 @@ func (w *world) cited() citedBundle {
 			return nil, err
 		}
 		_, more, err := sourcemetadata.Set(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: b.g1.ID}, sourcemetadata.Input{FieldID: line.ID, ValueText: "Ada Robins"})
+		ch = append(ch, more...)
+		if err != nil {
+			return nil, err
+		}
+		_, more, err = sourcemetadata.Set(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: b.cit}, sourcemetadata.Input{FieldID: line.ID, ValueText: "film 7"})
 		return append(ch, more...), err
 	})
+	b.line = line.ID
 	return b
 }
 
@@ -384,6 +393,7 @@ func (w *world) metadata(b citedBundle) []sourcemetadata.Row {
 	defer tx.Rollback()
 	rows, err := sourcemetadata.ListByOwnersTx(tx, []sourcemetadata.Owner{
 		{Level: vocabkey.LevelArtifact, ID: b.a1.ID}, {Level: vocabkey.LevelGraph, ID: b.g1.ID},
+		{Level: vocabkey.LevelCitation, ID: b.cit},
 	})
 	evidencelayertest.Must(w.T, err)
 	return rows
@@ -429,7 +439,7 @@ func TestMove(t *testing.T) {
 			t.Fatal("Citation, Observation or link changed")
 		}
 		afterMeta := w.metadata(b)
-		if len(afterMeta) != 2 || len(beforeMeta) != 2 {
+		if len(afterMeta) != 3 || len(beforeMeta) != 3 {
 			t.Fatalf("metadata rows %d -> %d", len(beforeMeta), len(afterMeta))
 		}
 		for i := range afterMeta {
@@ -439,6 +449,19 @@ func TestMove(t *testing.T) {
 		}
 		if len(res.Bundle.ArtifactIDs) != 1 || len(res.Bundle.GraphIDs) != 1 || res.DefaultGraphID != nil {
 			t.Fatalf("result %+v", res)
+		}
+
+		// AC-5.1: the Citation's value travelled, and a later write scopes the
+		// new Source.
+		after, err := writes.RunChanges(w.C, writes.Op{Action: "set_metadata", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
+			_, ch, err := sourcemetadata.Set(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: b.cit}, sourcemetadata.Input{FieldID: b.line, ValueText: "film 8"})
+			return ch, err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !sameIDs(after.Effects.SourceScopes, [][]byte{w.s2.ID}) {
+			t.Fatalf("citation write scopes %x, want the target Source", after.Effects.SourceScopes)
 		}
 
 		// AC-2.6: one revision, both Sources scoped.

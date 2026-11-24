@@ -24,6 +24,7 @@ type metadataOwners struct {
 	graphFixture
 	suggested, extra string // field ids: suggested at artifact and graph, not suggested
 	artifact, graph  *engine.MetadataOwner
+	citation         *engine.MetadataOwner
 }
 
 func newMetadataOwners(t *testing.T) metadataOwners {
@@ -38,6 +39,7 @@ func newMetadataOwners(t *testing.T) metadataOwners {
 		extra:        newUserField(t, f.dir, f.userID, "Line"),
 		artifact:     &engine.MetadataOwner{Level: "artifact", Id: f.page1},
 		graph:        &engine.MetadataOwner{Level: "graph", Id: f.defaultGraphID},
+		citation:     &engine.MetadataOwner{Level: "citation", Id: f.citationID},
 	}
 	mustRPC(t, AssignTypeField, &engine.AssignTypeFieldRequest{
 		ProjectDir: f.dir, TypeId: sourceType, FieldId: m.suggested,
@@ -47,7 +49,7 @@ func newMetadataOwners(t *testing.T) metadataOwners {
 
 func TestMetadataOwners(t *testing.T) {
 	m := newMetadataOwners(t)
-	for name, owner := range map[string]*engine.MetadataOwner{"artifact": m.artifact, "graph": m.graph} {
+	for name, owner := range map[string]*engine.MetadataOwner{"artifact": m.artifact, "graph": m.graph, "citation": m.citation} {
 		t.Run(name, func(t *testing.T) {
 			var set engine.SetMetadataResponse
 			mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
@@ -119,15 +121,15 @@ func TestMetadataOwners(t *testing.T) {
 		}
 	})
 
-	// Owners the wire refuses: an unwired level and a missing owner are
+	// Owners the wire refuses: a level with no owner row and a missing owner are
 	// sourcemetadata.invalid; a malformed id is request.invalid_id.
 	bad := map[string]struct {
 		owner *engine.MetadataOwner
 		want  error
 	}{
-		"citation level": {&engine.MetadataOwner{Level: "citation", Id: m.page1}, sourcemetadata.ErrInvalid},
-		"empty level":    {&engine.MetadataOwner{Level: "", Id: m.page1}, sourcemetadata.ErrInvalid},
-		"missing owner":  {nil, sourcemetadata.ErrInvalid},
+		"citation id that names no Citation": {&engine.MetadataOwner{Level: "citation", Id: m.page1}, sourcemetadata.ErrInvalid},
+		"empty level":                        {&engine.MetadataOwner{Level: "", Id: m.page1}, sourcemetadata.ErrInvalid},
+		"missing owner":                      {nil, sourcemetadata.ErrInvalid},
 		"unknown artifact": {&engine.MetadataOwner{Level: "artifact", Id: "01890000-0000-7000-8000-000000000001"},
 			sourcemetadata.ErrInvalid},
 		"malformed id": {&engine.MetadataOwner{Level: "artifact", Id: "nope"}, errInvalidID},
@@ -260,6 +262,13 @@ func TestGetMetadataBoard(t *testing.T) {
 	if e := byField[m.extra]; e == nil || e.GetSuggested() || e.GetValueText() != "14" {
 		t.Errorf("extra entry %+v", e)
 	}
+
+	t.Run("a Citation's board lists the type's suggestion", func(t *testing.T) {
+		e := metadataByField(boardEntries(t, m.dir, m.citation), m.suggested)
+		if e == nil || !e.GetSuggested() || e.GetHasValue() {
+			t.Fatalf("citation suggested entry %+v", e)
+		}
+	})
 
 	if err := rpc(t, GetMetadataBoard, &engine.GetMetadataBoardRequest{ProjectDir: m.dir}, &got); !errors.Is(err, sourcemetadata.ErrInvalid) {
 		t.Errorf("no owner: %v", err)

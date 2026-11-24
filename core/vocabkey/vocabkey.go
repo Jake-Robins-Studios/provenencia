@@ -22,8 +22,8 @@ const (
 // Level is a layer a citation reads: the Source (the record), one of its
 // Artifacts (the copy used), one of its Evidence graphs (the item cited), or
 // the Citation itself. From S15-62 a format names fields with no level; the
-// level stays for owners, built-ins and the order. The first three hold
-// metadata values; the Citation only built-ins.
+// level stays for owners, built-ins and the order. All four hold metadata
+// values, the Citation nearest.
 type Level string
 
 const (
@@ -38,17 +38,11 @@ func Levels() []Level {
 	return []Level{LevelSource, LevelArtifact, LevelGraph, LevelCitation}
 }
 
-// MetadataLevels returns the levels that hold metadata, a new slice in order
-// on each call.
-func MetadataLevels() []Level {
-	return []Level{LevelSource, LevelArtifact, LevelGraph}
-}
-
-// NearestFirst returns the levels that hold metadata in the order a format
-// reads a field: the Evidence graph, then the Artifact, then the Source. It is
-// MetadataLevels reversed, a new slice on each call.
+// NearestFirst returns the levels in the order a format reads a field: the
+// Citation, then the Evidence graph, then the Artifact, then the Source. It is
+// Levels reversed, a new slice on each call.
 func NearestFirst() []Level {
-	l := MetadataLevels()
+	l := Levels()
 	slices.Reverse(l)
 	return l
 }

@@ -1,6 +1,7 @@
 package catalogmodel_test
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -32,8 +33,8 @@ func TestMetadataTables(t *testing.T) {
 	for _, e := range catalogmodel.MetadataTables {
 		levels = append(levels, e.Level)
 	}
-	if !slices.Equal(levels, vocabkey.MetadataLevels()) {
-		t.Fatalf("levels = %v, want %v", levels, vocabkey.MetadataLevels())
+	if !slices.Equal(levels, vocabkey.Levels()) {
+		t.Fatalf("levels = %v, want %v", levels, vocabkey.Levels())
 	}
 	byLevel := map[vocabkey.Level]catalogmodel.MetadataLevelTables{}
 	for _, e := range catalogmodel.MetadataTables {
@@ -56,31 +57,68 @@ func TestMetadataTables(t *testing.T) {
 					t.Errorf("no FK %s.field_id to source_metadata_fields", name)
 				}
 			}
-			if e.Up != nil {
-				up, ok := byLevel[e.Up.Level]
-				if !ok || !hasFK(e.OwnerTable, e.Up.Column, up.OwnerTable) {
-					t.Errorf("no FK %s.%s to the %s owner table", e.OwnerTable, e.Up.Column, e.Up.Level)
+			for _, u := range e.Ups {
+				up, ok := byLevel[u.Level]
+				if !ok || !hasFK(e.OwnerTable, u.Column, up.OwnerTable) {
+					t.Errorf("no FK %s.%s to the %s owner table", e.OwnerTable, u.Column, u.Level)
 				}
 			}
 		})
 	}
+	if err := upsOrderErr(catalogmodel.MetadataTables); err != nil {
+		t.Errorf("shipped list: %v", err)
+	}
+	swapped := slices.Clone(catalogmodel.MetadataTables)
+	for i, e := range swapped {
+		if e.Level == vocabkey.LevelCitation {
+			e.Ups = []catalogmodel.MetadataUp{e.Ups[1], e.Ups[0]}
+			swapped[i] = e
+		}
+	}
+	if err := upsOrderErr(swapped); err == nil || !strings.Contains(err.Error(), "citation") {
+		t.Errorf("ups [artifact, graph] error = %v, want one naming citation", err)
+	}
+}
+
+// upsOrderErr checks that each entry's ups sit after the entry's own level in
+// vocabkey.NearestFirst(), at strictly increasing positions.
+func upsOrderErr(list []catalogmodel.MetadataLevelTables) error {
+	order := vocabkey.NearestFirst()
+	for _, e := range list {
+		prev := slices.Index(order, e.Level)
+		for _, u := range e.Ups {
+			pos := slices.Index(order, u.Level)
+			if pos <= prev {
+				return fmt.Errorf("level %s: up %s is not nearer the Source than %s in NearestFirst", e.Level, u.Level, order[prev])
+			}
+			prev = pos
+		}
+	}
+	return nil
 }
 
 func TestSourcePath(t *testing.T) {
-	citation := catalogmodel.MetadataLevelTables{
-		Level: vocabkey.LevelCitation, Kind: catalogmodel.KindCitation, OwnerTable: "citations", OwnerColumn: "citation_id",
-		Values: "citation_metadata", Layout: "citation_metadata_layout",
-		Up: &catalogmodel.MetadataUp{Level: vocabkey.LevelArtifact, Column: "artifact_id"},
-	}
 	shipped := catalogmodel.MetadataTables
-	withCitation := append(slices.Clone(shipped), citation)
-	missingUp := append(slices.Clone(shipped), catalogmodel.MetadataLevelTables{
-		Level: vocabkey.LevelCitation, Kind: catalogmodel.KindCitation, OwnerTable: "citations", OwnerColumn: "citation_id",
-		Values: "x", Layout: "y", Up: &catalogmodel.MetadataUp{Level: "nowhere", Column: "artifact_id"},
-	})
+	citationWith := func(ups ...catalogmodel.MetadataUp) []catalogmodel.MetadataLevelTables {
+		out := slices.Clone(shipped)
+		for i, e := range out {
+			if e.Level == vocabkey.LevelCitation {
+				e.Ups = ups
+				out[i] = e
+			}
+		}
+		return out
+	}
+	toGraph := catalogmodel.MetadataUp{Level: vocabkey.LevelGraph, Column: "graph_id"}
+	toArtifact := catalogmodel.MetadataUp{Level: vocabkey.LevelArtifact, Column: "artifact_id"}
+	unmarked := citationWith(toGraph, toArtifact)
+	bothMarked := citationWith(
+		catalogmodel.MetadataUp{Level: vocabkey.LevelGraph, Column: "graph_id", ToSource: true},
+		catalogmodel.MetadataUp{Level: vocabkey.LevelArtifact, Column: "artifact_id", ToSource: true})
+	missingUp := citationWith(catalogmodel.MetadataUp{Level: "nowhere", Column: "artifact_id", ToSource: true})
 	cycle := append(slices.Clone(shipped[:1]),
-		catalogmodel.MetadataLevelTables{Level: "a", Up: &catalogmodel.MetadataUp{Level: "b", Column: "b_id"}},
-		catalogmodel.MetadataLevelTables{Level: "b", Up: &catalogmodel.MetadataUp{Level: "a", Column: "a_id"}})
+		catalogmodel.MetadataLevelTables{Level: "a", Ups: []catalogmodel.MetadataUp{{Level: "b", Column: "b_id", ToSource: true}}},
+		catalogmodel.MetadataLevelTables{Level: "b", Ups: []catalogmodel.MetadataUp{{Level: "a", Column: "a_id", ToSource: true}}})
 	notSources := []catalogmodel.MetadataLevelTables{{Level: "a", OwnerTable: "artifacts"}}
 
 	tests := []struct {
@@ -93,8 +131,10 @@ func TestSourcePath(t *testing.T) {
 		{"source", shipped, vocabkey.LevelSource, []vocabkey.Level{"source"}, ""},
 		{"artifact", shipped, vocabkey.LevelArtifact, []vocabkey.Level{"artifact", "source"}, ""},
 		{"graph", shipped, vocabkey.LevelGraph, []vocabkey.Level{"graph", "source"}, ""},
-		{"citation", withCitation, vocabkey.LevelCitation, []vocabkey.Level{"citation", "artifact", "source"}, ""},
-		{"missing level", shipped, vocabkey.LevelCitation, nil, "level citation not in the metadata list"},
+		{"citation", shipped, vocabkey.LevelCitation, []vocabkey.Level{"citation", "artifact", "source"}, ""},
+		{"missing level", shipped, "nowhere", nil, "level nowhere not in the metadata list"},
+		{"no up toward the Source", unmarked, vocabkey.LevelCitation, nil, "level citation has no up toward the Source"},
+		{"two ups toward the Source", bothMarked, vocabkey.LevelCitation, nil, "level citation marks 2 ups toward the Source"},
 		{"missing up level", missingUp, vocabkey.LevelCitation, nil, "level citation goes up to nowhere, not in the metadata list"},
 		{"cycle", cycle, "a", nil, "level a has an up cycle"},
 		{"root not sources", notSources, "a", nil, "level a does not reach sources"},

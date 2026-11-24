@@ -1668,8 +1668,8 @@ public nonisolated struct Provenencia_Engine_V1_MetadataField: Sendable {
 
   public var description_p: String = String()
 
-  /// How many Sources, Artifacts and Evidence graphs hold a value for this
-  /// field, plus how many Source types name it in a citation format (the
+  /// How many Sources, Artifacts, Evidence graphs and Citations hold a value
+  /// for this field, plus how many Source types name it in a citation format (the
   /// delete-impact total). Deleting is only allowed at 0 (see
   /// metadatafields.ErrInUse); the client uses the count to disable its delete
   /// affordance and say what is holding the field.
@@ -3066,7 +3066,8 @@ public nonisolated struct Provenencia_Engine_V1_MetadataOwner: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  /// "source", "artifact" or "graph" (vocabkey.MetadataLevels); any other value is sourcemetadata.invalid
+  /// "source", "artifact", "graph" or "citation" (vocabkey.Levels); any other
+  /// value is sourcemetadata.invalid.
   public var level: String = String()
 
   public var id: String = String()
@@ -8530,9 +8531,21 @@ public nonisolated struct Provenencia_Engine_V1_CreateCitationWithObservationsRe
 
   public var graphID: String = String()
 
+  /// absent = no metadata
+  public var metadata: Provenencia_Engine_V1_MetadataDraft {
+    get {_metadata ?? Provenencia_Engine_V1_MetadataDraft()}
+    set {_metadata = newValue}
+  }
+  /// Returns true if `metadata` has been explicitly set.
+  public var hasMetadata: Bool {self._metadata != nil}
+  /// Clears the value of `metadata`. Subsequent reads from it will return its default value.
+  public mutating func clearMetadata() {self._metadata = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _metadata: Provenencia_Engine_V1_MetadataDraft? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_CreateCitationWithObservationsResponse: @unchecked Sendable {
@@ -8562,6 +8575,12 @@ public nonisolated struct Provenencia_Engine_V1_CreateCitationWithObservationsRe
   public var hasEffects: Bool {_storage._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
   public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+
+  /// The new Citation's board after the write.
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] {
+    get {_storage._metadata}
+    set {_uniqueStorage()._metadata = newValue}
+  }
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -8877,9 +8896,21 @@ public nonisolated struct Provenencia_Engine_V1_UpdateCitationRequest: Sendable 
 
   public var transcriptionNote: String = String()
 
+  /// absent = metadata unchanged; present = the stored values become these
+  public var metadata: Provenencia_Engine_V1_MetadataDraft {
+    get {_metadata ?? Provenencia_Engine_V1_MetadataDraft()}
+    set {_metadata = newValue}
+  }
+  /// Returns true if `metadata` has been explicitly set.
+  public var hasMetadata: Bool {self._metadata != nil}
+  /// Clears the value of `metadata`. Subsequent reads from it will return its default value.
+  public mutating func clearMetadata() {self._metadata = nil}
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
+
+  fileprivate var _metadata: Provenencia_Engine_V1_MetadataDraft? = nil
 }
 
 public nonisolated struct Provenencia_Engine_V1_UpdateCitationResponse: @unchecked Sendable {
@@ -8904,6 +8935,12 @@ public nonisolated struct Provenencia_Engine_V1_UpdateCitationResponse: @uncheck
   public var hasEffects: Bool {_storage._effects != nil}
   /// Clears the value of `effects`. Subsequent reads from it will return its default value.
   public mutating func clearEffects() {_uniqueStorage()._effects = nil}
+
+  /// The Citation's board after the write; the stored board when no draft was sent.
+  public var metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] {
+    get {_storage._metadata}
+    set {_uniqueStorage()._metadata = newValue}
+  }
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -23593,7 +23630,7 @@ nonisolated extension Provenencia_Engine_V1_ObservationDraft: SwiftProtobuf.Mess
 
 nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateCitationWithObservationsRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}artifact_id\0\u{3}locator_json\0\u{1}transcription\0\u{1}label\0\u{3}transcription_uncertain\0\u{3}transcription_note\0\u{3}citation_notes\0\u{1}observations\0\u{3}graph_id\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}artifact_id\0\u{3}locator_json\0\u{1}transcription\0\u{1}label\0\u{3}transcription_uncertain\0\u{3}transcription_note\0\u{3}citation_notes\0\u{1}observations\0\u{3}graph_id\0\u{1}metadata\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -23612,12 +23649,17 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsReques
       case 9: try { try decoder.decodeRepeatedStringField(value: &self.citationNotes) }()
       case 10: try { try decoder.decodeRepeatedMessageField(value: &self.observations) }()
       case 11: try { try decoder.decodeSingularStringField(value: &self.graphID) }()
+      case 12: try { try decoder.decodeSingularMessageField(value: &self._metadata) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
@@ -23651,6 +23693,9 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsReques
     if !self.graphID.isEmpty {
       try visitor.visitSingularStringField(value: self.graphID, fieldNumber: 11)
     }
+    try { if let v = self._metadata {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 12)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -23666,6 +23711,7 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsReques
     if lhs.citationNotes != rhs.citationNotes {return false}
     if lhs.observations != rhs.observations {return false}
     if lhs.graphID != rhs.graphID {return false}
+    if lhs._metadata != rhs._metadata {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -23673,12 +23719,13 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsReques
 
 nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".CreateCitationWithObservationsResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{1}observations\0\u{1}effects\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{1}observations\0\u{1}effects\0\u{1}metadata\0")
 
   fileprivate class _StorageClass {
     var _citation: Provenencia_Engine_V1_Citation? = nil
     var _observations: [Provenencia_Engine_V1_Observation] = []
     var _effects: Provenencia_Engine_V1_WriteEffects? = nil
+    var _metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -23692,6 +23739,7 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsRespon
       _citation = source._citation
       _observations = source._observations
       _effects = source._effects
+      _metadata = source._metadata
     }
   }
 
@@ -23713,6 +23761,7 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsRespon
         case 1: try { try decoder.decodeSingularMessageField(value: &_storage._citation) }()
         case 2: try { try decoder.decodeRepeatedMessageField(value: &_storage._observations) }()
         case 3: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
+        case 4: try { try decoder.decodeRepeatedMessageField(value: &_storage._metadata) }()
         default: break
         }
       }
@@ -23734,6 +23783,9 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsRespon
       try { if let v = _storage._effects {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
       } }()
+      if !_storage._metadata.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._metadata, fieldNumber: 4)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -23746,6 +23798,7 @@ nonisolated extension Provenencia_Engine_V1_CreateCitationWithObservationsRespon
         if _storage._citation != rhs_storage._citation {return false}
         if _storage._observations != rhs_storage._observations {return false}
         if _storage._effects != rhs_storage._effects {return false}
+        if _storage._metadata != rhs_storage._metadata {return false}
         return true
       }
       if !storagesAreEqual {return false}
@@ -24395,7 +24448,7 @@ nonisolated extension Provenencia_Engine_V1_CreateCitedBridgeResponse: SwiftProt
 
 nonisolated extension Provenencia_Engine_V1_UpdateCitationRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UpdateCitationRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}citation_id\0\u{3}locator_json\0\u{1}transcription\0\u{1}label\0\u{3}transcription_uncertain\0\u{3}transcription_note\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}user_id\0\u{3}citation_id\0\u{3}locator_json\0\u{1}transcription\0\u{1}label\0\u{3}transcription_uncertain\0\u{3}transcription_note\0\u{1}metadata\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -24411,12 +24464,17 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationRequest: SwiftProtobuf
       case 6: try { try decoder.decodeSingularStringField(value: &self.label) }()
       case 7: try { try decoder.decodeSingularBoolField(value: &self.transcriptionUncertain) }()
       case 8: try { try decoder.decodeSingularStringField(value: &self.transcriptionNote) }()
+      case 9: try { try decoder.decodeSingularMessageField(value: &self._metadata) }()
       default: break
       }
     }
   }
 
   public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
@@ -24441,6 +24499,9 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationRequest: SwiftProtobuf
     if !self.transcriptionNote.isEmpty {
       try visitor.visitSingularStringField(value: self.transcriptionNote, fieldNumber: 8)
     }
+    try { if let v = self._metadata {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 9)
+    } }()
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -24453,6 +24514,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationRequest: SwiftProtobuf
     if lhs.label != rhs.label {return false}
     if lhs.transcriptionUncertain != rhs.transcriptionUncertain {return false}
     if lhs.transcriptionNote != rhs.transcriptionNote {return false}
+    if lhs._metadata != rhs._metadata {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }
@@ -24460,11 +24522,12 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationRequest: SwiftProtobuf
 
 nonisolated extension Provenencia_Engine_V1_UpdateCitationResponse: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".UpdateCitationResponse"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{1}effects\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}citation\0\u{1}effects\0\u{1}metadata\0")
 
   fileprivate class _StorageClass {
     var _citation: Provenencia_Engine_V1_Citation? = nil
     var _effects: Provenencia_Engine_V1_WriteEffects? = nil
+    var _metadata: [Provenencia_Engine_V1_MetadataWorkspaceEntry] = []
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -24477,6 +24540,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationResponse: SwiftProtobu
     init(copying source: _StorageClass) {
       _citation = source._citation
       _effects = source._effects
+      _metadata = source._metadata
     }
   }
 
@@ -24497,6 +24561,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationResponse: SwiftProtobu
         switch fieldNumber {
         case 1: try { try decoder.decodeSingularMessageField(value: &_storage._citation) }()
         case 2: try { try decoder.decodeSingularMessageField(value: &_storage._effects) }()
+        case 3: try { try decoder.decodeRepeatedMessageField(value: &_storage._metadata) }()
         default: break
         }
       }
@@ -24515,6 +24580,9 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationResponse: SwiftProtobu
       try { if let v = _storage._effects {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
       } }()
+      if !_storage._metadata.isEmpty {
+        try visitor.visitRepeatedMessageField(value: _storage._metadata, fieldNumber: 3)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -24526,6 +24594,7 @@ nonisolated extension Provenencia_Engine_V1_UpdateCitationResponse: SwiftProtobu
         let rhs_storage = _args.1
         if _storage._citation != rhs_storage._citation {return false}
         if _storage._effects != rhs_storage._effects {return false}
+        if _storage._metadata != rhs_storage._metadata {return false}
         return true
       }
       if !storagesAreEqual {return false}

@@ -257,7 +257,7 @@ func newCensus(t *testing.T) *census {
 // reads it from the nearest level that holds a value (AC-1.1 – AC-1.3).
 func TestRenderNearestLevel(t *testing.T) {
 	m := valuemark.Mark{}
-	build := func(t *testing.T, set func(w *world, src sources.Source, art, graph []byte)) string {
+	build := func(t *testing.T, set func(w *world, src sources.Source, art, graph, cit []byte)) string {
 		t.Helper()
 		w := newWorld(t)
 		typ, err := sourcetypes.Lookup(w.c, "census", vocabkey.OriginProvenencia)
@@ -267,11 +267,12 @@ func TestRenderNearestLevel(t *testing.T) {
 		src := w.source(typ.ID, "1880 census of Calder County")
 		art := w.artifact(src.ID, "County film")
 		graph := w.graph(src.ID)
-		set(w, src, art.ID, graph.ID)
-		return w.render(w.cite(art.ID, graph.ID, "", pageLocator("14")))[0].Full.Plain()
+		cit := w.cite(art.ID, graph.ID, "", pageLocator("14"))
+		set(w, src, art.ID, graph.ID, cit)
+		return w.render(cit)[0].Full.Plain()
 	}
 	t.Run("AC-1.1 a Provider typed on the Source", func(t *testing.T) {
-		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
 			w.set(vocabkey.LevelSource, src.ID, "provider", "Ancestry", m)
 			w.set(vocabkey.LevelArtifact, art, "format", "digital image", m)
 		})
@@ -280,7 +281,7 @@ func TestRenderNearestLevel(t *testing.T) {
 		}
 	})
 	t.Run("AC-1.2 the graph's line number over the Source's", func(t *testing.T) {
-		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
 			w.set(vocabkey.LevelGraph, graph, "line_number", "14", m)
 			w.set(vocabkey.LevelSource, src.ID, "line_number", "9", m)
 		})
@@ -289,7 +290,7 @@ func TestRenderNearestLevel(t *testing.T) {
 		}
 	})
 	t.Run("AC-1.3 the Artifact's item over the Source's", func(t *testing.T) {
-		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
 			w.set(vocabkey.LevelArtifact, art, "item", "From the film", m)
 			w.set(vocabkey.LevelSource, src.ID, "item", "From the record", m)
 		})
@@ -298,12 +299,54 @@ func TestRenderNearestLevel(t *testing.T) {
 		}
 	})
 	t.Run("AC-1.4 an unknown value at the graph stops the walk", func(t *testing.T) {
-		got := build(t, func(w *world, src sources.Source, art, graph []byte) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
 			w.set(vocabkey.LevelGraph, graph, "line_number", "", valuemark.Mark{Unknown: true})
 			w.set(vocabkey.LevelSource, src.ID, "line_number", "9", m)
 		})
 		if strings.Contains(got, "line") {
 			t.Errorf("full = %q, want no line number: the unknown value answers, so the Source's 9 is not read", got)
+		}
+	})
+	t.Run("AC-2.1 the Citation's line number over the graph's", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
+			w.set(vocabkey.LevelCitation, cit, "line_number", "21", m)
+			w.set(vocabkey.LevelGraph, graph, "line_number", "14", m)
+		})
+		if !strings.Contains(got, ", line 21") || strings.Contains(got, "line 14") {
+			t.Errorf("full = %q, want line 21", got)
+		}
+	})
+	t.Run("AC-2.2 an unknown value on the Citation stops the walk", func(t *testing.T) {
+		got := build(t, func(w *world, src sources.Source, art, graph, cit []byte) {
+			w.set(vocabkey.LevelCitation, cit, "line_number", "", valuemark.Mark{Unknown: true})
+			w.set(vocabkey.LevelGraph, graph, "line_number", "14", m)
+		})
+		if strings.Contains(got, "line") {
+			t.Errorf("full = %q, want no line number", got)
+		}
+	})
+	t.Run("AC-2.4 the list form reads the Source alone", func(t *testing.T) {
+		w := newWorld(t)
+		typ, err := sourcetypes.Lookup(w.c, "census", vocabkey.OriginProvenencia)
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := w.source(typ.ID, "1880 census of Calder County")
+		art := w.artifact(src.ID, "County film")
+		graph := w.graph(src.ID)
+		cit := w.cite(art.ID, graph.ID, "", pageLocator("14"))
+		w.set(vocabkey.LevelSource, src.ID, "jurisdiction", "Calder County, Westmark", m)
+		w.set(vocabkey.LevelCitation, cit, "jurisdiction", "Elsewhere", m)
+		if full := w.render(cit)[0].Full.Plain(); !strings.Contains(full, "Elsewhere") {
+			t.Errorf("full = %q, want the Citation's jurisdiction", full)
+		}
+		list, err := RenderPreview(w.c, PreviewInput{Form: citationformat.FormList, Target: Target{CitationID: cit}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := list.Rendered.Plain()
+		if !strings.Contains(got, "Calder County, Westmark") || strings.Contains(got, "Elsewhere") {
+			t.Errorf("list = %q, want the Source's jurisdiction alone", got)
 		}
 	})
 }

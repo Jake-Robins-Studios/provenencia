@@ -3,10 +3,12 @@ package deleteimpact_test
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations/observationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcecredibilitygrades/sourcecredibilitygradestest"
@@ -17,6 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/connect"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
@@ -714,12 +717,10 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 	})
 
 	srcGraph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-	cit, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID:    srcGraph,
-			ArtifactID: art.ID, LocatorJSON: testLocator,
-			Transcription: "John Hartley, worsted weaver, of 14 Back Nile Street",
-		}, nil)
+	cit, err := citationstest.Create(c, userID, citations.CreateInput{
+		GraphID:    srcGraph,
+		ArtifactID: art.ID, LocatorJSON: testLocator,
+		Transcription: "John Hartley, worsted weaver, of 14 Back Nile Street",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -733,7 +734,7 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 		if len(got.Groups) != 1 || got.Groups[0].Via != "citations.artifact_id" || got.Groups[0].Total != 1 {
 			t.Fatalf("groups %+v", got.Groups)
 		}
-		if got.Groups[0].Listed[0].Ref != cit.Citation.Ref {
+		if got.Groups[0].Listed[0].Ref != cit.Ref {
 			t.Fatalf("listed %+v", got.Groups[0].Listed)
 		}
 		if got.Groups[0].Listed[0].Title != "John Hartley, worsted weaver, of 14 Back Nile Street" {
@@ -766,6 +767,34 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 			t.Fatalf("listed %+v", got.Groups[0].Listed)
 		}
 	})
+}
+
+// TestImpactKeepsCitationMetadata is AC-4.6: an Artifact or a Source that holds
+// a Citation with a value is refused by the Citation itself, and no value moves.
+func TestImpactKeepsCitationMetadata(t *testing.T) {
+	c, userID := testCatalog(t)
+	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, art, graph := ownerFixture(t, c, userID, "S1")
+	runOwnerSet(t, c, userID, citationOwner(t, c, userID, art, graph), fieldID, "21")
+	for kind, id := range map[catalogmodel.Kind][]byte{catalogmodel.KindArtifact: art.ID, catalogmodel.KindSource: src.ID} {
+		got := mustImpact(t, c, kind, id)
+		if got.Allowed || got.Gate != deleteimpact.GateInbound {
+			t.Fatalf("%s: %+v", kind, got)
+		}
+		var vias []string
+		for _, g := range got.Groups {
+			vias = append(vias, g.Via)
+		}
+		if want := map[catalogmodel.Kind]string{catalogmodel.KindArtifact: "citations.artifact_id", catalogmodel.KindSource: "artifacts.source_id"}[kind]; !slices.Contains(vias, want) {
+			t.Fatalf("%s vias %v, want %s", kind, vias, want)
+		}
+	}
+	if n := dbtest.Count(t, dbtest.MustDB(t, c), `SELECT COUNT(*) FROM citation_metadata`); n != 1 {
+		t.Fatalf("citation_metadata rows = %d, want 1", n)
+	}
 }
 
 func TestImpactEvidenceGraph(t *testing.T) {

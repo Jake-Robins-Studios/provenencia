@@ -253,9 +253,12 @@ struct SourceTypePageModelTests {
         let (model, session) = await makePageModel(
             typeID: "t1", store: store, types: [seededSourceType()], fields: [catalogMetadataField("f1", label: "Author")]
         )
+        // The fields list is read on this page, so it is visible and reloads at once.
+        session.apply(location: WorkspaceLocation(section: .sourceTypes, typeId: "t1"))
         let fieldsHandle: QueryHandle<[CatalogMetadataField]>? = session.queryHandle(
             .metadataFieldsList(project: session.projectKey)
         )
+        if let fieldsHandle { await waitForQuery(fieldsHandle) }
         store.fieldsByProject[projectDir] = [catalogMetadataField("f9", label: "Later")]
         store.nextWriteEffects = .empty
         model.draft?.description = "edited"

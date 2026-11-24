@@ -1,7 +1,7 @@
 // Package sourcemetadata stores descriptive metadata values for an owner (a
-// Source, an Artifact or an Evidence graph, which share the same functions),
-// plus the per-owner layout (dismissed suggestions and field order)
-// that the metadata editor reads back through ListWorkspace. Every function
+// Source, an Artifact, an Evidence graph or a Citation, which share the same
+// functions), plus the per-owner layout (dismissed suggestions and field
+// order) that the metadata editor reads back through ListWorkspace. Every function
 // takes an Owner, a vocabkey.Level and an id; a level with no store entry is
 // ErrInvalid. Set, Clear, DismissSuggestion, Reorder, CreateAll, and Apply run
 // inside writes.Run and return the row changes that Run records.
@@ -768,7 +768,7 @@ func listLayoutByOwners(q database.Querier, owners []Owner) (map[string][]Layout
 // BLOBs by memcmp, so a query that orders by owner id, run batch by batch over
 // these ids, returns rows in one order across the batches.
 func eachLevel(owners []Owner, fn func(st *store, ids [][]byte) error) error {
-	for _, level := range vocabkey.MetadataLevels() {
+	for _, level := range vocabkey.Levels() {
 		st := stores[level]
 		if st == nil {
 			continue
