@@ -5,7 +5,7 @@ import Testing
 
 /// The Sources list in a real (never shown) window: rows of two heights, the wheel step, the selection
 /// and the keys that only the platform's table can answer.
-@Suite(.hostedWindows)
+@Suite(.serialized, .hostedWindows)
 @MainActor
 struct SourcesOutlineHostedTests {
     private let projectDir = "/tmp/outline-hosted.provenencia"

@@ -3,7 +3,7 @@
 **Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6h — Sources table
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D14](../design/S16-D14-sources-table.md), board agreed 2026-11-24
+**Brief:** [S16-D14](../design/archive/S16-D14-sources-table.md), board agreed 2026-11-24
 **Board:** [Sources List](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page *S2-04 Sources list* (frames T1a–T6). §6 macOS describes each frame in words for an implementer who cannot open it. The board's header band, sort arrow, selection bar and sample Callout copy are stand-ins: the platform's chrome and today's copy win
 **Depends on:** S16-66 (landed [#962](https://github.com/Jake-Robins-Studios/provenencia/pull/962)), S16-D14 (agreed 2026-11-24)
 **Blocks:** —

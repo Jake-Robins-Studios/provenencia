@@ -4,7 +4,7 @@ import Testing
 @testable import Provenencia
 
 /// The Sources table in a real (never shown) window: the columns the platform lays out, and their headers.
-@Suite(.hostedWindows)
+@Suite(.serialized, .hostedWindows)
 @MainActor
 struct SourcesTableHostedTests {
     private let projectDir = "/tmp/table-hosted.provenencia"
