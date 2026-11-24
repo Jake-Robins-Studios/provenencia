@@ -697,45 +697,6 @@ struct SourcesModelTests {
         #expect(words?[AttributeScopes.SwiftUIAttributes.FontAttribute.self] == PVFont.body(size: PVTypeScale.micro).italic())
     }
 
-    private func columns(at width: CGFloat, _ widthClass: PVWidthClass) -> SourcesListColumns {
-        SourcesListColumns(met: PVBreakpointsMet(breakpoints: SourcesListColumns.breakpoints, width: width), widthClass: widthClass)
-    }
-
-    @Test func listColumnsMatchBoard() {
-        let wide = columns(at: 1136, .regular)
-        #expect(!wide.isCompact)
-        #expect(wide.type == 170)
-        #expect(wide.graphs == 420)
-        #expect(!columns(at: 880, .regular).isCompact)
-        let narrow = columns(at: 879.5, .regular)
-        #expect(narrow.isCompact)
-        #expect(narrow.type == nil)
-        #expect(narrow.graphs == 380)
-        #expect(L10n.string(L10n.Sources.columnSource) == "Source")
-        #expect(L10n.string(L10n.Sources.columnType) == "Type")
-        #expect(L10n.string(L10n.Sources.columnEvidenceGraph) == "Evidence graph")
-    }
-
-    @Test func columnsPlaceTheDateByWidth() {
-        let regular = columns(at: 1000, .regular)
-        #expect(regular.datePlacement == .underType)
-        #expect(regular.type == 170)
-        #expect(regular.published == nil)
-        #expect(regular.graphs == 420)
-        #expect(columns(at: 880, .regular).datePlacement == .underType)
-        let narrow = columns(at: 860, .regular)
-        #expect(narrow.datePlacement == .recordLine)
-        #expect(narrow.type == nil)
-        #expect(narrow.graphs == 380)
-        let wide = columns(at: 1664, .wide)
-        #expect(wide.datePlacement == .column)
-        #expect(wide.type == 150)
-        #expect(wide.published == 150)
-        #expect(wide.graphs == 420)
-        #expect(columns(at: 860, .wide).datePlacement == .recordLine)
-        #expect(PVSpacing.widthListWideMax == 1600)
-    }
-
     @Test func publishedDateTextAndSpokenRow() {
         let en = Locale(identifier: "en_US")
         let point = CatalogDateValueInput(kind: "point", startYear: 1880, startMonth: 6, startDay: 1)
@@ -796,40 +757,45 @@ struct SourcesModelTests {
         #expect(session.evidenceGraphProgress(graphID: "g-smith") == nil)
     }
 
-    @Test func graphButtonCopyMatchesBoard() {
+    @Test func graphRowCopyMatchesBoard() {
         #expect(L10n.Sources.openEvidenceGraphLabel(name: "Jones household") == "Open graph Jones household")
         #expect(
-            L10n.Sources.graphButtonLabel(
-                open: "Open graph Jones household",
-                counts: "12 subjects, 40 observations",
-                status: L10n.string(SourcesModel.EvidenceStatus.inProgress.label)
-            ) == "Open graph Jones household, 12 subjects, 40 observations, In progress"
+            L10n.DesignSystem.spokenJoin([
+                "Jones household", "12 subjects, 40 observations",
+                L10n.string(SourcesModel.EvidenceStatus.inProgress.label),
+            ]) == "Jones household, 12 subjects, 40 observations, In progress"
         )
         #expect(
-            L10n.Sources.graphButtonLabel(open: "Open graph Default", counts: "counts loading", status: nil)
-                == "Open graph Default, counts loading"
+            L10n.DesignSystem.spokenJoin(["Jones household", "counts loading", ""]) == "Jones household, counts loading"
         )
-        #expect(
-            L10n.Sources.graphButtonHelp(
-                name: "Jones household",
-                detail: L10n.Sources.graphCounts(.counts(subjects: 12, observations: 40, filed: 0), style: .full)
-            ) == "Jones household — 12 subjects · 40 observations"
-        )
-        #expect(
-            L10n.Sources.graphButtonHelp(
-                name: "Unlinked",
-                detail: L10n.string(L10n.Sources.graphNeedsArtifactTooltip)
-            ) == "Unlinked — Add an artifact to open this evidence graph"
-        )
-        #expect(
-            L10n.Sources.graphBlockLabel(title: "No evidence graph yet", detail: "Needs an artifact")
-                == "No evidence graph yet, Needs an artifact"
-        )
+        #expect(L10n.Sources.menuOpenGraph("Default") == "Open Default")
+        #expect(L10n.string(L10n.Sources.menuOpen) == "Open")
+        #expect(L10n.string(L10n.Sources.showGraphs) == "Show evidence graphs")
+        #expect(L10n.string(L10n.Sources.hideGraphs) == "Hide evidence graphs")
         #expect(L10n.string(L10n.Sources.graphNeedsArtifactToOpen) == "Needs an artifact to open")
-        #expect(L10n.string(L10n.Sources.noGraphYet) == "No evidence graph yet")
-        #expect(L10n.string(L10n.Sources.graphsFailedTitle) == "Evidence graphs")
-        #expect(L10n.string(L10n.Sources.graphsFailedDetail) == "Couldn’t be read")
+        #expect(L10n.string(L10n.Sources.needsArtifact) == "Needs an artifact")
         #expect(L10n.string(L10n.Sources.graphsLoading) == "Evidence graphs loading")
+    }
+
+    @Test func rowsWaitForTheGraphList() async {
+        enum Boom: Error { case boom }
+        let (model, session) = makeModel(
+            sources: [source(id: "s1", title: "A", typeID: "t1")], types: [photoType()]
+        )
+        #expect(model.isAwaitingGraphList)
+        let _: QueryHandle<[CatalogEvidenceGraph]> = session.query(session.evidenceGraphsKey)
+        #expect(model.isAwaitingGraphList)
+        await warmLists(model, session: session)
+        #expect(!model.isAwaitingGraphList)
+
+        let store = FakeStore()
+        store.listEvidenceGraphsError = Boom.boom
+        let (failing, failingSession) = makeModel(
+            store: store, sources: [source(id: "s1", title: "A", typeID: "t1")], types: [photoType()]
+        )
+        await warmLists(failing, session: failingSession)
+        #expect(!failing.isAwaitingGraphList)
+        #expect(failing.graphListError != nil)
     }
 
     @Test func statusMatchesAnyGraphOfTheSource() async {
@@ -1097,5 +1063,23 @@ struct SourcesModelTests {
         model.settings.status = .empty
         #expect(model.graphCountsLoading)
         #expect(model.isAwaitingFilterData)
+    }
+
+    @Test func outlineWaitsForTheCountsAStatusFilterNeeds() async {
+        let store = FakeStore()
+        store.listEvidenceGraphProgressHold.isOn = true
+        let (model, session) = makeModel(
+            store: store, sources: [source(id: "s1", title: "A", typeID: "t1")], types: [photoType()]
+        )
+        model.settings.status = .empty
+        await warmLists(model, session: session)
+        await store.listEvidenceGraphProgressHold.untilSuspended(1)
+        #expect(model.isAwaitingFilterData)
+        #expect(!model.outlineIsSettled)
+        store.listEvidenceGraphProgressHold.isOn = false
+        store.listEvidenceGraphProgressHold.release()
+        await warmProgress(model, session: session)
+        #expect(!model.isAwaitingFilterData)
+        #expect(model.outlineIsSettled)
     }
 }

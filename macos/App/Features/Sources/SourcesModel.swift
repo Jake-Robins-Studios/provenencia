@@ -276,6 +276,65 @@ final class SourcesModel {
         }
     }
 
+    /// The Sources list's rows: the visible Sources, and under each open Source its Evidence graphs.
+    /// Built once per change of the visible Sources, the graph list or the open set; a graph's counts
+    /// are read by its row as it draws, so a counts update rebuilds nothing.
+    var outline: SourcesOutline {
+        // Read first, so its derived version is current when the outline stamps it.
+        let rows = visibleSources
+        return session.derived(
+            .sourcesOutline,
+            inputs: [.derived(.visibleSources), .key(session.evidenceGraphsKey)],
+            extra: session.expandedSourceIDs
+        ) {
+            SourcesOutline(
+                sources: rows,
+                graphs: { session.evidenceGraphsRead(sourceID: $0) },
+                expanded: session.expandedSourceIDs
+            )
+        }
+    }
+
+    /// The graph list has not been read yet (no handle, or still loading): the rows wait for it, so no
+    /// triangle arrives late under the pointer. A failed read is not waiting.
+    var isAwaitingGraphList: Bool {
+        guard let graphsHandle else { return true }
+        return graphsHandle.read.isLoading
+    }
+
+    /// The graph list's failure, when no status filter is set (a status filter reports it through
+    /// `statusCountsError`): the Sources list shows its rows with no triangles and says why above them.
+    var graphListError: Error? {
+        guard settings.status == nil, case .failed(let error)? = graphsHandle?.read else { return nil }
+        return error
+    }
+
+    /// The Sources list and the graph list are read and settled (or the graph list failed), and the
+    /// counts or types a filter needs are in: the point at which a selected row that no row draws is
+    /// cleared. A filter's data still on its way hides rows the selection may be on.
+    var outlineIsSettled: Bool {
+        guard let sourcesHandle: QueryHandle<[CatalogSource]> = session.queryHandle(Self.sourcesListKey(for: session)),
+              sourcesHandle.isSettled, let graphsHandle,
+              graphsHandle.isSettled || graphsHandle.failure != nil
+        else { return false }
+        return !isAwaitingFilterData && statusCountsError == nil
+    }
+
+    /// What the list area shows, and whether the toolbar shows with it.
+    var listState: SourcesListState {
+        let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
+        return SourcesListState.make(SourcesListState.Inputs(
+            loadError: loadError,
+            sourcesAreRead: sourcesHandle?.value != nil,
+            isCatalogEmpty: isCatalogEmpty,
+            statusError: statusCountsError,
+            isAwaitingGraphList: isAwaitingGraphList,
+            isAwaitingFilterData: isAwaitingFilterData,
+            hasRows: !outline.rows.isEmpty,
+            graphListError: graphListError
+        ))
+    }
+
     private func buildVisibleSources() -> [CatalogSource] {
         var rows = sources
         let typeID = effectiveTypeFilterID

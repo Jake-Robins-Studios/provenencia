@@ -1,6 +1,6 @@
 import Foundation
 
-/// Pure navigation helpers for the Sources list rows and their graph buttons and
+/// Pure navigation helpers for the Sources list rows and graph rows and
 /// the Source page graph cards.
 enum SourcesListNavigation {
     /// Opens the Source filing page.
@@ -11,6 +11,16 @@ enum SourcesListNavigation {
     /// Opens the Source filing page from the fields of a Source a read carries.
     static func pageLocation(sourceId: String, ref: String, title: String) -> WorkspaceLocation {
         .sourcePage(sourceId: sourceId, ref: ref, title: title)
+    }
+
+    /// What a row of the Sources list opens: a Source's page, or a graph's canvas (nil when it links no
+    /// Artifact). Nil for the placeholder of graphs not in the list yet.
+    static func location(for row: SourcesOutlineRow) -> WorkspaceLocation? {
+        switch row.kind {
+        case .source(let source, _): pageLocation(for: source)
+        case .graph(let graph, let source): graphLocation(for: source, graph: graph)
+        case .pendingGraph: nil
+        }
     }
 
     /// Why one graph's Open is blocked: it links no Artifact. Nil when it opens.
@@ -26,7 +36,7 @@ enum SourcesListNavigation {
     }
 
     /// One graph's canvas, whether or not it links an Artifact: what the Sources
-    /// list's graph button and an omnibar graph hit both open. The location
+    /// list's graph row and an omnibar graph hit both open. The location
     /// carries the Source's ref and title, as Go's `deleteimpact.graphLocation` does.
     static func canvasLocation(for source: CatalogSource, graph: CatalogEvidenceGraph) -> WorkspaceLocation {
         canvasLocation(

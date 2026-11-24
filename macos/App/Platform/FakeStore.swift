@@ -312,6 +312,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     /// Optional override for graph-progress rows by graph id (tests). Missing keys compute from subjects/observations.
     var graphProgressByGraph: [String: EvidenceGraphProgress] = [:]
     var listEvidenceGraphProgressError: Error?
+    /// While on, `listEvidenceGraphProgress` suspends before it reads.
+    let listEvidenceGraphProgressHold = FakeHold()
     var listEvidenceGraphsError: Error?
     /// The `sourceID` of each `listEvidenceGraphs` call, in order (nil: the whole project).
     var listEvidenceGraphsSourceIDs: [String?] = []
@@ -3055,6 +3057,7 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     }
 
     func listEvidenceGraphProgress(projectDir: String) async throws -> [EvidenceGraphProgress] {
+        await listEvidenceGraphProgressHold.wait()
         return try withState {
             markCatalogSessionHeld(projectDir)
             listEvidenceGraphProgressCalls += 1

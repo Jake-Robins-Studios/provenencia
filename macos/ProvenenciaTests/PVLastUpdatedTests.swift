@@ -47,4 +47,12 @@ struct PVLastUpdatedTests {
                 == "1851 census, SRC-7KQ2D, last updated unknown"
         )
     }
+
+    @Test func listColumnIsTheRecipes() {
+        let column = PVLastUpdated.column { (value: String) in value }
+        #expect(column.width == 136)
+        let empty = column.content("")
+        #expect(empty?.text == "—")
+        #expect(empty?.faint == true)
+    }
 }

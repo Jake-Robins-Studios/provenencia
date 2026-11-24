@@ -19,7 +19,7 @@ Audience: someone comfortable with JavaScript and Go, new to Apple platforms.
 | `Features/CatalogVocabulary/` | Reusable vocabulary-browser shell (list + detail chrome) for Fields, Types, and later vocab destinations. | `VocabularyListPane`, `VocabularyChrome` |
 | `Features/Onboarding/` | File vs new, then contributor or names; home stub; relaunch uses active project. | `OnboardingView` |
 | `Features/Workspace/` | Sidebar, toolbar, navigation history, session cache, place registry. | `WorkspaceView`, `WorkspaceSession` |
-| `Features/Sources/` | Sources list and source page. | `SourcePageView`, `SourcesListView` |
+| `Features/Sources/` | Sources list (an outline of Source and graph rows on the native list) and source page. | `SourcePageView`, `SourcesListView` |
 | `Features/Metadata/` | Source metadata-field vocabulary (the Metadata page). | `MetadataView` |
 | `Features/SourceTypes/` | Source-type vocabulary. | `SourceTypesView` |
 | `Features/Properties/` | Properties and their Subject-type bindings (the Properties page). | `PropertiesView` |
@@ -287,7 +287,7 @@ The Persons, Events and Places lists fill the pane at every width (S16-67, user 
 5. **Crossing the line keeps state.** Selection, scroll position, focus and unsaved edits survive a resize across 1600.
 6. **Past every column's maximum, center the group.** Page gutters are never narrower than at Regular; they take what is left.
 
-Rule 3's list maximum is a token, `PVSpacing.widthListWideMax` (1600pt of content, gutters outside; S15-04 adds it, and Promote's list reads it): a list whose Wide arrangement adds no column, or only a narrow one, centers at that width with hairlines at its sides through `pvListBand(_:)` (`Components/PageColumns/PVPageColumns.swift`), as the Sources and Source types lists do (S15-04, S15-49, user 2026-11-10: a list stretched across a 2296pt pane left a wide empty band between its title and its graphs).
+Rule 3's list maximum is a token, `PVSpacing.widthListWideMax` (1600pt of content, gutters outside; S15-04 adds it, and Promote's list reads it): a list whose Wide arrangement adds no column, or only a narrow one, centers at that width with hairlines at its sides through `pvListBand(_:)` (`Components/PageColumns/PVPageColumns.swift`), as the Source types list does (S15-49). The Sources list fills the pane as the Conclusion lists do (S16-66, user 2026-11-23): its graphs sit under the title as outline rows, so no band lies empty between them.
 
 A full-width section's empty, loading and error states keep the page band: apply `pvKeepsPageBand()` (`Components/PageColumns/PVPageColumns.swift`) to them, so they stay centered at `widthContentMax` instead of stretching across a Wide pane. A page that passes `fillSplitSideMax` has a wider band (the main-and-side group); its states sit in the primary, which is that band.
 
@@ -297,7 +297,7 @@ A full-width section's empty, loading and error states keep the page band: apply
 
 | View shape | Regular | Wide |
 | --- | --- | --- |
-| List → detail page (Sources, Conclusions, vocabulary) | List; select navigates to the detail (the Persons, Events and Places lists fill the pane at every width, with 56pt gutters at Wide: S16-67) | List column (about 420–520pt) and the selected detail side by side. Until a list's redesign brings the detail beside it, the list adds what columns it has (the Sources list's Published column, the Source types list's Description column, from a 1200pt table) and centers at `widthListWideMax` |
+| List → detail page (Sources, Conclusions, vocabulary) | List; select navigates to the detail (the Persons, Events, Places and Sources lists fill the pane at every width, with 56pt gutters at Wide: S16-67, S16-66) | List column (about 420–520pt) and the selected detail side by side. Until a list's redesign brings the detail beside it, the list adds what columns it has (the Source types list's Description column, from a 1200pt table) and centers at `widthListWideMax`; the Sources list adds its Type and Published columns at Wide and fills the pane |
 | Record / detail page (Source page, Conclusion detail) | One column; supporting sections stacked below | Primary column (≤ `widthContentMax`) plus a secondary column (340–480pt) of supporting content: metadata, linked records, activity, artifacts |
 | List with a pinned side column at both widths (Person's Sources) | The rows with the side column beside them while the pane holds the rows' minimum, else stacked under them | The same, the side column up to 720pt; `ConclusionPinnedSideColumn` holds it in view while the rows scroll |
 | Grid (artifacts, galleries) | Columns that fit at the card minimum | More columns at the same card size |

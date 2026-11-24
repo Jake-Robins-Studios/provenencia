@@ -8,7 +8,7 @@
 
 ## Hovering focus rings built by hand
 
-`SourcesGraphButtonBody`'s focus ring with hover is a third bare-button ring; fold it into `PVFocusRingButtonStyle` (or a hover variant of it) and delete the body. S13-28 added a fourth, `CircularLinkNodeStyle` / `CircularLinkNodeStyleBody` (`CircularLinkDiagram.swift` 306–336), with the same `PVHoverEffect`, `isFocused` and `.pvFocusRing` (Person page audit P-25): give `PVFocusRingButtonStyle` a hover variant (`hoverFill:`, `onHoverChange:`) and move both onto it. (A-41, S13-35)
+The Sources list graph button and its ring are gone (S16-66). S13-28 added a bare-button ring, `CircularLinkNodeStyle` / `CircularLinkNodeStyleBody` (`CircularLinkDiagram.swift` 306–336), with the same `PVHoverEffect`, `isFocused` and `.pvFocusRing` (Person page audit P-25): give `PVFocusRingButtonStyle` a hover variant (`hoverFill:`, `onHoverChange:`) and move both onto it. (A-41, S13-35)
 
 ## The bound-list overflow repeats the badge's count
 

@@ -8,6 +8,8 @@ enum DerivedValueID: Hashable {
     case evidenceGraphText(graphID: String)
     case citationComposerVocabulary(graphID: String)
     case visibleSources
+    /// The Sources list's rows: `visibleSources` and, under each open Source, its Evidence graphs (`SourcesOutline`).
+    case sourcesOutline
     /// Every Source of the Sources list, most recently changed first (`SourcesModel.updatedOrder`).
     case sourcesByUpdated
     /// One Source type's Sources, most recently changed first: `sourcesByUpdated` filtered.

@@ -4,7 +4,7 @@
 
 Every page has a Regular / Wide width class (1600pt of pane, S14-24) and the Page columns kit component (`PVPageColumns`); a page moves onto it in its own redesign (user, 2026-10-29). The rules and patterns are in [`macos-client-patterns.md` § 9](../macos-client-patterns.md#9-window-widths-regular-and-wide).
 
-Done and gone from this list: the Source page (Page columns with the pinned header, S15-03), the Person page (S13-10, S13-28), the Sources list (centered at `widthListWideMax` with a Published column, S15-04), the Source types list and page (S15-48, S15-49), the Citation composer (S15-13), Promote (S13-23), and two-column form sheets, now the kit's `PVFormColumns` (the Artifact sheet, the Evidence graph form, the Add Source type dialog).
+Done and gone from this list: the Source page (Page columns with the pinned header, S15-03), the Person page (S13-10, S13-28), the Sources list (fills the pane with Type and Published columns at Wide, S16-66), the Source types list and page (S15-48, S15-49), the Citation composer (S15-13), Promote (S13-23), and two-column form sheets, now the kit's `PVFormColumns` (the Artifact sheet, the Evidence graph form, the Add Source type dialog).
 
 ## Pages still drawn at their Regular layout at Wide
 

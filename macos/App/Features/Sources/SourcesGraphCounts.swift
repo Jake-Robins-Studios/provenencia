@@ -1,7 +1,7 @@
 import Foundation
 
 /// What an Evidence graph's counts show: not arrived yet, failed to arrive, no
-/// Subjects yet, or Subject and Observation counts. The graph button, its help, the
+/// Subjects yet, or Subject and Observation counts. The graph row, its help, the
 /// Source page's count line and VoiceOver all read this one value;
 /// `L10n.Sources.graphCounts` formats it.
 enum SourcesGraphCounts: Equatable {
@@ -37,5 +37,17 @@ enum SourcesGraphCounts: Equatable {
         } else {
             self = .notStarted
         }
+    }
+}
+
+extension WorkspaceSession {
+    /// What one Evidence graph's counts show: the graph row, a closed Source's summary and the Source
+    /// page's card all read it, so they agree while the counts load or fail.
+    func graphCounts(graphID: String) -> SourcesGraphCounts {
+        SourcesGraphCounts(
+            progress: evidenceGraphProgress(graphID: graphID),
+            countsLoading: evidenceGraphCountsLoading,
+            countsError: evidenceGraphCountsError
+        )
     }
 }

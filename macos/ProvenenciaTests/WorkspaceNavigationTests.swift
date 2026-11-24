@@ -619,6 +619,17 @@ struct WorkspaceNavigationTests {
         #expect(ListAnchor.resolved("p1", in: []) == nil)
     }
 
+    @Test func aRevealKeepsAnAnchorItDraws() {
+        var asked: [String] = []
+        let rows = ["s1", "s2"]
+        #expect(ListAnchor.settle("g1a", in: rows, reveal: { asked.append($0); return true }) == "g1a")
+        #expect(ListAnchor.settle("g1a", in: rows, reveal: { _ in false }) == nil)
+        asked = []
+        #expect(ListAnchor.settle("s2", in: rows, reveal: { asked.append($0); return false }) == "s2")
+        #expect(asked.isEmpty)
+        #expect(ListAnchor.settle(nil, in: rows, reveal: { _ in true }) == nil)
+    }
+
     @Test func theListAnchorIsTheSelectionAndFollowsHistory() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))

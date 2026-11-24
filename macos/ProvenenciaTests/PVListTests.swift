@@ -154,4 +154,30 @@ struct PVListTests {
         let scroll = try #require(firstScrollView(in: host))
         #expect(scroll.verticalLineScroll == 66)
     }
+
+    @Test func leadingInsetLeavesTheHangAndTheCellInset() {
+        #expect(PVListMetrics.leadingInset(horizontalInset: 32, leadingHang: 0) == 24)
+        #expect(PVListMetrics.leadingInset(horizontalInset: 32, leadingHang: 20) == 4)
+        #expect(PVListMetrics.leadingInset(horizontalInset: 56, leadingHang: 20) == 28)
+        #expect(PVListMetrics.leadingInset(horizontalInset: 8, leadingHang: 20) == 0)
+        #expect(PVListMetrics.hang(leadingWidth: 16) == 20)
+        #expect(PVListMetrics.hang(leadingWidth: 0) == 0)
+    }
+
+    @Test func listMetricsPlaceTheTitleEdge() {
+        #expect(PVListMetrics.titleLeading(leadingWidth: 16, thumbnailSize: 44) == 80)
+        #expect(PVListMetrics.titleLeading(leadingWidth: 0, thumbnailSize: 44) == 60)
+    }
+
+    @Test func outlineChevronPointsRightThenDown() {
+        #expect(PVExpandedState.outlineChevron(isExpanded: false) == .chevronForward)
+        #expect(PVExpandedState.outlineChevron(isExpanded: true) == .chevronDown)
+    }
+
+    /// The list's menu draws `Text(verbatim: L10n.string(entry.title))`: the string path keeps a graph
+    /// named `**a**` as typed (the hosted menu is the platform's, so the string is what is tested).
+    @Test func aMenuTitleKeepsItsAsterisks() {
+        let item = PVActionMenuItem(title: LocalizedStringResource(stringLiteral: "Open **a**"))
+        #expect(L10n.string(item.title) == "Open **a**")
+    }
 }

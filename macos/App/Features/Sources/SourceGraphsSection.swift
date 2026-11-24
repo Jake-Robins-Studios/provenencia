@@ -34,17 +34,10 @@ final class SourceGraphsSection {
         return error
     }
 
-    /// The counts of one graph; `nil` while the progress map has no value or
-    /// omits the graph (zero counts).
-    func progress(for graph: CatalogEvidenceGraph) -> EvidenceGraphProgress? {
-        context.session.evidenceGraphProgress(graphID: graph.id)
+    /// The counts of one graph, as the Sources list reads them.
+    func counts(for graph: CatalogEvidenceGraph) -> SourcesGraphCounts {
+        context.session.graphCounts(graphID: graph.id)
     }
-
-    /// True while the counts can still arrive.
-    var countsLoading: Bool { context.session.evidenceGraphCountsLoading }
-
-    /// The progress map's failure while it has no value to show.
-    var countsError: Error? { context.session.evidenceGraphCountsError }
 
     /// Where Open goes: the graph's canvas while it links an Artifact.
     func location(for graph: CatalogEvidenceGraph) -> WorkspaceLocation? {
