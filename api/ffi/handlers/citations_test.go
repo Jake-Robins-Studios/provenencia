@@ -20,6 +20,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties/propertiestest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/ingest"
 	"github.com/Jake-Robins-Studios/provenencia/core/locator"
 	"github.com/Jake-Robins-Studios/provenencia/core/propertymeta"
@@ -1433,5 +1434,132 @@ func TestCreateCitationBooleanObservation(t *testing.T) {
 	}
 	if v := read.Observations[0].ValueBoolean; v == nil || *v {
 		t.Fatalf("read value_boolean %v, want present and false", v)
+	}
+}
+
+func TestCreateCitationWithObservationsMetadata(t *testing.T) {
+	create := func(t *testing.T, m metadataOwners, draft *engine.MetadataDraft) (*engine.CreateCitationWithObservationsResponse, error) {
+		var resp engine.CreateCitationWithObservationsResponse
+		err := rpc(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+			ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
+			LocatorJson: validLocatorJSON, Metadata: draft,
+		}, &resp)
+		return &resp, err
+	}
+	t.Run("AC-3.1 a draft saves with the Citation", func(t *testing.T) {
+		m := newMetadataOwners(t)
+		before := countCatalogRows(t, m.dir, "citation_metadata")
+		resp, err := create(t, m, draftOf(m.extra, "21"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := metadataByField(resp.GetMetadata(), m.extra); got == nil || got.GetValueText() != "21" {
+			t.Fatalf("reply metadata %+v", resp.GetMetadata())
+		}
+		if n := countCatalogRows(t, m.dir, "citation_metadata"); n != before+1 {
+			t.Fatalf("citation_metadata rows %d, want %d", n, before+1)
+		}
+		if !slices.Contains(resp.GetEffects().GetSourceScopes(), m.sourceID) {
+			t.Fatalf("source_scopes %v, want %s", resp.GetEffects().GetSourceScopes(), m.sourceID)
+		}
+		assertLatestAuditAction(t, m.dir, "create_citation_with_observations")
+	})
+	t.Run("AC-3.2 no draft answers the new Citation's board", func(t *testing.T) {
+		m := newMetadataOwners(t)
+		resp, err := create(t, m, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n := countCatalogRows(t, m.dir, "citation_metadata"); n != 0 {
+			t.Fatalf("citation_metadata rows %d, want 0", n)
+		}
+		if got := metadataByField(resp.GetMetadata(), m.suggested); got == nil || !got.GetSuggested() || got.GetHasValue() {
+			t.Fatalf("reply metadata %+v, want Provider suggested and empty", resp.GetMetadata())
+		}
+	})
+	t.Run("AC-3.5 a draft naming no field fails the whole write", func(t *testing.T) {
+		m := newMetadataOwners(t)
+		cits, obs := countCatalogRows(t, m.dir, "citations"), countCatalogRows(t, m.dir, "observations")
+		_, err := create(t, m, draftOf("01890000-0000-7000-8000-000000000001", "x"))
+		if !errors.Is(err, sourcemetadata.ErrInvalid) {
+			t.Fatalf("got %v, want sourcemetadata.invalid", err)
+		}
+		if n := countCatalogRows(t, m.dir, "citations"); n != cits {
+			t.Fatalf("citations %d, want %d", n, cits)
+		}
+		if n := countCatalogRows(t, m.dir, "observations"); n != obs {
+			t.Fatalf("observations %d, want %d", n, obs)
+		}
+		if n := countCatalogRows(t, m.dir, "citation_metadata"); n != 0 {
+			t.Fatalf("citation_metadata rows %d, want 0", n)
+		}
+	})
+}
+
+func TestUpdateCitationMetadata(t *testing.T) {
+	m := newMetadataOwners(t)
+	update := func(draft *engine.MetadataDraft) *engine.UpdateCitationResponse {
+		t.Helper()
+		var resp engine.UpdateCitationResponse
+		mustRPC(t, UpdateCitation, &engine.UpdateCitationRequest{
+			ProjectDir: m.dir, UserId: m.userID, CitationId: m.citationID, LocatorJson: validLocatorJSON, Metadata: draft,
+		}, &resp)
+		return &resp
+	}
+	if got := metadataByField(update(draftOf(m.extra, "21")).GetMetadata(), m.extra); got == nil || got.GetValueText() != "21" {
+		t.Fatalf("draft not saved: %+v", got)
+	}
+	t.Run("AC-3.3 no draft leaves the values and answers them", func(t *testing.T) {
+		resp := update(nil)
+		if got := metadataByField(resp.GetMetadata(), m.extra); got == nil || got.GetValueText() != "21" {
+			t.Fatalf("reply metadata %+v", resp.GetMetadata())
+		}
+	})
+	t.Run("AC-3.4 an empty draft clears the values", func(t *testing.T) {
+		resp := update(&engine.MetadataDraft{})
+		if got := metadataByField(resp.GetMetadata(), m.extra); got != nil {
+			t.Fatalf("Line still listed: %+v", got)
+		}
+	})
+}
+
+// TestDeleteCitationReleasesMetadata is AC-4.1: a Citation's values and layout
+// are released and audited before the Citation itself.
+func TestDeleteCitationReleasesMetadata(t *testing.T) {
+	m := newMetadataOwners(t)
+	var created engine.CreateCitationWithObservationsResponse
+	mustRPC(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+		ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
+		LocatorJson: validLocatorJSON,
+		Metadata: &engine.MetadataDraft{
+			Values: []*engine.MetadataValue{{FieldId: m.suggested, ValueText: "FamilySearch"}, {FieldId: m.extra, ValueText: "14"}},
+			Layout: []*engine.MetadataLayoutRow{{FieldId: m.suggested, SortOrder: 0}},
+		},
+	}, &created)
+	var deleted engine.DeleteCitationResponse
+	mustRPC(t, DeleteCitation, &engine.DeleteCitationRequest{
+		ProjectDir: m.dir, UserId: m.userID, CitationId: created.GetCitation().GetId(),
+	}, &deleted)
+	types := latestRevisionTypes(t, m.dir)
+	count := func(want string) (n int) {
+		for _, ty := range types {
+			if ty == want {
+				n++
+			}
+		}
+		return n
+	}
+	if count("citation_metadata delete") != 2 || count("citation_metadata_layout delete") != 1 {
+		t.Fatalf("changes %v, want two value deletes and one layout delete", types)
+	}
+	last := slices.Index(types, "citation delete")
+	if last < 0 || slices.Index(types, "citation_metadata delete") > last || slices.Index(types, "citation_metadata_layout delete") > last {
+		t.Fatalf("changes %v, want the metadata deletes before the citation delete", types)
+	}
+	if !slices.Contains(deleted.GetEffects().GetSourceScopes(), m.sourceID) {
+		t.Fatalf("source_scopes %v, want %s", deleted.GetEffects().GetSourceScopes(), m.sourceID)
+	}
+	if countCatalogRows(t, m.dir, "citation_metadata") != 0 || countCatalogRows(t, m.dir, "citation_metadata_layout") != 0 {
+		t.Fatal("citation metadata rows remain")
 	}
 }

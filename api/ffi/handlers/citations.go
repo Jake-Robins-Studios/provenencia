@@ -6,6 +6,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/graphfill"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
+	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 	"github.com/Jake-Robins-Studios/provenencia/core/writes"
 	"google.golang.org/protobuf/proto"
 )
@@ -31,11 +33,15 @@ func CreateCitationWithObservations(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	draft, err := parseDraft(req.GetMetadata())
+	if err != nil {
+		return nil, err
+	}
 	var out *engine.CreateCitationWithObservationsResponse
 	err = withStagedDepictions(req.GetProjectDir(), inputs, func(c *database.Catalog) error {
 		res, wrote, err := writes.Run(c, writes.Op{Action: "create_citation_with_observations", UserID: userID},
 			func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-				return citations.CreateWithObservations(tx, userID, citations.CreateInput{
+				res, changes, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
 					ArtifactID:             artifactID,
 					GraphID:                graphID,
 					LocatorJSON:            req.GetLocatorJson(),
@@ -45,6 +51,11 @@ func CreateCitationWithObservations(in []byte) ([]byte, error) {
 					TranscriptionNote:      req.GetTranscriptionNote(),
 					Notes:                  req.GetCitationNotes(),
 				}, inputs)
+				if err != nil {
+					return citations.CreateResult{}, nil, err
+				}
+				more, err := applyDraft(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID}, draft)
+				return res, append(changes, more...), err
 			})
 		if err != nil {
 			return err
@@ -53,10 +64,15 @@ func CreateCitationWithObservations(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
+		board, err := ownerBoardProto(c, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID})
+		if err != nil {
+			return err
+		}
 		out = &engine.CreateCitationWithObservationsResponse{
 			Citation:     citationProto(res.Citation),
 			Effects:      writeEffectsProto(wrote),
 			Observations: listed,
+			Metadata:     board,
 		}
 		return nil
 	})
@@ -153,24 +169,38 @@ func UpdateCitation(in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	draft, err := parseDraft(req.GetMetadata())
+	if err != nil {
+		return nil, err
+	}
 	var out *engine.UpdateCitationResponse
 	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
 		cit, wrote, err := writes.Run(c, writes.Op{Action: "update_citation", UserID: userID},
 			func(tx *database.Tx) (citations.Citation, []rowchange.Change, error) {
-				return citations.Update(tx, userID, citationID, citations.CitationFieldsInput{
+				cit, changes, err := citations.Update(tx, userID, citationID, citations.CitationFieldsInput{
 					LocatorJSON:            req.GetLocatorJson(),
 					Transcription:          req.GetTranscription(),
 					Label:                  req.GetLabel(),
 					TranscriptionUncertain: req.GetTranscriptionUncertain(),
 					TranscriptionNote:      req.GetTranscriptionNote(),
 				})
+				if err != nil {
+					return citations.Citation{}, nil, err
+				}
+				more, err := applyDraft(tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: citationID}, draft)
+				return cit, append(changes, more...), err
 			})
+		if err != nil {
+			return err
+		}
+		board, err := ownerBoardProto(c, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: citationID})
 		if err != nil {
 			return err
 		}
 		out = &engine.UpdateCitationResponse{
 			Citation: citationProto(cit),
 			Effects:  writeEffectsProto(wrote),
+			Metadata: board,
 		}
 		return nil
 	})
