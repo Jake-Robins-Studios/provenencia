@@ -155,18 +155,11 @@ struct PVListTests {
         #expect(scroll.verticalLineScroll == 66)
     }
 
-    @Test func leadingInsetLeavesTheHangAndTheCellInset() {
-        #expect(PVListMetrics.leadingInset(horizontalInset: 32, leadingHang: 0) == 24)
-        #expect(PVListMetrics.leadingInset(horizontalInset: 32, leadingHang: 20) == 4)
-        #expect(PVListMetrics.leadingInset(horizontalInset: 56, leadingHang: 20) == 28)
-        #expect(PVListMetrics.leadingInset(horizontalInset: 8, leadingHang: 20) == 0)
-        #expect(PVListMetrics.hang(leadingWidth: 16) == 20)
-        #expect(PVListMetrics.hang(leadingWidth: 0) == 0)
-    }
-
-    @Test func listMetricsPlaceTheTitleEdge() {
-        #expect(PVListMetrics.titleLeading(leadingWidth: 16, thumbnailSize: 44) == 80)
-        #expect(PVListMetrics.titleLeading(leadingWidth: 0, thumbnailSize: 44) == 60)
+    /// T-14: a row's inset on each side is the list's inset less the cell inset the table adds.
+    @Test func rowInsetLeavesTheCellInset() {
+        #expect(PVListMetrics.rowInset(horizontalInset: 32) == 24)
+        #expect(PVListMetrics.rowInset(horizontalInset: 56) == 48)
+        #expect(PVListMetrics.rowInset(horizontalInset: 4) == 0)
     }
 
     @Test func outlineChevronPointsRightThenDown() {

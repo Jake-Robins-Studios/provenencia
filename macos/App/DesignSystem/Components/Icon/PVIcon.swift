@@ -54,7 +54,6 @@ enum PVSymbol: String {
     case signature = "signature"
     /// Lucide `bookmark` — locator page row.
     case bookmark = "bookmark"
-    case sort = "arrow.up.arrow.down"
     case success = "checkmark.circle.fill"
     case warning = "exclamationmark.triangle.fill"
     case danger = "exclamationmark.octagon.fill"

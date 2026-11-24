@@ -2,6 +2,7 @@ import SwiftUI
 import Testing
 @testable import Provenencia
 
+@MainActor
 struct SourcesTableTests {
     struct WidthCase: CustomTestStringConvertible {
         let isWide: Bool

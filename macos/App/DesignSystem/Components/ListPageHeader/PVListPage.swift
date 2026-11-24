@@ -64,10 +64,10 @@ extension PVListPage where Toolbar == EmptyView {
 /// The states of a list page's area that every list draws the same way.
 @MainActor
 enum PVListPageArea {
-    /// First-load placeholder in row geometry, with a bar for each detail column so rows do not shift
+    /// First-load placeholder in row geometry, with a bar in the detail column so rows do not shift
     /// when the cells arrive: 30 rows fill the list area.
-    static func loadingArea(gutter: CGFloat, detailWidths: [CGFloat]) -> some View {
-        PVListSkeleton(rows: 30, detailWidths: detailWidths, horizontalInset: gutter)
+    static func loadingArea(gutter: CGFloat, detailWidth: CGFloat?) -> some View {
+        PVListSkeleton(rows: 30, detailWidth: detailWidth, horizontalInset: gutter)
             .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
             .clipped()
     }
