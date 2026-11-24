@@ -10,9 +10,11 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/observations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/properties"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sources"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcetypes/sourcetypestest"
@@ -213,6 +215,19 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	_ = cited
 	sameIDs("observation on Jones", resolve("observation on Jones", only(citChanges, "observation")).EvidenceGraphs, jones.ID)
 	sameIDs("citation", resolve("citation", only(citChanges, "citation")).EvidenceGraphs, jones.ID)
+	// A Citation's value names the graphs of its Observations, and none for a
+	// Citation with no Observation.
+	provider, _, err := metadatafields.Create(tx, "Provider", metadatafields.DataTypeText, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, valueChanges, err := sourcemetadata.Set(tx, userID,
+		sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: only(citChanges, "citation")[0].EntityID},
+		sourcemetadata.Input{FieldID: provider.ID, ValueText: "Ancestry"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameIDs("citation value", resolve("citation value", only(valueChanges, "citation_metadata")).EvidenceGraphs, jones.ID)
 
 	citSet := resolve("citation create", citChanges)
 	sameIDs("citation create reads", citSet.IDsOf(effects.ReadCitations), jones.ID)
@@ -275,6 +290,13 @@ func TestEvidenceGraphsResolve(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, bareValue, err := sourcemetadata.Set(tx, userID,
+		sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: only(baseCit, "citation")[0].EntityID},
+		sourcemetadata.Input{FieldID: provider.ID, ValueText: "Ancestry"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sameIDs("citation value, no Observation", resolve("bare citation value", only(bareValue, "citation_metadata")).EvidenceGraphs)
 	baseTitle, err := sources.Update(tx, userID, sources.Source{
 		ID: base.ID, SourceTypeID: typeID, Title: "Renamed",
 	})

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
@@ -51,6 +52,27 @@ func TestReleasedMetadataScopesThroughDeletedOwner(t *testing.T) {
 					t.Fatal(err)
 				}
 				return tx, changes, jones.SourceID
+			},
+		},
+		{
+			name:     "citation",
+			entities: []string{"citation_metadata", "citation_metadata_layout"},
+			owner:    "citation",
+			run: func(t *testing.T) (*database.Tx, []rowchange.Change, []byte) {
+				tx, userID, def, _, art := readsFixture(t)
+				res, _, err := citations.CreateWithObservations(tx, userID, citations.CreateInput{
+					ArtifactID: art.ID, GraphID: def.ID,
+					LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
+				}, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				setProviderValue(t, tx, userID, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID})
+				changes, err := citations.Delete(tx, userID, res.Citation.ID)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return tx, changes, art.SourceID
 			},
 		},
 	}

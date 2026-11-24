@@ -23,8 +23,12 @@ func TestMetadataFacetOrder(t *testing.T) {
 			"source_notes.source_id", "evidence_graphs.source_id", "source_credibility_assessments.source_id",
 			"source_metadata.source_id", "source_metadata_layout.source_id",
 		},
+		catalogmodel.KindCitation: {
+			"citation_notes.citation_id", "citation_metadata.citation_id", "citation_metadata_layout.citation_id",
+		},
 		catalogmodel.KindMetadataField: {
 			"source_metadata_layout.field_id", "artifact_metadata_layout.field_id", "evidence_graph_metadata_layout.field_id",
+			"citation_metadata_layout.field_id",
 		},
 	}
 	for kind, want := range facetVias {
@@ -39,7 +43,7 @@ func TestMetadataFacetOrder(t *testing.T) {
 		})
 	}
 	t.Run("field inbound", func(t *testing.T) {
-		want := []string{"source_metadata.field_id", "artifact_metadata.field_id", "evidence_graph_metadata.field_id", ViaCitationFormats}
+		want := []string{"source_metadata.field_id", "artifact_metadata.field_id", "evidence_graph_metadata.field_id", "citation_metadata.field_id", ViaCitationFormats}
 		var got []string
 		for _, e := range inboundFor(catalogmodel.KindMetadataField) {
 			got = append(got, e.Via)

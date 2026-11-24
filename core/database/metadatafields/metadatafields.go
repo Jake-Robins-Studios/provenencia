@@ -31,7 +31,8 @@ var ErrDuplicateKey = apperr.New(apperr.CodeMetadataFieldsDuplicateKey, apperr.K
 var ErrLocked = apperr.New(apperr.CodeMetadataFieldsInvalid, apperr.KindUser)
 
 // ErrInUse is returned by Delete when a value in source_metadata,
-// artifact_metadata or evidence_graph_metadata still references the field.
+// artifact_metadata, evidence_graph_metadata or citation_metadata still
+// references the field.
 var ErrInUse = apperr.New(apperr.CodeMetadataFieldsInUse, apperr.KindConflict)
 
 // ErrOriginLocked is returned by Delete when the field is plugin-origin.
@@ -391,7 +392,7 @@ func List(c *database.Catalog) ([]Field, error) {
 	return out, nil
 }
 
-// Delete erases a field when no Source, Artifact or Evidence graph stores a value for it. Suggestion
+// Delete erases a field when no Source, Artifact, Evidence graph or Citation stores a value for it. Suggestion
 // and layout joins CASCADE. Plugin-origin fields are origin_locked even
 // when unused. The caller records the returned changes, including layout
 // rows released before the field itself.

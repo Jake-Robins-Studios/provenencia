@@ -10,7 +10,8 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// Owner is the record metadata hangs off: a Source, an Artifact or an Evidence graph. Level names which
+// Owner is the record metadata hangs off: a Source, an Artifact, an Evidence graph or a
+// Citation. Level names which
 // store holds its values, and ID is the owner row's id.
 type Owner struct {
 	Level vocabkey.Level
@@ -82,7 +83,7 @@ func sourcePathIn(path []catalogmodel.MetadataLevelTables) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "SELECT t0.id, t%[1]d.source_type_id, t%[1]d.id FROM %[2]s t0", n, path[0].OwnerTable)
 	for k := 1; k <= n; k++ {
-		fmt.Fprintf(&b, " JOIN %s t%d ON t%d.id = t%d.%s", path[k].OwnerTable, k, k, k-1, path[k-1].Up.Column)
+		fmt.Fprintf(&b, " JOIN %s t%d ON t%d.id = t%d.%s", path[k].OwnerTable, k, k, k-1, path[k-1].SourceUp().Column)
 	}
 	b.WriteString(" WHERE t0.id IN (")
 	return b.String()

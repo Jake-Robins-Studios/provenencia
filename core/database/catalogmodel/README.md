@@ -2,7 +2,7 @@
 
 The declared list of catalog tables and foreign keys. SQLite remains the schema (`core/database/migrations`, `schemahash.go`). This package is the classified copy other registries read: table name, primary key, kind, bucket, and each foreign key's target, `ON DELETE` action, and whether a cascade is audited.
 
-It imports nothing else in `core/database`, and `core/vocabkey` for the metadata level type. `MetadataTables` declares each metadata level's owner, values and layout tables once, and `SourcePath` walks a level up to its Source; `sourcemetadata`, `deleteimpact` and `effects` build their stores, probes, facet releases and Source scopes from it, so a new metadata level is one entry. `TestPragmaHonesty` checks `Tables` and `FKs` against `sqlite_schema` and `PRAGMA foreign_key_list`.
+It imports nothing else in `core/database`, and `core/vocabkey` for the metadata level type. `MetadataTables` declares each metadata level's owner, values and layout tables once, and `SourcePath` walks a level up to its Source; `sourcemetadata`, `deleteimpact` and `effects` build their stores, probes, facet releases and Source scopes from it, so a new metadata level is one entry. An entry's `Ups` are its direct parents, nearest first in `vocabkey.NearestFirst()`; exactly one is `ToSource`, the path the type read and the audit scope follow; `TestMetadataTables` checks the order. `TestPragmaHonesty` checks `Tables` and `FKs` against `sqlite_schema` and `PRAGMA foreign_key_list`.
 
 ## How the schema packages sit
 

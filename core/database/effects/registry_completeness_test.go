@@ -99,6 +99,8 @@ func TestSourceEvidenceIsNotActivity(t *testing.T) {
 		{"artifact_metadata_layout", false, true},
 		{"evidence_graph_metadata", false, true},
 		{"evidence_graph_metadata_layout", false, true},
+		{"citation_metadata", true, true},
+		{"citation_metadata_layout", false, true},
 		{"source_credibility_assessments", false, true},
 		{"evidence_graphs", true, true},
 		{"evidence_graph_artifacts", false, true},
@@ -159,7 +161,7 @@ func TestPropertyUsageList(t *testing.T) {
 // that every such path ends at evidence_graphs.
 func TestEvidenceGraphPathsEndAtGraphs(t *testing.T) {
 	want := []string{
-		"citations", "observations", "subjects",
+		"citations", "observations", "subjects", "citation_metadata",
 		"evidence_graphs", "identity_claims",
 		"date_values", "name_values", "depiction_values",
 	}
@@ -231,7 +233,7 @@ func TestMetadataEffects(t *testing.T) {
 				t.Errorf("%s ListsOnCreateDelete = %v, want %v", table, eff.ListsOnCreateDelete, isValues)
 			}
 			wantSearch := 0
-			if e.Up == nil {
+			if len(e.Ups) == 0 {
 				wantSearch = len(searchSource)
 			}
 			if len(eff.Search) != wantSearch {
