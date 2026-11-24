@@ -64,8 +64,9 @@ const (
 	sqlGetByRef = `SELECT ` + sqlColumns + ` FROM sources WHERE ref = ?`
 	// Newest-first by UUIDv7 id (create time). The Source's last activity is not
 	// here: List reads it from the display cache (Graph.Activity), and the
-	// create time is one indexed batch (audit.Created), so no list load scans
-	// the audit history.
+	// create time is one batch seeking the partial index of creates
+	// (audit_changes_created_idx, audit.Created), so no list load scans or
+	// walks the audit history.
 	// has_artifact gates the Evidence graph zone without a per-row query.
 	sqlListHead = `SELECT ` + sqlColumns + `,
 		EXISTS (SELECT 1 FROM artifacts a WHERE a.source_id = s.id)

@@ -116,11 +116,18 @@ func BenchmarkSourceRecords(b *testing.B) {
 	apply("apply-10k-ms", databasetest.BenchID(1, sourcesN+1))
 }
 
-// BenchmarkList: List at 3,000 Sources with 20 audit changes each (one create
-// and 19 updates), the batch-6 catalog. The create time is one indexed
-// audit.Created read per 500 Sources; the list gate is under 30 ms added.
+// BenchmarkList: List at 3,000 Sources with 20 and with 80 audit changes each (one create and the
+// rest updates), the batch-6 catalog and a longer history. The create time is one indexed
+// audit.Created read per 500 Sources, so it must not grow with the history; the list gate is under
+// 30 ms added.
 func BenchmarkList(b *testing.B) {
-	const sourcesN, changesPer = 3000, 20
+	for _, changesPer := range []int{20, 80} {
+		b.Run("changes="+strconv.Itoa(changesPer), func(b *testing.B) { benchmarkList(b, changesPer) })
+	}
+}
+
+func benchmarkList(b *testing.B, changesPer int) {
+	const sourcesN = 3000
 	c, err := database.Create(b.TempDir(), "t.provenencia")
 	if err != nil {
 		b.Fatal(err)

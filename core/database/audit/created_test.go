@@ -89,7 +89,8 @@ func TestCreated(t *testing.T) {
 	}
 }
 
-// TestCreatedQueryPlan: the create read seeks audit_changes by entity_id.
+// TestCreatedQueryPlan: the create read seeks audit_changes by entity_id through the partial index of
+// creates, so it reads each Source's one create and not its whole audit history.
 func TestCreatedQueryPlan(t *testing.T) {
 	c, err := database.Create(t.TempDir(), "t.provenencia")
 	if err != nil {
@@ -101,9 +102,16 @@ func TestCreatedQueryPlan(t *testing.T) {
 		t.Fatal(err)
 	}
 	q := sqlCreated + "?" + sqlCreatedTail
+	seeks := false
 	for _, detail := range dbtest.QueryPlan(t, db, q, "source", make([]byte, 16)) {
 		if detail == "SCAN c" || strings.HasPrefix(detail, "SCAN c ") {
 			t.Errorf("query plan scans audit_changes alias c: %s", detail)
 		}
+		if strings.Contains(detail, "SEARCH c USING") && strings.Contains(detail, "audit_changes_created_idx") {
+			seeks = true
+		}
+	}
+	if !seeks {
+		t.Error("query plan does not search audit_changes through audit_changes_created_idx")
 	}
 }
