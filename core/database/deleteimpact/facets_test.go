@@ -437,6 +437,22 @@ func ownerFixture(t *testing.T, c *database.Catalog, userID []byte, title string
 		sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: evidencegraphstest.SoleGraph(t, c, src.ID).ID}
 }
 
+// citationOwner makes a Citation with no Observations on an Artifact and graph
+// ownerFixture linked, and returns it as a metadata owner.
+func citationOwner(t *testing.T, c *database.Catalog, userID []byte, artifact, graph sourcemetadata.Owner) sourcemetadata.Owner {
+	t.Helper()
+	res, _, err := writes.Run(c, writes.Op{Action: "create_citation", UserID: userID},
+		func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
+			return citations.CreateWithObservations(tx, userID, citations.CreateInput{
+				ArtifactID: artifact.ID, GraphID: graph.ID, LocatorJSON: testLocator,
+			}, nil)
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID}
+}
+
 func runOwnerSet(t *testing.T, c *database.Catalog, userID []byte, o sourcemetadata.Owner, fieldID []byte, text string) {
 	t.Helper()
 	if _, _, err := writes.Run(c, writes.Op{Action: "update_metadata", UserID: userID},
@@ -458,7 +474,7 @@ func runOwnerDismiss(t *testing.T, c *database.Catalog, userID []byte, o sourcem
 }
 
 // TestImpactMetadataFieldHolders pins the field delete's inbound groups: a
-// value on any of the three levels blocks, once per holder, in level order.
+// value on any of the four levels blocks, once per holder, in level order.
 func TestImpactMetadataFieldHolders(t *testing.T) {
 	c, userID := testCatalog(t)
 	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
@@ -484,6 +500,7 @@ func TestImpactMetadataFieldHolders(t *testing.T) {
 	runOwnerSet(t, c, userID, a1, fieldID, "p")
 	runOwnerSet(t, c, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: s1.ID}, fieldID, "x")
 	runOwnerSet(t, c, userID, sourcemetadata.Owner{Level: vocabkey.LevelSource, ID: s2.ID}, fieldID, "y")
+	runOwnerSet(t, c, userID, citationOwner(t, c, userID, a1, g1), fieldID, "21")
 	got = mustImpact(t, c, catalogmodel.KindMetadataField, fieldID)
 	var vias []string
 	var totals []int
@@ -491,9 +508,43 @@ func TestImpactMetadataFieldHolders(t *testing.T) {
 		vias = append(vias, g.Via)
 		totals = append(totals, g.Total)
 	}
-	if strings.Join(vias, ",") != "source_metadata.field_id,artifact_metadata.field_id,evidence_graph_metadata.field_id" ||
-		len(totals) != 3 || totals[0] != 2 || totals[1] != 1 || totals[2] != 1 {
+	if strings.Join(vias, ",") != "source_metadata.field_id,artifact_metadata.field_id,evidence_graph_metadata.field_id,citation_metadata.field_id" ||
+		len(totals) != 4 || totals[0] != 2 || totals[1] != 1 || totals[2] != 1 || totals[3] != 1 {
 		t.Fatalf("groups %v %v", vias, totals)
+	}
+}
+
+// TestImpactMetadataFieldHeldByCitation is AC-4.4: a Citation's value blocks
+// the field's delete in its own group.
+func TestImpactMetadataFieldHeldByCitation(t *testing.T) {
+	c, userID := testCatalog(t)
+	fieldID, err := metadatafieldstest.Upsert(c, metadatafields.Field{Key: "shelfmark", Origin: vocabkey.OriginUser, Label: "Shelfmark", DataType: "text"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, a1, g1 := ownerFixture(t, c, userID, "S1")
+	cit := citationOwner(t, c, userID, a1, g1)
+	runOwnerSet(t, c, userID, cit, fieldID, "21")
+	got := mustImpact(t, c, catalogmodel.KindMetadataField, fieldID)
+	if got.Allowed || got.Gate != deleteimpact.GateInbound || len(got.Groups) != 1 {
+		t.Fatalf("citation only: %+v", got)
+	}
+	g := got.Groups[0]
+	if g.Via != "citation_metadata.field_id" || g.Kind != catalogmodel.KindCitation || g.Total != 1 || len(g.Listed) != 1 ||
+		!bytes.Equal(g.Listed[0].ID, cit.ID) {
+		t.Fatalf("citation group %+v", g)
+	}
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if n, err := deleteimpact.InboundTotal(tx, catalogmodel.KindMetadataField, fieldID); err != nil || n != 1 {
+		t.Fatalf("InboundTotal = %d, %v, want 1", n, err)
 	}
 }
 

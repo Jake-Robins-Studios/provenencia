@@ -3012,6 +3012,30 @@
         }
       }
     },
+    "deleteImpact.via.citationMetadataFieldId": {
+      "comment": "Inbound heading for citation_metadata.field_id; argument is how many",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citation records a value for this field"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld citations record a value for this field"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "deleteImpact.via.evidenceGraphMetadataFieldId": {
       "comment": "Inbound heading for evidence_graph_metadata.field_id; argument is how many",
       "extractionState": "manual",

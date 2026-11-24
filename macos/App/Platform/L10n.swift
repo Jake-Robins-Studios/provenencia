@@ -9483,6 +9483,11 @@ enum L10n {
                 defaultValue: "%lld Evidence graphs record a value for this field",
                 comment: "Inbound heading for evidence_graph_metadata.field_id; argument is how many"
             ),
+            "citation_metadata.field_id": LocalizedStringResource(
+                "deleteImpact.via.citationMetadataFieldId",
+                defaultValue: "%lld citations record a value for this field",
+                comment: "Inbound heading for citation_metadata.field_id; argument is how many"
+            ),
             "source_metadata.field_id": LocalizedStringResource(
                 "deleteImpact.via.sourceMetadataFieldId",
                 defaultValue: "%lld sources record a value for this field",

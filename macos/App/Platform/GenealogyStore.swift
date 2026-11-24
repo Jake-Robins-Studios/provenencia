@@ -1518,7 +1518,7 @@ struct CatalogInheritedMetadataValue: Sendable, Equatable {
     }
 }
 
-/// What holds metadata: a Source, an Artifact or an Evidence graph. Mirrors the
+/// What holds metadata: a Source, an Artifact, an Evidence graph or a Citation. Mirrors the
 /// wire `MetadataOwner`; Go refuses a level that holds none.
 struct MetadataOwner: Sendable, Hashable {
     var level: Level

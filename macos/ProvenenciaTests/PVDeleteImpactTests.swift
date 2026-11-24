@@ -290,6 +290,8 @@ struct PVDeleteImpactCopyTests {
             ("subjects.graph_id", "subject", 3, "This graph has 3 subjects"),
             ("artifact_metadata.field_id", "artifact", 2, "2 artifacts record a value for this field"),
             ("evidence_graph_metadata.field_id", "evidence_graph", 1, "1 Evidence graph records a value for this field"),
+            ("citation_metadata.field_id", "citation", 2, "2 citations record a value for this field"),
+            ("citation_metadata.field_id", "citation", 1, "1 citation records a value for this field"),
             ("source_types.citation_formats", "source_type", 2, "2 source types name this field in their citation formats"),
             ("source_types.citation_formats", "source_type", 1, "1 source type names this field in its citation formats"),
             ("canonical_entities.subject_type_id", "canonical_entity", 3, "3 people, events, or places have this type"),

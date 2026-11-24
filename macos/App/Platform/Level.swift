@@ -3,7 +3,7 @@ import Foundation
 /// A layer a citation reads: the Source (the record), one of its Artifacts (the
 /// copy used), one of its Evidence graphs (the item cited), or the Citation.
 /// Mirrors `vocabkey.Level` in Go; `TestSwiftVocabularyMatchesGo` fails if the
-/// two drift. The first three hold metadata values; the Citation only built-ins.
+/// two drift. All four hold metadata values.
 enum Level: String, CaseIterable, Sendable {
     case source
     case artifact
@@ -15,5 +15,6 @@ enum Level: String, CaseIterable, Sendable {
         .source,
         .artifact,
         .graph,
+        .citation,
     ]
 }
