@@ -1,12 +1,10 @@
 # Review — S16-66 The Sources list is a native outline list
 
-**Verdict:** Fits with changes — Not ready (round 1, on the draft; every blocker Fixed). Round 2 runs once the S16-D12 board is agreed and §12 is answered.
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet)
+**Verdict:** Fits with changes — Ready with changes. Every blocker of both rounds Fixed.
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
-- Q-5: a collapsed Source whose graphs mix Promoted and Not started, none In progress. Recommendation: `8 graphs · 5 promoted`.
-- Q-6 (from M-9): `PVListPage`'s layer. The brief says Recipe; the review suggests a component beside `PVListPageHeader`. Recommendation: the component.
-- Q-1 – Q-4 are the board's (graph row height and lines, graph row separators, SO-W1, the menu separator and the graph-list Callout's placement).
+None. Q-5 and Q-6 were answered (the board, 2026-11-24; the user, 2026-11-24).
 
 ## Writer's own calls
 - The kit's native list body (`PVListBody`) split from `PVList`, rows owning their own height, a leading slot on `PVListRow`.
@@ -84,3 +82,62 @@
 
 ### X-13 · minor · Smaller choices
 **Answer:** Fixed — D-16 reads `evidenceGraphsRead(sourceID:)` and every entry, Copy too, selects first; AC-2.11 marks the triangle click as STEP-8's; STEP-8 lists nine numbered lines; STEP-9 takes the next minor after `main`; T-16 is the copy test STEP-5 cites.
+
+## Board (2026-11-24)
+The S16-D12 board was agreed. The user picked SO-W1 (b), put `PVListPage` with the components (M-9, Q-6), and kept the kit's metrics and today's copy where the board's sample numbers and Callout wording differ. The board settled Q-1 – Q-5 (one-line 34 pt graph rows, a rule under each Source's group, a menu separator, the Callout's place, the summary counting the promoted).
+
+## Round 2
+
+### M-8, M-6 (round-1 answers) · text left behind
+**Answer:** Fixed — Deletes and §6 macOS name `SourcesEvidenceStatus+Badge.swift`; D-12 says 80 pt.
+
+### M-10 · blocker · The Wide Published column hand-built beside `PVPublishedDate`
+**Answer:** Fixed — D-23 adds `PVPublishedDate.detail` and `.column`, as `PVLastUpdated` has; the view takes its words from `detail`; D-11 calls the column; T-21.
+
+### M-11 · blocker · `secondaryParts` and the view each decide the line
+**Answer:** Fixed — `secondaryParts` returns typed `SourcesSecondaryPart`s; the view draws them with a `ForEach` (D-11, T-19). Also: `PVListSkeleton.detailWidths` (one bar per column), `PVListMetrics.hang` for both rows' rule edge (D-22), `SourcesRowColumns.details(isWide:typeLabel:)`.
+
+### X-14 · blocker · Statics on generic types
+**Answer:** Fixed — `PVListMetrics` and `PVListPageArea`, non-generic enums (D-1, D-3, T-2, T-17, T-22).
+
+### X-15 · blocker · STEP-3 and STEP-4 cannot build
+**Answer:** Fixed — the rows, the renames (D-23, D-24, D-27) and the deletions are one step, STEP-4; the steps are now nine.
+
+### X-16 · blocker · List at its top after a sort or filter change
+**Answer:** Fixed — `PVListBody.restartKey` scrolls to the first row through `pvScrollsRowIntoView(restartsAt:whenChanged:)`; Sources passes `model.settings` (D-1).
+
+### X-17 · blocker · `private(set)` set from another file
+**Answer:** Fixed — `setSourcesExpanded` sits in `WorkspaceSession.swift` (D-7).
+
+### X-18 · major · Toolbar per state
+**Answer:** Fixed — `PVListPage(showsToolbar:)` and `SourcesModel.showsToolbar` (D-3, D-6).
+
+### X-19 · major · AC-6.1 against D-6
+**Answer:** Fixed — AC-6.1 wins (the board: withheld on first load); D-6's `showsToolbar` and the count line follow it.
+
+### X-20 · major · 84 pt
+**Answer:** Fixed — 80 pt; T-22.
+
+### X-21 · major · Menu titles with a graph name
+**Answer:** Fixed — `LocalizedStringResource(stringLiteral: L10n.Sources.menuOpenGraph(name))`, the `PVFormDialog.swift:46` precedent (D-16).
+
+### X-22 · major · Type label in `details`
+**Answer:** Fixed — `details(isWide:typeLabel:) -> [PVListDetailColumn<CatalogSource>]`.
+
+### X-23 · major · Pieces in no step
+**Answer:** Fixed — STEP-3 builds `secondaryParts`, `details`, `endsGroup` with T-20; STEP-4 takes T-19, T-21; STEP-1 T-22.
+
+### X-24 · minor · `graphsLoading`
+**Answer:** Fixed — listed as kept.
+
+### X-25 · minor · `separator:` position
+**Answer:** Fixed — D-1 orders `menu`, `separator`, `restartKey`, `row`; STEP-4 passes them.
+
+### X-26 · minor · `SourcesOutline` struct or namespace
+**Answer:** Fixed — a struct with an init; instance and static members named (D-4).
+
+### X-27 · minor · Strings against views
+**Answer:** Fixed with M-11.
+
+### X-28 · minor · Smaller choices
+**Answer:** Fixed — the nested `HStack` and the full-height hit slot (D-2); `detailWidths` (D-3); `outlineIsSettled` (D-8); `outline` reads `visibleSources` first (D-5); the cell's `if let width` (D-28); Status Planned.
