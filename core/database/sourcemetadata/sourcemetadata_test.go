@@ -2092,6 +2092,31 @@ func TestOwnerTables(t *testing.T) {
 			if !errors.Is(err, ErrInvalid) {
 				t.Fatalf("Set on missing owner = %v, want ErrInvalid", err)
 			}
+			// Every other write is refused the same way and leaves no row.
+			// Clear is not: it releases nothing and returns no changes, as at
+			// every level.
+			values, layout := countRows(t, c, tb.values), countRows(t, c, tb.layout)
+			for name, f := range map[string]func(tx *database.Tx) ([]rowchange.Change, error){
+				"DismissSuggestion": func(tx *database.Tx) ([]rowchange.Change, error) {
+					return DismissSuggestion(tx, userID, missing, doc.ID)
+				},
+				"Reorder": func(tx *database.Tx) ([]rowchange.Change, error) {
+					return Reorder(tx, userID, missing, [][]byte{doc.ID})
+				},
+				"Apply":     func(tx *database.Tx) ([]rowchange.Change, error) { return Apply(tx, userID, missing, draft) },
+				"CreateAll": func(tx *database.Tx) ([]rowchange.Change, error) { return CreateAll(tx, userID, missing, draft) },
+			} {
+				if _, err := writes.RunChanges(c, writes.Op{Action: "update_metadata", UserID: userID}, f); !errors.Is(err, ErrInvalid) {
+					t.Fatalf("%s on missing owner = %v, want ErrInvalid", name, err)
+				}
+			}
+			if v, l := countRows(t, c, tb.values), countRows(t, c, tb.layout); v != values || l != layout {
+				t.Fatalf("rows %d and %d after refused writes, want %d and %d", v, l, values, layout)
+			}
+			clearChanges := run(func(tx *database.Tx) ([]rowchange.Change, error) { return Clear(tx, userID, missing, doc.ID) })
+			if len(clearChanges) != 0 {
+				t.Fatalf("Clear on missing owner = %+v, want no changes", clearChanges)
+			}
 		})
 	}
 }

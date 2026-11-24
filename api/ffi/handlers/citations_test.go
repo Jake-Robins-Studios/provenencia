@@ -1480,7 +1480,15 @@ func TestCreateCitationWithObservationsMetadata(t *testing.T) {
 	t.Run("AC-3.5 a draft naming no field fails the whole write", func(t *testing.T) {
 		m := newMetadataOwners(t)
 		cits, obs := countCatalogRows(t, m.dir, "citations"), countCatalogRows(t, m.dir, "observations")
-		_, err := create(t, m, draftOf("01890000-0000-7000-8000-000000000001", "x"))
+		// The Observation is written before the draft is refused, so its
+		// count shows the whole write rolled back.
+		err := rpc(t, CreateCitationWithObservations, &engine.CreateCitationWithObservationsRequest{
+			ProjectDir: m.dir, UserId: m.userID, ArtifactId: m.page2, GraphId: graphLinking(t, m.dir, m.page2),
+			LocatorJson: validLocatorJSON, Metadata: draftOf("01890000-0000-7000-8000-000000000001", "x"),
+			Observations: []*engine.ObservationDraft{{
+				SubjectId: m.subjectID, PropertyId: propertyIDByKey(t, m.dir, "toponym"), ValueText: "Boston",
+			}},
+		}, &engine.CreateCitationWithObservationsResponse{})
 		if !errors.Is(err, sourcemetadata.ErrInvalid) {
 			t.Fatalf("got %v, want sourcemetadata.invalid", err)
 		}
@@ -1553,8 +1561,13 @@ func TestDeleteCitationReleasesMetadata(t *testing.T) {
 		t.Fatalf("changes %v, want two value deletes and one layout delete", types)
 	}
 	last := slices.Index(types, "citation delete")
-	if last < 0 || slices.Index(types, "citation_metadata delete") > last || slices.Index(types, "citation_metadata_layout delete") > last {
-		t.Fatalf("changes %v, want the metadata deletes before the citation delete", types)
+	if last < 0 {
+		t.Fatalf("changes %v, want a citation delete", types)
+	}
+	for i, ty := range types {
+		if (ty == "citation_metadata delete" || ty == "citation_metadata_layout delete") && i > last {
+			t.Fatalf("changes %v, want every metadata delete before the citation delete", types)
+		}
 	}
 	if !slices.Contains(deleted.GetEffects().GetSourceScopes(), m.sourceID) {
 		t.Fatalf("source_scopes %v, want %s", deleted.GetEffects().GetSourceScopes(), m.sourceID)
