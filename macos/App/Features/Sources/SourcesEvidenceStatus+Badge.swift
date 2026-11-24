@@ -18,8 +18,9 @@ extension SourcesModel.EvidenceStatus {
         }
     }
 
-    /// Every badge of the Sources table is this wide, so they share a right edge down the column.
-    static var badgeWidth: CGFloat { 126 }
+    /// Every badge of the Sources table is this wide, so they share a right edge down the column: the
+    /// width of Not started, the widest label.
+    static var badgeWidth: CGFloat { 128 }
 
     /// Only a graph with nothing on it draws an outline instead of a fill.
     var badgeSubtle: Bool { self == .empty }

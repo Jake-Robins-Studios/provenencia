@@ -32,6 +32,15 @@ struct PVBadgeTests {
         #expect(fittingWidth(PVBadge(L10n.Sources.statusPromoted, tone: .success)) < 126)
     }
 
+    /// The Sources table's Evidence badges share a right edge down their column: every status is one
+    /// width, the widest label's (Not started).
+    @Test func everyStatusBadgeIsOneWidth() {
+        PVFontRegistration.registerBundledFontsIfNeeded()
+        let widths = SourcesModel.EvidenceStatus.allCases.map { fittingWidth($0.badge) }
+        #expect(Set(widths) == [SourcesModel.EvidenceStatus.badgeWidth])
+        #expect(SourcesModel.EvidenceStatus.badgeWidth == 128)
+    }
+
     @Test func anOutlinedBadgeTakesTheOnSelectionInkAndAFilledOneKeepsItsOwn() throws {
         let outlined = PVBadge(L10n.Sources.statusEmpty, tone: .neutral, icon: .circleDashed, subtle: true)
         #expect(try png(outlined, .increased) != png(outlined, .standard))
