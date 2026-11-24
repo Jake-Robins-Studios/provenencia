@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** review 2
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -96,3 +96,9 @@ Head `8cd9922d6`. Gate (orchestrator) PASS on `8cd9922d6`: all nine checks. F-1 
 
 ## Round 2 — review
 Reviewers: CON, MNT, UX, SEC+PRF, on `a09c2ac33...8cd9922d6`.
+
+All four **Clean**, no new blocker. CON-1 – CON-5, MNT-1 – MNT-7, UX-1, UX-2, PRF-1 **Resolved**. Minors, read by the orchestrator: UX-3, CON-6, UX-4, CON-7, UX-5, MNT-8, MNT-9, SEC-1, PRF-2 **Resolved**.
+Nits (logged): `MNT-16 · SourcesListView.swift:90 · sourcesHandle no longer read` · `CON-10 · PVListTests.swift:179 · aMenuTitleKeepsItsAsterisks tests L10n.string, not the menu` · `CON-11 · SourcesListPreviews.swift:64 · comment says Wide; 1102 pt is Regular`
+
+## Result
+Merged `origin/main` @ `6e18533b6` (docs only, S15-54's plan). Gate PASS on the merge · CI: see the PR · open: none · follow-ups: none · to user: CON-2 answered (D-8 amended, 2026-11-24). Left to the user's manual check: STEP-7 lines 3, 7, 8, the Scale part of 6, and a selected row's faint Not started badge.
