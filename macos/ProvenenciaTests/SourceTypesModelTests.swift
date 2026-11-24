@@ -169,6 +169,8 @@ struct SourceTypesModelTests {
             source: CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Alpha", description: ""),
             notes: [], metadata: [], artifacts: [], credibility: nil
         ))
+        // The fields list is read on a Source type's page, so it is visible there and reloads at once.
+        session.apply(location: WorkspaceLocation(section: .sourceTypes, typeId: "t1"))
         let fieldsHandle: QueryHandle<[CatalogMetadataField]> = session.query(
             CatalogQueryKey.metadataFieldsList(project: project)
         )
