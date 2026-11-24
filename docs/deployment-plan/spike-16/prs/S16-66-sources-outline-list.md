@@ -1,9 +1,9 @@
 # S16-66 — The Sources list is a native outline list
 
-**Status:** Planned
+**Status:** Landed in [#962](https://github.com/Jake-Robins-Studios/provenencia/pull/962) (2026-11-23)
 **Spike / slice:** Spike 16 · Slice 6f — List keyboard
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
-**Brief:** [S16-D12](../design/S16-D12-sources-list-outline.md), board agreed 2026-11-24
+**Brief:** [S16-D12](../design/archive/S16-D12-sources-list-outline.md), board agreed 2026-11-24
 **Board:** [Sources List](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page *S2-04 Sources list* (frames S1a–S6). The implementer opens the link; §6 macOS also describes each frame in words (user, 2026-11-23: link and words). The board's choices (one-line 34 pt graph rows, a rule under each Source's group, SO-W1 (b), a menu separator, the summary rule) are in the brief's **Board** line. Where the board's sample numbers differ from the kit (a 12 pt gap after the cover, a 150 pt updated column, a 96 pt ref column, sample Callout titles and wording), the kit's metrics and today's copy win (user, 2026-11-24)
 **Depends on:** S16-67 (landed [#958](https://github.com/Jake-Robins-Studios/provenencia/pull/958)), S16-D12 (agreed 2026-11-24)
 **Blocks:** —
@@ -15,6 +15,7 @@
 **Runs on:** macOS with Xcode. The Swift checks (`xcodebuild test`, `scripts/check-pr.sh`, previews) need a Mac; STEP-7 and §10 need a person at the Mac. An agent on another platform hands those checks to the user and says which it could not run.
 **Planned:** 2026-11-24 against `main` @ `2f1a459`
 **Review:** [`S16-66-sources-outline-list.review.md`](S16-66-sources-outline-list.review.md) — Fits with changes / Ready with changes, 2 rounds; every blocker Fixed; no To user item open
+**Landed:** differences from the plan. (1) The version bump is 0.37.0 → 0.38.0: main was already 0.37.0 when the branch began (S15-64 landed after the plan). (2) `SourcesListSettings` became `Hashable` so the page can pass `model.settings` as `PVListBody`'s `restartKey`. (3) `SourcesGraphRow` and `SourcesSourceRow` are internal (not private) because `PVListBody`'s row builder and the previews' host live in `SourcesListView.swift`; `SourcesRowColumns`, `PVListPageArea` and the new `SourcesSecondaryLine` ride on `@MainActor`. (4) `SourcesModel.graphListError` *(new)* names the graph list's failure when no status filter is set (D-18). (5) The first-load fallback before the page's handles exist is the `PVListPage` skeleton, not a spinner. (6) The `#Preview`s of STEP-4 were not written; the page's states were checked through `FakeStore` hosted renders instead, and the failure and loading previews remain the user's manual check. (7) The graph row's counts and status slots are `ZStack`s over a clear color, so a row with no badge keeps its slot width. STEP-7's nine findings: (1) two row heights: works; (2) wheel step: works, 34 pt; (3) the triangle click's selection: not checked, user's manual check; (4) →: works; (5) ←: works; (6) separators: the per-row branch shipped (D-22), drawing seen in a hosted render, the Scale cost not checked; (7) VoiceOver on a Source row: not checked; (8) VoiceOver on a graph row: not checked; (9) Return on a graph row: works.
 
 ### Implementer — read this first
 
