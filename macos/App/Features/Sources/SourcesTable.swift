@@ -16,6 +16,12 @@ enum SourcesTableItem: Identifiable, Equatable {
         }
     }
 
+    /// The height of the row's content: its Title cell's, whose height is the row's.
+    var contentHeight: CGFloat {
+        guard case .row(let row) = self else { return SourcesTable.sourceRowHeight }
+        return row.disclosure == nil ? SourcesTable.graphRowHeight : SourcesTable.sourceRowHeight
+    }
+
     static var skeletons: [SourcesTableItem] { (0 ..< skeletonCount).map(SourcesTableItem.skeleton) }
 }
 
@@ -102,6 +108,8 @@ struct SourcesTable: View {
     static let typeColumnID = "type"
     static let sourceRowHeight: CGFloat = 58
     static let graphRowHeight: CGFloat = 26
+    /// The table's least row height: a graph row's whole height, so a graph row is never drawn shorter.
+    static let minimumRowHeight: CGFloat = graphRowHeight + SourcesTableWidths.cellPadding
     static let triangleWidth: CGFloat = 16
     static let coverSize: CGFloat = 44
     /// The Title cell's leading edge to a Source's title: the triangle slot, a gap, the cover, a gap.
@@ -155,7 +163,7 @@ struct SourcesTable: View {
             TableColumn(
                 header(L10n.Sources.columnTitle, sorted: .title), sortUsing: sort(.title)
             ) { (item: SourcesTableItem) in
-                titleCell(item)
+                titleCell(item).modifier(SourcesRowHeight(height: item.contentHeight))
             }
             .width(min: SourcesTableWidths.titleMinimum, ideal: SourcesTableWidths.titleMinimum, max: widths.titleMaximum)
             .customizationID("title")
@@ -492,5 +500,20 @@ struct SourcesTable: View {
                 .accessibilityLabel(Text(verbatim: PVLastUpdated.spoken(source.updated.at, in: .current)))
             }
         }
+    }
+}
+
+/// Holds a Title cell at its row's height. The platform reuses a cell view for a row of the other height,
+/// and the cell does not shrink below the height it was first measured at: a graph row in a cell made for
+/// a Source stays 66 pt. So every cell is measured at a graph row's height first, and a Source's grows as
+/// it appears, before it is drawn.
+private struct SourcesRowHeight: ViewModifier {
+    let height: CGFloat
+    @State private var shown = SourcesTable.graphRowHeight
+
+    func body(content: Content) -> some View {
+        content
+            .frame(height: shown)
+            .onChange(of: height, initial: true) { shown = height }
     }
 }

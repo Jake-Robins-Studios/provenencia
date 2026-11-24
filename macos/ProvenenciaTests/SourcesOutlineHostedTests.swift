@@ -31,6 +31,7 @@ struct SourcesOutlineHostedTests {
         let navigation: WorkspaceNavigation
         let table: NSTableView
         let scroll: NSScrollView
+        let store: FakeStore
     }
 
     private func descendant<V: NSView>(_ type: V.Type, in view: NSView) -> V? {
@@ -39,11 +40,13 @@ struct SourcesOutlineHostedTests {
     }
 
     private func makeHarness(
-        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, tailSources: Int = 0, anchor: String? = nil,
+        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, tailSources: Int = 0, mixedGraphs: Bool = false,
+        anchor: String? = nil, height: CGFloat = 760,
         currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }, withHistory: Bool = false,
-        pane: PaneWidth? = nil
+        pane: PaneWidth? = nil, configure: (FakeStore) -> Void = { _ in }
     ) async throws -> Harness {
         let store = FakeStore()
+        configure(store)
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "census", origin: "provenencia", label: "Census", description: "")
         ]
@@ -75,11 +78,13 @@ struct SourcesOutlineHostedTests {
             )
         } + [CatalogEvidenceGraph(
             id: "g2-0", ref: "GPH-20", sourceID: "s2", name: "Default", description: "", artifactIDs: ["a-s2"]
-        )] + tail.map {
-            CatalogEvidenceGraph(
-                id: "gt-\($0.id)", ref: "GPT-\($0.id)", sourceID: $0.id, name: "Default", description: "",
-                artifactIDs: ["a-\($0.id)"]
-            )
+        )] + tail.enumerated().flatMap { index, owner in
+            (0 ..< (mixedGraphs ? Self.graphCount(tail: index) : 1)).map { graph in
+                CatalogEvidenceGraph(
+                    id: "gt-\(owner.id)-\(graph)", ref: "GPT-\(owner.id)-\(graph)", sourceID: owner.id,
+                    name: "Default", description: "", artifactIDs: ["a-\(owner.id)"]
+                )
+            }
         }
         store.graphProgressByGraph["g1-0"] = EvidenceGraphProgress(graphId: "g1-0", subjectCount: 12, observationCount: 40)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
@@ -112,7 +117,7 @@ struct SourcesOutlineHostedTests {
             windowSize = CGSize(width: 2400, height: 760)
         } else {
             view = page(PVWidthClass(paneWidth: width))
-            windowSize = CGSize(width: width, height: 760)
+            windowSize = CGSize(width: width, height: height)
         }
         let (window, host) = hostInBorderlessWindow(view, windowSize: windowSize)
         host.layoutSubtreeIfNeeded()
@@ -128,14 +133,24 @@ struct SourcesOutlineHostedTests {
         #expect(found)
         let tableView = try #require(table)
         let scroll = try #require(tableView.enclosingScrollView)
-        return Harness(window: window, host: host, session: session, navigation: navigation, table: tableView, scroll: scroll)
+        return Harness(
+            window: window, host: host, session: session, navigation: navigation, table: tableView, scroll: scroll, store: store
+        )
     }
 
+    /// How many graphs a tail Source has in a `mixedGraphs` harness.
+    private static func graphCount(tail index: Int) -> Int { [1, 8, 3, 5, 2][index % 5] }
+
+    /// The table has `rows` rows, each Source grown to its height (`SourcesRowHeight`, a turn after its
+    /// cell is made).
     private func settle(_ harness: Harness, rows: Int) async -> Bool {
-        await waitUntil(timeout: .seconds(10)) {
+        let arrived = await waitUntil(timeout: .seconds(10)) {
             harness.host.layoutSubtreeIfNeeded()
             return harness.table.numberOfRows == rows
         }
+        try? await Task.sleep(for: .milliseconds(50))
+        harness.host.layoutSubtreeIfNeeded()
+        return arrived
     }
 
     private func heights(_ table: NSTableView) -> [CGFloat] {
@@ -144,12 +159,12 @@ struct SourcesOutlineHostedTests {
 
     @Test func closedSourcesAreOneRowEach() async throws {
         let harness = try await makeHarness()
-        #expect(harness.table.numberOfRows == 3)
+        #expect(await settle(harness, rows: 3))
         #expect(heights(harness.table) == [66, 66, 66])
         #expect(harness.navigation.listAnchor == nil)
     }
 
-    @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsTheGraphRowsContentHeight() async throws {
+    @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsAGraphRow() async throws {
         let harness = try await makeHarness()
         harness.session.setOpenSource("s1")
         #expect(await settle(harness, rows: 11))
@@ -159,9 +174,121 @@ struct SourcesOutlineHostedTests {
         for (above, below) in zip(rects, rects.dropFirst()) {
             #expect(above.maxY <= below.minY + 0.5)
         }
-        // The table adds its padding to the least row height it is given: the step is the graph row's
-        // 26 pt of content.
-        #expect(harness.scroll.verticalLineScroll == SourcesTable.graphRowHeight)
+        #expect(harness.scroll.verticalLineScroll == 34)
+    }
+
+    /// What is wrong with the rows the table has drawn: each Source is 66 pt and each row under the open one
+    /// 34 pt, as the table places it and as it and its cells are drawn. `sources` are the listed Sources in
+    /// order, `under` the rows under the open one.
+    private func wrongRows(_ harness: Harness, sources: [String], under: Int) -> [String] {
+        let table = harness.table
+        let open = harness.session.openSourceID.flatMap { sources.firstIndex(of: $0) }
+        let lower = open.map { $0 + 1 } ?? 0
+        guard table.numberOfRows == sources.count + under else { return ["\(table.numberOfRows) rows"] }
+        var drawn = 0
+        var wrong: [String] = []
+        for row in 0 ..< table.numberOfRows {
+            let isUnder = row >= lower && row < lower + under
+            // A row scrolled out and never drawn has no measured height: the platform estimates it.
+            guard let view = table.rowView(atRow: row, makeIfNecessary: false) else { continue }
+            drawn += 1
+            let want: CGFloat = isUnder ? 34 : 66
+            var heights = [table.rect(ofRow: row).height, view.frame.height]
+            for column in 0 ..< table.numberOfColumns {
+                if let cell = view.view(atColumn: column) as? NSView { heights.append(cell.frame.height) }
+            }
+            if heights.contains(where: { abs($0 - want) > 0.5 }) { wrong.append("row \(row) wants \(want): \(heights)") }
+        }
+        // The window is taller than 10 Sources: a table that draws nothing proves nothing.
+        return drawn >= 10 || drawn == table.numberOfRows ? wrong : wrong + ["only \(drawn) rows drawn"]
+    }
+
+    private func expectRowHeights(
+        _ harness: Harness, _ step: String, sources: [String], under: Int,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) async {
+        _ = await waitUntil(timeout: .seconds(10)) {
+            harness.host.layoutSubtreeIfNeeded()
+            return harness.table.numberOfRows == sources.count + under
+        }
+        try? await Task.sleep(for: .milliseconds(200))
+        harness.host.layoutSubtreeIfNeeded()
+        let wrong = wrongRows(harness, sources: sources, under: under)
+        #expect(wrong.isEmpty, "\(step): \(wrong)", sourceLocation: sourceLocation)
+    }
+
+    /// U-1 (AC-1.6): the platform reuses a row's cells for a row of the other height as Sources open and
+    /// close, and every row still draws at its own.
+    @Test func everyRowIsItsOwnHeightHoweverTheRowsMove() async throws {
+        let harness = try await makeHarness(
+            extraSources: 5, tailSources: 30, mixedGraphs: true, height: 1300,
+            configure: { $0.listEvidenceGraphProgressHold.isOn = true }
+        )
+        let table = harness.table
+        // Newest added first: the Sources with no Artifact, s3 (none either), s2 (1 graph), s1 (8), the tail.
+        let tail = (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
+        let newest = (0 ..< 5).reversed().map { "x0\($0)" } + ["s3", "s2", "s1"] + tail
+        func under(_ id: String) -> Int {
+            if id == "s1" { return 8 }
+            if id == "s2" { return 1 }
+            return Self.graphCount(tail: Int(id.dropFirst()) ?? 0)
+        }
+        func open(_ id: String, _ step: String, _ sources: [String]) async {
+            harness.session.setOpenSource(id)
+            await expectRowHeights(harness, "\(step) \(id)", sources: sources, under: under(id))
+        }
+        await expectRowHeights(harness, "closed", sources: newest, under: 0)
+
+        // The graph list is late, then the counts.
+        let project = projectDir
+        let all = try #require(harness.store.evidenceGraphsByProject[project])
+        func readGraphs(_ graphs: [CatalogEvidenceGraph]) {
+            harness.store.evidenceGraphsByProject[project] = graphs
+            harness.session.invalidate(harness.session.evidenceGraphsKey)
+            let _: QueryHandle<[CatalogEvidenceGraph]> = harness.session.query(harness.session.evidenceGraphsKey)
+        }
+        readGraphs(all.filter { $0.sourceID != "a26" })
+        harness.session.setOpenSource("a26")
+        await expectRowHeights(harness, "graphs pending", sources: newest, under: 1)
+        readGraphs(all)
+        await expectRowHeights(harness, "late graphs", sources: newest, under: under("a26"))
+        harness.store.listEvidenceGraphProgressHold.isOn = false
+        while harness.store.listEvidenceGraphProgressHold.count > 0 { harness.store.listEvidenceGraphProgressHold.release() }
+        await expectRowHeights(harness, "late counts", sources: newest, under: under("a26"))
+
+        for id in ["a29", "a28", "a27", "a26", "s1", "a24", "s2", "a25", "a21", "a26"] { await open(id, "open", newest) }
+        // With the list scrolled, and the open Source off the top and off the bottom.
+        harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: 500))
+        harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+        for id in ["a21", "a24", "s1", "a22", "a26", "a11", "a21"] { await open(id, "scrolled", newest) }
+
+        // Sorted by title, as a header click writes it: the list is back at its top, the Source still open.
+        let byTitle = ["s2"] + (0 ..< 5).map { "x0\($0)" } + ["s1", "s3"]
+            + (0 ..< 30).sorted { "\($0)" < "\($1)" }.map { "a\(String(format: "%02d", $0))" }
+        let title = try #require(table.tableColumns.first { $0.headerCell.stringValue == "TITLE" })
+        table.sortDescriptors = [try #require(title.sortDescriptorPrototype)]
+        await expectRowHeights(harness, "sorted", sources: byTitle, under: under("a21"))
+        for id in ["a01", "s1", "a03", "a00", "a01"] { await open(id, "sorted", byTitle) }
+
+        // Filtered, and the filter cleared.
+        let field = try #require(descendant(NSTextField.self, in: harness.host))
+        harness.window.makeFirstResponder(field)
+        let editor = try #require(harness.window.fieldEditor(false, for: field) as? NSTextView)
+        editor.insertText("Tail 1", replacementRange: NSRange(location: 0, length: 0))
+        let filtered = ["a01"] + (10 ..< 20).map { "a\($0)" }
+        await expectRowHeights(harness, "filtered", sources: filtered, under: under("a01"))
+        for id in ["a11", "a16", "a11"] { await open(id, "filtered", filtered) }
+        editor.selectAll(nil)
+        editor.insertText("", replacementRange: editor.selectedRange())
+        await expectRowHeights(harness, "filter cleared", sources: byTitle, under: under("a11"))
+
+        // Every row of the list, as it is drawn on the way down and back.
+        let frame = harness.scroll.contentView.bounds.height
+        for y in [0, 1, 2, 1, 0].map({ CGFloat($0) * frame }) {
+            harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: y))
+            harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+            await expectRowHeights(harness, "scrolled to \(y)", sources: byTitle, under: under("a11"))
+        }
     }
 
     @Test func aSelectedGraphRowIsSelectedInItsOpenSource() async throws {
@@ -182,21 +309,16 @@ struct SourcesOutlineHostedTests {
         #expect(harness.table.selectedRow == 5)
     }
 
-    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndScrollsTheGraphIntoView() async throws {
+    /// Where the viewport stands on Back is the Spike 16 PR that records a scroll offset in history
+    /// (AC-4.7 and AC-4.8 "in view", moved by the user, 2026-11-24).
+    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndSelectsTheGraph() async throws {
         // 15 Source rows above s1 push its graphs past the 760 pt window.
         let harness = try await makeHarness(extraSources: 15, anchor: "g1-7")
         #expect(await settle(harness, rows: 15 + 3 + 8))
         #expect(harness.session.openSourceID == "s1")
         let graphRow = 15 + 3 + 7
-        #expect(await waitUntil {
-            harness.host.layoutSubtreeIfNeeded()
-            return harness.table.selectedRow == graphRow
-                && harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow))
-        })
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == graphRow })
         #expect(harness.table.selectedRow == graphRow)
-        #expect(harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow)))
-        // Off screen before the reveal: the top of the list is not what is shown.
-        #expect(harness.scroll.contentView.bounds.minY > 0)
     }
 
     /// The page's one path for closing a Source (the triangle, the keys and the VoiceOver action

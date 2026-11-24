@@ -212,8 +212,8 @@ private struct SourcesListContent: View {
             .pvNativeListBehavior(
                 ids: outline.rows.map(\.id),
                 selection: selection,
-                // The table adds its cell padding to this: a graph row is 26 + 8 pt, the wheel's step.
-                minimumRowHeight: SourcesTable.graphRowHeight,
+                // A graph row's height, the wheel's step.
+                minimumRowHeight: SourcesTable.minimumRowHeight,
                 label: L10n.Workspace.sourcesTitle,
                 onActivate: { id in activate(id, outline: outline) },
                 menu: { id in
@@ -248,8 +248,12 @@ private struct SourcesListContent: View {
         case .expand(let id):
             outline.setOpen(id, selecting: selecting, session: session, navigation: navigation)
             // The Source above it may have closed: the rows moved, a turn later this one is in view.
+            // Once more when it has settled: rows drawn by the first scroll grow to their heights.
             openedSourceID = id
             openedRequest += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + PVNativeListBehavior<String>.settleDelay) {
+                if openedSourceID == id, session.openSourceID == id { openedRequest += 1 }
+            }
         case .collapse:
             outline.setOpen(nil, selecting: selecting, session: session, navigation: navigation)
         case .select(let id):
