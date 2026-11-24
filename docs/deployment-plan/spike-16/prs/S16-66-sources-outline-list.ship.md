@@ -1,0 +1,92 @@
+# Ship log — S16-66 The Sources list is a native outline list
+
+**Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
+**State:** fixing 1
+
+## Round 0 — implement
+Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
+Head `a09c2ac33`, PR #962 (draft). Report deviations: `SourcesListSettings` is `Hashable`; `SourcesModel.graphListError` new; `@MainActor` on `PVListPageArea` and `SourcesRowColumns`; the pre-handles fallback is the skeleton; `ZStack` count and status slots (not re-rendered); the STEP-4 `#Preview`s were not written; two catalog comments still say "button"; `%lld in progress` / `%lld promoted` given identical plural forms; STEPs 3–6 in one commit. Not checked by the implementer: triangle click, double-click, ink, menus as drawn, VoiceOver, skeleton and failure frames, Back edges, Scale stalls, resize.
+Gate (orchestrator) PASS on `a09c2ac33`: all nine checks.
+
+## Round 1 — review
+Reviewers: CON, MNT, UX, SEC+PRF (PRF for list code and `Features/Sources` models; SEC rides along). Skipped: none.
+
+| ID | Lens | Severity | Title | Decision | Evidence / reason |
+| --- | --- | --- | --- | --- | --- |
+| CON-1, UX-1 | CON, UX | blocker | The list takes focus from the search field when rows come back | Fix now → F-1 | verified: `PVListBody` claims on every `onAppear`; `content` unmounts it on no match and while waiting |
+| CON-2, UX-2 | CON, UX | blocker | Back loses the selected row while a status filter's counts load | To user → Fix now → F-2 | contradicts D-8's spelled `isSettled`; verified: `isAwaitingFilterData` not consulted. User, 2026-11-24: amend D-8 |
+| MNT-1 | MNT | blocker | The page's state is derived twice and the copies disagree | Fix now → F-3 | verified: `statusCountsError` wins before `isAwaitingGraphList` in `content`; `showsToolbar` is false then (AC-6.7). Also `content` gates failure on `sources.isEmpty`, `showsToolbar` on `loadError` |
+| CON-3 | CON | major | Back to a graph row has no end-to-end proof; a test is misnamed | Fix now → F-4 | verified: hosted tests set no anchor in a closed Source |
+| CON-4 | CON | major | STEP-4's `#Preview`s missing; page states untested | Fix now → F-5 | verified: no `#Preview` in either file |
+| PRF-1 | PRF | major | Each keystroke in Add Source re-runs the row builder for every row | Fix now → F-6 | verified: `SourcesListContent.body` reads `addSheetIsDirty`, `canSubmitAdd`; reviewer's probe about 26 ms at 3,000 rows, 61 ms at 12,000 |
+| MNT-2 | MNT | major | `graphRowLabel` repeats `spokenJoin` | Fix now → F-7 | same-pass cleanup, output identical; supersedes D-25's named function |
+| MNT-3 | MNT | major | A graph's counts are assembled in three places | Fix now → F-7 | same-pass cleanup; two of the copies are this PR's |
+| MNT-4 | MNT | major | Rows re-test `hasArtifact` beside `graphBlockedReason` | Fix now → F-7 | D-10 names the helper the one place the gate is read |
+| MNT-5 | MNT | major | `PVListRow` accessibility opt-out for one caller that re-applies the same | Fix now → F-8 | verified |
+| MNT-6 | MNT | major | Every row repeats the separator guides | Fix now → F-8 | same-pass cleanup; supersedes the place D-2 and D-12 put them, if the wrapper's guide draws |
+| CON-5, MNT-7 | CON, MNT | major | `add-ui-component` still states the bent menu rule | Fix now → F-9 | verified |
+| SEC-1, MNT-10 | SEC, MNT | minor | A graph's name is parsed as Markdown in the menu | Fix now → F-10 | verified by the reviewer's `_resolveText`. MNT-10's `verbatimTitle:` initializer Rejected: D-16 chose the resource; F-10 draws it verbatim for every menu |
+| PRF-2 | PRF | minor | ⌥-click close-all cost at Scale | Fix now (record) → F-9 | probe 324 / 250 ms at the map's 3,000 Sources: no visible stall at Scale; the numbers go in the Landed note, the user's §10 check stands |
+| UX-3 | UX | minor | Truncated titles and graph names cannot be read | Fix now → F-7 | verified; a tooltip is not a hover look (AC-1.7) |
+| CON-6, UX-4 | CON, UX | minor | Docs and comments describe the old list | Fix now → F-9 | verified by `rg` |
+| CON-7, UX-5 | CON, UX | minor | The pre-handles frame drops Add source | Fix now → F-3 | verified |
+| MNT-8, CON-8 | MNT, CON | minor | Placeholder id format written twice and parsed back | Fix now → F-7 | verified |
+| MNT-9 | MNT | minor | First-load page and column widths repeated | Fix now → F-3 | verified |
+| MNT-11 | MNT | minor | `SourcesOutline.swift` holds five jobs | Rejected | D-11 and D-16 place `SourcesRowColumns`, `secondaryParts` and `SourcesRowMenu` in that file |
+
+Nits (logged): `MNT-12 · WorkspaceNavigation.swift ListAnchor.settle · build on resolved(_:in:)` · `MNT-13 · SourcesListView.swift toggle · id never read` · `MNT-14 · SourcesOutlineRows.swift · icon slot and spacing literals repeat` · `MNT-15 · SourcesModel.swift:192 · isLoading unread by views` · `CON-9 · STEP-7 lines 3, 7, 8 say "not checked"`
+
+### Fix plan 1
+
+**F-1 — The list claims focus once per arrival, never from the search field** (CON-1, UX-1)
+Files: `PVListBody.swift`, `SourcesListView.swift`, `SourcesOutlineHostedTests.swift`. Skill: `add-ui-component`.
+Failing test first: `aReturningListLeavesTheSearchFieldFocused` (query to no match, then back to a match: the first responder is still the field's editor); and a second, `theListTakesFocusOnArrival` (AC-4.1, must pass before and after).
+Do: `PVListBody` gains `claimsFocus: Bool = true`, read in its `onAppear`; Conclusion lists unchanged. The Sources page passes false once its list has appeared, once the search field has been focused or once the settings changed (`PVInput` takes a `focused:` binding). Keep that state page-local, not on the kit's `FocusClaim`.
+Check: both pass; `PVListTests`, `PersonsListTests` pass.
+
+**F-2 — A selection waits for the filter's data** (CON-2, UX-2; amends D-8, user 2026-11-24)
+Files: `SourcesModel.swift`, `SourcesModelTests.swift`.
+Failing test first: `outlineWaitsForTheCountsAStatusFilterNeeds` — status filter set, Sources and graphs read, progress held: `isAwaitingFilterData` and `!outlineIsSettled` (hold the progress read through `FakeStore` so it cannot arrive).
+Do: `outlineIsSettled` also requires `!isAwaitingFilterData && statusCountsError == nil`. Record the amendment in the Landed note; do not edit D-8.
+Check: passes; Back to a row a filter hides still clears (AC-7.6).
+
+**F-3 — One state for the list area** (MNT-1, CON-7, UX-5, MNT-9)
+Files: `SourcesModel.swift`, `SourcesListView.swift`, `SourcesOutline.swift`, `SourcesModelTests.swift`.
+Failing test first: `statusFailureKeepsTheToolbar` — status filter set, graph list loading, progress failed: the state and its toolbar agree (the status failure shows with the toolbar, AC-6.7).
+Do: an enum `SourcesListState` (precedent `ConclusionListPresentation`) with the cases `failed`, `firstLoad`, `empty`, `statusFailed`, `waitingForFilter`, `noMatch`, `rows(graphsError:)` and `showsToolbar` on it. Built by one pure function; the model exposes it; `content` switches on it and the page reads `showsToolbar` from it. Order: whole-list failure with nothing to show; Sources list not read; empty catalog; status failure; graph list not read (no toolbar); filter data not in; no match; rows. Delete the model booleans nothing else reads. The pre-handles frame is the same page code (same `add:`, title, description, root) in `firstLoad`; `SourcesRowColumns.widths(isWide:)` replaces both dummy-closure `details(...)` calls and `details` uses the same constants.
+Check: a test table over AC-6.1, 6.2, 6.6 – 6.10 plus the case above; `rg -n 'typeLabel: \{ _ in "" \}' macos` prints nothing.
+
+**F-4 — Prove Back to a graph row** (CON-3)
+Files: `SourcesOutlineHostedTests.swift`.
+Tests: an anchor in a closed Source opens it and selects the graph; the same with the anchor set before the page is hosted (also that the row lies in the table's visible rect, with enough rows that it starts off screen); a graph selected then its Source closed through the page's path selects the Source (AC-2.5: ← twice does select-then-collapse, so drive the toggle; if the hosted harness cannot reach the triangle, expose the close through the row's accessibility action or ⌥-free `toggle` path and say which). Complete or rename `aSelectedGraphRowStaysSelectedAndClosingItsSourceSelectsTheSource`. If a Back test fails: fix within D-9, two tries, then stop (§11).
+Check: all pass.
+
+**F-5 — STEP-4's previews** (CON-4)
+Files: `SourcesOutlineRows.swift`, `SourcesListView.swift` (or beside them).
+Do: the `#Preview`s STEP-4 lists: rows (collapsed, expanded with 8 graphs, no Artifact, three count states, pending, one selected on accent with `\.backgroundProminence` `.increased`) at 1102 pt, and the page's states (counts failed; graph list failed with and without a status filter; whole-list failure). Render them to images through a hosted view once (not committed) and report what each looks like, especially the graph row's counts and status slots and "Needs an artifact to open". Fix the Landed note's line 6.
+Check: they compile with no warning; report the renders.
+
+**F-6 — Typing in Add Source leaves the list alone** (PRF-1)
+Files: `SourcesListView.swift`.
+Failing test first: none (a render count); say how it was checked.
+Do: move the Add Source `pvFormDialog` with `addForm`, its `task`, its `onChange(of: typesHandle.status)` and `addPresented` into a private `ViewModifier` taking `model` and `typesHandle`, so the body that builds the list reads no `model.draft`.
+Check: no read of `addSheetIsDirty`, `canSubmitAdd`, `draft` or `isSaving` in `SourcesListContent.body`.
+
+**F-7 — One copy of each row mechanism** (MNT-2, MNT-3, MNT-4, MNT-8, UX-3)
+Files: `SourcesOutlineRows.swift`, `SourcesOutline.swift`, `SourcePageGraphsView.swift`, `SourceGraphsSection.swift`, `WorkspaceSession+EvidenceGraphs.swift` (counts as an extension; keep layer order: if `SourcesGraphCounts` is a Feature type the extension lives beside it in `Features/Sources`), `L10n.swift`, `Localizable.xcstrings`, tests. Skill: `add-localized-string`.
+Do: `spokenJoin([name, counts, status ?? ""])` replaces `graphRowLabel` (delete it and both catalog keys); `graphCounts(graphID:) -> SourcesGraphCounts` on the session serves the summary, the graph row and `SourcePageGraphsView`, and `SourceGraphsSection`'s forwarders go if unread; `SourcesGraphRow` and `SourcesRowMenu` read `SourcesListNavigation.graphBlockedReason(for:)` once each for opens, help, hint and `isEnabled`; `selectionAfterCollapsing` finds the row with `row(id:)` and its `source`, no id parsing (tests use drawn ids); `.help(title)` on the Source title, `.help(name)` on the graph name, the counts slot keeps the reason's help.
+Check: `rg -n "graphRowLabel" macos` nothing; `rg -n '"#graphs"|#graphs' macos/App --glob '*.swift'` one code line (doc comments aside); `rg -n "graphNeedsArtifactTooltip" macos/App/Features` only the helper; `rg -n "SourcesGraphCounts\(progress" macos/App` only the extension, `SourceMoveDialog` and `SourcesModel` (or fewer).
+
+**F-8 — The kit row and body own accessibility and separators once** (MNT-5, MNT-6)
+Files: `PVList.swift`, `PVListBody.swift`, `SourcesOutlineRows.swift`, `macos/App/DesignSystem/README.md`. Skill: `add-ui-component`.
+Do: `PVListRow`'s label is non-optional, `PVListRowAccessibility` goes, the Source row passes its label and identifier and appends `SourcesExpandedState`. `PVListBodyRow` sets both separator guides from `leadingHang`; rows drop theirs. Check in a hosted render that the rules still run gutter to gutter on Persons and Sources; if the wrapper's guide does not draw, restore the rows' guides and report MNT-6 as not possible with the render.
+Check: `rg -n "listRowSeparatorLeading" macos/App` only `PVListBody.swift`; `PVListTests` pass.
+
+**F-9 — Docs and comments** (CON-5, MNT-7, CON-6, UX-4, PRF-2)
+Files: `.agents/skills/add-ui-component/SKILL.md:95`, `PVActionMenu.swift` header, `docs/macos-client-patterns.md` (List → detail row: drop the Sources list's columns from the centred clause, they are at `fullPane` now), `WorkspaceNavigation.swift` (`listAnchor`, `noteListAnchor` comments), `L10n.swift` 5344, 5501, 6453, 11251 and their catalog comments ("graph button" → "graph row"; not 6655), the plan's Landed note (PRF-2's numbers, F-2's amendment, MNT-2 and MNT-6 superseding D-25 / D-2 / D-12, the previews).
+Check: `rg -n "Sources list graph button" macos` prints nothing.
+
+**F-10 — A menu title is drawn verbatim** (SEC-1)
+Files: `PVListBody.swift`, a test in `PVListTests.swift` if reachable.
+Do: in `menuContent`, `Button { entry.action() } label: { Text(verbatim: L10n.string(entry.title)) }`.
+Check: a graph named `**a**` keeps its asterisks (test the string path if the menu cannot be hosted).
