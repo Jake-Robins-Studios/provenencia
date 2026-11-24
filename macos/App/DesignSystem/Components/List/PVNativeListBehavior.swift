@@ -79,8 +79,9 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
         guard let requested = selection.wrappedValue else { return }
         selectionRequest += 1
         let binding = selection
+        let rows = ids
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.settleDelay) {
-            guard binding.wrappedValue == requested else { return }
+            guard binding.wrappedValue == requested, rows.contains(requested) else { return }
             selectionRequest += 1
         }
     }

@@ -40,6 +40,10 @@ struct SourcesTableWidths: Equatable {
     static let tableInsets: CGFloat = 49
     static let titleMinimum: CGFloat = 240
 
+    private typealias Columns = (
+        evidence: CGFloat, status: CGFloat, type: CGFloat, published: CGFloat, added: CGFloat, updated: CGFloat
+    )
+
     let evidence: CGFloat
     let status: CGFloat
     let type: CGFloat
@@ -53,14 +57,17 @@ struct SourcesTableWidths: Equatable {
     /// `tableWidth` is the table's own width, inside the page's padding (`SourcesTable`). Type shows at
     /// Wide only.
     init(isWide: Bool, tableWidth: CGFloat) {
-        let widths: [CGFloat] = isWide ? [240, 140, 220, 160, 120, 120] : [168, 128, 220, 96, 98, 98]
-        evidence = widths[0]
-        status = widths[1]
-        type = widths[2]
-        published = widths[3]
-        added = widths[4]
-        updated = widths[5]
-        let shown = isWide ? widths : widths.enumerated().filter { $0.offset != 2 }.map(\.element)
+        let widths: Columns = isWide
+            ? (evidence: 240, status: 140, type: 220, published: 160, added: 120, updated: 120)
+            : (evidence: 168, status: 128, type: 220, published: 96, added: 98, updated: 98)
+        evidence = widths.evidence
+        status = widths.status
+        type = widths.type
+        published = widths.published
+        added = widths.added
+        updated = widths.updated
+        var shown = [widths.evidence, widths.status, widths.published, widths.added, widths.updated]
+        if isWide { shown.append(widths.type) }
         let others = shown.reduce(0, +) + Self.columnGap * CGFloat(shown.count) + Self.tableInsets
         titleMaximum = max(Self.titleMinimum, tableWidth - others)
     }
@@ -91,6 +98,8 @@ struct SourcesTable: View {
 
     @State private var columns: TableColumnCustomization<SourcesTableItem>
 
+    /// The Type column's customization id: it shows at Wide only.
+    static let typeColumnID = "type"
     static let sourceRowHeight: CGFloat = 58
     static let graphRowHeight: CGFloat = 26
     static let triangleWidth: CGFloat = 16
@@ -118,7 +127,7 @@ struct SourcesTable: View {
         self.isLoading = isLoading
         // The hidden column's width stays out of the first layout when the state starts right.
         var columns = TableColumnCustomization<SourcesTableItem>()
-        columns[visibility: "type"] = isWide ? .visible : .hidden
+        columns[visibility: Self.typeColumnID] = isWide ? .visible : .hidden
         _columns = State(initialValue: columns)
     }
 
@@ -170,7 +179,7 @@ struct SourcesTable: View {
                 typeCell(item)
             }
             .width(widths.type)
-            .customizationID("type")
+            .customizationID(Self.typeColumnID)
             .disabledCustomizationBehavior(.all)
 
             TableColumn(
@@ -206,7 +215,7 @@ struct SourcesTable: View {
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }
         .onChange(of: isWide) { _, wide in
-            columns[visibility: "type"] = wide ? .visible : .hidden
+            columns[visibility: Self.typeColumnID] = wide ? .visible : .hidden
         }
         .scrollDisabled(isLoading)
         .allowsHitTesting(!isLoading)

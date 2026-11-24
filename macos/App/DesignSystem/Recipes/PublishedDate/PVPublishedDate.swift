@@ -2,8 +2,8 @@ import SwiftUI
 
 /// A Source's published date on a row: the Sources table's Published column and the Person page's Sources
 /// section. Reads the date alone, or "Undated" in faint italics; the text is `SourceDateText`. Its ink goes
-/// through `PVColor.onSelection`, so a selected row draws it on the system bar. `detail` gives the same
-/// words to a `PVList` column.
+/// through `PVColor.onSelection`, so a selected row draws it on the system bar. `detail` is the words and
+/// hover text it draws.
 struct PVPublishedDate: View {
     let date: CatalogDateValueInput?
 

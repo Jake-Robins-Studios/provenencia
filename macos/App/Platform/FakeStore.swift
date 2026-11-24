@@ -785,10 +785,10 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         return (enrichCoverFields(list[idx]), nextWriteEffects)
     }
 
-    /// The engine's answer for a deleted Source.
     /// The create time `insertSource` gives a Source that has none, as the engine reads it back.
     static let createdAtStamp = "2026-11-24T10:00:00Z"
 
+    /// The engine's answer for a deleted Source.
     static let sourceNotFound: Error = CoreInvokeError.coded(
         status: 1, code: "sources.not_found", kind: .notFound, params: []
     )

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// How an Evidence graph's status is drawn: the badge a Sources list graph row carries.
+/// How an Evidence status is drawn: the badge in the Sources table's Status column, on a Source row and
+/// on a graph row.
 extension SourcesModel.EvidenceStatus {
     var badgeTone: PVBadgeTone {
         switch self {

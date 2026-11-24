@@ -16,11 +16,11 @@ extension PVListDetail {
     }
 }
 
-/// The last-updated cell of a list row, shared by the Conclusion lists (S10-22)
-/// and the Sources list (its updated column):
-/// the history icon and the relative time with the full stamp as help, a faint
-/// dash when no time is recorded, and the spoken suffix of the row label.
-/// `PVListDetailCell` draws it. `now` is read as each row builds (no timer).
+/// The last-updated cell of a Conclusion list row (S10-22): the history icon and
+/// the relative time with the full stamp as help, a faint dash when no time is
+/// recorded, and the spoken suffix of the row label. `PVListDetailCell` draws
+/// it. `now` is read as each row builds (no timer). The Sources table's
+/// Updated cell draws `PVListDetail.relative` with no icon and reads `spoken`.
 enum PVLastUpdated {
     /// Width of the column, icon included. Layout, not formatting.
     static let columnWidth: CGFloat = 136

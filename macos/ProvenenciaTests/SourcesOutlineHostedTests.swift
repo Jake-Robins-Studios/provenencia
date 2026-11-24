@@ -149,7 +149,7 @@ struct SourcesOutlineHostedTests {
         #expect(harness.navigation.listAnchor == nil)
     }
 
-    @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsOneGraphRow() async throws {
+    @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsTheGraphRowsContentHeight() async throws {
         let harness = try await makeHarness()
         harness.session.setOpenSource("s1")
         #expect(await settle(harness, rows: 11))

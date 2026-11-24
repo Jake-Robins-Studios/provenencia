@@ -134,7 +134,7 @@ private struct SourcesListContent: View {
         .onChange(of: model.settings) { _, _ in
             listLeavesFocusAlone = true
             // A sort or filter change clears the selection and puts the list at its top; the open
-            // Sources stay open.
+            // Source stays open.
             navigation.go(to: navigation.currentLocation.withListScrollAnchor(nil))
         }
         .accessibilityIdentifier("sources")
