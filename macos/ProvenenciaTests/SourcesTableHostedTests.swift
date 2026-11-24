@@ -138,9 +138,10 @@ struct SourcesTableHostedTests {
         #expect(table.selectedRow == 1)
 
         await resize(harness, to: 800)
-        let narrow = shown(table)
-        #expect(narrow.first?.title == "TITLE")
-        #expect(abs((narrow.first?.width ?? 0) - 240) <= 1)
+        // Type is hidden below Wide; every other column keeps its width and the table scrolls sideways.
+        expect(shown(table), [
+            ("TITLE", 240), ("EVIDENCE", 168), ("STATUS", 128), ("PUBLISHED", 96), ("ADDED", 98), ("UPDATED", 98),
+        ])
         #expect(overflowsSideways(table))
         #expect(descendant(NSTableView.self, in: harness.host) === table)
     }

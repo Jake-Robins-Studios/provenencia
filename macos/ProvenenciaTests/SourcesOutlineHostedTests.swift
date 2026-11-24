@@ -10,6 +10,20 @@ import Testing
 struct SourcesOutlineHostedTests {
     private let projectDir = "/tmp/outline-hosted.provenencia"
 
+    @MainActor @Observable
+    final class PaneWidth { var value: CGFloat = 1102 }
+
+    /// The page at a pane width a test changes: the width class follows it, as the workspace's pane does.
+    private struct ResizingPane: View {
+        let pane: PaneWidth
+        let content: (PVWidthClass) -> AnyView
+
+        var body: some View {
+            content(PVWidthClass(paneWidth: pane.value))
+                .frame(width: pane.value, height: 760)
+        }
+    }
+
     private struct Harness {
         let window: NSWindow
         let host: NSHostingView<AnyView>
@@ -26,7 +40,8 @@ struct SourcesOutlineHostedTests {
 
     private func makeHarness(
         width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, tailSources: Int = 0, anchor: String? = nil,
-        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }, withHistory: Bool = false
+        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }, withHistory: Bool = false,
+        pane: PaneWidth? = nil
     ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
@@ -77,17 +92,29 @@ struct SourcesOutlineHostedTests {
             )
         }
         if let anchor { navigation.noteListAnchor(anchor) }
-        let view = AnyView(
-            SourcesListView(
-                session: session, userID: "00000000-0000-7000-8000-000000000001",
-                projectUuid: UUID().uuidString, store: store
+        let page: (PVWidthClass) -> AnyView = { widthClass in
+            AnyView(
+                SourcesListView(
+                    session: session, userID: "00000000-0000-7000-8000-000000000001",
+                    projectUuid: UUID().uuidString, store: store
+                )
+                .environment(session)
+                .environment(navigation)
+                .environment(\.pvWidthClass, widthClass)
+                .environment(\.sourcesCurrentEvent, SourcesEventSource(currentEvent))
             )
-            .environment(session)
-            .environment(navigation)
-            .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
-            .environment(\.sourcesCurrentEvent, SourcesEventSource(currentEvent))
-        )
-        let (window, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: width, height: 760))
+        }
+        let view: AnyView
+        let windowSize: CGSize
+        if let pane {
+            pane.value = width
+            view = AnyView(ResizingPane(pane: pane, content: page))
+            windowSize = CGSize(width: 2400, height: 760)
+        } else {
+            view = page(PVWidthClass(paneWidth: width))
+            windowSize = CGSize(width: width, height: 760)
+        }
+        let (window, host) = hostInBorderlessWindow(view, windowSize: windowSize)
         host.layoutSubtreeIfNeeded()
         var table: NSTableView?
         // The skeleton table has rows too: the loaded one is the one with this many.
@@ -221,6 +248,35 @@ struct SourcesOutlineHostedTests {
             return harness.scroll.documentVisibleRect.contains(rect)
         })
         #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: row)))
+    }
+
+    /// F-8 (CON-6): across the Wide breakpoint and back, with a Source open and a row selected mid-list,
+    /// the platform keeps the scroll position (within a row), the keyboard, the selection and the open Source.
+    @Test func resizingAcrossTheWideBreakpointKeepsTheScrollTheSelectionAndTheOpenSource() async throws {
+        let pane = PaneWidth()
+        let harness = try await makeHarness(expanded: ["s1"], extraSources: 15, pane: pane)
+        #expect(await settle(harness, rows: 15 + 3 + 8))
+        // Newest first: x14 ... x00 are rows 0 to 14; x07 is row 7.
+        harness.navigation.noteListAnchor("x07")
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 7 })
+        harness.window.makeFirstResponder(harness.table)
+        harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: 300))
+        harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+        try? await Task.sleep(for: .milliseconds(300))
+        let before = harness.scroll.contentView.bounds.minY
+        #expect(before == 300)
+
+        for width in [1800, 1102] as [CGFloat] {
+            pane.value = width
+            try? await Task.sleep(for: .milliseconds(400))
+            harness.host.layoutSubtreeIfNeeded()
+            #expect(abs(harness.scroll.contentView.bounds.minY - before) <= SourcesTable.sourceRowHeight + 8, "scroll at \(width)")
+            #expect(harness.table.selectedRow == 7, "selection at \(width)")
+            #expect(harness.navigation.listAnchor == "x07")
+            #expect(harness.session.openSourceID == "s1")
+            #expect(holder(harness) == "table", "keyboard at \(width)")
+        }
+        #expect(descendant(NSTableView.self, in: harness.host) === harness.table)
     }
 
     private func keyEvent(_ key: Int, in window: NSWindow) -> NSEvent {

@@ -131,14 +131,14 @@ struct SourcesOutline {
     /// What a plain click does when it moves the selection to `new`: the click (a left press with no
     /// modifier, not the keyboard, Back, a reveal, a right-click or a menu) not on a triangle (the button
     /// toggles it itself) and landing on a Source row that is not the open one. A Source with a triangle
-    /// opens (and the open one closes); one with none closes the open one. A graph, the selected row, a
-    /// Source already open and anything else do nothing.
+    /// opens (and the open one closes); one with none closes the open one, unless it is the open one itself.
+    /// A graph, the selected row, a Source already open and anything else do nothing.
     func clickAction(selecting new: String?, from old: String?, isPlainClick: Bool, onTriangle: Bool) -> SourcesOutlineAction {
         guard isPlainClick, !onTriangle, let new, new != old,
               let row = row(id: new), case .source(let source, let disclosure) = row.kind,
               disclosure != .expanded else { return .ignore }
         if disclosure == .collapsed { return .expand(source.id) }
-        guard let open else { return .ignore }
+        guard let open, open != source.id else { return .ignore }
         return .collapse(open)
     }
 

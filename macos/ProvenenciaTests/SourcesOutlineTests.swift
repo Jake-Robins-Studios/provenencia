@@ -169,6 +169,19 @@ struct SourcesOutlineTests {
         #expect(action(closed, "missing") == .ignore)
     }
 
+    /// F-8 (CON-5): the open Source that has no triangle (its graph read failed, say) stays open when it
+    /// is clicked: closing "the open one" would close the very Source clicked.
+    @Test func clickingTheOpenSourceWithNoTriangleLeavesItOpen() {
+        let open = outline(open: "s3")
+        #expect(disclosure(open, "s3") == SourcesDisclosure.none)
+        #expect(open.clickAction(selecting: "s3", from: "s1", isPlainClick: true, onTriangle: false) == .ignore)
+        // Another Source with no triangle still closes it.
+        let other = SourcesOutline(
+            sources: [s1, s3, source("s4", artifact: false)], graphs: reads([:]), open: "s3"
+        )
+        #expect(other.clickAction(selecting: "s4", from: "s1", isPlainClick: true, onTriangle: false) == .collapse("s3"))
+    }
+
     @Test func onlyAnUnmodifiedLeftPressOrReleaseIsAPlainClick() {
         func plain(_ type: NSEvent.EventType?, _ modifiers: NSEvent.ModifierFlags = [], age: TimeInterval = 0) -> Bool {
             SourcesOutline.isPlainLeftClick(type: type, modifiers: modifiers, age: age)
