@@ -334,7 +334,7 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 Use a project with a **Census** Source "1880 census, Calder County" holding Provider "Ancestry" and a URL, with at least one Artifact and one Evidence graph that hold no Provider. The app cannot mark a value unknown or supplied until S15-41, so AC-1.5 is covered by T-2, T-3 and T-7, not here.
 
 1. Open the Source; open an Artifact's sheet. Provider reads "Ancestry", "From Source"; the URL row's link opens the Source's URL (AC-1.1, AC-1.6).
-2. Click Provider's pencil ("Override Provider"): an empty editor with "Overrides Source: Ancestry" under it; Escape closes it and the sheet stays. Type "FamilySearch", Return, Save. Reopen: Provider is "FamilySearch" with "Overrides Source: Ancestry". Open the provenance sheet of a Citation on that Artifact: the citation reads FamilySearch (AC-2.1, AC-2.2).
+2. Click Provider's pencil ("Override Provider"): an empty editor with "Overrides Source: Ancestry" under it; Escape closes it and the sheet stays. Type "FamilySearch", Save. Reopen: Provider is "FamilySearch" with "Overrides Source: Ancestry". Open the provenance sheet of a Citation on that Artifact: the citation reads FamilySearch (AC-2.1, AC-2.2).
 3. Trash Provider: the row shows "Ancestry", "From Source" again; Save; reopen: still inherited (AC-2.3).
 4. Add an Artifact: Provider reads "Ancestry", "From Source" before anything is typed; Cancel (AC-1.2).
 5. Open a graph's form, then Add graph: Provider inherited in both (AC-1.3).
@@ -370,6 +370,11 @@ None.
 - `metadataOverrides` and `metadataInheritedAccessibility` use numbered placeholders (`%1$@: %2$@`) because `check-localizable-xcstrings.py` requires it for several arguments; the wording is the board's.
 - T-2's dismissed-suggestion case dismisses `schedule` (valued on the Source), not Provider: Provider is a needed head under T-2's formats, and a needed field cannot be dismissed.
 - T-12: 1,906,144 ns/op on an Apple M1 (about 1.9 ms; budget 100 ms). The benchmark looks the census type up with `sourcetypes.Lookup` because `seededType` stays a `*testing.T` helper.
+- Fix round 1: the override editor is `MetadataBoardTextEditor`, the saved row's, with the caller's display, trailing control and start text; the inherited row is its own `MetadataBoardInheritedRow`, and `MetadataBoardSuggestionRow` is the quick-add row only. Return is a newline in the override editor, as in saved rows, so IH-2 and § 10 step 2 say Save only.
+- Departs from D-8's signature: `MetadataValueText` takes no `isURL`; a non-nil `openURL` is the one link test (Go sets it only for a url value).
+- VoiceOver: the inherited value's label is "Provider, Inherited from Source: Ancestry" (`metadataInheritedAccessibility(field:level:value:)`), the row's visible label is hidden from VoiceOver, and the hint sits on the pencil through `PVInlineEdit.editHint`.
+- Replaces § 6 "Untrusted size": `Display` is bounded by `citationformat.MaxDisplayBytes` (4,096 bytes, unknown text included, a supplied value keeping its brackets), not `MaxRenderedBytes`; `printed` and `Display` share one `shown` step; `inheritedProto` sends no `open_href` longer than that. T-3's long-text row checks that limit.
+- The Overrides caption is limited to two lines, tail truncated, the whole text on hover.
 - **The board was not opened and § 10 was not run.** The row follows D-11, D-12 and the brief as written; the Swift tests check the models and the draft host, not the drawn row.
 
 ## 13. PR

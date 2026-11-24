@@ -47,6 +47,8 @@ struct PVInlineEdit<Display: View, Editor: View, RestingTrailing: View, EditingT
     var saveLabel: LocalizedStringResource
     var cancelLabel: LocalizedStringResource
     var editLabel: any PVCopy
+    /// VoiceOver hint spoken after the resting pencil's label; none by default.
+    var editHint: LocalizedStringResource? = nil
     var saveDisabled: Bool = false
     /// When false, the resting pencil is omitted (caller hosts Edit elsewhere).
     var showsEditControl: Bool = true
@@ -89,6 +91,7 @@ struct PVInlineEdit<Display: View, Editor: View, RestingTrailing: View, EditingT
                 .modifier(PVInlineEditContentFlex(expands: expandsContent))
             if showsEditControl {
                 PVIconButton(.penLine, label: editLabel, size: .sm, action: onEdit)
+                    .accessibilityHint(editHint.map { L10n.string($0) } ?? "")
                     .padding(.top, restingAlignment.editControlTopPadding)
                     .accessibilityIdentifier(prefixed("edit"))
             }
@@ -179,6 +182,7 @@ extension PVInlineEdit where RestingTrailing == EmptyView, EditingTrailing == Em
         saveLabel: LocalizedStringResource,
         cancelLabel: LocalizedStringResource,
         editLabel: any PVCopy,
+        editHint: LocalizedStringResource? = nil,
         saveDisabled: Bool = false,
         showsEditControl: Bool = true,
         expandsContent: Bool = true,
@@ -199,6 +203,7 @@ extension PVInlineEdit where RestingTrailing == EmptyView, EditingTrailing == Em
             saveLabel: saveLabel,
             cancelLabel: cancelLabel,
             editLabel: editLabel,
+            editHint: editHint,
             saveDisabled: saveDisabled,
             showsEditControl: showsEditControl,
             expandsContent: expandsContent,

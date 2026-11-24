@@ -8843,19 +8843,19 @@
       }
     },
     "sources.page.metadataInheritedAccessibility": {
-      "comment": "VoiceOver value of a metadata row that shows the value its owner inherits; arguments are the level that holds it and the value",
+      "comment": "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value and the value",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inherited from %1$@: %2$@"
+            "value": "%1$@, Inherited from %2$@: %3$@"
           }
         }
       }
     },
     "sources.page.metadataInheritedHint": {
-      "comment": "VoiceOver hint on an inherited metadata value",
+      "comment": "VoiceOver hint on the pencil of a metadata row that shows an inherited value",
       "extractionState": "manual",
       "localizations": {
         "en": {

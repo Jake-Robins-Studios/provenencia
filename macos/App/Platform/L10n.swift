@@ -5868,19 +5868,19 @@ enum L10n {
             ), level)
         }
 
-        /// Spoken value of an inherited row. Arguments are the level and the value.
-        static func metadataInheritedAccessibility(level: String, value: String) -> String {
+        /// Spoken label of an inherited row's value. Arguments are the field label, the level and the value.
+        static func metadataInheritedAccessibility(field: String, level: String, value: String) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.page.metadataInheritedAccessibility",
-                defaultValue: "Inherited from %1$@: %2$@",
-                comment: "VoiceOver value of a metadata row that shows the value its owner inherits; arguments are the level that holds it and the value"
-            ), level, value)
+                defaultValue: "%1$@, Inherited from %2$@: %3$@",
+                comment: "VoiceOver label of a metadata row's value that its owner inherits; arguments are the field label, the level that holds the value and the value"
+            ), field, level, value)
         }
 
         static let metadataInheritedHint = LocalizedStringResource(
             "sources.page.metadataInheritedHint",
             defaultValue: "Opens a field to type a value that overrides it",
-            comment: "VoiceOver hint on an inherited metadata value"
+            comment: "VoiceOver hint on the pencil of a metadata row that shows an inherited value"
         )
 
         /// Caption under a value that overrides an inherited one. Arguments are the level and the value.
