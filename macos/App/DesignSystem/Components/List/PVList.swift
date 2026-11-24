@@ -223,8 +223,8 @@ struct PVListDetail {
 
 /// One cell of a `PVList` detail column, framed to its column width. A `nil`
 /// detail leaves the cell empty at the same width. A `nil` width hugs the
-/// content; a width truncates the text with a tail ellipsis. Rows that are not
-/// a `PVList` row (the Sources list row's second line) draw the same cell.
+/// content; a width truncates the text with a tail ellipsis. `PVListRow` draws one
+/// per detail column.
 struct PVListDetailCell: View {
     let detail: PVListDetail?
     let width: CGFloat?

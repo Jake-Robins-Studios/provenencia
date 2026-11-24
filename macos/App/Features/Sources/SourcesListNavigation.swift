@@ -36,7 +36,7 @@ enum SourcesListNavigation {
     }
 
     /// One graph's canvas, whether or not it links an Artifact: what the Sources
-    /// list's graph button and an omnibar graph hit both open. The location
+    /// list's graph row and an omnibar graph hit both open. The location
     /// carries the Source's ref and title, as Go's `deleteimpact.graphLocation` does.
     static func canvasLocation(for source: CatalogSource, graph: CatalogEvidenceGraph) -> WorkspaceLocation {
         canvasLocation(

@@ -31,7 +31,7 @@ Authoritative behavior: [`docs/deployment-plan/archive/spike-3/navigation-histor
 | List → detail page (Source-style) | **Yes** — deep id on the location |
 | Master–detail row select (fields pattern) | **Yes** — selection is a place |
 | Omnibar / breadcrumb / cross-link → a place | **Yes** — call `go(to:)` |
-| Search query, scroll, focus, dirty drafts | **No** — UI ephemera, omit, except a record page's section anchor (the row it opened another place from; Step 5) and a list's anchor row in `listScrollAnchor`: its top row on Sources and Source types (through `ListScrollAnchorModifier`), its selected row on the Conclusion lists (through `ListSelectionAnchorModifier`; `WorkspaceNavigation.listAnchor` is the selection) |
+| Search query, scroll, focus, dirty drafts | **No** — UI ephemera, omit, except a record page's section anchor (the row it opened another place from; Step 5) and a list's anchor row in `listScrollAnchor`: its top row on the Source types list (through `ListScrollAnchorModifier`), its selected row on the Conclusion lists and the Sources list (through `ListSelectionAnchorModifier`; the Sources list passes `reveal`, which opens the closed Source that holds a graph row; `WorkspaceNavigation.listAnchor` is the selection) |
 | Modal/sheet that is not a restoreable place | **No** — unless product says Back should return into it |
 
 ## Checklist

@@ -5373,7 +5373,7 @@ enum L10n {
 
         /// How a graph that has not started reads: in words ("0 subjects · not
         /// started", the Source page's card) or as zero counts (the Sources list's
-        /// graph button, whose badge says "not started").
+        /// graph row, whose badge says "not started").
         enum NotStartedReading {
             case words
             case zeroCounts

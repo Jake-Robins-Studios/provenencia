@@ -1,7 +1,7 @@
 import Foundation
 
 /// What an Evidence graph's counts show: not arrived yet, failed to arrive, no
-/// Subjects yet, or Subject and Observation counts. The graph button, its help, the
+/// Subjects yet, or Subject and Observation counts. The graph row, its help, the
 /// Source page's count line and VoiceOver all read this one value;
 /// `L10n.Sources.graphCounts` formats it.
 enum SourcesGraphCounts: Equatable {
