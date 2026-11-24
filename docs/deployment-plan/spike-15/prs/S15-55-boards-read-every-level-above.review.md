@@ -1,6 +1,6 @@
 # Review — S15-55 Boards read every level above
 
-**Verdict:** (pending round 2)
+**Verdict:** Fits with changes — Ready with changes (all fixed)
 **Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet)
 
 ## To user
@@ -8,7 +8,8 @@
 
 ## Writer's own calls
 - D-6: a draft's parents may come in any order; they must share one Source; the read does not check the graph–Artifact link (D-7), which the Citation create already refuses.
-- D-9: Swift's `getDraftMetadataBoard` takes `parents` in this PR (M-4), so the map row's scope now reads "Go, and Swift's draft-board store call". No view changes.
+- D-9: Swift's `getDraftMetadataBoard` takes `parents` in this PR (M-4), so the map row and scope entry now read "Go, and Swift's draft-board store call". No view changes. `FakeStore` keys drafts by sorted parent ids.
+- The map's scope entry Check names `{meta.line_number}` instead of `{meta.page}`: `page` is not seeded until S15-60.
 - D-10: the render's owners come from `OwnersAbove`; its reads do not change.
 - Version 0.40.0 (minor: a wire field changes).
 
@@ -55,10 +56,37 @@
 ### X-7 · nit · "before any query" holds for shape checks only
 **Answer:** Fixed — D-6 says "Shape checks, before any query".
 
+## Round 2
+
+Both reviewers found every round-1 answer sound (M-6's decline included).
+
+### M-7 · blocker · The draft board works out its ancestors a second way, and `boardSpec` repeats `ownerAbove`
+**Answer:** Fixed — D-3, D-6, Codebase fit: `boardSpec` is gone; `buildBoards` takes `[]ownerAbove`, and a draft is an `ownerAbove` with a nil owner ID and the parents as its up ids, so its ancestors come from `OwnersAbove`. The below-bar note on `FakeStore`'s key is taken too (D-9: sorted parent ids).
+
+### X-8 · blocker · STEP-5 cannot run without the proto toolchain
+**Answer:** Fixed — STEP-5 says to stop after STEP-4 when `generate-proto.sh` exits for a missing tool or off macOS, and what to hand over.
+
+### X-9 · major · The "before" benchmark is never taken
+**Answer:** Fixed — STEP-2's check runs it with `CGO_ENABLED=1 -count 5`; STEP-3 compares medians; the stop condition says medians.
+
+### X-10 · major · The sweep cannot come out clean
+**Answer:** Fixed — the DoD lists the hits to change and the hits that stay.
+
+### X-11 · major · No step updates the map's scope entry
+**Answer:** Fixed — the scope entry's Ships, Check and Context lines were rewritten with this plan; STEP-7 says only the row status changes.
+
+### X-12 · minor · Choices left to the implementer
+**Answer:** Fixed — D-2: `readAbove` is `ErrInvalid` on a missing row for every caller; D-3: `buildBoards` returns boards in input order and `listWorkspaces` keys them back; T-6 names the compared fields; T-1 names both levels in the error; T-8 reads the type id and uses a fresh fixture; T-7 gives the table's row type; D-9 spells out the stub.
+
+### X-13 · minor · The risk guard did not guard the draft read
+**Answer:** Fixed — §11 names `TestListDraftWorkspaceInherited`, `TestGetDraftMetadataBoard` and T-6.
+
 ## Cost
-Plan: 5,345 words at round 1, 5,954 after the round-1 fixes (check-plan-docs info line).
+Plan: 5,345 words at round 1, 6,135 at the verdict (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 157k |
 | 1 | executability | sonnet | — |
+| 2 | maintainability | opus | — |
+| 2 | executability | sonnet | — |
