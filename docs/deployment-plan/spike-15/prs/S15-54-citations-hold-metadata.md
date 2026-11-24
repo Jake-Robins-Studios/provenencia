@@ -1,6 +1,6 @@
 # S15-54 — Citations hold metadata
 
-**Status:** Planned
+**Status:** Landed in [#965](https://github.com/Jake-Robins-Studios/provenencia/pull/965) (2026-11-24)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: no view draws a Citation board until S15-56; the field delete notice gains one heading string, drawn by its existing group row, as S15-08 added its two without a brief)
@@ -403,6 +403,15 @@ No view changes, so the check is the field delete notice and the engine tests.
 ## 12. Open questions
 
 None.
+
+## Landed
+
+- The migration is `000070.sql`, as planned. The version is 0.39.0 (`main` was 0.38.0 when the branch was cut).
+- STEP-1 and STEP-2 are one commit: the shipped Citation entry is what `TestSourcePath` and `TestSourcePathIn` now read, and the readers' `Ups` change does not build alone with the old fixtures.
+- T-11's cases are three new test functions (`TestCreateCitationWithObservationsMetadata`, `TestUpdateCitationMetadata`) beside the existing ones, not subtests inside them. `TestMetadataOwners` keeps `"citation id that names no Citation"`, and `TestListByOwnersTx` and `TestReadDraftsTx` ask for `ErrInvalid` on a 15-byte Citation id (a 16-byte id that names no Citation reads as an empty owner there, as an Artifact's does).
+- T-15 is split: `TestImpactMetadataFieldHolders` gains the Citation in its all-levels case (four groups, Citation last) and `TestImpactMetadataFieldHeldByCitation` *(new)* holds the Citation-alone case.
+- The Definition of done's sweep `rg 'the Evidence graph, then the Artifact'` matches the new, correct "the Citation, then the Evidence graph, then the Artifact, then the Source" in `docs/citation-formats.md`, the map § 6.3 and `vocabkey.go`; no stale hit remains. The map's "names the three levels" sentence for an unprefixed `{meta.key}` was stale since S15-62 and is deleted, and its other "three levels" lines now say every level.
+- The sweep of `.Up` finds no hit. The manual check (section 10 steps 2 and 3, in the app) was not run by the implementer.
 
 ## 13. PR
 
