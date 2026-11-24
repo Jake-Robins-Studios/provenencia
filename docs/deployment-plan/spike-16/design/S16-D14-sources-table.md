@@ -4,7 +4,7 @@
 **Spike:** Provenencia Spike 16 (odds and ends), batch 6
 **View:** the Sources list (header, toolbar, table)
 **Implements later as:** PR **S16-71** (The Sources list is a native table)
-**Board:** —
+**Board:** [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page *S2-04 Sources list*, frames T1a–T6. The user picked TB-7 **(a)** (Published is a column at Regular too) and TB-W1 **(a)** (the table fills the pane). The board decides: every status badge is one width, 126 pt, its icon and label leading; on a focused selection Not started draws its outline and text in the on-selection ink; the sorted header is one step brighter (`textSecondary`); the header shows over skeleton rows drawn in their columns; Evidence reads a faint `—` while the graph list has failed; the Status minimum is 126. Column edges are not draggable: the widths are fixed per width class (user, 2026-11-24)
 **Depends on:** S16-66 ([#962](https://github.com/Jake-Robins-Studios/provenencia/pull/962)): the outline, its open state, its menus and its page states
 **Related:** [S16-D12](archive/S16-D12-sources-list-outline.md) (the frames this replaces); [S16-D13](archive/S16-D13-conclusion-lists-native.md) (the native lists); the code spike on branch `spike/sources-table` (2026-11-24, local), which the user tried and liked
 **Rules this brief bends:** none. [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3 is judged on TB-W1
@@ -116,7 +116,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 | Rules | A system hairline under **every** row, from that row's title edge to the table's right. They cannot be left out between graph rows |
 | Background | `surfaceCard`. No stripes, hover, focus ring, card or vertical line in the rows |
 | Insets | The whole table, with its header, is inset so the **Title** header's text sits on the page gutter: 32 pt Regular, 56 pt Wide. Triangles start there too |
-| Columns | Each has a minimum, an ideal and a maximum width. The researcher can drag a column's edge; the width is not kept when the page is left. Columns cannot be reordered or hidden by the researcher*. A column can appear at Wide only |
+| Columns | Each has one width at Regular (its ideal) and one at Wide (its maximum); the title takes the rest, from 240. Their edges cannot be dragged: with a range, the platform spreads spare width evenly and the columns drift (probe; user, 2026-11-24). Columns cannot be reordered or hidden by the researcher*. A column can appear at Wide only |
 | Keyboard | The platform's ↑ / ↓ and Page Up / Down*; the app's Home and End (scroll, no selection change), → and ←, Return. Focus on arrival; no ring |
 | Narrow | When the columns' minimums do not fit, the table scrolls sideways, Title first. At an 800 pt pane it does under TB-7 (a) |
 
