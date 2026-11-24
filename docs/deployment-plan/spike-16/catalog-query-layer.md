@@ -4,6 +4,8 @@ Design for Batch 6's slice 6g (S16-68, S16-69, S16-70). Moved from `docs/ideas/c
 
 ## A Source delete is learned two ways (S16-70)
 
+*(Source type deletes join it: user, 2026-11-24.)*
+
 **Problem.** A Source delete reaches the Swift query cache twice. `SourcePageModel.confirmResourceDelete` sends the client's own `.deletedSource(id:)` mutation (`CatalogMutation.swift`), and the engine also reports the write's `WriteEffects`. Three keys reload on the mutation (`CatalogQueryRegistry.swift`): `.sourcesList` (the whole list, or stale while hidden), `.sourceTypesList` (its `usedBy` counts) and `.sourceWorkspace` (the deleted Source's page). Handle deletes already follow the engine: the `canonical_entities` registry entry declares `Deleted: onDelete(self())`, the engine reports `WriteEffects.deleted`, and `WorkspaceSession` evicts every hidden key whose descriptor says `deletedWith: .handle`.
 
 **Shape.** The `sources` entry in `core/database/effects/registry.go` gains `Deleted: onDelete(self())`, so a Source delete reports its id under `deleted.source` (the wire keys come from `DeletedEntities()`, so the proto does not change). Swift adds `CatalogDeletedEntity.source`. Each of the three keys takes its signal from the engine's report:
@@ -14,9 +16,11 @@ Design for Batch 6's slice 6g (S16-68, S16-69, S16-70). Moved from `docs/ideas/c
 
 Then `.deletedSource` and its `CatalogMutationKind` go. `FakeStore.deleteSource` stays scripted (`nextWriteEffects`): what a delete reports is the Go effects test's claim, not FakeStore's.
 
+A Source type delete goes the same way: `source_types` declares `Deleted: onDelete(self())`, Swift adds `CatalogDeletedEntity.sourceType`, and `.sourceTypesList` drops the type through the same removal patch. `.deletedSourceType` and `CatalogQueryPatch.row`'s `removes:` closure (its one user) go, and the type page applies `apply(effects, leavingPage:)`.
+
 This is one row-removal mechanism for every delete from its own page. The next one, Spike 15's S15-70 (a Citation format delete), is one registry line and one descriptor entry.
 
-**Stays later.** The other Swift mutations that sit beside a write's effects: `.createdSource`, `.changedSourceType`, `.deletedSourceType` (the one user of `CatalogQueryPatch.row`'s `removes:` closure), and the field relabel and delete mutations (`.updatedMetadataField`, `.deletedMetadataField`, S14-17) that reach Source pages. They are parked in [`ideas/catalog-query-layer.md`](../../ideas/catalog-query-layer.md).
+**Stays later.** The other Swift mutations that sit beside a write's effects: `.createdSource`, `.changedSourceType`, `.createdSourceType`, `.updatedSourceType`, and the field relabel and delete mutations (`.updatedMetadataField`, `.deletedMetadataField`, S14-17) that reach Source pages. They are parked in [`ideas/catalog-query-layer.md`](../../ideas/catalog-query-layer.md).
 
 ## CatalogLastUpdated.swift holds four other types (S16-68)
 

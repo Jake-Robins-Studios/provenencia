@@ -60,7 +60,7 @@ Use this folder when something useful pops up mid-work and would otherwise get l
 - [`performance-possibilities.md`](performance-possibilities.md) — small speed-ups reviews found in untouched code: the formats preview picker's options rebuilt on every redraw
 - [`kit-layering.md`](kit-layering.md) — the kit's delete impact taking a Features type, hand-built hover focus rings, page-column metrics and diagram options with one caller
 - [`value-formatting.md`](value-formatting.md) — two date formatters, editor flags in the date draft, integer text, event formatting in Features
-- [`catalog-query-layer.md`](catalog-query-layer.md) — Swift mutations still sent beside a write's effects (Source create and retype, Source type delete, field relabel and delete); the rest went to Spike 16 slice 6g
+- [`catalog-query-layer.md`](catalog-query-layer.md) — Swift mutations still sent beside a write's effects (Source create and retype, field relabel and delete); the rest went to Spike 16 slice 6g
 - [`graph-cache-followups.md`](graph-cache-followups.md) — kinship pivots on `deps`, value columns repeated across readers, two toponym readers, filed-link reads
 - [`search-index-followups.md`](search-index-followups.md) — search kinds owning their columns; a term rename leaving handle documents stale
 - [`swift-test-fixtures.md`](swift-test-fixtures.md) — Artifact file fixtures, per-key registry tests and fake reads, the fake's saved observations
