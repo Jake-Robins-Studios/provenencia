@@ -24,9 +24,17 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     let restartKey: AnyHashable?
     let claimsFocus: Bool
 
-    /// How long after a request the list scrolls to the selection once more: a table's first scroll to a
-    /// deep row can stop a row short with two row heights, and the second one lands it.
+    /// How long after a request the list scrolls once more: a table's first scroll to a row far from the
+    /// drawn ones can stop short while the rows between are undrawn, and the second one lands it.
     static var settleDelay: TimeInterval { 0.15 }
+
+    /// Runs `again` once, `settleDelay` after now, when `stillWanted` is still true then (the request was
+    /// not replaced by another).
+    static func repeatOnce(stillWanted: @escaping () -> Bool, _ again: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay) {
+            if stillWanted() { again() }
+        }
+    }
 
     @FocusState private var isFocused: Bool
     @State private var edgeRow: ID?
@@ -56,6 +64,7 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
                 edgeRow = ids[index]
                 edgeAnchor = press.key == .home ? .top : .bottom
                 edgeRequest += 1
+                requestEdgeScroll()
                 return .handled
             }
             .pvScrollsRowIntoView(edgeRow, anchor: edgeAnchor, animated: false, whenRequested: edgeRequest)
@@ -80,9 +89,19 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
         selectionRequest += 1
         let binding = selection
         let rows = ids
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.settleDelay) {
-            guard binding.wrappedValue == requested, rows.contains(requested) else { return }
+        Self.repeatOnce(stillWanted: { binding.wrappedValue == requested && rows.contains(requested) }) {
             selectionRequest += 1
+        }
+    }
+
+    /// Scrolls to the Home or End row once more after `settleDelay`, when no other Home or End press
+    /// came and the row is still there. A first scroll to the last row of a long list stops short.
+    private func requestEdgeScroll() {
+        guard let requested = edgeRow else { return }
+        let request = edgeRequest
+        let rows = ids
+        Self.repeatOnce(stillWanted: { edgeRow == requested && edgeRequest == request && rows.contains(requested) }) {
+            edgeRequest += 1
         }
     }
 

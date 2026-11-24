@@ -248,12 +248,12 @@ private struct SourcesListContent: View {
         case .expand(let id):
             outline.setOpen(id, selecting: selecting, session: session, navigation: navigation)
             // The Source above it may have closed: the rows moved, a turn later this one is in view.
-            // Once more when it has settled: rows drawn by the first scroll grow to their heights.
+            // Once more when it has settled: a first scroll to rows not yet drawn can stop short.
             openedSourceID = id
             openedRequest += 1
-            DispatchQueue.main.asyncAfter(deadline: .now() + PVNativeListBehavior<String>.settleDelay) {
-                if openedSourceID == id, session.openSourceID == id { openedRequest += 1 }
-            }
+            PVNativeListBehavior<String>.repeatOnce(
+                stillWanted: { openedSourceID == id && session.openSourceID == id }
+            ) { openedRequest += 1 }
         case .collapse:
             outline.setOpen(nil, selecting: selecting, session: session, navigation: navigation)
         case .select(let id):

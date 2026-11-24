@@ -505,8 +505,9 @@ struct SourcesTable: View {
 
 /// Holds a Title cell at its row's height. The platform reuses a cell view for a row of the other height,
 /// and the cell does not shrink below the height it was first measured at: a graph row in a cell made for
-/// a Source stays 66 pt. So every cell is measured at a graph row's height first, and a Source's grows as
-/// it appears, before it is drawn.
+/// a Source stays 66 pt. So every cell is measured at a graph row's height first, and a Source's cell
+/// takes its own height as it appears. No short frame was seen on screen: the hosted test proves the
+/// settled heights.
 private struct SourcesRowHeight: ViewModifier {
     let height: CGFloat
     @State private var shown = SourcesTable.graphRowHeight

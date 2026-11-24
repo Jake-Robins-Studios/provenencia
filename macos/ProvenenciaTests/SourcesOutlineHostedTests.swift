@@ -141,8 +141,8 @@ struct SourcesOutlineHostedTests {
     /// How many graphs a tail Source has in a `mixedGraphs` harness.
     private static func graphCount(tail index: Int) -> Int { [1, 8, 3, 5, 2][index % 5] }
 
-    /// The table has `rows` rows, each Source grown to its height (`SourcesRowHeight`, a turn after its
-    /// cell is made).
+    /// The table has `rows` rows, and a turn has passed for each cell to take its height
+    /// (`SourcesRowHeight`).
     private func settle(_ harness: Harness, rows: Int) async -> Bool {
         let arrived = await waitUntil(timeout: .seconds(10)) {
             harness.host.layoutSubtreeIfNeeded()
@@ -406,7 +406,8 @@ struct SourcesOutlineHostedTests {
         return NSEvent.keyEvent(
             with: .keyDown, location: .zero, modifierFlags: [.numericPad, .function], timestamp: 0,
             windowNumber: window.windowNumber, context: nil, characters: character,
-            charactersIgnoringModifiers: character, isARepeat: false, keyCode: key == NSRightArrowFunctionKey ? 124 : 123
+            charactersIgnoringModifiers: character, isARepeat: false,
+            keyCode: key == NSRightArrowFunctionKey ? 124 : key == NSEndFunctionKey ? 119 : key == NSHomeFunctionKey ? 115 : 123
         )!
     }
 
@@ -415,6 +416,27 @@ struct SourcesOutlineHostedTests {
         harness.window.sendEvent(keyEvent(key, in: harness.window))
         try? await Task.sleep(for: .milliseconds(100))
         harness.host.layoutSubtreeIfNeeded()
+    }
+
+    /// U-3 (QCK-1, QCK-4): End at a large catalog reaches the last row once the rows have settled, and
+    /// Home the first. The scroll repeats once after `settleDelay`, since the first can stop short while
+    /// the rows below are undrawn.
+    @Test func endReachesTheLastRowAndHomeTheFirstAtAHundredSources() async throws {
+        let harness = try await makeHarness(extraSources: 100)
+        let last = 102
+        #expect(await settle(harness, rows: 103))
+        await press(NSEndFunctionKey, harness)
+        #expect(await waitUntil(timeout: .seconds(3)) {
+            harness.host.layoutSubtreeIfNeeded()
+            return harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: last))
+        })
+        try? await Task.sleep(for: .milliseconds(500))
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: last)))
+        await press(NSHomeFunctionKey, harness)
+        try? await Task.sleep(for: .milliseconds(500))
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: 0)))
     }
 
     @Test func rightAndLeftArrowsOpenCloseAndClimb() async throws {
