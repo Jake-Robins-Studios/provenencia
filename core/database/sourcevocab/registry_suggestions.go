@@ -4,7 +4,7 @@ package sourcevocab
 // They follow the type's formats (a test derives them): the fields its formats
 // read, each once, in the order the formats first read them; nothing else.
 var seedSuggestions = []seedSuggestion{
-	{TypeKey: "census", FieldKeys: []string{"creator", "jurisdiction", "schedule", "enumeration_district", "piece", "folio", "schedule_number", "dwelling_number", "family_number", "line_number", "item", "format", "provider", "url", "accessed_date", "citing"}},
+	{TypeKey: "census", FieldKeys: []string{"creator", "jurisdiction", "schedule", "enumeration_district", "subdistrict", "piece", "folio", "schedule_number", "dwelling_number", "family_number", "line_number", "item", "format", "provider", "url", "accessed_date", "citing"}},
 	{TypeKey: "birth_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
 	{TypeKey: "marriage_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
 	{TypeKey: "death_certificate", FieldKeys: []string{"jurisdiction", "creator", "document_number", "item", "volume", "entry_number", "format", "provider", "url", "accessed_date", "repository"}},
