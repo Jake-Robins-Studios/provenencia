@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** ready
+**State:** gate — CI red
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -102,3 +102,16 @@ Nits (logged): `MNT-16 · SourcesListView.swift:90 · sourcesHandle no longer re
 
 ## Result
 Merged `origin/main` @ `6e18533b6` (docs only, S15-54's plan). Gate PASS on the merge · CI: see the PR · open: none · follow-ups: none · to user: CON-2 answered (D-8 amended, 2026-11-24). Left to the user's manual check: STEP-7 lines 3, 7, 8, the Scale part of 6, and a selected row's faint Not started badge.
+
+## CI fix round
+CI macOS `test` FAIL on the ready head (run 45411247665). `closingTheSourceOfASelectedGraphSelectsTheSource`: the accessibility action is nil on the runner. Three others timed out in `waitUntil`, all ending at about 7.7 s together: `createSavesOneGraphAndToasts`, `confirmDeleteSourceRecountsThroughSession`, `copyRecountsThroughSession` (untouched code; the suspected cause is main-thread work in the new hosted tests).
+
+**G-1 — The close test does not depend on the accessibility tree**
+Files: `SourcesListView.swift`, `SourcesListNavigation.swift` (or beside `SourcesOutline`), `SourcesOutlineHostedTests.swift`.
+Do: move the body of the page's `toggle` (D-15's order: select, then collapse) into one `@MainActor` function taking the outline, the session and the navigation, which the triangle, the keys and the row's action all call through the page; drop the unread `id` parameter (MNT-13). The hosted test calls that function and asserts the expanded set, `listAnchor` and the table's selected row. Delete the accessibility tree search.
+Check: the test passes; `rg -n "accessibilityCustomActions" macos/ProvenenciaTests/SourcesOutlineHostedTests.swift` prints nothing.
+
+**G-2 — The hosted tests keep the main thread free**
+Files: `SourcesOutlineHostedTests.swift`.
+Do: measure each test's synchronous main-thread time before and after (print once, do not commit). Expected cost: `ruleExtent` renders the whole table bitmap and calls `colorAt` per pixel; render only the row's rect and read bytes. Cut any other long synchronous block. Do not raise another suite's timeout, mark a test flaky, or change the three timed-out tests.
+Check: report each test's time before and after; `scripts/check-pr.sh` PASS three times in a row.
