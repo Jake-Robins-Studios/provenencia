@@ -28,13 +28,23 @@ struct PVBadge: View {
     private let iconLabel: Text?
     /// Text / glyph colour override; the tone still owns fill and outline.
     private var foreground: Color?
+    /// The badge's least width: its content sits leading inside it, so badges of one column share a width.
+    private let minWidth: CGFloat?
 
-    /// For fixed UI copy (e.g. "provenencia", "you").
-    init(_ titleKey: LocalizedStringResource, tone: PVBadgeTone = .neutral, icon: PVSymbol? = nil, subtle: Bool = false) {
+    /// For fixed UI copy (e.g. "provenencia", "you"). A `minWidth` holds the badge at least that wide,
+    /// its icon and label leading.
+    init(
+        _ titleKey: LocalizedStringResource,
+        tone: PVBadgeTone = .neutral,
+        icon: PVSymbol? = nil,
+        subtle: Bool = false,
+        minWidth: CGFloat? = nil
+    ) {
         label = Text(titleKey)
         self.tone = tone
         self.icon = icon
         self.subtle = subtle
+        self.minWidth = minWidth
         iconLabel = nil
     }
 
@@ -53,6 +63,7 @@ struct PVBadge: View {
         self.icon = icon
         self.subtle = subtle
         iconLabel = nil
+        minWidth = nil
         self.foreground = foreground
     }
 
@@ -63,6 +74,7 @@ struct PVBadge: View {
         self.tone = tone
         self.icon = icon
         self.subtle = subtle
+        minWidth = nil
         iconLabel = label.pvText
     }
 
@@ -73,17 +85,18 @@ struct PVBadge: View {
                 PVIcon(icon, size: 11)
             }
             label?
-                .tracking(PVTypeScale.micro * PVTracking.caps)
+                .tracking(PVMicroCaps.tracking)
                 .textCase(.uppercase)
         }
-        .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-        .foregroundStyle(foreground ?? colors.foreground)
+        .font(PVMicroCaps.font)
+        .foregroundStyle(ink(foreground ?? colors.foreground))
         .padding(.horizontal, label == nil ? PVSpacing.space2 : PVSpacing.space4)
+        .frame(minWidth: minWidth, alignment: .leading)
         .padding(.vertical, PVSpacing.space1)
         .background(subtle ? Color.clear : colors.background)
         .overlay(
             RoundedRectangle(cornerRadius: PVRadius.xs, style: .continuous)
-                .stroke(subtle ? colors.line : .clear, lineWidth: 1)
+                .stroke(subtle ? ink(colors.line) : AnyShapeStyle(Color.clear), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: PVRadius.xs, style: .continuous))
         .fixedSize()
@@ -92,6 +105,12 @@ struct PVBadge: View {
 }
 
 extension PVBadge {
+    /// A badge with no fill draws on whatever is behind it, so its ink and outline take the on-selection
+    /// ink on a selected native row; a filled badge keeps its own colors.
+    private func ink(_ color: Color) -> AnyShapeStyle {
+        subtle ? AnyShapeStyle(PVColor.onSelection(color)) : AnyShapeStyle(color)
+    }
+
     /// The "+N" after a title or line when more names or places survived. Hidden
     /// from VoiceOver: the row or line it sits in already speaks the count.
     static func moreCount(_ count: Int) -> some View {

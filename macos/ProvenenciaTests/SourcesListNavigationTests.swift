@@ -43,7 +43,7 @@ struct SourcesListNavigationTests {
         let bare = evidenceGraph("g1b", sourceID: "s1", name: "Jones")
         let src = source(id: "s1")
         func row(_ kind: SourcesOutlineRow.Kind, _ id: String) -> SourcesOutlineRow {
-            SourcesOutlineRow(id: id, kind: kind, endsGroup: false)
+            SourcesOutlineRow(id: id, kind: kind)
         }
         #expect(SourcesListNavigation.location(for: row(.source(src, disclosure: .collapsed), "s1"))
             == .sourcePage(sourceId: "s1", ref: "SRC-AAAAA", title: "Passport"))

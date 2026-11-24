@@ -20,7 +20,7 @@ struct SourcesListSettingsTests {
     }
 
     private func settings(
-        sort: SourcesModel.Sort, query: String
+        sort: SourcesSort, query: String
     ) -> SourcesListSettings {
         var value = SourcesListSettings()
         value.sort = sort
@@ -71,9 +71,25 @@ struct SourcesListSettingsTests {
         let json = #"{"u1":{"sort":"bogus","status":"x","query":"smith"}}"#
         try Data(json.utf8).write(to: url)
         let loaded = try #require(store(uuid, "u1", url)).load()
-        #expect(loaded.sort == .added)
+        #expect(loaded.sort == .initial)
         #expect(loaded.status == nil)
         #expect(loaded.query == "smith")
+    }
+
+    /// T-4: a settings file from before the table (`"sort":"az"`) reads as Added, newest first, with
+    /// its other fields kept.
+    @Test func anOldSortReadsAsTheDefault() throws {
+        let settings = try JSONDecoder().decode(
+            SourcesListSettings.self, from: Data(#"{"sort":"az","query":"x","typeFilterID":"t1"}"#.utf8)
+        )
+        #expect(settings.sort == SourcesSort(column: .added, order: .reverse))
+        #expect(settings.query == "x")
+        #expect(settings.typeFilterID == "t1")
+        let published = SourcesSort(column: .published, order: .forward)
+        var saved = SourcesListSettings()
+        saved.sort = published
+        let again = try JSONDecoder().decode(SourcesListSettings.self, from: JSONEncoder().encode(saved))
+        #expect(again.sort == published)
     }
 
     @Test func emptyKeysMakeNoStore() throws {
@@ -99,7 +115,8 @@ struct SourcesListSettingsTests {
         }
         #expect(try decode(#"{"status":"filed"}"#).status == .promoted)
         #expect(try decode(#"{"status":"promoted"}"#).status == .promoted)
-        let bogus = try decode(#"{"status":"bogus","sort":"az","query":"smith"}"#)
+        let sortJSON = try String(decoding: JSONEncoder().encode(SourcesSort.az), as: UTF8.self)
+        let bogus = try decode(#"{"status":"bogus","sort":\#(sortJSON),"query":"smith"}"#)
         #expect(bogus.status == nil)
         #expect(bogus.sort == .az)
         #expect(bogus.query == "smith")

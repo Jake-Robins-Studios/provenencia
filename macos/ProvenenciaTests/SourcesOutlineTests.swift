@@ -3,7 +3,7 @@ import SwiftUI
 import Testing
 @testable import Provenencia
 
-/// The Sources list's outline: its rows, its open set, its keys, its menus and its summary. Pure
+/// The Sources list's outline: its rows, its open Source, its keys, its clicks and its menus. Pure
 /// functions are tested without a view; the model's build count at Scale uses a `FakeStore`.
 @Suite
 @MainActor
@@ -38,11 +38,11 @@ struct SourcesOutlineTests {
         { table[$0] ?? .loading }
     }
 
-    private func outline(expanded: Set<String>) -> SourcesOutline {
+    private func outline(open: String?) -> SourcesOutline {
         SourcesOutline(
             sources: [s1, s2, s3],
             graphs: reads(["s1": .loaded([g1a, g1b]), "s2": .loaded([g2])]),
-            expanded: expanded
+            open: open
         )
     }
 
@@ -50,85 +50,123 @@ struct SourcesOutlineTests {
         outline.row(id: id)?.disclosure
     }
 
-    @Test func rowsFollowTheExpandedSet() {
-        let outline = outline(expanded: ["s1", "s9"])
-        #expect(outline.rows.map(\.id) == ["s1", "g1a", "g1b", "s2", "s3"])
-        #expect(disclosure(outline, "s1") == .expanded)
-        #expect(disclosure(outline, "s2") == .collapsed)
-        #expect(disclosure(outline, "s3") == SourcesDisclosure.none)
-        #expect(outline.togglableSourceIDs == ["s1", "s2"])
-        #expect(self.outline(expanded: []).rows.map(\.id) == ["s1", "s2", "s3"])
+    /// T-6: AC-4.1; one Source open at a time; an open id no Source has draws nothing.
+    @Test func oneSourceOpens() {
+        #expect(outline(open: nil).rows.map(\.id) == ["s1", "s2", "s3"])
+        let first = outline(open: "s1")
+        #expect(first.rows.map(\.id) == ["s1", "g1a", "g1b", "s2", "s3"])
+        #expect(disclosure(first, "s1") == .expanded)
+        #expect(disclosure(first, "s2") == .collapsed)
+        #expect(disclosure(first, "s3") == SourcesDisclosure.none)
+        let second = outline(open: "s2")
+        #expect(second.rows.map(\.id) == ["s1", "s2", "g2", "s3"])
+        #expect(disclosure(second, "s1") == .collapsed)
+        // The open id of a filtered-out or deleted Source costs one string and draws nothing.
+        #expect(outline(open: "s9").rows.map(\.id) == ["s1", "s2", "s3"])
+        // A Source with no Artifact never opens.
+        #expect(outline(open: "s3").rows.map(\.id) == ["s1", "s2", "s3"])
     }
 
     @Test func aFailedGraphListDropsTheTriangles() {
         enum Boom: Error { case boom }
         let failed = SourcesOutline(
-            sources: [s1, s2, s3], graphs: { _ in .failed(Boom.boom) }, expanded: ["s1"]
+            sources: [s1, s2, s3], graphs: { _ in .failed(Boom.boom) }, open: "s1"
         )
         #expect(failed.rows.map(\.id) == ["s1", "s2", "s3"])
         for id in ["s1", "s2", "s3"] { #expect(disclosure(failed, id) == SourcesDisclosure.none) }
-        #expect(failed.togglableSourceIDs.isEmpty)
     }
 
     @Test func aSourceNotInTheGraphListYetIsPending() {
         let s4 = source("s4")
-        let open = SourcesOutline(sources: [s4], graphs: reads([:]), expanded: ["s4"])
+        let open = SourcesOutline(sources: [s4], graphs: reads([:]), open: "s4")
         #expect(open.rows.map(\.id) == ["s4", "s4#graphs"])
         #expect(disclosure(open, "s4") == .expanded)
-        let closed = SourcesOutline(sources: [s4], graphs: reads([:]), expanded: [])
+        let closed = SourcesOutline(sources: [s4], graphs: reads([:]), open: nil)
         #expect(closed.rows.map(\.id) == ["s4"])
         #expect(disclosure(closed, "s4") == .collapsed)
     }
 
     @Test func ownersCoverCollapsedGraphs() {
-        let outline = outline(expanded: [])
+        let outline = outline(open: nil)
         #expect(outline.ownerByGraphID.mapValues(\.id) == ["g1a": "s1", "g1b": "s1", "g2": "s2"])
     }
 
     @Test func backRevealsAGraphsClosedSource() {
-        let closed = outline(expanded: [])
+        let closed = outline(open: nil)
         #expect(closed.sourceToReveal("g1a") == "s1")
-        #expect(outline(expanded: ["s1"]).sourceToReveal("g1a") == nil)
+        #expect(outline(open: "s1").sourceToReveal("g1a") == nil)
+        // A Source that is not the open one is closed, so its graph is revealed.
+        #expect(outline(open: "s2").sourceToReveal("g1a") == "s1")
         #expect(closed.sourceToReveal("s2") == nil)
         #expect(closed.sourceToReveal("g9") == nil)
     }
 
-    @Test func collapsingASourceSelectsItInsteadOfItsGraph() {
-        let outline = outline(expanded: ["s1", "s2"])
-        let collapsing: Set<String> = ["s1"]
-        #expect(outline.selectionAfterCollapsing(collapsing, selection: "g1a") == "s1")
-        // A placeholder row is a drawn row too.
-        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), expanded: ["s4"])
-        #expect(pending.selectionAfterCollapsing(["s4"], selection: SourcesOutlineRow.pendingID(sourceID: "s4")) == "s4")
-        #expect(outline.selectionAfterCollapsing(collapsing, selection: "g2") == "g2")
-        #expect(outline.selectionAfterCollapsing(collapsing, selection: "s1") == "s1")
-        #expect(outline.selectionAfterCollapsing(collapsing, selection: nil) == nil)
+    /// T-6: AC-4.5, AC-4.6, AC-4.7 and AC-4.8: what the selection becomes when a Source opens or closes.
+    struct OpeningCase: CustomTestStringConvertible {
+        let before: String?
+        let after: String?
+        let selecting: String?
+        let current: String?
+        let expected: String?
+        var testDescription: String { "\(before ?? "-") -> \(after ?? "-"), \(current ?? "-")" }
     }
 
-    @Test func aPlainClickOnAClosedSourceOpensIt() {
-        let closed = outline(expanded: [])
-        let mixed = outline(expanded: ["s1"])
-        func open(
-            _ outline: SourcesOutline, _ new: String?, from old: String? = nil, click: Bool = true, triangle: Bool = false
-        ) -> String? {
-            outline.sourceToOpen(selecting: new, from: old, plainLeftClick: click, onTriangle: triangle)
+    @Test(arguments: [
+        // Close A with its graph selected: A is selected.
+        OpeningCase(before: "s1", after: nil, selecting: nil, current: "g1a", expected: "s1"),
+        // Open B with A's graph selected: A closes and is selected.
+        OpeningCase(before: "s1", after: "s2", selecting: nil, current: "g1a", expected: "s1"),
+        // A Source row stays selected; a graph of the Source that stays open stays selected.
+        OpeningCase(before: "s1", after: "s2", selecting: nil, current: "s1", expected: "s1"),
+        OpeningCase(before: "s1", after: "s1", selecting: nil, current: "g1a", expected: "g1a"),
+        OpeningCase(before: "s2", after: "s1", selecting: nil, current: "g2", expected: "s2"),
+        // `selecting` wins: Open a graph from the menu, or Back to it, or a click.
+        OpeningCase(before: "s2", after: "s1", selecting: "g1a", current: "g2", expected: "g1a"),
+        OpeningCase(before: "s1", after: nil, selecting: "s2", current: "g1a", expected: "s2"),
+        // No selection, and a selection no row draws, are left alone.
+        OpeningCase(before: "s1", after: "s2", selecting: nil, current: nil, expected: nil),
+        OpeningCase(before: "s1", after: "s2", selecting: nil, current: "gone", expected: "gone"),
+    ])
+    func openingMovesASelectionOffTheClosedGroup(_ c: OpeningCase) {
+        let outline = outline(open: c.before)
+        #expect(outline.selection(afterOpening: c.after, selecting: c.selecting, current: c.current) == c.expected)
+    }
+
+    @Test func aPendingRowSelectsItsSourceWhenItCloses() {
+        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), open: "s4")
+        let placeholder = SourcesOutlineRow.pendingID(sourceID: "s4")
+        #expect(pending.selection(afterOpening: nil, selecting: nil, current: placeholder) == "s4")
+    }
+
+    /// T-7: every line of D-14.
+    @Test func aPlainClickOpensOneSource() {
+        let closed = outline(open: nil)
+        let mixed = outline(open: "s1")
+        func action(
+            _ outline: SourcesOutline, _ new: String?, from old: String? = nil, click: Bool = true,
+            triangle: Bool = false
+        ) -> SourcesOutlineAction {
+            outline.clickAction(selecting: new, from: old, isPlainClick: click, onTriangle: triangle)
         }
-        #expect(open(closed, "s2") == "s2")
-        #expect(open(closed, "s2", from: "s1") == "s2")
-        // Not a plain left click: the keyboard, Back, a reveal, a menu, a right-click, a modified click.
-        #expect(open(closed, "s2", click: false) == nil)
+        #expect(action(closed, "s2") == .expand("s2"))
+        #expect(action(closed, "s2", from: "s1") == .expand("s2"))
+        // Another Source opens while one is open: the page closes the first.
+        #expect(action(mixed, "s2") == .expand("s2"))
+        // Not a plain left click: the keyboard, Back, a reveal, a menu, a right-click, a modified click
+        // (⌥-click included: it only selects).
+        #expect(action(closed, "s2", click: false) == .ignore)
         // A press on the triangle: the button toggles it itself.
-        #expect(open(closed, "s2", triangle: true) == nil)
+        #expect(action(closed, "s2", triangle: true) == .ignore)
         // The selection did not move.
-        #expect(open(closed, "s2", from: "s2") == nil)
-        #expect(open(closed, nil, from: "s2") == nil)
-        // An open Source stays open; a Source with no triangle and a graph row have nothing to open.
-        #expect(open(mixed, "s1") == nil)
-        #expect(open(mixed, "g1a") == nil)
-        #expect(open(closed, "s3") == nil)
-        #expect(open(closed, "missing") == nil)
-        // Other Sources keep their state: only the clicked Source is named.
-        #expect(open(mixed, "s2") == "s2")
+        #expect(action(closed, "s2", from: "s2") == .ignore)
+        #expect(action(closed, nil, from: "s2") == .ignore)
+        // The open Source and a graph row of it: A stays open.
+        #expect(action(mixed, "s1") == .ignore)
+        #expect(action(mixed, "g1a") == .ignore)
+        // A Source with no triangle closes the open one; with none open there is nothing to do.
+        #expect(action(mixed, "s3") == .collapse("s1"))
+        #expect(action(closed, "s3") == .ignore)
+        #expect(action(closed, "missing") == .ignore)
     }
 
     @Test func onlyAnUnmodifiedLeftPressOrReleaseIsAPlainClick() {
@@ -152,9 +190,9 @@ struct SourcesOutlineTests {
     }
 
     @Test func arrowKeysExpandCollapseAndClimb() {
-        let closed = outline(expanded: [])
-        let open = outline(expanded: ["s1"])
-        func action(_ key: KeyEquivalent, _ outline: SourcesOutline, _ id: String?) -> SourcesOutlineKeyAction {
+        let closed = outline(open: nil)
+        let open = outline(open: "s1")
+        func action(_ key: KeyEquivalent, _ outline: SourcesOutline, _ id: String?) -> SourcesOutlineAction {
             SourcesOutline.keyAction(key, selected: outline.row(id: id))
         }
         #expect(action(.rightArrow, closed, "s1") == .expand("s1"))
@@ -167,30 +205,8 @@ struct SourcesOutlineTests {
         #expect(action(.leftArrow, closed, "s3") == .ignore)
         #expect(action(.rightArrow, closed, nil) == .ignore)
         #expect(action(.downArrow, closed, "s1") == .ignore)
-        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), expanded: ["s4"])
+        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), open: "s4")
         #expect(action(.leftArrow, pending, "s4#graphs") == .select("s4"))
-    }
-
-    @Test func aRuleEndsEachSourcesGroup() {
-        let outline = outline(expanded: ["s1"])
-        let ends = Dictionary(uniqueKeysWithValues: outline.rows.map { ($0.id, $0.endsGroup) })
-        #expect(ends == ["s1": false, "g1a": false, "g1b": true, "s2": true, "s3": true])
-        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), expanded: ["s4"])
-        #expect(pending.rows.map(\.endsGroup) == [false, true])
-    }
-
-    @Test func summaryNamesTheGraphsStatuses() {
-        let inProgress = SourcesGraphCounts.counts(subjects: 3, observations: 5, filed: 0)
-        let promoted = SourcesGraphCounts.counts(subjects: 3, observations: 5, filed: 2)
-        let none = SourcesGraphCounts.notStarted
-        #expect(SourcesGraphSummary.text([inProgress]) == "1 graph · In progress")
-        #expect(SourcesGraphSummary.text(Array(repeating: inProgress, count: 3) + Array(repeating: none, count: 5))
-            == "8 graphs · 3 in progress")
-        #expect(SourcesGraphSummary.text(Array(repeating: none, count: 8)) == "8 graphs · Not started")
-        #expect(SourcesGraphSummary.text(Array(repeating: promoted, count: 5) + Array(repeating: none, count: 3))
-            == "8 graphs · 5 promoted")
-        #expect(SourcesGraphSummary.text(Array(repeating: none, count: 7) + [.loading]) == "8 graphs")
-        #expect(SourcesGraphSummary.text(Array(repeating: none, count: 7) + [.unavailable(message: "x")]) == "8 graphs")
     }
 
     private func titles(_ sections: [[PVActionMenuItem]]) -> [[String]] {
@@ -203,8 +219,8 @@ struct SourcesOutlineTests {
             open: { _ in }, openGraph: { openedGraph = ($0.id, $1.id) }, copy: { _ in }
         )
         let list: QueryRead<[CatalogEvidenceGraph]> = .loaded([g1a, g1b])
-        let closed = try #require(outline(expanded: []).row(id: "s1"))
-        let open = try #require(outline(expanded: ["s1"]).row(id: "s1"))
+        let closed = try #require(outline(open: nil).row(id: "s1"))
+        let open = try #require(outline(open: "s1").row(id: "s1"))
         #expect(titles(SourcesRowMenu.items(for: open, graphs: list, actions: actions))
             == [["Open|true", "Copy…|true"]])
         let menu = SourcesRowMenu.items(for: closed, graphs: list, actions: actions)
@@ -216,30 +232,14 @@ struct SourcesOutlineTests {
         enum Boom: Error { case boom }
         #expect(titles(SourcesRowMenu.items(for: closed, graphs: .failed(Boom.boom), actions: actions))
             == [["Open|true", "Copy…|true"]])
-        let expanded = outline(expanded: ["s1"])
+        let expanded = outline(open: "s1")
         let linked = try #require(expanded.row(id: "g1a"))
         let bare = try #require(expanded.row(id: "g1b"))
         #expect(titles(SourcesRowMenu.items(for: linked, graphs: list, actions: actions)) == [["Open|true"]])
         #expect(titles(SourcesRowMenu.items(for: bare, graphs: list, actions: actions)) == [["Open|false"]])
-        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), expanded: ["s4"])
+        let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), open: "s4")
         let placeholder = try #require(pending.row(id: "s4#graphs"))
         #expect(SourcesRowMenu.items(for: placeholder, graphs: .loading, actions: actions).isEmpty)
-    }
-
-    @Test func wideMovesTypeAndDateIntoColumns() {
-        let date = CatalogDateValueInput(kind: "point", startYear: 1851)
-        let tail = "1 graph · In progress"
-        #expect(SourcesOutline.secondaryParts(type: "Census", date: date, tail: tail, isWide: false)
-            == [.type("Census"), .date(date), .tail(tail)])
-        #expect(SourcesOutline.secondaryParts(type: "Census", date: date, tail: tail, isWide: true) == [.tail(tail)])
-        #expect(SourcesOutline.secondaryParts(type: "Census", date: nil, tail: nil, isWide: false) == [.type("Census")])
-        #expect(SourcesOutline.secondaryParts(type: "Census", date: nil, tail: nil, isWide: true).isEmpty)
-        #expect(SourcesOutline.secondaryParts(type: "", date: date, tail: nil, isWide: false) == [.date(date)])
-        let regular = SourcesRowColumns.details(isWide: false, typeLabel: { _ in "Census" })
-        #expect(regular.map(\.width) == [136])
-        let wide = SourcesRowColumns.details(isWide: true, typeLabel: { _ in "Census" })
-        #expect(wide.map(\.width) == [180, 140, 136])
-        #expect(wide[0].content(s1)?.text == "Census")
     }
 
     // MARK: The session
@@ -294,8 +294,9 @@ struct SourcesOutlineTests {
         _ = model.outline
         #expect(session.derivedBuildCount(.sourcesOutline) == 1)
 
-        session.setSourcesExpanded(sources.map(\.id), true)
-        #expect(model.outline.rows.count == 13_000)
+        // Opening one Source adds its graphs only: opening every Source is no longer possible.
+        session.setOpenSource(sources[0].id)
+        #expect(model.outline.rows.count == 3_004)
         _ = model.outline
         #expect(session.derivedBuildCount(.sourcesOutline) == 2)
 
@@ -305,15 +306,15 @@ struct SourcesOutlineTests {
         _ = model.outline
         #expect(session.derivedBuildCount(.sourcesOutline) == 2)
 
-        session.setSourcesExpanded(sources.map(\.id), false)
+        session.setOpenSource(nil)
         #expect(model.outline.rows.count == 3_000)
         #expect(session.derivedBuildCount(.sourcesOutline) == 3)
     }
 
-    @Test func expandedSourcesOutliveTheModel() async throws {
+    @Test func theOpenSourceOutlivesTheModel() async throws {
         let store = makeStore(sources: [source("src-open-1")], graphs: [graph("g1", source: "src-open-1")])
         let (model, session) = makeModel(store)
-        session.setSourcesExpanded(["src-open-1"], true)
+        session.setOpenSource("src-open-1")
         await warm(model, session)
         #expect(model.outline.rows.map(\.id) == ["src-open-1", "g1"])
 
@@ -322,20 +323,20 @@ struct SourcesOutlineTests {
 
         let (fresh, freshSession) = makeModel(store)
         await warm(fresh, freshSession)
-        #expect(freshSession.expandedSourceIDs.isEmpty)
+        #expect(freshSession.openSourceID == nil)
         #expect(fresh.outline.rows.map(\.id) == ["src-open-1"])
 
         let saved = try JSONEncoder().encode(model.settings)
         #expect(!String(decoding: saved, as: UTF8.self).contains("src-open-1"))
     }
 
-    @Test func settingsChangesKeepTheOpenSources() async {
+    @Test func settingsChangesKeepTheOpenSource() async {
         let store = makeStore(sources: [source("s1"), source("s2")], graphs: [graph("g1", source: "s1"), graph("g2", source: "s2")])
         let (model, session) = makeModel(store)
         await warm(model, session)
-        session.setSourcesExpanded(["s1"], true)
+        session.setOpenSource("s1")
         model.settings.sort = .az
-        #expect(session.expandedSourceIDs == ["s1"])
+        #expect(session.openSourceID == "s1")
         #expect(model.outline.rows.map(\.id).contains("g1"))
     }
 }

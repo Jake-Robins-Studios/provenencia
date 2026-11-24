@@ -40,7 +40,7 @@ struct SourcesListView: View {
                 SourcesPage.frame(
                     model: model, state: .firstLoad,
                     toolbar: { _ in EmptyView() },
-                    content: { gutter in SourcesListLoadingArea(gutter: gutter) }
+                    content: { gutter in SourcesListLoadingArea(model: model, gutter: gutter) }
                 )
             }
         }
@@ -73,13 +73,18 @@ private enum SourcesPage {
     }
 }
 
-/// The skeleton Source rows, with a bar for each column the width class draws.
+/// The table's header over skeleton rows in their columns, for the width class: inert, so a row does not
+/// shift when its cells arrive.
 private struct SourcesListLoadingArea: View {
+    let model: SourcesModel
     let gutter: CGFloat
     @Environment(\.pvWidthClass) private var widthClass
 
     var body: some View {
-        PVListPageArea.loadingArea(gutter: gutter, detailWidths: SourcesRowColumns.widths(isWide: widthClass == .wide))
+        SourcesTable(
+            items: SourcesTableItem.skeletons, selection: .constant(nil), model: model,
+            isWide: widthClass == .wide, gutter: gutter, isLoading: true
+        )
     }
 }
 
@@ -95,8 +100,9 @@ private struct SourcesListContent: View {
     /// The list has taken the keyboard once, the search field has had it, or the settings changed: the
     /// list leaves focus where it is when its rows come back (a search that matched nothing, then did).
     @State private var listLeavesFocusAlone = false
-    /// Which triangle the pointer is on, for `select`. Not observed: no view reads it to draw.
-    @State private var triangleHover = SourcesTriangleHover()
+    /// Which triangle the pointer is on and which row the last click pressed, for `select` and a
+    /// double-click. Not observed: no view reads it to draw.
+    @State private var pointer = SourcesPointer()
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -112,7 +118,7 @@ private struct SourcesListContent: View {
             isSettled: model.outlineIsSettled,
             reveal: { anchor in
                 guard let id = outline.sourceToReveal(anchor) else { return false }
-                session.setSourcesExpanded([id], true)
+                outline.setOpen(id, selecting: anchor, session: session, navigation: navigation)
                 return true
             }
         ))
@@ -140,7 +146,7 @@ private struct SourcesListContent: View {
             PVListPageArea.failureArea(L10n.Errors.message(for: error), gutter: gutter)
                 .accessibilityIdentifier("sources.loadError")
         case .firstLoad, .waitingForFilter:
-            SourcesListLoadingArea(gutter: gutter)
+            SourcesListLoadingArea(model: model, gutter: gutter)
         case .empty:
             emptyArea
         case .statusFailed(let error):
@@ -186,31 +192,36 @@ private struct SourcesListContent: View {
                     .padding(.bottom, PVSpacing.space5)
                     .accessibilityIdentifier("sources.graphsError")
             }
-            PVListBody(
-                items: outline.rows,
-                // Navigation owns the selected row: it is the row history stamps on leaving.
-                selection: Binding(
-                    get: { navigation.listAnchor },
-                    set: { select($0, outline: outline) }
-                ),
-                minimumRowHeight: SourcesGraphRow.height,
-                horizontalInset: gutter,
-                leadingHang: PVListMetrics.hang(leadingWidth: SourcesSourceRow.triangleWidth),
-                label: L10n.Workspace.sourcesTitle,
-                onActivate: { row in
-                    if let location = SourcesListNavigation.location(for: row) { navigation.go(to: location) }
+            // Navigation owns the selected row: it is the row history stamps on leaving.
+            let selection = Binding(
+                get: { navigation.listAnchor },
+                set: { select($0, outline: outline) }
+            )
+            SourcesTable(
+                items: outline.items, selection: selection, model: model,
+                isWide: widthClass == .wide, gutter: gutter,
+                toggle: { source, disclosure in
+                    apply(disclosure == .expanded ? .collapse(source.id) : .expand(source.id), outline: outline)
                 },
-                menu: { row in
-                    SourcesRowMenu.items(
-                        for: row, graphs: session.evidenceGraphsRead(sourceID: row.source.id), actions: menuActions
+                hoverTriangle: { id, inside in pointer.note(id, inside: inside) }
+            )
+            .pvNativeListBehavior(
+                ids: outline.rows.map(\.id),
+                selection: selection,
+                // The table adds its cell padding to this: a graph row is 26 + 8 pt, the wheel's step.
+                minimumRowHeight: SourcesTable.graphRowHeight,
+                label: L10n.Workspace.sourcesTitle,
+                onActivate: { id in activate(id, outline: outline) },
+                menu: { id in
+                    guard let row = outline.row(id: id) else { return [] }
+                    return SourcesRowMenu.items(
+                        for: row, graphs: session.evidenceGraphsRead(sourceID: row.source.id),
+                        actions: menuActions(outline: outline)
                     )
                 },
-                separator: { $0.endsGroup ? .visible : .hidden },
                 restartKey: model.settings,
                 claimsFocus: !listLeavesFocusAlone
-            ) { row in
-                outlineRow(row, outline: outline)
-            }
+            )
             .onKeyPress(keys: [.rightArrow, .leftArrow], phases: .down) { press in
                 handle(press.key, outline: outline)
             }
@@ -220,73 +231,78 @@ private struct SourcesListContent: View {
 
     /// → opens a closed Source, ← closes an open one or climbs from a graph row to its Source.
     private func handle(_ key: KeyEquivalent, outline: SourcesOutline) -> KeyPress.Result {
-        switch SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listAnchor)) {
-        case .expand(let id):
-            toggle([id], expanding: true, outline: outline)
-        case .collapse(let id):
-            toggle([id], expanding: false, outline: outline)
-        case .select(let id):
-            navigation.noteListAnchor(id)
-        case .ignore:
-            return .ignored
-        }
+        let action = SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listAnchor))
+        guard action != .ignore else { return .ignored }
+        apply(action, outline: outline)
         return .handled
     }
 
-    @ViewBuilder
-    private func outlineRow(_ row: SourcesOutlineRow, outline: SourcesOutline) -> some View {
-        switch row.kind {
-        case .source(let source, let disclosure):
-            SourcesSourceRow(
-                source: source, disclosure: disclosure, model: model, isWide: widthClass == .wide,
-                toggle: { all in
-                    toggle(
-                        all ? outline.togglableSourceIDs : [source.id], expanding: disclosure != .expanded,
-                        outline: outline
-                    )
-                },
-                hoverTriangle: { id, inside in triangleHover.note(id, inside: inside) }
-            )
-        case .graph(let graph, let source):
-            SourcesGraphRow(content: .graph(graph), source: source)
-        case .pendingGraph(let source):
-            SourcesGraphRow(content: .pending, source: source)
+    /// Runs what a key or a click decided: the open Source and the selection move together.
+    private func apply(_ action: SourcesOutlineAction, selecting: String? = nil, outline: SourcesOutline) {
+        switch action {
+        case .expand(let id):
+            outline.setOpen(id, selecting: selecting, session: session, navigation: navigation)
+        case .collapse:
+            outline.setOpen(nil, selecting: selecting, session: session, navigation: navigation)
+        case .select(let id):
+            navigation.noteListAnchor(id)
+        case .ignore:
+            break
         }
     }
 
-    /// The write the platform list makes when its selection changes. A plain left click that lands on a closed Source also opens
-    /// it, a turn later (the write may be inside a view update) and without animation.
+    /// The write the platform list makes when its selection changes. A plain left click that lands on a
+    /// Source row also opens it (or closes the open one when it has no triangle), a turn later (the write
+    /// may be inside a view update) and without animation. The second press of a double-click is ignored:
+    /// the first press may have moved rows (opening a Source closes the one above), so the second lands on
+    /// another row, and the double-click is still the first row's (`activate`).
     private func select(_ id: String?, outline: SourcesOutline) {
-        let old = navigation.listAnchor
-        navigation.noteListAnchor(id)
         // The event being dispatched; `isPlainLeftClick` rejects a stale one (a selection nobody clicked).
         let event = currentEvent.read()
+        if secondPressRow(event) != nil { return }
+        let old = navigation.listAnchor
+        navigation.noteListAnchor(id)
         let age = event.map { ProcessInfo.processInfo.systemUptime - $0.timestamp } ?? 0
-        guard let open = outline.sourceToOpen(
-            selecting: id, from: old,
-            plainLeftClick: SourcesOutline.isPlainLeftClick(
-                type: event?.type, modifiers: event?.modifierFlags ?? [], age: age
-            ),
-            onTriangle: id != nil && triangleHover.sourceID == id
-        ) else { return }
-        DispatchQueue.main.async { toggle([open], expanding: true, outline: outline) }
+        let isPlainClick = SourcesOutline.isPlainLeftClick(
+            type: event?.type, modifiers: event?.modifierFlags ?? [], age: age
+        )
+        if isPlainClick, let event, event.clickCount == 1, let id, id != old {
+            pointer.notePress(id, at: event.timestamp)
+        }
+        let action = outline.clickAction(
+            selecting: id, from: old, isPlainClick: isPlainClick,
+            onTriangle: id != nil && pointer.sourceID == id
+        )
+        guard action != .ignore else { return }
+        DispatchQueue.main.async { apply(action, selecting: id, outline: outline) }
     }
 
-    /// Opens or closes `sources`; the triangle, ⌥-click, the keys and the row's action all come here.
-    private func toggle(_ sources: [String], expanding: Bool, outline: SourcesOutline) {
-        outline.setExpanded(sources, expanding, session: session, navigation: navigation)
+    /// The row a left-button press of `event` is the second press of a double-click on, if any.
+    private func secondPressRow(_ event: NSEvent?) -> String? {
+        guard let event, event.type == .leftMouseDown || event.type == .leftMouseUp else { return nil }
+        return pointer.rowForSecondPress(
+            clickCount: event.clickCount, now: event.timestamp, interval: NSEvent.doubleClickInterval
+        )
+    }
+
+    /// Opens the row: its page, or its graph's canvas. A double-click opens the row first pressed, when
+    /// the outline still has it, not the row the second press landed on. Return and the menu never match.
+    private func activate(_ id: String, outline: SourcesOutline) {
+        let target = secondPressRow(currentEvent.read()).flatMap { outline.row(id: $0) != nil ? $0 : nil } ?? id
+        if let row = outline.row(id: target), let location = SourcesListNavigation.location(for: row) {
+            navigation.go(to: location)
+        }
     }
 
     /// What a menu entry does: the row is selected first, so Back returns to it.
-    private var menuActions: SourcesRowMenu.Actions {
+    private func menuActions(outline: SourcesOutline) -> SourcesRowMenu.Actions {
         SourcesRowMenu.Actions(
             open: { row in
                 navigation.noteListAnchor(row.id)
                 if let location = SourcesListNavigation.location(for: row) { navigation.go(to: location) }
             },
             openGraph: { graph, source in
-                session.setSourcesExpanded([source.id], true)
-                navigation.noteListAnchor(graph.id)
+                outline.setOpen(source.id, selecting: graph.id, session: session, navigation: navigation)
                 if let location = SourcesListNavigation.graphLocation(for: source, graph: graph) {
                     navigation.go(to: location)
                 }
@@ -303,7 +319,6 @@ private struct SourcesListContent: View {
             searchField
             filterMenu
             statusMenu
-            sortMenu
             Spacer(minLength: 0)
         }
         .padding(.horizontal, gutter)
@@ -370,29 +385,6 @@ private struct SourcesListContent: View {
             fillsWidth: false,
             accessibilityLabel: L10n.Sources.filterMenu,
             accessibilityIdentifier: "sources.filter"
-        )
-    }
-
-    private var sortMenu: some View {
-        let options = SourcesModel.Sort.allCases.map {
-            PVSelectOption(
-                value: $0.rawValue,
-                label: L10n.string($0.label),
-                accessibilityIdentifier: "sources.sort.\($0.rawValue)"
-            )
-        }
-        return PVSelect(
-            selection: Binding(
-                get: { model.settings.sort.rawValue },
-                set: { if let sort = SourcesModel.Sort(rawValue: $0) { model.settings.sort = sort } }
-            ),
-            options: options,
-            icon: .sort,
-            displayLabel: model.sortControlLabel,
-            menuWidth: 240,
-            fillsWidth: false,
-            accessibilityLabel: L10n.Sources.sortMenu,
-            accessibilityIdentifier: "sources.sort"
         )
     }
 }
@@ -481,13 +473,27 @@ private struct SourcesAddDialog: ViewModifier {
     }
 }
 
-/// The Source whose triangle the pointer is on, if any. A plain class, not observable: only the
-/// selection write reads it, so the rows never redraw for it.
-final class SourcesTriangleHover {
+/// What the pointer did on the Sources list: the Source whose triangle it is on, and the row of the last
+/// plain click's first press. A plain class, not observable: only the selection write and the open action
+/// read it, so the rows never redraw for it.
+final class SourcesPointer {
     private(set) var sourceID: String?
+    private var pressed: (id: String, at: TimeInterval)?
 
     func note(_ id: String, inside: Bool) {
         if inside { sourceID = id } else if sourceID == id { sourceID = nil }
+    }
+
+    /// Records the row a plain click's first press (`clickCount` 1) selected, and when.
+    func notePress(_ id: String, at time: TimeInterval) {
+        pressed = (id, time)
+    }
+
+    /// The row a press is the second of a double-click on: the row first pressed, when the press has
+    /// `clickCount` 2 or more and comes within `interval` of that first press. Nil otherwise.
+    func rowForSecondPress(clickCount: Int, now: TimeInterval, interval: TimeInterval) -> String? {
+        guard clickCount >= 2, let pressed, now - pressed.at <= interval else { return nil }
+        return pressed.id
     }
 }
 

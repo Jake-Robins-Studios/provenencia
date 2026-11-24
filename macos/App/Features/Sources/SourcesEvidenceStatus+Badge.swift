@@ -18,13 +18,16 @@ extension SourcesModel.EvidenceStatus {
         }
     }
 
+    /// Every badge of the Sources table is this wide, so they share a right edge down the column.
+    static var badgeWidth: CGFloat { 126 }
+
     /// Only a graph with nothing on it draws an outline instead of a fill.
     var badgeSubtle: Bool { self == .empty }
 
     /// The status as a Sources list badge. Hidden from VoiceOver: the graph
     /// row's label carries the status.
     @MainActor var badge: some View {
-        PVBadge(label, tone: badgeTone, icon: badgeIcon, subtle: badgeSubtle)
+        PVBadge(label, tone: badgeTone, icon: badgeIcon, subtle: badgeSubtle, minWidth: Self.badgeWidth)
             .accessibilityHidden(true)
     }
 }

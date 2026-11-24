@@ -1,9 +1,35 @@
 import Foundation
 
+/// How the Sources list is ordered: a column of its table and a direction. One value for the settings and
+/// for the table's headers (`SourcesTable`).
+struct SourcesSort: Codable, Hashable, Sendable {
+    /// The columns a header click sorts by. Evidence, Status and Type do not sort.
+    enum Column: String, Codable, CaseIterable, Sendable {
+        case title
+        case published
+        case added
+        case updated
+
+        /// The direction a first click on the header sorts in: A to Z for Title, newest first for the dates.
+        var firstOrder: SortOrder { self == .title ? .forward : .reverse }
+    }
+
+    var column: Column
+    var order: SortOrder
+
+    /// What a first visit shows: Added, newest first.
+    static let initial = SourcesSort(column: .added, order: .reverse)
+
+    init(column: Column, order: SortOrder) {
+        self.column = column
+        self.order = order
+    }
+}
+
 /// What the Sources list remembers between visits: sort, type, evidence
 /// status, and search. One value, saved as one JSON entry per install user.
 struct SourcesListSettings: Codable, Hashable {
-    var sort: SourcesModel.Sort = .added
+    var sort = SourcesSort.initial
     /// `source_types.id`, or empty for all types.
     var typeFilterID = ""
     var status: SourcesModel.EvidenceStatus?
@@ -12,10 +38,10 @@ struct SourcesListSettings: Codable, Hashable {
     init() {}
 
     /// Each field falls back to its default on its own, so one stale value
-    /// (a renamed sort, a removed status) does not reset the rest.
+    /// (a sort stored before the table, a removed status) does not reset the rest.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        sort = (try? container.decodeIfPresent(SourcesModel.Sort.self, forKey: .sort)) ?? .added
+        sort = (try? container.decodeIfPresent(SourcesSort.self, forKey: .sort)) ?? .initial
         typeFilterID = (try? container.decodeIfPresent(String.self, forKey: .typeFilterID)) ?? ""
         // "filed" is what Promoted was stored as before S12-14.
         let stored = (try? container.decodeIfPresent(String.self, forKey: .status)) ?? nil

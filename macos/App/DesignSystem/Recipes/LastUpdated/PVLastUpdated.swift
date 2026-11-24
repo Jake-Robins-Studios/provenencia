@@ -1,5 +1,21 @@
 import SwiftUI
 
+extension PVListDetail {
+    /// A time as a cell with no icon: the relative words, the full stamp as help through `help`, or a
+    /// faint dash when the time is empty or unparseable. The Sources list's Added and Updated cells.
+    static func relative(
+        _ at: String, in context: TimestampFormat.Context, help: (String) -> String
+    ) -> PVListDetail {
+        let text = TimestampFormat.string(at, .relative, in: context)
+        return PVListDetail(
+            text: text ?? "—",
+            help: TimestampFormat.string(at, .stamp, in: context).map(help),
+            icon: nil,
+            faint: text == nil
+        )
+    }
+}
+
 /// The last-updated cell of a list row, shared by the Conclusion lists (S10-22)
 /// and the Sources list (its updated column):
 /// the history icon and the relative time with the full stamp as help, a faint
@@ -12,13 +28,9 @@ enum PVLastUpdated {
     /// The cell: relative text with the full stamp as help, or a faint dash
     /// when the time is empty or unparseable.
     static func detail(_ updatedAt: String, in context: TimestampFormat.Context) -> PVListDetail {
-        let text = TimestampFormat.string(updatedAt, .relative, in: context)
-        return PVListDetail(
-            text: text ?? "—",
-            help: TimestampFormat.string(updatedAt, .stamp, in: context).map(L10n.LastUpdated.help(stamp:)),
-            icon: .history,
-            faint: text == nil
-        )
+        var detail = PVListDetail.relative(updatedAt, in: context, help: L10n.LastUpdated.help(stamp:))
+        detail.icon = .history
+        return detail
     }
 
     /// The column of a list: `detail` of each row's time at `columnWidth`.

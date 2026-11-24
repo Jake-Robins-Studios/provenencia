@@ -8,8 +8,8 @@ enum SourcesDisclosure: Equatable {
     case expanded
 }
 
-/// One row of the Sources list: a Source, an Evidence graph under an open Source, or the placeholder
-/// of an open Source whose graphs are not in the graph list yet. `id` is the Source's or the graph's own
+/// One row of the Sources list: a Source, an Evidence graph under the open Source, or the placeholder
+/// of the open Source whose graphs are not in the graph list yet. `id` is the Source's or the graph's own
 /// id (a history anchor from before the outline still resolves), or `"<sourceID>#graphs"` for the
 /// placeholder.
 struct SourcesOutlineRow: Identifiable, Equatable {
@@ -21,8 +21,6 @@ struct SourcesOutlineRow: Identifiable, Equatable {
 
     let id: String
     let kind: Kind
-    /// The row closes its Source's group: the list draws a rule under it.
-    var endsGroup: Bool
 
     static func pendingID(sourceID: String) -> String { "\(sourceID)#graphs" }
 
@@ -38,8 +36,8 @@ struct SourcesOutlineRow: Identifiable, Equatable {
     }
 }
 
-/// What → or ← does at the selected row.
-enum SourcesOutlineKeyAction: Equatable {
+/// What a key or a click does to the open Source and the selection.
+enum SourcesOutlineAction: Equatable {
     case expand(String)
     case collapse(String)
     case select(String)
@@ -48,33 +46,35 @@ enum SourcesOutlineKeyAction: Equatable {
 
 /// The Sources list as one flat array of rows: each visible Source, and under an open one its Evidence
 /// graphs in the graph list's order. Pure, so it is tested without a view. Built once per change of the
-/// visible Sources, the graph list or the open set (`SourcesModel.outline`).
+/// visible Sources, the graph list or the open Source (`SourcesModel.outline`).
 struct SourcesOutline {
     let rows: [SourcesOutlineRow]
+    /// `rows` as the table's items, built once with the outline.
+    let items: [SourcesTableItem]
     /// Every graph of a visible Source in the loaded graph list, open or closed, to its Source.
     let ownerByGraphID: [String: CatalogSource]
-    /// The Sources with a triangle, in row order.
-    let togglableSourceIDs: [String]
+    /// The open Source's id, as the session holds it; it may name no listed Source.
+    let open: String?
     private let disclosureBySourceID: [String: SourcesDisclosure]
 
-    /// Sources, closed unless `expanded` holds their id. A Source with no Artifact has no triangle and
-    /// no graph rows; one whose graph read failed has none either. A Source whose graphs are not in the
-    /// list yet always gets a triangle (every Source has a graph), and a placeholder row when open.
+    /// Sources, closed unless `open` is their id (an id with no Source in `sources` draws nothing). A
+    /// Source with no Artifact has no triangle and no graph rows; one whose graph read failed has none
+    /// either. A Source whose graphs are not in the list yet always gets a triangle (every Source has a
+    /// graph), and a placeholder row when open.
     init(
         sources: [CatalogSource],
         graphs: (String) -> QueryRead<[CatalogEvidenceGraph]>,
-        expanded: Set<String>
+        open: String?
     ) {
         var rows: [SourcesOutlineRow] = []
         var owners: [String: CatalogSource] = [:]
-        var togglable: [String] = []
         var disclosures: [String: SourcesDisclosure] = [:]
         rows.reserveCapacity(sources.count)
         for source in sources {
             var disclosure = SourcesDisclosure.none
             var children: [SourcesOutlineRow] = []
             if source.hasArtifact {
-                let isOpen = expanded.contains(source.id)
+                let isOpen = source.id == open
                 switch graphs(source.id) {
                 case .failed:
                     break
@@ -82,32 +82,26 @@ struct SourcesOutline {
                     disclosure = isOpen ? .expanded : .collapsed
                     for graph in list { owners[graph.id] = source }
                     if isOpen {
-                        children = list.map { SourcesOutlineRow(id: $0.id, kind: .graph($0, source: source), endsGroup: false) }
+                        children = list.map { SourcesOutlineRow(id: $0.id, kind: .graph($0, source: source)) }
                     }
                 case .loading:
                     disclosure = isOpen ? .expanded : .collapsed
                     if isOpen {
                         children = [SourcesOutlineRow(
                             id: SourcesOutlineRow.pendingID(sourceID: source.id),
-                            kind: .pendingGraph(source: source), endsGroup: false
+                            kind: .pendingGraph(source: source)
                         )]
                     }
                 }
             }
-            if disclosure != .none { togglable.append(source.id) }
             disclosures[source.id] = disclosure
-            rows.append(SourcesOutlineRow(
-                id: source.id, kind: .source(source, disclosure: disclosure),
-                endsGroup: children.isEmpty
-            ))
-            if !children.isEmpty {
-                children[children.count - 1].endsGroup = true
-                rows.append(contentsOf: children)
-            }
+            rows.append(SourcesOutlineRow(id: source.id, kind: .source(source, disclosure: disclosure)))
+            rows.append(contentsOf: children)
         }
         self.rows = rows
+        items = rows.map(SourcesTableItem.row)
         ownerByGraphID = owners
-        togglableSourceIDs = togglable
+        self.open = open
         disclosureBySourceID = disclosures
     }
 
@@ -123,23 +117,29 @@ struct SourcesOutline {
         return owner.id
     }
 
-    /// The selection after the Sources in `collapsing` close: a graph or placeholder row of one of them
-    /// selects its Source instead of a row that is going away; any other selection is unchanged.
-    func selectionAfterCollapsing(_ collapsing: Set<String>, selection: String?) -> String? {
-        guard let selection, let row = row(id: selection) else { return selection }
-        if case .source = row.kind { return selection }
-        return collapsing.contains(row.source.id) ? row.source.id : selection
+    /// The selection after `id` becomes the open Source (nil closes the open one), when the move named
+    /// `selecting` selects that row, whatever it is. With none named, a selected graph or placeholder row
+    /// of a Source that closes selects its Source instead of a row that is going away; any other
+    /// selection is unchanged.
+    func selection(afterOpening id: String?, selecting: String?, current: String?) -> String? {
+        if let selecting { return selecting }
+        guard let current, let row = row(id: current) else { return current }
+        if case .source = row.kind { return current }
+        return row.source.id == id ? current : row.source.id
     }
 
-    /// The Source a selection opens: the row `new` when the selection just moved to it by a plain left
-    /// click (not the keyboard, Back, a reveal, a right-click or a menu; no ⌘, ⇧, ⌥ or ⌃), not by a press
-    /// on its triangle (the button toggles it itself), and it is a closed Source with a triangle. Nil
-    /// otherwise: a click on the selected row, an open Source (a click never closes one), a Source with
-    /// no triangle, a graph row.
-    func sourceToOpen(selecting new: String?, from old: String?, plainLeftClick: Bool, onTriangle: Bool) -> String? {
-        guard plainLeftClick, !onTriangle, let new, new != old,
-              let row = row(id: new), case .source(let source, .collapsed) = row.kind else { return nil }
-        return source.id
+    /// What a plain click does when it moves the selection to `new`: the click (a left press with no
+    /// modifier, not the keyboard, Back, a reveal, a right-click or a menu) not on a triangle (the button
+    /// toggles it itself) and landing on a Source row that is not the open one. A Source with a triangle
+    /// opens (and the open one closes); one with none closes the open one. A graph, the selected row, a
+    /// Source already open and anything else do nothing.
+    func clickAction(selecting new: String?, from old: String?, isPlainClick: Bool, onTriangle: Bool) -> SourcesOutlineAction {
+        guard isPlainClick, !onTriangle, let new, new != old,
+              let row = row(id: new), case .source(let source, let disclosure) = row.kind,
+              disclosure != .expanded else { return .ignore }
+        if disclosure == .collapsed { return .expand(source.id) }
+        guard let open else { return .ignore }
+        return .collapse(open)
     }
 
     /// Whether an event is a left mouse press or release with no modifier, and under a second old (an
@@ -149,21 +149,21 @@ struct SourcesOutline {
         return modifiers.intersection([.command, .shift, .option, .control]).isEmpty
     }
 
-    /// Opens or closes `sources`. Closing a Source whose graph is selected selects the Source first.
+    /// Makes `id` the one open Source (nil closes the open one) and moves the selection as
+    /// `selection(afterOpening:selecting:current:)` says. The triangle, → and ←, a click, the reveal
+    /// and the menu's Open of a graph all come here.
     @MainActor
-    func setExpanded(
-        _ sources: [String], _ expanding: Bool, session: WorkspaceSession, navigation: WorkspaceNavigation
+    func setOpen(
+        _ id: String?, selecting: String? = nil, session: WorkspaceSession, navigation: WorkspaceNavigation
     ) {
-        if !expanding {
-            let selection = selectionAfterCollapsing(Set(sources), selection: navigation.listAnchor)
-            if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
-        }
-        session.setSourcesExpanded(sources, expanding)
+        let selection = selection(afterOpening: id, selecting: selecting, current: navigation.listAnchor)
+        if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
+        session.setOpenSource(id)
     }
 
     /// What → and ← do at `selected`: → opens a closed Source, ← closes an open one or climbs from a
     /// graph row to its Source. Anything else does nothing.
-    static func keyAction(_ key: KeyEquivalent, selected: SourcesOutlineRow?) -> SourcesOutlineKeyAction {
+    static func keyAction(_ key: KeyEquivalent, selected: SourcesOutlineRow?) -> SourcesOutlineAction {
         guard let selected else { return .ignore }
         switch (key, selected.kind) {
         case (.rightArrow, .source(let source, .collapsed)): return .expand(source.id)
@@ -171,70 +171,6 @@ struct SourcesOutline {
         case (.leftArrow, .graph(_, let source)), (.leftArrow, .pendingGraph(let source)): return .select(source.id)
         default: return .ignore
         }
-    }
-
-    /// The parts of a Source row's secondary line, in order. At Wide the type and the date are columns,
-    /// so only the tail stays.
-    static func secondaryParts(
-        type: String, date: CatalogDateValueInput?, tail: String?, isWide: Bool
-    ) -> [SourcesSecondaryPart] {
-        var parts: [SourcesSecondaryPart] = []
-        if !isWide {
-            if !type.isEmpty { parts.append(.type(type)) }
-            if let date, SourceDateText.line(date) != nil { parts.append(.date(date)) }
-        }
-        if let tail { parts.append(.tail(tail)) }
-        return parts
-    }
-}
-
-/// One part of a Source row's secondary line (`SourcesOutline.secondaryParts`).
-enum SourcesSecondaryPart: Equatable {
-    case type(String)
-    case date(CatalogDateValueInput)
-    case tail(String)
-}
-
-/// The columns a Source row adds before its ref: Regular keeps the updated column; Wide adds Type and
-/// Published before it.
-@MainActor
-enum SourcesRowColumns {
-    static let typeWidth: CGFloat = 180
-    static let publishedWidth: CGFloat = 140
-
-    /// The columns' widths, in order: what a skeleton row draws bars for.
-    static func widths(isWide: Bool) -> [CGFloat] {
-        isWide ? [typeWidth, publishedWidth, PVLastUpdated.columnWidth] : [PVLastUpdated.columnWidth]
-    }
-
-    static func details(
-        isWide: Bool, typeLabel: @escaping (CatalogSource) -> String
-    ) -> [PVListDetailColumn<CatalogSource>] {
-        let updated = PVLastUpdated.column { (source: CatalogSource) in source.updated.at }
-        guard isWide else { return [updated] }
-        let type = PVListDetailColumn<CatalogSource>(width: typeWidth) {
-            PVListDetail(text: typeLabel($0), help: typeLabel($0))
-        }
-        return [type, PVPublishedDate.column(width: publishedWidth) { (source: CatalogSource) in source.date }, updated]
-    }
-}
-
-/// A closed Source's summary of its graphs: `1 graph · In progress`, `8 graphs · 3 in progress`,
-/// `8 graphs · 5 promoted`, or `8 graphs` while the counts load or failed.
-enum SourcesGraphSummary {
-    static func text(_ counts: [SourcesGraphCounts]) -> String {
-        let count = L10n.Sources.graphSummaryCount(counts.count)
-        let statuses = counts.compactMap(\.status)
-        guard statuses.count == counts.count, let first = statuses.first else { return count }
-        if statuses.allSatisfy({ $0 == first }) {
-            return L10n.Sources.graphSummary(count: count, detail: L10n.string(first.label))
-        }
-        let inProgress = statuses.filter { $0 == .inProgress }.count
-        if inProgress > 0 {
-            return L10n.Sources.graphSummary(count: count, detail: L10n.Sources.graphSummaryInProgress(inProgress))
-        }
-        let promoted = statuses.filter { $0 == .promoted }.count
-        return L10n.Sources.graphSummary(count: count, detail: L10n.Sources.graphSummaryPromoted(promoted))
     }
 }
 

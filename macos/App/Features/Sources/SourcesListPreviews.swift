@@ -7,6 +7,7 @@ enum SourcesListPreviews {
     static let projectDir = "/tmp/preview.provenencia"
     static let userID = "00000000-0000-7000-8000-000000000001"
     static let width: CGFloat = 1102
+    static let wideWidth: CGFloat = 2296
 
     static func store() -> FakeStore {
         let store = FakeStore()
@@ -17,7 +18,8 @@ enum SourcesListPreviews {
             CatalogSource(
                 id: id, ref: "SRC-\(id.uppercased())", sourceTypeID: "t1", title: title, description: "",
                 date: CatalogDateValueInput(kind: "point", startYear: 1851),
-                updated: CatalogActivity(revision: 1, at: "2026-11-21T10:00:00Z")
+                updated: CatalogActivity(revision: 1, at: "2026-11-21T10:00:00Z"),
+                createdAt: "2026-11-19T10:00:00Z"
             )
         }
         store.sourcesByProject[projectDir] = [
@@ -45,9 +47,10 @@ enum SourcesListPreviews {
         return store
     }
 
-    /// The whole page at the Wide width, over a store `configure` has changed, with `expanded` Sources
-    /// open and a saved status filter when `status` is set.
+    /// The whole page, over a store `configure` has changed, with `expanded` (the first of them) open and
+    /// a saved status filter when `status` is set.
     static func page(
+        paneWidth: CGFloat = width,
         expanded: [String] = [],
         status: SourcesModel.EvidenceStatus? = nil,
         configure: (FakeStore) -> Void = { _ in }
@@ -55,7 +58,7 @@ enum SourcesListPreviews {
         let store = store()
         configure(store)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        session.setSourcesExpanded(expanded, true)
+        session.setOpenSource(expanded.first)
         let projectUuid = UUID().uuidString
         if let status {
             var settings = SourcesListSettings()
@@ -65,32 +68,28 @@ enum SourcesListPreviews {
         return SourcesListView(session: session, userID: userID, projectUuid: projectUuid, store: store)
             .environment(session)
             .environment(WorkspaceNavigation())
-            .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
-            .frame(width: width, height: 640)
+            .environment(\.pvWidthClass, PVWidthClass(paneWidth: paneWidth))
+            .frame(width: paneWidth, height: 640)
     }
 
-    /// A Source's graph rows as the list draws them, one per count state, then the placeholder.
-    static func graphRows(selected: Bool = false) -> some View {
+    /// The table's rows as the page draws them: Source rows with each badge, an open Source with its
+    /// graphs (one links no Artifact), and one row selected (`selected`, the system's bar, focused).
+    static func table(paneWidth: CGFloat = width, selected: String? = nil) -> some View {
         let store = store()
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        session.setSourcesExpanded(["s1"], true)
-        let source = store.sourcesByProject[projectDir]?.last ?? CatalogSource(
-            id: "s1", ref: "SRC-S1", sourceTypeID: "t1", title: "", description: "",
-            updated: CatalogActivity(revision: 1)
+        session.setOpenSource("s1")
+        let model = SourcesModel(session: session, userID: userID, store: store)
+        let outline = model.outline
+        return SourcesTable(
+            items: outline.items, selection: .constant(selected), model: model,
+            isWide: PVWidthClass(paneWidth: paneWidth) == .wide,
+            gutter: PVWidthClass(paneWidth: paneWidth).fullPaneGutter
         )
-        let graphs = store.evidenceGraphsByProject[projectDir] ?? []
-        return VStack(spacing: 0) {
-            ForEach(Array(graphs.prefix(4)), id: \.id) { graph in
-                SourcesGraphRow(content: .graph(graph), source: source)
-            }
-            SourcesGraphRow(content: .pending, source: source)
-        }
-        .padding(.horizontal, 32)
-        .frame(width: width)
-        .background(selected ? Color.accentColor : PVColor.surfaceCard)
-        .environment(\.backgroundProminence, selected ? .increased : .standard)
+        .frame(width: paneWidth, height: 640)
+        .background(PVColor.surfaceCard)
         .environment(session)
-        .task { _ = session.query(session.evidenceGraphsKey) as QueryHandle<[CatalogEvidenceGraph]> }
+        .environment(\.pvWidthClass, PVWidthClass(paneWidth: paneWidth))
+        .task { model.warmListQueries() }
         .task { _ = session.query(session.evidenceGraphProgressKey) as QueryHandle<[String: EvidenceGraphProgress]> }
     }
 
@@ -131,10 +130,14 @@ enum SourcesListPreviews {
     SourcesListPreviews.page { $0.listSourcesError = SourcesListPreviews.Failure() }
 }
 
-#Preview("Graph rows: counts, no Artifact, placeholder") {
-    SourcesListPreviews.graphRows()
+#Preview("Wide: an open Source") {
+    SourcesListPreviews.page(paneWidth: SourcesListPreviews.wideWidth, expanded: ["s1"])
 }
 
-#Preview("Graph rows, selected") {
-    SourcesListPreviews.graphRows(selected: true)
+#Preview("Rows: badges, graphs, one selected") {
+    SourcesListPreviews.table(selected: "s2")
+}
+
+#Preview("Rows, Wide, a graph selected") {
+    SourcesListPreviews.table(paneWidth: SourcesListPreviews.wideWidth, selected: "g1-1")
 }

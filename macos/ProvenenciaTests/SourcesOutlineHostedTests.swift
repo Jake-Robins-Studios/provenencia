@@ -61,7 +61,7 @@ struct SourcesOutlineHostedTests {
         )]
         store.graphProgressByGraph["g1-0"] = EvidenceGraphProgress(graphId: "g1-0", subjectCount: 12, observationCount: 40)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        session.setSourcesExpanded(expanded, true)
+        session.setOpenSource(expanded.first)
         let navigation = WorkspaceNavigation()
         if let anchor { navigation.noteListAnchor(anchor) }
         let view = AnyView(
@@ -77,10 +77,13 @@ struct SourcesOutlineHostedTests {
         let (window, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: width, height: 760))
         host.layoutSubtreeIfNeeded()
         var table: NSTableView?
+        // The skeleton table has rows too: the loaded one is the one with this many.
+        let loaded = 3 + extraSources + (expanded.first == "s1" ? 8 : expanded.first == "s2" ? 1 : 0)
+            + (anchor?.hasPrefix("g1-") == true ? 8 : 0)
         let found = await waitUntil(timeout: .seconds(10)) {
             host.layoutSubtreeIfNeeded()
             table = descendant(NSTableView.self, in: host)
-            return (table?.numberOfRows ?? 0) > 0
+            return (table?.numberOfRows ?? 0) == loaded
         }
         #expect(found)
         let tableView = try #require(table)
@@ -108,7 +111,7 @@ struct SourcesOutlineHostedTests {
 
     @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsOneGraphRow() async throws {
         let harness = try await makeHarness()
-        harness.session.setSourcesExpanded(["s1"], true)
+        harness.session.setOpenSource("s1")
         #expect(await settle(harness, rows: 11))
         // The newest-added order: s3, s2, s1 are ids descending; s1 is last with its 8 graphs under it.
         #expect(heights(harness.table) == [66, 66, 66] + Array(repeating: 34, count: 8))
@@ -116,7 +119,9 @@ struct SourcesOutlineHostedTests {
         for (above, below) in zip(rects, rects.dropFirst()) {
             #expect(above.maxY <= below.minY + 0.5)
         }
-        #expect(harness.scroll.verticalLineScroll == 34)
+        // The table adds its padding to the least row height it is given: the step is the graph row's
+        // 26 pt of content.
+        #expect(harness.scroll.verticalLineScroll == SourcesTable.graphRowHeight)
     }
 
     @Test func aSelectedGraphRowIsSelectedInItsOpenSource() async throws {
@@ -129,10 +134,10 @@ struct SourcesOutlineHostedTests {
 
     @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
         let harness = try await makeHarness()
-        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.session.openSourceID == nil)
         harness.navigation.noteListAnchor("g1-2")
         #expect(await settle(harness, rows: 11))
-        #expect(harness.session.expandedSourceIDs == ["s1"])
+        #expect(harness.session.openSourceID == "s1")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
         #expect(harness.table.selectedRow == 5)
     }
@@ -141,7 +146,7 @@ struct SourcesOutlineHostedTests {
         // 15 Source rows above s1 push its graphs past the 760 pt window.
         let harness = try await makeHarness(extraSources: 15, anchor: "g1-7")
         #expect(await settle(harness, rows: 15 + 3 + 8))
-        #expect(harness.session.expandedSourceIDs == ["s1"])
+        #expect(harness.session.openSourceID == "s1")
         let graphRow = 15 + 3 + 7
         #expect(await waitUntil {
             harness.host.layoutSubtreeIfNeeded()
@@ -154,7 +159,7 @@ struct SourcesOutlineHostedTests {
         #expect(harness.scroll.contentView.bounds.minY > 0)
     }
 
-    /// The page's one path for closing a Source (the triangle, ⌥-click, the keys and the VoiceOver action
+    /// The page's one path for closing a Source (the triangle, the keys and the VoiceOver action
     /// all call it): a selected graph of the Source gives way to the Source itself.
     @Test func closingTheSourceOfASelectedGraphSelectsTheSource() async throws {
         let harness = try await makeHarness(expanded: ["s1"])
@@ -168,11 +173,11 @@ struct SourcesOutlineHostedTests {
         )
         s1.hasArtifact = true
         let outline = SourcesOutline(
-            sources: [s1], graphs: { harness.session.evidenceGraphsRead(sourceID: $0) }, expanded: ["s1"]
+            sources: [s1], graphs: { harness.session.evidenceGraphsRead(sourceID: $0) }, open: "s1"
         )
-        outline.setExpanded(["s1"], false, session: harness.session, navigation: harness.navigation)
+        outline.setOpen(nil, session: harness.session, navigation: harness.navigation)
         #expect(await settle(harness, rows: 3))
-        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.session.openSourceID == nil)
         #expect(harness.navigation.listAnchor == "s1")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 })
     }
@@ -198,15 +203,15 @@ struct SourcesOutlineHostedTests {
         harness.navigation.noteListAnchor("s1")
         _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 }
         await press(NSRightArrowFunctionKey, harness)
-        #expect(harness.session.expandedSourceIDs == ["s1"])
+        #expect(harness.session.openSourceID == "s1")
         #expect(await settle(harness, rows: 11))
         harness.navigation.noteListAnchor("g1-2")
         _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 }
         await press(NSLeftArrowFunctionKey, harness)
         #expect(harness.navigation.listAnchor == "s1")
-        #expect(harness.session.expandedSourceIDs == ["s1"])
+        #expect(harness.session.openSourceID == "s1")
         await press(NSLeftArrowFunctionKey, harness)
-        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.session.openSourceID == nil)
         #expect(await settle(harness, rows: 3))
     }
 
@@ -220,10 +225,13 @@ struct SourcesOutlineHostedTests {
         harness.host.layoutSubtreeIfNeeded()
     }
 
-    private func mouse(_ type: NSEvent.EventType, _ modifiers: NSEvent.ModifierFlags = []) -> NSEvent {
+    private func mouse(
+        _ type: NSEvent.EventType, _ modifiers: NSEvent.ModifierFlags = [], clickCount: Int = 1,
+        at timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> NSEvent {
         NSEvent.mouseEvent(
-            with: type, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
-            windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+            with: type, location: .zero, modifierFlags: modifiers, timestamp: timestamp,
+            windowNumber: 0, context: nil, eventNumber: 0, clickCount: clickCount, pressure: 1
         )!
     }
 
@@ -233,12 +241,30 @@ struct SourcesOutlineHostedTests {
     @Test func aClickOnAClosedSourceSelectsAndOpensIt() async throws {
         let box = EventBox()
         let harness = try await makeHarness(currentEvent: { box.event })
-        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.session.openSourceID == nil)
         // Rows newest first: s3, s2, s1; s1 is row 2.
         await select(row: 2, as: mouse(.leftMouseDown), harness, box)
-        #expect(await waitUntil { harness.session.expandedSourceIDs == ["s1"] })
+        #expect(await waitUntil { harness.session.openSourceID == "s1" })
         #expect(harness.navigation.listAnchor == "s1")
         #expect(await settle(harness, rows: 11))
+    }
+
+    /// T-13 (AC-4.11): the first press of a double-click on a Source opens it and closes the Source above,
+    /// so it moves up and the second press lands on another row; that press changes nothing.
+    @Test func theSecondPressOfADoubleClickLeavesTheAnchorAndTheOpenSource() async throws {
+        let box = EventBox()
+        let harness = try await makeHarness(expanded: ["s2"], currentEvent: { box.event })
+        // Rows: s3, s2, g2-0, s1. The first press selects s1 (row 3); s2 closes and s1 opens.
+        let first = mouse(.leftMouseDown)
+        await select(row: 3, as: first, harness, box)
+        #expect(await waitUntil { harness.session.openSourceID == "s1" })
+        #expect(await settle(harness, rows: 3 + 8))
+        #expect(harness.navigation.listAnchor == "s1")
+        // Row 3 now draws the first graph of s1. The second press (click count 2) is ignored.
+        // (Its time is set 0.2 s after the first press: the waits above take longer than a double-click.)
+        await select(row: 3, as: mouse(.leftMouseDown, clickCount: 2, at: first.timestamp + 0.2), harness, box)
+        #expect(harness.navigation.listAnchor == "s1")
+        #expect(harness.session.openSourceID == "s1")
     }
 
     @Test func aKeyMoveOrAModifiedClickOntoAClosedSourceLeavesItClosed() async throws {
@@ -255,7 +281,7 @@ struct SourcesOutlineHostedTests {
         #expect(harness.navigation.listAnchor == "s1")
         await select(row: 0, as: mouse(.rightMouseDown), harness, box)
         #expect(harness.navigation.listAnchor == "s3")
-        #expect(harness.session.expandedSourceIDs.isEmpty)
+        #expect(harness.session.openSourceID == nil)
     }
 
     @Test func returnOpensASourceAndAGraphThatLinksAnArtifactAndNothingElse() async throws {
@@ -355,19 +381,7 @@ struct SourcesOutlineHostedTests {
         let id: String
     }
 
-    @Test func theRulesRunGutterToGutter() async throws {
-        let harness = try await makeHarness(expanded: ["s2"])
-        #expect(await settle(harness, rows: 4))
-        try? await Task.sleep(for: .milliseconds(300))
-        let gutter = Int(PVWidthClass(paneWidth: 1102).fullPaneGutter)
-        let width = Int(harness.table.bounds.width)
-        // Rows: a Source with no triangle, an open Source, its last graph.
-        expectGutterToGutter(ruleExtent(row: 0, in: harness.table), gutter: gutter, width: width)
-        #expect(ruleExtent(row: 1, in: harness.table) == nil)
-        expectGutterToGutter(ruleExtent(row: 2, in: harness.table), gutter: gutter, width: width)
-    }
-
-    /// A list with no leading slot (the Persons list's shape): its rules also run gutter to gutter.
+    /// A plain list (the Persons list's shape): its rules run gutter to gutter.
     @Test func aPlainListsRulesRunGutterToGutter() async throws {
         var selection: String?
         let rows = (0 ..< 3).map { PlainRow(id: "r\($0)") }

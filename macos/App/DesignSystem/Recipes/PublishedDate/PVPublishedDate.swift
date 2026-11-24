@@ -26,7 +26,7 @@ struct PVPublishedDate: View {
         let detail = Self.detail(date)
         let text = Text(verbatim: detail.text)
             .font(PVFont.body(size: PVTypeScale.caption))
-            .foregroundStyle(PVColor.onSelection(PVColor.textSecondary))
+            .foregroundStyle(PVColor.onSelection(detail.faint ? PVColor.textFaint : PVColor.textSecondary))
             .lineLimit(1)
             .truncationMode(.tail)
         if let help = detail.help {
