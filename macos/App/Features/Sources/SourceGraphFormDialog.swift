@@ -50,8 +50,8 @@ private struct SourceGraphFormDialogModifier: ViewModifier {
 }
 
 /// The form body, in `PVFormColumns`: the save error across the top, then two columns. Left: name,
-/// description and the metadata board. Right: the Artifacts the graph links; a
-/// locked one that Citations use links to the citation composer.
+/// description and the Artifacts the graph links; a locked one that Citations use links to the
+/// citation composer. Right: the metadata board.
 private struct SourceGraphForm: View {
     @Bindable var model: SourceGraphFormModel
     @Environment(WorkspaceNavigation.self) private var navigation
@@ -68,8 +68,6 @@ private struct SourceGraphForm: View {
             isSaving: model.isSaving
         ) {
             fields
-            metadata
-        } right: {
             PVFormLoadArea(
                 state: model.loadState,
                 loadingText: L10n.Sources.graphFormLoading,
@@ -80,6 +78,9 @@ private struct SourceGraphForm: View {
             ) {
                 checklist
             }
+        } right: {
+            metadata
+                .disabled(model.isSaving)
         }
         .id(SourceGraphFormModel.Section.top)
     }

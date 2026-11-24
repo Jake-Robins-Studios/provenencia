@@ -375,6 +375,7 @@ None.
 - VoiceOver: the inherited value's label is "Provider, Inherited from Source: Ancestry" (`metadataInheritedAccessibility(field:level:value:)`), the row's visible label is hidden from VoiceOver, and the hint sits on the pencil through `PVInlineEdit.editHint`.
 - Replaces § 6 "Untrusted size": `Display` is bounded by `citationformat.MaxDisplayBytes` (4,096 bytes, unknown text included, a supplied value keeping its brackets), not `MaxRenderedBytes`; `printed` and `Display` share one `shown` step; `inheritedProto` sends no `open_href` longer than that. T-3's long-text row checks that limit.
 - The Overrides caption is limited to two lines, tail truncated, the whole text on hover.
+- User-added scope (2026-11-23, board redrawn): the metadata board moves to the right column of the Artifact sheet and the Evidence graph form. The Evidence graph links and the Artifacts checklist move under Description on the left.
 - **The board was not opened and § 10 was not run.** The row follows D-11, D-12 and the brief as written; the Swift tests check the models and the draft host, not the drawn row.
 
 ## 13. PR

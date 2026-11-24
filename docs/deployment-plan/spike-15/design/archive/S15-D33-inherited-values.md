@@ -104,7 +104,7 @@ After this board, a board row shows the value its owner **inherits**: read only,
 | Marks | A value can be marked **unknown** (the record does not give it; no text; prints the field's unknown text, "n.p." for Publisher, or nothing when the field has none) or **supplied** (not on the record; prints in square brackets, "[Calder County]"). An inherited value carries the Source's mark and reads as a citation prints it; the engine gives the printed text |
 | Links | A URL value opens in the browser from a saved row today. An inherited URL opens the same way |
 | Sizes | A board of up to 30 rows; up to every one of them inheriting. Values up to a long URL (about 200 characters) |
-| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the left column at about 400pt. There is no one-column form (S15-D5: not built). The sheet is the same at Regular and Wide |
+| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the right column at about 400pt. There is no one-column form (S15-D5: not built). The sheet is the same at Regular and Wide |
 
 ### 2.1 Copy
 
@@ -159,8 +159,8 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Artifact sheet (edit, add) | 880pt sheet, two columns; the board in the left column | The same sheet, centred over the pane | Nothing |
-| Evidence graph form (edit, add) | 880pt sheet, two columns; the board in the left column | The same sheet, centred over the pane | Nothing |
+| Artifact sheet (edit, add) | 880pt sheet, two columns; the board in the right column | The same sheet, centred over the pane | Nothing |
+| Evidence graph form (edit, add) | 880pt sheet, two columns; the board in the right column | The same sheet, centred over the pane | Nothing |
 
 ---
 
