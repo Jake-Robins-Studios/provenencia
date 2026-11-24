@@ -131,3 +131,15 @@ Do: in the page's selection binding `set` (the one place the list writes the sel
 Failing test first: the pure rule as a table over every line of the Rule. Hosted: a synthesized click on a closed Source's row (its title area) selects and opens it; a key move onto a closed Source leaves it closed; a click on the triangle of an unselected closed Source leaves it open, if a synthesized click reaches the button (round 0 reported it does not; try a key window, else say not checked).
 Docs: the Landed note says AC-2.1 – AC-2.4 gain this, by the user, 2026-11-24; `completed.md` and bar 41 say a click selects a Source and opens its graphs. Do not edit the plan's ACs or Decisions.
 Check: the tests pass; `scripts/check-pr.sh` PASS.
+
+Head `119468aaa`. Gate (orchestrator) PASS. U-1 done: the pure rule is table-tested, the hosted tests stand in for the click (`selectRowIndexes` and a substituted current event); a real click on a row and a real press on the triangle are for the user's manual check. Quick-lens review of `4bcce2728...119468aaa`: **Clean**, no blocker or major.
+
+| ID | Severity | Title | Decision |
+| --- | --- | --- | --- |
+| QCK-1 | minor | The one-second stale-event guard has no test | Fix now → U-2 |
+| QCK-2, QCK-3 | nit | Misplaced and untrue comments in `SourcesListView.swift` | Fix now → U-2 (riding along) |
+
+**U-2 — The stale-event guard is tested; two comments**
+Files: `SourcesListView.swift`, `SourcesOutline.swift`, `SourcesOutlineTests.swift`.
+Do: `isPlainLeftClick` takes the event's age (`systemUptime - timestamp`) and rejects one of a second or more; its table gains a stale press. Put the "leaves focus where it is" comment back above `listLeavesFocusAlone`; `select`'s comment says the write the platform list makes.
+Check: the table fails when the age check is removed; `scripts/check-pr.sh` PASS.
