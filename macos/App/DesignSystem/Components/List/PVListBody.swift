@@ -30,11 +30,6 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
     private let claimsFocus: Bool
     private let row: (Item) -> Row
 
-    @FocusState private var isFocused: Bool
-    @State private var edgeRow: Item.ID?
-    @State private var edgeAnchor: UnitPoint = .top
-    @State private var edgeRequest = 0
-    @State private var selectionRequest = 0
 
     init(
         items: [Item],
@@ -83,68 +78,16 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        // The table's row height sets the mouse wheel's step.
-        .environment(\.defaultMinListRowHeight, minimumRowHeight)
-        .focusEffectDisabled()
-        .focused($isFocused)
-        .onAppear {
-            if claimsFocus { FocusClaim.claim($isFocused, true) }
-        }
-        .contextMenu(forSelectionType: Item.ID.self, menu: { ids in
-            menuContent(for: ids)
-        }, primaryAction: { ids in
-            open(ids.first)
-        })
-        .onKeyPress(keys: [.home, .end]) { press in
-            guard let index = PVListKeyboard.moveIndex(
-                for: press.key, option: false, index: 0, count: items.count
-            ), items.indices.contains(index) else { return .ignored }
-            edgeRow = items[index].id
-            edgeAnchor = press.key == .home ? .top : .bottom
-            edgeRequest += 1
-            return .handled
-        }
-        .pvScrollsRowIntoView(edgeRow, anchor: edgeAnchor, animated: false, whenRequested: edgeRequest)
-        .pvScrollsRowIntoView(
-            selection.wrappedValue, animated: false, scrollsOnAppear: true,
-            restartsAt: items.first?.id, whenChanged: restartKey
+        .pvNativeListBehavior(
+            ids: items.map(\.id), selection: selection, minimumRowHeight: minimumRowHeight, label: label,
+            onActivate: { id in
+                if let item = items.first(where: { $0.id == id }) { onActivate(item) }
+            },
+            menu: { id in
+                items.first(where: { $0.id == id }).map(menu) ?? []
+            },
+            restartKey: restartKey, claimsFocus: claimsFocus
         )
-        // A selection set before its row exists (Back to a row inside a closed group) scrolls a turn
-        // after the row appears.
-        .onChange(of: items.map(\.id)) { old, new in
-            guard let id = selection.wrappedValue, new.contains(id), !old.contains(id) else { return }
-            selectionRequest += 1
-        }
-        .pvScrollsRowIntoView(selection.wrappedValue, animated: false, whenRequested: selectionRequest)
-        .accessibilityLabel(Text(label))
-    }
-
-    /// Opens the item with `id`; nothing when a reload has removed it.
-    private func open(_ id: Item.ID?) {
-        guard let item = item(id) else { return }
-        onActivate(item)
-    }
-
-    private func item(_ id: Item.ID?) -> Item? {
-        guard let id else { return nil }
-        return items.first { $0.id == id }
-    }
-
-    /// The right-clicked row's menu: nothing for no row, a row the list no longer has, or no entries.
-    @ViewBuilder
-    private func menuContent(for ids: Set<Item.ID>) -> some View {
-        if let item = ids.lazy.compactMap({ self.item($0) }).first {
-            let sections = menu(item).filter { !$0.isEmpty }
-            ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
-                if index > 0 { Divider() }
-                ForEach(Array(section.enumerated()), id: \.offset) { _, entry in
-                    // Verbatim: a title built from a name (`Open **a**`) is not Markdown.
-                    Button { entry.action() } label: { Text(verbatim: L10n.string(entry.title)) }
-                        .disabled(!entry.isEnabled)
-                        .accessibilityIdentifier(entry.accessibilityIdentifier ?? "")
-                }
-            }
-        }
     }
 }
 

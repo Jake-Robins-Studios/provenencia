@@ -786,6 +786,9 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     }
 
     /// The engine's answer for a deleted Source.
+    /// The create time `insertSource` gives a Source that has none, as the engine reads it back.
+    static let createdAtStamp = "2026-11-24T10:00:00Z"
+
     static let sourceNotFound: Error = CoreInvokeError.coded(
         status: 1, code: "sources.not_found", kind: .notFound, params: []
     )
@@ -3692,6 +3695,8 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         _ source: CatalogSource,
         projectDir: String
     ) -> (CatalogSource, CatalogWriteEffects) {
+        var source = source
+        if source.createdAt.isEmpty { source.createdAt = Self.createdAtStamp }
         sourcesByProject[projectDir, default: []].append(source)
         _ = appendGraph(
             projectDir: projectDir, sourceID: source.id, name: "Default", description: "",

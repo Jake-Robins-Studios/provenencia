@@ -2482,7 +2482,8 @@ struct GoStore: GenealogyStore {
             date: s.hasDate ? mapDateValue(s.date) : nil,
             dateSortKey: s.hasDateSortKey ? s.dateSortKey : nil,
             isPublic: s.isPublic,
-            updated: CatalogActivity(revision: s.updatedRevision, at: s.updatedAt)
+            updated: CatalogActivity(revision: s.updatedRevision, at: s.updatedAt),
+            createdAt: s.createdAt
         )
     }
 
