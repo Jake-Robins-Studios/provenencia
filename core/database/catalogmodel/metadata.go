@@ -30,12 +30,30 @@ type MetadataLevelTables struct {
 
 // SourceUp is the up SourcePath follows, nil when none is marked.
 func (e MetadataLevelTables) SourceUp() *MetadataUp {
+	up, _ := e.sourceUp()
+	return up
+}
+
+// sourceUp is SourceUp and the check that exactly one up is marked toward the
+// Source. With more than one marked it returns the first with the error.
+func (e MetadataLevelTables) sourceUp() (*MetadataUp, error) {
+	var up *MetadataUp
+	marked := 0
 	for i := range e.Ups {
 		if e.Ups[i].ToSource {
-			return &e.Ups[i]
+			if up == nil {
+				up = &e.Ups[i]
+			}
+			marked++
 		}
 	}
-	return nil
+	switch {
+	case marked == 0:
+		return nil, fmt.Errorf("catalogmodel: level %s has no up toward the Source", e.Level)
+	case marked > 1:
+		return up, fmt.Errorf("catalogmodel: level %s marks %d ups toward the Source", e.Level, marked)
+	}
+	return up, nil
 }
 
 // MetadataTables declares every metadata level once. sourcemetadata builds its
@@ -74,22 +92,13 @@ func SourcePath(list []MetadataLevelTables, level vocabkey.Level) ([]MetadataLev
 	}
 	path := []MetadataLevelTables{e}
 	for len(e.Ups) > 0 {
-		marked := 0
-		for _, u := range e.Ups {
-			if u.ToSource {
-				marked++
-			}
-		}
-		if marked == 0 {
-			return nil, fmt.Errorf("catalogmodel: level %s has no up toward the Source", e.Level)
-		}
-		if marked > 1 {
-			return nil, fmt.Errorf("catalogmodel: level %s marks %d ups toward the Source", e.Level, marked)
+		up, err := e.sourceUp()
+		if err != nil {
+			return nil, err
 		}
 		if len(path) > len(list) {
 			return nil, fmt.Errorf("catalogmodel: level %s has an up cycle", level)
 		}
-		up := e.SourceUp()
 		next, ok := find(up.Level)
 		if !ok {
 			return nil, fmt.Errorf("catalogmodel: level %s goes up to %s, not in the metadata list", e.Level, up.Level)
