@@ -118,7 +118,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 | Insets | The whole table, with its header, is inset so the **Title** header's text sits on the page gutter: 32 pt Regular, 56 pt Wide. Triangles start there too |
 | Columns | Each has a minimum, an ideal and a maximum width. The researcher can drag a column's edge; the width is not kept when the page is left. Columns cannot be reordered or hidden by the researcher*. A column can appear at Wide only |
 | Keyboard | The platform's ↑ / ↓ and Page Up / Down*; the app's Home and End (scroll, no selection change), → and ←, Return. Focus on arrival; no ring |
-| Narrow | When the columns' minimums do not fit, the table scrolls sideways, Title first. At an 800 pt pane it does |
+| Narrow | When the columns' minimums do not fit, the table scrolls sideways, Title first. At an 800 pt pane it does under TB-7 (a) |
 
 ### 2.2 What this board is not
 
@@ -171,7 +171,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 | T3 | TB-3, TB-6, TB-10 | Crops of a Source and a graph row: plain and selected, focused and unfocused, light and dark, all three badges |
 | T4 | TB-11 | The menus |
 | T5a / T5b | TB-12, TB-W2 | Loading; late and failed counts; graph list failure with and without a status filter; whole-list failure; empty; no match |
-| T6 | TB-7 | The header alone at Regular and Wide with each column's minimum, ideal and maximum written under it, and an 800 pt pane, scrolled to its left |
+| T6 | TB-7 | The header alone at Regular and Wide with each column's minimum, ideal and maximum written under it, and an 800 pt pane (under TB-7 (a) scrolled to its left) |
 
 ---
 

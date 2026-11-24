@@ -1,7 +1,7 @@
 # Review — S16-D14 The Sources list as a native table
 
-**Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Verdict:** Fits — Ready
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet); round 2 both lenses (Opus)
 
 ## To user
 - None open. Status filter matches the badge (user, 2026-11-24). TB-7 and TB-W1 are picked on the board.
@@ -35,3 +35,6 @@
 | X-7 | major | Sort mapping at the model | Fixed with M-3, in the map entry the plan starts from |
 | X-8 | minor | Triangle's and columns' homes | Fixed — map Deletes; the plan names homes |
 | X-9 | minor | "Taking the selection"; Wide widths | Fixed — § 2; TB-W1 uses the maximums |
+
+## Round 2
+Every round-1 blocker and major resolved; no new blocker. Note taken: the 800 pt pane scrolls only under TB-7 (a) (§ 2.1, T6).
