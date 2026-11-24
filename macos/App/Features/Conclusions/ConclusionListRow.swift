@@ -16,14 +16,6 @@ enum ConclusionListRow {
         PVThumbnail.Content(glyph: .mark(mark), label: nil)
     }
 
-    /// The last-updated column: the history icon and the cell text, faint when
-    /// no time is recorded. `now` is read as each row builds (no timer).
-    static func updatedColumn<Kind: ConclusionListKind>(_: Kind.Type) -> PVListDetailColumn<Kind.Row> {
-        PVListDetailColumn(width: PVLastUpdated.columnWidth) { row in
-            PVLastUpdated.detail(Kind.updatedAt(row), in: .current)
-        }
-    }
-
     static func accessibilityLabel(_ source: PVTitleSource, ref: String) -> String {
         L10n.Workspace.personRowAccessibility(title: source.spokenText, ref: ref)
     }

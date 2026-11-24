@@ -109,7 +109,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
     /// First-load placeholder with the last-updated column bar, so rows do not
     /// shift when the times arrive: 30 rows fill the list area.
     static func loadingArea(gutter: CGFloat) -> some View {
-        PVListSkeleton(rows: 30, detailWidth: PVLastUpdated.columnWidth, horizontalInset: gutter)
+        PVListSkeleton(rows: 30, detailWidths: [PVLastUpdated.columnWidth], horizontalInset: gutter)
             .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
             .clipped()
     }
@@ -200,7 +200,7 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
                         )
                     },
                     meta: { Kind.ref($0) },
-                    detail: ConclusionListRow.updatedColumn(Kind.self),
+                    detail: PVLastUpdated.column { Kind.updatedAt($0) },
                     horizontalInset: gutter,
                     label: Kind.title,
                     itemAccessibilityLabel: {

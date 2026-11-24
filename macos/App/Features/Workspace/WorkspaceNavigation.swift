@@ -269,14 +269,25 @@ enum ListAnchor {
         guard let anchor, ids.contains(anchor) else { return nil }
         return anchor
     }
+
+    /// `anchor` when a row has that id, or when `reveal` makes a row of that id appear (it opens the
+    /// group that holds it, and answers true); else nil. `reveal` is asked only for an anchor no row has.
+    static func settle(_ anchor: String?, in ids: [String], reveal: (String) -> Bool) -> String? {
+        guard let anchor else { return nil }
+        if ids.contains(anchor) { return anchor }
+        return reveal(anchor) ? anchor : nil
+    }
 }
 
 /// Clears a selected row that a list no longer shows. Once the list's read settles, a
 /// `navigation.listAnchor` with no row of that id (a record deleted since, a reload that
 /// removed it) becomes nil; a listed one stays. The list itself binds `listAnchor` as its selection.
+/// A list whose rows can be folded away passes `reveal`: it is asked for an anchor no row has, and
+/// answers true after unfolding the row's group (the row is drawn on the next pass).
 struct ListSelectionAnchorModifier: ViewModifier {
     var rowIDs: [String]
     var isSettled: Bool
+    var reveal: (String) -> Bool = { _ in false }
 
     @Environment(WorkspaceNavigation.self) private var navigation
 
@@ -289,7 +300,7 @@ struct ListSelectionAnchorModifier: ViewModifier {
 
     private func clearIfGone() {
         guard isSettled, let anchor = navigation.listAnchor else { return }
-        let resolved = ListAnchor.resolved(anchor, in: rowIDs)
+        let resolved = ListAnchor.settle(anchor, in: rowIDs, reveal: reveal)
         if resolved != anchor { navigation.noteListAnchor(resolved) }
     }
 }

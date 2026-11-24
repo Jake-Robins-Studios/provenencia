@@ -53,6 +53,11 @@ enum PVExpandedState {
         isExpanded ? .chevronUp : .chevronDown
     }
 
+    /// The leading triangle of an outline row: right to open, down to close.
+    static func outlineChevron(isExpanded: Bool) -> PVSymbol {
+        isExpanded ? .chevronDown : .chevronForward
+    }
+
     static func spoken(isExpanded: Bool) -> LocalizedStringResource {
         isExpanded ? L10n.DesignSystem.disclosureExpanded : L10n.DesignSystem.disclosureCollapsed
     }

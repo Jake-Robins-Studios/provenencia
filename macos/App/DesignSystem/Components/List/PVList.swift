@@ -6,6 +6,35 @@ enum PVListText {
     static let titleFont = PVFont.body(size: PVTypeScale.body)
 }
 
+/// The numbers a list's rows and its pages share, on a non-generic type because a generic one
+/// (`PVListRow`, `PVListBody`) cannot hold a static.
+enum PVListMetrics {
+    /// The platform's table lays a row's cell in 8 pt on each side of the insets.
+    static let platformCellInset: CGFloat = 8
+
+    /// A row's leading inset: the content sits `horizontalInset` from the list's edge, less the cell
+    /// inset the table adds, less the `leadingHang` the row draws before its thumbnail (the leading slot).
+    static func leadingInset(horizontalInset: CGFloat, leadingHang: CGFloat) -> CGFloat {
+        max(0, horizontalInset - platformCellInset - leadingHang)
+    }
+
+    /// A row's trailing inset.
+    static func trailingInset(horizontalInset: CGFloat) -> CGFloat {
+        max(0, horizontalInset - platformCellInset)
+    }
+
+    /// How far a row's leading slot (and the gap after it) hangs before the thumbnail's leading edge;
+    /// 0 with no slot.
+    static func hang(leadingWidth: CGFloat) -> CGFloat {
+        leadingWidth > 0 ? leadingWidth + PVSpacing.space2 : 0
+    }
+
+    /// The title's leading edge from the row's leading edge: the hang, the thumbnail and the gap after it.
+    static func titleLeading(leadingWidth: CGFloat, thumbnailSize: CGFloat) -> CGFloat {
+        hang(leadingWidth: leadingWidth) + thumbnailSize + PVSpacing.space6
+    }
+}
+
 /// The browse list for navigation targets: the platform's own list (SwiftUI's
 /// `List`, an `NSTableView`), so selection, ↑ / ↓, Page Up / Page Down and
 /// scrolling come from the platform at any size. Homogeneous rows: a
@@ -32,11 +61,6 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
     private let itemAccessibilityIdentifier: ((Item) -> String)?
     private let selection: Binding<Item.ID?>
     private let onActivate: (Item) -> Void
-
-    @FocusState private var isFocused: Bool
-    @State private var edgeRow: Item.ID?
-    @State private var edgeAnchor: UnitPoint = .top
-    @State private var edgeRequest = 0
 
     /// The thumbnail slot is a view, so a row can load an image; the list frames
     /// it to `thumbnailSize`. `horizontalInset` is the rows' inset on both sides.
@@ -73,81 +97,52 @@ struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: Vie
     }
 
     var body: some View {
-        List(selection: selection) {
-            ForEach(items) { item in
-                PVListRow(
-                    item: item, thumbnail: thumbnail, thumbnailSize: thumbnailSize,
-                    primary: primary, secondary: secondary, meta: meta, detail: detail,
-                    accessibilityLabel: itemAccessibilityLabel,
-                    accessibilityIdentifier: itemAccessibilityIdentifier
-                )
-            }
-            // On the `ForEach`, not in its closure: a selection move re-runs the closure for every
-            // row, so a modifier inside it runs for rows far off screen.
-            .listRowInsets(EdgeInsets(
-                top: density.vertical, leading: rowInset,
-                bottom: density.vertical, trailing: rowInset
-            ))
-            .listRowSeparator(.visible)
-            .listRowSeparatorTint(PVColor.borderSubtle)
-            .transaction { $0.animation = nil }
+        PVListBody(
+            items: items,
+            selection: selection,
+            minimumRowHeight: thumbnailSize + 2 * density.vertical,
+            horizontalInset: horizontalInset,
+            label: label,
+            onActivate: onActivate
+        ) { item in
+            PVListRow(
+                item: item, leading: { _ in EmptyView() }, leadingWidth: 0,
+                thumbnail: thumbnail, thumbnailSize: thumbnailSize,
+                primary: primary, secondary: secondary, meta: meta,
+                details: detail.map { [$0] } ?? [], density: density,
+                accessibilityLabel: itemAccessibilityLabel,
+                accessibilityIdentifier: itemAccessibilityIdentifier
+            )
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        // The table's row height sets the mouse wheel's step: the row's own height, one row a step.
-        .environment(\.defaultMinListRowHeight, thumbnailSize + 2 * density.vertical)
-        .focusEffectDisabled()
-        .focused($isFocused)
-        .onAppear { FocusClaim.claim($isFocused, true) }
-        .contextMenu(forSelectionType: Item.ID.self, menu: { _ in EmptyView() }, primaryAction: { ids in
-            open(ids.first)
-        })
-        .onKeyPress(keys: [.home, .end]) { press in
-            guard let index = PVListKeyboard.moveIndex(
-                for: press.key, option: false, index: 0, count: items.count
-            ), items.indices.contains(index) else { return .ignored }
-            edgeRow = items[index].id
-            edgeAnchor = press.key == .home ? .top : .bottom
-            edgeRequest += 1
-            return .handled
-        }
-        .pvScrollsRowIntoView(edgeRow, anchor: edgeAnchor, animated: false, whenRequested: edgeRequest)
-        .pvScrollsRowIntoView(selection.wrappedValue, animated: false, scrollsOnAppear: true)
-        .accessibilityLabel(Text(label))
-    }
-
-    /// The platform's table lays a row's cell in 8 pt on each side of the insets; the row's own inset
-    /// is `horizontalInset` less that, so the content sits `horizontalInset` from the list's edges.
-    private static var platformCellInset: CGFloat { 8 }
-
-    private var rowInset: CGFloat { max(0, horizontalInset - Self.platformCellInset) }
-
-    /// Opens the item with `id`; nothing when a reload has removed it.
-    private func open(_ id: Item.ID?) {
-        guard let id, let item = items.first(where: { $0.id == id }) else { return }
-        onActivate(item)
     }
 }
 
-/// One row of a `PVList`. A view of its own, so the list's `ForEach` builds only this value and
-/// SwiftUI builds a row's content for the rows on screen. The row modifiers (insets, separator and
-/// its tint) are on the `ForEach`, not here and not in its closure, so a selection move runs none
-/// of them for rows off screen.
-private struct PVListRow<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
+/// One row of a `PVList` or of another `PVListBody`: an optional leading slot, a thumbnail, the title
+/// over the secondary line, detail columns and a trailing mono ref. A view of its own, so the list's
+/// `ForEach` builds only this value and SwiftUI builds a row's content for the rows on screen. The row
+/// modifiers (insets, separator tint) are on the `ForEach`, not here and not in its closure, so a
+/// selection move runs none of them for rows off screen. The row pads itself `density.vertical` top and
+/// bottom, so it owns its height. With a leading slot the thumbnail sits `PVListMetrics.hang` in from
+/// the row's leading edge, which the body's smaller leading inset puts back on the gutter. A nil
+/// `accessibilityLabel` leaves the row's accessibility to its caller.
+struct PVListRow<Item: Identifiable, Leading: View, Thumbnail: View, Primary: View, Secondary: View>: View {
     let item: Item
+    let leading: (Item) -> Leading
+    /// Width of the leading slot; 0 for none.
+    let leadingWidth: CGFloat
     let thumbnail: (Item) -> Thumbnail
     let thumbnailSize: CGFloat
     let primary: (Item) -> Primary
     let secondary: (Item) -> Secondary
     let meta: (Item) -> String?
-    let detail: PVListDetailColumn<Item>?
-    let accessibilityLabel: (Item) -> String
+    let details: [PVListDetailColumn<Item>]
+    var density: PVListDensity = .comfortable
+    let accessibilityLabel: ((Item) -> String)?
     let accessibilityIdentifier: ((Item) -> String)?
 
     var body: some View {
         HStack(spacing: PVSpacing.space6) {
-            thumbnail(item)
-                .frame(width: thumbnailSize, height: thumbnailSize)
+            thumbnailGroup
             VStack(alignment: .leading, spacing: 3) {
                 primary(item)
                     .font(PVListText.titleFont)
@@ -160,7 +155,7 @@ private struct PVListRow<Item: Identifiable, Thumbnail: View, Primary: View, Sec
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if let detail {
+            ForEach(Array(details.enumerated()), id: \.offset) { _, detail in
                 PVListDetailCell(detail: detail.content(item), width: detail.width)
             }
             if let meta = meta(item) {
@@ -173,11 +168,48 @@ private struct PVListRow<Item: Identifiable, Thumbnail: View, Primary: View, Sec
             }
         }
         .frame(height: thumbnailSize)
-        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+        .padding(.vertical, density.vertical)
+        .alignmentGuide(.listRowSeparatorLeading) { [hang = PVListMetrics.hang(leadingWidth: leadingWidth)] _ in hang }
         .alignmentGuide(.listRowSeparatorTrailing) { $0.width }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: accessibilityLabel(item)))
-        .accessibilityIdentifier(accessibilityIdentifier?(item) ?? "")
+        .modifier(PVListRowAccessibility(item: item, label: accessibilityLabel, identifier: accessibilityIdentifier))
+    }
+
+    /// The thumbnail, after the leading slot when there is one. The slot lays out at the thumbnail's
+    /// height but its hit area runs the row's full height.
+    @ViewBuilder
+    private var thumbnailGroup: some View {
+        if leadingWidth > 0 {
+            HStack(spacing: PVSpacing.space2) {
+                leading(item)
+                    .frame(width: leadingWidth, height: thumbnailSize + 2 * density.vertical)
+                    .contentShape(Rectangle())
+                    .padding(.vertical, -density.vertical)
+                thumbnail(item)
+                    .frame(width: thumbnailSize, height: thumbnailSize)
+            }
+        } else {
+            thumbnail(item)
+                .frame(width: thumbnailSize, height: thumbnailSize)
+        }
+    }
+}
+
+/// A row's accessibility element, label and identifier, when its caller gives a label.
+private struct PVListRowAccessibility<Item>: ViewModifier {
+    let item: Item
+    let label: ((Item) -> String)?
+    let identifier: ((Item) -> String)?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let label {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: label(item)))
+                .accessibilityIdentifier(identifier?(item) ?? "")
+        } else {
+            content
+        }
     }
 }
 
@@ -191,8 +223,8 @@ struct PVListDetail {
 
 /// One cell of a `PVList` detail column, framed to its column width. A `nil`
 /// detail leaves the cell empty at the same width. A `nil` width hugs the
-/// content. Rows that are not a `PVList` row (the Sources list row's second
-/// line) draw the same cell.
+/// content; a width truncates the text with a tail ellipsis. Rows that are not
+/// a `PVList` row (the Sources list row's second line) draw the same cell.
 struct PVListDetailCell: View {
     let detail: PVListDetail?
     let width: CGFloat?
@@ -205,6 +237,18 @@ struct PVListDetailCell: View {
     }
 
     @ViewBuilder
+    private func text(_ string: String) -> some View {
+        let text = Text(verbatim: string)
+            .font(PVFont.body(size: PVTypeScale.caption))
+            .lineLimit(1)
+        if width != nil {
+            text.truncationMode(.tail)
+        } else {
+            text.fixedSize()
+        }
+    }
+
+    @ViewBuilder
     private var content: some View {
         if let detail {
             let color = PVColor.onSelection(detail.faint ? PVColor.textFaint : PVColor.textMuted)
@@ -212,10 +256,7 @@ struct PVListDetailCell: View {
                 if let icon = detail.icon {
                     PVIcon(icon, size: iconSize)
                 }
-                Text(verbatim: detail.text)
-                    .font(PVFont.body(size: PVTypeScale.caption))
-                    .lineLimit(1)
-                    .fixedSize()
+                text(detail.text)
             }
             .foregroundStyle(color)
             if let help = detail.help {
@@ -315,8 +356,8 @@ struct PVListSkeleton: View {
     var rows: Int = 5
     var thumbnailSize: CGFloat = 44
     var density: PVListDensity = .comfortable
-    /// Width of the list's detail column; draws a bar there before the ref bar.
-    var detailWidth: CGFloat?
+    /// Widths of the list's detail columns; draws a bar in each before the ref bar.
+    var detailWidths: [CGFloat] = []
     /// The rows' inset on both sides, and the separators'; the density's when nil.
     var horizontalInset: CGFloat?
 
@@ -334,8 +375,8 @@ struct PVListSkeleton: View {
                         }
                         .frame(maxHeight: .infinity, alignment: .center)
                     }
-                    if let detailWidth {
-                        PVSkeletonBar(width: 64, height: 10)
+                    ForEach(Array(detailWidths.enumerated()), id: \.offset) { _, detailWidth in
+                        PVSkeletonBar(width: min(64, detailWidth), height: 10)
                             .frame(width: detailWidth, alignment: .leading)
                     }
                     PVSkeletonBar(width: 72, height: 10)
@@ -394,7 +435,7 @@ private struct PVListPreview: View {
 #Preview {
     VStack(spacing: PVSpacing.space8) {
         PVListPreview().frame(height: 220)
-        PVListSkeleton(rows: 3, detailWidth: 136)
+        PVListSkeleton(rows: 3, detailWidths: [136])
     }
     .padding(PVSpacing.space9)
     .frame(width: 640)
