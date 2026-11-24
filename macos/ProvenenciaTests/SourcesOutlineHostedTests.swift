@@ -26,7 +26,7 @@ struct SourcesOutlineHostedTests {
 
     private func makeHarness(
         width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil,
-        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }
+        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }, withHistory: Bool = false
     ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
@@ -63,6 +63,12 @@ struct SourcesOutlineHostedTests {
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.setOpenSource(expanded.first)
         let navigation = WorkspaceNavigation()
+        if withHistory {
+            navigation.attachProject(
+                uuid: UUID().uuidString,
+                fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
+            )
+        }
         if let anchor { navigation.noteListAnchor(anchor) }
         let view = AnyView(
             SourcesListView(
@@ -261,10 +267,57 @@ struct SourcesOutlineHostedTests {
         #expect(await settle(harness, rows: 3 + 8))
         #expect(harness.navigation.listAnchor == "s1")
         // Row 3 now draws the first graph of s1. The second press (click count 2) is ignored.
-        // (Its time is set 0.2 s after the first press: the waits above take longer than a double-click.)
-        await select(row: 3, as: mouse(.leftMouseDown, clickCount: 2, at: first.timestamp + 0.2), harness, box)
+        await select(row: 3, as: mouse(.leftMouseDown, clickCount: 2), harness, box)
         #expect(harness.navigation.listAnchor == "s1")
         #expect(harness.session.openSourceID == "s1")
+    }
+
+    /// F-1 (CON-1, CON-3): a double-click whose second press lands on no row, however long after the first.
+    @Test func aSecondPressOnNoRowOpensTheFirstRowOnce() async throws {
+        let box = EventBox()
+        let harness = try await makeHarness(currentEvent: { box.event }, withHistory: true)
+        let root = harness.navigation.currentLocation
+        // Rows newest first: s3, s2, s1; s1 is the last row.
+        await select(row: 2, as: mouse(.leftMouseDown), harness, box)
+        #expect(await waitUntil { harness.session.openSourceID == "s1" })
+        #expect(harness.navigation.listAnchor == "s1")
+        // A second press well after the first (no time limit between the presses), on empty space.
+        try? await Task.sleep(for: .milliseconds(700))
+        box.event = mouse(.leftMouseDown, clickCount: 2)
+        harness.table.deselectAll(nil)
+        let page = SourcesListNavigation.pageLocation(sourceId: "s1", ref: "SRC-S1", title: "Parish register, Lyon")
+        #expect(await waitUntil { harness.navigation.currentLocation == page })
+        #expect(harness.navigation.currentLocation == page)
+        // The press is consumed: another nil write does not open again, and one Back is the list.
+        harness.table.deselectAll(nil)
+        try? await Task.sleep(for: .milliseconds(150))
+        harness.navigation.goBack()
+        #expect(harness.navigation.currentLocation == root)
+        #expect(!harness.navigation.canGoBack)
+    }
+
+    /// F-1 (CON-3): the double action of a second press that landed on another row opens the first row.
+    @Test func aDoubleClickOpensTheRowFirstPressedNotTheOneTheSecondLandedOn() async throws {
+        let box = EventBox()
+        let harness = try await makeHarness(currentEvent: { box.event })
+        await select(row: 2, as: mouse(.leftMouseDown), harness, box)
+        #expect(await waitUntil { harness.session.openSourceID == "s1" })
+        #expect(harness.navigation.listAnchor == "s1")
+        // The second press lands on s3 (row 0), well after the first: the selection is not written, and
+        // Return stands in for the table's double action on the row it landed on.
+        try? await Task.sleep(for: .milliseconds(700))
+        box.event = mouse(.leftMouseDown, clickCount: 2)
+        harness.table.selectRowIndexes([0], byExtendingSelection: false)
+        harness.window.makeFirstResponder(harness.table)
+        let returnKey = NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: harness.window.windowNumber, context: nil, characters: "\r",
+            charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36
+        )!
+        harness.window.sendEvent(returnKey)
+        let page = SourcesListNavigation.pageLocation(sourceId: "s1", ref: "SRC-S1", title: "Parish register, Lyon")
+        #expect(await waitUntil { harness.navigation.currentLocation == page })
+        #expect(harness.navigation.currentLocation == page)
     }
 
     @Test func aKeyMoveOrAModifiedClickOntoAClosedSourceLeavesItClosed() async throws {

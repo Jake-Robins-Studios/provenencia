@@ -253,21 +253,32 @@ private struct SourcesListContent: View {
 
     /// The write the platform list makes when its selection changes. A plain left click that lands on a
     /// Source row also opens it (or closes the open one when it has no triangle), a turn later (the write
-    /// may be inside a view update) and without animation. The second press of a double-click is ignored:
-    /// the first press may have moved rows (opening a Source closes the one above), so the second lands on
-    /// another row, and the double-click is still the first row's (`activate`).
+    /// may be inside a view update) and without animation. The second press of a double-click changes
+    /// nothing: the first press may have moved rows (opening a Source closes the one above), so the second
+    /// lands on another row, and the double-click is still the first row's (`activate`). A second press
+    /// that lands on no row writes nil and no double action follows: the first row opens here.
     private func select(_ id: String?, outline: SourcesOutline) {
         // The event being dispatched; `isPlainLeftClick` rejects a stale one (a selection nobody clicked).
         let event = currentEvent.read()
-        if secondPressRow(event) != nil { return }
         let old = navigation.listAnchor
+        if let first = secondPressRow(event, selected: old) {
+            if id == nil, outline.row(id: first) != nil {
+                pointer.consumePress()
+                DispatchQueue.main.async { open(first, outline: outline) }
+            }
+            return
+        }
         navigation.noteListAnchor(id)
         let age = event.map { ProcessInfo.processInfo.systemUptime - $0.timestamp } ?? 0
         let isPlainClick = SourcesOutline.isPlainLeftClick(
             type: event?.type, modifiers: event?.modifierFlags ?? [], age: age
         )
-        if isPlainClick, let event, event.clickCount == 1, let id, id != old {
-            pointer.notePress(id, at: event.timestamp)
+        if let event, event.type == .leftMouseDown || event.type == .leftMouseUp, event.clickCount == 1 {
+            if isPlainClick, let id, id != old {
+                pointer.notePress(id)
+            } else {
+                pointer.consumePress()
+            }
         }
         let action = outline.clickAction(
             selecting: id, from: old, isPlainClick: isPlainClick,
@@ -277,19 +288,31 @@ private struct SourcesListContent: View {
         DispatchQueue.main.async { apply(action, selecting: id, outline: outline) }
     }
 
-    /// The row a left-button press of `event` is the second press of a double-click on, if any.
-    private func secondPressRow(_ event: NSEvent?) -> String? {
+    /// The row a left-button press of `event` is the second press of a double-click on, if any: the row
+    /// first pressed, while it is still `selected`.
+    private func secondPressRow(_ event: NSEvent?, selected: String?) -> String? {
         guard let event, event.type == .leftMouseDown || event.type == .leftMouseUp else { return nil }
         return pointer.rowForSecondPress(
-            clickCount: event.clickCount, now: event.timestamp, interval: NSEvent.doubleClickInterval
+            clickCount: event.clickCount, selected: selected,
+            age: ProcessInfo.processInfo.systemUptime - event.timestamp
         )
     }
 
     /// Opens the row: its page, or its graph's canvas. A double-click opens the row first pressed, when
-    /// the outline still has it, not the row the second press landed on. Return and the menu never match.
+    /// the outline still has it, not the row the second press landed on, and consumes the press so it
+    /// opens once. Return and the menu never match.
     private func activate(_ id: String, outline: SourcesOutline) {
-        let target = secondPressRow(currentEvent.read()).flatMap { outline.row(id: $0) != nil ? $0 : nil } ?? id
-        if let row = outline.row(id: target), let location = SourcesListNavigation.location(for: row) {
+        var target = id
+        if let first = secondPressRow(currentEvent.read(), selected: navigation.listAnchor),
+           outline.row(id: first) != nil {
+            target = first
+            pointer.consumePress()
+        }
+        open(target, outline: outline)
+    }
+
+    private func open(_ id: String, outline: SourcesOutline) {
+        if let row = outline.row(id: id), let location = SourcesListNavigation.location(for: row) {
             navigation.go(to: location)
         }
     }
@@ -478,22 +501,28 @@ private struct SourcesAddDialog: ViewModifier {
 /// read it, so the rows never redraw for it.
 final class SourcesPointer {
     private(set) var sourceID: String?
-    private var pressed: (id: String, at: TimeInterval)?
+    private var pressed: String?
 
     func note(_ id: String, inside: Bool) {
         if inside { sourceID = id } else if sourceID == id { sourceID = nil }
     }
 
-    /// Records the row a plain click's first press (`clickCount` 1) selected, and when.
-    func notePress(_ id: String, at time: TimeInterval) {
-        pressed = (id, time)
+    /// Records the row a plain click's first press (`clickCount` 1) selected.
+    func notePress(_ id: String) {
+        pressed = id
+    }
+
+    /// Forgets the first press: it has opened its row, or a first press that records nothing came after it.
+    func consumePress() {
+        pressed = nil
     }
 
     /// The row a press is the second of a double-click on: the row first pressed, when the press has
-    /// `clickCount` 2 or more and comes within `interval` of that first press. Nil otherwise.
-    func rowForSecondPress(clickCount: Int, now: TimeInterval, interval: TimeInterval) -> String? {
-        guard clickCount >= 2, let pressed, now - pressed.at <= interval else { return nil }
-        return pressed.id
+    /// `clickCount` 2 or more, is under `SourcesOutline.clickMaximumAge` old, and that row is still the
+    /// selection (`selected`: the first press's own write, not yet replaced by the second's). Nil otherwise.
+    func rowForSecondPress(clickCount: Int, selected: String?, age: TimeInterval) -> String? {
+        guard clickCount >= 2, age < SourcesOutline.clickMaximumAge, let pressed, pressed == selected else { return nil }
+        return pressed
     }
 }
 

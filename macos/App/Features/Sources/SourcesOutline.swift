@@ -142,10 +142,14 @@ struct SourcesOutline {
         return .collapse(open)
     }
 
-    /// Whether an event is a left mouse press or release with no modifier, and under a second old (an
-    /// older one is a selection nobody clicked). `age` is seconds since the event happened.
+    /// How old an event may be and still be a click the researcher just made: an older one is a selection
+    /// nobody clicked (`isPlainLeftClick`, `SourcesPointer.rowForSecondPress`).
+    static let clickMaximumAge: TimeInterval = 1
+
+    /// Whether an event is a left mouse press or release with no modifier, and under `clickMaximumAge`
+    /// old. `age` is seconds since the event happened.
     static func isPlainLeftClick(type: NSEvent.EventType?, modifiers: NSEvent.ModifierFlags, age: TimeInterval) -> Bool {
-        guard age < 1, type == .leftMouseDown || type == .leftMouseUp else { return false }
+        guard age < clickMaximumAge, type == .leftMouseDown || type == .leftMouseUp else { return false }
         return modifiers.intersection([.command, .shift, .option, .control]).isEmpty
     }
 

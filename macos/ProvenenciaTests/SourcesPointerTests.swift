@@ -4,31 +4,43 @@ import Testing
 
 /// T-13 (AC-4.11, D-15): which row a second press belongs to.
 struct SourcesPointerTests {
-    private let interval: TimeInterval = 0.5
-
-    @Test func aSecondPressWithinTheIntervalBelongsToTheFirstRow() {
+    @Test func aSecondPressBelongsToTheFirstRowWhileItIsTheSelection() {
         let pointer = SourcesPointer()
-        pointer.notePress("s1", at: 100)
-        #expect(pointer.rowForSecondPress(clickCount: 2, now: 100.2, interval: interval) == "s1")
-        #expect(pointer.rowForSecondPress(clickCount: 3, now: 100.5, interval: interval) == "s1")
+        pointer.notePress("s1")
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 0.2) == "s1")
+        #expect(pointer.rowForSecondPress(clickCount: 3, selected: "s1", age: 0) == "s1")
+        // No time limit between the presses: a slow double-click is the first row's too.
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 0.99) == "s1")
     }
 
     @Test func anythingElseBelongsToNoRow() {
         let pointer = SourcesPointer()
         // No press yet.
-        #expect(pointer.rowForSecondPress(clickCount: 2, now: 100, interval: interval) == nil)
-        pointer.notePress("s1", at: 100)
-        // A first press, and a press after the interval.
-        #expect(pointer.rowForSecondPress(clickCount: 1, now: 100.1, interval: interval) == nil)
-        #expect(pointer.rowForSecondPress(clickCount: 0, now: 100.1, interval: interval) == nil)
-        #expect(pointer.rowForSecondPress(clickCount: 2, now: 100.6, interval: interval) == nil)
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 0) == nil)
+        pointer.notePress("s1")
+        // Another row is the selection, or none is.
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s2", age: 0) == nil)
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: nil, age: 0) == nil)
+        // A first press, and an event a second old or more.
+        #expect(pointer.rowForSecondPress(clickCount: 1, selected: "s1", age: 0) == nil)
+        #expect(pointer.rowForSecondPress(clickCount: 0, selected: "s1", age: 0) == nil)
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 1) == nil)
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 10) == nil)
+    }
+
+    @Test func aConsumedPressBelongsToNoRow() {
+        let pointer = SourcesPointer()
+        pointer.notePress("s1")
+        pointer.consumePress()
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 0) == nil)
     }
 
     @Test func aNewFirstPressReplacesTheRow() {
         let pointer = SourcesPointer()
-        pointer.notePress("s1", at: 100)
-        pointer.notePress("s2", at: 101)
-        #expect(pointer.rowForSecondPress(clickCount: 2, now: 101.1, interval: interval) == "s2")
+        pointer.notePress("s1")
+        pointer.notePress("s2")
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s2", age: 0.1) == "s2")
+        #expect(pointer.rowForSecondPress(clickCount: 2, selected: "s1", age: 0.1) == nil)
     }
 
     @Test func theTriangleHoverIsNotedAndCleared() {
