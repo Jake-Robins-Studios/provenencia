@@ -469,7 +469,7 @@ private extension EvidenceCardView {
                     L10n.string(L10n.EvidenceGraph.negatedPrefix),
                     in: CGRect(x: leading, y: rect.minY + 22, width: 28, height: 14),
                     font: PVFont.nsBody(size: PVTypeScale.micro, weight: PVFontWeight.semibold),
-                    color: PVColor.danger, lines: 1, kern: PVTypeScale.micro * PVTracking.caps, uppercased: true
+                    color: PVColor.danger, lines: 1, kern: PVMicroCaps.tracking, uppercased: true
                 )
                 valueX += 30
             }
