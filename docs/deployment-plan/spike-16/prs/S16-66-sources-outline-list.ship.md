@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** fixing 1
+**State:** review 2
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -90,3 +90,9 @@ Check: `rg -n "Sources list graph button" macos` prints nothing.
 Files: `PVListBody.swift`, a test in `PVListTests.swift` if reachable.
 Do: in `menuContent`, `Button { entry.action() } label: { Text(verbatim: L10n.string(entry.title)) }`.
 Check: a graph named `**a**` keeps its asterisks (test the string path if the menu cannot be hosted).
+
+## Round 1 — fix
+Head `8cd9922d6`. Gate (orchestrator) PASS on `8cd9922d6`: all nine checks. F-1 – F-10 done. MNT-6's wrapper guides draw (hosted renders, Persons and Sources). Deviations: F-1, F-2, F-3, F-6 and F-10 share one commit; F-7 and F-8 share one; `FakeStore.listEvidenceGraphProgressHold` is new; `statusFailureKeepsTheToolbar` had no red run (the state type did not exist). F-5's renders show a selected row's Not started badge faint on the accent bar (AC-3.1 keeps the badge's colors): for the user's manual check.
+
+## Round 2 — review
+Reviewers: CON, MNT, UX, SEC+PRF, on `a09c2ac33...8cd9922d6`.
