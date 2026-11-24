@@ -9,12 +9,4 @@ enum Level: String, CaseIterable, Sendable {
     case artifact
     case graph
     case citation
-
-    /// The levels that hold metadata; mirrors `vocabkey.MetadataLevels`.
-    static let metadataLevels: [Level] = [
-        .source,
-        .artifact,
-        .graph,
-        .citation,
-    ]
 }

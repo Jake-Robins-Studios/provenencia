@@ -10,9 +10,9 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/vocabkey"
 )
 
-// Owner is the record metadata hangs off: a Source, an Artifact, an Evidence graph or a
-// Citation. Level names which
-// store holds its values, and ID is the owner row's id.
+// Owner is the record metadata hangs off: a Source, an Artifact, an Evidence
+// graph or a Citation. Level names which store holds its values, and ID is the
+// owner row's id.
 type Owner struct {
 	Level vocabkey.Level
 	ID    []byte

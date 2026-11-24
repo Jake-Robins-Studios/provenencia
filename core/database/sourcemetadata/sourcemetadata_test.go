@@ -1090,7 +1090,7 @@ func birthOfAlice(t *testing.T, c *database.Catalog, userID []byte) sources.Sour
 
 func TestStoresAreRegistered(t *testing.T) {
 	var want, got []string
-	for _, l := range vocabkey.MetadataLevels() {
+	for _, l := range vocabkey.Levels() {
 		want = append(want, string(l))
 	}
 	for l := range stores {
@@ -1099,7 +1099,7 @@ func TestStoresAreRegistered(t *testing.T) {
 	sort.Strings(want)
 	sort.Strings(got)
 	if !slices.Equal(got, want) {
-		t.Fatalf("store levels = %v, want vocabkey.MetadataLevels %v", got, want)
+		t.Fatalf("store levels = %v, want vocabkey.Levels %v", got, want)
 	}
 	for _, e := range catalogmodel.MetadataTables {
 		st := stores[e.Level]
@@ -1827,7 +1827,7 @@ func TestListByOwnersTx(t *testing.T) {
 		t.Fatalf("nil owners = %+v, %v", none, err)
 	}
 	if _, err := ListByOwnersTx(tx, []Owner{sourceOwner(a.ID), {Level: vocabkey.LevelCitation, ID: a.ID[:15]}}); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("citation owner = %v", err)
+		t.Fatalf("short owner id = %v", err)
 	}
 
 	listByOwnersBatches(t)
@@ -2223,7 +2223,7 @@ func TestReadDraftsTx(t *testing.T) {
 		t.Errorf("nil tx = %v, want ErrInvalid", err)
 	}
 	if _, err := ReadDraftsTx(tx, []Owner{a1, {Level: vocabkey.LevelCitation, ID: a1.ID[:15]}}); !errors.Is(err, ErrInvalid) {
-		t.Errorf("citation owner = %v, want ErrInvalid", err)
+		t.Errorf("short owner id = %v, want ErrInvalid", err)
 	}
 }
 

@@ -41,7 +41,7 @@ func (e MetadataLevelTables) SourceUp() *MetadataUp {
 // MetadataTables declares every metadata level once. sourcemetadata builds its
 // stores, deleteimpact its field-in-use probes and facet releases, and effects
 // its Source scopes from this list, so a new level is one entry here plus its
-// tables. The order is vocabkey.MetadataLevels().
+// tables. The order is vocabkey.Levels().
 var MetadataTables = []MetadataLevelTables{
 	{Level: vocabkey.LevelSource, Kind: KindSource, OwnerTable: "sources", OwnerColumn: "source_id",
 		Values: "source_metadata", Layout: "source_metadata_layout"},

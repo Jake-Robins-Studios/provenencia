@@ -38,18 +38,11 @@ func Levels() []Level {
 	return []Level{LevelSource, LevelArtifact, LevelGraph, LevelCitation}
 }
 
-// MetadataLevels returns the levels that hold metadata, a new slice in order
-// on each call.
-func MetadataLevels() []Level {
-	return []Level{LevelSource, LevelArtifact, LevelGraph, LevelCitation}
-}
-
-// NearestFirst returns the levels that hold metadata in the order a format
-// reads a field: the Citation, then the Evidence graph, then the Artifact,
-// then the Source. It is
-// MetadataLevels reversed, a new slice on each call.
+// NearestFirst returns the levels in the order a format reads a field: the
+// Citation, then the Evidence graph, then the Artifact, then the Source. It is
+// Levels reversed, a new slice on each call.
 func NearestFirst() []Level {
-	l := MetadataLevels()
+	l := Levels()
 	slices.Reverse(l)
 	return l
 }

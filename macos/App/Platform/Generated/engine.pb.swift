@@ -3066,7 +3066,8 @@ public nonisolated struct Provenencia_Engine_V1_MetadataOwner: Sendable {
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
 
-  /// "source", "artifact", "graph" or "citation" (vocabkey.MetadataLevels); any other value is sourcemetadata.invalid
+  /// "source", "artifact", "graph" or "citation" (vocabkey.Levels); any other
+  /// value is sourcemetadata.invalid.
   public var level: String = String()
 
   public var id: String = String()

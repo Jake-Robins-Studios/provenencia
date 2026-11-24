@@ -33,8 +33,8 @@ func TestMetadataTables(t *testing.T) {
 	for _, e := range catalogmodel.MetadataTables {
 		levels = append(levels, e.Level)
 	}
-	if !slices.Equal(levels, vocabkey.MetadataLevels()) {
-		t.Fatalf("levels = %v, want %v", levels, vocabkey.MetadataLevels())
+	if !slices.Equal(levels, vocabkey.Levels()) {
+		t.Fatalf("levels = %v, want %v", levels, vocabkey.Levels())
 	}
 	byLevel := map[vocabkey.Level]catalogmodel.MetadataLevelTables{}
 	for _, e := range catalogmodel.MetadataTables {

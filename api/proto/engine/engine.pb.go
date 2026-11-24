@@ -6190,9 +6190,11 @@ func (x *DeleteSourceNoteResponse) GetEffects() *WriteEffects {
 
 // MetadataOwner names the record a metadata board hangs off.
 type MetadataOwner struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Level         string                 `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"` // "source", "artifact", "graph" or "citation" (vocabkey.MetadataLevels); any other value is sourcemetadata.invalid
-	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "source", "artifact", "graph" or "citation" (vocabkey.Levels); any other
+	// value is sourcemetadata.invalid.
+	Level         string `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+	Id            string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

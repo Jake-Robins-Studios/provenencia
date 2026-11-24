@@ -768,7 +768,7 @@ func listLayoutByOwners(q database.Querier, owners []Owner) (map[string][]Layout
 // BLOBs by memcmp, so a query that orders by owner id, run batch by batch over
 // these ids, returns rows in one order across the batches.
 func eachLevel(owners []Owner, fn func(st *store, ids [][]byte) error) error {
-	for _, level := range vocabkey.MetadataLevels() {
+	for _, level := range vocabkey.Levels() {
 		st := stores[level]
 		if st == nil {
 			continue

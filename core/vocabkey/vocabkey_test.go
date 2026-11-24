@@ -128,24 +128,19 @@ func TestCompareByOrder(t *testing.T) {
 
 func TestLevels(t *testing.T) {
 	all := []Level{"source", "artifact", "graph", "citation"}
-	meta := []Level{"source", "artifact", "graph", "citation"}
 	if got := Levels(); !slices.Equal(got, all) {
 		t.Fatalf("Levels() = %v, want %v", got, all)
-	}
-	if got := MetadataLevels(); !slices.Equal(got, meta) {
-		t.Fatalf("MetadataLevels() = %v, want %v", got, meta)
 	}
 	if got, want := NearestFirst(), []Level{"citation", "graph", "artifact", "source"}; !slices.Equal(got, want) {
 		t.Fatalf("NearestFirst() = %v, want %v", got, want)
 	}
 	Levels()[0] = "x"
-	MetadataLevels()[0] = "x"
 	NearestFirst()[0] = "x"
-	if NearestFirst()[0] != LevelCitation || MetadataLevels()[3] != LevelCitation {
+	if NearestFirst()[0] != LevelCitation {
 		t.Fatal("NearestFirst must return a fresh slice per call")
 	}
-	if Levels()[0] != LevelSource || MetadataLevels()[0] != LevelSource {
-		t.Fatal("Levels and MetadataLevels must return a fresh slice per call")
+	if Levels()[0] != LevelSource {
+		t.Fatal("Levels must return a fresh slice per call")
 	}
 	tests := []struct {
 		l     Level

@@ -328,7 +328,7 @@ Reorder rewrites `sort_order` as `0..n-1` over the fields it is given and leaves
 
 Dismiss and reorder are researcher decisions about their own catalog, so both are audited (`dismiss_metadata_suggestion`, `reorder_metadata`).
 
-`sourcemetadata` takes an owner (a level and an id) on every function, at the four levels that hold metadata: a Source, an Artifact, an Evidence graph and a Citation (`vocabkey.MetadataLevels`). Its stores are built from `catalogmodel.MetadataTables`, which `deleteimpact` and `effects` read too, so a level adds an entry and no code. `Apply` saves a draft of values and layout by comparing it with what is stored, writing layout rows verbatim and keeping the rows the draft leaves out; `CreateAll` is `Apply` on an owner that holds nothing.
+`sourcemetadata` takes an owner (a level and an id) on every function, at the four levels that hold metadata: a Source, an Artifact, an Evidence graph and a Citation (`vocabkey.Levels`). Its stores are built from `catalogmodel.MetadataTables`, which `deleteimpact` and `effects` read too, so a level adds an entry and no code. `Apply` saves a draft of values and layout by comparing it with what is stored, writing layout rows verbatim and keeping the rows the draft leaves out; `CreateAll` is `Apply` on an owner that holds nothing.
 
 ## 5.5 Metadata at four levels
 

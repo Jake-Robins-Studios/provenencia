@@ -766,7 +766,9 @@ message DeleteSourceNoteResponse {
 
 // MetadataOwner names the record a metadata board hangs off.
 message MetadataOwner {
-  string level = 1; // "source", "artifact", "graph" or "citation" (vocabkey.MetadataLevels); any other value is sourcemetadata.invalid
+  // "source", "artifact", "graph" or "citation" (vocabkey.Levels); any other
+  // value is sourcemetadata.invalid.
+  string level = 1;
   string id = 2;
 }
 
