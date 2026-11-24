@@ -108,7 +108,9 @@ struct SourcesOutlineTests {
         let selecting: String?
         let current: String?
         let expected: String?
-        var testDescription: String { "\(before ?? "-") -> \(after ?? "-"), \(current ?? "-")" }
+        var testDescription: String {
+            "\(before ?? "-") -> \(after ?? "-"), selecting \(selecting ?? "-"), current \(current ?? "-")"
+        }
     }
 
     @Test(arguments: [
