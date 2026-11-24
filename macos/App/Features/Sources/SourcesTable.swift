@@ -17,7 +17,7 @@ enum SourcesTableItem: Identifiable, Equatable {
     }
 
     /// The height of the row's content: its Title cell's, whose height is the row's.
-    var contentHeight: CGFloat {
+    @MainActor var contentHeight: CGFloat {
         guard case .row(let row) = self else { return SourcesTable.sourceRowHeight }
         return row.disclosure == nil ? SourcesTable.graphRowHeight : SourcesTable.sourceRowHeight
     }
