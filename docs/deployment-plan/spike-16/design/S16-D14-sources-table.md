@@ -122,7 +122,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 ### 2.2 What this board is not
 
-- Not Properties, Metadata or Source types: they keep their own table. Not Persons, Events or Places: they stay lists.
+- Not Properties, Metadata or Source types: they keep their own table. Not Persons, Events or Places: they stay lists. Persons, Events and Places look as they did, but a selected row's outlined badge (`+N`) takes the on-selection ink, as every outlined badge does (user, 2026-11-24).
 - Not new filters, a search in the window's toolbar, saved column widths, sorting by Type, Evidence or Status, multiple selection, drag, or editing in a row.
 
 ---
