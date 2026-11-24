@@ -1,7 +1,7 @@
 # Ship log — S16-71 The Sources list is a native table
 
 **Plan:** [`S16-71-sources-table.md`](S16-71-sources-table.md) · **Branch:** `s16-71-sources-table` · **PR:** [#969](https://github.com/Jake-Robins-Studios/provenencia/pull/969)
-**State:** ready
+**State:** stopped — macOS CI still red after one fix round
 
 ## Round 0 — implement
 Head `4fea1cfc3`. Gate PASS (orchestrator). Deviations: version 0.40.0; Not started is 128 pt wide against the 126 pt minimum; relative dates use `TimestampFormat`'s words; graph wheel step 26; `settleDelay` a computed static; `SourcesOutline.items`; hosted suites `.serialized`; `PVPublishedDate` "Undated" faint on the Person page too; the rules test's place; AC-1.9 manual only. `BenchmarkList` 4.5 → 17.5 ms.
@@ -136,7 +136,7 @@ Head `1ee76d5f9`: U-3 done except its last clause (a selection move in between w
 **U-4 — A selection move cancels End's repeat**
 Files: `PVNativeListBehavior.swift` (`requestEdgeScroll`). Do: the repeat also needs the selection to be the one at the request, as `requestSelectionScroll` reads it. Hosted test: End, then the selection moves to a row elsewhere before `settleDelay` → after it, that row is in view (fails first). Check: 20 runs; `scripts/check-pr.sh` PASS.
 
-Head `0c86d981e`: U-4 done (orchestrator read the diff). Gate PASS; the hosted and badge suites passed 3 further fresh processes.
+Head `0c86d981e`: U-4 done (correction: the orchestrator read the diff only after the CI failures, not at the gate; U-3, U-4 and C-1 had no reviewer). Gate PASS; the hosted and badge suites passed 3 further fresh processes.
 
 ### CI on `e487a119c`
 Go green; **macOS red** (run 45504654286): the whole run aborts with "Received unexpected event testCaseDidStart for `SourcesOutlineTests/openingMovesASelectionOffTheClosedGroup(_:)` (iteration 1). Test already started." No assertion failed. Passes locally.
@@ -148,8 +148,11 @@ Check: a script or test shows no equal arguments; `scripts/check-pr.sh` PASS.
 
 Head `76325e31b`: C-1 done (two pairs of cases had one description). Gate PASS (orchestrator).
 
+### CI on `76325e31b` and `7a5def392`
+C-1 works: the run completes. macOS red twice (runs 45505668518, 45505904968; macOS 15 runner, Xcode 16.4), one test: `everyRowIsItsOwnHeightHoweverTheRowsMove`, some Source rows read 34, want 66, 200 ms after a change. It passes on macOS 27.2. Not known: late on the runner, or stuck on macOS 15 (U-1's `SourcesRowHeight` was checked on 27.2 only). To user.
+
 ## Result
-Gate PASS · CI: see the PR · open: none · later PR: S16-72 (scroll offset in history, QCK-3) · follow-ups: none · to user: the real-mouse manual check, QCK-2
+Gate PASS · CI: **red** · open: the row heights on macOS 15 · later PR: S16-72 (scroll offset in history, QCK-3) · follow-ups: none · to user: the real-mouse manual check, QCK-2
 
 ## Cost
 Plan: 7,670 words (check-plan-docs info line).
@@ -171,5 +174,5 @@ Plan: 7,670 words (check-plan-docs info line).
 | user | QCK review | opus | 66k |
 | user | implementer (U-3) | sonnet | 104k |
 | user | implementer (U-4) | sonnet | 106k |
-| CI | implementer (C-1) | sonnet | — |
-| | **Total** (without C-1) | | **2,209k** |
+| CI | implementer (C-1) | sonnet | 85k |
+| | **Total** | | **2,294k** |
