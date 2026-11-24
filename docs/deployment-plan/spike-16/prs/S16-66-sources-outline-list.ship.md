@@ -115,3 +115,5 @@ Check: the test passes; `rg -n "accessibilityCustomActions" macos/ProvenenciaTes
 Files: `SourcesOutlineHostedTests.swift`.
 Do: measure each test's synchronous main-thread time before and after (print once, do not commit). Expected cost: `ruleExtent` renders the whole table bitmap and calls `colorAt` per pixel; render only the row's rect and read bytes. Cut any other long synchronous block. Do not raise another suite's timeout, mark a test flaky, or change the three timed-out tests.
 Check: report each test's time before and after; `scripts/check-pr.sh` PASS three times in a row.
+
+Head `fa55de54b`. Gate PASS. G-1 done. G-2 done: `ruleExtent` 12–19 ms → 3–5 ms a call; no other long synchronous block found, so it does not by itself explain the runner's stall. The second run on the old test head (45412220503) failed the same test and the same kind of waits (`confirmDeleteSourceRecountsThroughSession`, `copyRecountsThroughSession`, `editSavesNameAndFullLinkSet`). `main` took bars 38 – 40 (slice 6g), so this PR's bar is 41; merged.
