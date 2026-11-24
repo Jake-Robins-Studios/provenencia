@@ -21,6 +21,8 @@ PR plans (docs/deployment-plan/<spike>/prs/S#-NN-<slug>.md), per plan-pr:
   - every AC is covered by a test or the manual check; every test cites
     an AC or a Decision; every STEP has a Check
   - a Planned plan has no open questions and links a review log
+  - when a plan is named on the command line, an info line gives its word
+    count and largest sections (never an error: plan-pr "Write it once")
 
 Briefs (docs/deployment-plan/<spike>/design/S#-D#-<slug>.md), per
 add-design-brief:
@@ -332,6 +334,23 @@ def check_brief(report: Report, text: str, path: Path) -> None:
     check_links(report, lines)
 
 
+def plan_stats(text: str) -> str:
+    """Words per plan and its largest sections. Informs, never fails: plan-pr
+    "Write it once" asks for less repetition, not a length limit."""
+    sizes: dict[str, int] = {}
+    current = "header"
+    for line in text.splitlines():
+        m = re.match(r"^##\s+(?:\d+\.\s*)?(.+)", line)
+        if m:
+            current = m.group(1).strip()
+            continue
+        sizes[current] = sizes.get(current, 0) + len(line.split())
+    total = sum(sizes.values())
+    top = sorted(sizes.items(), key=lambda kv: -kv[1])[:4]
+    parts = " · ".join(f"{name} {words:,}" for name, words in top)
+    return f"{total:,} words; largest: {parts}"
+
+
 def default_targets() -> list[Path]:
     out: list[Path] = []
     for spike in sorted(DEPLOYMENT_PLAN.glob("spike-*")):
@@ -347,6 +366,7 @@ def main(argv: list[str]) -> int:
         if not argv:
             print("usage: check-plan-docs.py --links FILE ...", file=sys.stderr)
             return 2
+    explicit = bool(argv)
     targets = [Path(a).resolve() for a in argv] or default_targets()
     errors = warnings = 0
     for path in targets:
@@ -356,7 +376,10 @@ def main(argv: list[str]) -> int:
         elif links_only:
             check_links(report, path.read_text(encoding="utf-8").splitlines())
         elif PLAN_NAME_RE.match(path.name) and path.parent.name == "prs":
-            check_plan(report, path.read_text(encoding="utf-8"))
+            text = path.read_text(encoding="utf-8")
+            check_plan(report, text)
+            if explicit:
+                print(f"{display(path)}: info: {plan_stats(text)}")
         elif BRIEF_NAME_RE.match(path.name):
             check_brief(report, path.read_text(encoding="utf-8"), path)
         else:

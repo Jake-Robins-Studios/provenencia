@@ -78,7 +78,8 @@ changes a rule it states.
 ### Path checks
 
 Run the matching block when the diff touches these paths. The paths are the
-routing table in [`ship-pr`](../../ship-pr/SKILL.md) §3.
+lists in `scripts/route-reviewers.py`, which the orchestrator ran; its
+prompt names the blocks that matched.
 
 | Diff touches | Read and apply |
 | --- | --- |

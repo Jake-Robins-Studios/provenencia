@@ -105,19 +105,28 @@ and `PRF-` IDs.
 | --- | --- | --- |
 | Conformance and regression | `review-pr/lenses/conformance.md` | Always |
 | Maintainability | `review-pr/lenses/maintainability.md` | Always |
-| User experience | `review-pr/lenses/ux.md` | `macos/App/**`, `Localizable.xcstrings`, `core/apperr`, new error codes |
-| Security and performance | `review-pr/lenses/security.md` and `review-pr/lenses/performance.md` | **Security:** `core/ingest`, `core/objectpath`, `core/objectstore`, `core/derivatives`, `core/raster`, `core/identity`, `core/catalogsession`, `core/database/**` and any other code that builds SQL, `api/ffi/**`, `macos/App/Platform/ProjectFiles.swift`, `macos/App/Platform/ThumbnailCache.swift`, migrations, `*.entitlements`, URL or locator code, the matching layers (`core/matchregistry`, `core/valuecompare`, `core/propertycompare`, `core/subjectcompare`, `core/subjectprofile`, `core/segmentcompare`, `core/kinship`, `core/recordlinks`, `core/shortlist`, `core/graphalign`, `core/autoreconcile`, `core/database/namealiases`), and any code that loads a stored number, weight, or list from the catalog and trusts its size or range. **Performance:** `core/database/**`, `core/search`, `core/derivatives`, `core/raster`, graph, list, and cache code, `macos/App/Features/**` models |
+| User experience | `review-pr/lenses/ux.md` | `macos/App/**`, `Localizable.xcstrings`, `core/apperr` |
+| Security and performance | `review-pr/lenses/security.md` and `review-pr/lenses/performance.md` | A path in either lens's list, or added code that builds SQL or opens a URL |
 
-Route from `git diff --name-only <base>...<head>`, and read the diff too: a
-path list cannot see "loads a stored weight". Route by what the code does as
-well as where it lives: code that loops over, keys, joins or derives from
-data the app did not write gets the security and performance reviewer
-wherever its package is, and a PR that adds such a package adds it to the
-paths above. When you are unsure whether a
-path matches, dispatch the reviewer. A skipped reviewer is cheap to add
-and a missed blocker is not. Write the reviewers you dispatched in the ship
-log, and say why each one you skipped did not match. The user can ask for every
-reviewer on a PR.
+The path lists live in one place, `scripts/route-reviewers.py`. Route with it:
+
+```bash
+python3 scripts/route-reviewers.py --base <base sha> --head <head sha>
+```
+
+It prints RUN or SKIP for each reviewer with the files that matched, and a
+`Ship log:` line to paste into the round's entry. Then read the diff too: a
+path list cannot see "loads a stored weight". Code that loops over, keys,
+joins or derives from data the app did not write gets the security and
+performance reviewer wherever its package is, and a PR that adds such a
+package adds it to the script's `SECURITY_PATHS`. When you are unsure,
+dispatch the reviewer. A skipped reviewer is cheap to add and a missed
+blocker is not. A reviewer you add by reading the diff goes in the ship-log
+line with its reason. The user can ask for every reviewer on a PR.
+
+The gate already ran `scripts/check-patterns.py`, so the trap shapes it
+checks (SQL built from a value, a bare `Text("…")`, a hand-built IN list) are
+settled before any reviewer starts.
 
 **Models.** Every reviewer and the verifier run on the agent's default (Opus).
 Conformance ran on Sonnet from 2026-10-18; the user moved it back on 2026-11-06
@@ -296,7 +305,24 @@ Head `<sha>`. Gate PASS. F-1 done; F-2 not reproduced (dropped CON-3).
 
 ## Result
 Gate PASS · CI <green> · open: none · follow-ups: MNT-3, UX-5 · to user: —
+
+## Cost
+Plan: 6,912 words (check-plan-docs info line).
+
+| Round | Agent | Model | Tokens |
+| --- | --- | --- | --- |
+| 0 | implementer | sonnet | 182k |
+| 1 | CON | opus | 96k |
+| 1 | verifier SEC-2 | opus | 31k |
+| | **Total** | | **…** |
 ```
+
+**Cost.** After each agent returns, add its row: the token count the Agent
+tool's result reports for it (Claude Code prints it with the agent's tool
+uses and time). Where the client shows no count, write `—`. Copy the plan's
+word count from `python3 scripts/check-plan-docs.py <plan>`. The table is
+how the workflow's cost is measured: which stage to trim next is read from
+these rows across PRs, not guessed.
 
 ## Report to the user
 
@@ -304,6 +330,7 @@ Gate PASS · CI <green> · open: none · follow-ups: MNT-3, UX-5 · to user: —
 **S#-NN ready for review:** #<n>
 - Shipped: one line per user story.
 - Review: round count; per lens, findings fixed / follow-up / rejected.
+- Cost: total tokens and the largest row, from the ship log's **Cost** table.
 - Needs you: To user items, each with your recommendation. "Nothing."
 - Follow-ups: one line each, with a suggested home (an idea file, a row on the map, or dropped; never `docs/dogfood/`). Ask the user where each goes, and write it there only once they answer.
 - Manual check: the plan's §10 steps.

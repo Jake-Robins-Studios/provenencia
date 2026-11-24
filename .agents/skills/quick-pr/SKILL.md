@@ -164,8 +164,9 @@ of what might be wrong. The PR body is its only context beyond the code.
 
 The quick lens covers correctness, regression, test proof, scope, and reuse,
 and pulls in the security, performance and UX checks that the diff's paths call
-for (the routing table in [`ship-pr`](../ship-pr/SKILL.md) §3). There is one
-reviewer even when several of those apply.
+for (`python3 scripts/route-reviewers.py`, the routing table
+[`ship-pr`](../ship-pr/SKILL.md) §3 uses). There is one reviewer even when
+several of those apply: name the lenses the script routes in its prompt.
 
 The user can ask for the full reviewer set on any quick PR. Then route and
 dispatch as `ship-pr` §3 does, with the PR body standing in for the plan.

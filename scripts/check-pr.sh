@@ -18,6 +18,9 @@
 #   guidance-names  scripts/check-guidance-names.py: every code name a skill or
 #                 Cursor rule cites still exists, and every kit Components or Recipes folder has a DesignSystem README row, and every non-Swift file in a synchronized Xcode folder is a membership exception
 #   plan-docs     scripts/check-plan-docs.py on the plans and open briefs this branch changes
+#   patterns      scripts/check-patterns.py: no line this branch adds has the
+#                 shape of a known review trap (SQL built from a value, a bare
+#                 Text("…"), a hand-built IN list, …)
 #   xcode-test    xcodebuild test (ProvenenciaTests), the CI command. macOS only:
 #                 anywhere else it fails, because a PR is not checked without it.
 #                 The Swift files this branch changes are touched first, so an
@@ -117,6 +120,7 @@ run go-test     env CGO_ENABLED=1 go test -tags fts5 ./api/... ./core/...
 run localizable python3 scripts/check-localizable-xcstrings.py
 run guidance-names python3 scripts/check-guidance-names.py
 run plan-docs   plan_docs_changed
+run patterns    python3 scripts/check-patterns.py --base "$base"
 if [[ "$(uname -s)" == "Darwin" ]]; then
   run xcode-test xcode_test
   run swift-warnings swift_warnings
