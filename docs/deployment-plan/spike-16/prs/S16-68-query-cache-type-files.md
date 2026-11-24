@@ -1,6 +1,6 @@
 # S16-68 — The query-cache types have files of their own
 
-**Status:** Draft
+**Status:** Planned
 **Spike / slice:** Spike 16 · Slice 6g — Catalog query layer
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: four types move between files; nothing a researcher sees changes)
@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/macos-client.mdc`, `.cursor/rules/swift-tests.mdc`
 **Context:** [design § CatalogLastUpdated.swift holds four other types](../catalog-query-layer.md#cataloglastupdatedswift-holds-four-other-types-s16-68); working rule "(Batch 6) The query-cache types move verbatim"; S16-37's plan ([`S16-37-list-merge-file.md`](S16-37-list-merge-file.md)), the precedent
 **Planned:** 2026-11-24 against `main` @ `6e18533`
-**Review:** — (not reviewed yet)
+**Review:** [`S16-68-query-cache-type-files.review.md`](S16-68-query-cache-type-files.review.md) — Fits with changes · Ready with changes, 1 round; no blocker open; To user: M-1/M-2, answered 2026-11-24
 
 **Runs on macOS.** STEP-2 needs `xcodebuild`. STEP-1's move checks (`git diff`, `rg`) run anywhere. On a machine without `xcodebuild`, finish STEP-1, then stop and report that STEP-2 needs a macOS runner.
 
@@ -46,23 +46,30 @@
 | --- | --- | --- |
 | AC-1.1 | `rg -n -e "^struct " -e "^enum " -e "^protocol " macos/App/Features/Workspace/Session/CatalogLastUpdated.swift` | Three lines: `struct CatalogActivity`, `protocol CatalogLastUpdatedRow`, `protocol CatalogLastUpdatedRows` |
 | AC-1.2 | `rg -n -e "^protocol CatalogPageValue\b" -e "^enum CatalogQueryFollows\b" -e "^struct CatalogQueryPatch\b" -e "^struct CatalogQueryRefresh\b" macos/App` | Four lines, each in `macos/App/Features/Workspace/Session/<TypeName>.swift` |
-| AC-1.3 | `git diff -M --color-moved=zebra main -- macos/App` | Every removed and added line is shown as moved, except the four new files' `import Foundation` lines and the one access change of D-2 (`fileprivate func requireRowIDs` → `func requireRowIDs`) |
+| AC-1.3 | After the STEP-1 commit, the AC-1.3 command below (it prints the added and removed lines git did not colour as moved) | It prints only: the `---`/`+++` file headers; `+import Foundation` once in each new file; and D-2's lines — the free function's comment, signature and `precondition` removed, the member's comment, signature and `precondition` added, and the five call sites (`-        requireRowIDs(follows)` five times, `+        follows.requireRowIDs()` five times). Blank lines and lone braces may also print: git colours short lines as moved or not by context. Checked on a scratch copy at the planning base, 2026-11-24 |
 | AC-1.4 | `git diff --stat main -- macos/ProvenenciaTests` | Prints nothing; the Swift tests pass unchanged |
+
+AC-1.3 command (bash):
+
+```bash
+git diff --color=always --color-moved=plain "$(git merge-base main HEAD)" HEAD -- macos/App | grep -E $'^(\x1b\\[[0-9;]*m)?[+-]' | grep -v $'\x1b\\[1;3[56]m'
+```
 
 ## 3. Scope
 
 | In | Covered by |
 | --- | --- |
 | `CatalogPageValue` and its six conformances move to `CatalogPageValue.swift` *(new)* | STEP-1, AC-1.2, D-1 |
-| `CatalogQueryFollows` and `requireRowIDs` move to `CatalogQueryFollows.swift` *(new)*; `requireRowIDs` loses `fileprivate` | STEP-1, AC-1.2, AC-1.3, D-1, D-2 |
+| `CatalogQueryFollows` moves to `CatalogQueryFollows.swift` *(new)*; the free `requireRowIDs(_:)` becomes the enum's member `requireRowIDs()`, and its five callers call it on their slot | STEP-1, AC-1.2, AC-1.3, D-1, D-2 |
 | `CatalogQueryPatch` moves to `CatalogQueryPatch.swift` *(new)* | STEP-1, AC-1.2, D-1 |
 | `CatalogQueryRefresh` moves to `CatalogQueryRefresh.swift` *(new)* | STEP-1, AC-1.2, D-1 |
 | `CatalogLastUpdated.swift` keeps `CatalogActivity`, `CatalogLastUpdatedRow` (with its four conformances) and `CatalogLastUpdatedRows` (with its `Array` extension) | STEP-1, AC-1.1 |
-| The map's working rule names the one access change the split forces | STEP-3, D-2 |
+| The map's working rule names the one edit the split forces (user, 2026-11-24) | STEP-3, D-2 |
 
 | Out | Home |
 | --- | --- |
-| Any edit to the moved code: the `.deleted(entity)` follow slot, the removal patch, `requireRowIDs` as a method | S16-70 (the slot and patch); not planned (the method) |
+| Any other edit to the moved code: the `.deleted(entity)` follow slot, the removal patch, the `removes:` closure's removal | S16-70 |
+| A `requireCatalogWide()` member for the inline `precondition(follows.isCatalogWide, …)` in `CatalogQueryRefresh.applyHiddenPolicyOnAny` | not planned (one caller; S16-70's plan may take it when it decides whether `.deleted` is catalog-wide) |
 | Splitting `CatalogQueryPatch` or `CatalogQueryRefresh` further, or moving their static constructors into extensions | not planned |
 | Renaming `CatalogLastUpdated.swift` | not planned (it holds what its name says once the four leave) |
 | Repointing landed plans and ship logs that cite `CatalogLastUpdated.swift` with line numbers | not planned (landed plans are history; `archive-docs` deletes them at spike close) |
@@ -76,7 +83,7 @@ Verified at `6e18533`. All paths are under `macos/App/Features/Workspace/Session
 | Last-updated rows | `CatalogLastUpdated.swift` lines 1–42: `import Foundation`, `struct CatalogActivity`, `protocol CatalogLastUpdatedRow` and its four conformances (`CatalogPersonSummary`, `CatalogEventSummary`, `CatalogPlaceSummary`, `CatalogSource`), `protocol CatalogLastUpdatedRows`, `extension Array: CatalogLastUpdatedRows` | What the file's name says; stays |
 | Page value | same file, lines 44–55: `protocol CatalogPageValue` and six conformances (`CatalogConclusionDetail`, `CatalogPersonClaims`, `CatalogProvenanceSheetRead`, `CatalogPersonFamily`, `CatalogPersonTimeline`, `CatalogPersonRecordLinks`) | Not a last-updated row |
 | Follow slots | same file, lines 57–108: `enum CatalogQueryFollows` (`handle`, `source`, `reads`, `touchedHandles`, `evidenceGraphs`, `list`, `structure`; `isCatalogWide`, `ids(in:)`) | Not a last-updated row |
-| Row-id guard | same file, lines 110–113: `fileprivate func requireRowIDs(_ follows: CatalogQueryFollows)` | Called by `CatalogQueryPatch.lastUpdated` (line 130) and four `CatalogQueryRefresh` constructors (lines 298, 334, 352, 369). `fileprivate`, so it cannot serve two files as it is |
+| Row-id guard | same file, lines 110–113: `fileprivate func requireRowIDs(_ follows: CatalogQueryFollows)`, a `precondition(!follows.isCatalogWide, …)` | Called as `requireRowIDs(follows)` by `CatalogQueryPatch.lastUpdated` (line 130) and four `CatalogQueryRefresh` constructors (lines 298, 334, 352, 369). `fileprivate`, so it cannot serve two files as it is. Every other top-level function in `macos/App` is `private` or `fileprivate` except the FFI entry points in `Platform/CoreInvoke.swift` |
 | Patches | same file, lines 115–251: `struct CatalogQueryPatch` (`lastUpdated`, `sourceRow`, `row(_:patched:appendsOn:removes:)`, `sourceTypeRow`, `typeSuggestions`, `typeSuggestionCount` and the rest) | Not a last-updated row. Has no `private` or `fileprivate` member |
 | Refreshes | same file, lines 253–398: `struct CatalogQueryRefresh` (`Action`, two `fileprivate init`s, `merged`, `mergedRows`, `revalidate`, `followsInputs`, `applyHiddenPolicyOnAny`) | Not a last-updated row. Its two `fileprivate init`s are called only from its own static constructors (lines 279, 299, 335, 353, 370, 393), so they move with it unchanged |
 | Project file | `macos/Provenencia.xcodeproj/project.pbxproj` | The App group is synchronized (`PBXFileSystemSynchronizedBuildFileExceptionSet`): a new file in the folder is built with no project edit, as S16-37 found |
@@ -89,12 +96,12 @@ Verified at `6e18533`. All paths are under `macos/App/Features/Workspace/Session
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | Four new files in `macos/App/Features/Workspace/Session/`, each starting with `import Foundation` and a blank line, then the lines below in today's order, with their doc comments: `CatalogPageValue.swift` lines 44–55; `CatalogQueryFollows.swift` lines 57–113 (the enum, then `requireRowIDs`); `CatalogQueryPatch.swift` lines 115–251; `CatalogQueryRefresh.swift` lines 253–398. `CatalogLastUpdated.swift` keeps lines 1–42 and ends after the `Array` extension's closing brace with one newline | One type per file, named for it (rule "(Batch 6) The query-cache types move verbatim"). `requireRowIDs` guards a `CatalogQueryFollows` value, so it sits with the enum | `requireRowIDs` in the patch or refresh file — both call it, and neither owns the slot |
-| D-2 | `requireRowIDs` drops `fileprivate` and becomes internal. Nothing else in the moved code changes | It now has callers in two other files. This is the one edit the split forces; the working rule is updated to name it (STEP-3) | A method on `CatalogQueryFollows` — an edit to five call sites, beyond a move; a copy in each file — a near-copy |
+| D-1 | Four new files in `macos/App/Features/Workspace/Session/`, each starting with `import Foundation` and a blank line, then the lines below in today's order, with their doc comments, taken from `git show main:macos/App/Features/Workspace/Session/CatalogLastUpdated.swift` so a cut does not shift the next range: `CatalogPageValue.swift` lines 44–55; `CatalogQueryFollows.swift` lines 57–108; `CatalogQueryPatch.swift` lines 115–251; `CatalogQueryRefresh.swift` lines 253–398. Lines 110–113 become D-2's member. `CatalogLastUpdated.swift` keeps lines 1–42 and ends after the `Array` extension's closing brace with one newline | One file per type, named for it (rule "(Batch 6) The query-cache types move verbatim") | Keeping `CatalogPageValue` beside its reader `CatalogQueryDescriptor.entityPage(kind:load:)` in `CatalogQueryRegistry.swift`, which already holds four types, or beside `CatalogPageInputs` in `Platform/GenealogyStore.swift`, which is not the cache layer |
+| D-2 | The free function becomes a member of `CatalogQueryFollows`, after `ids(in:)`: `func requireRowIDs()` with today's doc comment and body, reading `self` (`precondition(!isCatalogWide, "a catalog-wide slot names no ids; use applyHiddenPolicyOnAny(follows:)")`). The five call sites change from `requireRowIDs(follows)` to `follows.requireRowIDs()`. Nothing else in the moved code changes (user, 2026-11-24) | Its callers end up in two other files, so `fileprivate` cannot stay. A member keeps the guard with the type it checks, adds no module-wide free function, and sits in the file S16-70 edits for its sixth caller (review M-2) | Dropping only `fileprivate` — the app's only internal free function for a type's own rule (offered to the user, declined); a copy in each file — a near-copy |
 | D-3 | One commit for the move: "Give the query-cache types files of their own." | AC-1.3 reads the move in one diff, as S16-37's STEP-1 did | One commit per file — four diffs that each show half a move |
 | D-4 | No new tests | No behavior changes; the registry and session suites already cover every moved type, and AC-1.4 holds them unchanged | A test per file — tests nothing a build does not |
 
-**Rules this plan bends.** None. D-2 is the one access change the split forces; STEP-3 writes it into the rule "(Batch 6) The query-cache types move verbatim", which this planning session authored for this PR (2026-11-24).
+**Rules this plan bends.** D-2 edits moved code, against rule "(Batch 6) The query-cache types move verbatim" ("with no edit to their code") → the split leaves `requireRowIDs`'s callers in two files, so it cannot stay `fileprivate` → the user chose the member on the enum (2026-11-24, review M-1, M-2) → STEP-3 rewords the rule.
 
 ## 6. Design
 
@@ -107,11 +114,13 @@ Verified at `6e18533`. All paths are under `macos/App/Features/Workspace/Session
 | `CatalogQueryPatch.swift` *(new)* | file | same | same |
 | `CatalogQueryRefresh.swift` *(new)* | file | same | same |
 
-Searched: `rg --files macos/App -g "*CatalogQuery*" -g "*PageValue*"` finds `CatalogQueryKey.swift` and `CatalogQueryRegistry.swift` only, neither a home for these types.
+Searched: `rg --files macos/App -g "*CatalogQuery*" -g "*PageValue*"` finds `CatalogQueryKey.swift` and `CatalogQueryRegistry.swift` only. By behavior: `CatalogPageValue`'s reader `CatalogQueryDescriptor.entityPage(kind:load:)` (`CatalogQueryRegistry.swift`) and the type it exposes, `CatalogPageInputs` (`macos/App/Platform/GenealogyStore.swift`), were weighed as homes and rejected in D-1.
 
-**Builds on.** S16-37's move of the list merge to `CatalogListMerge.swift`; the folder's one-type-per-file naming (`CatalogQueryKey.swift`, `CatalogRowPresence.swift`, `CatalogListMerge.swift`).
-**Deletes.** `fileprivate` on `requireRowIDs`. Nothing else becomes dead.
-**Next adds.** S16-70 adds `CatalogQueryFollows.deleted(CatalogDeletedEntity)` in `CatalogQueryFollows.swift` and a row-removal patch in `CatalogQueryPatch.swift`.
+| `CatalogQueryFollows.requireRowIDs()` *(new member)* | func | the free `requireRowIDs(_:)` (deleted) and the inline `precondition(follows.isCatalogWide, …)` in `CatalogQueryRefresh.applyHiddenPolicyOnAny` | It is the free function, moved onto the type (D-2); the inline mirror guard stays (Out) |
+
+**Builds on.** S16-37's move of the list merge to `CatalogListMerge.swift`; the folder's files named for the concept they hold (`CatalogQueryKey.swift`, `CatalogRowPresence.swift`, `CatalogListMerge.swift`).
+**Deletes.** The free `fileprivate func requireRowIDs(_:)` (replaced by the member, D-2). Nothing else becomes dead.
+**Next adds.** S16-70's whole cache edit lands in two of these files: `CatalogQueryFollows.deleted(CatalogDeletedEntity)` with its cases in `isCatalogWide` and `ids(in:)` in `CatalogQueryFollows.swift`, and in `CatalogQueryPatch.swift` a row-removal patch (a sixth `requireRowIDs()` caller) and the removal of `row`'s `removes:` closure and `sourceTypeRow()`'s `.deletedSourceType` arm.
 
 ### Reach
 
@@ -123,7 +132,7 @@ None — no write, list or loop changes.
 
 ### Edges
 
-None — no rule, comparison or algorithm changes. The one access edge (`requireRowIDs`, `fileprivate` with callers in two types) is D-2.
+None — no rule, comparison or algorithm changes. The one access edge (`requireRowIDs`, `fileprivate` with callers in two files) is D-2; the member checks the same condition on the same value.
 
 ### Schema
 
@@ -142,7 +151,7 @@ None — no FFI change.
 | Building block | Component | Home | Notes |
 | --- | --- | --- | --- |
 | Page value protocol | `CatalogPageValue` | `CatalogPageValue.swift` *(new)* | Moved, D-1 |
-| Follow slots and row-id guard | `CatalogQueryFollows`, `requireRowIDs` | `CatalogQueryFollows.swift` *(new)* | Moved, D-1, D-2 |
+| Follow slots and row-id guard | `CatalogQueryFollows`, `requireRowIDs()` | `CatalogQueryFollows.swift` *(new)* | Moved, D-1; the guard a member, D-2 |
 | Patches | `CatalogQueryPatch` | `CatalogQueryPatch.swift` *(new)* | Moved, D-1 |
 | Refreshes | `CatalogQueryRefresh` | `CatalogQueryRefresh.swift` *(new)* | Moved, D-1 |
 
@@ -156,9 +165,9 @@ None — no copy.
 
 **STEP-1 — Move the four types**
 Files: `macos/App/Features/Workspace/Session/CatalogLastUpdated.swift`, the four new files of D-1.
-Do: per D-1 and D-2. Cut each line range into its file; change only `fileprivate func requireRowIDs` to `func requireRowIDs`.
-Check: `git diff --stat` shows the five files only; AC-1.1, AC-1.2 and AC-1.3 print what they say (these run anywhere).
-Commit: D-3.
+Do: per D-1 and D-2. Copy each range from `git show main:macos/App/Features/Workspace/Session/CatalogLastUpdated.swift` into its file, then delete lines 43–398 from `CatalogLastUpdated.swift`. Make D-2's member and its five call-site edits.
+Commit: D-3, then check.
+Check: `git show --stat HEAD` lists the five files only; AC-1.1, AC-1.2 and AC-1.3 print what they say (these run anywhere). If AC-1.3 prints a line its row does not allow, fix it in an amended STEP-1 commit.
 
 **STEP-2 — Build and test**
 Files: none.
@@ -166,8 +175,13 @@ Do: run `scripts/check-pr.sh`.
 Check: it prints `check-pr: PASS` with no Swift warning; AC-1.4 prints nothing.
 
 **STEP-3 — Docs**
-Files: `docs/deployment-plan/spike-16/deployment-plan.md` (the working rule "(Batch 6) The query-cache types move verbatim", the map row, the S16-68 scope entry's Check), `docs/deployment-plan/spike-16/completed.md`, this plan (status, Landed note).
-Do: the rule's "with no edit to their code" gains "except `requireRowIDs`, which drops `fileprivate` for its callers in two files". Then the rest per the Definition of done.
+Files: `docs/deployment-plan/spike-16/deployment-plan.md`, `docs/deployment-plan/spike-16/completed.md`, this plan.
+Do, after the PR is open so its number is known:
+- The rule "(Batch 6) The query-cache types move verbatim": after "with no edit to their code" add ", except that the free `requireRowIDs(_:)` becomes `CatalogQueryFollows.requireRowIDs()`, since its callers end up in two files (user, 2026-11-24)".
+- The S16-68 scope entry: its Ships gains "`requireRowIDs` becomes a member of `CatalogQueryFollows` (D-2)."
+- The S16-68 map row: Status `Landed [#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N)`, the form S16-67's row uses.
+- `completed.md`: a new entry at the top of the file (entries run newest first), in the shape of S16-37's entry (the paragraph that opens "**Landed 2026-11-16** in [#858]"), saying the four types moved to files named for them and `requireRowIDs` became a member, and that nothing a researcher sees changed.
+- This plan: Status `Landed in [#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N) (YYYY-MM-DD)` and a **Landed.** line under the header listing each difference from this plan, or "none".
 Check: links resolve; `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-68-query-cache-type-files.md` reports no errors.
 Commit: "Record S16-68 as landed."
 
