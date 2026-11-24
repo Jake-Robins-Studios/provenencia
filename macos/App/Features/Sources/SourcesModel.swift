@@ -309,23 +309,30 @@ final class SourcesModel {
         return error
     }
 
-    /// The Sources list and the graph list are read and settled, or the graph list failed: the point at
-    /// which a selected row that no row draws is cleared.
+    /// The Sources list and the graph list are read and settled (or the graph list failed), and the
+    /// counts or types a filter needs are in: the point at which a selected row that no row draws is
+    /// cleared. A filter's data still on its way hides rows the selection may be on.
     var outlineIsSettled: Bool {
         guard let sourcesHandle: QueryHandle<[CatalogSource]> = session.queryHandle(Self.sourcesListKey(for: session)),
-              sourcesHandle.isSettled, let graphsHandle
+              sourcesHandle.isSettled, let graphsHandle,
+              graphsHandle.isSettled || graphsHandle.failure != nil
         else { return false }
-        return graphsHandle.isSettled || graphsHandle.failure != nil
+        return !isAwaitingFilterData && statusCountsError == nil
     }
 
-    /// Whether the toolbar (and the header's count line) show: not on first load (the Sources list has
-    /// no value, or the graph list is not read), not on the whole-list failure and not in an empty
-    /// catalog; yes for rows, a filter waiting on counts or types, no match, a status failure.
-    var showsToolbar: Bool {
-        guard let sourcesHandle: QueryHandle<[CatalogSource]> = session.queryHandle(Self.sourcesListKey(for: session)),
-              sourcesHandle.value != nil
-        else { return false }
-        return !isAwaitingGraphList && loadError == nil && !isCatalogEmpty
+    /// What the list area shows, and whether the toolbar shows with it.
+    var listState: SourcesListState {
+        let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
+        return SourcesListState.make(SourcesListState.Inputs(
+            loadError: loadError,
+            sourcesAreRead: sourcesHandle?.value != nil,
+            isCatalogEmpty: isCatalogEmpty,
+            statusError: statusCountsError,
+            isAwaitingGraphList: isAwaitingGraphList,
+            isAwaitingFilterData: isAwaitingFilterData,
+            hasRows: !outline.rows.isEmpty,
+            graphListError: graphListError
+        ))
     }
 
     private func buildVisibleSources() -> [CatalogSource] {

@@ -1066,4 +1066,22 @@ struct SourcesModelTests {
         #expect(model.graphCountsLoading)
         #expect(model.isAwaitingFilterData)
     }
+
+    @Test func outlineWaitsForTheCountsAStatusFilterNeeds() async {
+        let store = FakeStore()
+        store.listEvidenceGraphProgressHold.isOn = true
+        let (model, session) = makeModel(
+            store: store, sources: [source(id: "s1", title: "A", typeID: "t1")], types: [photoType()]
+        )
+        model.settings.status = .empty
+        await warmLists(model, session: session)
+        await store.listEvidenceGraphProgressHold.untilSuspended(1)
+        #expect(model.isAwaitingFilterData)
+        #expect(!model.outlineIsSettled)
+        store.listEvidenceGraphProgressHold.isOn = false
+        store.listEvidenceGraphProgressHold.release()
+        await warmProgress(model, session: session)
+        #expect(!model.isAwaitingFilterData)
+        #expect(model.outlineIsSettled)
+    }
 }

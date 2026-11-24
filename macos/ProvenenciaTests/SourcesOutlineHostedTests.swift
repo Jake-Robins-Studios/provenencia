@@ -179,4 +179,35 @@ struct SourcesOutlineHostedTests {
         await pressReturn()
         #expect(harness.navigation.currentLocation.graphId == "g1-0")
     }
+
+    /// The responder that holds the keyboard: the search field's editor, the table, or neither.
+    private func holder(_ harness: Harness) -> String {
+        guard let responder = harness.window.firstResponder else { return "none" }
+        if let text = responder as? NSTextView, text.isFieldEditor { return "field" }
+        if responder === harness.table || (responder as? NSView)?.isDescendant(of: harness.table) == true { return "table" }
+        return String(describing: type(of: responder))
+    }
+
+    @Test func theListTakesFocusOnArrival() async throws {
+        let harness = try await makeHarness()
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return holder(harness) == "table" })
+        #expect(holder(harness) == "table")
+    }
+
+    @Test func aReturningListLeavesTheSearchFieldFocused() async throws {
+        let harness = try await makeHarness()
+        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return holder(harness) == "table" }
+        let field = try #require(descendant(NSTextField.self, in: harness.host))
+        harness.window.makeFirstResponder(field)
+        let editor = try #require(harness.window.fieldEditor(false, for: field) as? NSTextView)
+        #expect(holder(harness) == "field")
+        editor.insertText("zzzz", replacementRange: NSRange(location: 0, length: 0))
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return descendant(NSTableView.self, in: harness.host) == nil })
+        #expect(holder(harness) == "field")
+        editor.selectAll(nil)
+        editor.insertText("", replacementRange: editor.selectedRange())
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return (descendant(NSTableView.self, in: harness.host)?.numberOfRows ?? 0) == 3 })
+        try? await Task.sleep(for: .milliseconds(300))
+        #expect(holder(harness) == "field")
+    }
 }

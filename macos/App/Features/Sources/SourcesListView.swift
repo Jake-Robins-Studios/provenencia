@@ -36,21 +36,50 @@ struct SourcesListView: View {
                     model: model
                 )
             } else {
-                // The handles arrive a turn after the page: the frame and its skeleton hold the place.
-                PVListPage(
-                    title: L10n.Workspace.sourcesTitle, description: L10n.Sources.description,
-                    countLine: nil, identifierRoot: "sources"
-                ) { gutter in
-                    PVListPageArea.loadingArea(
-                        gutter: gutter,
-                        detailWidths: SourcesRowColumns.details(isWide: widthClass == .wide, typeLabel: { _ in "" }).map(\.width)
-                    )
-                }
+                // The handles arrive a turn after the page: the first-load page holds the place.
+                SourcesPage.frame(
+                    model: model, state: .firstLoad,
+                    toolbar: { _ in EmptyView() },
+                    content: { gutter in SourcesListLoadingArea(gutter: gutter) }
+                )
             }
         }
         .task {
             model.warmListQueries()
         }
+    }
+}
+
+/// The Sources page's frame, one place for the first-load page and the loaded one: the header with its
+/// Add Source button, then the toolbar and the list area the state allows.
+@MainActor
+private enum SourcesPage {
+    static func frame<Toolbar: View, Content: View>(
+        model: SourcesModel,
+        state: SourcesListState,
+        @ViewBuilder toolbar: @escaping (CGFloat) -> Toolbar,
+        @ViewBuilder content: @escaping (CGFloat) -> Content
+    ) -> some View {
+        PVListPage(
+            title: L10n.Workspace.sourcesTitle,
+            description: L10n.Sources.description,
+            countLine: state.showsToolbar ? model.countLine(visibleCount: model.visibleSources.count) : nil,
+            add: .init(label: L10n.Sources.addSource) { model.openAdd() },
+            identifierRoot: "sources",
+            showsToolbar: state.showsToolbar,
+            toolbar: toolbar,
+            content: content
+        )
+    }
+}
+
+/// The skeleton Source rows, with a bar for each column the width class draws.
+private struct SourcesListLoadingArea: View {
+    let gutter: CGFloat
+    @Environment(\.pvWidthClass) private var widthClass
+
+    var body: some View {
+        PVListPageArea.loadingArea(gutter: gutter, detailWidths: SourcesRowColumns.widths(isWide: widthClass == .wide))
     }
 }
 
@@ -62,19 +91,18 @@ private struct SourcesListContent: View {
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourcesModel
     @Environment(\.pvWidthClass) private var widthClass
+    /// The list has taken the keyboard once, the search field has had it, or the settings changed: the
+    /// list leaves focus where it is when its rows come back (a search that matched nothing, then did).
+    @State private var listLeavesFocusAlone = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         let outline = model.outline
-        let showsToolbar = model.showsToolbar
-        return PVListPage(
-            title: L10n.Workspace.sourcesTitle,
-            description: L10n.Sources.description,
-            countLine: showsToolbar ? model.countLine(visibleCount: model.visibleSources.count) : nil,
-            add: .init(label: L10n.Sources.addSource) { model.openAdd() },
-            identifierRoot: "sources",
-            showsToolbar: showsToolbar,
+        let state = model.listState
+        return SourcesPage.frame(
+            model: model, state: state,
             toolbar: { gutter in toolbar(gutter: gutter) },
-            content: { gutter in content(outline: outline, gutter: gutter) }
+            content: { gutter in content(state: state, outline: outline, gutter: gutter) }
         )
         .modifier(ListSelectionAnchorModifier(
             rowIDs: outline.rows.map(\.id),
@@ -85,38 +113,13 @@ private struct SourcesListContent: View {
                 return true
             }
         ))
-        .pvFormDialog(
-            isPresented: addPresented,
-            copy: PVFormDialogCopy(
-                title: L10n.Sources.addDialogTitle,
-                subtitle: L10n.Sources.addDialogSubtitle,
-                confirm: L10n.Sources.createAction,
-                cancel: L10n.Sources.cancelAction
-            ),
-            isRunning: model.isSaving,
-            isDirty: model.addSheetIsDirty,
-            confirmDisabled: !model.canSubmitAdd,
-            accessibilityIdentifierPrefix: "sources.add",
-            onConfirm: {
-                Task {
-                    if let created = await model.create() {
-                        navigation.go(to: SourcesListNavigation.pageLocation(for: created))
-                    }
-                }
-            }
-        ) {
-            addForm
-        }
+        .modifier(SourcesAddDialog(model: model, typesHandle: typesHandle))
         .sourceCopyDialog($model.copying)
-        .task(id: model.isAdding) {
-            guard model.isAdding else { return }
-            model.refreshTypes()
-            model.selectSoleTypeIfNeeded()
-        }
-        .onChange(of: typesHandle.status) { _, _ in
-            if model.isAdding { model.selectSoleTypeIfNeeded() }
+        .onChange(of: searchFocused) { _, focused in
+            if focused { listLeavesFocusAlone = true }
         }
         .onChange(of: model.settings) { _, _ in
+            listLeavesFocusAlone = true
             // A sort or filter change clears the selection and puts the list at its top; the open
             // Sources stay open.
             navigation.go(to: navigation.currentLocation.withListScrollAnchor(nil))
@@ -126,35 +129,25 @@ private struct SourcesListContent: View {
 
     // MARK: The list area
 
-    /// The list area's states, in the order they win: the whole list failed, first load, an empty
-    /// catalog, a failure of the data a status filter needs, waiting for the graph list or a filter's
-    /// data, no match, then the rows.
+    /// The list area for the page's one state (`SourcesListState`).
     @ViewBuilder
-    private func content(outline: SourcesOutline, gutter: CGFloat) -> some View {
-        if let loadError = model.loadError, model.sources.isEmpty {
-            PVListPageArea.failureArea(L10n.Errors.message(for: loadError), gutter: gutter)
+    private func content(state: SourcesListState, outline: SourcesOutline, gutter: CGFloat) -> some View {
+        switch state {
+        case .failed(let error):
+            PVListPageArea.failureArea(L10n.Errors.message(for: error), gutter: gutter)
                 .accessibilityIdentifier("sources.loadError")
-        } else if sourcesHandle.value == nil {
-            loadingArea(gutter: gutter)
-        } else if model.isCatalogEmpty {
+        case .firstLoad, .waitingForFilter:
+            SourcesListLoadingArea(gutter: gutter)
+        case .empty:
             emptyArea
-        } else if let statusError = model.statusCountsError {
-            PVListPageArea.failureArea(L10n.Errors.message(for: statusError), gutter: gutter)
+        case .statusFailed(let error):
+            PVListPageArea.failureArea(L10n.Errors.message(for: error), gutter: gutter)
                 .accessibilityIdentifier("sources.statusError")
-        } else if model.isAwaitingGraphList || model.isAwaitingFilterData {
-            loadingArea(gutter: gutter)
-        } else if outline.rows.isEmpty {
+        case .noMatch:
             noMatchArea
-        } else {
-            rows(outline: outline, gutter: gutter)
+        case .rows(let graphsError):
+            rows(outline: outline, graphsError: graphsError, gutter: gutter)
         }
-    }
-
-    private func loadingArea(gutter: CGFloat) -> some View {
-        PVListPageArea.loadingArea(
-            gutter: gutter,
-            detailWidths: SourcesRowColumns.details(isWide: widthClass == .wide, typeLabel: { _ in "" }).map(\.width)
-        )
     }
 
     private var emptyArea: some View {
@@ -181,10 +174,10 @@ private struct SourcesListContent: View {
         .accessibilityIdentifier("sources.filterEmpty")
     }
 
-    private func rows(outline: SourcesOutline, gutter: CGFloat) -> some View {
+    private func rows(outline: SourcesOutline, graphsError: Error?, gutter: CGFloat) -> some View {
         VStack(spacing: 0) {
-            if let graphListError = model.graphListError {
-                PVCallout(tone: .danger, message: L10n.Errors.message(for: graphListError))
+            if let graphsError {
+                PVCallout(tone: .danger, message: L10n.Errors.message(for: graphsError))
                     .padding(.horizontal, gutter)
                     .padding(.top, PVSpacing.space6)
                     .padding(.bottom, PVSpacing.space5)
@@ -210,13 +203,15 @@ private struct SourcesListContent: View {
                     )
                 },
                 separator: { $0.endsGroup ? .visible : .hidden },
-                restartKey: model.settings
+                restartKey: model.settings,
+                claimsFocus: !listLeavesFocusAlone
             ) { row in
                 outlineRow(row, outline: outline)
             }
             .onKeyPress(keys: [.rightArrow, .leftArrow], phases: .down) { press in
                 handle(press.key, outline: outline)
             }
+            .onAppear { listLeavesFocusAlone = true }
         }
     }
 
@@ -285,19 +280,6 @@ private struct SourcesListContent: View {
         )
     }
 
-    private var addPresented: Binding<Bool> {
-        Binding(
-            get: { model.isAdding },
-            set: { presented in
-                if presented {
-                    model.openAdd()
-                } else {
-                    model.cancelAdd()
-                }
-            }
-        )
-    }
-
     private func toolbar(gutter: CGFloat) -> some View {
         HStack(spacing: PVSpacing.space5) {
             searchField
@@ -314,7 +296,8 @@ private struct SourcesListContent: View {
         PVInput(
             text: $model.settings.query,
             prompt: L10n.Sources.searchPrompt,
-            icon: .search
+            icon: .search,
+            focused: $searchFocused
         )
         .frame(minWidth: 160, maxWidth: 280)
         .accessibilityIdentifier("sources.search")
@@ -394,8 +377,63 @@ private struct SourcesListContent: View {
             accessibilityIdentifier: "sources.sort"
         )
     }
+}
 
-    private var addForm: some View {
+/// The Add Source dialog, a modifier of its own: typing in it re-evaluates this body and not the list
+/// page's, which would otherwise rebuild every row on each keystroke.
+private struct SourcesAddDialog: ViewModifier {
+    @Environment(WorkspaceNavigation.self) private var navigation
+    @Bindable var model: SourcesModel
+    let typesHandle: QueryHandle<[CatalogSourceType]>
+
+    func body(content: Content) -> some View {
+        content
+            .pvFormDialog(
+                isPresented: presented,
+                copy: PVFormDialogCopy(
+                    title: L10n.Sources.addDialogTitle,
+                    subtitle: L10n.Sources.addDialogSubtitle,
+                    confirm: L10n.Sources.createAction,
+                    cancel: L10n.Sources.cancelAction
+                ),
+                isRunning: model.isSaving,
+                isDirty: model.addSheetIsDirty,
+                confirmDisabled: !model.canSubmitAdd,
+                accessibilityIdentifierPrefix: "sources.add",
+                onConfirm: {
+                    Task {
+                        if let created = await model.create() {
+                            navigation.go(to: SourcesListNavigation.pageLocation(for: created))
+                        }
+                    }
+                }
+            ) {
+                form
+            }
+            .task(id: model.isAdding) {
+                guard model.isAdding else { return }
+                model.refreshTypes()
+                model.selectSoleTypeIfNeeded()
+            }
+            .onChange(of: typesHandle.status) { _, _ in
+                if model.isAdding { model.selectSoleTypeIfNeeded() }
+            }
+    }
+
+    private var presented: Binding<Bool> {
+        Binding(
+            get: { model.isAdding },
+            set: { presented in
+                if presented {
+                    model.openAdd()
+                } else {
+                    model.cancelAdd()
+                }
+            }
+        )
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: PVSpacing.space6) {
             if let createError = model.createError {
                 PVCallout(tone: .danger, message: createError)

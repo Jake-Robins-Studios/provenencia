@@ -173,4 +173,11 @@ struct PVListTests {
         #expect(PVExpandedState.outlineChevron(isExpanded: false) == .chevronForward)
         #expect(PVExpandedState.outlineChevron(isExpanded: true) == .chevronDown)
     }
+
+    /// The list's menu draws `Text(verbatim: L10n.string(entry.title))`: the string path keeps a graph
+    /// named `**a**` as typed (the hosted menu is the platform's, so the string is what is tested).
+    @Test func aMenuTitleKeepsItsAsterisks() {
+        let item = PVActionMenuItem(title: LocalizedStringResource(stringLiteral: "Open **a**"))
+        #expect(L10n.string(item.title) == "Open **a**")
+    }
 }

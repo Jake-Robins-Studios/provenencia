@@ -4,7 +4,8 @@ import SwiftUI
 /// list (SwiftUI's `List`, an `NSTableView`) with the kit's behavior around it. Selection, ↑ / ↓, Page Up
 /// / Page Down and scrolling come from the platform. A click selects (the system's full-width bar); a
 /// double-click or Return opens (`onActivate`). Home and End scroll to the first and last row. The list
-/// takes keyboard focus when it appears and scrolls a selected row into view when it appears and when
+/// takes keyboard focus when it appears (unless `claimsFocus` is false: a page that mounts its list again
+/// while the researcher is typing in a field above it keeps that field) and scrolls a selected row into view when it appears and when
 /// its row arrives after the selection was set. A right-click offers `menu(item)` as the platform's own
 /// context menu: one native button per `PVActionMenuItem`, a divider between sections. The list is its
 /// own scroll view and draws no background: its area draws the card fill, so nothing covers the system
@@ -26,6 +27,7 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
     private let menu: (Item) -> [[PVActionMenuItem]]
     private let separator: (Item) -> Visibility
     private let restartKey: AnyHashable?
+    private let claimsFocus: Bool
     private let row: (Item) -> Row
 
     @FocusState private var isFocused: Bool
@@ -45,6 +47,7 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
         menu: @escaping (Item) -> [[PVActionMenuItem]] = { _ in [] },
         separator: @escaping (Item) -> Visibility = { _ in .visible },
         restartKey: AnyHashable? = nil,
+        claimsFocus: Bool = true,
         @ViewBuilder row: @escaping (Item) -> Row
     ) {
         self.items = items
@@ -57,6 +60,7 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
         self.menu = menu
         self.separator = separator
         self.restartKey = restartKey
+        self.claimsFocus = claimsFocus
         self.row = row
     }
 
@@ -83,7 +87,9 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
         .environment(\.defaultMinListRowHeight, minimumRowHeight)
         .focusEffectDisabled()
         .focused($isFocused)
-        .onAppear { FocusClaim.claim($isFocused, true) }
+        .onAppear {
+            if claimsFocus { FocusClaim.claim($isFocused, true) }
+        }
         .contextMenu(forSelectionType: Item.ID.self, menu: { ids in
             menuContent(for: ids)
         }, primaryAction: { ids in
@@ -132,7 +138,8 @@ struct PVListBody<Item: Identifiable, Row: View>: View {
             ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
                 if index > 0 { Divider() }
                 ForEach(Array(section.enumerated()), id: \.offset) { _, entry in
-                    Button(entry.title) { entry.action() }
+                    // Verbatim: a title built from a name (`Open **a**`) is not Markdown.
+                    Button { entry.action() } label: { Text(verbatim: L10n.string(entry.title)) }
                         .disabled(!entry.isEnabled)
                         .accessibilityIdentifier(entry.accessibilityIdentifier ?? "")
                 }

@@ -175,6 +175,11 @@ enum SourcesRowColumns {
     static let typeWidth: CGFloat = 180
     static let publishedWidth: CGFloat = 140
 
+    /// The columns' widths, in order: what a skeleton row draws bars for.
+    static func widths(isWide: Bool) -> [CGFloat] {
+        isWide ? [typeWidth, publishedWidth, PVLastUpdated.columnWidth] : [PVLastUpdated.columnWidth]
+    }
+
     static func details(
         isWide: Bool, typeLabel: @escaping (CatalogSource) -> String
     ) -> [PVListDetailColumn<CatalogSource>] {
