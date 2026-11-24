@@ -7979,7 +7979,7 @@
       }
     },
     "sources.graph.countsUnavailable": {
-      "comment": "Evidence graph button help and Source page count line when graph counts failed to load",
+      "comment": "Evidence graph row help and Source page count line when graph counts failed to load",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -23286,7 +23286,7 @@
       }
     },
     "sources.page.graph.openLabel": {
-      "comment": "VoiceOver label for opening an Evidence graph from the Source page or a Sources list graph button; argument is the graph name",
+      "comment": "VoiceOver label for opening an Evidence graph from the Source page or a Sources list graph row; argument is the graph name",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -23826,7 +23826,7 @@
       }
     },
     "sources.list.graphNeedsArtifactToOpen": {
-      "comment": "Second line of a Sources list graph button whose graph links no Artifact",
+      "comment": "Counts slot of a Sources list graph row whose graph links no Artifact",
       "extractionState": "manual",
       "localizations": {
         "en": {

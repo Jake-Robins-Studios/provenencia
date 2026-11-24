@@ -45,11 +45,11 @@ final class WorkspaceNavigation {
 
     private var history: NavigationHistoryStore?
     private(set) var projectUuid: String = ""
-    /// The visible list's anchor row: its top row on Sources and Source types, its selected row on the
-    /// Conclusion lists (the list draws it selected). Stamped onto the outgoing entry on the next Back,
+    /// The visible list's anchor row: its top row on Source types, its selected row on the Conclusion
+    /// lists and the Sources list (the list draws it selected). Stamped onto the outgoing entry on the next Back,
     /// Forward, jump, or `go(to:)`; `apply` sets it to the entry's anchor on every commit. Scrolling and
-    /// selecting do not write the history file. Its view readers are the Conclusion list and
-    /// `ListSelectionAnchorModifier`.
+    /// selecting do not write the history file. Its view readers are the Conclusion lists, the Sources list
+    /// and `ListSelectionAnchorModifier`.
     private(set) var listAnchor: String?
 
     init(selectedSection: WorkspaceSection = .sources) {
@@ -96,7 +96,7 @@ final class WorkspaceNavigation {
     }
 
     /// The visible list reports its anchor row: the row at the top as the researcher scrolls
-    /// (Sources, Source types), or the selected row (Persons, Events, Places).
+    /// (Source types), or the selected row (Persons, Events, Places, Sources).
     /// This does not push a history entry and does not write the history file.
     func noteListAnchor(_ anchor: String?) {
         guard currentLocation.isListRoot else { return }

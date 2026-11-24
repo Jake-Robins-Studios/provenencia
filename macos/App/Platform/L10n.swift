@@ -5341,7 +5341,7 @@ enum L10n {
         static let graphCountsUnavailable = LocalizedStringResource(
             "sources.graph.countsUnavailable",
             defaultValue: "Counts could not load",
-            comment: "Evidence graph button help and Source page count line when graph counts failed to load"
+            comment: "Evidence graph row help and Source page count line when graph counts failed to load"
         )
 
         static func graphSubjectCount(_ count: Int) -> String {
@@ -5481,7 +5481,7 @@ enum L10n {
         static let graphNeedsArtifactToOpen = LocalizedStringResource(
             "sources.list.graphNeedsArtifactToOpen",
             defaultValue: "Needs an artifact to open",
-            comment: "Second line of a Sources list graph button whose graph links no Artifact"
+            comment: "Counts slot of a Sources list graph row whose graph links no Artifact"
         )
 
         static let graphsLoading = LocalizedStringResource(
@@ -6433,7 +6433,7 @@ enum L10n {
             return L10n.format(LocalizedStringResource(
                 "sources.page.graph.openLabel",
                 defaultValue: "Open graph %@",
-                comment: "VoiceOver label for opening an Evidence graph from the Source page or a Sources list graph button; argument is the graph name"
+                comment: "VoiceOver label for opening an Evidence graph from the Source page or a Sources list graph row; argument is the graph name"
             ), name)
         }
 
