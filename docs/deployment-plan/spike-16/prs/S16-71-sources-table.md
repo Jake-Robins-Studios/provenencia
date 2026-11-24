@@ -1,6 +1,6 @@
 # S16-71 — The Sources list is a native table
 
-**Status:** Planned
+**Status:** Landed in #969 (2026-11-24)
 **Spike / slice:** Spike 16 · Slice 6h — Sources table
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** [S16-D14](../design/archive/S16-D14-sources-table.md), board agreed 2026-11-24
@@ -15,6 +15,7 @@
 **Runs on:** macOS with Xcode. §10 needs a person at the Mac with a real mouse; hosted tests cannot send clicks
 **Planned:** 2026-11-24 against `main` @ `01c6990fd`
 **Review:** [`S16-71-sources-table.review.md`](S16-71-sources-table.review.md) — Fits with changes / Ready with changes, 2 rounds; every blocker Fixed; no To user item open
+**Landed:** `works | differs | not checked`. **Works:** header redraw on sort (D-5: the sorted header is brighter and moves, hosted `theSortedHeaderIsBrighter`); Regular and Wide widths and the 1102 to 2296 to 1102 round trip with selection kept (`columnsFitTheirWidths`); the second press of a double-click is ignored and the first row opens by `rowForSecondPress` (hosted `select`); skeleton rows under the header render. **Differs:** (1) the version bump is 0.39.0 to 0.40.0: main was already 0.39.0. (2) Not started's natural badge width is 128 pt in this build (In progress 123, Promoted 110), so `minWidth: 126` holds the other two at 126 and Not started is 2 pt wider; AC-3.5's single width needs the constant (`EvidenceStatus.badgeWidth`) raised to 128 if the user wants it exact. (3) Added and Updated read the existing `TimestampFormat` relative words (`Today, 3:15 PM`, `Yesterday`, then a short date), not `2 days ago` (AC-1.5). (4) A graph row's wheel step is its 26 pt of content, not 34 pt: the table adds its 8 pt padding to the least row height it is given. (5) `PVNativeListBehavior.settleDelay` is a computed static on the generic type. (6) `SourcesOutline` also holds `items`, the table's rows built once. (7) `SourcesOutlineHostedTests` and `SourcesTableHostedTests` are `.serialized`: run in parallel, 14 hosted tables starved the main actor for the whole suite. (8) `PVPublishedDate` draws `Undated` faint (AC-1.5), which the Person page's Sources section shares. (9) The plain list's rules test stays in `SourcesOutlineHostedTests` beside its helper, not in `PVListTests`. (10) AC-1.9 (no drag, reorder or hide) is a manual check: the platform's own `NSTableView` flags stay on, SwiftUI's `disabledCustomizationBehavior(.all)` is what holds. **Not checked:** Page Up and Page Down, a real double-click, a triangle click, VoiceOver by column, drag and right-click on a header, opening one Source at the user's largest catalog (§10).
 
 ### Implementer — read this first
 
