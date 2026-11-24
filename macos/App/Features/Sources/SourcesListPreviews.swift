@@ -79,18 +79,8 @@ enum SourcesListPreviews {
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.setOpenSource("s1")
         let model = SourcesModel(session: session, userID: userID, store: store)
-        let outline = model.outline
-        return SourcesTable(
-            items: outline.items, selection: .constant(selected), model: model,
-            isWide: PVWidthClass(paneWidth: paneWidth) == .wide,
-            gutter: PVWidthClass(paneWidth: paneWidth).fullPaneGutter
-        )
-        .frame(width: paneWidth, height: 640)
-        .background(PVColor.surfaceCard)
-        .environment(session)
-        .environment(\.pvWidthClass, PVWidthClass(paneWidth: paneWidth))
-        .task { model.warmListQueries() }
-        .task { _ = session.query(session.evidenceGraphProgressKey) as QueryHandle<[String: EvidenceGraphProgress]> }
+        return SourcesTablePreview(model: model, session: session, paneWidth: paneWidth, selected: selected)
+            .task { model.warmListQueries() }
     }
 
     struct Failure: Error, LocalizedError {
@@ -140,4 +130,24 @@ enum SourcesListPreviews {
 
 #Preview("Rows, Wide, a graph selected") {
     SourcesListPreviews.table(paneWidth: SourcesListPreviews.wideWidth, selected: "g1-1")
+}
+
+/// The table over a model that reads its outline as the lists arrive.
+private struct SourcesTablePreview: View {
+    let model: SourcesModel
+    let session: WorkspaceSession
+    let paneWidth: CGFloat
+    let selected: String?
+
+    var body: some View {
+        let widthClass = PVWidthClass(paneWidth: paneWidth)
+        SourcesTable(
+            items: model.outline.items, selection: .constant(selected), model: model,
+            isWide: widthClass == .wide, gutter: widthClass.fullPaneGutter
+        )
+        .frame(width: paneWidth, height: 640)
+        .background(PVColor.surfaceCard)
+        .environment(session)
+        .environment(\.pvWidthClass, widthClass)
+    }
 }
