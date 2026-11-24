@@ -8789,8 +8789,8 @@ enum L10n {
 
         /// The reassurance that carries T-20: detaching the join deletes
         /// neither the field nor the values sources already hold for it.
-        /// `valueCount` is the field's `usedBy`: Sources, Artifacts and graphs
-        /// holding a value, plus Source types that name the field in a format.
+        /// `valueCount` is the field's `usedBy`: Sources, Artifacts, graphs and
+        /// Citations holding a value, plus Source types that name the field in a format.
         static func toastRemovedBody(field: String, type: String, valueCount: Int) -> String {
             if valueCount == 0 {
                 return L10n.format(removedBodyNoValues, field, type)
@@ -8801,13 +8801,13 @@ enum L10n {
         private static let removedBodyNoValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyNoValues",
             defaultValue: "%1$@ is no longer suggested for %2$@ Sources. The field stays in this project’s vocabulary.",
-            comment: "Toast body after detaching a field no Source, Artifact, graph or Source type uses; arguments are the field label then the type's label"
+            comment: "Toast body after detaching a field no Source, Artifact, graph, Citation or Source type uses; arguments are the field label then the type's label"
         )
 
         private static let removedBodyWithValues = LocalizedStringResource(
             "sourceTypes.toast.removedBodyWithValues",
-            defaultValue: "%1$@ is no longer suggested for %2$@ Sources. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts, graphs and Source types that use it are unchanged.",
-            comment: "Toast body after detaching a field that Sources, Artifacts, graphs or Source types still use; arguments are the field label, the type's label, then how many Sources, Artifacts and graphs hold a value plus how many Source types name it in a citation format"
+            defaultValue: "%1$@ is no longer suggested for %2$@ Sources. The field stays in this project’s vocabulary, and the %3$lld Sources, Artifacts, graphs, Citations and Source types that use it are unchanged.",
+            comment: "Toast body after detaching a field that Sources, Artifacts, graphs, Citations or Source types still use; arguments are the field label, the type's label, then how many Sources, Artifacts, graphs and Citations hold a value plus how many Source types name it in a citation format"
         )
 
         static let toastUpdatedTitle = LocalizedStringResource(
@@ -11884,7 +11884,7 @@ enum L10n {
         }
         static let metadataInUse = LocalizedStringResource(
             "error.metadatafields.in_use",
-            defaultValue: "That metadata field still holds a value on a Source, Artifact or Evidence graph.",
+            defaultValue: "That metadata field still holds a value on a Source, Artifact, Evidence graph or Citation.",
             comment: "FFI error metadatafields.in_use"
         )
         static let metadataOriginLocked = LocalizedStringResource(

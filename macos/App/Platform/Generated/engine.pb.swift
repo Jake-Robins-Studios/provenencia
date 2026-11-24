@@ -1668,8 +1668,8 @@ public nonisolated struct Provenencia_Engine_V1_MetadataField: Sendable {
 
   public var description_p: String = String()
 
-  /// How many Sources, Artifacts and Evidence graphs hold a value for this
-  /// field, plus how many Source types name it in a citation format (the
+  /// How many Sources, Artifacts, Evidence graphs and Citations hold a value
+  /// for this field, plus how many Source types name it in a citation format (the
   /// delete-impact total). Deleting is only allowed at 0 (see
   /// metadatafields.ErrInUse); the client uses the count to disable its delete
   /// affordance and say what is holding the field.

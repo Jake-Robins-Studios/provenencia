@@ -72,8 +72,8 @@ type Field struct {
 	// UnknownText is what a value of this field marked unknown prints ("n.p."),
 	// or "" when the field names none.
 	UnknownText string
-	// UsedBy is how many Sources, Artifacts and Evidence graphs hold a value
-	// for this field plus how many Source types name it in a citation format:
+	// UsedBy is how many Sources, Artifacts, Evidence graphs and Citations hold
+	// a value for this field plus how many Source types name it in a citation format:
 	// the total that blocks its delete. List and Update populate
 	// it; the other readers leave it 0.
 	UsedBy int

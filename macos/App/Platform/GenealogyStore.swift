@@ -1470,7 +1470,7 @@ struct CatalogMetadataField: Sendable, Equatable, Identifiable {
     var label: String
     var dataType: String
     var description: String
-    /// How many Sources, Artifacts and Evidence graphs already carry a value for this field. Deleting is
+    /// How many Sources, Artifacts, Evidence graphs and Citations already carry a value for this field. Deleting is
     /// only allowed at 0 — the engine refuses otherwise
     /// (`metadatafields.in_use`). Only `listMetadataFields` and
     /// `updateMetadataField` populate it.

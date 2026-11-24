@@ -2905,8 +2905,8 @@ type MetadataField struct {
 	Label       string                 `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
 	DataType    string                 `protobuf:"bytes,5,opt,name=data_type,json=dataType,proto3" json:"data_type,omitempty"` // text | url
 	Description string                 `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	// How many Sources, Artifacts and Evidence graphs hold a value for this
-	// field, plus how many Source types name it in a citation format (the
+	// How many Sources, Artifacts, Evidence graphs and Citations hold a value
+	// for this field, plus how many Source types name it in a citation format (the
 	// delete-impact total). Deleting is only allowed at 0 (see
 	// metadatafields.ErrInUse); the client uses the count to disable its delete
 	// affordance and say what is holding the field.

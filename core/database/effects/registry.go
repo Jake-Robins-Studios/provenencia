@@ -124,7 +124,7 @@ const (
 	// another Property, so the Properties workspace's usedBy counts changed.
 	ListPropertyUsage List = "property_usage"
 	// ListMetadataFieldUsage: a metadata value was created or deleted on a
-	// Source, Artifact or Evidence graph, so the field list's usedBy counts
+	// Source, Artifact, Evidence graph or Citation, so the field list's usedBy counts
 	// changed. An edit of a held value moves no count.
 	ListMetadataFieldUsage List = "metadata_field_usage"
 	// ListCounts: a Source or a handle (of any type) was created, deleted or
