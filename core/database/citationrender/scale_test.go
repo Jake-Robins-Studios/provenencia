@@ -37,8 +37,9 @@ var scaleValues = []struct {
 		"accessed_date": "12 March 2025", "citing": "county film 7, item 3",
 	}},
 	{"evidence_graph_metadata", "graph_id", map[string]string{
-		"schedule_number": "9", "dwelling_number": "112", "family_number": "118", "line_number": "14", "item": "Ada Robins",
+		"schedule_number": "9", "dwelling_number": "112", "family_number": "118", "item": "Ada Robins",
 	}},
+	{"citation_metadata", "citation_id", map[string]string{"line_number": "14"}},
 }
 
 // seedScale files 30 Sources of the seeded census type, each dated 1880 and
@@ -114,6 +115,7 @@ func seedScale(t *testing.T, w *world, perSource int) [][]byte {
 			ids = append(ids, id)
 			exec(`INSERT INTO citations (id, ref, artifact_id, graph_id, locator_json) VALUES (?, ?, ?, ?, ?)`,
 				id, "CIT-B"+n(cit), arts[k%scaleArtifactsPerSrc], graphs[k%scaleGraphsPerSrc], pageLocator("14"))
+			values(scaleValues[3].table, scaleValues[3].owner, id, scaleValues[3].values)
 		}
 	}
 	if err := tx.Commit(); err != nil {
@@ -139,8 +141,8 @@ func TestRenderScale(t *testing.T) {
 		citations, perSource, selects int
 		budget                        time.Duration
 	}{
-		{300, 10, 9, 100 * time.Millisecond},
-		{1200, 40, 11, 400 * time.Millisecond},
+		{300, 10, 10, 100 * time.Millisecond},
+		{1200, 40, 14, 400 * time.Millisecond},
 	} {
 		t.Run(strconv.Itoa(tt.citations), func(t *testing.T) {
 			w := newWorld(t)

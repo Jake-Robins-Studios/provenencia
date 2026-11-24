@@ -102,7 +102,7 @@ func labelTypes(tx *sql.Tx, subs []*subject) error {
 }
 
 // fillValues sets each subject's values: the stored values of its Source and,
-// for a Citation, of its Artifact and graph, the field rows the templates name,
+// for a Citation, of its Artifact, graph and itself, the field rows the templates name,
 // and the built-ins (D-2). Only the fields the templates name by id are read.
 func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Template) error {
 	var fieldIDs [][]byte
@@ -132,6 +132,7 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 		if s.cited != nil {
 			add(vocabkey.LevelArtifact, s.cited.ArtifactID)
 			add(vocabkey.LevelGraph, s.cited.GraphID)
+			add(vocabkey.LevelCitation, s.cited.ID)
 		}
 	}
 	rows, err := sourcemetadata.ListByOwnersTx(tx, owners)
@@ -155,6 +156,7 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 		if c := s.cited; c != nil {
 			v.Rows[vocabkey.LevelArtifact] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelArtifact, ID: c.ArtifactID})
 			v.Rows[vocabkey.LevelGraph] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelGraph, ID: c.GraphID})
+			v.Rows[vocabkey.LevelCitation] = byOwner.Of(sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: c.ID})
 			v.Builtins[citationformat.ArtifactLabel] = citationformat.Value{Text: c.ArtifactLabel}
 			v.Builtins[citationformat.GraphName] = citationformat.Value{Text: c.GraphName}
 			v.Builtins[citationformat.CitationPage] = citationformat.Value{Text: s.page.Label, Mark: s.page.Mark}
