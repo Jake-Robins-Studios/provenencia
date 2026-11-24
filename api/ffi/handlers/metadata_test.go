@@ -3,11 +3,13 @@ package handlers
 import (
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/catalogsession"
+	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/sourcemetadata"
@@ -595,6 +597,16 @@ func TestMetadataBoardInherited(t *testing.T) {
 			e.GetInherited().GetOwner().GetId() != census || !e.GetStaysWithoutValue() {
 			t.Fatalf("%s draft url = %+v, want the Source's link inherited", level, e)
 		}
+	}
+
+	// A value past the board limit is cut for display and sent with no link: a link is never cut.
+	long := "https://example.org/" + strings.Repeat("a", citationformat.MaxDisplayBytes)
+	set(censusOwner, url, long, nil)
+	var draft engine.GetDraftMetadataBoardResponse
+	mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, SourceId: census, Level: "artifact"}, &draft)
+	if in := metadataByKey(draft.GetEntries(), "url").GetInherited(); in.GetOpenHref() != "" || len(in.GetDisplayText()) != citationformat.MaxDisplayBytes {
+		t.Fatalf("a url past the limit inherits as %d bytes with a %d-byte link, want %d bytes and no link",
+			len(in.GetDisplayText()), len(in.GetOpenHref()), citationformat.MaxDisplayBytes)
 	}
 }
 

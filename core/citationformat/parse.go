@@ -30,6 +30,11 @@ const (
 	// values; a crafted format repeating a placeholder reaches it, and Render
 	// stops there.
 	MaxRenderedBytes = 64 << 10
+	// MaxDisplayBytes is the most text Display returns for one value, brackets
+	// and unknown text included. A board copies one into every Artifact and
+	// graph of a Source, so it is far below MaxRenderedBytes; a value past it
+	// shows cut and, for a link, without one.
+	MaxDisplayBytes = 4 << 10
 	// MaxDepth is the most open groups and italic spans at once.
 	MaxDepth = 8
 )
