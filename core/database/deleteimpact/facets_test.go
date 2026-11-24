@@ -14,6 +14,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
@@ -263,17 +264,15 @@ func TestFacetReleaseAuditsSourceSide(t *testing.T) {
 			t.Fatal(err)
 		}
 		graph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-		res, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-			return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-				GraphID:    graph,
-				ArtifactID: art.ID, LocatorJSON: testLocator, Notes: []string{"Faded ink", "Second hand"},
-			}, nil)
+		cit, err := citationstest.Create(c, userID, citations.CreateInput{
+			GraphID:    graph,
+			ArtifactID: art.ID, LocatorJSON: testLocator, Notes: []string{"Faded ink", "Second hand"},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, err := writes.RunChanges(c, writes.Op{Action: "delete_citation", UserID: userID}, func(tx *database.Tx) ([]rowchange.Change, error) {
-			return citations.Delete(tx, userID, res.Citation.ID)
+			return citations.Delete(tx, userID, cit.ID)
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -441,16 +440,11 @@ func ownerFixture(t *testing.T, c *database.Catalog, userID []byte, title string
 // ownerFixture linked, and returns it as a metadata owner.
 func citationOwner(t *testing.T, c *database.Catalog, userID []byte, artifact, graph sourcemetadata.Owner) sourcemetadata.Owner {
 	t.Helper()
-	res, _, err := writes.Run(c, writes.Op{Action: "create_citation", UserID: userID},
-		func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-			return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-				ArtifactID: artifact.ID, GraphID: graph.ID, LocatorJSON: testLocator,
-			}, nil)
-		})
+	cit, err := citationstest.Create(c, userID, citations.CreateInput{ArtifactID: artifact.ID, GraphID: graph.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: res.Citation.ID}
+	return sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: cit.ID}
 }
 
 func runOwnerSet(t *testing.T, c *database.Catalog, userID []byte, o sourcemetadata.Owner, fieldID []byte, text string) {

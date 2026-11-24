@@ -18,6 +18,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
@@ -1942,17 +1943,11 @@ func newLevelOwner(t testing.TB, c *database.Catalog, userID []byte, src sources
 			t.Fatal(err)
 		}
 		g := evidencegraphstest.SoleGraph(t, c, src.ID)
-		res, _, err := writes.Run(c, writes.Op{Action: "create_citation", UserID: userID},
-			func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-				return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-					ArtifactID: a.ID, GraphID: g.ID,
-					LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
-				}, nil)
-			})
+		cit, err := citationstest.Create(c, userID, citations.CreateInput{ArtifactID: a.ID, GraphID: g.ID})
 		if err != nil {
 			t.Fatal(err)
 		}
-		return Owner{Level: level, ID: res.Citation.ID}
+		return Owner{Level: level, ID: cit.ID}
 	}
 	t.Fatalf("no fixture for level %s", level)
 	return Owner{}

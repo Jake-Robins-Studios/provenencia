@@ -19,6 +19,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts/artifactstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/connect"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
@@ -716,12 +717,10 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 	})
 
 	srcGraph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-	cit, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID:    srcGraph,
-			ArtifactID: art.ID, LocatorJSON: testLocator,
-			Transcription: "John Hartley, worsted weaver, of 14 Back Nile Street",
-		}, nil)
+	cit, err := citationstest.Create(c, userID, citations.CreateInput{
+		GraphID:    srcGraph,
+		ArtifactID: art.ID, LocatorJSON: testLocator,
+		Transcription: "John Hartley, worsted weaver, of 14 Back Nile Street",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -735,7 +734,7 @@ func TestImpactSourceAndArtifact(t *testing.T) {
 		if len(got.Groups) != 1 || got.Groups[0].Via != "citations.artifact_id" || got.Groups[0].Total != 1 {
 			t.Fatalf("groups %+v", got.Groups)
 		}
-		if got.Groups[0].Listed[0].Ref != cit.Citation.Ref {
+		if got.Groups[0].Listed[0].Ref != cit.Ref {
 			t.Fatalf("listed %+v", got.Groups[0].Listed)
 		}
 		if got.Groups[0].Listed[0].Title != "John Hartley, worsted weaver, of 14 Back Nile Street" {

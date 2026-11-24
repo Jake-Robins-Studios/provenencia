@@ -13,6 +13,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs"
@@ -520,11 +521,9 @@ func TestArtifactDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 	citedGraph := evidencegraphstest.SoleGraph(t, c, src.ID).ID
-	if _, err := writes.Call(c, writes.Op{Action: "create_citation_with_observations", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-		return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-			GraphID:    citedGraph,
-			ArtifactID: cited.ID, LocatorJSON: locator,
-		}, nil)
+	if _, err := citationstest.Create(c, userID, citations.CreateInput{
+		GraphID:    citedGraph,
+		ArtifactID: cited.ID, LocatorJSON: locator,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -1214,12 +1213,7 @@ func TestArtifactUpdateGraphs(t *testing.T) {
 	})
 	t.Run("a refused unlink rolls back the label", func(t *testing.T) {
 		p := newPage("P4", def)
-		if _, err := writes.Call(c, writes.Op{Action: "create_citation", UserID: userID}, func(tx *database.Tx) (citations.CreateResult, []rowchange.Change, error) {
-			return citations.CreateWithObservations(tx, userID, citations.CreateInput{
-				GraphID:    def,
-				ArtifactID: p.ID, LocatorJSON: `{"version":1,"selectors":[{"type":"page","artifact_page":1}]}`,
-			}, nil)
-		}); err != nil {
+		if _, err := citationstest.Create(c, userID, citations.CreateInput{GraphID: def, ArtifactID: p.ID}); err != nil {
 			t.Fatal(err)
 		}
 		p.Label = "P4 renamed"
