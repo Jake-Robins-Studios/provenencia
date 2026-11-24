@@ -90,12 +90,12 @@ The Sources list is an outline of Sources with their Evidence graphs under them.
 | Graphs per Source | Usually one. When more, usually 5 to 10. Hundreds to several thousand Sources |
 | Source | Cover (44 pt), title, ref `SRC-4K2QX`, Type (`Census`), published date (`1851`, or `Undated`), date added, last update |
 | Graph | Network glyph, name, counts (`12 subjects · 40 observations`), badge: **Not started**, **In progress** or **Promoted**. No type, dates or ref of its own: those cells are empty |
-| **One open at a time** | Opening a Source closes the one that was open, however it opens: a click, the triangle, →, the menu's `Open <graph>`, or Back to a graph. A click that selects any other Source row also closes the open one, even when the clicked Source has no triangle. A click on a graph row of the open Source, arrow keys moving the selection, and a sort change close nothing. Closing a Source whose graph is selected selects the Source, unless another row is taking the selection. ⌥-click no longer opens or closes every Source: it is a click. Every Source starts closed; the open one is held for the session. A filter that hides the open Source leaves it open for when it returns |
+| **One open at a time** | Opening a Source closes the one that was open, however it opens: a click, the triangle, →, the menu's `Open <graph>`, or Back to a graph. A click that selects any other Source row also closes the open one, even when the clicked Source has no triangle. A click on a graph row of the open Source, arrow keys moving the selection, and a sort change close nothing. Closing a Source whose graph is selected selects the Source, unless the same action selects another row (a click on another Source, the menu, Back). ⌥-click no longer opens or closes every Source: it is a click. Every Source starts closed; the open one is held for the session. A filter that hides the open Source leaves it open for when it returns |
 | **The rows under the pointer** | When the open Source sits above the one clicked, closing it moves the clicked row up. A double-click still opens the Source first pressed, and its second press opens and selects nothing else; expected, proven in S16-71 (fallback: the rows change only once the double-click time has passed). The board draws nothing for this |
 | **A Source's status** | Every graph Promoted → **Promoted**. Every graph Not started → **Not started**. Anything else → **In progress**. The badge is the same open or closed. No badge with no Artifact, while its counts load, or when they failed. A graph with no Artifact counts as Not started, as today's filter reads it |
 | **Status filter** | Lists the Sources whose badge is that status (today: any one graph's). Every graph of a listed Source shows |
 | **Sort** | Title, Published, Added and Updated sort, both ways, by their headers. Added, newest first, is the default, as today. Graphs stay under their Source in their own order. Undated Sources sort last both ways, as today. A sort or filter change clears the selection and puts the table at its top, as today |
-| Date added | The word is **Added**, as the sort menu says today |
+| Date added | The word is **Added**, as the sort menu says today. It is the time the Source was made, from the record of that change, as Updated is from the record of the last one |
 | Cannot open | A Source with no Artifact has no triangle; its Evidence cell says `Needs an artifact`. A graph with no Artifact is a faint row, `Needs an artifact to open` in Evidence, no badge; it selects and does not open |
 | Late data | The rows appear when the Sources and the graph list are in. Counts fill in afterwards. A Source whose graphs are not in the list yet draws one skeleton graph row when open |
 | Failures | Graph list: Sources with no triangles, one Callout above the table; with a status filter, the Callout alone. Counts: `Counts could not load` with the danger mark in each graph's Evidence, no badges; with a status filter, the Callout alone |
@@ -112,13 +112,13 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 | Rows | Two fixed heights: Source 66 pt, graph 34 pt. No wrapping, no row that grows. A cell holds any kit view in **one column**: nothing spans columns, so a graph's name stays in Title and its counts in Evidence |
 | Triangle | Ours, in the Title column before the cover, a 16 pt slot by the row height. It points right closed and down open; not animated |
 | Indent | Graph glyph under the Source's title |
-| Selection | The system's rounded bar, inset about 10 pt from the table's edges, in the system accent, grey when unfocused. One row. Text and triangle take the on-selection ink; the cover and badges keep their colors. **Not started must read on the bar**: in the spike its outline and text are faint. The board decides how, from the kit's Badge tones |
+| Selection | The system's rounded bar, inset about 10 pt from the table's edges, in the system accent, grey when unfocused. One row. Text and triangle take the on-selection ink; the cover and badges keep their colors. **Not started must read on the bar**: in the spike its outline and text are faint. The board decides how: another existing Badge tone, or that badge's outline and text in the on-selection ink. No new Badge |
 | Rules | A system hairline under **every** row, from that row's title edge to the table's right. They cannot be left out between graph rows |
 | Background | `surfaceCard`. No stripes, hover, focus ring, card or vertical line in the rows |
 | Insets | The whole table, with its header, is inset so the **Title** header's text sits on the page gutter: 32 pt Regular, 56 pt Wide. Triangles start there too |
 | Columns | Each has a minimum, an ideal and a maximum width. The researcher can drag a column's edge; the width is not kept when the page is left. Columns cannot be reordered or hidden by the researcher*. A column can appear at Wide only |
 | Keyboard | The platform's ↑ / ↓ and Page Up / Down*; the app's Home and End (scroll, no selection change), → and ←, Return. Focus on arrival; no ring |
-| Narrow | When the columns' minimums do not fit, the table scrolls sideways. The board's minimums fit an 800 pt pane |
+| Narrow | When the columns' minimums do not fit, the table scrolls sideways, Title first. At an 800 pt pane it does |
 
 ### 2.2 What this board is not
 
@@ -140,18 +140,18 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 | ID | Requirement |
 | --- | --- |
 | TB-1 | **The page.** Header as drawn; toolbar with search, type and status; the table to the pane's bottom |
-| TB-2 | **Columns**, in order: Title, Evidence, Status, Type (Wide only), Published, Added, Updated. No Ref column |
-| TB-3 | **Title cell, Source.** Triangle, cover, title (one line, ellipsis) over a subtext: the mono ref, and at Regular ` · ` and the type, which truncates first; the ref never truncates |
+| TB-2 | **Columns**, in order: Title, Evidence, Status, Type (Wide only), Published (Wide only under TB-7 (b)), Added, Updated. No Ref column |
+| TB-3 | **Title cell, Source.** Triangle, cover, title (one line, ellipsis) over a subtext: the mono ref, and at Regular the type (and, under TB-7 (b), the published date, left out when undated), with a ` · ` between. The type truncates first; the ref and date never truncate |
 | TB-4 | **Evidence and Status cells, Source.** `1 graph`, `8 graphs`, or `Needs an artifact`; the one badge (§ 2). No words such as `2 in progress` |
-| TB-5 | **Dates.** Published as today (`1851`, faint italic `Undated`). Added and Updated as short text (`2 days ago`, `Nov 21, 2026`), no icon, the full time on hover |
+| TB-5 | **Dates.** Published as today (`1851`, faint italic `Undated`). Added and Updated as today's relative words (`2 days ago`, then the date alone: `Nov 21, 2026`; `TimestampFormat` `.relative`), no icon, a faint dash when unknown. Hover: `Last updated …` as today, and `Added …` with the full time |
 | TB-6 | **Graph row.** Glyph and name in Title; counts in Evidence; badge in Status, under the Source's badge; the rest empty |
-| TB-7 | **Tight columns.** Give each column the width its longest usual value needs and the title the rest. Starting points (ideal): Evidence 168, Status 128, Type 140, Published 96, Added 92, Updated 92. The board sets each minimum, ideal and maximum, measured on the real typefaces; `12 subjects · 40 observations` and `NOT STARTED` do not truncate at the ideal. The title column is at least 360 pt at Regular. Draw **(a)** all six columns and **(b)** Published moved to the subtext at Regular, if (a) leaves the title short; the user picks. (b) cannot sort by date at Regular |
+| TB-7 | **Tight columns.** Each column is as wide as its longest usual value; the title takes the rest. Starting points, minimum / ideal / maximum: Evidence 140 / 168 / 240, Status 120 / 128 / 140, Type 100 / 140 / 220, Published 80 / 96 / 160, Added 76 / 92 / 120, Updated 76 / 92 / 120; Title from 240, which counts its triangle and cover. The system puts about 17 pt between columns. The board measures each on the real typefaces and may move them: `12 subjects · 40 observations` and `NOT STARTED` do not truncate at the ideal, and at Regular the title column is at least 360. At Regular draw **(a)** Published as a column and **(b)** Published in the subtext, its column at Wide only; the user picks. (b) cannot sort by date at Regular |
 | TB-8 | **Sorted header.** Added newest first (the default), then Title ascending. Sorting leaves rows in the same shapes |
 | TB-9 | **One open.** The 8-graph Source open; then another opened and the first closed |
 | TB-10 | **Selection.** A Source and a graph selected, focused and unfocused, light and dark, with each of the three badges on the bar |
 | TB-11 | **Menus**, as today: Open and Copy…, and on a closed Source `Open <graph name>` per graph. A graph: Open. The per-graph entries stay with one Source open at a time |
 | TB-12 | **States.** First load, a waiting filter and late counts: skeletons in the cells, badge slots held. **The board decides** whether the header shows over skeleton rows (fallback: the list's skeleton rows, no header). Failures, empty and no match: today's, with no table header |
-| TB-W1 | **Wide.** Type joins as a column. Draw **(a)** the table filling the pane, columns wider than at Regular and the title taking the rest, and **(b)** the table centered at 1600 pt of content. Judge the gap between a short title and its Evidence at 2296 (§ 9 rule 3). Recommendation: (a), as the lists do |
+| TB-W1 | **Wide.** Type joins as a column. Draw **(a)** the table filling the pane, columns up to their maximums and the title taking the rest, and **(b)** the table centered at 1600 pt of content. Judge the gap between a short title and its Evidence at 2296 (§ 9 rule 3). Recommendation: (a), as the lists do |
 | TB-W2 | **Wide states.** As TB-12 |
 
 ### 4.1 Wide layout
@@ -166,12 +166,12 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 | Frame | Requirement | Draw |
 | --- | --- | --- |
-| T1a / T1b | TB-1 – TB-8, TB-W1 | Regular 1102 × 900, TB-7 (a) and (b); Wide 2296 × 1440, TB-W1 (a) and (b). Mostly one-graph Sources, the 8-graph Source open, one with no Artifact, one undated, a 90-character title |
+| T1a / T1b | TB-1 – TB-8, TB-W1 | Four frames. T1a, Regular 1102 × 900: TB-7 (a) and (b). T1b, Wide 2296 × 1440, always with the Type and Published columns: TB-W1 (a) and (b). Mostly one-graph Sources, the 8-graph Source open, one with no Artifact, one undated, a 90-character title |
 | T2 | TB-9 | Two crops: one Source open, then another |
 | T3 | TB-3, TB-6, TB-10 | Crops of a Source and a graph row: plain and selected, focused and unfocused, light and dark, all three badges |
 | T4 | TB-11 | The menus |
 | T5a / T5b | TB-12, TB-W2 | Loading; late and failed counts; graph list failure with and without a status filter; whole-list failure; empty; no match |
-| T6 | TB-7 | The header alone at Regular and Wide with each column's minimum, ideal and maximum written under it, and an 800 pt pane at the minimums |
+| T6 | TB-7 | The header alone at Regular and Wide with each column's minimum, ideal and maximum written under it, and an 800 pt pane, scrolled to its left |
 
 ---
 
@@ -179,20 +179,22 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Native table | Snowflake | New | `macos/App/Features/Sources/` | SwiftUI's `Table` over the outline's flat rows. One call site: not a kit component. `PVTable` keeps its pages ([`kit-layering.md`](../../../ideas/kit-layering.md) holds whether they follow) |
-| Header text | Token | Extend | `pvMicroCaps()` (`macos/App/DesignSystem/Tokens/PVTypography.swift`) | A form that returns `Text`, which a column title takes; the same size, weight and tracking as `PVTable`'s header |
-| Outline, open state, menus, page state | Snowflake | Extend | `SourcesOutline`, `SourcesRowMenu`, `SourcesListState` (`macos/App/Features/Sources/`) | One open id instead of a set; the badge rule; the menus unchanged |
+| Table rows and columns | Snowflake | Rethink | `SourcesListView` (`macos/App/Features/Sources/`) | SwiftUI's `Table` and its columns over the outline's flat rows. One call site: not a kit component. `PVTable` keeps its pages ([`kit-layering.md`](../../../ideas/kit-layering.md) holds whether they follow) |
+| Native list behavior | Component | Extend | `PVListBody` (`macos/App/DesignSystem/Components/List/PVListBody.swift`) | Focus on arrival, Home and End, scroll into view, restart at the top, Return and double-click, and the right-click menu move to one kit modifier that `PVListBody` and the Sources table both apply, with the second scroll a deep row needs. Nothing to draw |
+| Header text | Token | Extend | `pvMicroCaps()` (`macos/App/DesignSystem/Tokens/PVTypography.swift`) | A `Text` form, which a column title takes; it and the `View` form share one size, weight and tracking, and the capitals follow the locale. `PVTable` does not change |
+| Outline, open state, menus, page state | Snowflake | Extend | `SourcesOutline`, `SourcesRowMenu`, `SourcesListState` (`macos/App/Features/Sources/`) | One open id instead of a set, written by one operation; the badge rule, which the status filter reads too; the menus unchanged |
 | Page frame, loading and failure areas | Component | Ship | `PVListPage`, `PVListPageArea`, `PVListSkeleton` | Skeleton rows may take the table's columns (TB-12) |
 | Toolbar | Snowflake | Extend | `SourcesListView` | Input and two Selects; the sort Select goes |
 | Cover | Component | Ship | `CachedThumbnail` | 44 pt |
-| Triangle | Snowflake | Ship | `SourcesDisclosureTriangle` | Unchanged look |
+| Triangle | Snowflake | Extend | `SourcesDisclosureTriangle` | Unchanged look; no ⌥-click |
 | Status badge | Component | Extend | `PVBadge` (`EvidenceStatus`) | Source and graph rows; readable on the selection bar |
 | Graph counts | Snowflake | Ship | `SourcesGraphCountLine` | `.row` |
 | Published date | Recipe | Ship | `PVPublishedDate` | In its cell |
-| Updated and Added | Recipe | Extend | `PVLastUpdated` | A form with no icon; the lists keep theirs |
+| Updated | Recipe | Extend | `PVLastUpdated` | A form with no icon; the lists keep theirs |
+| Added | Component | Ship | `PVListDetailCell` over `TimestampFormat` | Its own hover and spoken words: not `PVLastUpdated`, whose words say "last updated" |
 | Right-click menu | Platform | Ship | the table's own context menu | As the list's |
 | Empty, no match, failure | Component | Ship | `PVEmptyState`, `PVCallout` | As today |
-| List rows of the outline | Snowflake | Remove | `SourcesSourceRow`, `SourcesGraphRow`, `SourcesRowColumns` | And any `PVListBody` / `PVListRow` slot only they used |
+| List rows of the outline | Snowflake | Remove | `SourcesSourceRow`, `SourcesGraphRow`, `SourcesRowColumns` | With the summary words and the list slots only they used (the map's S16-71 Deletes) |
 
 **Non-goals.** No new kit primitive, color or token; no hand-drawn header, sort arrow, selection or focus ring; no AppKit reach-in; no row that changes height.
 
