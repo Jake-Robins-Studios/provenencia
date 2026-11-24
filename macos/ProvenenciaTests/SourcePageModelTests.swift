@@ -433,9 +433,9 @@ struct SourcePageModelTests {
         #expect(model.notes.items.first?.body == "Keep me")
     }
 
-    /// The page's workspace follows `source_holdings` and `inherited_values` (D-16): the first reloads the page on
-    /// screen and marks a hidden one stale; `source_records` (a title edit) reloads nothing, so
-    /// field edits keep patching in place.
+    /// The page's workspace follows `source_holdings` and `inherited_values`: either read reloads the
+    /// page on screen and marks a hidden one stale; `source_records` (a title edit) reloads nothing,
+    /// so field edits keep patching in place.
     @Test func workspaceFollowsSourceHoldings() async throws {
         let store = makeStore()
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)

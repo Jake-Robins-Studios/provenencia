@@ -115,6 +115,41 @@ struct MetadataDraftHostTests {
         #expect(!(host.draft?.values.contains { $0.fieldID == "url" || $0.fieldID == "roll" } ?? false))
     }
 
+    /// A suggested row whose owner inherits a value opens, cancels and saves an override through the
+    /// board as a saved row does, and the saved row keeps what it overrides; a suggestion that
+    /// inherits nothing has no editor to open.
+    @Test func inheritedEntryOpensCancelsAndSavesAnOverride() async throws {
+        let inherited = CatalogInheritedMetadataValue(displayText: "Ancestry", isUnknown: false, level: .source)
+        let host = MetadataDraftHost(
+            entries: [
+                catalogMetadataEntry(provider, suggested: true, order: 0, inherited: inherited, staysWithoutValue: true),
+                catalogMetadataEntry(roll, suggested: true, order: 1),
+            ],
+            fields: [provider, roll]
+        )
+        let board = MetadataBoardModel(host: host)
+        let before = host.entries
+
+        board.beginEdit(fieldID: "provider")
+        #expect(board.editingFieldID == "provider")
+        #expect(board.drafts["provider"] == "")
+
+        board.cancelEdit()
+        #expect(board.editingFieldID == nil)
+        #expect(host.entries == before)
+
+        board.beginEdit(fieldID: "provider")
+        board.drafts["provider"] = "FamilySearch"
+        await board.save(fieldID: "provider")
+        let row = try #require(host.entries.first { $0.field.id == "provider" })
+        #expect(row.hasValue && row.valueText == "FamilySearch")
+        #expect(row.inherited == inherited)
+        #expect(board.editingFieldID == nil)
+
+        board.beginEdit(fieldID: "roll")
+        #expect(board.editingFieldID == nil)
+    }
+
     @Test func dismissOnlyEmptySuggestions() async throws {
         let host = makeHost()
         let board = MetadataBoardModel(host: host)

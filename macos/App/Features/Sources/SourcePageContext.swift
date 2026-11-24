@@ -137,8 +137,10 @@ final class SourcePageContext {
     }
 
     /// Puts a Save's rows for an owner on the page, then applies its effects with the cache
-    /// patch that carries the same rows, so no reload follows: the one apply every owner's
-    /// metadata write uses (the Artifact sheet, the graph form, the Source's live board).
+    /// patch that carries the same rows, so no reload follows for the owner's own rows: the one
+    /// apply every owner's metadata write uses (the Artifact sheet, the graph form, the Source's
+    /// live board). A Source's value write also reports `inherited_values`, which reloads the
+    /// page, since the boards below it show that value.
     func applySavedMetadata(_ rows: [CatalogMetadataEntry], owner: MetadataOwner, effects: CatalogWriteEffects) {
         workspace?.setMetadataRows(rows, for: owner)
         session.apply(effects, .wroteMetadataBoard(sourceId: sourceID, owner: owner, entries: rows))
