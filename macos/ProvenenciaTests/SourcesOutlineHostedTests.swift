@@ -25,7 +25,8 @@ struct SourcesOutlineHostedTests {
     }
 
     private func makeHarness(
-        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil
+        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil,
+        currentEvent: @escaping @MainActor () -> NSEvent? = { nil }
     ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
@@ -71,6 +72,7 @@ struct SourcesOutlineHostedTests {
             .environment(session)
             .environment(navigation)
             .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
+            .environment(\.sourcesCurrentEvent, SourcesEventSource(currentEvent))
         )
         let (window, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: width, height: 760))
         host.layoutSubtreeIfNeeded()
@@ -206,6 +208,54 @@ struct SourcesOutlineHostedTests {
         await press(NSLeftArrowFunctionKey, harness)
         #expect(harness.session.expandedSourceIDs.isEmpty)
         #expect(await settle(harness, rows: 3))
+    }
+
+    /// Not a real mouse path (a window that is never shown is sent no events, and a table's mouse-down
+    /// runs a tracking loop that would block the main thread): the click is `selectRowIndexes`, the
+    /// table's own selection write, with the event the page reads standing in for the click.
+    private func select(row: Int, as event: NSEvent?, _ harness: Harness, _ current: EventBox) async {
+        current.event = event
+        harness.table.selectRowIndexes([row], byExtendingSelection: false)
+        try? await Task.sleep(for: .milliseconds(150))
+        harness.host.layoutSubtreeIfNeeded()
+    }
+
+    private func mouse(_ type: NSEvent.EventType, _ modifiers: NSEvent.ModifierFlags = []) -> NSEvent {
+        NSEvent.mouseEvent(
+            with: type, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
+        )!
+    }
+
+    @MainActor
+    private final class EventBox { var event: NSEvent? }
+
+    @Test func aClickOnAClosedSourceSelectsAndOpensIt() async throws {
+        let box = EventBox()
+        let harness = try await makeHarness(currentEvent: { box.event })
+        #expect(harness.session.expandedSourceIDs.isEmpty)
+        // Rows newest first: s3, s2, s1; s1 is row 2.
+        await select(row: 2, as: mouse(.leftMouseDown), harness, box)
+        #expect(await waitUntil { harness.session.expandedSourceIDs == ["s1"] })
+        #expect(harness.navigation.listAnchor == "s1")
+        #expect(await settle(harness, rows: 11))
+    }
+
+    @Test func aKeyMoveOrAModifiedClickOntoAClosedSourceLeavesItClosed() async throws {
+        let box = EventBox()
+        let harness = try await makeHarness(currentEvent: { box.event })
+        let key = NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: 0, context: nil, characters: "\u{F701}", charactersIgnoringModifiers: "\u{F701}",
+            isARepeat: false, keyCode: 125
+        )
+        await select(row: 1, as: key, harness, box)
+        #expect(harness.navigation.listAnchor == "s2")
+        await select(row: 2, as: mouse(.leftMouseDown, .command), harness, box)
+        #expect(harness.navigation.listAnchor == "s1")
+        await select(row: 0, as: mouse(.rightMouseDown), harness, box)
+        #expect(harness.navigation.listAnchor == "s3")
+        #expect(harness.session.expandedSourceIDs.isEmpty)
     }
 
     @Test func returnOpensASourceAndAGraphThatLinksAnArtifactAndNothingElse() async throws {

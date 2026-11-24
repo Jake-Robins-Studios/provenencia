@@ -105,6 +105,48 @@ struct SourcesOutlineTests {
         #expect(outline.selectionAfterCollapsing(collapsing, selection: nil) == nil)
     }
 
+    @Test func aPlainClickOnAClosedSourceOpensIt() {
+        let closed = outline(expanded: [])
+        let mixed = outline(expanded: ["s1"])
+        func open(
+            _ outline: SourcesOutline, _ new: String?, from old: String? = nil, click: Bool = true, triangle: Bool = false
+        ) -> String? {
+            outline.sourceToOpen(selecting: new, from: old, plainLeftClick: click, onTriangle: triangle)
+        }
+        #expect(open(closed, "s2") == "s2")
+        #expect(open(closed, "s2", from: "s1") == "s2")
+        // Not a plain left click: the keyboard, Back, a reveal, a menu, a right-click, a modified click.
+        #expect(open(closed, "s2", click: false) == nil)
+        // A press on the triangle: the button toggles it itself.
+        #expect(open(closed, "s2", triangle: true) == nil)
+        // The selection did not move.
+        #expect(open(closed, "s2", from: "s2") == nil)
+        #expect(open(closed, nil, from: "s2") == nil)
+        // An open Source stays open; a Source with no triangle and a graph row have nothing to open.
+        #expect(open(mixed, "s1") == nil)
+        #expect(open(mixed, "g1a") == nil)
+        #expect(open(closed, "s3") == nil)
+        #expect(open(closed, "missing") == nil)
+        // Other Sources keep their state: only the clicked Source is named.
+        #expect(open(mixed, "s2") == "s2")
+    }
+
+    @Test func onlyAnUnmodifiedLeftPressOrReleaseIsAPlainClick() {
+        func plain(_ type: NSEvent.EventType?, _ modifiers: NSEvent.ModifierFlags = []) -> Bool {
+            SourcesOutline.isPlainLeftClick(type: type, modifiers: modifiers)
+        }
+        #expect(plain(.leftMouseDown))
+        #expect(plain(.leftMouseUp))
+        #expect(plain(.leftMouseDown, [.capsLock]))
+        #expect(!plain(.keyDown))
+        #expect(!plain(.rightMouseDown))
+        #expect(!plain(nil))
+        #expect(!plain(.leftMouseDown, .command))
+        #expect(!plain(.leftMouseDown, .shift))
+        #expect(!plain(.leftMouseDown, .option))
+        #expect(!plain(.leftMouseDown, .control))
+    }
+
     @Test func arrowKeysExpandCollapseAndClimb() {
         let closed = outline(expanded: [])
         let open = outline(expanded: ["s1"])

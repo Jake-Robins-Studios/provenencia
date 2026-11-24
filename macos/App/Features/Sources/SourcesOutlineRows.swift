@@ -11,6 +11,8 @@ struct SourcesSourceRow: View {
     let isWide: Bool
     /// Opens or closes the Source, or every Source when `all` (⌥-click).
     let toggle: (_ all: Bool) -> Void
+    /// Notes whether the pointer is on this Source's triangle (the page reads it when a click selects).
+    let hoverTriangle: (_ sourceID: String, _ inside: Bool) -> Void
 
     static let coverSize: CGFloat = 44
     static let triangleWidth: CGFloat = 16
@@ -21,7 +23,9 @@ struct SourcesSourceRow: View {
         PVListRow(
             item: source,
             leading: { source in
-                SourcesDisclosureTriangle(sourceID: source.id, disclosure: disclosure, toggle: toggle)
+                SourcesDisclosureTriangle(
+                    sourceID: source.id, disclosure: disclosure, toggle: toggle, hover: hoverTriangle
+                )
             },
             leadingWidth: Self.triangleWidth,
             thumbnail: { source in
@@ -91,6 +95,7 @@ private struct SourcesDisclosureTriangle: View {
     let sourceID: String
     let disclosure: SourcesDisclosure
     let toggle: (_ all: Bool) -> Void
+    let hover: (_ sourceID: String, _ inside: Bool) -> Void
 
     var body: some View {
         if disclosure == .none {
@@ -106,6 +111,8 @@ private struct SourcesDisclosureTriangle: View {
             }
             .buttonStyle(.plain)
             .focusable(false)
+            .onHover { hover(sourceID, $0) }
+            .onDisappear { hover(sourceID, false) }
             .accessibilityIdentifier("sources.row.\(sourceID).disclosure")
         }
     }

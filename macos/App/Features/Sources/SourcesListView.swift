@@ -93,7 +93,10 @@ private struct SourcesListContent: View {
     @Environment(\.pvWidthClass) private var widthClass
     /// The list has taken the keyboard once, the search field has had it, or the settings changed: the
     /// list leaves focus where it is when its rows come back (a search that matched nothing, then did).
+    @Environment(\.sourcesCurrentEvent) private var currentEvent
     @State private var listLeavesFocusAlone = false
+    /// Which triangle the pointer is on, for `select`. Not observed: no view reads it to draw.
+    @State private var triangleHover = SourcesTriangleHover()
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -188,7 +191,7 @@ private struct SourcesListContent: View {
                 // Navigation owns the selected row: it is the row history stamps on leaving.
                 selection: Binding(
                     get: { navigation.listAnchor },
-                    set: { navigation.noteListAnchor($0) }
+                    set: { select($0, outline: outline) }
                 ),
                 minimumRowHeight: SourcesGraphRow.height,
                 horizontalInset: gutter,
@@ -241,13 +244,29 @@ private struct SourcesListContent: View {
                         all ? outline.togglableSourceIDs : [source.id], expanding: disclosure != .expanded,
                         outline: outline
                     )
-                }
+                },
+                hoverTriangle: { id, inside in triangleHover.note(id, inside: inside) }
             )
         case .graph(let graph, let source):
             SourcesGraphRow(content: .graph(graph), source: source)
         case .pendingGraph(let source):
             SourcesGraphRow(content: .pending, source: source)
         }
+    }
+
+    /// The list's one write of the selection. A plain left click that lands on a closed Source also opens
+    /// it, a turn later (the write may be inside a view update) and without animation.
+    private func select(_ id: String?, outline: SourcesOutline) {
+        let old = navigation.listAnchor
+        navigation.noteListAnchor(id)
+        // The event being dispatched, unless it is stale (a selection nobody clicked).
+        let event = currentEvent.read().flatMap { ProcessInfo.processInfo.systemUptime - $0.timestamp < 1 ? $0 : nil }
+        guard let open = outline.sourceToOpen(
+            selecting: id, from: old,
+            plainLeftClick: SourcesOutline.isPlainLeftClick(type: event?.type, modifiers: event?.modifierFlags ?? []),
+            onTriangle: id != nil && triangleHover.sourceID == id
+        ) else { return }
+        DispatchQueue.main.async { toggle([open], expanding: true, outline: outline) }
     }
 
     /// Opens or closes `sources`; the triangle, ⌥-click, the keys and the row's action all come here.
@@ -457,4 +476,28 @@ private struct SourcesAddDialog: ViewModifier {
             }
         }
     }
+}
+
+/// The Source whose triangle the pointer is on, if any. A plain class, not observable: only the
+/// selection write reads it, so the rows never redraw for it.
+final class SourcesTriangleHover {
+    private(set) var sourceID: String?
+
+    func note(_ id: String, inside: Bool) {
+        if inside { sourceID = id } else if sourceID == id { sourceID = nil }
+    }
+}
+
+extension EnvironmentValues {
+    /// The event the application is dispatching: what the Sources list reads to tell a click from a key.
+    /// A hosted test replaces it, since a window that is never shown is sent no real events.
+    @Entry var sourcesCurrentEvent = SourcesEventSource { NSApp.currentEvent }
+}
+
+/// Where the Sources list reads the event being dispatched.
+@MainActor
+final class SourcesEventSource {
+    let read: () -> NSEvent?
+
+    init(_ read: @escaping () -> NSEvent?) { self.read = read }
 }

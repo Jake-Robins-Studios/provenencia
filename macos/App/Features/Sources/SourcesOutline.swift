@@ -131,6 +131,23 @@ struct SourcesOutline {
         return collapsing.contains(row.source.id) ? row.source.id : selection
     }
 
+    /// The Source a selection opens: the row `new` when the selection just moved to it by a plain left
+    /// click (not the keyboard, Back, a reveal, a right-click or a menu; no ⌘, ⇧, ⌥ or ⌃), not by a press
+    /// on its triangle (the button toggles it itself), and it is a closed Source with a triangle. Nil
+    /// otherwise: a click on the selected row, an open Source (a click never closes one), a Source with
+    /// no triangle, a graph row.
+    func sourceToOpen(selecting new: String?, from old: String?, plainLeftClick: Bool, onTriangle: Bool) -> String? {
+        guard plainLeftClick, !onTriangle, let new, new != old,
+              let row = row(id: new), case .source(let source, .collapsed) = row.kind else { return nil }
+        return source.id
+    }
+
+    /// Whether an event is a left mouse press or release with no modifier.
+    static func isPlainLeftClick(type: NSEvent.EventType?, modifiers: NSEvent.ModifierFlags) -> Bool {
+        guard type == .leftMouseDown || type == .leftMouseUp else { return false }
+        return modifiers.intersection([.command, .shift, .option, .control]).isEmpty
+    }
+
     /// Opens or closes `sources`. Closing a Source whose graph is selected selects the Source first.
     @MainActor
     func setExpanded(
