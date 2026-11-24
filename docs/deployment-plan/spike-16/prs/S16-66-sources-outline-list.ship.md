@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** fixing — user change U-1
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -143,3 +143,5 @@ Head `119468aaa`. Gate (orchestrator) PASS. U-1 done: the pure rule is table-tes
 Files: `SourcesListView.swift`, `SourcesOutline.swift`, `SourcesOutlineTests.swift`.
 Do: `isPlainLeftClick` takes the event's age (`systemUptime - timestamp`) and rejects one of a second or more; its table gains a stale press. Put the "leaves focus where it is" comment back above `listLeavesFocusAlone`; `select`'s comment says the write the platform list makes.
 Check: the table fails when the age check is removed; `scripts/check-pr.sh` PASS.
+
+Head `7ff057374`. U-2 done, QCK-1 to QCK-3 **Resolved** (orchestrator read the diff). Ready for the user.
