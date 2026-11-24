@@ -95,12 +95,18 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     }
 
     /// Scrolls to the Home or End row once more after `settleDelay`, when no other Home or End press
-    /// came and the row is still there. A first scroll to the last row of a long list stops short.
+    /// came, the selection has not moved since, and the row is still there. A first scroll to the last
+    /// row of a long list stops short.
     private func requestEdgeScroll() {
         guard let requested = edgeRow else { return }
         let request = edgeRequest
         let rows = ids
-        Self.repeatOnce(stillWanted: { edgeRow == requested && edgeRequest == request && rows.contains(requested) }) {
+        let binding = selection
+        let selected = binding.wrappedValue
+        Self.repeatOnce(stillWanted: {
+            edgeRow == requested && edgeRequest == request && rows.contains(requested)
+                && binding.wrappedValue == selected
+        }) {
             edgeRequest += 1
         }
     }

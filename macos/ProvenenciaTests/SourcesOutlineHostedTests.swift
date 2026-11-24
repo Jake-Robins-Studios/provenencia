@@ -439,6 +439,26 @@ struct SourcesOutlineHostedTests {
         #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: 0)))
     }
 
+    /// U-4: a selection that moves after End, before the repeat, wins: the repeat does not pull the
+    /// list back to the last row.
+    @Test func aSelectionMoveAfterEndCancelsTheRepeat() async throws {
+        let harness = try await makeHarness(extraSources: 100)
+        #expect(await settle(harness, rows: 103))
+        harness.window.makeFirstResponder(harness.table)
+        harness.window.sendEvent(keyEvent(NSEndFunctionKey, in: harness.window))
+        // The first scroll lands; the selection moves before `settleDelay` (as an arrow key does) and the
+        // table scrolls to it.
+        try? await Task.sleep(for: .milliseconds(50))
+        harness.navigation.noteListAnchor("x95")
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow >= 0 })
+        let row = harness.table.selectedRow
+        harness.table.scrollRowToVisible(row)
+        try? await Task.sleep(for: .milliseconds(600))
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(harness.table.selectedRow == row)
+        #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: row)))
+    }
+
     @Test func rightAndLeftArrowsOpenCloseAndClimb() async throws {
         let harness = try await makeHarness()
         harness.navigation.noteListAnchor("s1")
