@@ -172,3 +172,35 @@ Three behaviors (scene, quit on close, the UX lens) and possibly four files.
 
 ### K7-6 · minor · The idea file does not list what S16-61 removes
 **Answer:** Fixed. `ideas/multiple-windows-and-sync.md` point 7.
+
+## Slice 6g map review (2026-11-24)
+
+One fresh maintainability reviewer on slice 6g (S16-68, S16-69, S16-70) and its design. Verdict: Fits with changes. Both blockers are answered in the map.
+
+**To user:** ~~K6g-1's Source type half.~~ **Answered (user, 2026-11-24): in S16-70.** Giving `source_types` a `Deleted` entry too would retire `.deletedSourceType` and `CatalogQueryPatch.row`'s `removes:` closure in S16-70, leaving one row-removal mechanism. The rule scopes Sources only, so that half is parked in [`ideas/catalog-query-layer.md`](../../ideas/catalog-query-layer.md); say if you want it in S16-70.
+
+**Writer's own call:** `.sourceTypesList` follows `.deleted(.source)`, not `.list(.counts)` (K6g-3). It is exact for the delete. `counts` would also retire `.createdSource` there, but it fires on every handle create, delete and merge.
+
+### K6g-1 · blocker · A second way to drop a list row, and an option that misses empty Sources
+**Answer:** Fixed. S16-70 adds one `CatalogQueryFollows.deleted(CatalogDeletedEntity)` slot and one generic row-removal patch, which `.sourcesList` declares. The `source_holdings` option is struck from the design: a Source with no holdings reports none. S15-70 is named as the next user. The Source type half went to the user, who put it in S16-70 (above).
+
+### K6g-2 · blocker · FakeStore would compose effects
+**Answer:** Fixed. `FakeStore.deleteSource` stays scripted. Tests set `nextWriteEffects`, and the Go effects test owns what a delete reports.
+
+### K6g-3 · major · Name the Source types list's signal in the map
+**Answer:** Fixed. It follows `.deleted(.source)` (writer's call, above).
+
+### K6g-4 · major · Three copied lookup loops
+**Answer:** Fixed. One lookup method on `walk` owns the memo and the loop; `readRowsColumn` memoises before its ghost fallback.
+
+### K6g-5 · major · The Spike 15 dependency is named in neither map
+**Answer:** Fixed. A row in Spike 16's "Shared with Spike 15" table, and a line in Spike 15's dependency list and its "In parallel with Spike 16" paragraph, including S15-70 following the new rule.
+
+### K6g-6 · major · Docs the slice makes false
+**Answer:** Fixed. S16-69 names the effects README. S16-70 names the effects README, every `.deletedSource` in `macos-client-patterns.md`, and the pattern in `add-workspace-place`. Bar 40's sweep covers `docs/*.md`, `.agents` and `.cursor`.
+
+### K6g-7 · minor · S16-68's Check cannot prove "verbatim"
+**Answer:** Fixed. The Check uses `git diff -M --color-moved=zebra`, as S16-37 did, and the "repoint" line says there is nothing to repoint. It stays a planned PR (it fails the quick-pr fit list).
+
+### K6g-8 · minor · No seam for the query-counting test
+**Answer:** Fixed. `Resolve` and `resolve` take a `dbsql.Querier`.
