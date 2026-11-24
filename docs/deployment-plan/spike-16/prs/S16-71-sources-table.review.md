@@ -1,7 +1,7 @@
 # Review — S16-71 The Sources list is a native table
 
 **Verdict:** Fits with changes — Ready with changes
-**Rounds:** 1. **Reviewers:** maintainability (Opus), executability (Sonnet)
+**Rounds:** 2. **Reviewers:** maintainability (Opus), executability (Sonnet)
 
 ## To user
 - Answered 2026-11-24: column widths are fixed per width class (the brief had draggable edges); every outlined badge takes the on-selection ink on a selected row (M-3).
@@ -41,3 +41,12 @@
 | X-11 | minor | Private types, derived `extra` | Fixed — STEP-6, STEP-7 |
 | X-12 | minor | No benchmark | Fixed — Scale `BenchmarkList` |
 | X-13 | minor | Smaller choices | Fixed — D-2, D-8, D-15, D-16 |
+
+## Round 2
+Every round-1 blocker and major resolved.
+
+| ID | Severity | Title | Answer |
+| --- | --- | --- | --- |
+| M-12, X-14 | blocker | STEP-4 conforms `SourcesSort` to a type STEP-7 adds | Fixed — the conformance is an extension in `SourcesTable.swift`, STEP-7 (D-2, D-4) |
+| — | minor | STEP-5 omits `SourcesOutlineRows.swift` | Fixed |
+| — | minor | `audit.Created`'s map key | Fixed — D-1 |
