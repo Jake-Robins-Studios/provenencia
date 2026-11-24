@@ -287,7 +287,7 @@ CREATE TABLE source_metadata (
 ) STRICT;
 ```
 
-**Unknown and supplied.** A value carries the two facts of `core/valuemark`. *Unknown*: the record does not give the value, so it has no text (`value_text` NULL, `is_unknown` 1). *Supplied*: the text is not on the record; the researcher took it from elsewhere (`is_supplied` 1, with text). Never both. The checks repeat `valuemark.Validate` so the table refuses what Go refuses. A write without a mark is a value with no mark, and the audit records the mark columns with the value. The same two columns sit on `artifact_metadata` and `evidence_graph_metadata` (§5.5).
+**Unknown and supplied.** A value carries the two facts of `core/valuemark`. *Unknown*: the record does not give the value, so it has no text (`value_text` NULL, `is_unknown` 1). *Supplied*: the text is not on the record; the researcher took it from elsewhere (`is_supplied` 1, with text). Never both. The checks repeat `valuemark.Validate` so the table refuses what Go refuses. A write without a mark is a value with no mark, and the audit records the mark columns with the value. The same two columns sit on `artifact_metadata`, `evidence_graph_metadata` and `citation_metadata` (§5.5).
 
 Metadata preserves text directly, including catalog dates:
 
@@ -449,7 +449,7 @@ CREATE TABLE artifacts (
 
 An Artifact has zero or one primary File.
 
-An Artifact holds metadata of its own (provider, URL, accessed date, film number): `artifact_metadata` and `artifact_metadata_layout` ([§5.5](#55-metadata-at-three-levels)). Deleting an Artifact releases them, audited, before the Artifact's own delete change; a File's own data stays on the File.
+An Artifact holds metadata of its own (provider, URL, accessed date, film number): `artifact_metadata` and `artifact_metadata_layout` ([§5.5](#55-metadata-at-four-levels)). Deleting an Artifact releases them, audited, before the Artifact's own delete change; a File's own data stays on the File.
 
 Fileless Artifacts are valid and can represent physical-only evidence:
 
@@ -598,6 +598,8 @@ evidence_graphs
 evidence_graph_artifacts
 evidence_graph_metadata
 evidence_graph_metadata_layout
+citation_metadata
+citation_metadata_layout
 ```
 
 with these directly supporting storage tables:
