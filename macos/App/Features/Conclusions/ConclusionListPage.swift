@@ -96,22 +96,14 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
             if let handle: QueryHandle<CatalogListRows<Kind.Row>> = session.queryHandle(key) {
                 ConclusionListBody<Kind>(handle: handle)
             } else {
-                ConclusionListFrame(title: Kind.title, meta: nil, identifierRoot: Kind.identifierRoot) { gutter in
-                    Self.loadingArea(gutter: gutter)
+                PVListPage(title: Kind.title, countLine: nil, identifierRoot: Kind.identifierRoot) { gutter in
+                    PVListPageArea.loadingArea(gutter: gutter, detailWidths: [PVLastUpdated.columnWidth])
                 }
             }
         }
         .task {
             let _: QueryHandle<CatalogListRows<Kind.Row>> = session.query(key)
         }
-    }
-
-    /// First-load placeholder with the last-updated column bar, so rows do not
-    /// shift when the times arrive: 30 rows fill the list area.
-    static func loadingArea(gutter: CGFloat) -> some View {
-        PVListSkeleton(rows: 30, detailWidths: [PVLastUpdated.columnWidth], horizontalInset: gutter)
-            .frame(maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .top)
-            .clipped()
     }
 
     /// No records of this kind: the empty state, centered in the list area.
@@ -122,39 +114,6 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
             message: L10n.string(Kind.emptyMessage)
         )
         .accessibilityIdentifier("\(Kind.identifierRoot).empty")
-    }
-
-    /// The read failed with nothing to show: the danger Callout at the top of the list area.
-    static func failureArea(_ message: String, gutter: CGFloat) -> some View {
-        PVCallout(tone: .danger, message: message)
-            .pvListPageMessage(gutter: gutter, maxWidth: PVSpacing.measureForm)
-    }
-}
-
-/// Page chrome shared by every state: the list page header across the pane on the page surface, a
-/// full-width hairline, then the list area filling the rest of the pane on the card surface. The
-/// gutter is chosen once, here, from the width class, and handed to the area.
-private struct ConclusionListFrame<Content: View>: View {
-    let title: LocalizedStringResource
-    let meta: String?
-    let identifierRoot: String
-    @ViewBuilder let content: (CGFloat) -> Content
-
-    @Environment(\.pvWidthClass) private var widthClass
-
-    var body: some View {
-        let gutter = widthClass.fullPaneGutter
-        VStack(spacing: 0) {
-            PVListPageHeader(title: title, countLine: meta, identifierPrefix: identifierRoot, gutter: gutter)
-                .background(PVColor.surfacePage)
-            PVDivider()
-            content(gutter)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(PVColor.surfaceCard)
-        }
-        .background(PVColor.surfacePage)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("\(identifierRoot).list")
     }
 }
 
@@ -175,14 +134,14 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
     }
 
     var body: some View {
-        ConclusionListFrame(title: Kind.title, meta: headerMeta, identifierRoot: Kind.identifierRoot) { gutter in
+        PVListPage(title: Kind.title, countLine: headerMeta, identifierRoot: Kind.identifierRoot) { gutter in
             switch presentation {
             case .loading:
-                ConclusionListPage<Kind>.loadingArea(gutter: gutter)
+                PVListPageArea.loadingArea(gutter: gutter, detailWidths: [PVLastUpdated.columnWidth])
             case .empty:
                 ConclusionListPage<Kind>.emptyArea()
             case .failed(let message):
-                ConclusionListPage<Kind>.failureArea(message, gutter: gutter)
+                PVListPageArea.failureArea(message, gutter: gutter)
             case .rows(let rows, _):
                 PVList(
                     // Go owns list order (conclusionsummaries.SortByTitle); rows show as given.
@@ -232,7 +191,7 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
 private func conclusionListStatePreview<Area: View>(
     width: CGFloat, @ViewBuilder area: @escaping (CGFloat) -> Area
 ) -> some View {
-    ConclusionListFrame(title: PersonsList.title, meta: nil, identifierRoot: PersonsList.identifierRoot, content: area)
+    PVListPage(title: PersonsList.title, countLine: nil, identifierRoot: PersonsList.identifierRoot, content: area)
         .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
         .frame(width: width, height: 480)
 }
@@ -247,10 +206,10 @@ private func conclusionListStatePreview<Area: View>(
 #Preview("Failed") {
     VStack(spacing: PVSpacing.space8) {
         conclusionListStatePreview(width: 1102) { gutter in
-            ConclusionListPage<PersonsList>.failureArea("The catalog could not be read.", gutter: gutter)
+            PVListPageArea.failureArea("The catalog could not be read.", gutter: gutter)
         }
         conclusionListStatePreview(width: 2296) { gutter in
-            ConclusionListPage<PersonsList>.failureArea("The catalog could not be read.", gutter: gutter)
+            PVListPageArea.failureArea("The catalog could not be read.", gutter: gutter)
         }
     }
 }
