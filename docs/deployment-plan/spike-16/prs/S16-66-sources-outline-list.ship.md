@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** gate — CI red
+**State:** ready
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -101,7 +101,7 @@ All four **Clean**, no new blocker. CON-1 – CON-5, MNT-1 – MNT-7, UX-1, UX-2
 Nits (logged): `MNT-16 · SourcesListView.swift:90 · sourcesHandle no longer read` · `CON-10 · PVListTests.swift:179 · aMenuTitleKeepsItsAsterisks tests L10n.string, not the menu` · `CON-11 · SourcesListPreviews.swift:64 · comment says Wide; 1102 pt is Regular`
 
 ## Result
-Merged `origin/main` @ `6e18533b6` (docs only, S15-54's plan). Gate PASS on the merge · CI: see the PR · open: none · follow-ups: none · to user: CON-2 answered (D-8 amended, 2026-11-24). Left to the user's manual check: STEP-7 lines 3, 7, 8, the Scale part of 6, and a selected row's faint Not started badge.
+Merged `origin/main` @ `6e18533b6` (docs only, S15-54's plan). Gate PASS on the merge · CI: red on the first ready head, see the CI fix round · open: none · follow-ups: none · to user: CON-2 answered (D-8 amended, 2026-11-24). Left to the user's manual check: STEP-7 lines 3, 7, 8, the Scale part of 6, and a selected row's faint Not started badge.
 
 ## CI fix round
 CI macOS `test` FAIL on the ready head (run 45411247665). `closingTheSourceOfASelectedGraphSelectsTheSource`: the accessibility action is nil on the runner. Three others timed out in `waitUntil`, all ending at about 7.7 s together: `createSavesOneGraphAndToasts`, `confirmDeleteSourceRecountsThroughSession`, `copyRecountsThroughSession` (untouched code; the suspected cause is main-thread work in the new hosted tests).
@@ -117,3 +117,5 @@ Do: measure each test's synchronous main-thread time before and after (print onc
 Check: report each test's time before and after; `scripts/check-pr.sh` PASS three times in a row.
 
 Head `fa55de54b`. Gate PASS. G-1 done. G-2 done: `ruleExtent` 12–19 ms → 3–5 ms a call; no other long synchronous block found, so it does not by itself explain the runner's stall. The second run on the old test head (45412220503) failed the same test and the same kind of waits (`confirmDeleteSourceRecountsThroughSession`, `copyRecountsThroughSession`, `editSavesNameAndFullLinkSet`). `main` took bars 38 – 40 (slice 6g), so this PR's bar is 41; merged.
+
+Gate PASS and CI green on the merge (run 45414806140): all 2,340-odd tests, `localizable`, Go. The three timed-out waits did not recur. They use `waitUntil`'s fixed two seconds in untouched suites, and the cause of the runner's stall was not proven: to the user as a follow-up.
