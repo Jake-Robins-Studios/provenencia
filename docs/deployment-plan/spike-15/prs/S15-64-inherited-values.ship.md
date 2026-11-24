@@ -21,7 +21,7 @@ Reviewers: CON, MNT, UX, SEC+PRF. Skipped: none.
 | CON-4 | CON | minor | No test of open, save, cancel of an override | Fix now → F-4 | T-8 goes through `board.add` |
 | MNT-3 | MNT | minor | `isURL` repeats what `openURL` says | To user → F-1 | user (2026-11-23): drop it, departing from D-8's signature |
 | PRF-2, UX-6 | PRF, UX | minor | The Overrides caption wraps without limit | Fix now → F-1 | no `lineLimit` |
-| PRF-1 | PRF | minor | Page reload per Source value save; `applySavedMetadata` comment false | Comment: fix now → F-4. Narrower read: Follow-up | 3.2 ms at Scale, budget 100 ms; Artifacts with files not measured |
+| PRF-1 | PRF | minor | Page reload per Source value save; `applySavedMetadata` comment false | Comment: fix now → F-4. Narrower read: Dropped (user, 2026-11-23) | 3.2 ms at Scale, budget 100 ms; Artifacts with files not measured |
 | MNT-4, CON-5 | MNT, CON | minor | Reads test comment says only one read reloads | Fix now → F-4 | plain |
 
 Nits (logged): `MNT-5 · sourcemetadata.go:1116 · place and annotation both parse the field id` · `UX-5 · override editor caption has no identifier` (goes with F-1)
@@ -55,4 +55,4 @@ Head `0e298a4a3`. Gate PASS. F-1 to F-4 done. Accepted: F-1 and F-2 in one commi
 CON, MNT, UX and SEC+PRF, fix commits only. CON-1, CON-2, MNT-1, MNT-2, UX-1, UX-2, UX-3 and SEC-1 Resolved; no new blocker. Minors read by the orchestrator: CON-3, UX-4, UX-5, UX-6, PRF-2, MNT-3, MNT-4, CON-4, CON-5 and PRF-1's comment Resolved.
 
 ## Result
-Gate PASS · CI green (on the commit before this line) · open: none · follow-ups: PRF-1's narrower read · to user: UX-3 and MNT-3, answered 2026-11-23; § 10 manual check
+Gate PASS · CI green (on the commit before this line) · open: none · follow-ups: none (PRF-1's narrower read dropped by the user, 2026-11-23) · to user: UX-3 and MNT-3, answered 2026-11-23; § 10 manual check
