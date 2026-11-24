@@ -138,6 +138,16 @@ Files: `PVNativeListBehavior.swift` (`requestEdgeScroll`). Do: the repeat also n
 
 Head `0c86d981e`: U-4 done (orchestrator read the diff). Gate PASS; the hosted and badge suites passed 3 further fresh processes.
 
+### CI on `e487a119c`
+Go green; **macOS red** (run 45504654286): the whole run aborts with "Received unexpected event testCaseDidStart for `SourcesOutlineTests/openingMovesASelectionOffTheClosedGroup(_:)` (iteration 1). Test already started." No assertion failed. Passes locally.
+
+**C-1 — The parameterized selection test has distinct cases**
+Files: `SourcesOutlineTests.swift` (and any other parameterized test this PR adds with the same trait).
+Likely: two of its arguments share one case identity (equal values, or a type whose encoding is the same), so Xcode starts one case twice. Remove the duplicate, or give each case a distinct `Codable` / `CustomTestArgumentEncodable` identity, keeping every input → expected pair. Check every parameterized test in the diff (`git diff origin/main -- macos/ProvenenciaTests | grep "arguments:"`) for equal cases.
+Check: a script or test shows no equal arguments; `scripts/check-pr.sh` PASS.
+
+Head `76325e31b`: C-1 done (two pairs of cases had one description). Gate PASS (orchestrator).
+
 ## Result
 Gate PASS · CI: see the PR · open: none · later PR: S16-72 (scroll offset in history, QCK-3) · follow-ups: none · to user: the real-mouse manual check, QCK-2
 
@@ -161,4 +171,5 @@ Plan: 7,670 words (check-plan-docs info line).
 | user | QCK review | opus | 66k |
 | user | implementer (U-3) | sonnet | 104k |
 | user | implementer (U-4) | sonnet | 106k |
-| | **Total** | | **2,209k** |
+| CI | implementer (C-1) | sonnet | — |
+| | **Total** (without C-1) | | **2,209k** |
