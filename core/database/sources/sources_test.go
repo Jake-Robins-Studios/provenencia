@@ -1644,3 +1644,69 @@ func TestListByIDs(t *testing.T) {
 		t.Fatalf("no ids = %+v, %v (the handler, not ListByIDs, reads every Source)", every, err)
 	}
 }
+
+// TestCreatedAt: List and ListByIDs read each Source's create time from audit
+// and agree, an update does not move it, and a Source with no create record
+// reads empty.
+func TestCreatedAt(t *testing.T) {
+	c, userID, typeID := sourceFixture(t)
+	s, err := runCreate(c, userID, CreateInput{SourceTypeID: typeID, Title: "Census"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stamp string
+	if err := db.QueryRow(`SELECT t.created_at FROM audit_changes c JOIN audit_transactions t ON t.id = c.audit_transaction_id
+		WHERE c.entity_type = 'source' AND c.action = 'create' AND c.entity_id = ?`, s.ID).Scan(&stamp); err != nil {
+		t.Fatal(err)
+	}
+	s.Title = "Census 1851"
+	if err := runUpdate(c, userID, s); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name string
+		read func() ([]Source, error)
+	}{
+		{"List", func() ([]Source, error) { return List(c) }},
+		{"ListByIDs", func() ([]Source, error) { return ListByIDs(c, [][]byte{s.ID}) }},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.read()
+			if err != nil || len(got) != 1 {
+				t.Fatalf("%v, %v", got, err)
+			}
+			if got[0].CreatedAt != stamp {
+				t.Errorf("CreatedAt = %q, want the create transaction's %q", got[0].CreatedAt, stamp)
+			}
+		})
+	}
+	t.Run("AttachCreated", func(t *testing.T) {
+		one := Source{ID: s.ID}
+		if err := AttachCreated(c, &one); err != nil || one.CreatedAt != stamp {
+			t.Fatalf("%q, %v want %q", one.CreatedAt, err, stamp)
+		}
+		bad := Source{}
+		if err := AttachCreated(c, &bad); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("no id: %v", err)
+		}
+	})
+	t.Run("notes keep their author and time", func(t *testing.T) {
+		n, err := runAddNote(c, userID, s.ID, "A note")
+		if err != nil {
+			t.Fatal(err)
+		}
+		notes, err := ListNotes(c, s.ID)
+		if err != nil || len(notes) != 1 || notes[0].AuthorDisplayName == "" || notes[0].CreatedAt == "" {
+			t.Fatalf("%+v, %v (added %+v)", notes, err, n)
+		}
+		got, err := GetNote(c, n.ID)
+		if err != nil || got.AuthorDisplayName != notes[0].AuthorDisplayName || got.CreatedAt != notes[0].CreatedAt {
+			t.Fatalf("%+v, %v", got, err)
+		}
+	})
+}

@@ -157,6 +157,9 @@ func enrichSourceProto(c *database.Catalog, s sources.Source) (*engine.Source, e
 	if err := sources.AttachActivity(c, &s); err != nil {
 		return nil, err
 	}
+	if err := sources.AttachCreated(c, &s); err != nil {
+		return nil, err
+	}
 	sp := sourceProto(s)
 	cover, err := sourceCoverThumbnail(c, s)
 	if err != nil {

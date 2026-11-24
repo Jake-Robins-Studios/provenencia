@@ -290,6 +290,9 @@ message Source {
   // The date's unknown or supplied mark; absent for no mark. Unknown has no
   // date; supplied has one.
   ValueMark date_mark = 17;
+  // When the Source was made (RFC3339 UTC, from its create audit transaction);
+  // empty when unknown.
+  string created_at = 18;
 }
 
 message SourceNote {
