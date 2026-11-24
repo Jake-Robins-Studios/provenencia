@@ -132,10 +132,14 @@ struct SourcesOutlineTests {
     }
 
     @Test func onlyAnUnmodifiedLeftPressOrReleaseIsAPlainClick() {
-        func plain(_ type: NSEvent.EventType?, _ modifiers: NSEvent.ModifierFlags = []) -> Bool {
-            SourcesOutline.isPlainLeftClick(type: type, modifiers: modifiers)
+        func plain(_ type: NSEvent.EventType?, _ modifiers: NSEvent.ModifierFlags = [], age: TimeInterval = 0) -> Bool {
+            SourcesOutline.isPlainLeftClick(type: type, modifiers: modifiers, age: age)
         }
         #expect(plain(.leftMouseDown))
+        #expect(plain(.leftMouseDown, age: 0.99))
+        // A press from a second or more ago: a selection nobody clicked.
+        #expect(!plain(.leftMouseDown, age: 1))
+        #expect(!plain(.leftMouseUp, age: 30))
         #expect(plain(.leftMouseUp))
         #expect(plain(.leftMouseDown, [.capsLock]))
         #expect(!plain(.keyDown))

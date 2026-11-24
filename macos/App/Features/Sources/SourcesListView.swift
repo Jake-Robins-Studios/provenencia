@@ -91,9 +91,9 @@ private struct SourcesListContent: View {
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourcesModel
     @Environment(\.pvWidthClass) private var widthClass
+    @Environment(\.sourcesCurrentEvent) private var currentEvent
     /// The list has taken the keyboard once, the search field has had it, or the settings changed: the
     /// list leaves focus where it is when its rows come back (a search that matched nothing, then did).
-    @Environment(\.sourcesCurrentEvent) private var currentEvent
     @State private var listLeavesFocusAlone = false
     /// Which triangle the pointer is on, for `select`. Not observed: no view reads it to draw.
     @State private var triangleHover = SourcesTriangleHover()
@@ -254,16 +254,19 @@ private struct SourcesListContent: View {
         }
     }
 
-    /// The list's one write of the selection. A plain left click that lands on a closed Source also opens
+    /// The write the platform list makes when its selection changes. A plain left click that lands on a closed Source also opens
     /// it, a turn later (the write may be inside a view update) and without animation.
     private func select(_ id: String?, outline: SourcesOutline) {
         let old = navigation.listAnchor
         navigation.noteListAnchor(id)
-        // The event being dispatched, unless it is stale (a selection nobody clicked).
-        let event = currentEvent.read().flatMap { ProcessInfo.processInfo.systemUptime - $0.timestamp < 1 ? $0 : nil }
+        // The event being dispatched; `isPlainLeftClick` rejects a stale one (a selection nobody clicked).
+        let event = currentEvent.read()
+        let age = event.map { ProcessInfo.processInfo.systemUptime - $0.timestamp } ?? 0
         guard let open = outline.sourceToOpen(
             selecting: id, from: old,
-            plainLeftClick: SourcesOutline.isPlainLeftClick(type: event?.type, modifiers: event?.modifierFlags ?? []),
+            plainLeftClick: SourcesOutline.isPlainLeftClick(
+                type: event?.type, modifiers: event?.modifierFlags ?? [], age: age
+            ),
             onTriangle: id != nil && triangleHover.sourceID == id
         ) else { return }
         DispatchQueue.main.async { toggle([open], expanding: true, outline: outline) }

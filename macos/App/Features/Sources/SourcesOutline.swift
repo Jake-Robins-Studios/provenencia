@@ -142,9 +142,10 @@ struct SourcesOutline {
         return source.id
     }
 
-    /// Whether an event is a left mouse press or release with no modifier.
-    static func isPlainLeftClick(type: NSEvent.EventType?, modifiers: NSEvent.ModifierFlags) -> Bool {
-        guard type == .leftMouseDown || type == .leftMouseUp else { return false }
+    /// Whether an event is a left mouse press or release with no modifier, and under a second old (an
+    /// older one is a selection nobody clicked). `age` is seconds since the event happened.
+    static func isPlainLeftClick(type: NSEvent.EventType?, modifiers: NSEvent.ModifierFlags, age: TimeInterval) -> Bool {
+        guard age < 1, type == .leftMouseDown || type == .leftMouseUp else { return false }
         return modifiers.intersection([.command, .shift, .option, .control]).isEmpty
     }
 
