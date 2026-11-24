@@ -38,13 +38,15 @@ enum PVLastUpdated {
         PVListDetailColumn(width: columnWidth) { detail(updatedAt($0), in: .current) }
     }
 
+    /// How VoiceOver reads a last-updated time: `updated Yesterday`, or that it is unknown.
+    static func spoken(_ updatedAt: String, in context: TimestampFormat.Context) -> String {
+        TimestampFormat.string(updatedAt, .spoken, in: context).map(L10n.LastUpdated.a11yUpdated)
+            ?? L10n.LastUpdated.a11yUnknown
+    }
+
     /// A row's spoken label with its last-updated suffix.
     static func label(_ base: String, updatedAt: String, in context: TimestampFormat.Context) -> String {
-        L10n.DesignSystem.spokenJoin(
-            base,
-            TimestampFormat.string(updatedAt, .spoken, in: context).map(L10n.LastUpdated.a11yUpdated)
-                ?? L10n.LastUpdated.a11yUnknown
-        )
+        L10n.DesignSystem.spokenJoin(base, spoken(updatedAt, in: context))
     }
 }
 

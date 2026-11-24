@@ -12,12 +12,12 @@ struct SourcesTableTests {
         var testDescription: String { "\(isWide ? "wide" : "regular") \(tableWidth)" }
     }
 
-    /// T-8: the board's widths. A table of 1074 pt (a 1102 pt pane less 2 × (32 − 18)) leaves Title 364;
+    /// T-8: the board's widths. A table of 1074 pt (a 1102 pt pane less 2 × (32 − 18)) leaves Title 352;
     /// 2220 pt (2296 less 2 × (56 − 18)) leaves 1069; a narrow pane keeps Title at 240 and scrolls.
     @Test(arguments: [
-        WidthCase(isWide: false, tableWidth: 1074, title: 364, fixed: [168, 128, 96, 92, 92]),
+        WidthCase(isWide: false, tableWidth: 1074, title: 352, fixed: [168, 128, 96, 98, 98]),
         WidthCase(isWide: true, tableWidth: 2220, title: 1069, fixed: [240, 140, 160, 120, 120]),
-        WidthCase(isWide: false, tableWidth: 772, title: 240, fixed: [168, 128, 96, 92, 92]),
+        WidthCase(isWide: false, tableWidth: 772, title: 240, fixed: [168, 128, 96, 98, 98]),
     ])
     func widthsFollowTheBoard(_ c: WidthCase) {
         let widths = SourcesTableWidths(isWide: c.isWide, tableWidth: c.tableWidth)
@@ -67,5 +67,16 @@ struct SourcesTableTests {
         )
         #expect(SourcesTable.addedSpoken("2026-10-13T22:40:00Z", in: context) == "added Yesterday")
         #expect(SourcesTable.addedSpoken("", in: context) == "date added unknown")
+    }
+
+    @MainActor
+    @Test func updatedSpokenReadsTheTimeOrSaysItIsUnknown() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Edmonton")!
+        let context = TimestampFormat.Context(
+            locale: Locale(identifier: "en_US"), calendar: calendar, now: TimestampFormat.parse("2026-10-15T00:00:00Z")!
+        )
+        #expect(PVLastUpdated.spoken("2026-10-13T22:40:00Z", in: context) == "updated Yesterday")
+        #expect(PVLastUpdated.spoken("", in: context) == "last updated unknown")
     }
 }

@@ -53,7 +53,7 @@ struct SourcesTableWidths: Equatable {
     /// `tableWidth` is the table's own width, inside the page's padding (`SourcesTable`). Type shows at
     /// Wide only.
     init(isWide: Bool, tableWidth: CGFloat) {
-        let widths: [CGFloat] = isWide ? [240, 140, 220, 160, 120, 120] : [168, 128, 220, 96, 92, 92]
+        let widths: [CGFloat] = isWide ? [240, 140, 220, 160, 120, 120] : [168, 128, 220, 96, 98, 98]
         evidence = widths[0]
         status = widths[1]
         type = widths[2]
@@ -185,7 +185,7 @@ struct SourcesTable: View {
             TableColumn(
                 header(L10n.Sources.columnAdded, sorted: .added), sortUsing: sort(.added)
             ) { (item: SourcesTableItem) in
-                addedCell(item)
+                addedCell(item, width: widths.added)
             }
             .width(widths.added)
             .customizationID("added")
@@ -194,7 +194,7 @@ struct SourcesTable: View {
             TableColumn(
                 header(L10n.Sources.columnUpdated, sorted: .updated), sortUsing: sort(.updated)
             ) { (item: SourcesTableItem) in
-                updatedCell(item)
+                updatedCell(item, width: widths.updated)
             }
             .width(widths.updated)
             .customizationID("updated")
@@ -367,7 +367,9 @@ struct SourcesTable: View {
                 } else {
                     switch session.evidenceGraphsRead(sourceID: source.id) {
                     case .loaded(let graphs): caption(L10n.Sources.graphSummaryCount(graphs.count))
-                    case .failed: caption("—", ink: PVColor.textFaint)
+                    case .failed:
+                        caption("—", ink: PVColor.textFaint)
+                            .accessibilityLabel(Text(L10n.Sources.graphsUnavailable))
                     case .loading: EmptyView()
                     }
                 }
@@ -444,7 +446,7 @@ struct SourcesTable: View {
     }
 
     @ViewBuilder
-    private func addedCell(_ item: SourcesTableItem) -> some View {
+    private func addedCell(_ item: SourcesTableItem, width: CGFloat) -> some View {
         switch item {
         case .skeleton:
             skeleton(60)
@@ -452,7 +454,7 @@ struct SourcesTable: View {
             if case .source(let source, _) = row.kind {
                 PVListDetailCell(
                     detail: PVListDetail.relative(source.createdAt, in: .current, help: L10n.Sources.addedHelp(stamp:)),
-                    width: nil
+                    width: width
                 )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(verbatim: Self.addedSpoken(source.createdAt)))
@@ -467,7 +469,7 @@ struct SourcesTable: View {
     }
 
     @ViewBuilder
-    private func updatedCell(_ item: SourcesTableItem) -> some View {
+    private func updatedCell(_ item: SourcesTableItem, width: CGFloat) -> some View {
         switch item {
         case .skeleton:
             skeleton(60)
@@ -475,8 +477,10 @@ struct SourcesTable: View {
             if case .source(let source, _) = row.kind {
                 PVListDetailCell(
                     detail: PVListDetail.relative(source.updated.at, in: .current, help: L10n.LastUpdated.help(stamp:)),
-                    width: nil
+                    width: width
                 )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: PVLastUpdated.spoken(source.updated.at, in: .current)))
             }
         }
     }

@@ -8002,6 +8002,18 @@
         }
       }
     },
+    "sources.list.graphsUnavailable": {
+      "comment": "VoiceOver for the Evidence cell of a Source whose graph list could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "graphs unavailable"
+          }
+        }
+      }
+    },
     "sources.graph.countsUnavailable": {
       "comment": "Evidence graph row help and Source page count line when graph counts failed to load",
       "extractionState": "manual",

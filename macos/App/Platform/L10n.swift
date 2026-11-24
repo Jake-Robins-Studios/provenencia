@@ -5288,6 +5288,12 @@ enum L10n {
             comment: "VoiceOver while Sources list graph-progress counts have not arrived"
         )
 
+        static let graphsUnavailable = LocalizedStringResource(
+            "sources.list.graphsUnavailable",
+            defaultValue: "graphs unavailable",
+            comment: "VoiceOver for the Evidence cell of a Source whose graph list could not be read"
+        )
+
         static let graphCountsUnavailable = LocalizedStringResource(
             "sources.graph.countsUnavailable",
             defaultValue: "Counts could not load",

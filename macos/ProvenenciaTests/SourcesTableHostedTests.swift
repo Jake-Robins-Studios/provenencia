@@ -119,7 +119,7 @@ struct SourcesTableHostedTests {
         let table = harness.table
         harness.table.selectRowIndexes([1], byExtendingSelection: false)
         let regular: [(String, CGFloat)] = [
-            ("TITLE", 364), ("EVIDENCE", 168), ("STATUS", 128), ("PUBLISHED", 96), ("ADDED", 92), ("UPDATED", 92),
+            ("TITLE", 352), ("EVIDENCE", 168), ("STATUS", 128), ("PUBLISHED", 96), ("ADDED", 98), ("UPDATED", 98),
         ]
         expect(shown(table), regular)
         #expect(!overflowsSideways(table))
