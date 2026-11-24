@@ -131,6 +131,18 @@ struct SourcesOutline {
         return collapsing.contains(row.source.id) ? row.source.id : selection
     }
 
+    /// Opens or closes `sources`. Closing a Source whose graph is selected selects the Source first.
+    @MainActor
+    func setExpanded(
+        _ sources: [String], _ expanding: Bool, session: WorkspaceSession, navigation: WorkspaceNavigation
+    ) {
+        if !expanding {
+            let selection = selectionAfterCollapsing(Set(sources), selection: navigation.listAnchor)
+            if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
+        }
+        session.setSourcesExpanded(sources, expanding)
+    }
+
     /// What → and ← do at `selected`: → opens a closed Source, ← closes an open one or climbs from a
     /// graph row to its Source. Anything else does nothing.
     static func keyAction(_ key: KeyEquivalent, selected: SourcesOutlineRow?) -> SourcesOutlineKeyAction {

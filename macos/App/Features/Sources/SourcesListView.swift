@@ -219,9 +219,9 @@ private struct SourcesListContent: View {
     private func handle(_ key: KeyEquivalent, outline: SourcesOutline) -> KeyPress.Result {
         switch SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listAnchor)) {
         case .expand(let id):
-            toggle(id, expanding: true, sources: [id], outline: outline)
+            toggle([id], expanding: true, outline: outline)
         case .collapse(let id):
-            toggle(id, expanding: false, sources: [id], outline: outline)
+            toggle([id], expanding: false, outline: outline)
         case .select(let id):
             navigation.noteListAnchor(id)
         case .ignore:
@@ -238,8 +238,8 @@ private struct SourcesListContent: View {
                 source: source, disclosure: disclosure, model: model, isWide: widthClass == .wide,
                 toggle: { all in
                     toggle(
-                        source.id, expanding: disclosure != .expanded,
-                        sources: all ? outline.togglableSourceIDs : [source.id], outline: outline
+                        all ? outline.togglableSourceIDs : [source.id], expanding: disclosure != .expanded,
+                        outline: outline
                     )
                 }
             )
@@ -250,13 +250,9 @@ private struct SourcesListContent: View {
         }
     }
 
-    /// Opens or closes `sources`. Closing a Source whose graph is selected selects the Source first.
-    private func toggle(_ id: String, expanding: Bool, sources: [String], outline: SourcesOutline) {
-        if !expanding {
-            let selection = outline.selectionAfterCollapsing(Set(sources), selection: navigation.listAnchor)
-            if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
-        }
-        session.setSourcesExpanded(sources, expanding)
+    /// Opens or closes `sources`; the triangle, ⌥-click, the keys and the row's action all come here.
+    private func toggle(_ sources: [String], expanding: Bool, outline: SourcesOutline) {
+        outline.setExpanded(sources, expanding, session: session, navigation: navigation)
     }
 
     /// What a menu entry does: the row is selected first, so Back returns to it.

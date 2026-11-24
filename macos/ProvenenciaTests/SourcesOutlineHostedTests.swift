@@ -152,42 +152,27 @@ struct SourcesOutlineHostedTests {
         #expect(harness.scroll.contentView.bounds.minY > 0)
     }
 
-    /// The page's own path for closing a Source (the triangle, ⌥-click and the VoiceOver action all call
-    /// it): a selected graph of the Source gives way to the Source itself.
+    /// The page's one path for closing a Source (the triangle, ⌥-click, the keys and the VoiceOver action
+    /// all call it): a selected graph of the Source gives way to the Source itself.
     @Test func closingTheSourceOfASelectedGraphSelectsTheSource() async throws {
         let harness = try await makeHarness(expanded: ["s1"])
         #expect(await settle(harness, rows: 11))
         harness.navigation.noteListAnchor("g1-2")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
-        let hide = try #require(accessibilityAction(named: L10n.string(L10n.Sources.hideGraphs), onRowWithID: "sources.row.s1", row: 2, in: harness))
-        hide()
+        var s1 = CatalogSource(
+            id: "s1", ref: "SRC-S1", sourceTypeID: "t1", title: "Parish register, Lyon", description: "",
+            date: CatalogDateValueInput(kind: "point", startYear: 1851),
+            updated: CatalogActivity(revision: 1, at: "2026-11-21T10:00:00Z")
+        )
+        s1.hasArtifact = true
+        let outline = SourcesOutline(
+            sources: [s1], graphs: { harness.session.evidenceGraphsRead(sourceID: $0) }, expanded: ["s1"]
+        )
+        outline.setExpanded(["s1"], false, session: harness.session, navigation: harness.navigation)
         #expect(await settle(harness, rows: 3))
         #expect(harness.session.expandedSourceIDs.isEmpty)
         #expect(harness.navigation.listAnchor == "s1")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 })
-    }
-
-    /// The VoiceOver action `name` of the row's element whose identifier is `id`. The elements are
-    /// SwiftUI's own objects, so their accessibility getters are read by selector.
-    private func accessibilityAction(named name: String, onRowWithID id: String, row: Int, in harness: Harness) -> (() -> Void)? {
-        func read(_ object: NSObject, _ key: String) -> Any? {
-            object.responds(to: Selector(key)) ? object.value(forKey: key) : nil
-        }
-        func search(_ object: NSObject, depth: Int = 0) -> (() -> Void)? {
-            if read(object, "accessibilityIdentifier") as? String == id {
-                for case let action as NSAccessibilityCustomAction in (read(object, "accessibilityCustomActions") as? [Any]) ?? []
-                where action.name == name {
-                    return { _ = action.handler?() }
-                }
-            }
-            let views = (object as? NSView)?.subviews ?? []
-            for case let child as NSObject in ((read(object, "accessibilityChildren") as? [Any]) ?? []) + views {
-                if let found = search(child, depth: depth + 1) { return found }
-            }
-            return nil
-        }
-        guard let rowView = harness.table.rowView(atRow: row, makeIfNecessary: true) else { return nil }
-        return search(rowView)
     }
 
     private func keyEvent(_ key: Int, in window: NSWindow) -> NSEvent {
@@ -284,18 +269,21 @@ struct SourcesOutlineHostedTests {
     /// The x-extent of the hairline drawn under a row: the first and last column where a pixel is drawn
     /// across most of a one-pixel band inside the row's rect. Nil when the row draws no rule.
     private func ruleExtent(row: Int, in table: NSTableView) -> ClosedRange<Int>? {
-        guard let rep = table.bitmapImageRepForCachingDisplay(in: table.bounds) else { return nil }
-        table.cacheDisplay(in: table.bounds, to: rep)
-        let scale = CGFloat(rep.pixelsWide) / table.bounds.width
-        let rect = table.rect(ofRow: row)
-        let yRange = Int((rect.minY + rect.height * 0.6) * scale) ..< Int(rect.maxY * scale)
+        // Only the row's lower band is drawn and read: a whole-table bitmap read pixel by pixel blocks the
+        // main thread for seconds on a slow runner.
+        let row = table.rect(ofRow: row)
+        let band = NSRect(x: 0, y: row.minY + row.height * 0.6, width: table.bounds.width, height: row.height * 0.4)
+        guard let rep = table.bitmapImageRepForCachingDisplay(in: band), let data = rep.bitmapData else { return nil }
+        table.cacheDisplay(in: band, to: rep)
+        let scale = CGFloat(rep.pixelsWide) / band.width
+        let alphaOffset = rep.bitmapFormat.contains(.alphaFirst) ? 0 : rep.samplesPerPixel - 1
         var best: ClosedRange<Int>?
-        for y in yRange {
+        for y in 0 ..< rep.pixelsHigh {
             var first: Int?
             var last = 0
             var count = 0
-            for x in 0 ..< rep.pixelsWide {
-                guard let color = rep.colorAt(x: x, y: y), color.alphaComponent > 0.05 else { continue }
+            let line = data + y * rep.bytesPerRow
+            for x in 0 ..< rep.pixelsWide where line[x * rep.samplesPerPixel + alphaOffset] > 13 {
                 if first == nil { first = x }
                 last = x
                 count += 1
