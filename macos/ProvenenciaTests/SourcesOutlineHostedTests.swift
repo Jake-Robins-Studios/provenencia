@@ -25,7 +25,7 @@ struct SourcesOutlineHostedTests {
     }
 
     private func makeHarness(
-        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil,
+        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, tailSources: Int = 0, anchor: String? = nil,
         currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }, withHistory: Bool = false
     ) async throws -> Harness {
         let store = FakeStore()
@@ -41,12 +41,14 @@ struct SourcesOutlineHostedTests {
         }
         // Ids sort after "s": they list before the three below in the newest-added order.
         let extras = (0 ..< extraSources).map { source("x\(String(format: "%02d", $0))", "Extra \($0)", artifact: false) }
-        store.sourcesByProject[projectDir] = extras.reversed() + [
+        // Ids sort before "s": they list after s1 and its graphs, newest first.
+        let tail = (0 ..< tailSources).map { source("a\(String(format: "%02d", $0))", "Tail \($0)", artifact: true) }
+        store.sourcesByProject[projectDir] = extras.reversed() + tail.reversed() + [
             source("s3", "Passport of J. Robins", artifact: false),
             source("s2", "1851 Census, Robins household", artifact: true),
             source("s1", "Parish register, Lyon", artifact: true),
         ]
-        for id in ["s1", "s2"] {
+        for id in ["s1", "s2"] + tail.map(\.id) {
             store.artifactsBySource[id] = [CatalogArtifact(
                 id: "a-\(id)", ref: "ART-AAAAA", sourceID: id, fileID: "", label: "Scan", description: "", file: nil
             )]
@@ -58,7 +60,12 @@ struct SourcesOutlineHostedTests {
             )
         } + [CatalogEvidenceGraph(
             id: "g2-0", ref: "GPH-20", sourceID: "s2", name: "Default", description: "", artifactIDs: ["a-s2"]
-        )]
+        )] + tail.map {
+            CatalogEvidenceGraph(
+                id: "gt-\($0.id)", ref: "GPT-\($0.id)", sourceID: $0.id, name: "Default", description: "",
+                artifactIDs: ["a-\($0.id)"]
+            )
+        }
         store.graphProgressByGraph["g1-0"] = EvidenceGraphProgress(graphId: "g1-0", subjectCount: 12, observationCount: 40)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
         session.setOpenSource(expanded.first)
@@ -84,7 +91,7 @@ struct SourcesOutlineHostedTests {
         host.layoutSubtreeIfNeeded()
         var table: NSTableView?
         // The skeleton table has rows too: the loaded one is the one with this many.
-        let loaded = 3 + extraSources + (expanded.first == "s1" ? 8 : expanded.first == "s2" ? 1 : 0)
+        let loaded = 3 + extraSources + tailSources + (expanded.first == "s1" ? 8 : expanded.first == "s2" ? 1 : 0)
             + (anchor?.hasPrefix("g1-") == true ? 8 : 0)
         let found = await waitUntil(timeout: .seconds(10)) {
             host.layoutSubtreeIfNeeded()
@@ -186,6 +193,34 @@ struct SourcesOutlineHostedTests {
         #expect(harness.session.openSourceID == nil)
         #expect(harness.navigation.listAnchor == "s1")
         #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 })
+    }
+
+    /// F-2 (UX-1): the Source above closes as this one opens, the rows move up, and the opened row is
+    /// scrolled back into view. (The triangle's open runs the same `apply(.expand)` line.)
+    @Test func aSourceThatOpensStaysInView() async throws {
+        // s3, s2, s1 and its 8 graphs, then the tail: its first row, a09, lies just under the graphs.
+        let harness = try await makeHarness(expanded: ["s1"], tailSources: 10)
+        #expect(await settle(harness, rows: 3 + 8 + 10))
+        let graphsEnd = harness.table.rect(ofRow: 10).maxY
+        // The list scrolled so the graphs are partly above the viewport and a09 is just under them.
+        harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: graphsEnd - 170))
+        harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+        harness.navigation.noteListAnchor("a09")
+        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 11 })
+        try? await Task.sleep(for: .milliseconds(400))
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(harness.scroll.documentVisibleRect.intersects(harness.table.rect(ofRow: 11)))
+        await press(NSRightArrowFunctionKey, harness)
+        #expect(harness.session.openSourceID == "a09")
+        #expect(await settle(harness, rows: 3 + 1 + 10))
+        let row = 3
+        #expect(harness.table.selectedRow == row)
+        #expect(await waitUntil {
+            harness.host.layoutSubtreeIfNeeded()
+            let rect = harness.table.rect(ofRow: row)
+            return harness.scroll.documentVisibleRect.contains(rect)
+        })
+        #expect(harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: row)))
     }
 
     private func keyEvent(_ key: Int, in window: NSWindow) -> NSEvent {
