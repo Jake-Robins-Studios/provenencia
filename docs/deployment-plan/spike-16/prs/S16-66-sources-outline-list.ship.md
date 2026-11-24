@@ -1,7 +1,7 @@
 # Ship log — S16-66 The Sources list is a native outline list
 
 **Plan:** [`S16-66-sources-outline-list.md`](S16-66-sources-outline-list.md) · **Branch:** `s16-66-sources-outline-list` · **PR:** #962
-**State:** ready
+**State:** fixing — user change U-1
 
 ## Round 0 — implement
 Base `main` @ `11c91bba3`. Dispatched pr-implementer. `VERSION` is 0.37.0 at the base (S15-64), so STEP-8 gives 0.38.0.
@@ -119,3 +119,15 @@ Check: report each test's time before and after; `scripts/check-pr.sh` PASS thre
 Head `fa55de54b`. Gate PASS. G-1 done. G-2 done: `ruleExtent` 12–19 ms → 3–5 ms a call; no other long synchronous block found, so it does not by itself explain the runner's stall. The second run on the old test head (45412220503) failed the same test and the same kind of waits (`confirmDeleteSourceRecountsThroughSession`, `copyRecountsThroughSession`, `editSavesNameAndFullLinkSet`). `main` took bars 38 – 40 (slice 6g), so this PR's bar is 41; merged.
 
 Gate PASS and CI green on the merge (run 45414806140): all 2,340-odd tests, `localizable`, Go. The three timed-out waits did not recur. They use `waitUntil`'s fixed two seconds in untouched suites, The longest gap in test output in both red runs (2.75 s, 2.32 s) ends at the failure of the accessibility-tree test G-1 removed, so that walk is the likely stall (not reproduced). `waitUntil`'s fixed two seconds fails on any stall that long: follow-up **dropped** by the user (2026-11-24).
+
+## User change (2026-11-24)
+The user keeps the Wide columns for now (a table is spiked after the merge) and adds one change before merging.
+
+**U-1 — A click that selects a closed Source opens its graphs**
+Files: `SourcesListView.swift`, `SourcesOutline.swift` (the pure rule), `SourcesOutlineRows.swift` (the triangle), `SourcesOutlineTests.swift`, `SourcesOutlineHostedTests.swift`, the plan's Landed note, `completed.md`, map bar 41.
+Rule: a left click that moves the selection to a closed Source with a triangle opens it. Not: a selection moved by the keyboard, Back, a reveal, a right-click or a menu; a ⌘- or ⇧-click; a click on an already selected row; an open Source (a click never closes one); a Source with no triangle; a graph row. Other Sources keep their state. A double-click still opens the page, its first click having opened the Source.
+The triangle: one click on it toggles exactly once, whether or not the platform selects its row first (STEP-7 line 3 is unproven). A selection made by a press on the triangle must not open the Source, or the button's action would close it again.
+Do: in the page's selection binding `set` (the one place the list writes the selection), ask a pure function (new id, old id, whether it was a plain left click, whether the press was on a triangle, the outline) which Source to open, then `outline.setExpanded`. Read the click from `NSApp.currentEvent` (left mouse down or up, no modifiers), as the triangle reads `NSEvent.modifierFlags`. Know the press was on a triangle without a gesture on the row, which would compete with the list's selection and double-click: for example the triangle's `onHover` noting its Source in a non-observed page-local holder, cleared when it leaves or disappears. If that is unreliable, say what you used instead. Do not write SwiftUI state during a view update; a turn later is fine, but the rows must not animate.
+Failing test first: the pure rule as a table over every line of the Rule. Hosted: a synthesized click on a closed Source's row (its title area) selects and opens it; a key move onto a closed Source leaves it closed; a click on the triangle of an unselected closed Source leaves it open, if a synthesized click reaches the button (round 0 reported it does not; try a key window, else say not checked).
+Docs: the Landed note says AC-2.1 – AC-2.4 gain this, by the user, 2026-11-24; `completed.md` and bar 41 say a click selects a Source and opens its graphs. Do not edit the plan's ACs or Decisions.
+Check: the tests pass; `scripts/check-pr.sh` PASS.
