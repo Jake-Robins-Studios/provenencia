@@ -5,11 +5,11 @@
 **View:** the metadata board inside the Artifact sheet (edit and add) and the Evidence graph form (edit and add)
 **Implements later as:** PR **S15-64**
 **Board:** drawn 2026-11-23 — [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): page *Artifacts*, section "Artifact sheet" (Inherited values `d33-sheet`, Override `d33-override`, An override saved `d33-overridden`, Unknown and supplied `d33-marks`) and section "Add artifact" (`sheet-add`); page *Evidence graphs*, section "Evidence graph form" (Inherited values `d33-gf`); the board's **S15-D33** spec note. The component also holds `d33-sheet-wide`, `d33-overridden-edit`, `d33-fallback`, `d33-marks-override`, `d33-long-url`, `d33-add`, `d33-gf-wide` and `d33-source`, not listed on the pages. Board decisions: as IH-1 – IH-8; the caption "From Source" sits muted under the value and is folded into the row's spoken label; past 36 characters the whole value shows on hover; the board's open editor is an input with ✓ and ✕, as its own saved rows draw (it uses no kit InlineEdit); the app uses `PVInlineEdit`, as its saved rows do
-**Review:** with the plan, in [`../prs/S15-64-inherited-values.review.md`](../prs/S15-64-inherited-values.review.md) — two rounds, no blocker open
-**Depends on:** S15-63 (landed [#955](https://github.com/Jake-Robins-Studios/provenencia/pull/955)): every board offers the type's one list; S15-34 (landed [#819](https://github.com/Jake-Robins-Studios/provenencia/pull/819)) and S15-11 (landed [#834](https://github.com/Jake-Robins-Studios/provenencia/pull/834)): the Artifact sheet and the graph form with their draft boards ([S15-D14](archive/S15-D14-source-page-artifacts.md), [S15-D5](archive/S15-D5-evidence-graph-form.md))
-**Related:** working rules "A board shows what its owner inherits", "A format reads a field from the nearest level that holds it", "One metadata board", "A value can be marked unknown or supplied" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md)
+**Review:** with the plan, in [`../prs/S15-64-inherited-values.review.md`](../../prs/S15-64-inherited-values.review.md) — two rounds, no blocker open
+**Depends on:** S15-63 (landed [#955](https://github.com/Jake-Robins-Studios/provenencia/pull/955)): every board offers the type's one list; S15-34 (landed [#819](https://github.com/Jake-Robins-Studios/provenencia/pull/819)) and S15-11 (landed [#834](https://github.com/Jake-Robins-Studios/provenencia/pull/834)): the Artifact sheet and the graph form with their draft boards ([S15-D14](S15-D14-source-page-artifacts.md), [S15-D5](S15-D5-evidence-graph-form.md))
+**Related:** working rules "A board shows what its owner inherits", "A format reads a field from the nearest level that holds it", "One metadata board", "A value can be marked unknown or supplied" in [`../deployment-plan.md`](../../deployment-plan.md#working-rules); [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -84,7 +84,7 @@ After this board, a board row shows the value its owner **inherits**: read only,
 **What changes.**
 
 - **An inherited row.** A field with no value of its own here and a value on the Source shows the Source's value, visibly read only and visibly not this owner's, with the level it comes from. Clicking it opens an empty input to type this owner's own value.
-- **Override.** Typing in that input and saving it (Save, or Return) makes it this owner's own value, a saved row as today. The citation of this Artifact or graph reads the new value; the Source and its other Artifacts and graphs keep theirs.
+- **Override.** Typing in that input and saving it (Save) makes it this owner's own value, a saved row as today. The citation of this Artifact or graph reads the new value; the Source and its other Artifacts and graphs keep theirs.
 - **What an override hides.** A saved row whose field also has an inherited value says what it overrides, so the researcher knows that clearing falls back rather than empties.
 - **Fall back.** Clearing the own value (the row's trash) returns the row to the inherited value. In the sheet and the form this changes only the draft, as today: nothing saves until Save, and Cancel restores.
 
@@ -104,7 +104,7 @@ After this board, a board row shows the value its owner **inherits**: read only,
 | Marks | A value can be marked **unknown** (the record does not give it; no text; prints the field's unknown text, "n.p." for Publisher, or nothing when the field has none) or **supplied** (not on the record; prints in square brackets, "[Calder County]"). An inherited value carries the Source's mark and reads as a citation prints it; the engine gives the printed text |
 | Links | A URL value opens in the browser from a saved row today. An inherited URL opens the same way |
 | Sizes | A board of up to 30 rows; up to every one of them inheriting. Values up to a long URL (about 200 characters) |
-| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the left column at about 400pt. There is no one-column form (S15-D5: not built). The sheet is the same at Regular and Wide |
+| Where | The Artifact sheet and the graph form are 880pt sheets in two columns (`PVFormColumns`), the board in the right column at about 400pt. There is no one-column form (S15-D5: not built). The sheet is the same at Regular and Wide |
 
 ### 2.1 Copy
 
@@ -146,7 +146,7 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 | ID | Requirement |
 | --- | --- |
 | IH-1 | **The inherited row.** A row with no own value and an inherited value is the dashed suggestion row (label, value column, dismiss). At rest its value column is the inline edit control saved rows use: the inherited value on one line, in the saved value's mono caption face but secondary colour, with "From Source" as a caption on a second line under it, and the control's pencil ("Override Provider"). No input and no Save button show at rest. It sits where an empty suggestion sits (under "Suggested by this type"). The board may refine spacing and colour; it keeps this composition: the value drawn as a saved value is drawn, quieter, not inside an input's placeholder (a placeholder cannot hold a link, italics or the whole value on hover). |
-| IH-2 | **Override.** The pencil opens the row's editor, empty, as a saved row's pencil opens its inline edit, with "Overrides Source: Ancestry" as a caption under it and the control's Save and Cancel; Save is disabled until text is typed. Save (or Return) moves the row to the saved rows as this owner's value. Escape or Cancel closes the editor, drops the text, and shows the inherited value again; the sheet stays open. |
+| IH-2 | **Override.** The pencil opens the row's editor, empty, as a saved row's pencil opens its inline edit, with "Overrides Source: Ancestry" as a caption under it and the control's Save and Cancel; Save is disabled until text is typed. Save moves the row to the saved rows as this owner's value. Escape or Cancel closes the editor, drops the text, and shows the inherited value again; the sheet stays open. |
 | IH-3 | **What an override hides.** A saved row whose field has an inherited value shows, under its value, "Overrides Source: Ancestry" in the caption style. Shown at rest and in edit. A saved row with nothing inherited is unchanged. |
 | IH-4 | **Fall back.** The trash on a saved row that overrides an inherited value takes the row back to the inherited row (IH-1) with no confirm, as clearing in a draft is today, when the field is one the board lists without a value (a suggestion, or a field the formats read). A field added through Add field that the board would not otherwise list is removed, as today; the citation then reads the Source's value. A saved row with nothing inherited clears as today. |
 | IH-5 | **Marks.** An inherited value reads as its citation prints it: marked unknown, the field's unknown text ("n.p."), else "Unknown", in italics; marked supplied, its text in square brackets ("[Calder County]"). The same in IH-2's and IH-3's caption ("Overrides Source: n.p."). |
@@ -159,8 +159,8 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 
 | View | Regular (pane below 1600 pt) | Wide (pane 1600 pt and up) | What moves where |
 | --- | --- | --- | --- |
-| Artifact sheet (edit, add) | 880pt sheet, two columns; the board in the left column | The same sheet, centred over the pane | Nothing |
-| Evidence graph form (edit, add) | 880pt sheet, two columns; the board in the left column | The same sheet, centred over the pane | Nothing |
+| Artifact sheet (edit, add) | 880pt sheet, two columns; the board in the right column | The same sheet, centred over the pane | Nothing |
+| Evidence graph form (edit, add) | 880pt sheet, two columns; the board in the right column | The same sheet, centred over the pane | Nothing |
 
 ---
 
@@ -205,4 +205,4 @@ Draw the sheets over the Source page, from the existing Artifact sheet and graph
 
 ## 7. Handoff
 
-When the board is agreed: record the frames and the board's decisions (the row's composition, any copy change) on the **Board** line here and in [`README.md`](README.md). S15-64's plan copies IH-1 – IH-8, IH-W1, the copy and the inventory, fills D-10 and § 6 macOS and Strings from the board, and moves from `Blocked — on board S15-D33` to `Planned`. When S15-64 lands, this brief moves to the spike's design archive.
+When the board is agreed: record the frames and the board's decisions (the row's composition, any copy change) on the **Board** line here and in [`README.md`](../README.md). S15-64's plan copies IH-1 – IH-8, IH-W1, the copy and the inventory, fills D-10 and § 6 macOS and Strings from the board, and moves from `Blocked — on board S15-D33` to `Planned`. When S15-64 lands, this brief moves to the spike's design archive.

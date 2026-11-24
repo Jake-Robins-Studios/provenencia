@@ -20,7 +20,8 @@ func TestReadsDeclare(t *testing.T) {
 		ReadEvidenceGraphs: {
 			"evidence_graph_artifacts", "evidence_graphs",
 		},
-		ReadSourceHoldings: {"artifacts", "evidence_graphs"},
+		ReadInheritedValues: {"source_metadata"},
+		ReadSourceHoldings:  {"artifacts", "evidence_graphs"},
 		// The tables sources.loadRecords reads.
 		ReadSourceRecords: {"artifacts", "date_values", "source_credibility_assessments", "sources"},
 	}

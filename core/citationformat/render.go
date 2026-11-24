@@ -169,26 +169,59 @@ func printed(r Ref, v Value, form Form) (text string, answered bool) {
 	if isBuiltin && (r.row < 0 || r.row >= len(builtins)) {
 		return "", false
 	}
-	if v.Mark.Unknown {
-		if isBuiltin {
-			return builtins[r.row].UnknownText, true
-		}
-		return v.UnknownText, true
+	unknown := v.UnknownText
+	if isBuiltin {
+		unknown = builtins[r.row].UnknownText
 	}
-	if isBuiltin && builtins[r.row].Date {
+	useDate := isBuiltin && builtins[r.row].Date
+	text = shown(v, unknown, useDate, dateStyle(r.Option, form), MaxRenderedBytes)
+	return text, v.Mark.Unknown || text != ""
+}
+
+// shown is the one step that prints a value: the unknown text of a value marked
+// unknown (empty when the field has none), else its date in style when useDate,
+// else its text, in square brackets when supplied, and "" when the text is only
+// space. The unknown text and the text are cut to limit bytes without splitting
+// a character; a supplied value's brackets come on top of its text.
+func shown(v Value, unknown string, useDate bool, style datevalue.CitationStyle, limit int) string {
+	if v.Mark.Unknown {
+		return truncate(unknown, limit)
+	}
+	text := ""
+	if useDate {
 		if v.Date != nil {
-			text = datevalue.CitationDisplay(*v.Date, dateStyle(r.Option, form))
+			text = datevalue.CitationDisplay(*v.Date, style)
 		}
 	} else {
-		text = truncate(v.Text, MaxRenderedBytes)
+		text = truncate(v.Text, limit)
 	}
+	return marked(text, v.Mark)
+}
+
+// marked is text as a citation prints it under mark m: "" when the text is only
+// space, else the text in square brackets when it is supplied.
+func marked(text string, m valuemark.Mark) string {
 	if strings.TrimSpace(text) == "" {
-		return "", false
+		return ""
 	}
+	if m.Supplied {
+		return "[" + text + "]"
+	}
+	return text
+}
+
+// Display is the value of a metadata field as a citation prints it in the long
+// form, for a board that shows it: the unknown text of a value marked unknown
+// (empty when the field has none), else its text, in square brackets when
+// supplied, and "" when the text is only space. A date prints its long display.
+// The result is at most MaxDisplayBytes, unknown text included, since a board
+// copies it into every Artifact and graph of a Source.
+func Display(v Value) string {
+	limit := MaxDisplayBytes
 	if v.Mark.Supplied {
-		text = "[" + text + "]"
+		limit -= len("[]")
 	}
-	return text, true
+	return shown(v, v.UnknownText, v.Date != nil, datevalue.CitationLong, limit)
 }
 
 func dateStyle(o Option, form Form) datevalue.CitationStyle {

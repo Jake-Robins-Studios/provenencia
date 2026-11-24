@@ -1743,11 +1743,69 @@ public nonisolated struct Provenencia_Engine_V1_MetadataWorkspaceEntry: @uncheck
   /// Clears the value of `requirement`. Subsequent reads from it will return its default value.
   public mutating func clearRequirement() {_uniqueStorage()._requirement = nil}
 
+  /// absent when nothing above the owner holds the field
+  public var inherited: Provenencia_Engine_V1_InheritedMetadataValue {
+    get {_storage._inherited ?? Provenencia_Engine_V1_InheritedMetadataValue()}
+    set {_uniqueStorage()._inherited = newValue}
+  }
+  /// Returns true if `inherited` has been explicitly set.
+  public var hasInherited: Bool {_storage._inherited != nil}
+  /// Clears the value of `inherited`. Subsequent reads from it will return its default value.
+  public mutating func clearInherited() {_uniqueStorage()._inherited = nil}
+
+  /// the board keeps this entry with no value of its own (suggested, or a head its formats read)
+  public var staysWithoutValue: Bool {
+    get {_storage._staysWithoutValue}
+    set {_uniqueStorage()._staysWithoutValue = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+/// InheritedMetadataValue is the value a board entry's owner inherits: the
+/// nearest level above the owner that holds the field (sourcemetadata
+/// CitationValues.Nearest), printed as a citation prints it.
+public nonisolated struct Provenencia_Engine_V1_InheritedMetadataValue: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  /// citationformat.Display; empty for an unknown value whose field has no unknown text
+  public var displayText: String = String()
+
+  /// absent means no mark
+  public var mark: Provenencia_Engine_V1_ValueMark {
+    get {_mark ?? Provenencia_Engine_V1_ValueMark()}
+    set {_mark = newValue}
+  }
+  /// Returns true if `mark` has been explicitly set.
+  public var hasMark: Bool {self._mark != nil}
+  /// Clears the value of `mark`. Subsequent reads from it will return its default value.
+  public mutating func clearMark() {self._mark = nil}
+
+  /// the ancestor that holds it
+  public var owner: Provenencia_Engine_V1_MetadataOwner {
+    get {_owner ?? Provenencia_Engine_V1_MetadataOwner()}
+    set {_owner = newValue}
+  }
+  /// Returns true if `owner` has been explicitly set.
+  public var hasOwner: Bool {self._owner != nil}
+  /// Clears the value of `owner`. Subsequent reads from it will return its default value.
+  public mutating func clearOwner() {self._owner = nil}
+
+  /// web link to open; empty when the value is not one
+  public var openHref: String = String()
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public init() {}
+
+  fileprivate var _mark: Provenencia_Engine_V1_ValueMark? = nil
+  fileprivate var _owner: Provenencia_Engine_V1_MetadataOwner? = nil
 }
 
 /// CitationRequirement is what a Source type's citation formats ask of one field
@@ -10975,7 +11033,7 @@ nonisolated extension Provenencia_Engine_V1_MetadataField: SwiftProtobuf.Message
 
 nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".MetadataWorkspaceEntry"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}field\0\u{3}value_text\0\u{4}\u{2}has_value\0\u{1}suggested\0\u{3}sort_order\0\u{4}\u{3}open_href\0\u{1}mark\0\u{1}requirement\0\u{b}date_value_id\0\u{b}date\0\u{b}date_summary\0\u{c}\u{3}\u{1}\u{c}\u{8}\u{1}\u{c}\u{7}\u{1}")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}field\0\u{3}value_text\0\u{4}\u{2}has_value\0\u{1}suggested\0\u{3}sort_order\0\u{4}\u{3}open_href\0\u{1}mark\0\u{1}requirement\0\u{1}inherited\0\u{3}stays_without_value\0\u{b}date_value_id\0\u{b}date\0\u{b}date_summary\0\u{c}\u{3}\u{1}\u{c}\u{8}\u{1}\u{c}\u{7}\u{1}")
 
   fileprivate class _StorageClass {
     var _field: Provenencia_Engine_V1_MetadataField? = nil
@@ -10986,6 +11044,8 @@ nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobu
     var _openHref: String = String()
     var _mark: Provenencia_Engine_V1_ValueMark? = nil
     var _requirement: Provenencia_Engine_V1_CitationRequirement? = nil
+    var _inherited: Provenencia_Engine_V1_InheritedMetadataValue? = nil
+    var _staysWithoutValue: Bool = false
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -11004,6 +11064,8 @@ nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobu
       _openHref = source._openHref
       _mark = source._mark
       _requirement = source._requirement
+      _inherited = source._inherited
+      _staysWithoutValue = source._staysWithoutValue
     }
   }
 
@@ -11030,6 +11092,8 @@ nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobu
         case 9: try { try decoder.decodeSingularStringField(value: &_storage._openHref) }()
         case 10: try { try decoder.decodeSingularMessageField(value: &_storage._mark) }()
         case 11: try { try decoder.decodeSingularMessageField(value: &_storage._requirement) }()
+        case 12: try { try decoder.decodeSingularMessageField(value: &_storage._inherited) }()
+        case 13: try { try decoder.decodeSingularBoolField(value: &_storage._staysWithoutValue) }()
         default: break
         }
       }
@@ -11066,6 +11130,12 @@ nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobu
       try { if let v = _storage._requirement {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 11)
       } }()
+      try { if let v = _storage._inherited {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 12)
+      } }()
+      if _storage._staysWithoutValue != false {
+        try visitor.visitSingularBoolField(value: _storage._staysWithoutValue, fieldNumber: 13)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -11083,10 +11153,61 @@ nonisolated extension Provenencia_Engine_V1_MetadataWorkspaceEntry: SwiftProtobu
         if _storage._openHref != rhs_storage._openHref {return false}
         if _storage._mark != rhs_storage._mark {return false}
         if _storage._requirement != rhs_storage._requirement {return false}
+        if _storage._inherited != rhs_storage._inherited {return false}
+        if _storage._staysWithoutValue != rhs_storage._staysWithoutValue {return false}
         return true
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+nonisolated extension Provenencia_Engine_V1_InheritedMetadataValue: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".InheritedMetadataValue"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}display_text\0\u{1}mark\0\u{1}owner\0\u{3}open_href\0")
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.displayText) }()
+      case 2: try { try decoder.decodeSingularMessageField(value: &self._mark) }()
+      case 3: try { try decoder.decodeSingularMessageField(value: &self._owner) }()
+      case 4: try { try decoder.decodeSingularStringField(value: &self.openHref) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if !self.displayText.isEmpty {
+      try visitor.visitSingularStringField(value: self.displayText, fieldNumber: 1)
+    }
+    try { if let v = self._mark {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 2)
+    } }()
+    try { if let v = self._owner {
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 3)
+    } }()
+    if !self.openHref.isEmpty {
+      try visitor.visitSingularStringField(value: self.openHref, fieldNumber: 4)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Provenencia_Engine_V1_InheritedMetadataValue, rhs: Provenencia_Engine_V1_InheritedMetadataValue) -> Bool {
+    if lhs.displayText != rhs.displayText {return false}
+    if lhs._mark != rhs._mark {return false}
+    if lhs._owner != rhs._owner {return false}
+    if lhs.openHref != rhs.openHref {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -23,7 +23,6 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
 | S15-D29 | Citation composer: the final shape, the Citation's metadata board beside the locator inputs and no Printed page input | — | S15-56 |
 | S15-D30 | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields | Descoped 2026-11-22: suggestions lose their level (S15-63) | — |
-| [S15-D33](S15-D33-inherited-values.md) | Metadata board row: an inherited value, where it comes from, override and fall back (Artifact sheet, graph form); written 2026-11-23 | [drawn 2026-11-23](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): pages *Artifacts* (`d33-*` in Artifact sheet) and *Evidence graphs* (`d33-gf`) | S15-64 |
 | S15-D34 | Artifact sheet, graph form, composer: the citation preview | Descoped 2026-11-22 with S15-65 | — |
 | S15-D35 | Metadata board row: the list-below hint and Move to Source | — | S15-66 |
 | S15-D36 | Citation formats list and format page (new sidebar place); the type page's link to its format | — | S15-68 |
@@ -36,6 +35,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S15-D33](archive/S15-D33-inherited-values.md) | Metadata board row: an inherited value, where it comes from, override and fall back (Artifact sheet, graph form); written 2026-11-23 | [drawn 2026-11-23](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): pages *Artifacts* (`d33-*` in Artifact sheet) and *Evidence graphs* (`d33-gf`) | S15-64 (#959) |
 | [S15-D32](archive/S15-D32-one-suggestion-list.md) | Source type page and Copy type sheet: one Suggested fields list in place of three; one suggestions tick | [agreed 2026-11-23](https://claude.ai/artifact/42ZuWus4ynyz7xUDwcF6zG): the Suggested fields and Copy type frames; count on the section header, no list header | S15-63 (#955) |
 | [S15-D10](archive/S15-D10-move-confirm.md) | Move to another Source: a Move button on Artifact rows and graph cards (the row's right-click menu goes), the confirm (the bundle, the target, the credibility and left-behind notes), landing on the target page | [agreed 2026-11-22](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): page *Move*; no right-click menus, Move is a folder-input IconButton; the why line only when more than one Artifact moves | S15-25 (#940) |
 | [S15-D14](archive/S15-D14-source-page-artifacts.md) | Source page Artifacts: the list with each Artifact's copy details read-only and a thumbnail of at most 80pt; the Artifact sheet in edit and add mode (replaces S15-D1 SD-9, SD-10 and S15-D4) | [agreed 2026-11-13](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK): rows, 64pt thumbnail, kit discard confirm, header-only Add field on the Source's section | S15-34 (#819), S15-35 (#824), S15-10 (#829), S15-25 (#940) |

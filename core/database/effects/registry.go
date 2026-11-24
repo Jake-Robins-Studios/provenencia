@@ -43,6 +43,9 @@ const (
 	// ReadEvidenceGraphs: the graphs of a Source, with their linked Artifacts
 	// (the graph list).
 	ReadEvidenceGraphs Read = "evidence_graphs"
+	// ReadInheritedValues: what the boards below a Source inherit: moved when
+	// the Source's metadata values change.
+	ReadInheritedValues Read = "inherited_values"
 	// ReadPropertyTerms: the terms of a Property (the term list).
 	ReadPropertyTerms Read = "property_terms"
 	// ReadSourceHoldings: what a Source holds: moved when an Artifact or an
@@ -56,12 +59,13 @@ const (
 
 // KeyTable is the table whose ids key the read: Evidence graphs for
 // citations and evidence_graph_progress, Sources for evidence_graphs,
-// source_holdings and source_records, Properties for property_terms. "" for an unknown read.
+// inherited_values, source_holdings and source_records, Properties for
+// property_terms. "" for an unknown read.
 func (r Read) KeyTable() string {
 	switch r {
 	case ReadCitations, ReadEvidenceGraphProgress:
 		return "evidence_graphs"
-	case ReadEvidenceGraphs, ReadSourceHoldings, ReadSourceRecords:
+	case ReadEvidenceGraphs, ReadInheritedValues, ReadSourceHoldings, ReadSourceRecords:
 		return "sources"
 	case ReadPropertyTerms:
 		return "properties"
@@ -70,7 +74,7 @@ func (r Read) KeyTable() string {
 }
 
 // Reads is every keyed read, in the order Set.Reads reports them.
-var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadPropertyTerms, ReadSourceHoldings, ReadSourceRecords}
+var Reads = []Read{ReadCitations, ReadEvidenceGraphProgress, ReadEvidenceGraphs, ReadInheritedValues, ReadPropertyTerms, ReadSourceHoldings, ReadSourceRecords}
 
 // DeletedEntities is every Entity that reports deleted ids (an entry with a
 // non-zero Effect.Deleted), sorted: the wire keys of Set.Deleted.
@@ -358,6 +362,7 @@ var registry = map[string]Effect{
 	// The metadata tables' Entity, SourceScope and Lists come from
 	// catalogmodel.MetadataTables (metadataEffects); only extras are listed.
 	"source_metadata": {
+		Reads:  []ReadPath{{ReadInheritedValues, field("source_id")}},
 		Search: []SearchDoc{{Kind: DocSource, Path: field("source_id")}},
 	},
 	"source_credibility_assessments": {

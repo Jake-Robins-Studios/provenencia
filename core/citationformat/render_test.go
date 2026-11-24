@@ -194,3 +194,47 @@ func TestRenderMarks(t *testing.T) {
 		}
 	})
 }
+
+func TestDisplay(t *testing.T) {
+	supplied := valuemark.Mark{Supplied: true}
+	unknown := valuemark.Mark{Unknown: true}
+	tests := []struct {
+		name string
+		v    citationformat.Value
+		want string
+	}{
+		{"text", citationformat.Value{Text: "Ancestry"}, "Ancestry"},
+		{"supplied", citationformat.Value{Text: "Calder County", Mark: supplied}, "[Calder County]"},
+		{"unknown with unknown text", citationformat.Value{Mark: unknown, UnknownText: "n.p."}, "n.p."},
+		{"unknown with none", citationformat.Value{Mark: unknown}, ""},
+		{"only space", citationformat.Value{Text: "  "}, ""},
+		{"supplied date", citationformat.Value{Date: datevaluetest.About(1880, 0, 0), Mark: supplied}, "[ca. 1880]"},
+		{"date", citationformat.Value{Date: datevaluetest.YMD(1830, 3, 3)}, "3 March 1830"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := citationformat.Display(tt.v); got != tt.want {
+				t.Fatalf("Display = %q, want %q", got, tt.want)
+			}
+		})
+	}
+	limit := citationformat.MaxDisplayBytes
+	t.Run("long text is cut to the board limit", func(t *testing.T) {
+		got := citationformat.Display(citationformat.Value{Text: strings.Repeat("a", limit+10)})
+		if got != strings.Repeat("a", limit) {
+			t.Fatalf("len = %d, want %d of a", len(got), limit)
+		}
+	})
+	t.Run("long unknown text is cut to the board limit", func(t *testing.T) {
+		got := citationformat.Display(citationformat.Value{Mark: unknown, UnknownText: strings.Repeat("b", limit+10)})
+		if got != strings.Repeat("b", limit) {
+			t.Fatalf("len = %d, want %d of b", len(got), limit)
+		}
+	})
+	t.Run("long supplied text keeps its brackets and its characters", func(t *testing.T) {
+		got := citationformat.Display(citationformat.Value{Text: strings.Repeat("é", limit), Mark: supplied})
+		if len(got) > limit || !utf8.ValidString(got) || !strings.HasPrefix(got, "[é") || !strings.HasSuffix(got, "é]") {
+			t.Fatalf("len = %d, valid = %v, ends %q", len(got), utf8.ValidString(got), got[len(got)-4:])
+		}
+	})
+}

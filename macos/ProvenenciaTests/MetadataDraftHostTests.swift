@@ -115,6 +115,41 @@ struct MetadataDraftHostTests {
         #expect(!(host.draft?.values.contains { $0.fieldID == "url" || $0.fieldID == "roll" } ?? false))
     }
 
+    /// A suggested row whose owner inherits a value opens, cancels and saves an override through the
+    /// board as a saved row does, and the saved row keeps what it overrides; a suggestion that
+    /// inherits nothing has no editor to open.
+    @Test func inheritedEntryOpensCancelsAndSavesAnOverride() async throws {
+        let inherited = CatalogInheritedMetadataValue(displayText: "Ancestry", isUnknown: false, level: .source)
+        let host = MetadataDraftHost(
+            entries: [
+                catalogMetadataEntry(provider, suggested: true, order: 0, inherited: inherited, staysWithoutValue: true),
+                catalogMetadataEntry(roll, suggested: true, order: 1),
+            ],
+            fields: [provider, roll]
+        )
+        let board = MetadataBoardModel(host: host)
+        let before = host.entries
+
+        board.beginEdit(fieldID: "provider")
+        #expect(board.editingFieldID == "provider")
+        #expect(board.drafts["provider"] == "")
+
+        board.cancelEdit()
+        #expect(board.editingFieldID == nil)
+        #expect(host.entries == before)
+
+        board.beginEdit(fieldID: "provider")
+        board.drafts["provider"] = "FamilySearch"
+        await board.save(fieldID: "provider")
+        let row = try #require(host.entries.first { $0.field.id == "provider" })
+        #expect(row.hasValue && row.valueText == "FamilySearch")
+        #expect(row.inherited == inherited)
+        #expect(board.editingFieldID == nil)
+
+        board.beginEdit(fieldID: "roll")
+        #expect(board.editingFieldID == nil)
+    }
+
     @Test func dismissOnlyEmptySuggestions() async throws {
         let host = makeHost()
         let board = MetadataBoardModel(host: host)
@@ -132,7 +167,10 @@ struct MetadataDraftHostTests {
 
     @Test func anEmptyHeadTheReadReturnedClearsToEmptyAndDismisses() async throws {
         let host = MetadataDraftHost(
-            entries: [catalogMetadataEntry(provider, order: 0), catalogMetadataEntry(url, order: 1)],
+            entries: [
+                catalogMetadataEntry(provider, order: 0, staysWithoutValue: true),
+                catalogMetadataEntry(url, order: 1, staysWithoutValue: true),
+            ],
             fields: [provider, url]
         )
         let board = MetadataBoardModel(host: host)
@@ -149,6 +187,54 @@ struct MetadataDraftHostTests {
         await board.dismissSuggestion(fieldID: "url")
         #expect(!ids(host.entries).contains("url"))
         #expect(host.draft?.layout.last == .init(fieldID: "url", sortOrder: 1, dismissed: true))
+    }
+
+    /// T-8: an override and its fall back keep what the row inherits.
+    @Test func setAndClearKeepTheInheritedValue() async throws {
+        let ancestry = CatalogInheritedMetadataValue(displayText: "Ancestry", isUnknown: false, level: .source)
+        let host = MetadataDraftHost(
+            entries: [catalogMetadataEntry(provider, suggested: true, inherited: ancestry, staysWithoutValue: true)],
+            fields: [provider]
+        )
+        let board = MetadataBoardModel(host: host)
+
+        _ = await board.add(fieldID: "provider", valueText: "FamilySearch")
+        var row = try #require(host.entries.first)
+        #expect(row.hasValue && row.valueText == "FamilySearch")
+        #expect(row.inherited == ancestry)
+        #expect(host.isChanged)
+
+        _ = await board.clear(fieldID: "provider")
+        row = try #require(host.entries.first)
+        #expect(!row.hasValue)
+        #expect(row.inherited == ancestry)
+        #expect(!host.isChanged)
+    }
+
+    /// T-9: clearing keeps the rows the engine keeps and nothing else.
+    @Test func clearKeepsOnlyRowsTheEngineKeeps() async throws {
+        let ancestry = CatalogInheritedMetadataValue(displayText: "Ancestry", isUnknown: false, level: .source)
+        let host = MetadataDraftHost(
+            entries: [
+                catalogMetadataEntry(roll, "12", order: 0, inherited: ancestry, staysWithoutValue: true),
+                catalogMetadataEntry(url, "https://example.org/a", order: 1, inherited: ancestry),
+            ],
+            fields: [roll, url, film]
+        )
+        let board = MetadataBoardModel(host: host)
+
+        _ = await board.clear(fieldID: "roll")
+        let kept = try #require(host.entries.first { $0.field.id == "roll" })
+        #expect(!kept.hasValue && kept.inherited == ancestry)
+
+        _ = await board.clear(fieldID: "url")
+        #expect(!ids(host.entries).contains("url"))
+
+        _ = await board.add(fieldID: "film", valueText: "7")
+        let added = try #require(host.entries.first { $0.field.id == "film" })
+        #expect(added.inherited == nil && !added.staysWithoutValue)
+        _ = await board.clear(fieldID: "film")
+        #expect(!ids(host.entries).contains("film"))
     }
 
     @Test func readdingADismissedFieldListsItOnce() async throws {

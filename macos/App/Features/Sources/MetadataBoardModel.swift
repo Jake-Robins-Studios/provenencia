@@ -130,8 +130,10 @@ final class MetadataBoardModel {
 
     // MARK: Row edit
 
+    /// Opens the row's inline edit: a saved value's, or an empty one for the value the row inherits.
     func beginEdit(fieldID: String) {
-        guard let entry = savedEntry(fieldID: fieldID) else { return }
+        guard let entry = entries.first(where: { $0.field.id == fieldID && ($0.hasValue || $0.inherited != nil) })
+        else { return }
         // One inner edit at a time: the add row closes, as its ✕ would.
         closeAddRow()
         if let current = editingFieldID, current != fieldID {

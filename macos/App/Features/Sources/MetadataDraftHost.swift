@@ -122,10 +122,10 @@ final class MetadataDraftHost: MetadataBoardHost {
         return (entries, .empty)
     }
 
-    /// True for a row that stays on the board without a value: a suggestion, or a field the read
-    /// returned empty (a head a format reads).
+    /// True for a row that stays on the board without a value: a suggestion, or a head a format
+    /// reads. The engine says which (`staysWithoutValue`); a row added through Add field has neither.
     private func isEmptyRow(_ row: CatalogMetadataEntry) -> Bool {
-        row.suggested || opened.contains { $0.field.id == row.field.id && !$0.hasValue }
+        row.suggested || row.staysWithoutValue
     }
 
     func reorder(fieldIDs: [String]) -> ([CatalogMetadataEntry], CatalogWriteEffects) {

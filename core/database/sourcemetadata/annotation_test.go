@@ -225,6 +225,45 @@ func TestCitationValues(t *testing.T) {
 	}
 }
 
+func TestCitationValuesNearest(t *testing.T) {
+	a := uuid.New()
+	gr, src := vocabkey.LevelGraph, vocabkey.LevelSource
+	row := func(l vocabkey.Level, text string, mark valuemark.Mark) Row {
+		return Row{FieldID: a[:], ValueText: text, Mark: mark, Owner: Owner{Level: l, ID: []byte(string(l))}}
+	}
+	at := func(rows ...Row) CitationValues {
+		v := CitationValues{Rows: map[vocabkey.Level]map[string]Row{}}
+		for _, r := range rows {
+			if v.Rows[r.Owner.Level] == nil {
+				v.Rows[r.Owner.Level] = map[string]Row{}
+			}
+			v.Rows[r.Owner.Level][string(a[:])] = r
+		}
+		return v
+	}
+	tests := []struct {
+		name      string
+		values    CitationValues
+		wantLevel vocabkey.Level
+		wantText  string
+		wantOK    bool
+	}{
+		{"the graph's row over the Source's", at(row(gr, "14", valuemark.Mark{}), row(src, "9", valuemark.Mark{})), gr, "14", true},
+		{"the Source's row alone", at(row(src, "9", valuemark.Mark{})), src, "9", true},
+		{"no row at any level", at(), "", "", false},
+		{"an unknown row with no text answers", at(row(gr, "", valuemark.Mark{Unknown: true}), row(src, "9", valuemark.Mark{})), gr, "", true},
+		{"without the graph", at(row(gr, "14", valuemark.Mark{}), row(src, "9", valuemark.Mark{})).Without(gr), src, "9", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := tt.values.Nearest(a)
+			if ok != tt.wantOK || got.Owner.Level != tt.wantLevel || got.ValueText != tt.wantText {
+				t.Errorf("Nearest = %+v, %v; want level %q text %q ok %v", got, ok, tt.wantLevel, tt.wantText, tt.wantOK)
+			}
+		})
+	}
+}
+
 func TestCitationValuesResolve(t *testing.T) {
 	a := uuid.New()
 	loaded := metadatafields.Field{ID: a[:], Key: "line_number", UnknownText: "n.l."}

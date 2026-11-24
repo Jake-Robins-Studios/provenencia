@@ -220,6 +220,8 @@ extension CatalogQueryKey.Kind {
             // it marks every visited page stale the same way. An Artifact or a graph
             // joining or leaving the Source, or an Artifact's file changing, reports
             // `source_holdings` for it: the page on screen reloads, a hidden one goes stale.
+            // A Source's metadata value write reports `inherited_values` for it, so the
+            // cached Artifact and graph boards below it inherit the new value the same way.
             return .make(
                 kind: self,
                 invalidateOn: [
@@ -240,7 +242,10 @@ extension CatalogQueryKey.Kind {
                     }
                 },
                 patches: [.updatedSourceShell(), .metadataBoard()],
-                refreshes: [.applyHiddenPolicy(followsOwnId: .reads(.sourceHoldings))],
+                refreshes: [
+                    .applyHiddenPolicy(followsOwnId: .reads(.sourceHoldings)),
+                    .applyHiddenPolicy(followsOwnId: .reads(.inheritedValues)),
+                ],
                 load: { key, store in
                     return try await store.getSourceWorkspace(projectDir: key.project.projectDir, sourceID: key.id)
                 }

@@ -433,9 +433,9 @@ struct SourcePageModelTests {
         #expect(model.notes.items.first?.body == "Keep me")
     }
 
-    /// The page's workspace follows `source_holdings` alone (D-16): that read reloads the page on
-    /// screen and marks a hidden one stale; `source_records` (a title edit) reloads nothing, so
-    /// field edits keep patching in place.
+    /// The page's workspace follows `source_holdings` and `inherited_values`: either read reloads the
+    /// page on screen and marks a hidden one stale; `source_records` (a title edit) reloads nothing,
+    /// so field edits keep patching in place.
     @Test func workspaceFollowsSourceHoldings() async throws {
         let store = makeStore()
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
@@ -477,6 +477,48 @@ struct SourcePageModelTests {
         #expect(store.getSourceWorkspaceCalls == before)
         let handle: QueryHandle<CatalogSourceWorkspace>? = session.queryHandle(key)
         #expect(handle?.isStale == true)
+    }
+
+    /// T-11: a Source's value write reports `inherited_values`, which reloads the page on
+    /// screen once and keeps an edit open on another row (the reload carries the rows the board shows).
+    @Test func sourcePageFollowsInheritedValues() async throws {
+        let author = authorField()
+        let repo = repositoryField()
+        let store = makeStore(
+            metadata: [
+                CatalogMetadataEntry(field: author, valueText: "", hasValue: false, suggested: true, sortOrder: 0),
+                CatalogMetadataEntry(field: repo, valueText: "NRO", hasValue: true, suggested: false, sortOrder: 1),
+            ],
+            fields: [author, repo]
+        )
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
+        let model = makeModel(store: store, session: session)
+        await model.warmFromSession()
+        session.apply(location: .sourcePage(sourceId: sourceID))
+        await session.settleWrites()
+
+        func reads(_ read: CatalogRead) -> CatalogWriteEffects {
+            CatalogWriteEffects(reads: [CatalogWriteEffectsRead(read: read, ids: [sourceID])])
+        }
+        var before = store.getSourceWorkspaceCalls
+        session.apply(reads(.inheritedValues))
+        await session.settleWrites()
+        #expect(store.getSourceWorkspaceCalls == before + 1)
+
+        let saved = [
+            CatalogMetadataEntry(field: author, valueText: "Mary Robins", hasValue: true, suggested: true, sortOrder: 0),
+            CatalogMetadataEntry(field: repo, valueText: "NRO", hasValue: true, suggested: false, sortOrder: 1),
+        ]
+        store.metadataWriteResults[MetadataOwner(level: .source, id: sourceID)] = saved
+        store.nextWriteEffects = reads(.inheritedValues)
+        model.metadata.beginEdit(fieldID: repo.id)
+        model.metadata.drafts[author.id] = "Mary Robins"
+        before = store.getSourceWorkspaceCalls
+        await model.metadata.save(fieldID: author.id)
+        await followWorkspace(model, session)
+        #expect(store.getSourceWorkspaceCalls == before + 1)
+        #expect(model.metadata.saved.map(\.valueText) == ["Mary Robins", "NRO"])
+        #expect(model.metadata.editingFieldID == repo.id)
     }
 
     /// A create and its file's ingest apply as one: ids union per read, the later activity wins.

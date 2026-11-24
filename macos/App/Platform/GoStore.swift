@@ -2879,7 +2879,21 @@ struct GoStore: GenealogyStore {
             hasValue: e.hasValue_p,
             suggested: e.suggested,
             sortOrder: e.sortOrder,
-            openHref: e.openHref
+            openHref: e.openHref,
+            inherited: e.hasInherited ? Self.mapInheritedMetadataValue(e.inherited) : nil,
+            staysWithoutValue: e.staysWithoutValue
+        )
+    }
+
+    /// A level this build does not know maps to nil: `Level` mirrors the engine's
+    /// metadata levels, so an unknown one is a version skew.
+    private static func mapInheritedMetadataValue(_ v: Provenencia_Engine_V1_InheritedMetadataValue) -> CatalogInheritedMetadataValue? {
+        guard let level = Level(rawValue: v.owner.level) else { return nil }
+        return CatalogInheritedMetadataValue(
+            displayText: v.displayText,
+            isUnknown: v.mark.unknown,
+            level: level,
+            openHref: v.openHref
         )
     }
 

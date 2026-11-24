@@ -255,7 +255,7 @@ CREATE TABLE source_type_metadata_fields (
 ) STRICT;
 ```
 
-A type suggests each field once, in one ordered list per type, and every board of a Source of the type (the Source's Metadata section, each Artifact's sheet, each Evidence graph's form) offers all of it. A field has no level here: where a value lives is the researcher's choice, and a citation reads the nearest level that holds one.
+A type suggests each field once, in one ordered list per type, and every board of a Source of the type (the Source's Metadata section, each Artifact's sheet, each Evidence graph's form) offers all of it. A field has no level here: where a value lives is the researcher's choice, and a citation reads the nearest level that holds one. Each board entry carries the value its owner inherits from the nearest level above it (`CitationValues.Nearest`), printed as a citation prints it (`citationformat.Display`), so an Artifact's or graph's board shows the Source's value read only until the owner types its own.
 
 
 For example, `book` might suggest:

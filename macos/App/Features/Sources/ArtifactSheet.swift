@@ -57,8 +57,8 @@ private struct ArtifactSheetModifier: ViewModifier {
 }
 
 /// The sheet's body, in `PVFormColumns`: the save error, then two columns. Left: in add
-/// mode the file, then label, description and copy details. Right: the Evidence graphs the
-/// Artifact is in. Each section carries its `.id` for the scroll target.
+/// mode the file, then label, description and the Evidence graphs the Artifact is in. Right:
+/// copy details. Each section carries its `.id` for the scroll target.
 private struct ArtifactSheetForm: View {
     @Bindable var model: ArtifactSheetModel
 
@@ -78,15 +78,16 @@ private struct ArtifactSheetForm: View {
                 fileField
             }
             fields
+            graphLinks
+                .id(ArtifactSheetModel.Section.graphs)
+        } right: {
             DraftMetadataBoardField(
                 label: L10n.Sources.artifactCopyDetailsLabel,
                 board: model.board,
                 accessibilityIdentifierPrefix: "\(prefix).copyDetails"
             )
             .id(ArtifactSheetModel.Section.copyDetails)
-        } right: {
-            graphLinks
-                .id(ArtifactSheetModel.Section.graphs)
+            .disabled(model.isSaving)
         }
         .id(ArtifactSheetModel.Section.top)
     }
