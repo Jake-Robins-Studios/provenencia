@@ -2,7 +2,7 @@ import Foundation
 
 /// What the Sources list remembers between visits: sort, type, evidence
 /// status, and search. One value, saved as one JSON entry per install user.
-struct SourcesListSettings: Codable, Equatable {
+struct SourcesListSettings: Codable, Hashable {
     var sort: SourcesModel.Sort = .added
     /// `source_types.id`, or empty for all types.
     var typeFilterID = ""

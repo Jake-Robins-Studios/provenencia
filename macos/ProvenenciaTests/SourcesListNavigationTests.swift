@@ -37,6 +37,21 @@ struct SourcesListNavigationTests {
         #expect(SourcesListNavigation.graphBlockedReason(for: bare)
             == L10n.string(L10n.Sources.graphNeedsArtifactTooltip))
     }
+
+    @Test func aRowOpensItsPlaceOrNothing() {
+        let linked = evidenceGraph("g1a", sourceID: "s1", name: "Default", artifactIDs: ["a1"])
+        let bare = evidenceGraph("g1b", sourceID: "s1", name: "Jones")
+        let src = source(id: "s1")
+        func row(_ kind: SourcesOutlineRow.Kind, _ id: String) -> SourcesOutlineRow {
+            SourcesOutlineRow(id: id, kind: kind, endsGroup: false)
+        }
+        #expect(SourcesListNavigation.location(for: row(.source(src, disclosure: .collapsed), "s1"))
+            == .sourcePage(sourceId: "s1", ref: "SRC-AAAAA", title: "Passport"))
+        #expect(SourcesListNavigation.location(for: row(.graph(linked, source: src), "g1a"))
+            == SourcesListNavigation.graphLocation(for: src, graph: linked))
+        #expect(SourcesListNavigation.location(for: row(.graph(bare, source: src), "g1b")) == nil)
+        #expect(SourcesListNavigation.location(for: row(.pendingGraph(source: src), "s1#graphs")) == nil)
+    }
 }
 
 @Suite

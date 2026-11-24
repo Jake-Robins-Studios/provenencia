@@ -33,6 +33,10 @@ final class WorkspaceSession {
     /// Evidence-graph pan and zoom, keyed by graph id. Not catalog data; quit drops it.
     @ObservationIgnored
     private var graphCameras: [String: GraphCanvasCamera] = [:]
+    /// The Sources open in the Sources list, to show their Evidence graphs. Observed: the list draws
+    /// from it. View state, not catalog data: never written to history, settings or the catalog; a new
+    /// session (a relaunch, another project) starts with every Source closed.
+    private(set) var expandedSourceIDs: Set<String> = []
     /// Derived values, their build counts and, in debug builds, the keys each
     /// running build reads (`WorkspaceSession+Derived.swift`). Not observed:
     /// filling them while a view reads must not invalidate that view.
@@ -79,6 +83,13 @@ final class WorkspaceSession {
     func setGraphCamera(_ camera: GraphCanvasCamera, for graphID: String) {
         guard graphCameras[graphID] != camera else { return }
         graphCameras[graphID] = camera
+    }
+
+    /// Opens or closes these Sources in the Sources list (one Source, or every one for ⌥-click).
+    func setSourcesExpanded(_ ids: [String], _ expanded: Bool) {
+        let next = expanded ? expandedSourceIDs.union(ids) : expandedSourceIDs.subtracting(ids)
+        guard next != expandedSourceIDs else { return }
+        expandedSourceIDs = next
     }
 
     /// Returns an existing handle without starting a load.

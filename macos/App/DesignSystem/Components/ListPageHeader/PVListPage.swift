@@ -62,6 +62,7 @@ extension PVListPage where Toolbar == EmptyView {
 }
 
 /// The states of a list page's area that every list draws the same way.
+@MainActor
 enum PVListPageArea {
     /// First-load placeholder in row geometry, with a bar for each detail column so rows do not shift
     /// when the cells arrive: 30 rows fill the list area.

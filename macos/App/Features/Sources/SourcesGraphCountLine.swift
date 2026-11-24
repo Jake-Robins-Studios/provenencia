@@ -2,18 +2,19 @@ import SwiftUI
 
 /// An Evidence graph's counts, the one view that draws a `SourcesGraphCounts`:
 /// "12 subjects · 40 observations" with the digits in mono, "0 subjects · not
-/// started" (the card) or "0 subjects · 0 observations" (the button, whose badge
+/// started" (the card) or "0 subjects · 0 observations" (the row, whose badge
 /// says "not started"), a short rule while the counts load, or a mark beside
 /// "Counts could not load" when they failed. The Source page's graph cards draw
-/// it as `.card`; a Sources list graph button as `.button`.
+/// it as `.card`; a Sources list graph row as `.row`. The text takes the
+/// on-selection ink, so a selected row draws it on the system bar; the mark keeps its color.
 struct SourcesGraphCountLine: View {
     enum Style {
         case card
-        case button
+        case row
 
         /// How a graph that has not started reads in this style.
         var notStartedReading: L10n.Sources.NotStartedReading {
-            self == .button ? .zeroCounts : .words
+            self == .row ? .zeroCounts : .words
         }
     }
 
@@ -35,7 +36,7 @@ struct SourcesGraphCountLine: View {
                 PVSkeletonBar(width: nil, height: 1)
                     .padding(.trailing, PVSpacing.space3)
                     .padding(.vertical, 5)
-            case .button:
+            case .row:
                 PVSkeletonBar(width: 132, height: 6)
                     .padding(.vertical, PVSpacing.space1)
             }
@@ -53,7 +54,7 @@ struct SourcesGraphCountLine: View {
 
     private var text: some View {
         Text(Self.countsText(counts, style: style))
-            .foregroundStyle(PVColor.textMuted)
+            .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
             .lineLimit(1)
             .truncationMode(.tail)
     }

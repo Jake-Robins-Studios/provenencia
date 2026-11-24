@@ -5,6 +5,7 @@ import SwiftUI
 struct SourcesListView: View {
     @Environment(WorkspaceSession.self) private var session
     @Environment(WorkspaceNavigation.self) private var navigation
+    @Environment(\.pvWidthClass) private var widthClass
     @State private var model: SourcesModel
 
     init(
@@ -35,8 +36,16 @@ struct SourcesListView: View {
                     model: model
                 )
             } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                // The handles arrive a turn after the page: the frame and its skeleton hold the place.
+                PVListPage(
+                    title: L10n.Workspace.sourcesTitle, description: L10n.Sources.description,
+                    countLine: nil, identifierRoot: "sources"
+                ) { gutter in
+                    PVListPageArea.loadingArea(
+                        gutter: gutter,
+                        detailWidths: SourcesRowColumns.details(isWide: widthClass == .wide, typeLabel: { _ in "" }).map(\.width)
+                    )
+                }
             }
         }
         .task {
@@ -48,34 +57,34 @@ struct SourcesListView: View {
 /// Observes query handles directly so list loads repaint when cache settles.
 private struct SourcesListContent: View {
     @Environment(WorkspaceNavigation.self) private var navigation
+    @Environment(WorkspaceSession.self) private var session
     @Bindable var sourcesHandle: QueryHandle<[CatalogSource]>
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourcesModel
     @Environment(\.pvWidthClass) private var widthClass
 
     var body: some View {
-        let rows = model.visibleSources
-        return VStack(spacing: 0) {
-            header(visibleCount: rows.count)
-            PVDivider()
-            if sourcesHandle.status == .loading && model.sources.isEmpty && model.loadError == nil {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .padding(.top, PVSpacing.space9)
-            } else if let loadError = model.loadError, model.sources.isEmpty {
-                PVCallout(tone: .danger, message: L10n.Errors.message(for: loadError))
-                    .pvListPageMessage()
-                    .accessibilityIdentifier("sources.loadError")
-            } else if model.isCatalogEmpty {
-                emptyState
-            } else {
-                toolbar
-                listBody(rows: rows)
+        let outline = model.outline
+        let showsToolbar = model.showsToolbar
+        return PVListPage(
+            title: L10n.Workspace.sourcesTitle,
+            description: L10n.Sources.description,
+            countLine: showsToolbar ? model.countLine(visibleCount: model.visibleSources.count) : nil,
+            add: .init(label: L10n.Sources.addSource) { model.openAdd() },
+            identifierRoot: "sources",
+            showsToolbar: showsToolbar,
+            toolbar: { gutter in toolbar(gutter: gutter) },
+            content: { gutter in content(outline: outline, gutter: gutter) }
+        )
+        .modifier(ListSelectionAnchorModifier(
+            rowIDs: outline.rows.map(\.id),
+            isSettled: model.outlineIsSettled,
+            reveal: { anchor in
+                guard let id = outline.sourceToReveal(anchor) else { return false }
+                session.setSourcesExpanded([id], true)
+                return true
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .pvListBand(widthClass)
-        .background(PVColor.surfacePage)
+        ))
         .pvFormDialog(
             isPresented: addPresented,
             copy: PVFormDialogCopy(
@@ -108,9 +117,172 @@ private struct SourcesListContent: View {
             if model.isAdding { model.selectSoleTypeIfNeeded() }
         }
         .onChange(of: model.settings) { _, _ in
+            // A sort or filter change clears the selection and puts the list at its top; the open
+            // Sources stay open.
             navigation.go(to: navigation.currentLocation.withListScrollAnchor(nil))
         }
         .accessibilityIdentifier("sources")
+    }
+
+    // MARK: The list area
+
+    /// The list area's states, in the order they win: the whole list failed, first load, an empty
+    /// catalog, a failure of the data a status filter needs, waiting for the graph list or a filter's
+    /// data, no match, then the rows.
+    @ViewBuilder
+    private func content(outline: SourcesOutline, gutter: CGFloat) -> some View {
+        if let loadError = model.loadError, model.sources.isEmpty {
+            PVListPageArea.failureArea(L10n.Errors.message(for: loadError), gutter: gutter)
+                .accessibilityIdentifier("sources.loadError")
+        } else if sourcesHandle.value == nil {
+            loadingArea(gutter: gutter)
+        } else if model.isCatalogEmpty {
+            emptyArea
+        } else if let statusError = model.statusCountsError {
+            PVListPageArea.failureArea(L10n.Errors.message(for: statusError), gutter: gutter)
+                .accessibilityIdentifier("sources.statusError")
+        } else if model.isAwaitingGraphList || model.isAwaitingFilterData {
+            loadingArea(gutter: gutter)
+        } else if outline.rows.isEmpty {
+            noMatchArea
+        } else {
+            rows(outline: outline, gutter: gutter)
+        }
+    }
+
+    private func loadingArea(gutter: CGFloat) -> some View {
+        PVListPageArea.loadingArea(
+            gutter: gutter,
+            detailWidths: SourcesRowColumns.details(isWide: widthClass == .wide, typeLabel: { _ in "" }).map(\.width)
+        )
+    }
+
+    private var emptyArea: some View {
+        PVEmptyState(
+            icon: .scrollText,
+            title: L10n.Sources.emptyTitle,
+            message: L10n.string(L10n.Sources.emptyMessage)
+        )
+        .accessibilityIdentifier("sources.empty")
+    }
+
+    private var noMatchArea: some View {
+        PVEmptyState(
+            icon: .filter,
+            title: L10n.Sources.noFilterMatchesTitle,
+            message: L10n.string(L10n.Sources.noFilterMatchesMessage),
+            compact: true
+        ) {
+            PVButton(L10n.Sources.clearFilters, variant: .secondary) {
+                model.clearFilters()
+            }
+            .accessibilityIdentifier("sources.clearFilters")
+        }
+        .accessibilityIdentifier("sources.filterEmpty")
+    }
+
+    private func rows(outline: SourcesOutline, gutter: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            if let graphListError = model.graphListError {
+                PVCallout(tone: .danger, message: L10n.Errors.message(for: graphListError))
+                    .padding(.horizontal, gutter)
+                    .padding(.top, PVSpacing.space6)
+                    .padding(.bottom, PVSpacing.space5)
+                    .accessibilityIdentifier("sources.graphsError")
+            }
+            PVListBody(
+                items: outline.rows,
+                // Navigation owns the selected row: it is the row history stamps on leaving.
+                selection: Binding(
+                    get: { navigation.listAnchor },
+                    set: { navigation.noteListAnchor($0) }
+                ),
+                minimumRowHeight: SourcesGraphRow.height,
+                horizontalInset: gutter,
+                leadingHang: PVListMetrics.hang(leadingWidth: SourcesSourceRow.triangleWidth),
+                label: L10n.Workspace.sourcesTitle,
+                onActivate: { row in
+                    if let location = SourcesListNavigation.location(for: row) { navigation.go(to: location) }
+                },
+                menu: { row in
+                    SourcesRowMenu.items(
+                        for: row, graphs: session.evidenceGraphsRead(sourceID: row.source.id), actions: menuActions
+                    )
+                },
+                separator: { $0.endsGroup ? .visible : .hidden },
+                restartKey: model.settings
+            ) { row in
+                outlineRow(row, outline: outline)
+            }
+            .onKeyPress(keys: [.rightArrow, .leftArrow], phases: .down) { press in
+                handle(press.key, outline: outline)
+            }
+        }
+    }
+
+    /// → opens a closed Source, ← closes an open one or climbs from a graph row to its Source.
+    private func handle(_ key: KeyEquivalent, outline: SourcesOutline) -> KeyPress.Result {
+        switch SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listAnchor)) {
+        case .expand(let id):
+            toggle(id, expanding: true, sources: [id], outline: outline)
+        case .collapse(let id):
+            toggle(id, expanding: false, sources: [id], outline: outline)
+        case .select(let id):
+            navigation.noteListAnchor(id)
+        case .ignore:
+            return .ignored
+        }
+        return .handled
+    }
+
+    @ViewBuilder
+    private func outlineRow(_ row: SourcesOutlineRow, outline: SourcesOutline) -> some View {
+        switch row.kind {
+        case .source(let source, let disclosure):
+            SourcesSourceRow(
+                source: source, disclosure: disclosure, model: model, isWide: widthClass == .wide,
+                toggle: { all in
+                    toggle(
+                        source.id, expanding: disclosure != .expanded,
+                        sources: all ? outline.togglableSourceIDs : [source.id], outline: outline
+                    )
+                }
+            )
+        case .graph(let graph, let source):
+            SourcesGraphRow(content: .graph(graph), source: source)
+        case .pendingGraph(let source):
+            SourcesGraphRow(content: .pending, source: source)
+        }
+    }
+
+    /// Opens or closes `sources`. Closing a Source whose graph is selected selects the Source first.
+    private func toggle(_ id: String, expanding: Bool, sources: [String], outline: SourcesOutline) {
+        if !expanding {
+            let selection = outline.selectionAfterCollapsing(Set(sources), selection: navigation.listAnchor)
+            if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
+        }
+        session.setSourcesExpanded(sources, expanding)
+    }
+
+    /// What a menu entry does: the row is selected first, so Back returns to it.
+    private var menuActions: SourcesRowMenu.Actions {
+        SourcesRowMenu.Actions(
+            open: { row in
+                navigation.noteListAnchor(row.id)
+                if let location = SourcesListNavigation.location(for: row) { navigation.go(to: location) }
+            },
+            openGraph: { graph, source in
+                session.setSourcesExpanded([source.id], true)
+                navigation.noteListAnchor(graph.id)
+                if let location = SourcesListNavigation.graphLocation(for: source, graph: graph) {
+                    navigation.go(to: location)
+                }
+            },
+            copy: { source in
+                navigation.noteListAnchor(source.id)
+                model.openCopy(source)
+            }
+        )
     }
 
     private var addPresented: Binding<Bool> {
@@ -126,17 +298,7 @@ private struct SourcesListContent: View {
         )
     }
 
-    private func header(visibleCount: Int) -> some View {
-        PVListPageHeader(
-            title: L10n.Workspace.sourcesTitle,
-            description: L10n.Sources.description,
-            countLine: model.isCatalogEmpty ? nil : model.countLine(visibleCount: visibleCount),
-            add: .init(label: L10n.Sources.addSource) { model.openAdd() },
-            identifierPrefix: "sources"
-        )
-    }
-
-    private var toolbar: some View {
+    private func toolbar(gutter: CGFloat) -> some View {
         HStack(spacing: PVSpacing.space5) {
             searchField
             filterMenu
@@ -144,13 +306,8 @@ private struct SourcesListContent: View {
             sortMenu
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, PVSpacing.gutterPage)
+        .padding(.horizontal, gutter)
         .padding(.vertical, PVSpacing.space6)
-        .background(PVColor.surfaceCard)
-        .overlay(alignment: .bottom) {
-            PVDivider()
-        }
-        .zIndex(1)
     }
 
     private var searchField: some View {
@@ -236,107 +393,6 @@ private struct SourcesListContent: View {
             accessibilityLabel: L10n.Sources.sortMenu,
             accessibilityIdentifier: "sources.sort"
         )
-    }
-
-    @ViewBuilder
-    private func listBody(rows: [CatalogSource]) -> some View {
-        if let statusError = model.statusCountsError {
-            PVCallout(tone: .danger, message: L10n.Errors.message(for: statusError))
-                .padding(.horizontal, PVSpacing.gutterPage)
-                .padding(.top, PVSpacing.space8)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .accessibilityIdentifier("sources.statusError")
-        } else if model.isAwaitingFilterData {
-            ProgressView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .padding(.top, PVSpacing.space9)
-        } else if rows.isEmpty {
-            PVEmptyState(
-                icon: .filter,
-                title: L10n.Sources.noFilterMatchesTitle,
-                message: L10n.string(L10n.Sources.noFilterMatchesMessage),
-                compact: true
-            ) {
-                PVButton(L10n.Sources.clearFilters, variant: .secondary) {
-                    model.clearFilters()
-                }
-                .accessibilityIdentifier("sources.clearFilters")
-            }
-            .padding(.horizontal, PVSpacing.gutterPage)
-            .padding(.top, PVSpacing.space6)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .accessibilityIdentifier("sources.filterEmpty")
-        } else {
-            PVWidthBreakpoints(SourcesListColumns.breakpoints) { met in
-                let columns = SourcesListColumns(met: met, widthClass: widthClass)
-                ScrollView {
-                    LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                        Section {
-                            ForEach(rows) { source in
-                                SourcesListRow(source: source, model: model, columns: columns)
-                                    .id(source.id)
-                            }
-                        } header: {
-                            captionBand(columns)
-                        }
-                    }
-                    .scrollTargetLayout()
-                }
-                .modifier(ListScrollAnchorModifier(
-                    anchor: navigation.currentLocation.listScrollAnchor,
-                    rowIDs: rows.map(\.id),
-                    isLoaded: true
-                ))
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel(Text(L10n.Sources.listAccessibilityLabel))
-                .accessibilityIdentifier("sources.list")
-            }
-        }
-    }
-
-    private func captionBand(_ columns: SourcesListColumns) -> some View {
-        HStack(spacing: 0) {
-            caption(L10n.Sources.columnSource)
-                .sourcesSourceCell()
-            if columns.type != nil {
-                caption(L10n.Sources.columnType)
-                    .sourcesTypeCell(columns)
-            }
-            if columns.published != nil {
-                caption(L10n.Sources.columnPublished)
-                    .sourcesPublishedCell(columns)
-            }
-            caption(L10n.Sources.columnEvidenceGraph)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .sourcesGraphCell(columns)
-        }
-        .padding(.leading, PVSpacing.gutterPage)
-        .padding(.trailing, PVSpacing.gutterPage)
-        .padding(.vertical, PVSpacing.space3 + PVSpacing.spacePx)
-        .background(PVColor.surfaceCard)
-        .overlay(alignment: .bottom) {
-            PVDivider()
-        }
-        .accessibilityIdentifier("sources.captionBand")
-    }
-
-    private func caption(_ text: LocalizedStringResource) -> some View {
-        Text(text)
-            .pvMicroCaps()
-            .foregroundStyle(PVColor.textMuted)
-            .lineLimit(1)
-    }
-
-    private var emptyState: some View {
-        PVEmptyState(
-            icon: .scrollText,
-            title: L10n.Sources.emptyTitle,
-            message: L10n.string(L10n.Sources.emptyMessage)
-        )
-        .padding(.horizontal, PVSpacing.gutterPage)
-        .padding(.top, PVSpacing.space8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .accessibilityIdentifier("sources.empty")
     }
 
     private var addForm: some View {

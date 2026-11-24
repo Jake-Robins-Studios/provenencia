@@ -228,7 +228,6 @@ struct PVListDetail {
 struct PVListDetailCell: View {
     let detail: PVListDetail?
     let width: CGFloat?
-    var iconSize: CGFloat = 14
 
     var body: some View {
         content
@@ -254,7 +253,7 @@ struct PVListDetailCell: View {
             let color = PVColor.onSelection(detail.faint ? PVColor.textFaint : PVColor.textMuted)
             let cell = HStack(spacing: 6) {
                 if let icon = detail.icon {
-                    PVIcon(icon, size: iconSize)
+                    PVIcon(icon, size: 14)
                 }
                 text(detail.text)
             }
