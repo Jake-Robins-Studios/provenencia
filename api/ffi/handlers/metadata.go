@@ -259,22 +259,28 @@ func GetMetadataBoard(in []byte) ([]byte, error) {
 	return proto.Marshal(out)
 }
 
-// GetDraftMetadataBoard reads the board a new Artifact or graph starts with on a
-// Source: the type's suggestions, empty, then the fields its citation formats
-// head at the level, each with its requirement. A Source that does not
-// exist, or a level other than artifact or graph, is sourcemetadata.invalid.
+// GetDraftMetadataBoard reads the board a new owner starts with under its
+// parents (a new Artifact's or graph's Source; a new Citation's graph and
+// Artifact): the Source type's suggestions, empty, then the fields its citation
+// formats head at the level, each with its requirement and what it inherits. A
+// parent that does not exist, parents that do not match the level's ups, or a
+// level with none above it is sourcemetadata.invalid.
 func GetDraftMetadataBoard(in []byte) ([]byte, error) {
 	var req engine.GetDraftMetadataBoardRequest
 	if err := proto.Unmarshal(in, &req); err != nil {
 		return nil, unmarshalErr("get_draft_metadata_board", err)
 	}
-	sourceID, err := parseID(req.GetSourceId())
-	if err != nil {
-		return nil, err
+	parents := make([]sourcemetadata.Owner, len(req.GetParents()))
+	for i, p := range req.GetParents() {
+		o, err := parseOwner(p)
+		if err != nil {
+			return nil, err
+		}
+		parents[i] = o
 	}
 	var out *engine.GetDraftMetadataBoardResponse
-	err = withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
-		entries, err := sourcemetadata.ListDraftWorkspace(c, sourceID, vocabkey.Level(req.GetLevel()))
+	err := withProjectCatalog(req.GetProjectDir(), func(c *database.Catalog) error {
+		entries, err := sourcemetadata.ListDraftWorkspace(c, vocabkey.Level(req.GetLevel()), parents)
 		if err != nil {
 			return err
 		}

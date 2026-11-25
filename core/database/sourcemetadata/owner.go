@@ -42,6 +42,9 @@ func (g OwnerRows) Of(o Owner) map[string]Row { return rowsByField(g[o.key()]) }
 // storeFor, so a level with no entry is refused before any query.
 type store struct {
 	level vocabkey.Level
+	// ups are the levels directly above this one, in catalogmodel's order: the
+	// up columns the type read selects after the Source's id.
+	ups []vocabkey.Level
 
 	// Names that also appear in change rows.
 	ownerColumn string
@@ -49,7 +52,8 @@ type store struct {
 	layout      string
 
 	// typeIn and typeSuffix bracket the IN list of sqlbatch.Query. They read
-	// the owners' ids, their Source type ids and their Source ids.
+	// the owners' ids, their Source type ids, their Source ids and the ids
+	// their up columns name.
 	typeIn     string
 	typeSuffix string
 
@@ -76,12 +80,17 @@ type store struct {
 }
 
 // sourcePathIn is the type read of a level, up to its IN list: the owner's id,
-// its Source's type id and its Source's id. path is catalogmodel.SourcePath.
-// The owner is t0 and each step up is the next alias; the last is the Source.
+// its Source's type id and its Source's id, then the owner's id in each of its
+// up columns, in order. path is catalogmodel.SourcePath. The owner is t0 and
+// each step up is the next alias; the last is the Source.
 func sourcePathIn(path []catalogmodel.MetadataLevelTables) string {
 	n := len(path) - 1
 	var b strings.Builder
-	fmt.Fprintf(&b, "SELECT t0.id, t%[1]d.source_type_id, t%[1]d.id FROM %[2]s t0", n, path[0].OwnerTable)
+	fmt.Fprintf(&b, "SELECT t0.id, t%[1]d.source_type_id, t%[1]d.id", n)
+	for _, up := range path[0].Ups {
+		fmt.Fprintf(&b, ", t0.%s", up.Column)
+	}
+	fmt.Fprintf(&b, " FROM %s t0", path[0].OwnerTable)
 	for k := 1; k <= n; k++ {
 		fmt.Fprintf(&b, " JOIN %s t%d ON t%d.id = t%d.%s", path[k].OwnerTable, k, k, k-1, path[k-1].SourceUp().Column)
 	}
@@ -95,8 +104,13 @@ func sourcePathIn(path []catalogmodel.MetadataLevelTables) string {
 func newStore(path []catalogmodel.MetadataLevelTables) *store {
 	f := func(format string, a ...any) string { return fmt.Sprintf(format, a...) }
 	level, ownerTable, ownerColumn, values, layout := path[0].Level, path[0].OwnerTable, path[0].OwnerColumn, path[0].Values, path[0].Layout
+	ups := make([]vocabkey.Level, len(path[0].Ups))
+	for i, up := range path[0].Ups {
+		ups[i] = up.Level
+	}
 	return &store{
 		level:       level,
+		ups:         ups,
 		ownerColumn: ownerColumn,
 		values:      values,
 		layout:      layout,
@@ -163,6 +177,30 @@ func storeFor(o Owner) (*store, error) {
 		return nil, ErrInvalid
 	}
 	return st, nil
+}
+
+// OwnersAbove are the owners above one at level: those its row names in its up
+// columns (upIDs, by level), in its level's order, then its Source when
+// sourceID is set and no up is the Source. A nil id is no owner. A Source, and
+// a level that keeps no metadata, have none. A Citation's are its graph, its
+// Artifact and its Source; an Artifact's and a graph's are their Source.
+func OwnersAbove(level vocabkey.Level, upIDs map[vocabkey.Level][]byte, sourceID []byte) []Owner {
+	st, ok := stores[level]
+	if !ok || level == vocabkey.LevelSource {
+		return nil
+	}
+	var out []Owner
+	hasSource := false
+	for _, up := range st.ups {
+		if id := upIDs[up]; id != nil {
+			out = append(out, Owner{Level: up, ID: id})
+			hasSource = hasSource || up == vocabkey.LevelSource
+		}
+	}
+	if sourceID != nil && !hasSource {
+		out = append(out, Owner{Level: vocabkey.LevelSource, ID: sourceID})
+	}
+	return out
 }
 
 // requireOwner is ErrInvalid when the owner row does not exist.

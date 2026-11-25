@@ -9,7 +9,9 @@ import (
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/apperr"
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
@@ -19,6 +21,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/database/catalogmodel"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/citations/citationstest"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/databasetest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/dbtest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/evidencegraphs/evidencegraphstest"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
@@ -1123,11 +1126,11 @@ func TestSourcePathIn(t *testing.T) {
 		{"source", catalogmodel.MetadataTables, vocabkey.LevelSource,
 			"SELECT t0.id, t0.source_type_id, t0.id FROM sources t0 WHERE t0.id IN ("},
 		{"artifact", catalogmodel.MetadataTables, vocabkey.LevelArtifact,
-			"SELECT t0.id, t1.source_type_id, t1.id FROM artifacts t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
+			"SELECT t0.id, t1.source_type_id, t1.id, t0.source_id FROM artifacts t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
 		{"graph", catalogmodel.MetadataTables, vocabkey.LevelGraph,
-			"SELECT t0.id, t1.source_type_id, t1.id FROM evidence_graphs t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
+			"SELECT t0.id, t1.source_type_id, t1.id, t0.source_id FROM evidence_graphs t0 JOIN sources t1 ON t1.id = t0.source_id WHERE t0.id IN ("},
 		{"citation", catalogmodel.MetadataTables, vocabkey.LevelCitation,
-			"SELECT t0.id, t2.source_type_id, t2.id FROM citations t0 JOIN artifacts t1 ON t1.id = t0.artifact_id JOIN sources t2 ON t2.id = t1.source_id WHERE t0.id IN ("},
+			"SELECT t0.id, t2.source_type_id, t2.id, t0.graph_id, t0.artifact_id FROM citations t0 JOIN artifacts t1 ON t1.id = t0.artifact_id JOIN sources t2 ON t2.id = t1.source_id WHERE t0.id IN ("},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -3668,7 +3671,7 @@ func TestListDraftWorkspaceInherited(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
-		entries, err := ListDraftWorkspace(c, src.ID, level)
+		entries, err := ListDraftWorkspace(c, level, []Owner{sourceOwner(src.ID)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -3676,5 +3679,275 @@ func TestListDraftWorkspaceInherited(t *testing.T) {
 		if !ok || e.Value != nil || e.Inherited == nil || e.Inherited.ValueText != "Ancestry" || !e.StaysWithoutValue {
 			t.Fatalf("%s draft provider = %+v, %v", level, e, ok)
 		}
+	}
+}
+
+// newCitationOwners makes an Artifact on the Source, a graph linked to it and a
+// Citation on both.
+func newCitationOwners(t testing.TB, c *database.Catalog, userID []byte, src sources.Source) (artifact, graph, citation Owner) {
+	t.Helper()
+	a, err := artifactstest.Create(c, userID, artifacts.CreateInput{SourceID: src.ID, Label: "Page"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := evidencegraphstest.Create(t, c, userID, src.ID, "Household", a.ID)
+	cit, err := citationstest.Create(c, userID, citations.CreateInput{ArtifactID: a.ID, GraphID: g.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return Owner{Level: vocabkey.LevelArtifact, ID: a.ID}, Owner{Level: vocabkey.LevelGraph, ID: g.ID}, Owner{Level: vocabkey.LevelCitation, ID: cit.ID}
+}
+
+// TestListWorkspacesAncestors: a Citation's board reads its graph, Artifact and
+// Source, nearest first; an Artifact's and a graph's read the Source only.
+func TestListWorkspacesAncestors(t *testing.T) {
+	c, userID := seededWorld(t)
+	l := newLedger(t, c, userID)
+	n := 0
+	// fixture is a fresh Source of the ledger type with its Artifact, graph and Citation.
+	fixture := func(t *testing.T) (src sources.Source, a, g, cit Owner) {
+		t.Helper()
+		n++
+		src = newSource(t, c, userID, l.typeID, "Ledger "+strconv.Itoa(n+1))
+		a, g, cit = newCitationOwners(t, c, userID, src)
+		return src, a, g, cit
+	}
+	set := func(t *testing.T, o Owner, in Input) {
+		t.Helper()
+		in.FieldID = l.line.ID
+		if _, _, err := runSetOwner(c, userID, o, in); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unknown := Input{Mark: valuemark.Mark{Unknown: true}}
+	lineOn := func(t *testing.T, b Board) WorkspaceEntry {
+		t.Helper()
+		e, ok := entryOf(b.Entries, "line_number")
+		if !ok {
+			t.Fatalf("no line_number entry")
+		}
+		return e
+	}
+
+	tests := []struct {
+		name                         string
+		graph, artifact, source, own *Input
+		met                          bool
+		inherited                    string // "" for none
+		from                         vocabkey.Level
+		unknown                      bool // the inherited row is marked unknown
+	}{
+		{"AC-1.1 the graph holds it", &Input{ValueText: "7"}, nil, nil, nil, true, "7", vocabkey.LevelGraph, false},
+		{"AC-1.2 only the Artifact holds it", nil, &Input{ValueText: "9"}, nil, nil, true, "9", vocabkey.LevelArtifact, false},
+		{"AC-1.3 only the Source holds it", nil, nil, &Input{ValueText: "14"}, nil, true, "14", vocabkey.LevelSource, false},
+		{"AC-1.4 graph before Artifact before Source", &Input{ValueText: "7"}, &Input{ValueText: "9"}, &Input{ValueText: "14"}, nil, true, "7", vocabkey.LevelGraph, false},
+		{"AC-1.5 an unknown at the graph stops the walk", &unknown, &Input{ValueText: "9"}, nil, nil, true, "", vocabkey.LevelGraph, true},
+		{"AC-1.6 no level holds it", nil, nil, nil, nil, false, "", "", false},
+		{"AC-1.7 the Citation's own value is not elsewhere", &Input{ValueText: "7"}, nil, nil, &Input{ValueText: "3"}, true, "7", vocabkey.LevelGraph, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			src, a, g, cit := fixture(t)
+			for _, h := range []struct {
+				o  Owner
+				in *Input
+			}{{g, tc.graph}, {a, tc.artifact}, {sourceOwner(src.ID), tc.source}, {cit, tc.own}} {
+				if h.in != nil {
+					set(t, h.o, *h.in)
+				}
+			}
+			e := lineOn(t, boardOf(t, c, cit))
+			if e.Annotation.Need != citationformat.NeedNeeded || e.Annotation.MetElsewhere != tc.met {
+				t.Errorf("annotation = %+v, want needed, met elsewhere %v", e.Annotation, tc.met)
+			}
+			switch {
+			case tc.inherited == "" && !tc.unknown:
+				if e.Inherited != nil {
+					t.Errorf("inherited = %+v, want none", e.Inherited)
+				}
+			default:
+				if e.Inherited == nil || e.Inherited.ValueText != tc.inherited || e.Inherited.Owner.Level != tc.from || e.Inherited.Mark.Unknown != tc.unknown {
+					t.Errorf("inherited = %+v, want %q at %s (unknown %v)", e.Inherited, tc.inherited, tc.from, tc.unknown)
+				}
+			}
+			if tc.own != nil {
+				if e.Value == nil || e.Value.ValueText != tc.own.ValueText {
+					t.Errorf("own value = %+v, want %q", e.Value, tc.own.ValueText)
+				}
+			} else if e.Value != nil {
+				t.Errorf("own value = %+v, want none", e.Value)
+			}
+		})
+	}
+
+	t.Run("AC-1.8 an Artifact's and a graph's board read the Source only", func(t *testing.T) {
+		_, a, g, _ := fixture(t)
+		set(t, g, Input{ValueText: "7"})
+		ea := lineOn(t, boardOf(t, c, a))
+		if ea.Inherited != nil || ea.Annotation.MetElsewhere {
+			t.Errorf("Artifact line_number = inherited %+v, met %v; want none, not met", ea.Inherited, ea.Annotation.MetElsewhere)
+		}
+		eg := lineOn(t, boardOf(t, c, g))
+		if eg.Value == nil || eg.Value.ValueText != "7" || eg.Inherited != nil {
+			t.Errorf("graph line_number = value %+v, inherited %+v; want 7, none", eg.Value, eg.Inherited)
+		}
+	})
+
+	t.Run("AC-1.9 an owner and its ancestors in one call read each once", func(t *testing.T) {
+		src, a, g, cit := fixture(t)
+		set(t, g, Input{ValueText: "7"})
+		owners := []Owner{g, cit, sourceOwner(src.ID), a}
+		got, err := ListWorkspaces(c, owners)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, o := range owners {
+			if want := boardOf(t, c, o); !reflect.DeepEqual(got[i], want) {
+				t.Errorf("%s board in one call differs from its own read:\n got %+v\nwant %+v", o.Level, got[i], want)
+			}
+		}
+		valued := 0
+		for _, e := range got[0].Entries {
+			if e.Value != nil {
+				valued++
+			}
+		}
+		if valued != 1 {
+			t.Errorf("graph board has %d valued entries, want 1", valued)
+		}
+	})
+}
+
+// TestListWorkspacesCitationsScale: the boards of 60 Citations of one Artifact
+// and graph cost the SELECTs of one, and read inside the budget.
+func TestListWorkspacesCitationsScale(t *testing.T) {
+	c, userID := seededWorld(t)
+	src := newSource(t, c, userID, seededType(t, c, "census").ID, "1900 census")
+	a, g, first := newCitationOwners(t, c, userID, src)
+	set := func(o Owner, key, text string) {
+		t.Helper()
+		if _, _, err := runSetOwner(c, userID, o, Input{FieldID: seededField(t, c, key).ID, ValueText: text}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	set(sourceOwner(src.ID), "provider", "Ancestry")
+	set(a, "url", "https://example.org/census")
+	set(g, "item", "12")
+	citationsOf := []Owner{first}
+	for i := 1; i < 60; i++ {
+		cit, err := citationstest.Create(c, userID, citations.CreateInput{ArtifactID: a.ID, GraphID: g.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		citationsOf = append(citationsOf, Owner{Level: vocabkey.LevelCitation, ID: cit.ID})
+	}
+	read := func(owners []Owner) []Board {
+		boards, err := ListWorkspaces(c, owners)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return boards
+	}
+	selects := databasetest.CountSelects(t, c)
+	read(citationsOf[:1]) // warms the catalog
+	selects.Reset()
+	read(citationsOf[:1])
+	one := selects.N()
+	selects.Reset()
+	boards := read(citationsOf)
+	if n := selects.N(); n != one {
+		t.Errorf("%d SELECTs for 60 Citations, %d for one; want equal", n, one)
+	}
+	for i, b := range boards {
+		e, ok := entryOf(b.Entries, "provider")
+		if !ok || e.Inherited == nil || e.Inherited.ValueText != "Ancestry" || e.Inherited.Owner.Level != vocabkey.LevelSource {
+			t.Fatalf("board %d provider = %+v, %v; want the Source's inherited", i, e, ok)
+		}
+	}
+	databasetest.WithinBudget(t, "60 Citation boards", databasetest.Warm(func() { read(citationsOf) }), 100*time.Millisecond)
+}
+
+// TestListDraftWorkspaceParents: a draft board names its parents, any order,
+// and equals the saved board of an owner holding nothing under them.
+func TestListDraftWorkspaceParents(t *testing.T) {
+	c, userID := seededWorld(t)
+	l := newLedger(t, c, userID)
+	src := newSource(t, c, userID, l.typeID, "Ledger 2")
+	a, g, cit := newCitationOwners(t, c, userID, src)
+	if _, _, err := runSetOwner(c, userID, g, Input{FieldID: l.line.ID, ValueText: "7"}); err != nil {
+		t.Fatal(err)
+	}
+	other := newSource(t, c, userID, l.typeID, "Ledger 3")
+	otherA, _, _ := newCitationOwners(t, c, userID, other)
+	srcOwner := sourceOwner(src.ID)
+	noArtifact := Owner{Level: vocabkey.LevelArtifact, ID: bytes.Repeat([]byte{0xAB}, 16)}
+
+	t.Run("AC-3.1 a Citation's draft equals the saved board of one holding nothing", func(t *testing.T) {
+		saved := boardOf(t, c, cit).Entries
+		for _, parents := range [][]Owner{{g, a}, {a, g}} {
+			got, err := ListDraftWorkspace(c, vocabkey.LevelCitation, parents)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got) != len(saved) {
+				t.Fatalf("%d draft entries, want %d", len(got), len(saved))
+			}
+			e, _ := entryOf(got, "line_number")
+			if e.Annotation.Need != citationformat.NeedNeeded || !e.Annotation.MetElsewhere || e.Inherited == nil ||
+				e.Inherited.ValueText != "7" || e.Inherited.Owner.Level != vocabkey.LevelGraph {
+				t.Errorf("line_number = %+v, inherited %+v; want needed, met, 7 from the graph", e.Annotation, e.Inherited)
+			}
+			for i := range got {
+				d, s := got[i], saved[i]
+				if d.Value != nil {
+					t.Errorf("entry %s holds %+v, want empty", d.Field.Key, d.Value)
+				}
+				if !bytes.Equal(d.Field.ID, s.Field.ID) || d.Suggested != s.Suggested || !reflect.DeepEqual(d.Annotation, s.Annotation) ||
+					!reflect.DeepEqual(d.Inherited, s.Inherited) || d.StaysWithoutValue != s.StaysWithoutValue {
+					t.Errorf("entry %d: draft %+v, saved %+v", i, d, s)
+				}
+			}
+		}
+	})
+
+	t.Run("AC-3.2 an Artifact's and a graph's draft read the Source", func(t *testing.T) {
+		if _, err := runSet(c, userID, src.ID, Input{FieldID: l.line.ID, ValueText: "14"}); err != nil {
+			t.Fatal(err)
+		}
+		for _, level := range []vocabkey.Level{vocabkey.LevelArtifact, vocabkey.LevelGraph} {
+			got, err := ListDraftWorkspace(c, level, []Owner{srcOwner})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if e, ok := entryOf(got, "line_number"); ok && (e.Inherited == nil || e.Inherited.ValueText != "14" || e.Inherited.Owner.Level != vocabkey.LevelSource) {
+				t.Errorf("%s draft line_number inherited %+v, want 14 from the Source", level, e.Inherited)
+			}
+		}
+	})
+
+	refusals := []struct {
+		name    string
+		level   vocabkey.Level
+		parents []Owner
+	}{
+		{"AC-3.3 the graph alone", vocabkey.LevelCitation, []Owner{g}},
+		{"AC-3.3 graph, Artifact and Source", vocabkey.LevelCitation, []Owner{g, a, srcOwner}},
+		{"AC-3.3 the graph twice", vocabkey.LevelCitation, []Owner{g, g}},
+		{"AC-3.3 parents of two Sources", vocabkey.LevelCitation, []Owner{g, otherA}},
+		{"AC-3.3 an Artifact that does not exist", vocabkey.LevelCitation, []Owner{g, noArtifact}},
+		{"AC-3.3 a 15-byte id", vocabkey.LevelCitation, []Owner{g, {Level: vocabkey.LevelArtifact, ID: a.ID[:15]}}},
+		{"AC-3.3 no parents", vocabkey.LevelCitation, nil},
+		{"AC-3.3 a graph and a Source", vocabkey.LevelCitation, []Owner{g, srcOwner}},
+		{"AC-3.4 a Source draft with parents", vocabkey.LevelSource, []Owner{srcOwner}},
+		{"AC-3.4 a Source draft with none", vocabkey.LevelSource, nil},
+		{"AC-3.4 a page draft", "page", []Owner{srcOwner}},
+		{"AC-3.4 an empty level", "", []Owner{srcOwner}},
+	}
+	for _, tc := range refusals {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := ListDraftWorkspace(c, tc.level, tc.parents); !errors.Is(err, ErrInvalid) {
+				t.Fatalf("err = %v, want ErrInvalid", err)
+			}
+		})
 	}
 }

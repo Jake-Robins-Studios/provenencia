@@ -286,12 +286,13 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
     var removeTypeFieldError: Error?
     /// The type id of each `listTypeSuggestions` call, in order.
     var listTypeSuggestionsTypeIDs: [String] = []
-    /// What `getDraftMetadataBoard` answers, keyed `"<sourceID>/<level rawValue>"`; absent is empty.
+    /// What `getDraftMetadataBoard` answers, keyed `"<parent ids, sorted, joined by commas>/<level rawValue>"`
+    /// (one Source parent keys `"<sourceID>/<level rawValue>"`); absent is empty.
     var draftMetadataBoardEntries: [String: [CatalogMetadataEntry]] = [:]
     /// When set, `getDraftMetadataBoard` throws it.
     var draftMetadataBoardError: Error?
     /// The arguments of every `getDraftMetadataBoard` call, in order.
-    private(set) var draftMetadataBoardCalls: [(sourceID: String, level: Level)] = []
+    private(set) var draftMetadataBoardCalls: [(parents: [MetadataOwner], level: Level)] = []
     /// Awaited first in `getDraftMetadataBoard`, so a test can act while an Add form's read is in flight.
     let draftMetadataBoardHold = FakeHold()
     /// While on, `updateArtifact` suspends after recording the call and before it
@@ -635,14 +636,15 @@ final class FakeStore: GenealogyStore, @unchecked Sendable {
         }
     }
 
-    func getDraftMetadataBoard(projectDir _: String, sourceID: String, level: Level) async throws
+    func getDraftMetadataBoard(projectDir _: String, parents: [MetadataOwner], level: Level) async throws
         -> [CatalogMetadataEntry]
     {
         await draftMetadataBoardHold.wait()
         return try withState {
-            draftMetadataBoardCalls.append((sourceID: sourceID, level: level))
+            draftMetadataBoardCalls.append((parents: parents, level: level))
             if let draftMetadataBoardError { throw draftMetadataBoardError }
-            return draftMetadataBoardEntries["\(sourceID)/\(level.rawValue)"] ?? []
+            let key = parents.map(\.id).sorted().joined(separator: ",")
+            return draftMetadataBoardEntries["\(key)/\(level.rawValue)"] ?? []
         }
     }
 

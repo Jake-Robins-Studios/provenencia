@@ -1971,7 +1971,7 @@ struct SourcePageModelTests {
         #expect(sheet.board.entries.map(\.field.id) == ["provider", "url", "accessed"])
         #expect(sheet.board.entries.allSatisfy { $0.suggested && !$0.hasValue && $0.valueText.isEmpty })
         #expect(store.draftMetadataBoardCalls.map(\.level) == [.artifact])
-        #expect(store.draftMetadataBoardCalls.map(\.sourceID) == [sourceID])
+        #expect(store.draftMetadataBoardCalls.map(\.parents) == [[MetadataOwner(level: .source, id: sourceID)]])
         #expect(!sheet.canSave)
         #expect(sheet.subtitle == "SRC-AAAAA · Family album")
 

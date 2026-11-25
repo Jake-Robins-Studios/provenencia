@@ -1673,10 +1673,11 @@ protocol GenealogyStore: Sendable {
     /// order, an id that is no longer a Source adding no row. No ids reads every Source.
     func listSources(projectDir: String, sourceIDs: [String]) async throws -> [CatalogSource]
     func getSourceWorkspace(projectDir: String, sourceID: String) async throws -> CatalogSourceWorkspace
-    /// The board a new Artifact (`level: .artifact`) or Evidence graph (`.graph`) starts with on this
-    /// Source: its type's suggestions, empty, then the fields the type's citation formats head there.
-    /// The engine's read (`GetDraftMetadataBoard`), so no caller builds the rows itself.
-    func getDraftMetadataBoard(projectDir: String, sourceID: String, level: Level) async throws
+    /// The board a new owner at `level` starts with under `parents` (a new Artifact's or graph's Source;
+    /// a new Citation's graph and Artifact): its type's suggestions, empty, then the fields the type's
+    /// citation formats head there. The engine's read (`GetDraftMetadataBoard`), so no caller builds the
+    /// rows itself.
+    func getDraftMetadataBoard(projectDir: String, parents: [MetadataOwner], level: Level) async throws
         -> [CatalogMetadataEntry]
     /// Creates a Source in one audited write and returns it with the write's effects.
     func createSource(

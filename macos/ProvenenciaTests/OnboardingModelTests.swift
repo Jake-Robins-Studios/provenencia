@@ -364,7 +364,7 @@ private struct ThrowingStore: GenealogyStore {
     func listSources(projectDir _: String, sourceIDs _: [String]) async throws -> [CatalogSource] {
         throw StoreBoom.boom
     }
-    func getDraftMetadataBoard(projectDir _: String, sourceID _: String, level _: Level) async throws
+    func getDraftMetadataBoard(projectDir _: String, parents _: [MetadataOwner], level _: Level) async throws
         -> [CatalogMetadataEntry] { throw StoreBoom.boom }
     func getSourceWorkspace(projectDir _: String, sourceID _: String) async throws -> CatalogSourceWorkspace {
         throw StoreBoom.boom

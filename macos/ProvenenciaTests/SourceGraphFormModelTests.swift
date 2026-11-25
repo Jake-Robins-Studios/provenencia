@@ -376,7 +376,7 @@ struct SourceGraphFormModelTests {
         #expect(form.board.entries.map(\.field.id) == ["item", "line", "dwelling", "family"])
         #expect(form.board.entries.allSatisfy { $0.suggested && !$0.hasValue })
         #expect(store.draftMetadataBoardCalls.map(\.level) == [.graph])
-        #expect(store.draftMetadataBoardCalls.map(\.sourceID) == [sourceID])
+        #expect(store.draftMetadataBoardCalls.map(\.parents) == [[MetadataOwner(level: .source, id: sourceID)]])
         #expect(form.scrollTarget == nil)
         #expect(!form.isDirty)
     }

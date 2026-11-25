@@ -135,12 +135,17 @@ struct GoStore: GenealogyStore {
         return resp.sources.map(Self.mapSource)
     }
 
-    func getDraftMetadataBoard(projectDir: String, sourceID: String, level: Level) async throws
+    func getDraftMetadataBoard(projectDir: String, parents: [MetadataOwner], level: Level) async throws
         -> [CatalogMetadataEntry]
     {
         var req = Provenencia_Engine_V1_GetDraftMetadataBoardRequest()
         req.projectDir = projectDir
-        req.sourceID = sourceID
+        req.parents = parents.map { parent in
+            var owner = Provenencia_Engine_V1_MetadataOwner()
+            owner.level = parent.level.rawValue
+            owner.id = parent.id
+            return owner
+        }
         req.level = level.rawValue
         let resp: Provenencia_Engine_V1_GetDraftMetadataBoardResponse = try await provenenciaCall(
             method: CoreMethod.getDraftMetadataBoard,
