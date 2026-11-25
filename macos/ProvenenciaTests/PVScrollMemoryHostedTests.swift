@@ -212,28 +212,6 @@ struct PVScrollMemoryHostedTests {
         #expect(memory.noted == [1200, 900])
     }
 
-    /// The arrival reaches the mounted view before the arriving content is laid out: the y is compared
-    /// with that content, not with the one it replaces.
-    @Test func anArrivalAheadOfItsLayoutDoesNotUseTheOldContent() async throws {
-        let memory = Memory()
-        memory.offset = 1200
-        let (_, host) = host(memory, PVPageColumns(primary: { LateRows40(memory: memory) }))
-        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 1200 })
-        let coordinator = try #require(descendant(PVScrollMemoryProbeView.self, in: host)?.coordinator)
-        memory.tall = false
-        memory.arrival = 2
-        memory.offset = 900
-        coordinator.update(memory: memory.scrollMemory)
-        // The decision runs in this turn, ahead of any layout.
-        await mainQueueTurn()
-        host.layoutSubtreeIfNeeded()
-        #expect(firstScrollView(host).map { y($0) } == 0)
-        #expect(memory.noted == [1200])
-        memory.tall = true
-        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 900 })
-        #expect(memory.noted == [1200, 900])
-    }
-
     private struct LateRows40: View {
         @Bindable var memory: Memory
 

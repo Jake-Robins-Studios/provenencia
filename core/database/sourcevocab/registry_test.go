@@ -105,8 +105,8 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 			t.Errorf("%s suggests %v, its formats give %v in order", st.Key, got[st.Key], want)
 		}
 	}
-	if census := got["census"]; len(census) != 17 || census[0] != "creator" || census[len(census)-1] != "citing" {
-		t.Errorf("census suggests %v, want 17 fields, creator first and citing last", census)
+	if census := got["census"]; len(census) != 18 || census[0] != "creator" || census[len(census)-1] != "citing" {
+		t.Errorf("census suggests %v, want 18 fields, creator first and citing last", census)
 	}
 }
 
@@ -127,10 +127,7 @@ func TestSeedFieldsAreRead(t *testing.T) {
 		if f.DataType != wantType {
 			t.Errorf("field %s has data type %s, want %s", f.Key, f.DataType, wantType)
 		}
-		wantUnknown := ""
-		if f.Key == "publication_place" || f.Key == "publisher" {
-			wantUnknown = "n.p."
-		}
+		wantUnknown := map[string]string{"publication_place": "n.p.", "publisher": "n.p.", "page": "unpaginated"}[f.Key]
 		if f.UnknownText != wantUnknown {
 			t.Errorf("field %s has unknown text %q, want %q", f.Key, f.UnknownText, wantUnknown)
 		}
