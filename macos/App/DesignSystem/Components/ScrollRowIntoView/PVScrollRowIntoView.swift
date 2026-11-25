@@ -113,7 +113,6 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     @State private var movedTo: ID?
     @State private var isArriving = false
     @Environment(\.pvScrollMemory) private var memory
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct Move: Equatable {
         var selection: ID?
@@ -121,26 +120,15 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        ScrollViewReader { proxy in
-            content
-                .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
-                    if old.arrival != new.arrival {
-                        isArriving = true
-                        Task { @MainActor in isArriving = false }
-                    }
-                    movedTo = isArriving || old.arrival != new.arrival ? nil : new.selection
-                    // Rows between here and there were never drawn: the first scroll lands on their
-                    // estimated heights. Once more on the next turn, with the rows drawn, it lands whole.
-                    guard let row = movedTo else { return }
-                    Task { @MainActor in
-                        guard movedTo == row else { return }
-                        withAnimation(animated && !reduceMotion ? PVMotion.fastStandard : nil) {
-                            proxy.scrollTo(row)
-                        }
-                    }
+        content
+            .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
+                if old.arrival != new.arrival {
+                    isArriving = true
+                    Task { @MainActor in isArriving = false }
                 }
-                .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
-        }
+                movedTo = isArriving || old.arrival != new.arrival ? nil : new.selection
+            }
+            .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
     }
 }
 
