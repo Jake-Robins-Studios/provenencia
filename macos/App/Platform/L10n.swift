@@ -5222,24 +5222,6 @@ enum L10n {
             comment: "Accessibility label for the Sources type filter control"
         )
 
-        static let sortMenu = LocalizedStringResource(
-            "sources.list.sortMenu",
-            defaultValue: "Sort sources",
-            comment: "Accessibility label for the Sources sort control"
-        )
-
-        static let sortAdded = LocalizedStringResource(
-            "sources.list.sort.added",
-            defaultValue: "Date added",
-            comment: "Sources sort option: catalog list order (date added)"
-        )
-
-        static let sortUpdated = LocalizedStringResource(
-            "sources.list.sort.updated",
-            defaultValue: "Date updated",
-            comment: "Sources sort option: most recent work first (audit revision)"
-        )
-
         static let searchPrompt = LocalizedStringResource(
             "sources.list.searchPrompt",
             defaultValue: "Search title or ref",
@@ -5282,38 +5264,6 @@ enum L10n {
             comment: "Sources evidence-status filter option: graphs with at least one promoted subject"
         )
 
-        static let sortAZ = LocalizedStringResource(
-            "sources.list.sort.az",
-            defaultValue: "Alphabetical",
-            comment: "Sources sort option: title A to Z"
-        )
-
-        static let sortZA = LocalizedStringResource(
-            "sources.list.sort.za",
-            defaultValue: "Reverse alphabetical",
-            comment: "Sources sort option: title Z to A"
-        )
-
-        static let sortDateOldest = LocalizedStringResource(
-            "sources.list.sort.dateOldest",
-            defaultValue: "Published date, oldest first",
-            comment: "Sources sort option: published date, oldest first, undated last"
-        )
-
-        static let sortDateNewest = LocalizedStringResource(
-            "sources.list.sort.dateNewest",
-            defaultValue: "Published date, newest first",
-            comment: "Sources sort option: published date, newest first, undated last"
-        )
-
-        static func sortedBy(_ label: String) -> String {
-            return L10n.format(LocalizedStringResource(
-                "sources.list.sortedBy",
-                defaultValue: "Sorted by %@",
-                comment: "Sources sort control label; argument is the active sort option in lowercase"
-            ), label)
-        }
-
         static let emptyTitle = LocalizedStringResource(
             "sources.list.emptyTitle",
             defaultValue: "No sources yet",
@@ -5336,6 +5286,12 @@ enum L10n {
             "sources.list.graphCountsLoading",
             defaultValue: "counts loading",
             comment: "VoiceOver while Sources list graph-progress counts have not arrived"
+        )
+
+        static let graphsUnavailable = LocalizedStringResource(
+            "sources.list.graphsUnavailable",
+            defaultValue: "graphs unavailable",
+            comment: "VoiceOver for the Evidence cell of a Source whose graph list could not be read"
         )
 
         static let graphCountsUnavailable = LocalizedStringResource(
@@ -5407,36 +5363,12 @@ enum L10n {
             }
         }
 
-        /// The count of a closed Source's graphs in its secondary line: "1 graph", "8 graphs".
+        /// The count of a Source's graphs in the Evidence column: "1 graph", "8 graphs".
         static func graphSummaryCount(_ count: Int) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.list.graphSummaryCount",
                 defaultValue: "%lld graphs",
-                comment: "A closed Source's graph count in the Sources list secondary line; argument is the number of Evidence graphs"
-            ), count)
-        }
-
-        static func graphSummary(count: String, detail: String) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.list.graphSummary",
-                defaultValue: "%1$@ · %2$@",
-                comment: "A closed Source's secondary line tail: the graph count, then their status; 1 is the count (8 graphs), 2 the status (In progress)"
-            ), count, detail)
-        }
-
-        static func graphSummaryInProgress(_ count: Int) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.list.graphSummaryInProgress",
-                defaultValue: "%lld in progress",
-                comment: "Status of a closed Source's mixed graphs in the Sources list: how many are In progress"
-            ), count)
-        }
-
-        static func graphSummaryPromoted(_ count: Int) -> String {
-            L10n.format(LocalizedStringResource(
-                "sources.list.graphSummaryPromoted",
-                defaultValue: "%lld promoted",
-                comment: "Status of a closed Source's mixed graphs in the Sources list when none is in progress: how many are Promoted"
+                comment: "A Source's graph count in the Sources list's Evidence column; argument is the number of Evidence graphs"
             ), count)
         }
 
@@ -5469,8 +5401,74 @@ enum L10n {
         static let needsArtifact = LocalizedStringResource(
             "sources.list.needsArtifact",
             defaultValue: "Needs an artifact",
-            comment: "End of a Sources list row's secondary line for a Source with no Artifact"
+            comment: "Evidence column of a Sources list row for a Source with no Artifact"
         )
+
+        static let columnTitle = LocalizedStringResource(
+            "sources.list.column.title",
+            defaultValue: "Title",
+            comment: "Sources table column title: the Source's title, ref and type"
+        )
+
+        static let columnEvidence = LocalizedStringResource(
+            "sources.list.column.evidence",
+            defaultValue: "Evidence",
+            comment: "Sources table column title: how many Evidence graphs a Source has, or a graph's counts"
+        )
+
+        static let columnStatus = LocalizedStringResource(
+            "sources.list.column.status",
+            defaultValue: "Status",
+            comment: "Sources table column title: the Evidence status of a Source or graph"
+        )
+
+        static let columnType = LocalizedStringResource(
+            "sources.list.column.type",
+            defaultValue: "Type",
+            comment: "Sources table column title: the Source type"
+        )
+
+        static let columnPublished = LocalizedStringResource(
+            "sources.list.column.published",
+            defaultValue: "Published",
+            comment: "Sources table column title: the Source's own date"
+        )
+
+        static let columnAdded = LocalizedStringResource(
+            "sources.list.column.added",
+            defaultValue: "Added",
+            comment: "Sources table column title: when the Source was added to the project"
+        )
+
+        static let columnUpdated = LocalizedStringResource(
+            "sources.list.column.updated",
+            defaultValue: "Updated",
+            comment: "Sources table column title: when the Source was last worked on"
+        )
+
+        static func addedHelp(stamp: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.list.addedHelp",
+                defaultValue: "Added %@",
+                comment: "Hover help of a Source's Added cell; argument is the full date and time"
+            ), stamp)
+        }
+
+        static func addedSpoken(_ text: String) -> String {
+            L10n.format(LocalizedStringResource(
+                "sources.list.addedSpoken",
+                defaultValue: "added %@",
+                comment: "VoiceOver reading of a Source's Added cell; argument is the spoken time (Yesterday, October 12, 2026)"
+            ), text)
+        }
+
+        static var addedUnknown: String {
+            L10n.string(LocalizedStringResource(
+                "sources.list.addedUnknown",
+                defaultValue: "date added unknown",
+                comment: "VoiceOver reading of a Source's Added cell when no time is recorded"
+            ))
+        }
 
         static let graphNeedsArtifactTooltip = LocalizedStringResource(
             "sources.graph.needsArtifact",
@@ -5481,7 +5479,7 @@ enum L10n {
         static let graphNeedsArtifactToOpen = LocalizedStringResource(
             "sources.list.graphNeedsArtifactToOpen",
             defaultValue: "Needs an artifact to open",
-            comment: "Counts slot of a Sources list graph row whose graph links no Artifact"
+            comment: "Evidence column of a Sources list graph row whose graph links no Artifact"
         )
 
         static let graphsLoading = LocalizedStringResource(

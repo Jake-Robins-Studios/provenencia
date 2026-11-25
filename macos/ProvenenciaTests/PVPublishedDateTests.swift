@@ -15,8 +15,5 @@ struct PVPublishedDateTests {
         #expect(undated.text == "Undated")
         #expect(undated.help == nil)
         #expect(undated.faint)
-        let column = PVPublishedDate.column(width: 140) { (value: CatalogDateValueInput?) in value }
-        #expect(column.width == 140)
-        #expect(column.content(nil)?.text == "Undated")
     }
 }

@@ -89,9 +89,7 @@ struct NameValueEditorForm: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(L10n.NameValue.partsHeading)
-                    .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                    .tracking(PVTypeScale.micro * PVTracking.caps)
-                    .textCase(.uppercase)
+                    .pvMicroCaps()
                     .foregroundStyle(PVColor.textMuted)
                 Spacer()
                 Text(verbatim: L10n.NameValue.partsCount(draft.parts.count))
@@ -236,9 +234,7 @@ struct NameValueEditorForm: View {
     private var storedAsSection: some View {
         HStack(alignment: .top, spacing: 14) {
             Text(L10n.NameValue.storedAs)
-                .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                .tracking(PVTypeScale.micro * PVTracking.caps)
-                .textCase(.uppercase)
+                .pvMicroCaps()
                 .foregroundStyle(PVColor.textMuted)
             VStack(alignment: .leading, spacing: PVSpacing.space3) {
                 storedLine(label: "form", value: draft.storedFormLine, emphasis: true)
@@ -334,9 +330,7 @@ struct NameValueEditorForm: View {
     private func splitConfirmDetail(_ pending: PendingNameSplit) -> some View {
         VStack(alignment: .leading, spacing: PVSpacing.space3) {
             Text(L10n.NameValue.splitConfirmPending)
-                .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                .tracking(PVTypeScale.micro * PVTracking.caps)
-                .textCase(.uppercase)
+                .pvMicroCaps()
                 .foregroundStyle(PVColor.textMuted)
             VStack(alignment: .leading, spacing: PVSpacing.space2) {
                 ForEach(Array(pending.parts.enumerated()), id: \.element.id) { index, part in

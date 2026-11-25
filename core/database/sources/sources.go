@@ -15,6 +15,7 @@ import (
 	"github.com/Jake-Robins-Studios/provenencia/core/citationformat"
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/artifacts"
+	"github.com/Jake-Robins-Studios/provenencia/core/database/audit"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/datevalues"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/deleteimpact"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/effects"
@@ -62,8 +63,10 @@ const (
 	sqlGetIn    = `SELECT ` + sqlColumns + ` FROM sources WHERE id IN (`
 	sqlGetByRef = `SELECT ` + sqlColumns + ` FROM sources WHERE ref = ?`
 	// Newest-first by UUIDv7 id (create time). The Source's last activity is not
-	// here: List reads it from the display cache (Graph.Activity), so no list
-	// load scans the audit history.
+	// here: List reads it from the display cache (Graph.Activity), and the
+	// create time is one batch seeking the partial index of creates
+	// (audit_changes_created_idx, audit.Created), so no list load scans or
+	// walks the audit history.
 	// has_artifact gates the Evidence graph zone without a per-row query.
 	sqlListHead = `SELECT ` + sqlColumns + `,
 		EXISTS (SELECT 1 FROM artifacts a WHERE a.source_id = s.id)
@@ -100,8 +103,12 @@ type Source struct {
 	IsPublic bool
 	// Updated is the latest audit revision of any work scoped to this Source
 	// (its row, children, and evidence graph) and when it was recorded.
-	// Filled by List and by AttachActivity; zero means unset.
+	// Filled by List, ListByIDs and AttachCreatedAndUpdated; zero means unset.
 	Updated effects.Activity
+	// CreatedAt is when the Source was made (RFC3339 UTC), from its create audit
+	// transaction. Filled by List, ListByIDs and AttachCreatedAndUpdated; empty means
+	// unset or unknown.
+	CreatedAt string
 	// HasArtifact is true when at least one artifacts row exists for this Source.
 	// Filled by List only; other reads leave it false and callers query separately.
 	HasArtifact bool
@@ -563,13 +570,27 @@ func scanListed(rows database.Scanner) (Source, error) {
 	return s, nil
 }
 
-// fillListed fills each listed Source's date and its last activity.
+// fillListed fills each listed Source's date, create time and last activity.
 func fillListed(c *database.Catalog, q database.Querier, out []Source) error {
 	if err := fillDates(q, out); err != nil {
 		return err
 	}
+	return fillCreatedAndUpdated(c, q, out)
+}
+
+// fillCreatedAndUpdated sets CreatedAt on each Source from one batched audit read, and
+// Updated from the display cache's last activity.
+func fillCreatedAndUpdated(c *database.Catalog, q database.Querier, out []Source) error {
+	ids := make([][]byte, 0, len(out))
+	for _, s := range out {
+		ids = append(ids, s.ID)
+	}
+	made, err := audit.Created(q, "source", ids)
+	if err != nil {
+		return err
+	}
 	for i := range out {
-		var err error
+		out[i].CreatedAt = made[string(out[i].ID)].At
 		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
 			return err
 		}
@@ -577,17 +598,21 @@ func fillListed(c *database.Catalog, q database.Querier, out []Source) error {
 	return nil
 }
 
-// AttachActivity sets Updated from the display cache's last activity.
-func AttachActivity(c *database.Catalog, s *Source) error {
+// AttachCreatedAndUpdated sets CreatedAt and Updated on a Source not read by a list.
+func AttachCreatedAndUpdated(c *database.Catalog, s *Source) error {
 	if s == nil || len(s.ID) != 16 {
 		return ErrInvalid
 	}
-	if s.Updated.Revision > 0 {
-		return nil
+	db, err := c.DB()
+	if err != nil {
+		return err
 	}
-	var err error
-	s.Updated, err = c.Graph().Activity(effects.ScopeSource, s.ID)
-	return err
+	one := []Source{*s}
+	if err := fillCreatedAndUpdated(c, db, one); err != nil {
+		return err
+	}
+	*s = one[0]
+	return nil
 }
 
 // Count returns how many Sources are in the catalog — used by the workspace

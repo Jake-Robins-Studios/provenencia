@@ -159,7 +159,6 @@ func CreateSource(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		s.Updated = res.Activity
 		sp, err := enrichSourceProto(c, s)
 		if err != nil {
 			return err
@@ -212,7 +211,6 @@ func CopySource(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		s.Updated = res.Activity
 		sp, err := enrichSourceProto(c, s)
 		if err != nil {
 			return err
@@ -563,6 +561,7 @@ func sourceProto(s sources.Source) *engine.Source {
 		PrimaryArtifactId: database.UUIDString(s.PrimaryArtifactID),
 		UpdatedRevision:   s.Updated.Revision,
 		UpdatedAt:         s.Updated.At,
+		CreatedAt:         s.CreatedAt,
 		IsPublic:          s.IsPublic,
 		DateMark:          valueMarkProto(s.DateMark),
 	}

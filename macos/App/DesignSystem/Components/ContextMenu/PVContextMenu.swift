@@ -145,9 +145,7 @@ struct PVContextMenuPanel<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             if let heading {
                 heading
-                    .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                    .tracking(PVTypeScale.micro * PVTracking.caps)
-                    .textCase(.uppercase)
+                    .pvMicroCaps()
                     .foregroundStyle(PVColor.textFaint)
                     .padding(.horizontal, PVSpacing.space5)
                     .padding(.top, PVSpacing.space3)

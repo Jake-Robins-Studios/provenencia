@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct PVLastUpdatedTests {
-    private static let edmonton: TimestampFormat.Context = {
+    static let edmonton: TimestampFormat.Context = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Edmonton")!
         // 2026-10-14 18:00 in Edmonton.
@@ -54,5 +54,22 @@ struct PVLastUpdatedTests {
         let empty = column.content("")
         #expect(empty?.text == "—")
         #expect(empty?.faint == true)
+    }
+
+    @Test func spokenReadsTheTimeOrSaysItIsUnknown() {
+        #expect(PVLastUpdated.spoken("2026-10-13T22:40:00Z", in: Self.edmonton) == "updated Yesterday")
+        #expect(PVLastUpdated.spoken("", in: Self.edmonton) == "last updated unknown")
+    }
+
+    @Test func relativeDetailHasNoIconAndTakesTheCallersHelp() {
+        let known = PVListDetail.relative("2026-10-14T21:15:00Z", in: Self.edmonton, help: { "Added \($0)" })
+        #expect(known.icon == nil)
+        #expect(known.help?.hasPrefix("Added ") == true)
+        #expect(!known.faint)
+        let unknown = PVListDetail.relative("", in: Self.edmonton, help: { "Added \($0)" })
+        #expect(unknown.text == "—")
+        #expect(unknown.help == nil)
+        #expect(unknown.faint)
+        #expect(PVLastUpdated.detail("2026-10-14T21:15:00Z", in: Self.edmonton).icon == .history)
     }
 }

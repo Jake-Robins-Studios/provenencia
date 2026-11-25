@@ -45,9 +45,7 @@ struct MetadataBoardView: View {
                 if !board.suggested.isEmpty {
                     VStack(alignment: .leading, spacing: PVSpacing.space4) {
                         Text(L10n.Sources.metadataSuggestionsHeading)
-                            .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                            .tracking(PVTypeScale.micro * PVTracking.caps)
-                            .textCase(.uppercase)
+                            .pvMicroCaps()
                             .foregroundStyle(PVColor.textFaint)
                             .padding(.top, board.saved.isEmpty ? 0 : PVSpacing.space7)
 

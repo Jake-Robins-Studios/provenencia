@@ -108,9 +108,7 @@ struct DateValueEditorForm: View {
         VStack(alignment: .leading, spacing: PVSpacing.space5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(heading)
-                    .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-                    .tracking(PVTypeScale.micro * PVTracking.caps)
-                    .textCase(.uppercase)
+                    .pvMicroCaps()
                     .foregroundStyle(PVColor.textMuted)
                 Spacer()
                 if start {

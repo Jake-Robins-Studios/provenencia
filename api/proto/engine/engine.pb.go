@@ -2157,7 +2157,10 @@ type Source struct {
 	IsPublic bool `protobuf:"varint,16,opt,name=is_public,json=isPublic,proto3" json:"is_public,omitempty"`
 	// The date's unknown or supplied mark; absent for no mark. Unknown has no
 	// date; supplied has one.
-	DateMark      *ValueMark `protobuf:"bytes,17,opt,name=date_mark,json=dateMark,proto3" json:"date_mark,omitempty"`
+	DateMark *ValueMark `protobuf:"bytes,17,opt,name=date_mark,json=dateMark,proto3" json:"date_mark,omitempty"`
+	// When the Source was made (RFC3339 UTC, from its create audit transaction);
+	// empty when unknown.
+	CreatedAt     string `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2309,6 +2312,13 @@ func (x *Source) GetDateMark() *ValueMark {
 		return x.DateMark
 	}
 	return nil
+}
+
+func (x *Source) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
 }
 
 type SourceNote struct {
@@ -23015,7 +23025,7 @@ const file_engine_proto_rawDesc = "" +
 	"\x0eupdated_by_ref\x18\a \x01(\tR\fupdatedByRef\x12\x12\n" +
 	"\x04uuid\x18\b \x01(\tR\x04uuid\"V\n" +
 	"\x16GetProjectInfoResponse\x12<\n" +
-	"\aproject\x18\x01 \x01(\v2\".provenencia.engine.v1.ProjectInfoR\aproject\"\xb6\x05\n" +
+	"\aproject\x18\x01 \x01(\v2\".provenencia.engine.v1.ProjectInfoR\aproject\"\xd5\x05\n" +
 	"\x06Source\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\x12$\n" +
@@ -23036,7 +23046,9 @@ const file_engine_proto_rawDesc = "" +
 	"\x04date\x18\x0e \x01(\v2%.provenencia.engine.v1.DateValueInputR\x04date\x12'\n" +
 	"\rdate_sort_key\x18\x0f \x01(\x03H\x00R\vdateSortKey\x88\x01\x01\x12\x1b\n" +
 	"\tis_public\x18\x10 \x01(\bR\bisPublic\x12=\n" +
-	"\tdate_mark\x18\x11 \x01(\v2 .provenencia.engine.v1.ValueMarkR\bdateMarkB\x10\n" +
+	"\tdate_mark\x18\x11 \x01(\v2 .provenencia.engine.v1.ValueMarkR\bdateMark\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\tR\tcreatedAtB\x10\n" +
 	"\x0e_date_sort_key\"\x9c\x01\n" +
 	"\n" +
 	"SourceNote\x12\x0e\n" +

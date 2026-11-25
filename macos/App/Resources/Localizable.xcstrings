@@ -8002,6 +8002,18 @@
         }
       }
     },
+    "sources.list.graphsUnavailable": {
+      "comment": "VoiceOver for the Evidence cell of a Source whose graph list could not be read",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "graphs unavailable"
+          }
+        }
+      }
+    },
     "sources.graph.countsUnavailable": {
       "comment": "Evidence graph row help and Source page count line when graph counts failed to load",
       "extractionState": "manual",
@@ -8027,7 +8039,7 @@
       }
     },
     "sources.list.graphSummaryCount": {
-      "comment": "A closed Source's graph count in the Sources list secondary line; argument is the number of Evidence graphs",
+      "comment": "A Source's graph count in the Sources list's Evidence column; argument is the number of Evidence graphs",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -8043,66 +8055,6 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld graphs"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "sources.list.graphSummary": {
-      "comment": "A closed Source's secondary line tail: the graph count, then their status; 1 is the count (8 graphs), 2 the status (In progress)",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "sources.list.graphSummaryInProgress": {
-      "comment": "Status of a closed Source's mixed graphs in the Sources list: how many are In progress",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld in progress"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld in progress"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "sources.list.graphSummaryPromoted": {
-      "comment": "Status of a closed Source's mixed graphs in the Sources list when none is in progress: how many are Promoted",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld promoted"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld promoted"
                 }
               }
             }
@@ -8159,7 +8111,7 @@
       }
     },
     "sources.list.needsArtifact": {
-      "comment": "End of a Sources list row's secondary line for a Source with no Artifact",
+      "comment": "Evidence column of a Sources list row for a Source with no Artifact",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -8218,78 +8170,6 @@
         }
       }
     },
-    "sources.list.sort.added": {
-      "comment": "Sources sort option: catalog list order (date added)",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date added"
-          }
-        }
-      }
-    },
-    "sources.list.sort.az": {
-      "comment": "Sources sort option: title A to Z",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alphabetical"
-          }
-        }
-      }
-    },
-    "sources.list.sort.updated": {
-      "comment": "Sources sort option: most recent work first (audit revision)",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date updated"
-          }
-        }
-      }
-    },
-    "sources.list.sort.za": {
-      "comment": "Sources sort option: title Z to A",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reverse alphabetical"
-          }
-        }
-      }
-    },
-    "sources.list.sort.dateOldest": {
-      "comment": "Sources sort option: published date, oldest first, undated last",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published date, oldest first"
-          }
-        }
-      }
-    },
-    "sources.list.sort.dateNewest": {
-      "comment": "Sources sort option: published date, newest first, undated last",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published date, newest first"
-          }
-        }
-      }
-    },
     "dates.row.undated": {
       "comment": "A list cell's date when there is none",
       "extractionState": "manual",
@@ -8298,30 +8178,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Undated"
-          }
-        }
-      }
-    },
-    "sources.list.sortMenu": {
-      "comment": "Accessibility label for the Sources sort control",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sort sources"
-          }
-        }
-      }
-    },
-    "sources.list.sortedBy": {
-      "comment": "Sources sort control label; argument is the active sort option in lowercase",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sorted by %@"
           }
         }
       }
@@ -23850,7 +23706,7 @@
       }
     },
     "sources.list.graphNeedsArtifactToOpen": {
-      "comment": "Counts slot of a Sources list graph row whose graph links no Artifact",
+      "comment": "Evidence column of a Sources list graph row whose graph links no Artifact",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -25687,6 +25543,126 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suggested fields"
+          }
+        }
+      }
+    },
+    "sources.list.column.title": {
+      "comment": "Sources table column title: the Source's title, ref and type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        }
+      }
+    },
+    "sources.list.column.evidence": {
+      "comment": "Sources table column title: how many Evidence graphs a Source has, or a graph's counts",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evidence"
+          }
+        }
+      }
+    },
+    "sources.list.column.status": {
+      "comment": "Sources table column title: the Evidence status of a Source or graph",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        }
+      }
+    },
+    "sources.list.column.type": {
+      "comment": "Sources table column title: the Source type",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        }
+      }
+    },
+    "sources.list.column.published": {
+      "comment": "Sources table column title: the Source's own date",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published"
+          }
+        }
+      }
+    },
+    "sources.list.column.added": {
+      "comment": "Sources table column title: when the Source was added to the project",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added"
+          }
+        }
+      }
+    },
+    "sources.list.column.updated": {
+      "comment": "Sources table column title: when the Source was last worked on",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updated"
+          }
+        }
+      }
+    },
+    "sources.list.addedHelp": {
+      "comment": "Hover help of a Source's Added cell; argument is the full date and time",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added %@"
+          }
+        }
+      }
+    },
+    "sources.list.addedSpoken": {
+      "comment": "VoiceOver reading of a Source's Added cell; argument is the spoken time (Yesterday, October 12, 2026)",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "added %@"
+          }
+        }
+      }
+    },
+    "sources.list.addedUnknown": {
+      "comment": "VoiceOver reading of a Source's Added cell when no time is recorded",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "date added unknown"
           }
         }
       }

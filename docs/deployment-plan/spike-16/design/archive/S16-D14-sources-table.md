@@ -6,10 +6,10 @@
 **Implements later as:** PR **S16-71** (The Sources list is a native table)
 **Board:** [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page *S2-04 Sources list*, frames T1a–T6. The user picked TB-7 **(a)** (Published is a column at Regular too) and TB-W1 **(a)** (the table fills the pane). The board decides: every status badge is one width, 126 pt, its icon and label leading; on a focused selection Not started draws its outline and text in the on-selection ink; the sorted header is one step brighter (`textSecondary`); the header shows over skeleton rows drawn in their columns; Evidence reads a faint `—` while the graph list has failed; the Status minimum is 126. Column edges are not draggable: the widths are fixed per width class (user, 2026-11-24)
 **Depends on:** S16-66 ([#962](https://github.com/Jake-Robins-Studios/provenencia/pull/962)): the outline, its open state, its menus and its page states
-**Related:** [S16-D12](archive/S16-D12-sources-list-outline.md) (the frames this replaces); [S16-D13](archive/S16-D13-conclusion-lists-native.md) (the native lists); the code spike on branch `spike/sources-table` (2026-11-24, local), which the user tried and liked
-**Rules this brief bends:** none. [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3 is judged on TB-W1
-**Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
-**Skill:** [`add-design-brief`](../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../.agents/skills/add-localized-string/SKILL.md)
+**Related:** [S16-D12](S16-D12-sources-list-outline.md) (the frames this replaces); [S16-D13](S16-D13-conclusion-lists-native.md) (the native lists); the code spike on branch `spike/sources-table` (2026-11-24, local), which the user tried and liked
+**Rules this brief bends:** none. [`macos-client-patterns.md` § 9](../../../../macos-client-patterns.md#9-window-widths-regular-and-wide) rule 3 is judged on TB-W1
+**Design system layers:** [`docs/design-system-layers.md`](../../../../design-system-layers.md)
+**Skill:** [`add-design-brief`](../../../../../.agents/skills/add-design-brief/SKILL.md); [`add-ui-component`](../../../../../.agents/skills/add-ui-component/SKILL.md); [`add-localized-string`](../../../../../.agents/skills/add-localized-string/SKILL.md)
 
 Paste this entire document into Claude Design as the requirements for one board. This file is the whole prompt.
 
@@ -122,7 +122,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 ### 2.2 What this board is not
 
-- Not Properties, Metadata or Source types: they keep their own table. Not Persons, Events or Places: they stay lists.
+- Not Properties, Metadata or Source types: they keep their own table. Not Persons, Events or Places: they stay lists. Persons, Events and Places look as they did, but a selected row's outlined badge (`+N`) takes the on-selection ink, as every outlined badge does (user, 2026-11-24).
 - Not new filters, a search in the window's toolbar, saved column widths, sorting by Type, Evidence or Status, multiple selection, drag, or editing in a row.
 
 ---
@@ -179,7 +179,7 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
-| Table rows and columns | Snowflake | Rethink | `SourcesListView` (`macos/App/Features/Sources/`) | SwiftUI's `Table` and its columns over the outline's flat rows. One call site: not a kit component. `PVTable` keeps its pages ([`kit-layering.md`](../../../ideas/kit-layering.md) holds whether they follow) |
+| Table rows and columns | Snowflake | Rethink | `SourcesListView` (`macos/App/Features/Sources/`) | SwiftUI's `Table` and its columns over the outline's flat rows. One call site: not a kit component. `PVTable` keeps its pages ([`kit-layering.md`](../../../../ideas/kit-layering.md) holds whether they follow) |
 | Native list behavior | Component | Extend | `PVListBody` (`macos/App/DesignSystem/Components/List/PVListBody.swift`) | Focus on arrival, Home and End, scroll into view, restart at the top, Return and double-click, and the right-click menu move to one kit modifier that `PVListBody` and the Sources table both apply, with the second scroll a deep row needs. Nothing to draw |
 | Header text | Token | Extend | `pvMicroCaps()` (`macos/App/DesignSystem/Tokens/PVTypography.swift`) | A `Text` form, which a column title takes; it and the `View` form share one size, weight and tracking, and the capitals follow the locale. `PVTable` does not change |
 | Outline, open state, menus, page state | Snowflake | Extend | `SourcesOutline`, `SourcesRowMenu`, `SourcesListState` (`macos/App/Features/Sources/`) | One open id instead of a set, written by one operation; the badge rule, which the status filter reads too; the menus unchanged |
@@ -202,4 +202,4 @@ Stay inside this table. Rows marked * are S16-71's to prove, with the fallback g
 
 ## 7. Handoff
 
-When the board is agreed: record it on the **Board** line here and in [`README.md`](README.md), with the user's picks (TB-7, TB-W1), the column widths, and each "the board decides" choice. The S16-71 plan copies TB-1 – TB-12, TB-W1 and TB-W2 into its Scope and the inventory into its Design, proves the § 2.1 rows marked * and the double-click row of § 2, and measures opening and closing a Source at the map's Scale. When S16-71 lands, this brief moves to `archive/` and the spike branch is deleted.
+When the board is agreed: record it on the **Board** line here and in [`README.md`](../README.md), with the user's picks (TB-7, TB-W1), the column widths, and each "the board decides" choice. The S16-71 plan copies TB-1 – TB-12, TB-W1 and TB-W2 into its Scope and the inventory into its Design, proves the § 2.1 rows marked * and the double-click row of § 2, and measures opening and closing a Source at the map's Scale. When S16-71 lands, this brief moves to `archive/` and the spike branch is deleted.

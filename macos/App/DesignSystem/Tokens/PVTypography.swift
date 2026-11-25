@@ -196,12 +196,27 @@ enum PVFontRegistration {
     }
 }
 
+/// The micro-caps style: micro semibold type with caps tracking. `pvMicroCaps()`, `PVBadge` and a native
+/// table's column titles read these.
+enum PVMicroCaps {
+    static let font = PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold)
+    static let tracking = PVTypeScale.micro * PVTracking.caps
+
+    /// A column title as `Text`, which a `TableColumn` takes and which has no `textCase`: the words
+    /// uppercased in the researcher's language. Does not set foreground.
+    static func text(_ title: LocalizedStringResource) -> Text {
+        Text(verbatim: L10n.string(title).localizedUppercase)
+            .font(font)
+            .tracking(tracking)
+    }
+}
+
 extension View {
     /// Eyebrow / column-header style: micro semibold + caps tracking + uppercase.
     /// Does not set foreground — callers pick muted/faint/etc.
     func pvMicroCaps() -> some View {
-        font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
-            .tracking(PVTypeScale.micro * PVTracking.caps)
+        font(PVMicroCaps.font)
+            .tracking(PVMicroCaps.tracking)
             .textCase(.uppercase)
     }
 }

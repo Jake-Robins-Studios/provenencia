@@ -115,3 +115,66 @@ func BenchmarkSourceRecords(b *testing.B) {
 	apply("apply-ms", databasetest.BenchID(1, 7))
 	apply("apply-10k-ms", databasetest.BenchID(1, sourcesN+1))
 }
+
+// BenchmarkList: List at 3,000 Sources with 20 and with 80 audit changes each (one create and the
+// rest updates), each with its create time read.
+func BenchmarkList(b *testing.B) {
+	for _, changesPer := range []int{20, 80} {
+		b.Run("changes="+strconv.Itoa(changesPer), func(b *testing.B) { benchmarkList(b, changesPer) })
+	}
+}
+
+func benchmarkList(b *testing.B, changesPer int) {
+	const sourcesN = 3000
+	c, err := database.Create(b.TempDir(), "t.provenencia")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() { _ = c.Close() })
+	typeID, err := sourcetypestest.Upsert(c, sourcetypes.Type{Key: "book", Origin: vocabkey.OriginProvenencia, Label: "Book"})
+	if err != nil {
+		b.Fatal(err)
+	}
+	db, err := c.DB()
+	if err != nil {
+		b.Fatal(err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		b.Fatal(err)
+	}
+	rev := 1_000_000
+	for src := range sourcesN {
+		sid := databasetest.BenchID(1, src)
+		if _, err := tx.Exec(`INSERT INTO sources (id, ref, source_type_id, title) VALUES (?, ?, ?, ?)`, sid, "SRC-B"+string(rune('A'+src%26))+strconv.Itoa(src), typeID, "Source "+strconv.Itoa(src)); err != nil {
+			b.Fatal(err)
+		}
+		for i := range changesPer {
+			rev++
+			txID := databasetest.BenchID(2, rev)
+			action := "update"
+			if i == 0 {
+				action = "create"
+			}
+			if _, err := tx.Exec(`INSERT INTO audit_transactions (id, revision, action_type, created_at) VALUES (?, ?, 'bench', '2026-11-24T10:00:00Z')`, txID, rev); err != nil {
+				b.Fatal(err)
+			}
+			if _, err := tx.Exec(`INSERT INTO audit_changes (id, audit_transaction_id, entity_type, entity_id, action, changes_json) VALUES (?, ?, 'source', ?, ?, '{}')`, databasetest.BenchID(3, rev), txID, sid, action); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		b.Fatal(err)
+	}
+	if _, err := sources.List(c); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for range b.N {
+		got, err := sources.List(c)
+		if err != nil || len(got) != sourcesN || got[0].CreatedAt == "" {
+			b.Fatalf("%d, %v", len(got), err)
+		}
+	}
+}

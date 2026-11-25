@@ -490,10 +490,8 @@ private struct PropertiesContent: View {
             VStack(alignment: .leading, spacing: PVSpacing.space5) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(L10n.Properties.bindingsSection)
-                        .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
+                        .pvMicroCaps()
                         .foregroundStyle(PVColor.textMuted)
-                        .tracking(PVTypeScale.micro * PVTracking.caps)
-                        .textCase(.uppercase)
                     Spacer()
                     Text(verbatim: L10n.Properties.bindCount(
                         bound: model.snapshot.boundTypes(for: property.id).count,
@@ -910,10 +908,8 @@ private struct PropertiesCreateForm: View {
 
             VStack(alignment: .leading, spacing: PVSpacing.space4) {
                 Text(L10n.Properties.createBindSection)
-                    .font(PVFont.body(size: PVTypeScale.micro, weight: PVFontWeight.semibold))
+                    .pvMicroCaps()
                     .foregroundStyle(PVColor.textMuted)
-                    .tracking(PVTypeScale.micro * PVTracking.caps)
-                    .textCase(.uppercase)
 
                 LazyVGrid(
                     columns: [
