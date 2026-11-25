@@ -21,7 +21,7 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | S15-D23 | Source date dialog and header: No date, Supplied, the empty-date flag | — | S15-42 |
 | S15-D24 | Citation composer: Unknown, Supplied and the needed flag on the printed page | Descoped 2026-11-22 with S15-45: the page is a Citation board row (S15-D20, S15-D22) | — |
 | S15-D25 | Metadata page: a field's unknown text | — | S15-46 |
-| S15-D29 | Citation composer: the final shape, the Citation's metadata board beside the locator inputs and no Printed page input | — | S15-56 |
+| [S15-D29](S15-D29-citation-composer-metadata.md) | Citation composer: the Citation's metadata board under Label in place of the Printed page input; the Citation menu row reads the own Page; written 2026-11-25 | — (to draw on [Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc)) | S15-56 |
 | S15-D30 | Source type page: a fourth suggestion list (Citation), Copy type's fourth tick, the format editor's completion with the Citation's fields | Descoped 2026-11-22: suggestions lose their level (S15-63) | — |
 | S15-D34 | Artifact sheet, graph form, composer: the citation preview | Descoped 2026-11-22 with S15-65 | — |
 | S15-D35 | Metadata board row: the list-below hint and Move to Source | — | S15-66 |
