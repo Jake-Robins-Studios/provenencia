@@ -82,30 +82,26 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     }
 
     /// Asks for the selection to be scrolled into view a turn later, and once more after `settleDelay`
-    /// when the selection is still the one requested and its row is there. A row already in view does not
-    /// move.
+    /// when the selection is still the one requested. A row already in view does not move.
     private func requestSelectionScroll() {
         guard let requested = selection.wrappedValue else { return }
         selectionRequest += 1
         let binding = selection
-        let rows = ids
-        Self.repeatOnce(stillWanted: { binding.wrappedValue == requested && rows.contains(requested) }) {
+        Self.repeatOnce(stillWanted: { binding.wrappedValue == requested }) {
             selectionRequest += 1
         }
     }
 
     /// Scrolls to the Home or End row once more after `settleDelay`, when no other Home or End press
-    /// came, the selection has not moved since, and the row is still there. A first scroll to the last
-    /// row of a long list stops short.
+    /// came and the selection has not moved since. A first scroll to the last row of a long list stops
+    /// short.
     private func requestEdgeScroll() {
         guard let requested = edgeRow else { return }
         let request = edgeRequest
-        let rows = ids
         let binding = selection
         let selected = binding.wrappedValue
         Self.repeatOnce(stillWanted: {
-            edgeRow == requested && edgeRequest == request && rows.contains(requested)
-                && binding.wrappedValue == selected
+            edgeRow == requested && edgeRequest == request && binding.wrappedValue == selected
         }) {
             edgeRequest += 1
         }
