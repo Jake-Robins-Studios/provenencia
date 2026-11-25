@@ -86,16 +86,6 @@ struct SourcesOutlineTests {
         #expect(disclosure(closed, "s4") == .collapsed)
     }
 
-    @Test func backRevealsAGraphsClosedSource() {
-        let closed = outline(open: nil)
-        #expect(closed.sourceToReveal("g1a") == "s1")
-        #expect(outline(open: "s1").sourceToReveal("g1a") == nil)
-        // A Source that is not the open one is closed, so its graph is revealed.
-        #expect(outline(open: "s2").sourceToReveal("g1a") == "s1")
-        #expect(closed.sourceToReveal("s2") == nil)
-        #expect(closed.sourceToReveal("g9") == nil)
-    }
-
     /// AC-4.5, AC-4.6, AC-4.7 and AC-4.8: what the selection becomes when a Source opens or closes.
     struct OpeningCase: CustomTestStringConvertible {
         let before: String?
@@ -134,10 +124,10 @@ struct SourcesOutlineTests {
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: FakeStore())
         let navigation = WorkspaceNavigation()
         session.setOpenSource("s1")
-        navigation.noteListAnchor("g1a")
+        navigation.noteListSelection("g1a")
         outline(open: "s1").setOpen(nil, session: session, navigation: navigation)
         #expect(session.openSourceID == nil)
-        #expect(navigation.listAnchor == "s1")
+        #expect(navigation.listSelection == "s1")
     }
 
     @Test func aPendingRowSelectsItsSourceWhenItCloses() {

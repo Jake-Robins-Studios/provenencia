@@ -148,8 +148,8 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
                     items: rows,
                     // Navigation owns the selected row: it is the row history stamps on leaving.
                     selection: Binding(
-                        get: { navigation.listAnchor },
-                        set: { navigation.noteListAnchor($0) }
+                        get: { navigation.listSelection },
+                        set: { navigation.noteListSelection($0) }
                     ),
                     thumbnail: {
                         CachedThumbnail(
@@ -176,7 +176,7 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
                 )
             }
         }
-        .modifier(ListSelectionAnchorModifier(rowIDs: rowIDs, isSettled: handle.isSettled))
+        .modifier(ListSelectionModifier(rowIDs: rowIDs, isSettled: handle.isSettled))
     }
 
     private var rowIDs: [String] {

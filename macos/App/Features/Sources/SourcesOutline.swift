@@ -55,8 +55,6 @@ struct SourcesOutline {
     let ids: [String]
     /// The open Source's id, as the session holds it; it may name no listed Source.
     let open: String?
-    /// Each graph of a listed, closed Source, to its Source's id.
-    private let closedOwnerID: [String: String]
 
     /// Sources, closed unless `open` is their id (an id with no Source in `sources` draws nothing). A
     /// Source with no Artifact has no triangle and no graph rows; one whose graph read failed has none
@@ -68,7 +66,6 @@ struct SourcesOutline {
         open: String?
     ) {
         var rows: [SourcesOutlineRow] = []
-        var closedOwnerID: [String: String] = [:]
         rows.reserveCapacity(sources.count)
         for source in sources {
             var disclosure = SourcesDisclosure.none
@@ -82,8 +79,6 @@ struct SourcesOutline {
                     disclosure = isOpen ? .expanded : .collapsed
                     if isOpen {
                         children = list.map { SourcesOutlineRow(id: $0.id, kind: .graph($0, source: source)) }
-                    } else {
-                        for graph in list { closedOwnerID[graph.id] = source.id }
                     }
                 case .loading:
                     disclosure = isOpen ? .expanded : .collapsed
@@ -102,18 +97,11 @@ struct SourcesOutline {
         items = rows.map(SourcesTableItem.row)
         ids = rows.map(\.id)
         self.open = open
-        self.closedOwnerID = closedOwnerID
     }
 
     func row(id: String?) -> SourcesOutlineRow? {
         guard let id else { return nil }
         return rows.first { $0.id == id }
-    }
-
-    /// The Source to open so the row `anchor` is drawn: the owner of a graph whose Source is closed.
-    /// Nil for a Source row, a row already drawn, a graph of a Source not listed.
-    func sourceToReveal(_ anchor: String) -> String? {
-        closedOwnerID[anchor]
     }
 
     /// The selection after `id` becomes the open Source (nil closes the open one), when the move named
@@ -148,8 +136,8 @@ struct SourcesOutline {
     func setOpen(
         _ id: String?, selecting: String? = nil, session: WorkspaceSession, navigation: WorkspaceNavigation
     ) {
-        let selection = selection(afterOpening: id, selecting: selecting, current: navigation.listAnchor)
-        if selection != navigation.listAnchor { navigation.noteListAnchor(selection) }
+        let selection = selection(afterOpening: id, selecting: selecting, current: navigation.listSelection)
+        if selection != navigation.listSelection { navigation.noteListSelection(selection) }
         session.setOpenSource(id)
     }
 

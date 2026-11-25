@@ -97,15 +97,7 @@ private struct SourcesListContent: View {
             toolbar: { gutter in toolbar(gutter: gutter) },
             content: { gutter in content(state: state, outline: outline, gutter: gutter) }
         )
-        .modifier(ListSelectionAnchorModifier(
-            rowIDs: outline.ids,
-            isSettled: model.outlineIsSettled,
-            reveal: { anchor in
-                guard let id = outline.sourceToReveal(anchor) else { return false }
-                outline.setOpen(id, selecting: anchor, session: session, navigation: navigation)
-                return true
-            }
-        ))
+        .modifier(ListSelectionModifier(rowIDs: outline.ids, isSettled: model.outlineIsSettled))
         .modifier(SourcesAddDialog(model: model, typesHandle: typesHandle))
         .sourceCopyDialog($model.copying)
         .onChange(of: searchFocused) { _, focused in
@@ -115,7 +107,7 @@ private struct SourcesListContent: View {
             listLeavesFocusAlone = true
             // A sort or filter change clears the selection and puts the list at its top; the open
             // Source stays open.
-            navigation.go(to: navigation.currentLocation.withListScrollAnchor(nil))
+            navigation.go(to: navigation.currentLocation.withListSelection(nil))
         }
         .accessibilityIdentifier("sources")
     }
@@ -178,7 +170,7 @@ private struct SourcesListContent: View {
             }
             // Navigation owns the selected row: it is the row history stamps on leaving.
             let selection = Binding(
-                get: { navigation.listAnchor },
+                get: { navigation.listSelection },
                 set: { select($0, outline: outline) }
             )
             SourcesTable(
@@ -187,7 +179,8 @@ private struct SourcesListContent: View {
                 toggle: { source, disclosure in
                     apply(disclosure == .expanded ? .collapse : .expand(source.id), outline: outline)
                 },
-                hoverTriangle: { id, inside in pointer.note(id, inside: inside) }
+                hoverTriangle: { id, inside in pointer.note(id, inside: inside) },
+                insetsItself: false
             )
             .pvNativeListBehavior(
                 ids: outline.ids,
@@ -207,6 +200,7 @@ private struct SourcesListContent: View {
                 claimsFocus: !listLeavesFocusAlone,
                 reveal: opened
             )
+            .padding(.horizontal, SourcesTable.inset(gutter: gutter))
             .onKeyPress(keys: [.rightArrow, .leftArrow], phases: .down) { press in
                 handle(press.key, outline: outline)
             }
@@ -216,7 +210,7 @@ private struct SourcesListContent: View {
 
     /// → opens a closed Source, ← closes an open one or climbs from a graph row to its Source.
     private func handle(_ key: KeyEquivalent, outline: SourcesOutline) -> KeyPress.Result {
-        let action = SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listAnchor))
+        let action = SourcesOutline.keyAction(key, selected: outline.row(id: navigation.listSelection))
         guard action != .ignore else { return .ignored }
         apply(action, outline: outline)
         return .handled
@@ -231,7 +225,7 @@ private struct SourcesListContent: View {
         case .collapse:
             outline.setOpen(nil, selecting: selecting, session: session, navigation: navigation)
         case .select(let id):
-            navigation.noteListAnchor(id)
+            navigation.noteListSelection(id)
         case .ignore:
             break
         }
@@ -241,13 +235,13 @@ private struct SourcesListContent: View {
     /// (the write may be inside a view update) and without animation.
     private func select(_ id: String?, outline: SourcesOutline) {
         let click = SourcesClick(NSApp.currentEvent)
-        let old = navigation.listAnchor
+        let old = navigation.listSelection
         switch pointer.press(selecting: id, from: old, click: click, outline: outline) {
         case .second(let first):
             guard let first else { return }
             DispatchQueue.main.async { open(outline.row(id: first)) }
         case .select(let action):
-            navigation.noteListAnchor(id)
+            navigation.noteListSelection(id)
             guard action != .ignore else { return }
             DispatchQueue.main.async { apply(action, selecting: id, outline: outline) }
         }
@@ -256,7 +250,7 @@ private struct SourcesListContent: View {
     /// Opens the row: its page, or its graph's canvas. A double-click opens the row first pressed, when
     /// the outline still has it, and only once. Return and the menu never match.
     private func activate(_ id: String, outline: SourcesOutline) {
-        let first = pointer.secondPress(SourcesClick(NSApp.currentEvent), selected: navigation.listAnchor, outline: outline)
+        let first = pointer.secondPress(SourcesClick(NSApp.currentEvent), selected: navigation.listSelection, outline: outline)
         open(first ?? outline.row(id: id))
     }
 
@@ -268,7 +262,7 @@ private struct SourcesListContent: View {
     private func menuActions(outline: SourcesOutline) -> SourcesRowMenu.Actions {
         SourcesRowMenu.Actions(
             open: { row in
-                navigation.noteListAnchor(row.id)
+                navigation.noteListSelection(row.id)
                 open(row)
             },
             openGraph: { graph, source in
@@ -278,7 +272,7 @@ private struct SourcesListContent: View {
                 }
             },
             copy: { source in
-                navigation.noteListAnchor(source.id)
+                navigation.noteListSelection(source.id)
                 model.openCopy(source)
             }
         )

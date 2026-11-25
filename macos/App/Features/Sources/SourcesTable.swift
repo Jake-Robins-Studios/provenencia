@@ -100,6 +100,9 @@ struct SourcesTable: View {
     var hoverTriangle: (_ sourceID: String, _ inside: Bool) -> Void = { _, _ in }
     /// Skeleton rows: inert, and out of the accessibility tree.
     var isLoading = false
+    /// False when the caller applies `inset(gutter:)` after wrapping the table in `pvNativeListBehavior`:
+    /// its scroll memory finds the table's scroll view by its frame, so nothing may pad between them.
+    var insetsItself = true
 
     /// The Type column's customization id: it shows at Wide only.
     static let typeColumnID = "type"
@@ -133,8 +136,12 @@ struct SourcesTable: View {
         GeometryReader { proxy in
             table(SourcesTableWidths(isWide: isWide, tableWidth: proxy.size.width))
         }
-        // The inset table draws its first column 18 pt in: its first header's text lands on the gutter.
-        .padding(.horizontal, gutter - SourcesTableWidths.headerInset)
+        .padding(.horizontal, insetsItself ? Self.inset(gutter: gutter) : 0)
+    }
+
+    /// The inset table draws its first column 18 pt in: its first header's text lands on the gutter.
+    static func inset(gutter: CGFloat) -> CGFloat {
+        gutter - SourcesTableWidths.headerInset
     }
 
     /// The page's sort as the table's header order, and a header click as the page's sort.

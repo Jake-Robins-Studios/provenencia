@@ -91,6 +91,13 @@ final class WorkspaceSession {
         openSourceID = id
     }
 
+    /// Back, Forward and a jump put the Sources list back as it was left: the entry's open Source
+    /// (nil closes it). A push, and a history move to any other place, leave the session as it is.
+    func applyHistoryState(_ location: WorkspaceLocation, kind: WorkspaceArrival.Kind) {
+        guard kind == .history, location.section == .sources, location.isListRoot else { return }
+        setOpenSource(location.revisit.openSourceId)
+    }
+
     /// Returns an existing handle without starting a load.
     func queryHandle<Value>(_ key: CatalogQueryKey) -> QueryHandle<Value>? {
         #if DEBUG
