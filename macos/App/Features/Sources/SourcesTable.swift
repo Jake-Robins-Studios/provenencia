@@ -326,6 +326,7 @@ struct SourcesTable: View {
     private func graphTitle(_ graph: CatalogEvidenceGraph, source: CatalogSource) -> some View {
         let reason = SourcesListNavigation.graphBlockedReason(for: graph)
         let opens = reason == nil
+        let hint = reason ?? ""
         return graphLine(opens: opens) {
             Text(verbatim: graph.name)
                 .font(PVFont.body(size: PVTypeScale.bodySmall))
@@ -336,7 +337,7 @@ struct SourcesTable: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: graph.name))
-        .accessibilityHint(Text(verbatim: reason ?? ""))
+        .accessibilityHint(Text(verbatim: hint))
         .accessibilityIdentifier("sources.row.\(source.id).graph.\(graph.ref)")
     }
 
