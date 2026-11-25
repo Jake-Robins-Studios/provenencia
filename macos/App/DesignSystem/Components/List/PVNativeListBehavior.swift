@@ -4,6 +4,7 @@ import SwiftUI
 struct PVListScroll<ID: Hashable>: Hashable {
     let row: ID
     var anchor: UnitPoint?
+    var isRepeat = false
     private let token = UUID()
 }
 
@@ -65,6 +66,18 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
             )
             .onChange(of: reveal) { scroll = reveal }
             .pvScrollsRowIntoView(scroll?.row, anchor: scroll?.anchor, animated: false, whenRequested: scroll)
+            .task(id: scroll) { await repeatScroll() }
+    }
+
+    /// Scrolls once more, unless another scroll was asked for (it cancels this one) or the selection
+    /// moved: a table's first scroll to a row far from the drawn ones can stop short while the rows between
+    /// are undrawn.
+    private func repeatScroll() async {
+        guard let scroll, !scroll.isRepeat else { return }
+        let selected = selection.wrappedValue
+        try? await Task.sleep(for: .milliseconds(150))
+        guard !Task.isCancelled, selection.wrappedValue == selected else { return }
+        self.scroll?.isRepeat = true
     }
 
     /// The right-clicked row's menu: nothing for no row, a row the list no longer has, or no entries.
