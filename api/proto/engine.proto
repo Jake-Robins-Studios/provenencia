@@ -888,13 +888,17 @@ message GetMetadataBoardResponse {
   MetadataBoard board = 1;
 }
 
-// GetDraftMetadataBoard is the board a new Artifact or graph starts with on a
-// Source: its type's suggestions, empty, then the fields its citation formats
-// head at level, each with its requirement. level is "artifact" or "graph".
+// GetDraftMetadataBoard is the board a new owner starts with: its Source type's
+// suggestions, empty, then the fields its citation formats head at level, each
+// with its requirement and the value it inherits from its parents and above.
 message GetDraftMetadataBoardRequest {
   string project_dir = 1;
-  string source_id = 2;
-  string level = 3;
+  reserved 2;
+  reserved "source_id";
+  string level = 3; // "artifact", "graph" or "citation"
+  // The owners directly above the new one, one per level above it: a new
+  // Artifact's or graph's Source; a new Citation's graph and Artifact. Any order.
+  repeated MetadataOwner parents = 4;
 }
 
 message GetDraftMetadataBoardResponse {

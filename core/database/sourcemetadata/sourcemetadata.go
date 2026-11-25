@@ -530,7 +530,7 @@ func DismissSuggestion(tx *database.Tx, userID []byte, owner Owner, fieldID []by
 		return nil, err
 	}
 
-	need, err := needOfTx(tx.Tx, st, owner, fieldID)
+	need, err := needOfTx(tx.Tx, owner, fieldID)
 	if err != nil {
 		return nil, err
 	}
@@ -847,16 +847,32 @@ func ListWorkspaces(c *database.Catalog, owners []Owner) ([]Board, error) {
 	return out, nil
 }
 
-// ListDraftWorkspace is the board a new Artifact or graph starts with on the
-// Source: the type's suggestions, empty, then the fields its formats
-// head there, each annotated against the Source's values and date. Any other
-// level, or a Source that does not exist, is ErrInvalid.
-func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Level) ([]WorkspaceEntry, error) {
-	if level != vocabkey.LevelArtifact && level != vocabkey.LevelGraph {
+// ListDraftWorkspace is the board a new owner starts with at level under its
+// parents, the owners directly above it, one per level of its level's ups, in
+// any order: a new Artifact's or graph's Source; a new Citation's graph and
+// Artifact. It is the type's suggestions, empty, then the fields its formats
+// head there, each annotated against what the parents and the levels above
+// them hold and the Source's date, as a saved board of an owner with no values
+// is. A level that has no level above it, parents that do not match its ups,
+// a parent that does not exist, or parents of different Sources are
+// ErrInvalid.
+func ListDraftWorkspace(c *database.Catalog, level vocabkey.Level, parents []Owner) ([]WorkspaceEntry, error) {
+	st, ok := stores[level]
+	if !ok || len(st.ups) == 0 || len(parents) != len(st.ups) {
 		return nil, ErrInvalid
 	}
-	if len(sourceID) != 16 {
-		return nil, ErrInvalid
+	seenLevel := make(map[vocabkey.Level]struct{}, len(parents))
+	for _, p := range parents {
+		if _, err := storeFor(p); err != nil {
+			return nil, err
+		}
+		if !slices.Contains(st.ups, p.Level) {
+			return nil, ErrInvalid
+		}
+		if _, dup := seenLevel[p.Level]; dup {
+			return nil, ErrInvalid
+		}
+		seenLevel[p.Level] = struct{}{}
 	}
 	db, err := c.DB()
 	if err != nil {
@@ -868,39 +884,29 @@ func ListDraftWorkspace(c *database.Catalog, sourceID []byte, level vocabkey.Lev
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	src, err := sources.Lookup(tx, sourceID)
-	if errors.Is(err, sources.ErrNotFound) {
-		return nil, ErrInvalid
-	} else if err != nil {
-		return nil, err
-	}
-	rows, err := readByOwners(tx, []Owner{{Level: vocabkey.LevelSource, ID: sourceID}})
+	read, err := readAbove(tx, parents)
 	if err != nil {
 		return nil, err
 	}
-	k := typeLevel{string(src.SourceTypeID), level}
-	needs, suggestionsOf, err := readTypeNeedsAndSuggestions(tx, []typeLevel{k})
+	// The draft owner has no row: its up columns would name its parents.
+	draft := ownerAbove{
+		owner: Owner{Level: level},
+		upIDs: make(map[vocabkey.Level][]byte, len(parents)),
+	}
+	for i, p := range parents {
+		a := read[p.key()]
+		if i == 0 {
+			draft.typeID, draft.sourceID = a.typeID, a.sourceID
+		} else if !bytes.Equal(a.sourceID, draft.sourceID) {
+			return nil, ErrInvalid
+		}
+		draft.upIDs[p.Level] = p.ID
+	}
+	boards, err := buildBoards(tx, []ownerAbove{draft})
 	if err != nil {
 		return nil, err
 	}
-	ln := needs[k]
-	fields, err := metadatafields.MapByIDsTx(tx, ln.fieldIDs())
-	if err != nil {
-		return nil, err
-	}
-	// The draft owner has no rows, so what is above it is everything there is.
-	r := CitationValues{
-		Rows:     map[vocabkey.Level]map[string]Row{vocabkey.LevelSource: rowsByField(rows)},
-		Fields:   fields,
-		Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: sources.CitationDate(src)},
-	}
-	return buildEntries(boardInput{
-		suggestions: suggestionsOf[k.typeID],
-		needs:       ln,
-		fields:      fields,
-		resolver:    r,
-		above:       r,
-	}), nil
+	return boards[0].Entries, nil
 }
 
 // typeLevel keys what is read once per Source type and level.
@@ -940,10 +946,8 @@ func readTypeNeedsAndSuggestions(tx *sql.Tx, keys []typeLevel) (map[typeLevel]le
 }
 
 // listWorkspaces is ListWorkspace over many owners, keyed by Owner.key: each
-// level's types and Sources in one query, the suggestions once per distinct
-// type, the formats' requirements and their heads once per distinct
-// (type, level), the values of the owners and of their Sources, the layout,
-// each distinct Source, and every field a board names in one read each.
+// owner read with its type and what is above it (readAbove), then built
+// (buildBoards).
 func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 	var uniq []Owner
 	seenOwner := make(map[string]struct{}, len(owners))
@@ -957,77 +961,105 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		seenOwner[o.key()] = struct{}{}
 		uniq = append(uniq, o)
 	}
+	read, err := readAbove(tx, uniq)
+	if err != nil {
+		return nil, err
+	}
+	boards := make([]ownerAbove, len(uniq))
+	for i, o := range uniq {
+		boards[i] = read[o.key()]
+	}
+	built, err := buildBoards(tx, boards)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]Board, len(uniq))
+	for i, o := range uniq {
+		out[o.key()] = built[i]
+	}
+	return out, nil
+}
 
-	typeOf := make(map[string][]byte, len(uniq))
-	sourceOf := make(map[string][]byte, len(uniq))
-	err := eachLevel(uniq, func(st *store, ids [][]byte) error {
-		return typesIn(tx, st, ids, func(id, typeID, sourceID []byte) {
-			k := Owner{Level: st.level, ID: id}.key()
-			typeOf[k] = typeID
-			sourceOf[k] = sourceID
-		})
+// readAbove reads each owner's Source type, Source and up ids, one query per
+// level per batch, keyed by Owner.key. An owner with no row is ErrInvalid.
+func readAbove(tx *sql.Tx, owners []Owner) (map[string]ownerAbove, error) {
+	out := make(map[string]ownerAbove, len(owners))
+	err := eachLevel(owners, func(st *store, ids [][]byte) error {
+		return typesIn(tx, st, ids, func(a ownerAbove) { out[a.owner.key()] = a })
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	keys := make([]typeLevel, 0, len(uniq))
-	for _, o := range uniq {
-		typeID, ok := typeOf[o.key()]
-		if !ok {
+	for _, o := range owners {
+		if _, ok := out[o.key()]; !ok {
 			return nil, ErrInvalid
 		}
-		keys = append(keys, typeLevel{string(typeID), o.Level})
+	}
+	return out, nil
+}
+
+// buildBoards is one board per entry, in the order given, saved or draft: the
+// suggestions once per distinct type, the formats' requirements and their heads
+// once per distinct (type, level), the values of each owner and of every owner
+// above it (each once), the layout, each distinct Source, and every field a
+// board names in one read each. An owner with no id (a draft's) holds no values
+// or layout of its own.
+func buildBoards(tx *sql.Tx, boards []ownerAbove) ([]Board, error) {
+	var own []Owner
+	all := make([]Owner, 0, len(boards))
+	seenOwner := make(map[string]struct{}, len(boards))
+	add := func(o Owner) {
+		if _, dup := seenOwner[o.key()]; !dup {
+			seenOwner[o.key()] = struct{}{}
+			all = append(all, o)
+		}
+	}
+	keys := make([]typeLevel, 0, len(boards))
+	var sourceIDs [][]byte
+	for _, b := range boards {
+		if b.owner.ID != nil {
+			own = append(own, b.owner)
+			add(b.owner)
+		}
+		for _, a := range b.ancestors() {
+			add(a)
+		}
+		keys = append(keys, typeLevel{string(b.typeID), b.owner.Level})
+		sourceIDs = append(sourceIDs, b.sourceID)
 	}
 	needsOf, suggestionsOf, err := readTypeNeedsAndSuggestions(tx, keys)
 	if err != nil {
 		return nil, err
-	}
-
-	// The Sources' values answer a graph's or an Artifact's chains, so each
-	// distinct Source joins the one values read unless a board already asks.
-	all := slices.Clone(uniq)
-	for _, o := range uniq {
-		so := Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}
-		if _, dup := seenOwner[so.key()]; !dup {
-			seenOwner[so.key()] = struct{}{}
-			all = append(all, so)
-		}
 	}
 	valueRows, err := readByOwners(tx, all)
 	if err != nil {
 		return nil, err
 	}
 	valuesOf := GroupByOwner(valueRows)
-	var sourceIDs [][]byte
-	for _, o := range uniq {
-		sourceIDs = append(sourceIDs, sourceOf[o.key()])
-	}
 	srcs, err := sources.GetManyTx(tx, sourceIDs)
 	if err != nil {
 		return nil, err
 	}
 	dateOf := make(map[string]citationformat.Value, len(srcs))
-	for _, o := range uniq {
-		id := sourceOf[o.key()]
+	for _, id := range sourceIDs {
 		src, ok := srcs[string(id)]
 		if !ok {
 			return nil, sources.ErrNotFound
 		}
 		dateOf[string(id)] = sources.CitationDate(src)
 	}
-	layoutOf, err := listLayoutByOwners(tx, uniq)
+	layoutOf, err := listLayoutByOwners(tx, own)
 	if err != nil {
 		return nil, err
 	}
 
 	var extraIDs [][]byte
-	for _, o := range uniq {
+	for _, b := range boards {
 		inSuggestions := make(map[string]struct{})
-		for _, s := range suggestionsOf[string(typeOf[o.key()])] {
+		for _, s := range suggestionsOf[string(b.typeID)] {
 			inSuggestions[string(s.Field.ID)] = struct{}{}
 		}
-		for _, v := range valuesOf[o.key()] {
+		for _, v := range valuesOf[b.owner.key()] {
 			if _, ok := inSuggestions[string(v.FieldID)]; !ok {
 				extraIDs = append(extraIDs, v.FieldID)
 			}
@@ -1045,33 +1077,30 @@ func listWorkspaces(tx *sql.Tx, owners []Owner) (map[string]Board, error) {
 		return nil, err
 	}
 
-	out := make(map[string]Board, len(uniq))
-	for _, o := range uniq {
-		k := typeLevel{string(typeOf[o.key()]), o.Level}
+	out := make([]Board, len(boards))
+	for i, b := range boards {
+		k := typeLevel{string(b.typeID), b.owner.Level}
 		ln := needsOf[k]
-		r := CitationValues{
-			Rows: map[vocabkey.Level]map[string]Row{
-				o.Level:              valuesOf.Of(o),
-				vocabkey.LevelSource: valuesOf.Of(Owner{Level: vocabkey.LevelSource, ID: sourceOf[o.key()]}),
-			},
-			Fields:   fields,
-			Builtins: map[citationformat.Target]citationformat.Value{citationformat.SourceDate: dateOf[string(sourceOf[o.key()])]},
+		in := b.ancestors()
+		if b.owner.ID != nil {
+			in = append([]Owner{b.owner}, in...)
 		}
-		above := r.Without(o.Level)
-		board := Board{Entries: buildEntries(boardInput{
+		r := ValuesOf(valuesOf, in, fields)
+		r.Builtins[citationformat.SourceDate] = dateOf[string(b.sourceID)]
+		above := r.Without(b.owner.Level)
+		out[i] = Board{Entries: buildEntries(boardInput{
 			suggestions: suggestionsOf[k.typeID],
-			values:      valuesOf[o.key()],
-			layout:      layoutOf[o.key()],
+			values:      valuesOf[b.owner.key()],
+			layout:      layoutOf[b.owner.key()],
 			needs:       ln,
 			fields:      fields,
 			resolver:    r,
 			above:       above,
 		})}
-		if o.Level == vocabkey.LevelSource {
-			board.Date = annotate(ln, citationformat.SourceDate, r, above, fields)
-			board.Page = annotate(ln, citationformat.CitationPage, r, above, fields)
+		if b.owner.Level == vocabkey.LevelSource {
+			out[i].Date = annotate(ln, citationformat.SourceDate, r, above, fields)
+			out[i].Page = annotate(ln, citationformat.CitationPage, r, above, fields)
 		}
-		out[o.key()] = board
 	}
 	return out, nil
 }

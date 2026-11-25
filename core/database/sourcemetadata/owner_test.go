@@ -27,3 +27,33 @@ func TestGroupByOwner(t *testing.T) {
 		t.Errorf("owner with no rows = %#v, want empty map", got)
 	}
 }
+
+func TestOwnersAbove(t *testing.T) {
+	src := []byte("source-id-123456")
+	art := []byte("artifact-id-1234")
+	gr := []byte("graph-id-1234567")
+	o := func(l vocabkey.Level, id []byte) Owner { return Owner{Level: l, ID: id} }
+	tests := []struct {
+		name     string
+		level    vocabkey.Level
+		upIDs    map[vocabkey.Level][]byte
+		sourceID []byte
+		want     []Owner
+	}{
+		{"a Citation", vocabkey.LevelCitation, map[vocabkey.Level][]byte{vocabkey.LevelGraph: gr, vocabkey.LevelArtifact: art}, src,
+			[]Owner{o(vocabkey.LevelGraph, gr), o(vocabkey.LevelArtifact, art), o(vocabkey.LevelSource, src)}},
+		{"a Citation with no graph id", vocabkey.LevelCitation, map[vocabkey.Level][]byte{vocabkey.LevelArtifact: art}, src,
+			[]Owner{o(vocabkey.LevelArtifact, art), o(vocabkey.LevelSource, src)}},
+		{"an Artifact whose up is the Source", vocabkey.LevelArtifact, map[vocabkey.Level][]byte{vocabkey.LevelSource: src}, src,
+			[]Owner{o(vocabkey.LevelSource, src)}},
+		{"a Source", vocabkey.LevelSource, nil, src, nil},
+		{"a level that keeps no metadata", "page", nil, src, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := OwnersAbove(tc.level, tc.upIDs, tc.sourceID); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("OwnersAbove = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

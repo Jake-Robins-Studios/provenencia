@@ -135,12 +135,12 @@ struct GoStore: GenealogyStore {
         return resp.sources.map(Self.mapSource)
     }
 
-    func getDraftMetadataBoard(projectDir: String, sourceID: String, level: Level) async throws
+    func getDraftMetadataBoard(projectDir: String, parents: [MetadataOwner], level: Level) async throws
         -> [CatalogMetadataEntry]
     {
         var req = Provenencia_Engine_V1_GetDraftMetadataBoardRequest()
         req.projectDir = projectDir
-        req.sourceID = sourceID
+        req.parents = parents.map(Self.wireOwner)
         req.level = level.rawValue
         let resp: Provenencia_Engine_V1_GetDraftMetadataBoardResponse = try await provenenciaCall(
             method: CoreMethod.getDraftMetadataBoard,
@@ -366,8 +366,7 @@ struct GoStore: GenealogyStore {
         var req = Provenencia_Engine_V1_SetMetadataRequest()
         req.projectDir = projectDir
         req.userID = userID
-        req.owner.level = owner.level.rawValue
-        req.owner.id = owner.id
+        req.owner = Self.wireOwner(owner)
         req.fieldID = fieldID
         req.valueText = valueText
         let resp: Provenencia_Engine_V1_SetMetadataResponse = try await provenenciaCall(
@@ -383,8 +382,7 @@ struct GoStore: GenealogyStore {
         var req = Provenencia_Engine_V1_ClearMetadataRequest()
         req.projectDir = projectDir
         req.userID = userID
-        req.owner.level = owner.level.rawValue
-        req.owner.id = owner.id
+        req.owner = Self.wireOwner(owner)
         req.fieldID = fieldID
         let resp: Provenencia_Engine_V1_ClearMetadataResponse = try await provenenciaCall(
             method: CoreMethod.clearMetadata,
@@ -402,8 +400,7 @@ struct GoStore: GenealogyStore {
         var req = Provenencia_Engine_V1_DismissMetadataSuggestionRequest()
         req.projectDir = projectDir
         req.userID = userID
-        req.owner.level = owner.level.rawValue
-        req.owner.id = owner.id
+        req.owner = Self.wireOwner(owner)
         req.fieldID = fieldID
         let resp: Provenencia_Engine_V1_DismissMetadataSuggestionResponse = try await provenenciaCall(
             method: CoreMethod.dismissMetadataSuggestion,
@@ -421,8 +418,7 @@ struct GoStore: GenealogyStore {
         var req = Provenencia_Engine_V1_ReorderMetadataRequest()
         req.projectDir = projectDir
         req.userID = userID
-        req.owner.level = owner.level.rawValue
-        req.owner.id = owner.id
+        req.owner = Self.wireOwner(owner)
         req.fieldIds = fieldIDs
         let resp: Provenencia_Engine_V1_ReorderMetadataResponse = try await provenenciaCall(
             method: CoreMethod.reorderMetadata,
@@ -2871,6 +2867,13 @@ struct GoStore: GenealogyStore {
             description: f.description_p,
             usedBy: Int(f.usedBy)
         )
+    }
+
+    private static func wireOwner(_ owner: MetadataOwner) -> Provenencia_Engine_V1_MetadataOwner {
+        var wire = Provenencia_Engine_V1_MetadataOwner()
+        wire.level = owner.level.rawValue
+        wire.id = owner.id
+        return wire
     }
 
     private static func mapMetadataEntry(_ e: Provenencia_Engine_V1_MetadataWorkspaceEntry) -> CatalogMetadataEntry {

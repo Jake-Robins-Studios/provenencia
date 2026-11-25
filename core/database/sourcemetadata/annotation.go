@@ -278,29 +278,69 @@ func annotate(ln levelNeeds, head citationformat.Target, r, above citationformat
 	return a
 }
 
-// typesIn reads the owners' Source type and Source ids at one level, calling
-// fn per owner. ids are bounded by the caller as sqlbatch.Query batches them.
-func typesIn(tx *sql.Tx, st *store, ids [][]byte, fn func(id, typeID, sourceID []byte)) error {
+// ownerAbove is one owner and what its type read names above it: its Source's
+// type id and id, and the ids its up columns name, by level. A draft board's
+// owner has no id: the ids above it are those its row would name.
+type ownerAbove struct {
+	owner    Owner
+	typeID   []byte
+	sourceID []byte
+	upIDs    map[vocabkey.Level][]byte
+}
+
+// ancestors are the owners above this one, nearest first (OwnersAbove).
+func (a ownerAbove) ancestors() []Owner {
+	return OwnersAbove(a.owner.Level, a.upIDs, a.sourceID)
+}
+
+// typesIn reads each owner's Source type, Source and up ids at one level,
+// calling fn per owner. ids are bounded by the caller as sqlbatch.Query
+// batches them.
+func typesIn(tx *sql.Tx, st *store, ids [][]byte, fn func(ownerAbove)) error {
 	return sqlbatch.Query(tx, st.typeIn, st.typeSuffix, nil, ids, func(rows *sql.Rows) error {
-		var id, typeID, sourceID []byte
-		if err := rows.Scan(&id, &typeID, &sourceID); err != nil {
+		a := ownerAbove{owner: Owner{Level: st.level}}
+		upIDs := make([][]byte, len(st.ups))
+		dest := []any{&a.owner.ID, &a.typeID, &a.sourceID}
+		for i := range upIDs {
+			dest = append(dest, &upIDs[i])
+		}
+		if err := rows.Scan(dest...); err != nil {
 			return err
 		}
-		fn(id, typeID, sourceID)
+		if len(st.ups) > 0 {
+			a.upIDs = make(map[vocabkey.Level][]byte, len(st.ups))
+			for i, up := range st.ups {
+				a.upIDs[up] = upIDs[i]
+			}
+		}
+		fn(a)
 		return nil
 	})
 }
 
+// ValuesOf is the resolver over the stored rows of the owners given, one level
+// each, and the field rows that loaded. Its Builtins are empty: each caller
+// sets those it can answer.
+func ValuesOf(rows OwnerRows, owners []Owner, fields map[string]metadatafields.Field) CitationValues {
+	v := CitationValues{
+		Rows:     make(map[vocabkey.Level]map[string]Row, len(owners)),
+		Fields:   fields,
+		Builtins: map[citationformat.Target]citationformat.Value{},
+	}
+	for _, o := range owners {
+		v.Rows[o.Level] = rows.Of(o)
+	}
+	return v
+}
+
 // needOfTx is how much the owner's type's formats need the field on a board at
 // the owner's level. An owner that does not exist is ErrInvalid.
-func needOfTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (citationformat.Need, error) {
-	var typeID []byte
-	if err := typesIn(tx, st, [][]byte{owner.ID}, func(_, t, _ []byte) { typeID = t }); err != nil {
+func needOfTx(tx *sql.Tx, owner Owner, fieldID []byte) (citationformat.Need, error) {
+	above, err := readAbove(tx, []Owner{owner})
+	if err != nil {
 		return "", err
 	}
-	if typeID == nil {
-		return "", ErrInvalid
-	}
+	typeID := above[owner.key()].typeID
 	reqs, err := sourcetypes.RequirementsTx(tx, [][]byte{typeID})
 	if err != nil {
 		return "", err

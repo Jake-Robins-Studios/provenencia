@@ -480,16 +480,17 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 	dir, userID, _ := sourceFixture(t)
 	census := seededSourceOfType(t, dir, userID, "census")
 	ledger, lineID := lineLedgerSource(t, dir, userID)
-	draft := func(source, level string) ([]*engine.MetadataWorkspaceEntry, error) {
+	draft := func(parents []*engine.MetadataOwner, level string) ([]*engine.MetadataWorkspaceEntry, error) {
 		var out engine.GetDraftMetadataBoardResponse
-		err := rpc(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: dir, SourceId: source, Level: level}, &out)
+		err := rpc(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: dir, Parents: parents, Level: level}, &out)
 		return out.GetEntries(), err
 	}
+	under := func(source string) []*engine.MetadataOwner { return []*engine.MetadataOwner{sourceOwnerProto(source)} }
 
 	t.Run("census artifact", func(t *testing.T) {
 		var ws engine.GetSourceWorkspaceResponse
 		mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: census}, &ws)
-		entries, err := draft(census, "artifact")
+		entries, err := draft(under(census), "artifact")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -515,7 +516,7 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 		}
 	})
 	t.Run("the Source answers a graph's needed field", func(t *testing.T) {
-		entries, err := draft(ledger, "graph")
+		entries, err := draft(under(ledger), "graph")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -526,23 +527,84 @@ func TestGetDraftMetadataBoard(t *testing.T) {
 		}
 	})
 	t.Run("refusals", func(t *testing.T) {
+		m := newMetadataOwners(t)
 		for name, tt := range map[string]struct {
-			source, level string
-			want          error
+			parents []*engine.MetadataOwner
+			level   string
+			want    error
 		}{
-			"no such Source": {"01890000-0000-7000-8000-000000000001", "artifact", sourcemetadata.ErrInvalid},
-			"source level":   {census, "source", sourcemetadata.ErrInvalid},
-			"citation level": {census, "citation", sourcemetadata.ErrInvalid},
-			"malformed id":   {"not-an-id", "artifact", errInvalidID},
-			"unknown level":  {census, "page", sourcemetadata.ErrInvalid},
-			"an empty level": {census, "", sourcemetadata.ErrInvalid},
-			"a version 4 id": {"01890000-0000-4000-8000-000000000001", "graph", errInvalidID},
+			"no such Source":                             {under("01890000-0000-7000-8000-000000000001"), "artifact", sourcemetadata.ErrInvalid},
+			"source level":                               {under(census), "source", sourcemetadata.ErrInvalid},
+			"citation with the graph alone":              {[]*engine.MetadataOwner{m.graph}, "citation", sourcemetadata.ErrInvalid},
+			"an empty parent (a nil one marshals empty)": {[]*engine.MetadataOwner{nil}, "artifact", errInvalidID},
+			"malformed parent id":                        {under("not-an-id"), "artifact", errInvalidID},
+			"unknown level":                              {under(census), "page", sourcemetadata.ErrInvalid},
+			"an empty level":                             {under(census), "", sourcemetadata.ErrInvalid},
+			"a version 4 parent id":                      {under("01890000-0000-4000-8000-000000000001"), "graph", errInvalidID},
 		} {
-			if _, err := draft(tt.source, tt.level); !errors.Is(err, tt.want) {
+			if _, err := draft(tt.parents, tt.level); !errors.Is(err, tt.want) {
 				t.Errorf("%s: %v, want %v", name, err, tt.want)
 			}
 		}
 	})
+}
+
+// TestParseOwnerNil: a nil owner message is refused, as a nil parent is.
+func TestParseOwnerNil(t *testing.T) {
+	if _, err := parseOwner(nil); !errors.Is(err, sourcemetadata.ErrInvalid) {
+		t.Fatalf("parseOwner(nil) = %v, want sourcemetadata.invalid", err)
+	}
+}
+
+// TestMetadataBoardAncestors: a Citation's board reads its graph, Artifact and
+// Source; a draft Citation board names the graph and Artifact it would sit under.
+func TestMetadataBoardAncestors(t *testing.T) {
+	m := newMetadataOwners(t)
+	var ws engine.GetSourceWorkspaceResponse
+	mustRPC(t, GetSourceWorkspace, &engine.GetSourceWorkspaceRequest{ProjectDir: m.dir, SourceId: m.sourceID}, &ws)
+	formats := setFormats(t, m.dir, m.userID, ws.GetSource().GetSourceTypeId(), &engine.CitationFormats{Full: "{meta.line_number}."})
+	if len(formats.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics %+v", formats.GetDiagnostics())
+	}
+	lineID := fieldIDsByKey(t, m.dir)["line_number"]
+	line := func(entries []*engine.MetadataWorkspaceEntry) *engine.MetadataWorkspaceEntry {
+		t.Helper()
+		e := metadataByField(entries, lineID)
+		if e == nil {
+			t.Fatalf("no line_number entry in %+v", entries)
+		}
+		return e
+	}
+
+	mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+		ProjectDir: m.dir, UserId: m.userID, Owner: m.graph, FieldId: lineID, ValueText: "7",
+	}, &engine.SetMetadataResponse{})
+	check := func(what string, e *engine.MetadataWorkspaceEntry) {
+		t.Helper()
+		if e.GetRequirement().GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED || !e.GetRequirement().GetMetElsewhere() ||
+			e.GetInherited().GetDisplayText() != "7" || e.GetInherited().GetOwner().GetLevel() != "graph" {
+			t.Fatalf("%s line_number = %+v, want needed, met elsewhere, 7 inherited from the graph", what, e)
+		}
+	}
+	check("saved Citation", line(boardEntries(t, m.dir, m.citation)))
+	for _, parents := range [][]*engine.MetadataOwner{{m.graph, m.artifact}, {m.artifact, m.graph}} {
+		var draft engine.GetDraftMetadataBoardResponse
+		mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, Parents: parents, Level: "citation"}, &draft)
+		e := line(draft.GetEntries())
+		check("draft Citation", e)
+		for _, d := range draft.GetEntries() {
+			if d.GetHasValue() {
+				t.Fatalf("draft entry %+v holds a value", d)
+			}
+		}
+	}
+
+	mustRPC(t, ClearMetadata, &engine.ClearMetadataRequest{
+		ProjectDir: m.dir, UserId: m.userID, Owner: m.graph, FieldId: lineID,
+	}, &engine.ClearMetadataResponse{})
+	if e := line(boardEntries(t, m.dir, m.citation)); e.GetRequirement().GetMetElsewhere() || e.GetInherited() != nil {
+		t.Fatalf("cleared line_number = %+v, want not met elsewhere and nothing inherited", e)
+	}
 }
 
 // TestMetadataBoardInherited: the boards below a Source carry the Source's values
@@ -600,7 +662,7 @@ func TestMetadataBoardInherited(t *testing.T) {
 	set(censusOwner, url, "https://example.org/calder/1880", nil)
 	for _, level := range []string{"artifact", "graph"} {
 		var draft engine.GetDraftMetadataBoardResponse
-		mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, SourceId: census, Level: level}, &draft)
+		mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, Parents: []*engine.MetadataOwner{censusOwner}, Level: level}, &draft)
 		e := metadataByKey(draft.GetEntries(), "url")
 		if e.GetInherited().GetDisplayText() != "https://example.org/calder/1880" || e.GetInherited().GetOpenHref() == "" ||
 			e.GetInherited().GetOwner().GetId() != census || !e.GetStaysWithoutValue() {
@@ -612,7 +674,7 @@ func TestMetadataBoardInherited(t *testing.T) {
 	long := "https://example.org/" + strings.Repeat("a", citationformat.MaxDisplayBytes)
 	set(censusOwner, url, long, nil)
 	var draft engine.GetDraftMetadataBoardResponse
-	mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, SourceId: census, Level: "artifact"}, &draft)
+	mustRPC(t, GetDraftMetadataBoard, &engine.GetDraftMetadataBoardRequest{ProjectDir: m.dir, Parents: []*engine.MetadataOwner{censusOwner}, Level: "artifact"}, &draft)
 	if in := metadataByKey(draft.GetEntries(), "url").GetInherited(); in.GetOpenHref() != "" || len(in.GetDisplayText()) != citationformat.MaxDisplayBytes {
 		t.Fatalf("a url past the limit inherits as %d bytes with a %d-byte link, want %d bytes and no link",
 			len(in.GetDisplayText()), len(in.GetOpenHref()), citationformat.MaxDisplayBytes)

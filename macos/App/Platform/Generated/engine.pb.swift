@@ -3444,9 +3444,9 @@ public nonisolated struct Provenencia_Engine_V1_GetMetadataBoardResponse: Sendab
   fileprivate var _board: Provenencia_Engine_V1_MetadataBoard? = nil
 }
 
-/// GetDraftMetadataBoard is the board a new Artifact or graph starts with on a
-/// Source: its type's suggestions, empty, then the fields its citation formats
-/// head at level, each with its requirement. level is "artifact" or "graph".
+/// GetDraftMetadataBoard is the board a new owner starts with: its Source type's
+/// suggestions, empty, then the fields its citation formats head at level, each
+/// with its requirement and the value it inherits from its parents and above.
 public nonisolated struct Provenencia_Engine_V1_GetDraftMetadataBoardRequest: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -3454,9 +3454,12 @@ public nonisolated struct Provenencia_Engine_V1_GetDraftMetadataBoardRequest: Se
 
   public var projectDir: String = String()
 
-  public var sourceID: String = String()
-
+  /// "artifact", "graph" or "citation"
   public var level: String = String()
+
+  /// The owners directly above the new one, one per level above it: a new
+  /// Artifact's or graph's Source; a new Citation's graph and Artifact. Any order.
+  public var parents: [Provenencia_Engine_V1_MetadataOwner] = []
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -14136,7 +14139,7 @@ nonisolated extension Provenencia_Engine_V1_GetMetadataBoardResponse: SwiftProto
 
 nonisolated extension Provenencia_Engine_V1_GetDraftMetadataBoardRequest: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".GetDraftMetadataBoardRequest"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{3}source_id\0\u{1}level\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}project_dir\0\u{2}\u{2}level\0\u{1}parents\0\u{b}source_id\0\u{c}\u{2}\u{1}")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -14145,8 +14148,8 @@ nonisolated extension Provenencia_Engine_V1_GetDraftMetadataBoardRequest: SwiftP
       // enabled. https://github.com/apple/swift-protobuf/issues/1034
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.projectDir) }()
-      case 2: try { try decoder.decodeSingularStringField(value: &self.sourceID) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.level) }()
+      case 4: try { try decoder.decodeRepeatedMessageField(value: &self.parents) }()
       default: break
       }
     }
@@ -14156,19 +14159,19 @@ nonisolated extension Provenencia_Engine_V1_GetDraftMetadataBoardRequest: SwiftP
     if !self.projectDir.isEmpty {
       try visitor.visitSingularStringField(value: self.projectDir, fieldNumber: 1)
     }
-    if !self.sourceID.isEmpty {
-      try visitor.visitSingularStringField(value: self.sourceID, fieldNumber: 2)
-    }
     if !self.level.isEmpty {
       try visitor.visitSingularStringField(value: self.level, fieldNumber: 3)
+    }
+    if !self.parents.isEmpty {
+      try visitor.visitRepeatedMessageField(value: self.parents, fieldNumber: 4)
     }
     try unknownFields.traverse(visitor: &visitor)
   }
 
   public static func ==(lhs: Provenencia_Engine_V1_GetDraftMetadataBoardRequest, rhs: Provenencia_Engine_V1_GetDraftMetadataBoardRequest) -> Bool {
     if lhs.projectDir != rhs.projectDir {return false}
-    if lhs.sourceID != rhs.sourceID {return false}
     if lhs.level != rhs.level {return false}
+    if lhs.parents != rhs.parents {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

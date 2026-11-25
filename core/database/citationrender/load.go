@@ -25,24 +25,28 @@ type subject struct {
 	values    sourcemetadata.CitationValues
 }
 
-// owners lists the records whose metadata the subject reads: its Source and,
-// for a Citation, its Artifact, graph and itself, each only when it has an id.
+// owners lists the records whose metadata the subject reads: a Citation and
+// the owners above it (sourcemetadata.OwnersAbove), each only when it has an
+// id; a Source alone, its Source.
 func (s *subject) owners() []sourcemetadata.Owner {
-	var out []sourcemetadata.Owner
-	add := func(level vocabkey.Level, id []byte) {
-		if id != nil {
-			out = append(out, sourcemetadata.Owner{Level: level, ID: id})
-		}
-	}
+	var sourceID []byte
 	if s.source != nil {
-		add(vocabkey.LevelSource, s.source.ID)
+		sourceID = s.source.ID
 	}
-	if s.cited != nil {
-		add(vocabkey.LevelArtifact, s.cited.ArtifactID)
-		add(vocabkey.LevelGraph, s.cited.GraphID)
-		add(vocabkey.LevelCitation, s.cited.ID)
+	if s.cited == nil {
+		if sourceID == nil {
+			return nil
+		}
+		return []sourcemetadata.Owner{{Level: vocabkey.LevelSource, ID: sourceID}}
 	}
-	return out
+	var out []sourcemetadata.Owner
+	if s.cited.ID != nil {
+		out = append(out, sourcemetadata.Owner{Level: vocabkey.LevelCitation, ID: s.cited.ID})
+	}
+	return append(out, sourcemetadata.OwnersAbove(vocabkey.LevelCitation, map[vocabkey.Level][]byte{
+		vocabkey.LevelGraph:    s.cited.GraphID,
+		vocabkey.LevelArtifact: s.cited.ArtifactID,
+	}, sourceID)...)
 }
 
 // typeID is the id of the subject's Source type; nil when it has no Source.
@@ -149,14 +153,7 @@ func fillValues(tx *sql.Tx, subs []*subject, templates []*citationformat.Templat
 	byOwner := sourcemetadata.GroupByOwner(rows)
 
 	for _, s := range subs {
-		v := sourcemetadata.CitationValues{
-			Rows:     map[vocabkey.Level]map[string]sourcemetadata.Row{},
-			Fields:   fields,
-			Builtins: map[citationformat.Target]citationformat.Value{},
-		}
-		for _, o := range s.owners() {
-			v.Rows[o.Level] = byOwner.Of(o)
-		}
+		v := sourcemetadata.ValuesOf(byOwner, s.owners(), fields)
 		if s.source != nil {
 			v.Builtins[citationformat.SourceTitle] = citationformat.Value{Text: s.source.Title}
 			v.Builtins[citationformat.SourceType] = citationformat.Value{Text: s.typeLabel}

@@ -164,7 +164,7 @@ final class SourcePageContext {
         defer { isOpeningForm = false }
         do {
             let rows = try await store.getDraftMetadataBoard(
-                projectDir: projectDir, sourceID: sourceID, level: level
+                projectDir: projectDir, parents: [MetadataOwner(level: .source, id: sourceID)], level: level
             )
             return hasOpenOwnerForm() ? nil : rows
         } catch {

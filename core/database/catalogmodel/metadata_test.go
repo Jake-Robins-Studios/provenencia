@@ -78,6 +78,55 @@ func TestMetadataTables(t *testing.T) {
 	if err := upsOrderErr(swapped); err == nil || !strings.Contains(err.Error(), "citation") {
 		t.Errorf("ups [artifact, graph] error = %v, want one naming citation", err)
 	}
+	if err := ancestorsErr(catalogmodel.MetadataTables); err != nil {
+		t.Errorf("shipped list: %v", err)
+	}
+	deep := append(slices.Clone(catalogmodel.MetadataTables), catalogmodel.MetadataLevelTables{
+		Level: "deep", OwnerTable: "deeps",
+		Ups: []catalogmodel.MetadataUp{{Level: vocabkey.LevelCitation, Column: "citation_id", ToSource: true}},
+	})
+	if err := ancestorsErr(deep); err == nil || !strings.Contains(err.Error(), "deep") || !strings.Contains(err.Error(), "graph") {
+		t.Errorf("a level below the Citation: error = %v, want one naming deep and graph", err)
+	}
+}
+
+// ancestorsErr checks that every level reachable above an entry through its
+// ups, however far, is one of its direct ups or the Source (the end of its
+// SourcePath): sourcemetadata finds an owner's ancestors from its up columns
+// and its Source alone.
+func ancestorsErr(list []catalogmodel.MetadataLevelTables) error {
+	byLevel := map[vocabkey.Level]catalogmodel.MetadataLevelTables{}
+	for _, e := range list {
+		byLevel[e.Level] = e
+	}
+	for _, e := range list {
+		path, err := catalogmodel.SourcePath(list, e.Level)
+		if err != nil {
+			return err
+		}
+		source := path[len(path)-1].Level
+		direct := map[vocabkey.Level]bool{source: true}
+		for _, u := range e.Ups {
+			direct[u.Level] = true
+		}
+		seen := map[vocabkey.Level]bool{}
+		stack := []vocabkey.Level{e.Level}
+		for len(stack) > 0 {
+			l := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			for _, u := range byLevel[l].Ups {
+				if seen[u.Level] {
+					continue
+				}
+				seen[u.Level] = true
+				if !direct[u.Level] {
+					return fmt.Errorf("level %s: ancestor %s is neither one of its ups nor the Source", e.Level, u.Level)
+				}
+				stack = append(stack, u.Level)
+			}
+		}
+	}
+	return nil
 }
 
 // upsOrderErr checks that each entry's ups sit after the entry's own level in
