@@ -102,7 +102,8 @@ extension View {
 }
 
 /// Keeps a list's selected row in view as the selection moves. A selection that changes with a new
-/// arrival (Back between two entries of a mounted list) is not a move: `pvRemembersScroll` places it.
+/// arrival (Back between two entries of a mounted list), or later in that main-actor turn (a model that
+/// follows the location), is not a move: `pvRemembersScroll` places it.
 private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     let selection: ID?
     let animated: Bool
@@ -110,6 +111,7 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     let restartKey: AnyHashable?
     /// The row the selection moved to; nil until it moves within the visit.
     @State private var movedTo: ID?
+    @State private var isArriving = false
     @Environment(\.pvScrollMemory) private var memory
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -122,7 +124,11 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
         ScrollViewReader { proxy in
             content
                 .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
-                    movedTo = old.arrival == new.arrival ? new.selection : nil
+                    if old.arrival != new.arrival {
+                        isArriving = true
+                        Task { @MainActor in isArriving = false }
+                    }
+                    movedTo = isArriving || old.arrival != new.arrival ? nil : new.selection
                     // Rows between here and there were never drawn: the first scroll lands on their
                     // estimated heights. Once more on the next turn, with the rows drawn, it lands whole.
                     guard let row = movedTo else { return }

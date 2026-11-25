@@ -387,7 +387,8 @@ struct PVScrollMemoryHostedTests {
             await mainQueueTurn()
             host.layoutSubtreeIfNeeded()
         }
-        #expect(y(table) > 500)
+        // Row 40 is shown as far as it must be; that scroll is done before the next.
+        #expect(await eventually(host) { y(table) == 1069 })
 
         scroll(table, to: 3000)
         navigation.go(to: place("row90"))
