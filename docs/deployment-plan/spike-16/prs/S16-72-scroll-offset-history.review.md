@@ -29,6 +29,20 @@ Maintainability: **Fits with changes**. Executability: **Ready with changes**.
 | X-9 | minor | Small choices (file of the enum, search order, visible height, `nan` in JSON) | **Fixed**: D-3, D-7, T-2 |
 | X-10 | minor | Review log link dead | **Fixed**: this file |
 
-## Round 2
+## Round 2 (2026-11-25)
 
-Pending.
+Maintainability: **Fits with changes**. Executability: **Not ready** (two blockers), answered below. Cap reached: no round 3.
+
+| ID | Severity | Finding | Answer |
+| --- | --- | --- | --- |
+| M-11 / X-12 | blocker | The selection has two homes; a coalesced visit (the sort or filter clear) no longer clears it | **Fixed**: D-8's one `apply` rule (new arrival: the entry's revisit; same arrival: only the selection from the entry); the held `listSelection` is the one selection; T-2 `aCoalescedVisitClearsTheHeldSelection`, the two existing selection tests kept |
+| X-11 | blocker | A quit writes no y, so AC-1.9 and AC-2.4 cannot hold | **Fixed**: `flush()` on `WorkspaceView` disappear and `willTerminate` (D-8); T-2 `flushWritesTheCurrentY` |
+| X-13 | major | The kept selection scroll can disarm a restore on the reused Sources list | **Fixed**: D-12 skips a selection scroll in the update an arrival changes; T-5 `aSelectionSetByBackDoesNotScrollTheMountedList` |
+| X-14 | major | `PVScrollRestore` cannot see the current y; scroll mapping unstated | **Fixed**: Codebase fit signatures (`arm(currentY:)`, `layout(currentY:…)`) and the `scroll(to:)` mapping; T-1 rows |
+| X-15 | major | STEP-1 cannot compile before later steps | **Fixed**: STEP-1 moves every reader and writer with behavior unchanged; later steps delete; `ListAnchor.settle` named right; `sectionAnchor` in the `rg` |
+| X-16 | minor | Remount mid-visit, dictionary encoding, `init` parameters, Source types, DoD kit box | **Fixed**: Edges, D-9, DoD |
+| — | — | Host row: list roots have nil identity | **Fixed**: §4 Host row |
+
+## Verdict
+
+**Planned.** No open blocker; nothing To user. Two rounds.
