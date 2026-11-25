@@ -126,8 +126,25 @@ Check: red then green; `scripts/check-pr.sh` PASS once.
 
 Head `83eed0d97`: C-2 done, red first. S-3, C-1 and C-2 were read by the orchestrator in the diff; no reviewer ran on them.
 
+Gate on `83eed0d97` merged with `main`: **FAIL**, `endReachesTheLastRowAndHomeTheFirstAtAHundredSources` (End stops short; load average 14 – 18). It had passed in the implementer's run. Likely S-2's removal of the repeat scroll, not proven. The orchestrator had marked the PR ready in the same command; it is a draft again. To user.
+
+CI on `55c45e591`: macOS red on another test, `EvidenceGraphModelTests/deleteFacetsOnlyBridgeReleasesEdges` (45709345222); the End test passed there.
+
+**User (2026-11-25): back to the simple version.** A far Sources position opens at the top, accepted.
+
+**R-1 — Remove the Sources height estimate and what followed from it**
+Remove S-2 (`dd6f8ee37`, `9842d2e9d`, `1dbb2437b`, `6cd325457`) and S-3 (`c0567b692`): `SourcesRowEstimate` goes, the repeat scroll returns as on `main`, the next-turn second scroll goes, the tests and docs return to `550b8cd76`'s (`backToAYPastTheTablesHeightOpensAtTheTop`, the idea note). Keep C-1 (`7dd23102a`) and C-2 (`83eed0d97`), and the stronger `everyRowTakesItsOwnHeight…` if it passes on this code. `git diff 550b8cd76 HEAD -- macos/App` may then show only C-1 and C-2 and what `main` brought. Landed note and `completed.md` say the final state.
+Check: `scripts/check-pr.sh` PASS once; report that diff.
+
+Head `861ae159a`: R-1 done; `macos/App` differs from `550b8cd76` by C-1 and C-2 alone.
+
+**E-1 — The Evidence graph delete test waits for its refresh**
+Files: `EvidenceGraphModelTests.swift`. `deleteFacetsOnlyBridgeReleasesEdges` sleeps 50 ms and reads the handle (pre-existing; the CI failure of `55c45e591`). Do: wait on the state (`waitUntil`, 10 s as the failure limit) in place of the sleep, there and at any other fixed sleep in that file that stands for a refresh; nothing else. A sleep that proves something does **not** happen is left and reported. Also add the two fixes (C-1, C-2) to the plan's Landed note in final-state words. One `scripts/check-pr.sh` PASS.
+
+Head `5de3d753d`: E-1 done.
+
 ## Result
-Gate PASS · CI: on the PR · open: none · follow-ups: none · to user: the manual check; the Sources list in practice
+Gate PASS · CI: on the PR · open: none · follow-ups: none · to user: the manual check; far Sources positions open at the top, judged in practice
 
 ## Cost
 Plan: 6,114 words (check-plan-docs info line).
@@ -150,5 +167,7 @@ Plan: 6,114 words (check-plan-docs info line).
 | user | QCK review | opus | 80k |
 | user | implementer (S-3) | sonnet | 92k |
 | CI | implementer (C-1) | opus | 151k |
-| CI | implementer (C-2) | opus | — |
-| | **Total** (rows with a count) | | **2,411k** |
+| CI | implementer (C-2) | opus | 105k |
+| user | implementer (R-1) | sonnet | 87k |
+| CI | implementer (E-1) | sonnet | — |
+| | **Total** (rows with a count) | | **2,603k** |
