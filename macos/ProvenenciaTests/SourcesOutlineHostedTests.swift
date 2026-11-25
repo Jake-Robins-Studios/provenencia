@@ -54,7 +54,12 @@ struct SourcesOutlineHostedTests {
                 id: "g1-\(index)", ref: "GPH-\(index)", sourceID: "s1", name: "Graph \(index)", description: "",
                 artifactIDs: index == 3 ? [] : ["a-s1"]
             )
-        } + (["s2"] + tail.map(\.id)).map { owner in
+        } + (0 ..< 8).map { index in
+            CatalogEvidenceGraph(
+                id: "g2-\(index)", ref: "GPH-S2-\(index)", sourceID: "s2", name: "Graph \(index)", description: "",
+                artifactIDs: ["a-s2"]
+            )
+        } + tail.map(\.id).map { owner in
             CatalogEvidenceGraph(
                 id: "g-\(owner)", ref: "GPH-\(owner)", sourceID: owner, name: "Default", description: "",
                 artifactIDs: ["a-\(owner)"]
@@ -98,6 +103,20 @@ struct SourcesOutlineHostedTests {
         await withCheckedContinuation { turn in DispatchQueue.main.async { turn.resume() } }
     }
 
+    /// Scrolls a screen at a time to the end, each screen drawn, and back to the top.
+    private func scrollThrough(_ harness: Harness) async {
+        let table = harness.table
+        for y in Array(stride(from: 0, through: Double(table.frame.height), by: 300)) + [0] {
+            let clip = harness.scroll.contentView
+            clip.scroll(to: clip.constrainBoundsRect(NSRect(origin: NSPoint(x: 0, y: y - clip.contentInsets.top), size: clip.bounds.size)).origin)
+            harness.scroll.reflectScrolledClipView(clip)
+            #expect(await waitUntil(timeout: .seconds(10)) {
+                let rows = table.rows(in: table.visibleRect)
+                return rows.length > 0 && table.rowView(atRow: rows.location + rows.length - 1, makeIfNecessary: false) != nil
+            })
+        }
+    }
+
     private func select(
         _ anchor: String, row: Int, _ harness: Harness, sourceLocation: SourceLocation = #_sourceLocation
     ) async {
@@ -116,11 +135,13 @@ struct SourcesOutlineHostedTests {
         let harness = try await makeHarness(rows: 33, tailSources: 30)
         let table = harness.table
         let sources = ["s3", "s2", "s1"] + (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
-        // No two neighbours have the same number of child rows: the rows reused change height each step.
-        for open in ["s1", "a29", nil, "a26", "s1", "s2", "s1", nil] {
+        // The graphs lie on other rows each step: the rows reused change height.
+        for open in ["s1", "a29", nil, "a26", "s1", "s2", "s1", nil, "s2"] {
+            // Every cell the table keeps for reuse has drawn a Source.
+            await scrollThrough(harness)
             harness.session.setOpenSource(open)
             let want = sources.flatMap { id -> [CGFloat] in
-                [66] + Array(repeating: 34, count: id != open ? 0 : id == "s1" ? 8 : 1)
+                [66] + Array(repeating: 34, count: id != open ? 0 : id.hasPrefix("s") ? 8 : 1)
             }
             #expect(await waitUntil(timeout: .seconds(10)) { table.numberOfRows == want.count })
             var heights: [CGFloat] = []
@@ -159,17 +180,20 @@ struct SourcesOutlineHostedTests {
         #expect(harness.session.openSourceID == "s1")
     }
 
-    /// A y past the height the table reports on arrival opens at the top, and stays on the entry.
-    @Test func backToAYPastTheTablesHeightOpensAtTheTop() async throws {
-        let harness = try await makeHarness(rows: 4 + 3 + 8 + 90, open: "s1", extraSources: 4, tailSources: 90)
-        harness.navigation.noteScrollOffset(9000, arrival: harness.navigation.arrival)
+    /// Back to a y near the end of 300 Sources lands at its row. The table reports its full height
+    /// before anything scrolls: as its rows load, and as Back mounts it with them.
+    @Test func backToAYNearTheEndOfALongListLandsAtIt() async throws {
+        let harness = try await makeHarness(rows: 300 + 8, open: "s1", extraSources: 4, tailSources: 293)
+        let full: CGFloat = 300 * 66 + 8 * 34
+        func isFull(_ scroll: NSScrollView) -> Bool { abs((scroll.documentView?.frame.height ?? 0) - full) <= 300 }
+        #expect(await eventually(harness.host) { isFull(harness.scroll) }, "\(harness.table.frame.height)")
+        #expect(harness.scroll.verticalLineScroll == 34)
+        harness.navigation.noteScrollOffset(19000, arrival: harness.navigation.arrival)
         let restored = try await leaveAndGoBack(harness)
-        await mainQueueTurn()
-        harness.host.layoutSubtreeIfNeeded()
-        #expect(y(restored) == 0)
-        harness.navigation.goForward()
-        harness.navigation.goBack()
-        #expect(harness.navigation.currentLocation.revisit.scrollOffset == 9000)
+        #expect(isFull(restored), "\(restored.documentView?.frame.height ?? 0)")
+        // Within a row: the first rows drawn are measured as the list scrolls.
+        #expect(await eventually(harness.host) { abs(self.y(restored) - 19000) < 66 }, "\(y(restored))")
+        #expect(restored.verticalLineScroll == 34)
     }
 
     private func y(_ scroll: NSScrollView) -> Double {

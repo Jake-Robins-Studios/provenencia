@@ -219,6 +219,7 @@ struct SourcesTable: View {
         .tableStyle(.inset(alternatesRowBackgrounds: false))
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }
+        .background(SourcesRowEstimate(items: items))
         .scrollDisabled(isLoading)
         .allowsHitTesting(!isLoading)
         .accessibilityHidden(isLoading)
@@ -471,5 +472,55 @@ private struct SourcesRowHeight: ViewModifier {
         content
             .frame(height: shown)
             .onChange(of: height, initial: true) { shown = height }
+    }
+}
+
+/// Tells the table each row's height before it is drawn, so the table reports its full height. SwiftUI gives
+/// the platform one value for both the least row height and the estimate of an undrawn row: a graph row's.
+/// The table estimates a row when its rect is first read, and keeps that estimate until the row is drawn.
+private struct SourcesRowEstimate: NSViewRepresentable {
+    let items: [SourcesTableItem]
+
+    func makeNSView(context: Context) -> EstimateView { EstimateView() }
+
+    /// The table's rows change in this update: the layout that follows has them.
+    func updateNSView(_ view: EstimateView, context: Context) {
+        view.heights = items.map { $0.contentHeight + SourcesTableWidths.cellPadding }
+        view.needsLayout = true
+    }
+
+    final class EstimateView: NSView {
+        var heights: [CGFloat] = []
+        private var isEstimating = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func layout() {
+            super.layout()
+            guard !isEstimating, let table = nearestTable, table.numberOfRows == heights.count else { return }
+            isEstimating = true
+            defer { isEstimating = false }
+            let least = table.rowHeight
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0
+                for height in [SourcesTable.sourceRowHeight + SourcesTableWidths.cellPadding, least] {
+                    table.rowHeight = height
+                    let rows = IndexSet(heights.indices.filter { heights[$0] == height && table.rect(ofRow: $0).height != height })
+                    table.noteHeightOfRows(withIndexesChanged: rows)
+                    rows.forEach { _ = table.rect(ofRow: $0) }
+                }
+            }
+            // The table takes its wheel step from its row height.
+            table.enclosingScrollView?.verticalLineScroll = least
+        }
+
+        /// The table this view is the background of: the one in its nearest ancestor that holds one.
+        private var nearestTable: NSTableView? {
+            sequence(first: self as NSView, next: \.superview).lazy.compactMap(Self.table(in:)).first
+        }
+
+        private static func table(in view: NSView) -> NSTableView? {
+            view as? NSTableView ?? view.subviews.lazy.compactMap(table(in:)).first
+        }
     }
 }
