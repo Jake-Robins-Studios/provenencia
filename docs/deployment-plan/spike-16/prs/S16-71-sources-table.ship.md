@@ -1,7 +1,7 @@
 # Ship log — S16-71 The Sources list is a native table
 
 **Plan:** [`S16-71-sources-table.md`](S16-71-sources-table.md) · **Branch:** `s16-71-sources-table` · **PR:** [#969](https://github.com/Jake-Robins-Studios/provenencia/pull/969)
-**State:** stopped — macOS CI still red after one fix round
+**State:** ready
 
 ## Round 0 — implement
 Head `4fea1cfc3`. Gate PASS (orchestrator). Deviations: version 0.40.0; Not started is 128 pt wide against the 126 pt minimum; relative dates use `TimestampFormat`'s words; graph wheel step 26; `settleDelay` a computed static; `SourcesOutline.items`; hosted suites `.serialized`; `PVPublishedDate` "Undated" faint on the Person page too; the rules test's place; AC-1.9 manual only. `BenchmarkList` 4.5 → 17.5 ms.
@@ -151,8 +151,88 @@ Head `76325e31b`: C-1 done (two pairs of cases had one description). Gate PASS (
 ### CI on `76325e31b` and `7a5def392`
 C-1 works: the run completes. macOS red twice (runs 45505668518, 45505904968; macOS 15 runner, Xcode 16.4), one test: `everyRowIsItsOwnHeightHoweverTheRowsMove`, some Source rows read 34, want 66, 200 ms after a change. It passes on macOS 27.2. Not known: late on the runner, or stuck on macOS 15 (U-1's `SourcesRowHeight` was checked on 27.2 only). To user.
 
+### CI round 2 (user, 2026-11-24)
+The user saw correct heights on every Source and graph row on macOS 27.2.
+
+**C-2 — The height test says whether a row is late or stuck**
+Files: `SourcesOutlineHostedTests.swift` only.
+Do: `expectRowHeights` polls (each turn lays out, then reads `wrongRows`) until no row is wrong, at most 5 s, in place of the fixed 200 ms; keep a check that the result still holds one turn later. On failure, or when settling took over 200 ms, the message carries the step name, the wrong rows with `rect(ofRow:)`, row view and every cell height, and how long it took. Print the slowest settle (one line) so a passing CI log shows it. Where a row is still wrong after 5 s, also report whether one more scroll away and back, and one `noteHeightOfRows`, corrects it (diagnosis only, after the failure is recorded). Do not weaken any height, change product code, or add a retry trait.
+Check: passes 20 times locally; `scripts/check-pr.sh` PASS; push.
+
+Head `9d417c698`: C-2 done; macOS CI green (run 45517495666, slowest settle 0.157 s, "sorted"). Not proof: both old failures were at "sorted", and the poll's layouts may correct the row. Quick-lens review of U-3, U-4, C-1, C-2:
+
+| ID | Severity | Title | Decision |
+| --- | --- | --- | --- |
+| QCK-6 (its QCK-1) | major | The poll cannot tell a self-correcting row from one its layouts correct | Fix now → C-3 |
+| QCK-7 (its QCK-2) | minor | A step confirms after 50 ms; "late counts" can pass before the counts arrive | Fix now → C-3 |
+| QCK-8 (its QCK-3) | minor | The edge repeat's "still there" check reads the ids of the press | Fix now → C-3 |
+
+**C-3 — The sort is checked with no forced layout, in a shown window**
+Files: `SourcesOutlineHostedTests.swift`, `PVNativeListBehavior.swift` (QCK-8 only).
+Do: (1) a test that hosts the page in a borderless window ordered in (opaque, on screen), opens a Source, lets it settle, sorts by Title as "sorted" does, then awaits with **no** `layoutSubtreeIfNeeded`, `displayIfNeeded` or scroll by the test, reading `wrongRows` every 20 ms for up to 5 s without laying out; it must become and stay right. Print when, and the `NSWindow` visibility and screen count, so the log shows whether the runner really showed it. Close the window after. (2) the same in the never-shown window, printed only, not asserted. (3) `expectRowHeights` confirms after 250 ms instead of 50 ms, and the "late counts" step waits for the counts to have arrived first; prints only a late or failed step. (4) QCK-8: drop the vacuous `rows.contains` checks and the comment's clause (both functions), or read live ids.
+If (1) fails on CI, that is a product finding: report it, change nothing else.
+Check: 20 runs locally; `scripts/check-pr.sh` PASS; push.
+
+Head `9af301a09`: C-3 done; CI green (45523692600). C-2's reruns: 4 of 4 green, "sorted" settling in 0.16, 0.17, 0.23 and 0.35 s. The shown-window test is not yet proof: it reads "right" 0.2 ms after the click, before the sort is known to have applied, and its `wrongAgainAt` assertion failed once locally on a transient.
+
+**C-4 — The shown-window test proves the sort**
+Files: `SourcesOutlineHostedTests.swift` only.
+Do: before the sort, scroll to y 500 as the failing step had (its `scrolled` steps ran first), and confirm it; after the sort, start watching only once the list is back at its top (`contentView.bounds.minY` at its top, the sort's own effect) and the first drawn row is another Source than before (read what a cell shows, without the accessibility tree, or `harness` state if it exposes the outline order; say which). Then, with no layout by the test: the rows become right within 5 s and the last second of reads are all right. A transient before that is allowed; print how long rows read wrong and the first and last times. Same for the never-shown window, printed only. No fixed sleep stands in for the sort applying.
+Check: the assertion fails if the sort line is removed (say so); whole `SourcesOutlineHostedTests` 20 times; `scripts/check-pr.sh` PASS; push.
+
+### User round 2 (2026-11-24)
+The user: no repeat runs as proof; a flaky test is fixed at its cause; AppKit is allowed for exact row heights (supersedes the rule "no AppKit reach-in" for this). C-4 is dropped, uncommitted.
+
+**U-5 — The Sources table knows every row's height before it draws it**
+Files: `SourcesTable.swift`, `SourcesListView.swift`, `PVNativeListBehavior.swift`, the hosted and table tests, a new file for the AppKit piece, kit README, the plan's Landed note, `completed.md`.
+Step 1, throwaway, commit nothing: show that the `NSTableView` under SwiftUI's `Table` can be given exact heights (a delegate that forwards everything else to SwiftUI's own and answers `tableView(_:heightOfRow:)`, or another way you find sounder; `usesAutomaticRowHeights` off), without private API or method swizzling, with selection, header sorting, the context menu, double-click, keys and row insertion and removal still SwiftUI's. Consider what happens when SwiftUI replaces the delegate or the table. **Stop and report** if it needs private API or swizzling, breaks one of those, or would not work on macOS 14 and 15 as well as 27; say what else could. CI is the only macOS 15: if step 1 works here, step 2's CI run is its proof.
+Step 2, only if step 1 holds: height is a pure function of the row (`SourcesTableItem`: 66 Source and skeleton, 34 graph and pending), and the piece reads it; heights change in the same update as the rows. `SourcesRowHeight` goes. Every delayed second scroll that existed for estimated heights goes (`repeatOnce`, `settleDelay`, their callers), for `PVList` too only if its rows are one height and it never needed it; if some scroll still needs one, stop and say which and why.
+Tests: the height function as a table; one hosted test that `rect(ofRow:)` of **every** row, drawn or not, and the document height are exact at once after open, close, sort and filter; End, Home, opening a Source with an open neighbour above, and Back's deep graph land in one scroll (put back the anchor test's "in view" assertions). Delete the diagnostics (C-2 to C-4: `SortWatch`, the never-shown test, the printing, the poll) and the U-1 multi-step test they served. Go through every wait in `SourcesOutlineHostedTests` and `SourcesTableHostedTests`: a fixed sleep goes; a wait is on the event or state itself, with a timeout only as the failure limit. Close each harness's window at the test's end, so a long run does not slow down.
+Prove once, not by repeats: each test fails when its behavior is broken, and one `scripts/check-pr.sh` PASS. Do not use `-test-iterations`.
+
+U-5 stopped at step 1, nothing changed. A forwarding delegate gives exact heights at once (3,008 rows, one scroll lands; macOS 27.2, standalone probe), but Return no longer opens the selected row. Options to user: (A) the proxy with Return taken back, other overrides untested; (B) `class_addMethod` on SwiftUI's private coordinator (works, read as inside the swizzling ban); (C) the page's own `NSTableView`, public API only, a PR of its own size, not tried; (D) one row height.
+
+The user (2026-11-25): no AppKit table here; remove the diagnostics and fixed sleeps, and review the whole change adversarially for cruft, simplicity, idiom and separation of concerns.
+
+### Adversarial review of `9af301a09` (whole change; two reviewers)
+No blocker. Findings: APP-MNT-1 – 13 (production), TST-MNT-1 – 16 (tests, docs). Decisions:
+
+| ID | Severity | Title | Decision |
+| --- | --- | --- | --- |
+| TST-1, 3, 4, 5, 6 | major | Hosted-test diagnostics, sleeps, races, duplicates, harness | Fix now → K-1 |
+| APP-1, APP-8 | major, minor | One scroll request in one place; whether Home/End is the platform's | Fix now → K-2 |
+| APP-2, TST-2 | major | One click value, one pure press decision; the event seam goes | Fix now → K-3 |
+| APP-3 | major | Column visibility is derived | Fix now → K-4 |
+| APP-4 (switches, time cell), 5, 6, 7, 9 | minor | Cells, widths, outline maps, dead code, Go attach | Fix now → K-5 |
+| APP-10, 12, 13; TST-8 – 14 | major to nit | False or narrating text; small test suites | Fix now → K-6 |
+| TST-7 | major | Badge tests are pure | Fix now → K-6 |
+| APP-4 (inner height frames), APP-11 | minor, nit | Frames may change VoiceOver's frame; one disabled-customization Group | Logged: no gain worth the risk |
+| TST-15, 16, TST-8's ship-log line | nit | Goes with K-1; map and ship log | Orchestrator |
+
+**Cleanup plan.** No behavior a researcher can see changes. The plan's Decisions this supersedes (D-7's state, D-10's request functions, D-14 and D-15's shape) go in the Landed note. One commit per item, each leaving the tests green; prove with one run, never repeats.
+- **K-1 Tests first.** TST-1, 3, 4, 5, 6 as written: the hosted suites keep only what a pure test cannot show; no `Task.sleep`; every wait is on state with a 10 s failure limit; each kept test is shown to fail when its behavior is broken.
+- **K-2 Scrolling.** First one check: remove the Home/End handler and run the End/Home test; if it passes, the handler and its state go. Then APP-1's single request and one cancellable repeat; the page passes its reveal in. `PVList` keeps it only through the shared modifier.
+- **K-3 Clicks.** `SourcesPointer.swift` holds the pointer, `SourcesClick` (the one parse of the event) and one pure decision (second press and what it opens, or select and which outline action), tested as a table; `select` and `activate` read, decide, perform. `sourcesCurrentEvent`, `SourcesEventSource` and the event-driven hosted click tests go.
+- **K-4 Columns.** APP-3; if a constant customization is not honored on resize by `columnsFitTheirWidths`, keep the state and take the rest, and say so.
+- **K-5 Rows and Go.** APP-4's switches and `timeCell`, 5, 6, 7, 9.
+- **K-6 Text and small suites.** APP-10, 12, 13; TST-7 – 14.
+
+Head `797b0d938`: K-1 to K-6 done (APP-12 not: it trips `patterns`; Home/End's handler stays: the test fails without it). Net since `9af301a09`: +709 −1535; `SourcesOutlineHostedTests` 854 → 257 lines, no sleep. Gate PASS (orchestrator), CI green (45629749578, macOS 15). Conformance review of the cleanup: no visible regression.
+
+| ID | Severity | Title | Decision |
+| --- | --- | --- | --- |
+| CON-20 (its 1) | major | The selection write and the press note/consume are untested | Fix now → L-1 |
+| CON-21 (its 2) | major | A header click writing the sort is untested | Fix now → L-1 |
+| CON-22, 23, 24 (its 3, 5, 6) | minor, nit | Height test's equal neighbours; dead `s.Updated`; a drawn row | Fix now → L-1 |
+| CON-25 (its 4) | minor | Resize keeps scroll and focus; a selection move cancels End's repeat: no test | Manual check (AC-1.8) and the Landed note; a timer race has no deterministic hosted test |
+
+**L-1 — The wiring has tests again**
+(1) `theTablesOwnSelectionBecomesTheAnchor` in `SourcesOutlineHostedTests` as the finding writes it, without its last line. (2) `SourcesPointer` owns `pressed` (`private(set)`): `press` notes, clears and consumes; `secondPress` for the double action consumes when it opens; tested as a sequence (note; a second press on no row opens once; again opens nothing; a modified first press clears; the double action after it opens the row under it). (3) `aHeaderClickSortsAndEvidenceStatusAndTypeDoNot` in `SourcesTableHostedTests` as written, Type too where it is shown. (4) The height test's steps reordered so no two neighbours have one row count; row 0 must be drawn. (5) Drop the dead `s.Updated = res.Activity` lines in `api/ffi/handlers/sources.go` (check both are overwritten on every path). (6) Landed note: CON-25's two lines. Each new test is shown to fail once with its behavior broken; no sleep, no repeats; one `scripts/check-pr.sh`.
+
+Head `49631edee`: L-1 done (orchestrator read the diff).
+
 ## Result
-Gate PASS · CI: **red** · open: the row heights on macOS 15 · later PR: S16-72 (scroll offset in history, QCK-3) · follow-ups: none · to user: the real-mouse manual check, QCK-2
+Gate PASS · CI: green on `797b0d938`; the final head's run is on the PR · open: none · later PR: S16-72 · follow-ups: none · to user: the manual check
 
 ## Cost
 Plan: 7,670 words (check-plan-docs info line).
@@ -175,4 +255,14 @@ Plan: 7,670 words (check-plan-docs info line).
 | user | implementer (U-3) | sonnet | 104k |
 | user | implementer (U-4) | sonnet | 106k |
 | CI | implementer (C-1) | sonnet | 85k |
-| | **Total** | | **2,294k** |
+| CI | implementer (C-2) | sonnet | 82k |
+| CI | QCK review 2 | opus | 85k |
+| CI | implementer (C-3) | sonnet | 117k |
+| CI | implementer (C-4, stopped) | sonnet | — |
+| user 2 | implementer (U-5) | opus | 155k |
+| cleanup | adversarial review, app | opus | 237k |
+| cleanup | adversarial review, tests | opus | 212k |
+| cleanup | implementer (K-1 – K-6) | opus | 344k |
+| cleanup | CON review | opus | 158k |
+| cleanup | implementer (L-1) | sonnet | 104k |
+| | **Total** (rows with a count) | | **3,788k** |
