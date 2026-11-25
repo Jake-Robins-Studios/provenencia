@@ -89,20 +89,18 @@ struct SourcesTableWidths: Equatable {
 /// column's name.
 struct SourcesTable: View {
     @Environment(WorkspaceSession.self) private var session
+    @Environment(\.pvWidthClass) private var widthClass
 
     let items: [SourcesTableItem]
     let selection: Binding<String?>
     let model: SourcesModel
-    let isWide: Bool
     let gutter: CGFloat
     /// Opens a closed Source, or closes the open one: the triangle's action.
-    let toggle: (CatalogSource, SourcesDisclosure) -> Void
+    var toggle: (CatalogSource, SourcesDisclosure) -> Void = { _, _ in }
     /// Notes whether the pointer is on a Source's triangle (the page reads it when a click selects).
-    let hoverTriangle: (_ sourceID: String, _ inside: Bool) -> Void
+    var hoverTriangle: (_ sourceID: String, _ inside: Bool) -> Void = { _, _ in }
     /// Skeleton rows: inert, and out of the accessibility tree.
-    let isLoading: Bool
-
-    @State private var columns: TableColumnCustomization<SourcesTableItem>
+    var isLoading = false
 
     /// The Type column's customization id: it shows at Wide only.
     static let typeColumnID = "type"
@@ -115,28 +113,21 @@ struct SourcesTable: View {
     /// The Title cell's leading edge to a Source's title: the triangle slot, a gap, the cover, a gap.
     static let titleIndent: CGFloat = triangleWidth + PVSpacing.space2 + coverSize + PVSpacing.space5
 
-    init(
-        items: [SourcesTableItem],
-        selection: Binding<String?>,
-        model: SourcesModel,
-        isWide: Bool,
-        gutter: CGFloat,
-        toggle: @escaping (CatalogSource, SourcesDisclosure) -> Void = { _, _ in },
-        hoverTriangle: @escaping (String, Bool) -> Void = { _, _ in },
-        isLoading: Bool = false
-    ) {
-        self.items = items
-        self.selection = selection
-        self.model = model
-        self.isWide = isWide
-        self.gutter = gutter
-        self.toggle = toggle
-        self.hoverTriangle = hoverTriangle
-        self.isLoading = isLoading
-        // The hidden column's width stays out of the first layout when the state starts right.
+    /// The header over skeleton rows in their columns: inert, so a row does not shift when its cells arrive.
+    static func loading(model: SourcesModel, gutter: CGFloat) -> SourcesTable {
+        SourcesTable(
+            items: SourcesTableItem.skeletons, selection: .constant(nil), model: model, gutter: gutter, isLoading: true
+        )
+    }
+
+    private var isWide: Bool { widthClass == .wide }
+
+    /// Which columns show. Not the researcher's to change (`disabledCustomizationBehavior`): the width
+    /// class alone decides.
+    private var columns: TableColumnCustomization<SourcesTableItem> {
         var columns = TableColumnCustomization<SourcesTableItem>()
         columns[visibility: Self.typeColumnID] = isWide ? .visible : .hidden
-        _columns = State(initialValue: columns)
+        return columns
     }
 
     var body: some View {
@@ -159,7 +150,7 @@ struct SourcesTable: View {
     }
 
     private func table(_ widths: SourcesTableWidths) -> some View {
-        Table(of: SourcesTableItem.self, selection: selection, sortOrder: sortOrder, columnCustomization: $columns) {
+        Table(of: SourcesTableItem.self, selection: selection, sortOrder: sortOrder, columnCustomization: .constant(columns)) {
             TableColumn(
                 header(L10n.Sources.columnTitle, sorted: .title), sortUsing: sort(.title)
             ) { (item: SourcesTableItem) in
@@ -222,9 +213,6 @@ struct SourcesTable: View {
         .tableStyle(.inset(alternatesRowBackgrounds: false))
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }
-        .onChange(of: isWide) { _, wide in
-            columns[visibility: Self.typeColumnID] = wide ? .visible : .hidden
-        }
         .scrollDisabled(isLoading)
         .allowsHitTesting(!isLoading)
         .accessibilityHidden(isLoading)

@@ -143,7 +143,7 @@ private struct SourcesTablePreview: View {
         let widthClass = PVWidthClass(paneWidth: paneWidth)
         SourcesTable(
             items: model.outline.items, selection: .constant(selected), model: model,
-            isWide: widthClass == .wide, gutter: widthClass.fullPaneGutter
+            gutter: widthClass.fullPaneGutter
         )
         .frame(width: paneWidth, height: 640)
         .background(PVColor.surfaceCard)

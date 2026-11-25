@@ -16,13 +16,13 @@ struct SourcesTableHostedTests {
         let model: SourcesModel
         let session: WorkspaceSession
         let pane: PaneWidth
-        @Binding var selection: String?
+        @State private var selection: String? = "s2"
 
         var body: some View {
             let widthClass = PVWidthClass(paneWidth: pane.value)
             SourcesTable(
                 items: model.outline.items, selection: $selection, model: model,
-                isWide: widthClass == .wide, gutter: widthClass.fullPaneGutter
+                gutter: widthClass.fullPaneGutter
             )
             .frame(width: pane.value, height: 760)
             .environment(session)
@@ -30,26 +30,14 @@ struct SourcesTableHostedTests {
         }
     }
 
-    private final class Selection {
-        var id: String?
-    }
-
     private struct Harness {
-        let window: NSWindow
         let host: NSHostingView<AnyView>
         let table: NSTableView
-        let session: WorkspaceSession
         let model: SourcesModel
         let pane: PaneWidth
-        let selection: Selection
     }
 
-    private func descendant<V: NSView>(_ type: V.Type, in view: NSView) -> V? {
-        if let match = view as? V { return match }
-        return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
-    }
-
-    private func makeHarness(width: CGFloat = 1102, selected: String? = nil) async throws -> Harness {
+    private func makeHarness() async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "census", origin: "provenencia", label: "Census", description: "")
@@ -67,12 +55,8 @@ struct SourcesTableHostedTests {
         model.warmListQueries()
         _ = await waitUntil(timeout: .seconds(10)) { model.sources.count == 3 && !model.isAwaitingGraphList }
         let pane = PaneWidth()
-        pane.value = width
-        let selection = Selection()
-        selection.id = selected
-        let binding = Binding(get: { selection.id }, set: { selection.id = $0 })
-        let view = AnyView(Probe(model: model, session: session, pane: pane, selection: binding))
-        let (window, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 2400, height: 760))
+        let view = AnyView(Probe(model: model, session: session, pane: pane))
+        let (_, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 2400, height: 760))
         host.layoutSubtreeIfNeeded()
         var table: NSTableView?
         let found = await waitUntil(timeout: .seconds(10)) {
@@ -81,30 +65,32 @@ struct SourcesTableHostedTests {
             return table?.numberOfRows == 3
         }
         #expect(found)
-        return Harness(
-            window: window, host: host, table: try #require(table), session: session, model: model, pane: pane,
-            selection: selection
-        )
+        return Harness(host: host, table: try #require(table), model: model, pane: pane)
     }
 
     private func shown(_ table: NSTableView) -> [(title: String, width: CGFloat)] {
         table.tableColumns.filter { !$0.isHidden }.map { ($0.headerCell.stringValue, $0.width) }
     }
 
-    private func resize(_ harness: Harness, to width: CGFloat) async {
-        harness.pane.value = width
-        try? await Task.sleep(for: .milliseconds(300))
-        harness.host.layoutSubtreeIfNeeded()
-    }
-
-    private func expect(
-        _ columns: [(title: String, width: CGFloat)], _ want: [(String, CGFloat)],
+    /// The table at `width`, once its shown columns are `want` and it scrolls sideways or not.
+    private func expectColumns(
+        _ harness: Harness, at width: CGFloat, _ want: [(String, CGFloat)], overflows: Bool = false,
         sourceLocation: SourceLocation = #_sourceLocation
-    ) {
-        #expect(columns.map(\.title) == want.map(\.0), sourceLocation: sourceLocation)
-        for (column, expected) in zip(columns, want) {
-            #expect(abs(column.width - expected.1) <= 1, "\(column.title) \(column.width)", sourceLocation: sourceLocation)
+    ) async {
+        harness.pane.value = width
+        let table = harness.table
+        let settled = await waitUntil(timeout: .seconds(10)) {
+            harness.host.layoutSubtreeIfNeeded()
+            let columns = shown(table)
+            return columns.map(\.title) == want.map(\.0)
+                && zip(columns, want).allSatisfy { abs($0.width - $1.1) <= 1 }
+                && overflowsSideways(table) == overflows
         }
+        #expect(
+            settled, "\(shown(table)), sideways \(overflowsSideways(table))", sourceLocation: sourceLocation
+        )
+        #expect(table.selectedRow == 1, sourceLocation: sourceLocation)
+        #expect(descendant(NSTableView.self, in: harness.host) === table, sourceLocation: sourceLocation)
     }
 
     private func overflowsSideways(_ table: NSTableView) -> Bool {
@@ -112,38 +98,21 @@ struct SourcesTableHostedTests {
         return table.frame.width > scroll.contentView.bounds.width + 1
     }
 
-    /// T-11 (AC-1.1, AC-1.2, AC-1.3, AC-1.8): the columns' titles and widths at each width, across the Wide
+    /// AC-1.1, AC-1.2, AC-1.3, AC-1.8: the columns' titles and widths at each width, across the Wide
     /// breakpoint and back, on one table with its selection.
     @Test func columnsFitTheirWidths() async throws {
-        let harness = try await makeHarness(width: 1102, selected: "s2")
-        let table = harness.table
-        harness.table.selectRowIndexes([1], byExtendingSelection: false)
+        let harness = try await makeHarness()
         let regular: [(String, CGFloat)] = [
             ("TITLE", 352), ("EVIDENCE", 168), ("STATUS", 128), ("PUBLISHED", 96), ("ADDED", 98), ("UPDATED", 98),
         ]
-        expect(shown(table), regular)
-        #expect(!overflowsSideways(table))
-
-        await resize(harness, to: 2296)
-        expect(shown(table), [
+        await expectColumns(harness, at: 1102, regular)
+        await expectColumns(harness, at: 2296, [
             ("TITLE", 1069), ("EVIDENCE", 240), ("STATUS", 140), ("TYPE", 220), ("PUBLISHED", 160), ("ADDED", 120),
             ("UPDATED", 120),
         ])
-        #expect(!overflowsSideways(table))
-        #expect(table.selectedRow == 1)
-
-        await resize(harness, to: 1102)
-        expect(shown(table), regular)
-        #expect(!overflowsSideways(table))
-        #expect(table.selectedRow == 1)
-
-        await resize(harness, to: 800)
+        await expectColumns(harness, at: 1102, regular)
         // Type is hidden below Wide; every other column keeps its width and the table scrolls sideways.
-        expect(shown(table), [
-            ("TITLE", 240), ("EVIDENCE", 168), ("STATUS", 128), ("PUBLISHED", 96), ("ADDED", 98), ("UPDATED", 98),
-        ])
-        #expect(overflowsSideways(table))
-        #expect(descendant(NSTableView.self, in: harness.host) === table)
+        await expectColumns(harness, at: 800, [("TITLE", 240)] + regular.dropFirst(), overflows: true)
     }
 
     private func headerColor(_ table: NSTableView, _ title: String) -> NSColor? {
@@ -153,7 +122,7 @@ struct SourcesTableHostedTests {
         return (text.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor)?.usingColorSpace(.sRGB)
     }
 
-    /// T-12 (AC-2.1): the sorted column's header text is one step brighter than the others', and the
+    /// AC-2.1: the sorted column's header text is one step brighter than the others', and the
     /// brightness moves with the sort.
     @Test func theSortedHeaderIsBrighter() async throws {
         let harness = try await makeHarness()
@@ -166,7 +135,7 @@ struct SourcesTableHostedTests {
         // Added, newest first, is the first visit's sort.
         #expect(brightest() == ["ADDED"])
         harness.model.settings.sort = SourcesSort(column: .title, order: .forward)
-        let moved = await waitUntil(timeout: .seconds(5)) {
+        let moved = await waitUntil(timeout: .seconds(10)) {
             harness.host.layoutSubtreeIfNeeded()
             return brightest() == ["TITLE"]
         }

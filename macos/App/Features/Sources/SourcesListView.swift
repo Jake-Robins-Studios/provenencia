@@ -4,8 +4,6 @@ import SwiftUI
 /// Add Source dialog, and row navigation to the Source page via history.
 struct SourcesListView: View {
     @Environment(WorkspaceSession.self) private var session
-    @Environment(WorkspaceNavigation.self) private var navigation
-    @Environment(\.pvWidthClass) private var widthClass
     @State private var model: SourcesModel
 
     init(
@@ -40,7 +38,7 @@ struct SourcesListView: View {
                 SourcesPage.frame(
                     model: model, state: .firstLoad,
                     toolbar: { _ in EmptyView() },
-                    content: { gutter in SourcesListLoadingArea(model: model, gutter: gutter) }
+                    content: { gutter in SourcesTable.loading(model: model, gutter: gutter) }
                 )
             }
         }
@@ -73,21 +71,6 @@ private enum SourcesPage {
     }
 }
 
-/// The table's header over skeleton rows in their columns, for the width class: inert, so a row does not
-/// shift when its cells arrive.
-private struct SourcesListLoadingArea: View {
-    let model: SourcesModel
-    let gutter: CGFloat
-    @Environment(\.pvWidthClass) private var widthClass
-
-    var body: some View {
-        SourcesTable(
-            items: SourcesTableItem.skeletons, selection: .constant(nil), model: model,
-            isWide: widthClass == .wide, gutter: gutter, isLoading: true
-        )
-    }
-}
-
 /// Observes query handles directly so list loads repaint when cache settles.
 private struct SourcesListContent: View {
     @Environment(WorkspaceNavigation.self) private var navigation
@@ -95,7 +78,6 @@ private struct SourcesListContent: View {
     @Bindable var sourcesHandle: QueryHandle<[CatalogSource]>
     @Bindable var typesHandle: QueryHandle<[CatalogSourceType]>
     @Bindable var model: SourcesModel
-    @Environment(\.pvWidthClass) private var widthClass
     @Environment(\.sourcesCurrentEvent) private var currentEvent
     /// The list has taken the keyboard once, the search field has had it, or the settings changed: the
     /// list leaves focus where it is when its rows come back (a search that matched nothing, then did).
@@ -150,7 +132,7 @@ private struct SourcesListContent: View {
             PVListPageArea.failureArea(L10n.Errors.message(for: error), gutter: gutter)
                 .accessibilityIdentifier("sources.loadError")
         case .firstLoad, .waitingForFilter:
-            SourcesListLoadingArea(model: model, gutter: gutter)
+            SourcesTable.loading(model: model, gutter: gutter)
         case .empty:
             emptyArea
         case .statusFailed(let error):
@@ -203,7 +185,7 @@ private struct SourcesListContent: View {
             )
             SourcesTable(
                 items: outline.items, selection: selection, model: model,
-                isWide: widthClass == .wide, gutter: gutter,
+                gutter: gutter,
                 toggle: { source, disclosure in
                     apply(disclosure == .expanded ? .collapse(source.id) : .expand(source.id), outline: outline)
                 },
