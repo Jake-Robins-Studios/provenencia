@@ -1,7 +1,7 @@
 # Review — S15-56 The composer edits a Citation's metadata
 
-**Verdict:** round 1: Fits with changes — Not ready (four executability blockers and one maintainability blocker, all Fixed). Round 2: pending
-**Rounds:** 1. **Reviewers:** maintainability (opus), executability (sonnet). The plan and its brief S15-D29 were reviewed together
+**Verdict:** Fits with changes — Ready with changes. No blocker open; every To user item answered. The plan stays `Blocked — on board S15-D29` until the board is agreed (D-10)
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet). The plan and its brief S15-D29 were reviewed together
 
 ## To user
 
@@ -103,11 +103,45 @@ Logged; Current state lines corrected.
 ### M-13 · minor · Facts stated twice
 **Answer:** Fixed — D-2's signatures live in Codebase fit, Strings points at Deletes, §6 macOS no longer restates D-10.
 
+## Round 2
+
+### X-15 · major · AC-1.3 contradicts D-11
+**Answer:** Fixed — AC-1.3: a board change enables Save; the ensure-create carries the draft; a later update sends only the change (T-7).
+
+### X-16 · major · Discard's two branches unspecified for the board
+**Answer:** Fixed — D-8: the revert branch rebuilds the open Citation's board; `keepDraft` leaves it.
+
+### X-17 · major · How `loadCitation` gets the listed row
+**Answer:** Fixed — D-8: `cachedCitation(id:)` returns the listed row; `FetchedCitation.listed`, nil on the `getCitation` fallback.
+
+### X-18 · major · The board after an ensure-create
+**Answer:** Fixed — D-8 and AC-1.3: kept and marked saved; T-7 saves, edits and saves again.
+
+### X-19 · minor · How the new registry entries are added
+**Answer:** Fixed — D-5: partial literals that `metadataEffects` fills.
+
+### X-20 · minor · Docs rows
+**Answer:** Fixed in part — § 5.5, not § 5.2. Declined for `docs/interpretation-layer-data-model.md`: line 253 ends "The composer writes `page_label` from its Printed page field, trimmed and omitted when blank." The skill's line 175 holds the `applySavedMetadata` sentence.
+
+### X-21 · minor · T-6's counting hook; Swift checks need macOS
+**Answer:** Fixed — T-6 checks every board and page at Scale and logs the time; the batching is S15-55's, tested there; a Stop condition names a read per Citation. The Swift checks run on the implementer's Mac, as every composer PR's do.
+
+### Nits
+**Answer:** Fixed — D-6 names `c.DB()`.
+
+### M-14 · blocker · The Citation list caches boards but misses the vocabulary edits the Source page follows
+**Answer:** Fixed — D-17: one `CatalogMutationKind.boardVocabulary` set, which `.sourceWorkspace` and `.citationsByArtifact` both follow; a Reach row and a T-10 case.
+
+### M-7 follow-up · "one snapshot"
+**Answer:** Fixed — D-6 now says the page and the board come from the same rows.
+
 ## Cost
 
-Plan: 4,849 words at round 1, 5,459 after round 1's fixes (check-plan-docs info line).
+Plan: 4,849 words at round 1, 5,727 at the verdict (check-plan-docs info line).
 
 | Round | Reviewer | Model | Tokens |
 | --- | --- | --- | --- |
 | 1 | maintainability | opus | 219k |
 | 1 | executability | sonnet | 159k |
+| 2 | maintainability | opus | 149k |
+| 2 | executability | sonnet | 103k |
