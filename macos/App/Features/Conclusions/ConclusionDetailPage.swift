@@ -325,7 +325,6 @@ private struct ConclusionDetailLoaded<Content: ConclusionDetailBody, Secondary: 
             case .content(let content, let refreshing, let refreshFailure):
                 PVPageColumns(
                     headerPinned: !offeredPageSections.isEmpty,
-                    scrollResetKey: openPageSection,
                     primaryFill: openPageSection?.fillsWidth ?? false,
                     header: {
                         ConclusionDetailHeaderBand(

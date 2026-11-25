@@ -15,6 +15,7 @@ struct WorkspaceDestinationHost: View {
             destination(for: place?.presentation ?? .sourcesList)
         }
         .id(place?.viewIdentity)
+        .environment(\.pvScrollMemory, scrollMemory)
         // Fill the detail area, then measure it once: every destination reads \.pvWidthClass from here.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pvMeasuresWidthClass()
@@ -22,6 +23,18 @@ struct WorkspaceDestinationHost: View {
         // old one: rewrite it in place to the graph's Source once the graph list says where it is.
         .onChange(of: pendingCorrection(for: place), initial: true) { _, correction in
             if let correction { navigation.replaceCurrent(with: correction) }
+        }
+    }
+
+    /// What every scroll view on the page is asked to remember (D-5): this visit's id, the y each was
+    /// left at, and where to report a new one.
+    private var scrollMemory: PVScrollMemory {
+        let arrival = navigation.arrival.id
+        return PVScrollMemory(
+            arrival: arrival,
+            offsets: navigation.currentLocation.revisit.scrollOffsets
+        ) { [weak navigation] slot, y in
+            navigation?.noteScrollOffset(y, slot: slot, arrival: arrival)
         }
     }
 

@@ -59,7 +59,6 @@ private struct SourcePageLoadingShell: View {
     var body: some View {
         PVPageColumns(
             headerPinned: true,
-            scrollResetKey: sourceID,
             header: { SourcePageIdentityHeader(model: model) },
             primary: {
                 ProgressView()

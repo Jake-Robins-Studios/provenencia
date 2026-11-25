@@ -67,12 +67,12 @@ struct SourcesOutlineHostedTests {
             uuid: UUID().uuidString,
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
         )
-        if let anchor { navigation.noteListAnchor(anchor) }
+        navigation.connect(to: session)
+        if let anchor { navigation.noteListSelection(anchor) }
         let width: CGFloat = 1102
         let view = AnyView(
-            SourcesListView(
-                session: session, userID: "00000000-0000-7000-8000-000000000001",
-                projectUuid: UUID().uuidString, store: store
+            WorkspaceDestinationHost(
+                userID: "00000000-0000-7000-8000-000000000001", sessionDisplayName: "", store: store
             )
             .environment(session)
             .environment(navigation)
@@ -109,7 +109,7 @@ struct SourcesOutlineHostedTests {
     private func select(
         _ anchor: String, row: Int, _ harness: Harness, sourceLocation: SourceLocation = #_sourceLocation
     ) async {
-        harness.navigation.noteListAnchor(anchor)
+        harness.navigation.noteListSelection(anchor)
         #expect(await eventually(harness) { harness.table.selectedRow == row }, sourceLocation: sourceLocation)
     }
 
@@ -148,22 +148,38 @@ struct SourcesOutlineHostedTests {
     @Test func theTablesOwnSelectionBecomesTheAnchor() async throws {
         let harness = try await makeHarness()
         harness.table.selectRowIndexes([1], byExtendingSelection: false)
-        #expect(await eventually(harness) { harness.navigation.listAnchor == "s2" })
+        #expect(await eventually(harness) { harness.navigation.listSelection == "s2" })
     }
 
-    @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
-        let harness = try await makeHarness()
-        harness.navigation.noteListAnchor("g1-2")
-        #expect(await eventually(harness) { harness.table.numberOfRows == 11 && harness.table.selectedRow == 5 })
-        #expect(harness.session.openSourceID == "s1")
-    }
+    /// AC-2.1, AC-2.2: Back to the Sources list opens the Source it was left with open, selects the
+    /// row, and puts the list at the y it was left at.
+    @Test func backRestoresTheOpenSourceTheSelectionAndTheY() async throws {
+        // 12 Source rows above s1: its graphs start at about 990 pt, past the 760 pt window.
+        let harness = try await makeHarness(rows: 12 + 3 + 8, open: "s1", extraSources: 12)
+        let graphRow = 12 + 3 + 2
+        let clip = harness.scroll.contentView
+        clip.scroll(to: NSPoint(x: 0, y: 600 - clip.contentInsets.top))
+        harness.scroll.reflectScrolledClipView(clip)
+        await select("g1-2", row: graphRow, harness)
+        let left = Double(clip.bounds.minY + clip.contentInsets.top)
+        #expect(left > 0)
 
-    /// The selection on Back. The scroll on Back is S16-72.
-    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndSelectsTheGraph() async throws {
-        // 15 Source rows above s1 push its graphs past the 760 pt window.
-        let harness = try await makeHarness(rows: 15 + 3 + 8, extraSources: 15, anchor: "g1-7")
+        harness.navigation.go(to: .sourcePage(sourceId: "s1"))
+        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host) == nil })
+        harness.session.setOpenSource(nil)
+        harness.navigation.goBack()
+
+        var table: NSTableView?
+        #expect(await waitUntil(timeout: .seconds(10)) {
+            harness.host.layoutSubtreeIfNeeded()
+            table = descendant(NSTableView.self, in: harness.host)
+            return table?.numberOfRows == 12 + 3 + 8 && table?.selectedRow == graphRow
+        })
         #expect(harness.session.openSourceID == "s1")
-        #expect(await eventually(harness) { harness.table.selectedRow == 15 + 3 + 7 })
+        let restored = try #require(table?.enclosingScrollView)
+        #expect(await eventually(harness) {
+            abs(Double(restored.contentView.bounds.minY + restored.contentView.contentInsets.top) - left) < 1
+        })
     }
 
     /// The Source above closes as this one opens, the rows move up, and the opened row is scrolled back
@@ -228,7 +244,7 @@ struct SourcesOutlineHostedTests {
         press(NSCarriageReturnCharacter, harness)
         #expect(await eventually(harness) { harness.navigation.currentLocation.graphId == "g1-0" })
         harness.navigation.goBack()
-        #expect(harness.navigation.currentLocation == root.withListScrollAnchor("g1-0"))
+        #expect(harness.navigation.currentLocation == root.withListSelection("g1-0"))
         #expect(!harness.navigation.canGoBack)
     }
 

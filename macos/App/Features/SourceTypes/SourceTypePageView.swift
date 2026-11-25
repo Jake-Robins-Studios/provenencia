@@ -79,7 +79,6 @@ private struct SourceTypePageContent: View {
     var body: some View {
         PVPageColumns(
             headerPinned: true,
-            scrollResetKey: typeID,
             split: .sourceTypePage,
             header: { SourceTypePageHeader(model: model) },
             primary: { primary },

@@ -13,8 +13,8 @@ struct PVListScroll<ID: Hashable>: Hashable {
 /// system's full-width bar); a double-click or Return opens (`onActivate`). Home and End scroll to the
 /// first and last row. The list takes keyboard focus when it appears (unless `claimsFocus` is false: a
 /// page that mounts its list again while the researcher is typing in a field above it keeps that field)
-/// and scrolls a selected row into view when it appears and when its row arrives after the selection was
-/// set. A right-click offers `menu(id)` as the platform's own context menu: one native button per
+/// and keeps the selected row in view as it moves (it does not scroll on arrival: a page's scroll view
+/// restores its remembered y, `pvRemembersScroll`). A right-click offers `menu(id)` as the platform's own context menu: one native button per
 /// `PVActionMenuItem`, a divider between sections. The list is its own scroll view and draws no
 /// background (the caller hides the platform's): its area draws the card fill, so nothing covers the
 /// system selection.
@@ -35,18 +35,23 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     let reveal: PVListScroll<ID>?
 
     @FocusState private var isFocused: Bool
-    /// The last scroll asked for: the selection on arrival or as its row arrives, Home or End, or `reveal`.
+    /// The last scroll asked for: Home or End, or `reveal`.
     @State private var scroll: PVListScroll<ID>?
+    /// The row the selection moved to, for the row-into-view scroll. Nil until the selection moves:
+    /// a selection that changes in the same update as a new arrival (Back between two entries of a
+    /// mounted list) is the restore's to place, not a move.
+    @State private var movedTo: ID?
+    @Environment(\.pvScrollMemory) private var memory
 
     func body(content: Content) -> some View {
         content
+            .pvRemembersScroll()
             // The table's row height sets the mouse wheel's step.
             .environment(\.defaultMinListRowHeight, minimumRowHeight)
             .focusEffectDisabled()
             .focused($isFocused)
             .onAppear {
                 if claimsFocus { FocusClaim.claim($isFocused, true) }
-                if let id = selection.wrappedValue { scroll = PVListScroll(row: id) }
             }
             .contextMenu(forSelectionType: ID.self, menu: { chosen in
                 menuContent(for: chosen)
@@ -60,18 +65,24 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
                 scroll = PVListScroll(row: ids[index], anchor: press.key == .home ? .top : .bottom)
                 return .handled
             }
-            .pvScrollsRowIntoView(
-                selection.wrappedValue, animated: false, scrollsOnAppear: true,
-                restartsAt: ids.first, whenChanged: restartKey
-            )
-            // A selection set before its row exists (Back to a row inside a closed group).
-            .onChange(of: ids) { old, new in
-                guard let id = selection.wrappedValue, new.contains(id), !old.contains(id) else { return }
-                scroll = PVListScroll(row: id)
+            .onChange(of: SelectionMove(selection: selection.wrappedValue, arrival: memory?.arrival)) { old, new in
+                guard old.arrival == new.arrival else {
+                    movedTo = nil
+                    return
+                }
+                movedTo = new.selection
             }
+            .pvScrollsRowIntoView(
+                movedTo, animated: false, restartsAt: ids.first, whenChanged: restartKey
+            )
             .onChange(of: reveal) { scroll = reveal }
             .pvScrollsRowIntoView(scroll?.row, anchor: scroll?.anchor, animated: false, whenRequested: scroll)
             .task(id: scroll) { await repeatScroll() }
+    }
+
+    private struct SelectionMove: Equatable {
+        var selection: ID?
+        var arrival: Int?
     }
 
     /// Scrolls once more, unless another scroll was asked for (it cancels this one) or the selection

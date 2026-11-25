@@ -47,11 +47,6 @@ struct SourceTypesListPane: View {
             },
             identifierPrefix: "sourceTypes"
         )
-        .modifier(ListScrollAnchorModifier(
-            anchor: navigation.currentLocation.listScrollAnchor,
-            rowIDs: model.visibleTypes.map(\.id),
-            isLoaded: !model.isLoading
-        ))
     }
 
     /// The columns: Description, between Label and Key, shows once the table is 1200pt wide
