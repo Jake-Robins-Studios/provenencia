@@ -1,5 +1,13 @@
 import SwiftUI
 
+/// A request to scroll a native list to a row. Each is its own value: asking for a row again scrolls again.
+struct PVListScroll<ID: Hashable>: Hashable {
+    let row: ID
+    var anchor: UnitPoint?
+    var isRepeat = false
+    private let token = UUID()
+}
+
 /// The kit's behavior around a platform list or table (SwiftUI's `List` or `Table`, an `NSTableView`).
 /// Selection, ↑ / ↓, Page Up / Page Down and scrolling come from the platform. A click selects (the
 /// system's full-width bar); a double-click or Return opens (`onActivate`). Home and End scroll to the
@@ -13,7 +21,8 @@ import SwiftUI
 ///
 /// `ids` are the rows in order; `onActivate` and `menu` are called only with an id in `ids`, so a caller
 /// maps an id to its item. `minimumRowHeight` is the mouse wheel's step. A change of `restartKey` scrolls
-/// the list to its first row, with no animation. Apply it with `pvNativeListBehavior`.
+/// the list to its first row, with no animation; a new `reveal` scrolls to its row. Apply it with
+/// `pvNativeListBehavior`.
 struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     let ids: [ID]
     let selection: Binding<ID?>
@@ -23,24 +32,11 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     let menu: (ID) -> [[PVActionMenuItem]]
     let restartKey: AnyHashable?
     let claimsFocus: Bool
-
-    /// How long after a request the list scrolls once more: a table's first scroll to a row far from the
-    /// drawn ones can stop short while the rows between are undrawn, and the second one lands it.
-    static var settleDelay: TimeInterval { 0.15 }
-
-    /// Runs `again` once, `settleDelay` after now, when `stillWanted` is still true then (the request was
-    /// not replaced by another).
-    static func repeatOnce(stillWanted: @escaping () -> Bool, _ again: @escaping () -> Void) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay) {
-            if stillWanted() { again() }
-        }
-    }
+    let reveal: PVListScroll<ID>?
 
     @FocusState private var isFocused: Bool
-    @State private var edgeRow: ID?
-    @State private var edgeAnchor: UnitPoint = .top
-    @State private var edgeRequest = 0
-    @State private var selectionRequest = 0
+    /// The last scroll asked for: the selection on arrival or as its row arrives, Home or End, or `reveal`.
+    @State private var scroll: PVListScroll<ID>?
 
     func body(content: Content) -> some View {
         content
@@ -50,7 +46,7 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
             .focused($isFocused)
             .onAppear {
                 if claimsFocus { FocusClaim.claim($isFocused, true) }
-                requestSelectionScroll()
+                if let id = selection.wrappedValue { scroll = PVListScroll(row: id) }
             }
             .contextMenu(forSelectionType: ID.self, menu: { chosen in
                 menuContent(for: chosen)
@@ -61,50 +57,32 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
                 guard let index = PVListKeyboard.moveIndex(
                     for: press.key, option: false, index: 0, count: ids.count
                 ), ids.indices.contains(index) else { return .ignored }
-                edgeRow = ids[index]
-                edgeAnchor = press.key == .home ? .top : .bottom
-                edgeRequest += 1
-                requestEdgeScroll()
+                scroll = PVListScroll(row: ids[index], anchor: press.key == .home ? .top : .bottom)
                 return .handled
             }
-            .pvScrollsRowIntoView(edgeRow, anchor: edgeAnchor, animated: false, whenRequested: edgeRequest)
             .pvScrollsRowIntoView(
                 selection.wrappedValue, animated: false, scrollsOnAppear: true,
                 restartsAt: ids.first, whenChanged: restartKey
             )
-            // A selection set before its row exists (Back to a row inside a closed group) scrolls a turn
-            // after the row appears.
+            // A selection set before its row exists (Back to a row inside a closed group).
             .onChange(of: ids) { old, new in
                 guard let id = selection.wrappedValue, new.contains(id), !old.contains(id) else { return }
-                requestSelectionScroll()
+                scroll = PVListScroll(row: id)
             }
-            .pvScrollsRowIntoView(selection.wrappedValue, animated: false, whenRequested: selectionRequest)
+            .onChange(of: reveal) { scroll = reveal }
+            .pvScrollsRowIntoView(scroll?.row, anchor: scroll?.anchor, animated: false, whenRequested: scroll)
+            .task(id: scroll) { await repeatScroll() }
     }
 
-    /// Asks for the selection to be scrolled into view a turn later, and once more after `settleDelay`
-    /// when the selection is still the one requested. A row already in view does not move.
-    private func requestSelectionScroll() {
-        guard let requested = selection.wrappedValue else { return }
-        selectionRequest += 1
-        let binding = selection
-        Self.repeatOnce(stillWanted: { binding.wrappedValue == requested }) {
-            selectionRequest += 1
-        }
-    }
-
-    /// Scrolls to the Home or End row once more after `settleDelay`, when no other Home or End press
-    /// came and the selection has not moved since. A first scroll to the last row of a long list stops
-    /// short.
-    private func requestEdgeScroll() {
-        guard let requested = edgeRow else { return }
-        let request = edgeRequest
-        let binding = selection
-        let selected = binding.wrappedValue
-        Self.repeatOnce(stillWanted: {
-            edgeRow == requested && edgeRequest == request && binding.wrappedValue == selected
-        }) {
-            edgeRequest += 1
-        }
+    /// Scrolls once more, unless another scroll was asked for (it cancels this one) or the selection
+    /// moved: a table's first scroll to a row far from the drawn ones can stop short while the rows between
+    /// are undrawn.
+    private func repeatScroll() async {
+        guard let scroll, !scroll.isRepeat else { return }
+        let selected = selection.wrappedValue
+        try? await Task.sleep(for: .milliseconds(150))
+        guard !Task.isCancelled, selection.wrappedValue == selected else { return }
+        self.scroll?.isRepeat = true
     }
 
     /// The right-clicked row's menu: nothing for no row, a row the list no longer has, or no entries.
@@ -135,11 +113,12 @@ extension View {
         onActivate: @escaping (ID) -> Void,
         menu: @escaping (ID) -> [[PVActionMenuItem]] = { _ in [] },
         restartKey: AnyHashable? = nil,
-        claimsFocus: Bool = true
+        claimsFocus: Bool = true,
+        reveal: PVListScroll<ID>? = nil
     ) -> some View {
         modifier(PVNativeListBehavior(
             ids: ids, selection: selection, minimumRowHeight: minimumRowHeight, label: label,
-            onActivate: onActivate, menu: menu, restartKey: restartKey, claimsFocus: claimsFocus
+            onActivate: onActivate, menu: menu, restartKey: restartKey, claimsFocus: claimsFocus, reveal: reveal
         ))
         .accessibilityLabel(Text(label))
     }

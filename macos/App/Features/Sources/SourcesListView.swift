@@ -85,10 +85,9 @@ private struct SourcesListContent: View {
     /// Which triangle the pointer is on and which row the last click pressed, for `select` and a
     /// double-click. Not observed: no view reads it to draw.
     @State private var pointer = SourcesPointer()
-    /// The Source that last opened and the count of its scroll requests: an open closes the Source
-    /// above it, so the rows move, and its row is scrolled back into view.
-    @State private var openedSourceID: String?
-    @State private var openedRequest = 0
+    /// The Source that last opened: an open closes the Source above it, so the rows move, and its row is
+    /// scrolled back into view.
+    @State private var opened: PVListScroll<String>?
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -206,9 +205,9 @@ private struct SourcesListContent: View {
                     )
                 },
                 restartKey: model.settings,
-                claimsFocus: !listLeavesFocusAlone
+                claimsFocus: !listLeavesFocusAlone,
+                reveal: opened
             )
-            .pvScrollsRowIntoView(openedSourceID, animated: false, whenRequested: openedRequest)
             .onKeyPress(keys: [.rightArrow, .leftArrow], phases: .down) { press in
                 handle(press.key, outline: outline)
             }
@@ -229,13 +228,7 @@ private struct SourcesListContent: View {
         switch action {
         case .expand(let id):
             outline.setOpen(id, selecting: selecting, session: session, navigation: navigation)
-            // The Source above it may have closed: the rows moved, a turn later this one is in view.
-            // Once more when it has settled: a first scroll to rows not yet drawn can stop short.
-            openedSourceID = id
-            openedRequest += 1
-            PVNativeListBehavior<String>.repeatOnce(
-                stillWanted: { openedSourceID == id && session.openSourceID == id }
-            ) { openedRequest += 1 }
+            opened = PVListScroll(row: id)
         case .collapse:
             outline.setOpen(nil, selecting: selecting, session: session, navigation: navigation)
         case .select(let id):
