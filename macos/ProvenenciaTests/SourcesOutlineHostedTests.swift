@@ -217,6 +217,23 @@ struct SourcesOutlineHostedTests {
         return try #require(descendant(NSTableView.self, in: harness.host)?.enclosingScrollView)
     }
 
+    /// From the end of 300 Sources, ↑ reaches rows never drawn: the selected row still ends up whole
+    /// below the header, not half under it.
+    @Test func aSelectedRowStaysInViewAsUpReachesUndrawnRows() async throws {
+        let harness = try await makeHarness(rows: 300, extraSources: 4, tailSources: 293)
+        press(NSEndFunctionKey, harness)
+        #expect(await eventually(harness.host) { isInView(299, harness) })
+        for _ in 0 ..< 30 { press(NSUpArrowFunctionKey, harness) }
+        #expect(await eventually(harness.host) {
+            let row = harness.table.selectedRow
+            let top = harness.scroll.contentView.bounds.minY + harness.scroll.contentView.contentInsets.top
+            let visible = NSRect(
+                x: 0, y: top, width: 100_000, height: harness.scroll.contentView.bounds.maxY - top
+            )
+            return row >= 0 && row <= 270 && visible.contains(harness.table.rect(ofRow: row))
+        }, "row \(harness.table.selectedRow) at \(harness.table.rect(ofRow: max(0, harness.table.selectedRow))) in \(harness.scroll.documentVisibleRect) top \(harness.scroll.contentView.bounds.minY + harness.scroll.contentView.contentInsets.top)")
+    }
+
     /// The Source above closes as this one opens, the rows move up, and the opened row is scrolled back
     /// into view. (The triangle's open runs the same `apply(.expand)` line.)
     @Test func aSourceThatOpensStaysInView() async throws {
@@ -235,7 +252,7 @@ struct SourcesOutlineHostedTests {
     }
 
     private func press(_ key: Int, _ harness: Harness) {
-        let codes = [NSRightArrowFunctionKey: 124, NSLeftArrowFunctionKey: 123, NSEndFunctionKey: 119, NSHomeFunctionKey: 115]
+        let codes = [NSRightArrowFunctionKey: 124, NSLeftArrowFunctionKey: 123, NSEndFunctionKey: 119, NSHomeFunctionKey: 115, NSUpArrowFunctionKey: 126]
         let character = String(Character(UnicodeScalar(key)!))
         harness.window.makeFirstResponder(harness.table)
         harness.window.sendEvent(NSEvent.keyEvent(

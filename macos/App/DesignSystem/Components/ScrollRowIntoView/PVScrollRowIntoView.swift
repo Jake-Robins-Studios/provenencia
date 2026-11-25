@@ -111,6 +111,7 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     /// The row the selection moved to; nil until it moves within the visit.
     @State private var movedTo: ID?
     @Environment(\.pvScrollMemory) private var memory
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private struct Move: Equatable {
         var selection: ID?
@@ -118,11 +119,22 @@ private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content
-            .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
-                movedTo = old.arrival == new.arrival ? new.selection : nil
-            }
-            .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
+        ScrollViewReader { proxy in
+            content
+                .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
+                    movedTo = old.arrival == new.arrival ? new.selection : nil
+                    // Rows between here and there were never drawn: the first scroll lands on their
+                    // estimated heights. Once more on the next turn, with the rows drawn, it lands whole.
+                    guard let row = movedTo else { return }
+                    Task { @MainActor in
+                        guard movedTo == row else { return }
+                        withAnimation(animated && !reduceMotion ? PVMotion.fastStandard : nil) {
+                            proxy.scrollTo(row)
+                        }
+                    }
+                }
+                .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
+        }
     }
 }
 
