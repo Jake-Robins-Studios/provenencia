@@ -442,7 +442,7 @@ British variant: "1851 census of England, Yorkshire, York, St Michael le Belfrey
 | Census authority ("U.S.", state, "of England") | L F S | `M.creator`, else the jurisdiction's top part | Seed |
 | Jurisdiction: state, county, civil division | L F S | `M.jurisdiction` | Seed |
 | Schedule (population, agriculture, mortality, slave) | L F S | `M.schedule` | Seed |
-| Enumeration district; district and sub-district (Canada) | F S | `M.enumeration_district` | Seed |
+| Enumeration district; district and sub-district (Canada) | F S | `M.enumeration_district`, `M.subdistrict` | Seed |
 | Sheet, page, folio; which numbering is used (stamped, penned) | F S | `M.sheet` / `C.page_label` / `M.folio` | Partial |
 | Piece (British) | F | `M.piece` | Seed |
 | Schedule number (British household) | F | `M.schedule_number` | Seed |

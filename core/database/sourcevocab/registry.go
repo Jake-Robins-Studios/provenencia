@@ -54,8 +54,8 @@ var seedTypes = []seedType{
 		Description: "A population, agricultural or other schedule from a government census.",
 		IconKey:     "type_census",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {citation.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`,
-			Short: `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, fol. {meta.folio}][, p. {citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`,
+			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, piece {meta.piece}][, fol. {meta.folio}][, p. {citation.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`,
+			Short: `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, fol. {meta.folio}][, p. {citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`,
 			List:  `{meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.schedule}].`,
 		},
 	},

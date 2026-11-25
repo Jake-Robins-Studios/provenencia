@@ -85,6 +85,8 @@ var seedFields = []seedField{
 		Description: "The case or file number, as it should appear in a citation (no. 2231)."},
 	{Key: "enumeration_district", Label: "Enumeration district", DataType: metadatafields.DataTypeText,
 		Description: "The census enumeration district, as it should appear in a citation (236)."},
+	{Key: "subdistrict", Label: "Sub-district", DataType: metadatafields.DataTypeText,
+		Description: "The census sub-district, as it should appear in a citation (B-3)."},
 	{Key: "schedule", Label: "Schedule", DataType: metadatafields.DataTypeText,
 		Description: "Which census schedule, as it should appear in a citation (population schedule)."},
 	{Key: "piece", Label: "Piece", DataType: metadatafields.DataTypeText,

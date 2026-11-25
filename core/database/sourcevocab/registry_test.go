@@ -105,8 +105,8 @@ func TestSeedSuggestionsFollowFormats(t *testing.T) {
 			t.Errorf("%s suggests %v, its formats give %v in order", st.Key, got[st.Key], want)
 		}
 	}
-	if census := got["census"]; len(census) != 16 || census[0] != "creator" || census[len(census)-1] != "citing" {
-		t.Errorf("census suggests %v, want 16 fields, creator first and citing last", census)
+	if census := got["census"]; len(census) != 17 || census[0] != "creator" || census[len(census)-1] != "citing" {
+		t.Errorf("census suggests %v, want 17 fields, creator first and citing last", census)
 	}
 }
 
