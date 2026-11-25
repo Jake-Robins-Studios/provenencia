@@ -152,34 +152,49 @@ struct SourcesOutlineHostedTests {
     }
 
     /// AC-2.1, AC-2.2: Back to the Sources list opens the Source it was left with open, selects the
-    /// row, and puts the list at the y it was left at. The graph is in the first screenful, so the
-    /// platform table draws and selects it before and after the y lands; far scrolls are the kit's tests.
+    /// row, and puts the list at the y it was left at. The graph is in the first screenful: the platform
+    /// table selects a row only once it is drawn.
     @Test func backRestoresTheOpenSourceTheSelectionAndTheY() async throws {
         let harness = try await makeHarness(rows: 4 + 3 + 8, open: "s1", extraSources: 4)
         let graphRow = 4 + 3 + 2
-        let clip = harness.scroll.contentView
-        let left = 100.0
-        clip.scroll(to: NSPoint(x: 0, y: left - clip.contentInsets.top))
-        harness.scroll.reflectScrolledClipView(clip)
+        // The rows are measured: before, the table's document is too short for the y.
+        #expect(await eventually(harness) { (harness.scroll.documentView?.frame.height ?? 0) > 700 })
+        scroll(harness.scroll, to: 100)
         await select("g1-2", row: graphRow, harness)
-        #expect(Double(clip.bounds.minY + clip.contentInsets.top) == left)
+        #expect(y(harness.scroll) == 100)
+        let restored = try await leaveAndGoBack(harness)
+        #expect(await eventually(harness) { self.y(restored) == 100 && (restored.documentView as? NSTableView)?.selectedRow == graphRow })
+        #expect(harness.session.openSourceID == "s1")
+    }
 
+    /// A y far past the table's first height: the platform estimates the rows it has not drawn.
+    @Test func backRestoresAYPastTheTablesFirstHeight() async throws {
+        let harness = try await makeHarness(rows: 4 + 3 + 8 + 90, open: "s1", extraSources: 4, tailSources: 90)
+        #expect((harness.scroll.documentView?.frame.height ?? 0) < 5000)
+        harness.navigation.noteScrollOffset(5000, slot: .page, arrival: harness.navigation.arrival.id)
+        let restored = try await leaveAndGoBack(harness)
+        #expect(await eventually(harness) { self.y(restored) == 5000 })
+    }
+
+    private func y(_ scroll: NSScrollView) -> Double {
+        Double(scroll.contentView.bounds.minY + scroll.contentView.contentInsets.top)
+    }
+
+    private func scroll(_ scroll: NSScrollView, to y: Double) {
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: y - scroll.contentView.contentInsets.top))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        #expect(self.y(scroll) == y)
+    }
+
+    /// Opens s1's page, closes every Source, and goes Back: the list's new scroll view, its rows arrived.
+    private func leaveAndGoBack(_ harness: Harness) async throws -> NSScrollView {
+        let rows = harness.table.numberOfRows
         harness.navigation.go(to: .sourcePage(sourceId: "s1"))
         #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host) == nil })
         harness.session.setOpenSource(nil)
         harness.navigation.goBack()
-
-        var table: NSTableView?
-        #expect(await waitUntil(timeout: .seconds(10)) {
-            harness.host.layoutSubtreeIfNeeded()
-            table = descendant(NSTableView.self, in: harness.host)
-            return table?.numberOfRows == 4 + 3 + 8 && table?.selectedRow == graphRow
-        })
-        #expect(harness.session.openSourceID == "s1")
-        let restored = try #require(table?.enclosingScrollView)
-        #expect(await eventually(harness) {
-            abs(Double(restored.contentView.bounds.minY + restored.contentView.contentInsets.top) - left) < 1
-        })
+        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host)?.numberOfRows == rows })
+        return try #require(descendant(NSTableView.self, in: harness.host)?.enclosingScrollView)
     }
 
     /// The Source above closes as this one opens, the rows move up, and the opened row is scrolled back

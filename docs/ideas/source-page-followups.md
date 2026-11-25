@@ -16,4 +16,4 @@ Delete from the Source page after the Source was deleted in another window: `Del
 
 ## Exact Sources row heights
 
-The Sources table's platform estimates a row it has not drawn at 34 pt, and a Source row is 66, so a far scroll position can land on other rows than were left, and Back to one the estimated document is too short to show opens at the top (S16-72, D-13, accepted by the user, 2026-11-25). Give the table its row heights (the outline knows each row's kind, so each row's height is a function of it) so a far y lands on the same rows. Pull it in when the Sources table next changes.
+The Sources table's platform estimates a row it has not drawn at 34 pt, and a Source row is 66, so a far scroll position can land on other rows than were left (S16-72, D-13, accepted by the user, 2026-11-25). Back reaches a position past the estimated document by laying the table out a screen at a time on the way. Give the table its row heights (the outline knows each row's kind, so each row's height is a function of it) so a far y lands on the same rows. Pull it in when the Sources table next changes.

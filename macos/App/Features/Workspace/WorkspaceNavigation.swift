@@ -68,6 +68,8 @@ final class WorkspaceNavigation {
     /// on a new arrival it starts as the entry's own. Scrolling does not write the history file or
     /// notify observers; only `listSelection` does.
     @ObservationIgnored private var revisit = WorkspaceRevisit()
+    /// The scroll views whose y was noted in this visit: their restore is over.
+    @ObservationIgnored private var notedSlots: Set<PVScrollSlot> = []
     /// The Source open in the Sources list, read when the Sources list root is left. `WorkspaceView` sets it.
     @ObservationIgnored var openSourceProvider: (() -> String?)?
     /// The visible list's selected row (the list draws it selected). Its view readers are the lists
@@ -154,13 +156,17 @@ final class WorkspaceNavigation {
     func noteScrollOffset(_ y: Double, slot: PVScrollSlot, arrival: Int) {
         guard arrival == self.arrival.id, y.isFinite, y >= 0 else { return }
         revisit.scrollOffsets[slot] = y
+        notedSlots.insert(slot)
     }
 
     /// What every scroll view on the page is asked to remember: this visit's id, the y each was left
-    /// at, and where to report a new one.
+    /// at (until a y is noted in this visit), and where to report a new one.
     var scrollMemory: PVScrollMemory {
         let arrival = arrival.id
-        return PVScrollMemory(arrival: arrival, offsets: currentLocation.revisit.scrollOffsets) { [weak self] slot, y in
+        return PVScrollMemory(arrival: arrival) { [weak self] slot in
+            guard let self, arrival == self.arrival.id, !notedSlots.contains(slot) else { return nil }
+            return revisit.scrollOffsets[slot]
+        } note: { [weak self] slot, y in
             self?.noteScrollOffset(y, slot: slot, arrival: arrival)
         }
     }
@@ -327,6 +333,7 @@ final class WorkspaceNavigation {
         canGoForward = history?.canGoForward ?? false
         if begins {
             arrival = WorkspaceArrival(id: arrival.id + 1, kind: kind)
+            notedSlots = []
             revisit = location.revisit
             if !location.isListRoot { revisit.listSelection = nil }
             // Observers of the selection hear it change.

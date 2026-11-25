@@ -20,6 +20,8 @@ struct PVScrollMemoryHostedTests {
         var tall = true
         var selection: String?
         @ObservationIgnored var noted: [Double] = []
+        /// The arrival `.page` was last noted in.
+        @ObservationIgnored var done: Int?
     }
 
     private struct Harness<Content: View>: View {
@@ -30,8 +32,12 @@ struct PVScrollMemoryHostedTests {
             let arrival = memory.arrival
             content.environment(
                 \.pvScrollMemory,
-                PVScrollMemory(arrival: arrival, offsets: memory.offsets) { [weak memory] slot, y in
-                    if slot == .page, arrival == memory?.arrival { memory?.noted.append(y) }
+                PVScrollMemory(arrival: arrival) { [weak memory] slot in
+                    memory?.done == arrival ? nil : memory?.offsets[slot]
+                } note: { [weak memory] slot, y in
+                    guard slot == .page, let memory, arrival == memory.arrival else { return }
+                    memory.noted.append(y)
+                    memory.done = arrival
                 }
             )
         }
@@ -188,6 +194,7 @@ struct PVScrollMemoryHostedTests {
         let (_, host) = host(memory, PVPageColumns(primary: { LateRows40(memory: memory) }))
         #expect(await eventually(host) { firstScrollView(host)?.documentView?.frame.height ?? 0 > 800 })
         let scrollView = try #require(firstScrollView(host))
+        try #require(descendant(PVScrollMemoryProbeView.self, in: host)?.coordinator).input()
         scroll(scrollView, to: 50)
         #expect(await eventually(host) { y(scrollView) == 50 })
         memory.tall = true
@@ -195,6 +202,23 @@ struct PVScrollMemoryHostedTests {
         await mainQueueTurn()
         host.layoutSubtreeIfNeeded()
         #expect(y(scrollView) == 50)
+    }
+
+    /// The arriving section is short while it loads: the reused view waits at the top, whatever the layout
+    /// clamps, and moves once the content has grown.
+    @Test func aReusedViewWhoseContentShrinksStillRestores() async throws {
+        let memory = Memory()
+        memory.offsets = [.page: 1200]
+        let (_, host) = host(memory, PVPageColumns(primary: { LateRows40(memory: memory) }))
+        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 1200 })
+        memory.tall = false
+        memory.arrival = 2
+        memory.offsets = [.page: 900]
+        #expect(await eventually(host) { (firstScrollView(host)?.documentView?.frame.height ?? 9999) < 2000 })
+        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 0 })
+        memory.tall = true
+        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 900 })
+        #expect(memory.noted == [1200, 900])
     }
 
     private struct LateRows40: View {
@@ -231,6 +255,42 @@ struct PVScrollMemoryHostedTests {
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 0 })
     }
 
+    /// A scroll view mounted again in the same visit starts at the top.
+    @Test func aRemountInTheSameVisitIsAtTheTop() async throws {
+        let memory = Memory()
+        memory.offsets = [.page: 400]
+        let (_, host) = host(memory, Remounted(memory: memory) { column(rows: 100) })
+        #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 400 })
+        let first = try #require(firstScrollView(host))
+        memory.tall = false
+        #expect(await eventually(host) { firstScrollView(host).map { $0 !== first } ?? false })
+        #expect(await eventually(host) { memory.noted == [400, 0] })
+        #expect(firstScrollView(host).map { y($0) } == 0)
+    }
+
+    private struct Remounted<Rows: View>: View {
+        let memory: Memory
+        @ViewBuilder let rows: () -> Rows
+
+        var body: some View {
+            PVPageColumns(primary: rows).id(memory.tall)
+        }
+    }
+
+    /// A y the document never reaches: the page is at the top, and the y stays on the entry.
+    @Test func aYTheDocumentNeverReachesIsAtTheTop() async throws {
+        let memory = Memory()
+        memory.offsets = [.page: 5000]
+        let (_, host) = host(memory, PVPageColumns(primary: { column(rows: 100) }))
+        #expect(await eventually(host) { (firstScrollView(host)?.documentView?.frame.height ?? 0) > 3000 })
+        for _ in 0 ..< 5 {
+            await mainQueueTurn()
+            host.layoutSubtreeIfNeeded()
+        }
+        #expect(firstScrollView(host).map { y($0) } == 0)
+        #expect(memory.noted.isEmpty)
+    }
+
     /// D-4: a container inside one that remembers the page does not claim the page.
     @Test func aNestedContainerIsNotClaimed() async throws {
         let memory = Memory()
@@ -245,7 +305,7 @@ struct PVScrollMemoryHostedTests {
         scroll(inner, to: 30)
         #expect(y(inner) == 30)
         await mainQueueTurn()
-        #expect(memory.noted.isEmpty)
+        #expect(memory.noted == [0])
     }
 
     /// D-4: a second scroll view on a page is a slot of its own.
@@ -339,5 +399,33 @@ struct PVScrollMemoryHostedTests {
             host.layoutSubtreeIfNeeded()
         }
         #expect(y(table) == 1000)
+    }
+
+    /// A document that grows only as it is scrolled: its height is an estimate of rows not yet drawn, and
+    /// the y is past it.
+    @Test func aYPastTheEstimatedDocumentLands() async throws {
+        let memory = Memory()
+        memory.offsets = [.page: 9000]
+        let (_, host) = host(memory, GrowingRows())
+        #expect(await eventually(host) { firstScrollView(host) != nil })
+        let scrollView = try #require(firstScrollView(host))
+        #expect((scrollView.documentView?.frame.height ?? 0) < 9000)
+        #expect(await eventually(host) { y(scrollView) == 9000 })
+        #expect(memory.noted == [9000])
+    }
+
+    /// The first rows are short and the later ones tall, so a lazy stack's estimate is too small.
+    private struct GrowingRows: View {
+        var body: some View {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(0 ..< 200, id: \.self) { index in
+                        Text(verbatim: "Row \(index)").frame(height: index < 40 ? 20 : 100)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .pvRemembersScroll()
+            }
+        }
     }
 }
