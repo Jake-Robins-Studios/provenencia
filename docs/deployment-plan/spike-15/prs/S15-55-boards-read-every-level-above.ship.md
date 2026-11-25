@@ -1,7 +1,7 @@
 # Ship log — S15-55 Boards read every level above
 
 **Plan:** [`S15-55-boards-read-every-level-above.md`](S15-55-boards-read-every-level-above.md) · **Branch:** `s15-55-boards-read-every-level-above` · **PR:** [#970](https://github.com/Jake-Robins-Studios/provenencia/pull/970)
-**State:** fixing 1
+**State:** ready
 
 ## Round 0 — implement
 Head `356bcead8`. Gate PASS (run by the orchestrator). Report: AC-3.6 deviation (a nil repeated element marshals as an empty message, so the answer is `request.invalid_id`); version 0.41.0 (`main` was at 0.40.1); in-app manual check not run.
@@ -39,6 +39,15 @@ Files: `core/database/sourcemetadata/sourcemetadata_test.go`.
 Do: `!ok ||` in place of `ok &&`. If it then fails, the entry is legitimately absent at that level for the fixture: assert on a field the draft board does hold, never skip.
 Check: the subtest passes and fails when the Source's value is not read.
 
+## Round 1 — fix
+Head `4621cf460`. Gate PASS (run by the orchestrator). F-1, F-2, F-3 done. CON-1: Resolved (read by the orchestrator: a missing entry or a nil `Inherited` now fails).
+
+## Round 2 — review
+Reviewers: MNT (fix commits only). MNT-1, MNT-2 Resolved; no new findings.
+
+## Result
+Gate PASS · CI watched on the PR · open: none · follow-ups: none (UX-1, UX-2 are in S15-56's map scope entry) · to user: the in-app manual check (§10 step 2).
+
 ## Cost
 Plan: 6,150 words (check-plan-docs info line).
 
@@ -49,3 +58,6 @@ Plan: 6,150 words (check-plan-docs info line).
 | 1 | MNT | opus | 99k |
 | 1 | UX | opus | 73k |
 | 1 | SEC+PRF | opus | 70k |
+| 1 | implementer (fix) | agent default | 73k |
+| 2 | MNT | opus | — |
+| | **Total** | | **620k** (without round 2) |
