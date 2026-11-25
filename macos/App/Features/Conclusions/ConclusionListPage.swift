@@ -97,7 +97,7 @@ struct ConclusionListPage<Kind: ConclusionListKind>: View {
                 ConclusionListBody<Kind>(handle: handle)
             } else {
                 PVListPage(title: Kind.title, countLine: nil, identifierRoot: Kind.identifierRoot) { gutter in
-                    PVListPageArea.loadingArea(gutter: gutter, detailWidths: [PVLastUpdated.columnWidth])
+                    PVListPageArea.loadingArea(gutter: gutter, detailWidth: PVLastUpdated.columnWidth)
                 }
             }
         }
@@ -137,7 +137,7 @@ private struct ConclusionListBody<Kind: ConclusionListKind>: View {
         PVListPage(title: Kind.title, countLine: headerMeta, identifierRoot: Kind.identifierRoot) { gutter in
             switch presentation {
             case .loading:
-                PVListPageArea.loadingArea(gutter: gutter, detailWidths: [PVLastUpdated.columnWidth])
+                PVListPageArea.loadingArea(gutter: gutter, detailWidth: PVLastUpdated.columnWidth)
             case .empty:
                 ConclusionListPage<Kind>.emptyArea()
             case .failed(let message):

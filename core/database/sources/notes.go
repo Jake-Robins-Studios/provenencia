@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/Jake-Robins-Studios/provenencia/core/database/audit"
 	"github.com/Jake-Robins-Studios/provenencia/core/database/rowchange"
 
 	"github.com/Jake-Robins-Studios/provenencia/core/database"
@@ -17,48 +18,9 @@ const (
 	sqlUpdateNote = `UPDATE source_notes SET body = ? WHERE id = ?`
 	sqlDeleteNote = `DELETE FROM source_notes WHERE id = ?`
 	sqlGetNote    = `SELECT id, source_id, body FROM source_notes WHERE id = ?`
-	// Create attribution lives in audit, not on source_notes (see source-layer-data-model §4.1).
-	sqlListNotes = `SELECT n.id, n.source_id, n.body,
-		COALESCE((
-			SELECT u.display_name
-			FROM audit_changes c
-			JOIN audit_transactions t ON t.id = c.audit_transaction_id
-			LEFT JOIN users u ON u.id = t.user_id
-			WHERE c.entity_type = 'source_note' AND c.entity_id = n.id AND c.action = 'create'
-			ORDER BY t.revision ASC
-			LIMIT 1
-		), ''),
-		COALESCE((
-			SELECT t.created_at
-			FROM audit_changes c
-			JOIN audit_transactions t ON t.id = c.audit_transaction_id
-			WHERE c.entity_type = 'source_note' AND c.entity_id = n.id AND c.action = 'create'
-			ORDER BY t.revision ASC
-			LIMIT 1
-		), '')
-		FROM source_notes n
-		WHERE n.source_id = ?
-		ORDER BY n.id`
-	sqlGetNoteAttributed = `SELECT n.id, n.source_id, n.body,
-		COALESCE((
-			SELECT u.display_name
-			FROM audit_changes c
-			JOIN audit_transactions t ON t.id = c.audit_transaction_id
-			LEFT JOIN users u ON u.id = t.user_id
-			WHERE c.entity_type = 'source_note' AND c.entity_id = n.id AND c.action = 'create'
-			ORDER BY t.revision ASC
-			LIMIT 1
-		), ''),
-		COALESCE((
-			SELECT t.created_at
-			FROM audit_changes c
-			JOIN audit_transactions t ON t.id = c.audit_transaction_id
-			WHERE c.entity_type = 'source_note' AND c.entity_id = n.id AND c.action = 'create'
-			ORDER BY t.revision ASC
-			LIMIT 1
-		), '')
-		FROM source_notes n
-		WHERE n.id = ?`
+	// Create attribution lives in audit, not on source_notes (see source-layer-data-model §4.1);
+	// the readers add it from audit.Created.
+	sqlListNotes    = `SELECT id, source_id, body FROM source_notes WHERE source_id = ? ORDER BY id`
 	sqlSourceExists = `SELECT 1 FROM sources WHERE id = ?`
 )
 
@@ -113,7 +75,7 @@ func UpdateNote(tx *database.Tx, userID, noteID []byte, body string) ([]rowchang
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return nil, err
 	}
-	prev, err := getNoteTx(tx.Tx, noteID)
+	prev, err := getNote(tx.Tx, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
@@ -138,7 +100,7 @@ func DeleteNote(tx *database.Tx, userID, noteID []byte) ([]rowchange.Change, err
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return nil, err
 	}
-	prev, err := getNoteTx(tx.Tx, noteID)
+	prev, err := getNote(tx.Tx, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
@@ -172,12 +134,19 @@ func ListNotes(c *database.Catalog, sourceID []byte) ([]Note, error) {
 	var out []Note
 	for rows.Next() {
 		var n Note
-		if err := rows.Scan(&n.ID, &n.SourceID, &n.Body, &n.AuthorDisplayName, &n.CreatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.SourceID, &n.Body); err != nil {
 			return nil, err
 		}
 		out = append(out, n)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// The scan is finished: the catalog has one connection.
+	if err := attributeNotes(db, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // GetNote returns one note with create attribution.
@@ -189,22 +158,41 @@ func GetNote(c *database.Catalog, noteID []byte) (Note, error) {
 	if len(noteID) != 16 {
 		return Note{}, ErrInvalid
 	}
-	var n Note
-	err = db.QueryRow(sqlGetNoteAttributed, noteID).Scan(
-		&n.ID, &n.SourceID, &n.Body, &n.AuthorDisplayName, &n.CreatedAt,
-	)
+	n, err := getNote(db, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrInvalid
 	}
 	if err != nil {
 		return Note{}, err
 	}
-	return n, nil
+	one := []Note{n}
+	if err := attributeNotes(db, one); err != nil {
+		return Note{}, err
+	}
+	return one[0], nil
 }
 
-func getNoteTx(tx *sql.Tx, id []byte) (Note, error) {
+// attributeNotes sets AuthorDisplayName and CreatedAt on each note from its
+// create audit transaction (audit.Created).
+func attributeNotes(q database.Querier, notes []Note) error {
+	ids := make([][]byte, 0, len(notes))
+	for _, n := range notes {
+		ids = append(ids, n.ID)
+	}
+	made, err := audit.Created(q, "source_note", ids)
+	if err != nil {
+		return err
+	}
+	for i := range notes {
+		c := made[string(notes[i].ID)]
+		notes[i].AuthorDisplayName, notes[i].CreatedAt = c.UserDisplayName, c.At
+	}
+	return nil
+}
+
+func getNote(q database.Querier, id []byte) (Note, error) {
 	var n Note
-	err := tx.QueryRow(sqlGetNote, id).Scan(&n.ID, &n.SourceID, &n.Body)
+	err := q.QueryRow(sqlGetNote, id).Scan(&n.ID, &n.SourceID, &n.Body)
 	if err != nil {
 		return Note{}, err
 	}

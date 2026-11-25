@@ -286,7 +286,7 @@ func TestSources(t *testing.T) {
 					t.Fatalf("List %+v %v, want %+v", all, err, want)
 				}
 				attached := Source{ID: src.ID}
-				if err := AttachActivity(c, &attached); err != nil || attached.Updated != want {
+				if err := AttachCreatedAndUpdated(c, &attached); err != nil || attached.Updated != want {
 					t.Fatalf("Attach %+v %v, want %+v", attached.Updated, err, want)
 				}
 				if queries != 0 {
@@ -411,7 +411,7 @@ func TestSources(t *testing.T) {
 					t.Fatalf("list attribution %+v", notes[0])
 				}
 				got, err := GetNote(c, n.ID)
-				if err != nil || got.Body != "Revised" || got.AuthorDisplayName != "Jake" {
+				if err != nil || got.Body != "Revised" || got.AuthorDisplayName != "Jake" || got.CreatedAt != notes[0].CreatedAt {
 					t.Fatalf("get %v %+v", err, got)
 				}
 				if err := runDeleteNote(c, userID, n.ID); err != nil {
@@ -1643,4 +1643,56 @@ func TestListByIDs(t *testing.T) {
 	if err != nil || len(every) != 0 {
 		t.Fatalf("no ids = %+v, %v (the handler, not ListByIDs, reads every Source)", every, err)
 	}
+}
+
+// TestCreatedAt: List and ListByIDs read each Source's create time from audit
+// and agree, an update does not move it, and a Source with no create record
+// reads empty.
+func TestCreatedAt(t *testing.T) {
+	c, userID, typeID := sourceFixture(t)
+	s, err := runCreate(c, userID, CreateInput{SourceTypeID: typeID, Title: "Census"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, err := c.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stamp string
+	if err := db.QueryRow(`SELECT t.created_at FROM audit_changes c JOIN audit_transactions t ON t.id = c.audit_transaction_id
+		WHERE c.entity_type = 'source' AND c.action = 'create' AND c.entity_id = ?`, s.ID).Scan(&stamp); err != nil {
+		t.Fatal(err)
+	}
+	s.Title = "Census 1851"
+	if err := runUpdate(c, userID, s); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name string
+		read func() ([]Source, error)
+	}{
+		{"List", func() ([]Source, error) { return List(c) }},
+		{"ListByIDs", func() ([]Source, error) { return ListByIDs(c, [][]byte{s.ID}) }},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := tc.read()
+			if err != nil || len(got) != 1 {
+				t.Fatalf("%v, %v", got, err)
+			}
+			if got[0].CreatedAt != stamp {
+				t.Errorf("CreatedAt = %q, want the create transaction's %q", got[0].CreatedAt, stamp)
+			}
+		})
+	}
+	t.Run("AttachCreatedAndUpdated", func(t *testing.T) {
+		one := Source{ID: s.ID}
+		if err := AttachCreatedAndUpdated(c, &one); err != nil || one.CreatedAt != stamp {
+			t.Fatalf("%q, %v want %q", one.CreatedAt, err, stamp)
+		}
+		bad := Source{}
+		if err := AttachCreatedAndUpdated(c, &bad); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("no id: %v", err)
+		}
+	})
 }

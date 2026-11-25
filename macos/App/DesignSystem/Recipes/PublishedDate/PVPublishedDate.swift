@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// A Source's published date on a row: the Sources list (after the type on the secondary line, and in its
-/// Published column at Wide) and the Person page's Sources section. Reads the date alone, or "Undated"
-/// in italics; the text is `SourceDateText`. Its ink goes through `PVColor.onSelection`, so a selected
-/// row draws it on the system bar. `detail` and `column` give the same words to a `PVList` column.
+/// A Source's published date on a row: the Sources table's Published column and the Person page's Sources
+/// section. Reads the date alone, or "Undated" in faint italics; the text is `SourceDateText`. Its ink goes
+/// through `PVColor.onSelection`, so a selected row draws it on the system bar. `detail` is the words and
+/// hover text it draws.
 struct PVPublishedDate: View {
     let date: CatalogDateValueInput?
 
@@ -15,18 +15,11 @@ struct PVPublishedDate: View {
         return PVListDetail(text: L10n.string(L10n.Dates.rowUndated), help: nil, faint: true)
     }
 
-    /// The published date as a list column of `width`.
-    static func column<Item>(
-        width: CGFloat, _ date: @escaping (Item) -> CatalogDateValueInput?
-    ) -> PVListDetailColumn<Item> {
-        PVListDetailColumn(width: width) { detail(date($0)) }
-    }
-
     var body: some View {
         let detail = Self.detail(date)
         let text = Text(verbatim: detail.text)
             .font(PVFont.body(size: PVTypeScale.caption))
-            .foregroundStyle(PVColor.onSelection(PVColor.textSecondary))
+            .foregroundStyle(PVColor.onSelection(detail.faint ? PVColor.textFaint : PVColor.textSecondary))
             .lineLimit(1)
             .truncationMode(.tail)
         if let help = detail.help {

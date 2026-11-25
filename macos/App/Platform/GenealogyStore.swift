@@ -54,6 +54,8 @@ struct CatalogSource: Sendable, Equatable, Identifiable {
     /// metadata, artifacts, Evidence graph) and when it was recorded. Sources
     /// list "Updated" sort reads the revision; zero means unset / unknown.
     var updated = CatalogActivity()
+    /// When the Source was made (RFC3339 UTC, from its create audit transaction); empty when unknown.
+    var createdAt: String = ""
 }
 
 struct CatalogSourceNote: Sendable, Equatable {

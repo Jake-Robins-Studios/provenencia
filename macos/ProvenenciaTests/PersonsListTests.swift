@@ -14,7 +14,7 @@ struct PersonsListTests {
     }
 
     @Test func loadingAreaFitsTheListArea() {
-        let host = NSHostingController(rootView: PVListPageArea.loadingArea(gutter: 32, detailWidths: [PVLastUpdated.columnWidth]))
+        let host = NSHostingController(rootView: PVListPageArea.loadingArea(gutter: 32, detailWidth: PVLastUpdated.columnWidth))
         let size = host.sizeThatFits(in: CGSize(width: 1000, height: 700))
         #expect(size.height == 700)
     }

@@ -21,6 +21,13 @@ func hostInBorderlessWindow<V: View>(
     return (window, host)
 }
 
+/// The first view of `type` in `view`'s tree, `view` itself included.
+@MainActor
+func descendant<V: NSView>(_ type: V.Type, in view: NSView) -> V? {
+    if let match = view as? V { return match }
+    return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
+}
+
 /// Hosts an AppKit `view` as the content view of a borderless window of `size`.
 /// Never shown; the `.hostedWindows` trait closes it.
 @MainActor

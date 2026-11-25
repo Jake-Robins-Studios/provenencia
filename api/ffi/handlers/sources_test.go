@@ -1422,3 +1422,36 @@ func countCatalogRows(t *testing.T, dir, table string) int {
 	}
 	return n
 }
+
+// TestSourceCreatedAt: created_at is the create transaction's time on every
+// Source the handlers return, and an update does not move it.
+func TestSourceCreatedAt(t *testing.T) {
+	dir, userID, typeID := sourceFixture(t)
+	var created engine.CreateSourceResponse
+	mustRPC(t, CreateSource, &engine.CreateSourceRequest{
+		ProjectDir: dir, UserId: userID, SourceTypeId: typeID, Title: "Passport",
+	}, &created)
+	at := created.Source.GetCreatedAt()
+	if at == "" {
+		t.Fatalf("CreateSource: no created_at: %+v", created.Source)
+	}
+	var updated engine.UpdateSourceResponse
+	mustRPC(t, UpdateSource, &engine.UpdateSourceRequest{
+		ProjectDir: dir, UserId: userID, SourceId: created.Source.GetId(), SourceTypeId: typeID, Title: "Passport 1948",
+	}, &updated)
+	if updated.Source.GetCreatedAt() != at {
+		t.Fatalf("UpdateSource: created_at %q want %q", updated.Source.GetCreatedAt(), at)
+	}
+	var listed engine.ListSourcesResponse
+	mustRPC(t, ListSources, &engine.ListSourcesRequest{ProjectDir: dir}, &listed)
+	if len(listed.GetSources()) != 1 || listed.GetSources()[0].GetCreatedAt() != at {
+		t.Fatalf("ListSources: %+v want created_at %q", listed.GetSources(), at)
+	}
+	var copied engine.CopySourceResponse
+	mustRPC(t, CopySource, &engine.CopySourceRequest{
+		ProjectDir: dir, UserId: userID, SourceId: created.Source.GetId(), Title: "Copy", SourceTypeId: typeID,
+	}, &copied)
+	if copied.Source.GetCreatedAt() == "" {
+		t.Fatalf("CopySource: no created_at: %+v", copied.Source)
+	}
+}

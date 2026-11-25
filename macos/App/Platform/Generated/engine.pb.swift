@@ -1456,6 +1456,13 @@ public nonisolated struct Provenencia_Engine_V1_Source: @unchecked Sendable {
   /// Clears the value of `dateMark`. Subsequent reads from it will return its default value.
   public mutating func clearDateMark() {_uniqueStorage()._dateMark = nil}
 
+  /// When the Source was made (RFC3339 UTC, from its create audit transaction);
+  /// empty when unknown.
+  public var createdAt: String {
+    get {_storage._createdAt}
+    set {_uniqueStorage()._createdAt = newValue}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
@@ -10440,7 +10447,7 @@ nonisolated extension Provenencia_Engine_V1_GetProjectInfoResponse: SwiftProtobu
 
 nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Source"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}ref\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0\u{3}thumbnail_rel_path\0\u{3}thumbnail_media_type\0\u{3}thumbnail_original_filename\0\u{3}cover_mode\0\u{3}primary_artifact_id\0\u{3}has_artifact\0\u{3}updated_revision\0\u{3}updated_at\0\u{1}date\0\u{3}date_sort_key\0\u{3}is_public\0\u{3}date_mark\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}ref\0\u{3}source_type_id\0\u{1}title\0\u{1}description\0\u{3}thumbnail_rel_path\0\u{3}thumbnail_media_type\0\u{3}thumbnail_original_filename\0\u{3}cover_mode\0\u{3}primary_artifact_id\0\u{3}has_artifact\0\u{3}updated_revision\0\u{3}updated_at\0\u{1}date\0\u{3}date_sort_key\0\u{3}is_public\0\u{3}date_mark\0\u{3}created_at\0")
 
   fileprivate class _StorageClass {
     var _id: String = String()
@@ -10460,6 +10467,7 @@ nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, Swift
     var _dateSortKey: Int64? = nil
     var _isPublic: Bool = false
     var _dateMark: Provenencia_Engine_V1_ValueMark? = nil
+    var _createdAt: String = String()
 
       // This property is used as the initial default value for new instances of the type.
       // The type itself is protecting the reference to its storage via CoW semantics.
@@ -10487,6 +10495,7 @@ nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, Swift
       _dateSortKey = source._dateSortKey
       _isPublic = source._isPublic
       _dateMark = source._dateMark
+      _createdAt = source._createdAt
     }
   }
 
@@ -10522,6 +10531,7 @@ nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, Swift
         case 15: try { try decoder.decodeSingularInt64Field(value: &_storage._dateSortKey) }()
         case 16: try { try decoder.decodeSingularBoolField(value: &_storage._isPublic) }()
         case 17: try { try decoder.decodeSingularMessageField(value: &_storage._dateMark) }()
+        case 18: try { try decoder.decodeSingularStringField(value: &_storage._createdAt) }()
         default: break
         }
       }
@@ -10585,6 +10595,9 @@ nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, Swift
       try { if let v = _storage._dateMark {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 17)
       } }()
+      if !_storage._createdAt.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._createdAt, fieldNumber: 18)
+      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -10611,6 +10624,7 @@ nonisolated extension Provenencia_Engine_V1_Source: SwiftProtobuf.Message, Swift
         if _storage._dateSortKey != rhs_storage._dateSortKey {return false}
         if _storage._isPublic != rhs_storage._isPublic {return false}
         if _storage._dateMark != rhs_storage._dateMark {return false}
+        if _storage._createdAt != rhs_storage._createdAt {return false}
         return true
       }
       if !storagesAreEqual {return false}

@@ -9,12 +9,12 @@ Briefs are written one at a time, just before the PR they gate. Design track and
 | Brief | View | Board | Gates |
 | --- | --- | --- | --- |
 | [S16-D11](S16-D11-web-kit-popup-list.md) | The web kit: a PopupList component (card, row, line, searching line), the ComboBox's open list composed from it, the Omnibar Hit Row as the SearchHitRow component | [agreed 2026-11-21](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), PopupList, ComboBox, SearchHitRow | — (kit only; S16-D9's board instances it) |
-| [S16-D14](S16-D14-sources-table.md) | The Sources list as a native table: named, sortable columns, one Source open at a time, one status badge a Source | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": TB-7 (a), TB-W1 (a), one badge width, fixed column widths | S16-71 |
 
 ## Archived
 
 | Brief | View | Board | Built by |
 | --- | --- | --- | --- |
+| [S16-D14](archive/S16-D14-sources-table.md) | The Sources list as a native table: named, sortable columns, one Source open at a time, one status badge a Source | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": TB-7 (a), TB-W1 (a), one badge width, fixed column widths | S16-71 |
 | [S16-D12](archive/S16-D12-sources-list-outline.md) | The Sources list as a native outline: Source rows with Evidence graph rows under them | [agreed 2026-11-24](https://claude.ai/artifact/JDm51QdorUvY79EFoci4cm), page "S2-04 Sources list": one-line 34 pt graph rows, a rule under each Source's group, SO-W1 (b) | S16-66 |
 | [S16-D13](archive/S16-D13-conclusion-lists-native.md) | The Persons, Events and Places lists on the native list: a header band across the pane, the list filling it, click selects and double-click opens, loading, empty and failure states | [agreed 2026-11-23](https://claude.ai/artifact/MQtjRymfDNraEx9roK69q4), page "Persons List": plain selection, `borderSubtle` separators, no hover, no ring, no chevron, CL-W1 (a) | S16-67 |
 | [S16-D10](archive/S16-D10-toast-stack.md) | Toast stack: several toasts stacked top-trailing in the workspace window's content pane, a refreshed card, a burst clipped at the bottom, the composer's toast moved into it; a ToastStack kit component | [agreed 2026-11-22](https://claude.ai/artifact/7AZ8cscWF3f5Wz7gQ39cMe), component PVToastStack; [app layout](https://claude.ai/artifact/1UzGb9TQCd7ZQrmuAN5AY8), "Workspace Chrome" section "Toast stack" | S16-58 |

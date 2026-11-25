@@ -1,0 +1,51 @@
+import SwiftUI
+import Testing
+@testable import Provenencia
+
+@MainActor
+struct SourcesTableTests {
+    struct WidthCase: CustomTestStringConvertible {
+        let isWide: Bool
+        let tableWidth: CGFloat
+        let title: CGFloat
+        let fixed: [CGFloat]
+        var testDescription: String { "\(isWide ? "wide" : "regular") \(tableWidth)" }
+    }
+
+    /// The board's widths. A table of 1074 pt (a 1102 pt pane less 2 × (32 − 18)) leaves Title 352;
+    /// 2220 pt (2296 less 2 × (56 − 18)) leaves 1069; a narrow pane keeps Title at 240 and scrolls.
+    @Test(arguments: [
+        WidthCase(isWide: false, tableWidth: 1074, title: 352, fixed: [168, 128, 96, 98, 98]),
+        WidthCase(isWide: true, tableWidth: 2220, title: 1069, fixed: [240, 140, 160, 120, 120]),
+        WidthCase(isWide: false, tableWidth: 772, title: 240, fixed: [168, 128, 96, 98, 98]),
+    ])
+    func widthsFollowTheBoard(_ c: WidthCase) {
+        let widths = SourcesTableWidths(isWide: c.isWide, tableWidth: c.tableWidth)
+        #expect(widths.titleMaximum == c.title)
+        #expect([widths.evidence, widths.status, widths.published, widths.added, widths.updated] == c.fixed)
+        #expect(SourcesTableWidths.type == 220)
+    }
+
+    @Test func aComparatorNeverReordersRows() {
+        let sort = SourcesSort(column: .title, order: .forward)
+        #expect(sort.compare(.skeleton(0), .skeleton(1)) == .orderedSame)
+    }
+
+    @Test func aSourceAndASkeletonAreTallAndTheRowsUnderASourceShort() {
+        let source = CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Census", description: "")
+        let graph = CatalogEvidenceGraph(
+            id: "g1", ref: "GPH-1", sourceID: "s1", name: "Default", description: "", artifactIDs: []
+        )
+        let kinds: [SourcesOutlineRow.Kind] = [
+            .source(source, disclosure: .collapsed), .graph(graph, source: source), .pendingGraph(source: source),
+        ]
+        let heights = kinds.map { SourcesTableItem.row(SourcesOutlineRow(id: "r", kind: $0)).contentHeight }
+        #expect(heights == [58, 26, 26])
+        #expect(SourcesTableItem.skeleton(0).contentHeight == 58)
+    }
+
+    @Test func addedSpokenReadsTheTimeOrSaysItIsUnknown() {
+        #expect(SourcesTable.addedSpoken("2026-10-13T22:40:00Z", in: PVLastUpdatedTests.edmonton) == "added Yesterday")
+        #expect(SourcesTable.addedSpoken("", in: PVLastUpdatedTests.edmonton) == "date added unknown")
+    }
+}

@@ -5,7 +5,7 @@ import Testing
 
 /// The Sources list in a real (never shown) window: rows of two heights, the wheel step, the selection
 /// and the keys that only the platform's table can answer.
-@Suite(.hostedWindows)
+@Suite(.serialized, .hostedWindows)
 @MainActor
 struct SourcesOutlineHostedTests {
     private let projectDir = "/tmp/outline-hosted.provenencia"
@@ -19,20 +19,16 @@ struct SourcesOutlineHostedTests {
         let scroll: NSScrollView
     }
 
-    private func descendant<V: NSView>(_ type: V.Type, in view: NSView) -> V? {
-        if let match = view as? V { return match }
-        return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
-    }
-
+    /// The page over three Sources (s3, s2, s1 as listed) and any extra ones above or below them, once its
+    /// table has `rows` rows.
     private func makeHarness(
-        width: CGFloat = 1102, expanded: [String] = [], extraSources: Int = 0, anchor: String? = nil,
-        currentEvent: @escaping @MainActor @Sendable () -> NSEvent? = { nil }
+        rows: Int = 3, open: String? = nil, extraSources: Int = 0, tailSources: Int = 0, anchor: String? = nil
     ) async throws -> Harness {
         let store = FakeStore()
         store.sourceTypesByProject[projectDir] = [
             CatalogSourceType(id: "t1", key: "census", origin: "provenencia", label: "Census", description: "")
         ]
-        func source(_ id: String, _ title: String, artifact: Bool) -> CatalogSource {
+        func source(_ id: String, _ title: String) -> CatalogSource {
             CatalogSource(
                 id: id, ref: "SRC-\(id.uppercased())", sourceTypeID: "t1", title: title, description: "",
                 date: CatalogDateValueInput(kind: "point", startYear: 1851),
@@ -40,13 +36,15 @@ struct SourcesOutlineHostedTests {
             )
         }
         // Ids sort after "s": they list before the three below in the newest-added order.
-        let extras = (0 ..< extraSources).map { source("x\(String(format: "%02d", $0))", "Extra \($0)", artifact: false) }
-        store.sourcesByProject[projectDir] = extras.reversed() + [
-            source("s3", "Passport of J. Robins", artifact: false),
-            source("s2", "1851 Census, Robins household", artifact: true),
-            source("s1", "Parish register, Lyon", artifact: true),
+        let extras = (0 ..< extraSources).map { source("x\(String(format: "%02d", $0))", "Extra \($0)") }
+        // Ids sort before "s": they list after s1 and its graphs, newest first.
+        let tail = (0 ..< tailSources).map { source("a\(String(format: "%02d", $0))", "Tail \($0)") }
+        store.sourcesByProject[projectDir] = extras + tail + [
+            source("s3", "Passport of J. Robins"),
+            source("s2", "1851 Census, Robins household"),
+            source("s1", "Parish register, Lyon"),
         ]
-        for id in ["s1", "s2"] {
+        for id in ["s1", "s2"] + tail.map(\.id) {
             store.artifactsBySource[id] = [CatalogArtifact(
                 id: "a-\(id)", ref: "ART-AAAAA", sourceID: id, fileID: "", label: "Scan", description: "", file: nil
             )]
@@ -56,14 +54,21 @@ struct SourcesOutlineHostedTests {
                 id: "g1-\(index)", ref: "GPH-\(index)", sourceID: "s1", name: "Graph \(index)", description: "",
                 artifactIDs: index == 3 ? [] : ["a-s1"]
             )
-        } + [CatalogEvidenceGraph(
-            id: "g2-0", ref: "GPH-20", sourceID: "s2", name: "Default", description: "", artifactIDs: ["a-s2"]
-        )]
-        store.graphProgressByGraph["g1-0"] = EvidenceGraphProgress(graphId: "g1-0", subjectCount: 12, observationCount: 40)
+        } + (["s2"] + tail.map(\.id)).map { owner in
+            CatalogEvidenceGraph(
+                id: "g-\(owner)", ref: "GPH-\(owner)", sourceID: owner, name: "Default", description: "",
+                artifactIDs: ["a-\(owner)"]
+            )
+        }
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        session.setSourcesExpanded(expanded, true)
+        session.setOpenSource(open)
         let navigation = WorkspaceNavigation()
+        navigation.attachProject(
+            uuid: UUID().uuidString,
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
+        )
         if let anchor { navigation.noteListAnchor(anchor) }
+        let width: CGFloat = 1102
         let view = AnyView(
             SourcesListView(
                 session: session, userID: "00000000-0000-7000-8000-000000000001",
@@ -72,217 +77,159 @@ struct SourcesOutlineHostedTests {
             .environment(session)
             .environment(navigation)
             .environment(\.pvWidthClass, PVWidthClass(paneWidth: width))
-            .environment(\.sourcesCurrentEvent, SourcesEventSource(currentEvent))
         )
         let (window, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: width, height: 760))
-        host.layoutSubtreeIfNeeded()
+        // The skeleton table has rows too: the loaded one is the one with this many.
         var table: NSTableView?
-        let found = await waitUntil(timeout: .seconds(10)) {
+        #expect(await waitUntil(timeout: .seconds(10)) {
             host.layoutSubtreeIfNeeded()
             table = descendant(NSTableView.self, in: host)
-            return (table?.numberOfRows ?? 0) > 0
-        }
-        #expect(found)
+            return table?.numberOfRows == rows
+        })
         let tableView = try #require(table)
-        let scroll = try #require(tableView.enclosingScrollView)
-        return Harness(window: window, host: host, session: session, navigation: navigation, table: tableView, scroll: scroll)
+        return Harness(
+            window: window, host: host, session: session, navigation: navigation, table: tableView,
+            scroll: try #require(tableView.enclosingScrollView)
+        )
     }
 
-    private func settle(_ harness: Harness, rows: Int) async -> Bool {
+    /// Lays out until `condition` holds. The 10 s are only how long a failure takes.
+    private func eventually(_ harness: Harness, _ condition: () -> Bool) async -> Bool {
         await waitUntil(timeout: .seconds(10)) {
             harness.host.layoutSubtreeIfNeeded()
-            return harness.table.numberOfRows == rows
+            return condition()
         }
     }
 
-    private func heights(_ table: NSTableView) -> [CGFloat] {
-        (0 ..< table.numberOfRows).map { table.rect(ofRow: $0).height }
+    /// The main-queue work enqueued before this call has run.
+    private func mainQueueTurn() async {
+        await withCheckedContinuation { turn in DispatchQueue.main.async { turn.resume() } }
     }
 
-    @Test func closedSourcesAreOneRowEach() async throws {
-        let harness = try await makeHarness()
-        #expect(harness.table.numberOfRows == 3)
-        #expect(heights(harness.table) == [66, 66, 66])
-        #expect(harness.navigation.listAnchor == nil)
+    private func select(
+        _ anchor: String, row: Int, _ harness: Harness, sourceLocation: SourceLocation = #_sourceLocation
+    ) async {
+        harness.navigation.noteListAnchor(anchor)
+        #expect(await eventually(harness) { harness.table.selectedRow == row }, sourceLocation: sourceLocation)
     }
 
-    @Test func openSourceDrawsItsGraphsAtTheirOwnHeightAndTheWheelStepIsOneGraphRow() async throws {
-        let harness = try await makeHarness()
-        harness.session.setSourcesExpanded(["s1"], true)
-        #expect(await settle(harness, rows: 11))
-        // The newest-added order: s3, s2, s1 are ids descending; s1 is last with its 8 graphs under it.
-        #expect(heights(harness.table) == [66, 66, 66] + Array(repeating: 34, count: 8))
-        let rects = (0 ..< harness.table.numberOfRows).map { harness.table.rect(ofRow: $0) }
-        for (above, below) in zip(rects, rects.dropFirst()) {
-            #expect(above.maxY <= below.minY + 0.5)
+    private func isInView(_ row: Int, _ harness: Harness) -> Bool {
+        harness.scroll.documentVisibleRect.contains(harness.table.rect(ofRow: row))
+    }
+
+    /// AC-1.6: the platform reuses a row's cells for a row of the other height as Sources open and close,
+    /// and every row drawn takes its own (one never drawn keeps the platform's estimate). The rows arrive
+    /// with no layout forced here: one forced in the turn a Source opens hides a cell that kept its height.
+    @Test func everyRowTakesItsOwnHeightAsSourcesOpenAndClose() async throws {
+        let harness = try await makeHarness(rows: 33, tailSources: 30)
+        let table = harness.table
+        let sources = ["s3", "s2", "s1"] + (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
+        // No two neighbours have the same number of child rows: the rows reused change height each step.
+        for open in ["s1", "a29", nil, "a26", "s1", "s2", "s1", nil] {
+            harness.session.setOpenSource(open)
+            let want = sources.flatMap { id -> [CGFloat] in
+                [66] + Array(repeating: 34, count: id != open ? 0 : id == "s1" ? 8 : 1)
+            }
+            #expect(await waitUntil(timeout: .seconds(10)) { table.numberOfRows == want.count })
+            var heights: [CGFloat] = []
+            let settled = await eventually(harness) {
+                heights = want.indices.map { table.rect(ofRow: $0).height }
+                return want.indices.allSatisfy {
+                    heights[$0] == want[$0] || table.rowView(atRow: $0, makeIfNecessary: false) == nil
+                }
+            }
+            #expect(settled, "open \(open ?? "none"): \(heights)")
+            #expect(table.rowView(atRow: 0, makeIfNecessary: false) != nil, "row 0 is drawn")
         }
         #expect(harness.scroll.verticalLineScroll == 34)
     }
 
-    @Test func aSelectedGraphRowIsSelectedInItsOpenSource() async throws {
-        let harness = try await makeHarness(expanded: ["s1"])
-        #expect(await settle(harness, rows: 11))
-        harness.navigation.noteListAnchor("g1-2")
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
-        #expect(harness.table.selectedRow == 5)
+    /// AC-4.2: a selection the table makes itself, not one navigation wrote, becomes the list anchor.
+    @Test func theTablesOwnSelectionBecomesTheAnchor() async throws {
+        let harness = try await makeHarness()
+        harness.table.selectRowIndexes([1], byExtendingSelection: false)
+        #expect(await eventually(harness) { harness.navigation.listAnchor == "s2" })
     }
 
     @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
         let harness = try await makeHarness()
-        #expect(harness.session.expandedSourceIDs.isEmpty)
         harness.navigation.noteListAnchor("g1-2")
-        #expect(await settle(harness, rows: 11))
-        #expect(harness.session.expandedSourceIDs == ["s1"])
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
-        #expect(harness.table.selectedRow == 5)
+        #expect(await eventually(harness) { harness.table.numberOfRows == 11 && harness.table.selectedRow == 5 })
+        #expect(harness.session.openSourceID == "s1")
     }
 
-    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndScrollsTheGraphIntoView() async throws {
+    /// The selection on Back. The scroll on Back is S16-72.
+    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndSelectsTheGraph() async throws {
         // 15 Source rows above s1 push its graphs past the 760 pt window.
-        let harness = try await makeHarness(extraSources: 15, anchor: "g1-7")
-        #expect(await settle(harness, rows: 15 + 3 + 8))
-        #expect(harness.session.expandedSourceIDs == ["s1"])
-        let graphRow = 15 + 3 + 7
-        #expect(await waitUntil {
-            harness.host.layoutSubtreeIfNeeded()
-            return harness.table.selectedRow == graphRow
-                && harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow))
+        let harness = try await makeHarness(rows: 15 + 3 + 8, extraSources: 15, anchor: "g1-7")
+        #expect(harness.session.openSourceID == "s1")
+        #expect(await eventually(harness) { harness.table.selectedRow == 15 + 3 + 7 })
+    }
+
+    /// The Source above closes as this one opens, the rows move up, and the opened row is scrolled back
+    /// into view. (The triangle's open runs the same `apply(.expand)` line.)
+    @Test func aSourceThatOpensStaysInView() async throws {
+        // s3, s2, s1 and its 8 graphs, then the tail: its first row, a09, lies just under the graphs.
+        let harness = try await makeHarness(rows: 3 + 8 + 10, open: "s1", tailSources: 10)
+        // The list scrolled so the graphs are partly above the viewport and a09 is just under them.
+        harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: harness.table.rect(ofRow: 10).maxY - 170))
+        harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+        await select("a09", row: 11, harness)
+        #expect(harness.scroll.documentVisibleRect.intersects(harness.table.rect(ofRow: 11)))
+        press(NSRightArrowFunctionKey, harness)
+        #expect(await eventually(harness) {
+            harness.table.numberOfRows == 3 + 1 + 10 && harness.table.selectedRow == 3 && isInView(3, harness)
         })
-        #expect(harness.table.selectedRow == graphRow)
-        #expect(harness.table.visibleRect.intersects(harness.table.rect(ofRow: graphRow)))
-        // Off screen before the reveal: the top of the list is not what is shown.
-        #expect(harness.scroll.contentView.bounds.minY > 0)
+        #expect(harness.session.openSourceID == "a09")
     }
 
-    /// The page's one path for closing a Source (the triangle, ⌥-click, the keys and the VoiceOver action
-    /// all call it): a selected graph of the Source gives way to the Source itself.
-    @Test func closingTheSourceOfASelectedGraphSelectsTheSource() async throws {
-        let harness = try await makeHarness(expanded: ["s1"])
-        #expect(await settle(harness, rows: 11))
-        harness.navigation.noteListAnchor("g1-2")
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 })
-        var s1 = CatalogSource(
-            id: "s1", ref: "SRC-S1", sourceTypeID: "t1", title: "Parish register, Lyon", description: "",
-            date: CatalogDateValueInput(kind: "point", startYear: 1851),
-            updated: CatalogActivity(revision: 1, at: "2026-11-21T10:00:00Z")
-        )
-        s1.hasArtifact = true
-        let outline = SourcesOutline(
-            sources: [s1], graphs: { harness.session.evidenceGraphsRead(sourceID: $0) }, expanded: ["s1"]
-        )
-        outline.setExpanded(["s1"], false, session: harness.session, navigation: harness.navigation)
-        #expect(await settle(harness, rows: 3))
-        #expect(harness.session.expandedSourceIDs.isEmpty)
-        #expect(harness.navigation.listAnchor == "s1")
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 })
-    }
-
-    private func keyEvent(_ key: Int, in window: NSWindow) -> NSEvent {
+    private func press(_ key: Int, _ harness: Harness) {
+        let codes = [NSRightArrowFunctionKey: 124, NSLeftArrowFunctionKey: 123, NSEndFunctionKey: 119, NSHomeFunctionKey: 115]
         let character = String(Character(UnicodeScalar(key)!))
-        return NSEvent.keyEvent(
-            with: .keyDown, location: .zero, modifierFlags: [.numericPad, .function], timestamp: 0,
-            windowNumber: window.windowNumber, context: nil, characters: character,
-            charactersIgnoringModifiers: character, isARepeat: false, keyCode: key == NSRightArrowFunctionKey ? 124 : 123
-        )!
+        harness.window.makeFirstResponder(harness.table)
+        harness.window.sendEvent(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: codes[key] == nil ? [] : [.numericPad, .function],
+            timestamp: 0, windowNumber: harness.window.windowNumber, context: nil, characters: character,
+            charactersIgnoringModifiers: character, isARepeat: false, keyCode: UInt16(codes[key] ?? 36)
+        )!)
     }
 
-    private func press(_ key: Int, _ harness: Harness) async {
-        harness.window.makeFirstResponder(harness.table)
-        harness.window.sendEvent(keyEvent(key, in: harness.window))
-        try? await Task.sleep(for: .milliseconds(100))
-        harness.host.layoutSubtreeIfNeeded()
+    /// End at a large catalog reaches the last row once the rows have settled, and Home the first.
+    @Test func endReachesTheLastRowAndHomeTheFirstAtAHundredSources() async throws {
+        let harness = try await makeHarness(rows: 103, extraSources: 100)
+        press(NSEndFunctionKey, harness)
+        #expect(await eventually(harness) { isInView(102, harness) })
+        press(NSHomeFunctionKey, harness)
+        #expect(await eventually(harness) { isInView(0, harness) })
     }
 
     @Test func rightAndLeftArrowsOpenCloseAndClimb() async throws {
         let harness = try await makeHarness()
-        harness.navigation.noteListAnchor("s1")
-        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 2 }
-        await press(NSRightArrowFunctionKey, harness)
-        #expect(harness.session.expandedSourceIDs == ["s1"])
-        #expect(await settle(harness, rows: 11))
-        harness.navigation.noteListAnchor("g1-2")
-        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 5 }
-        await press(NSLeftArrowFunctionKey, harness)
-        #expect(harness.navigation.listAnchor == "s1")
-        #expect(harness.session.expandedSourceIDs == ["s1"])
-        await press(NSLeftArrowFunctionKey, harness)
-        #expect(harness.session.expandedSourceIDs.isEmpty)
-        #expect(await settle(harness, rows: 3))
+        await select("s1", row: 2, harness)
+        press(NSRightArrowFunctionKey, harness)
+        #expect(await eventually(harness) { harness.table.numberOfRows == 11 })
+        #expect(harness.session.openSourceID == "s1")
+        await select("g1-2", row: 5, harness)
+        press(NSLeftArrowFunctionKey, harness)
+        #expect(await eventually(harness) { harness.table.selectedRow == 2 })
+        #expect(harness.session.openSourceID == "s1")
+        press(NSLeftArrowFunctionKey, harness)
+        #expect(await eventually(harness) { harness.table.numberOfRows == 3 })
+        #expect(harness.session.openSourceID == nil)
     }
 
-    /// Not a real mouse path (a window that is never shown is sent no events, and a table's mouse-down
-    /// runs a tracking loop that would block the main thread): the click is `selectRowIndexes`, the
-    /// table's own selection write, with the event the page reads standing in for the click.
-    private func select(row: Int, as event: NSEvent?, _ harness: Harness, _ current: EventBox) async {
-        current.event = event
-        harness.table.selectRowIndexes([row], byExtendingSelection: false)
-        try? await Task.sleep(for: .milliseconds(150))
-        harness.host.layoutSubtreeIfNeeded()
-    }
-
-    private func mouse(_ type: NSEvent.EventType, _ modifiers: NSEvent.ModifierFlags = []) -> NSEvent {
-        NSEvent.mouseEvent(
-            with: type, location: .zero, modifierFlags: modifiers, timestamp: ProcessInfo.processInfo.systemUptime,
-            windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1
-        )!
-    }
-
-    @MainActor
-    private final class EventBox { var event: NSEvent? }
-
-    @Test func aClickOnAClosedSourceSelectsAndOpensIt() async throws {
-        let box = EventBox()
-        let harness = try await makeHarness(currentEvent: { box.event })
-        #expect(harness.session.expandedSourceIDs.isEmpty)
-        // Rows newest first: s3, s2, s1; s1 is row 2.
-        await select(row: 2, as: mouse(.leftMouseDown), harness, box)
-        #expect(await waitUntil { harness.session.expandedSourceIDs == ["s1"] })
-        #expect(harness.navigation.listAnchor == "s1")
-        #expect(await settle(harness, rows: 11))
-    }
-
-    @Test func aKeyMoveOrAModifiedClickOntoAClosedSourceLeavesItClosed() async throws {
-        let box = EventBox()
-        let harness = try await makeHarness(currentEvent: { box.event })
-        let key = NSEvent.keyEvent(
-            with: .keyDown, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-            windowNumber: 0, context: nil, characters: "\u{F701}", charactersIgnoringModifiers: "\u{F701}",
-            isARepeat: false, keyCode: 125
-        )
-        await select(row: 1, as: key, harness, box)
-        #expect(harness.navigation.listAnchor == "s2")
-        await select(row: 2, as: mouse(.leftMouseDown, .command), harness, box)
-        #expect(harness.navigation.listAnchor == "s1")
-        await select(row: 0, as: mouse(.rightMouseDown), harness, box)
-        #expect(harness.navigation.listAnchor == "s3")
-        #expect(harness.session.expandedSourceIDs.isEmpty)
-    }
-
-    @Test func returnOpensASourceAndAGraphThatLinksAnArtifactAndNothingElse() async throws {
-        let harness = try await makeHarness(expanded: ["s1"])
-        #expect(await settle(harness, rows: 11))
-        func returnKey() -> NSEvent {
-            NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
-                windowNumber: harness.window.windowNumber, context: nil, characters: "\r",
-                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36
-            )!
-        }
-        func pressReturn() async {
-            harness.window.makeFirstResponder(harness.table)
-            harness.window.sendEvent(returnKey())
-            try? await Task.sleep(for: .milliseconds(100))
-        }
+    /// The graph with no Artifact does not open: the one entry the second Return adds is the only one.
+    @Test func returnOpensAGraphThatLinksAnArtifactAndNoOther() async throws {
+        let harness = try await makeHarness(rows: 11, open: "s1")
         let root = harness.navigation.currentLocation
-        harness.navigation.noteListAnchor("g1-3")
-        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 6 }
-        await pressReturn()
-        #expect(harness.navigation.currentLocation == root)
-
-        harness.navigation.noteListAnchor("g1-0")
-        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return harness.table.selectedRow == 3 }
-        await pressReturn()
-        #expect(harness.navigation.currentLocation.graphId == "g1-0")
+        await select("g1-3", row: 6, harness)
+        press(NSCarriageReturnCharacter, harness)
+        await select("g1-0", row: 3, harness)
+        press(NSCarriageReturnCharacter, harness)
+        #expect(await eventually(harness) { harness.navigation.currentLocation.graphId == "g1-0" })
+        harness.navigation.goBack()
+        #expect(harness.navigation.currentLocation == root.withListScrollAnchor("g1-0"))
+        #expect(!harness.navigation.canGoBack)
     }
 
     /// The responder that holds the keyboard: the search field's editor, the table, or neither.
@@ -295,104 +242,25 @@ struct SourcesOutlineHostedTests {
 
     @Test func theListTakesFocusOnArrival() async throws {
         let harness = try await makeHarness()
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return holder(harness) == "table" })
-        #expect(holder(harness) == "table")
+        #expect(await eventually(harness) { holder(harness) == "table" })
     }
 
     @Test func aReturningListLeavesTheSearchFieldFocused() async throws {
         let harness = try await makeHarness()
-        _ = await waitUntil { harness.host.layoutSubtreeIfNeeded(); return holder(harness) == "table" }
+        #expect(await eventually(harness) { holder(harness) == "table" })
         let field = try #require(descendant(NSTextField.self, in: harness.host))
         harness.window.makeFirstResponder(field)
         let editor = try #require(harness.window.fieldEditor(false, for: field) as? NSTextView)
         #expect(holder(harness) == "field")
         editor.insertText("zzzz", replacementRange: NSRange(location: 0, length: 0))
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return descendant(NSTableView.self, in: harness.host) == nil })
+        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host) == nil })
         #expect(holder(harness) == "field")
         editor.selectAll(nil)
         editor.insertText("", replacementRange: editor.selectedRange())
-        #expect(await waitUntil { harness.host.layoutSubtreeIfNeeded(); return (descendant(NSTableView.self, in: harness.host)?.numberOfRows ?? 0) == 3 })
-        try? await Task.sleep(for: .milliseconds(300))
+        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host)?.numberOfRows == 3 })
+        // `FocusClaim` writes on the next two turns.
+        await mainQueueTurn()
+        await mainQueueTurn()
         #expect(holder(harness) == "field")
-    }
-
-    /// The x-extent of the hairline drawn under a row: the first and last column where a pixel is drawn
-    /// across most of a one-pixel band inside the row's rect. Nil when the row draws no rule.
-    private func ruleExtent(row: Int, in table: NSTableView) -> ClosedRange<Int>? {
-        // Only the row's lower band is drawn and read: a whole-table bitmap read pixel by pixel blocks the
-        // main thread for seconds on a slow runner.
-        let row = table.rect(ofRow: row)
-        let band = NSRect(x: 0, y: row.minY + row.height * 0.6, width: table.bounds.width, height: row.height * 0.4)
-        guard let rep = table.bitmapImageRepForCachingDisplay(in: band), let data = rep.bitmapData else { return nil }
-        table.cacheDisplay(in: band, to: rep)
-        let scale = CGFloat(rep.pixelsWide) / band.width
-        let alphaOffset = rep.bitmapFormat.contains(.alphaFirst) ? 0 : rep.samplesPerPixel - 1
-        var best: ClosedRange<Int>?
-        for y in 0 ..< rep.pixelsHigh {
-            var first: Int?
-            var last = 0
-            var count = 0
-            let line = data + y * rep.bytesPerRow
-            for x in 0 ..< rep.pixelsWide where line[x * rep.samplesPerPixel + alphaOffset] > 13 {
-                if first == nil { first = x }
-                last = x
-                count += 1
-            }
-            if let first, count > rep.pixelsWide / 2, count >= (last - first) * 9 / 10 {
-                best = first ... last
-            }
-        }
-        return best.map { Int(CGFloat($0.lowerBound) / scale) ... Int(CGFloat($0.upperBound) / scale) }
-    }
-
-    /// A rule starts at the gutter and ends within the platform's few points of the trailing gutter.
-    private func expectGutterToGutter(_ extent: ClosedRange<Int>?, gutter: Int, width: Int) {
-        #expect(extent?.lowerBound == gutter)
-        #expect((extent?.upperBound ?? 0) >= width - gutter - 4 && (extent?.upperBound ?? 0) <= width - gutter)
-    }
-
-    private struct PlainRow: Identifiable {
-        let id: String
-    }
-
-    @Test func theRulesRunGutterToGutter() async throws {
-        let harness = try await makeHarness(expanded: ["s2"])
-        #expect(await settle(harness, rows: 4))
-        try? await Task.sleep(for: .milliseconds(300))
-        let gutter = Int(PVWidthClass(paneWidth: 1102).fullPaneGutter)
-        let width = Int(harness.table.bounds.width)
-        // Rows: a Source with no triangle, an open Source, its last graph.
-        expectGutterToGutter(ruleExtent(row: 0, in: harness.table), gutter: gutter, width: width)
-        #expect(ruleExtent(row: 1, in: harness.table) == nil)
-        expectGutterToGutter(ruleExtent(row: 2, in: harness.table), gutter: gutter, width: width)
-    }
-
-    /// A list with no leading slot (the Persons list's shape): its rules also run gutter to gutter.
-    @Test func aPlainListsRulesRunGutterToGutter() async throws {
-        var selection: String?
-        let rows = (0 ..< 3).map { PlainRow(id: "r\($0)") }
-        let view = AnyView(
-            PVList(
-                items: rows,
-                selection: Binding(get: { selection }, set: { selection = $0 }),
-                thumbnail: { _ in PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson))) },
-                horizontalInset: 32,
-                label: L10n.Workspace.personsTitle,
-                itemAccessibilityLabel: { $0.id },
-                onActivate: { _ in },
-                primary: { Text(verbatim: $0.id) },
-                secondary: { _ in EmptyView() }
-            )
-        )
-        let (_, host) = hostInBorderlessWindow(view, windowSize: CGSize(width: 800, height: 400))
-        var table: NSTableView?
-        _ = await waitUntil(timeout: .seconds(10)) {
-            host.layoutSubtreeIfNeeded()
-            table = descendant(NSTableView.self, in: host)
-            return (table?.numberOfRows ?? 0) == 3
-        }
-        let tableView = try #require(table)
-        try? await Task.sleep(for: .milliseconds(300))
-        expectGutterToGutter(ruleExtent(row: 0, in: tableView), gutter: 32, width: Int(tableView.bounds.width))
     }
 }

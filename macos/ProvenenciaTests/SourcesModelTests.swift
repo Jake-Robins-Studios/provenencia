@@ -29,7 +29,8 @@ struct SourcesModelTests {
         ref: String = "SRC-AAAAA",
         updatedRevision: Int64 = 0,
         date: CatalogDateValueInput? = nil,
-        dateSortKey: Int64? = nil
+        dateSortKey: Int64? = nil,
+        hasArtifact: Bool = false
     ) -> CatalogSource {
         CatalogSource(
             id: id,
@@ -37,6 +38,7 @@ struct SourcesModelTests {
             sourceTypeID: typeID,
             title: title,
             description: "",
+            hasArtifact: hasArtifact,
             date: date,
             dateSortKey: dateSortKey,
             updated: CatalogActivity(revision: updatedRevision)
@@ -54,6 +56,12 @@ struct SourcesModelTests {
         settingsStore: SourcesListSettingsStore? = nil
     ) -> (SourcesModel, WorkspaceSession) {
         store.sourcesByProject[projectDir] = sources
+        for source in sources where source.hasArtifact && store.artifactsBySource[source.id] == nil {
+            store.artifactsBySource[source.id] = [CatalogArtifact(
+                id: "a-\(source.id)", ref: "ART-AAAAA", sourceID: source.id, fileID: "", label: "Scan",
+                description: "", file: nil
+            )]
+        }
         store.sourceTypesByProject[projectDir] = types
         if store.evidenceGraphsByProject[projectDir] == nil {
             // One Default graph per Source, linking an Artifact, with an id that is not the Source's.
@@ -183,46 +191,37 @@ struct SourcesModelTests {
         #expect(model.visibleSources.map(\.id) == ["s3", "s1"])
     }
 
-    @Test func sortOrdersByAddedUpdatedAndTitle() async {
+    /// Each column both ways over equal titles, undated rows and equal revisions.
+    @Test(arguments: [
+        (SourcesSort(column: .added, order: .reverse), ["s5", "s4", "s3", "s2", "s1"]),
+        (SourcesSort(column: .added, order: .forward), ["s1", "s2", "s3", "s4", "s5"]),
+        (SourcesSort(column: .title, order: .forward), ["s4", "s2", "s5", "s3", "s1"]),
+        (SourcesSort(column: .title, order: .reverse), ["s1", "s5", "s3", "s4", "s2"]),
+        (SourcesSort(column: .updated, order: .reverse), ["s4", "s2", "s5", "s3", "s1"]),
+        (SourcesSort(column: .updated, order: .forward), ["s1", "s3", "s5", "s2", "s4"]),
+        (SourcesSort(column: .published, order: .reverse), ["s5", "s3", "s1", "s4", "s2"]),
+        (SourcesSort(column: .published, order: .forward), ["s1", "s5", "s3", "s4", "s2"]),
+    ])
+    func sortsByColumnAndDirection(sort: SourcesSort, expected: [String]) async {
         let (model, session) = makeModel(
             sources: [
-                source(id: "s1", title: "Charlie", typeID: "t1", updatedRevision: 1),
+                source(id: "s1", title: "Charlie", typeID: "t1", updatedRevision: 1, dateSortKey: 100),
                 source(id: "s2", title: "Alpha", typeID: "t1", updatedRevision: 3),
-                source(id: "s3", title: "Bravo", typeID: "t1", updatedRevision: 2),
+                source(id: "s3", title: "Bravo", typeID: "t1", updatedRevision: 2, dateSortKey: 200),
+                source(id: "s4", title: "alpha", typeID: "t1", updatedRevision: 3),
+                source(id: "s5", title: "Bravo", typeID: "t1", updatedRevision: 2, dateSortKey: 200),
             ],
             types: [photoType()]
         )
         await warmLists(model, session: session)
-
-        // FakeStore + model: id DESC (s3 > s2 > s1).
-        model.settings.sort = .added
-        #expect(model.visibleSources.map(\.id) == ["s3", "s2", "s1"])
-
-        model.settings.sort = .updated
-        #expect(model.visibleSources.map(\.id) == ["s2", "s3", "s1"])
-
-        model.settings.sort = .az
-        #expect(model.visibleSources.map(\.title) == ["Alpha", "Bravo", "Charlie"])
-
-        model.settings.sort = .za
-        #expect(model.visibleSources.map(\.title) == ["Charlie", "Bravo", "Alpha"])
+        model.settings.sort = sort
+        #expect(model.visibleSources.map(\.id) == expected)
     }
 
-    @Test func titleSortsBreakTiesByNewestAdded() async {
-        let (model, session) = makeModel(
-            sources: [
-                source(id: "s1", title: "b", typeID: "t1"),
-                source(id: "s2", title: "a", typeID: "t1"),
-                source(id: "s3", title: "A", typeID: "t1"),
-                source(id: "s4", title: "a", typeID: "t1"),
-            ],
-            types: [photoType()]
-        )
-        await warmLists(model, session: session)
-        model.settings.sort = .az
-        #expect(model.visibleSources.map(\.id) == ["s4", "s3", "s2", "s1"])
-        model.settings.sort = .za
-        #expect(model.visibleSources.map(\.id) == ["s1", "s4", "s3", "s2"])
+    @Test func firstVisitSortsByAddedNewestFirst() {
+        let (model, _) = makeModel()
+        #expect(model.settings.sort == SourcesSort(column: .added, order: .reverse))
+        #expect(SourcesSort.Column.allCases.map(\.firstOrder) == [.forward, .reverse, .reverse, .reverse])
     }
 
     // MARK: Date sorts (S15-04)
@@ -236,31 +235,6 @@ struct SourcesModelTests {
             source(id: "s5", title: "Bravo", typeID: "t1"),
             source(id: "s6", title: "Alpha", typeID: "t1"),
         ]
-    }
-
-    @Test func sortByDateOldestPutsUndatedLast() async {
-        let (model, session) = makeModel(sources: datedSources(), types: [photoType()])
-        await warmLists(model, session: session)
-        model.settings.sort = .dateOldest
-        #expect(model.visibleSources.map(\.id) == ["s1", "s2", "s3", "s4", "s6", "s5"])
-    }
-
-    @Test func sortByDateNewestKeepsUndatedTailAndTies() async {
-        let phrase = CatalogDateValueInput(kind: "point", phrase: "in the reign of Victoria")
-        let (model, session) = makeModel(
-            sources: datedSources() + [
-                source(id: "s7", title: "Zeta", typeID: "t1", dateSortKey: 500),
-                source(id: "s8", title: "Eta", typeID: "t1", dateSortKey: 500),
-                source(id: "s9", title: "Mill notes", typeID: "t1", date: phrase),
-                source(id: "s10", title: "Abbey roll", typeID: "t1"),
-            ],
-            types: [photoType()]
-        )
-        await warmLists(model, session: session)
-        model.settings.sort = .dateNewest
-        #expect(model.visibleSources.map(\.id) == ["s8", "s7", "s4", "s3", "s2", "s1", "s10", "s6", "s5", "s9"])
-        model.settings.sort = .dateOldest
-        #expect(model.visibleSources.map(\.id) == ["s1", "s2", "s3", "s4", "s8", "s7", "s10", "s6", "s5", "s9"])
     }
 
     @Test func clearedDateMovesRowToUndatedTail() async throws {
@@ -283,12 +257,6 @@ struct SourcesModelTests {
         )
         session.apply(.updatedSource(dated))
         #expect(model.visibleSources.map(\.id) == ["s2", "s3", "s4", "s5", "s6", "s1"])
-    }
-
-    @Test func sortControlLabelForDateSort() {
-        let (model, _) = makeModel()
-        model.settings.sort = .dateNewest
-        #expect(model.sortControlLabel == "Sorted by published date, newest first")
     }
 
     @Test func dateSortAtScaleWithFilter() async {
@@ -388,7 +356,7 @@ struct SourcesModelTests {
             types: [photoType()]
         )
         // The engine's rows after a move of s1's only Artifact to s2.
-        store.artifactsBySource["s2"] = [catalogArtifact("a1", sourceID: "s2")]
+        store.artifactsBySource = ["s2": [catalogArtifact("a1", sourceID: "s2")]]
         await warmLists(model, session: session)
         session.apply(location: .sectionRoot(.sources))
 
@@ -798,25 +766,119 @@ struct SourcesModelTests {
         #expect(failing.graphListError != nil)
     }
 
-    @Test func statusMatchesAnyGraphOfTheSource() async {
+    private func graph(
+        _ id: String, source: String, hasArtifact: Bool = true
+    ) -> CatalogEvidenceGraph {
+        CatalogEvidenceGraph(
+            id: id, ref: "GPH-\(id)", sourceID: source, name: id, description: "",
+            artifactIDs: hasArtifact ? ["a"] : []
+        )
+    }
+
+    /// The Source's one status over every mix of its graphs' statuses.
+    @Test func oneStatusPerSource() async {
+        typealias Status = SourcesModel.EvidenceStatus
+        #expect(Status.aggregate([]) == nil)
+        #expect(Status.aggregate([.promoted, .promoted]) == .promoted)
+        #expect(Status.aggregate([.empty, .empty, .empty]) == .empty)
+        #expect(Status.aggregate([.promoted, .empty]) == .inProgress)
+        #expect(Status.aggregate([.inProgress]) == .inProgress)
+        #expect(Status.aggregate([.inProgress] + Array(repeating: .empty, count: 7)) == .inProgress)
+
+        let store = FakeStore()
+        let sources = ["all-promoted", "all-empty", "mixed", "one-of-eight", "bare", "bare-beside", "no-artifact"]
+            .map { source(id: $0, title: $0, typeID: "t1", hasArtifact: $0 != "no-artifact") }
+        var graphs: [CatalogEvidenceGraph] = [
+            graph("p1", source: "all-promoted"), graph("p2", source: "all-promoted"),
+            graph("e1", source: "all-empty"), graph("e2", source: "all-empty"),
+            graph("m1", source: "mixed"), graph("m2", source: "mixed"),
+            graph("bare1", source: "bare", hasArtifact: false),
+            graph("bb1", source: "bare-beside", hasArtifact: false), graph("bb2", source: "bare-beside"),
+        ]
+        graphs += (1 ... 8).map { graph("o\($0)", source: "one-of-eight") }
+        store.evidenceGraphsByProject[projectDir] = graphs
+        for id in ["p1", "p2", "bb2", "m1"] {
+            store.graphProgressByGraph[id] = EvidenceGraphProgress(
+                graphId: id, subjectCount: 3, observationCount: 5, filedCount: 1
+            )
+        }
+        store.graphProgressByGraph["o4"] = EvidenceGraphProgress(graphId: "o4", subjectCount: 2, observationCount: 2)
+        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
+        #expect(model.status(for: sources[0]) == nil)
+        await warmLists(model, session: session)
+        await warmProgress(model, session: session)
+
+        let expected: [String: Status?] = [
+            "all-promoted": .promoted, "all-empty": .empty, "mixed": .inProgress, "one-of-eight": .inProgress,
+            "bare": .empty, "bare-beside": .inProgress, "no-artifact": nil,
+        ]
+        for source in sources {
+            #expect(model.status(for: source) == expected[source.id]!, "\(source.id)")
+        }
+    }
+
+    @Test func noBadgeWithoutTheGraphList() async {
+        enum Boom: Error { case boom }
+        let store = FakeStore()
+        store.listEvidenceGraphsError = Boom.boom
+        let sources = [source(id: "s1", title: "A", typeID: "t1", hasArtifact: true)]
+        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
+        await warmLists(model, session: session)
+        #expect(model.status(for: sources[0]) == nil)
+    }
+
+    /// While the counts load or when they failed, a Source with a graph that links an Artifact
+    /// shows no badge; a Source whose only graph links none is Not started either way, and never waits.
+    @Test func aGraphWithNoArtifactDoesNotWaitForCountsAndALinkedOneDoes() async {
+        enum Boom: Error { case boom }
+        let sources = [
+            source(id: "linked", title: "Linked", typeID: "t1", hasArtifact: true),
+            source(id: "bare", title: "Bare", typeID: "t1", hasArtifact: true),
+        ]
+        func store() -> FakeStore {
+            let store = FakeStore()
+            store.evidenceGraphsByProject[projectDir] = [
+                graph("g-linked", source: "linked"), graph("g-bare", source: "bare", hasArtifact: false),
+            ]
+            return store
+        }
+
+        // The progress read has started and not answered: the counts are loading.
+        let loading = store()
+        loading.listEvidenceGraphProgressHold.isOn = true
+        let (loadingModel, loadingSession) = makeModel(
+            store: loading, sources: sources, types: [photoType()]
+        )
+        await warmLists(loadingModel, session: loadingSession)
+        await loading.listEvidenceGraphProgressHold.untilSuspended(1)
+        #expect(loadingModel.graphCountsLoading)
+        #expect(loadingModel.status(for: sources[0]) == nil)
+        #expect(loadingModel.status(for: sources[1]) == .empty)
+        loading.listEvidenceGraphProgressHold.isOn = false
+        loading.listEvidenceGraphProgressHold.release()
+
+        // The read failed.
+        let failing = store()
+        failing.listEvidenceGraphProgressError = Boom.boom
+        let (failedModel, failedSession) = makeModel(
+            store: failing, sources: sources, types: [photoType()]
+        )
+        await warmLists(failedModel, session: failedSession)
+        await warmProgress(failedModel, session: failedSession)
+        #expect(failedModel.status(for: sources[0]) == nil)
+        #expect(failedModel.status(for: sources[1]) == .empty)
+    }
+
+    /// The filter keeps what the badge shows.
+    @Test func statusFilterMatchesTheBadge() async {
         let store = FakeStore()
         let sources = [
-            source(id: "s1", title: "Census", typeID: "t1"),
-            source(id: "s2", title: "Photo", typeID: "t1"),
+            source(id: "s1", title: "Census", typeID: "t1", hasArtifact: true),
+            source(id: "s2", title: "Photo", typeID: "t1", hasArtifact: true),
         ]
         store.evidenceGraphsByProject[projectDir] = [
-            CatalogEvidenceGraph(
-                id: "g-default", ref: "GPH-1", sourceID: "s1", name: "Default", description: "", artifactIDs: ["a"]
-            ),
-            CatalogEvidenceGraph(
-                id: "g-jones", ref: "GPH-2", sourceID: "s1", name: "Jones household", description: "", artifactIDs: ["a"]
-            ),
-            CatalogEvidenceGraph(
-                id: "g-smith", ref: "GPH-3", sourceID: "s1", name: "Smith household", description: "", artifactIDs: ["a"]
-            ),
-            CatalogEvidenceGraph(
-                id: "g-photo", ref: "GPH-4", sourceID: "s2", name: "Default", description: "", artifactIDs: ["a"]
-            ),
+            graph("g-default", source: "s1"), graph("g-jones", source: "s1"), graph("g-smith", source: "s1"),
+            graph("g-photo", source: "s2"),
         ]
         store.graphProgressByGraph["g-jones"] = EvidenceGraphProgress(
             graphId: "g-jones", subjectCount: 12, observationCount: 40
@@ -825,26 +887,17 @@ struct SourcesModelTests {
             graphId: "g-smith", subjectCount: 7, observationCount: 19, filedCount: 1
         )
         let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
-        #expect(model.statuses(for: sources[0]).isEmpty)
         await warmLists(model, session: session)
         await warmProgress(model, session: session)
 
-        #expect(model.statuses(for: sources[0]) == [.empty, .inProgress, .promoted])
-        #expect(model.statuses(for: sources[1]) == [.empty])
+        #expect(model.status(for: sources[0]) == .inProgress)
+        #expect(model.status(for: sources[1]) == .empty)
         model.settings.status = .empty
-        #expect(Set(model.visibleSources.map(\.id)) == ["s1", "s2"])
+        #expect(model.visibleSources.map(\.id) == ["s2"])
         model.settings.status = .inProgress
         #expect(model.visibleSources.map(\.id) == ["s1"])
         model.settings.status = .promoted
-        #expect(model.visibleSources.map(\.id) == ["s1"])
-    }
-
-    @Test func evidenceStatusFromCounts() {
-        #expect(SourcesModel.EvidenceStatus(nil) == .empty)
-        #expect(SourcesModel.EvidenceStatus(progress("s", subjects: 0, filed: 0)) == .empty)
-        #expect(SourcesModel.EvidenceStatus(progress("s", subjects: 5, filed: 0)) == .inProgress)
-        #expect(SourcesModel.EvidenceStatus(progress("s", subjects: 5, filed: 1)) == .promoted)
-        #expect(SourcesModel.EvidenceStatus(progress("s", subjects: 2, filed: 0)) == .inProgress)
+        #expect(model.visibleSources.isEmpty)
     }
 
     @Test func statusBadgeMatchesBoard() {
@@ -928,7 +981,7 @@ struct SourcesModelTests {
         for index in 1 ... 8 {
             let typeID = index <= 4 ? "t1" : "t2"
             let title = index == 1 || index == 2 ? "Smith record \(index)" : "Other record \(index)"
-            sources.append(source(id: "s\(index)", title: title, typeID: typeID, ref: "SRC-0000\(index)"))
+            sources.append(source(id: "s\(index)", title: title, typeID: typeID, ref: "SRC-0000\(index)", hasArtifact: true))
         }
         for id in ["s1", "s2", "s5"] {
             store.graphProgressByGraph["g-\(id)"] = progress(id, subjects: 2, filed: 0)
@@ -984,8 +1037,8 @@ struct SourcesModelTests {
         let (model, session) = makeModel(
             store: store,
             sources: [
-                source(id: "s1", title: "A", typeID: "t1"),
-                source(id: "s2", title: "B", typeID: "t1"),
+                source(id: "s1", title: "A", typeID: "t1", hasArtifact: true),
+                source(id: "s2", title: "B", typeID: "t1", hasArtifact: true),
             ],
             types: [photoType()]
         )
@@ -1082,4 +1135,13 @@ struct SourcesModelTests {
         #expect(!model.isAwaitingFilterData)
         #expect(model.outlineIsSettled)
     }
+}
+
+/// Short names for the sorts the model tests set.
+extension SourcesSort {
+    static let az = SourcesSort(column: .title, order: .forward)
+    static let za = SourcesSort(column: .title, order: .reverse)
+    static let dateOldest = SourcesSort(column: .published, order: .forward)
+    static let dateNewest = SourcesSort(column: .published, order: .reverse)
+    static let updated = SourcesSort(column: .updated, order: .reverse)
 }

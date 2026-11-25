@@ -7,28 +7,6 @@ import Observation
 @MainActor
 @Observable
 final class SourcesModel {
-    enum Sort: String, CaseIterable, Identifiable, Codable {
-        case added
-        case updated
-        case az
-        case za
-        case dateOldest
-        case dateNewest
-
-        var id: String { rawValue }
-
-        var label: LocalizedStringResource {
-            switch self {
-            case .added: L10n.Sources.sortAdded
-            case .updated: L10n.Sources.sortUpdated
-            case .az: L10n.Sources.sortAZ
-            case .za: L10n.Sources.sortZA
-            case .dateOldest: L10n.Sources.sortDateOldest
-            case .dateNewest: L10n.Sources.sortDateNewest
-            }
-        }
-    }
-
     /// Where an Evidence graph stands: no Subjects, Subjects and none promoted,
     /// or promoted (at least one Subject filed by a Promote).
     enum EvidenceStatus: String, CaseIterable, Identifiable, Codable {
@@ -46,9 +24,12 @@ final class SourcesModel {
             }
         }
 
-        /// A graph missing from the progress map has zero counts (Go omits it).
-        init(_ progress: EvidenceGraphProgress?) {
-            self = SourcesGraphCounts(progress: progress, countsLoading: false, countsError: nil).status ?? .empty
+        /// The one status a Source shows from its graphs' statuses: nil with none; the common value when
+        /// all agree and it is Promoted or Not started; In progress otherwise (any mix, or all In progress).
+        static func aggregate(_ statuses: [EvidenceStatus]) -> EvidenceStatus? {
+            guard let first = statuses.first else { return nil }
+            if statuses.allSatisfy({ $0 == first }), first != .inProgress { return first }
+            return .inProgress
         }
     }
 
@@ -189,12 +170,6 @@ final class SourcesModel {
         session.queryHandle(session.sourceTypesKey)?.value ?? []
     }
 
-    var isLoading: Bool {
-        guard let handle: QueryHandle<[CatalogSource]> = session.queryHandle(Self.sourcesListKey(for: session))
-        else { return true }
-        return handle.status == .loading && sources.isEmpty
-    }
-
     var loadError: Error? {
         guard sources.isEmpty else { return nil }
         let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
@@ -247,12 +222,22 @@ final class SourcesModel {
         return next
     }
 
-    /// The statuses of the Source's graphs; empty while the Source's graph list
-    /// is loading or failed.
-    func statuses(for source: CatalogSource) -> Set<EvidenceStatus> {
-        guard case .loaded(let graphs) = session.evidenceGraphsRead(sourceID: source.id) else { return [] }
-        let progress = session.evidenceGraphProgressHandle?.value
-        return Set(graphs.map { EvidenceStatus(progress?[$0.id]) })
+    /// The one status a Source shows, for its badge and the status filter (`EvidenceStatus.aggregate`).
+    /// Nil with no Artifact or no graph, while the Source's graphs are not loaded, or when a graph that
+    /// has an Artifact has its counts loading or failed. A graph with no Artifact counts as Not started.
+    func status(for source: CatalogSource) -> EvidenceStatus? {
+        guard source.hasArtifact, case .loaded(let graphs) = session.evidenceGraphsRead(sourceID: source.id)
+        else { return nil }
+        var statuses: [EvidenceStatus] = []
+        for graph in graphs {
+            if graph.hasArtifact {
+                guard let status = session.graphCounts(graphID: graph.id).status else { return nil }
+                statuses.append(status)
+            } else {
+                statuses.append(.empty)
+            }
+        }
+        return EvidenceStatus.aggregate(statuses)
     }
 
     /// The plain inputs `visibleSources` reads beside its handles: the
@@ -276,8 +261,8 @@ final class SourcesModel {
         }
     }
 
-    /// The Sources list's rows: the visible Sources, and under each open Source its Evidence graphs.
-    /// Built once per change of the visible Sources, the graph list or the open set; a graph's counts
+    /// The Sources list's rows: the visible Sources, and under the open Source its Evidence graphs.
+    /// Built once per change of the visible Sources, the graph list or the open Source; a graph's counts
     /// are read by its row as it draws, so a counts update rebuilds nothing.
     var outline: SourcesOutline {
         // Read first, so its derived version is current when the outline stamps it.
@@ -285,12 +270,12 @@ final class SourcesModel {
         return session.derived(
             .sourcesOutline,
             inputs: [.derived(.visibleSources), .key(session.evidenceGraphsKey)],
-            extra: session.expandedSourceIDs
+            extra: session.openSourceID
         ) {
             SourcesOutline(
                 sources: rows,
                 graphs: { session.evidenceGraphsRead(sourceID: $0) },
-                expanded: session.expandedSourceIDs
+                open: session.openSourceID
             )
         }
     }
@@ -342,7 +327,7 @@ final class SourcesModel {
             rows = rows.filter { $0.sourceTypeID == typeID }
         }
         if let status = settings.status {
-            rows = rows.filter { statuses(for: $0).contains(status) }
+            rows = rows.filter { self.status(for: $0) == status }
         }
         let query = TextMatch.Query(trimmedQuery)
         if !query.isEmpty {
@@ -352,22 +337,22 @@ final class SourcesModel {
                 return query.matchesKey(key.title) || query.matchesKey(key.ref)
             }
         }
-        switch settings.sort {
-        case .added:
-            // UUIDv7 string form preserves create-time byte order (newest first).
-            rows = rows.sorted { $0.id > $1.id }
-        case .updated:
-            rows = rows.sorted(by: Self.updatedOrder)
-        case .az:
-            rows = rows.sorted { Self.titleOrder($0, $1) }
-        case .za:
-            rows = rows.sorted { Self.titleOrder($0, $1, descending: true) }
-        case .dateOldest:
-            rows = rows.sorted { Self.dateOrder($0, $1, newestFirst: false) }
-        case .dateNewest:
-            rows = rows.sorted { Self.dateOrder($0, $1, newestFirst: true) }
-        }
+        let sort = settings.sort
+        rows = rows.sorted { Self.order($0, $1, by: sort) }
         return rows
+    }
+
+    /// Whether `a` comes before `b` in `sort`. Every order ends in the id, so it is strict.
+    /// Title: the title, then id newest first both ways. Published: the place in date order, undated
+    /// last both ways. Added: the id (UUIDv7 byte order is create-time order). Updated: revision, then id.
+    static func order(_ a: CatalogSource, _ b: CatalogSource, by sort: SourcesSort) -> Bool {
+        let forward = sort.order == .forward
+        switch sort.column {
+        case .title: return titleOrder(a, b, descending: !forward)
+        case .published: return dateOrder(a, b, newestFirst: !forward)
+        case .added: return forward ? a.id < b.id : a.id > b.id
+        case .updated: return forward ? updatedOrder(b, a) : updatedOrder(a, b)
+        }
     }
 
     /// The "Updated" order, the one meaning of "most recently changed": revision,
@@ -390,8 +375,8 @@ final class SourcesModel {
         }
     }
 
-    /// The one title comparison of all four title-ordered sorts (A–Z, Z–A and the
-    /// date sorts' ties and undated tail): title, flipped when `descending`, then
+    /// The one title comparison (A–Z, Z–A, and the date sorts' ties and undated
+    /// tail): title, flipped when `descending`, then
     /// id descending (newest added first) in both directions.
     private static func titleOrder(_ a: CatalogSource, _ b: CatalogSource, descending: Bool = false) -> Bool {
         switch a.title.localizedCaseInsensitiveCompare(b.title) {
@@ -402,18 +387,6 @@ final class SourcesModel {
     }
 
     var isCatalogEmpty: Bool { sources.isEmpty }
-
-    var filterLabel: String {
-        let typeID = effectiveTypeFilterID
-        if typeID.isEmpty {
-            return L10n.string(L10n.Sources.filterAllTypes)
-        }
-        return types.label(forTypeID: typeID) ?? L10n.string(L10n.Sources.filterAllTypes)
-    }
-
-    var sortControlLabel: String {
-        L10n.Sources.sortedBy(L10n.string(settings.sort.label).lowercased())
-    }
 
     func countLine(visibleCount visible: Int) -> String {
         if isAwaitingFilterData || statusCountsError != nil {
