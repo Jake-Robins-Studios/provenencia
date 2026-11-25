@@ -3919,7 +3919,7 @@ func TestListDraftWorkspaceParents(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if e, ok := entryOf(got, "line_number"); ok && (e.Inherited == nil || e.Inherited.ValueText != "14" || e.Inherited.Owner.Level != vocabkey.LevelSource) {
+			if e, ok := entryOf(got, "line_number"); !ok || (e.Inherited == nil || e.Inherited.ValueText != "14" || e.Inherited.Owner.Level != vocabkey.LevelSource) {
 				t.Errorf("%s draft line_number inherited %+v, want 14 from the Source", level, e.Inherited)
 			}
 		}
