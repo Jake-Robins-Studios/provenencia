@@ -175,12 +175,15 @@ final class PVScrollMemoryCoordinator {
         restore()
     }
 
-    /// Goes to the pending y when the view can show it now, else to the top. Next turn: the content is
-    /// not laid out yet.
+    /// Goes to the pending y when the view can show it now, else to the top. Next turn, since this runs
+    /// inside an update; the content may not be laid out by then, and the hosting view above the scroll
+    /// view is what lays it out.
     private func restore() {
         guard pending != nil else { return }
         Task { @MainActor [weak self] in
-            guard let self, let pending, let scrollView else { return }
+            guard let self, pending != nil else { return }
+            scrollView?.window?.contentView?.layoutSubtreeIfNeeded()
+            guard let pending, let scrollView else { return }
             let fits = pending <= Self.reach(of: scrollView)
             if fits { end() }
             scroll(scrollView, to: fits ? pending : 0)
