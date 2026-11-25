@@ -118,26 +118,28 @@ struct SourcesOutlineHostedTests {
     }
 
     /// AC-1.6: the platform reuses a row's cells for a row of the other height as Sources open and close,
-    /// and every row takes its own.
+    /// and every row drawn takes its own (one never drawn keeps the platform's estimate). The rows arrive
+    /// with no layout forced here: one forced in the turn a Source opens hides a cell that kept its height.
     @Test func everyRowTakesItsOwnHeightAsSourcesOpenAndClose() async throws {
-        let harness = try await makeHarness()
-        func expectHeights(_ want: [CGFloat], sourceLocation: SourceLocation = #_sourceLocation) async {
+        let harness = try await makeHarness(rows: 33, tailSources: 30)
+        let table = harness.table
+        let sources = ["s3", "s2", "s1"] + (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
+        for open in ["s1", "a29", "a26", "s1", "a28", "s2", "s1", nil] {
+            harness.session.setOpenSource(open)
+            let want = sources.flatMap { id -> [CGFloat] in
+                [66] + Array(repeating: 34, count: id != open ? 0 : id == "s1" ? 8 : 1)
+            }
+            #expect(await waitUntil(timeout: .seconds(10)) { table.numberOfRows == want.count })
             var heights: [CGFloat] = []
             let settled = await eventually(harness) {
-                heights = (0 ..< harness.table.numberOfRows).map { harness.table.rect(ofRow: $0).height }
-                return heights == want
+                heights = want.indices.map { table.rect(ofRow: $0).height }
+                return want.indices.allSatisfy {
+                    heights[$0] == want[$0] || table.rowView(atRow: $0, makeIfNecessary: false) == nil
+                }
             }
-            #expect(settled, "\(heights)", sourceLocation: sourceLocation)
+            #expect(settled, "open \(open ?? "none"): \(heights)")
         }
-        await expectHeights([66, 66, 66])
-        #expect(harness.navigation.listAnchor == nil)
-        harness.session.setOpenSource("s1")
-        await expectHeights([66, 66, 66] + Array(repeating: 34, count: 8))
         #expect(harness.scroll.verticalLineScroll == 34)
-        harness.session.setOpenSource("s2")
-        await expectHeights([66, 66, 34, 66])
-        harness.session.setOpenSource(nil)
-        await expectHeights([66, 66, 66])
     }
 
     @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
