@@ -181,6 +181,64 @@ struct EvidenceCardLayoutTests {
         #expect(abs(hit.frame.minY - (frame.minY + rect.minY)) < 0.5)
     }
 
+    /// A cited card with one row of the given polarity.
+    private func placed(polarity: ObservationPolarity, value: String) -> EvidenceGraphPlacedSubject {
+        var row = observation(0)
+        row.polarity = polarity.rawValue
+        row.valueText = value
+        var p = placed(rows: 1)
+        p.observations = [row]
+        return p
+    }
+
+    @Test func negatedTagIsPaintedWhole() throws {
+        // A likeness row: the tag is the only danger-colored ink on it.
+        var row = observation(0, value: "")
+        row.polarity = ObservationPolarity.negative.rawValue
+        row.valueText = ""
+        row.depiction = CatalogDepictionValue(regionJSON: "{}", imageRelPath: "objects/aa/bb/face.png")
+        var p = placed(rows: 1)
+        p.observations = [row]
+        let view = EvidenceCardView(
+            card: EvidenceCanvasCard(placed: .subject(p, nil), text: EvidenceCardText(subject: p), state: .resting),
+            actions: []
+        )
+        let rep = try bitmap(of: view)
+        var columns: [Int] = []
+        for x in 0..<rep.pixelsWide {
+            for y in 0..<rep.pixelsHigh {
+                guard let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB), c.alphaComponent > 0.5 else { continue }
+                if c.redComponent - max(c.greenComponent, c.blueComponent) > 0.25 {
+                    columns.append(x)
+                    break
+                }
+            }
+        }
+        let first = try #require(columns.first)
+        let last = try #require(columns.last)
+        let tag = NSAttributedString(
+            string: L10n.string(L10n.EvidenceGraph.negatedPrefix).localizedUppercase,
+            attributes: [
+                .font: PVFont.nsBody(size: PVTypeScale.micro, weight: PVFontWeight.semibold),
+                .kern: PVMicroCaps.tracking,
+            ]
+        ).size().width
+        // Ink stops short of the advance by the trailing kern and the side bearings.
+        #expect(CGFloat(last - first + 1) > tag - PVMicroCaps.tracking - 3)
+    }
+
+    /// The tag narrows the value, so a value that just fits a positive row
+    /// wraps, and the row grows, on a negative one.
+    @Test func negatedRowHeightCountsTheTag() throws {
+        func rowHeight(_ polarity: ObservationPolarity, _ value: String) throws -> CGFloat {
+            let (layout, _) = try measureSubject(placed(polarity: polarity, value: value))
+            return try #require(layout.regions[EvidenceSubjectCard.editPropertyActionID(observationID: "o0")]).height
+        }
+        // Single letters, so one step is narrower than the tag.
+        let values = (10...50).map { Array(repeating: "n", count: $0).joined(separator: " ") }
+        #expect(try values.contains { try rowHeight(.negative, $0) > rowHeight(.positive, $0) })
+    }
+
     @Test func ghostCardMatchesTheLiveLayout() {
         let p = placed(rows: 0)
         let ghost = EvidenceCardView(ghostOf: .ghost(p, presentation: nil))

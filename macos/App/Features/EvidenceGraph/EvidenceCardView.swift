@@ -176,9 +176,8 @@ private extension EvidenceCardView {
         let footerRect: CGRect
         if placed.isCited {
             y += EvidenceSubjectCard.headerToBodyGap + EvidenceSubjectCard.stackHairline
-            let valueFont = PVFont.nsBody(size: 13)
             for observation in placed.observations {
-                let rowHeight = propertyRowHeight(observation, valueWidth: subjectValueWidth, valueFont: valueFont, orders: card.nameOrders)
+                let rowHeight = propertyRowHeight(observation, valueWidth: subjectValueWidth, orders: card.nameOrders)
                 let rect = CGRect(x: 0, y: y, width: width, height: rowHeight)
                 rowRects.append((observation, rect))
                 regions[EvidenceSubjectCard.editPropertyActionID(observationID: observation.id)] = rect
@@ -264,9 +263,8 @@ private extension EvidenceCardView {
         let addRect: CGRect
         if placed.isCited {
             y += EvidenceSubjectCard.stackHairline
-            let valueFont = PVFont.nsBody(size: 13)
             for observation in EvidenceBridgeCard.extraObservations(for: placed) {
-                let rowHeight = propertyRowHeight(observation, valueWidth: bridgeValueWidth, valueFont: valueFont, orders: card.nameOrders)
+                let rowHeight = propertyRowHeight(observation, valueWidth: bridgeValueWidth, orders: card.nameOrders)
                 let rect = CGRect(x: 0, y: y, width: width, height: rowHeight)
                 rowRects.append((observation, rect))
                 regions[EvidenceSubjectCard.editPropertyActionID(observationID: observation.id)] = rect
@@ -463,15 +461,14 @@ private extension EvidenceCardView {
                 font: PVFont.nsMono(size: 9), color: PVColor.textMuted, lines: 1, kern: 0.7, uppercased: true
             )
             let negated = EvidenceCitedPropertyMarks.isNegated(observation)
-            var valueX = leading
+            let inset = valueInset(observation)
+            let valueX = leading + inset
             if negated {
                 painter.text(
-                    L10n.string(L10n.EvidenceGraph.negatedPrefix),
-                    in: CGRect(x: leading, y: rect.minY + 22, width: 28, height: 14),
-                    font: PVFont.nsBody(size: PVTypeScale.micro, weight: PVFontWeight.semibold),
-                    color: PVColor.danger, lines: 1, kern: PVMicroCaps.tracking, uppercased: true
+                    negatedTag,
+                    in: CGRect(x: leading, y: rect.minY + 22, width: inset - PVSpacing.space2, height: 14),
+                    font: negatedTagFont, color: PVColor.danger, lines: 1, kern: PVMicroCaps.tracking
                 )
-                valueX += 30
             }
             if let relPath = likenessRelPath(observation) {
                 let image = ThumbnailCache.shared.cachedImage(projectDir: projectDir, relPath: relPath)
@@ -479,8 +476,8 @@ private extension EvidenceCardView {
             } else {
                 painter.text(
                     ObservationValueDisplay.string(for: observation, orders: orders),
-                    in: CGRect(x: valueX, y: rect.minY + 22, width: max(valueWidth - (valueX - leading), 20), height: rect.height - 30),
-                    font: PVFont.nsBody(size: 13, italic: negated),
+                    in: CGRect(x: valueX, y: rect.minY + 22, width: max(valueWidth - inset, 20), height: rect.height - 30),
+                    font: valueFont(observation),
                     color: negated ? PVColor.danger : PVColor.textPrimary, lines: 2
                 )
             }
@@ -649,10 +646,23 @@ private extension EvidenceCardView {
         return path
     }
 
+    static var negatedTag: String { L10n.string(L10n.EvidenceGraph.negatedPrefix).localizedUppercase }
+    static var negatedTagFont: NSFont { PVFont.nsBody(size: PVTypeScale.micro, weight: PVFontWeight.semibold) }
+
+    /// How far a row's value moves right for the negated tag and its gap; 0
+    /// without one. The row's height and its paint both read it.
+    static func valueInset(_ observation: CatalogObservation) -> CGFloat {
+        guard EvidenceCitedPropertyMarks.isNegated(observation) else { return 0 }
+        return PVTextMetrics.textWidth(negatedTag, font: negatedTagFont, kern: PVMicroCaps.tracking) + PVSpacing.space2
+    }
+
+    static func valueFont(_ observation: CatalogObservation) -> NSFont {
+        PVFont.nsBody(size: 13, italic: EvidenceCitedPropertyMarks.isNegated(observation))
+    }
+
     static func propertyRowHeight(
         _ observation: CatalogObservation,
         valueWidth: CGFloat,
-        valueFont: NSFont,
         orders: NameFormatOrders
     ) -> CGFloat {
         if likenessRelPath(observation) != nil {
@@ -660,8 +670,8 @@ private extension EvidenceCardView {
         }
         let valueHeight = PVTextMetrics.textHeight(
             ObservationValueDisplay.string(for: observation, orders: orders),
-            width: valueWidth,
-            font: valueFont,
+            width: max(valueWidth - valueInset(observation), 20),
+            font: valueFont(observation),
             maxLines: 2
         )
         return max(EvidenceSubjectCard.propertyRowHeight, PVTextMetrics.fontLineHeight(PVFont.nsMono(size: 9)) + 3 + valueHeight + 16)
