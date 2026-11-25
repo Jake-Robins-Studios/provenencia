@@ -13,7 +13,7 @@
 **Rules that bind:** —
 **Context:** working rules "(Batch 6) History restores a scroll offset, not a row", "(Batch 6) Back restores a section's scroll and focus, not its folds", "(Batch 6) The Sources list is a native table"; [`navigation-history.md`](../../archive/spike-3/navigation-history.md); S16-71's Landed note (13) and (14) and [ship log](S16-71-sources-table.ship.md) U-5
 **Planned:** 2026-11-25 against `main` @ `09774bb`
-**Review:** [`S16-72-scroll-offset-history.review.md`](S16-72-scroll-offset-history.review.md)
+**Review:** [`S16-72-scroll-offset-history.review.md`](S16-72-scroll-offset-history.review.md) — Fits with changes / Ready with changes, round 1 answered; round 2 pending
 
 ### Implementer — read this first
 
@@ -69,12 +69,12 @@ Back, Forward and a jump in the history menu put every main page back at the y p
 | In | Covered by |
 | --- | --- |
 | A history entry records the main scroll view's y on leaving any page, written to the history file | STEP-1, AC-1.1 – AC-1.11 |
-| A list entry records its open row apart from the y, never written to the file | STEP-1, STEP-2, US-2 |
+| A Sources list entry records its open Source apart from the y, never written to the file | STEP-1, STEP-2, US-2 |
 | One kit modifier reads and restores a y on any kit scroll container, once the content is tall enough | STEP-3, STEP-4, AC-1.5 – AC-1.8 |
 | Every main page's scroll view adopts it: the Sources, Source types, Persons, Events and Places lists, Metadata's and Properties' tables, the Source page, Source type page, Person, Event and Place pages, Promote | STEP-4, STEP-7 |
 | Arrival scrolls to a row go: the native list's scroll to its selection, Source types' top-row anchor, a record section's scroll to its anchored row; the record section's anchor keeps the keyboard | STEP-5, STEP-6 |
 | The Sources reveal (open the closed Source that holds a selected graph) goes; the recorded open Source does it | STEP-2 |
-| `listScrollAnchor` is renamed for what it is now: the selected row | STEP-1 |
+| The things an entry keeps of how it was left (selection, open Source, offsets, section anchor) become one value that a push starts clean | STEP-1 |
 
 | Out | Home |
 | --- | --- |
@@ -88,7 +88,7 @@ Back, Forward and a jump in the history menu put every main page back at the y p
 
 | Area | Where | Today |
 | --- | --- | --- |
-| Entry | `macos/App/Features/Workspace/WorkspaceLocation.swift` `listScrollAnchor`, `withListScrollAnchor`, `sectionAnchor`, `CodingKeys`, `==` | A row id that is the top row on Source types and the selection elsewhere; no y; no open state |
+| Entry | `macos/App/Features/Workspace/WorkspaceLocation.swift` `listScrollAnchor`, `withListScrollAnchor`, `sectionAnchor`, `withPageSection`, `CodingKeys`, `==` | A row id that is the top row on Source types and the selection elsewhere; no y; no open state; `withPageSection` clears `sectionAnchor` by hand, and a push carries whatever the copy held (`ConclusionDetailPage.choose`, `WorkspaceToolbar` breadcrumb) |
 | History | `macos/App/Features/Workspace/NavigationHistoryStore.swift` `stampListAnchor`, `stampSectionAnchor`, `go(to:)` | Stamps the list row on leaving a list root only |
 | Navigation | `macos/App/Features/Workspace/WorkspaceNavigation.swift` `listAnchor`, `noteListAnchor`, `performGo/Back/Forward/Index`, `apply`, `onLocationCommit` | Holds the selection; stamps it on leave; no y; no way to tell a history move from a push |
 | Row rules | same file `ListAnchor.resolved`, `ListAnchor.settle`, `ListSelectionAnchorModifier` (`reveal`), `ListScrollAnchorModifier` | `settle`/`reveal` open a closed Source for a selected graph; `ListScrollAnchorModifier` pins Source types' top row through `.scrollPosition(id:)` |
@@ -97,7 +97,7 @@ Back, Forward and a jump in the history menu put every main page back at the y p
 | Sources page | `macos/App/Features/Sources/SourcesListView.swift` `SourcesListContent` | Passes `reveal` to `ListSelectionAnchorModifier`; `opened` scroll on an open |
 | Outline | `macos/App/Features/Sources/SourcesOutline.swift` `sourceToReveal`, `closedOwnerID`, `setOpen` | Reveal lookup, only for the reveal |
 | Native list | `macos/App/DesignSystem/Components/List/PVNativeListBehavior.swift` | On appear scrolls to the selection (`onAppear`, `scrollsOnAppear: true`) and when the selected row arrives (`onChange(of: ids)`) |
-| Page scroll | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` `scroll(content:)` | The page's `ScrollView`; resets to its top on `scrollResetKey` |
+| Page scroll | `macos/App/DesignSystem/Components/PageColumns/PVPageColumns.swift` `scroll(content:)` | The page's `ScrollView`; resets to its top on `scrollResetKey`, whose arrival keys are `openPageSection` (`ConclusionDetailPage.swift`), `sourceID` (`SourcePageView.swift`, first page), `typeID` (`SourceTypePageView.swift`) |
 | Table | `macos/App/DesignSystem/Components/Table/PVTable.swift` `rowList` | `ScrollView` + `LazyVStack`; `.scrollTargetLayout()` serves only `ListScrollAnchorModifier` |
 | Source types | `macos/App/Features/SourceTypes/SourceTypesListPane.swift` | Applies `ListScrollAnchorModifier` |
 | Record sections | `macos/App/Features/Conclusions/ConclusionAnchorRestore.swift` `conclusionAnchorRestore`, `ConclusionAnchorTarget.scrollID` | Scrolls to the anchored row and focuses it; seven call sites, `PersonTimelineSection` passes `scroll:` |
@@ -105,28 +105,28 @@ Back, Forward and a jump in the history menu put every main page back at the y p
 | Host | `macos/App/Features/Workspace/WorkspaceDestinationHost.swift` `body` | `.id(place?.viewIdentity)` remounts per place |
 | Tests | `macos/ProvenenciaTests/WorkspaceNavigationTests.swift` (`listScrollAnchorRoundTrips`, `aRevealKeepsAnAnchorItDraws`, `theListAnchorIsTheSelectionAndFollowsHistory`, …), `SourcesOutlineHostedTests.swift` (`anAnchorOnAGraphOfAClosedSource…`, `anAnchorSetBeforeThePageIsHosted…`), `SourcesOutlineTests.swift`, `ConclusionAnchorRestoreTests.swift`, `HostedWindow.swift` (`hostInBorderlessWindow`, `descendant`) | Cover the row anchors |
 
-**Precedent.** S16-46 ([`S16-46-section-anchor.md`](S16-46-section-anchor.md)) added `sectionAnchor`: an identity-ignored, leniently decoded field stamped on the entry being left. Copy its field shape and its stamp-on-leave tests. `ArtifactMediaViewport.swift` and `GraphCanvasScrollView.swift` are the repo's `NSScrollView` code; copy their notification observing, not their subclasses.
+**Precedent.** S16-46 ([`S16-46-section-anchor.md`](S16-46-section-anchor.md)) added `sectionAnchor`: an identity-ignored, leniently decoded field stamped on the entry being left. Copy its field shape and its stamp-on-leave tests. `PVPopupWindowHost.startFollowing` / `stopFollowing` (`macos/App/DesignSystem/Components/Popup/PVPopupWindowHost.swift`) is the kit's clip-view observer: copy its `postsBoundsChangedNotifications`, observer and removal.
 
 ## 5. Decisions
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | The y is `contentView.bounds.minY + contentInsets.top` of the page's `NSScrollView`, a `Double` on the entry (`scrollOffset`), 0 at the top. Nothing reads rows or heights | Working rule; content-agnostic (user, 2026-11-25) | A row plus a delta: knows content |
-| D-2 | The y is read and written through AppKit: a probe `NSView` finds the `NSScrollView` and observes its clip view's bounds and its document view's frame | SwiftUI's `onScrollGeometryChange` and `ScrollPosition` are macOS 15; the minimum is 14.0; the rule allows a little AppKit | Raising the minimum macOS |
-| D-3 | The probe finds its scroll view as `enclosingScrollView` when it is inside one (a `ScrollView`'s content); otherwise, walking up at most 6 superviews, the first `NSScrollView` in each ancestor's subtree whose window rect equals the probe's within 1 pt, depth first in subview order (a `List` or `Table` the probe is the background of). The visible height is `contentView.bounds.height` | One probe for both shapes; public API only | A private-view-name search |
-| D-4 | Claimants: the lists through `PVNativeListBehavior` (Sources' `Table`, `PVList`); Source types, Metadata and Properties through `PVTable`; the Source page, Source type page and the Person, Event and Place pages through their page's own `PVPageColumns` (`SourcePageView`, `SourceTypePageView`, `ConclusionDetailPage`); the `PVPageColumns` in `PersonSourcesSection.swift` and `PersonTimelineSection.swift` are previews. The kit owns the mechanism (`PVScrollMemory`, `pvRemembersScroll()`) and knows nothing of navigation; the workspace hands it a value through the environment at `WorkspaceDestinationHost`. The kit's scroll containers (`PVPageColumns`, `PVTable`, `PVNativeListBehavior`) call `pvRemembersScroll()` themselves; the first one under the host claims the value and clears it for its content, so nested scroll views never see it | Every main page adopts through the container it already uses; a nested scroll view cannot steal it | A modifier on each page: thirteen call sites to forget |
-| D-5 | Restore: armed with the entry's y; a y of 0 or nil is done at once. While armed, on the next main-actor turn and after every document resize, scroll to y if `y ≤ documentHeight − (visibleHeight − topInset) + 0.5`; then done. A bounds change at the top while armed is ignored (mount, a reset key); one away from the top disarms (the researcher, Home/End, a reveal). After done, every bounds change is noted. There is no time limit: content that never grows tall enough leaves the page at its top | AC-1.5 – AC-1.8; "no usable offset opens at the top" | Clamping to the bottom; a timeout |
-| D-6 | `WorkspaceNavigation.arrival` *(new, `Int`)* counts arrivals: it increments in `apply` when the identity changes or on any history move, not on a coalesced `go(to:)` or a `replaceCurrent` of the same identity. The environment value is keyed by it; a key change re-arms the probe with the new entry's y. A note carries the arrival it was armed for, and navigation drops a note of another arrival | A section switch keeps the same `NSScrollView`; a closing page's last bounds change must not land on the new entry | Location equality as the key: A → B → A |
-| D-7 | Navigation holds the noted y (`scrollOffset`, not observed); `apply` sets it to the entry's y. `performGo`, Back, Forward and a jump stamp it on the current entry before the history moves, for every location, a coalesced `go(to:)` included, so the coalesced entry keeps the live y and `apply` reads it back. The selection and the open row are stamped only on leaving a list root (another identity, or a history move); a coalesced visit copies the incoming selection as today and leaves `listOpenRow` as stamped | As `listAnchor` is held and stamped today; a page that never mounted its scroll view stamps back what it had | Stamping from the view on disappear: runs after `apply` |
-| D-8 | The y is written to the history file under key `scrollOffset`; a missing, negative or non-finite value decodes as nil | User, 2026-11-25 (relaunch reopens where it was) | Session only |
-| D-9 | A list's open row is `WorkspaceLocation.listOpenRow` *(new)*, stamped with the selection on leaving a list root, never encoded (not in `CodingKeys`). Navigation reads it through `listOpenRowProvider` *(new closure)*, which `WorkspaceView` sets to `session.openSourceID` | Working rule: page state recorded apart from the y; S16-71's check 4.12 keeps relaunch closed | Moving `openSourceID` into navigation: the outline's derived value reads the session |
-| D-10 | `onLocationCommit` passes a `WorkspaceArrivalKind` *(new: `.push`, `.history`, in `WorkspaceNavigation.swift`)*, which the private `apply(_:kind:)` takes from its caller: `performGo`, `attachProject` and `replaceCurrent` pass `.push`; `performBack`, `performForward` and `performIndex` pass `.history`. `WorkspaceView`'s `.onAppear` re-apply calls `session.apply(location:)` alone, as today. On `.history`, `WorkspaceSession.applyHistoryState(_:)` *(new)* sets the open Source to the entry's `listOpenRow` (nil closes) when the entry is the Sources list root; on `.push` the session is left as it is. `attachProject` and `replaceCurrent` are `.push` | AC-2.2 – AC-2.5; AC-2.3 keeps a sidebar visit's open Source | Applying on every commit: closes A on AC-2.3 |
-| D-11 | `listScrollAnchor` becomes `listSelection` (its coding key stays `"listScrollAnchor"`), `withListScrollAnchor` → `withListSelection`, `WorkspaceNavigation.listAnchor` → `listSelection`, `noteListAnchor` → `noteListSelection`, `stampListAnchor` → `stampLeaving(scrollOffset:listSelection:listOpenRow:)`, `ListAnchor` → `ListSelection`, `ListSelectionAnchorModifier` → `ListSelectionModifier` | It is no longer a scroll anchor; old files keep decoding. An old Source types top-row id decodes as a selection Source types never reads | Keeping the false names |
-| D-12 | Arrival scrolls to a row go: `PVNativeListBehavior`'s `onAppear` scroll, `scrollsOnAppear`, and its `onChange(of: ids)` scroll; `ListScrollAnchorModifier`; `conclusionAnchorRestore`'s scroll and `ConclusionAnchorTarget.scrollID`. Kept: the `pvScrollsRowIntoView(selection…, restartsAt:whenChanged:)` call with `scrollsOnAppear` at its default (false), so the keyboard's row stays in view and `restartKey` still resets; Home/End; `reveal` (an opened Source); the 150 ms repeat; the record section's keyboard hand-off. In `PersonTimelineSection` the `conclusionAnchorRestore` call's `scroll: { pendingReveal = $0; rebuild() }` goes (the keeper hands the card the keyboard; every item is built, since the placement measures them all); its `focusKeeper(…, scroll: { _ in })` and `unfold`'s `pendingReveal` stay | The y replaces every scroll on arrival; what is not an arrival stays | Keeping both: the row scroll moves the page after the y lands |
+| D-1 | The y is `contentView.bounds.minY + contentInsets.top` of a scroll view's `NSScrollView`, a `Double`, 0 at the top. Nothing reads rows or heights | Working rule; content-agnostic (user, 2026-11-25) | A row plus a delta: knows content |
+| D-2 | The y is read and written through AppKit: a probe `NSView` finds the `NSScrollView` and observes its clip view's bounds and its document view's frame, with the idiom of `PVPopupWindowHost.startFollowing` / `stopFollowing` | SwiftUI's `onScrollGeometryChange` and `ScrollPosition` are macOS 15; the minimum is 14.0; the rule allows a little AppKit; one kit way to watch a clip view | Raising the minimum macOS |
+| D-3 | The probe finds its scroll view as `enclosingScrollView` when it is inside one (a `ScrollView`'s content); otherwise, walking up at most 6 superviews, the first `NSScrollView` in each ancestor's subtree, depth first in subview order, whose window rect equals the probe's within 1 pt (a `List` or `Table` the probe is the background of). The visible height is `contentView.bounds.height` | One probe for both shapes; public API only | A private-view-name search |
+| D-4 | An entry keeps every y it was left at in `scrollOffsets: [PVScrollSlot: Double]`, one per named scroll view; `PVScrollSlot` *(new kit `String` raw-value struct)* has `.page`. The kit's scroll containers (`PVPageColumns`, `PVTable`, `PVNativeListBehavior`) call `pvRemembersScroll()`, which claims `.page`; the first claimant under the host clears `.page` for its content, so a nested container never claims it. A plain `ScrollView` names its slot: `pvRemembersScroll(.page)` on Promote; a second scroll view on one page passes another slot (the composer, later) | One page, one memory; the composer's two columns and the secondary panes are each one call, with no change to the file later | One scalar y: the next named add re-keys the file |
+| D-5 | Claimants: the lists through `PVNativeListBehavior` (Sources' `Table`, `PVList`); Source types, Metadata and Properties through `PVTable`; the Source page, Source type page and the Person, Event and Place pages through their page's own `PVPageColumns` (`SourcePageView`, `SourceTypePageView`, `ConclusionDetailPage`); the `PVPageColumns` in `PersonSourcesSection.swift` and `PersonTimelineSection.swift` are previews. The kit knows nothing of navigation: `WorkspaceDestinationHost` hands it a `PVScrollMemory` through the environment | Every main page adopts through the container it already uses | A modifier on each page: thirteen call sites to forget |
+| D-6 | Restore, per probe and slot: armed with the slot's y on mount and on every change of `memory.arrival`. A nil or 0 y scrolls to the top on the next main-actor turn when the view is not there (a reused scroll view: a section switch) and is done. Otherwise, on the next main-actor turn and after every document resize, it scrolls to y if `y ≤ documentHeight − (visibleHeight − topInset) + 0.5`, and is done. While armed, a bounds change at the top is not noted and one away from it disarms (the researcher, Home/End, a reveal, a focus hand-off) and is noted. Once done, every bounds change is noted. No time limit: content that never grows tall enough leaves the page at its top | AC-1.5 – AC-1.8, AC-1.10; "no usable offset opens at the top"; the probe owns where a page sits on arrival, so `scrollResetKey` arrival keys go | Clamping to the bottom; a timeout; keeping arrival reset keys beside it |
+| D-7 | `WorkspaceNavigation.arrival: WorkspaceArrival` *(new: `id: Int`, `kind: .push | .history`)* is set in the private `apply`: the id increments when the identity changes or on any history move; the kind is `.history` from `performBack`, `performForward` and `performIndex`, `.push` from `performGo`, `attachProject` and `replaceCurrent`. A coalesced `go(to:)` or a same-identity `replaceCurrent` keeps the arrival. `onLocationCommit` keeps its signature; `WorkspaceView`'s closure reads `navigation.arrival.kind`. Its `.onAppear` re-apply calls `session.apply(location:)` alone, as today | One rule for when a visit begins; a section switch keeps the same `NSScrollView`; a closing page's last note must not land on the next entry | Location equality as the key: A → B → A |
+| D-8 | Navigation holds the live revisit (`revisit`, not observed): `noteScrollOffset(_:slot:arrival:)` *(new)* writes a slot's y and drops a note of another arrival id; `noteListSelection` writes the selection (observed separately, as `listAnchor` is today). `apply` sets the held revisit to the entry's only when the arrival id changes. Before `performGo`, Back, Forward and a jump move the history, the held revisit is stamped on the current entry (`stampLeaving(_:)`, on the generic `stampCurrent`): the offsets on every entry; the selection and the open Source only on a list root, the open Source only on the Sources list root, read through `openSourceProvider` *(new closure)*, which `WorkspaceView` sets to `session.openSourceID`. `NavigationHistoryStore.go(to:)` strips the pushed location's revisit (a new visit starts clean), except a coalesced list visit, which copies the incoming selection as today | One clear rule instead of one hand clear per field per `with…`; `withPageSection` pushing Vitals' y onto Family is impossible | Per-field stamps and clears |
+| D-9 | The revisit is one value, `WorkspaceRevisit` *(new: `listSelection: String?`, `openSourceId: String?`, `scrollOffsets: [PVScrollSlot: Double]`, `sectionAnchor: ConclusionSectionAnchor?`)*, the location's `revisit` member, ignored by `==`. It is encoded flat at the location's top level under the existing keys `listScrollAnchor` and `sectionAnchor` plus `scrollOffsets` (a `[String: Double]`); `openSourceId` is never encoded. Decoding is lenient per key: an unreadable key decodes as its empty value; a negative or non-finite y is dropped | Old history files read unchanged; user, 2026-11-25 (the y is written, so relaunch reopens where it was); S16-71's check 4.12 keeps relaunch closed | Nesting the value in the file: old files lose their selection |
+| D-10 | On `.history`, `WorkspaceSession.applyHistoryState(_:)` *(new)* sets the open Source to the entry's `revisit.openSourceId` (nil closes) when the entry is the Sources list root; on `.push` the session is left as it is | AC-2.2 – AC-2.5; AC-2.3 keeps a sidebar visit's open Source | Applying on every commit: closes A on AC-2.3 |
+| D-11 | Names: `listScrollAnchor` → `revisit.listSelection`, `withListScrollAnchor` → `withListSelection`, `WorkspaceNavigation.listAnchor` → `listSelection`, `noteListAnchor` → `noteListSelection`, `stampListAnchor` and `stampSectionAnchor` → `stampLeaving(_:)` (the section anchor is noted into the held revisit by `go(to:from:)`), `ListSelectionAnchorModifier` → `ListSelectionModifier`, with `ListAnchor.resolved` inlined into it and the enum gone; `ConclusionAnchorTarget` goes and `resolve` returns `Stop?` | It is no longer a scroll anchor; two types fewer | Keeping the false names |
+| D-12 | No arrival scrolls to a row. Kept: `PVNativeListBehavior`'s `pvScrollsRowIntoView(selection…, restartsAt:whenChanged:)` with `scrollsOnAppear` at its default (false), so the keyboard's row stays in view and `restartKey` (a sort or filter) still resets; Home/End; `reveal` (an opened Source); the 150 ms repeat; `SourcePageView`'s error-count `scrollResetKey`; the record section's keyboard hand-off; the Timeline's `focusKeeper(…, scroll: { _ in })` and `unfold`'s `pendingReveal` (every Timeline item is built, since its placement measures them all, so the keeper hands the card the keyboard without a reveal) | The y owns arrival; what is not an arrival stays | Keeping both: the row scroll moves the page after the y lands |
 | D-13 | Sources drift is accepted: on the Sources table a far y can show other rows than were left, because the platform estimates undrawn rows; this PR does not touch row heights | User, 2026-11-25 | A preparatory exact-heights PR |
 | D-14 | No new copy, no new announcement | Nothing new is said or drawn | — |
 
-**Rules this plan bends.** "(Batch 6) Back restores a section's scroll and focus, not its folds" → a record section's scroll is now the page's y and its anchor carries only the keyboard → the user's answer (2026-11-25: every main page, the offset replaces the section anchor's scroll, focus stays) → STEP-8 updates the rule. "(Batch 6) The Sources list is a native table" says no AppKit reach-in → the probe reads the table's `NSScrollView` → the user's rule of 2026-11-24 ("a little AppKit is allowed") → STEP-8 notes it on the rule.
+**Rules this plan bends.** "(Batch 6) Back restores a section's scroll and focus, not its folds" → a record section's scroll is now the page's y and its anchor carries only the keyboard → the user's answer (2026-11-25: every main page, the offset replaces the section anchor's scroll, focus stays) → STEP-8 updates the rule. "(Batch 6) The Sources list is a native table" says no AppKit reach-in → the probe reads the table's `NSScrollView` → the user's rule of 2026-11-24 ("a little AppKit is allowed") → STEP-8 notes it on the rule. [`add-workspace-location`](../../../../.agents/skills/add-workspace-location/SKILL.md)'s ephemera row says scroll is omitted → the y is recorded → the user's rule of 2026-11-24 → STEP-8 updates the row.
 
 ## 6. Design
 
@@ -135,28 +135,29 @@ Back, Forward and a jump in the history menu put every main page back at the y p
 | New *(this PR adds)* | Kind | Closest existing | Why not reuse or extend it |
 | --- | --- | --- | --- |
 | `macos/App/DesignSystem/Components/ScrollMemory/PVScrollMemory.swift` *(new)* | file | `ScrollRowIntoView/PVScrollRowIntoView.swift` | That scrolls to an id through `ScrollViewReader`; this reads and writes a y |
-| `PVScrollMemory` *(new)*: `struct { let key: Int; let offset: Double?; let note: @MainActor (Double) -> Void }`, `Equatable` on `key` and `offset` | type | `PVListScroll` | A scroll request, not a memory |
+| `PVScrollMemory` *(new)*: `struct { let arrival: Int; let offsets: [PVScrollSlot: Double]; let note: @MainActor (PVScrollSlot, Double) -> Void }`, `Equatable` on `arrival` and `offsets` | type | `PVListScroll` | A scroll request, not a memory |
+| `PVScrollSlot` *(new)*: `struct: RawRepresentable, Hashable, Codable` over `String`, `static let page` | type | `ConclusionSectionAnchor.Part` | Open: a page names its own second slot |
 | `EnvironmentValues.pvScrollMemory: PVScrollMemory?` *(new)* | key | `pvPageViewportSize` | — |
-| `View.pvRemembersScroll()` *(new)* | modifier | `pvScrollsRowIntoView` | As above |
-| `PVScrollRestore` *(new, pure)*: `init(offset: Double?)`, `mutating func bounds(_ y: Double) -> Double?` (the y to note, or nil), `mutating func layout(documentHeight: Double, visibleHeight: Double) -> Double?` (the y to scroll to), `isDone` | type | `ListScrollAnchorModifier`'s `pinnedAnchor` state | D-5 as a testable value |
-| `PVScrollMemoryProbe` *(new, private `NSViewRepresentable`)* | type | `PVSelectScreenAnchor` (`PVSelect.swift`) | A probe that observes, not one that measures once |
-| `WorkspaceLocation.scrollOffset`, `.listOpenRow` *(new)* | field | `sectionAnchor` | Same shape (D-8, D-9) |
-| `WorkspaceNavigation.arrival`, `scrollOffset`, `noteScrollOffset(_:arrival:)`, `listOpenRowProvider` *(new)* | members | `listAnchor`, `noteListAnchor` | Same shape (D-6, D-7, D-9) |
-| `WorkspaceArrivalKind` *(new)* | enum | `PendingNavigation` | That is a request; this is how a commit came |
+| `View.pvRemembersScroll(_ slot: PVScrollSlot = .page)` *(new)* | modifier | `pvScrollsRowIntoView` | That scrolls to an id |
+| `PVScrollRestore` *(new, pure)*: `init(offset: Double?)`, `mutating func bounds(_ y: Double) -> Double?` (the y to note, or nil), `mutating func layout(documentHeight: Double, visibleHeight: Double, topInset: Double) -> Double?` (the y to scroll to), `isDone` | type | `ListScrollAnchorModifier`'s `pinnedAnchor` state | D-6 as a testable value |
+| `PVScrollMemoryProbe` *(new, private `NSViewRepresentable`)* | type | `PVPopupWindowHost.startFollowing` | Follows a window, not a page's y |
+| `WorkspaceRevisit` *(new)*, `WorkspaceLocation.revisit` | type, field | `sectionAnchor`, `listScrollAnchor` | Replaces both (D-9) |
+| `WorkspaceNavigation.arrival`, `revisit`, `noteScrollOffset(_:slot:arrival:)`, `openSourceProvider` *(new)* | members | `listAnchor`, `noteListAnchor` | Same shape (D-7, D-8) |
+| `WorkspaceArrival` *(new)* | type | `PendingNavigation` | That is a request; this is how a commit came |
 | `WorkspaceSession.applyHistoryState(_:)` *(new)* | func | `setOpenSource` | The one rule of D-10 |
 | `PVScrollMemoryTests.swift`, `PVScrollMemoryHostedTests.swift` *(new)* | tests | `PVPageColumnsTests.swift`, `SourcesOutlineHostedTests.swift` | — |
 
 **Builds on.** S16-46's stamp-on-leave field; `WorkspaceDestinationHost`'s per-place `.id`; the kit containers every page already uses; `hostInBorderlessWindow` for hosted tests.
-**Deletes.** `ListScrollAnchorModifier`; `ListAnchor.settle`; `ListSelectionAnchorModifier.reveal`; `SourcesOutline.sourceToReveal` and `closedOwnerID`; the reveal closure in `SourcesListContent`; `PVNativeListBehavior`'s `onAppear` selection scroll, `scrollsOnAppear: true` and `onChange(of: ids)` scroll; `PVTable`'s `.scrollTargetLayout()` and its comment; `conclusionAnchorRestore`'s `scrollAnchor:` and `scroll:` parameters, `scrollTarget`, `scrollRequest`, its `pvScrollsRowIntoView`; `ConclusionAnchorTarget.scrollID` and the ids its builders pass (`PersonFamilyContent`, `PersonTimelineContent`, `PersonSourcesContent`, `ConclusionGallerySection`, `PlaceRelationshipRow`, `ReconciledValueRow`, `PersonRecordLinksColumn`); `PersonTimelineSection`'s `scroll:` argument at its `conclusionAnchorRestore` (its `pendingReveal` stays for unfold); the tests of each (§8).
-**Next adds.** A new main page adopts by drawing in `PVPageColumns`, `PVTable`, `PVList` or under `pvNativeListBehavior`, or one `.pvRemembersScroll()` inside a plain `ScrollView`; the composer is the first (idea). Exact Sources heights change nothing here.
+**Deletes.** `ListScrollAnchorModifier`; the `ListAnchor` enum (`settle`; `resolved` inlined); `WorkspaceLocation.listScrollAnchor` and `sectionAnchor` as fields (into `revisit`); `withPageSection`'s hand clear; `NavigationHistoryStore.stampListAnchor` and `stampSectionAnchor`; the `scrollResetKey` arguments `openPageSection` (`ConclusionDetailPage`), `sourceID` (`SourcePageView`'s first page) and `typeID` (`SourceTypePageView`); `ListSelectionAnchorModifier.reveal`; `SourcesOutline.sourceToReveal` and `closedOwnerID`; the reveal closure in `SourcesListContent`; `PVNativeListBehavior`'s `onAppear` selection scroll, `scrollsOnAppear: true` and `onChange(of: ids)` scroll; `PVTable`'s `.scrollTargetLayout()` and its comment; `conclusionAnchorRestore`'s `scrollAnchor:` and `scroll:` parameters, `scrollTarget`, `scrollRequest`, its `pvScrollsRowIntoView`; `ConclusionAnchorTarget` (its `stop` returned bare) and the scroll ids its builders pass (`PersonFamilyContent`, `PersonTimelineContent`, `PersonSourcesContent`, `ConclusionGallerySection`, `PlaceRelationshipRow`, `ReconciledValueRow`, `PersonRecordLinksColumn`); `PersonTimelineSection`'s `scroll:` argument at its `conclusionAnchorRestore` (its `pendingReveal` stays for unfold); the tests of each (§8).
+**Next adds.** A new main page adopts by drawing in `PVPageColumns`, `PVTable`, `PVList` or under `pvNativeListBehavior`, or one `.pvRemembersScroll(_:)` inside a plain `ScrollView`; the composer's two columns are two slots (idea); a new kind of revisit is one member of `WorkspaceRevisit`. Exact Sources heights change nothing here.
 
 ### Reach
 
 | New path or state | Destination | Checked: resets on the new id · handles a missing referent · shows the state |
 | --- | --- | --- |
-| Every arrival scrolls to an old y | every main page | Re-arms per `arrival` (D-6); a y that no longer fits stays at the top (D-5); nothing drawn |
+| Every arrival scrolls to an old y | every main page | Re-arms per arrival (D-7); a y that no longer fits stays at the top (D-6); nothing drawn |
 | Back sets the open Source | `SourcesOutline` via `openSourceID` | An id with no listed Source draws nothing (outline today); a selection no row has is cleared by `ListSelectionModifier` |
-| A relaunch restores a y | the restored entry's page | As any arrival; the file value is validated (D-8) |
+| A relaunch restores a y | the restored entry's page | As any arrival; the file value is validated (D-9) |
 
 ### Scale
 
@@ -165,10 +166,10 @@ At the map's Scale (3,000 Sources, S16-71's probe): a scroll event calls `note` 
 ### Edges
 
 - **Assumptions.** The document view is flipped (y grows down) for `ScrollView`, `List` and `Table`; T-5 holds each. `contentInsets.top` is the Table's header and 0 elsewhere; T-5 asserts top reads 0 on the Table.
-- **Neighbors.** y 0 → done at once, never scrolls (AC-1.5). y exactly the max → restores; max + 1 → top (T-1). A bounds change at the top while armed is ignored; at 1 pt it disarms (T-1). A focus hand-off that scrolls a row into view before the content fits disarms the restore: the row stays in view (accepted).
+- **Neighbors.** y 0 on a fresh view → done at once, never scrolls (AC-1.5); on a reused one → the top (AC-1.10). y exactly the max → restores; max + 1 → top (T-1). A bounds change at the top while armed is not noted; at 1 pt it disarms (T-1). A focus hand-off that scrolls a row into view before the content fits disarms the restore: the row stays in view (accepted).
 - **Removed inputs.** Rows deleted since → shorter document → top (AC-1.6). The open Source deleted or filtered out → draws nothing, its graphs vanish, the y may land past the end → top. A Source open at the y's time but closed after relaunch → drift (D-13).
 - **Real data.** None — no table or seed drives a rule.
-- **Untrusted size.** The history file's y: non-finite or negative decodes nil (D-8); a huge one never fits and leaves the top.
+- **Untrusted size.** The history file's y: non-finite or negative is dropped (D-9); a huge one never fits and leaves the top.
 
 ### Schema
 
@@ -190,10 +191,10 @@ None —
 | Page scroll | `PVPageColumns.scroll(content:)` | — | `.pvRemembersScroll()` on the inner `VStack` (inside the `ScrollView`) |
 | Table scroll | `PVTable.rowList` | — | `.pvRemembersScroll()` on the `LazyVStack` |
 | Native list / table | `PVNativeListBehavior.body` | — | `.pvRemembersScroll()` on `content` (probe as background, D-3) |
-| Promote | `PromoteView.body` | — | `.pvRemembersScroll()` on the `ScrollView`'s `VStack` |
-| Host | `WorkspaceDestinationHost.body` | — | `.environment(\.pvScrollMemory, …)` inside the `.id`, from `navigation.arrival`, `currentLocation.scrollOffset`, `noteScrollOffset` |
+| Promote | `PromoteView.body` | — | `.pvRemembersScroll(.page)` on the `ScrollView`'s `VStack` |
+| Host | `WorkspaceDestinationHost.body` | — | `.environment(\.pvScrollMemory, …)` inside the `.id`, from `navigation.arrival.id`, `currentLocation.revisit.scrollOffsets`, `noteScrollOffset` |
 
-`pvRemembersScroll()`: reads `\.pvScrollMemory`; nil → the content unchanged; else `content.environment(\.pvScrollMemory, nil).background(PVScrollMemoryProbe(memory))`. The probe's coordinator holds one `PVScrollRestore`, rebuilt when `memory.key` changes; it sets `postsBoundsChangedNotifications` and `postsFrameChangedNotifications`, observes with `NotificationCenter` and removes observers in `dismantleNSView`. It looks for the scroll view in `viewDidMoveToWindow` and on the next main turn after `updateNSView` until found.
+`pvRemembersScroll(slot)`: reads `\.pvScrollMemory`; nil → the content unchanged; else the content with `.page` claimed (when `slot` is `.page`, the environment's value for the content carries a memory that no longer offers `.page`; another slot leaves it) and `.background(PVScrollMemoryProbe(memory, slot))`. A slot already claimed under the host is not claimed again. The probe's coordinator holds one `PVScrollRestore`, rebuilt when `memory.arrival` changes; it sets `postsBoundsChangedNotifications` and `postsFrameChangedNotifications`, observes with `NotificationCenter` and removes observers in `dismantleNSView`. It looks for the scroll view in `viewDidMoveToWindow` and on the next main turn after `updateNSView` until found.
 
 States: no scroll view found → nothing happens (T-5 fails, Stop condition). Accessibility: none changes.
 
@@ -204,8 +205,8 @@ None — no copy changes.
 ## 7. Steps
 
 **STEP-1 — The entry records a y and a list's open row**
-Files: `WorkspaceLocation.swift`, `NavigationHistoryStore.swift`, `WorkspaceNavigation.swift`, `WorkspaceView.swift`, every caller of the renamed names (`rg -n "listScrollAnchor|withListScrollAnchor|listAnchor|noteListAnchor|stampListAnchor|ListAnchor\b|ListSelectionAnchorModifier" macos`). Skill: `add-workspace-location`.
-Do: D-6 – D-9, D-11; `onLocationCommit` takes the kind (D-10), `WorkspaceView` passes it on and sets `listOpenRowProvider`.
+Files: `WorkspaceLocation.swift`, `WorkspaceRevisit.swift` *(new, beside it)*, `NavigationHistoryStore.swift`, `WorkspaceNavigation.swift`, `WorkspaceView.swift`, every caller of the renamed names (`rg -n "listScrollAnchor|withListScrollAnchor|listAnchor|noteListAnchor|stampListAnchor|ListAnchor\b|ListSelectionAnchorModifier" macos`). Skill: `add-workspace-location`.
+Do: D-7 – D-9, D-11; `WorkspaceView` sets `openSourceProvider`; `withPageSection` drops its hand clear.
 Check: T-2 pass; `xcodebuild test -scheme Provenencia -only-testing:ProvenenciaTests/WorkspaceNavigationTests` passes.
 
 **STEP-2 — Back reopens the Source that was open**
@@ -215,12 +216,12 @@ Check: T-3, T-7 pass.
 
 **STEP-3 — The kit remembers a scroll view's y**
 Files: `DesignSystem/Components/ScrollMemory/PVScrollMemory.swift` *(new)*. Skill: `add-ui-component` (design-system layer).
-Do: D-1 – D-5 and the macOS section's shape.
+Do: D-1 – D-4, D-6 and the macOS section's shape.
 Check: T-1 pass.
 
 **STEP-4 — Every main page's scroll view remembers**
-Files: `PVPageColumns.swift`, `PVTable.swift`, `PVNativeListBehavior.swift`, `WorkspaceDestinationHost.swift`.
-Do: D-4; the host's environment value.
+Files: `PVPageColumns.swift`, `PVTable.swift`, `PVNativeListBehavior.swift`, `WorkspaceDestinationHost.swift`, `ConclusionDetailPage.swift`, `SourcePageView.swift`, `SourceTypePageView.swift`.
+Do: D-4, D-5; the host's environment value; the three arrival `scrollResetKey` arguments go (D-6).
 Check: T-5 pass.
 
 **STEP-5 — Lists stop scrolling to a row on arrival**
@@ -230,16 +231,16 @@ Check: T-6 pass; `SourcesTableHostedTests` and `PVListTests` pass.
 
 **STEP-6 — A record section's anchor carries only the keyboard**
 Files: `ConclusionAnchorRestore.swift` and its seven call sites (§4), their content builders, their tests.
-Do: D-12 for record pages.
+Do: D-11 and D-12 for record pages.
 Check: T-8 pass; `PersonFamilyContentTests`, `PersonTimelineContentTests`, `PersonSourcesContentTests` pass.
 
 **STEP-7 — Promote remembers**
 Files: `PromoteView.swift`.
-Do: one `.pvRemembersScroll()`.
+Do: one `.pvRemembersScroll(.page)`.
 Check: manual check 6.
 
 **STEP-8 — Docs**
-Files: `.agents/skills/add-workspace-location/SKILL.md` (the ephemera row: the y and the open row are recorded; the selection is `listSelection`), `macos/App/DesignSystem/README.md` (a ScrollMemory row; ScrollRowIntoView's row drops `PVList`'s arrival note if it names one), `docs/deployment-plan/spike-16/deployment-plan.md` (the two rules under **Rules this plan bends**, map row), `docs/ideas/source-page-followups.md` and `docs/ideas/citation-composer-followups.md` (the two Out lines), `docs/deployment-plan/spike-16/completed.md`, this plan, `VERSION`, `core/version.go`, `MARKETING_VERSION`.
+Files: `.agents/skills/add-workspace-location/SKILL.md` (the ephemera row: the offsets and the open Source are recorded in `revisit`; Step 5: the section anchor carries the keyboard and the page's y the scroll), `docs/macos-client-patterns.md` (its "Back to a page returns to the row it opened from" line, the same way), the kit README's PageColumns row (`scrollResetKey` is not for arrivals), `macos/App/DesignSystem/README.md` (a ScrollMemory row; ScrollRowIntoView's row drops `PVList`'s arrival note if it names one), `docs/deployment-plan/spike-16/deployment-plan.md` (the two rules under **Rules this plan bends**, map row), `docs/ideas/source-page-followups.md` and `docs/ideas/citation-composer-followups.md` (the two Out lines), `docs/deployment-plan/spike-16/completed.md`, this plan, `VERSION`, `core/version.go`, `MARKETING_VERSION`.
 Do: per the Definition of done.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-72-scroll-offset-history.md` reports no errors; `scripts/check-guidance-names.py` passes.
 
@@ -249,14 +250,14 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
-| T-1 | Swift | `PVScrollMemoryTests.swift` `aRestoreLandsOnceTheContentFits` *(new, table)* | nil / 0 → done, no scroll; 1200 with document 900 → nil, then 2000 → 1200, done; max exactly → scroll; max + 1 → nil; armed bounds 0 → not noted; armed bounds 1 → noted, done; done bounds 40 → 40 | D-5, AC-1.5 – AC-1.8 |
-| T-2 | Swift | `WorkspaceNavigationTests` `theYIsStampedOnTheEntryBeingLeft`, `aNoteOfAnotherArrivalIsDropped`, `arrivalCountsIdentityChangesAndHistoryMoves`, `scrollOffsetRoundTripsAndDecodesLeniently`, `listOpenRowIsStampedOnListsAndNeverWritten`, `listSelectionDecodesTheOldKey` *(new)*; `listScrollAnchorRoundTrips`, `legacyHistoryMissingListScrollAnchorDecodesAsNil` and every test of a renamed name renamed | Leave a Source page at 600 → its entry 600; Back → `scrollOffset` 600; stale arrival note → unchanged; coalesced go → same arrival; −5 and a hand-written file with `"scrollOffset": -1` → nil; the legacy fixture keeps the key `"listScrollAnchor"`; encoded JSON has no `listOpenRow` | D-6 – D-9, D-11, AC-1.9 |
+| T-1 | Swift | `PVScrollMemoryTests.swift` `aRestoreLandsOnceTheContentFits` *(new, table)* | nil / 0 at top → done, no scroll; nil when not at top → scroll to 0; 1200 with document 900 → nil, then 2000 → 1200, done; max exactly → scroll; max + 1 → nil; armed bounds 0 → not noted; armed bounds 1 → noted, done; done bounds 40 → 40 | D-6, AC-1.5 – AC-1.8 |
+| T-2 | Swift | `WorkspaceNavigationTests` `theRevisitIsStampedOnTheEntryBeingLeft`, `aPushStartsClean`, `aNoteOfAnotherArrivalIsDropped`, `arrivalCountsIdentityChangesAndHistoryMoves`, `scrollOffsetsRoundTripAndDecodeLeniently`, `theOpenSourceIsStampedOnTheSourcesListAndNeverWritten`, `oldFilesKeepTheirSelectionAndSectionAnchor` *(new)*; `listScrollAnchorRoundTrips`, `legacyHistoryMissingListScrollAnchorDecodesAsNil` and every test of a renamed name renamed | Leave a Source page at 600 → its entry `.page` 600; Back → 600; Vitals at 900 → `withPageSection(.family)` → Family's entry has no offsets, Vitals keeps 900; a coalesced visit keeps the live y; a Persons entry has no open Source; stale arrival note → unchanged; coalesced go → same arrival; −5 and a hand-written file with `"scrollOffsets": {"page": -1}` → no offset; the legacy fixture keeps the key `"listScrollAnchor"`; encoded JSON has no `openSourceId` and keeps the keys `listScrollAnchor` and `sectionAnchor` at the top level | D-7 – D-9, D-11, AC-1.9, AC-1.10 |
 | T-3 | Swift | `WorkspaceSessionTests` `historyReopensTheSourceAListEntryHad` *(new, table)* | `.history` Sources root with `"s2"` → open s2; with nil → closed; `.push` → unchanged; `.history` Source page → unchanged | D-10, AC-2.2 – AC-2.5 |
 | T-4 | Swift | (removed) `WorkspaceNavigationTests` `aRevealKeepsAnAnchorItDraws`; `SourcesOutlineTests` cases of `sourceToReveal` | Deleted with the reveal | D-10, D-12 |
-| T-5 | Swift | `PVScrollMemoryHostedTests.swift` *(new, `.hostedWindows`)* `pageColumnsRestoreTheirY`, `aListRestoresItsY`, `aTableRestoresItsYUnderItsHeader`, `lateRowsMoveTheListOnce`, `aScrollBeforeTheRowsArriveWins`, `aNewKeyRearms`, `aNestedScrollViewIsNotClaimed` | Each host gets memory with y 400 over 3,000 pt of content → `contentView.bounds.minY + contentInsets.top` 400; Table at top reads 0; content 300 pt then 3,000 → 400 once; scroll to 50 first → stays 50; key change with y 0 → note 0 then scroll notes; inner `ScrollView` never notes | D-1 – D-5, AC-1.7, AC-1.8 |
+| T-5 | Swift | `PVScrollMemoryHostedTests.swift` *(new, `.hostedWindows`)* `pageColumnsRestoreTheirY`, `aListRestoresItsY`, `aTableRestoresItsYUnderItsHeader`, `lateRowsMoveTheListOnce`, `aScrollBeforeTheRowsArriveWins`, `aNewArrivalRearms`, `aReusedScrollViewReturnsToTheTop`, `aNestedContainerIsNotClaimed`, `aSecondSlotIsRememberedApart` | Each host gets memory with y 400 over 3,000 pt of content → `contentView.bounds.minY + contentInsets.top` 400; Table at top reads 0; content 300 pt then 3,000 → 400 once; scroll to 50 first → stays 50; arrival change with nil on a scrolled view → top; a nested `PVTable` never notes `.page`; two `ScrollView`s, `.page` and `"second"`, each restore their own y | D-1 – D-6, AC-1.7, AC-1.8, AC-1.10 |
 | T-6 | Swift | `SourcesOutlineHostedTests` `backRestoresTheOpenSourceTheSelectionAndTheY` *(new, replaces `anAnchorOnAGraphOfAClosedSource…` and `anAnchorSetBeforeThePageIsHosted…`)* | Harness with 15 extra Sources, s1 open, `g1-7` selected, scrolled to the graph; leave to a Source page; Back → s1 open, `g1-7` selected, y as stamped | AC-2.1, AC-2.2 |
-| T-7 | Swift | `SourcesOutlineTests` `openingMovesASelectionOffTheClosedGroup` | Unchanged cases pass with `sourceToReveal` gone | D-11 |
-| T-8 | Swift | `ConclusionAnchorRestoreTests` `anAnchorTakesTheKeyboardAndDoesNotScroll` *(new)*; existing targets lose `scrollID` | Anchor `.detailRow` "birth" → stop "birth"; no scroll request | D-12, AC-1.3 |
+| T-7 | Swift | `SourcesOutlineTests` `openingMovesASelectionOffTheClosedGroup` | Unchanged cases pass with `sourceToReveal` gone | D-8 |
+| T-8 | Swift | `ConclusionAnchorRestoreTests` `anAnchorTakesTheKeyboardAndDoesNotScroll` *(new)*; existing cases return the stop alone | Anchor `.detailRow` "birth" → stop "birth"; no scroll request | D-11, D-12, AC-1.3 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `SourcesOutlineHostedTests`, `SourcesTableHostedTests`, `PVListTests`, `PVPageColumnsTests`, the Person content tests.
 
@@ -296,7 +297,7 @@ On a project with at least 200 Persons, 100 Sources (one with 8 graphs) and 30 S
 | Risk | Mitigation |
 | --- | --- |
 | The probe's frame match finds no `NSScrollView` for `List` or `Table` | T-5 `aListRestoresItsY`, `aTableRestoresItsYUnderItsHeader` |
-| `PVPageColumns`' `scrollResetKey` reset lands after the restore | D-5's restore runs on the next main turn; T-5 `aNewKeyRearms` |
+| A reused page scroll view keeps the last section's y | D-6 scrolls to the top on a new arrival with no y; T-5 `aReusedScrollViewReturnsToTheTop` |
 | Focus hand-off scrolls first on record pages | Accepted (Edges); manual check 3 |
 | The Timeline cannot take the keyboard on an unbuilt card without its anchor scroll | Stop condition |
 
