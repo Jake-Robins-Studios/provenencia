@@ -203,18 +203,71 @@ struct SourcesOutlineHostedTests {
         return drawn >= 10 || drawn == table.numberOfRows ? wrong : wrong + ["only \(drawn) rows drawn"]
     }
 
+    /// The slowest `expectRowHeights` settle of the run, and its step: a passing CI log shows how late the
+    /// platform's rows are.
+    private static var slowestSettle: (step: String, seconds: Double) = ("", 0)
+
+    /// Every row the table has drawn takes its height: each turn lays out and reads `wrongRows`, until none
+    /// is wrong (at most 5 s), and the result is read again one turn later. A failure says which rows, how
+    /// late, and whether a scroll away and back, or `noteHeightOfRows`, would have corrected them.
     private func expectRowHeights(
         _ harness: Harness, _ step: String, sources: [String], under: Int,
         sourceLocation: SourceLocation = #_sourceLocation
     ) async {
-        _ = await waitUntil(timeout: .seconds(10)) {
-            harness.host.layoutSubtreeIfNeeded()
-            return harness.table.numberOfRows == sources.count + under
+        let clock = ContinuousClock()
+        let start = clock.now
+        func elapsed() -> Double {
+            let parts = (clock.now - start).components
+            return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
         }
-        try? await Task.sleep(for: .milliseconds(200))
-        harness.host.layoutSubtreeIfNeeded()
-        let wrong = wrongRows(harness, sources: sources, under: under)
-        #expect(wrong.isEmpty, "\(step): \(wrong)", sourceLocation: sourceLocation)
+        func read() -> [String] {
+            harness.host.layoutSubtreeIfNeeded()
+            return wrongRows(harness, sources: sources, under: under)
+        }
+        var wrong = read()
+        while !wrong.isEmpty, elapsed() < 5 {
+            try? await Task.sleep(for: .milliseconds(10))
+            wrong = read()
+        }
+        let took = elapsed()
+        if wrong.isEmpty {
+            // Right now: is it right one turn later?
+            try? await Task.sleep(for: .milliseconds(50))
+            wrong = read()
+        }
+        if took > Self.slowestSettle.seconds { Self.slowestSettle = (step, took) }
+        print("expectRowHeights slowest settle so far: \(Self.slowestSettle.step) \(Self.slowestSettle.seconds) s")
+        guard !wrong.isEmpty || took > 0.2 else { return }
+        let report = "\(step): settled in \(took) s (\(wrong.isEmpty ? "right" : "still wrong")); each row lists rect(ofRow:), the row view, then every cell height: \(wrong)"
+        if !wrong.isEmpty {
+            let table = harness.table
+            let rows = wrong.compactMap { line -> Int? in
+                line.hasPrefix("row ") ? Int(line.dropFirst(4).prefix { $0.isNumber }) : nil
+            }
+            // Diagnosis only, after the failure is recorded below.
+            Issue.record(Comment(rawValue: report), sourceLocation: sourceLocation)
+            let origin = harness.scroll.contentView.bounds.origin
+            harness.scroll.contentView.scroll(to: NSPoint(x: 0, y: origin.y + 1500))
+            harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+            harness.host.layoutSubtreeIfNeeded()
+            harness.scroll.contentView.scroll(to: origin)
+            harness.scroll.reflectScrolledClipView(harness.scroll.contentView)
+            harness.host.layoutSubtreeIfNeeded()
+            try? await Task.sleep(for: .milliseconds(100))
+            let afterScroll = read()
+            table.noteHeightOfRows(withIndexesChanged: IndexSet(rows))
+            try? await Task.sleep(for: .milliseconds(100))
+            let afterNote = read()
+            let scrolled = afterScroll.isEmpty ? "corrected" : "still wrong \(afterScroll)"
+            let noted = afterNote.isEmpty ? "corrected" : "still wrong \(afterNote)"
+            Issue.record(
+                Comment(rawValue: "\(step) diagnosis: after a scroll away and back \(scrolled); after noteHeightOfRows \(noted)"),
+                sourceLocation: sourceLocation
+            )
+            return
+        }
+        // Settled right, but over 200 ms: a passing run names the step.
+        print("expectRowHeights late: \(report)")
     }
 
     /// U-1 (AC-1.6): the platform reuses a row's cells for a row of the other height as Sources open and
