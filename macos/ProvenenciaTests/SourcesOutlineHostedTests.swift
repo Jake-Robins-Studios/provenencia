@@ -203,13 +203,10 @@ struct SourcesOutlineHostedTests {
         return drawn >= 10 || drawn == table.numberOfRows ? wrong : wrong + ["only \(drawn) rows drawn"]
     }
 
-    /// The slowest `expectRowHeights` settle of the run, and its step: a passing CI log shows how late the
-    /// platform's rows are.
-    private static var slowestSettle: (step: String, seconds: Double) = ("", 0)
-
     /// Every row the table has drawn takes its height: each turn lays out and reads `wrongRows`, until none
-    /// is wrong (at most 5 s), and the result is read again one turn later. A failure says which rows, how
-    /// late, and whether a scroll away and back, or `noteHeightOfRows`, would have corrected them.
+    /// is wrong (at most 5 s), and the result is read again 250 ms later. A failure says which rows, how
+    /// late, and whether a scroll away and back, or `noteHeightOfRows`, would have corrected them. A step
+    /// that settles late (over 200 ms) prints; a quick one prints nothing.
     private func expectRowHeights(
         _ harness: Harness, _ step: String, sources: [String], under: Int,
         sourceLocation: SourceLocation = #_sourceLocation
@@ -231,12 +228,10 @@ struct SourcesOutlineHostedTests {
         }
         let took = elapsed()
         if wrong.isEmpty {
-            // Right now: is it right one turn later?
-            try? await Task.sleep(for: .milliseconds(50))
+            // Right now: is it still right a quarter second later?
+            try? await Task.sleep(for: .milliseconds(250))
             wrong = read()
         }
-        if took > Self.slowestSettle.seconds { Self.slowestSettle = (step, took) }
-        print("expectRowHeights slowest settle so far: \(Self.slowestSettle.step) \(Self.slowestSettle.seconds) s")
         guard !wrong.isEmpty || took > 0.2 else { return }
         let report = "\(step): settled in \(took) s (\(wrong.isEmpty ? "right" : "still wrong")); each row lists rect(ofRow:), the row view, then every cell height: \(wrong)"
         if !wrong.isEmpty {
@@ -270,6 +265,94 @@ struct SourcesOutlineHostedTests {
         print("expectRowHeights late: \(report)")
     }
 
+    /// The Sources of the 30-tail harness, newest added first: the Sources with no Artifact, s3 (none
+    /// either), s2 (1 graph), s1 (8), the tail.
+    private static let newestFirst: [String] =
+        (0 ..< 5).reversed().map { "x0\($0)" } + ["s3", "s2", "s1"]
+        + (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
+
+    /// The same Sources sorted by Title, as a header click writes it.
+    private static let byTitle: [String] =
+        ["s2"] + (0 ..< 5).map { "x0\($0)" } + ["s1", "s3"]
+        + (0 ..< 30).sorted { "\($0)" < "\($1)" }.map { "a\(String(format: "%02d", $0))" }
+
+    /// The rows under `id` when it is the open Source of that harness.
+    private static func rowsUnder(_ id: String) -> Int {
+        if id == "s1" { return 8 }
+        if id == "s2" { return 1 }
+        return graphCount(tail: Int(id.dropFirst()) ?? 0)
+    }
+
+    /// What `sortedWithNoLayout` saw.
+    private struct SortWatch {
+        var rightAfter: Double?
+        var wrongAgainAt: Double?
+        var last: [String]
+        var visibility: String
+    }
+
+    /// Hosts the 30-tail page, opens a21 and lets it settle (with layouts: that is setup), then sorts by
+    /// Title and reads `wrongRows` every 20 ms for up to 5 s with no layout, display or scroll by the test:
+    /// only the app and the platform lay anything out. `shown` orders the window in (opaque, on screen)
+    /// first. The window is closed after.
+    private func sortedWithNoLayout(shown: Bool) async throws -> SortWatch {
+        let harness = try await makeHarness(extraSources: 5, tailSources: 30, mixedGraphs: true, height: 1300)
+        defer { harness.window.close() }
+        if shown {
+            harness.window.isOpaque = true
+            harness.window.orderFrontRegardless()
+        }
+        harness.session.setOpenSource("a21")
+        await expectRowHeights(harness, "open a21", sources: Self.newestFirst, under: Self.rowsUnder("a21"))
+        try? await Task.sleep(for: .milliseconds(300))
+        let table = harness.table
+        let title = try #require(table.tableColumns.first { $0.headerCell.stringValue == "TITLE" })
+        table.sortDescriptors = [try #require(title.sortDescriptorPrototype)]
+        let clock = ContinuousClock()
+        let start = clock.now
+        func elapsed() -> Double {
+            let parts = (clock.now - start).components
+            return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+        }
+        func read() -> [String] {
+            wrongRows(harness, sources: Self.byTitle, under: Self.rowsUnder("a21"))
+        }
+        var watch = SortWatch(
+            rightAfter: nil, wrongAgainAt: nil, last: [],
+            visibility: "visible \(harness.window.isVisible), occlusion visible "
+                + "\(harness.window.occlusionState.contains(.visible)), screens \(NSScreen.screens.count)"
+        )
+        while elapsed() < 5 {
+            watch.last = read()
+            if watch.last.isEmpty {
+                if watch.rightAfter == nil { watch.rightAfter = elapsed() }
+            } else if watch.rightAfter != nil, watch.wrongAgainAt == nil {
+                watch.wrongAgainAt = elapsed()
+            }
+            // Right and still right a second after: no need to wait out the 5 s.
+            if let right = watch.rightAfter, elapsed() > right + 1 { break }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return watch
+    }
+
+    /// C-3: after the sort the rows take their heights with no layout by the test, in a window that is
+    /// shown. A failure here is a product finding: only the app's own layouts correct the rows.
+    @Test func aSortedListCorrectsItsOwnRowHeightsInAShownWindow() async throws {
+        let watch = try await sortedWithNoLayout(shown: true)
+        print("sort with no layout, shown window: right after \(String(describing: watch.rightAfter)) s, "
+            + "wrong again at \(String(describing: watch.wrongAgainAt)); \(watch.visibility)")
+        #expect(watch.rightAfter != nil, "never right in 5 s with no layout: \(watch.last)")
+        #expect(watch.wrongAgainAt == nil, "right, then wrong again: \(watch.last)")
+    }
+
+    /// The same in the window the other tests use (never shown): printed only, not asserted.
+    @Test func aSortedListInANeverShownWindowIsReportedOnly() async throws {
+        let watch = try await sortedWithNoLayout(shown: false)
+        print("sort with no layout, never-shown window: right after \(String(describing: watch.rightAfter)) s, "
+            + "wrong again at \(String(describing: watch.wrongAgainAt)); \(watch.visibility); last \(watch.last)")
+    }
+
     /// U-1 (AC-1.6): the platform reuses a row's cells for a row of the other height as Sources open and
     /// close, and every row still draws at its own.
     @Test func everyRowIsItsOwnHeightHoweverTheRowsMove() async throws {
@@ -278,14 +361,8 @@ struct SourcesOutlineHostedTests {
             configure: { $0.listEvidenceGraphProgressHold.isOn = true }
         )
         let table = harness.table
-        // Newest added first: the Sources with no Artifact, s3 (none either), s2 (1 graph), s1 (8), the tail.
-        let tail = (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
-        let newest = (0 ..< 5).reversed().map { "x0\($0)" } + ["s3", "s2", "s1"] + tail
-        func under(_ id: String) -> Int {
-            if id == "s1" { return 8 }
-            if id == "s2" { return 1 }
-            return Self.graphCount(tail: Int(id.dropFirst()) ?? 0)
-        }
+        let newest = Self.newestFirst
+        let under = Self.rowsUnder
         func open(_ id: String, _ step: String, _ sources: [String]) async {
             harness.session.setOpenSource(id)
             await expectRowHeights(harness, "\(step) \(id)", sources: sources, under: under(id))
@@ -306,7 +383,12 @@ struct SourcesOutlineHostedTests {
         readGraphs(all)
         await expectRowHeights(harness, "late graphs", sources: newest, under: under("a26"))
         harness.store.listEvidenceGraphProgressHold.isOn = false
+        // The counts have arrived when every held read has run, not when it was released.
+        let held = harness.store.listEvidenceGraphProgressHold.count
+        let reads = harness.store.listEvidenceGraphProgressCalls
         while harness.store.listEvidenceGraphProgressHold.count > 0 { harness.store.listEvidenceGraphProgressHold.release() }
+        let arrived = await waitUntil(timeout: .seconds(10)) { harness.store.listEvidenceGraphProgressCalls >= reads + held }
+        #expect(arrived)
         await expectRowHeights(harness, "late counts", sources: newest, under: under("a26"))
 
         for id in ["a29", "a28", "a27", "a26", "s1", "a24", "s2", "a25", "a21", "a26"] { await open(id, "open", newest) }
@@ -316,8 +398,7 @@ struct SourcesOutlineHostedTests {
         for id in ["a21", "a24", "s1", "a22", "a26", "a11", "a21"] { await open(id, "scrolled", newest) }
 
         // Sorted by title, as a header click writes it: the list is back at its top, the Source still open.
-        let byTitle = ["s2"] + (0 ..< 5).map { "x0\($0)" } + ["s1", "s3"]
-            + (0 ..< 30).sorted { "\($0)" < "\($1)" }.map { "a\(String(format: "%02d", $0))" }
+        let byTitle = Self.byTitle
         let title = try #require(table.tableColumns.first { $0.headerCell.stringValue == "TITLE" })
         table.sortDescriptors = [try #require(title.sortDescriptorPrototype)]
         await expectRowHeights(harness, "sorted", sources: byTitle, under: under("a21"))
