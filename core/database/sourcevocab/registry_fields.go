@@ -2,10 +2,11 @@ package sourcevocab
 
 import "github.com/Jake-Robins-Studios/provenencia/core/database/metadatafields"
 
-// The 67 metadata fields: the 63 of the Spike 15 map, section 6.8, and four
-// place fields for the types whose place is not a jurisdiction: label and a
+// The 69 metadata fields: the 64 of the Spike 15 map, section 6.8, `subdistrict`,
+// and four place fields for the types whose place is not a jurisdiction: label and a
 // description that says to enter the value as it should appear in a citation.
-// Only publisher and place of publication carry unknown text.
+// Publisher and place of publication carry the unknown text "n.p." and page
+// carries "unpaginated".
 var seedFields = []seedField{
 	{Key: "creator", Label: "Creator", DataType: metadatafields.DataTypeText,
 		Description: "The office, church, company or person that made the record, as it should appear in a citation (Calder County Clerk)."},
@@ -139,6 +140,8 @@ var seedFields = []seedField{
 		Description: "The schedule or household schedule number, as it should appear in a citation (9)."},
 	{Key: "folio", Label: "Folio", DataType: metadatafields.DataTypeText,
 		Description: "The folio, as it should appear in a citation (22)."},
+	{Key: "page", Label: "Page", DataType: metadatafields.DataTypeText,
+		Description: "The printed page, as it should appear in a citation (23).", UnknownText: "unpaginated"},
 	{Key: "column", Label: "Column", DataType: metadatafields.DataTypeText,
 		Description: "The column, as it should appear in a citation (3)."},
 	{Key: "record_id", Label: "Record ID", DataType: metadatafields.DataTypeText,

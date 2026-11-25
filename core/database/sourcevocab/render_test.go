@@ -49,6 +49,7 @@ var fieldValues = map[string]string{
 	"series":               "Calder County Records Series",
 	"volume":               "3",
 	"issue":                "12",
+	"page":                 "14",
 	"page_range":           "41–58",
 	"site_name":            "Calder Archives Online",
 	"short_title":          "Calder Register",
@@ -146,8 +147,8 @@ var fixtureCreators = map[string]string{
 const defaultCreator = "Calder County Clerk"
 
 // fixture answers the targets of one render. The full fixture answers every
-// field at every level (so a chain takes its first option), the title, the date
-// and the page; the bare one answers only the title and the date.
+// field at every level (so a chain takes its first option, the page field
+// among them), the title and the date; the bare one answers only the title and the date.
 type fixture struct {
 	typeKey string
 	keys    map[uuid.UUID]string // field id -> key
@@ -162,8 +163,6 @@ func (f fixture) Resolve(t citationformat.Target) citationformat.Value {
 			return citationformat.Value{Text: fixtureTitles[f.typeKey]}
 		case t.Level == vocabkey.LevelSource && t.Builtin == "date":
 			return citationformat.Value{Date: datevaluetest.YMD(1880, 6, 14)}
-		case t.Level == vocabkey.LevelCitation && t.Builtin == "page" && !f.bare && !f.noPage:
-			return citationformat.Value{Text: "14"}
 		}
 		return citationformat.Value{}
 	}
@@ -171,6 +170,9 @@ func (f fixture) Resolve(t citationformat.Target) citationformat.Value {
 		return citationformat.Value{}
 	}
 	key := f.keys[t.Field.ID]
+	if key == "page" && f.noPage {
+		return citationformat.Value{}
+	}
 	if key == "creator" {
 		if c, ok := fixtureCreators[f.typeKey]; ok {
 			return citationformat.Value{Text: c}

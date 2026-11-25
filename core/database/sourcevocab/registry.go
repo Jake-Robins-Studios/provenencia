@@ -34,7 +34,7 @@ type seedSuggestion struct {
 // entry ("Birth certificates").
 func certificateFormats(word, plural string) sourcetypes.Formats {
 	return sourcetypes.Formats{
-		Full:  `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}][, vol. {meta.volume}][, p. {citation.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].`,
+		Full:  `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}][, vol. {meta.volume}][, p. {meta.page|citation.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].`,
 		Short: `{meta.jurisdiction}, [{meta.creator}, ]` + word + `[ no. {meta.document_number}][, {meta.item}].`,
 		List:  `{meta.jurisdiction}.[ {meta.creator}.] ` + plural + `.[ {meta.repository}.]`,
 	}
@@ -43,8 +43,8 @@ func certificateFormats(word, plural string) sourcetypes.Formats {
 // journalArticleFormats is shared by the journal article and the broadcast
 // (there published_in is the programme and publisher the network).
 var journalArticleFormats = sourcetypes.Formats{
-	Full:  `{meta.author}, "{source.title}," *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}][ ({source.date:full})][: {meta.page_range}][, specifically {citation.page}].`,
-	Short: `{meta.author}, "{meta.short_title|source.title}"[, {citation.page}].`,
+	Full:  `{meta.author}, "{source.title}," *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}][ ({source.date:full})][: {meta.page_range}][, specifically {meta.page|citation.page}].`,
+	Short: `{meta.author}, "{meta.short_title|source.title}"[, {meta.page|citation.page}].`,
 	List:  `{meta.author_sort|meta.author}. "{source.title}." *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}][ ({source.date:full})][: {meta.page_range}].`,
 }
 
@@ -54,8 +54,8 @@ var seedTypes = []seedType{
 		Description: "A population, agricultural or other schedule from a government census.",
 		IconKey:     "type_census",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, piece {meta.piece}][, fol. {meta.folio}][, p. {citation.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`,
-			Short: `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, fol. {meta.folio}][, p. {citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`,
+			Full:  `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}][, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page|citation.page}][, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].`,
+			Short: `{source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}][, sub-district {meta.subdistrict}][, fol. {meta.folio}][, p. {meta.page|citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}][, {meta.item}].`,
 			List:  `{meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.schedule}].`,
 		},
 	},
@@ -82,8 +82,8 @@ var seedTypes = []seedType{
 		Description: "A parish register, church book or bishop's transcript of baptisms, marriages and burials.",
 		IconKey:     "type_scroll",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.creator}[ ({meta.church_location})], *{source.title}*[, vol. {meta.volume}][, p. {citation.page}][, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}[, item {meta.item_number}]][; {meta.repository}].`,
-			Short: `{meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {citation.page}][, no. {meta.entry_number}].`,
+			Full:  `{meta.creator}[ ({meta.church_location})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}][, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}[, item {meta.item_number}]][; {meta.repository}].`,
+			Short: `{meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}][, no. {meta.entry_number}].`,
 			List:  `{meta.creator}[ ({meta.church_location})]. *{source.title}*[, {meta.coverage}].[ {meta.repository}.]`,
 		},
 	},
@@ -92,8 +92,8 @@ var seedTypes = []seedType{
 		Description: "A deed, will, court, marriage or tax book kept by a public office.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {citation.page}][, entry {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}][; {meta.repository}].`,
-			Short: `{meta.jurisdiction}, {meta.book|source.title}[: {citation.page}].`,
+			Full:  `{meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page|citation.page}][, entry {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}][; {meta.repository}].`,
+			Short: `{meta.jurisdiction}, {meta.book|source.title}[: {meta.page|citation.page}].`,
 			List:  `{meta.jurisdiction}.[ {meta.creator}.] {source.title}[, {meta.coverage}].[ {meta.repository}.]`,
 		},
 	},
@@ -102,8 +102,8 @@ var seedTypes = []seedType{
 		Description: "A ship's manifest or passenger list.",
 		IconKey:     "type_document",
 		Formats: sourcetypes.Formats{
-			Full:  `{source.title}[, p. {citation.page}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].`,
-			Short: `{meta.short_title|source.title}[, p. {citation.page}][, line {meta.line_number}].`,
+			Full:  `{source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].`,
+			Short: `{meta.short_title|source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}].`,
 			List:  `[{meta.creator}. ]{meta.collection|source.title}.[ {meta.repository}.]`,
 		},
 	},
@@ -232,8 +232,8 @@ var seedTypes = []seedType{
 		Description: "A book, chapter, map, CD or film.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*[, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}[, {source.date:year}])][, {citation.page}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
-			Short: `{meta.author}, *{meta.short_title|source.title}*[, {citation.page}].`,
+			Full:  `{meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*[, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}[, {source.date:year}])][, {meta.page|citation.page}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
+			Short: `{meta.author}, *{meta.short_title|source.title}*[, {meta.page|citation.page}].`,
 			List:  `{meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [{meta.publication_place}: ]{meta.publisher}[, {source.date:year}].]`,
 		},
 	},
@@ -254,7 +254,7 @@ var seedTypes = []seedType{
 		Description: "An article, notice or obituary in a newspaper.",
 		IconKey:     "type_newspaper",
 		Formats: sourcetypes.Formats{
-			Full:  `"{source.title}," *{meta.published_in}*[ ({meta.publication_place})], {source.date:full}[, p. {citation.page}][, col. {meta.column}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
+			Full:  `"{source.title}," *{meta.published_in}*[ ({meta.publication_place})], {source.date:full}[, p. {meta.page|citation.page}][, col. {meta.column}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].`,
 			Short: `"{meta.short_title|source.title}," *{meta.published_in}*, {source.date:full}.`,
 			List:  `*{meta.published_in}*[ ({meta.publication_place})].`,
 		},
@@ -274,7 +274,7 @@ var seedTypes = []seedType{
 		Description: "A statute, session law or code.",
 		IconKey:     "type_document",
 		Formats: sourcetypes.Formats{
-			Full:  `{meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, vol. {meta.volume}][, chap. {meta.chapter}][, sec. {meta.section}][, p. {citation.page}].`,
+			Full:  `{meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, vol. {meta.volume}][, chap. {meta.chapter}][, sec. {meta.section}][, p. {meta.page|citation.page}].`,
 			Short: `{meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, chap. {meta.chapter}].`,
 			List:  `{meta.jurisdiction}. *{meta.published_in}*[, {source.date:year}].`,
 		},
@@ -284,8 +284,8 @@ var seedTypes = []seedType{
 		Description: "A published report of a court case.",
 		IconKey:     "type_book",
 		Formats: sourcetypes.Formats{
-			Full:  `*{source.title}*, [{meta.volume} ]{meta.published_in} {citation.page|meta.page_range}[ ({source.date:year})].`,
-			Short: `*{meta.short_title|source.title}*[, {citation.page}].`,
+			Full:  `*{source.title}*, [{meta.volume} ]{meta.published_in} {meta.page|citation.page|meta.page_range}[ ({source.date:year})].`,
+			Short: `*{meta.short_title|source.title}*[, {meta.page|citation.page}].`,
 			List:  `*{source.title}*. [{meta.volume} ]{meta.published_in}[ ({source.date:year})].`,
 		},
 	},
