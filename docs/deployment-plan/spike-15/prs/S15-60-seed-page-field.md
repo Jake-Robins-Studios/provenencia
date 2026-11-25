@@ -1,6 +1,6 @@
 # S15-60 — The seed has a page field
 
-**Status:** Planned
+**Status:** Landed in [#975](https://github.com/Jake-Robins-Studios/provenencia/pull/975) (2026-11-25)
 **Spike / slice:** Spike 15 · Slice 11 — Metadata at any level
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: the new Page row is a seeded suggestion, drawn by the existing board row like every other text field)
@@ -262,3 +262,10 @@ None.
 
 **Title:** S15-60 — The seed has a page field
 **Body:** objective in one sentence; what shipped against each US; AC evidence; deviations from the plan; manual check; `Plan: docs/deployment-plan/spike-15/prs/S15-60-seed-page-field.md`.
+
+## Landed
+
+- The version is 0.43.0 (`main` was already 0.42.0 when the branch was cut).
+- Map § 6.8's "entries for the 63 fields" line also reads 64, with the Fields table; STEP-5 named only the table.
+- T-5 checks the court report `page` entry through `entryOf` on the Source board (the field is now a suggested entry, not `Board.Page`).
+- The manual check (section 10) was not run by the implementer.
