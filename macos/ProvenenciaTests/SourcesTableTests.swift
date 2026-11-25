@@ -23,20 +23,7 @@ struct SourcesTableTests {
         let widths = SourcesTableWidths(isWide: c.isWide, tableWidth: c.tableWidth)
         #expect(widths.titleMaximum == c.title)
         #expect([widths.evidence, widths.status, widths.published, widths.added, widths.updated] == c.fixed)
-        if c.isWide { #expect(widths.type == 220) }
-    }
-
-    /// T-12: a header's first click sorts A to Z for Title and newest first for the dates; the table's
-    /// report becomes the page's sort, and an empty report leaves it.
-    @Test func headersConvertToTheSort() {
-        let current = SourcesSort(column: .added, order: .reverse)
-        for column in SourcesSort.Column.allCases {
-            let first = SourcesSort(column: column, order: column.firstOrder)
-            #expect(SourcesTable.sort(from: [first], current: current) == first)
-            let second = SourcesSort(column: column, order: column.firstOrder == .forward ? .reverse : .forward)
-            #expect(SourcesTable.sort(from: [second, first], current: current) == second)
-        }
-        #expect(SourcesTable.sort(from: [], current: current) == current)
+        #expect(SourcesTableWidths.type == 220)
     }
 
     @Test func aComparatorNeverReordersRows() {

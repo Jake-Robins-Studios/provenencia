@@ -26,10 +26,10 @@ extension SourcesModel.EvidenceStatus {
     /// Only a graph with nothing on it draws an outline instead of a fill.
     var badgeSubtle: Bool { self == .empty }
 
-    /// The status as a Sources list badge. Hidden from VoiceOver: the graph
-    /// row's label carries the status.
+    /// The status as a Sources list badge, read as the status words.
     @MainActor var badge: some View {
         PVBadge(label, tone: badgeTone, icon: badgeIcon, subtle: badgeSubtle, minWidth: Self.badgeWidth)
-            .accessibilityHidden(true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(label))
     }
 }

@@ -39,7 +39,7 @@ struct SourcesOutlineRow: Identifiable, Equatable {
 /// What a key or a click does to the open Source and the selection.
 enum SourcesOutlineAction: Equatable {
     case expand(String)
-    case collapse(String)
+    case collapse
     case select(String)
     case ignore
 }
@@ -51,11 +51,12 @@ struct SourcesOutline {
     let rows: [SourcesOutlineRow]
     /// `rows` as the table's items, built once with the outline.
     let items: [SourcesTableItem]
-    /// Every graph of a visible Source in the loaded graph list, open or closed, to its Source.
-    let ownerByGraphID: [String: CatalogSource]
+    /// The rows' ids, in order.
+    let ids: [String]
     /// The open Source's id, as the session holds it; it may name no listed Source.
     let open: String?
-    private let disclosureBySourceID: [String: SourcesDisclosure]
+    /// Each graph of a listed, closed Source, to its Source's id.
+    private let closedOwnerID: [String: String]
 
     /// Sources, closed unless `open` is their id (an id with no Source in `sources` draws nothing). A
     /// Source with no Artifact has no triangle and no graph rows; one whose graph read failed has none
@@ -67,8 +68,7 @@ struct SourcesOutline {
         open: String?
     ) {
         var rows: [SourcesOutlineRow] = []
-        var owners: [String: CatalogSource] = [:]
-        var disclosures: [String: SourcesDisclosure] = [:]
+        var closedOwnerID: [String: String] = [:]
         rows.reserveCapacity(sources.count)
         for source in sources {
             var disclosure = SourcesDisclosure.none
@@ -80,9 +80,10 @@ struct SourcesOutline {
                     break
                 case .loaded(let list):
                     disclosure = isOpen ? .expanded : .collapsed
-                    for graph in list { owners[graph.id] = source }
                     if isOpen {
                         children = list.map { SourcesOutlineRow(id: $0.id, kind: .graph($0, source: source)) }
+                    } else {
+                        for graph in list { closedOwnerID[graph.id] = source.id }
                     }
                 case .loading:
                     disclosure = isOpen ? .expanded : .collapsed
@@ -94,15 +95,14 @@ struct SourcesOutline {
                     }
                 }
             }
-            disclosures[source.id] = disclosure
             rows.append(SourcesOutlineRow(id: source.id, kind: .source(source, disclosure: disclosure)))
             rows.append(contentsOf: children)
         }
         self.rows = rows
         items = rows.map(SourcesTableItem.row)
-        ownerByGraphID = owners
+        ids = rows.map(\.id)
         self.open = open
-        disclosureBySourceID = disclosures
+        self.closedOwnerID = closedOwnerID
     }
 
     func row(id: String?) -> SourcesOutlineRow? {
@@ -113,8 +113,7 @@ struct SourcesOutline {
     /// The Source to open so the row `anchor` is drawn: the owner of a graph whose Source is closed.
     /// Nil for a Source row, a row already drawn, a graph of a Source not listed.
     func sourceToReveal(_ anchor: String) -> String? {
-        guard let owner = ownerByGraphID[anchor], disclosureBySourceID[owner.id] == .collapsed else { return nil }
-        return owner.id
+        closedOwnerID[anchor]
     }
 
     /// The selection after `id` becomes the open Source (nil closes the open one), when the move named
@@ -138,8 +137,8 @@ struct SourcesOutline {
               let row = row(id: new), case .source(let source, let disclosure) = row.kind,
               disclosure != .expanded else { return .ignore }
         if disclosure == .collapsed { return .expand(source.id) }
-        guard let open, open != source.id else { return .ignore }
-        return .collapse(open)
+        guard open != nil, open != source.id else { return .ignore }
+        return .collapse
     }
 
     /// Makes `id` the one open Source (nil closes the open one) and moves the selection as
@@ -160,7 +159,7 @@ struct SourcesOutline {
         guard let selected else { return .ignore }
         switch (key, selected.kind) {
         case (.rightArrow, .source(let source, .collapsed)): return .expand(source.id)
-        case (.leftArrow, .source(let source, .expanded)): return .collapse(source.id)
+        case (.leftArrow, .source(_, .expanded)): return .collapse
         case (.leftArrow, .graph(_, let source)), (.leftArrow, .pendingGraph(let source)): return .select(source.id)
         default: return .ignore
         }

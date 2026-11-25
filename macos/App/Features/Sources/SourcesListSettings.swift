@@ -19,11 +19,6 @@ struct SourcesSort: Codable, Hashable, Sendable {
 
     /// What a first visit shows: Added, newest first.
     static let initial = SourcesSort(column: .added, order: .reverse)
-
-    init(column: Column, order: SortOrder) {
-        self.column = column
-        self.order = order
-    }
 }
 
 /// What the Sources list remembers between visits: sort, type, evidence
@@ -38,7 +33,7 @@ struct SourcesListSettings: Codable, Hashable {
     init() {}
 
     /// Each field falls back to its default on its own, so one stale value
-    /// (a sort stored before the table, a removed status) does not reset the rest.
+    /// (an unknown sort, a removed status) does not reset the rest.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         sort = (try? container.decodeIfPresent(SourcesSort.self, forKey: .sort)) ?? .initial

@@ -16,10 +16,18 @@ enum SourcesTableItem: Identifiable, Equatable {
         }
     }
 
+    /// The outline row's kind; nil for a skeleton.
+    var kind: SourcesOutlineRow.Kind? {
+        if case .row(let row) = self { return row.kind }
+        return nil
+    }
+
     /// The height of the row's content: its Title cell's, whose height is the row's.
     @MainActor var contentHeight: CGFloat {
-        guard case .row(let row) = self else { return SourcesTable.sourceRowHeight }
-        return row.disclosure == nil ? SourcesTable.graphRowHeight : SourcesTable.sourceRowHeight
+        switch kind {
+        case nil, .source?: SourcesTable.sourceRowHeight
+        case .graph?, .pendingGraph?: SourcesTable.graphRowHeight
+        }
     }
 
     static var skeletons: [SourcesTableItem] { (0 ..< skeletonCount).map(SourcesTableItem.skeleton) }
@@ -36,23 +44,20 @@ extension SourcesSort: SortComparator {
 /// The widths of the Sources table's columns. Every column but Title is fixed at one width a width class
 /// has; Title takes the rest, up to what is left of the table. Pure, so a test reads the board's numbers.
 ///
-/// The five platform numbers below were measured offscreen on macOS 27.2 (the probe in the S16-71 plan): a
-/// native table puts 17 pt between columns, 18 pt before the first header's text, 8 pt of cell padding
-/// above and below a row's content, and 49 pt of its own insets and a legacy scroller around the columns.
+/// The first four numbers below are the platform's, measured offscreen on macOS 27.2: a native table puts
+/// 17 pt between columns, 18 pt before the first header's text, 8 pt of cell padding above and below a row's
+/// content, and 49 pt of its own insets and a legacy scroller around the columns.
 struct SourcesTableWidths: Equatable {
     static let columnGap: CGFloat = 17
     static let headerInset: CGFloat = 18
     static let cellPadding: CGFloat = 8
     static let tableInsets: CGFloat = 49
     static let titleMinimum: CGFloat = 240
-
-    private typealias Columns = (
-        evidence: CGFloat, status: CGFloat, type: CGFloat, published: CGFloat, added: CGFloat, updated: CGFloat
-    )
+    /// Type's width: it shows at Wide only.
+    static let type: CGFloat = 220
 
     let evidence: CGFloat
     let status: CGFloat
-    let type: CGFloat
     let published: CGFloat
     let added: CGFloat
     let updated: CGFloat
@@ -60,20 +65,14 @@ struct SourcesTableWidths: Equatable {
     /// insets, never under `titleMinimum` (a narrow pane scrolls sideways).
     let titleMaximum: CGFloat
 
-    /// `tableWidth` is the table's own width, inside the page's padding (`SourcesTable`). Type shows at
-    /// Wide only.
+    /// `tableWidth` is the table's own width, inside the page's padding (`SourcesTable`).
     init(isWide: Bool, tableWidth: CGFloat) {
-        let widths: Columns = isWide
-            ? (evidence: 240, status: 140, type: 220, published: 160, added: 120, updated: 120)
-            : (evidence: 168, status: 128, type: 220, published: 96, added: 98, updated: 98)
-        evidence = widths.evidence
-        status = widths.status
-        type = widths.type
-        published = widths.published
-        added = widths.added
-        updated = widths.updated
-        var shown = [widths.evidence, widths.status, widths.published, widths.added, widths.updated]
-        if isWide { shown.append(widths.type) }
+        evidence = isWide ? 240 : 168
+        status = isWide ? 140 : 128
+        published = isWide ? 160 : 96
+        added = isWide ? 120 : 98
+        updated = isWide ? 120 : 98
+        let shown = [evidence, status, published, added, updated] + (isWide ? [Self.type] : [])
         let others = shown.reduce(0, +) + Self.columnGap * CGFloat(shown.count) + Self.tableInsets
         titleMaximum = max(Self.titleMinimum, tableWidth - others)
     }
@@ -143,8 +142,7 @@ struct SourcesTable: View {
         Binding(
             get: { [model.settings.sort] },
             set: { order in
-                guard !isLoading else { return }
-                model.settings.sort = Self.sort(from: order, current: model.settings.sort)
+                if !isLoading, let first = order.first { model.settings.sort = first }
             }
         )
     }
@@ -177,7 +175,7 @@ struct SourcesTable: View {
             TableColumn(header(L10n.Sources.columnType, sorted: nil)) { (item: SourcesTableItem) in
                 typeCell(item)
             }
-            .width(widths.type)
+            .width(SourcesTableWidths.type)
             .customizationID(Self.typeColumnID)
             .disabledCustomizationBehavior(.all)
 
@@ -193,7 +191,10 @@ struct SourcesTable: View {
             TableColumn(
                 header(L10n.Sources.columnAdded, sorted: .added), sortUsing: sort(.added)
             ) { (item: SourcesTableItem) in
-                addedCell(item, width: widths.added)
+                timeCell(
+                    item, at: \.createdAt, width: widths.added, help: L10n.Sources.addedHelp(stamp:),
+                    spoken: { Self.addedSpoken($0) }
+                )
             }
             .width(widths.added)
             .customizationID("added")
@@ -202,7 +203,10 @@ struct SourcesTable: View {
             TableColumn(
                 header(L10n.Sources.columnUpdated, sorted: .updated), sortUsing: sort(.updated)
             ) { (item: SourcesTableItem) in
-                updatedCell(item, width: widths.updated)
+                timeCell(
+                    item, at: \.updated.at, width: widths.updated, help: L10n.LastUpdated.help(stamp:),
+                    spoken: { PVLastUpdated.spoken($0, in: .current) }
+                )
             }
             .width(widths.updated)
             .customizationID("updated")
@@ -220,12 +224,6 @@ struct SourcesTable: View {
 
     // MARK: Headers
 
-    /// The sort a header click leaves: the first of the order the table reports, or the current one when it
-    /// reports none.
-    static func sort(from order: [SourcesSort], current: SourcesSort) -> SourcesSort {
-        order.first ?? current
-    }
-
     private func sort(_ column: SourcesSort.Column) -> SourcesSort {
         SourcesSort(column: column, order: column.firstOrder)
     }
@@ -238,9 +236,12 @@ struct SourcesTable: View {
 
     // MARK: Cells
 
-    private func caption(_ string: String, ink: Color = PVColor.textSecondary) -> some View {
+    private func caption(
+        _ string: String, ink: Color = PVColor.textSecondary, size: CGFloat = PVTypeScale.caption, italic: Bool = false
+    ) -> some View {
         Text(verbatim: string)
-            .font(PVFont.body(size: PVTypeScale.caption))
+            .font(PVFont.body(size: size))
+            .italic(italic)
             .foregroundStyle(PVColor.onSelection(ink))
             .lineLimit(1)
             .truncationMode(.tail)
@@ -252,8 +253,8 @@ struct SourcesTable: View {
 
     @ViewBuilder
     private func titleCell(_ item: SourcesTableItem) -> some View {
-        switch item {
-        case .skeleton:
+        switch item.kind {
+        case nil:
             HStack(spacing: 0) {
                 Color.clear.frame(width: Self.triangleWidth + PVSpacing.space2)
                 PVThumbnail(PVThumbnail.Content(loading: true), size: Self.coverSize)
@@ -264,18 +265,15 @@ struct SourcesTable: View {
                 .padding(.leading, PVSpacing.space5)
             }
             .frame(height: Self.sourceRowHeight)
-        case .row(let row):
-            switch row.kind {
-            case .source(let source, let disclosure):
-                sourceTitle(source, disclosure: disclosure)
-            case .graph(let graph, let source):
-                graphTitle(graph, source: source)
-            case .pendingGraph(let source):
-                graphLine(opens: false) { skeleton(72) }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(L10n.Sources.graphsLoading))
-                    .accessibilityIdentifier("sources.row.\(source.id).graphsPending")
-            }
+        case .source(let source, let disclosure)?:
+            sourceTitle(source, disclosure: disclosure)
+        case .graph(let graph, let source)?:
+            graphTitle(graph, source: source)
+        case .pendingGraph(let source)?:
+            graphLine(opens: false) { skeleton(72) }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(L10n.Sources.graphsLoading))
+                .accessibilityIdentifier("sources.row.\(source.id).graphsPending")
         }
     }
 
@@ -328,7 +326,6 @@ struct SourcesTable: View {
     private func graphTitle(_ graph: CatalogEvidenceGraph, source: CatalogSource) -> some View {
         let reason = SourcesListNavigation.graphBlockedReason(for: graph)
         let opens = reason == nil
-        let hint = reason ?? ""
         return graphLine(opens: opens) {
             Text(verbatim: graph.name)
                 .font(PVFont.body(size: PVTypeScale.bodySmall))
@@ -339,7 +336,7 @@ struct SourcesTable: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: graph.name))
-        .accessibilityHint(Text(verbatim: hint))
+        .accessibilityHint(Text(verbatim: reason ?? ""))
         .accessibilityIdentifier("sources.row.\(source.id).graph.\(graph.ref)")
     }
 
@@ -357,113 +354,98 @@ struct SourcesTable: View {
 
     @ViewBuilder
     private func evidenceCell(_ item: SourcesTableItem) -> some View {
-        switch item {
-        case .skeleton:
+        switch item.kind {
+        case nil:
             skeleton(56)
-        case .row(let row):
-            switch row.kind {
-            case .source(let source, _):
-                if !source.hasArtifact {
-                    Text(L10n.Sources.needsArtifact)
-                        .font(PVFont.body(size: PVTypeScale.caption))
-                        .italic()
-                        .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
-                        .lineLimit(1)
-                } else {
-                    switch session.evidenceGraphsRead(sourceID: source.id) {
-                    case .loaded(let graphs): caption(L10n.Sources.graphSummaryCount(graphs.count))
-                    case .failed:
-                        caption("—", ink: PVColor.textFaint)
-                            .accessibilityLabel(Text(L10n.Sources.graphsUnavailable))
-                    case .loading: EmptyView()
-                    }
+        case .source(let source, _)?:
+            if !source.hasArtifact {
+                caption(L10n.string(L10n.Sources.needsArtifact), ink: PVColor.textMuted, italic: true)
+            } else {
+                switch session.evidenceGraphsRead(sourceID: source.id) {
+                case .loaded(let graphs): caption(L10n.Sources.graphSummaryCount(graphs.count))
+                case .failed:
+                    caption("—", ink: PVColor.textFaint)
+                        .accessibilityLabel(Text(L10n.Sources.graphsUnavailable))
+                case .loading: EmptyView()
                 }
-            case .graph(let graph, _):
-                if let reason = SourcesListNavigation.graphBlockedReason(for: graph) {
-                    Text(L10n.Sources.graphNeedsArtifactToOpen)
-                        .font(PVFont.body(size: PVTypeScale.micro))
-                        .italic()
-                        .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .help(reason)
-                } else {
-                    SourcesGraphCountLine(counts: session.graphCounts(graphID: graph.id), style: .row)
-                }
-            case .pendingGraph:
-                EmptyView()
             }
+        case .graph(let graph, _)?:
+            if let reason = SourcesListNavigation.graphBlockedReason(for: graph) {
+                caption(
+                    L10n.string(L10n.Sources.graphNeedsArtifactToOpen), ink: PVColor.textMuted,
+                    size: PVTypeScale.micro, italic: true
+                )
+                .help(reason)
+            } else {
+                SourcesGraphCountLine(counts: session.graphCounts(graphID: graph.id), style: .row)
+            }
+        case .pendingGraph?:
+            EmptyView()
         }
     }
 
     @ViewBuilder
     private func statusCell(_ item: SourcesTableItem) -> some View {
-        switch item {
-        case .skeleton:
+        switch item.kind {
+        case nil:
             skeleton(72)
-        case .row(let row):
-            switch row.kind {
-            case .source(let source, _):
-                if let status = model.status(for: source) { badge(status) }
-            case .graph(let graph, _):
-                if SourcesListNavigation.graphBlockedReason(for: graph) == nil {
-                    let counts = session.graphCounts(graphID: graph.id)
-                    if let status = counts.status {
-                        badge(status)
-                    } else if counts == .loading {
-                        skeleton(72).accessibilityHidden(true)
-                    }
+        case .source(let source, _)?:
+            model.status(for: source)?.badge
+        case .graph(let graph, _)?:
+            if SourcesListNavigation.graphBlockedReason(for: graph) == nil {
+                let counts = session.graphCounts(graphID: graph.id)
+                if let status = counts.status {
+                    status.badge
+                } else if counts == .loading {
+                    skeleton(72).accessibilityHidden(true)
                 }
-            case .pendingGraph:
-                EmptyView()
             }
+        case .pendingGraph?:
+            EmptyView()
         }
-    }
-
-    /// The status badge, read as the status words: the badge itself is hidden from VoiceOver.
-    private func badge(_ status: SourcesModel.EvidenceStatus) -> some View {
-        HStack(spacing: 0) { status.badge }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(status.label))
     }
 
     @ViewBuilder
     private func typeCell(_ item: SourcesTableItem) -> some View {
-        switch item {
-        case .skeleton:
+        switch item.kind {
+        case nil:
             skeleton(80)
-        case .row(let row):
-            if case .source(let source, _) = row.kind {
-                let label = model.typeLabel(for: source)
-                caption(label).help(label)
-            }
+        case .source(let source, _)?:
+            let label = model.typeLabel(for: source)
+            caption(label).help(label)
+        default:
+            EmptyView()
         }
     }
 
     @ViewBuilder
     private func publishedCell(_ item: SourcesTableItem) -> some View {
-        switch item {
-        case .skeleton:
+        switch item.kind {
+        case nil:
             skeleton(40)
-        case .row(let row):
-            if case .source(let source, _) = row.kind { PVPublishedDate(date: source.date) }
+        case .source(let source, _)?:
+            PVPublishedDate(date: source.date)
+        default:
+            EmptyView()
         }
     }
 
+    /// Added and Updated: a relative time, its full stamp as help.
     @ViewBuilder
-    private func addedCell(_ item: SourcesTableItem, width: CGFloat) -> some View {
-        switch item {
-        case .skeleton:
+    private func timeCell(
+        _ item: SourcesTableItem, at time: KeyPath<CatalogSource, String>, width: CGFloat,
+        help: (String) -> String, spoken: (String) -> String
+    ) -> some View {
+        switch item.kind {
+        case nil:
             skeleton(60)
-        case .row(let row):
-            if case .source(let source, _) = row.kind {
-                PVListDetailCell(
-                    detail: PVListDetail.relative(source.createdAt, in: .current, help: L10n.Sources.addedHelp(stamp:)),
-                    width: width
-                )
+        case .source(let source, _)?:
+            let at = source[keyPath: time]
+            PVListDetailCell(detail: PVListDetail.relative(at, in: .current, help: help), width: width)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: Self.addedSpoken(source.createdAt)))
-            }
+                .accessibilityLabel(Text(verbatim: spoken(at)))
+        default:
+            EmptyView()
         }
     }
 
@@ -472,30 +454,12 @@ struct SourcesTable: View {
         TimestampFormat.string(createdAt, .spoken, in: context).map(L10n.Sources.addedSpoken)
             ?? L10n.Sources.addedUnknown
     }
-
-    @ViewBuilder
-    private func updatedCell(_ item: SourcesTableItem, width: CGFloat) -> some View {
-        switch item {
-        case .skeleton:
-            skeleton(60)
-        case .row(let row):
-            if case .source(let source, _) = row.kind {
-                PVListDetailCell(
-                    detail: PVListDetail.relative(source.updated.at, in: .current, help: L10n.LastUpdated.help(stamp:)),
-                    width: width
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: PVLastUpdated.spoken(source.updated.at, in: .current)))
-            }
-        }
-    }
 }
 
 /// Holds a Title cell at its row's height. The platform reuses a cell view for a row of the other height,
 /// and the cell does not shrink below the height it was first measured at: a graph row in a cell made for
 /// a Source stays 66 pt. So every cell is measured at a graph row's height first, and a Source's cell
-/// takes its own height as it appears. No short frame was seen on screen: the hosted test proves the
-/// settled heights.
+/// takes its own height as it appears.
 private struct SourcesRowHeight: ViewModifier {
     let height: CGFloat
     @State private var shown = SourcesTable.graphRowHeight

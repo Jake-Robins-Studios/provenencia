@@ -6,17 +6,10 @@ enum PVListText {
     static let titleFont = PVFont.body(size: PVTypeScale.body)
 }
 
-/// The numbers a list's rows share, on a non-generic type because a generic one (`PVListRow`) cannot hold
-/// a static.
 enum PVListMetrics {
-    /// The platform's table lays a row's cell in 8 pt on each side of the insets.
-    static let platformCellInset: CGFloat = 8
-
-    /// A row's inset on each side: the content sits `horizontalInset` from the list's edge, less the cell
-    /// inset the table adds.
-    static func rowInset(horizontalInset: CGFloat) -> CGFloat {
-        max(0, horizontalInset - platformCellInset)
-    }
+    /// A row's inset on each side: the content sits `horizontalInset` from the list's edge, less the 8 pt
+    /// the platform's table lays a row's cell in.
+    static func rowInset(horizontalInset: CGFloat) -> CGFloat { max(0, horizontalInset - 8) }
 }
 
 /// The browse list for navigation targets: the platform's own list (SwiftUI's
@@ -29,7 +22,7 @@ enum PVListMetrics {
 /// appears and is its own scroll view: give it the whole area. The caller's
 /// area draws the card fill behind it (the list's own background is hidden), so
 /// nothing covers the system selection. The counterpart to `PVTable` (custom
-/// chrome, columns).
+/// chrome, columns) and to a platform `Table` under `pvNativeListBehavior`.
 struct PVList<Item: Identifiable, Thumbnail: View, Primary: View, Secondary: View>: View {
     private let items: [Item]
     private let thumbnail: (Item) -> Thumbnail

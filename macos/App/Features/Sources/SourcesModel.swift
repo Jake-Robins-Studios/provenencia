@@ -170,12 +170,6 @@ final class SourcesModel {
         session.queryHandle(session.sourceTypesKey)?.value ?? []
     }
 
-    var isLoading: Bool {
-        guard let handle: QueryHandle<[CatalogSource]> = session.queryHandle(Self.sourcesListKey(for: session))
-        else { return true }
-        return handle.status == .loading && sources.isEmpty
-    }
-
     var loadError: Error? {
         guard sources.isEmpty else { return nil }
         let sourcesHandle: QueryHandle<[CatalogSource]>? = session.queryHandle(Self.sourcesListKey(for: session))
@@ -267,7 +261,7 @@ final class SourcesModel {
         }
     }
 
-    /// The Sources list's rows: the visible Sources, and under each open Source its Evidence graphs.
+    /// The Sources list's rows: the visible Sources, and under the open Source its Evidence graphs.
     /// Built once per change of the visible Sources, the graph list or the open Source; a graph's counts
     /// are read by its row as it draws, so a counts update rebuilds nothing.
     var outline: SourcesOutline {
@@ -381,8 +375,8 @@ final class SourcesModel {
         }
     }
 
-    /// The one title comparison of all four title-ordered sorts (A–Z, Z–A and the
-    /// date sorts' ties and undated tail): title, flipped when `descending`, then
+    /// The one title comparison (A–Z, Z–A, and the date sorts' ties and undated
+    /// tail): title, flipped when `descending`, then
     /// id descending (newest added first) in both directions.
     private static func titleOrder(_ a: CatalogSource, _ b: CatalogSource, descending: Bool = false) -> Bool {
         switch a.title.localizedCaseInsensitiveCompare(b.title) {
@@ -393,14 +387,6 @@ final class SourcesModel {
     }
 
     var isCatalogEmpty: Bool { sources.isEmpty }
-
-    var filterLabel: String {
-        let typeID = effectiveTypeFilterID
-        if typeID.isEmpty {
-            return L10n.string(L10n.Sources.filterAllTypes)
-        }
-        return types.label(forTypeID: typeID) ?? L10n.string(L10n.Sources.filterAllTypes)
-    }
 
     func countLine(visibleCount visible: Int) -> String {
         if isAwaitingFilterData || statusCountsError != nil {

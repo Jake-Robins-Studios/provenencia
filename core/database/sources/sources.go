@@ -103,10 +103,10 @@ type Source struct {
 	IsPublic bool
 	// Updated is the latest audit revision of any work scoped to this Source
 	// (its row, children, and evidence graph) and when it was recorded.
-	// Filled by List and by AttachActivity; zero means unset.
+	// Filled by List, ListByIDs and AttachCreatedAndUpdated; zero means unset.
 	Updated effects.Activity
 	// CreatedAt is when the Source was made (RFC3339 UTC), from its create audit
-	// transaction. Filled by List, ListByIDs and AttachCreated; empty means
+	// transaction. Filled by List, ListByIDs and AttachCreatedAndUpdated; empty means
 	// unset or unknown.
 	CreatedAt string
 	// HasArtifact is true when at least one artifacts row exists for this Source.
@@ -575,33 +575,12 @@ func fillListed(c *database.Catalog, q database.Querier, out []Source) error {
 	if err := fillDates(q, out); err != nil {
 		return err
 	}
-	if err := fillCreated(q, out); err != nil {
-		return err
-	}
-	for i := range out {
-		var err error
-		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
-			return err
-		}
-	}
-	return nil
+	return fillCreatedAndUpdated(c, q, out)
 }
 
-// AttachActivity sets Updated from the display cache's last activity.
-func AttachActivity(c *database.Catalog, s *Source) error {
-	if s == nil || len(s.ID) != 16 {
-		return ErrInvalid
-	}
-	if s.Updated.Revision > 0 {
-		return nil
-	}
-	var err error
-	s.Updated, err = c.Graph().Activity(effects.ScopeSource, s.ID)
-	return err
-}
-
-// fillCreated sets CreatedAt on each Source from one batched audit read.
-func fillCreated(q database.Querier, out []Source) error {
+// fillCreatedAndUpdated sets CreatedAt on each Source from one batched audit read, and
+// Updated from the display cache's last activity.
+func fillCreatedAndUpdated(c *database.Catalog, q database.Querier, out []Source) error {
 	ids := make([][]byte, 0, len(out))
 	for _, s := range out {
 		ids = append(ids, s.ID)
@@ -612,28 +591,27 @@ func fillCreated(q database.Querier, out []Source) error {
 	}
 	for i := range out {
 		out[i].CreatedAt = made[string(out[i].ID)].At
+		if out[i].Updated, err = c.Graph().Activity(effects.ScopeSource, out[i].ID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// AttachCreated sets CreatedAt from the Source's create audit transaction. It
-// reads only when the field is empty.
-func AttachCreated(c *database.Catalog, s *Source) error {
+// AttachCreatedAndUpdated sets CreatedAt and Updated on a Source not read by a list.
+func AttachCreatedAndUpdated(c *database.Catalog, s *Source) error {
 	if s == nil || len(s.ID) != 16 {
 		return ErrInvalid
-	}
-	if s.CreatedAt != "" {
-		return nil
 	}
 	db, err := c.DB()
 	if err != nil {
 		return err
 	}
 	one := []Source{*s}
-	if err := fillCreated(db, one); err != nil {
+	if err := fillCreatedAndUpdated(c, db, one); err != nil {
 		return err
 	}
-	s.CreatedAt = one[0].CreatedAt
+	*s = one[0]
 	return nil
 }
 

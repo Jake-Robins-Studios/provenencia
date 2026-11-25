@@ -86,11 +86,6 @@ struct SourcesOutlineTests {
         #expect(disclosure(closed, "s4") == .collapsed)
     }
 
-    @Test func ownersCoverCollapsedGraphs() {
-        let outline = outline(open: nil)
-        #expect(outline.ownerByGraphID.mapValues(\.id) == ["g1a": "s1", "g1b": "s1", "g2": "s2"])
-    }
-
     @Test func backRevealsAGraphsClosedSource() {
         let closed = outline(open: nil)
         #expect(closed.sourceToReveal("g1a") == "s1")
@@ -177,7 +172,7 @@ struct SourcesOutlineTests {
         #expect(action(mixed, "s1") == .ignore)
         #expect(action(mixed, "g1a") == .ignore)
         // A Source with no triangle closes the open one; with none open there is nothing to do.
-        #expect(action(mixed, "s3") == .collapse("s1"))
+        #expect(action(mixed, "s3") == .collapse)
         #expect(action(closed, "s3") == .ignore)
         #expect(action(closed, "missing") == .ignore)
     }
@@ -192,7 +187,7 @@ struct SourcesOutlineTests {
         let other = SourcesOutline(
             sources: [s1, s3, source("s4", artifact: false)], graphs: reads([:]), open: "s3"
         )
-        #expect(other.clickAction(selecting: "s4", from: "s1", isPlainClick: true, onTriangle: false) == .collapse("s3"))
+        #expect(other.clickAction(selecting: "s4", from: "s1", isPlainClick: true, onTriangle: false) == .collapse)
     }
 
     @Test func arrowKeysExpandCollapseAndClimb() {
@@ -202,7 +197,7 @@ struct SourcesOutlineTests {
             SourcesOutline.keyAction(key, selected: outline.row(id: id))
         }
         #expect(action(.rightArrow, closed, "s1") == .expand("s1"))
-        #expect(action(.leftArrow, open, "s1") == .collapse("s1"))
+        #expect(action(.leftArrow, open, "s1") == .collapse)
         #expect(action(.leftArrow, open, "g1a") == .select("s1"))
         #expect(action(.rightArrow, open, "s1") == .ignore)
         #expect(action(.rightArrow, open, "g1a") == .ignore)

@@ -75,7 +75,7 @@ func UpdateNote(tx *database.Tx, userID, noteID []byte, body string) ([]rowchang
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return nil, err
 	}
-	prev, err := getNoteTx(tx.Tx, noteID)
+	prev, err := getNote(tx.Tx, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
@@ -100,7 +100,7 @@ func DeleteNote(tx *database.Tx, userID, noteID []byte) ([]rowchange.Change, err
 	if err := database.RequireUserID(userID, ErrInvalid); err != nil {
 		return nil, err
 	}
-	prev, err := getNoteTx(tx.Tx, noteID)
+	prev, err := getNote(tx.Tx, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrInvalid
 	}
@@ -143,7 +143,10 @@ func ListNotes(c *database.Catalog, sourceID []byte) ([]Note, error) {
 		return nil, err
 	}
 	// The scan is finished: the catalog has one connection.
-	return out, attributeNotes(db, out)
+	if err := attributeNotes(db, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // GetNote returns one note with create attribution.
@@ -155,7 +158,7 @@ func GetNote(c *database.Catalog, noteID []byte) (Note, error) {
 	if len(noteID) != 16 {
 		return Note{}, ErrInvalid
 	}
-	n, err := getNoteTx(db, noteID)
+	n, err := getNote(db, noteID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrInvalid
 	}
@@ -187,9 +190,9 @@ func attributeNotes(q database.Querier, notes []Note) error {
 	return nil
 }
 
-func getNoteTx(tx database.Querier, id []byte) (Note, error) {
+func getNote(q database.Querier, id []byte) (Note, error) {
 	var n Note
-	err := tx.QueryRow(sqlGetNote, id).Scan(&n.ID, &n.SourceID, &n.Body)
+	err := q.QueryRow(sqlGetNote, id).Scan(&n.ID, &n.SourceID, &n.Body)
 	if err != nil {
 		return Note{}, err
 	}

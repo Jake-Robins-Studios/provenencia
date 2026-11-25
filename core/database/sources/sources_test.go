@@ -286,7 +286,7 @@ func TestSources(t *testing.T) {
 					t.Fatalf("List %+v %v, want %+v", all, err, want)
 				}
 				attached := Source{ID: src.ID}
-				if err := AttachActivity(c, &attached); err != nil || attached.Updated != want {
+				if err := AttachCreatedAndUpdated(c, &attached); err != nil || attached.Updated != want {
 					t.Fatalf("Attach %+v %v, want %+v", attached.Updated, err, want)
 				}
 				if queries != 0 {
@@ -411,7 +411,7 @@ func TestSources(t *testing.T) {
 					t.Fatalf("list attribution %+v", notes[0])
 				}
 				got, err := GetNote(c, n.ID)
-				if err != nil || got.Body != "Revised" || got.AuthorDisplayName != "Jake" {
+				if err != nil || got.Body != "Revised" || got.AuthorDisplayName != "Jake" || got.CreatedAt != notes[0].CreatedAt {
 					t.Fatalf("get %v %+v", err, got)
 				}
 				if err := runDeleteNote(c, userID, n.ID); err != nil {
@@ -1685,28 +1685,14 @@ func TestCreatedAt(t *testing.T) {
 			}
 		})
 	}
-	t.Run("AttachCreated", func(t *testing.T) {
+	t.Run("AttachCreatedAndUpdated", func(t *testing.T) {
 		one := Source{ID: s.ID}
-		if err := AttachCreated(c, &one); err != nil || one.CreatedAt != stamp {
+		if err := AttachCreatedAndUpdated(c, &one); err != nil || one.CreatedAt != stamp {
 			t.Fatalf("%q, %v want %q", one.CreatedAt, err, stamp)
 		}
 		bad := Source{}
-		if err := AttachCreated(c, &bad); !errors.Is(err, ErrInvalid) {
+		if err := AttachCreatedAndUpdated(c, &bad); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("no id: %v", err)
-		}
-	})
-	t.Run("notes keep their author and time", func(t *testing.T) {
-		n, err := runAddNote(c, userID, s.ID, "A note")
-		if err != nil {
-			t.Fatal(err)
-		}
-		notes, err := ListNotes(c, s.ID)
-		if err != nil || len(notes) != 1 || notes[0].AuthorDisplayName == "" || notes[0].CreatedAt == "" {
-			t.Fatalf("%+v, %v (added %+v)", notes, err, n)
-		}
-		got, err := GetNote(c, n.ID)
-		if err != nil || got.AuthorDisplayName != notes[0].AuthorDisplayName || got.CreatedAt != notes[0].CreatedAt {
-			t.Fatalf("%+v, %v", got, err)
 		}
 	})
 }

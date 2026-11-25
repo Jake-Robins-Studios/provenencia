@@ -29,7 +29,7 @@ struct PVBadge: View {
     /// Text / glyph colour override; the tone still owns fill and outline.
     private var foreground: Color?
     /// The badge's least width: its content sits leading inside it, so badges of one column share a width.
-    private let minWidth: CGFloat?
+    private var minWidth: CGFloat?
 
     /// For fixed UI copy (e.g. "provenencia", "you"). A `minWidth` holds the badge at least that wide,
     /// its icon and label leading.
@@ -63,7 +63,6 @@ struct PVBadge: View {
         self.icon = icon
         self.subtle = subtle
         iconLabel = nil
-        minWidth = nil
         self.foreground = foreground
     }
 
@@ -74,7 +73,6 @@ struct PVBadge: View {
         self.tone = tone
         self.icon = icon
         self.subtle = subtle
-        minWidth = nil
         iconLabel = label.pvText
     }
 

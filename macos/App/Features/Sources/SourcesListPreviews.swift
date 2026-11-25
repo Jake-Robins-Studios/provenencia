@@ -47,18 +47,18 @@ enum SourcesListPreviews {
         return store
     }
 
-    /// The whole page, over a store `configure` has changed, with `expanded` (the first of them) open and
-    /// a saved status filter when `status` is set.
+    /// The whole page, over a store `configure` has changed, with the Source `open` open and a
+    /// saved status filter when `status` is set.
     static func page(
         paneWidth: CGFloat = width,
-        expanded: [String] = [],
+        open: String? = nil,
         status: SourcesModel.EvidenceStatus? = nil,
         configure: (FakeStore) -> Void = { _ in }
     ) -> some View {
         let store = store()
         configure(store)
         let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
-        session.setOpenSource(expanded.first)
+        session.setOpenSource(open)
         let projectUuid = UUID().uuidString
         if let status {
             var settings = SourcesListSettings()
@@ -93,15 +93,15 @@ enum SourcesListPreviews {
 }
 
 #Preview("An open Source: eight graphs, one with no Artifact") {
-    SourcesListPreviews.page(expanded: ["s1"])
+    SourcesListPreviews.page(open: "s1")
 }
 
 #Preview("Open Source, counts loading") {
-    SourcesListPreviews.page(expanded: ["s1"]) { $0.listEvidenceGraphProgressHold.isOn = true }
+    SourcesListPreviews.page(open: "s1") { $0.listEvidenceGraphProgressHold.isOn = true }
 }
 
 #Preview("Open Source, counts failed") {
-    SourcesListPreviews.page(expanded: ["s1"]) { $0.listEvidenceGraphProgressError = SourcesListPreviews.Failure() }
+    SourcesListPreviews.page(open: "s1") { $0.listEvidenceGraphProgressError = SourcesListPreviews.Failure() }
 }
 
 #Preview("Graph list failed, no status filter") {
@@ -121,7 +121,7 @@ enum SourcesListPreviews {
 }
 
 #Preview("Wide: an open Source") {
-    SourcesListPreviews.page(paneWidth: SourcesListPreviews.wideWidth, expanded: ["s1"])
+    SourcesListPreviews.page(paneWidth: SourcesListPreviews.wideWidth, open: "s1")
 }
 
 #Preview("Rows: badges, graphs, one selected") {

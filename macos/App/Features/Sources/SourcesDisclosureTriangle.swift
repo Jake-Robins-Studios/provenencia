@@ -32,9 +32,7 @@ struct SourcesDisclosureTriangle: View {
         if disclosure == .none {
             Color.clear
         } else {
-            Button {
-                toggle()
-            } label: {
+            Button(action: toggle) {
                 PVIcon(PVExpandedState.outlineChevron(isExpanded: disclosure == .expanded), size: 12)
                     .foregroundStyle(PVColor.onSelection(PVColor.textMuted))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -154,10 +154,7 @@ func sourceCoverThumbnails(c *database.Catalog, rows []sources.Source) (map[stri
 // lookup-only; generation belongs on thumbnailPass (SetSourceCover and the
 // Artifact reads).
 func enrichSourceProto(c *database.Catalog, s sources.Source) (*engine.Source, error) {
-	if err := sources.AttachActivity(c, &s); err != nil {
-		return nil, err
-	}
-	if err := sources.AttachCreated(c, &s); err != nil {
+	if err := sources.AttachCreatedAndUpdated(c, &s); err != nil {
 		return nil, err
 	}
 	sp := sourceProto(s)

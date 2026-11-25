@@ -98,7 +98,7 @@ private struct SourcesListContent: View {
             content: { gutter in content(state: state, outline: outline, gutter: gutter) }
         )
         .modifier(ListSelectionAnchorModifier(
-            rowIDs: outline.rows.map(\.id),
+            rowIDs: outline.ids,
             isSettled: model.outlineIsSettled,
             reveal: { anchor in
                 guard let id = outline.sourceToReveal(anchor) else { return false }
@@ -185,12 +185,12 @@ private struct SourcesListContent: View {
                 items: outline.items, selection: selection, model: model,
                 gutter: gutter,
                 toggle: { source, disclosure in
-                    apply(disclosure == .expanded ? .collapse(source.id) : .expand(source.id), outline: outline)
+                    apply(disclosure == .expanded ? .collapse : .expand(source.id), outline: outline)
                 },
                 hoverTriangle: { id, inside in pointer.note(id, inside: inside) }
             )
             .pvNativeListBehavior(
-                ids: outline.rows.map(\.id),
+                ids: outline.ids,
                 selection: selection,
                 // A graph row's height, the wheel's step.
                 minimumRowHeight: SourcesTable.minimumRowHeight,
@@ -246,7 +246,7 @@ private struct SourcesListContent: View {
         case .second(let first):
             guard let first else { return }
             pointer.pressed = nil
-            DispatchQueue.main.async { open(first, outline: outline) }
+            DispatchQueue.main.async { open(outline.row(id: first)) }
         case .select(let action):
             navigation.noteListAnchor(id)
             if let click, click.count == 1 { pointer.pressed = click.isPlain && id != old ? id : nil }
@@ -260,13 +260,11 @@ private struct SourcesListContent: View {
     private func activate(_ id: String, outline: SourcesOutline) {
         let first = outline.row(id: pointer.secondPress(SourcesClick(NSApp.currentEvent), selected: navigation.listAnchor))
         if first != nil { pointer.pressed = nil }
-        open(first?.id ?? id, outline: outline)
+        open(first ?? outline.row(id: id))
     }
 
-    private func open(_ id: String, outline: SourcesOutline) {
-        if let row = outline.row(id: id), let location = SourcesListNavigation.location(for: row) {
-            navigation.go(to: location)
-        }
+    private func open(_ row: SourcesOutlineRow?) {
+        if let location = row.flatMap(SourcesListNavigation.location(for:)) { navigation.go(to: location) }
     }
 
     /// What a menu entry does: the row is selected first, so Back returns to it.
@@ -274,7 +272,7 @@ private struct SourcesListContent: View {
         SourcesRowMenu.Actions(
             open: { row in
                 navigation.noteListAnchor(row.id)
-                if let location = SourcesListNavigation.location(for: row) { navigation.go(to: location) }
+                open(row)
             },
             openGraph: { graph, source in
                 outline.setOpen(source.id, selecting: graph.id, session: session, navigation: navigation)
