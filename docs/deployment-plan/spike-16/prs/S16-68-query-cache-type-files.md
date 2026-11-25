@@ -15,7 +15,7 @@
 **Planned:** 2026-11-24 against `main` @ `6e18533`
 **Review:** [`S16-68-query-cache-type-files.review.md`](S16-68-query-cache-type-files.review.md) — Fits with changes · Ready with changes, 1 round; no blocker open; To user: M-1/M-2, answered 2026-11-24
 
-**Landed.** Differences from the plan: none.
+**Landed.** Differences from the plan: the PR also removes the flaky hosted test `PVScrollMemoryHostedTests.selectingARowThatIsAPlaceKeepsTheTablesY` and its fixture (user, 2026-11-25), so AC-1.4's `git diff --stat main -- macos/ProvenenciaTests` prints that one file.
 
 **Runs on macOS.** STEP-2 needs `xcodebuild`. STEP-1's move checks (`git diff`, `rg`) run anywhere. On a machine without `xcodebuild`, finish STEP-1, then stop and report that STEP-2 needs a macOS runner.
 
