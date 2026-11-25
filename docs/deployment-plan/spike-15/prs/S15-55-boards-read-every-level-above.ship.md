@@ -59,5 +59,5 @@ Plan: 6,150 words (check-plan-docs info line).
 | 1 | UX | opus | 73k |
 | 1 | SEC+PRF | opus | 70k |
 | 1 | implementer (fix) | agent default | 73k |
-| 2 | MNT | opus | — |
-| | **Total** | | **620k** (without round 2) |
+| 2 | MNT | opus | 37k |
+| | **Total** | | **656k** |
