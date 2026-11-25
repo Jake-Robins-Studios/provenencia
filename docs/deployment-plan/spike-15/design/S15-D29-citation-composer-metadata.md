@@ -5,7 +5,7 @@
 **View:** the citation composer (`CitationComposerView`): its citation form in both arrangements (Regular, stacked above the viewer; Wide, the 440pt side form), and its Citation menu rows
 **Implements later as:** PR **S15-56**
 **Board:** — (not drawn yet). Draw on [Claude Design — Citation Composer](https://claude.ai/artifact/3GSFQZjqdQjL8v2rpgMiDc), page *Citation Composer*, in a new section "S15-D29 · The Citation's metadata", from the S15-D8 frames; take the board rows from [Claude Design — Source Detail](https://claude.ai/artifact/443NPNYmGErAmxgV1fBsFK), page *Artifacts*, frames `d33-*` (the inherited row, the override caption, the Add field row)
-**Review:** with the plan, in [`../prs/S15-56-composer-citation-metadata.review.md`](../prs/S15-56-composer-citation-metadata.review.md)
+**Review:** with the plan (Q1, Q3, Q5, Q6: fits; the board's files move, M-4), in [`../prs/S15-56-composer-citation-metadata.review.md`](../prs/S15-56-composer-citation-metadata.review.md)
 **Depends on:** S15-55 (landed [#970](https://github.com/Jake-Robins-Studios/provenencia/pull/970)): a new Citation's draft board names its graph and Artifact; S15-64 (landed [#959](https://github.com/Jake-Robins-Studios/provenencia/pull/959)) and [S15-D33](archive/S15-D33-inherited-values.md): the inherited row; S15-60 (landed [#975](https://github.com/Jake-Robins-Studios/provenencia/pull/975)): the seeded field **Page**; [S15-D8](archive/S15-D8-citation-composer-printed-page.md) (S15-13, landed): the composer frames this brief extends
 **Related:** working rules "One metadata board", "A board shows what its owner inherits", "The printed page is a metadata field", "A board adds a field in an inline row", "Metadata saves with its owner's write" in [`../deployment-plan.md`](../deployment-plan.md#working-rules); [`macos-client-patterns.md` § 9](../../../macos-client-patterns.md#9-window-widths-regular-and-wide)
 **Design system layers:** [`docs/design-system-layers.md`](../../../design-system-layers.md)
@@ -118,7 +118,7 @@ The board may refine wording; the PR copies what the board shows. *(today)* mark
 | Override caption | "Overrides Evidence graph: 2" *(today, "Overrides {level}: {value}")* |
 | Empty suggestion's input | "Add a value…" *(today)* |
 | Add field | "Add field" *(today)* |
-| The new Citation's board could not be read (its graph or Artifact was deleted meanwhile) | "The Citation's metadata can't be shown: its Evidence graph or Artifact was deleted. Close the composer and open it again from the Source." |
+| The Citation's board could not be read (its graph or Artifact was deleted meanwhile) | "The Citation's metadata can't be shown. Close the composer and open it again from the Source." |
 | Citation menu row, own Page | "p. 14" *(today)*, joined "p. 14 · image 37 · region" *(today)* |
 | Label field | "Label", "A short name, e.g. Schedule 18 · Alderwick household" *(today)* |
 
@@ -189,8 +189,8 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Citation form | Snowflake | Extend | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` (`sideForm`, `panelForm`) | Label, then the board, in place of `labelAndPrintedPage`; the transcription and footer as today |
-| Metadata board in a form | Snowflake | Ship | `macos/App/Features/Sources/SourceOwnerForm.swift` `DraftMetadataBoardField` → `MetadataBoardView` (`placement: .form`) | The Artifact sheet's and the graph form's board, as is: one board on every owner (rule "One metadata board"). Not a composer copy |
-| Inherited row, override caption | Snowflake | Ship | `macos/App/Features/Sources/MetadataBoardView.swift` `MetadataBoardSuggestionRow`, `savedRow` | S15-D33's rows; "From Evidence graph" and "From Artifact" are the same caption with another level |
+| Metadata board in a form | Snowflake | Ship (moved) | `macos/App/Features/MetadataBoard/` `DraftMetadataBoardField` → `MetadataBoardView` (`placement: .form`); moved from `Features/Sources` now that two features use it (user, 2026-11-25) | The Artifact sheet's and the graph form's board, as is: one board on every owner (rule "One metadata board"). Not a composer copy |
+| Inherited row, override caption | Snowflake | Ship | `macos/App/Features/MetadataBoard/MetadataBoardView.swift` `MetadataBoardSuggestionRow`, `savedRow` | S15-D33's rows; "From Evidence graph" and "From Artifact" are the same caption with another level |
 | Row editor, Add field | Component / snowflake | Ship | `PVInlineEdit`, `MetadataBoardView`'s Add field row | Unchanged |
 | Read failure line | Component | Ship | `PVErrorText` (as `citationLoadErrorLine` uses it) | One line in the board's place; not a Callout, not an EmptyState |
 | Leave confirm | Component | Ship | The composer's existing discard confirm | Board changes count as unsaved citation fields |
