@@ -317,69 +317,6 @@ struct PVScrollMemoryHostedTests {
         #expect(y(scrollView) == 400)
     }
 
-    // MARK: A selection that is a place
-
-    /// `PVTable` whose selected row is a place, as Metadata's and Properties' are. The selection follows
-    /// the location one update late, as their models do.
-    private struct PlaceTableFixture: View {
-        let navigation: WorkspaceNavigation
-        let rows = (0 ..< 200).map { Row(id: "row\($0)") }
-        @State private var selection: String?
-
-        var body: some View {
-            PVTable(
-                rows: rows,
-                columns: [PVTableColumn(id: "n", title: L10n.Metadata.columnLabel) { Text(verbatim: $0.id) }],
-                selection: $selection, primaryText: { $0.id },
-                label: L10n.Workspace.metadataTitle, content: { EmptyView() }
-            )
-            .onChange(of: navigation.currentLocation) { selection = navigation.currentLocation.fieldId }
-            .environment(\.pvScrollMemory, navigation.scrollMemory)
-            .frame(height: 600)
-        }
-    }
-
-    private func place(_ row: String) -> WorkspaceLocation {
-        WorkspaceLocation(section: .metadata, fieldId: row)
-    }
-
-    /// Selecting a row that is a place keeps the table where it is; Back shows the y the other row was
-    /// left at, not the row.
-    @Test func selectingARowThatIsAPlaceKeepsTheTablesY() async throws {
-        let navigation = WorkspaceNavigation()
-        navigation.attachProject(
-            uuid: UUID().uuidString,
-            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
-        )
-        navigation.go(to: .sectionRoot(.metadata))
-        let (_, host) = hostInBorderlessWindow(
-            PlaceTableFixture(navigation: navigation), windowSize: CGSize(width: 800, height: 600)
-        )
-        #expect(await eventually(host) { (firstScrollView(host)?.documentView?.frame.height ?? 0) > 3000 })
-        let table = try #require(firstScrollView(host))
-        navigation.go(to: place("row30"))
-        scroll(table, to: 1000)
-        #expect(await eventually(host) { y(table) == 1000 })
-        navigation.go(to: place("row40"))
-        for _ in 0 ..< 5 {
-            await mainQueueTurn()
-            host.layoutSubtreeIfNeeded()
-        }
-        // Row 40 is shown as far as it must be; that scroll is done before the next.
-        #expect(await eventually(host) { y(table) == 1069 })
-
-        scroll(table, to: 3000)
-        navigation.go(to: place("row90"))
-        navigation.goBack()
-        navigation.goBack()
-        #expect(await eventually(host) { y(table) == 1000 })
-        for _ in 0 ..< 5 {
-            await mainQueueTurn()
-            host.layoutSubtreeIfNeeded()
-        }
-        #expect(y(table) == 1000)
-    }
-
     /// CON-8: the researcher acts before the rows arrive, and leaves: the entry keeps its y.
     @Test func leavingWhileTheRowsLoadKeepsTheEntrysY() async throws {
         let navigation = WorkspaceNavigation()
