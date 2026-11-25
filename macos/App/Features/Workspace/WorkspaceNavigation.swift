@@ -9,9 +9,10 @@ enum PendingNavigation: Equatable, Sendable {
     case index(Int)
 }
 
-/// How a commit came, and which visit it begins. The id changes when a visit to a place begins:
-/// the identity changes, or any history move; a coalesced `go(to:)` keeps it. Every scroll view
-/// restores once per id (D-6), and a note of another id is stale.
+/// How a commit came, and which visit it begins. The id changes when a visit to a page begins: another
+/// page, or any history move; a coalesced `go(to:)` and another row selected on the page
+/// (`WorkspaceLocation.isSamePage(as:)`) keep it. Every scroll view restores once per id, and a note of
+/// another id is stale.
 struct WorkspaceArrival: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
         /// A new visit: `go(to:)`, the project attaching, a place replaced.
@@ -155,6 +156,15 @@ final class WorkspaceNavigation {
         revisit.scrollOffsets[slot] = y
     }
 
+    /// What every scroll view on the page is asked to remember: this visit's id, the y each was left
+    /// at, and where to report a new one.
+    var scrollMemory: PVScrollMemory {
+        let arrival = arrival.id
+        return PVScrollMemory(arrival: arrival, offsets: currentLocation.revisit.scrollOffsets) { [weak self] slot, y in
+            self?.noteScrollOffset(y, slot: slot, arrival: arrival)
+        }
+    }
+
     /// Writes the visit's y onto the current entry and the file, so a quit keeps where the
     /// researcher was.
     func flush() {
@@ -296,10 +306,10 @@ final class WorkspaceNavigation {
         history?.stampLeaving(revisit, openSourceId: openSourceProvider?())
     }
 
-    /// The one commit. A visit begins on any history move, on a change of identity, or when asked;
-    /// then the held revisit becomes the entry's. Otherwise (a coalesced `go(to:)`, a same-identity
-    /// `replaceCurrent`) only the selection is taken from the committed entry: the live offsets and
-    /// section anchor stay.
+    /// The one commit. A visit begins on any history move, on another page, or when asked; then the held
+    /// revisit becomes the entry's. Otherwise (a coalesced `go(to:)`, another row selected on the page)
+    /// only the selection is taken from the committed entry: the live offsets and section anchor stay,
+    /// and the entry takes them when it is left.
     private func apply(_ location: WorkspaceLocation, kind: WorkspaceArrival.Kind, beginsVisit: Bool = false) {
         #if DEBUG
         if ProcessInfo.processInfo.environment["PROVENENCIA_DEBUG_NAV_TIMING"] == "1" {
@@ -310,7 +320,7 @@ final class WorkspaceNavigation {
             )
         }
         #endif
-        let begins = beginsVisit || kind == .history || location != currentLocation
+        let begins = beginsVisit || kind == .history || !location.isSamePage(as: currentLocation)
         currentLocation = location
         selectedSection = location.section
         canGoBack = history?.canGoBack ?? false

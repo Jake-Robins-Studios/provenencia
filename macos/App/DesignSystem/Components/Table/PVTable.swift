@@ -247,7 +247,7 @@ struct PVTable<Row: Identifiable, Content: View>: View {
             }
             .pvRemembersScroll()
         }
-        .pvScrollsRowIntoView(selection)
+        .pvScrollsSelectionIntoView(selection)
         .focusable()
         .focusEffectDisabled()
         .focused($isFocused)

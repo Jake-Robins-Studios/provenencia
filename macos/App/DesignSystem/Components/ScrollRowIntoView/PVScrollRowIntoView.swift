@@ -101,6 +101,43 @@ extension View {
     }
 }
 
+/// Keeps a list's selected row in view as the selection moves. A selection that changes with a new
+/// arrival (Back between two entries of a mounted list) is not a move: `pvRemembersScroll` places it.
+private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
+    let selection: ID?
+    let animated: Bool
+    let restartTop: ID?
+    let restartKey: AnyHashable?
+    /// The row the selection moved to; nil until it moves within the visit.
+    @State private var movedTo: ID?
+    @Environment(\.pvScrollMemory) private var memory
+
+    private struct Move: Equatable {
+        var selection: ID?
+        var arrival: Int?
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
+                movedTo = old.arrival == new.arrival ? new.selection : nil
+            }
+            .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
+    }
+}
+
+extension View {
+    /// Scrolls the list's `selection` into view as it moves, but not when it changes with a new arrival.
+    /// The parameters are `pvScrollsRowIntoView`'s.
+    func pvScrollsSelectionIntoView<ID: Hashable>(
+        _ selection: ID?, animated: Bool = true, restartsAt restartTop: ID? = nil, whenChanged restartKey: AnyHashable? = nil
+    ) -> some View {
+        modifier(PVScrollsSelectionIntoView(
+            selection: selection, animated: animated, restartTop: restartTop, restartKey: restartKey
+        ))
+    }
+}
+
 private struct PVScrollRowIntoViewPreview: View {
     @State private var highlighted = 0
     private let rows = Array(0..<30)

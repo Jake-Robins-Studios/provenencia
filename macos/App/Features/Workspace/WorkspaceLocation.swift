@@ -376,6 +376,17 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         return copy
     }
 
+    /// The same page, whichever row it has selected: a Metadata field or a Properties property is a place
+    /// of its own, but selecting one stays on the page. A Properties category is another page.
+    func isSamePage(as other: WorkspaceLocation) -> Bool {
+        var (page, otherPage) = (self, other)
+        for path in [\WorkspaceLocation.fieldId, \.propertyId] {
+            page[keyPath: path] = nil
+            otherPage[keyPath: path] = nil
+        }
+        return page == otherPage
+    }
+
     /// Identity used for coalesce / equality of navigation — deep ids only.
     /// `ref`, `title`, `sourceTitle` and `revisit` are not identity; `pageSection` is.
     static func == (lhs: WorkspaceLocation, rhs: WorkspaceLocation) -> Bool {

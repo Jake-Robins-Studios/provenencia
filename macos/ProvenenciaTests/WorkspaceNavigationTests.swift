@@ -619,6 +619,46 @@ struct WorkspaceNavigationTests {
         #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 40)
     }
 
+    /// Selecting another row of a page whose selected row is a place keeps the visit and its y; each
+    /// entry keeps its own for Back.
+    @Test(arguments: [WorkspaceSection.metadata, .properties])
+    func selectingOnThePageKeepsItsScroll(section: WorkspaceSection) throws {
+        func row(_ id: String) -> WorkspaceLocation {
+            section == .metadata
+                ? WorkspaceLocation(section: section, fieldId: id)
+                : WorkspaceLocation(section: section, subjectTypeKey: "person", propertyId: id)
+        }
+        let (first, second) = (row("a"), row("b"))
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: first)
+        navigation.noteScrollOffset(300, slot: .page, arrival: navigation.arrival.id)
+        let arrival = navigation.arrival
+        navigation.go(to: second)
+        #expect(navigation.arrival == arrival)
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 300)
+        navigation.noteScrollOffset(700, slot: .page, arrival: navigation.arrival.id)
+        navigation.goBack()
+        #expect(navigation.currentLocation == first)
+        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 300)
+        navigation.goForward()
+        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 700)
+    }
+
+    /// A category of the Properties strip is another page: it opens at its top.
+    @Test func aPropertiesCategoryStartsClean() throws {
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "person", propertyId: "a"))
+        navigation.noteScrollOffset(300, slot: .page, arrival: navigation.arrival.id)
+        let arrival = navigation.arrival.id
+        navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "event"))
+        #expect(navigation.arrival.id == arrival + 1)
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffsets.isEmpty)
+    }
+
     /// D-8: a pushed location starts clean, whatever the copy it was built from held.
     @Test func aPushStartsClean() throws {
         let (navigation, _) = try attachedNavigation()

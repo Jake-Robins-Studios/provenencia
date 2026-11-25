@@ -37,11 +37,6 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
     @FocusState private var isFocused: Bool
     /// The last scroll asked for: Home or End, or `reveal`.
     @State private var scroll: PVListScroll<ID>?
-    /// The row the selection moved to, for the row-into-view scroll. Nil until the selection moves:
-    /// a selection that changes in the same update as a new arrival (Back between two entries of a
-    /// mounted list) is the restore's to place, not a move.
-    @State private var movedTo: ID?
-    @Environment(\.pvScrollMemory) private var memory
 
     func body(content: Content) -> some View {
         content
@@ -65,24 +60,12 @@ struct PVNativeListBehavior<ID: Hashable>: ViewModifier {
                 scroll = PVListScroll(row: ids[index], anchor: press.key == .home ? .top : .bottom)
                 return .handled
             }
-            .onChange(of: SelectionMove(selection: selection.wrappedValue, arrival: memory?.arrival)) { old, new in
-                guard old.arrival == new.arrival else {
-                    movedTo = nil
-                    return
-                }
-                movedTo = new.selection
-            }
-            .pvScrollsRowIntoView(
-                movedTo, animated: false, restartsAt: ids.first, whenChanged: restartKey
+            .pvScrollsSelectionIntoView(
+                selection.wrappedValue, animated: false, restartsAt: ids.first, whenChanged: restartKey
             )
             .onChange(of: reveal) { scroll = reveal }
             .pvScrollsRowIntoView(scroll?.row, anchor: scroll?.anchor, animated: false, whenRequested: scroll)
             .task(id: scroll) { await repeatScroll() }
-    }
-
-    private struct SelectionMove: Equatable {
-        var selection: ID?
-        var arrival: Int?
     }
 
     /// Scrolls once more, unless another scroll was asked for (it cancels this one) or the selection
