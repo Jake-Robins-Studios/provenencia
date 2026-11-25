@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Jake-Robins-Studios/provenencia/api/proto/engine"
@@ -357,4 +358,84 @@ func TestListCitationPlaceholders(t *testing.T) {
 		name: "an unknown form",
 		req:  &engine.ListCitationPlaceholdersRequest{ProjectDir: dir, Form: "fourth"}, wantErr: true, wantErrIs: citations.ErrInvalid,
 	}})
+}
+
+// TestRenderSeededPage is bar 13: on a new project the seeded page field
+// answers nearest-first at the Citation and the graph, a locator's printed
+// page answers when no level holds a value, and an unknown mark prints the
+// field's unknown text.
+func TestRenderSeededPage(t *testing.T) {
+	w := newRenderWorld(t)
+	ids := fieldIDsByKey(t, w.dir)
+	newspaper := func() string {
+		src := seededSourceOfType(t, w.dir, w.userID, "newspaper_item")
+		mustRPC(t, SetSourceDate, &engine.SetSourceDateRequest{
+			ProjectDir: w.dir, UserId: w.userID, SourceId: src, Date: pointDate(1880, 6, 14),
+		}, &engine.SetSourceDateResponse{})
+		setValues(t, w.dir, w.userID, ids, "source", src, map[string]string{"published_in": "Calder Valley Gazette"})
+		return src
+	}
+	plain := func(t *testing.T, id string) (string, string) {
+		t.Helper()
+		out, err := renderCitations(t, w.dir, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := out.GetCitations()[0]
+		return c.GetFull().GetPlain(), c.GetGroupKey()
+	}
+	const gazette = `"newspaper_item," Calder Valley Gazette, 14 June 1880, `
+
+	t.Run("AC-1.1 and AC-1.5 each Citation holds its own page", func(t *testing.T) {
+		src := newspaper()
+		art, graph := newArtifact(t, w.dir, w.userID, src, "Issue PDF")
+		first := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		second := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		setValues(t, w.dir, w.userID, ids, "citation", first, map[string]string{"page": "2", "column": "4"})
+		setValues(t, w.dir, w.userID, ids, "citation", second, map[string]string{"page": "7", "column": "1"})
+		p1, k1 := plain(t, first)
+		p2, k2 := plain(t, second)
+		if p1 != gazette+"p. 2, col. 4." || p2 != gazette+"p. 7, col. 1." || k1 == k2 {
+			t.Errorf("plains %q %q, group keys %q %q", p1, p2, k1, k2)
+		}
+		third := newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON)
+		mustRPC(t, SetMetadata, &engine.SetMetadataRequest{
+			ProjectDir: w.dir, UserId: w.userID, Owner: &engine.MetadataOwner{Level: "citation", Id: third},
+			FieldId: ids["page"], Mark: &engine.ValueMark{Unknown: true},
+		}, &engine.SetMetadataResponse{})
+		if p3, _ := plain(t, third); p3 != gazette+"p. unpaginated." {
+			t.Errorf("unknown page = %q", p3)
+		}
+	})
+
+	t.Run("AC-1.2 a clipping's page is typed once on its graph", func(t *testing.T) {
+		src := newspaper()
+		art, graph := newArtifact(t, w.dir, w.userID, src, "Clipping")
+		setValues(t, w.dir, w.userID, ids, "graph", graph, map[string]string{"page": "3", "column": "2"})
+		var keys []string
+		for range 5 {
+			p, k := plain(t, newCitation(t, w.dir, w.userID, art, graph, likenessLocatorJSON))
+			if p != gazette+"p. 3, col. 2." {
+				t.Errorf("plain = %q", p)
+			}
+			keys = append(keys, k)
+		}
+		for _, k := range keys[1:] {
+			if k != keys[0] {
+				t.Errorf("group keys %q differ", keys)
+			}
+		}
+	})
+
+	t.Run("AC-1.3 a Citation's page beats the locator's", func(t *testing.T) {
+		cit := newCitation(t, w.dir, w.userID, w.artifact, w.graph, pageLocatorJSON("14"))
+		setValues(t, w.dir, w.userID, ids, "citation", cit, map[string]string{"line_number": "21", "page": "15"})
+		want := strings.NewReplacer("p. 14,", "p. 15,", "line 14,", "line 21,").Replace(renderCensusFull)
+		if got, _ := plain(t, cit); got != want {
+			t.Errorf("citation = %q, want %q", got, want)
+		}
+		if got, _ := plain(t, w.citation); got != renderCensusFull {
+			t.Errorf("w.citation = %q", got)
+		}
+	})
 }
