@@ -185,7 +185,7 @@ struct PersonTimelineContent: Equatable {
 
     /// Where Back puts the keyboard for `anchor`: the row's title or the card it opened, else the
     /// Show more of the fold that hides it. Nil for a row that is gone.
-    func anchorTarget(for anchor: ConclusionSectionAnchor) -> String? {
+    func anchorStop(for anchor: ConclusionSectionAnchor) -> String? {
         guard anchor.part == .timeline else { return nil }
         let eventID = anchor.row ?? anchor.id
         if let row = items.compactMap(\.eventRow).first(where: { $0.id == eventID }) {
@@ -196,12 +196,10 @@ struct PersonTimelineContent: Equatable {
             return Self.participantsMoreID(eventId: row.id)
         }
         if hiddenUndatedIDs.contains(eventID) {
-            let more = Self.moreID(.undated)
-            return more
+            return Self.moreID(.undated)
         }
         if datedFoldIDs.contains(eventID) {
-            let more = Self.moreID(.dated)
-            return more
+            return Self.moreID(.dated)
         }
         return nil
     }

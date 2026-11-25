@@ -50,8 +50,7 @@ struct PVScrollRowIntoView<ID: Hashable>: ViewModifier {
                     proxy.scrollTo(first, anchor: .top)
                 }
                 .onChange(of: restartKey) {
-                    // Another place on the same page starts at the top, not
-                    // where the last one was left. Never animated.
+                    // A sort, a filter or an error shown starts again at the top. Never animated.
                     guard let restartTop else { return }
                     proxy.scrollTo(restartTop, anchor: .top)
                 }
@@ -73,7 +72,8 @@ extension View {
     ///     scrolls back to the first row.
     ///   - restartTop: The id of a view at the very top of the scroll content.
     ///   - restartKey: When this changes, scrolls to `restartTop` with no
-    ///     animation (`PVPageColumns` resets a page when its section changes).
+    ///     animation (a list's sort or filter, a page's error shown). An
+    ///     arrival is not one: `pvRemembersScroll` places it.
     ///   - request: When this token changes, scrolls to `row` on the next
     ///     main-actor turn, even if `row` did not change (a second click on the
     ///     same point). The turn lets a row inserted in the same update exist.

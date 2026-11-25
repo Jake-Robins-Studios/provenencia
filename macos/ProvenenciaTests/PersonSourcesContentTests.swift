@@ -217,10 +217,10 @@ struct PersonSourcesContentTests {
     /// fold that hides it.
     @Test func anchorResolvesToTheTitleLineOrFold() {
         func title(_ content: PersonSourcesContent, _ id: String) -> PersonSourcesFocus? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .sourceTitle, id: id)!)
+            content.anchorStop(for: ConclusionSectionAnchor(part: .sourceTitle, id: id)!)
         }
         func line(_ content: PersonSourcesContent, _ id: String, row: String) -> PersonSourcesFocus? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .sourceLine, id: id, row: row)!)
+            content.anchorStop(for: ConclusionSectionAnchor(part: .sourceLine, id: id, row: row)!)
         }
 
         let few = content(groups)
@@ -245,7 +245,7 @@ struct PersonSourcesContentTests {
         #expect(line(content(manyLines(3)), "c7", row: "src") == nil)
 
         // Another part is never this section's.
-        #expect(lines.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: "c1")!) == nil)
+        #expect(lines.anchorStop(for: ConclusionSectionAnchor(part: .family, id: "c1")!) == nil)
     }
 
     @MainActor @Test func foldedGraphsTakeTheHighlight() {

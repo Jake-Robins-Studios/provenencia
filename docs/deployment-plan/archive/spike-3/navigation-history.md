@@ -42,8 +42,8 @@ A stack entry must be enough to **restore** a view. MVP pieces:
 | Sidebar destination | Sources, Source fields, Source types, … | **Required** |
 | Deep location | Sources list vs Source page `id`/`ref`; selected field/type id; later File / Node / entity id | **Required** |
 | UI ephemera | List search query, focus, dirty form drafts | **Omit** |
-| List scroll | Id of the top row on a Sources, People, Events, or Places list | **On the entry, ignored for identity.** Written when you leave the list, not on each scroll. A missing value opens at the top. |
-| Section anchor | The row of a Person, Event or Place page's section (a tile, an event or card, a Source or record line, a field row's open arrow, a picture, a related place) that the page last opened another place from | **On the entry, ignored for identity.** Written as the row opens the place, on the entry being left; Back, the sidebar and the omnibar leave it as it was. Back and Forward scroll to the row and give it the keyboard, never revealing a fold (a folded row's Show more takes the keyboard). A section switch clears it. A missing or unreadable value opens the page at its top. |
+| Scroll and list state | The y of each of the page's scroll views; a list's selected row; on the Sources list, the open Source | **On the entry, ignored for identity** (`WorkspaceRevisit`). Stamped on the entry when it is left and on quit, not on each scroll; a push starts clean, except that selecting another row on the same page (a Metadata field, a Properties property) keeps the page where it is. The open Source is never written to the file. A y the page cannot reach, or a missing one, opens at the top. |
+| Section anchor | The row of a Person, Event or Place page's section (a tile, an event or card, a Source or record line, a field row's open arrow, a picture, a related place) that the page last opened another place from | **On the entry, ignored for identity.** Written as the row opens the place, on the entry being left; Back, the sidebar and the omnibar leave it as it was. Back and Forward give the row the keyboard, never revealing a fold (a folded row's Show more takes it); the scroll is the page's y. A section switch starts clean. A missing or unreadable value leaves the keyboard where it was. |
 
 Push (or replace) when the user **commits** a navigation, including:
 
@@ -52,7 +52,7 @@ Push (or replace) when the user **commits** a navigation, including:
 - Changing the selected row in a master–detail table (Source fields, Source types, …) — treat selection like a browser **query string**: same destination, different deep location, new entry so Back can return with that row preselected
 - Any other `go(to:)` from chrome, toolbar breadcrumbs, or cross-links
 
-**Do not** push on every keystroke in a search field, every focus change, every dirty form edit, or each scroll of a list. The top row is stored on the current entry when the next navigation leaves that list.
+**Do not** push on every keystroke in a search field, every focus change, every dirty form edit, or each scroll of a list. The y of each scroll view, the list's selection and the open Source are stored on the current entry when the next navigation leaves it, and on quit.
 
 **Same-entry coalescing** — navigating to a location identical to the current entry must not spam the stack (replace or no-op).
 

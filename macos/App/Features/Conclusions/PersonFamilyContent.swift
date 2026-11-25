@@ -97,14 +97,13 @@ struct PersonFamilyContent: Equatable {
 
     /// Where Back puts the keyboard for `anchor`: the tile it opened, or its fold's Show more
     /// when the fold hides it. Nil when no tile has that id (the focus person's tile opens nothing).
-    func anchorTarget(for anchor: ConclusionSectionAnchor) -> String? {
+    func anchorStop(for anchor: ConclusionSectionAnchor) -> String? {
         guard anchor.part == .family else { return nil }
         if allTiles.contains(where: { $0.id == anchor.id && $0.location != nil }) {
             return anchor.id
         }
         guard let fold = hiddenTiles[anchor.id] else { return nil }
-        let more = Self.moreID(fold)
-        return more
+        return Self.moreID(fold)
     }
 
     /// Every tile on the page, in reading order.

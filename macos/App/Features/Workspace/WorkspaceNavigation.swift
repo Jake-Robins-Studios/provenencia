@@ -61,7 +61,7 @@ final class WorkspaceNavigation {
 
     private var history: NavigationHistoryStore?
     private(set) var projectUuid: String = ""
-    /// The visit being shown (D-7). Observed: the host re-arms its scroll views when `id` changes.
+    /// The visit being shown. Observed: the host re-arms its scroll views when `id` changes.
     private(set) var arrival = WorkspaceArrival(id: 0, kind: .push)
     /// What the visit has noted so far: the list's selection, the y of each scroll view, the section
     /// anchor; the open Source is read as it is stamped. Stamped onto the entry on the next Back, Forward, jump or `go(to:)`, and by `flush()`;

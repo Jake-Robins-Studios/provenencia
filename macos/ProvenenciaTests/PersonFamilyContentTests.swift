@@ -264,7 +264,7 @@ struct PersonFamilyContentTests {
     @Test func anchorResolvesToTheTileOrItsFold() throws {
         let tileID = PersonFamilyContent.tileID
         func target(_ content: PersonFamilyContent, _ id: String) -> String? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: id)!)
+            content.anchorStop(for: ConclusionSectionAnchor(part: .family, id: id)!)
         }
 
         let kids = (0..<35).map { Data.member("kid\($0)", "Kid \($0)") }
@@ -315,7 +315,7 @@ struct PersonFamilyContentTests {
         #expect(target(origin, tileID("l", "s", "sib3")) == tileID("l", "s", "sib3"))
 
         // Another part is never this section's.
-        #expect(origin.anchorTarget(for: ConclusionSectionAnchor(part: .timeline, id: tileID("l", "s", "sib3"))!) == nil)
+        #expect(origin.anchorStop(for: ConclusionSectionAnchor(part: .timeline, id: tileID("l", "s", "sib3"))!) == nil)
     }
 
     @Test func emptyFamilyIsEmpty() {

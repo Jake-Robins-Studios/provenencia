@@ -63,14 +63,6 @@ struct PVScrollMemoryHostedTests {
         scrollViews(in: host).first
     }
 
-    /// Lays out until `condition` holds. The 10 s are only how long a failure takes.
-    private func eventually(_ host: NSView, _ condition: () -> Bool) async -> Bool {
-        await waitUntil(timeout: .seconds(10)) {
-            host.layoutSubtreeIfNeeded()
-            return condition()
-        }
-    }
-
     private func mainQueueTurn() async {
         await withCheckedContinuation { turn in DispatchQueue.main.async { turn.resume() } }
     }

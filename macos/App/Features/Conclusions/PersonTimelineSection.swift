@@ -132,7 +132,7 @@ struct PersonTimelineList: View {
             isReady: !content.items.isEmpty,
             focus: $focused,
             keeper: $keeper
-        ) { content.anchorTarget(for: $0) }
+        ) { content.anchorStop(for: $0) }
         .onChange(of: heights) { rebuild() }
         .onChange(of: content) { rebuild() }
         .onChange(of: viewportSize.height) { rebuild() }

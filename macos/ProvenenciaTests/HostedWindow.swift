@@ -28,6 +28,15 @@ func descendant<V: NSView>(_ type: V.Type, in view: NSView) -> V? {
     return view.subviews.lazy.compactMap { descendant(type, in: $0) }.first
 }
 
+/// Lays `host` out until `condition` holds. The 10 s are only how long a failure takes.
+@MainActor
+func eventually(_ host: NSView, _ condition: () -> Bool) async -> Bool {
+    await waitUntil(timeout: .seconds(10)) {
+        host.layoutSubtreeIfNeeded()
+        return condition()
+    }
+}
+
 /// Hosts an AppKit `view` as the content view of a borderless window of `size`.
 /// Never shown; the `.hostedWindows` trait closes it.
 @MainActor

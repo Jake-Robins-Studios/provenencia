@@ -220,7 +220,7 @@ struct PersonTimelineContentTests {
         func target(
             _ content: PersonTimelineContent, _ id: String, row: String? = nil
         ) -> String? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .timeline, id: id, row: row)!)
+            content.anchorStop(for: ConclusionSectionAnchor(part: .timeline, id: id, row: row)!)
         }
 
         // Dated rows: the 30th shows, one past the fold stands for "more.dated".
@@ -257,7 +257,7 @@ struct PersonTimelineContentTests {
         // A row that is gone has no card to name.
         #expect(target(regular, cards[0], row: "gone") == nil)
         // Another part is never this section's.
-        #expect(regular.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: "big")!) == nil)
+        #expect(regular.anchorStop(for: ConclusionSectionAnchor(part: .family, id: "big")!) == nil)
     }
 
     @Test func pointOnFoldedPageOpensThroughIt() {

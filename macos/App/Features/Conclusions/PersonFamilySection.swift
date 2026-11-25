@@ -71,7 +71,7 @@ struct PersonFamilyDiagram: View {
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
-        .conclusionAnchorRestore([.family], isReady: width > 0, focus: $focused) { content.anchorTarget(for: $0) }
+        .conclusionAnchorRestore([.family], isReady: width > 0, focus: $focused) { content.anchorStop(for: $0) }
     }
 
     private func diagram(_ layout: PersonFamilyLayout) -> some View {
