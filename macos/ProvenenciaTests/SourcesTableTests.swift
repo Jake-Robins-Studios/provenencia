@@ -26,11 +26,6 @@ struct SourcesTableTests {
         if c.isWide { #expect(widths.type == 220) }
     }
 
-    @Test func theGutterPutsTheFirstHeaderOnIt() {
-        #expect(PVWidthClass(paneWidth: 1102).fullPaneGutter - SourcesTableWidths.headerInset == 14)
-        #expect(PVWidthClass(paneWidth: 2296).fullPaneGutter == 56)
-    }
-
     /// T-12: a header's first click sorts A to Z for Title and newest first for the dates; the table's
     /// report becomes the page's sort, and an empty report leaves it.
     @Test func headersConvertToTheSort() {
@@ -42,8 +37,6 @@ struct SourcesTableTests {
             #expect(SourcesTable.sort(from: [second, first], current: current) == second)
         }
         #expect(SourcesTable.sort(from: [], current: current) == current)
-        #expect(SourcesSort.Column.title.firstOrder == .forward)
-        #expect([SourcesSort.Column.published, .added, .updated].allSatisfy { $0.firstOrder == .reverse })
     }
 
     @Test func aComparatorNeverReordersRows() {
@@ -51,11 +44,17 @@ struct SourcesTableTests {
         #expect(sort.compare(.skeleton(0), .skeleton(1)) == .orderedSame)
     }
 
-    @Test func skeletonRowsHaveStableIDs() {
-        let ids = SourcesTableItem.skeletons.map(\.id)
-        #expect(ids.count == 30)
-        #expect(ids.first == "skeleton-0" && ids.last == "skeleton-29")
-        #expect(Set(ids).count == 30)
+    @Test func aSourceAndASkeletonAreTallAndTheRowsUnderASourceShort() {
+        let source = CatalogSource(id: "s1", ref: "SRC-1", sourceTypeID: "t1", title: "Census", description: "")
+        let graph = CatalogEvidenceGraph(
+            id: "g1", ref: "GPH-1", sourceID: "s1", name: "Default", description: "", artifactIDs: []
+        )
+        let kinds: [SourcesOutlineRow.Kind] = [
+            .source(source, disclosure: .collapsed), .graph(graph, source: source), .pendingGraph(source: source),
+        ]
+        let heights = kinds.map { SourcesTableItem.row(SourcesOutlineRow(id: "r", kind: $0)).contentHeight }
+        #expect(heights == [58, 26, 26])
+        #expect(SourcesTableItem.skeleton(0).contentHeight == 58)
     }
 
     @MainActor

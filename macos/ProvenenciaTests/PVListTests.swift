@@ -112,7 +112,7 @@ struct PVListTests {
         #expect(action(.return, at: 0, of: 0) == .ignore)
     }
 
-    /// T-11 (D-9, AC-1.3): a table that opens rows reads Return and Space through `PVListKeyboard`.
+    /// AC-1.3: a table that opens rows reads Return and Space through `PVListKeyboard`.
     @Test func returnAndSpaceActivateForATable() {
         #expect(action(.return, at: -1, of: 3) == .activate(0))
         #expect(action(.space, at: 1, of: 3) == .activate(1))
@@ -127,18 +127,12 @@ struct PVListTests {
         #expect(PVListDensity.compact.horizontal == 12)
     }
 
-    private struct WheelRow: Identifiable { let id: String }
-
-    @MainActor
-    private func firstScrollView(in view: NSView) -> NSScrollView? {
-        if let scroll = view as? NSScrollView { return scroll }
-        return view.subviews.lazy.compactMap { firstScrollView(in: $0) }.first
-    }
+    private struct PlainRow: Identifiable { let id: String }
 
     /// A mouse wheel moves the list by `verticalLineScroll`, which the table takes from its row
     /// height: a minimum row height of 1 pt made one wheel step 1 pt.
     @Test(.hostedWindows) @MainActor func aWheelStepScrollsOneRow() throws {
-        let rows = (0 ..< 5).map { WheelRow(id: "PER-0000\($0)") }
+        let rows = (0 ..< 5).map { PlainRow(id: "PER-0000\($0)") }
         let list = PVList(
             items: rows,
             selection: .constant(nil),
@@ -151,11 +145,70 @@ struct PVListTests {
         )
         let (_, host) = hostInBorderlessWindow(list, windowSize: CGSize(width: 600, height: 400))
         host.layoutSubtreeIfNeeded()
-        let scroll = try #require(firstScrollView(in: host))
+        let scroll = try #require(descendant(NSScrollView.self, in: host))
         #expect(scroll.verticalLineScroll == 66)
     }
 
-    /// T-14: a row's inset on each side is the list's inset less the cell inset the table adds.
+    /// The x-extent of the hairline drawn under a row: the first and last column where a pixel is drawn
+    /// across most of a one-pixel band inside the row's rect. Nil when the row draws no rule.
+    @MainActor
+    private func ruleExtent(row: Int, in table: NSTableView) -> ClosedRange<Int>? {
+        // Only the row's lower band is drawn and read: a whole-table bitmap read pixel by pixel blocks the
+        // main thread for seconds on a slow runner.
+        let row = table.rect(ofRow: row)
+        let band = NSRect(x: 0, y: row.minY + row.height * 0.6, width: table.bounds.width, height: row.height * 0.4)
+        guard let rep = table.bitmapImageRepForCachingDisplay(in: band), let data = rep.bitmapData else { return nil }
+        table.cacheDisplay(in: band, to: rep)
+        let scale = CGFloat(rep.pixelsWide) / band.width
+        let alphaOffset = rep.bitmapFormat.contains(.alphaFirst) ? 0 : rep.samplesPerPixel - 1
+        var best: ClosedRange<Int>?
+        for y in 0 ..< rep.pixelsHigh {
+            var first: Int?
+            var last = 0
+            var count = 0
+            let line = data + y * rep.bytesPerRow
+            for x in 0 ..< rep.pixelsWide where line[x * rep.samplesPerPixel + alphaOffset] > 13 {
+                if first == nil { first = x }
+                last = x
+                count += 1
+            }
+            if let first, count > rep.pixelsWide / 2, count >= (last - first) * 9 / 10 {
+                best = first ... last
+            }
+        }
+        return best.map { Int(CGFloat($0.lowerBound) / scale) ... Int(CGFloat($0.upperBound) / scale) }
+    }
+
+    /// A plain list (the Persons list's shape): its rules run gutter to gutter.
+    @Test(.hostedWindows) @MainActor func aPlainListsRulesRunGutterToGutter() async throws {
+        let list = PVList(
+            items: (0 ..< 3).map { PlainRow(id: "r\($0)") },
+            selection: .constant(nil),
+            thumbnail: { _ in PVThumbnail(PVThumbnail.Content(glyph: .mark(.subjectPerson))) },
+            horizontalInset: 32,
+            label: L10n.Workspace.personsTitle,
+            itemAccessibilityLabel: { $0.id },
+            onActivate: { _ in },
+            primary: { Text(verbatim: $0.id) },
+            secondary: { _ in EmptyView() }
+        )
+        let (_, host) = hostInBorderlessWindow(list, windowSize: CGSize(width: 800, height: 400))
+        var extent: ClosedRange<Int>?
+        var width = 0
+        #expect(await waitUntil(timeout: .seconds(10)) {
+            host.layoutSubtreeIfNeeded()
+            guard let table = descendant(NSTableView.self, in: host), table.numberOfRows == 3 else { return false }
+            extent = ruleExtent(row: 0, in: table)
+            width = Int(table.bounds.width)
+            return extent != nil
+        })
+        // A rule starts at the gutter and ends within the platform's few points of the trailing one.
+        let rule = try #require(extent)
+        #expect(rule.lowerBound == 32)
+        #expect((width - 36 ... width - 32).contains(rule.upperBound))
+    }
+
+    /// A row's inset on each side is the list's inset less the cell inset the table adds.
     @Test func rowInsetLeavesTheCellInset() {
         #expect(PVListMetrics.rowInset(horizontalInset: 32) == 24)
         #expect(PVListMetrics.rowInset(horizontalInset: 56) == 48)

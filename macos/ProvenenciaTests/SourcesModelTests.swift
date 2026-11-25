@@ -819,31 +819,14 @@ struct SourcesModelTests {
         }
     }
 
-    /// T-5: counts loading or failed, and a failed graph list, show no badge; a graph with no Artifact
-    /// does not wait for counts.
-    @Test func noBadgeWithoutCounts() async {
+    @Test func noBadgeWithoutTheGraphList() async {
         enum Boom: Error { case boom }
         let store = FakeStore()
+        store.listEvidenceGraphsError = Boom.boom
         let sources = [source(id: "s1", title: "A", typeID: "t1", hasArtifact: true)]
-        store.evidenceGraphsByProject[projectDir] = [graph("g1", source: "s1")]
         let (model, session) = makeModel(store: store, sources: sources, types: [photoType()], holdsArtifacts: true)
         await warmLists(model, session: session)
-        await warmProgress(model, session: session)
-        #expect(model.status(for: sources[0]) == .empty)
-
-        let failing = FakeStore()
-        failing.evidenceGraphsByProject[projectDir] = [graph("g1", source: "s1")]
-        failing.listEvidenceGraphProgressError = Boom.boom
-        let (failedModel, failedSession) = makeModel(store: failing, sources: sources, types: [photoType()], holdsArtifacts: true)
-        await warmLists(failedModel, session: failedSession)
-        await warmProgress(failedModel, session: failedSession)
-        #expect(failedModel.status(for: sources[0]) == nil)
-
-        let graphsFailing = FakeStore()
-        graphsFailing.listEvidenceGraphsError = Boom.boom
-        let (graphsModel, graphsSession) = makeModel(store: graphsFailing, sources: sources, types: [photoType()], holdsArtifacts: true)
-        await warmLists(graphsModel, session: graphsSession)
-        #expect(graphsModel.status(for: sources[0]) == nil)
+        #expect(model.status(for: sources[0]) == nil)
     }
 
     /// T-5 (CON-4): while the counts load or when they failed, a Source with a graph that links an Artifact

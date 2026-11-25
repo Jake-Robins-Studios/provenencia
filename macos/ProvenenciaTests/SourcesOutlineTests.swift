@@ -134,6 +134,17 @@ struct SourcesOutlineTests {
         #expect(outline.selection(afterOpening: c.after, selecting: c.selecting, current: c.current) == c.expected)
     }
 
+    /// The page's one path for closing a Source (the triangle, the keys and the VoiceOver action).
+    @Test func closingTheSourceOfASelectedGraphSelectsTheSource() {
+        let session = WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: FakeStore())
+        let navigation = WorkspaceNavigation()
+        session.setOpenSource("s1")
+        navigation.noteListAnchor("g1a")
+        outline(open: "s1").setOpen(nil, session: session, navigation: navigation)
+        #expect(session.openSourceID == nil)
+        #expect(navigation.listAnchor == "s1")
+    }
+
     @Test func aPendingRowSelectsItsSourceWhenItCloses() {
         let pending = SourcesOutline(sources: [source("s4")], graphs: reads([:]), open: "s4")
         let placeholder = SourcesOutlineRow.pendingID(sourceID: "s4")
