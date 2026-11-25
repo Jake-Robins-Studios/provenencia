@@ -3264,21 +3264,21 @@ func TestSourceBoardBuiltins(t *testing.T) {
 	court := newSource(t, c, userID, seededType(t, c, "court_report").ID, "Report")
 	plain := sourcetypesLedger(t, c, userID)
 
-	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere || b.Page.Need != citationformat.NeedUsed {
-		t.Errorf("census date %+v, page %+v; want date needed and unmet, page used", b.Date, b.Page)
+	if b := boardOf(t, c, sourceOwner(census.ID)); b.Date.Need != citationformat.NeedNeeded || b.Date.MetElsewhere || b.Page.Need != "" {
+		t.Errorf("census date %+v, page %+v; want date needed and unmet, page none", b.Date, b.Page)
 	}
-	b := boardOf(t, c, sourceOwner(court.ID))
 	pages := seededField(t, c, "page_range")
-	if b.Page.Need != citationformat.NeedNeeded || b.Page.MetElsewhere || len(b.Page.Alternatives) != 1 ||
-		b.Page.Alternatives[0].Level != "" || b.Page.Alternatives[0].Field == nil ||
-		!bytes.Equal(b.Page.Alternatives[0].Field.ID, pages.ID) {
-		t.Errorf("court report page = %+v, want needed, unmet, alternative page_range read nearest-first", b.Page)
+	e, ok := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "page")
+	if !ok || e.Annotation.Need != citationformat.NeedNeeded || e.Annotation.MetElsewhere || len(e.Annotation.Alternatives) != 2 ||
+		e.Annotation.Alternatives[0].Level != vocabkey.LevelCitation || e.Annotation.Alternatives[0].Builtin != "page" ||
+		e.Annotation.Alternatives[1].Field == nil || !bytes.Equal(e.Annotation.Alternatives[1].Field.ID, pages.ID) {
+		t.Errorf("court report page entry = %+v, %v; want suggested, needed, unmet, alternatives the citation page then page_range", e.Annotation, ok)
 	}
 	if _, err := runSet(c, userID, court.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
 		t.Fatal(err)
 	}
-	if got := boardOf(t, c, sourceOwner(court.ID)).Page; !got.MetElsewhere {
-		t.Errorf("court report page with page_range = %+v, want met elsewhere", got)
+	if e, _ := entryOf(boardOf(t, c, sourceOwner(court.ID)).Entries, "page"); !e.Annotation.MetElsewhere {
+		t.Errorf("court report page entry with page_range = %+v, want met elsewhere", e.Annotation)
 	}
 	art := newLevelOwner(t, c, userID, census, vocabkey.LevelArtifact)
 	if ab := boardOf(t, c, art); ab.Date.Need != "" || ab.Page.Need != "" {
@@ -3286,6 +3286,22 @@ func TestSourceBoardBuiltins(t *testing.T) {
 	}
 	if lb := boardOf(t, c, sourceOwner(plain.ID)); lb.Date.Need != "" || lb.Page.Need != "" {
 		t.Errorf("ledger date %+v, page %+v; want none", lb.Date, lb.Page)
+	}
+
+	// The built-in page head stays held until S15-58 deletes it: a type whose
+	// format heads a chain with it.
+	l := newLedger(t, c, userID)
+	l.setFormats(t, c, userID, sourcetypes.Formats{Full: "{citation.page|meta.page_range}."})
+	pb := boardOf(t, c, sourceOwner(l.src.ID)).Page
+	if pb.Need != citationformat.NeedNeeded || pb.MetElsewhere || len(pb.Alternatives) != 1 ||
+		pb.Alternatives[0].Field == nil || !bytes.Equal(pb.Alternatives[0].Field.ID, pages.ID) {
+		t.Errorf("built-in head page = %+v, want needed, unmet, one alternative page_range", pb)
+	}
+	if _, err := runSet(c, userID, l.src.ID, Input{FieldID: pages.ID, ValueText: "12-14"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := boardOf(t, c, sourceOwner(l.src.ID)).Page; !got.MetElsewhere {
+		t.Errorf("built-in head page with page_range = %+v, want met elsewhere", got)
 	}
 }
 
@@ -3311,35 +3327,34 @@ type seedExpect struct {
 	listOnly []string // of those, the ones only the list form needs: the Artifact and graph boards do not need them
 	unsug    []string // empty unsuggested heads, "key:need"
 	date     citationformat.Need
-	page     citationformat.Need
 }
 
 var seedExpectations = map[string]seedExpect{
-	"birth_certificate":    {needed: []string{"jurisdiction"}, date: "used", page: "used"},
-	"book":                 {needed: []string{"author", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
-	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"birth_certificate":    {needed: []string{"jurisdiction"}, date: "used"},
+	"book":                 {needed: []string{"author", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used"},
+	"broadcast":            {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used"},
 	"case_file":            {needed: []string{"jurisdiction"}, unsug: []string{"short_title:used", "collection:used"}},
 	"cemetery_marker":      {needed: []string{"creator", "cemetery_location"}, listOnly: []string{"cemetery_location"}},
-	"census":               {needed: []string{"jurisdiction"}, date: "needed", page: "used"},
-	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}, page: "used"},
+	"census":               {needed: []string{"jurisdiction"}, date: "needed"},
+	"church_register":      {needed: []string{"creator"}, unsug: []string{"short_title:used", "coverage:used"}},
 	"correspondence":       {needed: []string{"creator", "recipient"}, unsug: []string{"coverage:used"}, date: "needed"},
-	"court_report":         {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "used", page: "needed"},
-	"death_certificate":    {needed: []string{"jurisdiction"}, date: "used", page: "used"},
+	"court_report":         {needed: []string{"published_in", "page"}, unsug: []string{"short_title:used"}, date: "used"},
+	"death_certificate":    {needed: []string{"jurisdiction"}, date: "used"},
 	"dna_match_report":     {needed: []string{"testing_company"}, unsug: []string{"short_title:used"}, date: "used"},
 	"family_bible":         {unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
 	"gedcom_file":          {unsug: []string{"short_title:used"}, date: "used"},
 	"government_file":      {needed: []string{"repository"}, unsug: []string{"short_title:used"}, date: "used"},
 	"interview":            {needed: []string{"interviewee", "interviewer"}, date: "needed"},
-	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used", page: "used"},
+	"journal_article":      {needed: []string{"author", "published_in", "author_sort"}, listOnly: []string{"author_sort"}, unsug: []string{"short_title:used", "author_sort:needed"}, date: "used"},
 	"manuscript":           {needed: []string{"repository"}, unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
-	"marriage_certificate": {needed: []string{"jurisdiction"}, date: "used", page: "used"},
-	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "needed", page: "used"},
+	"marriage_certificate": {needed: []string{"jurisdiction"}, date: "used"},
+	"newspaper_item":       {needed: []string{"published_in"}, unsug: []string{"short_title:used"}, date: "needed"},
 	"oral_testimony":       {needed: []string{"interviewee"}, date: "needed"},
-	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}, page: "used"},
+	"passenger_list":       {unsug: []string{"short_title:used", "creator:used", "collection:used", "repository:used"}},
 	"photograph":           {unsug: []string{"short_title:used"}, date: "used"},
 	"private_papers":       {unsug: []string{"short_title:used", "coverage:used"}, date: "used"},
-	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"coverage:used"}, page: "used"},
-	"statute":              {needed: []string{"jurisdiction", "published_in"}, date: "used", page: "used"},
+	"record_book":          {needed: []string{"jurisdiction"}, unsug: []string{"coverage:used"}},
+	"statute":              {needed: []string{"jurisdiction", "published_in"}, date: "used"},
 	"website":              {needed: []string{"site_name"}, unsug: []string{"short_title:used"}},
 }
 
@@ -3358,7 +3373,7 @@ func TestSeedAnnotations(t *testing.T) {
 	if len(seeded) != len(seedExpectations) {
 		t.Fatalf("%d seeded types, the table holds %d", len(seeded), len(seedExpectations))
 	}
-	var neededAtSource, neededBelow, unsuggested, dates, pages int
+	var neededAtSource, neededBelow, unsuggested, dates int
 	for _, ty := range seeded {
 		want, ok := seedExpectations[ty.Key]
 		if !ok {
@@ -3409,22 +3424,19 @@ func TestSeedAnnotations(t *testing.T) {
 			if !slices.Equal(unsug, want.unsug) {
 				t.Errorf("unsuggested heads = %v, want %v", unsug, want.unsug)
 			}
-			if boards[0].Date.Need != want.date || boards[0].Page.Need != want.page {
-				t.Errorf("date %q, page %q; want %q, %q", boards[0].Date.Need, boards[0].Page.Need, want.date, want.page)
+			if boards[0].Date.Need != want.date || boards[0].Page.Need != "" {
+				t.Errorf("date %q, page %q; want %q, none", boards[0].Date.Need, boards[0].Page.Need, want.date)
 			}
 			neededAtSource += len(needed)
 			unsuggested += len(unsug)
 			if boards[0].Date.Need == citationformat.NeedNeeded {
 				dates++
 			}
-			if boards[0].Page.Need == citationformat.NeedNeeded {
-				pages++
-			}
 		})
 	}
-	if neededAtSource != 30 || neededBelow != 2*(30-4) || unsuggested != 29 || dates != 5 || pages != 1 {
-		t.Errorf("needed %d (want 30), needed below %d (52), unsuggested heads %d (29), needed dates %d (5), needed pages %d (1)",
-			neededAtSource, neededBelow, unsuggested, dates, pages)
+	if neededAtSource != 31 || neededBelow != 2*(31-4) || unsuggested != 29 || dates != 5 {
+		t.Errorf("needed %d (want 31), needed below %d (54), unsuggested heads %d (29), needed dates %d (5)",
+			neededAtSource, neededBelow, unsuggested, dates)
 	}
 }
 

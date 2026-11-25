@@ -410,7 +410,7 @@ func TestGetSourceWorkspace(t *testing.T) {
 			},
 		},
 		{
-			name: "census asks the Source date and the page",
+			name: "census asks the Source date and no built-in page",
 			reqFn: func(t *testing.T) proto.Message {
 				dir, userID, _ := sourceFixture(t)
 				return &engine.GetSourceWorkspaceRequest{ProjectDir: dir, SourceId: seededSourceOfType(t, dir, userID, "census")}
@@ -423,8 +423,8 @@ func TestGetSourceWorkspace(t *testing.T) {
 				if got := resp.GetDateRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_NEEDED || got.GetMetElsewhere() {
 					t.Errorf("date_requirement %+v, want needed, not met", got)
 				}
-				if got := resp.GetPageRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_USED {
-					t.Errorf("page_requirement %+v, want used", got)
+				if got := resp.GetPageRequirement(); got.GetNeed() != engine.CitationNeed_CITATION_NEED_UNSPECIFIED {
+					t.Errorf("page_requirement %+v, want none", got)
 				}
 			},
 		},
