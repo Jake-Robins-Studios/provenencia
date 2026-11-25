@@ -1,7 +1,7 @@
 # Ship log — S16-72 Back returns to the scroll position
 
 **Plan:** [`S16-72-scroll-offset-history.md`](S16-72-scroll-offset-history.md) · **Branch:** `s16-72-scroll-offset-history` · **PR:** [#973](https://github.com/Jake-Robins-Studios/provenencia/pull/973)
-**State:** ready
+**State:** ready once CI is green
 
 ## Round 0 — implement
 Head `f4fe67b4c`. Gate PASS (orchestrator). Deviations: `connect(to:)` and `applyHistoryState(_:kind:)`; the y reads the clip view's inset; `SourcesTable.insetsItself`; two scroll-id helpers removed; `movedTo` in `PVNativeListBehavior`; T-6 uses a near graph (a far selected row draws selected only once drawn); a far Sources y can exceed the table's estimate and open at the top. Not checked by hand: the Timeline hand-off, Promote.
@@ -106,6 +106,26 @@ Check: the test, one run; `scripts/check-pr.sh` PASS once.
 
 Head `c0567b692`: S-3 done (orchestrator read the diff; the test's row 270 is right, since End does not select and the first ↑ takes the last row).
 
+### CI on `c0567b692` and `734ffb5fd`
+Go green; macOS red twice (45704383621, 45704622125), one test: `aReusedViewWhoseContentShrinksStillRestores` (y never 0, then never 900; noted [1200, 900, 648]). It passed on `6cd325457`. Reading: the arrival's restore runs on the next turn, before the arriving content is laid out; the document is still the old section's, so 900 "fits", the restore ends, and the shrink's clamp to 648 is noted. Product ordering, exposed by load.
+
+**C-1 — The restore decides on the arriving content's layout**
+Files: `PVScrollMemory.swift`, `PVScrollMemoryHostedTests.swift`.
+Failing test first, deterministic: make the order happen without load (for example the document laid out only when asked, with the arrival applied first), red before the fix in one run.
+Do: before comparing the y with what the view reaches, the content is laid out once (one layout of the scroll view's own tree, or of the window's content if that is what flushes it); no delay, no loop, no repeat. Say which layout flushes the arriving content and why it is enough; if an observed change can still arrive a turn later than the arrival, hold the decision on that signal rather than on time, or stop and report. Cost stays one layout per decision.
+Check: red then green; the existing test; `scripts/check-pr.sh` PASS once.
+
+Head `7dd23102a`: C-1 confirmed (red first, the same numbers as CI) and fixed: one layout of the window's content before the decision. It found a second defect:
+
+**C-2 — A selection that catches up with an arrival is not a move**
+Files: `PVScrollRowIntoView.swift` (`PVScrollsSelectionIntoView`), `PVScrollMemoryHostedTests.swift`.
+Metadata's and Properties' models set their selection from the location one update after the arrival, so the reveal takes it as a move and animates over the restored y.
+Failing test first: `selectingARowThatIsAPlaceKeepsTheTablesY` with the settle wait (`y(table) == 1069` before `scroll(table, to: 3000)`).
+Do: after an arrival changes, a selection change in the same main-actor turn is the arrival's, not a move (state cleared in one `Task { @MainActor }`; no timer, no page changes). A later move, by key, click or an add, reveals as today. If the models' late selection is not in that turn, stop and report.
+Check: red then green; `scripts/check-pr.sh` PASS once.
+
+Head `83eed0d97`: C-2 done, red first. S-3, C-1 and C-2 were read by the orchestrator in the diff; no reviewer ran on them.
+
 ## Result
 Gate PASS · CI: on the PR · open: none · follow-ups: none · to user: the manual check; the Sources list in practice
 
@@ -128,5 +148,7 @@ Plan: 6,114 words (check-plan-docs info line).
 | 2 | QCK review | opus | 69k |
 | user | implementer (S-2) | opus | 242k |
 | user | QCK review | opus | 80k |
-| user | implementer (S-3) | sonnet | — |
-| | **Total** (rows with a count) | | **2,168k** |
+| user | implementer (S-3) | sonnet | 92k |
+| CI | implementer (C-1) | opus | 151k |
+| CI | implementer (C-2) | opus | — |
+| | **Total** (rows with a count) | | **2,411k** |
