@@ -20,13 +20,11 @@ struct SourcesTableHostedTests {
 
         var body: some View {
             let widthClass = PVWidthClass(paneWidth: pane.value)
-            SourcesTable(
-                items: model.outline.items, selection: $selection, model: model,
-                gutter: widthClass.fullPaneGutter
-            )
-            .frame(width: pane.value, height: 760)
-            .environment(session)
-            .environment(\.pvWidthClass, widthClass)
+            SourcesTable(items: model.outline.items, selection: $selection, model: model)
+                .padding(.horizontal, SourcesTable.inset(gutter: widthClass.fullPaneGutter))
+                .frame(width: pane.value, height: 760)
+                .environment(session)
+                .environment(\.pvWidthClass, widthClass)
         }
     }
 

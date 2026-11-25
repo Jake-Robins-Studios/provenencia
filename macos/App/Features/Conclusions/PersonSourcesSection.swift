@@ -173,15 +173,11 @@ struct PersonSourcesList: View {
         }
     }
 
-    /// The scroll id of the diagram column, for Back to a node of the record links diagram when
-    /// the diagram stacks under the rows.
-    static let diagramScrollID = "diagram"
-
     var body: some View {
         ConclusionPinnedSideColumn(mainMin: PersonSourcesColumns.minWidth) {
             rows
         } side: {
-            diagram.id(Self.diagramScrollID)
+            diagram
         }
         .unpromoteConfirm(
             flow: unpromote,
@@ -227,8 +223,7 @@ struct PersonSourcesList: View {
                         open(location, ConclusionSectionAnchor(part: .recordLinks, id: id))
                     }
                 },
-                focus: $focus,
-                anchorScrollID: Self.diagramScrollID
+                focus: $focus
             )
         }
     }
@@ -263,13 +258,12 @@ struct PersonSourcesList: View {
                     hover: hover,
                     focusedGraphID: focusedGraphID
                 ) { unfold(.rows) }
-                .id(PersonSourcesContent.moreRowsID)
                 .padding(.vertical, PVSpacing.space3)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).more")
             }
         }
         .pvScrollsRowIntoView(scrollTarget, whenRequested: scrollRequest)
-        .conclusionAnchorRestore([.sourceTitle, .sourceLine], isReady: true, focus: $focus) { content.anchorTarget(for: $0) }
+        .conclusionAnchorRestore([.sourceTitle, .sourceLine], isReady: true, focus: $focus) { content.anchorStop(for: $0) }
     }
 
     /// Notes where focus goes after the removed line, then writes.
@@ -433,7 +427,6 @@ private struct PersonSourcesRowView: View {
                     revealed: revealed,
                     expand: expand
                 )
-                .id(PersonSourcesContent.moreLinesID(sourceID: row.id))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .personSourcesHighlight(highlightedGraphID.map(foldedGraphIDs.contains) ?? false)
                 .accessibilityIdentifier("\(accessibilityIdentifierRoot).more.\(row.id)")

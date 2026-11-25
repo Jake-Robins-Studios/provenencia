@@ -41,9 +41,7 @@ struct WorkspaceView: View {
         if let uuid = model.project?.uuid, !uuid.isEmpty {
             navigation.attachProject(uuid: uuid)
         }
-        navigation.onLocationCommit = { location in
-            session.apply(location: location)
-        }
+        navigation.connect(to: session)
         let counts = CatalogCounts(projectDir: projectDir, store: model.store, toasts: session.toasts)
         session.onNavCountsMoved = { await counts.refreshAll() }
         _session = State(initialValue: session)
@@ -92,7 +90,11 @@ struct WorkspaceView: View {
                 bindNavigationCommands()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            navigation.flush()
+        }
         .onDisappear {
+            navigation.flush()
             signOutCoordinator.isAvailable = false
             navigationCoordinator.canGoBack = false
             navigationCoordinator.canGoForward = false

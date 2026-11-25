@@ -67,12 +67,12 @@ struct SourcesOutlineHostedTests {
             uuid: UUID().uuidString,
             fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
         )
-        if let anchor { navigation.noteListAnchor(anchor) }
+        navigation.connect(to: session)
+        if let anchor { navigation.noteListSelection(anchor) }
         let width: CGFloat = 1102
         let view = AnyView(
-            SourcesListView(
-                session: session, userID: "00000000-0000-7000-8000-000000000001",
-                projectUuid: UUID().uuidString, store: store
+            WorkspaceDestinationHost(
+                userID: "00000000-0000-7000-8000-000000000001", sessionDisplayName: "", store: store
             )
             .environment(session)
             .environment(navigation)
@@ -93,14 +93,6 @@ struct SourcesOutlineHostedTests {
         )
     }
 
-    /// Lays out until `condition` holds. The 10 s are only how long a failure takes.
-    private func eventually(_ harness: Harness, _ condition: () -> Bool) async -> Bool {
-        await waitUntil(timeout: .seconds(10)) {
-            harness.host.layoutSubtreeIfNeeded()
-            return condition()
-        }
-    }
-
     /// The main-queue work enqueued before this call has run.
     private func mainQueueTurn() async {
         await withCheckedContinuation { turn in DispatchQueue.main.async { turn.resume() } }
@@ -109,8 +101,8 @@ struct SourcesOutlineHostedTests {
     private func select(
         _ anchor: String, row: Int, _ harness: Harness, sourceLocation: SourceLocation = #_sourceLocation
     ) async {
-        harness.navigation.noteListAnchor(anchor)
-        #expect(await eventually(harness) { harness.table.selectedRow == row }, sourceLocation: sourceLocation)
+        harness.navigation.noteListSelection(anchor)
+        #expect(await eventually(harness.host) { harness.table.selectedRow == row }, sourceLocation: sourceLocation)
     }
 
     private func isInView(_ row: Int, _ harness: Harness) -> Bool {
@@ -132,7 +124,7 @@ struct SourcesOutlineHostedTests {
             }
             #expect(await waitUntil(timeout: .seconds(10)) { table.numberOfRows == want.count })
             var heights: [CGFloat] = []
-            let settled = await eventually(harness) {
+            let settled = await eventually(harness.host) {
                 heights = want.indices.map { table.rect(ofRow: $0).height }
                 return want.indices.allSatisfy {
                     heights[$0] == want[$0] || table.rowView(atRow: $0, makeIfNecessary: false) == nil
@@ -148,22 +140,57 @@ struct SourcesOutlineHostedTests {
     @Test func theTablesOwnSelectionBecomesTheAnchor() async throws {
         let harness = try await makeHarness()
         harness.table.selectRowIndexes([1], byExtendingSelection: false)
-        #expect(await eventually(harness) { harness.navigation.listAnchor == "s2" })
+        #expect(await eventually(harness.host) { harness.navigation.listSelection == "s2" })
     }
 
-    @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {
-        let harness = try await makeHarness()
-        harness.navigation.noteListAnchor("g1-2")
-        #expect(await eventually(harness) { harness.table.numberOfRows == 11 && harness.table.selectedRow == 5 })
+    /// AC-2.1, AC-2.2: Back to the Sources list opens the Source it was left with open, selects the
+    /// row, and puts the list at the y it was left at. The graph is in the first screenful: the platform
+    /// table selects a row only once it is drawn.
+    @Test func backRestoresTheOpenSourceTheSelectionAndTheY() async throws {
+        let harness = try await makeHarness(rows: 4 + 3 + 8, open: "s1", extraSources: 4)
+        let graphRow = 4 + 3 + 2
+        // The rows are measured: before, the table's document is too short for the y.
+        #expect(await eventually(harness.host) { (harness.scroll.documentView?.frame.height ?? 0) > 700 })
+        scroll(harness.scroll, to: 100)
+        await select("g1-2", row: graphRow, harness)
+        #expect(y(harness.scroll) == 100)
+        let restored = try await leaveAndGoBack(harness)
+        #expect(await eventually(harness.host) { self.y(restored) == 100 && (restored.documentView as? NSTableView)?.selectedRow == graphRow })
         #expect(harness.session.openSourceID == "s1")
     }
 
-    /// The selection on Back. The scroll on Back is S16-72.
-    @Test func anAnchorSetBeforeThePageIsHostedOpensTheSourceAndSelectsTheGraph() async throws {
-        // 15 Source rows above s1 push its graphs past the 760 pt window.
-        let harness = try await makeHarness(rows: 15 + 3 + 8, extraSources: 15, anchor: "g1-7")
-        #expect(harness.session.openSourceID == "s1")
-        #expect(await eventually(harness) { harness.table.selectedRow == 15 + 3 + 7 })
+    /// A y past the height the table reports on arrival opens at the top, and stays on the entry.
+    @Test func backToAYPastTheTablesHeightOpensAtTheTop() async throws {
+        let harness = try await makeHarness(rows: 4 + 3 + 8 + 90, open: "s1", extraSources: 4, tailSources: 90)
+        harness.navigation.noteScrollOffset(9000, arrival: harness.navigation.arrival)
+        let restored = try await leaveAndGoBack(harness)
+        await mainQueueTurn()
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(y(restored) == 0)
+        harness.navigation.goForward()
+        harness.navigation.goBack()
+        #expect(harness.navigation.currentLocation.revisit.scrollOffset == 9000)
+    }
+
+    private func y(_ scroll: NSScrollView) -> Double {
+        Double(scroll.contentView.bounds.minY + scroll.contentView.contentInsets.top)
+    }
+
+    private func scroll(_ scroll: NSScrollView, to y: Double) {
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: y - scroll.contentView.contentInsets.top))
+        scroll.reflectScrolledClipView(scroll.contentView)
+        #expect(self.y(scroll) == y)
+    }
+
+    /// Opens s1's page, closes every Source, and goes Back: the list's new scroll view, its rows arrived.
+    private func leaveAndGoBack(_ harness: Harness) async throws -> NSScrollView {
+        let rows = harness.table.numberOfRows
+        harness.navigation.go(to: .sourcePage(sourceId: "s1"))
+        #expect(await eventually(harness.host) { descendant(NSTableView.self, in: harness.host) == nil })
+        harness.session.setOpenSource(nil)
+        harness.navigation.goBack()
+        #expect(await eventually(harness.host) { descendant(NSTableView.self, in: harness.host)?.numberOfRows == rows })
+        return try #require(descendant(NSTableView.self, in: harness.host)?.enclosingScrollView)
     }
 
     /// The Source above closes as this one opens, the rows move up, and the opened row is scrolled back
@@ -177,7 +204,7 @@ struct SourcesOutlineHostedTests {
         await select("a09", row: 11, harness)
         #expect(harness.scroll.documentVisibleRect.intersects(harness.table.rect(ofRow: 11)))
         press(NSRightArrowFunctionKey, harness)
-        #expect(await eventually(harness) {
+        #expect(await eventually(harness.host) {
             harness.table.numberOfRows == 3 + 1 + 10 && harness.table.selectedRow == 3 && isInView(3, harness)
         })
         #expect(harness.session.openSourceID == "a09")
@@ -198,23 +225,23 @@ struct SourcesOutlineHostedTests {
     @Test func endReachesTheLastRowAndHomeTheFirstAtAHundredSources() async throws {
         let harness = try await makeHarness(rows: 103, extraSources: 100)
         press(NSEndFunctionKey, harness)
-        #expect(await eventually(harness) { isInView(102, harness) })
+        #expect(await eventually(harness.host) { isInView(102, harness) })
         press(NSHomeFunctionKey, harness)
-        #expect(await eventually(harness) { isInView(0, harness) })
+        #expect(await eventually(harness.host) { isInView(0, harness) })
     }
 
     @Test func rightAndLeftArrowsOpenCloseAndClimb() async throws {
         let harness = try await makeHarness()
         await select("s1", row: 2, harness)
         press(NSRightArrowFunctionKey, harness)
-        #expect(await eventually(harness) { harness.table.numberOfRows == 11 })
+        #expect(await eventually(harness.host) { harness.table.numberOfRows == 11 })
         #expect(harness.session.openSourceID == "s1")
         await select("g1-2", row: 5, harness)
         press(NSLeftArrowFunctionKey, harness)
-        #expect(await eventually(harness) { harness.table.selectedRow == 2 })
+        #expect(await eventually(harness.host) { harness.table.selectedRow == 2 })
         #expect(harness.session.openSourceID == "s1")
         press(NSLeftArrowFunctionKey, harness)
-        #expect(await eventually(harness) { harness.table.numberOfRows == 3 })
+        #expect(await eventually(harness.host) { harness.table.numberOfRows == 3 })
         #expect(harness.session.openSourceID == nil)
     }
 
@@ -226,9 +253,9 @@ struct SourcesOutlineHostedTests {
         press(NSCarriageReturnCharacter, harness)
         await select("g1-0", row: 3, harness)
         press(NSCarriageReturnCharacter, harness)
-        #expect(await eventually(harness) { harness.navigation.currentLocation.graphId == "g1-0" })
+        #expect(await eventually(harness.host) { harness.navigation.currentLocation.graphId == "g1-0" })
         harness.navigation.goBack()
-        #expect(harness.navigation.currentLocation == root.withListScrollAnchor("g1-0"))
+        #expect(harness.navigation.currentLocation == root.withListSelection("g1-0"))
         #expect(!harness.navigation.canGoBack)
     }
 
@@ -242,22 +269,22 @@ struct SourcesOutlineHostedTests {
 
     @Test func theListTakesFocusOnArrival() async throws {
         let harness = try await makeHarness()
-        #expect(await eventually(harness) { holder(harness) == "table" })
+        #expect(await eventually(harness.host) { holder(harness) == "table" })
     }
 
     @Test func aReturningListLeavesTheSearchFieldFocused() async throws {
         let harness = try await makeHarness()
-        #expect(await eventually(harness) { holder(harness) == "table" })
+        #expect(await eventually(harness.host) { holder(harness) == "table" })
         let field = try #require(descendant(NSTextField.self, in: harness.host))
         harness.window.makeFirstResponder(field)
         let editor = try #require(harness.window.fieldEditor(false, for: field) as? NSTextView)
         #expect(holder(harness) == "field")
         editor.insertText("zzzz", replacementRange: NSRange(location: 0, length: 0))
-        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host) == nil })
+        #expect(await eventually(harness.host) { descendant(NSTableView.self, in: harness.host) == nil })
         #expect(holder(harness) == "field")
         editor.selectAll(nil)
         editor.insertText("", replacementRange: editor.selectedRange())
-        #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host)?.numberOfRows == 3 })
+        #expect(await eventually(harness.host) { descendant(NSTableView.self, in: harness.host)?.numberOfRows == 3 })
         // `FocusClaim` writes on the next two turns.
         await mainQueueTurn()
         await mainQueueTurn()

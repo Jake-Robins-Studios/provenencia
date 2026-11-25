@@ -15,6 +15,7 @@ struct WorkspaceDestinationHost: View {
             destination(for: place?.presentation ?? .sourcesList)
         }
         .id(place?.viewIdentity)
+        .environment(\.pvScrollMemory, navigation.scrollMemory)
         // Fill the detail area, then measure it once: every destination reads \.pvWidthClass from here.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .pvMeasuresWidthClass()

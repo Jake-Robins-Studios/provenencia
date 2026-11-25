@@ -263,18 +263,17 @@ struct PersonFamilyContentTests {
     /// T-6 (AC-1.1 – AC-1.3, D-9): an anchor resolves to the tile, else to its fold's Show more.
     @Test func anchorResolvesToTheTileOrItsFold() throws {
         let tileID = PersonFamilyContent.tileID
-        func target(_ content: PersonFamilyContent, _ id: String) -> ConclusionAnchorTarget<String>? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: id)!)
+        func target(_ content: PersonFamilyContent, _ id: String) -> String? {
+            content.anchorStop(for: ConclusionSectionAnchor(part: .family, id: id)!)
         }
-        func tile(_ id: String) -> ConclusionAnchorTarget<String> { .init(stop: id, scrollID: id) }
 
         let kids = (0..<35).map { Data.member("kid\($0)", "Kid \($0)") }
         let children = content(CatalogPersonFamily(
             units: [Data.unit(.partner, partners: [Data.member("sam", "Sam Weber")], children: kids)],
             person: Data.johann, originSiblings: [Data.origin(Data.johannMember, [])]
         ))
-        #expect(target(children, tileID("r", "0", "kid2")) == tile(tileID("r", "0", "kid2")))
-        #expect(target(children, tileID("r", "0", "kid32")) == tile(PersonFamilyContent.moreID(.children(0))))
+        #expect(target(children, tileID("r", "0", "kid2")) == tileID("r", "0", "kid2"))
+        #expect(target(children, tileID("r", "0", "kid32")) == PersonFamilyContent.moreID(.children(0)))
         #expect(PersonFamilyContent.moreID(.children(0)) == "more.children.0")
         #expect(target(children, tileID("l", "s", "unknown")) == nil)
         // The focus person's tile opens nothing, so it is never an anchor.
@@ -288,10 +287,10 @@ struct PersonFamilyContentTests {
         let partnered = content(CatalogPersonFamily(
             units: units, person: Data.johann, originSiblings: [Data.origin(Data.johannMember, [])]
         ))
-        let partnersMore = tile(PersonFamilyContent.moreID(.partners))
+        let partnersMore = PersonFamilyContent.moreID(.partners)
         #expect(target(partnered, tileID("r", "31", "mate31")) == partnersMore)
         #expect(target(partnered, tileID("r", "31", "child31")) == partnersMore)
-        #expect(target(partnered, tileID("r", "29", "mate29")) == tile(tileID("r", "29", "mate29")))
+        #expect(target(partnered, tileID("r", "29", "mate29")) == tileID("r", "29", "mate29"))
 
         // A one-parent unit's hidden child belongs to that unit's children fold.
         let oneParentKids = (0..<35).map { Data.member("only\($0)", "Only \($0)") }
@@ -299,7 +298,7 @@ struct PersonFamilyContentTests {
             units: [Data.unit(.oneParent, children: oneParentKids)],
             person: Data.johann, originSiblings: [Data.origin(Data.johannMember, [])]
         ))
-        #expect(target(lone, tileID("r", "0", "only33")) == tile(PersonFamilyContent.moreID(.children(0))))
+        #expect(target(lone, tileID("r", "0", "only33")) == PersonFamilyContent.moreID(.children(0)))
 
         // Parent sets and siblings.
         let sets = (0..<32).map {
@@ -310,13 +309,13 @@ struct PersonFamilyContentTests {
             units: sets + [Data.unit(.siblings, children: siblings)], person: Data.johann,
             originSiblings: [Data.origin(Data.johannMember, [0])] + siblings.map { Data.origin($0, [0]) }
         ))
-        #expect(target(origin, tileID("l", "p31", "b31")) == tile(PersonFamilyContent.moreID(.parentSets)))
-        #expect(target(origin, tileID("l", "p0", "a0")) == tile(tileID("l", "p0", "a0")))
-        #expect(target(origin, tileID("l", "s", "sib35")) == tile(PersonFamilyContent.moreID(.siblings)))
-        #expect(target(origin, tileID("l", "s", "sib3")) == tile(tileID("l", "s", "sib3")))
+        #expect(target(origin, tileID("l", "p31", "b31")) == PersonFamilyContent.moreID(.parentSets))
+        #expect(target(origin, tileID("l", "p0", "a0")) == tileID("l", "p0", "a0"))
+        #expect(target(origin, tileID("l", "s", "sib35")) == PersonFamilyContent.moreID(.siblings))
+        #expect(target(origin, tileID("l", "s", "sib3")) == tileID("l", "s", "sib3"))
 
         // Another part is never this section's.
-        #expect(origin.anchorTarget(for: ConclusionSectionAnchor(part: .timeline, id: tileID("l", "s", "sib3"))!) == nil)
+        #expect(origin.anchorStop(for: ConclusionSectionAnchor(part: .timeline, id: tileID("l", "s", "sib3"))!) == nil)
     }
 
     @Test func emptyFamilyIsEmpty() {

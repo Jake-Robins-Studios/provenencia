@@ -82,39 +82,33 @@ final class NavigationHistoryStore {
         lastIssue = nil
     }
 
-    /// Write the visible list's anchor row (its top or selected row) onto the current entry. No persist:
-    /// the navigation that is about to move the stack writes the file once.
-    /// No-op unless the current entry is a list root.
-    func stampListAnchor(_ anchor: String?) {
+    /// Writes how the current entry is being left: the held revisit's y and section anchor
+    /// on every entry; its selection only on a list root, and its open Source only on the Sources list
+    /// root. No persist: the move that follows writes the file once.
+    func stampLeaving(_ held: WorkspaceRevisit) {
         guard document.entries.indices.contains(document.index) else { return }
-        guard document.entries[document.index].isListRoot else { return }
-        stampCurrent(\.listScrollAnchor, anchor?.isEmpty == false ? anchor : nil)
-    }
-
-    /// Write the row the current entry's page is opening another place from. No persist:
-    /// the push that follows writes the file once.
-    func stampSectionAnchor(_ anchor: ConclusionSectionAnchor?) {
-        stampCurrent(\.sectionAnchor, anchor)
-    }
-
-    private func stampCurrent<T: Equatable>(_ keyPath: WritableKeyPath<WorkspaceLocation, T?>, _ value: T?) {
-        guard document.entries.indices.contains(document.index) else { return }
-        guard document.entries[document.index][keyPath: keyPath] != value else { return }
-        document.entries[document.index][keyPath: keyPath] = value
+        var stamped = document.entries[document.index]
+        stamped.revisit = held
+        if !stamped.isListRoot { stamped.revisit.listSelection = nil }
+        if stamped.section != .sources || !stamped.isListRoot { stamped.revisit.openSourceId = nil }
+        document.entries[document.index] = stamped
     }
 
     /// Push a committed navigation (truncates forward). Coalesces when identical to current.
-    /// A coalesced list visit copies `listScrollAnchor` onto the current entry, including nil.
+    /// A pushed location's revisit is stripped: a new visit starts clean. A coalesced list visit
+    /// copies the incoming selection onto the current entry, including nil.
     @discardableResult
     func go(to location: WorkspaceLocation) -> WorkspaceLocation {
         if location == current {
             guard document.entries.indices.contains(document.index) else { return current }
-            if current.isListRoot, current.listScrollAnchor != location.listScrollAnchor {
-                document.entries[document.index].listScrollAnchor = location.listScrollAnchor
+            if current.isListRoot, current.revisit.listSelection != location.revisit.listSelection {
+                document.entries[document.index].revisit.listSelection = location.revisit.listSelection
                 persist()
             }
             return current
         }
+        var location = location
+        location.revisit = WorkspaceRevisit()
         if document.index < document.entries.count - 1 {
             document.entries = Array(document.entries.prefix(document.index + 1))
         }
@@ -165,6 +159,9 @@ final class NavigationHistoryStore {
         if document.entries[document.index] == location {
             return current
         }
+        // Another place: the old one's revisit is not its own.
+        var location = location
+        location.revisit = WorkspaceRevisit()
         document.entries[document.index] = location
         persist()
         return current

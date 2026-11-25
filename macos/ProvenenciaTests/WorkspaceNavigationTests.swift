@@ -128,7 +128,7 @@ struct WorkspaceNavigationTests {
         navigation.go(to: .sectionRoot(.events))
         let before = entryCount(navigation)
         var recorded: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { recorded.append($0) }
+        navigation.onLocationCommit = { location, _ in recorded.append(location) }
 
         var next = WorkspaceLocation(section: .sources, sourceId: "s1", graphId: "g-1", sourceSurface: .citationComposer)
         next.artifactId = "art-1"
@@ -144,18 +144,18 @@ struct WorkspaceNavigationTests {
 
     @Test func attachProjectSetsUuidAndCommitsSynchronously() throws {
         let (seed, url) = try attachedNavigation()
-        seed.go(to: WorkspaceLocation.sectionRoot(.sources).withListScrollAnchor("s3"))
+        seed.go(to: WorkspaceLocation.sectionRoot(.sources).withListSelection("s3"))
 
         let navigation = WorkspaceNavigation()
         var recorded: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { recorded.append($0) }
+        navigation.onLocationCommit = { location, _ in recorded.append(location) }
         navigation.attachProject(uuid: projectUuid, fileURL: url)
 
         #expect(navigation.projectUuid == projectUuid)
         #expect(navigation.currentLocation == .sectionRoot(.sources))
-        #expect(navigation.currentLocation.listScrollAnchor == "s3")
+        #expect(navigation.currentLocation.revisit.listSelection == "s3")
         #expect(recorded.count == 1)
-        #expect(recorded[0].listScrollAnchor == "s3")
+        #expect(recorded[0].revisit.listSelection == "s3")
 
         navigation.attachProject(uuid: projectUuid, fileURL: url)
         #expect(recorded.count == 1)
@@ -386,7 +386,7 @@ struct WorkspaceNavigationTests {
         let b = WorkspaceLocation(section: .sources, sourceId: "1", ref: "SRC-2", title: "New")
         #expect(a == b)
         var scrolled = WorkspaceLocation.sectionRoot(.persons)
-        scrolled.listScrollAnchor = "person-1"
+        scrolled.revisit.listSelection = "person-1"
         #expect(scrolled == .sectionRoot(.persons))
         #expect(a != WorkspaceLocation(section: .sources, sourceId: "2"))
         #expect(
@@ -403,7 +403,7 @@ struct WorkspaceNavigationTests {
         #expect(location.sourceId == "src-legacy")
         #expect(location.sourceSurface == .page)
         #expect(location.title == "Deed")
-        #expect(location.listScrollAnchor == nil)
+        #expect(location.revisit.listSelection == nil)
     }
 
     /// T-12 (AC-1.5): canvas, composer and Promote locations keep their graph
@@ -472,24 +472,24 @@ struct WorkspaceNavigationTests {
         #expect(withGraph.graphId == "g-1")
     }
 
-    @Test func legacyHistoryMissingListScrollAnchorDecodesAsNil() throws {
+    @Test func legacyHistoryMissingListSelectionDecodesAsNil() throws {
         let json = Data("""
         {"v":1,"projectUuid":"\(projectUuid)","index":0,"entries":[{"section":"persons"}]}
         """.utf8)
         let document = try JSONDecoder().decode(NavigationHistoryDocument.self, from: json)
         #expect(document.entries.count == 1)
-        #expect(document.entries[0].listScrollAnchor == nil)
+        #expect(document.entries[0].revisit.listSelection == nil)
         #expect(document.entries[0] == .sectionRoot(.persons))
     }
 
-    @Test func listScrollAnchorRoundTrips() throws {
+    @Test func listSelectionRoundTrips() throws {
         var location = WorkspaceLocation.sectionRoot(.sources)
-        location.listScrollAnchor = "src-1"
+        location.revisit.listSelection = "src-1"
         let decoded = try JSONDecoder().decode(
             WorkspaceLocation.self,
             from: JSONEncoder().encode(location)
         )
-        #expect(decoded.listScrollAnchor == "src-1")
+        #expect(decoded.revisit.listSelection == "src-1")
         #expect(decoded == location)
     }
 
@@ -502,24 +502,24 @@ struct WorkspaceNavigationTests {
             to: .personDetail(entityId: "p2", ref: "PER-2", title: "Bo"), from: anchor
         )
         #expect(navigation.currentLocation.entityId == "p2")
-        #expect(navigation.currentLocation.sectionAnchor == nil)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == nil)
 
         navigation.goBack()
         #expect(navigation.currentLocation.entityId == "p1")
-        #expect(navigation.currentLocation.sectionAnchor == anchor)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == anchor)
 
         navigation.goForward()
         navigation.goBack()
-        #expect(navigation.currentLocation.sectionAnchor == anchor)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == anchor)
 
         navigation.go(to: .sectionRoot(.places))
         navigation.goBack()
         #expect(navigation.currentLocation.entityId == "p1")
-        #expect(navigation.currentLocation.sectionAnchor == anchor)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == anchor)
 
         let reloaded = WorkspaceNavigation()
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
-        #expect(reloaded.currentLocation.sectionAnchor == anchor)
+        #expect(reloaded.currentLocation.revisit.sectionAnchor == anchor)
 
         // A row whose anchor cannot be built still opens its place and writes nothing.
         let (plain, _) = try attachedNavigation()
@@ -528,14 +528,14 @@ struct WorkspaceNavigationTests {
         #expect(plain.currentLocation.entityId == "p2")
         plain.goBack()
         #expect(plain.currentLocation.entityId == "p1")
-        #expect(plain.currentLocation.sectionAnchor == nil)
+        #expect(plain.currentLocation.revisit.sectionAnchor == nil)
     }
 
     /// T-2 (AC-6.2, D-1): the anchor is not identity and decodes leniently.
     @Test func sectionAnchorIsNotIdentityAndDecodesLeniently() throws {
         let plain = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil)
         var anchored = plain
-        anchored.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "x")
+        anchored.revisit.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "x")
         #expect(plain == anchored)
 
         for anchor in [
@@ -543,11 +543,11 @@ struct WorkspaceNavigationTests {
             ConclusionSectionAnchor(part: .timeline, id: "e-p", row: "e"),
         ] {
             var location = plain
-            location.sectionAnchor = anchor
+            location.revisit.sectionAnchor = anchor
             let decoded = try JSONDecoder().decode(
                 WorkspaceLocation.self, from: JSONEncoder().encode(location)
             )
-            #expect(decoded.sectionAnchor == anchor)
+            #expect(decoded.revisit.sectionAnchor == anchor)
         }
 
         for extra in [
@@ -558,20 +558,12 @@ struct WorkspaceNavigationTests {
         ] {
             let json = Data("{\"section\":\"persons\",\"entityId\":\"p1\"\(extra)}".utf8)
             let decoded = try JSONDecoder().decode(WorkspaceLocation.self, from: json)
-            #expect(decoded.sectionAnchor == nil)
+            #expect(decoded.revisit.sectionAnchor == nil)
             #expect(decoded.entityId == "p1")
         }
 
         #expect(ConclusionSectionAnchor(part: .family, id: "") == nil)
         #expect(ConclusionSectionAnchor(part: .timeline, id: "c", row: "")?.row == nil)
-    }
-
-    /// T-3 (AC-6.3, D-3): a section switch opens the new section at its top.
-    @Test func withPageSectionClearsTheSectionAnchor() throws {
-        var location = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil, pageSection: .family)
-        location.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "r-0-p2")
-        #expect(location.sectionAnchor != nil)
-        #expect(location.withPageSection(.timeline).sectionAnchor == nil)
     }
 
     /// T-4 (D-2): a visit to the place already open pushes nothing and writes no anchor.
@@ -582,131 +574,361 @@ struct WorkspaceNavigationTests {
         let count = entryCount(navigation)
         navigation.go(to: p1, from: ConclusionSectionAnchor(part: .family, id: "r-0-p1"))
         #expect(entryCount(navigation) == count)
-        #expect(navigation.currentLocation.sectionAnchor == nil)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == nil)
     }
 
-    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not,
-    /// and a noted scroll survives the page and Back.
+    // MARK: Revisit (S16-72)
+
+    private func decoded(_ json: String) throws -> WorkspaceLocation {
+        try JSONDecoder().decode(WorkspaceLocation.self, from: Data(json.utf8))
+    }
+
+    /// D-8, AC-1.1, AC-1.2: the y the page was left at is written on the entry being left, and Back reads it.
+    @Test func theRevisitIsStampedOnTheEntryBeingLeft() throws {
+        let (navigation, url) = try attachedNavigation()
+        navigation.go(to: .sourcePage(sourceId: "s1"))
+        navigation.noteScrollOffset(600, arrival: navigation.arrival)
+        navigation.go(to: .evidenceGraph(sourceId: "s1", graphId: "g1"))
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
+
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 600)
+        navigation.goForward()
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 600)
+
+        let reloaded = WorkspaceNavigation()
+        reloaded.attachProject(uuid: projectUuid, fileURL: url)
+        #expect(reloaded.currentLocation.revisit.scrollOffset == 600)
+    }
+
+    /// D-8, AC-1.10: a section switch on one record page starts the new section clean and keeps the old
+    /// section's y.
+    @Test func aSectionSwitchKeepsTheOldYAndStartsTheNewOneClean() throws {
+        let (navigation, _) = try attachedNavigation()
+        let vitals = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
+        navigation.go(to: vitals)
+        navigation.noteScrollOffset(900, arrival: navigation.arrival)
+        navigation.go(to: navigation.currentLocation.withPageSection(.family))
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
+        navigation.noteScrollOffset(40, arrival: navigation.arrival)
+
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 900)
+        navigation.goForward()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 40)
+    }
+
+    /// Selecting another row of a page whose selected row is a place keeps the visit and its y; each
+    /// entry keeps its own for Back.
+    @Test(arguments: [WorkspaceSection.metadata, .properties])
+    func selectingOnThePageKeepsItsScroll(section: WorkspaceSection) throws {
+        func row(_ id: String) -> WorkspaceLocation {
+            section == .metadata
+                ? WorkspaceLocation(section: section, fieldId: id)
+                : WorkspaceLocation(section: section, subjectTypeKey: "person", propertyId: id)
+        }
+        let (first, second) = (row("a"), row("b"))
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: first)
+        navigation.noteScrollOffset(300, arrival: navigation.arrival)
+        let arrival = navigation.arrival
+        navigation.go(to: second)
+        #expect(navigation.arrival == arrival)
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 300)
+        navigation.noteScrollOffset(700, arrival: navigation.arrival)
+        navigation.goBack()
+        #expect(navigation.currentLocation == first)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 300)
+        navigation.goForward()
+        #expect(navigation.currentLocation.revisit.scrollOffset == 700)
+    }
+
+    /// A category of the Properties strip is another page: it opens at its top.
+    @Test func aPropertiesCategoryStartsClean() throws {
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "person", propertyId: "a"))
+        navigation.noteScrollOffset(300, arrival: navigation.arrival)
+        let arrival = navigation.arrival
+        navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "event"))
+        #expect(navigation.arrival == arrival + 1)
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
+    }
+
+    /// D-8: a pushed location starts clean, whatever the copy it was built from held.
+    @Test func aPushStartsClean() throws {
+        let (navigation, _) = try attachedNavigation()
+        var carrying = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
+        carrying.revisit = WorkspaceRevisit(
+            listSelection: "x", openSourceId: "s1", scrollOffset: 5,
+            sectionAnchor: ConclusionSectionAnchor(part: .family, id: "r-0-p2")
+        )
+        navigation.go(to: carrying)
+        #expect(navigation.currentLocation.revisit == WorkspaceRevisit())
+
+        let anchored = WorkspaceLocation.personDetail(entityId: "p2", ref: "PER-2", title: nil)
+            .withPageSection(.family)
+        var held = anchored
+        held.revisit.sectionAnchor = ConclusionSectionAnchor(part: .family, id: "r-0-p2")
+        navigation.go(to: held)
+        #expect(navigation.currentLocation.revisit.sectionAnchor == nil)
+    }
+
+    /// D-7, D-8: a closing page's last note must not land on the next entry.
+    @Test func aNoteOfAnotherArrivalIsDropped() throws {
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.persons))
+        let stale = navigation.arrival
+        navigation.go(to: .sectionRoot(.places))
+        navigation.noteScrollOffset(300, arrival: stale)
+        navigation.noteScrollOffset(-5, arrival: navigation.arrival)
+        navigation.noteScrollOffset(.infinity, arrival: navigation.arrival)
+        navigation.go(to: .sectionRoot(.events))
+        navigation.goBack()
+        #expect(navigation.currentLocation.section == .places)
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
+    }
+
+    /// D-7: a visit begins on an identity change and on any history move, not on a coalesced visit.
+    @Test func arrivalCountsIdentityChangesAndHistoryMoves() throws {
+        let (navigation, _) = try attachedNavigation()
+        let start = navigation.arrival
+        navigation.go(to: .sectionRoot(.persons))
+        #expect(navigation.arrival == start + 1)
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.replaceCurrent(with: .sectionRoot(.persons).withListSelection("p1"))
+        #expect(navigation.arrival == start + 1)
+
+        navigation.go(to: .sectionRoot(.places))
+        navigation.goBack()
+        #expect(navigation.arrival == start + 3)
+        navigation.goForward()
+        #expect(navigation.arrival == start + 4)
+        navigation.go(toIndex: 0)
+        #expect(navigation.arrival == start + 5)
+        navigation.go(to: .sectionRoot(.events))
+        #expect(navigation.arrival == start + 6)
+        navigation.fallbackToSectionRoot()
+        #expect(navigation.arrival == start + 6)
+    }
+
+    /// D-9: a y that is not a finite, non-negative number decodes as none, and the other keys are kept.
+    @Test func scrollOffsetRoundTripsAndDecodesLeniently() throws {
+        var location = WorkspaceLocation.sectionRoot(.persons)
+        location.revisit = WorkspaceRevisit(scrollOffset: 1800.5)
+        let data = try JSONEncoder().encode(location)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["scrollOffset"] as? Double == 1800.5)
+        #expect(try JSONDecoder().decode(WorkspaceLocation.self, from: data).revisit.scrollOffset == 1800.5)
+
+        for unreadable in ["-1", #""far""#, "null", "[1]", "1e999"] {
+            let read = try decoded(#"{"section":"persons","listScrollAnchor":"p1","scrollOffset":\#(unreadable)}"#).revisit
+            #expect(read == WorkspaceRevisit(listSelection: "p1"))
+        }
+        #expect(try decoded(#"{"section":"persons","scrollOffset":4,"listScrollAnchor":9}"#).revisit.scrollOffset == 4)
+    }
+
+    /// The encoder is hand-kept: a field it misses would leave the history file without a word.
+    @Test func everyFieldIsEncoded() throws {
+        let location = WorkspaceLocation(
+            section: .persons, sourceId: "s", graphId: "g", fieldId: "f", typeId: "t", subjectId: "sub",
+            citationId: "c", artifactId: "a", observationId: "o", connectFromSubjectId: "from",
+            connectToSubjectId: "to", connectBridgeTypeKey: "bridge", subjectTypeKey: "person", propertyId: "p",
+            entityId: "e", pageSection: .family, sourceSurface: .graph, promoteAll: true, ref: "PER-1",
+            title: "Ada", sourceTitle: "Deed",
+            revisit: WorkspaceRevisit(
+                listSelection: "row", openSourceId: "s", scrollOffset: 5,
+                sectionAnchor: ConclusionSectionAnchor(part: .family, id: "r")
+            )
+        )
+        let data = try JSONEncoder().encode(location)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let keys = WorkspaceLocation.CodingKeys.allCases.map(\.rawValue) + WorkspaceRevisit.CodingKeys.allCases.map(\.rawValue)
+        #expect(Set(object.keys) == Set(keys))
+        let read = try JSONDecoder().decode(WorkspaceLocation.self, from: data)
+        #expect(read == location && read.ref == "PER-1" && read.title == "Ada" && read.sourceTitle == "Deed")
+        var written = location.revisit
+        written.openSourceId = nil
+        #expect(read.revisit == written)
+    }
+
+    /// D-8, D-9, AC-2.2, AC-2.4, AC-2.5: the open Source is stamped on the Sources list root only, and
+    /// never written to the file.
+    @Test func theOpenSourceIsStampedOnTheSourcesListAndNeverWritten() throws {
+        let (navigation, url) = try attachedNavigation()
+        var open: String? = "s2"
+        navigation.openSourceProvider = { open }
+        navigation.go(to: .sourcePage(sourceId: "s1"))
+        navigation.goBack()
+        #expect(navigation.currentLocation == .sectionRoot(.sources))
+        #expect(navigation.currentLocation.revisit.openSourceId == "s2")
+
+        // Leaving with none open stamps none; leaving another place stamps no open Source.
+        open = nil
+        navigation.go(to: .sectionRoot(.persons))
+        open = "s9"
+        navigation.go(to: .sectionRoot(.places))
+        navigation.goBack()
+        #expect(navigation.currentLocation == .sectionRoot(.persons))
+        #expect(navigation.currentLocation.revisit.openSourceId == nil)
+        navigation.goBack()
+        #expect(navigation.currentLocation == .sectionRoot(.sources))
+        #expect(navigation.currentLocation.revisit.openSourceId == nil)
+
+        let text = try String(contentsOf: url, encoding: .utf8)
+        #expect(!text.contains("openSourceId"))
+    }
+
+    /// D-9: a file written before the revisit keeps its selection and its section anchor.
+    @Test func oldFilesKeepTheirSelectionAndSectionAnchor() throws {
+        let location = try decoded(
+            #"{"section":"persons","listScrollAnchor":"person-1","sectionAnchor":{"part":"family","id":"x"}}"#
+        )
+        #expect(location.revisit.listSelection == "person-1")
+        #expect(location.revisit.sectionAnchor == ConclusionSectionAnchor(part: .family, id: "x"))
+        #expect(location.revisit.scrollOffset == nil)
+
+        var written = WorkspaceLocation.sectionRoot(.persons)
+        written.revisit = location.revisit
+        written.revisit.openSourceId = "s1"
+        let object = try #require(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(written)) as? [String: Any]
+        )
+        #expect(object["listScrollAnchor"] as? String == "person-1")
+        #expect(object["sectionAnchor"] is [String: Any])
+        #expect(object["openSourceId"] == nil)
+        #expect(object["revisit"] == nil)
+    }
+
+    /// D-8: a sort or filter change clears the selection, and the live y and open state stay.
+    @Test func aCoalescedVisitClearsTheHeldSelection() throws {
+        let (navigation, _) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.persons))
+        navigation.noteListSelection("p1")
+        navigation.noteScrollOffset(70, arrival: navigation.arrival)
+        let arrival = navigation.arrival
+        navigation.go(to: navigation.currentLocation.withListSelection(nil))
+        #expect(navigation.listSelection == nil)
+        #expect(navigation.arrival == arrival)
+
+        navigation.go(to: .sectionRoot(.places))
+        navigation.goBack()
+        #expect(navigation.currentLocation.revisit.listSelection == nil)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 70)
+    }
+
+    /// D-8, AC-1.9: a quit writes the current page's y.
+    @Test func flushWritesTheCurrentY() throws {
+        let (navigation, url) = try attachedNavigation()
+        navigation.go(to: .sectionRoot(.places))
+        navigation.noteScrollOffset(700, arrival: navigation.arrival)
+        navigation.flush()
+
+        let reloaded = WorkspaceNavigation()
+        reloaded.attachProject(uuid: projectUuid, fileURL: url)
+        #expect(reloaded.currentLocation == .sectionRoot(.places))
+        #expect(reloaded.currentLocation.revisit.scrollOffset == 700)
+    }
+
+    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not.
     @Test func sourceTypesListIsAListRoot() throws {
         #expect(WorkspaceLocation.sectionRoot(.sourceTypes).isListRoot)
         #expect(!WorkspaceLocation.sourceTypePage(typeId: "typ-1", title: "Census").isListRoot)
         #expect(!WorkspaceLocation.sectionRoot(.metadata).isListRoot)
-
-        let (navigation, _) = try attachedNavigation()
-        navigation.go(to: .sectionRoot(.sourceTypes))
-        navigation.noteListAnchor("typ-7")
-        navigation.go(to: .sourceTypePage(typeId: "typ-1", title: "Census"))
-        navigation.goBack()
-        #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
-        #expect(navigation.currentLocation.listScrollAnchor == "typ-7")
     }
 
     @Test func notingListScrollDoesNotPushHistory() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
         let count = entryCount(navigation)
-        navigation.noteListAnchor("person-1")
-        navigation.noteListAnchor("person-2")
+        navigation.noteListSelection("person-1")
+        navigation.noteListSelection("person-2")
         #expect(entryCount(navigation) == count)
         #expect(!navigation.canGoForward)
-        #expect(navigation.currentLocation.listScrollAnchor == nil)
+        #expect(navigation.currentLocation.revisit.listSelection == nil)
     }
 
-    @Test func listAnchorResolvesOnlyAListedRow() {
-        #expect(ListAnchor.resolved("p2", in: ["p1", "p2", "p3"]) == "p2")
-        #expect(ListAnchor.resolved("p9", in: ["p1", "p2", "p3"]) == nil)
-        #expect(ListAnchor.resolved(nil, in: ["p1", "p2", "p3"]) == nil)
-        #expect(ListAnchor.resolved("p1", in: []) == nil)
-    }
-
-    @Test func aRevealKeepsAnAnchorItDraws() {
-        var asked: [String] = []
-        let rows = ["s1", "s2"]
-        #expect(ListAnchor.settle("g1a", in: rows, reveal: { asked.append($0); return true }) == "g1a")
-        #expect(ListAnchor.settle("g1a", in: rows, reveal: { _ in false }) == nil)
-        asked = []
-        #expect(ListAnchor.settle("s2", in: rows, reveal: { asked.append($0); return false }) == "s2")
-        #expect(asked.isEmpty)
-        #expect(ListAnchor.settle(nil, in: rows, reveal: { _ in true }) == nil)
-    }
-
-    @Test func theListAnchorIsTheSelectionAndFollowsHistory() throws {
+    @Test func theListSelectionFollowsHistory() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        #expect(navigation.listAnchor == nil)
+        #expect(navigation.listSelection == nil)
 
-        navigation.noteListAnchor("person-1")
-        #expect(navigation.listAnchor == "person-1")
+        navigation.noteListSelection("person-1")
+        #expect(navigation.listSelection == "person-1")
 
         // A coalesced visit (the sidebar's Persons again) clears the selection with no Back.
         navigation.go(to: .sectionRoot(.persons))
-        #expect(navigation.listAnchor == nil)
+        #expect(navigation.listSelection == nil)
 
-        navigation.noteListAnchor("person-2")
+        navigation.noteListSelection("person-2")
         navigation.go(to: .sectionRoot(.events))
-        #expect(navigation.listAnchor == nil)
+        #expect(navigation.listSelection == nil)
         navigation.goBack()
-        #expect(navigation.listAnchor == "person-2")
+        #expect(navigation.listSelection == "person-2")
     }
 
     @Test func leavingAListStampsTheOutgoingEntry() throws {
         let (navigation, url) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListAnchor("person-1")
+        navigation.noteListSelection("person-1")
         navigation.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
-        #expect(navigation.currentLocation.listScrollAnchor == nil)
+        #expect(navigation.currentLocation.revisit.listSelection == nil)
 
         navigation.goBack()
         #expect(navigation.currentLocation.section == .persons)
-        #expect(navigation.currentLocation.listScrollAnchor == "person-1")
+        #expect(navigation.currentLocation.revisit.listSelection == "person-1")
 
         navigation.goForward()
         #expect(navigation.currentLocation.entityId == "p1")
         navigation.goBack()
-        #expect(navigation.currentLocation.listScrollAnchor == "person-1")
+        #expect(navigation.currentLocation.revisit.listSelection == "person-1")
 
         let reloaded = WorkspaceNavigation()
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
-        #expect(reloaded.currentLocation.listScrollAnchor == "person-1")
+        #expect(reloaded.currentLocation.revisit.listSelection == "person-1")
     }
 
     @Test func forwardAndJumpRestoreTheStampedAnchor() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListAnchor("person-1")
+        navigation.noteListSelection("person-1")
         navigation.goBack()
         navigation.goForward()
         #expect(navigation.currentLocation == .sectionRoot(.persons))
-        #expect(navigation.currentLocation.listScrollAnchor == "person-1")
+        #expect(navigation.currentLocation.revisit.listSelection == "person-1")
 
-        navigation.noteListAnchor("person-4")
+        navigation.noteListSelection("person-4")
         navigation.go(to: .sectionRoot(.places))
         let persons = try #require(
             navigation.backJumpItems(limit: 15).first { $0.location.section == .persons }
         )
         navigation.go(toIndex: persons.index)
         #expect(navigation.currentLocation == .sectionRoot(.persons))
-        #expect(navigation.currentLocation.listScrollAnchor == "person-4")
+        #expect(navigation.currentLocation.revisit.listSelection == "person-4")
     }
 
-    @Test func revisitingAListWithoutAnAnchorClearsItAndDoesNotPush() throws {
+    @Test func revisitingAListWithoutASelectionClearsItAndDoesNotPush() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        navigation.noteListAnchor("person-1")
+        navigation.noteListSelection("person-1")
         navigation.go(to: .personDetail(entityId: "p1", ref: "PER-1", title: "Ada"))
         navigation.goBack()
-        #expect(navigation.currentLocation.listScrollAnchor == "person-1")
+        #expect(navigation.currentLocation.revisit.listSelection == "person-1")
         let count = entryCount(navigation)
 
         navigation.go(to: .sectionRoot(.persons))
-        #expect(navigation.currentLocation.listScrollAnchor == nil)
+        #expect(navigation.currentLocation.revisit.listSelection == nil)
         #expect(entryCount(navigation) == count)
         #expect(navigation.canGoForward)
 
         navigation.goBack()
         navigation.goForward()
         #expect(navigation.currentLocation == .sectionRoot(.persons))
-        #expect(navigation.currentLocation.listScrollAnchor == nil)
+        #expect(navigation.currentLocation.revisit.listSelection == nil)
     }
 
     @Test func goToGraphIsDistinctPlaceFromPage() throws {
@@ -905,7 +1127,7 @@ struct WorkspaceNavigationTests {
     @Test func locationCommitOnGo() {
         let navigation = WorkspaceNavigation()
         var committed: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { committed.append($0) }
+        navigation.onLocationCommit = { location, _ in committed.append(location) }
 
         navigation.go(to: .sectionRoot(.metadata))
         #expect(committed == [.sectionRoot(.metadata)])
@@ -919,7 +1141,7 @@ struct WorkspaceNavigationTests {
 
         var committed: [WorkspaceLocation] = []
         let reloaded = WorkspaceNavigation()
-        reloaded.onLocationCommit = { committed.append($0) }
+        reloaded.onLocationCommit = { location, _ in committed.append(location) }
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
 
         #expect(committed.count == 1)
@@ -929,7 +1151,7 @@ struct WorkspaceNavigationTests {
     @Test func locationCommitOnBackForward() throws {
         let (navigation, _) = try attachedNavigation()
         var committed: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { committed.append($0) }
+        navigation.onLocationCommit = { location, _ in committed.append(location) }
 
         navigation.go(to: .sectionRoot(.metadata))
         navigation.go(to: .sectionRoot(.sourceTypes))

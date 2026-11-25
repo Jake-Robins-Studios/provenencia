@@ -41,7 +41,7 @@ struct SourcePageView: View {
                     model: model
                 )
             } else {
-                SourcePageLoadingShell(sourceID: sourceID, model: model)
+                SourcePageLoadingShell(model: model)
             }
         }
         .task {
@@ -53,13 +53,11 @@ struct SourcePageView: View {
 
 /// Spinner-only shell before the workspace handle exists.
 private struct SourcePageLoadingShell: View {
-    let sourceID: String
     let model: SourcePageModel
 
     var body: some View {
         PVPageColumns(
             headerPinned: true,
-            scrollResetKey: sourceID,
             header: { SourcePageIdentityHeader(model: model) },
             primary: {
                 ProgressView()

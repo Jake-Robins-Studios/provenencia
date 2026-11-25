@@ -141,13 +141,11 @@ private struct SourcesTablePreview: View {
 
     var body: some View {
         let widthClass = PVWidthClass(paneWidth: paneWidth)
-        SourcesTable(
-            items: model.outline.items, selection: .constant(selected), model: model,
-            gutter: widthClass.fullPaneGutter
-        )
-        .frame(width: paneWidth, height: 640)
-        .background(PVColor.surfaceCard)
-        .environment(session)
-        .environment(\.pvWidthClass, widthClass)
+        SourcesTable(items: model.outline.items, selection: .constant(selected), model: model)
+            .padding(.horizontal, SourcesTable.inset(gutter: widthClass.fullPaneGutter))
+            .frame(width: paneWidth, height: 640)
+            .background(PVColor.surfaceCard)
+            .environment(session)
+            .environment(\.pvWidthClass, widthClass)
     }
 }

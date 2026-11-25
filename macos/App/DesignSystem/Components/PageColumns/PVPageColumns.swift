@@ -272,7 +272,8 @@ extension EnvironmentValues {
 /// The header scrolls with the page by default. `headerPinned` holds it above
 /// the scroll with a rule under it, in its full form at every scroll
 /// position. `scrollResetKey` sends the scroll back to the top when it
-/// changes (another section of the same page); a width-class change is not a
+/// changes (a change within the page, such as an error shown); an arrival is not one: the page's
+/// scroll view restores its remembered y (`pvRemembersScroll`). A width-class change is not a
 /// reset. The primary comes before the secondary in the view tree, so focus
 /// moves primary then secondary.
 ///
@@ -378,6 +379,7 @@ struct PVPageColumns<Header: View, Primary: View, Secondary: View>: View {
                 content()
             }
             .frame(maxWidth: .infinity)
+            .pvRemembersScroll()
         }
         .coordinateSpace(name: PVPageColumnsMetrics.scrollSpace)
         .onGeometryChange(for: CGSize.self) { $0.size } action: {

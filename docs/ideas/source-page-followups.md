@@ -13,3 +13,7 @@ Delete from the Source page after the Source was deleted in another window: `Del
 ## The fake answers a missing Source with a blank one
 
 `FakeStore.getSourceWorkspace` returns a blank `SRC-XXXXX` Source for an unknown id where the engine answers `sources.not_found`. `CatalogSessionStoreTests.getSourceWorkspaceMarksSessionHeld` reads the missing id `"missing"` and relies on the blank read; seed a Source in that test, then throw `sourceNotFound` from the fake. (S15-03 review MNT-6)
+
+## A far Sources position opens at the top
+
+The Sources table reports a document shorter than its rows until they are drawn, so a far position opens at the top on Back (S16-72; accepted by the user to try in practice, 2026-11-25). Two ways out: keep the page alive while another place is shown, or give the table its row heights so it reports its full height.

@@ -50,8 +50,7 @@ struct PVScrollRowIntoView<ID: Hashable>: ViewModifier {
                     proxy.scrollTo(first, anchor: .top)
                 }
                 .onChange(of: restartKey) {
-                    // Another place on the same page starts at the top, not
-                    // where the last one was left. Never animated.
+                    // A sort, a filter or an error shown starts again at the top. Never animated.
                     guard let restartTop else { return }
                     proxy.scrollTo(restartTop, anchor: .top)
                 }
@@ -73,7 +72,8 @@ extension View {
     ///     scrolls back to the first row.
     ///   - restartTop: The id of a view at the very top of the scroll content.
     ///   - restartKey: When this changes, scrolls to `restartTop` with no
-    ///     animation (`PVPageColumns` resets a page when its section changes).
+    ///     animation (a list's sort or filter, a page's error shown). An
+    ///     arrival is not one: `pvRemembersScroll` places it.
     ///   - request: When this token changes, scrolls to `row` on the next
     ///     main-actor turn, even if `row` did not change (a second click on the
     ///     same point). The turn lets a row inserted in the same update exist.
@@ -97,6 +97,49 @@ extension View {
             restartTop: restartTop,
             restartKey: restartKey,
             request: request
+        ))
+    }
+}
+
+/// Keeps a list's selected row in view as the selection moves. A selection that changes with a new
+/// arrival (Back between two entries of a mounted list), or later in that main-actor turn (a model that
+/// follows the location), is not a move: `pvRemembersScroll` places it.
+private struct PVScrollsSelectionIntoView<ID: Hashable>: ViewModifier {
+    let selection: ID?
+    let animated: Bool
+    let restartTop: ID?
+    let restartKey: AnyHashable?
+    /// The row the selection moved to; nil until it moves within the visit.
+    @State private var movedTo: ID?
+    @State private var isArriving = false
+    @Environment(\.pvScrollMemory) private var memory
+
+    private struct Move: Equatable {
+        var selection: ID?
+        var arrival: Int?
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: Move(selection: selection, arrival: memory?.arrival)) { old, new in
+                if old.arrival != new.arrival {
+                    isArriving = true
+                    Task { @MainActor in isArriving = false }
+                }
+                movedTo = isArriving || old.arrival != new.arrival ? nil : new.selection
+            }
+            .pvScrollsRowIntoView(movedTo, animated: animated, restartsAt: restartTop, whenChanged: restartKey)
+    }
+}
+
+extension View {
+    /// Scrolls the list's `selection` into view as it moves, but not when it changes with a new arrival.
+    /// The parameters are `pvScrollsRowIntoView`'s.
+    func pvScrollsSelectionIntoView<ID: Hashable>(
+        _ selection: ID?, animated: Bool = true, restartsAt restartTop: ID? = nil, whenChanged restartKey: AnyHashable? = nil
+    ) -> some View {
+        modifier(PVScrollsSelectionIntoView(
+            selection: selection, animated: animated, restartTop: restartTop, restartKey: restartKey
         ))
     }
 }

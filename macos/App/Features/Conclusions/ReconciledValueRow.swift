@@ -231,12 +231,12 @@ struct ConclusionDetailRowsSection: View {
 
     /// Where Back puts the keyboard for `anchor`: the open arrow of the row it opened from. Nil
     /// for a row that is gone or no longer leads anywhere.
-    static func anchorTarget(
+    static func anchorStop(
         rows: [ReconciledValueRowModel], anchor: ConclusionSectionAnchor
-    ) -> ConclusionAnchorTarget<String>? {
+    ) -> String? {
         guard anchor.part == .detailRow, let row = rows.first(where: { $0.id == anchor.id }), row.opens != nil
         else { return nil }
-        return ConclusionAnchorTarget(stop: row.id, scrollID: row.id)
+        return row.id
     }
 
     var body: some View {
@@ -258,7 +258,7 @@ struct ConclusionDetailRowsSection: View {
             }
         }
         .conclusionAnchorRestore([.detailRow], isReady: true, focus: $openFocus) {
-            Self.anchorTarget(rows: rows, anchor: $0)
+            Self.anchorStop(rows: rows, anchor: $0)
         }
         .pvSheet(item: $provenanceItem) { item in
             if let row = item.row(in: rows) {

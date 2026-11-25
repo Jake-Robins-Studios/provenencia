@@ -9,6 +9,14 @@ enum PendingNavigation: Equatable, Sendable {
     case index(Int)
 }
 
+/// How a commit came.
+enum WorkspaceArrivalKind: Equatable, Sendable {
+    /// `go(to:)`, the project attaching, a place replaced.
+    case push
+    /// Back, Forward or a jump in the history menu.
+    case history
+}
+
 @MainActor
 protocol WorkspaceLeaveGuard: AnyObject {
     /// The navigation the guard holds and resumes; `workspaceLeaveGuard(_:)` sets it while the
@@ -36,8 +44,8 @@ final class WorkspaceNavigation {
     private(set) var canGoForward = false
     /// Latest load/persist failure for chrome toast; cleared via `acknowledgeHistoryIssue()`.
     private(set) var lastHistoryIssue: NavigationHistoryIssue?
-    /// Fired synchronously whenever a location is committed (including history restore).
-    var onLocationCommit: ((WorkspaceLocation) -> Void)?
+    /// Fired synchronously whenever a location is committed (including history restore), with how it came.
+    var onLocationCommit: ((WorkspaceLocation, WorkspaceArrivalKind) -> Void)?
     /// Views never observe this; it only intercepts committed moves.
     @ObservationIgnored
     weak var leaveGuard: (any WorkspaceLeaveGuard)?
@@ -45,12 +53,32 @@ final class WorkspaceNavigation {
 
     private var history: NavigationHistoryStore?
     private(set) var projectUuid: String = ""
-    /// The visible list's anchor row: its top row on Source types, its selected row on the Conclusion
-    /// lists and the Sources list (the list draws it selected). Stamped onto the outgoing entry on the next Back,
-    /// Forward, jump, or `go(to:)`; `apply` sets it to the entry's anchor on every commit. Scrolling and
-    /// selecting do not write the history file. Its view readers are the Conclusion lists, the Sources list
-    /// and `ListSelectionAnchorModifier`.
-    private(set) var listAnchor: String?
+    /// The visit being shown. Changes when a visit to a page begins: another page, or any history move;
+    /// a coalesced `go(to:)` and another row selected on the page (`WorkspaceLocation.isSamePage(as:)`)
+    /// keep it. Observed: the page's scroll view restores once per arrival, and a note of another is stale.
+    private(set) var arrival = 0
+    /// What the visit has noted so far: the list's selection, the scroll view's y, the section
+    /// anchor; the open Source is read as it is stamped. Stamped onto the entry on the next Back, Forward, jump or `go(to:)`, and by `flush()`;
+    /// on a new arrival it starts as the entry's own. Scrolling does not write the history file or
+    /// notify observers; only `listSelection` does.
+    @ObservationIgnored private var revisit = WorkspaceRevisit()
+    /// Whether a y was noted in this visit: the restore is over.
+    @ObservationIgnored private var scrollIsNoted = false
+    /// The Source open in the Sources list, read when the Sources list root is left. `WorkspaceView` sets it.
+    @ObservationIgnored var openSourceProvider: (() -> String?)?
+    /// The visible list's selected row (the list draws it selected). Its view readers are the lists
+    /// and `ListSelectionModifier`.
+    private(set) var listSelection: String? {
+        get {
+            _$observationRegistrar.access(self, keyPath: \.listSelection)
+            return revisit.listSelection
+        }
+        set {
+            _$observationRegistrar.withMutation(of: self, keyPath: \.listSelection) {
+                revisit.listSelection = newValue
+            }
+        }
+    }
 
     init(selectedSection: WorkspaceSection = .sources) {
         self.selectedSection = selectedSection
@@ -85,8 +113,19 @@ final class WorkspaceNavigation {
             seed: .sectionRoot(.sources)
         )
         history = store
-        apply(store.current)
+        apply(store.current, kind: .push, beginsVisit: true)
         refreshHistoryIssue()
+    }
+
+    /// Wires the session to the navigation: a commit applies the location to the session, and a history
+    /// move also puts the Sources list's open Source back as it was left. The
+    /// open Source is read from the session when the Sources list root is left.
+    func connect(to session: WorkspaceSession) {
+        openSourceProvider = { [weak session] in session?.openSourceID }
+        onLocationCommit = { location, kind in
+            session.apply(location: location)
+            session.applyHistoryState(location, kind: kind)
+        }
     }
 
     /// Clears a surfaced history issue so it is not shown again until a new failure.
@@ -95,12 +134,37 @@ final class WorkspaceNavigation {
         lastHistoryIssue = nil
     }
 
-    /// The visible list reports its anchor row: the row at the top as the researcher scrolls
-    /// (Source types), or the selected row (Persons, Events, Places, Sources).
+    /// The visible list reports its selected row (Persons, Events, Places, Sources).
     /// This does not push a history entry and does not write the history file.
-    func noteListAnchor(_ anchor: String?) {
+    func noteListSelection(_ selection: String?) {
         guard currentLocation.isListRoot else { return }
-        listAnchor = Self.normalizedListAnchor(anchor)
+        listSelection = Self.normalizedSelection(selection)
+    }
+
+    /// A scroll view reports its y. A note of another visit (a closing page's last scroll) is dropped.
+    /// This does not push a history entry and does not write the history file.
+    func noteScrollOffset(_ y: Double, arrival: Int) {
+        guard arrival == self.arrival, revisit.note(y) else { return }
+        scrollIsNoted = true
+    }
+
+    /// What the page's scroll view is asked to remember: this visit's id, the y it was left
+    /// at (until a y is noted in this visit), and where to report a new one.
+    var scrollMemory: PVScrollMemory {
+        let arrival = arrival
+        return PVScrollMemory(arrival: arrival) { [weak self] in
+            guard let self, arrival == self.arrival, !scrollIsNoted else { return nil }
+            return revisit.scrollOffset
+        } note: { [weak self] y in
+            self?.noteScrollOffset(y, arrival: arrival)
+        }
+    }
+
+    /// Writes the visit's y onto the current entry and the file, so a quit keeps where the
+    /// researcher was.
+    func flush() {
+        stampLeaving()
+        history?.persist()
     }
 
     /// Committed navigation. Coalesces identical locations; truncates forward.
@@ -118,7 +182,7 @@ final class WorkspaceNavigation {
     /// nothing, and a nil anchor (a row id that cannot be kept) navigates all the same.
     func go(to location: WorkspaceLocation, from anchor: ConclusionSectionAnchor?) {
         if let anchor, location != currentLocation {
-            history?.stampSectionAnchor(anchor)
+            revisit.sectionAnchor = anchor
         }
         go(to: location)
     }
@@ -181,10 +245,10 @@ final class WorkspaceNavigation {
     /// so the session and the persisted entry follow.
     func replaceCurrent(with location: WorkspaceLocation) {
         guard let history else {
-            apply(location)
+            apply(location, kind: .push)
             return
         }
-        apply(history.replaceCurrent(with: location))
+        apply(history.replaceCurrent(with: location), kind: .push)
         refreshHistoryIssue()
     }
 
@@ -196,43 +260,52 @@ final class WorkspaceNavigation {
 
     private func performGo(to location: WorkspaceLocation) {
         guard let history else {
-            apply(location)
+            apply(location, kind: .push)
             return
         }
-        // Leaving a list stamps the row the list reported. Staying on the list
-        // (a coalesced visit) lets the incoming anchor replace it, including nil.
+        // Leaving a place stamps how it was left. Staying on it (a coalesced visit)
+        // lets the incoming selection replace the held one, including nil.
         if location != currentLocation {
-            history.stampListAnchor(listAnchor)
+            stampLeaving()
         }
-        apply(history.go(to: location))
+        apply(history.go(to: location), kind: .push)
         refreshHistoryIssue()
     }
 
     private func performBack() {
         guard let history, history.canGoBack else { return }
-        history.stampListAnchor(listAnchor)
+        stampLeaving()
         guard let location = history.goBack() else { return }
-        apply(location)
+        apply(location, kind: .history)
         refreshHistoryIssue()
     }
 
     private func performForward() {
         guard let history, history.canGoForward else { return }
-        history.stampListAnchor(listAnchor)
+        stampLeaving()
         guard let location = history.goForward() else { return }
-        apply(location)
+        apply(location, kind: .history)
         refreshHistoryIssue()
     }
 
     private func performIndex(_ index: Int) {
         guard let history, history.contains(index: index) else { return }
-        history.stampListAnchor(listAnchor)
+        stampLeaving()
         guard let location = history.go(toIndex: index) else { return }
-        apply(location)
+        apply(location, kind: .history)
         refreshHistoryIssue()
     }
 
-    private func apply(_ location: WorkspaceLocation) {
+    private func stampLeaving() {
+        revisit.openSourceId = openSourceProvider?()
+        history?.stampLeaving(revisit)
+    }
+
+    /// The one commit. A visit begins on any history move, on another page, or when asked; then the held
+    /// revisit becomes the entry's. Otherwise (a coalesced `go(to:)`, another row selected on the page)
+    /// only the selection is taken from the committed entry: the live y and section anchor stay,
+    /// and the entry takes them when it is left.
+    private func apply(_ location: WorkspaceLocation, kind: WorkspaceArrivalKind, beginsVisit: Bool = false) {
         #if DEBUG
         if ProcessInfo.processInfo.environment["PROVENENCIA_DEBUG_NAV_TIMING"] == "1" {
             print(
@@ -242,12 +315,22 @@ final class WorkspaceNavigation {
             )
         }
         #endif
+        let begins = beginsVisit || kind == .history || !location.isSamePage(as: currentLocation)
         currentLocation = location
         selectedSection = location.section
         canGoBack = history?.canGoBack ?? false
         canGoForward = history?.canGoForward ?? false
-        listAnchor = location.isListRoot ? location.listScrollAnchor : nil
-        onLocationCommit?(location)
+        if begins {
+            arrival += 1
+            scrollIsNoted = false
+            revisit = location.revisit
+            if !location.isListRoot { revisit.listSelection = nil }
+            // Observers of the selection hear it change.
+            listSelection = revisit.listSelection
+        } else {
+            listSelection = location.isListRoot ? location.revisit.listSelection : nil
+        }
+        onLocationCommit?(location, kind)
     }
 
     private func refreshHistoryIssue() {
@@ -256,38 +339,18 @@ final class WorkspaceNavigation {
         }
     }
 
-    private static func normalizedListAnchor(_ anchor: String?) -> String? {
-        guard let anchor, !anchor.isEmpty else { return nil }
-        return anchor
-    }
-}
-
-/// The one rule for an anchor row against the rows a list now shows.
-enum ListAnchor {
-    /// `anchor` when a row has that id, else nil (the list opens at the top, nothing selected).
-    static func resolved(_ anchor: String?, in ids: [String]) -> String? {
-        guard let anchor, ids.contains(anchor) else { return nil }
-        return anchor
-    }
-
-    /// `anchor` when a row has that id, or when `reveal` makes a row of that id appear (it opens the
-    /// group that holds it, and answers true); else nil. `reveal` is asked only for an anchor no row has.
-    static func settle(_ anchor: String?, in ids: [String], reveal: (String) -> Bool) -> String? {
-        guard let anchor else { return nil }
-        if ids.contains(anchor) { return anchor }
-        return reveal(anchor) ? anchor : nil
+    private static func normalizedSelection(_ selection: String?) -> String? {
+        guard let selection, !selection.isEmpty else { return nil }
+        return selection
     }
 }
 
 /// Clears a selected row that a list no longer shows. Once the list's read settles, a
-/// `navigation.listAnchor` with no row of that id (a record deleted since, a reload that
-/// removed it) becomes nil; a listed one stays. The list itself binds `listAnchor` as its selection.
-/// A list whose rows can be folded away passes `reveal`: it is asked for an anchor no row has, and
-/// answers true after unfolding the row's group (the row is drawn on the next pass).
-struct ListSelectionAnchorModifier: ViewModifier {
+/// `navigation.listSelection` with no row of that id (a record deleted since, a reload that
+/// removed it) becomes nil; a listed one stays. The list itself binds `listSelection` as its selection.
+struct ListSelectionModifier: ViewModifier {
     var rowIDs: [String]
     var isSettled: Bool
-    var reveal: (String) -> Bool = { _ in false }
 
     @Environment(WorkspaceNavigation.self) private var navigation
 
@@ -295,87 +358,12 @@ struct ListSelectionAnchorModifier: ViewModifier {
         content
             .onChange(of: isSettled, initial: true) { _, _ in clearIfGone() }
             .onChange(of: rowIDs) { _, _ in clearIfGone() }
-            .onChange(of: navigation.listAnchor) { _, _ in clearIfGone() }
+            .onChange(of: navigation.listSelection) { _, _ in clearIfGone() }
     }
 
     private func clearIfGone() {
-        guard isSettled, let anchor = navigation.listAnchor else { return }
-        let resolved = ListAnchor.settle(anchor, in: rowIDs, reveal: reveal)
-        if resolved != anchor { navigation.noteListAnchor(resolved) }
-    }
-}
-
-/// Scrolls a list to the anchor on the current history entry.
-/// Nil, or a row that is no longer in the list, opens at the top.
-/// The top row is reported to navigation as the researcher scrolls; that
-/// report is not written until the next navigation leaves the list.
-struct ListScrollAnchorModifier: ViewModifier {
-    var anchor: String?
-    var rowIDs: [String]
-    var isLoaded: Bool
-
-    @Environment(WorkspaceNavigation.self) private var navigation
-    @State private var scrolledID: String?
-    @State private var didApply = false
-    /// Non-nil until `scrollPosition` has landed on the anchor we just set.
-    /// A nil from layout before that lands is not a user scroll.
-    @State private var pinnedAnchor: String?
-    @State private var pinAttempts = 0
-
-    func body(content: Content) -> some View {
-        content
-            .scrollPosition(id: $scrolledID, anchor: .top)
-            .onAppear { applyIfReady() }
-            .onChange(of: anchor) { _, _ in applyIfReady() }
-            .onChange(of: isLoaded) { _, loaded in
-                if loaded { applyIfReady() }
-            }
-            .onChange(of: rowIDs) { _, ids in
-                guard isLoaded else { return }
-                guard didApply else {
-                    applyIfReady()
-                    return
-                }
-                if let scrolledID, !ids.contains(scrolledID) {
-                    pin(ListAnchor.resolved(anchor, in: ids))
-                }
-            }
-            .onChange(of: scrolledID) { _, id in
-                guard didApply else { return }
-                if let pinnedAnchor {
-                    if id == pinnedAnchor {
-                        self.pinnedAnchor = nil
-                        pinAttempts = 0
-                        navigation.noteListAnchor(id)
-                        return
-                    }
-                    if id == nil, pinAttempts < 3 {
-                        pinAttempts += 1
-                        scrolledID = pinnedAnchor
-                        return
-                    }
-                    self.pinnedAnchor = nil
-                    pinAttempts = 0
-                }
-                navigation.noteListAnchor(id)
-            }
-    }
-
-    private func applyIfReady() {
-        guard isLoaded else { return }
-        pin(ListAnchor.resolved(anchor, in: rowIDs))
-    }
-
-    private func pin(_ resolved: String?) {
-        didApply = true
-        pinAttempts = 0
-        pinnedAnchor = resolved
-        if scrolledID != resolved {
-            scrolledID = resolved
-        } else {
-            pinnedAnchor = nil
-            navigation.noteListAnchor(resolved)
-        }
+        guard isSettled, let selection = navigation.listSelection, !rowIDs.contains(selection) else { return }
+        navigation.noteListSelection(nil)
     }
 }
 

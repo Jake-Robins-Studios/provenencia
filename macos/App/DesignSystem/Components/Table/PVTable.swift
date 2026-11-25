@@ -245,10 +245,9 @@ struct PVTable<Row: Identifiable, Content: View>: View {
                 }
                 content
             }
-            // Lets a list's scroll anchor (`ListScrollAnchorModifier`) find the top row.
-            .scrollTargetLayout()
+            .pvRemembersScroll()
         }
-        .pvScrollsRowIntoView(selection)
+        .pvScrollsSelectionIntoView(selection)
         .focusable()
         .focusEffectDisabled()
         .focused($isFocused)

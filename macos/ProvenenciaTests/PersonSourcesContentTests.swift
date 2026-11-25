@@ -216,39 +216,36 @@ struct PersonSourcesContentTests {
     /// T-8 (AC-3.1 – AC-3.3): an anchor resolves to the title, the line, or the Show more of the
     /// fold that hides it.
     @Test func anchorResolvesToTheTitleLineOrFold() {
-        func title(_ content: PersonSourcesContent, _ id: String) -> ConclusionAnchorTarget<PersonSourcesFocus>? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .sourceTitle, id: id)!)
+        func title(_ content: PersonSourcesContent, _ id: String) -> PersonSourcesFocus? {
+            content.anchorStop(for: ConclusionSectionAnchor(part: .sourceTitle, id: id)!)
         }
-        func line(_ content: PersonSourcesContent, _ id: String, row: String) -> ConclusionAnchorTarget<PersonSourcesFocus>? {
-            content.anchorTarget(for: ConclusionSectionAnchor(part: .sourceLine, id: id, row: row)!)
-        }
-        func at(_ stop: PersonSourcesFocus, _ scroll: String) -> ConclusionAnchorTarget<PersonSourcesFocus> {
-            .init(stop: stop, scrollID: scroll)
+        func line(_ content: PersonSourcesContent, _ id: String, row: String) -> PersonSourcesFocus? {
+            content.anchorStop(for: ConclusionSectionAnchor(part: .sourceLine, id: id, row: row)!)
         }
 
         let few = content(groups)
-        #expect(title(few, "src-3") == at(.title(sourceID: "src-3"), "src-3"))
+        #expect(title(few, "src-3") == .title(sourceID: "src-3"))
         #expect(title(few, "unknown") == nil)
-        #expect(line(few, "c2", row: "src-1") == at(.graph(claimID: "c2"), "c2"))
+        #expect(line(few, "c2", row: "src-1") == .graph(claimID: "c2"))
         #expect(line(few, "c9", row: "src-1") == nil)
         #expect(line(few, "c2", row: "unknown") == nil)
 
         // Sources past the fold of fifty.
         let sources = content(manySources(60))
-        #expect(title(sources, "src-3") == at(.title(sourceID: "src-3"), "src-3"))
-        #expect(title(sources, "src-55") == at(.more(.rows), "more.rows"))
-        #expect(line(sources, "c55", row: "src-55") == at(.more(.rows), "more.rows"))
-        #expect(line(sources, "c3", row: "src-3") == at(.graph(claimID: "c3"), "c3"))
+        #expect(title(sources, "src-3") == .title(sourceID: "src-3"))
+        #expect(title(sources, "src-55") == .more(.rows))
+        #expect(line(sources, "c55", row: "src-55") == .more(.rows))
+        #expect(line(sources, "c3", row: "src-3") == .graph(claimID: "c3"))
 
         // Eight lines on one Source: five show, "Show 3 more" stands for the rest.
         let lines = content(manyLines(8))
-        #expect(line(lines, "c4", row: "src") == at(.graph(claimID: "c4"), "c4"))
-        #expect(line(lines, "c7", row: "src") == at(.more(.lines(sourceID: "src")), "more.src"))
+        #expect(line(lines, "c4", row: "src") == .graph(claimID: "c4"))
+        #expect(line(lines, "c7", row: "src") == .more(.lines(sourceID: "src")))
         // A Source with nothing folded has no Show more to land on.
         #expect(line(content(manyLines(3)), "c7", row: "src") == nil)
 
         // Another part is never this section's.
-        #expect(lines.anchorTarget(for: ConclusionSectionAnchor(part: .family, id: "c1")!) == nil)
+        #expect(lines.anchorStop(for: ConclusionSectionAnchor(part: .family, id: "c1")!) == nil)
     }
 
     @MainActor @Test func foldedGraphsTakeTheHighlight() {

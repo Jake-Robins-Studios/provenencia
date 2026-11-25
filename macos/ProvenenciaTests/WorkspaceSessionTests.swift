@@ -22,6 +22,43 @@ struct WorkspaceSessionTests {
         WorkspaceSession(projectKey: ProjectKey(projectDir: projectDir), store: store)
     }
 
+    /// D-10, AC-2.2 – AC-2.5: a history move to the Sources list puts its open Source back; a push, and a
+    /// history move to any other place, leave the session alone.
+    struct HistoryStateCase: CustomTestStringConvertible, Sendable {
+        let name: String
+        let location: WorkspaceLocation
+        let kind: WorkspaceArrivalKind
+        let expected: String?
+        var testDescription: String { name }
+    }
+
+    @Test(arguments: [
+        HistoryStateCase(
+            name: "history, Sources list left with s2 open",
+            location: WorkspaceLocation(section: .sources, revisit: WorkspaceRevisit(openSourceId: "s2")),
+            kind: .history, expected: "s2"
+        ),
+        HistoryStateCase(
+            name: "history, Sources list left with none open",
+            location: .sectionRoot(.sources), kind: .history, expected: nil
+        ),
+        HistoryStateCase(
+            name: "push, Sources list left with s2 open",
+            location: WorkspaceLocation(section: .sources, revisit: WorkspaceRevisit(openSourceId: "s2")),
+            kind: .push, expected: "s1"
+        ),
+        HistoryStateCase(
+            name: "history, a Source page",
+            location: .sourcePage(sourceId: "s9"), kind: .history, expected: "s1"
+        ),
+    ])
+    func historyReopensTheSourceAListEntryHad(_ c: HistoryStateCase) {
+        let session = makeSession()
+        session.setOpenSource("s1")
+        session.applyHistoryState(c.location, kind: c.kind)
+        #expect(session.openSourceID == c.expected)
+    }
+
     @Test func evidenceGraphIndexFollowsTheListRevision() {
         let session = makeSession()
         let key = session.evidenceGraphsKey

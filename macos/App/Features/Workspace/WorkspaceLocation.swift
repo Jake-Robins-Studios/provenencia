@@ -67,16 +67,11 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
     /// Denormalized Source title, the Source crumb's label while the Sources list has no value
     /// (composer, Promote); ignored for navigation identity.
     var sourceTitle: String?
-    /// Id of a list place's anchor row: the row at its top (Sources, Source types) or the row
-    /// selected in it (Persons, Events, Places).
-    /// Ignored for navigation identity, like `title` and `ref`. Written when leaving
-    /// the list. A missing key in older history files decodes as nil, which opens at the top.
-    var listScrollAnchor: String?
-    /// The row of a record page's section the researcher last opened another place from.
-    /// Ignored for navigation identity. Written as a row opens a place, cleared by
-    /// `withPageSection`. A missing key, or a value this build cannot read, decodes as nil,
-    /// which opens the page at its top.
-    var sectionAnchor: ConclusionSectionAnchor?
+    /// How the entry was left: the list's selected row, the y of the scroll view, the open Source,
+    /// the record page's section anchor. Ignored for navigation identity, like `title` and `ref`.
+    /// Stamped on the entry being left; a push starts clean. A missing or unreadable key in an older
+    /// history file decodes as empty, which opens the page at its top.
+    var revisit: WorkspaceRevisit
     /// The section of a record page that is open (Person: Vitals, Family, …). Part of
     /// identity: a section is a place. Nil is the first section the kind offers, so a
     /// link without a section and one to the first section are equal.
@@ -90,11 +85,11 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         return pageSection ?? ConclusionPageSection.offered(by: section).first
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case section, sourceId, graphId, fieldId, typeId, subjectId, citationId, artifactId, observationId
         case connectFromSubjectId, connectToSubjectId, connectBridgeTypeKey
         case subjectTypeKey, propertyId, entityId
-        case sourceSurface, promoteAll, ref, title, sourceTitle, listScrollAnchor, sectionAnchor, pageSection
+        case sourceSurface, promoteAll, ref, title, sourceTitle, pageSection
     }
 
     init(
@@ -119,8 +114,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         ref: String? = nil,
         title: String? = nil,
         sourceTitle: String? = nil,
-        listScrollAnchor: String? = nil,
-        sectionAnchor: ConclusionSectionAnchor? = nil
+        revisit: WorkspaceRevisit = WorkspaceRevisit()
     ) {
         self.section = section
         self.sourceId = Self.nilIfEmpty(sourceId)
@@ -143,8 +137,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         self.ref = Self.nilIfEmpty(ref)
         self.title = Self.nilIfEmpty(title)
         self.sourceTitle = Self.nilIfEmpty(sourceTitle)
-        self.listScrollAnchor = Self.nilIfEmpty(listScrollAnchor)
-        self.sectionAnchor = sectionAnchor
+        self.revisit = revisit
     }
 
     init(from decoder: Decoder) throws {
@@ -177,8 +170,33 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         ref = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .ref))
         title = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .title))
         sourceTitle = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .sourceTitle))
-        listScrollAnchor = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .listScrollAnchor))
-        sectionAnchor = try? container.decodeIfPresent(ConclusionSectionAnchor.self, forKey: .sectionAnchor)
+        revisit = try WorkspaceRevisit(from: decoder)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(section, forKey: .section)
+        try container.encodeIfPresent(sourceId, forKey: .sourceId)
+        try container.encodeIfPresent(graphId, forKey: .graphId)
+        try container.encodeIfPresent(fieldId, forKey: .fieldId)
+        try container.encodeIfPresent(typeId, forKey: .typeId)
+        try container.encodeIfPresent(subjectId, forKey: .subjectId)
+        try container.encodeIfPresent(citationId, forKey: .citationId)
+        try container.encodeIfPresent(artifactId, forKey: .artifactId)
+        try container.encodeIfPresent(observationId, forKey: .observationId)
+        try container.encodeIfPresent(connectFromSubjectId, forKey: .connectFromSubjectId)
+        try container.encodeIfPresent(connectToSubjectId, forKey: .connectToSubjectId)
+        try container.encodeIfPresent(connectBridgeTypeKey, forKey: .connectBridgeTypeKey)
+        try container.encodeIfPresent(subjectTypeKey, forKey: .subjectTypeKey)
+        try container.encodeIfPresent(propertyId, forKey: .propertyId)
+        try container.encodeIfPresent(entityId, forKey: .entityId)
+        try container.encode(sourceSurface, forKey: .sourceSurface)
+        try container.encode(promoteAll, forKey: .promoteAll)
+        try container.encodeIfPresent(ref, forKey: .ref)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encodeIfPresent(sourceTitle, forKey: .sourceTitle)
+        try container.encodeIfPresent(pageSection?.rawValue, forKey: .pageSection)
+        try revisit.encode(to: encoder)
     }
 
     /// Section list root (no deep id).
@@ -315,26 +333,36 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         }
     }
 
-    /// Same place, with the list's top row replaced. Nil opens at the top.
+    /// Same place, with the list's selected row replaced. Nil selects nothing.
     /// Identity is unchanged, so `go(to:)` coalesces instead of pushing.
-    func withListScrollAnchor(_ anchor: String?) -> WorkspaceLocation {
+    func withListSelection(_ selection: String?) -> WorkspaceLocation {
         var copy = self
-        copy.listScrollAnchor = Self.nilIfEmpty(anchor)
+        copy.revisit.listSelection = Self.nilIfEmpty(selection)
         return copy
     }
 
     /// Same record, on another section of its page. Nil, an unoffered section, or the
-    /// first section the kind offers is stored as nil. `ref`, `title` and `sourceTitle` are kept;
-    /// `sectionAnchor` is cleared (a new section opens at its top).
+    /// first section the kind offers is stored as nil. `ref`, `title` and `sourceTitle` are kept.
+    /// A push strips the revisit, so a new section opens at its top.
     func withPageSection(_ pageSection: ConclusionPageSection?) -> WorkspaceLocation {
         var copy = self
         copy.pageSection = Self.normalizedPageSection(pageSection, section: section, entityId: entityId)
-        copy.sectionAnchor = nil
         return copy
     }
 
+    /// The same page, whichever row it has selected: a Metadata field or a Properties property is a place
+    /// of its own, but selecting one stays on the page. A Properties category is another page.
+    func isSamePage(as other: WorkspaceLocation) -> Bool {
+        var (page, otherPage) = (self, other)
+        for path in [\WorkspaceLocation.fieldId, \.propertyId] {
+            page[keyPath: path] = nil
+            otherPage[keyPath: path] = nil
+        }
+        return page == otherPage
+    }
+
     /// Identity used for coalesce / equality of navigation — deep ids only.
-    /// `ref`, `title`, `sourceTitle`, `listScrollAnchor` and `sectionAnchor` are not identity; `pageSection` is.
+    /// `ref`, `title`, `sourceTitle` and `revisit` are not identity; `pageSection` is.
     static func == (lhs: WorkspaceLocation, rhs: WorkspaceLocation) -> Bool {
         lhs.section == rhs.section
             && lhs.sourceId == rhs.sourceId
