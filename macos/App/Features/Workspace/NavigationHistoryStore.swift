@@ -83,15 +83,14 @@ final class NavigationHistoryStore {
     }
 
     /// Writes how the current entry is being left: the held revisit's scroll offsets and section anchor
-    /// on every entry; its selection only on a list root, and `openSourceId` only on the Sources list
+    /// on every entry; its selection only on a list root, and its open Source only on the Sources list
     /// root. No persist: the move that follows writes the file once.
-    func stampLeaving(_ held: WorkspaceRevisit, openSourceId: String?) {
+    func stampLeaving(_ held: WorkspaceRevisit) {
         guard document.entries.indices.contains(document.index) else { return }
         var stamped = document.entries[document.index]
-        stamped.revisit.scrollOffsets = held.scrollOffsets
-        stamped.revisit.sectionAnchor = held.sectionAnchor
-        if stamped.isListRoot { stamped.revisit.listSelection = held.listSelection }
-        if stamped.section == .sources, stamped.isListRoot { stamped.revisit.openSourceId = openSourceId }
+        stamped.revisit = held
+        if !stamped.isListRoot { stamped.revisit.listSelection = nil }
+        if stamped.section != .sources || !stamped.isListRoot { stamped.revisit.openSourceId = nil }
         document.entries[document.index] = stamped
     }
 

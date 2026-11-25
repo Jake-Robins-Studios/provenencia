@@ -93,16 +93,12 @@ struct SourcesTable: View {
     let items: [SourcesTableItem]
     let selection: Binding<String?>
     let model: SourcesModel
-    let gutter: CGFloat
     /// Opens a closed Source, or closes the open one: the triangle's action.
     var toggle: (CatalogSource, SourcesDisclosure) -> Void = { _, _ in }
     /// Notes whether the pointer is on a Source's triangle (the page reads it when a click selects).
     var hoverTriangle: (_ sourceID: String, _ inside: Bool) -> Void = { _, _ in }
     /// Skeleton rows: inert, and out of the accessibility tree.
     var isLoading = false
-    /// False when the caller applies `inset(gutter:)` after wrapping the table in `pvNativeListBehavior`:
-    /// its scroll memory finds the table's scroll view by its frame, so nothing may pad between them.
-    var insetsItself = true
 
     /// The Type column's customization id: it shows at Wide only.
     static let typeColumnID = "type"
@@ -116,10 +112,9 @@ struct SourcesTable: View {
     static let titleIndent: CGFloat = triangleWidth + PVSpacing.space2 + coverSize + PVSpacing.space5
 
     /// The header over skeleton rows in their columns: inert, so a row does not shift when its cells arrive.
-    static func loading(model: SourcesModel, gutter: CGFloat) -> SourcesTable {
-        SourcesTable(
-            items: SourcesTableItem.skeletons, selection: .constant(nil), model: model, gutter: gutter, isLoading: true
-        )
+    static func loading(model: SourcesModel, gutter: CGFloat) -> some View {
+        SourcesTable(items: SourcesTableItem.skeletons, selection: .constant(nil), model: model, isLoading: true)
+            .padding(.horizontal, inset(gutter: gutter))
     }
 
     private var isWide: Bool { widthClass == .wide }
@@ -136,10 +131,10 @@ struct SourcesTable: View {
         GeometryReader { proxy in
             table(SourcesTableWidths(isWide: isWide, tableWidth: proxy.size.width))
         }
-        .padding(.horizontal, insetsItself ? Self.inset(gutter: gutter) : 0)
     }
 
-    /// The inset table draws its first column 18 pt in: its first header's text lands on the gutter.
+    /// The padding each caller gives the table: it draws its first column 18 pt in, so its first header's
+    /// text lands on the gutter.
     static func inset(gutter: CGFloat) -> CGFloat {
         gutter - SourcesTableWidths.headerInset
     }

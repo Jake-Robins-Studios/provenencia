@@ -17,7 +17,8 @@ struct PVListScroll<ID: Hashable>: Hashable {
 /// restores its remembered y, `pvRemembersScroll`). A right-click offers `menu(id)` as the platform's own context menu: one native button per
 /// `PVActionMenuItem`, a divider between sections. The list is its own scroll view and draws no
 /// background (the caller hides the platform's): its area draws the card fill, so nothing covers the
-/// system selection.
+/// system selection. Nothing may pad between the list and this behavior: its scroll memory finds the
+/// list's scroll view by its frame.
 ///
 /// `ids` are the rows in order; `onActivate` and `menu` are called only with an id in `ids`, so a caller
 /// maps an id to its item. `minimumRowHeight` is the mouse wheel's step. A change of `restartKey` scrolls

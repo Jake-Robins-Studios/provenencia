@@ -175,12 +175,10 @@ private struct SourcesListContent: View {
             )
             SourcesTable(
                 items: outline.items, selection: selection, model: model,
-                gutter: gutter,
                 toggle: { source, disclosure in
                     apply(disclosure == .expanded ? .collapse : .expand(source.id), outline: outline)
                 },
-                hoverTriangle: { id, inside in pointer.note(id, inside: inside) },
-                insetsItself: false
+                hoverTriangle: { id, inside in pointer.note(id, inside: inside) }
             )
             .pvNativeListBehavior(
                 ids: outline.ids,

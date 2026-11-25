@@ -85,11 +85,11 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         return pageSection ?? ConclusionPageSection.offered(by: section).first
     }
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case section, sourceId, graphId, fieldId, typeId, subjectId, citationId, artifactId, observationId
         case connectFromSubjectId, connectToSubjectId, connectBridgeTypeKey
         case subjectTypeKey, propertyId, entityId
-        case sourceSurface, promoteAll, ref, title, sourceTitle, listScrollAnchor, sectionAnchor, scrollOffsets, pageSection
+        case sourceSurface, promoteAll, ref, title, sourceTitle, pageSection
     }
 
     init(
@@ -170,17 +170,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         ref = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .ref))
         title = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .title))
         sourceTitle = Self.nilIfEmpty(try container.decodeIfPresent(String.self, forKey: .sourceTitle))
-        // Each key of the revisit decodes on its own: one this build cannot read is empty.
-        let offsets = (try? container.decodeIfPresent([String: LenientOffset].self, forKey: .scrollOffsets)) ?? nil
-        revisit = WorkspaceRevisit(
-            listSelection: (try? container.decodeIfPresent(String.self, forKey: .listScrollAnchor)) ?? nil,
-            scrollOffsets: Dictionary(
-                uniqueKeysWithValues: (offsets ?? [:]).compactMap { key, value in
-                    value.offset.map { (PVScrollSlot(rawValue: key), $0) }
-                }
-            ),
-            sectionAnchor: (try? container.decodeIfPresent(ConclusionSectionAnchor.self, forKey: .sectionAnchor)) ?? nil
-        )
+        revisit = try WorkspaceRevisit(from: decoder)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -205,24 +195,8 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
         try container.encodeIfPresent(ref, forKey: .ref)
         try container.encodeIfPresent(title, forKey: .title)
         try container.encodeIfPresent(sourceTitle, forKey: .sourceTitle)
-        try container.encodeIfPresent(revisit.listSelection, forKey: .listScrollAnchor)
-        try container.encodeIfPresent(revisit.sectionAnchor, forKey: .sectionAnchor)
-        if !revisit.scrollOffsets.isEmpty {
-            // A hand-written object: a dictionary keyed by a struct would encode as an array.
-            let offsets = Dictionary(uniqueKeysWithValues: revisit.scrollOffsets.map { ($0.key.rawValue, $0.value) })
-            try container.encode(offsets, forKey: .scrollOffsets)
-        }
         try container.encodeIfPresent(pageSection?.rawValue, forKey: .pageSection)
-    }
-
-    /// One entry of `scrollOffsets`: a number that is finite and not negative, else nothing.
-    private struct LenientOffset: Decodable {
-        let offset: Double?
-
-        init(from decoder: Decoder) throws {
-            let value = try? decoder.singleValueContainer().decode(Double.self)
-            offset = value.flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
-        }
+        try revisit.encode(to: encoder)
     }
 
     /// Section list root (no deep id).

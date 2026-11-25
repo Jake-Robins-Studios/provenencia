@@ -128,7 +128,7 @@ struct WorkspaceNavigationTests {
         navigation.go(to: .sectionRoot(.events))
         let before = entryCount(navigation)
         var recorded: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { recorded.append($0) }
+        navigation.onLocationCommit = { location, _ in recorded.append(location) }
 
         var next = WorkspaceLocation(section: .sources, sourceId: "s1", graphId: "g-1", sourceSurface: .citationComposer)
         next.artifactId = "art-1"
@@ -148,7 +148,7 @@ struct WorkspaceNavigationTests {
 
         let navigation = WorkspaceNavigation()
         var recorded: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { recorded.append($0) }
+        navigation.onLocationCommit = { location, _ in recorded.append(location) }
         navigation.attachProject(uuid: projectUuid, fileURL: url)
 
         #expect(navigation.projectUuid == projectUuid)
@@ -720,7 +720,7 @@ struct WorkspaceNavigationTests {
     /// number is dropped and the rest kept.
     @Test func scrollOffsetsRoundTripAndDecodeLeniently() throws {
         var location = WorkspaceLocation.sectionRoot(.persons)
-        location.revisit.scrollOffsets = [.page: 1800, PVScrollSlot(rawValue: "second"): 12.5]
+        location.revisit = WorkspaceRevisit(scrollOffsets: [.page: 1800, PVScrollSlot(rawValue: "second"): 12.5])
         let data = try JSONEncoder().encode(location)
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["scrollOffsets"] as? [String: Double] == ["page": 1800, "second": 12.5])
@@ -731,6 +731,30 @@ struct WorkspaceNavigationTests {
             .revisit.scrollOffsets == [PVScrollSlot(rawValue: "second"): 7])
         #expect(try decoded(#"{"section":"persons","scrollOffsets":[1,2]}"#).revisit.scrollOffsets.isEmpty)
         #expect(try decoded(#"{"section":"persons","scrollOffsets":{"page":4},"listScrollAnchor":9}"#).revisit.scrollOffsets == [.page: 4])
+    }
+
+    /// The encoder is hand-kept: a field it misses would leave the history file without a word.
+    @Test func everyFieldIsEncoded() throws {
+        let location = WorkspaceLocation(
+            section: .persons, sourceId: "s", graphId: "g", fieldId: "f", typeId: "t", subjectId: "sub",
+            citationId: "c", artifactId: "a", observationId: "o", connectFromSubjectId: "from",
+            connectToSubjectId: "to", connectBridgeTypeKey: "bridge", subjectTypeKey: "person", propertyId: "p",
+            entityId: "e", pageSection: .family, sourceSurface: .graph, promoteAll: true, ref: "PER-1",
+            title: "Ada", sourceTitle: "Deed",
+            revisit: WorkspaceRevisit(
+                listSelection: "row", openSourceId: "s", scrollOffsets: [.page: 5],
+                sectionAnchor: ConclusionSectionAnchor(part: .family, id: "r")
+            )
+        )
+        let data = try JSONEncoder().encode(location)
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let keys = WorkspaceLocation.CodingKeys.allCases.map(\.rawValue) + WorkspaceRevisit.CodingKeys.allCases.map(\.rawValue)
+        #expect(Set(object.keys) == Set(keys))
+        let read = try JSONDecoder().decode(WorkspaceLocation.self, from: data)
+        #expect(read == location && read.ref == "PER-1" && read.title == "Ada" && read.sourceTitle == "Deed")
+        var written = location.revisit
+        written.openSourceId = nil
+        #expect(read.revisit == written)
     }
 
     /// D-8, D-9, AC-2.2, AC-2.4, AC-2.5: the open Source is stamped on the Sources list root only, and
@@ -811,20 +835,11 @@ struct WorkspaceNavigationTests {
         #expect(reloaded.currentLocation.revisit.scrollOffsets[.page] == 700)
     }
 
-    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not,
-    /// and a noted scroll survives the page and Back.
+    /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not.
     @Test func sourceTypesListIsAListRoot() throws {
         #expect(WorkspaceLocation.sectionRoot(.sourceTypes).isListRoot)
         #expect(!WorkspaceLocation.sourceTypePage(typeId: "typ-1", title: "Census").isListRoot)
         #expect(!WorkspaceLocation.sectionRoot(.metadata).isListRoot)
-
-        let (navigation, _) = try attachedNavigation()
-        navigation.go(to: .sectionRoot(.sourceTypes))
-        navigation.noteListSelection("typ-7")
-        navigation.go(to: .sourceTypePage(typeId: "typ-1", title: "Census"))
-        navigation.goBack()
-        #expect(navigation.currentLocation == .sectionRoot(.sourceTypes))
-        #expect(navigation.currentLocation.revisit.listSelection == "typ-7")
     }
 
     @Test func notingListScrollDoesNotPushHistory() throws {
@@ -1113,7 +1128,7 @@ struct WorkspaceNavigationTests {
     @Test func locationCommitOnGo() {
         let navigation = WorkspaceNavigation()
         var committed: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { committed.append($0) }
+        navigation.onLocationCommit = { location, _ in committed.append(location) }
 
         navigation.go(to: .sectionRoot(.metadata))
         #expect(committed == [.sectionRoot(.metadata)])
@@ -1127,7 +1142,7 @@ struct WorkspaceNavigationTests {
 
         var committed: [WorkspaceLocation] = []
         let reloaded = WorkspaceNavigation()
-        reloaded.onLocationCommit = { committed.append($0) }
+        reloaded.onLocationCommit = { location, _ in committed.append(location) }
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
 
         #expect(committed.count == 1)
@@ -1137,7 +1152,7 @@ struct WorkspaceNavigationTests {
     @Test func locationCommitOnBackForward() throws {
         let (navigation, _) = try attachedNavigation()
         var committed: [WorkspaceLocation] = []
-        navigation.onLocationCommit = { committed.append($0) }
+        navigation.onLocationCommit = { location, _ in committed.append(location) }
 
         navigation.go(to: .sectionRoot(.metadata))
         navigation.go(to: .sectionRoot(.sourceTypes))

@@ -52,8 +52,8 @@ final class WorkspaceNavigation {
     private(set) var canGoForward = false
     /// Latest load/persist failure for chrome toast; cleared via `acknowledgeHistoryIssue()`.
     private(set) var lastHistoryIssue: NavigationHistoryIssue?
-    /// Fired synchronously whenever a location is committed (including history restore).
-    var onLocationCommit: ((WorkspaceLocation) -> Void)?
+    /// Fired synchronously whenever a location is committed (including history restore), with how it came.
+    var onLocationCommit: ((WorkspaceLocation, WorkspaceArrival.Kind) -> Void)?
     /// Views never observe this; it only intercepts committed moves.
     @ObservationIgnored
     weak var leaveGuard: (any WorkspaceLeaveGuard)?
@@ -64,7 +64,7 @@ final class WorkspaceNavigation {
     /// The visit being shown (D-7). Observed: the host re-arms its scroll views when `id` changes.
     private(set) var arrival = WorkspaceArrival(id: 0, kind: .push)
     /// What the visit has noted so far: the list's selection, the y of each scroll view, the section
-    /// anchor. Stamped onto the entry on the next Back, Forward, jump or `go(to:)`, and by `flush()`;
+    /// anchor; the open Source is read as it is stamped. Stamped onto the entry on the next Back, Forward, jump or `go(to:)`, and by `flush()`;
     /// on a new arrival it starts as the entry's own. Scrolling does not write the history file or
     /// notify observers; only `listSelection` does.
     @ObservationIgnored private var revisit = WorkspaceRevisit()
@@ -123,18 +123,14 @@ final class WorkspaceNavigation {
         refreshHistoryIssue()
     }
 
-    /// Wires the session to the navigation: a commit applies the location to the session, and a new
-    /// visit by a history move also puts the Sources list's open Source back as it was left. The
+    /// Wires the session to the navigation: a commit applies the location to the session, and a history
+    /// move also puts the Sources list's open Source back as it was left. The
     /// open Source is read from the session when the Sources list root is left.
     func connect(to session: WorkspaceSession) {
         openSourceProvider = { [weak session] in session?.openSourceID }
-        // A coalesced `go(to:)` commits again on the same visit; only a new visit applies history state.
-        var handledArrival = arrival.id
-        onLocationCommit = { [weak self] location in
+        onLocationCommit = { location, kind in
             session.apply(location: location)
-            guard let arrival = self?.arrival, arrival.id != handledArrival else { return }
-            handledArrival = arrival.id
-            session.applyHistoryState(location, kind: arrival.kind)
+            session.applyHistoryState(location, kind: kind)
         }
     }
 
@@ -154,8 +150,7 @@ final class WorkspaceNavigation {
     /// A scroll view reports its y. A note of another visit (a closing page's last scroll) is dropped.
     /// This does not push a history entry and does not write the history file.
     func noteScrollOffset(_ y: Double, slot: PVScrollSlot, arrival: Int) {
-        guard arrival == self.arrival.id, y.isFinite, y >= 0 else { return }
-        revisit.scrollOffsets[slot] = y
+        guard arrival == self.arrival.id, revisit.note(y, slot: slot) else { return }
         notedSlots.insert(slot)
     }
 
@@ -174,9 +169,8 @@ final class WorkspaceNavigation {
     /// Writes the visit's y onto the current entry and the file, so a quit keeps where the
     /// researcher was.
     func flush() {
-        guard let history else { return }
-        history.stampLeaving(revisit, openSourceId: openSourceProvider?())
-        history.persist()
+        stampLeaving()
+        history?.persist()
     }
 
     /// Committed navigation. Coalesces identical locations; truncates forward.
@@ -309,7 +303,8 @@ final class WorkspaceNavigation {
     }
 
     private func stampLeaving() {
-        history?.stampLeaving(revisit, openSourceId: openSourceProvider?())
+        revisit.openSourceId = openSourceProvider?()
+        history?.stampLeaving(revisit)
     }
 
     /// The one commit. A visit begins on any history move, on another page, or when asked; then the held
@@ -341,7 +336,7 @@ final class WorkspaceNavigation {
         } else {
             listSelection = location.isListRoot ? location.revisit.listSelection : nil
         }
-        onLocationCommit?(location)
+        onLocationCommit?(location, kind)
     }
 
     private func refreshHistoryIssue() {
