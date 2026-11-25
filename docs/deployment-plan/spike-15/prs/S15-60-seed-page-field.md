@@ -269,3 +269,4 @@ None.
 - Map § 6.8's "entries for the 63 fields" line also reads 64, with the Fields table; STEP-5 named only the table.
 - T-5 checks the court report `page` entry through `entryOf` on the Source board (the field is now a suggested entry, not `Board.Page`).
 - The manual check (section 10) was not run by the implementer.
+- Docs fix round 1 also edited the citation map (levels table, status line, § 6.6, § 7, § 6.10), `deployment-plan.md` (seed rule, Scale) and `README.md` (field count), beyond STEP-5's map row only.

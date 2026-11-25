@@ -1,6 +1,6 @@
 # Evidence Explained citation map
 
-**Status:** Spike 15 design input, not yet cut into PRs ([`README.md`](README.md)). It lists the kinds of record *Evidence Explained* (EE) gives citation models for, groups them into the citation patterns Provenencia has to build, and maps each pattern's elements to data the catalog has or will need. The last section lists every missing field and how to add it. **Revised 2026-11-09 (user):** the first draft added tables and columns for contributors, jurisdiction, repositories, reference parts and Artifact access fields; this version uses the existing Source types, metadata fields and type → field suggestions instead. Beyond the planned Source date, the only new schema repeats the Source's metadata structure (values, layout, type templating) on the Artifact (the copy used) and the Evidence graph (the item cited) (§ 6.6, § 6.9). The Citation composer gets no new fields. It extends [`citation-formats.md`](citation-formats.md), which sets out the convention and the six-step path; this doc is the inventory behind steps 1, 2 and 4 of that path.
+**Status:** Spike 15 design input, not yet cut into PRs ([`README.md`](README.md)). It lists the kinds of record *Evidence Explained* (EE) gives citation models for, groups them into the citation patterns Provenencia has to build, and maps each pattern's elements to data the catalog has or will need. The last section lists every missing field and how to add it. **Revised 2026-11-09 (user):** the first draft added tables and columns for contributors, jurisdiction, repositories, reference parts and Artifact access fields; this version uses the existing Source types, metadata fields and type → field suggestions instead. Beyond the planned Source date, the only new schema repeats the Source's metadata structure (values, layout, type templating) on the Artifact (the copy used) and the Evidence graph (the item cited) (§ 6.6, § 6.9). It extends [`citation-formats.md`](citation-formats.md), which sets out the convention and the six-step path; this doc is the inventory behind steps 1, 2 and 4 of that path.
 
 **Goal (user, 2026-11-08):** a researcher builds an Evidence graph, promotes its Subjects, and gets a correct EE citation with no further typing. Every field below either already exists, can be read from the graph, or is a seeded metadata field the researcher fills once: on the Source, or on the Artifact or Evidence graph when it differs per copy or per item.
 
@@ -37,7 +37,7 @@ The two overlap only by accident: "image 37" means nothing without the file, and
 | Source | — | What the record is and where the original lives: creator, jurisdiction, title, volume, repository |
 | Artifact | The File | How to get this copy again: format, provider, URL, accessed date, film number, citing |
 | Evidence graph | — | The item in the record's own numbering: entry, line, dwelling, family, folio, column (§ 6.9) |
-| Citation | Page in the file, region | The printed page (`page_label`), the one item detail that can differ inside a graph |
+| Citation | Page in the file, region | What differs inside a graph: the printed page (the `page` field; a locator's `page_label` answers until S15-58), and any other item field set on the Citation (§ 6.9) |
 
 What follows from it:
 
@@ -831,7 +831,7 @@ CREATE TABLE evidence_graph_metadata_layout (
 - **Same fields, every level.** All four levels take any field from the one vocabulary, seeded and researcher-made alike. No new columns on `artifacts` or `citations`.
 - **A format reads a field from the nearest level that holds it.** A placeholder names no level (§ 6.3; user, 2026-11-22, which replaced "each placeholder names its level" of 2026-11-13, itself a replacement of an earlier implicit rule). The seeded formats read item fields as `{meta.key}`, so a researcher who files one Source per household never needs the graph level; one who files the whole page as a Source fills line numbers per graph, one graph per household (§ 6.9).
 - **Templating follows the Source's type.** An Artifact's and a graph's suggestions are the `artifact` and `graph` rows of their Source's type, so a census Source suggests provider and URL on each Artifact and line, dwelling and family on each graph. The Source types admin edits the three lists the way it edits one today.
-- **Layout works as on the Source.** `ListWorkspace`'s merge rules (dismiss hides an empty suggestion, saved order first, then suggestions, then extras) apply unchanged per Artifact and per graph ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 5.4). The Artifact form and the graph's edit view each get a metadata board built from the Source page's. The Citation composer gets none.
+- **Layout works as on the Source.** `ListWorkspace`'s merge rules (dismiss hides an empty suggestion, saved order first, then suggestions, then extras) apply unchanged per Artifact and per graph ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 5.4). The Artifact form and the graph's edit view each get a metadata board built from the Source page's. The Citation composer gets one in S15-56 (§ 6.9).
 - **Readers of the join** filter by level: `sourcetypes` and `sourcevocab` (suggestion ops and Install). The `effects` registry and the catalog model are unchanged (D-7).
 - **Name.** `source_metadata_fields` now serves every level. Renaming it to `metadata_fields` would be accurate but touches every reader; keeping the name and noting the wider use is the cheaper choice.
 
@@ -1191,7 +1191,7 @@ A field that is both suggested and needed shows once, as needed. A chain empty e
 **Unknown and supplied.** Each metadata value row, the Source date and the printed page can be marked **Unknown** (no text; prints the field's unknown text) or **Supplied** (text; prints in square brackets). A supplied date keeps its precision ("[ca. 1880]"). One Go type, `core/valuemark`, declares the pair and its rule (never both; unknown has no text) for every place that stores it, and the app builds one Unknown and Supplied control that the board row, the date dialog and the composer share. Storage:
 
 - `source_metadata`, `artifact_metadata`, `evidence_graph_metadata`: `is_unknown INTEGER NOT NULL DEFAULT 0` and `is_supplied INTEGER NOT NULL DEFAULT 0`, both `CHECK (… IN (0, 1))`, and `CHECK (NOT (is_unknown = 1 AND is_supplied = 1))`; an unknown row has no `value_text`.
-- `source_metadata_fields.unknown_text TEXT` (nullable): what a marked-unknown value prints. Seeded on the fields that have a convention ("n.p." for `publication_place` and `publisher` and "unpaginated" for `page`); editable on the Metadata page.
+- `source_metadata_fields.unknown_text TEXT` (nullable): what a marked-unknown value prints. Seeded on the fields that have a convention ("n.p." for `publication_place` and `publisher`, "unpaginated" for `page`); editable on the Metadata page.
 - `sources.date_unknown` and `sources.date_supplied` (the same two facts beside `date_value_id`; unknown means no date value).
 - The locator's page: `page_unknown` and `page_supplied` beside `page_label` in its JSON; no migration.
 - Copy Source and a move carry the two facts with their value; the audit records them as part of the value.
@@ -1210,10 +1210,10 @@ A field that is both suggested and needed shows once, as needed. A chain empty e
 - ~~Editable templates~~: yes, citation formats are data on the type (user, 2026-11-09, § 6.3).
 - ~~Per-Source override~~: no; `{a|b}` fallbacks and optional groups are enough for now (user, 2026-11-09).
 - ~~Layout at the Artifact and item levels~~: same as the Source, with templating per level (user, 2026-11-09).
-- ~~Where the item lives~~: on the Evidence graph; the composer gets no new fields (user, 2026-11-09, § 6.9).
+- ~~Where the item lives~~: at whichever level fits how the researcher filed, read nearest-first (user, 2026-11-22, § 6.9).
 - ~~How much seed~~: everything the patterns use; researchers remove what they don't want (user, 2026-11-09, § 6.8).
 - **Field vocabulary name.** Keep `source_metadata_fields` for every level, or rename it to `metadata_fields`.
-- **Printed page map.** Whether a per-Artifact page map ("image 37 is page 23") should replace typing the printed page in the composer (§ 6.9).
+- **Printed page map.** Whether a per-Artifact page map ("image 37 is page 23") should replace typing the printed page in the composer.
 - **One graph, several items.** Whether the app should nudge a researcher toward one graph per household when a Source's type suggests item fields at the graph level.
 - ~~Syntax details~~: `{a|b}` is enough for now (user, 2026-11-09). The engine returns diagnostics with positions, and the editor shows them (map review K-10, [`deployment-plan.md`](deployment-plan.md)).
 - ~~More forms~~: three (full, short, list) are enough for now (user, 2026-11-09).
