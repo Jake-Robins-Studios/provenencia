@@ -152,17 +152,17 @@ struct SourcesOutlineHostedTests {
     }
 
     /// AC-2.1, AC-2.2: Back to the Sources list opens the Source it was left with open, selects the
-    /// row, and puts the list at the y it was left at.
+    /// row, and puts the list at the y it was left at. The graph is in the first screenful, so the
+    /// platform table draws and selects it before and after the y lands; far scrolls are the kit's tests.
     @Test func backRestoresTheOpenSourceTheSelectionAndTheY() async throws {
-        // 12 Source rows above s1: its graphs start at about 990 pt, past the 760 pt window.
-        let harness = try await makeHarness(rows: 12 + 3 + 8, open: "s1", extraSources: 12)
-        let graphRow = 12 + 3 + 2
+        let harness = try await makeHarness(rows: 4 + 3 + 8, open: "s1", extraSources: 4)
+        let graphRow = 4 + 3 + 2
         let clip = harness.scroll.contentView
-        clip.scroll(to: NSPoint(x: 0, y: 600 - clip.contentInsets.top))
+        let left = 100.0
+        clip.scroll(to: NSPoint(x: 0, y: left - clip.contentInsets.top))
         harness.scroll.reflectScrolledClipView(clip)
         await select("g1-2", row: graphRow, harness)
-        let left = Double(clip.bounds.minY + clip.contentInsets.top)
-        #expect(left > 0)
+        #expect(Double(clip.bounds.minY + clip.contentInsets.top) == left)
 
         harness.navigation.go(to: .sourcePage(sourceId: "s1"))
         #expect(await eventually(harness) { descendant(NSTableView.self, in: harness.host) == nil })
@@ -173,7 +173,7 @@ struct SourcesOutlineHostedTests {
         #expect(await waitUntil(timeout: .seconds(10)) {
             harness.host.layoutSubtreeIfNeeded()
             table = descendant(NSTableView.self, in: harness.host)
-            return table?.numberOfRows == 12 + 3 + 8 && table?.selectedRow == graphRow
+            return table?.numberOfRows == 4 + 3 + 8 && table?.selectedRow == graphRow
         })
         #expect(harness.session.openSourceID == "s1")
         let restored = try #require(table?.enclosingScrollView)
