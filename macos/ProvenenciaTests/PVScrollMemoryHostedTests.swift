@@ -9,18 +9,16 @@ import Testing
 @Suite(.serialized, .hostedWindows)
 @MainActor
 struct PVScrollMemoryHostedTests {
-    private static let second = PVScrollSlot(rawValue: "second")
-
-    /// What the workspace host would hand the page: one visit, the y each slot was left at.
+    /// What the workspace host would hand the page: one visit, the y the page was left at.
     @MainActor
     @Observable
     final class Memory {
         var arrival = 1
-        var offsets: [PVScrollSlot: Double] = [:]
+        var offset: Double?
         var tall = true
         var selection: String?
         @ObservationIgnored var noted: [Double] = []
-        /// The arrival `.page` was last noted in.
+        /// The arrival last noted in.
         @ObservationIgnored var done: Int?
     }
 
@@ -32,10 +30,10 @@ struct PVScrollMemoryHostedTests {
             let arrival = memory.arrival
             content.environment(
                 \.pvScrollMemory,
-                PVScrollMemory(arrival: arrival) { [weak memory] slot in
-                    memory?.done == arrival ? nil : memory?.offsets[slot]
-                } note: { [weak memory] slot, y in
-                    guard slot == .page, let memory, arrival == memory.arrival else { return }
+                PVScrollMemory(arrival: arrival) { [weak memory] in
+                    memory?.done == arrival ? nil : memory?.offset
+                } note: { [weak memory] y in
+                    guard let memory, arrival == memory.arrival else { return }
                     memory.noted.append(y)
                     memory.done = arrival
                 }
@@ -121,7 +119,7 @@ struct PVScrollMemoryHostedTests {
     /// D-1, D-5, AC-1.2: a page restores the y it was left at.
     @Test func pageColumnsRestoreTheirY() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, host) = host(memory, PVPageColumns(primary: { column(rows: 100) }))
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 400 })
     }
@@ -129,7 +127,7 @@ struct PVScrollMemoryHostedTests {
     /// AC-1.1: a list restores its y.
     @Test func aListRestoresItsY() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, host) = host(memory, list(memory).frame(height: 600))
         #expect(await eventually(host) { descendant(NSTableView.self, in: host)?.enclosingScrollView.map { y($0) } == 400 })
     }
@@ -144,7 +142,7 @@ struct PVScrollMemoryHostedTests {
         #expect(y(scrollView) == 0)
 
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, tableHost) = host(memory, TableFixture(memory: memory).frame(height: 600))
         #expect(await eventually(tableHost) {
             descendant(NSTableView.self, in: tableHost)?.enclosingScrollView.map { y($0) } == 400
@@ -154,7 +152,7 @@ struct PVScrollMemoryHostedTests {
     /// AC-1.7: rows that arrive late move the list once, when they fit.
     @Test func lateRowsMoveTheListOnce() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         memory.tall = false
         let (_, host) = host(memory, PVPageColumns(primary: { LateRows(memory: memory) }))
         #expect(await eventually(host) { firstScrollView(host) != nil })
@@ -180,13 +178,13 @@ struct PVScrollMemoryHostedTests {
     /// AC-1.8: a researcher who scrolls before the rows arrive is not jumped when they do.
     @Test func aScrollBeforeTheRowsArriveWins() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 2000]
+        memory.offset = 2000
         memory.tall = false
         // 40 rows: scrollable, but not to 2000.
         let (_, host) = host(memory, PVPageColumns(primary: { LateRows40(memory: memory) }))
         #expect(await eventually(host) { firstScrollView(host)?.documentView?.frame.height ?? 0 > 800 })
         let scrollView = try #require(firstScrollView(host))
-        try #require(descendant(PVScrollMemoryProbeView.self, in: host)?.coordinator).input()
+        try #require(descendant(PVScrollMemoryProbeView.self, in: host)?.coordinator).end()
         scroll(scrollView, to: 50)
         #expect(await eventually(host) { y(scrollView) == 50 })
         memory.tall = true
@@ -200,12 +198,12 @@ struct PVScrollMemoryHostedTests {
     /// clamps, and moves once the content has grown.
     @Test func aReusedViewWhoseContentShrinksStillRestores() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 1200]
+        memory.offset = 1200
         let (_, host) = host(memory, PVPageColumns(primary: { LateRows40(memory: memory) }))
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 1200 })
         memory.tall = false
         memory.arrival = 2
-        memory.offsets = [.page: 900]
+        memory.offset = 900
         #expect(await eventually(host) { (firstScrollView(host)?.documentView?.frame.height ?? 9999) < 2000 })
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 0 })
         memory.tall = true
@@ -228,35 +226,36 @@ struct PVScrollMemoryHostedTests {
     /// D-6: a new arrival restores its own y on the mounted view.
     @Test func aNewArrivalRearms() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, host) = host(memory, PVPageColumns(primary: { column(rows: 100) }))
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 400 })
         memory.arrival = 2
-        memory.offsets = [.page: 250]
+        memory.offset = 250
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 250 })
     }
 
     /// AC-1.10: a view reused by a new arrival with no y returns to the top.
     @Test func aReusedScrollViewReturnsToTheTop() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, host) = host(memory, PVPageColumns(primary: { column(rows: 100) }))
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 400 })
         memory.arrival = 2
-        memory.offsets = [:]
+        memory.offset = nil
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 0 })
     }
 
     /// A scroll view mounted again in the same visit starts at the top.
     @Test func aRemountInTheSameVisitIsAtTheTop() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         let (_, host) = host(memory, Remounted(memory: memory) { column(rows: 100) })
         #expect(await eventually(host) { firstScrollView(host).map { y($0) } == 400 })
         let first = try #require(firstScrollView(host))
         memory.tall = false
         #expect(await eventually(host) { firstScrollView(host).map { $0 !== first } ?? false })
-        #expect(await eventually(host) { memory.noted == [400, 0] })
+        #expect(await eventually(host) { firstScrollView(host)?.documentView?.frame.height ?? 0 > 2000 })
+        await mainQueueTurn()
         #expect(firstScrollView(host).map { y($0) } == 0)
     }
 
@@ -272,7 +271,7 @@ struct PVScrollMemoryHostedTests {
     /// A y the document never reaches: the page is at the top, and the y stays on the entry.
     @Test func aYTheDocumentNeverReachesIsAtTheTop() async throws {
         let memory = Memory()
-        memory.offsets = [.page: 5000]
+        memory.offset = 5000
         let (_, host) = host(memory, PVPageColumns(primary: { column(rows: 100) }))
         #expect(await eventually(host) { (firstScrollView(host)?.documentView?.frame.height ?? 0) > 3000 })
         for _ in 0 ..< 5 {
@@ -283,7 +282,7 @@ struct PVScrollMemoryHostedTests {
         #expect(memory.noted.isEmpty)
     }
 
-    /// D-4: a container inside one that remembers the page does not claim the page.
+    /// D-4: a container inside one that remembers the page leaves the page's y alone.
     @Test func aNestedContainerIsNotClaimed() async throws {
         let memory = Memory()
         let nested = PVPageColumns(primary: {
@@ -297,21 +296,7 @@ struct PVScrollMemoryHostedTests {
         scroll(inner, to: 30)
         #expect(y(inner) == 30)
         await mainQueueTurn()
-        #expect(memory.noted == [0])
-    }
-
-    /// D-4: a second scroll view on a page is a slot of its own.
-    @Test func aSecondSlotIsRememberedApart() async throws {
-        let memory = Memory()
-        memory.offsets = [.page: 200, Self.second: 300]
-        let (_, host) = host(memory, HStack(spacing: 0) {
-            ScrollView { column(rows: 100) }.pvRemembersScroll(.page).frame(width: 400)
-            ScrollView { column(rows: 100) }.pvRemembersScroll(Self.second).frame(width: 400)
-        })
-        #expect(await eventually(host) {
-            let views = scrollViews(in: host).sorted { $0.frame.minX < $1.frame.minX }
-            return views.count == 2 && y(views[0]) == 200 && y(views[1]) == 300
-        })
+        #expect(memory.noted.isEmpty)
     }
 
     /// D-12: a selection that changes with the arrival (Back between two entries of a mounted list) is
@@ -321,7 +306,7 @@ struct PVScrollMemoryHostedTests {
         let (_, host) = host(memory, list(memory).frame(height: 600))
         #expect(await eventually(host) { descendant(NSTableView.self, in: host)?.numberOfRows == 200 })
         memory.arrival = 2
-        memory.offsets = [.page: 400]
+        memory.offset = 400
         memory.selection = "row90"
         let scrollView = try #require(descendant(NSTableView.self, in: host)?.enclosingScrollView)
         #expect(await eventually(host) { y(scrollView) == 400 })
@@ -393,31 +378,28 @@ struct PVScrollMemoryHostedTests {
         #expect(y(table) == 1000)
     }
 
-    /// A document that grows only as it is scrolled: its height is an estimate of rows not yet drawn, and
-    /// the y is past it.
-    @Test func aYPastTheEstimatedDocumentLands() async throws {
-        let memory = Memory()
-        memory.offsets = [.page: 9000]
-        let (_, host) = host(memory, GrowingRows())
+    /// CON-8: the researcher acts before the rows arrive, and leaves: the entry keeps its y.
+    @Test func leavingWhileTheRowsLoadKeepsTheEntrysY() async throws {
+        let navigation = WorkspaceNavigation()
+        navigation.attachProject(
+            uuid: UUID().uuidString,
+            fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).json")
+        )
+        let person = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil)
+        navigation.go(to: person)
+        navigation.noteScrollOffset(900, arrival: navigation.arrival)
+        navigation.go(to: .sectionRoot(.places))
+        navigation.goBack()
+        let (_, host) = hostInBorderlessWindow(
+            PVPageColumns(primary: { Text(verbatim: "Loading") }).environment(\.pvScrollMemory, navigation.scrollMemory),
+            windowSize: CGSize(width: 800, height: 600)
+        )
         #expect(await eventually(host) { firstScrollView(host) != nil })
-        let scrollView = try #require(firstScrollView(host))
-        #expect((scrollView.documentView?.frame.height ?? 0) < 9000)
-        #expect(await eventually(host) { y(scrollView) == 9000 })
-        #expect(memory.noted == [9000])
-    }
-
-    /// The first rows are short and the later ones tall, so a lazy stack's estimate is too small.
-    private struct GrowingRows: View {
-        var body: some View {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(0 ..< 200, id: \.self) { index in
-                        Text(verbatim: "Row \(index)").frame(height: index < 40 ? 20 : 100)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .pvRemembersScroll()
-            }
-        }
+        await mainQueueTurn()
+        try #require(descendant(PVScrollMemoryProbeView.self, in: host)?.coordinator).end()
+        navigation.goBack()
+        navigation.goForward()
+        #expect(navigation.currentLocation == person)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 900)
     }
 }

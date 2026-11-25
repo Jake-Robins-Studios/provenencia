@@ -43,7 +43,7 @@ struct PromoteView: View {
                 .padding(.horizontal, PVSpacing.space10)
                 .padding(.vertical, PVSpacing.space6)
                 .frame(maxWidth: .infinity, alignment: .center)
-                .pvRemembersScroll(.page)
+                .pvRemembersScroll()
             }
             .pvScrollsRowIntoView(PromoteView.noticesAnchor, anchor: .top, whenRequested: model.noticeToken)
             footer

@@ -587,19 +587,19 @@ struct WorkspaceNavigationTests {
     @Test func theRevisitIsStampedOnTheEntryBeingLeft() throws {
         let (navigation, url) = try attachedNavigation()
         navigation.go(to: .sourcePage(sourceId: "s1"))
-        navigation.noteScrollOffset(600, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(600, arrival: navigation.arrival)
         navigation.go(to: .evidenceGraph(sourceId: "s1", graphId: "g1"))
-        #expect(navigation.currentLocation.revisit.scrollOffsets.isEmpty)
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
 
         navigation.goBack()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 600)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 600)
         navigation.goForward()
         navigation.goBack()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 600)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 600)
 
         let reloaded = WorkspaceNavigation()
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
-        #expect(reloaded.currentLocation.revisit.scrollOffsets[.page] == 600)
+        #expect(reloaded.currentLocation.revisit.scrollOffset == 600)
     }
 
     /// D-8, AC-1.10: a section switch on one record page starts the new section clean and keeps the old
@@ -608,15 +608,15 @@ struct WorkspaceNavigationTests {
         let (navigation, _) = try attachedNavigation()
         let vitals = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
         navigation.go(to: vitals)
-        navigation.noteScrollOffset(900, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(900, arrival: navigation.arrival)
         navigation.go(to: navigation.currentLocation.withPageSection(.family))
-        #expect(navigation.currentLocation.revisit.scrollOffsets.isEmpty)
-        navigation.noteScrollOffset(40, slot: .page, arrival: navigation.arrival.id)
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
+        navigation.noteScrollOffset(40, arrival: navigation.arrival)
 
         navigation.goBack()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 900)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 900)
         navigation.goForward()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 40)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 40)
     }
 
     /// Selecting another row of a page whose selected row is a place keeps the visit and its y; each
@@ -631,32 +631,32 @@ struct WorkspaceNavigationTests {
         let (first, second) = (row("a"), row("b"))
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: first)
-        navigation.noteScrollOffset(300, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(300, arrival: navigation.arrival)
         let arrival = navigation.arrival
         navigation.go(to: second)
         #expect(navigation.arrival == arrival)
         navigation.go(to: .sectionRoot(.persons))
         navigation.goBack()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 300)
-        navigation.noteScrollOffset(700, slot: .page, arrival: navigation.arrival.id)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 300)
+        navigation.noteScrollOffset(700, arrival: navigation.arrival)
         navigation.goBack()
         #expect(navigation.currentLocation == first)
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 300)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 300)
         navigation.goForward()
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 700)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 700)
     }
 
     /// A category of the Properties strip is another page: it opens at its top.
     @Test func aPropertiesCategoryStartsClean() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "person", propertyId: "a"))
-        navigation.noteScrollOffset(300, slot: .page, arrival: navigation.arrival.id)
-        let arrival = navigation.arrival.id
+        navigation.noteScrollOffset(300, arrival: navigation.arrival)
+        let arrival = navigation.arrival
         navigation.go(to: WorkspaceLocation(section: .properties, subjectTypeKey: "event"))
-        #expect(navigation.arrival.id == arrival + 1)
+        #expect(navigation.arrival == arrival + 1)
         navigation.go(to: .sectionRoot(.persons))
         navigation.goBack()
-        #expect(navigation.currentLocation.revisit.scrollOffsets.isEmpty)
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
     }
 
     /// D-8: a pushed location starts clean, whatever the copy it was built from held.
@@ -664,7 +664,7 @@ struct WorkspaceNavigationTests {
         let (navigation, _) = try attachedNavigation()
         var carrying = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: "Ada")
         carrying.revisit = WorkspaceRevisit(
-            listSelection: "x", openSourceId: "s1", scrollOffsets: [.page: 5],
+            listSelection: "x", openSourceId: "s1", scrollOffset: 5,
             sectionAnchor: ConclusionSectionAnchor(part: .family, id: "r-0-p2")
         )
         navigation.go(to: carrying)
@@ -682,55 +682,54 @@ struct WorkspaceNavigationTests {
     @Test func aNoteOfAnotherArrivalIsDropped() throws {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
-        let stale = navigation.arrival.id
+        let stale = navigation.arrival
         navigation.go(to: .sectionRoot(.places))
-        navigation.noteScrollOffset(300, slot: .page, arrival: stale)
-        navigation.noteScrollOffset(-5, slot: .page, arrival: navigation.arrival.id)
-        navigation.noteScrollOffset(.infinity, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(300, arrival: stale)
+        navigation.noteScrollOffset(-5, arrival: navigation.arrival)
+        navigation.noteScrollOffset(.infinity, arrival: navigation.arrival)
         navigation.go(to: .sectionRoot(.events))
         navigation.goBack()
         #expect(navigation.currentLocation.section == .places)
-        #expect(navigation.currentLocation.revisit.scrollOffsets.isEmpty)
+        #expect(navigation.currentLocation.revisit.scrollOffset == nil)
     }
 
     /// D-7: a visit begins on an identity change and on any history move, not on a coalesced visit.
     @Test func arrivalCountsIdentityChangesAndHistoryMoves() throws {
         let (navigation, _) = try attachedNavigation()
-        let start = navigation.arrival.id
+        let start = navigation.arrival
         navigation.go(to: .sectionRoot(.persons))
-        #expect(navigation.arrival == WorkspaceArrival(id: start + 1, kind: .push))
+        #expect(navigation.arrival == start + 1)
         navigation.go(to: .sectionRoot(.persons))
         navigation.replaceCurrent(with: .sectionRoot(.persons).withListSelection("p1"))
-        #expect(navigation.arrival.id == start + 1)
+        #expect(navigation.arrival == start + 1)
 
         navigation.go(to: .sectionRoot(.places))
         navigation.goBack()
-        #expect(navigation.arrival == WorkspaceArrival(id: start + 3, kind: .history))
+        #expect(navigation.arrival == start + 3)
         navigation.goForward()
-        #expect(navigation.arrival == WorkspaceArrival(id: start + 4, kind: .history))
+        #expect(navigation.arrival == start + 4)
         navigation.go(toIndex: 0)
-        #expect(navigation.arrival == WorkspaceArrival(id: start + 5, kind: .history))
+        #expect(navigation.arrival == start + 5)
         navigation.go(to: .sectionRoot(.events))
-        #expect(navigation.arrival == WorkspaceArrival(id: start + 6, kind: .push))
+        #expect(navigation.arrival == start + 6)
         navigation.fallbackToSectionRoot()
-        #expect(navigation.arrival.id == start + 6)
+        #expect(navigation.arrival == start + 6)
     }
 
-    /// D-9: `scrollOffsets` is a JSON object keyed by slot; an entry that is not a finite, non-negative
-    /// number is dropped and the rest kept.
-    @Test func scrollOffsetsRoundTripAndDecodeLeniently() throws {
+    /// D-9: a y that is not a finite, non-negative number decodes as none, and the other keys are kept.
+    @Test func scrollOffsetRoundTripsAndDecodesLeniently() throws {
         var location = WorkspaceLocation.sectionRoot(.persons)
-        location.revisit = WorkspaceRevisit(scrollOffsets: [.page: 1800, PVScrollSlot(rawValue: "second"): 12.5])
+        location.revisit = WorkspaceRevisit(scrollOffset: 1800.5)
         let data = try JSONEncoder().encode(location)
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(object["scrollOffsets"] as? [String: Double] == ["page": 1800, "second": 12.5])
-        #expect(try JSONDecoder().decode(WorkspaceLocation.self, from: data).revisit.scrollOffsets == location.revisit.scrollOffsets)
+        #expect(object["scrollOffset"] as? Double == 1800.5)
+        #expect(try JSONDecoder().decode(WorkspaceLocation.self, from: data).revisit.scrollOffset == 1800.5)
 
-        #expect(try decoded(#"{"section":"persons","scrollOffsets":{"page":-1}}"#).revisit.scrollOffsets.isEmpty)
-        #expect(try decoded(#"{"section":"persons","scrollOffsets":{"page":"far","second":7,"third":null}}"#)
-            .revisit.scrollOffsets == [PVScrollSlot(rawValue: "second"): 7])
-        #expect(try decoded(#"{"section":"persons","scrollOffsets":[1,2]}"#).revisit.scrollOffsets.isEmpty)
-        #expect(try decoded(#"{"section":"persons","scrollOffsets":{"page":4},"listScrollAnchor":9}"#).revisit.scrollOffsets == [.page: 4])
+        for unreadable in ["-1", #""far""#, "null", "[1]", "1e999"] {
+            let read = try decoded(#"{"section":"persons","listScrollAnchor":"p1","scrollOffset":\#(unreadable)}"#).revisit
+            #expect(read == WorkspaceRevisit(listSelection: "p1"))
+        }
+        #expect(try decoded(#"{"section":"persons","scrollOffset":4,"listScrollAnchor":9}"#).revisit.scrollOffset == 4)
     }
 
     /// The encoder is hand-kept: a field it misses would leave the history file without a word.
@@ -742,7 +741,7 @@ struct WorkspaceNavigationTests {
             entityId: "e", pageSection: .family, sourceSurface: .graph, promoteAll: true, ref: "PER-1",
             title: "Ada", sourceTitle: "Deed",
             revisit: WorkspaceRevisit(
-                listSelection: "row", openSourceId: "s", scrollOffsets: [.page: 5],
+                listSelection: "row", openSourceId: "s", scrollOffset: 5,
                 sectionAnchor: ConclusionSectionAnchor(part: .family, id: "r")
             )
         )
@@ -791,7 +790,7 @@ struct WorkspaceNavigationTests {
         )
         #expect(location.revisit.listSelection == "person-1")
         #expect(location.revisit.sectionAnchor == ConclusionSectionAnchor(part: .family, id: "x"))
-        #expect(location.revisit.scrollOffsets.isEmpty)
+        #expect(location.revisit.scrollOffset == nil)
 
         var written = WorkspaceLocation.sectionRoot(.persons)
         written.revisit = location.revisit
@@ -810,7 +809,7 @@ struct WorkspaceNavigationTests {
         let (navigation, _) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.persons))
         navigation.noteListSelection("p1")
-        navigation.noteScrollOffset(70, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(70, arrival: navigation.arrival)
         let arrival = navigation.arrival
         navigation.go(to: navigation.currentLocation.withListSelection(nil))
         #expect(navigation.listSelection == nil)
@@ -819,20 +818,20 @@ struct WorkspaceNavigationTests {
         navigation.go(to: .sectionRoot(.places))
         navigation.goBack()
         #expect(navigation.currentLocation.revisit.listSelection == nil)
-        #expect(navigation.currentLocation.revisit.scrollOffsets[.page] == 70)
+        #expect(navigation.currentLocation.revisit.scrollOffset == 70)
     }
 
     /// D-8, AC-1.9: a quit writes the current page's y.
     @Test func flushWritesTheCurrentY() throws {
         let (navigation, url) = try attachedNavigation()
         navigation.go(to: .sectionRoot(.places))
-        navigation.noteScrollOffset(700, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(700, arrival: navigation.arrival)
         navigation.flush()
 
         let reloaded = WorkspaceNavigation()
         reloaded.attachProject(uuid: projectUuid, fileURL: url)
         #expect(reloaded.currentLocation == .sectionRoot(.places))
-        #expect(reloaded.currentLocation.revisit.scrollOffsets[.page] == 700)
+        #expect(reloaded.currentLocation.revisit.scrollOffset == 700)
     }
 
     /// T-4 (AC-1.4, D-10): the Source types list is a list root, its page is not.

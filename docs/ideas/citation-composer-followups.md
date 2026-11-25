@@ -44,4 +44,4 @@ Parked from Spike 15 (S15-65, descoped 2026-11-22: "skip the previews for now").
 
 ## The composer's two scrolling columns remember their scroll
 
-S16-72 made every main page's one scroll view remember its y on Back (`pvRemembersScroll`). The composer has two scrolling columns, so each is one more call with its own `PVScrollSlot` (`pvRemembersScroll(_:)`); `WorkspaceRevisit.scrollOffsets` is keyed by slot, so the history file needs no change. Pull it in when the composer's layout next changes.
+S16-72 made every main page's one scroll view remember its y on Back (`pvRemembersScroll`, `WorkspaceRevisit.scrollOffset`). The composer has two scrolling columns, so it needs a second y on the entry. Pull it in when the composer's layout next changes.

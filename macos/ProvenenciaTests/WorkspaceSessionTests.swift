@@ -27,7 +27,7 @@ struct WorkspaceSessionTests {
     struct HistoryStateCase: CustomTestStringConvertible, Sendable {
         let name: String
         let location: WorkspaceLocation
-        let kind: WorkspaceArrival.Kind
+        let kind: WorkspaceArrivalKind
         let expected: String?
         var testDescription: String { name }
     }

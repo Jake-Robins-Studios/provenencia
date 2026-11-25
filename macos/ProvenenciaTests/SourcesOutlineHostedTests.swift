@@ -159,13 +159,17 @@ struct SourcesOutlineHostedTests {
         #expect(harness.session.openSourceID == "s1")
     }
 
-    /// A y far past the table's first height: the platform estimates the rows it has not drawn.
-    @Test func backRestoresAYPastTheTablesFirstHeight() async throws {
+    /// A y past the height the table reports on arrival opens at the top, and stays on the entry.
+    @Test func backToAYPastTheTablesHeightOpensAtTheTop() async throws {
         let harness = try await makeHarness(rows: 4 + 3 + 8 + 90, open: "s1", extraSources: 4, tailSources: 90)
-        #expect((harness.scroll.documentView?.frame.height ?? 0) < 5000)
-        harness.navigation.noteScrollOffset(5000, slot: .page, arrival: harness.navigation.arrival.id)
+        harness.navigation.noteScrollOffset(9000, arrival: harness.navigation.arrival)
         let restored = try await leaveAndGoBack(harness)
-        #expect(await eventually(harness.host) { self.y(restored) == 5000 })
+        await mainQueueTurn()
+        harness.host.layoutSubtreeIfNeeded()
+        #expect(y(restored) == 0)
+        harness.navigation.goForward()
+        harness.navigation.goBack()
+        #expect(harness.navigation.currentLocation.revisit.scrollOffset == 9000)
     }
 
     private func y(_ scroll: NSScrollView) -> Double {

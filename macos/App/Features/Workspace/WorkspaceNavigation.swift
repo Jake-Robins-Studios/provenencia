@@ -9,20 +9,12 @@ enum PendingNavigation: Equatable, Sendable {
     case index(Int)
 }
 
-/// How a commit came, and which visit it begins. The id changes when a visit to a page begins: another
-/// page, or any history move; a coalesced `go(to:)` and another row selected on the page
-/// (`WorkspaceLocation.isSamePage(as:)`) keep it. Every scroll view restores once per id, and a note of
-/// another id is stale.
-struct WorkspaceArrival: Equatable, Sendable {
-    enum Kind: Equatable, Sendable {
-        /// A new visit: `go(to:)`, the project attaching, a place replaced.
-        case push
-        /// Back, Forward or a jump in the history menu.
-        case history
-    }
-
-    var id: Int
-    var kind: Kind
+/// How a commit came.
+enum WorkspaceArrivalKind: Equatable, Sendable {
+    /// `go(to:)`, the project attaching, a place replaced.
+    case push
+    /// Back, Forward or a jump in the history menu.
+    case history
 }
 
 @MainActor
@@ -53,7 +45,7 @@ final class WorkspaceNavigation {
     /// Latest load/persist failure for chrome toast; cleared via `acknowledgeHistoryIssue()`.
     private(set) var lastHistoryIssue: NavigationHistoryIssue?
     /// Fired synchronously whenever a location is committed (including history restore), with how it came.
-    var onLocationCommit: ((WorkspaceLocation, WorkspaceArrival.Kind) -> Void)?
+    var onLocationCommit: ((WorkspaceLocation, WorkspaceArrivalKind) -> Void)?
     /// Views never observe this; it only intercepts committed moves.
     @ObservationIgnored
     weak var leaveGuard: (any WorkspaceLeaveGuard)?
@@ -61,15 +53,17 @@ final class WorkspaceNavigation {
 
     private var history: NavigationHistoryStore?
     private(set) var projectUuid: String = ""
-    /// The visit being shown. Observed: the host re-arms its scroll views when `id` changes.
-    private(set) var arrival = WorkspaceArrival(id: 0, kind: .push)
-    /// What the visit has noted so far: the list's selection, the y of each scroll view, the section
+    /// The visit being shown. Changes when a visit to a page begins: another page, or any history move;
+    /// a coalesced `go(to:)` and another row selected on the page (`WorkspaceLocation.isSamePage(as:)`)
+    /// keep it. Observed: the page's scroll view restores once per arrival, and a note of another is stale.
+    private(set) var arrival = 0
+    /// What the visit has noted so far: the list's selection, the scroll view's y, the section
     /// anchor; the open Source is read as it is stamped. Stamped onto the entry on the next Back, Forward, jump or `go(to:)`, and by `flush()`;
     /// on a new arrival it starts as the entry's own. Scrolling does not write the history file or
     /// notify observers; only `listSelection` does.
     @ObservationIgnored private var revisit = WorkspaceRevisit()
-    /// The scroll views whose y was noted in this visit: their restore is over.
-    @ObservationIgnored private var notedSlots: Set<PVScrollSlot> = []
+    /// Whether a y was noted in this visit: the restore is over.
+    @ObservationIgnored private var scrollIsNoted = false
     /// The Source open in the Sources list, read when the Sources list root is left. `WorkspaceView` sets it.
     @ObservationIgnored var openSourceProvider: (() -> String?)?
     /// The visible list's selected row (the list draws it selected). Its view readers are the lists
@@ -149,20 +143,20 @@ final class WorkspaceNavigation {
 
     /// A scroll view reports its y. A note of another visit (a closing page's last scroll) is dropped.
     /// This does not push a history entry and does not write the history file.
-    func noteScrollOffset(_ y: Double, slot: PVScrollSlot, arrival: Int) {
-        guard arrival == self.arrival.id, revisit.note(y, slot: slot) else { return }
-        notedSlots.insert(slot)
+    func noteScrollOffset(_ y: Double, arrival: Int) {
+        guard arrival == self.arrival, revisit.note(y) else { return }
+        scrollIsNoted = true
     }
 
-    /// What every scroll view on the page is asked to remember: this visit's id, the y each was left
+    /// What the page's scroll view is asked to remember: this visit's id, the y it was left
     /// at (until a y is noted in this visit), and where to report a new one.
     var scrollMemory: PVScrollMemory {
-        let arrival = arrival.id
-        return PVScrollMemory(arrival: arrival) { [weak self] slot in
-            guard let self, arrival == self.arrival.id, !notedSlots.contains(slot) else { return nil }
-            return revisit.scrollOffsets[slot]
-        } note: { [weak self] slot, y in
-            self?.noteScrollOffset(y, slot: slot, arrival: arrival)
+        let arrival = arrival
+        return PVScrollMemory(arrival: arrival) { [weak self] in
+            guard let self, arrival == self.arrival, !scrollIsNoted else { return nil }
+            return revisit.scrollOffset
+        } note: { [weak self] y in
+            self?.noteScrollOffset(y, arrival: arrival)
         }
     }
 
@@ -309,9 +303,9 @@ final class WorkspaceNavigation {
 
     /// The one commit. A visit begins on any history move, on another page, or when asked; then the held
     /// revisit becomes the entry's. Otherwise (a coalesced `go(to:)`, another row selected on the page)
-    /// only the selection is taken from the committed entry: the live offsets and section anchor stay,
+    /// only the selection is taken from the committed entry: the live y and section anchor stay,
     /// and the entry takes them when it is left.
-    private func apply(_ location: WorkspaceLocation, kind: WorkspaceArrival.Kind, beginsVisit: Bool = false) {
+    private func apply(_ location: WorkspaceLocation, kind: WorkspaceArrivalKind, beginsVisit: Bool = false) {
         #if DEBUG
         if ProcessInfo.processInfo.environment["PROVENENCIA_DEBUG_NAV_TIMING"] == "1" {
             print(
@@ -327,8 +321,8 @@ final class WorkspaceNavigation {
         canGoBack = history?.canGoBack ?? false
         canGoForward = history?.canGoForward ?? false
         if begins {
-            arrival = WorkspaceArrival(id: arrival.id + 1, kind: kind)
-            notedSlots = []
+            arrival += 1
+            scrollIsNoted = false
             revisit = location.revisit
             if !location.isListRoot { revisit.listSelection = nil }
             // Observers of the selection hear it change.

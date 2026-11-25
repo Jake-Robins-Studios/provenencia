@@ -82,7 +82,7 @@ final class NavigationHistoryStore {
         lastIssue = nil
     }
 
-    /// Writes how the current entry is being left: the held revisit's scroll offsets and section anchor
+    /// Writes how the current entry is being left: the held revisit's y and section anchor
     /// on every entry; its selection only on a list root, and its open Source only on the Sources list
     /// root. No persist: the move that follows writes the file once.
     func stampLeaving(_ held: WorkspaceRevisit) {

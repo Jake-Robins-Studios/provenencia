@@ -67,7 +67,7 @@ struct WorkspaceLocation: Codable, Equatable, Sendable {
     /// Denormalized Source title, the Source crumb's label while the Sources list has no value
     /// (composer, Promote); ignored for navigation identity.
     var sourceTitle: String?
-    /// How the entry was left: the list's selected row, the y of each scroll view, the open Source,
+    /// How the entry was left: the list's selected row, the y of the scroll view, the open Source,
     /// the record page's section anchor. Ignored for navigation identity, like `title` and `ref`.
     /// Stamped on the entry being left; a push starts clean. A missing or unreadable key in an older
     /// history file decodes as empty, which opens the page at its top.

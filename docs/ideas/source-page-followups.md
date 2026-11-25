@@ -14,6 +14,6 @@ Delete from the Source page after the Source was deleted in another window: `Del
 
 `FakeStore.getSourceWorkspace` returns a blank `SRC-XXXXX` Source for an unknown id where the engine answers `sources.not_found`. `CatalogSessionStoreTests.getSourceWorkspaceMarksSessionHeld` reads the missing id `"missing"` and relies on the blank read; seed a Source in that test, then throw `sourceNotFound` from the fake. (S15-03 review MNT-6)
 
-## Exact Sources row heights
+## A far Sources position opens at the top
 
-The Sources table's platform estimates a row it has not drawn at 34 pt, and a Source row is 66, so a far scroll position can land on other rows than were left (S16-72, D-13, accepted by the user, 2026-11-25). Back reaches a position past the estimated document by laying the table out a screen at a time on the way. Give the table its row heights (the outline knows each row's kind, so each row's height is a function of it) so a far y lands on the same rows. Pull it in when the Sources table next changes.
+The Sources table reports a document shorter than its rows until they are drawn, so a far position opens at the top on Back (S16-72; accepted by the user to try in practice, 2026-11-25). Two ways out: keep the page alive while another place is shown, or give the table its row heights so it reports its full height.

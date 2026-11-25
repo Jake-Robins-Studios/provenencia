@@ -46,7 +46,7 @@ struct ConclusionAnchorRestoreTests {
             : ConclusionSectionAnchor(part: .timeline, id: "9")
         let person = WorkspaceLocation.personDetail(entityId: "p1", ref: "PER-1", title: nil)
         navigation.go(to: person)
-        navigation.noteScrollOffset(120, slot: .page, arrival: navigation.arrival.id)
+        navigation.noteScrollOffset(120, arrival: navigation.arrival)
         navigation.go(to: .sectionRoot(.places), from: anchor)
         navigation.goBack()
 
