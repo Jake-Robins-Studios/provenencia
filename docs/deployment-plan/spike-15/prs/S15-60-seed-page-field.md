@@ -270,3 +270,4 @@ None.
 - T-5 checks the court report `page` entry through `entryOf` on the Source board (the field is now a suggested entry, not `Board.Page`).
 - The manual check (section 10) was not run by the implementer.
 - Docs fix round 1 also edited the citation map (levels table, status line, § 6.6, § 7, § 6.10), `deployment-plan.md` (seed rule, Scale) and `README.md` (field count), beyond STEP-5's map row only.
+- `PVScrollMemoryHostedTests.anArrivalAheadOfItsLayoutDoesNotUseTheOldContent` (S16-72) is removed here: it failed in CI and the user asked for it (2026-11-25).

@@ -42,6 +42,9 @@ Head `0a4a52a30`. F-1 and F-2 done in one docs commit. F-1 gained two edits mid-
 ## Round 2 — review
 MNT on `b864cd2ed...0a4a52a30`: MNT-1 Resolved, MNT-2 Resolved, no new blockers. Verdict clean.
 
+## CI
+Red on `820e15326`: `PVScrollMemoryHostedTests.anArrivalAheadOfItsLayoutDoesNotUseTheOldContent` (S16-72; this PR changed no Swift). Removed on this PR (user, 2026-11-25: it is flaky and the whole feature is going to change). The likely cause in `PVScrollMemoryCoordinator.restore()` is not proven and not fixed.
+
 ## Result
 Gate PASS · CI: see the PR's checks · open: none · follow-ups: none · to user: —
 
