@@ -269,11 +269,8 @@ struct EvidenceGraphModelTests {
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(
             CatalogQueryKey.evidenceGraph(project: model.session.projectKey, graphId: graphID)
         )
-        var waited = 0
-        while handle?.value?.subjects.isEmpty != false, waited < 40 {
-            try await Task.sleep(nanoseconds: 25_000_000)
-            waited += 1
-        }
+        let requeried = await waitUntil(timeout: .seconds(10)) { handle?.value?.subjects.isEmpty == false }
+        #expect(requeried)
         #expect(handle?.value?.subjects.count == 1)
         #expect(handle?.value?.subjects.first?.label == "Alice")
     }
@@ -1191,11 +1188,12 @@ struct EvidenceGraphModelTests {
         #expect(ok)
         #expect(model.pendingImpact == nil)
         #expect(store.subjectsByGraph[graphID]?.isEmpty == true)
-        // Allow the invalidated evidenceGraph query to finish reloading.
-        try await Task.sleep(for: .milliseconds(50))
+        // Wait for the invalidated evidenceGraph query to finish reloading.
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(
             CatalogQueryKey.evidenceGraph(project: model.session.projectKey, graphId: graphID)
         )
+        let reloaded = await waitUntil(timeout: .seconds(10)) { handle?.value?.subjects.isEmpty == true }
+        #expect(reloaded)
         #expect(handle?.value?.subjects.isEmpty == true)
     }
 
@@ -1265,8 +1263,11 @@ struct EvidenceGraphModelTests {
         #expect(model.pendingImpact?.target.ref == "CPA-1")
         let ok = await model.confirmPendingImpact()
         #expect(ok)
-        try await Task.sleep(for: .milliseconds(50))
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(key)
+        let reloaded = await waitUntil(timeout: .seconds(10)) {
+            handle?.value?.subjects.contains { $0.id == "b1" } == false
+        }
+        #expect(reloaded)
         #expect(handle?.value?.subjects.contains { $0.id == "b1" } == false)
         #expect(handle?.value?.subjects.count == 2)
     }
@@ -1477,8 +1478,11 @@ struct EvidenceGraphModelTests {
         #expect(store.subjectsByGraph[graphID]?.contains { $0.id == "p1" } == true)
         #expect(store.subjectsByGraph[graphID]?.contains { $0.id == "e1" } == true)
         #expect(store.observationsByGraph[graphID]?.isEmpty == true)
-        try await Task.sleep(for: .milliseconds(50))
         let handle: QueryHandle<EvidenceGraphRows>? = model.session.queryHandle(key)
+        let reloaded = await waitUntil(timeout: .seconds(10)) {
+            handle?.value?.subjects.contains { $0.id == "b1" } == false
+        }
+        #expect(reloaded)
         #expect(handle?.value?.subjects.contains { $0.id == "b1" } == false)
     }
 
