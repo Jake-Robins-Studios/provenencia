@@ -124,7 +124,8 @@ struct SourcesOutlineHostedTests {
         let harness = try await makeHarness(rows: 33, tailSources: 30)
         let table = harness.table
         let sources = ["s3", "s2", "s1"] + (0 ..< 30).reversed().map { "a\(String(format: "%02d", $0))" }
-        for open in ["s1", "a29", "a26", "s1", "a28", "s2", "s1", nil] {
+        // No two neighbours have the same number of child rows: the rows reused change height each step.
+        for open in ["s1", "a29", nil, "a26", "s1", "s2", "s1", nil] {
             harness.session.setOpenSource(open)
             let want = sources.flatMap { id -> [CGFloat] in
                 [66] + Array(repeating: 34, count: id != open ? 0 : id == "s1" ? 8 : 1)
@@ -138,8 +139,16 @@ struct SourcesOutlineHostedTests {
                 }
             }
             #expect(settled, "open \(open ?? "none"): \(heights)")
+            #expect(table.rowView(atRow: 0, makeIfNecessary: false) != nil, "row 0 is drawn")
         }
         #expect(harness.scroll.verticalLineScroll == 34)
+    }
+
+    /// AC-4.2: a selection the table makes itself, not one navigation wrote, becomes the list anchor.
+    @Test func theTablesOwnSelectionBecomesTheAnchor() async throws {
+        let harness = try await makeHarness()
+        harness.table.selectRowIndexes([1], byExtendingSelection: false)
+        #expect(await eventually(harness) { harness.navigation.listAnchor == "s2" })
     }
 
     @Test func anAnchorOnAGraphOfAClosedSourceOpensTheSourceAndSelectsTheGraph() async throws {

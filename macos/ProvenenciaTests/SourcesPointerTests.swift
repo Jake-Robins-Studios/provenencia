@@ -82,9 +82,37 @@ struct SourcesPointerTests {
             sources: [source("s1"), source("s2")], graphs: { .loaded($0 == "s1" ? [graph] : []) }, open: "s1"
         )
         let pointer = SourcesPointer()
-        pointer.pressed = c.pressed
+        // A plain first press on `pressed`, from no row, is how the pointer comes to hold it.
+        if let pressed = c.pressed { _ = pointer.press(selecting: pressed, from: nil, click: Self.once, outline: outline) }
         if let triangle = c.triangle { pointer.note(triangle, inside: true) }
         #expect(pointer.press(selecting: c.id, from: c.old, click: c.click, outline: outline) == c.want)
+    }
+
+    /// AC-4.11: the first press is noted by the pointer, cleared by any other press, and consumed once the
+    /// second press has opened its row.
+    @Test func theFirstPressIsNotedClearedAndConsumed() {
+        func source(_ id: String) -> CatalogSource {
+            CatalogSource(id: id, ref: id, sourceTypeID: "t1", title: id, description: "", hasArtifact: false)
+        }
+        let outline = SourcesOutline(sources: [source("s1"), source("s2")], graphs: { _ in .loaded([]) }, open: nil)
+        let pointer = SourcesPointer()
+        // A plain first press notes its row; a second one on no row opens it, once.
+        _ = pointer.press(selecting: "s2", from: "s1", click: Self.once, outline: outline)
+        #expect(pointer.pressed == "s2")
+        #expect(pointer.press(selecting: nil, from: "s2", click: Self.twice, outline: outline) == .second(opens: "s2"))
+        #expect(pointer.pressed == nil)
+        #expect(pointer.press(selecting: nil, from: "s2", click: Self.twice, outline: outline) == .select(.ignore))
+        // A modified first press clears it.
+        _ = pointer.press(selecting: "s2", from: "s1", click: Self.once, outline: outline)
+        _ = pointer.press(selecting: "s1", from: "s2", click: SourcesClick(count: 1, isPlain: false), outline: outline)
+        #expect(pointer.pressed == nil)
+        // On a row, the double action opens the first row, under whatever row it lands, and consumes it.
+        _ = pointer.press(selecting: "s2", from: "s1", click: Self.once, outline: outline)
+        #expect(pointer.press(selecting: "s1", from: "s2", click: Self.twice, outline: outline) == .second(opens: nil))
+        #expect(pointer.pressed == "s2")
+        #expect(pointer.secondPress(Self.twice, selected: "s2", outline: outline)?.id == "s2")
+        #expect(pointer.pressed == nil)
+        #expect(pointer.secondPress(Self.twice, selected: "s2", outline: outline) == nil)
     }
 
     @Test func theTriangleHoverIsNotedAndCleared() {

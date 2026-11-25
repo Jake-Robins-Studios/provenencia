@@ -159,7 +159,6 @@ func CreateSource(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		s.Updated = res.Activity
 		sp, err := enrichSourceProto(c, s)
 		if err != nil {
 			return err
@@ -212,7 +211,6 @@ func CopySource(in []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		s.Updated = res.Activity
 		sp, err := enrichSourceProto(c, s)
 		if err != nil {
 			return err

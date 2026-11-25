@@ -29,8 +29,8 @@ enum SourcesPress: Equatable {
 /// read it, so the rows never redraw for it.
 final class SourcesPointer {
     private(set) var sourceID: String?
-    /// The page notes it, and forgets it once it has opened its row.
-    var pressed: String?
+    /// Set by a plain first press that moves the selection; cleared by any other press and once a second press opens its row.
+    private(set) var pressed: String?
 
     func note(_ id: String, inside: Bool) {
         if inside { sourceID = id } else if sourceID == id { sourceID = nil }
@@ -39,19 +39,31 @@ final class SourcesPointer {
     /// The row `click` is the second press of a double-click on: the row first pressed, while it is still
     /// `selected`. The first press may have moved rows (opening a Source closes the one above), so the
     /// second lands on another row and the double-click is still the first row's.
-    func secondPress(_ click: SourcesClick?, selected: String?) -> String? {
+    private func second(_ click: SourcesClick?, selected: String?) -> String? {
         guard let click, click.count >= 2, pressed == selected else { return nil }
         return pressed
     }
 
-    /// What the selection's write of `id` over `old` means. A second press that lands on no row is followed
-    /// by no double action, so it opens the first row itself; on a row, the double action does.
+    /// The row the double action opens, when it is the second press's: it forgets the first press, so the
+    /// row opens once.
+    func secondPress(_ click: SourcesClick?, selected: String?, outline: SourcesOutline) -> SourcesOutlineRow? {
+        guard let first = second(click, selected: selected), let row = outline.row(id: first) else { return nil }
+        pressed = nil
+        return row
+    }
+
+    /// What the selection's write of `id` over `old` means, and the first press it notes. A second press that
+    /// lands on no row is followed by no double action, so it opens the first row itself; on a row, the double
+    /// action does.
     func press(
         selecting id: String?, from old: String?, click: SourcesClick?, outline: SourcesOutline
     ) -> SourcesPress {
-        if let first = secondPress(click, selected: old) {
-            return .second(opens: id == nil ? outline.row(id: first)?.id : nil)
+        if let first = second(click, selected: old) {
+            guard id == nil, let row = outline.row(id: first) else { return .second(opens: nil) }
+            pressed = nil
+            return .second(opens: row.id)
         }
+        if let click, click.count == 1 { pressed = click.isPlain && id != old ? id : nil }
         return .select(outline.clickAction(
             selecting: id, from: old, isPlainClick: click?.isPlain == true, onTriangle: id != nil && sourceID == id
         ))

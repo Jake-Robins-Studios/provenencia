@@ -142,4 +142,17 @@ struct SourcesTableHostedTests {
         #expect(moved)
         #expect(headerColor(table, "ADDED") == headerColor(table, "UPDATED"))
     }
+
+    /// AC-2.2: a header click writes the sort; Evidence and Status are not sortable.
+    @Test func aHeaderClickSortsAndEvidenceStatusAndTypeDoNot() async throws {
+        let harness = try await makeHarness()
+        let title = try #require(harness.table.tableColumns.first { $0.headerCell.stringValue == "TITLE" })
+        harness.table.sortDescriptors = [try #require(title.sortDescriptorPrototype)]
+        #expect(await waitUntil(timeout: .seconds(10)) {
+            harness.model.settings.sort == SourcesSort(column: .title, order: .forward)
+        })
+        for name in ["EVIDENCE", "STATUS"] {
+            #expect(harness.table.tableColumns.first { $0.headerCell.stringValue == name }?.sortDescriptorPrototype == nil)
+        }
+    }
 }

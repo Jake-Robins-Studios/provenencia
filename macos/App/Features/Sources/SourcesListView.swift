@@ -245,11 +245,9 @@ private struct SourcesListContent: View {
         switch pointer.press(selecting: id, from: old, click: click, outline: outline) {
         case .second(let first):
             guard let first else { return }
-            pointer.pressed = nil
             DispatchQueue.main.async { open(outline.row(id: first)) }
         case .select(let action):
             navigation.noteListAnchor(id)
-            if let click, click.count == 1 { pointer.pressed = click.isPlain && id != old ? id : nil }
             guard action != .ignore else { return }
             DispatchQueue.main.async { apply(action, selecting: id, outline: outline) }
         }
@@ -258,8 +256,7 @@ private struct SourcesListContent: View {
     /// Opens the row: its page, or its graph's canvas. A double-click opens the row first pressed, when
     /// the outline still has it, and only once. Return and the menu never match.
     private func activate(_ id: String, outline: SourcesOutline) {
-        let first = outline.row(id: pointer.secondPress(SourcesClick(NSApp.currentEvent), selected: navigation.listAnchor))
-        if first != nil { pointer.pressed = nil }
+        let first = pointer.secondPress(SourcesClick(NSApp.currentEvent), selected: navigation.listAnchor, outline: outline)
         open(first ?? outline.row(id: id))
     }
 
