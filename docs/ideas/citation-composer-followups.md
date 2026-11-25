@@ -41,3 +41,7 @@ The citation preview under the citation picker is cropped after roughly eight li
 Parked from Spike 15 (S15-65, descoped 2026-11-22: "skip the previews for now"). The Artifact sheet, the graph form and the composer would show the full citation their owner's values give, re-rendered as the draft changes, so a researcher sees how an inherited or overridden value prints.
 
 **Shape:** one render request (`RenderCitationPreview`) whose `sourcemetadata.CitationValues` takes the unsaved draft's rows at the owner's level; no second resolver. One render per pause in typing. The Source page's own preview was refused 2026-11-13; reopening this idea should ask about it again. Brief S15-D34 was never written.
+
+## The composer's two scrolling columns remember their scroll
+
+S16-72 made every main page's one scroll view remember its y on Back (`pvRemembersScroll`). The composer has two scrolling columns, so each is one more call with its own `PVScrollSlot` (`pvRemembersScroll(_:)`); `WorkspaceRevisit.scrollOffsets` is keyed by slot, so the history file needs no change. Pull it in when the composer's layout next changes.

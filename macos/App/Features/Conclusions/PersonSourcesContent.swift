@@ -87,7 +87,7 @@ struct PersonSourcesContent: Equatable {
 
     /// Where Back puts the keyboard for `anchor`: the Source's title or the record's graph link, else
     /// the Show more of the fold that hides it. Nil for a Source or record that is gone.
-    func anchorTarget(for anchor: ConclusionSectionAnchor) -> ConclusionAnchorTarget<PersonSourcesFocus>? {
+    func anchorTarget(for anchor: ConclusionSectionAnchor) -> PersonSourcesFocus? {
         let sourceID: String
         switch anchor.part {
         case .sourceTitle: sourceID = anchor.id
@@ -95,17 +95,17 @@ struct PersonSourcesContent: Equatable {
         default: return nil
         }
         if hiddenSourceIDs.contains(sourceID) {
-            return ConclusionAnchorTarget(stop: .more(.rows), scrollID: Self.moreRowsID)
+            return .more(.rows)
         }
         guard let row = rows.first(where: { $0.id == sourceID }) else { return nil }
         if anchor.part == .sourceTitle {
-            return ConclusionAnchorTarget(stop: .title(sourceID: sourceID), scrollID: sourceID)
+            return .title(sourceID: sourceID)
         }
         if row.lines.contains(where: { $0.id == anchor.id }) {
-            return ConclusionAnchorTarget(stop: .graph(claimID: anchor.id), scrollID: anchor.id)
+            return .graph(claimID: anchor.id)
         }
         guard row.hiddenCount > 0 else { return nil }
-        return ConclusionAnchorTarget(stop: .more(.lines(sourceID: sourceID)), scrollID: Self.moreLinesID(sourceID: sourceID))
+        return .more(.lines(sourceID: sourceID))
     }
 
     /// The scroll id of the Sources' own "Show more".

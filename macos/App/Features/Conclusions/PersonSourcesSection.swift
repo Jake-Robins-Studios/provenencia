@@ -173,15 +173,11 @@ struct PersonSourcesList: View {
         }
     }
 
-    /// The scroll id of the diagram column, for Back to a node of the record links diagram when
-    /// the diagram stacks under the rows.
-    static let diagramScrollID = "diagram"
-
     var body: some View {
         ConclusionPinnedSideColumn(mainMin: PersonSourcesColumns.minWidth) {
             rows
         } side: {
-            diagram.id(Self.diagramScrollID)
+            diagram
         }
         .unpromoteConfirm(
             flow: unpromote,
@@ -227,8 +223,7 @@ struct PersonSourcesList: View {
                         open(location, ConclusionSectionAnchor(part: .recordLinks, id: id))
                     }
                 },
-                focus: $focus,
-                anchorScrollID: Self.diagramScrollID
+                focus: $focus
             )
         }
     }

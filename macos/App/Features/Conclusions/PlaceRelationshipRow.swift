@@ -154,7 +154,7 @@ struct ConclusionDetailRelationshipSection: View {
         }
         .conclusionAnchorRestore([.related], isReady: true, focus: $focused) { anchor in
             section.relationships.contains { $0.id == anchor.id }
-                ? ConclusionAnchorTarget(stop: anchor.id, scrollID: anchor.id) : nil
+                ? anchor.id : nil
         }
         .accessibilityElement(children: section.relationships.isEmpty ? .combine : .contain)
         .accessibilityLabel(

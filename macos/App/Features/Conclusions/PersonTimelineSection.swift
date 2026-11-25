@@ -131,8 +131,7 @@ struct PersonTimelineList: View {
             [.timeline],
             isReady: !content.items.isEmpty,
             focus: $focused,
-            keeper: $keeper,
-            scroll: { pendingReveal = $0; rebuild() }
+            keeper: $keeper
         ) { content.anchorTarget(for: $0) }
         .onChange(of: heights) { rebuild() }
         .onChange(of: content) { rebuild() }

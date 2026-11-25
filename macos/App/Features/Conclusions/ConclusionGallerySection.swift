@@ -55,7 +55,7 @@ struct ConclusionGallerySection: View {
         )
         .conclusionAnchorRestore([.picture], isReady: true, focus: $focused, keeper: $keeper, map: map) { anchor in
             gallery.tiles.contains { $0.id == anchor.id }
-                ? ConclusionAnchorTarget(stop: .image(anchor.id), scrollID: anchor.id) : nil
+                ? .image(anchor.id) : nil
         }
         .pvSheet(item: $viewing) { item in
             // The shown picture has just left the gallery: draw its first tile until the item catches up.

@@ -233,10 +233,10 @@ struct ConclusionDetailRowsSection: View {
     /// for a row that is gone or no longer leads anywhere.
     static func anchorTarget(
         rows: [ReconciledValueRowModel], anchor: ConclusionSectionAnchor
-    ) -> ConclusionAnchorTarget<String>? {
+    ) -> String? {
         guard anchor.part == .detailRow, let row = rows.first(where: { $0.id == anchor.id }), row.opens != nil
         else { return nil }
-        return ConclusionAnchorTarget(stop: row.id, scrollID: row.id)
+        return row.id
     }
 
     var body: some View {
