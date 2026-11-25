@@ -335,7 +335,7 @@ func ValuesOf(rows OwnerRows, owners []Owner, fields map[string]metadatafields.F
 
 // needOfTx is how much the owner's type's formats need the field on a board at
 // the owner's level. An owner that does not exist is ErrInvalid.
-func needOfTx(tx *sql.Tx, st *store, owner Owner, fieldID []byte) (citationformat.Need, error) {
+func needOfTx(tx *sql.Tx, owner Owner, fieldID []byte) (citationformat.Need, error) {
 	above, err := readAbove(tx, []Owner{owner})
 	if err != nil {
 		return "", err

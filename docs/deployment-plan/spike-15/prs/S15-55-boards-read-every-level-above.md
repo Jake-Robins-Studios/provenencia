@@ -354,5 +354,4 @@ None.
 - The version is 0.41.0 (`main` was 0.40.1 when the branch was cut).
 - AC-3.6: a nil element of `parents` cannot cross the wire (protobuf marshals it as an empty message), so the handler answers `request.invalid_id`, not `sourcemetadata.invalid`. T-7's row is "an empty parent" expecting `errInvalidID`, and `TestParseOwnerNil` *(new)* pins `parseOwner(nil)` as `sourcemetadata.ErrInvalid`.
 - STEP-2 to STEP-6 are one commit (the handler builds only with the wire change, as STEP-4 says); STEP-1 is its own.
-- `needOfTx` keeps its `st` argument, now unused, as the plan did not name it.
 - The manual check's in-app step (section 10 step 2) was not run by the implementer.

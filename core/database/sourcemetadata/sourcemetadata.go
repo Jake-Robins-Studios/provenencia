@@ -530,7 +530,7 @@ func DismissSuggestion(tx *database.Tx, userID []byte, owner Owner, fieldID []by
 		return nil, err
 	}
 
-	need, err := needOfTx(tx.Tx, st, owner, fieldID)
+	need, err := needOfTx(tx.Tx, owner, fieldID)
 	if err != nil {
 		return nil, err
 	}
