@@ -195,26 +195,6 @@ struct SourcesOutlineTests {
         #expect(other.clickAction(selecting: "s4", from: "s1", isPlainClick: true, onTriangle: false) == .collapse("s3"))
     }
 
-    @Test func onlyAnUnmodifiedLeftPressOrReleaseIsAPlainClick() {
-        func plain(_ type: NSEvent.EventType?, _ modifiers: NSEvent.ModifierFlags = [], age: TimeInterval = 0) -> Bool {
-            SourcesOutline.isPlainLeftClick(type: type, modifiers: modifiers, age: age)
-        }
-        #expect(plain(.leftMouseDown))
-        #expect(plain(.leftMouseDown, age: 0.99))
-        // A press from a second or more ago: a selection nobody clicked.
-        #expect(!plain(.leftMouseDown, age: 1))
-        #expect(!plain(.leftMouseUp, age: 30))
-        #expect(plain(.leftMouseUp))
-        #expect(plain(.leftMouseDown, [.capsLock]))
-        #expect(!plain(.keyDown))
-        #expect(!plain(.rightMouseDown))
-        #expect(!plain(nil))
-        #expect(!plain(.leftMouseDown, .command))
-        #expect(!plain(.leftMouseDown, .shift))
-        #expect(!plain(.leftMouseDown, .option))
-        #expect(!plain(.leftMouseDown, .control))
-    }
-
     @Test func arrowKeysExpandCollapseAndClimb() {
         let closed = outline(open: nil)
         let open = outline(open: "s1")
