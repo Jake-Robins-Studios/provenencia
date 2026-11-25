@@ -80,8 +80,34 @@ Head `7df960a85`. Gate PASS (orchestrator). S-1 done: one `pending` y is the rul
 
 Quick-lens review of `2a73612fe...7df960a85` (scope limited by the user's bar): **Clean**; CON-8 and PRF-1 **Resolved**; a page left at its exact bottom restores in every probed case. Nit logged: `QCK-1 · PVScrollMemory.swift · two lines restate AppKit's default`. MNT-12's line added by the orchestrator (skill doc); MNT-13's comment is gone.
 
+### User round (2026-11-25)
+The user: the short rows are only ever under the open Source, so the Sources list should estimate every row at the Source height; "do that on this PR and get it right". Orchestrator's throwaway probe (macOS 27.2, 3,000 rows, one of two heights): `NSTableView.rowHeight` set to 66 while the table had no rows, and set again when SwiftUI resets it to 34 (3 times; a `rowHeight` KVO), gives the document 198,287 (today 102,767) and lands 40,000, 150,000 and 190,000 within a row, short rows staying 34. Set once, or held only after the rows were there, it does not.
+
+**S-2 — The Sources table estimates an undrawn row at a Source's height**
+Binding: the scroll memory (`PVScrollMemory.swift`) and history do not change and know nothing of this; it lives with `SourcesTable`. Public AppKit only: no private API, swizzling, or delegate replacement. Small.
+Step 1, prove it in the real page (hosted `SourcesListView`, 300 Sources, one open with 8 graphs, as Back mounts it with its rows already loaded, and as a late load fills it): right after the mount, before any scroll, the table's document height is the true one within a point per Source, and a y near the end is reachable. If the table lays out its rows before the height can be set, find the earliest clean moment; if none is clean (a visible change, a reload, a fight with SwiftUI each update), stop and report, changing nothing.
+Step 2: the smallest piece that does it, its comment saying only why: the platform uses one value as the estimate and the least height, and SwiftUI sets it back. If SwiftUI's behavior changes the cost is an estimate, never a wrong drawn height or a crash: no loop (bounded, no re-entrance), observer removed with the view.
+Keep the wheel step at a graph row (34) if the table's `rowHeight` would change it; the existing test holds it. Every drawn row's height as today (`everyRowTakesItsOwnHeight…`).
+Then, one at a time, remove a workaround that existed for the wrong estimate if its tests pass without it: the repeat scroll in `PVNativeListBehavior` (End, opened Source, arrival), `SourcesRowHeight` only if graph rows stay 34 without it. Keep what still fails without it, and say so.
+Tests: `backToAYPastTheTablesHeightOpensAtTheTop` becomes: Back to a y near the end of 300 Sources with one open lands at it. A y past the true end still opens at the top (pure scroll-memory test exists). The idea note about far Sources goes; D-13 in the Landed note says what is now true.
+Check: each new test fails without the piece, one run; `scripts/check-pr.sh` PASS once. Report the size added and removed, and anything seen on the reentrant `NSTableView` warning.
+
+Head `6cd325457`: S-2 done (+51 −13 app): each row's height is read into the table's estimate before it is drawn; the repeat scroll is gone; `SourcesRowHeight` stays. The orchestrator's probe had read every row's rect, which itself fixed the estimates. Gate PASS, CI green (45702178262, macOS 15). Quick-lens review: safe, cheap (about 46 ms once at 3,000), no drift over 12 visits.
+
+| ID | Severity | Title | Decision |
+| --- | --- | --- | --- |
+| QCK-2 (its 1) | major | ↑ into undrawn rows leaves the selected Source half under the header | Fix now → S-3 |
+
+**S-3 — A selected row stays in view as ↑ reaches undrawn rows**
+Files: `PVScrollRowIntoView.swift` (`PVScrollsSelectionIntoView`), `SourcesOutlineHostedTests.swift`.
+Failing test first: 300 Sources, End, select the last, 30 ↑ → the selected row's rect is inside the visible rect below the header, once settled.
+Do: on a selection move only, scroll at once as now and once more on the next main-actor turn if the selection is still that row; no delay. An arrival's selection still scrolls nothing (AC-2.2).
+Check: the test, one run; `scripts/check-pr.sh` PASS once.
+
+Head `c0567b692`: S-3 done (orchestrator read the diff; the test's row 270 is right, since End does not select and the first ↑ takes the last row).
+
 ## Result
-Gate PASS · CI: on the PR · open: none · follow-ups: none (the far Sources note is in `docs/ideas/source-page-followups.md`, named by the plan) · to user: the manual check; a far Sources position opens at the top, to be judged in practice
+Gate PASS · CI: on the PR · open: none · follow-ups: none · to user: the manual check; the Sources list in practice
 
 ## Cost
 Plan: 6,114 words (check-plan-docs info line).
@@ -100,4 +126,7 @@ Plan: 6,114 words (check-plan-docs info line).
 | 2 | SEC+PRF | opus | 87k |
 | 2 | implementer (S-1) | opus | 200k |
 | 2 | QCK review | opus | 69k |
-| | **Total** | | **1,846k** |
+| user | implementer (S-2) | opus | 242k |
+| user | QCK review | opus | 80k |
+| user | implementer (S-3) | sonnet | — |
+| | **Total** (rows with a count) | | **2,168k** |
