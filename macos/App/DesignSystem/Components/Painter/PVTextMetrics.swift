@@ -14,6 +14,11 @@ enum PVTextMetrics {
         ceil(fontLineHeight(font)) * CGFloat(max(lines, 1))
     }
 
+    /// The width `text` takes on one line, a whole point, tracked by `kern`.
+    static func textWidth(_ text: String, font: NSFont, kern: CGFloat = 0) -> CGFloat {
+        ceil((text as NSString).size(withAttributes: [.font: font, .kern: kern]).width)
+    }
+
     /// The height `text` wraps to at `width`, capped at `maxLines` lines. Empty
     /// text measures one line.
     static func textHeight(_ text: String, width: CGFloat, font: NSFont, maxLines: Int) -> CGFloat {
