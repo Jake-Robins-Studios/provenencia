@@ -867,7 +867,7 @@ Following [`citation-formats.md`](citation-formats.md) "How it could arrive":
 
 **Existing infrastructure.** The product seed already exists: `core/database/sourcevocab/registry.go` lists the seeded types, fields and suggestions; `sourcevocab.Install` writes them with `origin = 'provenencia'`; `core/onboarding/ready.go` calls it when a catalog is created ([`add-seeded-vocabulary`](../../../.agents/skills/add-seeded-vocabulary/SKILL.md)). Spike 15 extends it:
 
-- `seedField` entries for the 63 fields, each with a description that says to enter the value as it should appear.
+- `seedField` entries for the 64 fields, each with a description that says to enter the value as it should appear.
 - `seedType` entries for the 26 types, each with an icon from the existing set in `core/database/sourcetypes/icons.go` (`type_census`, `type_certificate`, `type_book`, `type_newspaper`, `type_website`, `type_dna`, `type_gedcom`, `type_grave`, `type_photograph`, `type_oral_history`, `type_email`, `type_passport`, `type_folder_archive`, `type_document`, `type_scroll`), and its three formats written with keys.
 - `seedSuggestion` gains a level (`source`, `artifact`, `graph`).
 - `Install` writes the formats after the fields, turning each `{…meta.key}` into the field's id (§ 6.3, Storage). Written for Provenencia from the conventions in § 2, not copied from *Evidence Explained* (working rule, [`README.md`](README.md#working-rules)); check it against the edition on hand before it is merged.
@@ -907,9 +907,9 @@ Following [`citation-formats.md`](citation-formats.md) "How it could arrive":
 
 #### Fields
 
-63 fields; one (`document_number`) is already seeded. **Usual level** is where a type suggests the field: Source unless listed otherwise. Any field can be filled at any level.
+64 fields; one (`document_number`) is already seeded. **Usually entered on** is the level a researcher usually types the value on: Source unless listed otherwise. Any field can be filled at any level.
 
-| Group | Keys | Usual level |
+| Group | Keys | Usually entered on |
 | --- | --- | --- |
 | Who made it | `creator`, `author`, `author_sort`, `editor`, `compiler`, `translator`, `photographer`, `studio`, `interviewer`, `interviewee`, `recipient`, `testing_company`, `software` | Source |
 | Where | `jurisdiction` | Source |
@@ -919,8 +919,9 @@ Following [`citation-formats.md`](citation-formats.md) "How it could arrive":
 | Holding | `holder` (who holds a private original, and where), `medium` | Source |
 | The copy | `format`, `provider`, `database_title`, `url`, `accessed_date`, `citing`, `film_publication`, `roll`, `film_number`, `item_number` | Artifact |
 | The item | `item` (what the graph is about: "Ada Robins", "baptism of Ada Smith, 3 March 1830"), `entry_number`, `line_number`, `dwelling_number`, `family_number`, `schedule_number`, `folio`, `column`, `record_id` | Evidence graph |
+| The page | `page` (the printed page; unknown text "unpaginated") | Citation |
 
-Not seeded, from the horizon list: the date keys (`publication_date`, `issue_date`, `record_date`, `census_date`, `taken_date`, `interview_date`, `export_date`, `report_date`), which the Source date replaces; `certificate_number` and `registration_number`, which `document_number` covers; and `isbn`, `language`, `form_number`, `gedcom_version`, `civil_division`, `sheet` and `page`, which no format uses. `birth_certificate`'s existing `record_date` and `issue_date` stay as fields so existing values are kept, but are no longer suggested.
+Not seeded, from the horizon list: the date keys (`publication_date`, `issue_date`, `record_date`, `census_date`, `taken_date`, `interview_date`, `export_date`, `report_date`), which the Source date replaces; `certificate_number` and `registration_number`, which `document_number` covers; and `isbn`, `language`, `form_number`, `gedcom_version`, `civil_division` and `sheet`, which no format uses. `birth_certificate`'s existing `record_date` and `issue_date` stay as fields so existing values are kept, but are no longer suggested.
 
 #### Suggestions
 
@@ -937,12 +938,12 @@ Lines are wrapped here for reading; a format is one line. Types that share a pat
 
 ```text
 full:  {source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, {meta.schedule}]
-       [, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {citation.page}]
+       [, ED {meta.enumeration_district}][, piece {meta.piece}][, fol. {meta.folio}][, p. {meta.page|citation.page}]
        [, schedule {meta.schedule_number}][, dwelling {meta.dwelling_number}][, family {meta.family_number}]
        [, line {meta.line_number}][, {meta.item}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; citing {meta.citing}].
 short: {source.date:year} [{meta.creator} ]census, {meta.jurisdiction}[, ED {meta.enumeration_district}]
-       [, fol. {meta.folio}][, p. {citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}]
+       [, fol. {meta.folio}][, p. {meta.page|citation.page}][, dwell. {meta.dwelling_number}][, fam. {meta.family_number}]
        [, {meta.item}].
 list:  {meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.schedule}].
 ```
@@ -953,7 +954,7 @@ list:  {meta.jurisdiction}. {source.date:year} [{meta.creator} ]census[, {meta.s
 
 ```text
 full:  {meta.jurisdiction}, [{meta.creator}, ]birth certificate[ no. {meta.document_number}][ ({source.date:full})][, {meta.item}]
-       [, vol. {meta.volume}][, p. {citation.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*]
+       [, vol. {meta.volume}][, p. {meta.page|citation.page}][, entry {meta.entry_number}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; {meta.repository}].
 short: {meta.jurisdiction}, [{meta.creator}, ]birth certificate[ no. {meta.document_number}][, {meta.item}].
 list:  {meta.jurisdiction}.[ {meta.creator}.] Birth certificates.[ {meta.repository}.]
@@ -962,11 +963,11 @@ list:  {meta.jurisdiction}.[ {meta.creator}.] Birth certificates.[ {meta.reposit
 **Church register**
 
 ```text
-full:  {meta.creator}[ ({meta.jurisdiction})], *{source.title}*[, vol. {meta.volume}][, p. {citation.page}]
+full:  {meta.creator}[ ({meta.jurisdiction})], *{source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}]
        [, fol. {meta.folio}][, no. {meta.entry_number}][, {meta.item}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])][; film {meta.film_number}[, item {meta.item_number}]]
        [; {meta.repository}].
-short: {meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {citation.page}]
+short: {meta.creator}, *{meta.short_title|source.title}*[, vol. {meta.volume}][, p. {meta.page|citation.page}]
        [, no. {meta.entry_number}].
 list:  {meta.creator}[ ({meta.jurisdiction})]. *{source.title}*[, {meta.coverage}].[ {meta.repository}.]
 ```
@@ -974,20 +975,20 @@ list:  {meta.creator}[ ({meta.jurisdiction})]. *{source.title}*[, {meta.coverage
 **Record book**
 
 ```text
-full:  {meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {citation.page}][, entry {meta.entry_number}]
+full:  {meta.jurisdiction}, [{meta.creator}, ]{meta.book|source.title}[: {meta.page|citation.page}][, entry {meta.entry_number}]
        [, {meta.item}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]
        [; film {meta.film_number}][; {meta.repository}].
-short: {meta.jurisdiction}, {meta.book|source.title}[: {citation.page}].
+short: {meta.jurisdiction}, {meta.book|source.title}[: {meta.page|citation.page}].
 list:  {meta.jurisdiction}.[ {meta.creator}.] {source.title}[, {meta.coverage}].[ {meta.repository}.]
 ```
 
 **Passenger list**
 
 ```text
-full:  {source.title}[, p. {citation.page}][, line {meta.line_number}][, {meta.item}]
+full:  {source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}][, {meta.item}]
        [; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])]
        [; citing {meta.citing}][; {meta.film_publication}[, roll {meta.roll}]].
-short: {meta.short_title|source.title}[, p. {citation.page}][, line {meta.line_number}].
+short: {meta.short_title|source.title}[, p. {meta.page|citation.page}][, line {meta.line_number}].
 list:  [{meta.creator}. ]{meta.collection|source.title}.[ {meta.repository}.]
 ```
 
@@ -1094,9 +1095,9 @@ list:  {meta.creator}. Correspondence to {meta.recipient}[, {meta.coverage}].[ H
 ```text
 full:  {meta.author}[, ed. {meta.editor}][, comp. {meta.compiler}][, trans. {meta.translator}], *{source.title}*
        [, {meta.edition} ed.][, vol. {meta.volume}][, {meta.series}][ ([{meta.publication_place}: ]{meta.publisher}
-       [, {source.date:year}])][, {citation.page}][; {meta.format}, *{meta.provider}*]
+       [, {source.date:year}])][, {meta.page|citation.page}][; {meta.format}, *{meta.provider}*]
        [ ({meta.url}[ : accessed {meta.accessed_date}])].
-short: {meta.author}, *{meta.short_title|source.title}*[, {citation.page}].
+short: {meta.author}, *{meta.short_title|source.title}*[, {meta.page|citation.page}].
 list:  {meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [{meta.publication_place}: ]{meta.publisher}
        [, {source.date:year}].]
 ```
@@ -1105,8 +1106,8 @@ list:  {meta.author_sort|meta.author}. *{source.title}*.[ {meta.edition} ed.][ [
 
 ```text
 full:  {meta.author}, "{source.title}," *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}][ ({source.date:full})]
-       [: {meta.page_range}][, specifically {citation.page}].
-short: {meta.author}, "{meta.short_title|source.title}"[, {citation.page}].
+       [: {meta.page_range}][, specifically {meta.page|citation.page}].
+short: {meta.author}, "{meta.short_title|source.title}"[, {meta.page|citation.page}].
 list:  {meta.author_sort|meta.author}. "{source.title}." *{meta.published_in}*[ {meta.volume}][, no. {meta.issue}]
        [ ({source.date:full})][: {meta.page_range}].
 ```
@@ -1114,7 +1115,7 @@ list:  {meta.author_sort|meta.author}. "{source.title}." *{meta.published_in}*[ 
 **Newspaper item**
 
 ```text
-full:  "{source.title}," *{meta.published_in}*[ ({meta.jurisdiction})], {source.date:full}[, p. {citation.page}]
+full:  "{source.title}," *{meta.published_in}*[ ({meta.jurisdiction})], {source.date:full}[, p. {meta.page|citation.page}]
        [, col. {meta.column}][; {meta.format}, *{meta.provider}*][ ({meta.url}[ : accessed {meta.accessed_date}])].
 short: "{meta.short_title|source.title}," *{meta.published_in}*, {source.date:full}.
 list:  *{meta.published_in}*[ ({meta.jurisdiction})].
@@ -1133,7 +1134,7 @@ list:  [{meta.creator}. ]"{source.title}." *{meta.site_name}*.[ {meta.url}.]
 
 ```text
 full:  {meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, vol. {meta.volume}][, chap. {meta.chapter}]
-       [, sec. {meta.section}][, p. {citation.page}].
+       [, sec. {meta.section}][, p. {meta.page|citation.page}].
 short: {meta.jurisdiction}, *{meta.published_in}*[ {source.date:year}][, chap. {meta.chapter}].
 list:  {meta.jurisdiction}. *{meta.published_in}*[, {source.date:year}].
 ```
@@ -1141,8 +1142,8 @@ list:  {meta.jurisdiction}. *{meta.published_in}*[, {source.date:year}].
 **Court report**
 
 ```text
-full:  *{source.title}*, [{meta.volume} ]{meta.published_in} {citation.page|meta.page_range}[ ({source.date:year})].
-short: *{meta.short_title|source.title}*[, {citation.page}].
+full:  *{source.title}*, [{meta.volume} ]{meta.published_in} {meta.page|citation.page|meta.page_range}[ ({source.date:year})].
+short: *{meta.short_title|source.title}*[, {meta.page|citation.page}].
 list:  *{source.title}*. [{meta.volume} ]{meta.published_in}[ ({source.date:year})].
 ```
 
@@ -1150,11 +1151,11 @@ list:  *{source.title}*. [{meta.volume} ]{meta.published_in}[ ({source.date:year
 
 A census row is one EE citation (the household, its dwelling, family and line), but a researcher may draw five Citations on it: the name, the age, the birthplace, the occupation, the relationship column. All five share the item and differ only in their locators.
 
-**Decision (user, 2026-11-09): the item lives on the Evidence graph.** The Citation composer gets no new fields.
+**The item's fields are read nearest-first** (rule "A format reads a field from the nearest level that holds it", user 2026-11-22), so a researcher sets each at the level that fits how they filed. The printed page is the seeded `page` field: set it on each Citation of a whole-issue PDF (in the composer from S15-56), once on the graph or Artifact of a clipping, or on the Source when one Source is one item. Until S15-58 the seed reads `{meta.page|citation.page}`, so a locator's printed page answers when no level holds a value.
 
-- **Why the graph.** An Evidence graph already groups the Subjects drawn from one part of a Source, and Spike 12 made several graphs per Source for exactly this: one per household, entry or article in a large record. Every Citation belongs to one graph and never moves ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 7.1). So the item's numbers are entered once, on the graph, and every Citation drawn in it inherits them.
-- **Why not the Artifact.** An Artifact is one file, and one file often holds several items (a census page with three households, a register page with eight entries), while one item can run onto a second page. Item fields on the Artifact would need one Artifact per household, each repeating the copy fields, and would change what an Artifact means. Graphs and Artifacts are already many-to-many, so a household over two pages is one graph linked to two Artifacts.
-- **Why not the Citation.** It repeats the same values on every Citation of the row, adds input to the composer, which is already the heaviest step in building a graph, and needs tools to keep the copies in step.
+- **Why the graph is the usual home.** An Evidence graph already groups the Subjects drawn from one part of a Source, and Spike 12 made several graphs per Source for exactly this: one per household, entry or article in a large record. Every Citation belongs to one graph and never moves ([`source-layer-data-model.md`](../../source-layer-data-model.md) § 7.1). So the item's numbers are usually entered once, on the graph, and every Citation drawn in it inherits them.
+- **Why the Artifact is not the usual home.** An Artifact is one file, and one file often holds several items (a census page with three households, a register page with eight entries), while one item can run onto a second page. Item fields on the Artifact would need one Artifact per household, each repeating the copy fields. Graphs and Artifacts are already many-to-many, so a household over two pages is one graph linked to two Artifacts.
+- **Why the Citation is not the usual home.** It repeats the same values on every Citation of the row and adds input to the composer, which is already the heaviest step in building a graph. It is where a value that differs inside a graph belongs, such as the page of each article in a whole-issue PDF.
 
 **What follows:**
 
@@ -1163,8 +1164,6 @@ A census row is one EE citation (the household, its dwelling, family and line), 
 3. **Editing the item:** once, on the graph.
 
 **When one graph covers several items.** A researcher who keeps the Default graph for a page with two households of interest gets one set of item fields for both. The answer is the one Spike 12 intended: one graph per household. The Citation label stays the escape hatch ("line 14"), and the provenance sheet shows the result.
-
-**The printed page stays on the Citation,** because it is the one part of the item that can differ inside a graph. It already exists on the locator (`page_label`). If that is still too much input, a later option is a page map per Artifact ("image 37 is page 23"), entered once, so every Citation inherits the printed page from the image it is drawn on (§ 7).
 
 **Researchers who file finely skip the graph level.** If the Source is the household (one Source per household, each with an Artifact of the same page image, which the content-addressed File store already shares), the item values sit on the Source, and the seeded `{meta.key}` reads them there.
 
@@ -1192,7 +1191,7 @@ A field that is both suggested and needed shows once, as needed. A chain empty e
 **Unknown and supplied.** Each metadata value row, the Source date and the printed page can be marked **Unknown** (no text; prints the field's unknown text) or **Supplied** (text; prints in square brackets). A supplied date keeps its precision ("[ca. 1880]"). One Go type, `core/valuemark`, declares the pair and its rule (never both; unknown has no text) for every place that stores it, and the app builds one Unknown and Supplied control that the board row, the date dialog and the composer share. Storage:
 
 - `source_metadata`, `artifact_metadata`, `evidence_graph_metadata`: `is_unknown INTEGER NOT NULL DEFAULT 0` and `is_supplied INTEGER NOT NULL DEFAULT 0`, both `CHECK (… IN (0, 1))`, and `CHECK (NOT (is_unknown = 1 AND is_supplied = 1))`; an unknown row has no `value_text`.
-- `source_metadata_fields.unknown_text TEXT` (nullable): what a marked-unknown value prints. Seeded on the fields that have a convention ("n.p." for `publication_place` and `publisher`); editable on the Metadata page.
+- `source_metadata_fields.unknown_text TEXT` (nullable): what a marked-unknown value prints. Seeded on the fields that have a convention ("n.p." for `publication_place` and `publisher` and "unpaginated" for `page`); editable on the Metadata page.
 - `sources.date_unknown` and `sources.date_supplied` (the same two facts beside `date_value_id`; unknown means no date value).
 - The locator's page: `page_unknown` and `page_supplied` beside `page_label` in its JSON; no migration.
 - Copy Source and a move carry the two facts with their value; the audit records them as part of the value.
