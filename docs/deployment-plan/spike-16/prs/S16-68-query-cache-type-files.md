@@ -1,6 +1,6 @@
 # S16-68 — The query-cache types have files of their own
 
-**Status:** Planned
+**Status:** Landed in [#976](https://github.com/Jake-Robins-Studios/provenencia/pull/976) (2026-11-25)
 **Spike / slice:** Spike 16 · Slice 6g — Catalog query layer
 **Map row:** [`../deployment-plan.md`](../deployment-plan.md#pr-map)
 **Brief:** — (no chrome change: four types move between files; nothing a researcher sees changes)
@@ -14,6 +14,8 @@
 **Context:** [design § CatalogLastUpdated.swift holds four other types](../catalog-query-layer.md#cataloglastupdatedswift-holds-four-other-types-s16-68); working rule "(Batch 6) The query-cache types move verbatim"; S16-37's plan ([`S16-37-list-merge-file.md`](S16-37-list-merge-file.md)), the precedent
 **Planned:** 2026-11-24 against `main` @ `6e18533`
 **Review:** [`S16-68-query-cache-type-files.review.md`](S16-68-query-cache-type-files.review.md) — Fits with changes · Ready with changes, 1 round; no blocker open; To user: M-1/M-2, answered 2026-11-24
+
+**Landed.** Differences from the plan: none.
 
 **Runs on macOS.** STEP-2 needs `xcodebuild`. STEP-1's move checks (`git diff`, `rg`) run anywhere. On a machine without `xcodebuild`, finish STEP-1, then stop and report that STEP-2 needs a macOS runner.
 

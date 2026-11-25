@@ -2,6 +2,10 @@
 
 One short paragraph per landed PR, newest first. Written by the PR that lands it.
 
+## S16-68 — The query-cache types have files of their own
+
+**Landed 2026-11-25** in [#976](https://github.com/Jake-Robins-Studios/provenencia/pull/976). Nothing a researcher sees changes. `CatalogPageValue`, `CatalogQueryFollows`, `CatalogQueryPatch` and `CatalogQueryRefresh` moved from `CatalogLastUpdated.swift` to files named for them, and the free `requireRowIDs(_:)` became the member `CatalogQueryFollows.requireRowIDs()` since its callers now sit in two files. `CatalogLastUpdated.swift` keeps the last-updated rows.
+
 ## S16-72 — Back returns to the scroll position
 
 **Landed 2026-11-25** in [#973](https://github.com/Jake-Robins-Studios/provenencia/pull/973). Back, Forward and a history-menu jump put every main page back at the y it was scrolled to, and the Sources list back with the Source it had open. A history entry keeps one `WorkspaceRevisit` (the scroll view's y, the list's selected row, the open Source, the record page's section anchor), stamped on the entry being left, started clean by a push, and written to the history file except the open Source, so a relaunch reopens the page where it was with every Source closed. One kit modifier, `pvRemembersScroll`, reads and restores the y through a probe on the scroll view's clip view; `PVPageColumns`, `PVTable`, `pvNativeListBehavior` and Promote adopt it, and a page that cannot show the y opens at its top, and goes to the y if it grows enough before the researcher acts. Selecting another Metadata field or Properties property keeps the list where it is. The row scrolls on arrival, the Sources reveal and Source types' top-row anchor are gone, and a record section's anchor carries only the keyboard. On the Sources table a far y can land on other rows or open at the top, since the platform estimates rows it has not drawn. Version 0.42.0.
