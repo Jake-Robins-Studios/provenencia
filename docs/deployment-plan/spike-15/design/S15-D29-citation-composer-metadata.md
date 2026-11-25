@@ -189,8 +189,8 @@ Frames with an a / b pair are drawn at **Regular** (pane 1102 × 900) and **Wide
 | Building block | Layer | Status | Home | Notes |
 | --- | --- | --- | --- | --- |
 | Citation form | Snowflake | Extend | `macos/App/Features/CitationComposer/CitationComposerEvidenceColumn.swift` (`sideForm`, `panelForm`) | Label, then the board, in place of `labelAndPrintedPage`; the transcription and footer as today |
-| Metadata board in a form | Snowflake | Ship (moved) | `macos/App/Features/MetadataBoard/` `DraftMetadataBoardField` → `MetadataBoardView` (`placement: .form`); moved from `Features/Sources` now that two features use it (user, 2026-11-25) | The Artifact sheet's and the graph form's board, as is: one board on every owner (rule "One metadata board"). Not a composer copy |
-| Inherited row, override caption | Snowflake | Ship | `macos/App/Features/MetadataBoard/MetadataBoardView.swift` `MetadataBoardSuggestionRow`, `savedRow` | S15-D33's rows; "From Evidence graph" and "From Artifact" are the same caption with another level |
+| Metadata board in a form | Snowflake | Ship (moved) | `macos/App/Features/MetadataBoard/` *(new)* `DraftMetadataBoardField` → `MetadataBoardView` (`placement: .form`); moved from `Features/Sources` now that two features use it (user, 2026-11-25) | The Artifact sheet's and the graph form's board, as is: one board on every owner (rule "One metadata board"). Not a composer copy |
+| Inherited row, override caption | Snowflake | Ship | `macos/App/Features/MetadataBoard/MetadataBoardView.swift` *(new)* `MetadataBoardSuggestionRow`, `savedRow` | S15-D33's rows; "From Evidence graph" and "From Artifact" are the same caption with another level |
 | Row editor, Add field | Component / snowflake | Ship | `PVInlineEdit`, `MetadataBoardView`'s Add field row | Unchanged |
 | Read failure line | Component | Ship | `PVErrorText` (as `citationLoadErrorLine` uses it) | One line in the board's place; not a Callout, not an EmptyState |
 | Leave confirm | Component | Ship | The composer's existing discard confirm | Board changes count as unsaved citation fields |
