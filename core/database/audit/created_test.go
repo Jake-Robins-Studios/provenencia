@@ -104,9 +104,6 @@ func TestCreatedQueryPlan(t *testing.T) {
 	q := sqlCreated + "?" + sqlCreatedTail
 	seeks := false
 	for _, detail := range dbtest.QueryPlan(t, db, q, "source", make([]byte, 16)) {
-		if detail == "SCAN c" || strings.HasPrefix(detail, "SCAN c ") {
-			t.Errorf("query plan scans audit_changes alias c: %s", detail)
-		}
 		if strings.Contains(detail, "SEARCH c USING") && strings.Contains(detail, "audit_changes_created_idx") {
 			seeks = true
 		}

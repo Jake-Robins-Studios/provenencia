@@ -8039,7 +8039,7 @@
       }
     },
     "sources.list.graphSummaryCount": {
-      "comment": "A closed Source's graph count in the Sources list secondary line; argument is the number of Evidence graphs",
+      "comment": "A Source's graph count in the Sources list's Evidence column; argument is the number of Evidence graphs",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -8111,7 +8111,7 @@
       }
     },
     "sources.list.needsArtifact": {
-      "comment": "End of a Sources list row's secondary line for a Source with no Artifact",
+      "comment": "Evidence column of a Sources list row for a Source with no Artifact",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -23706,7 +23706,7 @@
       }
     },
     "sources.list.graphNeedsArtifactToOpen": {
-      "comment": "Counts slot of a Sources list graph row whose graph links no Artifact",
+      "comment": "Evidence column of a Sources list graph row whose graph links no Artifact",
       "extractionState": "manual",
       "localizations": {
         "en": {

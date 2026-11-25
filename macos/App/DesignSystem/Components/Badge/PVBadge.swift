@@ -87,14 +87,14 @@ struct PVBadge: View {
                 .textCase(.uppercase)
         }
         .font(PVMicroCaps.font)
-        .foregroundStyle(ink(foreground ?? colors.foreground))
+        .foregroundStyle(AnyShapeStyle(ink(foreground ?? colors.foreground)))
         .padding(.horizontal, label == nil ? PVSpacing.space2 : PVSpacing.space4)
         .frame(minWidth: minWidth, alignment: .leading)
         .padding(.vertical, PVSpacing.space1)
         .background(subtle ? Color.clear : colors.background)
         .overlay(
             RoundedRectangle(cornerRadius: PVRadius.xs, style: .continuous)
-                .stroke(subtle ? ink(colors.line) : AnyShapeStyle(Color.clear), lineWidth: 1)
+                .stroke(subtle ? AnyShapeStyle(ink(colors.line)) : AnyShapeStyle(Color.clear), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: PVRadius.xs, style: .continuous))
         .fixedSize()
@@ -105,8 +105,8 @@ struct PVBadge: View {
 extension PVBadge {
     /// A badge with no fill draws on whatever is behind it, so its ink and outline take the on-selection
     /// ink on a selected native row; a filled badge keeps its own colors.
-    private func ink(_ color: Color) -> AnyShapeStyle {
-        subtle ? AnyShapeStyle(PVColor.onSelection(color)) : AnyShapeStyle(color)
+    func ink(_ color: Color) -> any ShapeStyle {
+        subtle ? PVColor.onSelection(color) : color
     }
 
     /// The "+N" after a title or line when more names or places survived. Hidden

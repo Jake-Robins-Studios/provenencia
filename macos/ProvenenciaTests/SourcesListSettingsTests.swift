@@ -76,7 +76,7 @@ struct SourcesListSettingsTests {
         #expect(loaded.query == "smith")
     }
 
-    /// T-4: a settings file from before the table (`"sort":"az"`) reads as Added, newest first, with
+    /// A settings file from before the table (`"sort":"az"`) reads as Added, newest first, with
     /// its other fields kept.
     @Test func anOldSortReadsAsTheDefault() throws {
         let settings = try JSONDecoder().decode(

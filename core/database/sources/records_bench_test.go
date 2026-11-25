@@ -117,9 +117,7 @@ func BenchmarkSourceRecords(b *testing.B) {
 }
 
 // BenchmarkList: List at 3,000 Sources with 20 and with 80 audit changes each (one create and the
-// rest updates), the batch-6 catalog and a longer history. The create time is one indexed
-// audit.Created read per 500 Sources, so it must not grow with the history; the list gate is under
-// 30 ms added.
+// rest updates), each with its create time read.
 func BenchmarkList(b *testing.B) {
 	for _, changesPer := range []int{20, 80} {
 		b.Run("changes="+strconv.Itoa(changesPer), func(b *testing.B) { benchmarkList(b, changesPer) })
@@ -175,7 +173,7 @@ func benchmarkList(b *testing.B, changesPer int) {
 	b.ResetTimer()
 	for range b.N {
 		got, err := sources.List(c)
-		if err != nil || len(got) != sourcesN {
+		if err != nil || len(got) != sourcesN || got[0].CreatedAt == "" {
 			b.Fatalf("%d, %v", len(got), err)
 		}
 	}

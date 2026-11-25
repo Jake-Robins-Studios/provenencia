@@ -5363,12 +5363,12 @@ enum L10n {
             }
         }
 
-        /// The count of a closed Source's graphs in its secondary line: "1 graph", "8 graphs".
+        /// The count of a Source's graphs in the Evidence column: "1 graph", "8 graphs".
         static func graphSummaryCount(_ count: Int) -> String {
             L10n.format(LocalizedStringResource(
                 "sources.list.graphSummaryCount",
                 defaultValue: "%lld graphs",
-                comment: "A closed Source's graph count in the Sources list secondary line; argument is the number of Evidence graphs"
+                comment: "A Source's graph count in the Sources list's Evidence column; argument is the number of Evidence graphs"
             ), count)
         }
 
@@ -5401,7 +5401,7 @@ enum L10n {
         static let needsArtifact = LocalizedStringResource(
             "sources.list.needsArtifact",
             defaultValue: "Needs an artifact",
-            comment: "End of a Sources list row's secondary line for a Source with no Artifact"
+            comment: "Evidence column of a Sources list row for a Source with no Artifact"
         )
 
         static let columnTitle = LocalizedStringResource(
@@ -5479,7 +5479,7 @@ enum L10n {
         static let graphNeedsArtifactToOpen = LocalizedStringResource(
             "sources.list.graphNeedsArtifactToOpen",
             defaultValue: "Needs an artifact to open",
-            comment: "Counts slot of a Sources list graph row whose graph links no Artifact"
+            comment: "Evidence column of a Sources list graph row whose graph links no Artifact"
         )
 
         static let graphsLoading = LocalizedStringResource(

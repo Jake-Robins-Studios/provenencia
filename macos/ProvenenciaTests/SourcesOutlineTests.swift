@@ -50,7 +50,7 @@ struct SourcesOutlineTests {
         outline.row(id: id)?.disclosure
     }
 
-    /// T-6: AC-4.1; one Source open at a time; an open id no Source has draws nothing.
+    /// AC-4.1: one Source open at a time; an open id no Source has draws nothing.
     @Test func oneSourceOpens() {
         #expect(outline(open: nil).rows.map(\.id) == ["s1", "s2", "s3"])
         let first = outline(open: "s1")
@@ -96,7 +96,7 @@ struct SourcesOutlineTests {
         #expect(closed.sourceToReveal("g9") == nil)
     }
 
-    /// T-6: AC-4.5, AC-4.6, AC-4.7 and AC-4.8: what the selection becomes when a Source opens or closes.
+    /// AC-4.5, AC-4.6, AC-4.7 and AC-4.8: what the selection becomes when a Source opens or closes.
     struct OpeningCase: CustomTestStringConvertible {
         let before: String?
         let after: String?
@@ -146,7 +146,7 @@ struct SourcesOutlineTests {
         #expect(pending.selection(afterOpening: nil, selecting: nil, current: placeholder) == "s4")
     }
 
-    /// T-7: every line of D-14.
+    /// AC-4.2 to AC-4.4.
     @Test func aPlainClickOpensOneSource() {
         let closed = outline(open: nil)
         let mixed = outline(open: "s1")
@@ -177,7 +177,7 @@ struct SourcesOutlineTests {
         #expect(action(closed, "missing") == .ignore)
     }
 
-    /// F-8 (CON-5): the open Source that has no triangle (its graph read failed, say) stays open when it
+    /// The open Source that has no triangle (its graph read failed, say) stays open when it
     /// is clicked: closing "the open one" would close the very Source clicked.
     @Test func clickingTheOpenSourceWithNoTriangleLeavesItOpen() {
         let open = outline(open: "s3")
@@ -252,7 +252,6 @@ struct SourcesOutlineTests {
             CatalogSourceType(id: "t1", key: "census", origin: "provenencia", label: "Census", description: "")
         ]
         store.evidenceGraphsByProject[projectDir] = graphs
-        // The fake store derives `hasArtifact` from the Artifacts a Source holds.
         for source in sources where source.hasArtifact {
             store.artifactsBySource[source.id] = [CatalogArtifact(
                 id: "a-\(source.id)", ref: "ART-AAAAA", sourceID: source.id, fileID: "", label: "Scan",
@@ -295,7 +294,7 @@ struct SourcesOutlineTests {
         _ = model.outline
         #expect(session.derivedBuildCount(.sourcesOutline) == 1)
 
-        // Opening one Source adds its graphs only: opening every Source is no longer possible.
+        // Opening one Source adds its graphs only.
         session.setOpenSource(sources[0].id)
         #expect(model.outline.rows.count == 3_004)
         _ = model.outline

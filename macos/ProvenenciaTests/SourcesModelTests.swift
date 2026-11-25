@@ -53,12 +53,10 @@ struct SourcesModelTests {
         store: FakeStore = FakeStore(),
         sources: [CatalogSource] = [],
         types: [CatalogSourceType] = [],
-        settingsStore: SourcesListSettingsStore? = nil,
-        holdsArtifacts: Bool = false
+        settingsStore: SourcesListSettingsStore? = nil
     ) -> (SourcesModel, WorkspaceSession) {
         store.sourcesByProject[projectDir] = sources
-        // The fake store derives `hasArtifact` from the Artifacts a Source holds.
-        for source in sources where holdsArtifacts && source.hasArtifact && store.artifactsBySource[source.id] == nil {
+        for source in sources where source.hasArtifact && store.artifactsBySource[source.id] == nil {
             store.artifactsBySource[source.id] = [CatalogArtifact(
                 id: "a-\(source.id)", ref: "ART-AAAAA", sourceID: source.id, fileID: "", label: "Scan",
                 description: "", file: nil
@@ -193,7 +191,7 @@ struct SourcesModelTests {
         #expect(model.visibleSources.map(\.id) == ["s3", "s1"])
     }
 
-    /// T-3: each column both ways over equal titles, undated rows and equal revisions.
+    /// Each column both ways over equal titles, undated rows and equal revisions.
     @Test(arguments: [
         (SourcesSort(column: .added, order: .reverse), ["s5", "s4", "s3", "s2", "s1"]),
         (SourcesSort(column: .added, order: .forward), ["s1", "s2", "s3", "s4", "s5"]),
@@ -358,7 +356,7 @@ struct SourcesModelTests {
             types: [photoType()]
         )
         // The engine's rows after a move of s1's only Artifact to s2.
-        store.artifactsBySource["s2"] = [catalogArtifact("a1", sourceID: "s2")]
+        store.artifactsBySource = ["s2": [catalogArtifact("a1", sourceID: "s2")]]
         await warmLists(model, session: session)
         session.apply(location: .sectionRoot(.sources))
 
@@ -777,7 +775,7 @@ struct SourcesModelTests {
         )
     }
 
-    /// T-5: the Source's one status over every mix of its graphs' statuses.
+    /// The Source's one status over every mix of its graphs' statuses.
     @Test func oneStatusPerSource() async {
         typealias Status = SourcesModel.EvidenceStatus
         #expect(Status.aggregate([]) == nil)
@@ -805,7 +803,7 @@ struct SourcesModelTests {
             )
         }
         store.graphProgressByGraph["o4"] = EvidenceGraphProgress(graphId: "o4", subjectCount: 2, observationCount: 2)
-        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()], holdsArtifacts: true)
+        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
         #expect(model.status(for: sources[0]) == nil)
         await warmLists(model, session: session)
         await warmProgress(model, session: session)
@@ -824,12 +822,12 @@ struct SourcesModelTests {
         let store = FakeStore()
         store.listEvidenceGraphsError = Boom.boom
         let sources = [source(id: "s1", title: "A", typeID: "t1", hasArtifact: true)]
-        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()], holdsArtifacts: true)
+        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
         await warmLists(model, session: session)
         #expect(model.status(for: sources[0]) == nil)
     }
 
-    /// T-5 (CON-4): while the counts load or when they failed, a Source with a graph that links an Artifact
+    /// While the counts load or when they failed, a Source with a graph that links an Artifact
     /// shows no badge; a Source whose only graph links none is Not started either way, and never waits.
     @Test func aGraphWithNoArtifactDoesNotWaitForCountsAndALinkedOneDoes() async {
         enum Boom: Error { case boom }
@@ -849,7 +847,7 @@ struct SourcesModelTests {
         let loading = store()
         loading.listEvidenceGraphProgressHold.isOn = true
         let (loadingModel, loadingSession) = makeModel(
-            store: loading, sources: sources, types: [photoType()], holdsArtifacts: true
+            store: loading, sources: sources, types: [photoType()]
         )
         await warmLists(loadingModel, session: loadingSession)
         await loading.listEvidenceGraphProgressHold.untilSuspended(1)
@@ -863,7 +861,7 @@ struct SourcesModelTests {
         let failing = store()
         failing.listEvidenceGraphProgressError = Boom.boom
         let (failedModel, failedSession) = makeModel(
-            store: failing, sources: sources, types: [photoType()], holdsArtifacts: true
+            store: failing, sources: sources, types: [photoType()]
         )
         await warmLists(failedModel, session: failedSession)
         await warmProgress(failedModel, session: failedSession)
@@ -871,7 +869,7 @@ struct SourcesModelTests {
         #expect(failedModel.status(for: sources[1]) == .empty)
     }
 
-    /// T-5: the filter keeps what the badge shows.
+    /// The filter keeps what the badge shows.
     @Test func statusFilterMatchesTheBadge() async {
         let store = FakeStore()
         let sources = [
@@ -888,7 +886,7 @@ struct SourcesModelTests {
         store.graphProgressByGraph["g-smith"] = EvidenceGraphProgress(
             graphId: "g-smith", subjectCount: 7, observationCount: 19, filedCount: 1
         )
-        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()], holdsArtifacts: true)
+        let (model, session) = makeModel(store: store, sources: sources, types: [photoType()])
         await warmLists(model, session: session)
         await warmProgress(model, session: session)
 
@@ -990,8 +988,7 @@ struct SourcesModelTests {
         }
         store.graphProgressByGraph["g-s3"] = progress("s3", subjects: 1, filed: 1)
         let (model, session) = makeModel(
-            store: store, sources: sources, types: [photoType(), bookType()],
-            holdsArtifacts: true
+            store: store, sources: sources, types: [photoType(), bookType()]
         )
         await warmLists(model, session: session)
         await warmProgress(model, session: session)
@@ -1043,8 +1040,7 @@ struct SourcesModelTests {
                 source(id: "s1", title: "A", typeID: "t1", hasArtifact: true),
                 source(id: "s2", title: "B", typeID: "t1", hasArtifact: true),
             ],
-            types: [photoType()],
-            holdsArtifacts: true
+            types: [photoType()]
         )
         model.settings.status = .empty
         #expect(model.isAwaitingFilterData)
@@ -1148,5 +1144,4 @@ extension SourcesSort {
     static let dateOldest = SourcesSort(column: .published, order: .forward)
     static let dateNewest = SourcesSort(column: .published, order: .reverse)
     static let updated = SourcesSort(column: .updated, order: .reverse)
-    static let added = SourcesSort(column: .added, order: .reverse)
 }
