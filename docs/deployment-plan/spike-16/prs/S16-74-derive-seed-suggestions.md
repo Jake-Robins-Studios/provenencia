@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § 2.3 (the suggestion rule, user 2026-11-20 and 2026-11-23); [`docs/citation-formats.md`](../../../citation-formats.md) § Needed and used; the S16-73 plan review, finding M-5 ([`S16-73-voters-list-type.review.md`](S16-73-voters-list-type.review.md)); user, 2026-11-26: "plan it first"
 **Planned:** 2026-11-26 against `origin/main` @ `0886b43` (fetch it; a local `main` may be older)
-**Review:** — (not reviewed yet)
+**Review:** [`S16-74-derive-seed-suggestions.review.md`](S16-74-derive-seed-suggestions.review.md) — round 1 answered; round 2 pending
 
 ### Implementer — read this first
 
@@ -45,7 +45,7 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 | AC-1.1 | A new project, after this PR | Every seeded type's suggestions are the lists `seedSuggestions` holds at the planning base, field for field and sort order for sort order |
 | AC-1.2 | `rg -n "seedSuggestion" core docs/*.md .agents` | No hit |
 | AC-1.3 | A seeded format that reads a field no `seedFields` row has | `Install` fails with `ErrInvalid` and leaves nothing (as a bad suggestion does today) |
-| AC-1.4 | The census type | Suggests 18 fields, `creator` first and `citing` last (the literal spot check `TestSeedSuggestionsFollowFormats` holds today) |
+| AC-1.4 | The census type | Suggests `creator` first and `citing` last; the spot check pins no count, so a format change does not edit it (today's literal is 18) |
 
 ## 3. Scope
 
@@ -70,7 +70,7 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 | Install | `core/database/sourcevocab/sourcevocab.go` `Install` | Loops `seedSuggestions`; an unknown type or field key is `ErrInvalid` |
 | The rule, in tests | `core/database/sourcevocab/registry_test.go` `derivedSuggestions`, `mustParseForm`, `TestSeedSuggestionsFollowFormats` | Derives each list from the formats and compares it with `seedSuggestions`; spot-checks census |
 | Other readers | `registry_test.go` `TestSeededFormatsNeedOnlySuggestedFields`, `TestSeedPlaceFields`; `sourcevocab_test.go` `TestInstall` ("empty catalog gets the seed", "a seed entry naming an unknown type is rejected even with no fields"), `seedSuggestionKeys` | Iterate `seedSuggestions` |
-| Docs | `docs/seeded-vocabulary.md` line 83 (`registry_suggestions.go`) and § 2.3; `.agents/skills/add-seeded-vocabulary/SKILL.md` table row, step 1's `registry_suggestions.go` bullet, step 6 | Describe the hand lists |
+| Docs | `docs/seeded-vocabulary.md` line 83 (suggestions "live in a code registry"), § 2.3 (the comparing test, "the same 18 fields"); `.agents/skills/add-seeded-vocabulary/SKILL.md` table row, step 1's `registry_suggestions.go` bullet, step 6 | Describe hand lists |
 
 **Precedent.** None of this shape in `sourcevocab`; `sourcetypes.RequirementsTx` (`core/database/sourcetypes/formats.go`) is the production caller of `citationformat.Requirements` to copy from.
 
@@ -78,11 +78,12 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 
 | ID | Decision | Why | Rejected |
 | --- | --- | --- | --- |
-| D-1 | `suggestedKeys(f sourcetypes.Formats) ([]string, error)` *(new)* in `registry_suggestions.go` holds the rule: `derivedSuggestions`' body moved, parsing with `citationformat.Parse`; a diagnostic returns `ErrInvalid` wrapped with the form | The rule's one home is beside the registry it serves; the file name stays, so the skill's map of the package stays true | `sourcetypes` — the rule is the seed's, not every type's |
-| D-2 | `Install` calls `suggestedKeys(t.Formats)` for each type right after the type's upsert and writes the list with `ensureSuggestionTx` at positions 0 to n−1, in list order; a key with no seeded field is `ErrInvalid` | One loop instead of two; the error and rollback stay as today | — |
+| D-1 | `suggestedKeys(f sourcetypes.Formats) []string` *(new)* in `registry_suggestions.go` holds the rule: `derivedSuggestions`' body moved onto `templates, _ := f.Parse()` (the one parse of a type's formats, as `sourcetypes.RequirementsTx` uses), reading `templates[FormFull]`, `[FormList]`, `[FormShort]` in that order; no error return | One parse path in the engine; `ToStored` refuses a bad format in `Install` before this runs, and `TestSeedTypes` fails one in tests | Its own `citationformat.Parse` loop with an error — a second parse and an unreachable error path; `sourcetypes` — the rule is the seed's |
+| D-2 | `Install` calls `suggestedKeys(t.Formats)` for each type right after the type's upsert and writes the list with `ensureSuggestionTx` at positions 0 to n−1, in list order. No branch of its own for a key with no seeded field: `ToStored` has already refused such a format with `unknown_field` (→ `ErrInvalid`) | One loop instead of two; an unreachable guard is dead code | Keeping today's `fieldIDs` guard — `ToStored` runs first |
 | D-3 | STEP-1 keeps `seedSuggestions` and proves the derived lists equal it in `TestInstall` before STEP-2 deletes it | Proves AC-1.1 against the hand lists rather than against the rule itself | A golden of the lists — a third copy |
-| D-4 | `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys` *(renamed)*: the census spot check, every seeded type's list has no repeat and names only seeded fields | The comparison it made is now the code | — |
-| D-5 | The "unknown type" `TestInstall` case becomes "a seed format reading an unseeded field is rejected": it swaps `seedTypes` for one type whose full format reads `{meta.no_such_field}` and keeps the rollback assertions | The case it covered (a suggestion naming no type) can no longer be written | Dropping the case — loses the rollback check |
+| D-4 | `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys` *(renamed)* (cases: § 8 T-3) | The comparison it made is now the code; `TestSeedFieldsAreRead` owns "formats read only seeded fields" | — |
+| D-5 | In STEP-1 the "unknown type" `TestInstall` case becomes "a seed format reading an unseeded field is rejected": it swaps `seedTypes` (restored by `t.Cleanup`) for `[]seedType{{Key: "bad_type", Label: "Bad", Description: "Bad.", IconKey: "type_document", Formats: sourcetypes.Formats{Full: "{meta.no_such_field}", Short: "{source.title}", List: "{source.title}"}}}` and keeps the `ErrInvalid` and rollback assertions; the error comes from `ToStored` | The case it covered (a suggestion naming no type) cannot be written once `Install` stops reading `seedSuggestions` | Dropping the case — loses the rollback check |
+| D-6 | Tests read a seeded type's list through `suggestedKeysOf(t *testing.T, typeKey string) []string` *(renamed from `seedSuggestionKeys`)*, which returns `suggestedKeys(findSeedType(t, typeKey).Formats)` | The new name stops `rg seedSuggestion` matching a live helper | Inlining it at three call sites |
 
 **Rules this plan bends.** None.
 
@@ -94,10 +95,11 @@ Each seeded Source type suggests exactly the fields its formats read (§ 2.3's r
 | --- | --- | --- | --- |
 | `suggestedKeys` *(new)* | func | `registry_test.go` `derivedSuggestions` | Moved from the test to the package, the test copy deleted |
 | `TestSuggestedKeys` *(renamed)* | test | `TestSeedSuggestionsFollowFormats` | Renamed, its comparison gone |
+| `suggestedKeysOf` *(renamed)* | test helper | `seedSuggestionKeys` | Renamed and rebased on `suggestedKeys` (D-6) |
 
 **Builds on.** `citationformat.Requirements`, the § 2.3 rule.
-**Deletes.** `seedSuggestions`, `seedSuggestion`, `derivedSuggestions`, the hand-compare in `TestSeedSuggestionsFollowFormats`, the "unknown type" case (replaced, D-5); every doc line naming them.
-**Next adds.** S16-73's type and its copy-layer change need no suggestion edits.
+**Deletes.** `seedSuggestions`, `seedSuggestion`, `derivedSuggestions` (and `registry_test.go`'s `maps` import, which only it used; `mustParseForm` stays, other tests use it), the hand-compare in `TestSeedSuggestionsFollowFormats`, the "unknown type" case (replaced, D-5), `Install`'s `fieldIDs` guard (D-2); every doc line naming them.
+**Next adds.** S16-73's type and its copy-layer change need no suggestion edits and no count edit.
 
 ### Reach
 
@@ -143,17 +145,17 @@ None — no copy.
 
 **STEP-1 — Derive in Install**
 Files: `core/database/sourcevocab/registry_suggestions.go`, `sourcevocab.go`, `registry_test.go`, `sourcevocab_test.go`. Skill: `add-seeded-vocabulary`.
-Do: add `suggestedKeys` (D-1) above `seedSuggestions`; `derivedSuggestions` calls it (keeping the test green). `Install` writes the derived lists (D-2). `seedSuggestions` stays; `TestInstall`'s "empty catalog gets the seed" still compares the installed rows with `seedSuggestions` (D-3).
+Do: add `suggestedKeys` (D-1) above `seedSuggestions`; `derivedSuggestions` returns its result. `Install` writes the derived lists (D-2). Replace the "unknown type" case per D-5. `seedSuggestions` stays; `TestInstall`'s "empty catalog gets the seed" still compares the installed rows with `seedSuggestions` (D-3).
 Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes.
 
 **STEP-2 — Delete the hand lists**
 Files: `registry_suggestions.go`, `registry.go`, `registry_test.go`, `sourcevocab_test.go`.
-Do: delete `seedSuggestions`, `seedSuggestion` and `derivedSuggestions`; the header comment of `registry.go` says the suggestions are derived in `registry_suggestions.go`. `TestInstall` compares each seeded type's rows with `suggestedKeys(st.Formats)` and checks every type has rows; D-5's case replaces the unknown-type case; `seedSuggestionKeys` returns `suggestedKeys` of `findSeedType(t, typeKey).Formats`. `TestSuggestedKeys` per D-4. `TestSeededFormatsNeedOnlySuggestedFields` and `TestSeedPlaceFields` iterate `seedTypes` with `suggestedKeys`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/sourcemetadata/... ./core/onboarding/...` passes; `rg -n "seedSuggestion\b|seedSuggestions|derivedSuggestions" core` prints nothing.
+Do: delete `seedSuggestions`, `seedSuggestion` and `derivedSuggestions`; the header comment of `registry.go` says the suggestions are derived in `registry_suggestions.go`. `TestInstall`'s two loops (registry lists, then unlisted types) become one loop over `seedTypes` comparing each type's rows with `suggestedKeysOf(t, st.Key)` and requiring a non-empty list. Rename `seedSuggestionKeys` to `suggestedKeysOf` (D-6) at its three uses. `TestSuggestedKeys` per D-4, keeping today's "no empty list" check. `TestSeededFormatsNeedOnlySuggestedFields` and `TestSeedPlaceFields` iterate `seedTypes` with `suggestedKeysOf`. Drop the unused `maps` import.
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/sourcemetadata/... ./core/onboarding/...` passes; `rg -n "seedSuggestion|derivedSuggestions" core` prints nothing.
 
 **STEP-3 — Docs**
 Files: `docs/seeded-vocabulary.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan.
-Do: `seeded-vocabulary.md` § 2.3: "The seed lists each type's fields as one list, derived from the type's formats in first-read order:" becomes "`Install` derives each seeded type's list from its formats (`suggestedKeys`), in first-read order:", and "`TestSeedSuggestionsFollowFormats` derives the lists from the formats and fails on any difference, in order, and" becomes "`TestSuggestedKeys` pins the census list, and". Skill: the table row's `seedSuggestions` becomes "suggestions derived from the formats"; step 1's `registry_suggestions.go` bullet becomes "`registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own"; step 6's `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys`. After the PR is open: this plan Landed, the map row `Landed #N`, a `completed.md` entry ("Seeded types' suggested fields are derived from their formats at install; new projects get the same rows").
+Do: `seeded-vocabulary.md` line 83: "Product-seeded Source types/fields/suggestions live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`, `registry_suggestions.go`)" → "Product-seeded Source types and fields live in a **code registry** (`core/database/sourcevocab/registry.go`, `registry_fields.go`), and `Install` derives each type's suggestions from its formats (`registry_suggestions.go` `suggestedKeys`, § 2.3)"; "and each type's suggested fields, one list per type" stays. § 2.3: "The seed lists each type's fields as one list, derived from the type's formats in first-read order:" becomes "`Install` derives each seeded type's list from its formats (`suggestedKeys`), in first-read order:", "`TestSeedSuggestionsFollowFormats` derives the lists from the formats and fails on any difference, in order, and" becomes "`TestSuggestedKeys` checks each list, and"; "all offer the same 18 fields" → "all offer the same fields". Skill: the table row's `seedSuggestions` becomes "suggestions derived from the formats"; step 1's `registry_suggestions.go` bullet becomes "`registry_suggestions.go` `suggestedKeys` — derives each type's suggested fields from its formats (§ 2.3); a type needs no list of its own"; step 6's `TestSeedSuggestionsFollowFormats` becomes `TestSuggestedKeys`. After the PR is open: this plan Landed, the map row `Landed #N`, a `completed.md` entry ("Seeded types' suggested fields are derived from their formats at install; new projects get the same rows").
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-74-derive-seed-suggestions.md` passes.
 
 Commits: one per behavior. The subject is one full imperative sentence ending in a period ("Derive each seeded type's suggested fields from its formats at install.").
@@ -163,8 +165,8 @@ Commits: one per behavior. The subject is one full imperative sentence ending in
 | ID | Layer | File · test | Case: input → expected | Covers |
 | --- | --- | --- | --- | --- |
 | T-1 | Go | `sourcevocab_test.go` `TestInstall` "empty catalog gets the seed" | STEP-1: rows equal `seedSuggestions`; STEP-2: rows equal `suggestedKeys` per type | AC-1.1, D-3 |
-| T-2 | Go | `sourcevocab_test.go` `TestInstall` "a seed format reading an unseeded field is rejected" *(new)* | One type reading `{meta.no_such_field}` → `ErrInvalid`, no fields or types left | AC-1.3, D-5 |
-| T-3 | Go | `registry_test.go` `TestSuggestedKeys` *(renamed)* | census → 18, `creator` first, `citing` last; each type: no repeat, only seeded keys | AC-1.4, D-4 |
+| T-2 | Go | `sourcevocab_test.go` `TestInstall` "a seed format reading an unseeded field is rejected" *(new)* | D-5's type → `ErrInvalid`, no fields or types left | AC-1.3, D-2, D-5 |
+| T-3 | Go | `registry_test.go` `TestSuggestedKeys` *(renamed)* | census: `creator` first, `citing` last, no count; each type: not empty, no repeat | AC-1.4, D-4 |
 | T-4 | Go | `sourcemetadata_test.go` `TestSeedAnnotations` | Unchanged and green | AC-1.1 |
 
 Must stay green: everything `scripts/check-pr.sh` runs.
@@ -190,7 +192,7 @@ Must stay green: everything `scripts/check-pr.sh` runs.
 
 ## 10. Manual check
 
-1. Create a new project. Open the Census Source type: it suggests the same 18 fields in the same order as before, `creator` first and `citing` last.
+1. Create a new project. Open the Census Source type: it suggests the same 18 fields in the same order as before this PR, `creator` first and `citing` last.
 2. AC-1.2: `rg -n "seedSuggestion" core docs/*.md .agents` prints nothing.
 
 ## 11. Risks and stop conditions

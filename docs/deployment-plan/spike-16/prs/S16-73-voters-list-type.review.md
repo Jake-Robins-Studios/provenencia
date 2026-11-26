@@ -1,7 +1,7 @@
 # Review — S16-73 A seeded Voters list type cites a voter list down to the entry
 
-**Verdict:** Round 1 — Maintainability: Fits with changes. Executability: Ready with changes. One blocker (X-1), fixed.
-**Rounds:** 1 so far. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
+**Verdict:** Fits with changes · Ready with changes, two rounds; no blocker open; To user answered (2026-11-26).
+**Rounds:** 2. **Reviewers:** maintainability (opus), executability (sonnet) ([`review-plan`](../../../../.agents/skills/review-plan/SKILL.md)).
 
 ## To user
 
@@ -62,3 +62,27 @@
 
 ### M-7 · nit · D-11 restates Codebase fit
 **Answer:** Fixed. D-11 points at Codebase fit.
+
+## Round 2
+
+Fresh reviewers had the plan and this log: maintainability (opus) gave Fits with changes, and executability (sonnet) gave Ready with changes. Both confirmed that every round-1 answer holds.
+
+### M-8 / X-1 (round 2) · blocker · STEP-2 breaks S16-74's census count of 18
+**Answer:** Fixed in S16-74. Its `TestSuggestedKeys` now pins `creator` first, `citing` last and no count, and § 2.3 drops "18" (S16-74 M-4, option A). S16-73's STEP-2 says the test stays green, and a stop condition catches a census list without `database_title` before `format`.
+
+### X-2 (round 2) · major · The version bump has no step
+**Answer:** Fixed. STEP-5 moves `VERSION`, `core/version.go` and every `MARKETING_VERSION` to the next minor.
+
+### X-3 (round 2) · minor · Stale step references after the renumbering
+**Answer:** Fixed. The golden folds into STEP-3, so the steps are 1 to 5. Scope, T-8, T-10 and the stop conditions use the new numbers.
+
+### X-4 (round 2) · minor · STEP-3 ended red
+**Answer:** Fixed. STEP-3 runs `-update` itself and ends green.
+
+### X-5 (round 2) · minor · `seedRenderer` choices
+**Answer:** Fixed. One catalog closed by `t.Cleanup`, the key map built once, and the type and formats looked up per call.
+
+### Below the bar · `docs/seeded-vocabulary.md:91` points at the Spike 15 map's formats
+**Answer:** Logged, not fixed here. That map's formats have drifted from `registry.go` since #967. Repointing the line is a docs fix for a later pass and does not bear on this PR.
+
+**Final verdict:** Fits with changes · Ready with changes, two rounds; no blocker open; To user answered (M-2, M-5).

@@ -13,7 +13,7 @@
 **Rules that bind:** `.cursor/rules/go-tests.mdc`
 **Context:** [`docs/citation-formats.md`](../../../citation-formats.md) (syntax, groups, nearest-level reads); [`docs/seeded-vocabulary.md`](../../../seeded-vocabulary.md) § Implementation, § 2.1, § 2.2; [Spike 15 citation map](../../spike-15/evidence-explained-citation-map.md) chapter 9 ("Voter registrations and poll books") and § 6.8; working rules "(Batch 6) A seeded citation format is written to find the record again" and the Spike 15 rule "The seed is the product default"
 **Planned:** 2026-11-26 against `origin/main` @ `0886b43` (fetch it; a local `main` may be older), with S16-74 as planned; the Suggestions rows of § 4 are refreshed when it lands
-**Review:** [`S16-73-voters-list-type.review.md`](S16-73-voters-list-type.review.md) — round 1: Fits with changes · Ready with changes; blocker X-1 fixed; round 2 pending
+**Review:** [`S16-73-voters-list-type.review.md`](S16-73-voters-list-type.review.md) — Fits with changes · Ready with changes, 2 rounds; no blocker open; To user answered
 
 ### Implementer — read this first
 
@@ -77,11 +77,11 @@ Every record type's online copy prints from one shared copy layer that adds the 
 
 | In | Covered by |
 | --- | --- |
-| Seeded type `voters_list` with its three formats | STEP-2, AC-1.1 – AC-2.3 |
+| Seeded type `voters_list` with its three formats | STEP-3, AC-1.1 – AC-2.3 |
 | Seeded fields `election`, `electoral_district`, `polling_division` | STEP-1, AC-3.3 |
-| The type's suggestion list | STEP-2, AC-3.1 |
+| The type's suggestion list (derived) | STEP-3, AC-3.1 |
 | One shared copy layer with the database title, used by every record type's full format | STEP-2, AC-4.1 – AC-4.4 |
-| Golden render, literal country renders, registry and board tests | STEP-3, STEP-4 |
+| Golden render, literal country renders, registry and board tests | STEP-2, STEP-3, STEP-4 |
 | Seeded vocabulary doc, citation map rows, the format rule in `add-seeded-vocabulary` | STEP-5 |
 
 | Out | Home |
@@ -158,7 +158,7 @@ None — 27 types and 72 fields install once at create; no list or loop changes.
 ### Edges
 
 - **Assumptions.** `suggestedKeys` (S16-74) derives suggestions in first-read order; `TestSeedFieldsAreRead` requires every field read or listed in `unreadFields`; `TestSeedAnnotations` requires a row per seeded type; `TestSeedPlaceFields` allows `jurisdiction` only on government records. Each gains the new type (§ 8).
-- **Neighbors.** The copy layer changes exactly the twelve full-fixture full lines (AC-4.2, STEP-2 check); the bare lines have no copy and stay. The new fixture values are read by no other format, so the type step adds lines and changes none (STEP-4 check).
+- **Neighbors.** The copy layer changes exactly the twelve full-fixture full lines (AC-4.2, STEP-2 check); the bare lines have no copy and stay. The new fixture values are read by no other format, so the type step adds lines and changes none (STEP-3 check).
 - **Removed inputs.** An empty group drops with its punctuation; AC-2.1 (no page, reference or group) and AC-2.2 (no district, no database title) pin it. An empty `collection` falls to the Source title (AC-2.3).
 - **Real data.** The golden renders the type in all three forms from the full and the bare fixture; the country table renders three real-shaped lists.
 - **Untrusted size.** None — seeds are product data.
@@ -214,30 +214,26 @@ Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/...` passes
 
 **STEP-2 — One copy layer with the database title**
 Files: `core/database/sourcevocab/registry.go`, `registry_test.go`, `render_test.go`, `core/database/sourcevocab/testdata/seed-citations.txt`.
-Do: add `copyLayer` (D-7, D-10) and replace each of the ten hand copies with it (each format string splits at the old clause and joins `copyLayer`). In `registry_test.go`, `unreadFields` loses `database_title`. In `TestSeedCitations` the literal census full line becomes AC-4.1's text. Run `CGO_ENABLED=1 go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update`.
+Do: add `copyLayer` (D-7, D-10) and replace each of the ten hand copies with it (each format string splits at the old clause and joins `copyLayer`). In `registry_test.go`, `unreadFields` loses `database_title`. In `TestSeedCitations` the literal census full line becomes AC-4.1's text. Census now suggests `database_title` before `format`; `TestSuggestedKeys` (S16-74) pins no count, only `creator` first and `citing` last, so it stays green. Run `CGO_ENABLED=1 go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update`.
 Check: `git diff core/database/sourcevocab/testdata/seed-citations.txt` shows the twelve changed lines of AC-4.2 and no other; `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/sourcemetadata/... ./core/database/citationrender/...` passes.
 
-**STEP-3 — Seed the type and its formats**
-Files: `registry.go`, `registry_test.go`, `sourcevocab_test.go`, `render_test.go` (`fixtureTitles`), `core/database/citationrender/placeholders_test.go`, `core/database/sourcemetadata/sourcemetadata_test.go`.
+**STEP-3 — Seed the type, its formats and its golden**
+Files: `registry.go`, `registry_test.go`, `sourcevocab_test.go`, `render_test.go` (`fixtureTitles`), `core/database/sourcevocab/testdata/seed-citations.txt`, `core/database/citationrender/placeholders_test.go`, `core/database/sourcemetadata/sourcemetadata_test.go`.
 Do: add `voters_list` (D-1, D-10) with the formats of **Go core**; its suggestions are derived (AC-3.1). In `registry_test.go`: `unreadFields` holds only `record_id` and its comment says so; `TestSeedPlaceFields` maps `voters_list` to `jurisdiction`. `TestInstall`'s condition and message read 27 and 72; `placeholders_test.go` stops restating the count: `len(types) != 26` becomes `len(types) == 0` with `t.Fatal("no seeded types")`, since its subtest checks that each type's formats load. `TestSeedAnnotations`'s closing totals become `neededAtSource != 34 || neededBelow != 2*(34-4) || unsuggested != 30 || dates != 5`, and its message "needed %d (want 34), needed below %d (60), unsuggested heads %d (30), needed dates %d (5)" (the row adds 3 needed, 3 on each of the two lower boards, 1 unsuggested head, no date). `fixtureTitles["voters_list"] = "Poll book of Calder North, 1882"`. `seedExpectations["voters_list"] = {needed: []string{"jurisdiction", "election", "repository"}, unsug: []string{"coverage:used"}}`.
-Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/... ./core/database/sourcemetadata/...` passes except `TestSeedCitations` (six new lines, STEP-4).
+Check: `CGO_ENABLED=1 go test -tags fts5 ./core/database/sourcevocab/... ./core/database/citationrender/... ./core/database/sourcemetadata/...` passes once the golden is rewritten: `CGO_ENABLED=1 go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update`. `git diff --stat` on `core/database/sourcevocab/testdata/seed-citations.txt`, against STEP-2's commit, shows 6 insertions and 0 deletions, after the `passenger_list` lines; the `voters_list full full` line reads `Calder County, Westmark, 1882 general election, Calder North, polling division 7, vol. 3, p. 14, line 14, no. 57, Ada Robins; Venn Family Papers, MS 1123, Record Group 45, Calder County Archives, Port Ellis; film 1022345; "Calder County Censuses, 1850–1900," digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025).`
 
-**STEP-4 — Golden for the type**
-Files: `core/database/sourcevocab/testdata/seed-citations.txt`.
-Do: `CGO_ENABLED=1 go test -tags fts5 -run TestSeedCitations ./core/database/sourcevocab -update`.
-Check: `git diff --stat` on the file, against STEP-2's commit, shows 6 insertions and 0 deletions, after the `passenger_list` lines; the `voters_list full full` line reads `Calder County, Westmark, 1882 general election, Calder North, polling division 7, vol. 3, p. 14, line 14, no. 57, Ada Robins; Venn Family Papers, MS 1123, Record Group 45, Calder County Archives, Port Ellis; film 1022345; "Calder County Censuses, 1850–1900," digital image, *Westmark Heritage* (https://example.org/calder/1880 : accessed 12 March 2025).`
-
-**STEP-5 — The country renders**
+**STEP-4 — The country renders**
 Files: `core/database/sourcevocab/render_test.go`.
-Do: move `TestSeedCitations`'s setup (create, `install`, the field id → key map, `sourcetypes.Lookup` per seeded type, `storedFormats`, `Parse`, `Render`, `plainWithItalics`) into `seedRenderer(t *testing.T) func(typeKey string, fx fixture, form citationformat.Form) string` *(new)* in `render_test.go`; it fills `fx.keys` itself and fails the test on a diagnostic. `TestSeedCitations` renders through it, its lines and literal census block unchanged. Add `values map[string]string` to `fixture`: when non-nil, `Resolve` answers a metadata field from it by key (a key it lacks answers `citationformat.Value{}`), ignores `bare`, `noPage` and the per-type creator, and built-ins answer as today. Add `TestVotersListCitations` *(new)*, table-driven over T-1 – T-4, through `seedRenderer`: each case's listed forms compare with the AC text exactly; T-4 also asserts the full form contains its substring.
-Check: `CGO_ENABLED=1 go test -tags fts5 -run 'TestVotersListCitations|TestSeedCitations' ./core/database/sourcevocab` passes, and `git diff` on `core/database/sourcevocab/testdata/seed-citations.txt` is empty after STEP-4's commit.
+Do: move `TestSeedCitations`'s setup (create, `install`, the field id → key map, `sourcetypes.Lookup` per seeded type, `storedFormats`, `Parse`, `Render`, `plainWithItalics`) into `seedRenderer(t *testing.T) func(typeKey string, fx fixture, form citationformat.Form) string` *(new)* in `render_test.go`; it creates and installs one catalog (closed by `t.Cleanup`), builds the key map once, looks up the type and its stored formats on each call, fills `fx.keys` itself and fails the test on a diagnostic. `TestSeedCitations` renders through it, its lines and literal census block unchanged. Add `values map[string]string` to `fixture`: when non-nil, `Resolve` answers a metadata field from it by key (a key it lacks answers `citationformat.Value{}`), ignores `bare`, `noPage` and the per-type creator, and built-ins answer as today. Add `TestVotersListCitations` *(new)*, table-driven over T-1 – T-4, through `seedRenderer`: each case's listed forms compare with the AC text exactly; T-4 also asserts the full form contains its substring.
+Check: `CGO_ENABLED=1 go test -tags fts5 -run 'TestVotersListCitations|TestSeedCitations' ./core/database/sourcevocab` passes, and `git diff` on `core/database/sourcevocab/testdata/seed-citations.txt` is empty after STEP-3's commit.
 
-**STEP-6 — Docs**
+**STEP-5 — Docs and version**
 Files: `docs/seeded-vocabulary.md`, `.agents/skills/add-seeded-vocabulary/SKILL.md`, `docs/deployment-plan/spike-15/evidence-explained-citation-map.md`, `docs/deployment-plan/spike-16/completed.md`, `docs/deployment-plan/spike-16/deployment-plan.md` (map row), this plan.
 Do:
 - `docs/seeded-vocabulary.md` line 83: "26 types" → "27 types"; "69 fields" → "72 fields"; "The 69 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus four place fields" → "The 72 are the map's 64, plus `subdistrict` for a census sub-district (Canada), printed after the enumeration district when set (user, 2026-11-24), plus `election`, `electoral_district` and `polling_division` for the voters list, whose values carry the list's own words (user, 2026-11-26), plus four place fields"; the government-records parenthesis "(census, the three certificates, record book, case file, statute)" gains "voters list" after "record book". § 2.1: `voters_list` after `passenger_list`. § 2.2: the three keys on the `source` line after `subdistrict`; after its sentence "`url` and `accessed_date` describe the copy a researcher used; the bytes of a capture still live on an Artifact/File." add "Every record type's full format prints that copy through one shared clause, `copyLayer` in `registry.go`: `\"database title,\" format, *provider* (url : accessed date)`, each part when set (user, 2026-11-26)."
 - `docs/deployment-plan/spike-15/evidence-explained-citation-map.md`: the chapter 9 row "Voter registrations and poll books | P2 | |" becomes "Voter registrations and poll books | `voters_list` (P2, national variant) | Election, electoral district, polling division, page, entry; series, reference, record group, archive"; in § 6.8 "Source types", "26 types." → "27 types." and a row after `passenger_list`: "| `voters_list` | Voters list | P2 (national) | Voters lists, poll books, registers of electors, great registers |". Leave the rest of that file alone: § 6.8 "Existing infrastructure" (the 64 fields and 26 types it planned), "Fields" ("64 fields", its table) and the Spike 15 `README.md` and `deployment-plan.md` are Spike 15's record of what it planned, as #967 left them.
 - `.agents/skills/add-seeded-vocabulary/SKILL.md` § Source vocabulary, step 1, after the `seedTypes` bullet: "A record type's full format reads general to specific: every locator from the jurisdiction down to the entry, then the archive that holds the original, then the copy the researcher viewed, through the shared `copyLayer`. Where a level's word differs by country (district, ward, precinct), the value carries the record's word and the format adds none. A type built for a real record also gets literal renders of that record beside the golden, through `seedRenderer` (`TestVotersListCitations`). Rule: Spike 16 \"(Batch 6) A seeded citation format is written to find the record again\"."
+- Version: `VERSION`, `core/version.go` `Version` and every `MARKETING_VERSION` in `macos/Provenencia.xcodeproj/project.pbxproj` move to the next minor of `origin/main`'s `VERSION` at the time (0.44.0 from 0.43.0), in one commit.
 - After the PR is open: this plan's status "Landed in [#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N) (date)" with a Landed note; the map row's status `Landed #N`; `completed.md` gets `## S16-73 — A seeded Voters list type cites a voter list down to the entry` above the newest entry, then `**Landed <date>** in [#N](https://github.com/Jake-Robins-Studios/provenencia/pull/N).` and two sentences: new projects seed a Voters list type whose citation names the election, district, polling division, page and entry, then the archive, then the copy, in any country's words; every record type's citation prints the online database's title with the copy.
 Check: `python3 scripts/check-plan-docs.py docs/deployment-plan/spike-16/prs/S16-73-voters-list-type.md` passes; links resolve.
 
@@ -251,12 +247,12 @@ Commits: one per behavior. The subject is one full imperative sentence that says
 | T-2 | Go | same, case "register of electors" | AC-2.1's values → its full and list texts | AC-2.1, D-2 |
 | T-3 | Go | same, case "great register" | AC-2.2's values → its full and short texts | AC-2.2, D-2 |
 | T-4 | Go | same, case "no collection" | AC-1.1's values without `collection`; the Source title is the fixture's `fixtureTitles["voters_list"]`, "Poll book of Calder North, 1882" → full contains `Ada Robins; Poll book of Calder North, 1882, R1003-6-3-E`; list is `Canada. Poll book of Calder North, 1882. R1003-6-3-E. Record Group 113-B. Library and Archives Canada, Ottawa.` | AC-2.3 |
-| T-5 | Go | `render_test.go` `TestSeedCitations` + golden | STEP-2: the twelve copy lines and the literal census line (AC-4.1); STEP-4: six `voters_list` lines, nothing else | AC-4.1, AC-4.2, D-7, D-9, D-10 |
-| T-10 | Go | `TestVotersListCitations` cases T-3 (no database title) and the golden's bare lines | No title → the copy prints as before | AC-4.3 |
+| T-5 | Go | `render_test.go` `TestSeedCitations` + golden | STEP-2: the twelve copy lines and the literal census line (AC-4.1); STEP-3: six `voters_list` lines, nothing else | AC-4.1, AC-4.2, D-7, D-9, D-10 |
 | T-6 | Go | `registry_test.go` `TestSuggestedKeys`, `TestSeedFieldsAreRead`, `TestSeedTypes`, `TestSeededFormatsNeedOnlySuggestedFields`, `TestSeedPlaceFields` | The new type and fields pass every registry rule; the twelve types' derived lists hold `database_title` before `format` | AC-3.1, AC-4.4 |
 | T-7 | Go | `sourcevocab_test.go` `TestInstall` | 27 types, 72 fields installed | AC-3.3 |
 | T-9 | Go | `core/database/citationrender/placeholders_test.go` | Every seeded type's formats load, the voters list among them; no count | AC-3.3 |
-| T-8 | Go | `core/database/sourcemetadata/sourcemetadata_test.go` `TestSeedAnnotations` | `voters_list` row of STEP-2 | AC-3.2 |
+| T-8 | Go | `core/database/sourcemetadata/sourcemetadata_test.go` `TestSeedAnnotations` | `voters_list` row of STEP-3 | AC-3.2 |
+| T-10 | Go | `TestVotersListCitations` case "great register" (AC-2.2, no database title) and the golden's bare lines | No title → the copy prints as before | AC-4.3 |
 
 Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `TestSeedAnnotations`, `placeholders_test.go`.
 
@@ -296,11 +292,11 @@ Must stay green: everything `scripts/check-pr.sh` runs. Most likely to break: `T
 
 **Stop and report if:**
 
-- `suggestedKeys` derives a list other than AC-3.1's for `voters_list`.
+- `suggestedKeys` derives a list other than AC-3.1's for `voters_list`, or a census list without `database_title` just before `format`.
 - S16-74 has not landed, or landed without `suggestedKeys`.
 - STEP-2's `-update` changes a line other than AC-4.2's twelve.
 - `TestSeedAnnotations` measures a `voters_list` row other than STEP-2's.
-- STEP-4's `-update` changes any line that is not a `voters_list` line.
+- STEP-3's `-update` changes any line that is not a `voters_list` line.
 - A render of T-1 – T-4 differs from its AC text.
 - `sourcetypes.ValidIconKeys` no longer holds `type_document`.
 
